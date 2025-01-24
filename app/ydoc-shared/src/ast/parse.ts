@@ -145,7 +145,7 @@ class Abstractor {
     let node: Owned
     switch (tree.type) {
       case RawAst.Tree.Type.BodyBlock: {
-        const lines = Array.from(tree.statements, line => {
+        const lines = Array.from(tree.statements, (line) => {
           const newline = this.abstractToken(line.newline)
           const statement = line.expression ? this.abstractStatement(line.expression) : undefined
           return { newline, statement }
@@ -258,7 +258,7 @@ class Abstractor {
       case RawAst.Tree.Type.TextLiteral: {
         const open = tree.open ? this.abstractToken(tree.open) : undefined
         const newline = tree.newline ? this.abstractToken(tree.newline) : undefined
-        const elements = Array.from(tree.elements, raw => this.abstractTextElement(raw))
+        const elements = Array.from(tree.elements, (raw) => this.abstractTextElement(raw))
         const close = tree.close ? this.abstractToken(tree.close) : undefined
         node = TextLiteral.concrete(this.module, open, newline, elements, close)
         break
@@ -316,7 +316,7 @@ class Abstractor {
     const { markdown: docMarkdown, hash: docLineMarkdownHash } = abstractMarkdown(
       docLine?.docs.elements,
     )
-    const annotationLines = Array.from(tree.annotationLines, anno => ({
+    const annotationLines = Array.from(tree.annotationLines, (anno) => ({
       annotation: {
         operator: this.abstractToken(anno.annotation.operator),
         annotation: this.abstractToken(anno.annotation.annotation),
@@ -330,7 +330,7 @@ class Abstractor {
     }
     const private_ = tree.private && this.abstractToken(tree.private)
     const name = this.abstractExpression(tree.name)
-    const argumentDefinitions = Array.from(tree.args, arg => ({
+    const argumentDefinitions = Array.from(tree.args, (arg) => ({
       open: arg.open && this.abstractToken(arg.open),
       open2: arg.open2 && this.abstractToken(arg.open2),
       suspension: arg.suspension && this.abstractToken(arg.suspension),
@@ -506,7 +506,7 @@ export function parseModuleWithSpans(
 /** Return the number of `Ast`s in the tree, including the provided root. */
 export function astCount(ast: Ast): number {
   let count = 0
-  ast.visitRecursive(_subtree => {
+  ast.visitRecursive((_subtree) => {
     count += 1
   })
   return count

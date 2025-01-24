@@ -1,5 +1,5 @@
-minimum-launcher-version: 2024.5.1-rc1
-minimum-project-manager-version: 2024.5.1-rc1
+minimum-launcher-version: 2024.5.1-nightly.2024.11.29
+minimum-project-manager-version: 2024.5.1-nightly.2024.11.29
 jvm-options:
   - value: "-Dgraal.PrintGraph=Network"
   - value: "--add-opens=java.base/java.nio=ALL-UNNAMED"

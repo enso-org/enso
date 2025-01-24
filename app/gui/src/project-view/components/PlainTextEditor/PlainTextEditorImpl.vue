@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import CodeMirror from '@/components/CodeMirror.vue'
+import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { linkifyUrls } from '@/components/PlainTextEditor/linkifyUrls'
-import VueComponentHost from '@/components/VueComponentHost.vue'
+import VueHostRender, { VueHost } from '@/components/VueHostRender.vue'
 import { useCodeMirror } from '@/util/codemirror'
 import { useLinkTitles } from '@/util/codemirror/links'
-import { type ComponentInstance, useTemplateRef } from 'vue'
+import { useTemplateRef, type ComponentInstance } from 'vue'
 import * as Y from 'yjs'
 
 const { content } = defineProps<{ content: Y.Text | string }>()
 
-const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirror>>('editorRoot')
-const vueHost = useTemplateRef<InstanceType<typeof VueComponentHost>>('vueHost')
+const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
+const vueHost = new VueHost()
 const { editorView, readonly, contentElement } = useCodeMirror(editorRoot, {
   content: () => content,
   extensions: [linkifyUrls],
-  vueHost: () => vueHost.value || undefined,
+  vueHost: () => vueHost,
 })
 
 useLinkTitles(editorView, { readonly })
@@ -25,8 +25,8 @@ defineExpose({
 </script>
 
 <template>
-  <CodeMirror ref="editorRoot" v-bind="$attrs" />
-  <VueComponentHost ref="vueHost" />
+  <CodeMirrorRoot ref="editorRoot" v-bind="$attrs" />
+  <VueHostRender :host="vueHost" />
 </template>
 
 <style scoped>

@@ -310,8 +310,8 @@ object JPMSPlugin extends AutoPlugin {
     internalModuleDeps: Seq[File],
     classPath: Def.Classpath,
     logger: ManagedLogger,
-    scalaBinaryVersion: String,
-    currProjName: String
+    currProjName: String,
+    scalaBinaryVersion: String
   ): Seq[File] = {
     moduleDeps.foreach { moduleDep =>
       if (moduleDep.organization == "org.enso") {

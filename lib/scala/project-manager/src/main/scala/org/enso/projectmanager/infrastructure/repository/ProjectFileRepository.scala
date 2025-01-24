@@ -367,9 +367,9 @@ class ProjectFileRepository[
     Traverse[List].traverse(clashing) { case (isClashing, project) =>
       if (isClashing) {
         for {
-          newId <- gen.randomUUID()
-          updatedProject = project.copy(id = newId)
-          _ <- update(updatedProject)
+          newId          <- gen.randomUUID()
+          updatedProject <- Applicative[F].pure(project.copy(id = newId))
+          _              <- update(updatedProject)
         } yield updatedProject
       } else {
         Applicative[F].pure(project)

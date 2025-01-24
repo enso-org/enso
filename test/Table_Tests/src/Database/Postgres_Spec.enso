@@ -1063,6 +1063,13 @@ add_data_link_specs suite_builder =
             r3 = data_link_file.get.with_input_stream [File_Access.Read, Data_Link_Access.No_Follow] .read_all_bytes
             r3.should_be_a Vector
 
+            # The Postgres connection is neither a directory nor a file:
+            data_link_file.get.is_directory . should_be_false
+            data_link_file.get.is_regular_file . should_be_false
+
+            # We also cannot check its size
+            data_link_file.get.size.should_fail_with Illegal_Argument
+
         ## datalink support
         group_builder.specify "does not allow to write 'byte' data to a database data link" <|
             r = "foobar".write data_link_file.get

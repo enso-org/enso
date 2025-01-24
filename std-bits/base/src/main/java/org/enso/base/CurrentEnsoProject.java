@@ -22,26 +22,28 @@ public final class CurrentEnsoProject {
     if (!isCached) {
       Value ensoProject =
           EnsoMeta.callStaticModuleMethod("Standard.Base.Meta.Enso_Project", "enso_project");
-      if (ensoProject.hasMember("name")
-          && ensoProject.hasMember("namespace")
-          && ensoProject.hasMember("root_path")) {
-        Value namespace = ensoProject.invokeMember("namespace");
-        Value name = ensoProject.invokeMember("name");
-        Value rootPath = ensoProject.invokeMember("root_path");
-        if (namespace == null || name == null || rootPath == null) {
-          cached = null;
-        } else {
-          cached =
-              new CurrentEnsoProject(name.asString(), namespace.asString(), rootPath.asString());
-        }
-      } else {
+      Value namespace = invokeMember("namespace", ensoProject);
+      Value name = invokeMember("name", ensoProject);
+      Value rootPath = invokeMember("path", invokeMember("root", ensoProject));
+      if (namespace == null || name == null || rootPath == null) {
         cached = null;
+      } else {
+        cached = new CurrentEnsoProject(name.asString(), namespace.asString(), rootPath.asString());
       }
 
       isCached = true;
     }
 
     return cached;
+  }
+
+  private static Value invokeMember(String member, Value object, Object... args) {
+    var meta = object.getMetaObject();
+    if (meta.hasMember(member)) {
+      return meta.invokeMember(member, object, args);
+    } else {
+      return null;
+    }
   }
 
   public String getName() {

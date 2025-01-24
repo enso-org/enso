@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useApproach } from '@/composables/animation'
 import { useDoubleClick } from '@/composables/doubleClick'
+import { useGraphEditorState } from '@/providers/graphEditorState'
 import { useGraphStore, type NodeId } from '@/stores/graph'
 import { isDef } from '@vueuse/core'
 import { setIfUndefined } from 'lib0/map'
@@ -14,12 +15,14 @@ import {
   type EffectScope,
 } from 'vue'
 import type { AstId } from 'ydoc-shared/ast'
+import CreateNodeFromPortButton from './CreateNodeFromPortButton.vue'
 
 const props = defineProps<{ nodeId: NodeId; forceVisible: boolean }>()
 
 const emit = defineEmits<{
   portClick: [event: PointerEvent, portId: AstId]
   portDoubleClick: [event: PointerEvent, portId: AstId]
+  newNodeClick: [portId: AstId]
   'update:hoverAnim': [progress: number]
   'update:nodeHovered': [hovered: boolean]
 }>()
@@ -42,6 +45,8 @@ const outputPortsSet = computed(() => {
   }
   return bindings
 })
+
+const { componentBrowserOpened } = useGraphEditorState()
 
 const outputPorts = computed((): PortData[] => {
   const ports = outputPortsSet.value
@@ -122,6 +127,7 @@ function portGroupStyle(port: PortData) {
     '--direct-hover-animation': hoverAnimations.get(port.portId)?.[0].value ?? 0,
     '--port-clip-start': start,
     '--port-clip-end': end,
+    '--port-label-transform-x': `calc(${((end - start) / 2 + start) * 100}%)`,
     transform: 'var(--output-port-transform)',
   }
 }
@@ -144,6 +150,11 @@ graph.suggestEdgeFromOutput(outputHovered)
         <rect class="outputPort" />
       </g>
       <text class="outputPortLabel">{{ port.label }}</text>
+      <CreateNodeFromPortButton
+        v-if="!componentBrowserOpened"
+        :portId="port.portId"
+        @click="emit('newNodeClick', port.portId)"
+      />
     </g>
   </template>
 </template>
@@ -205,6 +216,9 @@ graph.suggestEdgeFromOutput(outputHovered)
   text-anchor: middle;
   opacity: calc(var(--hover-animation) * var(--hover-animation));
   fill: var(--color-node-primary);
-  transform: translate(50%, calc(var(--node-size-y) + var(--output-port-max-width) + 16px));
+  transform: translate(
+    var(--port-label-transform-x),
+    calc(var(--node-size-y) + var(--output-port-max-width) + 16px)
+  );
 }
 </style>

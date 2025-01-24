@@ -1,13 +1,13 @@
 import { textEditorsBindings } from '@/bindings'
-import CodeMirror from '@/components/CodeMirror.vue'
-import { type VueHost } from '@/components/VueComponentHost.vue'
+import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
+import { type VueHost } from '@/components/VueHostRender.vue'
 import { injectKeyboard } from '@/providers/keyboard'
 import { useCompartment, useDispatch, useStateEffect } from '@/util/codemirror/reactivity'
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { yCollab } from '@/util/codemirror/yCollab'
 import { elementHierarchy } from '@/util/dom'
 import { ToValue } from '@/util/reactivity'
-import { Compartment, EditorState, Extension, Text } from '@codemirror/state'
+import { Compartment, EditorState, type Extension, Text } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
 import {
@@ -31,7 +31,7 @@ disableEditContextApi()
 
 /** Creates a CodeMirror editor instance, and sets its initial state. */
 export function useCodeMirror(
-  editorRoot: ToValue<ComponentInstance<typeof CodeMirror> | null>,
+  editorRoot: ToValue<ComponentInstance<typeof CodeMirrorRoot> | null>,
   {
     content,
     extensions,
@@ -40,7 +40,7 @@ export function useCodeMirror(
     /** If a value is provided, the editor state will be synchronized with it. */
     content?: ToValue<string | Y.Text>
     /** CodeMirror {@link Extension}s to include in the editor's initial state. */
-    extensions?: Extension[]
+    extensions?: Extension
     /** If a value is provided, it will be made available to extensions that render Vue components. */
     vueHost?: WatchSource<VueHost | undefined>
   },

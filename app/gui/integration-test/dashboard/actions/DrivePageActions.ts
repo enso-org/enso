@@ -1,60 +1,94 @@
 /** @file Actions for the "drive" page. */
-import * as test from 'playwright/test'
+import { expect, type Locator, type Page } from '@playwright/test'
 
-import {
-  locateAssetPanel,
-  locateAssetsTable,
-  locateContextMenus,
-  locateCreateButton,
-  locateDriveView,
-  locateNewSecretIcon,
-  locateNonAssetRows,
-  locateSecretNameInput,
-  locateSecretValueInput,
-  TEXT,
-} from '.'
-import type * as baseActions from './BaseActions'
-import * as contextMenuActions from './contextMenuActions'
-import * as goToPageActions from './goToPageActions'
+import { TEXT } from '.'
+import type { LocatorCallback } from './BaseActions'
+import { contextMenuActions } from './contextMenuActions'
+import EditorPageActions from './EditorPageActions'
+import { goToPageActions, type GoToPageActions } from './goToPageActions'
 import NewDataLinkModalActions from './NewDataLinkModalActions'
 import PageActions from './PageActions'
 import StartModalActions from './StartModalActions'
 
-// =================
-// === Constants ===
-// =================
-
 const ASSET_ROW_SAFE_POSITION = { x: 300, y: 16 }
 
-// =======================
-// === locateAssetRows ===
-// =======================
+/** Find the context menu. */
+function locateContextMenu(page: Page) {
+  // This has no identifying features.
+  return page.getByTestId('context-menu')
+}
 
-/** Find all assets table rows (if any). */
-function locateAssetRows(page: test.Page) {
+/** Find a drive view. */
+function locateDriveView(page: Page) {
+  // This has no identifying features.
+  return page.getByTestId('drive-view')
+}
+
+/** Find a "create" button. */
+function locateCreateButton(page: Page) {
+  return page.getByRole('button', { name: TEXT.create }).getByText(TEXT.create)
+}
+
+/** Find an assets table. */
+function locateAssetsTable(page: Page) {
+  return page.getByTestId('drive-view').getByRole('table')
+}
+
+/** Find all assets table rows. */
+function locateAssetRows(page: Page) {
   return locateAssetsTable(page).getByTestId('asset-row')
 }
 
-// ========================
-// === DrivePageActions ===
-// ========================
+/** Find assets table placeholder rows. */
+function locateNonAssetRows(page: Page) {
+  return locateAssetsTable(page).locator(
+    'tbody tr:not([data-testid="asset-row"]):not([data-testid="dummy-row"])',
+  )
+}
+
+/** Find a "new secret" icon. */
+function locateNewSecretIcon(page: Page) {
+  return page.getByRole('button', { name: 'New Secret' })
+}
+
+/** Find an "upsert secret" modal. */
+function locateUpsertSecretModal(page: Page) {
+  // This has no identifying features.
+  return page.getByTestId('upsert-secret-modal')
+}
+
+/** Find a "name" input for an "upsert secret" modal. */
+function locateSecretNameInput(page: Page) {
+  return locateUpsertSecretModal(page).getByPlaceholder(TEXT.secretNamePlaceholder)
+}
+
+/** Find a "value" input for an "upsert secret" modal. */
+function locateSecretValueInput(page: Page) {
+  return locateUpsertSecretModal(page).getByPlaceholder(TEXT.secretValuePlaceholder)
+}
+
+/** Find an asset panel. */
+function locateAssetPanel(page: Page) {
+  // This has no identifying features.
+  return page.getByTestId('asset-panel').locator('visible=true')
+}
 
 /** Actions for the "drive" page. */
-export default class DrivePageActions extends PageActions {
+export default class DrivePageActions<Context> extends PageActions<Context> {
   /** Actions for navigating to another page. */
-  get goToPage(): Omit<goToPageActions.GoToPageActions, 'drive'> {
-    return goToPageActions.goToPageActions(this.step.bind(this))
+  get goToPage(): Omit<GoToPageActions<Context>, 'drive'> {
+    return goToPageActions(this.step.bind(this))
   }
 
   /** Actions related to context menus. */
   get contextMenu() {
-    return contextMenuActions.contextMenuActions(this.step.bind(this))
+    return contextMenuActions(this.step.bind(this))
   }
 
   /** Switch to a different category. */
   get goToCategory() {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self: DrivePageActions = this
+    const self: DrivePageActions<Context> = this
     return {
       /** Switch to the "cloud" category. */
       cloud() {
@@ -92,24 +126,86 @@ export default class DrivePageActions extends PageActions {
     }
   }
 
+  /** Interact with the assets search bar. */
+  withSearchBar(callback: LocatorCallback<Context>) {
+    return this.step('Interact with search bar', (page, context) =>
+      callback(page.getByTestId('asset-search-bar').getByPlaceholder(/(?:)/), context),
+    )
+  }
+
+  /**
+   * Expect the category to be selected.
+   */
+  expectCategory(category: string) {
+    return this.step(`Expect category '${category}'`, (page) =>
+      expect(page.getByRole('button', { name: category })).toHaveAttribute('data-selected', 'true'),
+    )
+  }
+
+  /**
+   * Expect the category to be not selected.
+   */
+  expectCategoryNotSelected(category: string) {
+    return this.step(`Expect category '${category}' not selected`, (page) =>
+      expect(page.getByRole('button', { name: category })).toHaveAttribute(
+        'data-selected',
+        'false',
+      ),
+    )
+  }
+
   /** Actions specific to the Drive table. */
   get driveTable() {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self: DrivePageActions = this
+    const self: DrivePageActions<Context> = this
+    const locateNameColumnHeading = (page: Page) =>
+      page
+        .getByLabel(TEXT.sortByName)
+        .or(page.getByLabel(TEXT.sortByNameDescending))
+        .or(page.getByLabel(TEXT.stopSortingByName))
+    const locateModifiedColumnHeading = (page: Page) =>
+      page
+        .getByLabel(TEXT.sortByModificationDate)
+        .or(page.getByLabel(TEXT.sortByModificationDateDescending))
+        .or(page.getByLabel(TEXT.stopSortingByModificationDate))
+
+    const locatePathColumnHeading = (page: Page) => page.getByTestId('path-column-heading')
+    const locatePathColumnCell = (page: Page, title: string) =>
+      page.getByTestId(`path-column-cell-${title.toLowerCase().replace(/\s+/g, '-')}`)
+
     return {
       /** Click the column heading for the "name" column to change its sort order. */
       clickNameColumnHeading() {
         return self.step('Click "name" column heading', (page) =>
-          page.getByLabel(TEXT.sortByName).or(page.getByLabel(TEXT.stopSortingByName)).click(),
+          locateNameColumnHeading(page).click(),
+        )
+      },
+      /** Interact with the column heading for the "name" column. */
+      withNameColumnHeading(callback: LocatorCallback<Context>) {
+        return self.step('Interact with "name" column heading', (page, context) =>
+          callback(locateNameColumnHeading(page), context),
+        )
+      },
+      withPathColumnHeading(callback: LocatorCallback<Context>) {
+        return self.step('Interact with "path" column heading', (page, context) =>
+          callback(locatePathColumnHeading(page), context),
+        )
+      },
+      withPathColumnCell(title: string, callback: LocatorCallback<Context>) {
+        return self.step(`Interact with "path" column cell '${title}'`, (page, context) =>
+          callback(locatePathColumnCell(page, title), context),
         )
       },
       /** Click the column heading for the "modified" column to change its sort order. */
       clickModifiedColumnHeading() {
         return self.step('Click "modified" column heading', (page) =>
-          page
-            .getByLabel(TEXT.sortByModificationDate)
-            .or(page.getByLabel(TEXT.stopSortingByModificationDate))
-            .click(),
+          locateModifiedColumnHeading(page).click(),
+        )
+      },
+      /** Interact with the column heading for the "modified" column. */
+      withModifiedColumnHeading(callback: LocatorCallback<Context>) {
+        return self.step('Interact with "modified" column heading', (page, context) =>
+          callback(locateModifiedColumnHeading(page), context),
         )
       },
       /** Click to select a specific row. */
@@ -137,16 +233,27 @@ export default class DrivePageActions extends PageActions {
       },
       /** Interact with the set of all rows in the Drive table. */
       withRows(
-        callback: (assetRows: test.Locator, nonAssetRows: test.Locator) => Promise<void> | void,
+        callback: (
+          assetRows: Locator,
+          nonAssetRows: Locator,
+          context: Context,
+          page: Page,
+        ) => Promise<void> | void,
       ) {
         return self.step('Interact with drive table rows', async (page) => {
-          await callback(locateAssetRows(page), locateNonAssetRows(page))
+          await callback(locateAssetRows(page), locateNonAssetRows(page), self.context, page)
+        })
+      },
+      withSelectedRows(callback: LocatorCallback<Context>) {
+        return self.step('Interact with selected drive table rows', async (page, context) => {
+          await callback(locateAssetRows(page).and(page.locator('[data-selected="true"]')), context)
         })
       },
       /** Drag a row onto another row. */
       dragRowToRow(from: number, to: number) {
         return self.step(`Drag drive table row #${from} to row #${to}`, async (page) => {
           const rows = locateAssetRows(page)
+          rows.nth(from).click()
           await rows.nth(from).dragTo(rows.nth(to), {
             sourcePosition: ASSET_ROW_SAFE_POSITION,
             targetPosition: ASSET_ROW_SAFE_POSITION,
@@ -154,7 +261,7 @@ export default class DrivePageActions extends PageActions {
         })
       },
       /** Drag a row onto another row. */
-      dragRow(from: number, to: test.Locator, force?: boolean) {
+      dragRow(from: number, to: Locator, force?: boolean) {
         return self.step(`Drag drive table row #${from} to custom locator`, (page) =>
           locateAssetRows(page)
             .nth(from)
@@ -164,16 +271,38 @@ export default class DrivePageActions extends PageActions {
             }),
         )
       },
+      expandDirectory(index: number) {
+        return self.step(`Expand drive table row #${index}`, async (page) => {
+          const expandButton = locateAssetRows(page)
+            .nth(index)
+            .getByTestId('directory-row-expand-button')
+
+          await expect(expandButton).toHaveAttribute('aria-label', TEXT.expand)
+
+          await expandButton.click()
+        })
+      },
+      collapseDirectory(index: number) {
+        return self.step(`Collapse drive table row #${index}`, async (page) => {
+          const collapseButton = locateAssetRows(page)
+            .nth(index)
+            .getByTestId('directory-row-expand-button')
+
+          await expect(collapseButton).toHaveAttribute('aria-label', TEXT.collapse)
+
+          return collapseButton.click()
+        })
+      },
       /**
        * A test assertion to confirm that there is only one row visible, and that row is the
        * placeholder row displayed when there are no assets to show.
        */
       expectPlaceholderRow() {
         return self.step('Expect placeholder row', async (page) => {
-          await test.expect(locateAssetRows(page)).toHaveCount(0)
+          await expect(locateAssetRows(page)).toHaveCount(0)
           const nonAssetRows = locateNonAssetRows(page)
-          await test.expect(nonAssetRows).toHaveCount(1)
-          await test.expect(nonAssetRows).toHaveText(/This folder is empty/)
+          await expect(nonAssetRows).toHaveCount(1)
+          await expect(nonAssetRows).toHaveText(/This folder is empty/)
         })
       },
       /**
@@ -182,10 +311,10 @@ export default class DrivePageActions extends PageActions {
        */
       expectTrashPlaceholderRow() {
         return self.step('Expect trash placeholder row', async (page) => {
-          await test.expect(locateAssetRows(page)).toHaveCount(0)
+          await expect(locateAssetRows(page)).toHaveCount(0)
           const nonAssetRows = locateNonAssetRows(page)
-          await test.expect(nonAssetRows).toHaveCount(1)
-          await test.expect(nonAssetRows).toHaveText(/Your trash is empty/)
+          await expect(nonAssetRows).toHaveCount(1)
+          await expect(nonAssetRows).toHaveText(/Your trash is empty/)
         })
       },
       /** Toggle a column's visibility. */
@@ -236,7 +365,22 @@ export default class DrivePageActions extends PageActions {
   openStartModal() {
     return this.step('Open "start" modal', (page) =>
       page.getByText(TEXT.startWithATemplate).click(),
-    ).into(StartModalActions)
+    ).into(StartModalActions<Context>)
+  }
+
+  /** Expect the "start" modal to be visible. */
+  expectStartModal() {
+    return this.into(StartModalActions<Context>).withStartModal(async (startModal) => {
+      await expect(startModal).toBeVisible()
+    })
+  }
+
+  /** Clear trash. */
+  clearTrash() {
+    return this.step('Clear trash', async (page) => {
+      await page.getByText(TEXT.clearTrash).click()
+      await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
+    })
   }
 
   /** Create a new empty project. */
@@ -246,19 +390,30 @@ export default class DrivePageActions extends PageActions {
       (page) => page.getByText(TEXT.newEmptyProject, { exact: true }).click(),
       // FIXME[sb]: https://github.com/enso-org/cloud-v2/issues/1615
       // Uncomment once cloud execution in the browser is re-enabled.
-    ) /* .into(EditorPageActions) */
+    ) /* .into(EditorPageActions<Context>) */
+  }
+
+  // FIXME[sb]: https://github.com/enso-org/cloud-v2/issues/1615
+  // Delete once cloud execution in the browser is re-enabled.
+  /** Create a new empty project. */
+  newEmptyProjectTest() {
+    return this.step('Create empty project', (page) =>
+      page.getByText(TEXT.newEmptyProject, { exact: true }).click(),
+    ).into(EditorPageActions<Context>)
   }
 
   /** Interact with the drive view (the main container of this page). */
-  withDriveView(callback: baseActions.LocatorCallback) {
-    return this.step('Interact with drive view', (page) => callback(locateDriveView(page)))
+  withDriveView(callback: LocatorCallback<Context>) {
+    return this.step('Interact with drive view', (page, context) =>
+      callback(locateDriveView(page), context),
+    )
   }
 
   /** Create a new folder using the icon in the Drive Bar. */
   createFolder() {
     return this.step('Create folder', async (page) => {
       await page.getByRole('button', { name: TEXT.newFolder, exact: true }).click()
-      await test.expect(page.locator('input:focus')).toBeVisible()
+      await expect(page.locator('input:focus')).toBeVisible()
       await page.keyboard.press('Escape')
     })
   }
@@ -320,7 +475,7 @@ export default class DrivePageActions extends PageActions {
   /**
    * Check if the Asset Panel is shown.
    */
-  async isAssetPanelShown(page: test.Page) {
+  async isAssetPanelShown(page: Page) {
     return await page
       .getByTestId('asset-panel')
       .isVisible({ timeout: 0 })
@@ -333,7 +488,7 @@ export default class DrivePageActions extends PageActions {
   /**
    * Wait for the Asset Panel to be shown and visually stable
    */
-  async waitForAssetPanelShown(page: test.Page) {
+  async waitForAssetPanelShown(page: Page) {
     await page.getByTestId('asset-panel').waitFor({ state: 'visible' })
   }
 
@@ -354,16 +509,18 @@ export default class DrivePageActions extends PageActions {
   }
 
   /** Interact with the container element of the assets table. */
-  withAssetsTable(callback: baseActions.LocatorCallback) {
+  withAssetsTable(
+    callback: (input: Locator, context: Context, page: Page) => Promise<void> | void,
+  ) {
     return this.step('Interact with drive table', async (page) => {
-      await callback(locateAssetsTable(page))
+      await callback(locateAssetsTable(page), this.context, page)
     })
   }
 
   /** Interact with the Asset Panel. */
-  withAssetPanel(callback: baseActions.LocatorCallback) {
-    return this.step('Interact with asset panel', async (page) => {
-      await callback(locateAssetPanel(page))
+  withAssetPanel(callback: LocatorCallback<Context>) {
+    return this.step('Interact with asset panel', async (page, context) => {
+      await callback(locateAssetPanel(page), context)
     })
   }
 
@@ -371,13 +528,13 @@ export default class DrivePageActions extends PageActions {
   openDataLinkModal() {
     return this.step('Open "new data link" modal', (page) =>
       page.getByRole('button', { name: TEXT.newDatalink }).click(),
-    ).into(NewDataLinkModalActions)
+    ).into(NewDataLinkModalActions<Context>)
   }
 
   /** Interact with the context menus (the context menus MUST be visible). */
-  withContextMenus(callback: baseActions.LocatorCallback) {
-    return this.step('Interact with context menus', async (page) => {
-      await callback(locateContextMenus(page))
+  withContextMenus(callback: LocatorCallback<Context>) {
+    return this.step('Interact with context menus', async (page, context) => {
+      await callback(locateContextMenu(page), context)
     })
   }
 }

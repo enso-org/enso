@@ -5,6 +5,7 @@ import Success from '#/assets/check_mark.svg'
 import Error from '#/assets/cross.svg'
 
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import type { TestIdProps } from './AriaComponents'
 import { Text } from './AriaComponents/Text'
 import * as loader from './Loader'
 import SvgMask from './SvgMask'
@@ -93,7 +94,10 @@ interface StatusIcon {
 // ==============
 
 /** Props for a {@link Result}. */
-export interface ResultProps extends React.PropsWithChildren, VariantProps<typeof RESULT_STYLES> {
+export interface ResultProps
+  extends React.PropsWithChildren,
+    VariantProps<typeof RESULT_STYLES>,
+    TestIdProps {
   readonly className?: string
   readonly title?: React.JSX.Element | string
   readonly subtitle?: React.JSX.Element | string
@@ -103,7 +107,6 @@ export interface ResultProps extends React.PropsWithChildren, VariantProps<typeo
    */
   readonly status?: React.ReactElement | Status
   readonly icon?: string | false
-  readonly testId?: string
 }
 
 /** Display the result of an operation. */

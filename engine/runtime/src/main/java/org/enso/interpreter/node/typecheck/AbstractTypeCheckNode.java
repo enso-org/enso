@@ -1,7 +1,9 @@
 package org.enso.interpreter.node.typecheck;
 
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.List;
 import org.enso.interpreter.node.ExpressionNode;
@@ -11,7 +13,7 @@ import org.enso.interpreter.runtime.error.DataflowError;
 
 /**
  * Root of hierarchy of nodes checking types. This class (and its subclasses) are an implementation
- * detail. The API to perform the is in {@link TypeCheckNode}.
+ * detail. The API to perform the check or conversion is in {@link TypeCheckValueNode}.
  */
 abstract sealed class AbstractTypeCheckNode extends Node
     permits OneOfTypesCheckNode, AllOfTypesCheckNode, SingleTypeCheckNode, MetaTypeCheckNode {
@@ -28,6 +30,21 @@ abstract sealed class AbstractTypeCheckNode extends Node
       VirtualFrame frame, Object value, ExpressionNode valueNode);
 
   abstract String expectedTypeMessage();
+
+  @ExplodeLoop
+  final boolean isAllTypes() {
+    Node p = this;
+    CompilerAsserts.partialEvaluationConstant(p);
+    for (; ; ) {
+      if (p instanceof TypeCheckValueNode vn) {
+        CompilerAsserts.partialEvaluationConstant(vn);
+        var allTypes = vn.isAllTypes();
+        CompilerAsserts.partialEvaluationConstant(allTypes);
+        return allTypes;
+      }
+      p = p.getParent();
+    }
+  }
 
   /**
    * The error message for this node's check. Ready for being used at "fast path".

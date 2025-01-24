@@ -1,4 +1,4 @@
-import type { TreeCursor } from '@lezer/common'
+import { type SyntaxNode, type TreeCursor } from '@lezer/common'
 
 /**
  * Compares the value of `cursor.name` to the provided value. This can be used instead of reading the field directly to
@@ -7,4 +7,13 @@ import type { TreeCursor } from '@lezer/common'
  */
 export function isNodeType(cursor: TreeCursor, type: string): boolean {
   return cursor.name === type
+}
+
+/** Yields the provided node, and its parents recursively. */
+export function* syntaxNodeAncestors(syn: SyntaxNode | null) {
+  let currentSyn: SyntaxNode | null = syn
+  while (currentSyn != null) {
+    yield currentSyn
+    currentSyn = currentSyn.parent
+  }
 }

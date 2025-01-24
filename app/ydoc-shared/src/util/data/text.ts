@@ -1,8 +1,63 @@
 import * as iter from 'enso-common/src/utilities/data/iter'
 import diff from 'fast-diff'
-import { rangeEncloses, rangeLength, type SourceRange } from '../../yjsModel'
+import { type DeepReadonly } from '../../ast'
 
-export type SourceRangeEdit = { range: SourceRange; insert: string }
+export interface SourceRange {
+  readonly from: number
+  readonly to: number
+}
+declare const brandSourceRangeKey: unique symbol
+export type SourceRangeKey = string & { [brandSourceRangeKey]: never }
+
+/** Serializes a {@link SourceRange}, making it suitable for use as a key in maps or sets. */
+export function sourceRangeKey({ from, to }: SourceRange): SourceRangeKey {
+  return `${from.toString(16)}:${to.toString(16)}` as SourceRangeKey
+}
+/** Deserializes a {@link SourceRange} that was serialized by {@link sourceRangeKey} */
+export function sourceRangeFromKey(key: SourceRangeKey): SourceRange {
+  const [from, to] = key.split(':').map((x) => parseInt(x, 16)) as [number, number]
+  return { from, to }
+}
+
+/** @returns Whether the two ranges have the same start and end. */
+export function rangeEquals(a: SourceRange, b: SourceRange): boolean {
+  return a.from == b.from && a.to == b.to
+}
+
+/** @returns Whether the point `b` is within the range `a`. */
+export function rangeIncludes(a: SourceRange, b: number): boolean {
+  return a.from <= b && a.to >= b
+}
+
+/** @returns whether the point `b` is within the range `a`. */
+export function rangeLength(a: SourceRange): number {
+  return a.to - a.from
+}
+
+/** @returns whether range `a` fully contains range `b`. */
+export function rangeEncloses(a: SourceRange, b: SourceRange): boolean {
+  return a.from <= b.from && a.to >= b.to
+}
+
+/** @returns Whether the ranges meet. */
+export function rangeIntersects(a: SourceRange, b: SourceRange): boolean {
+  return a.from <= b.to && a.to >= b.from
+}
+
+/** Whether the given range is before the other range. */
+export function rangeIsBefore(a: SourceRange, b: SourceRange): boolean {
+  return a.to <= b.from
+}
+
+/** Describes how a change to text will affect document locations. */
+export interface SourceRangeEditDesc extends SourceRange {
+  insert: { length: number }
+}
+
+/** A change that can be applied to text. */
+export interface SourceRangeEdit extends SourceRangeEditDesc {
+  insert: string
+}
 
 /** Given text and a set of `TextEdit`s, return the result of applying the edits to the text. */
 export function applyTextEdits(
@@ -10,13 +65,13 @@ export function applyTextEdits(
   textEdits: ReadonlyArray<Readonly<SourceRangeEdit>>,
 ) {
   const editsOrdered = [...textEdits]
-  editsOrdered.sort((a, b) => a.range[0] - b.range[0])
+  editsOrdered.sort((a, b) => a.from - b.from)
   let start = 0
   let newText = ''
   for (const textEdit of editsOrdered) {
-    newText += oldText.slice(start, textEdit.range[0])
+    newText += oldText.slice(start, textEdit.from)
     newText += textEdit.insert
-    start = textEdit.range[1]
+    start = textEdit.to
   }
   newText += oldText.slice(start)
   return newText
@@ -36,7 +91,7 @@ export function textChangeToEdits(before: string, after: string): SourceRangeEdi
   for (const [op, text] of diff(before, after)) {
     switch (op) {
       case diff.INSERT:
-        if (!nextEdit) nextEdit = { range: [pos, pos], insert: '' }
+        if (!nextEdit) nextEdit = { from: pos, to: pos, insert: '' }
         nextEdit.insert = text
         break
       case diff.EQUAL:
@@ -49,7 +104,7 @@ export function textChangeToEdits(before: string, after: string): SourceRangeEdi
       case diff.DELETE: {
         if (nextEdit) textEdits.push(nextEdit)
         const endPos = pos + text.length
-        nextEdit = { range: [pos, endPos], insert: '' }
+        nextEdit = { from: pos, to: endPos, insert: '' }
         pos = endPos
         break
       }
@@ -59,9 +114,9 @@ export function textChangeToEdits(before: string, after: string): SourceRangeEdi
   return textEdits
 }
 
-/** Translate a `TextEdit` by the specified offset. */
-export function offsetEdit(textEdit: SourceRangeEdit, offset: number): SourceRangeEdit {
-  return { ...textEdit, range: [textEdit.range[0] + offset, textEdit.range[1] + offset] }
+/** Translate a source range by the specified offset. */
+export function translateRange<T extends SourceRange>(textEdit: T, offset: number): T {
+  return { ...textEdit, from: textEdit.from + offset, to: textEdit.to + offset }
 }
 
 /**
@@ -71,48 +126,53 @@ export function offsetEdit(textEdit: SourceRangeEdit, offset: number): SourceRan
  *  @returns - A sequence of: Each span from `spansBefore` paired with the smallest span of the text after the edit that
  *  contains all text that was in the original span and has not been deleted.
  */
-export function applyTextEditsToSpans(textEdits: SourceRangeEdit[], spansBefore: SourceRange[]) {
+export function applyTextEditsToSpans(
+  textEdits: DeepReadonly<SourceRangeEditDesc[]>,
+  spansBefore: DeepReadonly<SourceRange[]>,
+) {
   // Gather start and end points.
   const numerically = (a: number, b: number) => a - b
-  const starts = new iter.Resumable(spansBefore.map(([start, _end]) => start).sort(numerically))
-  const ends = new iter.Resumable(spansBefore.map(([_start, end]) => end).sort(numerically))
+  const starts = new iter.Resumable(spansBefore.map(({ from }) => from).sort(numerically))
+  const ends = new iter.Resumable(spansBefore.map(({ to }) => to).sort(numerically))
 
   // Construct translations from old locations to new locations for all start and end points.
   const startMap = new Map<number, number>()
   const endMap = new Map<number, number>()
   let offset = 0
-  for (const { range, insert } of textEdits) {
-    starts.advanceWhile(start => {
-      if (start < range[0]) {
+  for (const textEdit of textEdits) {
+    const { from, to, insert } = textEdit
+    starts.advanceWhile((start) => {
+      if (start < from) {
         startMap.set(start, start + offset)
         return true
-      } else if (start <= range[1]) {
-        startMap.set(start, range[0] + offset + insert.length)
+      } else if (start <= to) {
+        startMap.set(start, from + offset + insert.length)
         return true
       }
       return false
     })
-    ends.advanceWhile(end => {
-      if (end <= range[0]) {
+    ends.advanceWhile((end) => {
+      if (end <= from) {
         endMap.set(end, end + offset)
         return true
-      } else if (end <= range[1]) {
-        endMap.set(end, range[0] + offset)
+      } else if (end <= to) {
+        endMap.set(end, from + offset)
         return true
       }
       return false
     })
-    offset += insert.length - rangeLength(range)
+    offset += insert.length - rangeLength(textEdit)
   }
-  starts.forEach(start => startMap.set(start, start + offset))
-  ends.forEach(end => endMap.set(end, end + offset))
+  starts.forEach((start) => startMap.set(start, start + offset))
+  ends.forEach((end) => endMap.set(end, end + offset))
 
   // Apply the translations to the map.
   const spansBeforeAndAfter = new Array<readonly [SourceRange, SourceRange]>()
   for (const spanBefore of spansBefore) {
-    const startAfter = startMap.get(spanBefore[0])!
-    const endAfter = endMap.get(spanBefore[1])!
-    if (endAfter > startAfter) spansBeforeAndAfter.push([spanBefore, [startAfter, endAfter]])
+    const startAfter = startMap.get(spanBefore.from)!
+    const endAfter = endMap.get(spanBefore.to)!
+    if (endAfter > startAfter)
+      spansBeforeAndAfter.push([spanBefore, { from: startAfter, to: endAfter }])
   }
   return spansBeforeAndAfter
 }
@@ -136,7 +196,7 @@ export function enclosingSpans<NodeId>(
   for (const child of tree.children()) {
     const childSpan = child.span()
     const childRanges: SourceRange[] = []
-    ranges = ranges.filter(range => {
+    ranges = ranges.filter((range) => {
       if (rangeEncloses(childSpan, range)) {
         childRanges.push(range)
         return false
@@ -150,7 +210,9 @@ export function enclosingSpans<NodeId>(
 }
 
 /** Return the given range with any trailing spaces stripped. */
-export function trimEnd(range: SourceRange, text: string): SourceRange {
-  const trimmedLength = text.slice(range[0], range[1]).search(/ +$/)
-  return trimmedLength === -1 ? range : [range[0], range[0] + trimmedLength]
+export function trimEnd<T extends SourceRange>(range: T, text: string): T {
+  const trimmedLength = text.slice(range.from, range.to).search(/ +$/)
+  return trimmedLength === -1 ? range : (
+      { ...range, from: range.from, to: range.from + trimmedLength }
+    )
 }

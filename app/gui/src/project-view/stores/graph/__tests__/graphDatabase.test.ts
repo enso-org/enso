@@ -1,11 +1,12 @@
 import { asNodeId, GraphDb } from '@/stores/graph/graphDatabase'
+import { assert, assertDefined } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import assert from 'assert'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { expect, test } from 'vitest'
 import { watchEffect } from 'vue'
-import type { AstId } from 'ydoc-shared/ast'
-import { IdMap, type ExternalId, type SourceRange } from 'ydoc-shared/yjsModel'
+import { type AstId } from 'ydoc-shared/ast'
+import { type SourceRange } from 'ydoc-shared/util/data/text'
+import { IdMap, type ExternalId } from 'ydoc-shared/yjsModel'
 
 /** TODO: Add docs */
 export function parseWithSpans<T extends Record<string, SourceRange>>(code: string, spans: T) {
@@ -16,6 +17,7 @@ export function parseWithSpans<T extends Record<string, SourceRange>>(code: stri
   let nextIndex = 0
   for (const name in spans) {
     const span = spans[name]!
+    assertDefined(span)
     const indexStr = `${nextIndex++}`
     const eid =
       idMap.getIfExist(span) ??
@@ -41,19 +43,19 @@ test('Reading graph from definition', () => {
     node3 = node2 + 1
     node3`
   const spans = {
-    functionName: [0, 8] as [number, number],
-    parameter: [9, 10] as [number, number],
-    node1Id: [17, 22] as [number, number],
-    node1Content: [25, 30] as [number, number],
-    node1LParam: [25, 26] as [number, number],
-    node1RParam: [29, 30] as [number, number],
-    node2Id: [35, 40] as [number, number],
-    node2Content: [43, 52] as [number, number],
-    node2LParam: [43, 48] as [number, number],
-    node2RParam: [51, 52] as [number, number],
-    node3Id: [57, 62] as [number, number],
-    node3Content: [65, 74] as [number, number],
-    output: [79, 84] as [number, number],
+    functionName: { from: 0, to: 8 },
+    parameter: { from: 9, to: 10 },
+    node1Id: { from: 17, to: 22 },
+    node1Content: { from: 25, to: 30 },
+    node1LParam: { from: 25, to: 26 },
+    node1RParam: { from: 29, to: 30 },
+    node2Id: { from: 35, to: 40 },
+    node2Content: { from: 43, to: 52 },
+    node2LParam: { from: 43, to: 48 },
+    node2RParam: { from: 51, to: 52 },
+    node3Id: { from: 57, to: 62 },
+    node3Content: { from: 65, to: 74 },
+    output: { from: 79, to: 84 },
   }
 
   const { ast, id, eid, getSpan } = parseWithSpans(code, spans)

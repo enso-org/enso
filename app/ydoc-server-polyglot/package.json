@@ -20,8 +20,8 @@
   },
   "devDependencies": {
     "@fal-works/esbuild-plugin-global-externals": "^2.1.2",
-    "esbuild": "^0.23.0",
+    "esbuild": "^0.24.2",
     "esbuild-plugin-wasm": "^1.1.0",
-    "typescript": "^5.5.3"
+    "typescript": "^5.7.2"
   }
 }

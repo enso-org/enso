@@ -1,4 +1,5 @@
 /** @file ESLint configuration file. */
+
 /**
  * NOTE: The "Experimental: Use Flat Config" option must be enabled.
  * Flat config is still not quite mature, so is disabled by default.
@@ -36,7 +37,7 @@ const NAME = 'enso'
  * `node:process` is here because `process.on` does not exist on the namespace import.
  */
 const DEFAULT_IMPORT_ONLY_MODULES =
-  '@vitejs\\u002Fplugin-react|node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|tiny-invariant|clsx|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|@modyfi\\u002Fvite-plugin-yaml|build-info|is-network-error|validator.+|.*[.]json$'
+  '@vitejs\\u002Fplugin-react|node:process|chalk|string-length|yargs|yargs\\u002Fyargs|sharp|to-ico|connect|morgan|serve-static|tiny-invariant|react-keyed-flatten-children|clsx|create-servers|electron-is-dev|fast-glob|esbuild-plugin-.+|opener|tailwindcss.*|@modyfi\\u002Fvite-plugin-yaml|build-info|is-network-error|validator.+|.*[.]json$'
 const RELATIVE_MODULES =
   'projectManager|server|configParser|authentication|config|debug|detect|fileAssociations|index|ipc|log|naming|paths|preload|projectManagement|security|urlAssociations|contentConfig|desktopEnvironment|#\\u002F.*'
 const ALLOWED_DEFAULT_IMPORT_MODULES = `${DEFAULT_IMPORT_ONLY_MODULES}|postcss|ajv\\u002Fdist\\u002F2020|${RELATIVE_MODULES}`
@@ -102,7 +103,7 @@ const RESTRICTED_SYNTAXES = [
   },
   {
     // Matches non-functions.
-    selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:matches([init.callee.object.name=React][init.callee.property.name=forwardRef], :has(ArrowFunctionExpression), :has(CallExpression[callee.object.name=newtype][callee.property.name=newtypeConstructor])))`,
+    selector: `:matches(Program, ExportNamedDeclaration, TSModuleBlock) > VariableDeclaration[kind=const] > VariableDeclarator[id.name=${NOT_CONSTANT_CASE}]:not(:matches([init.callee.object.name=React][init.callee.property.name=forwardRef], :has(ArrowFunctionExpression), :has(CallExpression[callee.object.name=newtype][callee.property.name=newtypeConstructor]), :has(CallExpression[callee.name=newtypeConstructor])))`,
     message: 'Use `CONSTANT_CASE` for top-level constants that are not functions',
   },
   {
@@ -186,13 +187,14 @@ const RESTRICTED_SYNTAXES = [
 // === ESLint configuration ===
 // ============================
 
-export default [
+const config = [
   {
     // Playwright build cache and Vite build directory.
     ignores: [
       '**/.cache/**',
       '**/playwright-report',
       '**/dist',
+      '**/test-results',
       '**/mockDist',
       '**/build.mjs',
       '**/*.timestamp-*.mjs',
@@ -214,8 +216,10 @@ export default [
         extraFileExtensions: ['.vue'],
         projectService: {
           allowDefaultProject: [
-            'app/ydoc-server/vitest.config.ts',
+            'eslint.config.mjs',
+            // 'app/ydoc-server/vitest.config.ts',
             'app/ydoc-shared/vitest.config.ts',
+            'app/ide-desktop/icons/src/index.js',
           ],
         },
       },
@@ -451,7 +455,10 @@ export default [
       '@typescript-eslint/restrict-template-expressions': 'error',
       '@typescript-eslint/sort-type-constituents': 'error',
       '@typescript-eslint/strict-boolean-expressions': 'error',
-      '@typescript-eslint/switch-exhaustiveness-check': 'error',
+      '@typescript-eslint/switch-exhaustiveness-check': [
+        'error',
+        { allowDefaultCaseForExhaustiveSwitch: true },
+      ],
       'default-param-last': 'off',
       '@typescript-eslint/default-param-last': 'error',
       'no-invalid-this': 'off',
@@ -569,6 +576,21 @@ export default [
       '@typescript-eslint/naming-convention': 'off',
     },
   },
+  // === EnsoDevtools Rules ===
+  // Allow JSX strings in EnsoDevtools.tsx.
+  {
+    files: ['app/gui/src/dashboard/**/EnsoDevtools*.tsx'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        ...RESTRICTED_SYNTAXES.filter(
+          (syntax) =>
+            syntax.message !== 'Use a `getText()` from `useText` instead of a literal string',
+        ),
+      ],
+    },
+  },
+  // === React Compiler Rules ===
   {
     files: ['app/gui/src/dashboard/**/*.ts', 'app/gui/src/dashboard/**/*.tsx'],
     ignores: ['**/*.d.ts', '**/*.spec.ts', '**/*.stories.tsx', '**/*.test.tsx', '**/*.test.ts'],
@@ -576,3 +598,5 @@ export default [
     rules: { 'react-compiler/react-compiler': 'error' },
   },
 ]
+
+export default config

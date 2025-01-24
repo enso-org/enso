@@ -7,9 +7,9 @@ import * as React from 'react'
 
 import * as aria from '#/components/aria'
 
+import type { Path } from '#/utilities/objectPath'
 import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import type { Path } from 'react-hook-form'
 import * as text from '../../Text'
 import { Form } from '../Form'
 import type * as types from './types'
@@ -19,7 +19,8 @@ export interface FieldComponentProps<Schema extends types.TSchema>
   extends VariantProps<typeof FIELD_STYLES>,
     types.FieldProps {
   readonly 'data-testid'?: string | undefined
-  readonly name: Path<types.FieldValues<Schema>>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly name: Path<types.FieldValues<Schema>, any>
   readonly form?: types.FormInstance<Schema> | undefined
   readonly isInvalid?: boolean | undefined
   readonly className?: string | undefined
@@ -39,7 +40,7 @@ export interface FieldChildrenRenderProps {
   readonly isTouched: boolean
   readonly isValidating: boolean
   readonly hasError: boolean
-  readonly error?: string | undefined
+  readonly error?: string | null | undefined
 }
 
 export const FIELD_STYLES = tv({
@@ -63,7 +64,7 @@ export const FIELD_STYLES = tv({
 // eslint-disable-next-line no-restricted-syntax
 export const Field = forwardRef(function Field<Schema extends types.TSchema>(
   props: FieldComponentProps<Schema>,
-  ref: React.ForwardedRef<HTMLFieldSetElement>,
+  ref: React.ForwardedRef<HTMLDivElement>,
 ) {
   const {
     children,
@@ -82,16 +83,18 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
   const descriptionId = React.useId()
   const errorId = React.useId()
 
-  const fieldState = Form.useFieldState(props)
+  // This is SAFE, we are just using a type with added constraint.
+  // eslint-disable-next-line no-restricted-syntax
+  const fieldState = Form.useFieldState(props as never)
 
   const invalid = isInvalid || fieldState.hasError
 
   const classes = variants({ fullWidth, isInvalid: invalid, isHidden })
 
-  const hasError = (error ?? fieldState.error) != null
+  const hasError = (error !== undefined ? error : fieldState.error) != null
 
   return (
-    <fieldset
+    <div
       ref={ref}
       className={classes.base({ className })}
       data-testid={props['data-testid']}
@@ -109,7 +112,7 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
             {label}
 
             {isRequired && (
-              <span aria-hidden="true" className="scale-80 text-danger">
+              <span aria-hidden="true" className="scale-80 text-danger" data-testid="required-mark">
                 {' *'}
               </span>
             )}
@@ -131,7 +134,7 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
       </aria.Label>
 
       {description != null && (
-        <span id={descriptionId} className={classes.description()}>
+        <span id={descriptionId} className={classes.description()} data-testid="description">
           {description}
         </span>
       )}
@@ -141,6 +144,6 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
           {error ?? fieldState.error}
         </span>
       )}
-    </fieldset>
+    </div>
   )
 })

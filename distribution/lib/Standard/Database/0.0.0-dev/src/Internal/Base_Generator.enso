@@ -179,6 +179,7 @@ type SQL_Generator
     generate_select_query_sql : Dialect -> Vector (Pair Text SQL_Expression) -> Context -> SQL_Builder
     generate_select_query_sql self dialect columns ctx =
         gen_exprs exprs = exprs.map (expr-> dialect.generate_expression self expr for_select=False)
+        gen_group_exprs exprs = exprs.map (expr-> dialect.generate_expression self expr for_select=True)
         gen_column pair = (dialect.generate_expression self expr=pair.second for_select=True) ++ alias dialect pair.first
 
         generated_columns = case columns of
@@ -187,7 +188,7 @@ type SQL_Generator
 
         from_part = self.generate_from_part dialect ctx.from_spec
         where_part = (SQL_Builder.join " AND " (gen_exprs ctx.where_filters)) . prefix_if_present " WHERE "
-        group_part = (SQL_Builder.join ", " (gen_exprs ctx.groups)) . prefix_if_present " GROUP BY "
+        group_part = (SQL_Builder.join ", " (gen_group_exprs ctx.groups)) . prefix_if_present " GROUP BY "
 
         orders = ctx.orders.map (self.generate_order dialect)
         order_part = (SQL_Builder.join ", " orders) . prefix_if_present " ORDER BY "
@@ -663,14 +664,14 @@ preprocess_query (query : Query) -> Query =
      column expression; it should be provided only if `has_quote` is `True` and
      must not be empty then. If the quote character occurs in the expression, it
      is escaped by doubling each occurrence.
-make_concat make_raw_concat_expr make_contains_expr has_quote args =
+make_concat make_raw_concat_expr make_contains_expr has_quote args append_char="||" =
     expected_args = if has_quote then 5 else 4
     if args.length != expected_args then Error.throw (Illegal_State.Error "Unexpected number of arguments for the concat operation.") else
         expr = args.at 0
         separator = args.at 1
         prefix = args.at 2
         suffix = args.at 3
-        append = " || "
+        append = " " + append_char + " "
         possibly_quoted = case has_quote of
             True ->
                 quote = args.at 4

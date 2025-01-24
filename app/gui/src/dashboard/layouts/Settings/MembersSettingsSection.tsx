@@ -16,15 +16,7 @@ import InviteUsersModal from '#/modals/InviteUsersModal'
 import type * as backendModule from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
 
-// =================
-// === Constants ===
-// =================
-
 const LIST_USERS_STALE_TIME_MS = 60_000
-
-// ==============================
-// === MembersSettingsSection ===
-// ==============================
 
 /** Settings tab for viewing and editing organization members. */
 export default function MembersSettingsSection() {
@@ -87,71 +79,73 @@ export default function MembersSettingsSection() {
         </ariaComponents.ButtonGroup>
       )}
 
-      <table className="table-fixed self-start rounded-rows">
-        <thead>
-          <tr className="h-row">
-            <th className="min-w-48 max-w-80 border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
-              {getText('name')}
-            </th>
-            <th className="w-48 border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
-              {getText('status')}
-            </th>
-          </tr>
-        </thead>
-        <tbody className="select-text">
-          {members.map((member) => (
-            <tr key={member.email} className="group h-row rounded-rows-child">
-              <td className="min-w-48 max-w-80 border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
-                <ariaComponents.Text truncate="1" className="block">
-                  {member.email}
-                </ariaComponents.Text>
-                <ariaComponents.Text truncate="1" className="block text-2xs text-primary/40">
-                  {member.name}
-                </ariaComponents.Text>
-              </td>
-              <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
-                <div className="flex flex-col">
-                  {getText('active')}
-                  {member.email !== user.email && isAdmin && (
-                    <ariaComponents.ButtonGroup gap="small" className="mt-0.5">
-                      <RemoveMemberButton backend={backend} userId={member.userId} />
-                    </ariaComponents.ButtonGroup>
-                  )}
-                </div>
-              </td>
+      <div className="min-h-0 flex-1 overflow-auto">
+        <table className="table-fixed self-start rounded-rows">
+          <thead className="sticky top-0 z-1 bg-dashboard">
+            <tr className="h-row">
+              <th className="min-w-48 max-w-80 border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
+                {getText('name')}
+              </th>
+              <th className="w-48 border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0">
+                {getText('status')}
+              </th>
             </tr>
-          ))}
-          {invitations.invitations.map((invitation) => (
-            <tr key={invitation.userEmail} className="group h-row rounded-rows-child">
-              <td className="border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
-                <span className="block text-sm">{invitation.userEmail}</span>
-              </td>
-              <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
-                <div className="flex flex-col">
-                  {getText('pendingInvitation')}
-                  {isAdmin && (
-                    <ariaComponents.ButtonGroup gap="small" className="mt-0.5">
-                      <ariaComponents.CopyButton
-                        size="custom"
-                        // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
-                        copyText={`enso://auth/registration?=${new URLSearchParams({ organization_id: invitation.organizationId }).toString()}`}
-                        aria-label={getText('copyInviteLink')}
-                        copyIcon={false}
-                      >
-                        {getText('copyInviteLink')}
-                      </ariaComponents.CopyButton>
+          </thead>
+          <tbody className="select-text">
+            {members.map((member) => (
+              <tr key={member.email} className="group h-row rounded-rows-child">
+                <td className="min-w-48 max-w-80 border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
+                  <ariaComponents.Text truncate="1" className="block">
+                    {member.email}
+                  </ariaComponents.Text>
+                  <ariaComponents.Text truncate="1" className="block text-2xs text-primary/40">
+                    {member.name}
+                  </ariaComponents.Text>
+                </td>
+                <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
+                  <div className="flex flex-col">
+                    {getText('active')}
+                    {member.email !== user.email && isAdmin && (
+                      <ariaComponents.ButtonGroup gap="small" className="mt-0.5">
+                        <RemoveMemberButton backend={backend} userId={member.userId} />
+                      </ariaComponents.ButtonGroup>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {invitations.invitations.map((invitation) => (
+              <tr key={invitation.userEmail} className="group h-row rounded-rows-child">
+                <td className="border-x-2 border-transparent bg-clip-padding px-4 py-1 first:rounded-l-full last:rounded-r-full last:border-r-0">
+                  <span className="block text-sm">{invitation.userEmail}</span>
+                </td>
+                <td className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
+                  <div className="flex flex-col">
+                    {getText('pendingInvitation')}
+                    {isAdmin && (
+                      <ariaComponents.ButtonGroup gap="small" className="mt-0.5">
+                        <ariaComponents.CopyButton
+                          size="custom"
+                          // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
+                          copyText={`enso://auth/registration?=${new URLSearchParams({ organization_id: invitation.organizationId }).toString()}`}
+                          aria-label={getText('copyInviteLink')}
+                          copyIcon={false}
+                        >
+                          {getText('copyInviteLink')}
+                        </ariaComponents.CopyButton>
 
-                      <ResendInvitationButton invitation={invitation} backend={backend} />
+                        <ResendInvitationButton invitation={invitation} backend={backend} />
 
-                      <RemoveInvitationButton backend={backend} email={invitation.userEmail} />
-                    </ariaComponents.ButtonGroup>
-                  )}
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                        <RemoveInvitationButton backend={backend} email={invitation.userEmail} />
+                      </ariaComponents.ButtonGroup>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </>
   )
 }

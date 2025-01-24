@@ -6,9 +6,12 @@ import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.Set;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.error.DataflowError;
 
 /**
  * This node defines the body of a function for execution, as well as the protocol for executing the
@@ -16,11 +19,17 @@ import org.enso.interpreter.node.ExpressionNode;
  */
 @NodeInfo(shortName = "Block")
 public class BlockNode extends ExpressionNode {
+  private final BranchProfile unexpectedReturnValue;
   @Children private final ExpressionNode[] statements;
   @Child private ExpressionNode returnExpr;
 
   private BlockNode(ExpressionNode[] expressions, ExpressionNode returnExpr) {
     this.statements = expressions;
+    if (expressions.length > 0) {
+      this.unexpectedReturnValue = BranchProfile.create();
+    } else {
+      this.unexpectedReturnValue = BranchProfile.getUncached();
+    }
     this.returnExpr = returnExpr;
   }
 
@@ -55,8 +64,16 @@ public class BlockNode extends ExpressionNode {
   @Override
   @ExplodeLoop
   public Object executeGeneric(VirtualFrame frame) {
+    var ctx = EnsoContext.get(this);
+    var nothing = ctx.getBuiltins().nothing();
     for (ExpressionNode statement : statements) {
-      statement.executeGeneric(frame);
+      var result = statement.executeGeneric(frame);
+      if (result != nothing) {
+        unexpectedReturnValue.enter();
+        if (result instanceof DataflowError err) {
+          return err;
+        }
+      }
     }
     return returnExpr.executeGeneric(frame);
   }

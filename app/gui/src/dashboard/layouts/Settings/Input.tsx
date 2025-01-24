@@ -1,7 +1,13 @@
 /** @file Rendering for an {@link SettingsInputData}. */
+import type { FieldPath, TSchema } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
-import SettingsAriaInput from './AriaInput'
-import type { SettingsContext, SettingsInputData } from './data'
+import {
+  SettingsAriaInput,
+  SettingsAriaInputEmail,
+  SettingsAriaInputPassword,
+  type SettingsAriaInputProps,
+} from './AriaInput'
+import type { SettingsContext, SettingsInputData, SettingsInputType } from './data'
 
 /** Props for a {@link SettingsInput}. */
 export interface SettingsInputProps<T extends Record<keyof T, string>> {
@@ -14,13 +20,24 @@ export default function SettingsInput<T extends Record<keyof T, string>>(
   props: SettingsInputProps<T>,
 ) {
   const { context, data } = props
-  const { name, nameId, autoComplete, hidden: hiddenRaw, editable, descriptionId } = data
+  const {
+    name,
+    nameId,
+    autoComplete,
+    hidden: hiddenRaw,
+    editable,
+    descriptionId,
+    type = 'text',
+  } = data
   const { getText } = useText()
-  const isEditable = typeof editable === 'function' ? editable(context) : editable ?? true
-  const hidden = typeof hiddenRaw === 'function' ? hiddenRaw(context) : hiddenRaw ?? false
+
+  const isEditable = typeof editable === 'function' ? editable(context) : (editable ?? true)
+  const hidden = typeof hiddenRaw === 'function' ? hiddenRaw(context) : (hiddenRaw ?? false)
+
+  const Input = INPUT_TYPE_MAP[type]
 
   return (
-    <SettingsAriaInput
+    <Input
       readOnly={!isEditable}
       label={getText(nameId)}
       name={name}
@@ -31,4 +48,13 @@ export default function SettingsInput<T extends Record<keyof T, string>>(
       })}
     />
   )
+}
+
+const INPUT_TYPE_MAP: Record<
+  SettingsInputType,
+  React.ComponentType<SettingsAriaInputProps<TSchema, FieldPath<TSchema>>>
+> = {
+  email: SettingsAriaInputEmail,
+  password: SettingsAriaInputPassword,
+  text: SettingsAriaInput,
 }

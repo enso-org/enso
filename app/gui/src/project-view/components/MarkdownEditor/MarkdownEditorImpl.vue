@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import CodeMirror from '@/components/CodeMirror.vue'
+import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
 import { ensoMarkdown } from '@/components/MarkdownEditor/markdown'
-import VueComponentHost from '@/components/VueComponentHost.vue'
+import VueHostRender, { VueHost } from '@/components/VueHostRender.vue'
 import { useCodeMirror } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { useLinkTitles } from '@/util/codemirror/links'
 import { Vec2 } from '@/util/data/vec2'
 import { EditorView } from '@codemirror/view'
 import { minimalSetup } from 'codemirror'
-import { computed, onMounted, ref, useCssModule, useTemplateRef } from 'vue'
+import { computed, onMounted, ref, useCssModule, useTemplateRef, type ComponentInstance } from 'vue'
 import * as Y from 'yjs'
 
 const { content } = defineProps<{
@@ -20,8 +20,8 @@ const { content } = defineProps<{
 const focused = ref(false)
 const editing = computed(() => !readonly.value && focused.value)
 
-const vueHost = useTemplateRef<InstanceType<typeof VueComponentHost>>('vueHost')
-const editorRoot = useTemplateRef<InstanceType<typeof CodeMirror>>('editorRoot')
+const vueHost = new VueHost()
+const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
   content: () => content,
   extensions: [
@@ -31,7 +31,7 @@ const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
     EditorView.clipboardInputFilter.of(transformPastedText),
     ensoMarkdown(),
   ],
-  vueHost: () => vueHost.value || undefined,
+  vueHost: () => vueHost,
 })
 
 useLinkTitles(editorView, { readonly })
@@ -59,8 +59,13 @@ defineExpose({
 </script>
 
 <template>
-  <CodeMirror ref="editorRoot" v-bind="$attrs" :class="{ editing }" @focusout="focused = false" />
-  <VueComponentHost ref="vueHost" />
+  <CodeMirrorRoot
+    ref="editorRoot"
+    v-bind="$attrs"
+    :class="{ editing }"
+    @focusout="focused = false"
+  />
+  <VueHostRender :host="vueHost" />
 </template>
 
 <style scoped>

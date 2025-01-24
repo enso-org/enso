@@ -201,7 +201,7 @@ type No_Such_Method
     to_display_text self =
         target_name =
           is_poly = Meta.is_polyglot self.target
-          is_fn = Meta.type_of self.target == Function
+          is_fn = Meta.is_same_object Function (Meta.type_of self.target)
           if is_poly then "type " + self.target.to_display_text else
              if is_fn then self.target.to_text else
                 "type " + (Meta.type_of self.target).to_display_text
@@ -560,24 +560,25 @@ type Out_Of_Range
 ## Indiciates that the response from a remote endpoint is over the size limit.
 type Response_Too_Large
     ## PRIVATE
-    Error limit:Integer
+    Error actual_size:Integer|Nothing limit:Integer
 
     ## PRIVATE
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
         suggestion = " Use `Data.fetch` with `cache_policy=No_Cache`, or use `Data.download` to fetch the data to a local file, and `Data.read` to read the file."
-        "Response too large: repsonse size is over the limit ("+self.limit.to_text+")" + suggestion
+        actual_size_message = if self.actual_size == Nothing then "" else " "+self.actual_size.to_text
+        "Response too large: response size"+actual_size_message+" is over the limit "+self.limit.to_text+"."+suggestion
 
     ## PRIVATE
     to_text : Text
     to_text self =
-        "(Response_Too_Large (limit = "+self.limit.to_text+")" + ")"
+        "(Response_Too_Large (actual_size = "+self.actual_size.to_text+") (limit = "+self.limit.to_text+"))"
 
     ## PRIVATE
        Convert the Java exception to an Enso dataflow error.
     handle_java_exception ~action =
-        Panic.catch ResponseTooLargeException action (cause-> Error.throw (Response_Too_Large.Error cause.payload.getLimit))
+        Panic.catch ResponseTooLargeException action (cause-> Error.throw (Response_Too_Large.Error cause.payload.getActualSize cause.payload.getLimit))
 
 ## Indicates that some operation relies on equality on floating-point values,
    which is not recommended.

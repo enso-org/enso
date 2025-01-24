@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import ConditionalTeleport from '@/components/ConditionalTeleport.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { enclosingTopLevelArgument } from '@/components/GraphEditor/widgets/WidgetTopLevelArgument.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
@@ -17,8 +16,12 @@ import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
 import { requiredImports, type RequiredImport } from '@/stores/graph/imports'
+import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import {
+  SuggestionKind,
+  entryDisplayPath,
+  entryIsStatic,
   type SuggestionEntry,
   type SuggestionEntryArgument,
 } from '@/stores/suggestionDatabase/entry'
@@ -35,6 +38,7 @@ import { computed, proxyRefs, ref, shallowRef, watch } from 'vue'
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
 const graph = useGraphStore()
+const projectNames = injectProjectNames()
 
 const tree = injectWidgetTree()
 
@@ -107,7 +111,7 @@ class ExpressionTag {
   ) {}
 
   static FromQualifiedName(qn: Ast.QualifiedName, label?: Opt<string>): ExpressionTag {
-    const entry = suggestions.entries.getEntryByQualifiedName(qn)
+    const entry = suggestions.entries.getEntryByProjectPath(projectNames.parseProjectPath(qn))
     if (entry) return ExpressionTag.FromEntry(entry, label)
     return new ExpressionTag(qn, label ?? qnLastSegment(qn))
   }
@@ -120,8 +124,8 @@ class ExpressionTag {
 
   static FromEntry(entry: SuggestionEntry, label?: Opt<string>): ExpressionTag {
     const expression =
-      entry.selfType != null ? `_.${entry.name}`
-      : entry.memberOf ? `${qnLastSegment(entry.memberOf)}.${entry.name}`
+      entryIsStatic(entry) ? entryDisplayPath(entry)
+      : entry.kind === SuggestionKind.Method ? `_.${entry.name}`
       : entry.name
     return new ExpressionTag(
       expression,
@@ -289,7 +293,10 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
     ) {
       dropDownInteraction.end()
       if (editedWidget.value)
-        props.onUpdate({ portUpdate: { origin: props.input.portId, value: editedValue.value } })
+        props.onUpdate({
+          portUpdate: { origin: props.input.portId, value: editedValue.value },
+          directInteraction: false,
+        })
     } else if (isMulti.value) {
       // In multi-select mode the children contain actual values; when a dropdown click occurs,
       // we allow the event to propagate so the child widget can commit before the dropdown-toggle occurs.
@@ -372,22 +379,31 @@ function toggleVectorValue(vector: Ast.MutableVector, value: string, previousSta
 
 function expressionTagClicked(tag: ExpressionTag, previousState: boolean) {
   const edit = graph.startEdit()
+  const directInteraction = true
   const tagValue = resolveTagExpression(edit, tag)
   if (isMulti.value) {
     const inputValue = editedValue.value ?? props.input.value
     if (inputValue instanceof Ast.Vector) {
       toggleVectorValue(edit.getVersion(inputValue), tagValue, previousState)
-      props.onUpdate({ edit })
+      props.onUpdate({ edit, directInteraction })
     } else {
       const vector = Ast.Vector.new(
         edit,
         inputValue instanceof Ast.Ast ? [edit.take(inputValue.id)] : [],
       )
       toggleVectorValue(vector, tagValue, previousState)
-      props.onUpdate({ edit, portUpdate: { value: vector, origin: props.input.portId } })
+      props.onUpdate({
+        edit,
+        portUpdate: { value: vector, origin: props.input.portId },
+        directInteraction,
+      })
     }
   } else {
-    props.onUpdate({ edit, portUpdate: { value: tagValue, origin: props.input.portId } })
+    props.onUpdate({
+      edit,
+      portUpdate: { value: tagValue, origin: props.input.portId },
+      directInteraction,
+    })
   }
 }
 
@@ -464,13 +480,13 @@ declare module '@/providers/widgetRegistry' {
     @pointerout="isHovered = false"
   >
     <NodeWidget :input="innerWidgetInput" />
-    <ConditionalTeleport v-if="showArrow" :disabled="!arrowLocation" :to="arrowLocation">
+    <teleport v-if="showArrow" :disabled="!arrowLocation" :to="arrowLocation">
       <SvgIcon
         name="arrow_right_head_only"
         class="arrow widgetOutOfLayout"
         :class="{ hovered: isHovered }"
       />
-    </ConditionalTeleport>
+    </teleport>
     <Teleport v-if="tree.rootElement" :to="tree.rootElement">
       <div ref="dropdownElement" :style="floatingStyles" class="widgetOutOfLayout floatingElement">
         <SizeTransition height :duration="100">

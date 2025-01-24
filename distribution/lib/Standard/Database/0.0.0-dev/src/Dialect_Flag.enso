@@ -34,10 +34,16 @@ type Dialect_Flag
     Supports_Sort_Digits_As_Numbers
     ## PRIAVTE
        Specifies if the backend supports case insensitive ordering.
-    Case_Insensitive_Ordering
+    Supports_Case_Insensitive_Ordering
     ## PRIVATE
-       Specifies if the backend supports unicode normalization in its default ordering.
+       Specifies if the backend uses case insensitive sort in its default ordering.
+    Case_Insensitive_Ordering_By_Default
+    ## PRIVATE
+       Specifies if the backend uses unicode normalization in its default ordering.
     Order_By_Unicode_Normalization_By_Default
+    ## PRIVATE
+       Specifies if the backend uses unicode normalization when doing case insentive ordering.
+    Order_By_Unicode_Normalization_When_Case_Insensitive
     ## PRIVATE
        Specifies if mixed operations comparing
        mixed types are allowed by a given backend. Some backends will allow

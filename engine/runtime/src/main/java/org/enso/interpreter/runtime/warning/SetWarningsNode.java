@@ -1,6 +1,5 @@
 package org.enso.interpreter.runtime.warning;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
@@ -91,9 +90,7 @@ public abstract class SetWarningsNode extends Node {
       } else {
         return new WithWarnings(object, maxWarns, isLimitReached, warnMap);
       }
-    } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
-      throw CompilerDirectives.shouldNotReachHere(e);
-    } catch (ClassCastException e) {
+    } catch (ClassCastException | UnsupportedMessageException | InvalidArrayIndexException e) {
       throw ctx.raiseAssertionPanic(this, "Expected Warning, got something else", e);
     }
   }
@@ -106,7 +103,7 @@ public abstract class SetWarningsNode extends Node {
       try {
         return interop.getArraySize(warns) == 0;
       } catch (UnsupportedMessageException e) {
-        throw CompilerDirectives.shouldNotReachHere(e);
+        return false;
       }
     }
     return false;

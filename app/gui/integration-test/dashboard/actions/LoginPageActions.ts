@@ -1,5 +1,5 @@
 /** @file Available actions for the login page. */
-import * as test from '@playwright/test'
+import { expect } from '@playwright/test'
 
 import { TEXT, VALID_EMAIL, VALID_PASSWORD, passAgreementsDialog } from '.'
 import BaseActions, { type LocatorCallback } from './BaseActions'
@@ -8,23 +8,19 @@ import ForgotPasswordPageActions from './ForgotPasswordPageActions'
 import RegisterPageActions from './RegisterPageActions'
 import SetupUsernamePageActions from './SetupUsernamePageActions'
 
-// ========================
-// === LoginPageActions ===
-// ========================
-
 /** Available actions for the login page. */
-export default class LoginPageActions extends BaseActions {
+export default class LoginPageActions<Context> extends BaseActions<Context> {
   /** Actions for navigating to another page. */
   get goToPage() {
     return {
-      register: (): RegisterPageActions =>
+      register: (): RegisterPageActions<Context> =>
         this.step("Go to 'register' page", async (page) =>
           page.getByRole('link', { name: TEXT.dontHaveAnAccount, exact: true }).click(),
-        ).into(RegisterPageActions),
-      forgotPassword: (): ForgotPasswordPageActions =>
+        ).into(RegisterPageActions<Context>),
+      forgotPassword: (): ForgotPasswordPageActions<Context> =>
         this.step("Go to 'forgot password' page", async (page) =>
           page.getByRole('link', { name: TEXT.forgotYourPassword, exact: true }).click(),
-        ).into(ForgotPasswordPageActions),
+        ).into(ForgotPasswordPageActions<Context>),
     }
   }
 
@@ -33,7 +29,7 @@ export default class LoginPageActions extends BaseActions {
     return this.step('Login', async (page) => {
       await this.loginInternal(email, password)
       await passAgreementsDialog({ page })
-    }).into(DrivePageActions)
+    }).into(DrivePageActions<Context>)
   }
 
   /** Perform a login as a new user (a user that does not yet have a username). */
@@ -41,7 +37,7 @@ export default class LoginPageActions extends BaseActions {
     return this.step('Login (as new user)', async (page) => {
       await this.loginInternal(email, password)
       await passAgreementsDialog({ page })
-    }).into(SetupUsernamePageActions)
+    }).into(SetupUsernamePageActions<Context>)
   }
 
   /** Perform a failing login. */
@@ -66,11 +62,11 @@ export default class LoginPageActions extends BaseActions {
       return next
     } else if (formError != null) {
       return next.step(`Expect form error to be '${formError}'`, async (page) => {
-        await test.expect(page.getByTestId('form-submit-error')).toHaveText(formError)
+        await expect(page.getByTestId('form-submit-error')).toHaveText(formError)
       })
     } else {
       return next.step('Expect no form error', async (page) => {
-        await test.expect(page.getByTestId('form-submit-error')).not.toBeVisible()
+        await expect(page.getByTestId('form-submit-error')).not.toBeVisible()
       })
     }
   }
@@ -83,10 +79,10 @@ export default class LoginPageActions extends BaseActions {
   }
 
   /** Interact with the email input. */
-  withEmailInput(callback: LocatorCallback) {
-    return this.step('Interact with email input', async (page) => {
-      await callback(page.getByPlaceholder(TEXT.emailPlaceholder))
-    })
+  withEmailInput(callback: LocatorCallback<Context>) {
+    return this.step('Interact with email input', (page, context) =>
+      callback(page.getByPlaceholder(TEXT.emailPlaceholder), context),
+    )
   }
 
   /** Internal login logic shared between all public methods. */
@@ -97,6 +93,6 @@ export default class LoginPageActions extends BaseActions {
       .getByRole('button', { name: TEXT.login, exact: true })
       .getByText(TEXT.login)
       .click()
-    await test.expect(this.page.getByText(TEXT.loadingAppMessage)).not.toBeVisible()
+    await expect(this.page.getByText(TEXT.loadingAppMessage)).not.toBeVisible()
   }
 }

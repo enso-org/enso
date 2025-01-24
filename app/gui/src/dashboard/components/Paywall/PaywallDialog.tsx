@@ -38,12 +38,7 @@ export function PaywallDialog(props: PaywallDialogProps) {
 
         <components.PaywallBulletPoints bulletPointsTextId={bulletPointsTextId} className="my-2" />
 
-        <upgradeButton.UpgradeButton
-          feature={feature}
-          rounded="xlarge"
-          className="mt-2"
-          size="large"
-        />
+        <upgradeButton.UpgradeButton feature={feature} className="mt-2" size="large" />
       </div>
     </ariaComponents.Dialog>
   )

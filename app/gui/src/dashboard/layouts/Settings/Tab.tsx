@@ -77,7 +77,7 @@ export default function SettingsTab(props: SettingsTabProps) {
           {...contentProps}
         >
           {columns.map((sectionsInColumn, i) => (
-            <div key={i} className={twMerge('flex h-fit flex-1 flex-col gap-8 pb-12', classes[i])}>
+            <div key={i} className={twMerge('flex h-fit flex-1 flex-col gap-8', classes[i])}>
               {sectionsInColumn.map((section) => (
                 <SettingsSection key={section.nameId} context={context} data={section} />
               ))}

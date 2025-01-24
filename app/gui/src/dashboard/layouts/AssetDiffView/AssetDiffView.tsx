@@ -2,10 +2,10 @@
 import { DiffEditor } from '@monaco-editor/react'
 import { useSuspenseQueries } from '@tanstack/react-query'
 
-import { Spinner } from '#/components/Spinner'
 import { versionContentQueryOptions } from '#/layouts/AssetDiffView/useFetchVersionContent'
 import type * as backendService from '#/services/Backend'
 import type Backend from '#/services/Backend'
+import { StatelessSpinner } from '../../components/StatelessSpinner'
 
 // =====================
 // === AssetDiffView ===
@@ -40,7 +40,7 @@ export function AssetDiffView(props: AssetDiffViewProps) {
 
   const loader = (
     <div className="flex h-full w-full items-center justify-center">
-      <Spinner size={32} state="loading-medium" />
+      <StatelessSpinner size={32} state="loading-medium" />
     </div>
   )
 

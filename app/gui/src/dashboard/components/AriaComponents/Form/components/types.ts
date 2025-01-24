@@ -7,6 +7,7 @@ import type * as React from 'react'
 import type * as reactHookForm from 'react-hook-form'
 import type * as z from 'zod'
 
+import type { Path } from '#/utilities/objectPath'
 import type { FormEvent } from 'react'
 import type * as schemaModule from './schema'
 
@@ -22,7 +23,10 @@ export type TransformedValues<Schema extends TSchema | undefined> =
  * Field path type.
  * @alias reactHookForm.FieldPath
  */
-export type FieldPath<Schema extends TSchema> = reactHookForm.FieldPath<FieldValues<Schema>>
+export type FieldPath<Schema extends TSchema, Constraint = unknown> = Extract<
+  Path<FieldValues<Schema>, Constraint>,
+  reactHookForm.FieldPath<FieldValues<Schema>>
+>
 
 /** Schema type */
 export type TSchema =
@@ -30,11 +34,17 @@ export type TSchema =
   | z.ZodEffects<z.AnyZodObject>
   | z.ZodEffects<z.ZodEffects<z.AnyZodObject>>
 
+/** A callback that returns a schema. */
+export type SchemaCallback<Schema extends TSchema = TSchema> = (z: SchemaBuilder) => Schema
+
+/** The schema builder. */
+export type SchemaBuilder = typeof schemaModule.schema
+
 /** OnSubmitCallbacks type. */
 export interface OnSubmitCallbacks<Schema extends TSchema, SubmitResult = void> {
   readonly onSubmit?:
     | ((
-        values: FieldValues<Schema>,
+        values: TransformedValues<Schema>,
         form: UseFormReturn<Schema>,
       ) => Promise<SubmitResult> | SubmitResult)
     | undefined
@@ -42,14 +52,14 @@ export interface OnSubmitCallbacks<Schema extends TSchema, SubmitResult = void> 
   readonly onSubmitFailed?:
     | ((
         error: unknown,
-        values: FieldValues<Schema>,
+        values: TransformedValues<Schema>,
         form: UseFormReturn<Schema>,
       ) => Promise<void> | void)
     | undefined
   readonly onSubmitSuccess?:
     | ((
         data: SubmitResult,
-        values: FieldValues<Schema>,
+        values: TransformedValues<Schema>,
         form: UseFormReturn<Schema>,
       ) => Promise<void> | void)
     | undefined
@@ -57,7 +67,7 @@ export interface OnSubmitCallbacks<Schema extends TSchema, SubmitResult = void> 
     | ((
         data: SubmitResult | undefined,
         error: unknown,
-        values: FieldValues<Schema>,
+        values: TransformedValues<Schema>,
         form: UseFormReturn<Schema>,
       ) => Promise<void> | void)
     | undefined
@@ -70,7 +80,7 @@ export interface UseFormOptions<Schema extends TSchema, SubmitResult = void>
       'handleSubmit' | 'resetOptions' | 'resolver'
     >,
     OnSubmitCallbacks<Schema, SubmitResult> {
-  readonly schema: Schema | ((schema: typeof schemaModule.schema) => Schema)
+  readonly schema: Schema | SchemaCallback<Schema>
   /**
    * Whether the form can submit offline.
    * @default false
@@ -79,12 +89,15 @@ export interface UseFormOptions<Schema extends TSchema, SubmitResult = void>
 
   /** Debug name for the form. Use it to identify the form in the tanstack query devtools. */
   readonly debugName?: string
+
+  /** When set to `dialog`, form submission will close the parent dialog on successful submission. */
   readonly method?: 'dialog' | (string & {}) | undefined
 }
 
 /** Register function for a form field. */
 export type UseFormRegister<Schema extends TSchema> = <
-  TFieldName extends FieldPath<Schema> = FieldPath<Schema>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  TFieldName extends FieldPath<Schema, any> = FieldPath<Schema>,
 >(
   name: TFieldName,
   options?: reactHookForm.RegisterOptions<FieldValues<Schema>, TFieldName>,
@@ -111,6 +124,8 @@ export interface UseFormRegisterReturn<
  * Return type of the useForm hook.
  * @alias reactHookForm.UseFormReturn
  */
+// @ts-expect-error This is type-safe, we are just using a narrower definition of `FieldPath` in
+// `UseFormRegister<Schema>`.
 export interface UseFormReturn<Schema extends TSchema>
   extends Omit<
     reactHookForm.UseFormReturn<FieldValues<Schema>, unknown, TransformedValues<Schema>>,
@@ -121,6 +136,10 @@ export interface UseFormReturn<Schema extends TSchema>
   readonly schema: Schema
   readonly setFormError: (error: string) => void
   readonly closeRef: React.MutableRefObject<() => void>
+  readonly formProps: {
+    readonly onSubmit: (event?: FormEvent<HTMLFormElement> | null) => Promise<void>
+    readonly noValidate: boolean
+  }
 }
 
 /**
@@ -139,7 +158,8 @@ export type FormInstance<Schema extends TSchema> = UseFormReturn<Schema>
 export interface FormWithValueValidation<
   BaseValueType,
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
+  TFieldName extends FieldPath<Schema, Constraint>,
+  Constraint,
   // It is not ideal to have this as a parameter as it can be edited, but this is the simplest way
   // to avoid distributive conditional types to affect the error message. We want distributivity
   // to happen, just not for the error message itself.
@@ -165,6 +185,12 @@ export type FormInstanceValidated<
   // We use any here because we want to bypass the type check for Error type as it won't be a case here
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 > = FormInstance<Schema> | (any[] & NonNullable<unknown>)
+
+/**
+ * Form instance with unknown schema.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyFormInstance = FormInstance<any>
 
 /** Props for the Field component. */
 // Readonly omitted here to avoid type mismatch with native HTML attributes
@@ -198,8 +224,9 @@ export interface FieldProps {
 export interface FormFieldProps<
   BaseValueType,
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
-> extends FormWithValueValidation<BaseValueType, Schema, TFieldName> {
+  TFieldName extends FieldPath<Schema, Constraint>,
+  Constraint,
+> extends FormWithValueValidation<BaseValueType, Schema, TFieldName, Constraint> {
   readonly name: TFieldName
   readonly value?: BaseValueType extends FieldValues<Schema> ? FieldValues<Schema>[TFieldName]
   : never
@@ -213,11 +240,12 @@ export interface FormFieldProps<
 export type FieldStateProps<
   BaseProps extends { value?: unknown },
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
-> = FormFieldProps<BaseProps['value'], Schema, TFieldName> & {
+  TFieldName extends FieldPath<Schema, Constraint>,
+  Constraint,
+> = FormFieldProps<BaseProps['value'], Schema, TFieldName, Constraint> & {
   // to avoid conflicts with the FormFieldProps we need to omit the FormFieldProps from the BaseProps
   [K in keyof Omit<
     BaseProps,
-    keyof FormFieldProps<BaseProps['value'], Schema, TFieldName>
+    keyof FormFieldProps<BaseProps['value'], Schema, TFieldName, Constraint>
   >]: BaseProps[K]
 }

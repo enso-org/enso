@@ -1,30 +1,26 @@
 /** @file Available actions for the login page. */
-import * as test from '@playwright/test'
+import { expect } from '@playwright/test'
 
 import { TEXT, VALID_EMAIL } from '.'
 import BaseActions, { type LocatorCallback } from './BaseActions'
 import LoginPageActions from './LoginPageActions'
 
-// =================================
-// === ForgotPasswordPageActions ===
-// =================================
-
 /** Available actions for the login page. */
-export default class ForgotPasswordPageActions extends BaseActions {
+export default class ForgotPasswordPageActions<Context> extends BaseActions<Context> {
   /** Actions for navigating to another page. */
   get goToPage() {
     return {
-      login: (): LoginPageActions =>
+      login: (): LoginPageActions<Context> =>
         this.step("Go to 'login' page", async (page) =>
           page.getByRole('link', { name: TEXT.goBackToLogin, exact: true }).click(),
-        ).into(LoginPageActions),
+        ).into(LoginPageActions<Context>),
     }
   }
 
   /** Perform a successful login. */
   forgotPassword(email = VALID_EMAIL) {
     return this.step('Forgot password', () => this.forgotPasswordInternal(email)).into(
-      LoginPageActions,
+      LoginPageActions<Context>,
     )
   }
 
@@ -36,9 +32,9 @@ export default class ForgotPasswordPageActions extends BaseActions {
   }
 
   /** Interact with the email input. */
-  withEmailInput(callback: LocatorCallback) {
-    return this.step('Interact with email input', async (page) => {
-      await callback(page.getByPlaceholder(TEXT.emailPlaceholder))
+  withEmailInput(callback: LocatorCallback<Context>) {
+    return this.step('Interact with email input', async (page, context) => {
+      await callback(page.getByPlaceholder(TEXT.emailPlaceholder), context)
     })
   }
 
@@ -49,6 +45,6 @@ export default class ForgotPasswordPageActions extends BaseActions {
       .getByRole('button', { name: TEXT.login, exact: true })
       .getByText(TEXT.login)
       .click()
-    await test.expect(this.page.getByText(TEXT.loadingAppMessage)).not.toBeVisible()
+    await expect(this.page.getByText(TEXT.loadingAppMessage)).not.toBeVisible()
   }
 }

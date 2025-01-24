@@ -84,7 +84,7 @@ export const ArgumentNameShownKey: unique symbol = Symbol.for('WidgetInput:Argum
     opacity 0.2s ease;
   .missing & {
     opacity: 1;
-    background-color: var(--color-node-port-missing-value);
+    background-color: var(--color-missing-value);
     color: var(--color-node-text-missing-value);
   }
 }

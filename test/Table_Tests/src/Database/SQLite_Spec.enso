@@ -3,6 +3,7 @@ import Standard.Base.Runtime.Ref.Ref
 from Standard.Base.Runtime import assert
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Runtime.Context
 
 from Standard.Table import Table, Value_Type, Bits
 from Standard.Table.Errors import Invalid_Column_Names, Duplicate_Output_Column_Names
@@ -54,8 +55,8 @@ type Metadata_Data
         [connection, tinfo, t]
 
     teardown self =
-        self.connection.drop_table self.t.name
-        self.connection.drop_table self.tinfo
+        self.connection.drop_table self.t.name if_exists=True
+        self.connection.drop_table self.tinfo if_exists=True
         self.connection.close
 
 
@@ -81,9 +82,9 @@ type Tables_And_Table_Types_Data
         [connection, tinfo, vinfo, temporary_table]
 
     teardown self =
-        self.connection.drop_table self.tinfo
-        self.connection.drop_table self.vinfo
-        self.connection.drop_table self.temporary_table
+        self.connection.drop_table self.tinfo if_exists=True
+        self.connection.execute_update "DROP VIEW IF EXISTS '"+self.vinfo+"'"
+        self.connection.drop_table self.temporary_table if_exists=True
         self.connection.close
 
 
@@ -377,9 +378,7 @@ type Database_File
     Value ~file
 
     create = Database_File.Value <|
-        transient_dir = enso_project.data / "transient"
-        assert transient_dir.exists ("The directory " + transient_dir.path + " should exist (ensured by containing a `.gitignore` file).")
-        f = transient_dir / "sqlite_test.db"
+        f = File.create_temporary_file "sqlite-test" ".db"
         f.delete_if_exists
         f
 
@@ -388,7 +387,10 @@ create_inmem_connection =
 
 create_file_connection file =
     connection = Database.connect (SQLite.From_File file)
-    connection.execute_update 'CREATE TABLE "Dummy" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
+    ## We need to re-enable the context because this initializer may be executed
+       lazily in a context where Output was disabled (e.g. Upload_Spec).
+    Context.Output.with_enabled <|
+        connection.execute_update 'CREATE TABLE IF NOT EXISTS "Dummy" ("strs" VARCHAR, "ints" INTEGER, "bools" BOOLEAN, "reals" REAL)'
     connection
 
 type File_Connection
@@ -400,10 +402,6 @@ type File_Connection
         con.close
         assert tmp_file.exists
         tmp_file
-
-    teardown self =
-        assert self.file.exists
-        self.file.delete
 
 
 add_specs suite_builder =
@@ -424,9 +422,6 @@ add_specs suite_builder =
 
     suite_builder.group "SQLite_Format should allow connecting to SQLite files" group_builder->
         data = File_Connection.setup database_file
-
-        group_builder.teardown <|
-            data.teardown
 
         group_builder.specify "should recognise a SQLite database file" <|
             Auto_Detect.get_reading_format data.file . should_be_a SQLite_Format

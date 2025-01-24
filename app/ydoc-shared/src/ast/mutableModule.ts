@@ -2,26 +2,24 @@ import * as random from 'lib0/random'
 import * as Y from 'yjs'
 import { subtreeRoots } from '.'
 import { assert, assertDefined } from '../util/assert'
-import type { SourceRangeEdit } from '../util/data/text'
-import { defaultLocalOrigin, tryAsOrigin, type Origin } from '../yjsModel'
+import { type SourceRangeEdit } from '../util/data/text'
+import { type Origin, defaultLocalOrigin, tryAsOrigin } from '../yjsModel'
 import { newExternalId } from './idMap'
 import { parseModule } from './parse'
-import type { SyncTokenId } from './token'
-import { Token, isTokenId } from './token'
-import type {
-  AstFields,
-  AstId,
-  BodyBlock,
-  FixedMap,
-  Mutable,
-  MutableAst,
-  MutableBodyBlock,
-  MutableInvalid,
-  NodeChild,
-  Owned,
-  RawNodeChild,
-} from './tree'
+import { type SyncTokenId, Token, isTokenId } from './token'
 import {
+  type AstFields,
+  type AstId,
+  type AstType,
+  type BodyBlock,
+  type FixedMap,
+  type Mutable,
+  type MutableAst,
+  type MutableBodyBlock,
+  type MutableInvalid,
+  type NodeChild,
+  type Owned,
+  type RawNodeChild,
   Ast,
   Wildcard,
   asOwned,
@@ -160,7 +158,7 @@ export class MutableModule implements Module {
 
   /** Copy the given node into the module. */
   copy<T extends Ast>(ast: T): Owned<Mutable<T>> {
-    const id = newAstId(ast.typeName())
+    const id = newAstId(ast.typeName)
     const fields = ast.fields.clone()
     this.nodes.set(id, fields as any)
     fields.set('id', id)
@@ -173,7 +171,7 @@ export class MutableModule implements Module {
   /** @internal */
   importCopy<T extends Ast>(ast: T): Owned<Mutable<T>> {
     assert(ast.module !== this)
-    ast.visitRecursive(ast => this.nodes.set(ast.id, ast.fields.clone() as any))
+    ast.visitRecursive((ast) => this.nodes.set(ast.id, ast.fields.clone() as any))
     const fields = this.nodes.get(ast.id)
     assertDefined(fields)
     fields.set('parent', undefined)
@@ -373,7 +371,7 @@ export class MutableModule implements Module {
   }
 
   /** @internal */
-  baseObject(type: string, overrideId?: AstId): FixedMap<AstFields> {
+  baseObject(type: AstType, overrideId?: AstId): FixedMap<AstFields> {
     const map = new Y.Map()
     const map_ = map as unknown as FixedMap<object>
     const id = overrideId ?? newAstId(type)
@@ -533,7 +531,7 @@ class UpdateBuilder {
 
   finish(): ModuleUpdate {
     const dirtyNodes = new Set(this.nodesUpdated)
-    this.nodesAdded.forEach(node => dirtyNodes.add(node))
+    this.nodesAdded.forEach((node) => dirtyNodes.add(node))
     const updateRoots = subtreeRoots(this.module, dirtyNodes)
     return { ...this, updateRoots }
   }

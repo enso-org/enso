@@ -1,57 +1,148 @@
-import * as dashboard from '#/index'
 import '#/styles.css'
 import '#/tailwind.css'
-import { AsyncApp } from '@/asyncApp'
-import { baseConfig, configValue, mergeConfig } from '@/util/config'
-import { urlParams } from '@/util/urlParams'
-import * as vueQuery from '@tanstack/vue-query'
-import { isOnLinux } from 'enso-common/src/detect'
-import * as commonQuery from 'enso-common/src/queryClient'
+import * as sentry from '@sentry/react'
+import { VueQueryPlugin } from '@tanstack/vue-query'
+import * as detect from 'enso-common/src/detect'
+import { createQueryClient } from 'enso-common/src/queryClient'
+import { MotionGlobalConfig } from 'framer-motion'
 import * as idbKeyval from 'idb-keyval'
-import { lazyVueInReact } from 'veaury'
-import { type App } from 'vue'
+import { useEffect } from 'react'
+import {
+  createRoutesFromChildren,
+  matchRoutes,
+  useLocation,
+  useNavigationType,
+} from 'react-router-dom'
+import { createApp } from 'vue'
+import App from './App.vue'
 
-const INITIAL_URL_KEY = `Enso-initial-url`
+const HTTP_STATUS_BAD_REQUEST = 400
+const API_HOST = $config.API_URL != null ? new URL($config.API_URL).host : null
+/** The fraction of non-erroring interactions that should be sampled by Sentry. */
+const SENTRY_SAMPLE_RATE = 0.005
 const SCAM_WARNING_TIMEOUT = 1000
-export const isDevMode = process.env.NODE_ENV === 'development'
+const INITIAL_URL_KEY = `Enso-initial-url`
 
-function printScamWarning() {
-  if (isDevMode) return
-  const headerCss = `
-    color: white;
-    background: crimson;
-    display: block;
-    border-radius: 8px;
-    font-weight: bold;
-    padding: 10px 20px 10px 20px;
-  `
-    .trim()
-    .replace(/\n\s+/, ' ')
-  const headerCss1 = headerCss + ' font-size: 46px;'
-  const headerCss2 = headerCss + ' font-size: 20px;'
-  const msgCSS = 'font-size: 16px;'
+function main() {
+  setupScamWarning()
+  setupSentry()
+  configureAnimations()
+  const appProps = imNotSureButPerhapsFixingRefreshingWithAuthentication()
+  const queryClient = createQueryClientOfPersistCache()
 
-  const msg1 =
-    'This is a browser feature intended for developers. If someone told you to ' +
-    'copy-paste something here, it is a scam and will give them access to your ' +
-    'account and data.'
-  const msg2 = 'See https://enso.org/selfxss for more information.'
-  console.log('%cStop!', headerCss1)
-  console.log('%cYou may be the victim of a scam!', headerCss2)
-  console.log('%c' + msg1, msgCSS)
-  console.log('%c' + msg2, msgCSS)
+  const app = createApp(App, appProps)
+  app.use(VueQueryPlugin, { queryClient })
+  app.mount('#enso-app')
 }
 
-printScamWarning()
-let scamWarningHandle = 0
+function setupScamWarning() {
+  function printScamWarning() {
+    if (process.env.NODE_ENV === 'development') return
+    const headerCss = `
+      color: white;
+      background: crimson;
+      display: block;
+      border-radius: 8px;
+      font-weight: bold;
+      padding: 10px 20px 10px 20px;
+    `
+      .trim()
+      .replace(/\n\s+/, ' ')
+    const headerCss1 = headerCss + ' font-size: 46px;'
+    const headerCss2 = headerCss + ' font-size: 20px;'
+    const msgCSS = 'font-size: 16px;'
 
-window.addEventListener('resize', () => {
-  window.clearTimeout(scamWarningHandle)
-  scamWarningHandle = window.setTimeout(printScamWarning, SCAM_WARNING_TIMEOUT)
-})
+    const msg1 =
+      'This is a browser feature intended for developers. If someone told you to ' +
+      'copy-paste something here, it is a scam and will give them access to your ' +
+      'account and data.'
+    const msg2 = 'See https://enso.org/selfxss for more information.'
+    console.log('%cStop!', headerCss1)
+    console.log('%cYou may be the victim of a scam!', headerCss2)
+    console.log('%c' + msg1, msgCSS)
+    console.log('%c' + msg2, msgCSS)
+  }
 
-/** The entrypoint into the IDE. */
-function main() {
+  printScamWarning()
+  let scamWarningHandle = 0
+
+  window.addEventListener('resize', () => {
+    window.clearTimeout(scamWarningHandle)
+    scamWarningHandle = window.setTimeout(printScamWarning, SCAM_WARNING_TIMEOUT)
+  })
+}
+
+function setupSentry() {
+  if (!detect.IS_DEV_MODE && $config.SENTRY_DSN && $config.API_URL != null) {
+    sentry.init({
+      dsn: $config.SENTRY_DSN,
+      environment: $config.ENVIRONMENT ?? 'dev',
+      release: $config.VERSION ?? 'dev',
+      integrations: [
+        sentry.reactRouterV6BrowserTracingIntegration({
+          useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+        sentry.extraErrorDataIntegration({ captureErrorCause: true }),
+        sentry.replayIntegration(),
+        new sentry.BrowserProfilingIntegration(),
+      ],
+      profilesSampleRate: SENTRY_SAMPLE_RATE,
+      tracesSampleRate: SENTRY_SAMPLE_RATE,
+      tracePropagationTargets: [$config.API_URL.split('//')[1] ?? ''],
+      replaysSessionSampleRate: SENTRY_SAMPLE_RATE,
+      replaysOnErrorSampleRate: 1.0,
+      beforeSend: (event) => {
+        if (
+          (event.breadcrumbs ?? []).some(
+            (breadcrumb) =>
+              breadcrumb.type === 'http' &&
+              breadcrumb.category === 'fetch' &&
+              breadcrumb.data &&
+              breadcrumb.data.status_code === HTTP_STATUS_BAD_REQUEST &&
+              typeof breadcrumb.data.url === 'string' &&
+              new URL(breadcrumb.data.url).host === API_HOST,
+          )
+        ) {
+          return null
+        }
+        return event
+      },
+    })
+  }
+}
+
+function configureAnimations() {
+  const areAnimationsDisabled =
+    window.DISABLE_ANIMATIONS === true ||
+    localStorage.getItem('disableAnimations') === 'true' ||
+    false
+
+  MotionGlobalConfig.skipAnimations = areAnimationsDisabled
+
+  if (areAnimationsDisabled) {
+    document.documentElement.classList.add('disable-animations')
+  } else {
+    document.documentElement.classList.remove('disable-animations')
+  }
+}
+
+function createQueryClientOfPersistCache() {
+  const store = idbKeyval.createStore('enso', 'query-persist-cache')
+  return createQueryClient({
+    persisterStorage: {
+      getItem: async (key) => idbKeyval.get(key, store),
+      setItem: async (key, value) => idbKeyval.set(key, value, store),
+      removeItem: async (key) => idbKeyval.del(key, store),
+      clear: async () => idbKeyval.clear(store),
+    },
+  })
+}
+
+function imNotSureButPerhapsFixingRefreshingWithAuthentication() {
   /**
    * Note: Signing out always redirects to `/`. It is impossible to make this work,
    * as it is not possible to distinguish between having just logged out, and explicitly
@@ -73,49 +164,7 @@ function main() {
     localStorage.setItem(INITIAL_URL_KEY, location.href)
   }
 
-  const resolveEnvUrl = (url: string | undefined) =>
-    url?.replace('__HOSTNAME__', window.location.hostname)
-
-  const config = configValue(mergeConfig(baseConfig, urlParams()))
-  const supportsVibrancy = config.window.vibrancy
-  const shouldUseAuthentication = config.authentication.enabled
-  const projectManagerUrl =
-    (config.engine.projectManagerUrl || resolveEnvUrl(PROJECT_MANAGER_URL)) ?? null
-  const ydocUrl = (config.engine.ydocUrl || resolveEnvUrl(YDOC_SERVER_URL)) ?? null
-  const initialProjectName = config.startup.project || null
-  const urlWithoutStartupProject = new URL(location.toString())
-  urlWithoutStartupProject.searchParams.delete('startup.project')
-  history.replaceState(null, '', urlWithoutStartupProject)
-
-  const store = idbKeyval.createStore('enso', 'query-persist-cache')
-  const queryClient = commonQuery.createQueryClient({
-    persisterStorage: {
-      getItem: async (key) => idbKeyval.get(key, store),
-      setItem: async (key, value) => idbKeyval.set(key, value, store),
-      removeItem: async (key) => idbKeyval.del(key, store),
-      clear: async () => idbKeyval.clear(store),
-    },
-  })
-
-  const registerPlugins = (app: App) => {
-    app.use(vueQuery.VueQueryPlugin, { queryClient })
-  }
-
-  const appRunner = lazyVueInReact(AsyncApp as any /* async VueComponent */, {
-    beforeVueAppMount: (app) => registerPlugins(app as App),
-  }) as dashboard.GraphEditorRunner
-
-  dashboard.run({
-    appRunner,
-    logger: console,
-    vibrancy: supportsVibrancy,
-    supportsLocalBackend: !IS_CLOUD_BUILD,
-    supportsDeepLinks: !isDevMode && !isOnLinux(),
-    projectManagerUrl,
-    ydocUrl,
-    isAuthenticationDisabled: !shouldUseAuthentication,
-    shouldShowDashboard: true,
-    initialProjectName,
+  return {
     onAuthenticated() {
       if (isInAuthenticationFlow) {
         const initialUrl = localStorage.getItem(INITIAL_URL_KEY)
@@ -126,8 +175,7 @@ function main() {
         }
       }
     },
-    queryClient,
-  })
+  }
 }
 
 main()

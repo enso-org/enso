@@ -1,11 +1,16 @@
 import { assertDefined } from '../util/assert'
-import type { SourceRangeEdit } from '../util/data/text'
-import { offsetEdit, textChangeToEdits } from '../util/data/text'
-import type { Origin, SourceRange } from '../yjsModel'
-import { rangeEquals, sourceRangeFromKey } from '../yjsModel'
-import type { Module, ModuleUpdate } from './mutableModule'
+import {
+  rangeEquals,
+  sourceRangeFromKey,
+  textChangeToEdits,
+  translateRange,
+  type SourceRange,
+  type SourceRangeEdit,
+} from '../util/data/text'
+import { type Origin } from '../yjsModel'
+import { type Module, type ModuleUpdate } from './mutableModule'
 import { printWithSpans } from './print'
-import type { AstId } from './tree'
+import { type AstId } from './tree'
 
 /**
  * Provides a view of the text representation of a module,
@@ -32,9 +37,9 @@ export class SourceDocument {
   clear() {
     if (this.state.spans.size !== 0) this.state.spans.clear()
     if (this.state.text !== '') {
-      const range: SourceRange = [0, this.state.text.length]
+      const textEdit = { from: 0, to: this.state.text.length, insert: '' }
       this.state.text = ''
-      this.notifyObservers([{ range, insert: '' }], undefined)
+      this.notifyObservers([textEdit], undefined)
     }
   }
 
@@ -52,10 +57,10 @@ export class SourceDocument {
         if (!oldSpan || !rangeEquals(range, oldSpan)) this.state.spans.set(node.id, range)
         if (update.updateRoots.has(node.id) && node.id !== root.id) {
           assertDefined(oldSpan)
-          const oldCode = this.rawState.text.slice(oldSpan[0], oldSpan[1])
-          const newCode = printed.code.slice(range[0], range[1])
-          const subedits = textChangeToEdits(oldCode, newCode).map(textEdit =>
-            offsetEdit(textEdit, oldSpan[0]),
+          const oldCode = this.rawState.text.slice(oldSpan.from, oldSpan.to)
+          const newCode = printed.code.slice(range.from, range.to)
+          const subedits = textChangeToEdits(oldCode, newCode).map((textEdit) =>
+            translateRange(textEdit, oldSpan.from),
           )
           subtreeTextEdits.push(...subedits)
         }
@@ -64,7 +69,7 @@ export class SourceDocument {
     if (printed.code !== this.rawState.text) {
       const textEdits =
         update.updateRoots.has(root.id) ?
-          [{ range: [0, this.rawState.text.length] satisfies SourceRange, insert: printed.code }]
+          [{ from: 0, to: this.rawState.text.length, insert: printed.code }]
         : subtreeTextEdits
       this.state.text = printed.code
       this.notifyObservers(textEdits, update.origin)
@@ -85,7 +90,7 @@ export class SourceDocument {
   observe(observer: SourceDocumentObserver) {
     this.observers.push(observer)
     if (this.rawState.text.length)
-      observer([{ range: [0, 0], insert: this.rawState.text }], undefined)
+      observer([{ from: 0, to: 0, insert: this.rawState.text }], undefined)
   }
 
   /** Remove a callback to no longer be called with a list of edits on every update. */

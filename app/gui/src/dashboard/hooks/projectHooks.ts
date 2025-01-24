@@ -9,7 +9,6 @@ import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import {
-  TabType,
   useAddLaunchedProject,
   useProjectsStore,
   useRemoveLaunchedProject,
@@ -41,14 +40,13 @@ const DEFAULT_INTERVAL_MS = 120_000
 /** Options for {@link createGetProjectDetailsQuery}. */
 export interface CreateOpenedProjectQueryOptions {
   readonly assetId: backendModule.Asset<backendModule.AssetType.project>['id']
-  readonly parentId: backendModule.Asset<backendModule.AssetType.project>['parentId']
   readonly backend: Backend
 }
 
 /** Whether the user can open projects. */
 export function useCanOpenProjects() {
-  const localBackend = backendProvider.useLocalBackend()
-  return localBackend != null
+  const enableCloudExecution = useFeatureFlag('enableCloudExecution')
+  return enableCloudExecution
 }
 
 /** Return a function to update a project asset in the TanStack Query cache. */
@@ -81,31 +79,73 @@ function useSetProjectAsset() {
   )
 }
 
+export const OPENING_PROJECT_STATES = new Set([
+  backendModule.ProjectState.provisioned,
+  backendModule.ProjectState.scheduled,
+  backendModule.ProjectState.openInProgress,
+  backendModule.ProjectState.closing,
+])
+export const OPENED_PROJECT_STATES = new Set([backendModule.ProjectState.opened])
+export const CLOSED_PROJECT_STATES = new Set([backendModule.ProjectState.closed])
+export const STATIC_PROJECT_STATES = new Set([
+  backendModule.ProjectState.opened,
+  backendModule.ProjectState.closed,
+])
+export const CREATED_PROJECT_STATES = new Set([
+  backendModule.ProjectState.created,
+  backendModule.ProjectState.new,
+])
+
+/** Stale time for local projects, set to 10 seconds. */
+// eslint-disable-next-line @typescript-eslint/no-magic-numbers
+export const LOCAL_PROJECT_OPEN_TIMEOUT_MS = 10 * 1_000
+/** Stale time for cloud projects, set to 5 minutes. */
+// eslint-disable-next-line @typescript-eslint/no-magic-numbers
+export const CLOUD_PROJECT_OPEN_TIMEOUT_MS = 5 * 60 * 1_000
+
+/**
+ * Get the timeout based on the backend type.
+ * @param backendType - The backend type.
+ * @throws If the backend type is not supported.
+ * @returns The timeout in milliseconds.
+ */
+export function getTimeoutBasedOnTheBackendType(backendType: backendModule.BackendType) {
+  switch (backendType) {
+    case backendModule.BackendType.local: {
+      return LOCAL_PROJECT_OPEN_TIMEOUT_MS
+    }
+    case backendModule.BackendType.remote: {
+      return CLOUD_PROJECT_OPEN_TIMEOUT_MS
+    }
+
+    default: {
+      throw new Error('Unsupported backend type')
+    }
+  }
+}
+
 /** Project status query.  */
 export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOptions) {
-  const { assetId, parentId, backend } = options
+  const { assetId, backend } = options
 
   const isLocal = backend.type === backendModule.BackendType.local
 
   return reactQuery.queryOptions({
     queryKey: createGetProjectDetailsQuery.getQueryKey(assetId),
-    queryFn: () => backend.getProjectDetails(assetId, parentId),
-    meta: { persist: false },
+    queryFn: () => backend.getProjectDetails(assetId),
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     networkMode: backend.type === backendModule.BackendType.remote ? 'online' : 'always',
-    refetchInterval: ({ state }): number | false => {
-      const staticStates = [backendModule.ProjectState.opened, backendModule.ProjectState.closed]
+    meta: { persist: false },
+    refetchInterval: (query): number | false => {
+      const { state } = query
 
-      const openingStates = [
-        backendModule.ProjectState.provisioned,
-        backendModule.ProjectState.scheduled,
-        backendModule.ProjectState.openInProgress,
-        backendModule.ProjectState.closing,
-      ]
+      const staticStates = STATIC_PROJECT_STATES
 
-      const createdStates = [backendModule.ProjectState.created, backendModule.ProjectState.new]
+      const openingStates = OPENING_PROJECT_STATES
+
+      const createdStates = CREATED_PROJECT_STATES
 
       if (state.status === 'error') {
         return false
@@ -118,28 +158,28 @@ export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOp
       const currentState = state.data.state.type
 
       if (isLocal) {
-        if (createdStates.includes(currentState)) {
+        if (createdStates.has(currentState)) {
           return LOCAL_OPENING_INTERVAL_MS
         }
 
-        if (staticStates.includes(state.data.state.type)) {
+        if (staticStates.has(state.data.state.type)) {
           return OPENED_INTERVAL_MS
         }
 
-        if (openingStates.includes(state.data.state.type)) {
+        if (openingStates.has(state.data.state.type)) {
           return LOCAL_OPENING_INTERVAL_MS
         }
       }
 
-      if (createdStates.includes(currentState)) {
+      if (createdStates.has(currentState)) {
         return CLOUD_OPENING_INTERVAL_MS
       }
 
       // Cloud project
-      if (staticStates.includes(state.data.state.type)) {
+      if (staticStates.has(state.data.state.type)) {
         return OPENED_INTERVAL_MS
       }
-      if (openingStates.includes(state.data.state.type)) {
+      if (openingStates.has(state.data.state.type)) {
         return CLOUD_OPENING_INTERVAL_MS
       }
 
@@ -177,7 +217,7 @@ export function useOpenProjectMutation() {
           executeAsync: inBackground,
           cognitoCredentials: {
             accessToken: session.accessToken,
-            refreshToken: session.accessToken,
+            refreshToken: session.refreshToken,
             clientId: session.clientId,
             expireAt: session.expireAt,
             refreshUrl: session.refreshUrl,
@@ -341,6 +381,7 @@ export function useCloseProject() {
   const closeProjectMutation = useCloseProjectMutation()
   const removeLaunchedProject = useRemoveLaunchedProject()
   const setPage = useSetPage()
+  const projectsStore = useProjectsStore()
 
   return eventCallbacks.useEventCallback((project: LaunchedProject) => {
     client
@@ -370,7 +411,9 @@ export function useCloseProject() {
 
     removeLaunchedProject(project.id)
 
-    setPage(TabType.drive)
+    if (projectsStore.getState().page === project.id) {
+      setPage('drive')
+    }
   })
 }
 

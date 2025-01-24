@@ -1,29 +1,59 @@
 <script setup lang="ts">
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import type { Icon } from '@/util/iconName'
+import { useGraphStore } from '@/stores/graph'
+import { QualifiedImport } from '@/stores/graph/imports'
+import { injectProjectNames } from '@/stores/projectNames'
+import type { Icon } from '@/util/iconMetadata/iconName'
+import { QualifiedName } from '@/util/qualifiedName'
+
+const graph = useGraphStore()
+const projectNames = injectProjectNames()
 
 const props = defineProps<{
   message: string
   type: MessageType
 }>()
 
+function containsLibraryName(): string | null {
+  const prefix = 'Compile error: Fully qualified name references a library '
+  if (props.message.startsWith(prefix)) {
+    const rest = props.message.substring(prefix.length)
+    const libName = rest.split(' ')
+    return libName[0] ? libName[0] : null
+  } else {
+    return null
+  }
+}
 function copyText() {
   window.navigator.clipboard.writeText(props.message)
+}
+function fixImport() {
+  const libName = containsLibraryName()
+  if (libName) {
+    const theImport = {
+      kind: 'Qualified',
+      module: projectNames.parseProjectPath(libName as QualifiedName),
+    } satisfies QualifiedImport
+    graph.edit((edit) => graph.addMissingImports(edit, [theImport]))
+  }
 }
 </script>
 
 <script lang="ts">
 /** The type of a message. */
-export type MessageType = 'error' | 'warning' | 'panic'
+export type MessageType = 'error' | 'warning' | 'missing' | 'panic'
 export const iconForMessageType: Record<MessageType, Icon> = {
   error: 'error',
   warning: 'warning',
+  missing: 'metadata',
   panic: 'panic',
 }
+
 export const colorForMessageType: Record<MessageType, string> = {
   error: 'var(--color-error)',
   warning: 'var(--color-warning)',
+  missing: 'var(--color-missing-value)',
   panic: 'var(--color-error)',
 }
 </script>
@@ -33,7 +63,20 @@ export const colorForMessageType: Record<MessageType, string> = {
     <SvgIcon class="icon" :name="iconForMessageType[props.type]" />
     <div class="message" v-text="props.message"></div>
     <div class="toolbar">
-      <SvgButton name="copy2" class="copyButton" title="Copy message text" @click.stop="copyText" />
+      <SvgButton
+        v-if="containsLibraryName()"
+        name="edit"
+        class="fixImportButton"
+        title="Fix Import"
+        @click.stop="fixImport"
+      />
+      <SvgButton
+        v-if="!containsLibraryName()"
+        name="copy2"
+        class="copyButton"
+        title="Copy message text"
+        @click.stop="copyText"
+      />
     </div>
   </div>
 </template>
@@ -76,10 +119,7 @@ export const colorForMessageType: Record<MessageType, string> = {
 
   & > .SvgButton:active {
     background-color: color-mix(in oklab, black, transparent 70%);
+    color: var(--color-text-inversed);
   }
-}
-
-.copyButton:active {
-  color: var(--color-text-inversed);
 }
 </style>

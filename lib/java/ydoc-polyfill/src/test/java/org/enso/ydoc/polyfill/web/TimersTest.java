@@ -34,7 +34,7 @@ public class TimersTest extends ExecutorSetup {
         CompletableFuture.supplyAsync(
                 () -> {
                   var ctx = contextBuilder.build();
-                  timers.initialize(ctx);
+                  timers.initialize(eval(ctx));
                   return ctx;
                 },
                 executor)

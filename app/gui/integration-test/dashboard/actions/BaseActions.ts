@@ -1,31 +1,31 @@
 /** @file The base class from which all `Actions` classes are derived. */
-import * as test from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 
-import type * as inputBindings from '#/utilities/inputBindings'
+import type { AutocompleteKeybind, ModifierKey } from '#/utilities/inputBindings'
 
-import { modModifier } from '.'
-
-// ====================
-// === PageCallback ===
-// ====================
-
-/** A callback that performs actions on a {@link test.Page}. */
-export interface PageCallback {
-  (input: test.Page): Promise<void> | void
+/** `Meta` (`Cmd`) on macOS, and `Control` on all other platforms. */
+export async function modModifier(page: Page) {
+  let userAgent = ''
+  await test.step('Detect browser OS', async () => {
+    userAgent = await page.evaluate(() => navigator.userAgent)
+  })
+  return /\bMac OS\b/i.test(userAgent) ? 'Meta' : 'Control'
 }
 
-// =======================
-// === LocatorCallback ===
-// =======================
-
-/** A callback that performs actions on a {@link test.Locator}. */
-export interface LocatorCallback {
-  (input: test.Locator): Promise<void> | void
+/** A callback that performs actions on a {@link Page}. */
+export interface PageCallback<Context> {
+  (input: Page, context: Context): Promise<void> | void
 }
 
-// ===================
-// === BaseActions ===
-// ===================
+/** A callback that performs actions on a {@link Locator}. */
+export interface LocatorCallback<Context> {
+  (input: Locator, context: Context): Promise<void> | void
+}
+
+export interface BaseActionsClass<Context, Args extends readonly unknown[] = []> {
+  // The return type should be `InstanceType<this>`, but that results in a circular reference error.
+  new (page: Page, context: Context, promise: Promise<void>, ...args: Args): any
+}
 
 /**
  * The base class from which all `Actions` classes are derived.
@@ -34,10 +34,11 @@ export interface LocatorCallback {
  *
  * [`thenable`]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise#thenables
  */
-export default class BaseActions implements Promise<void> {
+export default class BaseActions<Context> implements Promise<void> {
   /** Create a {@link BaseActions}. */
   constructor(
-    protected readonly page: test.Page,
+    protected readonly page: Page,
+    protected readonly context: Context,
     private readonly promise = Promise.resolve(),
   ) {}
 
@@ -50,25 +51,41 @@ export default class BaseActions implements Promise<void> {
   }
 
   /**
-   * Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
-   * on all other platforms.
+   * Return the appropriate key for a shortcut, replacing the text `Mod` with `Meta` (`Cmd`) on macOS,
+   * and `Control` on all other platforms. Similarly, replace the text `Delete` with `Backspace`
+   * on `macOS`, and `Delete` on all other platforms.
    */
-  static press(page: test.Page, keyOrShortcut: string): Promise<void> {
-    return test.test.step(`Press '${keyOrShortcut}'`, async () => {
+  static async withNormalizedKey(
+    page: Page,
+    keyOrShortcut: string,
+    callback: (shortcut: string) => Promise<void>,
+    description = 'Normalize',
+  ): Promise<void> {
+    return test.step(`${description} '${keyOrShortcut}'`, async () => {
       if (/\bMod\b|\bDelete\b/.test(keyOrShortcut)) {
         let userAgent = ''
-        await test.test.step('Detect browser OS', async () => {
+        await test.step('Detect browser OS', async () => {
           userAgent = await page.evaluate(() => navigator.userAgent)
         })
         const isMacOS = /\bMac OS\b/i.test(userAgent)
         const ctrlKey = isMacOS ? 'Meta' : 'Control'
         const deleteKey = isMacOS ? 'Backspace' : 'Delete'
         const shortcut = keyOrShortcut.replace(/\bMod\b/, ctrlKey).replace(/\bDelete\b/, deleteKey)
-        await page.keyboard.press(shortcut)
+        return await callback(shortcut)
       } else {
-        await page.keyboard.press(keyOrShortcut)
+        return callback(keyOrShortcut)
       }
     })
+  }
+
+  /** Press a key or shortcut. */
+  static async press(page: Page, keyOrShortcut: string) {
+    await BaseActions.withNormalizedKey(
+      page,
+      keyOrShortcut,
+      (shortcut) => page.keyboard.press(shortcut),
+      'Press and release',
+    )
   }
 
   /** Proxies the `then` method of the internal {@link Promise}. */
@@ -99,43 +116,86 @@ export default class BaseActions implements Promise<void> {
 
   /** Return a {@link BaseActions} with the same {@link Promise} but a different type. */
   into<
-    T extends new (page: test.Page, promise: Promise<void>, ...args: Args) => InstanceType<T>,
+    T extends new (
+      page: Page,
+      context: Context,
+      promise: Promise<void>,
+      ...args: Args
+    ) => InstanceType<T>,
     Args extends readonly unknown[],
   >(clazz: T, ...args: Args): InstanceType<T> {
-    return new clazz(this.page, this.promise, ...args)
+    return new clazz(this.page, this.context, this.promise, ...args)
   }
 
   /**
-   * Perform an action on the current page. This should generally be avoided in favor of using
+   * Perform an action. This should generally be avoided in favor of using
    * specific methods; this is more or less an escape hatch used ONLY when the methods do not
    * support desired functionality.
    */
-  do(callback: PageCallback): this {
+  do(callback: PageCallback<Context>): this {
     // @ts-expect-error This is SAFE, but only when the constructor of this class has the exact
     // same parameters as `BaseActions`.
     return new this.constructor(
       this.page,
-      this.then(() => callback(this.page)),
+      this.context,
+      this.then(() => callback(this.page, this.context)),
     )
   }
 
-  /** Perform an action on the current page. */
-  step(name: string, callback: PageCallback) {
-    return this.do(() => test.test.step(name, () => callback(this.page)))
+  /** Perform an action. */
+  step(name: string, callback: PageCallback<Context>) {
+    return this.do(() => test.step(name, () => callback(this.page, this.context)))
   }
 
   /**
    * Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
    * on all other platforms.
    */
-  press<Key extends string>(keyOrShortcut: inputBindings.AutocompleteKeybind<Key>) {
-    return this.do((page) => BaseActions.press(page, keyOrShortcut))
+  press<Key extends string>(keyOrShortcut: AutocompleteKeybind<Key> | ModifierKey) {
+    return this.do((page) =>
+      BaseActions.withNormalizedKey(
+        page,
+        keyOrShortcut,
+        (shortcut) => page.keyboard.press(shortcut),
+        'Press and release',
+      ),
+    )
+  }
+
+  /**
+   * Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
+   * on all other platforms.
+   */
+  down<Key extends string>(keyOrShortcut: AutocompleteKeybind<Key> | ModifierKey) {
+    return this.do((page) =>
+      BaseActions.withNormalizedKey(
+        page,
+        keyOrShortcut,
+        (shortcut) => page.keyboard.down(shortcut),
+        'Press',
+      ),
+    )
+  }
+
+  /**
+   * Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
+   * on all other platforms.
+   */
+  up<Key extends string>(keyOrShortcut: AutocompleteKeybind<Key> | ModifierKey) {
+    return this.do((page) =>
+      BaseActions.withNormalizedKey(
+        page,
+        keyOrShortcut,
+        (shortcut) => page.keyboard.up(shortcut),
+        'Release',
+      ),
+    )
   }
 
   /** Perform actions until a predicate passes. */
   retry(
     callback: (actions: this) => this,
-    predicate: (page: test.Page) => Promise<boolean>,
+    predicate: (page: Page) => Promise<boolean>,
     options: { retries?: number; delay?: number } = {},
   ) {
     const { retries = 3, delay = 1_000 } = options
@@ -152,7 +212,7 @@ export default class BaseActions implements Promise<void> {
   }
 
   /** Perform actions with the "Mod" modifier key pressed. */
-  withModPressed<R extends BaseActions>(callback: (actions: this) => R) {
+  withModPressed<R extends BaseActions<Context>>(callback: (actions: this) => R) {
     return callback(
       this.step('Press "Mod"', async (page) => {
         await page.keyboard.down(await modModifier(page))
@@ -171,11 +231,11 @@ export default class BaseActions implements Promise<void> {
       return this
     } else if (expected != null) {
       return this.step(`Expect ${description} error to be '${expected}'`, async (page) => {
-        await test.expect(page.getByTestId(testId).getByTestId('error')).toHaveText(expected)
+        await expect(page.getByTestId(testId).getByTestId('error')).toHaveText(expected)
       })
     } else {
       return this.step(`Expect no ${description} error`, async (page) => {
-        await test.expect(page.getByTestId(testId).getByTestId('error')).not.toBeVisible()
+        await expect(page.getByTestId(testId).getByTestId('error')).not.toBeVisible()
       })
     }
   }

@@ -42,6 +42,10 @@ public class LRUCacheSettings {
     this.totalCacheLimit = totalCacheLimit;
   }
 
+  public String toString() {
+    return "LRUCacheSettings(" + maxFileSize + ", " + totalCacheLimit + ")";
+  }
+
   /** Uses defaults if the vars are not set. */
   public static LRUCacheSettings getDefault() {
     return new LRUCacheSettings(parseMaxFileSizeEnvVar(), parseTotalCacheLimitEnvVar());

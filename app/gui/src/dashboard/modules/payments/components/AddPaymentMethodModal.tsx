@@ -3,8 +3,6 @@
  *
  * A modal for adding a payment method.
  */
-import * as React from 'react'
-
 import type * as stripeJs from '@stripe/stripe-js'
 
 import * as ariaComponents from '#/components/AriaComponents'

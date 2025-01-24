@@ -5,6 +5,7 @@ import sbt.io.IO
 import sbt.librarymanagement.{ConfigurationFilter, DependencyFilter}
 
 import java.io.File
+import java.util.Locale
 
 object StdBits {
 
@@ -19,11 +20,13 @@ object StdBits {
     * @param ignoreScalaLibrary whether to ignore Scala dependencies that are
     *                           added by default be SBT and are not relevant in
     *                           pure-Java projects
+    * @param ignoreDependency A dependency that should be ignored - not copied to the destination
     */
   def copyDependencies(
     destination: File,
     providedJarNames: Seq[String],
-    ignoreScalaLibrary: Boolean
+    ignoreScalaLibrary: Boolean,
+    ignoreDependency: Option[ModuleID] = None
   ): Def.Initialize[Task[Unit]] =
     Def.task {
       val libraryUpdates = (Compile / update).value
@@ -48,12 +51,26 @@ object StdBits {
           !graalVmOrgs.contains(orgName)
         })
       )
+      val moduleFilter = ignoreDependency match {
+        case None => graalModuleFilter
+        case Some(ignoreDepID) =>
+          DependencyFilter.moduleFilter(
+            organization = new SimpleFilter(orgName => {
+              !graalVmOrgs.contains(
+                orgName
+              ) && orgName != ignoreDepID.organization
+            }),
+            name = new SimpleFilter(nm => {
+              nm != ignoreDepID.name
+            })
+          )
+      }
       val unmanagedFiles = (Compile / unmanagedJars).value.map(_.data)
       val relevantFiles =
         libraryUpdates
           .select(
             configuration = configFilter,
-            module        = graalModuleFilter,
+            module        = moduleFilter,
             artifact      = DependencyFilter.artifactFilter()
           ) ++ unmanagedFiles
       val dependencyStore =
@@ -85,6 +102,104 @@ object StdBits {
           }
       }
     }
+
+  /** Extract native libraries from `opencv.jar` and put them under
+    * `Standard/Image/polyglot/lib` directory. The minimized `opencv.jar` will
+    * be put under `Standard/Image/polyglot/java` directory.
+    * @param imagePolyglotRoot root dir of Std image polyglot dir
+    * @param imageNativeLibs root dir of Std image lib dir
+    * @return
+    */
+  def extractNativeLibsFromOpenCV(
+    imagePolyglotRoot: File,
+    imageNativeLibs: File,
+    opencvVersion: String
+  ): Def.Initialize[Task[Unit]] = Def.task {
+    // Ensure dependencies are first copied.
+    val _ = StdBits
+      .copyDependencies(
+        imagePolyglotRoot,
+        Seq("std-image.jar", "opencv.jar"),
+        ignoreScalaLibrary = true,
+        ignoreDependency   = Some("org.openpnp" % "opencv" % opencvVersion)
+      )
+      .value
+    val extractPrefix = "nu/pattern/opencv"
+
+    // Make sure that the native libs in the `lib` directory complies with
+    // `org.enso.interpreter.runtime.NativeLibraryFinder`
+    def renameFunc(entryName: String): Option[String] = {
+      val strippedEntryName = entryName.substring(extractPrefix.length + 1)
+      if (
+        strippedEntryName.contains("linux/ARM") ||
+        strippedEntryName.contains("linux/x86_32") ||
+        strippedEntryName.contains("README.md")    ||
+        // Remove native libs for different platforms
+        (!strippedEntryName.contains(osName())) ||
+        (!strippedEntryName.contains(arch()))
+      ) {
+        None
+      } else {
+        Some(
+          strippedEntryName
+            .replace("linux/x86_64", "amd64")
+            .replace("windows/x86_64", "amd64")
+            .replace("windows/x86_32", "x86_32")
+            .replace("osx/ARMv8", "aarch64")
+            .replace("osx/x86_64", "amd64")
+        )
+      }
+    }
+
+    val logger = streams.value.log
+    val openCvJar = JPMSUtils
+      .filterModulesFromUpdate(
+        update.value,
+        Seq("org.openpnp" % "opencv" % opencvVersion),
+        logger,
+        moduleName.value,
+        scalaBinaryVersion.value,
+        shouldContainAll = true
+      )
+      .head
+    val outputJarPath     = (imagePolyglotRoot / "opencv.jar").toPath
+    val extractedFilesDir = imageNativeLibs.toPath
+    JARUtils.extractFilesFromJar(
+      openCvJar.toPath,
+      extractPrefix,
+      outputJarPath,
+      extractedFilesDir,
+      renameFunc,
+      logger,
+      streams.value.cacheStoreFactory
+    )
+  }
+
+  /** Inspired by `org.enso.pkg.NativeLibraryFinder`
+    */
+  private def osName(): String = {
+    var osName = System.getProperty("os.name").toLowerCase(Locale.ENGLISH)
+    if (osName.contains(" ")) {
+      // Strip version
+      osName = osName.substring(0, osName.indexOf(' '))
+    }
+    if (osName.contains("linux")) {
+      "linux"
+    } else if (osName.contains("mac")) {
+      "osx"
+    } else if (osName.contains("windows")) {
+      "windows"
+    } else {
+      throw new IllegalStateException(s"Unsupported OS: $osName")
+    }
+  }
+
+  /** Inspired by `org.enso.pkg.NativeLibraryFinder`
+    */
+  private def arch(): String = {
+    val arch = System.getProperty("os.arch").toLowerCase(Locale.ENGLISH)
+    arch.replace("amd64", "x86_64")
+  }
 
   private def updateDependency(
     jar: File,

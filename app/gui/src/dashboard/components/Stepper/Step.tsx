@@ -149,7 +149,7 @@ export function Step(props: StepProps) {
           }}
           transition={{
             // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-            rotate: { type: 'spring', stiffness: 500, damping: 100, bounce: 0, duration: 0.2 },
+            rotate: { type: 'spring', stiffness: 2000, damping: 25, mass: 1 },
           }}
         >
           {(() => {

@@ -1027,7 +1027,20 @@ public class SignatureTest extends ContextTest {
   }
 
   @Test
-  public void returnTypeCheckByLastStatementOfMain() throws Exception {
+  public void returnTypeCheckByLastStatementOfMainTextFirst() throws Exception {
+    var main = assertTypeCheckByLastStatementOfMain("Text & Integer");
+    assertTrue(main.isString());
+    assertEquals("42", main.asString());
+  }
+
+  @Test
+  public void returnTypeCheckByLastStatementOfMainIntFirst() throws Exception {
+    var main = assertTypeCheckByLastStatementOfMain("Integer & Text");
+    assertTrue(main.fitsInInt());
+    assertEquals(42, main.asInt());
+  }
+
+  private Value assertTypeCheckByLastStatementOfMain(String cast) throws Exception {
     final URI uri = new URI("memory://rts.enso");
     final Source src =
         Source.newBuilder(
@@ -1036,18 +1049,17 @@ public class SignatureTest extends ContextTest {
                 from Standard.Base import all
 
                 fn =
-                    (42 : Text & Integer)
+                    (42 : ${cast})
 
                 Text.from (that:Integer) = that.to_text
-                """,
+                """
+                    .replace("${cast}", cast),
                 uri.getAuthority())
             .uri(uri)
             .buildLiteral();
 
     var module = ctx.eval(src);
-    var main = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
-    assertEquals(42, main.asInt());
-    assertEquals("42", main.asString());
+    return module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
   }
 
   /**
@@ -1411,6 +1423,52 @@ public class SignatureTest extends ContextTest {
       assertContains(
           "expected the result of `foo` to be (Integer | Text) & Clazz, but got Text",
           e.getMessage());
+    }
+  }
+
+  @Test
+  public void returnTypeCheckOptInErrorMethodsOnTypes() throws Exception {
+    final URI uri = new URI("memory://returnTypeCheckOptInErrorMethodsOnTypes.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer
+    type My_Type
+        Value
+        plus_member self a b -> Integer = b+a
+        plus_static a b -> Integer = b+a
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+
+    var res1 =
+        module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "My_Type.Value.plus_member 1 2");
+    assertEquals(3, res1.asInt());
+
+    var res2 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "My_Type.plus_static 3 4");
+    assertEquals(7, res2.asInt());
+
+    try {
+      var res =
+          module.invokeMember(
+              MethodNames.Module.EVAL_EXPRESSION, "My_Type.Value.plus_member 'a' 'b'");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains(
+          "expected the result of `plus_member` to be Integer, but got Text", e.getMessage());
+    }
+
+    try {
+      var res =
+          module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "My_Type.plus_static 'a' 'b'");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains(
+          "expected the result of `plus_static` to be Integer, but got Text", e.getMessage());
     }
   }
 

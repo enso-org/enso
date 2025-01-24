@@ -4,8 +4,10 @@ import Standard.Base.Errors.Common.Response_Too_Large
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Network.HTTP.Cache_Policy.Cache_Policy
+import Standard.Base.Network.HTTP.HTTP_Error.HTTP_Error
 import Standard.Base.Network.HTTP.Request.Request
 import Standard.Base.Network.HTTP.Request_Body.Request_Body
+import Standard.Base.Network.HTTP.Request_Error
 import Standard.Base.Network.HTTP.Response.Response
 import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Ref.Ref
@@ -172,6 +174,9 @@ add_specs suite_builder =
             lru_cache = LRUCache.new
             with_lru_cache lru_cache action
 
+        fake_reload =
+            EnsoSecretHelper.getOrCreateCache.getLRUCache.simulateReloadTestOnly
+
         url0 = base_url_with_slash+'test_download?max-age=16&length=10'
         url1 = base_url_with_slash+'test_download?max-age=16&length=20'
         url_post = base_url_with_slash + "post"
@@ -225,16 +230,16 @@ add_specs suite_builder =
         group_builder.specify "Cache policy should work for HTTP.fetch" pending=pending_has_url <| Test.with_retries <|
             with_default_cache <|
                 expect_counts [0, 0] <|
-                    HTTP.fetch url0 cache_policy=Cache_Policy.No_Cache
-                    HTTP.fetch url1 cache_policy=Cache_Policy.No_Cache
+                    HTTP.fetch url0 cache_policy=Cache_Policy.No_Cache . decode_as_text
+                    HTTP.fetch url1 cache_policy=Cache_Policy.No_Cache . decode_as_text
                 expect_counts [0, 2] <|
-                    HTTP.fetch url0 cache_policy=Cache_Policy.Use_Cache
-                    HTTP.fetch url1 cache_policy=Cache_Policy.Use_Cache
+                    HTTP.fetch url0 cache_policy=Cache_Policy.Use_Cache . decode_as_text
+                    HTTP.fetch url1 cache_policy=Cache_Policy.Use_Cache . decode_as_text
 
             with_default_cache <|
                 expect_counts [0, 2] <|
-                    HTTP.fetch url0
-                    HTTP.fetch url1
+                    HTTP.fetch url0 . decode_as_text
+                    HTTP.fetch url1 . decode_as_text
 
         group_builder.specify "Cache policy should work for Data.fetch" pending=pending_has_url <| Test.with_retries <|
             with_default_cache <|
@@ -262,7 +267,7 @@ add_specs suite_builder =
                 url = base_url_with_slash+"test_download?length=200"
                 Data.download url target_file
                 target_file.read.length . should_equal 200
-                Data.fetch url . should_fail_with (Response_Too_Large.Error 100)
+                Data.fetch url . should_fail_with (Response_Too_Large.Error 200 100)
 
         group_builder.specify "Should not cache for methods other than GET" pending=pending_has_url <| Test.with_retries <|
             with_default_cache <|
@@ -390,12 +395,12 @@ add_specs suite_builder =
 
         group_builder.specify "Will not cache a file with a content length greater than the single file limit" pending=pending_has_url <| Test.with_retries <|
             with_config 100 (TotalCacheLimit.Bytes.new 1000) _-> _->
-                fetch_n 110 . should_fail_with (Response_Too_Large.Error 100)
+                fetch_n 110 . should_fail_with (Response_Too_Large.Error 110 100)
 
         group_builder.specify "Will not cache a file without a content length, but which is greater than the single file limit" pending=pending_has_url <| Test.with_retries <|
             with_config 100 (TotalCacheLimit.Bytes.new 1000) _-> _->
                 url = base_url_with_slash+'test_download?omit-content-length=1&length=110'
-                Data.fetch url . should_fail_with (Response_Too_Large.Error 100)
+                Data.fetch url . should_fail_with (Response_Too_Large.Error Nothing 100)
 
         group_builder.specify "Will make room for the largest possible file, if the server does not provide a content-length" pending=pending_has_url <| Test.with_retries <|
             with_config 50 (TotalCacheLimit.Bytes.new 100) _-> _->
@@ -409,11 +414,11 @@ add_specs suite_builder =
 
         group_builder.specify "Should not cache if the request fails" pending=pending_has_url <| Test.with_retries <|
             with_default_cache <|
-                HTTP.fetch url0
+                HTTP.fetch url0 . decode_as_text . should_succeed
                 get_num_response_cache_entries . should_equal 1
-                HTTP.fetch base_url_with_slash+'crash'
+                HTTP.fetch base_url_with_slash+'crash' . decode_as_text . should_fail_with Request_Error
                 get_num_response_cache_entries . should_equal 1
-                HTTP.fetch base_url_with_slash+'nonexistent_endpoint'
+                HTTP.fetch base_url_with_slash+'nonexistent_endpoint' . decode_as_text . should_fail_with HTTP_Error
                 get_num_response_cache_entries . should_equal 1
 
         cloud_setup = Cloud_Tests_Setup.prepare
@@ -434,9 +439,9 @@ add_specs suite_builder =
                         . add_query_argument "arg1" secret2
                         . add_query_argument "arg2" "plain value"
 
-                    HTTP.fetch url1
+                    HTTP.fetch url1 . decode_as_text . should_succeed
                     get_num_response_cache_entries . should_equal 1
-                    HTTP.fetch uri2
+                    HTTP.fetch uri2 . decode_as_text . should_succeed
                     get_num_response_cache_entries . should_equal 2
 
         group_builder.specify "Should work with secrets in the headers" pending=pending_has_url <| Test.with_retries <|
@@ -452,10 +457,34 @@ add_specs suite_builder =
                     headers1 = [Header.new "A-Header" secret1]
                     headers2 = [Header.new "A-Header" secret2]
 
-                    HTTP.fetch headers=headers1 uri
+                    HTTP.fetch headers=headers1 uri . decode_as_text . should_succeed
                     get_num_response_cache_entries . should_equal 1
-                    HTTP.fetch headers=headers2 uri
+                    HTTP.fetch headers=headers2 uri . decode_as_text . should_succeed
                     get_num_response_cache_entries . should_equal 2
+
+        group_builder.specify "Does not attempt to make room for the maximum file size when that is larger than the total cache size" pending=pending_has_url <| Test.with_retries <|
+            with_config 1000 (TotalCacheLimit.Bytes.new 100) _-> _->
+                url = base_url_with_slash+'test_download?omit-content-length=1&length=10'
+                Data.fetch url . decode_as_text . should_succeed
+
+        group_builder.specify "Limits a single download to the max total cache size when that is smaller than the max allowed file size" pending=pending_has_url <| Test.with_retries <|
+            with_config 1000 (TotalCacheLimit.Bytes.new 100) _-> _->
+                url = base_url_with_slash+'test_download?omit-content-length=1&length=200'
+                Data.fetch url . should_fail_with (Response_Too_Large.Error Nothing 100)
+
+        group_builder.specify "Throws Response_Too_Large with a content-length header" pending=pending_has_url <| Test.with_retries <|
+            with_config 5 (TotalCacheLimit.Bytes.new 1000000) _-> _->
+                url = base_url_with_slash+'test_download?length=10'
+                err = Data.fetch url . catch
+                err . should_equal (Response_Too_Large.Error 10 5)
+                err.to_display_text . starts_with "Response too large: response size 10 is over the limit 5." . should_be_true
+
+        group_builder.specify "Throws Response_Too_Large without a content-length header" pending=pending_has_url <| Test.with_retries <|
+            with_config 5 (TotalCacheLimit.Bytes.new 1000000) _-> _->
+                url = base_url_with_slash+'test_download?omit-content-length=1&length=10'
+                err = Data.fetch url . catch
+                err . should_equal (Response_Too_Large.Error Nothing 5)
+                err.to_display_text . starts_with "Response too large: response size is over the limit 5." . should_be_true
 
         group_builder.specify "Cache limits should have defaults" <|
             lru_cache = LRUCache.new
@@ -516,6 +545,27 @@ add_specs suite_builder =
                 LRUCache.new . getSettings . getTotalCacheLimit . should_equal (TotalCacheLimit.Percentage.new 0.2)
             Test_Environment.unsafe_with_environment_override "ENSO_LIB_HTTP_CACHE_MAX_TOTAL_CACHE_LIMIT" "101%" <|
                 LRUCache.new . getSettings . getTotalCacheLimit . should_equal (TotalCacheLimit.Percentage.new 0.2)
+
+        group_builder.specify "Cache should be cleared when a reload is detected" <|
+            HTTP.fetch base_url_with_slash+'test_download?length=10' . decode_as_text
+            HTTP.fetch base_url_with_slash+'test_download?length=11' . decode_as_text
+            HTTP.fetch base_url_with_slash+'test_download?length=12' . decode_as_text
+            get_num_response_cache_entries . should_equal 3
+
+            fake_reload
+
+            get_num_response_cache_entries . should_equal 3  # Cleaning is not triggered until the next request
+            HTTP.fetch base_url_with_slash+'test_download?length=10' . decode_as_text
+            get_num_response_cache_entries . should_equal 1
+            HTTP.fetch base_url_with_slash+'test_download?length=14' . decode_as_text
+            HTTP.fetch base_url_with_slash+'test_download?length=15' . decode_as_text
+            get_num_response_cache_entries . should_equal 3
+
+            fake_reload
+
+            get_num_response_cache_entries . should_equal 3  # Cleaning is not triggered until the next request
+            HTTP.fetch base_url_with_slash+'test_download?length=16' . decode_as_text
+            get_num_response_cache_entries . should_equal 1
 
         group_builder.specify "Reissues the request if the cache file disappears" pending=pending_has_url <| Test.with_retries <|
             with_default_cache <|

@@ -12,6 +12,7 @@ import * as mergeRefs from '#/utilities/mergeRefs'
 import * as twv from '#/utilities/tailwindVariants'
 
 import { forwardRef } from '#/utilities/react'
+import invariant from 'tiny-invariant'
 import * as text from '../Text'
 import * as radioGroup from './RadioGroup'
 import * as radioGroupContext from './RadioGroupContext'
@@ -66,6 +67,9 @@ export const Radio = forwardRef(function Radio(
     value: props.value,
   })
 
+  invariant(state, '<Radio /> must be used within a <RadioGroup />')
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const { isSelected, isDisabled, isPressed, inputProps, labelProps } = aria.useRadio(
     aria.mergeProps<aria.RadioProps>()(ariaProps, {
       id,
@@ -125,6 +129,7 @@ export const Radio = forwardRef(function Radio(
 
   return (
     <label
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       {...aria.mergeProps<React.LabelHTMLAttributes<HTMLLabelElement>>()(hoverProps, labelProps)}
       ref={(el) => {
         mergeRefs.mergeRefs(labelRef, ref)(el)
@@ -132,6 +137,7 @@ export const Radio = forwardRef(function Radio(
       className={base()}
     >
       <input
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         {...aria.mergeProps<React.InputHTMLAttributes<HTMLInputElement>>()(inputProps, focusProps)}
         ref={inputRef}
         id={id}

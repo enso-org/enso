@@ -7,7 +7,7 @@ on: workflow_call
 # Cancel in-progress workflows if a new one is started
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-chromatic
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/develop' }}
 
 permissions:
   contents: read # Read-only access to repository contents
@@ -56,6 +56,9 @@ jobs:
 
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: ⚙️ Compile dependencies
+        run: corepack pnpm run -r --filter enso-common compile
 
       - name: 📥 Download storybook cache
         uses: actions/cache@v4

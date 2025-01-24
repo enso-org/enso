@@ -216,7 +216,7 @@ find vector condition start ~if_missing =
     predicate = unify_condition_or_predicate condition
     self_len = vector.length
     check_start_valid start self_len used_start->
-        found = used_start.up_to self_len . find (idx -> (predicate (vector.at idx)))
+        found = used_start.up_to self_len . find (idx -> (predicate (vector.at idx))) if_missing=Nothing
         if found.is_nothing then if_missing else vector.at found
 
 transpose vec_of_vecs =

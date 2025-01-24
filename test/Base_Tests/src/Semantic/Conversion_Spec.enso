@@ -181,11 +181,11 @@ add_specs suite_builder =
 
             meta_from.name.should_equal "from"
 
-            Meta.meta .foo . rename "from" . should_equal .from
-            Meta.meta .foo . rename "from" Foo "hello" . should_equal (Foo.Value 5)
+            Meta.meta .foo . rename "from" . value . should_equal .from
+            Meta.meta .foo . rename "from" . value Foo "hello" . should_equal (Foo.Value 5)
 
-            meta_from.rename "foo" 123 . should_equal "foo called"
-            meta_from.rename "foo" . should_equal .foo
+            meta_from.rename "foo" . value 123 . should_equal "foo called"
+            meta_from.rename "foo" . value . should_equal .foo
 
         group_builder.specify "should not allow currying" <|
             Panic.recover Any (Foo.from) . catch Any .to_display_text . should_equal "Conversion currying without `that` argument is not supported."
@@ -320,10 +320,10 @@ add_specs suite_builder =
                 x==x . should_be_true
                 (x:Integer)==42 . should_be_true
                 (x:Fool)==42 . should_be_false
-                x==42 . should_be_true
+                x==42 . should_be_false
                 42==(x.to Integer) . should_be_true
                 42==(x.to Fool) . should_be_false
-                42==x . should_be_true
+                42==x . should_be_false
                 100+(x:Integer) . should_equal 142
                 (x:Integer)+100 . should_equal 142
                 x+100 . should_equal 142
@@ -341,10 +341,10 @@ add_specs suite_builder =
                 x==x . should_be_true
                 (x:Float)==42.3 . should_be_true
                 (x:Fool)==42.3 . should_be_false
-                x==42.3 . should_be_true
+                x==42.3 . should_be_false
                 42.3==(x.to Float) . should_be_true
                 42.3==(x.to Fool) . should_be_false
-                42.3==x . should_be_true
+                42.3==x . should_be_false
                 100+(x:Float) . should_equal 142.3
                 (x:Float)+100 . should_equal 142.3
                 x+100 . should_equal 142.3
@@ -378,10 +378,10 @@ add_specs suite_builder =
                 x==x . should_be_true
                 (x:Text)=="Hello" . should_be_true
                 (x:Fool)=="Hello" . should_be_false
-                x=="Hello" . should_be_true
+                x=="Hello" . should_be_false
                 "Hello"==(x:Text) . should_be_true
                 "Hello"==(x:Fool) . should_be_false
-                "Hello"==x . should_be_true
+                "Hello"==x . should_be_false
                 x.to_text . should_equal "Hello"
                 (x:Fool).to_text . should_equal "{FOOL Hello}"
                 (x:Text).to_text . should_equal "Hello"
@@ -397,10 +397,10 @@ add_specs suite_builder =
                 x==x . should_be_true
                 (x:Time_Of_Day)==now . should_be_true
                 (x:Fool)==now . should_be_false
-                x==now . should_be_true
+                x==now . should_be_false
                 now==(x:Time_Of_Day) . should_be_true
                 now==(x:Fool) . should_be_false
-                now==x . should_be_true
+                now==x . should_be_false
                 x.to_text . should_equal now.to_text
 
             do_time now
@@ -413,10 +413,10 @@ add_specs suite_builder =
                 x==x . should_be_true
                 (x:Date)==now . should_be_true
                 (x:Fool)==now . should_be_false
-                x==now . should_be_true
+                x==now . should_be_false
                 now==(x:Date) . should_be_true
                 now==(x:Fool) . should_be_false
-                now==x . should_be_true
+                now==x . should_be_false
                 x.to_text . should_equal "{FOOL "+now.to_text+"}"
 
             do_date now
@@ -429,10 +429,10 @@ add_specs suite_builder =
                 x==x . should_be_true
                 (x:Date_Time)==now . should_be_true
                 (x:Fool)==now . should_be_false
-                x==now . should_be_true
+                x==now . should_be_false
                 now==(x:Date_Time) . should_be_true
                 now==(x:Fool) . should_be_false
-                now==x . should_be_true
+                now==x . should_be_false
                 x.to_text . should_equal now.to_text
 
             do_time now
@@ -445,10 +445,10 @@ add_specs suite_builder =
                 x==x . should_be_true
                 (x:Duration)==now . should_be_true
                 (x:Fool)==now . should_be_false
-                x==now . should_be_true
+                x==now . should_be_false
                 now==(x:Duration) . should_be_true
                 now==(x:Fool) . should_be_false
-                now==x . should_be_true
+                now==x . should_be_false
                 x.to_text . should_equal "{FOOL "+now.to_text+"}"
 
             do_duration now

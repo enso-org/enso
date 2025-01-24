@@ -25,7 +25,7 @@ public class UtilTest extends ExecutorSetup {
         CompletableFuture.supplyAsync(
                 () -> {
                   var ctx = contextBuilder.build();
-                  encoding.initialize(ctx);
+                  encoding.initialize(eval(ctx));
                   return ctx;
                 },
                 executor)

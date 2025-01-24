@@ -24,7 +24,10 @@ import { useFullUserSession } from '#/providers/AuthProvider'
 export interface UserGroupUserRowProps {
   readonly user: backend.User
   readonly userGroup: backend.UserGroupInfo
-  readonly doRemoveUserFromUserGroup: (user: backend.User, userGroup: backend.UserGroupInfo) => void
+  readonly doRemoveUserFromUserGroup: (
+    user: backend.User,
+    userGroup: backend.UserGroupInfo,
+  ) => Promise<void>
 }
 
 /** A row of the user groups table representing a user. */
@@ -35,7 +38,6 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
   const { getText } = textProvider.useText()
   const isAdmin = currentUser.isOrganizationAdmin
   const contextMenuRef = contextMenuHooks.useContextMenuRef(
-    user.userId,
     getText('userGroupUserContextMenuLabel'),
     () => (
       <ContextMenuEntry
@@ -49,8 +51,8 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
                 user.name,
                 userGroup.groupName,
               )}
-              doDelete={() => {
-                doRemoveUserFromUserGroup(user, userGroup)
+              doDelete={async () => {
+                await doRemoveUserFromUserGroup(user, userGroup)
               }}
             />,
           )
@@ -90,8 +92,8 @@ export default function UserGroupUserRow(props: UserGroupUserRowProps) {
                 userGroup.groupName,
               )}
               actionButtonLabel={getText('remove')}
-              doDelete={() => {
-                doRemoveUserFromUserGroup(user, userGroup)
+              doDelete={async () => {
+                await doRemoveUserFromUserGroup(user, userGroup)
               }}
             />
           </ariaComponents.DialogTrigger>

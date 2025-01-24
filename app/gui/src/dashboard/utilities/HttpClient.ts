@@ -1,5 +1,5 @@
 /** @file HTTP client definition that includes default HTTP headers for all sent requests. */
-import isNetworkError from 'is-network-error'
+import { NetworkError, OfflineError, isNetworkError } from './error'
 
 // =================
 // === Constants ===
@@ -7,6 +7,7 @@ import isNetworkError from 'is-network-error'
 
 export const FETCH_SUCCESS_EVENT_NAME = 'fetch-success'
 export const FETCH_ERROR_EVENT_NAME = 'fetch-error'
+export const OFFLINE_EVENT_NAME = 'offline'
 
 // =============
 // === Types ===
@@ -137,16 +138,14 @@ export default class HttpClient {
    */
   private async request<T = void>(options: HttpClientRequestOptions) {
     const headers = new Headers(this.defaultHeaders)
-    let payload = options.payload
+    const payload = options.payload
     if (payload != null) {
       const contentType = options.mimetype ?? 'application/json'
       headers.set('Content-Type', contentType)
     }
 
-    // `Blob` request payloads are NOT VISIBLE in Playwright due to a Chromium bug.
-    // https://github.com/microsoft/playwright/issues/6479#issuecomment-1574627457
-    if (process.env.IS_IN_PLAYWRIGHT_TEST === 'true' && payload instanceof Blob) {
-      payload = await payload.arrayBuffer()
+    if (!navigator.onLine) {
+      return Promise.reject(new OfflineError('User is offline'))
     }
 
     try {
@@ -162,10 +161,22 @@ export default class HttpClient {
       document.dispatchEvent(new Event(FETCH_SUCCESS_EVENT_NAME))
       return response
     } catch (error) {
+      // Even though the condition might seem always falsy,
+      // offline mode might happen during the request
+      // and this case need to be handled
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      if (!navigator.onLine) {
+        document.dispatchEvent(new Event(OFFLINE_EVENT_NAME))
+        throw new OfflineError('User is offline', { cause: error })
+      }
+
       if (isNetworkError(error)) {
         document.dispatchEvent(new Event(FETCH_ERROR_EVENT_NAME))
+        throw new NetworkError(error.message, { cause: error })
       }
       throw error
     }
   }
 }
+
+export { NetworkError, OfflineError }

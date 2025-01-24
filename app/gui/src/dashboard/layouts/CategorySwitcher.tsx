@@ -2,27 +2,16 @@
 import * as React from 'react'
 
 import { useSearchParams } from 'react-router-dom'
-import * as z from 'zod'
 
 import { SEARCH_PARAMS_PREFIX } from '#/appUtils'
-import CloudIcon from '#/assets/cloud.svg'
-import ComputerIcon from '#/assets/computer.svg'
-import FolderIcon from '#/assets/folder.svg'
+import FolderAddIcon from '#/assets/folder_add.svg'
 import Minus2Icon from '#/assets/minus2.svg'
-import PeopleIcon from '#/assets/people.svg'
-import PersonIcon from '#/assets/person.svg'
-import PlusIcon from '#/assets/plus.svg'
-import RecentIcon from '#/assets/recent.svg'
 import SettingsIcon from '#/assets/settings.svg'
-import Trash2Icon from '#/assets/trash2.svg'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import { Badge } from '#/components/Badge'
-import SvgMask from '#/components/SvgMask'
 import * as mimeTypes from '#/data/mimeTypes'
-import { useBackendQuery } from '#/hooks/backendHooks'
 import * as offlineHooks from '#/hooks/offlineHooks'
-import * as eventListProvider from '#/layouts/AssetsTable/EventListProvider'
 import {
   areCategoriesEqual,
   canTransferBetweenCategories,
@@ -32,34 +21,15 @@ import {
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
-import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import { TabType } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
-import * as backend from '#/services/Backend'
-import { newDirectoryId } from '#/services/LocalBackend'
-import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
-import { getFileName } from '#/utilities/fileInfo'
-import LocalStorage from '#/utilities/LocalStorage'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
-import { twMerge } from 'tailwind-merge'
+import type * as backend from '#/services/Backend'
+import { tv } from '#/utilities/tailwindVariants'
+import { twJoin } from 'tailwind-merge'
+import { AnimatedBackground } from '../components/AnimatedBackground'
+import { useEventCallback } from '../hooks/eventCallbackHooks'
 
-// ============================
-// === Global configuration ===
-// ============================
-
-declare module '#/utilities/LocalStorage' {
-  /** */
-  interface LocalStorageData {
-    readonly localRootDirectories: readonly string[]
-  }
-}
-
-LocalStorage.registerKey('localRootDirectories', { schema: z.string().array().readonly() })
-
-// ========================
-// === CategoryMetadata ===
-// ========================
+import { useCloudCategoryList, useLocalCategoryList } from './Drive/Categories/categoriesHooks'
 
 /** Metadata for a categoryModule.categoryType. */
 interface CategoryMetadata {
@@ -73,30 +43,41 @@ interface CategoryMetadata {
   readonly iconClassName?: string
 }
 
-// ============================
-// === CategorySwitcherItem ===
-// ============================
-
 /** Props for a {@link CategorySwitcherItem}. */
 interface InternalCategorySwitcherItemProps extends CategoryMetadata {
   readonly currentCategory: Category
-  readonly setCategory: (category: Category) => void
+  readonly setCategoryId: (categoryId: Category['id']) => void
   readonly badgeContent?: React.ReactNode
+  readonly isDisabled: boolean
 }
+
+const CATEGORY_SWITCHER_VARIANTS = tv({
+  extend: ariaComponents.BUTTON_STYLES,
+  base: 'group opacity-50 transition-opacity group-hover:opacity-100 w-auto max-w-full',
+  slots: {
+    wrapper: 'w-full',
+    text: 'flex-1 min-w-0 w-auto items-start justify-start',
+  },
+})
 
 /** An entry in a {@link CategorySwitcher}. */
 function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
-  const { currentCategory, setCategory, badgeContent } = props
+  const { currentCategory, setCategoryId, badgeContent, isDisabled: isDisabledRaw } = props
   const { isNested = false, category, icon, label, buttonLabel, dropZoneLabel } = props
-  const { iconClassName } = props
+
+  const [isTransitioning, startTransition] = React.useTransition()
+
   const { user } = authProvider.useFullUserSession()
   const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const localBackend = backendProvider.useLocalBackend()
   const { isOffline } = offlineHooks.useOffline()
+
   const isCurrent = areCategoriesEqual(currentCategory, category)
+
   const transferBetweenCategories = useTransferBetweenCategories(currentCategory)
-  const getCategoryError = (otherCategory: Category) => {
+
+  const getCategoryError = useEventCallback((otherCategory: Category) => {
     switch (otherCategory.type) {
       case 'local':
       case 'local-directory': {
@@ -120,23 +101,28 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         }
       }
     }
-  }
+  })
   const error = getCategoryError(category)
-  const isDisabled = error != null
+  const isDisabled = error != null || isDisabledRaw
   const tooltip = error ?? false
 
   const isDropTarget =
     !areCategoriesEqual(currentCategory, category) &&
-    canTransferBetweenCategories(currentCategory, category)
+    canTransferBetweenCategories(currentCategory, category, user)
   const acceptedDragTypes = isDropTarget ? [mimeTypes.ASSETS_MIME_TYPE] : []
 
-  const onPress = () => {
+  const onPress = useEventCallback(() => {
     if (error == null && !areCategoriesEqual(category, currentCategory)) {
-      setCategory(category)
+      // We use startTransition to trigger a background transition between categories.
+      // and to not invoke the Suspense boundary.
+      // This makes the transition feel more responsive and natural.
+      startTransition(() => {
+        setCategoryId(category.id)
+      })
     }
-  }
+  })
 
-  const onDrop = (event: aria.DropEvent) => {
+  const onDrop = useEventCallback((event: aria.DropEvent) => {
     unsetModal()
     void Promise.all(
       event.items.flatMap(async (item) => {
@@ -158,7 +144,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     ).then((keys) => {
       transferBetweenCategories(currentCategory, category, keys.flat(1))
     })
-  }
+  })
 
   const element = (
     <aria.DropZone
@@ -166,41 +152,46 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       getDropOperation={(types) =>
         acceptedDragTypes.some((type) => types.has(type)) ? 'move' : 'cancel'
       }
-      className="group relative flex min-w-0 flex-auto items-center rounded-full drop-target-after"
+      className="group relative flex w-full min-w-0 flex-auto items-start rounded-full drop-target-after"
       onDrop={onDrop}
     >
-      <ariaComponents.Button
-        size="custom"
-        variant="custom"
-        tooltip={tooltip}
-        tooltipPlacement="right"
-        className={tailwindMerge.twJoin(
-          'min-w-0 flex-auto grow-0',
-          isCurrent && 'focus-default',
-          isDisabled && 'cursor-not-allowed hover:bg-transparent',
-        )}
-        aria-label={buttonLabel}
-        onPress={onPress}
+      <AnimatedBackground.Item
+        isSelected={isCurrent}
+        className="w-auto max-w-[calc(100%-24px)]"
+        animationClassName="bg-invert rounded-full"
       >
-        <div
-          className={tailwindMerge.twJoin(
-            'group flex h-row min-w-0 flex-auto items-center gap-icon-with-text rounded-full px-button-x selectable',
-            isCurrent && 'disabled active',
-            !isCurrent && !isDisabled && 'hover:bg-selected-frame',
-          )}
+        <ariaComponents.Button
+          size="medium"
+          variant="custom"
+          tooltip={tooltip}
+          tooltipPlacement="right"
+          variants={CATEGORY_SWITCHER_VARIANTS}
+          isDisabled={isDisabled}
+          aria-label={buttonLabel}
+          onPress={onPress}
+          loaderPosition="icon"
+          data-selected={isCurrent}
+          loading={isTransitioning}
+          className={twJoin(isCurrent && 'opacity-100')}
+          icon={icon}
+          addonEnd={
+            badgeContent != null && (
+              <Badge color="accent" variant="solid">
+                {badgeContent}
+              </Badge>
+            )
+          }
         >
-          <SvgMask src={icon} className={twMerge('shrink-0', iconClassName)} />
-
-          <ariaComponents.Text slot="description" truncate="1" className="flex-auto">
+          <ariaComponents.Text
+            disableLineHeightCompensation
+            weight="semibold"
+            color="current"
+            truncate="1"
+          >
             {label}
           </ariaComponents.Text>
-          {badgeContent != null && (
-            <Badge color="accent" variant="solid">
-              {badgeContent}
-            </Badge>
-          )}
-        </div>
-      </ariaComponents.Button>
+        </ariaComponents.Button>
+      </AnimatedBackground.Item>
       <div className="absolute left-full ml-2 hidden group-focus-visible:block">
         {getText('drop')}
       </div>
@@ -208,280 +199,200 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   )
 
   return isNested ?
-      <div className="flex min-w-0 flex-auto">
-        <div className="ml-[15px] mr-1 border-r border-primary/20" />
+      <div className="flex w-full min-w-0 max-w-full flex-1">
+        <div className="ml-[15px] mr-1.5 rounded-full border-r border-primary/20" />
         {element}
       </div>
     : element
 }
 
-// ========================
-// === CategorySwitcher ===
-// ========================
-
 /** Props for a {@link CategorySwitcher}. */
 export interface CategorySwitcherProps {
   readonly category: Category
-  readonly setCategory: (category: Category) => void
+  readonly setCategoryId: (categoryId: Category['id']) => void
 }
 
 /** A switcher to choose the currently visible assets table categoryModule.categoryType. */
 function CategorySwitcher(props: CategorySwitcherProps) {
-  const { category, setCategory } = props
-  const { user } = authProvider.useFullUserSession()
+  const { category, setCategoryId } = props
+
   const { getText } = textProvider.useText()
-  const remoteBackend = backendProvider.useRemoteBackend()
-  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
   const [, setSearchParams] = useSearchParams()
-  const [localRootDirectories, setLocalRootDirectories] =
-    useLocalStorageState('localRootDirectories')
-  const hasUserAndTeamSpaces = backend.userHasUserAndTeamSpaces(user)
 
-  const localBackend = backendProvider.useLocalBackend()
-  const itemProps = { currentCategory: category, setCategory, dispatchAssetEvent }
-  const selfDirectoryId = backend.DirectoryId(`directory-${user.userId.replace(/^user-/, '')}`)
+  const { isOffline } = offlineHooks.useOffline()
 
-  const { data: users } = useBackendQuery(remoteBackend, 'listUsers', [])
-  const { data: teams } = useBackendQuery(remoteBackend, 'listUserGroups', [])
-  const usersById = React.useMemo<ReadonlyMap<backend.DirectoryId, backend.User>>(
-    () =>
-      new Map(
-        (users ?? []).map((otherUser) => [
-          backend.DirectoryId(`directory-${otherUser.userId.replace(/^user-/, '')}`),
-          otherUser,
-        ]),
-      ),
-    [users],
-  )
-  const teamsById = React.useMemo<ReadonlyMap<backend.DirectoryId, backend.UserGroupInfo>>(
-    () =>
-      new Map(
-        (teams ?? []).map((team) => [
-          backend.DirectoryId(`directory-${team.id.replace(/^usergroup-/, '')}`),
-          team,
-        ]),
-      ),
-    [teams],
-  )
-  const usersDirectoryQuery = useBackendQuery(
-    remoteBackend,
-    'listDirectory',
-    [
-      {
-        parentId: USERS_DIRECTORY_ID,
-        filterBy: backend.FilterBy.active,
-        labels: null,
-        recentProjects: false,
-      },
-      'Users',
-    ],
-    { enabled: hasUserAndTeamSpaces },
-  )
-  const teamsDirectoryQuery = useBackendQuery(
-    remoteBackend,
-    'listDirectory',
-    [
-      {
-        parentId: TEAMS_DIRECTORY_ID,
-        filterBy: backend.FilterBy.active,
-        labels: null,
-        recentProjects: false,
-      },
-      'Teams',
-    ],
-    { enabled: hasUserAndTeamSpaces },
-  )
+  const cloudCategories = useCloudCategoryList()
+  const localCategories = useLocalCategoryList()
+
+  const itemProps = { currentCategory: category, setCategoryId }
+
+  const { cloudCategory, recentCategory, trashCategory, userCategory, teamCategories } =
+    cloudCategories
+  const { localCategory, directories, addDirectory, removeDirectory } = localCategories
 
   return (
     <div className="flex flex-col gap-2 py-1">
-      <ariaComponents.Text variant="subtitle" className="px-2 font-bold">
-        {getText('category')}
-      </ariaComponents.Text>
+      <AnimatedBackground>
+        <ariaComponents.Text variant="subtitle" weight="semibold" className="px-2">
+          {getText('category')}
+        </ariaComponents.Text>
 
-      <div
-        aria-label={getText('categorySwitcherMenuLabel')}
-        role="grid"
-        className="flex flex-col items-start"
-      >
-        <CategorySwitcherItem
-          {...itemProps}
-          category={{ type: 'cloud' }}
-          icon={CloudIcon}
-          label={getText('cloudCategory')}
-          buttonLabel={getText('cloudCategoryButtonLabel')}
-          dropZoneLabel={getText('cloudCategoryDropZoneLabel')}
-          badgeContent={getText('cloudCategoryBadgeContent')}
-        />
-        {(user.plan === backend.Plan.team || user.plan === backend.Plan.enterprise) && (
+        <div
+          aria-label={getText('categorySwitcherMenuLabel')}
+          role="grid"
+          className="flex flex-col items-start"
+        >
           <CategorySwitcherItem
             {...itemProps}
-            isNested
-            category={{
-              type: 'user',
-              rootPath: backend.Path(`enso://Users/${user.name}`),
-              homeDirectoryId: selfDirectoryId,
-            }}
-            icon={PersonIcon}
-            label={getText('myFilesCategory')}
-            buttonLabel={getText('myFilesCategoryButtonLabel')}
-            dropZoneLabel={getText('myFilesCategoryDropZoneLabel')}
+            key={cloudCategory.id}
+            category={cloudCategory}
+            icon={cloudCategory.icon}
+            label={cloudCategory.label}
+            isDisabled={isOffline}
+            buttonLabel={getText('cloudCategoryButtonLabel')}
+            dropZoneLabel={getText('cloudCategoryDropZoneLabel')}
+            badgeContent={getText('cloudCategoryBadgeContent')}
           />
-        )}
-        {usersDirectoryQuery.data?.map((userDirectory) => {
-          if (userDirectory.type !== backend.AssetType.directory) {
-            return null
-          } else {
-            const otherUser = usersById.get(userDirectory.id)
-            return !otherUser || otherUser.userId === user.userId ?
-                null
-              : <CategorySwitcherItem
-                  key={otherUser.userId}
-                  {...itemProps}
-                  isNested
-                  category={{
-                    type: 'user',
-                    rootPath: backend.Path(`enso://Users/${otherUser.name}`),
-                    homeDirectoryId: userDirectory.id,
-                  }}
-                  icon={PersonIcon}
-                  label={getText('userCategory', otherUser.name)}
-                  buttonLabel={getText('userCategoryButtonLabel', otherUser.name)}
-                  dropZoneLabel={getText('userCategoryDropZoneLabel', otherUser.name)}
-                />
-          }
-        })}
-        {teamsDirectoryQuery.data?.map((teamDirectory) => {
-          if (teamDirectory.type !== backend.AssetType.directory) {
-            return null
-          } else {
-            const team = teamsById.get(teamDirectory.id)
-            return !team ? null : (
-                <CategorySwitcherItem
-                  key={team.id}
-                  {...itemProps}
-                  isNested
-                  category={{
-                    type: 'team',
-                    team,
-                    rootPath: backend.Path(`enso://Teams/${team.groupName}`),
-                    homeDirectoryId: teamDirectory.id,
-                  }}
-                  icon={PeopleIcon}
-                  label={getText('teamCategory', team.groupName)}
-                  buttonLabel={getText('teamCategoryButtonLabel', team.groupName)}
-                  dropZoneLabel={getText('teamCategoryDropZoneLabel', team.groupName)}
-                />
-              )
-          }
-        })}
-        <CategorySwitcherItem
-          {...itemProps}
-          isNested
-          category={{ type: 'recent' }}
-          icon={RecentIcon}
-          label={getText('recentCategory')}
-          buttonLabel={getText('recentCategoryButtonLabel')}
-          dropZoneLabel={getText('recentCategoryDropZoneLabel')}
-          iconClassName="-ml-0.5"
-        />
-        <CategorySwitcherItem
-          {...itemProps}
-          isNested
-          category={{ type: 'trash' }}
-          icon={Trash2Icon}
-          label={getText('trashCategory')}
-          buttonLabel={getText('trashCategoryButtonLabel')}
-          dropZoneLabel={getText('trashCategoryDropZoneLabel')}
-        />
-        {localBackend && (
-          <div className="group flex items-center justify-between self-stretch">
+
+          {/* Self user space */}
+          {userCategory != null && (
             <CategorySwitcherItem
               {...itemProps}
-              category={{ type: 'local' }}
-              icon={ComputerIcon}
-              label={getText('localCategory')}
-              buttonLabel={getText('localCategoryButtonLabel')}
-              dropZoneLabel={getText('localCategoryDropZoneLabel')}
+              isNested
+              category={userCategory}
+              icon={userCategory.icon}
+              label={userCategory.label}
+              isDisabled={isOffline}
+              buttonLabel={getText('myFilesCategoryButtonLabel')}
+              dropZoneLabel={getText('myFilesCategoryDropZoneLabel')}
             />
-            <ariaComponents.Button
-              size="medium"
-              variant="icon"
-              extraClickZone={false}
-              icon={SettingsIcon}
-              aria-label={getText('changeLocalRootDirectoryInSettings')}
-              className="opacity-0 transition-opacity group-hover:opacity-100"
-              onPress={() => {
-                setSearchParams({
-                  [`${SEARCH_PARAMS_PREFIX}SettingsTab`]: JSON.stringify('local'),
-                  [`${SEARCH_PARAMS_PREFIX}page`]: JSON.stringify(TabType.settings),
-                })
-              }}
+          )}
+
+          {teamCategories.map((teamCategory) => (
+            <CategorySwitcherItem
+              key={teamCategory.id}
+              {...itemProps}
+              isNested
+              category={teamCategory}
+              icon={teamCategory.icon}
+              label={teamCategory.label}
+              isDisabled={isOffline}
+              buttonLabel={getText('teamCategoryButtonLabel', teamCategory.team.name)}
+              dropZoneLabel={getText('teamCategoryDropZoneLabel', teamCategory.team.name)}
             />
-          </div>
-        )}
-        {localBackend &&
-          localRootDirectories?.map((directory) => (
-            <div key={directory} className="group flex items-center self-stretch">
+          ))}
+
+          <CategorySwitcherItem
+            {...itemProps}
+            key={recentCategory.id}
+            isNested
+            category={recentCategory}
+            icon={recentCategory.icon}
+            label={recentCategory.label}
+            isDisabled={isOffline}
+            buttonLabel={getText('recentCategoryButtonLabel')}
+            dropZoneLabel={getText('recentCategoryDropZoneLabel')}
+          />
+
+          <CategorySwitcherItem
+            {...itemProps}
+            key={trashCategory.id}
+            isNested
+            category={trashCategory}
+            icon={trashCategory.icon}
+            label={trashCategory.label}
+            isDisabled={isOffline}
+            buttonLabel={getText('trashCategoryButtonLabel')}
+            dropZoneLabel={getText('trashCategoryDropZoneLabel')}
+          />
+
+          {localCategory != null && (
+            <div className="group flex items-center gap-2 self-stretch drop-target-after">
               <CategorySwitcherItem
                 {...itemProps}
-                isNested
-                category={{
-                  type: 'local-directory',
-                  rootPath: backend.Path(directory),
-                  homeDirectoryId: newDirectoryId(backend.Path(directory)),
-                }}
-                icon={FolderIcon}
-                label={getFileName(directory)}
+                category={localCategory}
+                icon={localCategory.icon}
+                label={localCategory.label}
+                isDisabled={false}
                 buttonLabel={getText('localCategoryButtonLabel')}
                 dropZoneLabel={getText('localCategoryDropZoneLabel')}
               />
-              <div className="grow" />
-              <ariaComponents.DialogTrigger>
-                <ariaComponents.Button
-                  size="medium"
-                  variant="icon"
-                  extraClickZone={false}
-                  icon={Minus2Icon}
-                  aria-label={getText('removeDirectoryFromFavorites')}
-                  className="hidden group-hover:block"
-                />
-                <ConfirmDeleteModal
-                  actionText={getText(
-                    'removeTheLocalDirectoryXFromFavorites',
-                    getFileName(directory),
-                  )}
-                  actionButtonLabel={getText('remove')}
-                  doDelete={() => {
-                    setLocalRootDirectories(
-                      localRootDirectories.filter((otherDirectory) => otherDirectory !== directory),
-                    )
-                  }}
-                />
-              </ariaComponents.DialogTrigger>
+
+              <ariaComponents.Button
+                size="medium"
+                variant="icon"
+                extraClickZone="small"
+                icon={SettingsIcon}
+                aria-label={getText('changeLocalRootDirectoryInSettings')}
+                className="my-auto opacity-0 transition-opacity group-hover:opacity-100"
+                onPress={() => {
+                  setSearchParams({
+                    [`${SEARCH_PARAMS_PREFIX}SettingsTab`]: JSON.stringify('local'),
+                    [`${SEARCH_PARAMS_PREFIX}page`]: JSON.stringify('settings'),
+                  })
+                }}
+              />
             </div>
-          ))}
-        {localBackend && window.fileBrowserApi && (
-          <div className="flex">
-            <div className="ml-[15px] mr-1 border-r border-primary/20" />
-            <ariaComponents.Button
-              size="xsmall"
-              variant="outline"
-              icon={PlusIcon}
-              loaderPosition="icon"
-              className="ml-0.5 rounded-full px-2 selectable"
-              onPress={async () => {
-                const [newDirectory] =
-                  (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
-                if (newDirectory != null) {
-                  setLocalRootDirectories([...(localRootDirectories ?? []), newDirectory])
-                }
-              }}
-            >
-              <div className="ml-1.5">{getText('addLocalDirectory')}</div>
-            </ariaComponents.Button>
-          </div>
-        )}
-      </div>
+          )}
+          {directories != null &&
+            directories.map((directory) => (
+              <div key={directory.id} className="group flex items-center gap-2 self-stretch">
+                <CategorySwitcherItem
+                  {...itemProps}
+                  isNested
+                  category={directory}
+                  icon={directory.icon}
+                  label={directory.label}
+                  isDisabled={false}
+                  buttonLabel={getText('localCategoryButtonLabel')}
+                  dropZoneLabel={getText('localCategoryDropZoneLabel')}
+                />
+
+                <ariaComponents.DialogTrigger>
+                  <ariaComponents.Button
+                    size="medium"
+                    variant="icon"
+                    extraClickZone={false}
+                    icon={Minus2Icon}
+                    aria-label={getText('removeDirectoryFromFavorites')}
+                    className="hidden group-hover:block"
+                  />
+
+                  <ConfirmDeleteModal
+                    actionText={getText('removeTheLocalDirectoryXFromFavorites', directory.label)}
+                    actionButtonLabel={getText('remove')}
+                    doDelete={async () => {
+                      removeDirectory(directory.id)
+                      await Promise.resolve()
+                    }}
+                  />
+                </ariaComponents.DialogTrigger>
+              </div>
+            ))}
+
+          {directories != null && window.fileBrowserApi && (
+            <div className="flex">
+              <div className="ml-[15px] mr-1.5 rounded-full border-r border-primary/20" />
+
+              <ariaComponents.Button
+                size="medium"
+                variant="icon"
+                icon={FolderAddIcon}
+                loaderPosition="icon"
+                onPress={async () => {
+                  const [newDirectory] =
+                    (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
+                  if (newDirectory != null) {
+                    addDirectory(newDirectory)
+                  }
+                }}
+              >
+                {getText('addLocalDirectory')}
+              </ariaComponents.Button>
+            </div>
+          )}
+        </div>
+      </AnimatedBackground>
     </div>
   )
 }

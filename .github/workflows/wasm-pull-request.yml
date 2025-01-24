@@ -1,0 +1,42 @@
+# This file is not auto-generated. Feel free to edit it.
+
+name: ✨ WASM
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-wasm-pull-request
+  cancel-in-progress: ${{ github.ref != 'refs/heads/develop' }}
+
+jobs:
+  wasm-changed-files:
+    name: 🔍 Files Changed
+    uses: ./.github/workflows/wasm-changed-files.yml
+    secrets: inherit
+
+  wasm-checks:
+    name: 🦀 Checks
+    uses: ./.github/workflows/wasm-checks.yml
+    needs: [wasm-changed-files]
+    if: needs.wasm-changed-files.outputs.any_changed == 'true' || github.ref == 'refs/heads/develop'
+    secrets: inherit
+
+  required-checks:
+    name: WASM Required Checks
+    runs-on: ubuntu-latest
+    needs: [wasm-checks]
+    if: always()
+    steps:
+      - name: Checks Summary
+        run: |
+          echo "WASM Checks: ${{ needs.wasm-checks.result }}"
+
+          if [[ "${{ needs.wasm-checks.result }}" == "failure" ]]; then
+            exit 1
+          fi
+
+          echo "Success!"

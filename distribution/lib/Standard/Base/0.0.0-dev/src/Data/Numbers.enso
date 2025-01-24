@@ -1287,7 +1287,7 @@ type Integer
          Parse the text "20220216" into an integer number.
 
             Integer.parse "20220216"
-    parse text:Text (radix=10:Integer) -> Integer ! Number_Parse_Error = integer_parse text radix
+    parse text:Text (radix:Integer = 10) -> Integer ! Number_Parse_Error = integer_parse text radix
 
     ## PRIVATE
     fits_in_long self -> Boolean =

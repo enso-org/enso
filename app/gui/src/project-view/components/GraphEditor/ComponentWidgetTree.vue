@@ -45,7 +45,9 @@ function selectNode() {
 }
 
 function handleWidgetUpdates(update: WidgetUpdate) {
-  selectNode()
+  if (update.directInteraction) {
+    selectNode()
+  }
   const edit = update.edit ?? graph.startEdit()
   if (update.portUpdate) {
     const { origin } = update.portUpdate

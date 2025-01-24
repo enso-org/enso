@@ -7,6 +7,7 @@
 export * from './ComboBox'
 export * from './DatePicker'
 export * from './Dropdown'
+export * from './HiddenFile'
 export * from './Input'
 export * from './MultiSelector'
 export * from './OTPInput'

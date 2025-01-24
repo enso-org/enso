@@ -4,7 +4,6 @@ import java.util.BitSet;
 import java.util.function.Function;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
@@ -101,10 +100,7 @@ public class MapHelpers {
       StorageType expectedType,
       ProblemAggregator problemAggregator) {
     int n = storage.size();
-    Builder builder =
-        expectedType == null
-            ? new InferredBuilder(n, problemAggregator)
-            : Builder.getForType(expectedType, n, problemAggregator);
+    Builder builder = Builder.getForType(expectedType, n, problemAggregator);
     for (int i = 0; i < n; i++) {
       if (!storage.isNothing(i)) {
         builder.append(fn.apply(storage.getItemBoxed(i)));

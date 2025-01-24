@@ -32,7 +32,7 @@ export function merge<T extends object>(object: T, update: Partial<T>): T {
 
 /** Return a function to update an object with the given partial update. */
 export function merger<T extends object>(update: Partial<NoInfer<T>>): (object: T) => T {
-  return object => merge(object, update)
+  return (object) => merge(object, update)
 }
 
 // ================
@@ -66,6 +66,11 @@ export function unsafeKeys<T extends object>(object: T): readonly (keyof T)[] {
   return Object.keys(object)
 }
 
+/** Return the values of an object. UNSAFE only when it is possible for an object to have extra keys. */
+export function unsafeValues<const T extends object>(object: T): readonly T[keyof T][] {
+  return Object.values(object)
+}
+
 /**
  * Return the entries of an object. UNSAFE only when it is possible for an object to have
  * extra keys.
@@ -75,6 +80,17 @@ export function unsafeEntries<T extends object>(
 ): readonly { [K in keyof T]: readonly [K, T[K]] }[keyof T][] {
   // @ts-expect-error This is intentionally a wrapper function with a different type.
   return Object.entries(object)
+}
+
+/**
+ * Return an object from its entries. UNSAFE only when it is possible for an object to have
+ * extra keys.
+ */
+export function unsafeFromEntries<T extends object>(
+  entries: readonly { [K in keyof T]: readonly [K, T[K]] }[keyof T][],
+): T {
+  // @ts-expect-error This is intentionally a wrapper function with a different type.
+  return Object.fromEntries(entries)
 }
 
 // =============================
@@ -104,7 +120,7 @@ export function mapEntries<K extends PropertyKey, V, W>(
   // @ts-expect-error It is known that the set of keys is the same for the input and the output,
   // because the output is dynamically generated based on the input.
   return Object.fromEntries(
-    unsafeEntries(object).map<[K, W]>(kv => {
+    unsafeEntries(object).map<[K, W]>((kv) => {
       const [k, v] = kv
       return [k, map(k, v)]
     }),
@@ -177,29 +193,17 @@ export type ExtractKeys<T, U> = {
 /** An instance method of the given type. */
 export type MethodOf<T> = (this: T, ...args: never) => unknown
 
-// ===================
-// === useObjectId ===
-// ===================
-
-/** Composable providing support for managing object identities. */
-export function useObjectId() {
-  let lastId = 0
-  const idNumbers = new WeakMap<object, number>()
-  /** @returns A value that can be used to compare object identity. */
-  function objectId(o: object): number {
-    const id = idNumbers.get(o)
-    if (id == null) {
-      lastId += 1
-      idNumbers.set(o, lastId)
-      return lastId
-    }
-    return id
-  }
-  return { objectId }
-}
-
 /**
  * Returns the union of `A` and `B`, with a type-level assertion that `A` and `B` don't have any keys in common; this
  * can be used to splice together objects without the risk of collisions.
  */
 export type DisjointKeysUnion<A, B> = keyof A & keyof B extends never ? A & B : never
+
+/**
+ * Merge types of values of an object union. Useful to return an object that UNSAFELY
+ * (at runtime) conforms to the shape of a discriminated union.
+ * Especially useful for things like Tanstack Query results.
+ */
+export type MergeValuesOfObjectUnion<T> = {
+  [K in `${keyof T & string}`]: T[K & keyof T]
+}

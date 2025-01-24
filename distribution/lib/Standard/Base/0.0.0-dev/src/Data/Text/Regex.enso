@@ -165,7 +165,8 @@ type Regex
     find_all self (input : Text) =
        self.match_all input . map match_to_group_maybe
 
-    ## GROUP Conversions
+    ## ALIAS tokenize, parse
+       GROUP Conversions
        ICON split
        Splits the `input` text based on the pattern described by `self`.
 
@@ -209,7 +210,8 @@ type Regex
                     builder.append filler.text
             go it.next
 
-    ## GROUP Conversions
+    ## ALIAS split, parse
+       GROUP Conversions
        ICON split
        Takes an input string and returns all the matches as a `Vector Text`.
        If the pattern contains marked groups, the values are concatenated
@@ -235,7 +237,7 @@ type Regex
              Regex.compile '(\S+)(?:\s+|$)' . tokenize 'Hello Big\r\nWide\tWorld\nGoodbye!'
                  == ['Hello','Big','Wide','World','Goodbye!']
     tokenize : Text -> Vector Text
-    tokenize self input =
+    tokenize self input:Text =
         self.match_all input . map (build_tokenization_output_from_match self _)
 
     ## GROUP Text

@@ -73,6 +73,9 @@ public class LRUCache<M> {
   /** Used to get the current free disk space; mockable. */
   private final DiskSpaceGetter diskSpaceGetter;
 
+  /** Used to clear the cache on reload. */
+  private final ReloadDetector reloadDetector = new ReloadDetector();
+
   public LRUCache() {
     this(LRUCacheSettings.getDefault(), new NowGetter(), new DiskSpaceGetter());
   }
@@ -89,6 +92,8 @@ public class LRUCache<M> {
    */
   public CacheResult<M> getResult(ItemBuilder<M> itemBuilder)
       throws IOException, InterruptedException, ResponseTooLargeException {
+    clearOnReload();
+
     String cacheKey = itemBuilder.makeCacheKey();
 
     try {
@@ -104,7 +109,7 @@ public class LRUCache<M> {
       // a rare case so it seems unnecessary.
       logger.log(
           Level.WARNING,
-          "Error in cache file handling; will re-execute without caching: {}",
+          "Error in cache file handling; will re-execute without caching: {0}",
           e.getMessage());
       Item<M> rerequested = itemBuilder.buildItem();
       return new CacheResult<>(rerequested.stream(), rerequested.metadata());
@@ -121,17 +126,18 @@ public class LRUCache<M> {
       return new CacheResult<>(item.stream(), item.metadata());
     }
 
+    long maxAllowedDownloadSize = getMaxAllowedDownloadSize();
+
     // If we have a content-length, clear up enough space for that. If not,
-    // then clear up enough space for the largest allowed file size.
-    long maxFileSize = settings.getMaxFileSize();
+    // then clear up enough space for the largest allowed size.
     if (item.sizeMaybe.isPresent()) {
       long size = item.sizeMaybe().get();
-      if (size > maxFileSize) {
-        throw new ResponseTooLargeException(maxFileSize);
+      if (size > maxAllowedDownloadSize) {
+        throw new ResponseTooLargeException(size, maxAllowedDownloadSize);
       }
       makeRoomFor(size);
     } else {
-      makeRoomFor(maxFileSize);
+      makeRoomFor(maxAllowedDownloadSize);
     }
 
     try {
@@ -185,15 +191,14 @@ public class LRUCache<M> {
     var outputStream = new FileOutputStream(temp);
     boolean successful = false;
     try {
-      // Limit the download to getMaxFileSize().
-      long maxFileSize = settings.getMaxFileSize();
-      boolean sizeOK = Stream_Utils.limitedCopy(inputStream, outputStream, maxFileSize);
+      long maxAllowedDownloadSize = getMaxAllowedDownloadSize();
+      boolean sizeOK = Stream_Utils.limitedCopy(inputStream, outputStream, maxAllowedDownloadSize);
 
       if (sizeOK) {
         successful = true;
         return temp;
       } else {
-        throw new ResponseTooLargeException(maxFileSize);
+        throw new ResponseTooLargeException(null, maxAllowedDownloadSize);
       }
     } finally {
       outputStream.close();
@@ -219,6 +224,12 @@ public class LRUCache<M> {
   /** Remove all cache entries (and their files). */
   public void clear() {
     removeCacheEntriesByPredicate(e -> true);
+  }
+
+  private void clearOnReload() {
+    if (reloadDetector.hasReloadOccurred()) {
+      clear();
+    }
   }
 
   /** Remove all cache entries (and their cache files) that match the predicate. */
@@ -315,6 +326,14 @@ public class LRUCache<M> {
     return Long.min(upperBound, totalCacheSize);
   }
 
+  /**
+   * Calculate the largest size we can allow, which is the minimum of the max file size and the max
+   * total cache size.
+   */
+  private long getMaxAllowedDownloadSize() {
+    return Long.min(settings.getMaxFileSize(), getMaxTotalCacheSize());
+  }
+
   /** For testing. */
   public long getMaxTotalCacheSize() {
     return getMaxTotalCacheSize(getTotalCacheSize());
@@ -342,6 +361,11 @@ public class LRUCache<M> {
   /** Public for testing. */
   public LRUCacheSettings getSettings() {
     return settings;
+  }
+
+  /** Public for testing. */
+  public void simulateReloadTestOnly() {
+    reloadDetector.simulateReloadTestOnly();
   }
 
   private record CacheEntry<M>(File responseData, M metadata, long size, ZonedDateTime expiry) {}

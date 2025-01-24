@@ -10,6 +10,7 @@ import project.Column_Description.Column_Description
 import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
 import project.Dialect
+import project.Internal.Common.Connections_Helpers
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import project.Internal.Data_Link_Setup.Data_Link_Setup
 import project.Internal.IR.Query.Query
@@ -18,12 +19,10 @@ import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.SQL_Query.SQL_Query
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
-import project.Internal.Common.Connections_Helpers
 from project.Connection.Connection import make_schema_selector, make_structure_creator, make_table_name_selector, make_table_types_selector
 from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from project.Internal.Postgres.Helpers import get_encoding_name, parse_postgres_encoding
 from project.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
-
 
 type Postgres_Connection
     ## PRIVATE

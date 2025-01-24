@@ -1,7 +1,7 @@
 import * as RawAst from 'ydoc-shared/ast/generated/ast'
 import { rawParseModule } from 'ydoc-shared/ast/parse'
 import { LazyObject } from 'ydoc-shared/ast/parserSupport'
-import type { SourceRange } from 'ydoc-shared/yjsModel'
+import { type SourceRange } from 'ydoc-shared/util/data/text'
 
 export { RawAst, rawParseModule }
 
@@ -15,7 +15,7 @@ export type HasAstRange = SourceRange | RawAst.Tree | RawAst.Token
  */
 export function readAstOrTokenSpan(node: RawAst.Tree | RawAst.Token, code: string): string {
   const range = parsedTreeOrTokenRange(node)
-  return code.substring(range[0], range[1])
+  return code.substring(range.from, range.to)
 }
 
 /**
@@ -25,18 +25,7 @@ export function readAstOrTokenSpan(node: RawAst.Tree | RawAst.Token, code: strin
  */
 export function readTokenSpan(token: RawAst.Token, code: string): string {
   const range = parsedTokenRange(token)
-  return code.substring(range[0], range[1])
-}
-
-/** Read direct AST children. */
-export function childrenAstNodes(obj: LazyObject): RawAst.Tree[] {
-  const children: RawAst.Tree[] = []
-  const visitor = (obj: LazyObject) => {
-    if (RawAst.Tree.isInstance(obj)) children.push(obj)
-    else if (!RawAst.Token.isInstance(obj)) obj.visitChildren(visitor)
-  }
-  obj.visitChildren(visitor)
-  return children
+  return code.substring(range.from, range.to)
 }
 
 /** TODO: Add docs */
@@ -90,20 +79,20 @@ export function visitRecursive(
 /**
  * Read ast span information in `String.substring` compatible way. The returned span does not
  * include left whitespace offset.
- * @returns Object with `start` and `end` properties; index of first character in the `node`
+ * @returns Object with `from` and `to` properties; index of first character in the `node`
  *   and first character _not_ being in the `node`.
  */
-function parsedTreeRange(tree: RawAst.Tree): SourceRange {
-  const start = tree.whitespaceStartInCodeParsed + tree.whitespaceLengthInCodeParsed
-  const end = start + tree.childrenLengthInCodeParsed
-  return [start, end]
+export function parsedTreeRange(tree: RawAst.Tree): SourceRange {
+  const from = tree.whitespaceStartInCodeParsed + tree.whitespaceLengthInCodeParsed
+  const to = from + tree.childrenLengthInCodeParsed
+  return { from, to }
 }
 
 /** TODO: Add docs */
 function parsedTokenRange(token: RawAst.Token): SourceRange {
-  const start = token.startInCodeBuffer
-  const end = start + token.lengthInCodeBuffer
-  return [start, end]
+  const from = token.startInCodeBuffer
+  const to = from + token.lengthInCodeBuffer
+  return { from, to }
 }
 
 /** TODO: Add docs */

@@ -58,6 +58,13 @@ final class RefactoringRenameJob(
               )
             )
             Seq()
+          case ex: RefactoringRenameJob.DefinitionAlreadyExists =>
+            reply(
+              Api.SymbolRenameFailed(
+                Api.SymbolRenameFailed.DefinitionAlreadyExists(ex.name)
+              )
+            )
+            Seq()
           case ex: RefactoringRenameJob.FailedToApplyEdits =>
             reply(
               Api.SymbolRenameFailed(
@@ -94,6 +101,26 @@ final class RefactoringRenameJob(
       .getOrElse(
         throw new RefactoringRenameJob.OperationNotSupported(expressionId)
       )
+
+    // check if global definition exists
+    methodDefinition.foreach { _ =>
+      val moduleDefs =
+        IRUtils.findModuleDefinitions(module.getIr, newSymbolName)
+      if (moduleDefs.nonEmpty) {
+        throw new RefactoringRenameJob.DefinitionAlreadyExists(newSymbolName)
+      }
+    }
+
+    // check if local definition exists
+    local.foreach { symbol =>
+      val scopeOpt = IRUtils.getExpressionBlock(module.getIr, symbol)
+      scopeOpt.foreach { scope =>
+        val localDefs = IRUtils.findLocalDefinitions(scope, newSymbolName)
+        if (localDefs.nonEmpty) {
+          throw new RefactoringRenameJob.DefinitionAlreadyExists(newSymbolName)
+        }
+      }
+    }
 
     def localUsages = local.flatMap(IRUtils.findLocalUsages(module.getIr, _))
     def methodDefinitionUsages = methodDefinition.flatMap(
@@ -178,6 +205,9 @@ object RefactoringRenameJob {
 
   final private class ExpressionNotFound(val expressionId: UUID @ExternalID)
       extends Exception(s"Expression was not found by id [$expressionId].")
+
+  final private class DefinitionAlreadyExists(val name: String)
+      extends Exception(s"Definition [$name] already exists in scope")
 
   final private class FailedToApplyEdits(val module: String)
       extends Exception(s"Failed to apply edits to module [$module]")

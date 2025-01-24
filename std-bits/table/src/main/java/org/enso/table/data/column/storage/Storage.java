@@ -20,9 +20,6 @@ import org.graalvm.polyglot.Value;
 
 /** An abstract representation of a data column. */
 public abstract class Storage<T> implements ColumnStorage {
-  /** A constant representing the index of a missing value in a column. */
-  public static final int NOT_FOUND_INDEX = -1;
-
   /**
    * @return the number of elements in this column (including NAs)
    */
@@ -164,7 +161,7 @@ public abstract class Storage<T> implements ColumnStorage {
       } else {
         Object result = function.apply(it, argument);
         Object converted = Polyglot_Utils.convertPolyglotValue(result);
-        storageBuilder.appendNoGrow(converted);
+        storageBuilder.append(converted);
       }
 
       context.safepoint();
@@ -197,7 +194,7 @@ public abstract class Storage<T> implements ColumnStorage {
       } else {
         Object result = function.apply(it1, it2);
         Object converted = Polyglot_Utils.convertPolyglotValue(result);
-        storageBuilder.appendNoGrow(converted);
+        storageBuilder.append(converted);
       }
 
       context.safepoint();
@@ -332,12 +329,7 @@ public abstract class Storage<T> implements ColumnStorage {
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
       Object it = getItemBoxed(i);
-      if (it == null) {
-        builder.appendNoGrow(convertedFallback);
-      } else {
-        builder.appendNoGrow(it);
-      }
-
+      builder.append(it == null ? convertedFallback : it);
       context.safepoint();
     }
 
@@ -356,12 +348,7 @@ public abstract class Storage<T> implements ColumnStorage {
     var builder = Builder.getForType(commonType, size(), problemAggregator);
     Context context = Context.getCurrent();
     for (int i = 0; i < size(); i++) {
-      if (isNothing(i)) {
-        builder.appendNoGrow(other.getItemBoxed(i));
-      } else {
-        builder.appendNoGrow(getItemBoxed(i));
-      }
-
+      builder.append(isNothing(i) ? other.getItemBoxed(i) : getItemBoxed(i));
       context.safepoint();
     }
 

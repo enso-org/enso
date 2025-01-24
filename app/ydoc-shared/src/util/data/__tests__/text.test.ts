@@ -1,6 +1,70 @@
 import { fc, test } from '@fast-check/vitest'
 import { expect } from 'vitest'
-import { applyTextEdits, applyTextEditsToSpans, textChangeToEdits, trimEnd } from '../text'
+import {
+  type SourceRange,
+  applyTextEdits,
+  applyTextEditsToSpans,
+  rangeEncloses,
+  rangeIntersects,
+  textChangeToEdits,
+  trimEnd,
+} from '../text'
+
+type RangeTest = { a: SourceRange; b: SourceRange }
+
+function rangeTest({ a, b }: { a: number[]; b: number[] }) {
+  return { a: { from: a[0]!, to: a[1]! }, b: { from: b[0]!, to: b[1]! } }
+}
+
+const equalRanges: RangeTest[] = [
+  { a: [0, 0], b: [0, 0] },
+  { a: [0, 1], b: [0, 1] },
+  { a: [-5, 5], b: [-5, 5] },
+].map(rangeTest)
+
+const totalOverlap: RangeTest[] = [
+  { a: [0, 1], b: [0, 0] },
+  { a: [0, 2], b: [2, 2] },
+  { a: [-1, 1], b: [1, 1] },
+  { a: [0, 2], b: [0, 1] },
+  { a: [-10, 10], b: [-3, 7] },
+  { a: [0, 5], b: [1, 2] },
+  { a: [3, 5], b: [3, 4] },
+].map(rangeTest)
+
+const reverseTotalOverlap: RangeTest[] = totalOverlap.map(({ a, b }) => ({ a: b, b: a }))
+
+const noOverlap: RangeTest[] = [
+  { a: [0, 1], b: [2, 3] },
+  { a: [0, 1], b: [-1, -1] },
+  { a: [5, 6], b: [2, 3] },
+  { a: [0, 2], b: [-2, -1] },
+  { a: [-5, -3], b: [9, 10] },
+  { a: [-3, 2], b: [3, 4] },
+].map(rangeTest)
+
+const partialOverlap: RangeTest[] = [
+  { a: [0, 3], b: [-1, 1] },
+  { a: [0, 1], b: [-1, 0] },
+  { a: [0, 0], b: [-1, 0] },
+  { a: [0, 2], b: [1, 4] },
+  { a: [-8, 0], b: [0, 10] },
+].map(rangeTest)
+
+test.each([...equalRanges, ...totalOverlap])('Range $a should enclose $b', ({ a, b }) =>
+  expect(rangeEncloses(a, b)).toBe(true),
+)
+test.each([...noOverlap, ...partialOverlap, ...reverseTotalOverlap])(
+  'Range $a should not enclose $b',
+  ({ a, b }) => expect(rangeEncloses(a, b)).toBe(false),
+)
+test.each([...equalRanges, ...totalOverlap, ...reverseTotalOverlap, ...partialOverlap])(
+  'Range $a should intersect $b',
+  ({ a, b }) => expect(rangeIntersects(a, b)).toBe(true),
+)
+test.each([...noOverlap])('Range $a should not intersect $b', ({ a, b }) =>
+  expect(rangeIntersects(a, b)).toBe(false),
+)
 
 test.prop({
   before: fc.array(fc.boolean(), { minLength: 32, maxLength: 64 }),
@@ -8,7 +72,8 @@ test.prop({
 })('textChangeToEdits / applyTextEdits round-trip', ({ before, after }) => {
   // Generate strings composed of a mix of only two characters so that `textChangeToEdits` will find a variety of
   // similarities between the inputs.
-  const stringFromBools = (bools: Array<boolean>) => bools.map(bool => (bool ? 't' : 'f')).join('')
+  const stringFromBools = (bools: Array<boolean>) =>
+    bools.map((bool) => (bool ? 't' : 'f')).join('')
   const beforeString = stringFromBools(before)
   const afterString = stringFromBools(after)
   const edits = textChangeToEdits(beforeString, afterString)
@@ -45,12 +110,12 @@ function checkCorrespondence(a: string[], b: string[]) {
   Performs the same check as {@link checkCorrespondence}, for correspondences that are not expected to be reversible.
  */
 function checkCorrespondenceForward(before: string[], after: string[]) {
-  const leadingSpacesAndLength = (input: string): [number, number] => [
-    input.lastIndexOf(' ') + 1,
-    input.length,
-  ]
-  const spacesAndHyphens = ([spaces, length]: readonly [number, number]) => {
-    return ' '.repeat(spaces) + '-'.repeat(length - spaces)
+  const leadingSpacesAndLength = (input: string): SourceRange => ({
+    from: input.lastIndexOf(' ') + 1,
+    to: input.length,
+  })
+  const spacesAndHyphens = ({ from, to }: SourceRange) => {
+    return ' '.repeat(from) + '-'.repeat(to - from)
   }
   const edits = textChangeToEdits(before[0]!, after[0]!)
   const spansAfter = applyTextEditsToSpans(edits, before.slice(1).map(leadingSpacesAndLength)).map(

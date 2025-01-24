@@ -1246,41 +1246,41 @@ type Decimal
 
 ## GROUP Math
    ICON input_number
-    Construct a `Decimal` from a `Text`, `Integer` or `Float`.
+   Construct a `Decimal` from a `Text`, `Integer` or `Float`.
 
-    Arguments:
-    - x: The `Text`, `Integer`, or `Float` to construct a `Decimal` from.
-    - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
-        If a `Math_Context` is used, there is a possibility of a loss of
-        precision.
+   Arguments:
+   - x: The `Text`, `Integer`, or `Float` to construct a `Decimal` from.
+   - mc: The `Math_Context` to use to specify precision and `Rounding_Mode`.
+       If a `Math_Context` is used, there is a possibility of a loss of
+       precision.
 
-    ? Number Format
+   ? Number Format
 
-        The textual format for a Decimal is defined at
-        https://docs.oracle.com/javase/8/docs/api/java/math/BigDecimal.html#BigDecimal-java.lang.String-.
+       The textual format for a Decimal is defined at
+       https://docs.oracle.com/javase/8/docs/api/java/math/BigDecimal.html#BigDecimal-java.lang.String-.
 
-    ! Error Conditions
+   ! Error Conditions
 
-        - If the `Text` argument is incorrectly formatted, a `Number_Parse_Error`
-        is thrown.
-        - If the construction of the Decimal results in a loss of precision, a
-        `Loss_Of_Numeric_Precision` warning is attached. This can only happen
-        if a `Math_Context` value is explicitly passed.
+       - If the `Text` argument is incorrectly formatted, a `Number_Parse_Error`
+       is thrown.
+       - If the construction of the Decimal results in a loss of precision, a
+       `Loss_Of_Numeric_Precision` warning is attached. This can only happen
+       if a `Math_Context` value is explicitly passed.
 
-    ^ Example
-        Create a `Decimal` from a `Text`.
+   ^ Example
+       Create a `Decimal` from a `Text`.
 
-            c = dec "12.345"
+           c = dec "12.345"
 
-    ^ Example
-        Create a `Decimal` from an `Integer`.
+   ^ Example
+       Create a `Decimal` from an `Integer`.
 
-            c = dec 12345
+           c = dec 12345
 
-    ^ Example
-        Create a `Decimal` from a `Float`.
+   ^ Example
+       Create a `Decimal` from a `Float`.
 
-            c = dec 12.345
+           c = dec 12.345
 dec : Text | Integer | Float -> Math_Context | Nothing -> Decimal ! Arithmetic_Error | Number_Parse_Error
 dec (x : Text | Integer | Float) (mc : Math_Context | Nothing = Nothing) -> Decimal ! Arithmetic_Error | Number_Parse_Error =
     handle_java_exception <|

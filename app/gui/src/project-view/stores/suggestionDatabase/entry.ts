@@ -1,21 +1,20 @@
-import { assert } from '@/util/assert'
-import type { Doc } from '@/util/docParser'
-import type { Icon } from '@/util/iconName'
-import type { IdentifierOrOperatorIdentifier, QualifiedName } from '@/util/qualifiedName'
+import { type ProjectNameStore } from '@/stores/projectNames'
+import { type DocumentationData } from '@/stores/suggestionDatabase/documentation'
+import { type MethodPointer } from '@/util/methodPointer'
+import { type ProjectPath } from '@/util/projectPath'
 import {
-  isIdentifierOrOperatorIdentifier,
-  isQualifiedName,
+  Identifier,
   qnJoin,
   qnLastSegment,
-  qnParent,
   qnSegments,
-  qnSplit,
+  type IdentifierOrOperatorIdentifier,
+  type QualifiedName,
 } from '@/util/qualifiedName'
-import type { MethodPointer } from 'ydoc-shared/languageServerTypes'
-import type {
-  SuggestionEntryArgument,
-  SuggestionEntryScope,
+import {
+  type SuggestionEntryArgument,
+  type SuggestionEntryScope,
 } from 'ydoc-shared/languageServerTypes/suggestions'
+
 export type {
   SuggestionEntryArgument,
   SuggestionEntryScope,
@@ -40,53 +39,126 @@ export enum SuggestionKind {
   Local = 'Local',
 }
 
-export interface SuggestionEntry {
-  kind: SuggestionKind
+export interface SuggestionEntryCommon extends DocumentationData {
+  readonly kind: SuggestionKind
   /** A module where the suggested object is defined. */
-  definedIn: QualifiedName
-  /** A type or module this method or constructor belongs to. */
-  memberOf?: QualifiedName
-  isPrivate: boolean
-  isUnstable: boolean
+  definedIn: ProjectPath
   name: IdentifierOrOperatorIdentifier
-  aliases: string[]
-  /** A type of the "self" argument. This field is present only for instance methods. */
-  selfType?: Typename
-  /**
-   * Argument lists of suggested object (atom or function). If the object does not take any
-   * arguments, the list is empty.
-   */
-  arguments: SuggestionEntryArgument[]
   /** A type returned by the suggested object. */
-  returnType: Typename
-  /** Qualified name of the parent type. */
-  parentType?: QualifiedName
+  returnType(projectNames: ProjectNameStore): Typename
+  /** The fully qualified name of the `SuggestionEntry`, disregarding reexports. */
+  definitionPath: ProjectPath
+}
+
+interface Reexportable {
   /** A least-nested module reexporting this entity. */
-  reexportedIn?: QualifiedName
-  documentation: Doc.Section[]
+  reexportedIn: ProjectPath | undefined
+}
+
+interface Scoped {
   /** A scope where this suggestion is visible. */
-  scope?: SuggestionEntryScope
-  /** A name of a custom icon to use when displaying the entry. */
-  iconName?: Icon
-  /** An index of a group from group list in suggestionDb store this entry belongs to. */
-  groupIndex?: number
+  scope: SuggestionEntryScope | undefined
+}
+
+interface Annotatable {
   /** A list of annotations. They are present for methods and constructors only. */
   annotations: string[]
 }
 
-/** Get the fully qualified name of the `SuggestionEntry`, disregarding reexports. */
-export function entryQn(entry: SuggestionEntry): QualifiedName {
-  if (entry.kind == SuggestionKind.Module) {
-    return entry.definedIn
-  } else {
-    const owner = entryOwnerQn(entry)
-    return owner ? qnJoin(owner, entry.name) : entry.name
-  }
+interface TakesArguments {
+  /** Argument lists of suggested object (atom or function). */
+  arguments: SuggestionEntryArgument[]
+}
+
+interface IsMemberOf {
+  /** A type or module this method or constructor belongs to. */
+  memberOf: ProjectPath
+}
+
+export interface ModuleSuggestionEntry extends SuggestionEntryCommon, Reexportable {
+  readonly kind: SuggestionKind.Module
+}
+
+export interface TypeSuggestionEntry extends SuggestionEntryCommon, Reexportable, TakesArguments {
+  readonly kind: SuggestionKind.Type
+  /** Qualified name of the parent type. */
+  parentType: ProjectPath | undefined
+}
+
+export interface ConstructorSuggestionEntry
+  extends SuggestionEntryCommon,
+    Reexportable,
+    Annotatable,
+    TakesArguments,
+    IsMemberOf {
+  readonly kind: SuggestionKind.Constructor
+}
+
+export interface MethodSuggestionEntry
+  extends SuggestionEntryCommon,
+    Reexportable,
+    Annotatable,
+    TakesArguments,
+    IsMemberOf {
+  readonly kind: SuggestionKind.Method
+  /** Type of the "self" argument. */
+  selfType: ProjectPath | undefined
+}
+
+export interface FunctionSuggestionEntry extends SuggestionEntryCommon, Scoped, TakesArguments {
+  readonly kind: SuggestionKind.Function
+}
+
+export interface LocalSuggestionEntry extends SuggestionEntryCommon, Scoped {
+  readonly kind: SuggestionKind.Local
+}
+
+export type SuggestionEntry =
+  | ModuleSuggestionEntry
+  | TypeSuggestionEntry
+  | ConstructorSuggestionEntry
+  | MethodSuggestionEntry
+  | FunctionSuggestionEntry
+  | LocalSuggestionEntry
+
+/**
+ * A type that can be called. This includes every suggestion kind that takes arguments, except
+ * {@link SuggestionKind.Type}.
+ */
+export type CallableSuggestionEntry =
+  | MethodSuggestionEntry
+  | ConstructorSuggestionEntry
+  | FunctionSuggestionEntry
+
+/** Type predicate for {@link CallableSuggestionEntry}. */
+export function entryIsCallable(entry: SuggestionEntry): entry is CallableSuggestionEntry {
+  return (
+    entry.kind === SuggestionKind.Method ||
+    entry.kind === SuggestionKind.Function ||
+    entry.kind === SuggestionKind.Constructor
+  )
+}
+
+/** Predicate for types that can have annotated arguments. */
+export function entryIsAnnotatable(
+  entry: SuggestionEntry,
+): entry is MethodSuggestionEntry | ConstructorSuggestionEntry {
+  return entry.kind === SuggestionKind.Method || entry.kind === SuggestionKind.Constructor
+}
+
+/** Predicate for members that can be called on a type. */
+export function entryIsStatic(
+  entry: SuggestionEntry,
+): entry is ConstructorSuggestionEntry | (MethodSuggestionEntry & { selfType: undefined }) {
+  return (
+    entry.kind === SuggestionKind.Constructor ||
+    (entry.kind === SuggestionKind.Method && entry.selfType == null)
+  )
 }
 
 /** Get the MethodPointer pointing to definition represented by the entry. */
 export function entryMethodPointer(entry: SuggestionEntry): MethodPointer | undefined {
-  if (entry.kind !== SuggestionKind.Method || !entry.memberOf) return
+  if (entry.kind !== SuggestionKind.Method) return
   return {
     module: entry.definedIn,
     definedOnType: entry.memberOf,
@@ -94,13 +166,16 @@ export function entryMethodPointer(entry: SuggestionEntry): MethodPointer | unde
   }
 }
 
-/** TODO: Add docs */
-export function entryOwnerQn(entry: SuggestionEntry): QualifiedName | null {
-  if (entry.kind == SuggestionKind.Module) {
-    return qnParent(entry.definedIn)
-  } else {
-    return entry.memberOf ?? entry.definedIn
-  }
+const mainIdent = 'Main' as Identifier
+
+/** Returns the partial path to use when displaying the name with only the final segment of the parent path. */
+export function entryDisplayPath(entry: SuggestionEntry & IsMemberOf): QualifiedName {
+  return qnJoin(
+    entry.memberOf.path && entry.memberOf.path !== 'Main' ? qnLastSegment(entry.memberOf.path)
+    : entry.memberOf.project ? qnLastSegment(entry.memberOf.project)
+    : mainIdent,
+    entry.name,
+  )
 }
 
 const DOCUMENTATION_ROOT = 'https://help.enso.org/docs/api'
@@ -108,137 +183,9 @@ const DOCUMENTATION_ROOT = 'https://help.enso.org/docs/api'
 /** TODO: Add docs */
 export function suggestionDocumentationUrl(entry: SuggestionEntry): string | undefined {
   if (entry.kind !== SuggestionKind.Method && entry.kind !== SuggestionKind.Function) return
-  const location = entry.memberOf ?? entry.definedIn
-  const segments: string[] = qnSegments(location)
-  if (segments[0] !== 'Standard') return
-  if (segments.length < 3) return
-  const namespace = segments[0]
-  segments[0] = DOCUMENTATION_ROOT
-  segments[1] = `${namespace}.${segments[1]}`
-  segments[segments.length - 1] += `.${entry.name}`
-  return segments.join('/')
-}
-
-function makeSimpleEntry(
-  kind: SuggestionKind,
-  definedIn: QualifiedName,
-  name: IdentifierOrOperatorIdentifier,
-  returnType: QualifiedName,
-): SuggestionEntry {
-  return {
-    kind,
-    definedIn,
-    name,
-    isPrivate: false,
-    isUnstable: false,
-    aliases: [],
-    arguments: [],
-    returnType,
-    documentation: [],
-    annotations: [],
-  }
-}
-
-/** TODO: Add docs */
-export function makeModule(fqn: string): SuggestionEntry {
-  assert(isQualifiedName(fqn))
-  return makeSimpleEntry(SuggestionKind.Module, fqn, qnLastSegment(fqn), fqn)
-}
-
-/** TODO: Add docs */
-export function makeType(fqn: string): SuggestionEntry {
-  assert(isQualifiedName(fqn))
-  const [definedIn, name] = qnSplit(fqn)
-  assert(definedIn != null)
-  return makeSimpleEntry(SuggestionKind.Type, definedIn, name, fqn)
-}
-
-/** TODO: Add docs */
-export function makeConstructor(fqn: string): SuggestionEntry {
-  assert(isQualifiedName(fqn))
-  const [type, name] = qnSplit(fqn)
-  assert(type != null)
-  const definedIn = qnParent(type)
-  assert(definedIn != null)
-  return {
-    memberOf: type,
-    ...makeSimpleEntry(SuggestionKind.Constructor, definedIn, name, type),
-  }
-}
-
-/** TODO: Add docs */
-export function makeMethod(fqn: string, returnType: string = 'Any'): SuggestionEntry {
-  assert(isQualifiedName(fqn))
-  assert(isQualifiedName(returnType))
-  const [type, name] = qnSplit(fqn)
-  assert(type != null)
-  const definedIn = qnParent(type)
-  assert(definedIn != null)
-  return {
-    memberOf: type,
-    selfType: type,
-    ...makeSimpleEntry(SuggestionKind.Method, definedIn, name, returnType),
-  }
-}
-
-/** TODO: Add docs */
-export function makeStaticMethod(fqn: string, returnType: string = 'Any'): SuggestionEntry {
-  assert(isQualifiedName(fqn))
-  assert(isQualifiedName(returnType))
-  const [type, name] = qnSplit(fqn)
-  assert(type != null)
-  const definedIn = qnParent(type)
-  assert(definedIn != null)
-  return {
-    memberOf: type,
-    ...makeSimpleEntry(SuggestionKind.Method, definedIn, name, returnType),
-  }
-}
-
-/** TODO: Add docs */
-export function makeModuleMethod(fqn: string, returnType: string = 'Any'): SuggestionEntry {
-  assert(isQualifiedName(fqn))
-  assert(isQualifiedName(returnType))
-  const [definedIn, name] = qnSplit(fqn)
-  assert(definedIn != null)
-  return {
-    memberOf: definedIn,
-    ...makeSimpleEntry(SuggestionKind.Method, definedIn, name, returnType),
-  }
-}
-
-/** TODO: Add docs */
-export function makeFunction(
-  definedIn: string,
-  name: string,
-  returnType: string = 'Any',
-): SuggestionEntry {
-  assert(isQualifiedName(definedIn))
-  assert(isIdentifierOrOperatorIdentifier(name))
-  assert(isQualifiedName(returnType))
-  return makeSimpleEntry(SuggestionKind.Function, definedIn, name, returnType)
-}
-
-/** TODO: Add docs */
-export function makeLocal(
-  definedIn: string,
-  name: string,
-  returnType: string = 'Any',
-): SuggestionEntry {
-  assert(isQualifiedName(definedIn))
-  assert(isIdentifierOrOperatorIdentifier(name))
-  assert(isQualifiedName(returnType))
-  return makeSimpleEntry(SuggestionKind.Local, definedIn, name, returnType)
-}
-
-/** TODO: Add docs */
-export function makeArgument(name: string, type: string = 'Any'): SuggestionEntryArgument {
-  return {
-    name,
-    reprType: type,
-    isSuspended: false,
-    hasDefault: false,
-  }
+  const { project, path } = entry.definitionPath
+  if (!project?.startsWith('Standard.') || !path) return
+  return [DOCUMENTATION_ROOT, project, ...qnSegments(path)].join('/')
 }
 
 /** `true` if calling the function without providing a value for this argument will result in an error. */

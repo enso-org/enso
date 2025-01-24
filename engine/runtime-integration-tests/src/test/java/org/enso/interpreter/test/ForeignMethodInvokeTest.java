@@ -1,5 +1,6 @@
 package org.enso.interpreter.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -7,9 +8,12 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.concurrent.Executors;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -31,10 +35,10 @@ public class ForeignMethodInvokeTest {
   }
 
   @Test
-  public void testForeignFunctionParseFailure() {
+  public void testForeignFunctionParseFailure() throws Exception {
     // python is not a permitted language, therefore, invoking `py_array` method
     // should fail with a Polyglot_Error, rather than crashing whole engine.
-    String source =
+    var code =
         """
         from Standard.Base import all
 
@@ -45,16 +49,24 @@ public class ForeignMethodInvokeTest {
             Panic.recover Any py_array
         """
             .trim();
-    Value module = ctx.eval("enso", source);
+    var src = Source.newBuilder("enso", code, "TryPython.enso").build();
+    Value module = ctx.eval(src);
     Value res = module.invokeMember("eval_expression", "main");
     assertTrue("Invoking non-installed foreign function should recover", res.isException());
     try {
       throw res.throwException();
     } catch (RuntimeException e) {
-      assertTrue(
-          "Wrong error message",
-          e.getMessage()
-              .matches("Cannot parse foreign python method. Only available languages are .+"));
+      var sw = new StringWriter();
+      var pw = new PrintWriter(sw);
+      e.printStackTrace(pw);
+      var text = sw.toString().replace(System.getProperty("line.separator"), "\n");
+      var lines = text.split("\n");
+      assertThat(
+          "Expecting message at first line: " + lines[0],
+          lines[0].matches("Cannot parse.*foreign python.*method.*languages are .+"));
+      assertThat(
+          "First error line comes from TryPython file: " + lines[1],
+          lines[1].matches(".*at <enso> TryPython\\.py_array\\(TryPython:3.*\\)"));
     }
   }
 

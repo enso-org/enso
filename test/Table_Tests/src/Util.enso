@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import Standard.Database.DB_Table.DB_Table
 import Standard.Database.DB_Column.DB_Column
@@ -10,24 +11,28 @@ polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
 Table.should_equal : Any -> Integer -> Any
 Table.should_equal self expected frames_to_skip=0 =
-    loc = Meta.get_source_location 1+frames_to_skip
+    loc = Test.get_source_location 1+frames_to_skip
+    rhs_error_check expected
     Panic.catch Test_Failure_Error (table_should_equal_impl self expected loc) error->
-        Test.fail error.payload.message 
+        Test.fail error.payload.message
 
 Column.should_equal : Any -> Integer -> Any
 Column.should_equal self expected frames_to_skip=0 =
-    loc = Meta.get_source_location 1+frames_to_skip
+    loc = Test.get_source_location 1+frames_to_skip
+    rhs_error_check expected
     Panic.catch Test_Failure_Error (column_should_equal_impl self expected loc) error->
         Test.fail error.payload.message
 
 DB_Table.should_equal : DB_Table -> Integer -> Any
 DB_Table.should_equal self expected frames_to_skip=0 =
+    rhs_error_check expected
     t0 = self.read
     t1 = expected.read
     t0 . should_equal t1 frames_to_skip+1
 
 DB_Column.should_equal : DB_Column -> Integer -> Any
 DB_Column.should_equal self expected frames_to_skip=0 =
+    rhs_error_check expected
     t0 = self.read
     t1 = expected.read
     t0 . should_equal t1 frames_to_skip+1
@@ -106,7 +111,7 @@ set_writable file writable =
    For example, if `example` is `[[1, 2], [3]]`, then both `[1, 2, 3]` and
    `[2, 1, 3]` will be accepted, but `[2, 3, 1]` will be rejected.
 Any.should_have_relative_ordering self (example : Vector) =
-    loc = Meta.get_source_location 1
+    loc = Test.get_source_location 1
     case self of
         _ : Vector ->
             example.each v-> case v of
@@ -139,6 +144,17 @@ Any.should_have_relative_ordering self (example : Vector) =
 ## PRIVATE
    See `Any.should_have_relative_ordering`.
 Error.should_have_relative_ordering self example =
-    loc = Meta.get_source_location 1
+    loc = Test.get_source_location 1
     _ = example
     Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+loc+")."
+
+
+## PRIVATE
+   A helper that ensures that the expected value provided in some of the Test
+   operations is not an error.
+   The left-hand side may be an error and that will cause a test failure.
+   But the right-hand side being an error is bad test design and should be fixed.
+rhs_error_check that =
+    if that.is_error then
+        msg = "Dataflow error ("+that.to_display_text+") provided as expected value. Use `should_fail_with` or change the test."+ ' Error stack trace was:\n'+that.get_stack_trace_text
+        Panic.throw (Illegal_Argument.Error msg)

@@ -20,6 +20,7 @@ const item: CustomDropdownItem = {
         onPathSelected: (path: string) => {
           props.onUpdate({
             portUpdate: { value: Ast.TextLiteral.new(path), origin: props.input.portId },
+            directInteraction: true,
           })
           close()
         },

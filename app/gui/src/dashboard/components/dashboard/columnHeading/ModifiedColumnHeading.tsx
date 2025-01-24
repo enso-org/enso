@@ -1,8 +1,7 @@
 /** @file A heading for the "Modified" column. */
 import SortAscendingIcon from '#/assets/sort_ascending.svg'
 import TimeIcon from '#/assets/time.svg'
-import { Text } from '#/components/aria'
-import { Button } from '#/components/AriaComponents'
+import { Button, Text } from '#/components/AriaComponents'
 import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
 import { Column } from '#/components/dashboard/column/columnUtils'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -52,7 +51,7 @@ export default function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
       <Button
         variant="icon"
         icon={TimeIcon}
-        aria-label={getText('modifiedColumnHide')}
+        aria-label={getText('hideColumn')}
         tooltip={false}
         onPress={hideThisColumn}
       />
@@ -62,7 +61,10 @@ export default function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
         className="flex grow justify-start gap-icon-with-text"
         onPress={cycleSortDirection}
       >
-        <Text className="text-header">{getText('modifiedColumnName')}</Text>
+        <Text weight="bold" truncate="1" color="custom">
+          {getText('modifiedColumnName')}
+        </Text>
+
         <img
           alt={isDescending ? getText('sortDescending') : getText('sortAscending')}
           src={SortAscendingIcon}

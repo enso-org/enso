@@ -137,7 +137,7 @@ make_json_for_object_matrix current vector idx=0 = if idx == vector.length then 
 
 ## PRIVATE
    Render Dictionary to JSON
-make_json_for_dictionary : Dictionary -> Integer -> Text -> JS_Object
+make_json_for_dictionary : Dictionary -> Integer -> JS_Object
 make_json_for_dictionary dict max_items =
     header = ["header", ["key", "value"]]
     all_rows = ["all_rows_count", dict.size]

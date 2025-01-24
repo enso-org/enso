@@ -1,161 +1,232 @@
 /** @file Test sorting of assets columns. */
-import * as test from '@playwright/test'
+import { expect, test, type Locator } from '@playwright/test'
 
-import * as dateTime from '#/utilities/dateTime'
+import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 
-import * as actions from './actions'
+import { mockAllAndLogin } from './actions'
 
-// =================
-// === Constants ===
-// =================
+/** A test assertion to confirm that the element is fully transparent. */
+async function expectOpacity0(locator: Locator) {
+  await test.step('Expect `opacity: 0`', async () => {
+    await expect(async () => {
+      expect(await locator.evaluate((el) => getComputedStyle(el).opacity)).toBe('0')
+    }).toPass()
+  })
+}
+
+/** A test assertion to confirm that the element is not fully transparent. */
+async function expectNotOpacity0(locator: Locator) {
+  await test.step('Expect not `opacity: 0`', async () => {
+    await expect(async () => {
+      expect(await locator.evaluate((el) => getComputedStyle(el).opacity)).not.toBe('0')
+    }).toPass()
+  })
+}
+
+/** Find a "sort ascending" icon. */
+function locateSortAscendingIcon(page: Locator) {
+  return page.getByAltText('Sort Ascending')
+}
+
+/** Find a "sort descending" icon. */
+function locateSortDescendingIcon(page: Locator) {
+  return page.getByAltText('Sort Descending')
+}
 
 const START_DATE_EPOCH_MS = 1.7e12
 /** The number of milliseconds in a minute. */
 const MIN_MS = 60_000
 
-// =============
-// === Tests ===
-// =============
-
-test.test('sort', async ({ page }) => {
-  await actions.mockAll({
+test('sort', ({ page }) =>
+  mockAllAndLogin({
     page,
     setupAPI: (api) => {
-      const date1 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS))
-      const date2 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 1 * MIN_MS))
-      const date3 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 2 * MIN_MS))
-      const date4 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 3 * MIN_MS))
-      const date5 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 4 * MIN_MS))
-      const date6 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 5 * MIN_MS))
-      const date7 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 6 * MIN_MS))
-      const date8 = dateTime.toRfc3339(new Date(START_DATE_EPOCH_MS + 7 * MIN_MS))
-
-      api.addDirectory({ modifiedAt: date4, title: 'a directory' })
+      const date1 = toRfc3339(new Date(START_DATE_EPOCH_MS))
+      const date2 = toRfc3339(new Date(START_DATE_EPOCH_MS + 1 * MIN_MS))
+      const date3 = toRfc3339(new Date(START_DATE_EPOCH_MS + 2 * MIN_MS))
+      const date4 = toRfc3339(new Date(START_DATE_EPOCH_MS + 3 * MIN_MS))
+      const date4a = toRfc3339(new Date(START_DATE_EPOCH_MS + 3 * MIN_MS + 1))
+      const date4b = toRfc3339(new Date(START_DATE_EPOCH_MS + 3 * MIN_MS + 2))
+      const date5 = toRfc3339(new Date(START_DATE_EPOCH_MS + 4 * MIN_MS))
+      const date5a = toRfc3339(new Date(START_DATE_EPOCH_MS + 4 * MIN_MS + 1))
+      const date6 = toRfc3339(new Date(START_DATE_EPOCH_MS + 5 * MIN_MS))
+      const date7 = toRfc3339(new Date(START_DATE_EPOCH_MS + 6 * MIN_MS))
+      const date8 = toRfc3339(new Date(START_DATE_EPOCH_MS + 7 * MIN_MS))
+      api.addDirectory({ modifiedAt: date4, title: 'a directory 1' })
+      api.addDirectory({ modifiedAt: date4a, title: 'a directory 10' })
+      api.addDirectory({ modifiedAt: date4b, title: 'a directory 2' })
+      api.addDirectory({ modifiedAt: date5a, title: 'a directory 11' })
       api.addDirectory({ modifiedAt: date6, title: 'G directory' })
       api.addProject({ modifiedAt: date7, title: 'C project' })
+      api.addSecret({ modifiedAt: date2, title: 'H secret' })
       api.addProject({ modifiedAt: date1, title: 'b project' })
       api.addFile({ modifiedAt: date8, title: 'd file' })
-      api.addFile({ modifiedAt: date5, title: 'e file' })
-      api.addSecret({ modifiedAt: date2, title: 'H secret' })
       api.addSecret({ modifiedAt: date3, title: 'f secret' })
+      api.addFile({ modifiedAt: date5, title: 'e file' })
       // By date:
       // b project
       // h secret
       // f secret
-      // a directory
+      // a directory 1
+      // a directory 10
+      // a directory 2
       // e file
+      // a directory 11
       // g directory
       // c project
       // d file
     },
   })
-  const assetRows = actions.locateAssetRows(page)
-  const nameHeading = actions.locateNameColumnHeading(page)
-  const modifiedHeading = actions.locateModifiedColumnHeading(page)
-  await actions.login({ page })
-
-  // By default, assets should be grouped by type.
-  // Assets in each group are ordered by insertion order.
-  await actions.expectOpacity0(actions.locateSortAscendingIcon(nameHeading))
-  await test.expect(actions.locateSortDescendingIcon(nameHeading)).not.toBeVisible()
-  await actions.expectOpacity0(actions.locateSortAscendingIcon(modifiedHeading))
-  await test.expect(actions.locateSortDescendingIcon(modifiedHeading)).not.toBeVisible()
-  await Promise.all([
-    test.expect(assetRows.nth(0)).toHaveText(/^a directory/),
-    test.expect(assetRows.nth(1)).toHaveText(/^G directory/),
-    test.expect(assetRows.nth(2)).toHaveText(/^C project/),
-    test.expect(assetRows.nth(3)).toHaveText(/^b project/),
-    test.expect(assetRows.nth(4)).toHaveText(/^d file/),
-    test.expect(assetRows.nth(5)).toHaveText(/^e file/),
-    test.expect(assetRows.nth(6)).toHaveText(/^H secret/),
-    test.expect(assetRows.nth(7)).toHaveText(/^f secret/),
-  ])
-
-  // Sort by name ascending.
-  await nameHeading.click()
-  await actions.expectNotOpacity0(actions.locateSortAscendingIcon(nameHeading))
-  await Promise.all([
-    test.expect(assetRows.nth(0)).toHaveText(/^a directory/),
-    test.expect(assetRows.nth(1)).toHaveText(/^b project/),
-    test.expect(assetRows.nth(2)).toHaveText(/^C project/),
-    test.expect(assetRows.nth(3)).toHaveText(/^d file/),
-    test.expect(assetRows.nth(4)).toHaveText(/^e file/),
-    test.expect(assetRows.nth(5)).toHaveText(/^f secret/),
-    test.expect(assetRows.nth(6)).toHaveText(/^G directory/),
-    test.expect(assetRows.nth(7)).toHaveText(/^H secret/),
-  ])
-
-  // Sort by name descending.
-  await nameHeading.click()
-  await actions.expectNotOpacity0(actions.locateSortDescendingIcon(nameHeading))
-  await Promise.all([
-    test.expect(assetRows.nth(0)).toHaveText(/^H secret/),
-    test.expect(assetRows.nth(1)).toHaveText(/^G directory/),
-    test.expect(assetRows.nth(2)).toHaveText(/^f secret/),
-    test.expect(assetRows.nth(3)).toHaveText(/^e file/),
-    test.expect(assetRows.nth(4)).toHaveText(/^d file/),
-    test.expect(assetRows.nth(5)).toHaveText(/^C project/),
-    test.expect(assetRows.nth(6)).toHaveText(/^b project/),
-    test.expect(assetRows.nth(7)).toHaveText(/^a directory/),
-  ])
-
-  // Sorting should be unset.
-  await nameHeading.click()
-  await page.mouse.move(0, 0)
-  await actions.expectOpacity0(actions.locateSortAscendingIcon(nameHeading))
-  await test.expect(actions.locateSortDescendingIcon(nameHeading)).not.toBeVisible()
-  await Promise.all([
-    test.expect(assetRows.nth(0)).toHaveText(/^a directory/),
-    test.expect(assetRows.nth(1)).toHaveText(/^G directory/),
-    test.expect(assetRows.nth(2)).toHaveText(/^C project/),
-    test.expect(assetRows.nth(3)).toHaveText(/^b project/),
-    test.expect(assetRows.nth(4)).toHaveText(/^d file/),
-    test.expect(assetRows.nth(5)).toHaveText(/^e file/),
-    test.expect(assetRows.nth(6)).toHaveText(/^H secret/),
-    test.expect(assetRows.nth(7)).toHaveText(/^f secret/),
-  ])
-
-  // Sort by date ascending.
-  await modifiedHeading.click()
-  await actions.expectNotOpacity0(actions.locateSortAscendingIcon(modifiedHeading))
-  await Promise.all([
-    test.expect(assetRows.nth(0)).toHaveText(/^b project/),
-    test.expect(assetRows.nth(1)).toHaveText(/^H secret/),
-    test.expect(assetRows.nth(2)).toHaveText(/^f secret/),
-    test.expect(assetRows.nth(3)).toHaveText(/^a directory/),
-    test.expect(assetRows.nth(4)).toHaveText(/^e file/),
-    test.expect(assetRows.nth(5)).toHaveText(/^G directory/),
-    test.expect(assetRows.nth(6)).toHaveText(/^C project/),
-    test.expect(assetRows.nth(7)).toHaveText(/^d file/),
-  ])
-
-  // Sort by date descending.
-  await modifiedHeading.click()
-  await actions.expectNotOpacity0(actions.locateSortDescendingIcon(modifiedHeading))
-  await Promise.all([
-    test.expect(assetRows.nth(0)).toHaveText(/^d file/),
-    test.expect(assetRows.nth(1)).toHaveText(/^C project/),
-    test.expect(assetRows.nth(2)).toHaveText(/^G directory/),
-    test.expect(assetRows.nth(3)).toHaveText(/^e file/),
-    test.expect(assetRows.nth(4)).toHaveText(/^a directory/),
-    test.expect(assetRows.nth(5)).toHaveText(/^f secret/),
-    test.expect(assetRows.nth(6)).toHaveText(/^H secret/),
-    test.expect(assetRows.nth(7)).toHaveText(/^b project/),
-  ])
-
-  // Sorting should be unset.
-  await modifiedHeading.click()
-  await page.mouse.move(0, 0)
-  await actions.expectOpacity0(actions.locateSortAscendingIcon(modifiedHeading))
-  await test.expect(actions.locateSortDescendingIcon(modifiedHeading)).not.toBeVisible()
-  await Promise.all([
-    test.expect(assetRows.nth(0)).toHaveText(/^a directory/),
-    test.expect(assetRows.nth(1)).toHaveText(/^G directory/),
-    test.expect(assetRows.nth(2)).toHaveText(/^C project/),
-    test.expect(assetRows.nth(3)).toHaveText(/^b project/),
-    test.expect(assetRows.nth(4)).toHaveText(/^d file/),
-    test.expect(assetRows.nth(5)).toHaveText(/^e file/),
-    test.expect(assetRows.nth(6)).toHaveText(/^H secret/),
-    test.expect(assetRows.nth(7)).toHaveText(/^f secret/),
-  ])
-})
+    .driveTable.withNameColumnHeading(async (nameHeading) => {
+      await expectOpacity0(locateSortAscendingIcon(nameHeading))
+      await expect(locateSortDescendingIcon(nameHeading)).not.toBeVisible()
+    })
+    .driveTable.withModifiedColumnHeading(async (modifiedHeading) => {
+      await expectOpacity0(locateSortAscendingIcon(modifiedHeading))
+      await expect(locateSortDescendingIcon(modifiedHeading)).not.toBeVisible()
+    })
+    .driveTable.withRows(async (rows) => {
+      // By default, assets should be grouped by type.
+      // Assets in each group are ordered by insertion order.
+      await expect(rows).toHaveText([
+        /^G directory/,
+        /^a directory 11/,
+        /^a directory 2/,
+        /^a directory 10/,
+        /^a directory 1/,
+        /^C project/,
+        /^b project/,
+        /^d file/,
+        /^e file/,
+        /^f secret/,
+        /^H secret/,
+      ])
+    })
+    // Sort by name ascending.
+    .driveTable.clickNameColumnHeading()
+    .driveTable.withNameColumnHeading(async (nameHeading) => {
+      await expectNotOpacity0(locateSortAscendingIcon(nameHeading))
+    })
+    .driveTable.withRows(async (rows) => {
+      await expect(rows).toHaveText([
+        /^a directory 1/,
+        /^a directory 2/,
+        /^a directory 10/,
+        /^a directory 11/,
+        /^b project/,
+        /^C project/,
+        /^d file/,
+        /^e file/,
+        /^f secret/,
+        /^G directory/,
+        /^H secret/,
+      ])
+    })
+    // Sort by name descending.
+    .driveTable.clickNameColumnHeading()
+    .driveTable.withNameColumnHeading(async (nameHeading) => {
+      await expectNotOpacity0(locateSortDescendingIcon(nameHeading))
+    })
+    .driveTable.withRows(async (rows) => {
+      await expect(rows).toHaveText([
+        /^H secret/,
+        /^G directory/,
+        /^f secret/,
+        /^e file/,
+        /^d file/,
+        /^C project/,
+        /^b project/,
+        /^a directory 11/,
+        /^a directory 10/,
+        /^a directory 2/,
+        /^a directory 1/,
+      ])
+    })
+    // Sorting should be unset.
+    .driveTable.clickNameColumnHeading()
+    .do(async (thePage) => {
+      await thePage.mouse.move(0, 0)
+    })
+    .driveTable.withNameColumnHeading(async (nameHeading) => {
+      await expectOpacity0(locateSortAscendingIcon(nameHeading))
+      await expect(locateSortDescendingIcon(nameHeading)).not.toBeVisible()
+    })
+    .driveTable.withRows(async (rows) => {
+      await expect(rows).toHaveText([
+        /^G directory/,
+        /^a directory 11/,
+        /^a directory 2/,
+        /^a directory 10/,
+        /^a directory 1/,
+        /^C project/,
+        /^b project/,
+        /^d file/,
+        /^e file/,
+        /^f secret/,
+        /^H secret/,
+      ])
+    })
+    // Sort by date ascending.
+    .driveTable.clickModifiedColumnHeading()
+    .driveTable.withModifiedColumnHeading(async (modifiedHeading) => {
+      await expectNotOpacity0(locateSortAscendingIcon(modifiedHeading))
+    })
+    .driveTable.withRows(async (rows) => {
+      await expect(rows).toHaveText([
+        /^b project/,
+        /^H secret/,
+        /^f secret/,
+        /^a directory 1/,
+        /^a directory 10/,
+        /^a directory 2/,
+        /^e file/,
+        /^a directory 11/,
+        /^G directory/,
+        /^C project/,
+        /^d file/,
+      ])
+    })
+    // Sort by date descending.
+    .driveTable.clickModifiedColumnHeading()
+    .driveTable.withModifiedColumnHeading(async (modifiedHeading) => {
+      await expectNotOpacity0(locateSortDescendingIcon(modifiedHeading))
+    })
+    .driveTable.withRows(async (rows) => {
+      await expect(rows).toHaveText([
+        /^d file/,
+        /^C project/,
+        /^G directory/,
+        /^a directory 11/,
+        /^e file/,
+        /^a directory 2/,
+        /^a directory 10/,
+        /^a directory 1/,
+        /^f secret/,
+        /^H secret/,
+        /^b project/,
+      ])
+    })
+    // Sorting should be unset.
+    .driveTable.clickModifiedColumnHeading()
+    .do(async (thePage) => {
+      await thePage.mouse.move(0, 0)
+    })
+    .driveTable.withModifiedColumnHeading(async (modifiedHeading) => {
+      await expectOpacity0(locateSortAscendingIcon(modifiedHeading))
+      await expect(locateSortDescendingIcon(modifiedHeading)).not.toBeVisible()
+    })
+    .driveTable.withRows(async (rows) => {
+      await expect(rows).toHaveText([
+        /^G directory/,
+        /^a directory 11/,
+        /^a directory 2/,
+        /^a directory 10/,
+        /^a directory 1/,
+        /^C project/,
+        /^b project/,
+        /^d file/,
+        /^e file/,
+        /^f secret/,
+        /^H secret/,
+      ])
+    }))

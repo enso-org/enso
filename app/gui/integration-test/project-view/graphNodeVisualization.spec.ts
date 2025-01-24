@@ -3,13 +3,14 @@ import assert from 'assert'
 import * as actions from './actions'
 import { computedContent } from './css'
 import { expect } from './customExpect'
+import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 
 test('Node can open and load visualization', async ({ page }) => {
   await actions.goToGraph(page)
   const node = locate.graphNode(page).last()
   await node.click({ position: { x: 8, y: 8 } })
-  await expect(locate.circularMenu(page)).toExist()
+  await expect(locate.componentMenu(page)).toExist()
   await locate.toggleVisualizationButton(page).click()
   await expect(locate.anyVisualization(page)).toExist()
   await expect(locate.loadingVisualization(page)).toHaveCount(0)
@@ -50,10 +51,12 @@ test('Previewing visualization', async ({ page }) => {
 
 test('Warnings visualization', async ({ page }) => {
   await actions.goToGraph(page)
-
+  // Without centering the graph, menu sometimes goes out of the view.
+  await page.keyboard.press(`${CONTROL_KEY}+Shift+A`)
   // Create a node, attach a warning, open the warnings-visualization.
   await locate.addNewNodeButton(page).click()
   const input = locate.componentBrowserInput(page).locator('input')
+
   await input.fill('Warning.attach "Uh oh" 42')
   await page.keyboard.press('Enter')
   await expect(locate.componentBrowser(page)).toBeHidden()

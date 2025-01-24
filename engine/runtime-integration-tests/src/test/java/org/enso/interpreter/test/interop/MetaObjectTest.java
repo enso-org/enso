@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URI;
@@ -32,11 +33,21 @@ import org.junit.Test;
 
 public class MetaObjectTest {
   private static Context ctx;
+  private static Value sn;
   private static ValuesGenerator generator;
 
   @BeforeClass
-  public static void prepareCtx() {
+  public static void prepareCtx() throws IOException {
     ctx = ContextUtils.createDefaultContext();
+    var code =
+        """
+        from Standard.Base import Meta, Error
+
+        sn v = v.to Meta.Type . catch handler=(_-> Meta.meta Error) . name
+        """;
+    var src = Source.newBuilder("enso", code, "simple_name.enso").build();
+    sn = ctx.eval(src).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
+    assertTrue("It is a function", sn.canExecute());
   }
 
   @AfterClass
@@ -46,6 +57,8 @@ public class MetaObjectTest {
       generator = null;
     }
     ctx.close();
+    ctx = null;
+    sn = null;
   }
 
   /**
@@ -255,15 +268,6 @@ main = Nothing
   @Test
   public void numbersAreEitherIntegerOrFloat() throws Exception {
     var g = generator();
-    var sn =
-        ctx.eval(
-                "enso",
-                """
-    from Standard.Base import Meta
-
-    sn v = Meta.get_simple_type_name v
-    """)
-            .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
     for (var v : g.numbers()) {
       var simpleName = sn.execute(v).asString();
       var ok =
@@ -305,15 +309,6 @@ main = Nothing
   @Test
   public void compareQualifiedAndSimpleTypeName() throws Exception {
     var g = generator();
-    var sn =
-        ctx.eval(
-                "enso",
-                """
-    from Standard.Base import Meta
-
-    sn v = Meta.get_simple_type_name v
-    """)
-            .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
     var sb = new StringBuilder();
     for (var v : g.allValues()) {
       compareQualifiedNameOfValue(sn, v, sb);
@@ -388,7 +383,7 @@ main = Nothing
       sb.append("\n")
           .append("Simple names shall be the same for ")
           .append(v)
-          .append(" get_simple_type_name: ")
+          .append(" Enso simple name: ")
           .append(simpleName)
           .append(" getMetaSimpleName: ")
           .append(metaName);
@@ -399,15 +394,6 @@ main = Nothing
   @Test
   public void compareQualifiedAndSimpleTypeNameForTypes() throws Exception {
     var g = generator();
-    var sn =
-        ctx.eval(
-                "enso",
-                """
-    from Standard.Base import Meta
-
-    sn v = Meta.get_simple_type_name v
-    """)
-            .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
     var sb = new StringBuilder();
     for (var typ : g.allTypes()) {
       if (!typ.isMetaObject()) {
@@ -426,7 +412,7 @@ main = Nothing
         sb.append("\n")
             .append("Simple names shall be the same for ")
             .append(typ)
-            .append(" get_simple_type_name: ")
+            .append(" Enso simple name: ")
             .append(simpleName)
             .append(" getMetaSimpleName: ")
             .append(metaName);

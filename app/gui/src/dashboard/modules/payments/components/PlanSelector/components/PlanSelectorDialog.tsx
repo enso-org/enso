@@ -20,7 +20,7 @@ import {
   Separator,
   Text,
 } from '#/components/AriaComponents'
-import { ErrorDisplay } from '#/components/ErrorBoundary'
+import { ErrorBoundary, ErrorDisplay } from '#/components/ErrorBoundary'
 import { Suspense } from '#/components/Suspense'
 
 import type { Plan } from '#/services/Backend'
@@ -139,84 +139,86 @@ export function PlanSelectorDialog(props: PlanSelectorDialogProps) {
 
         <Separator orientation="horizontal" className="my-4" />
 
-        <div className="grid grid-cols-[1fr]">
-          <div className="flex flex-col gap-4">
-            <div>
-              <Text variant="subtitle">{getText('adjustYourPlan')}</Text>
+        <ErrorBoundary>
+          <Suspense>
+            <div className="grid grid-cols-[1fr]">
+              <div className="flex flex-col gap-4">
+                <div>
+                  <Text variant="subtitle">{getText('adjustYourPlan')}</Text>
 
-              <Form form={form} className="mt-1">
-                <Selector
-                  form={form}
-                  name="period"
-                  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-                  items={[12, 36]}
-                  label={getText('billingPeriod')}
-                >
-                  {(item) => billingPeriodToString(getText, item)}
-                </Selector>
+                  <Form form={form} className="mt-1">
+                    <Selector
+                      form={form}
+                      name="period"
+                      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+                      items={[12, 36]}
+                      label={getText('billingPeriod')}
+                    >
+                      {(item) => billingPeriodToString(getText, item)}
+                    </Selector>
 
-                <Input
-                  isRequired
-                  readOnly={maxSeats === 1}
-                  form={form}
-                  name="seats"
-                  type="number"
-                  inputMode="decimal"
-                  size="small"
-                  min="1"
-                  label={getText('seats')}
-                  description={getText(`${plan}PlanSeatsDescription`, maxSeats)}
-                />
+                    <Input
+                      isRequired
+                      readOnly={maxSeats === 1}
+                      form={form}
+                      name="seats"
+                      type="number"
+                      inputMode="decimal"
+                      size="small"
+                      min="1"
+                      label={getText('seats')}
+                      description={getText(`${plan}PlanSeatsDescription`, maxSeats)}
+                    />
 
-                <Checkbox.Group
-                  form={form}
-                  name="agree"
-                  description={
-                    <>
-                      {getText('slsaLicenseAgreementDescription1')}{' '}
-                      <Button
-                        variant="link"
-                        href="https://www.ensoanalytics.com/SLSA"
-                        target="_blank"
-                      >
-                        {getText('SLSA')}
-                      </Button>
-                      {getText('slsaLicenseAgreementDescription2')}
-                    </>
-                  }
-                >
-                  <Checkbox value="agree">{getText('licenseAgreementCheckbox')}</Checkbox>
-                </Checkbox.Group>
-              </Form>
-            </div>
-          </div>
+                    <Checkbox.Group
+                      form={form}
+                      name="agree"
+                      description={
+                        <>
+                          {getText('slsaLicenseAgreementDescription1')}{' '}
+                          <Button
+                            variant="link"
+                            href="https://www.ensoanalytics.com/SLSA"
+                            target="_blank"
+                          >
+                            {getText('SLSA')}
+                          </Button>
+                          {getText('slsaLicenseAgreementDescription2')}
+                        </>
+                      }
+                    >
+                      <Checkbox value="agree">{getText('licenseAgreementCheckbox')}</Checkbox>
+                    </Checkbox.Group>
+                  </Form>
+                </div>
+              </div>
 
-          <div>
-            <div className="my-4">
-              <Summary
-                plan={plan}
-                seats={seats}
-                period={period}
-                formatter={formatter}
-                isInvalid={form.formState.errors.seats != null}
-              />
-            </div>
-
-            <Suspense>
-              <StripeProvider>
-                {({ stripe, elements }) => (
-                  <AddPaymentMethodForm
-                    form={form}
-                    elements={elements}
-                    stripeInstance={stripe}
-                    submitText={isTrialing ? getText('startTrial') : getText('subscribeSubmit')}
-                    onSubmit={(paymentMethodId) => onSubmit?.(paymentMethodId, seats, period)}
+              <div>
+                <div className="my-4">
+                  <Summary
+                    plan={plan}
+                    seats={seats}
+                    period={period}
+                    formatter={formatter}
+                    isInvalid={form.formState.errors.seats != null}
                   />
-                )}
-              </StripeProvider>
-            </Suspense>
-          </div>
-        </div>
+                </div>
+
+                <StripeProvider>
+                  {({ stripe, elements }) => (
+                    <AddPaymentMethodForm
+                      form={form}
+                      elements={elements}
+                      stripeInstance={stripe}
+                      submitText={isTrialing ? getText('startTrial') : getText('subscribeSubmit')}
+                      onSubmit={(paymentMethodId) => onSubmit?.(paymentMethodId, seats, period)}
+                    />
+                  )}
+                </StripeProvider>
+              </div>
+            </div>
+          </Suspense>
+        </ErrorBoundary>
       </div>
     </Dialog>
   )

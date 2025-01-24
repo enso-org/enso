@@ -3,7 +3,6 @@
  * These are from variables defined at build time, environment variables,
  * monkeypatching on `window` and generated code.
  */
-import * as buildJson from './../../build.json' with { type: 'json' }
 
 // =============
 // === Types ===
@@ -158,6 +157,7 @@ declare global {
     readonly fileBrowserApi?: FileBrowserApi
     readonly projectManagementApi?: ProjectManagementApi
     readonly versionInfo?: VersionInfo
+    readonly mapBoxApiToken: () => string
     toggleDevtools: () => void
   }
 
@@ -209,7 +209,6 @@ declare global {
       readonly GUI_CONFIG_PATH?: string
     }
   }
-
-  // These are used in other files (because they're globals)
-  const BUILD_INFO: buildJson.BuildInfo
 }
+
+export {}

@@ -15,7 +15,12 @@ const graph = useGraphStore()
 const input = ref<ComponentInstance<typeof AutoSizedInput>>()
 const widgetRoot = ref<HTMLElement>()
 
+const previousValue = ref<string>()
+
 const editing = WidgetEditHandler.New('WidgetText', props.input, {
+  start() {
+    previousValue.value = textContents.value
+  },
   cancel() {
     editedContents.value = textContents.value
     input.value?.blur()
@@ -34,9 +39,12 @@ const editing = WidgetEditHandler.New('WidgetText', props.input, {
 function accepted() {
   editing.end()
   if (props.input.value instanceof Ast.TextLiteral) {
+    if (previousValue.value === editedContents.value) return
     const edit = graph.startEdit()
-    edit.getVersion(props.input.value).setRawTextContent(editedContents.value)
-    props.onUpdate({ edit })
+    const value = edit.getVersion(props.input.value)
+    if (value.rawTextContent === editedContents.value) return
+    value.setRawTextContent(editedContents.value)
+    props.onUpdate({ edit, directInteraction: true })
   } else {
     let value: Ast.Owned<Ast.MutableTextLiteral>
     if (inputTextLiteral.value) {
@@ -50,6 +58,7 @@ function accepted() {
         value,
         origin: props.input.portId,
       },
+      directInteraction: true,
     })
   }
 }
@@ -79,9 +88,7 @@ const textContents = computed(() =>
   props.input.value instanceof Ast.TextLiteral ? props.input.value.rawTextContent : '',
 )
 const placeholder = computed(() =>
-  WidgetInput.isPlaceholder(props.input) ?
-    inputTextLiteral.value?.rawTextContent ?? WidgetInput.valueRepr(props.input)
-  : '',
+  WidgetInput.isPlaceholder(props.input) ? (inputTextLiteral.value?.rawTextContent ?? '') : '',
 )
 const editedContents = ref(textContents.value)
 watch(textContents, (value) => (editedContents.value = value))

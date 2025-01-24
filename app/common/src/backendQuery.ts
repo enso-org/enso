@@ -11,18 +11,20 @@ export type BackendMethods = object.ExtractKeys<Backend, object.MethodOf<Backend
 
 /** For each backend method, an optional function defining how to create a query key from its arguments. */
 type BackendQueryNormalizers = {
-  [Method in BackendMethods]?: (...args: Parameters<Backend[Method]>) => queryCore.QueryKey
+  [Method in BackendMethods]?: (
+    ...args: Readonly<Parameters<Backend[Method]>>
+  ) => queryCore.QueryKey
 }
 
 const NORMALIZE_METHOD_QUERY: BackendQueryNormalizers = {
-  listDirectory: query => [query.parentId, object.omit(query, 'parentId')],
-  getFileDetails: fileId => [fileId],
+  listDirectory: (query) => [query.parentId, object.omit(query, 'parentId')],
+  getFileDetails: (fileId) => [fileId],
 }
 
 /** Creates a partial query key representing the given method and arguments. */
 function normalizeMethodQuery<Method extends BackendMethods>(
   method: Method,
-  args: Parameters<Backend[Method]>,
+  args: Readonly<Parameters<Backend[Method]>>,
 ) {
   return NORMALIZE_METHOD_QUERY[method]?.(...args) ?? args
 }
@@ -31,7 +33,7 @@ function normalizeMethodQuery<Method extends BackendMethods>(
 export function backendQueryOptions<Method extends BackendMethods>(
   backend: Backend | null,
   method: Method,
-  args: Parameters<Backend[Method]>,
+  args: Readonly<Parameters<Backend[Method]>>,
   keyExtra?: queryCore.QueryKey | undefined,
 ): {
   queryKey: queryCore.QueryKey
@@ -47,7 +49,7 @@ export function backendQueryOptions<Method extends BackendMethods>(
 export function backendQueryKey<Method extends BackendMethods>(
   backend: Backend | null,
   method: Method,
-  args: Parameters<Backend[Method]>,
+  args: Readonly<Parameters<Backend[Method]>>,
   keyExtra?: queryCore.QueryKey | undefined,
 ): queryCore.QueryKey {
   return [backend?.type, method, ...normalizeMethodQuery(method, args), ...(keyExtra ?? [])]

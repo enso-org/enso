@@ -12,6 +12,7 @@ import {
 import { useGraphStore } from '@/stores/graph'
 import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
+import { injectProjectNames } from '@/stores/projectNames'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
@@ -23,21 +24,22 @@ import {
   getMethodCallInfoRecursively,
 } from '@/util/callTree'
 import { partitionPoint } from '@/util/data/array'
+import { methodPointerEquals, type MethodPointer } from '@/util/methodPointer'
 import { isIdentifier } from '@/util/qualifiedName'
 import { computed, proxyRefs } from 'vue'
-import { methodPointerEquals, type MethodPointer } from 'ydoc-shared/languageServerTypes'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
 const project = useProjectStore()
 
 const exprInfo = computed(() => graph.db.getExpressionInfo(props.input.value.externalId))
-const outputType = computed(() => exprInfo.value?.typename)
+const outputType = computed(() => exprInfo.value?.rawTypename)
 
 const { methodCallInfo, application } = useWidgetFunctionCallInfo(
   () => props.input,
   graph.db,
   project,
+  injectProjectNames(),
 )
 
 provideFunctionInfo(
@@ -80,7 +82,11 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
         console.error('Tried to set metadata on arg placeholder. This is not implemented yet!')
       return false
     }
-    const { value, origin } = update.portUpdate
+    const {
+      portUpdate: { value, origin },
+      directInteraction,
+    } = update
+
     const edit = update.edit ?? graph.startEdit()
     // Find the updated argument by matching origin port/expression with the appropriate argument.
     // We are interested only in updates at the top level of the argument AST. Updates from nested
@@ -107,7 +113,7 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
       edit
         .getVersion(argApp.appTree)
         .updateValue((oldAppTree) => Ast.App.new(edit, oldAppTree, name, newArg))
-      props.onUpdate({ edit })
+      props.onUpdate({ edit, directInteraction })
       return true
     } else if (value == null && argApp?.argument instanceof ArgumentAst) {
       /* Case: Removing existing argument. */
@@ -148,6 +154,7 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
             value: func,
             origin: argApp.appTree.id,
           },
+          directInteraction,
         })
         return true
       } else if (argApp.appTree instanceof Ast.OprApp) {
@@ -162,6 +169,7 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
               value: lhs,
               origin: argApp.appTree.id,
             },
+            directInteraction,
           })
         }
         return true
@@ -184,7 +192,7 @@ function handleArgUpdate(update: WidgetUpdate): boolean {
             } else {
               appTree.update((appTree) => appTree.function.take())
             }
-            props.onUpdate({ edit })
+            props.onUpdate({ edit, directInteraction })
             return true
           } else {
             // Process an argument to the right of the removed argument.

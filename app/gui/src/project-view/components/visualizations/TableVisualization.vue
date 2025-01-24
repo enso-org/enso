@@ -2,11 +2,13 @@
 import icons from '@/assets/icons.svg'
 import AgGridTableView, { commonContextMenuActions } from '@/components/shared/AgGridTableView.vue'
 import {
+  GridFilterModel,
   useTableVizToolbar,
   type SortModel,
 } from '@/components/visualizations/TableVisualization/tableVizToolbar'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
+import { LINKABLE_URL_REGEX } from '@/util/link'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import type {
   CellClassParams,
@@ -122,7 +124,7 @@ const rowCount = ref(0)
 const showRowCount = ref(true)
 const isTruncated = ref(false)
 const isCreateNodeEnabled = ref(false)
-const filterModel = ref({})
+const filterModel = ref<GridFilterModel[]>([])
 const sortModel = ref<SortModel[]>([])
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 const defaultColDef: Ref<ColDef> = ref({
@@ -133,6 +135,7 @@ const defaultColDef: Ref<ColDef> = ref({
   minWidth: 25,
   cellRenderer: cellRenderer,
   cellClass: cellClass,
+  cellStyle: { 'padding-left': 0, 'border-right': '1px solid #C0C0C0' },
   contextMenuItems: [
     commonContextMenuActions.copy,
     commonContextMenuActions.copyWithHeaders,
@@ -197,7 +200,8 @@ function formatText(params: ICellRendererParams) {
     .replaceAll('>', '&gt;')
 
   if (textFormatterSelected.value === 'off') {
-    return htmlEscaped.replace(/^\s+|\s+$/g, '&nbsp;')
+    const replaceLinks = replaceLinksWithTag(htmlEscaped)
+    return replaceLinks.replace(/^\s+|\s+$/g, '&nbsp;')
   }
 
   const partialMappings = {
@@ -218,10 +222,7 @@ function formatText(params: ICellRendererParams) {
         return `<span style="color: #df8800">${match.replaceAll(' ', '&#183;')}</span>`
       })
 
-  const replaceLinks = replaceSpaces.replace(
-    /https?:\/\/([-()_.!~*';/?:@&=+$,A-Za-z0-9])+/g,
-    (url: string) => `<a href="${url}" target="_blank" class="link">${url}</a>`,
-  )
+  const replaceLinks = replaceLinksWithTag(replaceSpaces)
 
   const replaceReturns = replaceLinks.replace(
     /\r\n/g,
@@ -249,6 +250,13 @@ function setRowLimit(newRowLimit: number) {
       newRowLimit.toString(),
     )
   }
+}
+
+function replaceLinksWithTag(str: string) {
+  return str.replace(
+    LINKABLE_URL_REGEX,
+    (url: string) => `<a href="${url}" target="_blank" class="link">${url}</a>`,
+  )
 }
 
 function escapeHTML(str: string) {
@@ -316,6 +324,16 @@ function getValueTypeIcon(valueType: string) {
   }
 }
 
+function getFilterType(valueType: string) {
+  if (valueType === 'Date') {
+    return 'agDateColumnFilter'
+  } else if (isNumericType(valueType)) {
+    return 'agNumberColumnFilter'
+  } else {
+    return 'agSetColumnFilter'
+  }
+}
+
 /**
  * Generates the column definition for the table vizulization, including displaying the data value type and
  * data quality indicators.
@@ -334,6 +352,7 @@ function toField(
 
   const displayValue = valueType ? valueType.display_text : null
   const icon = valueType ? getValueTypeIcon(valueType.constructor) : null
+  const filterType = valueType ? getFilterType(valueType.constructor) : null
 
   const dataQualityMetrics =
     typeof props.data === 'object' && 'data_quality_metrics' in props.data ?
@@ -362,11 +381,15 @@ function toField(
   const template =
     icon ?
       `<span style='${styles}'><span data-ref="eLabel" class="ag-header-cell-label" role="presentation" style='${styles}'><span data-ref="eText" class="ag-header-cell-text"></span></span>${menu} ${filterButton} ${sort} ${getSvgTemplate(icon)} ${svgTemplateWarning}</span>`
-    : `<span style='${styles}' data-ref="eLabel"><span data-ref="eText" class="ag-header-cell-text"></span> ${menu} ${filterButton} ${sort} ${svgTemplateWarning}</span>`
+    : `<span style='${styles}' data-ref="eLabel"><span data-ref="eText" class="ag-header-cell-label"></span> ${menu} ${filterButton} ${sort} ${svgTemplateWarning}</span>`
 
   return {
     field: name,
     headerName: name, // AGGrid would demangle it its own way if not specified.
+    filter: filterType,
+    filterParams: {
+      maxNumConditions: 1,
+    },
     headerComponentParams: {
       template,
       setAriaSort: () => {},
@@ -438,10 +461,7 @@ function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef 
       params.node?.rowPinned === 'top' ?
         null
       : `Double click to view this ${tooltipValue ?? 'value'} in a separate component`,
-    cellRenderer: (params: ICellRendererParams) =>
-      params.node.rowPinned === 'top' ?
-        `<div> ${params.value}</div>`
-      : `<div class='link'> ${params.value} </div>`,
+    cellRenderer: (params: ICellRendererParams) => `<div class='link'> ${params.value} </div>`,
   }
 }
 
@@ -585,7 +605,7 @@ watchEffect(() => {
           ...dataHeader,
         ]
       : dataHeader
-    const rows = data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0 : 0
+    const rows = data_.data && data_.data.length > 0 ? (data_.data[0]?.length ?? 0) : 0
     rowData.value = Array.from({ length: rows }, (_, i) => {
       const shift = data_.has_index_col ? 1 : 0
       return Object.fromEntries(
@@ -694,6 +714,7 @@ const createDateValue = (item: string, module: Ast.MutableModule) => {
   const dateOrTimePattern = Pattern.parseExpression('(Date.new __ __ __)')
   const dateTimeParts = item
     .match(/\d+/g)!
+    .filter((part, i) => i < 3)
     .map((part) => Ast.tryNumberToEnso(Number(part), module)!)
   return dateOrTimePattern.instantiateCopied([...dateTimeParts])
 }
@@ -706,7 +727,7 @@ function checkSortAndFilter(e: SortChangedEvent) {
     return
   }
   const colState = gridApi.getColumnState()
-  const filter = gridApi.getFilterModel()
+  const gridFilterModel = gridApi.getFilterModel()
   const sort = colState
     .map((cs) => {
       if (cs.sort) {
@@ -718,14 +739,26 @@ function checkSortAndFilter(e: SortChangedEvent) {
       }
     })
     .filter((sort) => sort)
-  if (sort.length || Object.keys(filter).length) {
+  const filter = Object.entries(gridFilterModel).map(([key, value]) => {
+    return {
+      columnName: key,
+      filterType: value.filterType,
+      filterAction: value.type,
+      filter: value.filter,
+      filterTo: value.filterTo,
+      dateFrom: value.dateFrom,
+      dateTo: value.dateTo,
+      values: value.values,
+    }
+  })
+  if (sort.length || filter.length) {
     isCreateNodeEnabled.value = true
     sortModel.value = sort as SortModel[]
     filterModel.value = filter
   } else {
     isCreateNodeEnabled.value = false
     sortModel.value = []
-    filterModel.value = {}
+    filterModel.value = []
   }
 }
 
@@ -808,6 +841,7 @@ config.setToolbar(
 .table-visualization-status-bar {
   height: 20px;
   font-size: 14px;
+  color: var(--color-ag-header-text);
   white-space: nowrap;
   padding: 0 5px;
   overflow: hidden;

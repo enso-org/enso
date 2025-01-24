@@ -3,12 +3,8 @@ import { TEXT } from '.'
 import BaseActions from './BaseActions'
 import SetupDonePageActions from './SetupDonePageActions'
 
-// ================================
-// === SetupTeamNamePageActions ===
-// ================================
-
 /** Actions for the "setup team name" page. */
-export default class SetupTeamNamePagePageActions extends BaseActions {
+export default class SetupTeamNamePagePageActions<Context> extends BaseActions<Context> {
   /** Set the username for a new user that does not yet have a username. */
   setTeamName(teamName: string) {
     return this.step(`Set team name to '${teamName}'`, async (page) => {
@@ -17,6 +13,6 @@ export default class SetupTeamNamePagePageActions extends BaseActions {
         .and(page.getByRole('textbox'))
         .fill(teamName)
       await page.getByText(TEXT.next).click()
-    }).into(SetupDonePageActions)
+    }).into(SetupDonePageActions<Context>)
   }
 }

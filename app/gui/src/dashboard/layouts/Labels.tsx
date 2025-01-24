@@ -9,11 +9,11 @@ import * as ariaComponents from '#/components/AriaComponents'
 import Label from '#/components/dashboard/Label'
 import FocusArea from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
-import SvgMask from '#/components/SvgMask'
 import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import DragModal from '#/modals/DragModal'
 import NewLabelModal from '#/modals/NewLabelModal'
+import { useDriveStore, useNodeMap, useSetLabelsDragPayload } from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
@@ -36,13 +36,16 @@ export default function Labels(props: LabelsProps) {
   const currentNegativeLabels = query.negativeLabels
   const { setModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
+  const driveStore = useDriveStore()
+  const nodeMapRef = useNodeMap()
+  const setLabelsDragPayload = useSetLabelsDragPayload()
   const labels = useBackendQuery(backend, 'listTags', []).data ?? []
-  const deleteTag = useMutation(backendMutationOptions(backend, 'deleteTag')).mutate
+  const deleteTagMutation = useMutation(backendMutationOptions(backend, 'deleteTag'))
 
   return (
     <FocusArea direction="vertical">
       {(innerProps) => (
-        <div className="flex flex-1 flex-col overflow-auto">
+        <div className="flex flex-none flex-col overflow-auto">
           <div
             data-testid="labels"
             className="flex flex-col items-start gap-4 overflow-auto"
@@ -81,9 +84,26 @@ export default function Labels(props: LabelsProps) {
                         )
                       }}
                       onDragStart={(event) => {
+                        const { selectedKeys } = driveStore.getState()
+                        const selectedAssets = [...selectedKeys].flatMap((id) => {
+                          const item = nodeMapRef.current.get(id)?.item
+                          return item ? [item] : []
+                        })
                         drag.setDragImageToBlank(event)
-                        const payload: drag.LabelsDragPayload = new Set([label.value])
+                        const payloadLabels = [label.value]
+                        const payload: drag.LabelsDragPayload = new Set(payloadLabels)
                         drag.LABELS.bind(event, payload)
+                        let count = 0
+                        for (const asset of selectedAssets) {
+                          if (asset.labels?.includes(label.value) === true) {
+                            count += 1
+                          }
+                        }
+                        setLabelsDragPayload({
+                          typeWhenAppliedToSelection:
+                            count * 2 < selectedAssets.length ? 'add' : 'remove',
+                          labels: payloadLabels,
+                        })
                         setModal(
                           <DragModal
                             event={event}
@@ -112,8 +132,8 @@ export default function Labels(props: LabelsProps) {
                         />
                         <ConfirmDeleteModal
                           actionText={getText('deleteLabelActionText', label.value)}
-                          doDelete={() => {
-                            deleteTag([label.id, label.value])
+                          doDelete={async () => {
+                            await deleteTagMutation.mutateAsync([label.id, label.value])
                           }}
                         />
                       </ariaComponents.DialogTrigger>
@@ -128,8 +148,7 @@ export default function Labels(props: LabelsProps) {
               size="xsmall"
               variant="outline"
               className="mt-1 self-start pl-1 pr-2"
-              /* eslint-disable-next-line no-restricted-syntax */
-              icon={<SvgMask src={PlusIcon} alt="" className="ml-auto size-[8px]" />}
+              icon={PlusIcon}
             >
               {getText('newLabelButtonLabel')}
             </ariaComponents.Button>

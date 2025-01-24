@@ -28,7 +28,7 @@ public class ZlibTest extends ExecutorSetup {
         CompletableFuture.supplyAsync(
                 () -> {
                   var ctx = contextBuilder.build();
-                  zlib.initialize(ctx);
+                  zlib.initialize(eval(ctx));
                   return ctx;
                 },
                 executor)

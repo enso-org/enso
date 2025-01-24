@@ -19,12 +19,12 @@ import {
 } from '#/modals/AgreementsModal'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
-import { useAuth } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import LocalStorage from '#/utilities/LocalStorage'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import { useSessionAPI } from '../../providers/SessionProvider'
 
 // ============================
 // === Global configuration ===
@@ -50,7 +50,7 @@ const CONFIRM_SIGN_IN_INTERVAL = 5_000
 
 /** A form for users to register an account. */
 export default function Registration() {
-  const { signUp, confirmSignUp, signInWithPassword } = useAuth()
+  const { signUp, confirmSignUp, signInWithPassword } = useSessionAPI()
 
   const location = useLocation()
   const { localStorage } = useLocalStorage()

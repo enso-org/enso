@@ -19,12 +19,10 @@ import org.enso.base.cache.ResponseTooLargeException;
 import org.enso.base.net.URISchematic;
 import org.enso.base.net.URIWithSecrets;
 import org.graalvm.collections.Pair;
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Value;
 
 /** Makes HTTP requests with secrets in either header or query string. */
 public final class EnsoSecretHelper extends SecretValueResolver {
-  private static Value cache;
+  private static EnsoHTTPResponseCache cache;
 
   /** Gets a JDBC connection resolving EnsoKeyValuePair into the properties. */
   public static Connection getJDBCConnection(
@@ -165,7 +163,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
         keyStrings.add(resolvedHeader.getRight());
       }
 
-      return Integer.toString(Arrays.deepHashCode(keyStrings.toArray()));
+      return Integer.toHexString(Arrays.deepHashCode(keyStrings.toArray()));
     }
 
     @Override
@@ -179,43 +177,10 @@ public final class EnsoSecretHelper extends SecretValueResolver {
   }
 
   public static EnsoHTTPResponseCache getOrCreateCache() {
-    if (getCache() instanceof EnsoHTTPResponseCache httpCache) {
-      return httpCache;
-    } else {
-      var module =
-          Context.getCurrent()
-              .eval(
-                  "enso",
-                  """
-      import Standard.Base.Runtime.Managed_Resource.Managed_Resource
-      import Standard.Base.Data.Boolean.Boolean
-
-      type Cache
-          private Value ref:Managed_Resource
-
-          new obj -> Cache =
-              on_finalize _ = 0
-              ref = Managed_Resource.register obj on_finalize Boolean.True
-              Cache.Value ref
-
-          get self = self.ref.with (r->r)
-      """);
-      var cacheNew = module.invokeMember("eval_expression", "Cache.new");
-      var httpCache = new EnsoHTTPResponseCache();
-      cache = cacheNew.execute(httpCache);
-      return httpCache;
+    if (cache == null) {
+      cache = new EnsoHTTPResponseCache();
     }
-  }
-
-  public static EnsoHTTPResponseCache getCache() {
-    var c = cache instanceof Value v ? v.invokeMember("get") : null;
-    if (c != null
-        && c.isHostObject()
-        && c.asHostObject() instanceof EnsoHTTPResponseCache httpCache) {
-      return httpCache;
-    } else {
-      return null;
-    }
+    return cache;
   }
 
   private static final Comparator<Pair<String, String>> headerNameComparator =

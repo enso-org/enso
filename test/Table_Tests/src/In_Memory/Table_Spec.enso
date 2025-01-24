@@ -764,7 +764,7 @@ add_specs suite_builder =
 
             t4 = table.aggregate ["mixed"] [Aggregate_Column.Sum "ints", Aggregate_Column.Sum "floats"]
             t4.column_info.at "Column" . to_vector . should_equal ["mixed", "Sum ints", "Sum floats"]
-            t4.column_info.at "Value Type" . to_vector . should_equal [Value_Type.Mixed, Value_Type.Float, Value_Type.Float]
+            t4.column_info.at "Value Type" . to_vector . should_equal [Value_Type.Mixed, Value_Type.Integer, Value_Type.Float]
 
         group_builder.specify "should take Unicode normalization into account when grouping by Text" <|
             texts = ["texts", ['ściana', 'ściana', 'łąka', 's\u0301ciana', 'ła\u0328ka', 'sciana']]

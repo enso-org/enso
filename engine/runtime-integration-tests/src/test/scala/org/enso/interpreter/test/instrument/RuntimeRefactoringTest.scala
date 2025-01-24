@@ -1067,4 +1067,235 @@ class RuntimeRefactoringTest
     )
     context.consumeOut shouldEqual List()
   }
+
+  it should "fail to rename module method when module definition exists" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata    = new Metadata
+    val idFunction1 = metadata.addItem(31, 9)
+    val code =
+      """from Standard.Base import all
+        |
+        |function1 x = x + 1
+        |
+        |function2 = Nothing
+        |
+        |main =
+        |    operator1 = 41
+        |    operator2 = x -> Main.function1 x
+        |    IO.println (operator2 operator1)
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("42")
+
+    // rename operator1
+    val newName = "function2"
+    context.send(
+      Api.Request(requestId, Api.RenameSymbol(moduleName, idFunction1, newName))
+    )
+    context.receiveNIgnoreStdLib(1) should contain theSameElementsAs Seq(
+      Api.Response(
+        requestId,
+        Api.SymbolRenameFailed(
+          Api.SymbolRenameFailed.DefinitionAlreadyExists(newName)
+        )
+      )
+    )
+    context.consumeOut shouldEqual List()
+  }
+
+  it should "fail to rename operator when local definition exists" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata    = new Metadata
+    val idOperator1 = metadata.addItem(42, 9)
+    val code =
+      """from Standard.Base import all
+        |
+        |main =
+        |    operator1 = 41
+        |    operator2 = operator1 + 1
+        |    IO.println operator2
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("42")
+
+    // rename operator1
+    val newName = "operator2"
+    context.send(
+      Api.Request(requestId, Api.RenameSymbol(moduleName, idOperator1, newName))
+    )
+    context.receiveNIgnoreStdLib(1) should contain theSameElementsAs Seq(
+      Api.Response(
+        requestId,
+        Api.SymbolRenameFailed(
+          Api.SymbolRenameFailed.DefinitionAlreadyExists(newName)
+        )
+      )
+    )
+    context.consumeOut shouldEqual List()
+  }
+
+  it should "rename operator if the same definition exists in different method body" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val newName    = "foobarbaz"
+
+    val metadata    = new Metadata
+    val idOperator1 = metadata.addItem(42, 9)
+    val code =
+      s"""from Standard.Base import all
+         |
+         |main =
+         |    operator1 = 41
+         |    operator2 = operator1 + 1
+         |    IO.println operator2
+         |
+         |test =
+         |    $newName = 42
+         |    $newName
+         |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("42")
+
+    // rename operator1
+    val expectedEdits = Vector(
+      TextEdit(
+        model.Range(model.Position(3, 4), model.Position(3, 13)),
+        newName
+      ),
+      TextEdit(
+        model.Range(model.Position(4, 16), model.Position(4, 25)),
+        newName
+      )
+    )
+    val expectedFileEdit = Api.FileEdit(
+      context.pkg.mainFile,
+      expectedEdits,
+      versionCalculator.evalVersion(contents).toHexString,
+      versionCalculator
+        .evalVersion(contents.replaceAll("operator1", newName))
+        .toHexString
+    )
+    context.send(
+      Api.Request(requestId, Api.RenameSymbol(moduleName, idOperator1, newName))
+    )
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.SymbolRenamed(newName)),
+      Api.Response(None, expectedFileEdit),
+      TestMessages.pending(contextId, idOperator1),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("42")
+  }
 }

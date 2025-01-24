@@ -14,8 +14,7 @@ most generic type is `Any`. If a value has no better (more specific) type, it
 has the type `Any`. All operations defined on type `Any` can be performed on any
 value in the system.
 
-> [!WARNING] 
-> _Typeset theory is far from current state of affairs_:
+> [!WARNING] _Typeset theory is far from current state of affairs_:
 >
 > Enso is a statically typed language based upon a theory of set-based typing,
 > what we call `typesets`. This is a novel approach, and it is key to our intent
@@ -39,8 +38,7 @@ A value in Enso can have multiple different types attributed to it. It is
 possible to query/inspect these types during runtime and thus decide what
 operations are available for a particular value at hand.
 
-> [!WARNING]
-> _Probably not true in current system at all_
+> [!WARNING] > _Probably not true in current system at all_
 >
 > A brief note on naming (for more, please see the
 > [naming syntax](../syntax/naming.md)):
@@ -87,8 +85,7 @@ v:Maybe
 v.value:Text
 ```
 
-> [!WARNING]
-> There are no _Typesets_ in Enso anymore
+> [!WARNING] There are no _Typesets_ in Enso anymore
 >
 > Typesets in Enso are an entity unique to Enso's type system. They are a
 > fundamental recognition of types as 'sets of values' in Enso, and while they
@@ -142,10 +139,9 @@ They are as follows:
 - **Union - `|`:** This operator creates a typeset that contains the members in
   the union of its operands.
 - **Intersection - `&`:** This operator creates a typeset that contains the
-  members in the intersection of its operands.
+  members in the [intersection of its operands](./intersection-types.md).
 
-> [!WARNING]
-> These operators _don't seem to be supported_. There is no plan to
+> [!WARNING] These operators _don't seem to be supported_. There is no plan to
 > support following operators now:
 >
 > - **Subsumption - `<:`:** This operator asserts that the left hand operand is
@@ -160,8 +156,7 @@ For information on the syntactic usage of these operators, please see the
 section on [type operators](#../syntax/types.md#type-operators) in the syntax
 design documentation.
 
-> [!NOTE]
-> The actionables for this section are:
+> [!NOTE] The actionables for this section are:
 >
 > - When necessary, we need to _explicitly formalise_ the semantics of all of
 >   these operators.
@@ -169,8 +164,7 @@ design documentation.
 >   generative) types?
 > - Are `<:` and `:` equivalent in the surface syntax?
 
-> [!WARNING]
-> _Typeset Subsumption_ isn't relevant
+> [!WARNING] > _Typeset Subsumption_ isn't relevant
 >
 > For two typesets `a` and `b`, `a` is said to be subsumed by `b` (written using
 > the notation `a <: b`) if the following hold recursively. This can be thought
@@ -244,11 +238,11 @@ Historically interfaces used to be defined by _duck typing_. As Enso is a
 dynamic language, having two types with the same operations means they can be
 used interchangingly.
 
-> [!NOTE]
-> A work on [type classes](https://github.com/orgs/enso-org/discussions/11366) support is under way
+> [!NOTE] A work on
+> [type classes](https://github.com/orgs/enso-org/discussions/11366) support is
+> under way
 
-> [!WARNING]
->  _Doesn't match reality:_
+> [!WARNING] _Doesn't match reality:_
 >
 > Because typesets can be matched _structurally_, all typesets implicitly define
 > interfaces. A type `t` conforming to an interface `i` in Enso is as simple as
@@ -305,8 +299,7 @@ _finalizers_.
 An expression `a : b` says that the expression denoted by `a` has the type
 denoted by the expression `b`.
 
-> [!WARNING]
-> No support for Scoping in Type Ascription
+> [!WARNING] No support for Scoping in Type Ascription
 >
 > Enso intends to support some form of mutual scoping between the left and right
 > sides of the type ascription operator. This introduces some complexity into
@@ -323,8 +316,7 @@ denoted by the expression `b`.
 >   bindings in groups, and the desugaring needs to depend on combinations of
 >   `>>=` and `fix`.
 
-> [!WARNING]
-> There are _no projections_ right now and none are planned
+> [!WARNING] There are _no projections_ right now and none are planned
 >
 > In order to work efficiently with typesets, we need the ability to seamlessly
 > access and modify (immutably) their properties. In the context of our type

@@ -30,14 +30,6 @@ test('Raw block abstracts to Ast.BodyBlock', () => {
 const normalizingCases = [
   { input: ' a', normalized: '    a' },
   { input: 'a ', normalized: 'a \n' },
-  {
-    input: ['main =', '  foo', ' bar', '  baz'].join('\n'),
-    normalized: ['main =', '  foo', '  bar', '  baz'].join('\n'),
-  },
-  {
-    input: ['main =', '  foo', ' bar', 'baz'].join('\n'),
-    normalized: ['main =', '  foo', '  bar', 'baz'].join('\n'),
-  },
 ]
 const cases = [
   'Console.',
@@ -383,6 +375,8 @@ const cases = [
   '\n\n',
   '\na',
   '\n\na',
+  ['main =', '  foo', ' bar', '  baz'].join('\n'),
+  ['main =', '  foo', ' bar', 'baz'].join('\n'),
   ...normalizingCases,
 ]
 test.each(cases)('parse/print round-trip: %s', (testCase) => {

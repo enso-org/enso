@@ -61,6 +61,8 @@ tsconfig.json
 
 # Licenses
 /distribution/engine/
+/distribution/launcher/
+/distribution/project-manager/
 /tools/legal-review/
 
 # The default project template is owned by the libraries team

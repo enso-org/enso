@@ -2,12 +2,10 @@ package org.enso.interpreter.runtime.data.text;
 
 import com.ibm.icu.text.Normalizer2;
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.strings.TruffleString;
 import com.oracle.truffle.api.strings.TruffleString.Encoding;
 import java.util.ArrayDeque;
@@ -16,16 +14,12 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.EnsoObject;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.builtin.BuiltinObject;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
 
 /** The main runtime type for Enso's Text. */
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(TypesLibrary.class)
-public final class Text extends EnsoObject {
+public final class Text extends BuiltinObject {
   private static final Lock LOCK = new ReentrantLock();
   private static final Text EMPTY = new Text("");
   private volatile Object contents;
@@ -39,11 +33,18 @@ public final class Text extends EnsoObject {
   }
 
   private Text(String string) {
+    assert string != null;
     this.contents = string;
   }
 
   private Text(ConcatRope contents) {
+    assert contents != null;
     this.contents = contents;
+  }
+
+  @Override
+  protected String builtinName() {
+    return "Text";
   }
 
   @Builtin.Method(
@@ -212,16 +213,6 @@ public final class Text extends EnsoObject {
     return Core_Text_Utils.prettyPrint(str);
   }
 
-  @ExportMessage
-  Type getMetaObject(@Bind("$node") Node node) {
-    return EnsoContext.get(node).getBuiltins().text();
-  }
-
-  @ExportMessage
-  boolean hasMetaObject() {
-    return true;
-  }
-
   private void setContents(String contents) {
     assert length == -1 || length == contents.length();
     this.contents = contents;
@@ -243,16 +234,6 @@ public final class Text extends EnsoObject {
     } else {
       return flattenIfNecessary(this);
     }
-  }
-
-  @ExportMessage
-  boolean hasType() {
-    return true;
-  }
-
-  @ExportMessage
-  Type getType(@Bind("$node") Node node) {
-    return EnsoContext.get(node).getBuiltins().text();
   }
 
   /**

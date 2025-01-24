@@ -335,6 +335,8 @@ function AssetSearchBar(props: AssetSearchBarProps) {
     }
   })
 
+  const deferredSuggestions = React.useDeferredValue(suggestions)
+
   return (
     <FocusArea direction="horizontal">
       {(innerProps) => (
@@ -369,7 +371,7 @@ function AssetSearchBar(props: AssetSearchBarProps) {
               querySource={querySource}
               query={query}
               setQuery={setQuery}
-              suggestions={suggestions}
+              suggestions={deferredSuggestions}
               selectedIndex={selectedIndex}
               setAreSuggestionsVisible={setAreSuggestionsVisible}
               baseQuery={baseQuery}
@@ -471,7 +473,9 @@ interface AssetSearchBarPopoverProps {
 /**
  * Renders the popover containing suggestions.
  */
-function AssetSearchBarPopover(props: AssetSearchBarPopoverProps) {
+const AssetSearchBarPopover = React.memo(function AssetSearchBarPopover(
+  props: AssetSearchBarPopoverProps,
+) {
   const {
     areSuggestionsVisible,
     isCloud,
@@ -545,7 +549,7 @@ function AssetSearchBarPopover(props: AssetSearchBarPopoverProps) {
       </AnimatePresence>
     </>
   )
-}
+})
 
 /**
  * Props for a {@link SuggestionRenderer}.
@@ -621,9 +625,7 @@ const SuggestionRenderer = React.memo(function SuggestionRenderer(props: Suggest
   )
 })
 
-/**
- * Props for a {@link Labels}.
- */
+/** Props for a {@link Labels}. */
 interface LabelsProps {
   readonly isCloud: boolean
   readonly query: AssetQuery
@@ -633,9 +635,7 @@ interface LabelsProps {
   readonly baseQuery: React.MutableRefObject<AssetQuery>
 }
 
-/**
- * Renders labels.
- */
+/** Renders labels. */
 const Labels = React.memo(function Labels(props: LabelsProps) {
   const { isCloud, query, setQuery, backend, querySource, baseQuery } = props
 

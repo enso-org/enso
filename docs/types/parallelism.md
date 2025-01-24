@@ -21,15 +21,13 @@ by the compiler to automatically parallelise some sections of Enso programs.
 
 ## Supporting Parallelism Analysis with Types
 
-> [!WARNING]
-> The actionables for this section are:
+> [!WARNING] The actionables for this section are:
 >
 > - Work out how the type checker can support parallelism analysis.
 
 ## Constructs That Can Be Parallelised
 
-> [!WARNING]
-> The actionables for this section are:
+> [!WARNING] The actionables for this section are:
 >
 > - Provide an analysis of the language constructs that could automatically be
 >   parallelised, and the typing predicates that make them so.

@@ -1,9 +1,11 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Spec_Result.Spec_Result
 import project.Test.Test
+from project.Extensions_Helpers import rhs_error_check
 
 ## Expect a function to fail with the provided dataflow error.
 
@@ -25,7 +27,7 @@ import project.Test.Test
 Any.should_fail_with : Any -> Integer -> Boolean -> Spec_Result
 Any.should_fail_with self matcher frames_to_skip=0 unwrap_errors=True =
     _ = unwrap_errors
-    loc = Meta.get_source_location 1+frames_to_skip
+    loc = Test.get_source_location 1+frames_to_skip
     matcher_text = matcher . to_text
     Test.fail ("Expected an error " + matcher_text + " but no error occurred, instead got: " + self.to_text + " (at " + loc + ").")
 
@@ -51,7 +53,7 @@ Error.should_fail_with self matcher frames_to_skip=0 unwrap_errors=True =
     unwrap_maybe error = if unwrap_errors then Error.unwrap error else error
     caught = unwrap_maybe self.catch
     if caught == matcher || caught.is_a matcher then Nothing else
-        loc = Meta.get_source_location 2+frames_to_skip
+        loc = Test.get_source_location 2+frames_to_skip
         matcher_text = matcher . to_text
         Test.fail ("Expected error "+matcher_text+", but error " + caught.to_text + " has been returned (at " + loc + ").") details='The error had the following stack trace:\n'+self.get_stack_trace_text
 
@@ -70,23 +72,25 @@ Error.should_fail_with self matcher frames_to_skip=0 unwrap_errors=True =
 
          example_should_equal = Examples.add_1_to 1 . should_equal 2
 Any.should_equal : Any -> Integer -> Spec_Result
-Any.should_equal self that frames_to_skip=0 = case self == that of
-    True -> Spec_Result.Success
-    False ->
-        loc = Meta.get_source_location 2+frames_to_skip
-        additional_comment = case self of
-            _ : Vector -> case that of
-                _ : Vector ->
-                    case self.length == that.length of
-                        True ->
-                            diff = self.zip that . index_of p->
-                                p.first != p.second
-                            "; first difference at index " + diff.to_text + " "
-                        False -> "; lengths differ (" + self.length.to_text + " != " + that.length.to_text + ") "
+Any.should_equal self that frames_to_skip=0 =
+    rhs_error_check that
+    loc = Test.get_source_location 1+frames_to_skip
+    case self == that of
+        True -> Spec_Result.Success
+        False ->
+            additional_comment = case self of
+                _ : Vector -> case that of
+                    _ : Vector ->
+                        case self.length == that.length of
+                            True ->
+                                diff = self.zip that . index_of p->
+                                    p.first != p.second
+                                "; first difference at index " + diff.to_text + " "
+                            False -> "; lengths differ (" + self.length.to_text + " != " + that.length.to_text + ") "
+                    _ -> ""
                 _ -> ""
-            _ -> ""
-        msg = self.pretty + " did not equal " + that.pretty + additional_comment + " (at " + loc + ")."
-        Test.fail msg
+            msg = self.pretty + " did not equal " + that.pretty + additional_comment + " (at " + loc + ")."
+            Test.fail msg
 
 ## Asserts that `self` value is equal to the expected type value.
 
@@ -106,7 +110,7 @@ Any.should_equal_type : Any -> Integer -> Spec_Result
 Any.should_equal_type self that frames_to_skip=0 = case (self.is_same_object_as that) of
     True -> Spec_Result.Success
     False ->
-        loc = Meta.get_source_location 2+frames_to_skip
+        loc = Test.get_source_location 2+frames_to_skip
         msg = self.to_text + " did not equal type " + that.to_text + " (at " + loc + ")."
         Test.fail msg
 
@@ -130,12 +134,13 @@ Error.should_equal_type self that frames_to_skip=0 =
 
          example_should_not_equal = Examples.add_1_to 1 . should_not_equal 2
 Any.should_not_equal : Any -> Integer -> Spec_Result
-Any.should_not_equal self that frames_to_skip=0 = case self != that of
-    True -> Spec_Result.Success
-    False ->
-        loc = Meta.get_source_location 2+frames_to_skip
-        msg = self.to_text + " did equal " + that.to_text + " (at " + loc + ")."
-        Test.fail msg
+Any.should_not_equal self that frames_to_skip=0 = if that.is_error then (Panic.throw (Illegal_Argument.Error "Expected value provided as `that` for `should_not_equal` cannot be an error, but got: "+that.to_display_text)) else
+    loc = Test.get_source_location 2+frames_to_skip
+    case self != that of
+        True -> Spec_Result.Success
+        False ->
+            msg = self.to_text + " did equal " + that.to_text + " (at " + loc + ")."
+            Test.fail msg
 
 ## Added so that dataflow errors are not silently lost.
 Error.should_not_equal self that frames_to_skip=0 =
@@ -160,7 +165,7 @@ Any.should_not_equal_type : Any -> Integer -> Spec_Result
 Any.should_not_equal_type self that frames_to_skip=0 = case (self.is_same_object_as that . not) of
     True -> Spec_Result.Success
     False ->
-        loc = Meta.get_source_location 2+frames_to_skip
+        loc = Test.get_source_location 2+frames_to_skip
         msg = self.to_text + " did equal type " + that.to_text + " (at " + loc + ")."
         Test.fail msg
 
@@ -183,15 +188,16 @@ Error.should_not_equal_type self that frames_to_skip=0 =
 
          example_should_start_with = "Hello World!" . should_start_with "Hello"
 Any.should_start_with : Text -> Integer -> Spec_Result
-Any.should_start_with self that frames_to_skip=0 = case self of
-    _ : Text -> if self.starts_with that then Spec_Result.Success else
-        loc = Meta.get_source_location 3+frames_to_skip
-        msg = self.to_text + " does not start with " + that.to_text + " (at " + loc + ")."
-        Test.fail msg
-    _ ->
-        loc = Meta.get_source_location 2+frames_to_skip
-        msg = self.to_text + " is not a `Text` value (at " + loc + ")."
-        Test.fail msg
+Any.should_start_with self that frames_to_skip=0 =
+    rhs_error_check that
+    loc = Test.get_source_location 1+frames_to_skip
+    case self of
+        _ : Text -> if self.starts_with that then Spec_Result.Success else
+            msg = self.to_text + " does not start with " + that.to_text + " (at " + loc + ")."
+            Test.fail msg
+        _ ->
+            msg = self.to_text + " is not a `Text` value (at " + loc + ")."
+            Test.fail msg
 
 ## Asserts that `self` value is a Text value and ends with `that`.
 
@@ -207,15 +213,16 @@ Any.should_start_with self that frames_to_skip=0 = case self of
 
          example_should_end_with = "Hello World!" . should_end_with "ld!"
 Any.should_end_with : Text -> Integer -> Spec_Result
-Any.should_end_with self that frames_to_skip=0 = case self of
-    _ : Text -> if self.ends_with that then Spec_Result.Success else
-        loc = Meta.get_source_location 3+frames_to_skip
-        msg = self.to_text + " does not end with " + that.to_text + " (at " + loc + ")."
-        Test.fail msg
-    _ ->
-        loc = Meta.get_source_location 2+frames_to_skip
-        msg = self.to_text + " is not a `Text` value (at " + loc + ")."
-        Test.fail msg
+Any.should_end_with self that frames_to_skip=0 =
+    rhs_error_check that
+    loc = Test.get_source_location 1+frames_to_skip
+    case self of
+        _ : Text -> if self.ends_with that then Spec_Result.Success else
+            msg = self.to_text + " does not end with " + that.to_text + " (at " + loc + ")."
+            Test.fail msg
+        _ ->
+            msg = self.to_text + " is not a `Text` value (at " + loc + ")."
+            Test.fail msg
 
 ## Asserts that `self` value is a Text value and starts with `that`.
 
@@ -267,7 +274,7 @@ Error.should_end_with self that frames_to_skip=0 =
          example_should_equal = Examples.add_1_to 1 . should_equal 2
 Error.should_equal : Any -> Integer -> Spec_Result
 Error.should_equal self that frames_to_skip=0 =
-    _ = [that]
+    rhs_error_check that
     Test.fail_match_on_unexpected_error self 1+frames_to_skip
 
 ## Asserts that `self` is within `epsilon` from `that`.
@@ -294,13 +301,18 @@ Error.should_equal self that frames_to_skip=0 =
             1.00000001 . should_equal 1.00000002 epsilon=0.0001
 Number.should_equal : Float -> Float -> Integer -> Spec_Result
 Number.should_equal self that epsilon=0 frames_to_skip=0 =
+    rhs_error_check that
+    loc = Test.get_source_location 1+frames_to_skip
     matches = case that of
-        _ : Number -> self.equals that epsilon
+        n : Number -> self.equals n epsilon . catch Incomparable_Values _->
+            ## Incomparable_Values is thrown if one of the values is NaN.
+               We fallback to is_same_object_as,
+               because in tests we actually NaN.should_equal NaN to succeed.
+            self.is_same_object_as n
         _ -> self==that
     case matches of
         True -> Spec_Result.Success
         False ->
-            loc = Meta.get_source_location 2+frames_to_skip
             msg = self.to_text + " did not equal " + that.to_text + " (at " + loc + ")."
             Test.fail msg
 
@@ -313,6 +325,7 @@ Number.should_equal self that epsilon=0 frames_to_skip=0 =
      displayed as the source of this error.
 Decimal.should_equal : Number -> Float-> Float -> Integer -> Spec_Result
 Decimal.should_equal self that epsilon=0 frames_to_skip=0 =
+    rhs_error_check that
     self.to_float . should_equal that.to_float epsilon frames_to_skip+1
 
 ## Asserts that `self` value is not an error.
@@ -367,7 +380,7 @@ Boolean.should_be_true : Spec_Result
 Boolean.should_be_true self = case self of
     True -> Spec_Result.Success
     False ->
-        loc = Meta.get_source_location 2
+        loc = Test.get_source_location 2
         Test.fail "Expected False to be True (at "+loc+")."
 
 ## Asserts that the given `Boolean` is `True`.
@@ -394,7 +407,7 @@ Error.should_be_true self = Test.fail_match_on_unexpected_error self 1
 Boolean.should_be_false : Spec_Result
 Boolean.should_be_false self = case self of
     True ->
-        loc = Meta.get_source_location 2
+        loc = Test.get_source_location 2
         Test.fail "Expected True to be False (at "+loc+")."
     False -> Spec_Result.Success
 
@@ -423,7 +436,8 @@ Error.should_be_false self = Test.fail_match_on_unexpected_error self 1
          example_should_be_a = 1.should_be_a Boolean
 Any.should_be_a : Any -> Spec_Result
 Any.should_be_a self typ =
-    loc = Meta.get_source_location 1
+    rhs_error_check typ
+    loc = Test.get_source_location 1
     fail_on_wrong_arg_type =
         Panic.throw <|
             Illegal_Argument.Error "typ ("+typ.to_display_text+") must either be a type or a constructor. Use `should_equal` for value equality test instead."
@@ -432,36 +446,36 @@ Any.should_be_a self typ =
                 a : Meta.Atom ->
                     if a.constructor == c then Spec_Result.Success else
                         expected_type = c.declaring_type.qualified_name
-                        actual_type = Meta.get_qualified_type_name self
+                        actual_type = self.to Meta.Type . qualified_name
                         message = "Expected a value of type "+expected_type+", built with constructor "+c.name+", but got a value ["+self.to_text+"] of type "+actual_type+", built with constructor "+a.constructor.name+" instead (at "+loc+")."
                         Test.fail message
                 _ ->
                     expected_type = c.declaring_type.qualified_name
-                    actual_type = Meta.get_qualified_type_name self
+                    actual_type = self.to Meta.Type . qualified_name
                     message = "Expected a value of type "+expected_type+", built with constructor "+c.name+", but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+loc+")."
                     Test.fail message
         meta_type : Meta.Type ->
             ok = self.is_a typ || self==typ
             if ok then Spec_Result.Success else
                 expected_type = meta_type.qualified_name
-                actual_type = Meta.get_qualified_type_name self
+                actual_type = self.to Meta.Type . qualified_name
                 message = "Expected a value of type "+expected_type+" but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+loc+")."
                 Test.fail message
         # Workaround for 0-argument atom constructors which 'unapplies' them.
         atom : Meta.Atom ->
             ctor = atom . constructor
             if ctor.fields.not_empty then fail_on_wrong_arg_type else
-                self.should_be_a (ctor.value ...)
+                self.should_equal atom.value
         _ : Meta.Polyglot ->
             ok = self.is_a typ
             if ok then Spec_Result.Success else
-                actual_type = Meta.get_qualified_type_name self
+                actual_type = self.to Meta.Type . qualified_name
                 message = "Expected a value of Java class "+typ.to_text+" but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+loc+")."
                 Test.fail message
-        Meta.Primitive.Value (b : Boolean) ->
-            ok = self == b
+        p : Meta.Primitive ->
+            ok = self == p.value
             if ok then Spec_Result.Success else
-                actual_type = Meta.get_qualified_type_name self
+                actual_type = self.to Meta.Type . qualified_name
                 message = "Expected a value of "+typ.to_text+" but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+loc+")."
                 Test.fail message
         _ -> fail_on_wrong_arg_type
@@ -489,7 +503,9 @@ Any.should_be_a self typ =
          example_should_equal = [1, 2] . should_equal_ignoring_order [2, 1]
 Any.should_equal_ignoring_order : Any -> Integer -> Spec_Result
 Any.should_equal_ignoring_order self that frames_to_skip=0 =
-    loc = Meta.get_source_location 1+frames_to_skip
+    loc = Test.get_source_location 1+frames_to_skip
+    if that.is_a Vector . not then
+        Panic.throw (Illegal_Argument.Error "Expected a Vector, but got a "+that.to_display_text+" (at "+loc+").")
     that.each element->
         if self.contains element . not then
             msg = "The collection (" + self.to_text + ") did not contain " + element.to_text + " (at " + loc + ")."
@@ -556,7 +572,8 @@ Error.should_equal_ignoring_order self that frames_to_skip=0 =
          example_should_equal = [1, 2] . should_only_contain_elements_in  [1, 2, 3, 4]
 Any.should_only_contain_elements_in : Any -> Integer -> Spec_Result
 Any.should_only_contain_elements_in self that frames_to_skip=0 =
-    loc = Meta.get_source_location 1+frames_to_skip
+    rhs_error_check that
+    loc = Test.get_source_location 1+frames_to_skip
     self.each element->
         if that.contains element . not then
             msg = "The collection contained an element ("+element.to_text+") which was not expected (at " + loc + ")."
@@ -609,7 +626,8 @@ Error.should_only_contain_elements_in self that frames_to_skip=0 =
          example_should_equal = "foobar".should_contain "foo"
 Any.should_contain : Any -> Integer -> Spec_Result
 Any.should_contain self element frames_to_skip=0 =
-    loc = Meta.get_source_location 1+frames_to_skip
+    rhs_error_check element
+    loc = Test.get_source_location 1+frames_to_skip
     contains_result = Panic.catch No_Such_Method (self.contains element) caught_panic->
         if caught_panic.payload.method_name != "contains" then Panic.throw caught_panic else
             msg = "The value (" + self.to_text + ") does not support the method `contains` (at " + loc + ")."
@@ -652,7 +670,8 @@ Error.should_contain self element frames_to_skip=0 =
    implementing a method `contains : a -> Boolean`.
 Any.should_not_contain : Any -> Integer -> Spec_Result
 Any.should_not_contain self element frames_to_skip=0 =
-    loc = Meta.get_source_location 1+frames_to_skip
+    rhs_error_check element
+    loc = Test.get_source_location 1+frames_to_skip
     contains_result = Panic.catch No_Such_Method (self.contains element) caught_panic->
         if caught_panic.payload.method_name != "contains" then Panic.throw caught_panic else
             msg = "The value (" + self.to_text + ") does not support the method `contains` (at " + loc + ")."

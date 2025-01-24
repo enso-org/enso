@@ -17,10 +17,8 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import org.enso.ydoc.Polyfill;
+import java.util.function.Function;
 import org.enso.ydoc.polyfill.Arguments;
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.ByteSequence;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
@@ -31,7 +29,7 @@ import org.slf4j.LoggerFactory;
  * Implements the WebSocket and WebSocketServer interfaces of the <a
  * href="https://www.npmjs.com/package/ws">ws</a> NPM package.
  */
-final class WebSocket implements Polyfill, ProxyExecutable {
+final class WebSocket implements ProxyExecutable {
 
   private static final Logger log = LoggerFactory.getLogger(WebSocket.class);
 
@@ -54,11 +52,9 @@ final class WebSocket implements Polyfill, ProxyExecutable {
     this.executor = executor;
   }
 
-  @Override
-  public void initialize(Context ctx) {
-    Source jsSource = Source.newBuilder("js", getClass().getResource(WEBSOCKET_JS)).buildLiteral();
-
-    ctx.eval(jsSource).execute(this);
+  final void initialize(Function<java.net.URL, Value> eval) {
+    var fn = eval.apply(getClass().getResource(WEBSOCKET_JS));
+    fn.execute(this);
   }
 
   @Override

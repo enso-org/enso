@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Incomparable_Values
 
 from Standard.Table import all
 
@@ -257,7 +258,7 @@ add_nothing_specs suite_builder setup =
             other_value = triple.at 1
             value_type = triple.at 2
 
-            is_comparable = case Ordering.compare value other_value of
+            is_comparable = case Ordering.compare value other_value . catch Incomparable_Values of
                 _:Ordering -> True
                 _ -> False
 

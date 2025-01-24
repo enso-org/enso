@@ -9,7 +9,6 @@ import org.enso.logger.masking.MaskedString
 import org.slf4j.event.Level
 
 import java.net.URI
-import org.enso.runtimeversionmanager.components.Manifest.JVMOptionsContext
 import org.enso.runtimeversionmanager.components.{
   Engine,
   GraalRuntime,
@@ -163,9 +162,9 @@ class Runner(
     * the underlying JVM to get the full command for launching the component.
     */
   def withCommand[R](runSettings: RunSettings, jvmSettings: JVMSettings)(
-    action: Command => R
+    action: RawCommand => R
   ): R = {
-    def prepareAndRunCommand(engine: Engine, javaCommand: JavaCommand): R = {
+    def prepareAndRunCommand(engine: Engine, cmd: ExecCommand): R = {
       val jvmOptsFromEnvironment = environment.getEnvVar(JVM_OPTIONS_ENV_VAR)
       jvmOptsFromEnvironment.foreach { opts =>
         Logger[Runner].debug(
@@ -176,35 +175,11 @@ class Runner(
         )
       }
 
-      def translateJVMOption(
-        option: (String, String),
-        standardOption: Boolean
-      ): String = {
-        val name  = option._1
-        val value = option._2
-        if (standardOption) s"-D$name=$value" else s"--$name=$value"
-      }
-
-      val context = JVMOptionsContext(enginePackagePath = engine.path)
-
-      val manifestOptions =
-        engine.defaultJVMOptions.filter(_.isRelevant).map(_.substitute(context))
       val environmentOptions =
         jvmOptsFromEnvironment.map(_.split(' ').toIndexedSeq).getOrElse(Seq())
-      val commandLineOptions = jvmSettings.jvmOptions.map(
-        translateJVMOption(_, standardOption = true)
-      ) ++
-        jvmSettings.extraOptions.map(
-          translateJVMOption(_, standardOption = false)
-        )
-      val componentPath = engine.componentDirPath.toAbsolutePath.normalize
+
       val jvmArguments =
-        manifestOptions ++ environmentOptions ++ commandLineOptions ++ Seq(
-          "--module-path",
-          componentPath.toString,
-          "-m",
-          "org.enso.runner/org.enso.runner.Main"
-        )
+        environmentOptions ++ cmd.cmdArguments(engine, jvmSettings)
 
       val loggingConnectionArguments =
         if (runSettings.connectLoggerIfAvailable)
@@ -212,7 +187,7 @@ class Runner(
         else Seq()
 
       val command = Seq(
-        javaCommand.executableName
+        cmd.path
       ) ++ jvmArguments ++ loggingConnectionArguments ++ runSettings.runnerArguments
 
       val distributionSettings =
@@ -226,13 +201,13 @@ class Runner(
           )
           p.toString()
         }
-        .orElse(javaCommand.javaHomeOverride)
+        .orElse(cmd.javaHome)
 
       val extraEnvironmentOverrides =
         javaHome.map("JAVA_HOME" -> _).toSeq ++ distributionSettings.toSeq
 
       action(
-        Command(
+        RawCommand(
           command,
           extraEnvironmentOverrides,
           runSettings.workingDirectory
@@ -249,7 +224,15 @@ class Runner(
       case None =>
         runtimeVersionManager.withEngineAndRuntime(engineVersion) {
           (engine, runtime) =>
-            prepareAndRunCommand(engine, JavaCommand.forRuntime(runtime))
+            NativeExecCommand.apply(engineVersion.toString) match {
+              case Some(cmd) =>
+                prepareAndRunCommand(engine, cmd)
+              case None =>
+                prepareAndRunCommand(
+                  engine,
+                  JavaExecCommand.forRuntime(runtime)
+                )
+            }
         }
     }
   }

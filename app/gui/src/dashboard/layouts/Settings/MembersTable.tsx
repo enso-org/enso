@@ -21,10 +21,6 @@ import { UserId, type User } from '#/services/Backend'
 import { twMerge } from '#/utilities/tailwindMerge'
 import UserRow from './UserRow'
 
-// ====================
-// === MembersTable ===
-// ====================
-
 /** Props for a {@link MembersTable}. */
 export interface MembersTableProps {
   readonly backend: Backend
@@ -129,7 +125,7 @@ export default function MembersTable(props: MembersTableProps) {
         className="w-settings-main-section max-w-full table-fixed self-start rounded-rows"
         {...(draggable ? { dragAndDropHooks } : {})}
       >
-        <TableHeader className="sticky top h-row">
+        <TableHeader className="sticky top-0 z-1 h-row bg-dashboard">
           <Column
             isRowHeader
             className="w-48 border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"

@@ -139,12 +139,14 @@ public class PersistableProcessor extends AbstractProcessor {
       if (constructors.size() > 1) {
         var snd = (ExecutableElement) constructors.get(1);
         if (richerConstructor.compare(cons, snd) == 0) {
-          processingEnv
-              .getMessager()
-              .printMessage(
-                  Kind.ERROR,
-                  "There should be exactly one 'richest' constructor in " + typeElem,
-                  orig);
+          var sb = new StringBuilder();
+          sb.append("There should be exactly one 'richest' constructor in ")
+              .append(typeElem)
+              .append(". Found:");
+          for (var c : constructors) {
+            sb.append("\n  ").append(c);
+          }
+          processingEnv.getMessager().printMessage(Kind.ERROR, sb.toString(), orig);
           return false;
         }
       }
@@ -288,8 +290,12 @@ public class PersistableProcessor extends AbstractProcessor {
     var cnt = 0;
     for (var p : parameters) {
       var type = tu.asElement(tu.erasure(p.asType()));
-      if (type != null && type.getSimpleName().toString().equals("Reference")) {
-        cnt++;
+      if (type != null) {
+        switch (type.getSimpleName().toString()) {
+          case "Reference" -> cnt++;
+          case "Option" -> cnt++;
+          default -> {}
+        }
       }
     }
     return cnt;

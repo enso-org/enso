@@ -37,3 +37,14 @@ export const LOCAL_PROJECT_NAME_PATTERN = '.*\\S.*'
  * - `..` - parent directory
  */
 export const DIRECTORY_NAME_REGEX = /^(?:[^/\\.]|[.](?=[^.]|$))+$/
+
+/**
+ * Check if the directory name contains invalid characters.
+ */
+export function isDirectoryNameContainInvalidCharacters(name: string) {
+  if (name.includes('/') || name.includes('\\') || name.includes('..')) {
+    return true
+  }
+
+  return false
+}

@@ -1,80 +1,90 @@
 /** @file Test dragging of labels. */
-import * as test from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 
-import * as backend from '#/services/Backend'
+import { COLORS } from '#/services/Backend'
 
-import * as actions from './actions'
+import { mockAllAndLogin } from './actions'
 
-export const ASSET_ROW_SAFE_POSITION = { x: 300, y: 16 }
+const LABEL = 'aaaa'
+const ASSET_ROW_SAFE_POSITION = { x: 300, y: 16 }
 
 /** Click an asset row. The center must not be clicked as that is the button for adding a label. */
-export async function clickAssetRow(assetRow: test.Locator) {
+async function clickAssetRow(assetRow: Locator) {
   await assetRow.click({ position: ASSET_ROW_SAFE_POSITION })
 }
 
-test.test('drag labels onto single row', async ({ page }) => {
-  const label = 'aaaa'
-  return actions
-    .mockAllAndLogin({
-      page,
-      setupAPI: (api) => {
-        api.addLabel(label, backend.COLORS[0])
-        api.addLabel('bbbb', backend.COLORS[1])
-        api.addLabel('cccc', backend.COLORS[2])
-        api.addLabel('dddd', backend.COLORS[3])
-        api.addDirectory('foo')
-        api.addSecret('bar')
-        api.addFile('baz')
-        api.addSecret('quux')
-      },
-    })
-    .do(async () => {
-      const assetRows = actions.locateAssetRows(page)
-      const labelEl = actions.locateLabelsPanelLabels(page, label)
+/** Find labels in the "Labels" column of the assets table. */
+function locateAssetLabels(page: Locator) {
+  return page.getByTestId('asset-label')
+}
 
-      await test.expect(labelEl).toBeVisible()
-      await labelEl.dragTo(assetRows.nth(1))
-      await test
-        .expect(actions.locateAssetLabels(assetRows.nth(0)).getByText(label))
-        .not.toBeVisible()
-      await test.expect(actions.locateAssetLabels(assetRows.nth(1)).getByText(label)).toBeVisible()
-      await test
-        .expect(actions.locateAssetLabels(assetRows.nth(2)).getByText(label))
-        .not.toBeVisible()
-      await test
-        .expect(actions.locateAssetLabels(assetRows.nth(3)).getByText(label))
-        .not.toBeVisible()
-    })
-})
+/** Find a labels panel. */
+function locateLabelsPanel(page: Page) {
+  // This has no identifying features.
+  return page.getByTestId('labels')
+}
 
-test.test('drag labels onto multiple rows', async ({ page }) => {
-  const label = 'aaaa'
-  await actions.mockAllAndLogin({
+/** Find all labels in the labels panel. */
+function locateLabelsPanelLabels(page: Page, name?: string) {
+  return (
+    locateLabelsPanel(page)
+      .getByRole('button')
+      .filter(name != null ? { has: page.getByText(name) } : {})
+      // The delete button is also a `button`.
+      .and(page.locator(':nth-child(1)'))
+  )
+}
+
+test('drag labels onto single row', ({ page }) =>
+  mockAllAndLogin({
     page,
     setupAPI: (api) => {
-      api.addLabel(label, backend.COLORS[0])
-      api.addLabel('bbbb', backend.COLORS[1])
-      api.addLabel('cccc', backend.COLORS[2])
-      api.addLabel('dddd', backend.COLORS[3])
-      api.addDirectory('foo')
-      api.addSecret('bar')
-      api.addFile('baz')
-      api.addSecret('quux')
+      api.addLabel(LABEL, COLORS[0])
+      api.addLabel('bbbb', COLORS[1])
+      api.addLabel('cccc', COLORS[2])
+      api.addLabel('dddd', COLORS[3])
+      api.addDirectory({ title: 'foo' })
+      api.addSecret({ title: 'bar' })
+      api.addFile({ title: 'baz' })
+      api.addSecret({ title: 'quux' })
+    },
+  }).driveTable.withRows(async (rows, _, _context, page) => {
+    const labelEl = locateLabelsPanelLabels(page, LABEL)
+    await expect(labelEl).toBeVisible()
+    await labelEl.dragTo(rows.nth(1))
+    await expect(locateAssetLabels(rows.nth(0)).getByText(LABEL)).not.toBeVisible()
+    await expect(locateAssetLabels(rows.nth(1)).getByText(LABEL)).toBeVisible()
+    await expect(locateAssetLabels(rows.nth(2)).getByText(LABEL)).not.toBeVisible()
+    await expect(locateAssetLabels(rows.nth(3)).getByText(LABEL)).not.toBeVisible()
+  }))
+
+test('drag labels onto multiple rows', ({ page }) =>
+  mockAllAndLogin({
+    page,
+    setupAPI: (api) => {
+      api.addLabel(LABEL, COLORS[0])
+      api.addLabel('bbbb', COLORS[1])
+      api.addLabel('cccc', COLORS[2])
+      api.addLabel('dddd', COLORS[3])
+      api.addDirectory({ title: 'foo' })
+      api.addSecret({ title: 'bar' })
+      api.addFile({ title: 'baz' })
+      api.addSecret({ title: 'quux' })
     },
   })
-
-  const assetRows = actions.locateAssetRows(page)
-  const labelEl = actions.locateLabelsPanelLabels(page, label)
-
-  await page.keyboard.down(await actions.modModifier(page))
-  await test.expect(assetRows).toHaveCount(4)
-  await clickAssetRow(assetRows.nth(0))
-  await clickAssetRow(assetRows.nth(2))
-  await test.expect(labelEl).toBeVisible()
-  await labelEl.dragTo(assetRows.nth(2))
-  await page.keyboard.up(await actions.modModifier(page))
-  await test.expect(actions.locateAssetLabels(assetRows.nth(0)).getByText(label)).toBeVisible()
-  await test.expect(actions.locateAssetLabels(assetRows.nth(1)).getByText(label)).not.toBeVisible()
-  await test.expect(actions.locateAssetLabels(assetRows.nth(2)).getByText(label)).toBeVisible()
-  await test.expect(actions.locateAssetLabels(assetRows.nth(3)).getByText(label)).not.toBeVisible()
-})
+    .withModPressed((self) =>
+      self.driveTable.withRows(async (rows, _, _context, page) => {
+        const labelEl = locateLabelsPanelLabels(page, LABEL)
+        await expect(rows).toHaveCount(4)
+        await clickAssetRow(rows.nth(0))
+        await clickAssetRow(rows.nth(2))
+        await expect(labelEl).toBeVisible()
+        await labelEl.dragTo(rows.nth(2))
+      }),
+    )
+    .driveTable.withRows(async (rows) => {
+      await expect(locateAssetLabels(rows.nth(0)).getByText(LABEL)).toBeVisible()
+      await expect(locateAssetLabels(rows.nth(1)).getByText(LABEL)).not.toBeVisible()
+      await expect(locateAssetLabels(rows.nth(2)).getByText(LABEL)).toBeVisible()
+      await expect(locateAssetLabels(rows.nth(3)).getByText(LABEL)).not.toBeVisible()
+    }))
