@@ -4,6 +4,7 @@ import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.BiFunction;
+
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.cast.CastProblemAggregator;
@@ -20,9 +21,6 @@ import org.graalvm.polyglot.Value;
 
 /** An abstract representation of a data column. */
 public abstract class Storage<T> implements ColumnStorage {
-  /** A constant representing the index of a missing value in a column. */
-  public static final int NOT_FOUND_INDEX = -1;
-
   /**
    * @return the number of elements in this column (including NAs)
    */

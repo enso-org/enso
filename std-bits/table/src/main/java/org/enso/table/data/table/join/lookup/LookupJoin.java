@@ -3,6 +3,7 @@ package org.enso.table.data.table.join.lookup;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.IntStream;
+
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
@@ -104,12 +105,12 @@ public class LookupJoin {
       // Find corresponding row in the lookup table
       int lookupRow = findLookupRow(i);
 
-      assert allowUnmatchedRows || lookupRow != Storage.NOT_FOUND_INDEX;
+      assert allowUnmatchedRows || lookupRow != OrderMask.NOT_FOUND_INDEX;
 
       // Merge columns replacing old values
       for (LookupOutputColumn.MergeColumns mergeColumns : columnsToMerge) {
         Object itemToAdd;
-        if (lookupRow != Storage.NOT_FOUND_INDEX) {
+        if (lookupRow != OrderMask.NOT_FOUND_INDEX) {
           itemToAdd = mergeColumns.lookupReplacement.getItemBoxed(lookupRow);
         } else {
           itemToAdd = mergeColumns.original.getItemBoxed(i);
@@ -132,7 +133,7 @@ public class LookupJoin {
     List<Integer> lookupRowIndices = lookupIndex.get(key);
     if (lookupRowIndices == null) {
       if (allowUnmatchedRows) {
-        return Storage.NOT_FOUND_INDEX;
+        return OrderMask.NOT_FOUND_INDEX;
       } else {
         List<Object> exampleKeyValues =
             IntStream.range(0, keyColumnNames.size()).mapToObj(key::get).toList();

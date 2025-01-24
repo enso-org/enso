@@ -4,6 +4,9 @@ import java.util.function.ToIntFunction;
 
 /** Describes a storage reordering operator. */
 public interface OrderMask {
+    /** A constant representing the index of a missing value in a column. */
+  public static final int NOT_FOUND_INDEX = -1;
+  
   int length();
 
   /**

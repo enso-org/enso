@@ -3,6 +3,7 @@ package org.enso.table.data.column.storage;
 import java.util.BitSet;
 import java.util.List;
 import java.util.function.IntFunction;
+
 import org.enso.base.CompareException;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
@@ -189,7 +190,7 @@ public final class BoolStorage extends Storage<Boolean>
     BitSet newVals = new BitSet();
     for (int i = 0; i < mask.length(); i++) {
       int position = mask.get(i);
-      if (position == Storage.NOT_FOUND_INDEX || isNothing.get(position)) {
+      if (position == OrderMask.NOT_FOUND_INDEX || isNothing.get(position)) {
         newNa.set(i);
       } else if (values.get(position)) {
         newVals.set(i);

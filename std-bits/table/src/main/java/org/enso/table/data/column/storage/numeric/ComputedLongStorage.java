@@ -2,6 +2,7 @@ package org.enso.table.data.column.storage.numeric;
 
 import java.util.BitSet;
 import java.util.List;
+
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.mask.OrderMask;
@@ -74,7 +75,7 @@ public abstract class ComputedLongStorage extends AbstractLongStorage {
     Context context = Context.getCurrent();
     for (int i = 0; i < mask.length(); i++) {
       int position = mask.get(i);
-      if (position == Storage.NOT_FOUND_INDEX) {
+      if (position == OrderMask.NOT_FOUND_INDEX) {
         newIsNothing.set(i);
       } else {
         newData[i] = getItem(position);
