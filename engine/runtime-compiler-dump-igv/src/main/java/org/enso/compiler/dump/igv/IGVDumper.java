@@ -12,6 +12,8 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.dump.service.IRDumper;
 import org.graalvm.graphio.GraphOutput;
@@ -77,9 +79,21 @@ public final class IGVDumper implements IRDumper {
     dumpTask(ir, moduleName, srcFile, afterPass);
   }
 
-  private void dumpTask(Module ir, String moduleName, File srcFile, String afterPass) {
+  @Override
+  public void dumpExpression(Expression expr, String moduleName, String afterPass) {
+    dumpTask(expr, moduleName, null, afterPass);
+  }
+
+  private void dumpTask(IR ir, String moduleName, File srcFile, String afterPass) {
     LOGGER.trace("[{}] Creating EnsoModuleAST after pass {}", moduleName, afterPass);
-    var moduleAst = EnsoModuleAST.fromIR(ir, srcFile, moduleName, nodeIds);
+    EnsoModuleAST moduleAst;
+    if (ir instanceof Module moduleIr) {
+      moduleAst = EnsoModuleAST.fromModuleIR(moduleIr, srcFile, moduleName, nodeIds);
+    } else if (ir instanceof Expression expr) {
+      moduleAst = EnsoModuleAST.fromExpressionIR(expr, moduleName, nodeIds);
+    } else {
+      throw new IllegalArgumentException("Unsupported IR type: " + ir.getClass());
+    }
     try {
       if (!groupCreated) {
         var groupProps = groupProps(moduleName, moduleAst);

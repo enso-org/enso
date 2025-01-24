@@ -61,14 +61,26 @@ final class EnsoModuleAST {
     this.root = buildTree(moduleIr);
   }
 
+  private EnsoModuleAST(Expression expr, String moduleName, Map<UUID, Integer> nodeIds) {
+    this.nodeIds = nodeIds;
+    this.srcFile = null;
+    this.moduleName = moduleName;
+    this.root = buildTree(expr);
+  }
+
   /**
    * @param srcFile Source file for the module. May be null.
    * @param moduleName FQN of the module.
    * @param nodeIds Mapping of IR node UUIDs to sequential IDs expected by the IGV.
    */
-  static EnsoModuleAST fromIR(
+  static EnsoModuleAST fromModuleIR(
       Module module, File srcFile, String moduleName, Map<UUID, Integer> nodeIds) {
     return new EnsoModuleAST(module, srcFile, moduleName, nodeIds);
+  }
+
+  static EnsoModuleAST fromExpressionIR(
+      Expression expr, String moduleName, Map<UUID, Integer> nodeIds) {
+    return new EnsoModuleAST(expr, moduleName, nodeIds);
   }
 
   public File getSrcFile() {
