@@ -3,8 +3,12 @@ from project.Semantic.Type_Refinement.Hidden_Conversions import all
 type A
     A_Ctor x
 
+    a_method self = "A method"
+
 type B
     B_Ctor x
+
+    b_method self = "B method"
 
 make_a_and_b -> A & B =
     a = A.A_Ctor 1

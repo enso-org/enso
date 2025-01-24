@@ -1,3 +1,8 @@
+## This tests the usage of intersection types as refinement of a value's type.
+   These tests rely on a conversion A -> B that is not available in the scope,
+   so a type is A & B only if it was 'refined' somewhere else. Then we are
+   testing what happens to such instances after various casts, type checks etc.
+
 from Standard.Base import all
 from Standard.Test import all
 import Standard.Base.Errors.Common.Type_Error
@@ -8,6 +13,13 @@ from project.Semantic.Type_Refinement.Types import A, B, make_a_and_b
 
 id_a (x : A) -> A = x
 id_b (x : B) -> B = x
+
+type C
+    C_Ctor x
+
+    c_method self = "C method"
+
+C.from (that:B) = C.C_Ctor that
 
 add_specs suite_builder =
     suite_builder.group "Multi Value as type refinement" group_builder->
@@ -21,6 +33,10 @@ add_specs suite_builder =
             ab = make_a_and_b
             ab.is_a A . should_be_true
             ab.is_a B . should_be_true
+
+            ab.a_method . should_equal "A method"
+            ab.b_method . should_equal "B method"
+
             (ab:A).to_text . should_equal "(A_Ctor 1)"
             (ab:B).to_text . should_equal "(B_Ctor (A_Ctor 1))"
             (id_a ab).to_text . should_equal "(A_Ctor 1)"
@@ -34,10 +50,110 @@ add_specs suite_builder =
 
             # Passing a2 to a function expecting B fails because B part was hidden
             Test.expect_panic Type_Error (id_b a2)
+            Test.expect_panic No_Such_Method (a2.b_method)
+
+            # But it can be uncovered via explicit cast
+            (a2:B).b_method . should_equal "B method"
+            (id_b (a2:B)).to_text . should_equal "(B_Ctor (A_Ctor 1))"
+
+        group_builder.specify "after casting A&B to A, B part is again hidden" <|
+            ab = make_a_and_b
+            a2 = ab:A
+            a2.is_a A . should_be_true
+            a2.is_a B . should_be_false
+
+            # Passing a2 to a function expecting B fails because B part was hidden
+            Test.expect_panic Type_Error (id_b a2)
 
             # But it can be uncovered via explicit cast
             (a2:B).to_text . should_equal "(B_Ctor (A_Ctor 1))"
             (id_b (a2:B)).to_text . should_equal "(B_Ctor (A_Ctor 1))"
+
+        group_builder.specify "passing A&B to function expecting B, then re-casting to A" <|
+            ab = make_a_and_b
+            b2 = id_b ab
+            a2 = b2:A
+            a2.is_a A . should_be_true
+            a2.is_a B . should_be_false
+
+            a2.a_method.should_equal "A method"
+            Test.expect_panic No_Such_Method (a2.b_method)
+
+        group_builder.specify "passing A&B to function expecting A, then re-casting to B" <|
+            ab = make_a_and_b
+            a2 = id_a ab
+            b2 = a2:B
+            b2.is_a A . should_be_false
+            b2.is_a B . should_be_true
+
+            Test.expect_panic No_Such_Method (b2.a_method)
+            b2.b_method.should_equal "B method"
+
+        group_builder.specify "unpacking an intersection type via pattern matching" <|
+            ab = make_a_and_b
+            case ab of
+                ab_as_a : A ->
+                    ab_as_a.a_method . should_equal "A method"
+                    ab_as_a.is_a A . should_be_true
+                    ab_as_a.is_a B . should_be_false
+                _ -> Test.fail "Expected ab to go to `: A` branch"
+
+            case ab of
+                ab_as_b : B ->
+                    ab_as_b.b_method . should_equal "B method"
+                    ab_as_b.is_a A . should_be_false
+                    ab_as_b.is_a B . should_be_true
+                _ -> Test.fail "Expected ab to go to `: B` branch"
+
+        group_builder.specify "pattern matching does not apply conversions" <|
+            ab = make_a_and_b
+            r = case ab of
+                _ : C -> "matched C"
+                _ -> "was not C"
+            r.should_equal "was not C"
+
+        group_builder.specify "using a conversion discards the multi-value structure and we 'start over'" <|
+            ab = make_a_and_b
+            c = ab:C
+
+            c.is_a C . should_be_true
+            c.is_a A . should_be_false
+            c.is_a B . should_be_false
+
+            # We cannot convert back to A/B as the mutli-value structure is lost
+            Test.expect_panic Type_Error (c:A)
+            Test.expect_panic Type_Error (c:B)
+
+        group_builder.specify "conversion can keep the old types if they are listed explicitly in a cast expression" <|
+            ab = make_a_and_b
+            abc = ab:(A & B & C)
+
+            abc.is_a A . should_be_true
+            abc.is_a B . should_be_true
+            abc.is_a C . should_be_true
+
+            abc.a_method . should_equal "A method"
+            abc.b_method . should_equal "B method"
+            abc.c_method . should_equal "C method"
+
+            # We hide A&B parts by casting to C
+            c = abc:C
+            c.is_a A . should_be_false
+            c.is_a B . should_be_false
+            c.is_a C . should_be_true
+
+            Test.expect_panic No_Such_Method (c.a_method)
+            Test.expect_panic No_Such_Method (c.b_method)
+            c.c_method . should_equal "C method"
+
+            # But because the structure was not lost, only hidden, we can cast back to A/B
+            (c:A).a_method . should_equal "A method"
+            (c:B).b_method . should_equal "B method"
+
+            (c:A&B&C).a_method . should_equal "A method"
+            (c:A&B&C).b_method . should_equal "B method"
+            (c:A&B&C).c_method . should_equal "C method"
+
 
 main filter=Nothing =
     suite = Test.build suite_builder->
