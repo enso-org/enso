@@ -121,10 +121,12 @@ type Column
                 case needs_polyglot_conversion of
                     True -> Java_Column.fromItems name (enso_to_java_maybe items) expected_storage_type java_problem_aggregator
                     False -> Java_Column.fromItemsNoDateConversion name items expected_storage_type java_problem_aggregator
-            result = Column.from_java_column java_column . throw_on_warning Conversion_Failure
-            result.catch Conversion_Failure error->
-                if error.example_values.is_empty then result else
-                    raise_invalid_value_type_error error.example_values.first
+            multi_result = Column.from_java_column java_column
+            result = Warning.throw_on_warning multi_result Conversion_Failure
+            if Meta.is_error result . not then result else
+                result.catch Conversion_Failure error->
+                    if error.example_values.is_empty then result else
+                        raise_invalid_value_type_error error.example_values.first
 
     ## PRIVATE
        Creates a new column given a name and an internal Java storage.
