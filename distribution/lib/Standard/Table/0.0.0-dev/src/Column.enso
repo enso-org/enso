@@ -138,7 +138,6 @@ type Column
 
     ## PRIVATE
        Creates a new column given a Java Column object.
-    from_java_column : Java_Column -> Column
     from_java_column java_column:Java_Column -> Column =
         column = Column.Value java_column
         column |> refine_with_single_value
