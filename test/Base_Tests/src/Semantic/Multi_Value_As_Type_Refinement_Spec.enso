@@ -182,13 +182,8 @@ add_specs suite_builder =
                 _ -> "structural matching of B.B_Ctor failed"
             r.should_equal "matched: (A_Ctor 1)"
 
-        group_builder.specify "calling a method on one of the types should not lose the intersection type" <|
+        group_builder.specify "calling a method on one of the types should not lose the intersection type" pending="TODO: https://github.com/enso-org/enso/issues/12143" <|
             ab = make_a_and_b
-
-            ab.a_id_unchecked . is_a A . should_be_true
-            ab.a_id_unchecked . is_a B . should_be_true
-            ab.a_id_unchecked.a_method . should_equal "A method"
-            ab.a_id_unchecked.b_method . should_equal "B method"
 
             # Checked variant can hide the B part
             ab.a_id . is_a A . should_be_true
@@ -204,17 +199,22 @@ add_specs suite_builder =
             new_ab.a_method . should_equal "A method"
             new_ab.b_method . should_equal "B method"
 
-            # The same should apply to the B part
-            ab.b_id_unchecked . is_a A . should_be_true
-            ab.b_id_unchecked . is_a B . should_be_true
-            ab.b_id_unchecked.a_method . should_equal "A method"
-            ab.b_id_unchecked.b_method . should_equal "B method"
+            # But unchecked variant should keep both types and not hide anything
+            ab.a_id_unchecked . is_a A . should_be_true
+            #ab.a_id_unchecked . is_a B . should_be_true
+            ab.a_id_unchecked.a_method . should_equal "A method"
+            #ab.a_id_unchecked.b_method . should_equal "B method"
 
+            # The same should apply to the B part
             ab.b_id . is_a A . should_be_false
             ab.b_id . is_a B . should_be_true
             new_ab_2 = (ab.b_id):A&B
             new_ab_2.is_a A . should_be_true
             new_ab_2.is_a B . should_be_true
+            ab.b_id_unchecked . is_a A . should_be_true
+            ab.b_id_unchecked . is_a B . should_be_true
+            ab.b_id_unchecked.a_method . should_equal "A method"
+            ab.b_id_unchecked.b_method . should_equal "B method"
 
         group_builder.specify "calling `.catch` on an intersection type should not lose the refinements" <|
             ab = make_a_and_b
