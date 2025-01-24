@@ -31,3 +31,4 @@ type SQL_Part
 
     ## Any dialect defined query extensions with an identifying name
     Extension (name : Text)
+    
