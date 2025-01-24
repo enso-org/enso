@@ -1,6 +1,7 @@
 import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
+  entryDisplayPath,
   entryIsStatic,
   SuggestionKind,
   type SuggestionEntry,
@@ -10,8 +11,8 @@ import { compareOpt } from '@/util/compare'
 import { isSome } from '@/util/data/opt'
 import { Range } from '@/util/data/range'
 import { displayedIconOf } from '@/util/getIconName'
-import type { Icon } from '@/util/iconMetadata/iconName'
-import { qnJoin, qnLastSegment, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
+import { type Icon } from '@/util/iconMetadata/iconName'
+import { type ProjectPath } from '@/util/projectPath'
 
 interface ComponentLabelInfo {
   label: string
@@ -33,8 +34,8 @@ export interface Component extends ComponentLabel {
 
 /** @returns the displayed label of given suggestion entry with information of highlighted ranges. */
 export function labelOfEntry(entry: SuggestionEntry, match: MatchResult): ComponentLabelInfo {
-  if (entryIsStatic(entry) && entry.memberOf) {
-    const label = qnJoin(qnLastSegment(entry.memberOf), entry.name)
+  if (entryIsStatic(entry)) {
+    const label = entryDisplayPath(entry)
     if ((!match.ownerNameRanges && !match.nameRanges) || match.matchedAlias) {
       return {
         label,
@@ -86,7 +87,9 @@ export function compareSuggestions(a: MatchedSuggestion, b: MatchedSuggestion): 
   const kindCompare =
     +(a.entry.kind === SuggestionKind.Module) - +(b.entry.kind === SuggestionKind.Module)
   if (kindCompare !== 0) return kindCompare
-  const moduleCompare = a.entry.definedIn.localeCompare(b.entry.definedIn)
+  const moduleCompare =
+    (a.entry.definedIn.project ?? '').localeCompare(b.entry.definedIn.project ?? '') ||
+    (a.entry.definedIn.path ?? '').localeCompare(b.entry.definedIn.path ?? '')
   if (moduleCompare !== 0) return moduleCompare
   return a.id - b.id
 }
@@ -110,13 +113,10 @@ export function makeComponent({ id, entry, match }: ComponentInfo): Component {
 /** Create {@link Component} list from filtered suggestions. */
 export function makeComponentList(db: SuggestionDb, filtering: Filtering): Component[] {
   function* matchSuggestions() {
-    const additionalSelfTypes: QualifiedName[] = []
+    const additionalSelfTypes: ProjectPath[] = []
     if (filtering.selfArg?.type === 'known') {
-      const maybeName = tryQualifiedName(filtering.selfArg.typename)
-      if (maybeName.ok) {
-        const entry = db.getEntryByQualifiedName(maybeName.value)
-        if (entry) additionalSelfTypes.push(...db.ancestors(entry))
-      }
+      const entry = db.getEntryByProjectPath(filtering.selfArg.typename)
+      if (entry) additionalSelfTypes.push(...db.ancestors(entry))
     }
 
     for (const [id, entry] of db.entries()) {

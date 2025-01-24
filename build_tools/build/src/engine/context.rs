@@ -200,7 +200,7 @@ impl RunContext {
             sbt.call_arg("syntax-rust-definition/Runtime/managedClasspath").await?;
         }
         if self.config.build_native_runner {
-            env::ENSO_LAUNCHER.set(&engine::EngineLauncher::DebugNative)?;
+            env::ENSO_LAUNCHER.set(&engine::EngineLauncher::TestNative)?;
         }
 
         // TODO: Once the native image is production ready, we should switch to

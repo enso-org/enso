@@ -35,6 +35,11 @@ public abstract class ThunkExecutorNode extends Node {
     return ThunkExecutorNodeGen.create();
   }
 
+  @NeverDefault
+  public static ThunkExecutorNode getUncached() {
+    return ThunkExecutorNodeGen.getUncached();
+  }
+
   /**
    * Forces the thunk to its resulting value.
    *

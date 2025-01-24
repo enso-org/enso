@@ -1,17 +1,18 @@
 import { commonContextMenuActions, type MenuItem } from '@/components/shared/AgGridTableView.vue'
 import type { WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
-import { type RequiredImport, requiredImportsByFQN } from '@/stores/graph/imports'
+import { type RequiredImport, requiredImportsByProjectPath } from '@/stores/graph/imports'
 import type { SuggestionDb } from '@/stores/suggestionDatabase'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { findIndexOpt } from '@/util/data/array'
 import { Err, Ok, type Result, transposeResult, unwrapOrWithLog } from '@/util/data/result'
+import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
 import type { ColDef } from 'ag-grid-enterprise'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { computed, toValue } from 'vue'
-import type { ColumnSpecificHeaderParams } from './TableHeader.vue'
+import type { ColumnSpecificParams } from './TableHeader.vue'
 
 /** Id of a fake column with "Add new column" option. */
 export const NEW_COLUMN_ID = 'NewColumn'
@@ -20,8 +21,11 @@ const ROW_INDEX_COLUMN_ID = 'RowIndex'
 export const ROW_INDEX_HEADER = '#'
 /** A default prefix added to the column's index in newly created columns. */
 export const DEFAULT_COLUMN_PREFIX = 'Column #'
-const NOTHING_PATH = 'Standard.Base.Nothing.Nothing' as QualifiedName
-export const NOTHING_NAME = qnLastSegment(NOTHING_PATH) as Ast.Identifier
+const NOTHING_PATH = ProjectPath.create(
+  'Standard.Base' as QualifiedName,
+  'Nothing.Nothing' as QualifiedName,
+)
+export const NOTHING_NAME = qnLastSegment(NOTHING_PATH.path!) as Ast.Identifier
 /**
  * The cells limit of the table; any modification which would exceed this limt should be
  * disallowed in UI
@@ -44,7 +48,7 @@ export interface ColumnDef extends ColDef<RowData> {
   mainMenuItems: (string | MenuItem<RowData>)[]
   contextMenuItems: (string | MenuItem<RowData>)[]
   rowDrag?: ({ data }: { data: RowData | undefined }) => boolean
-  headerComponentParams?: ColumnSpecificHeaderParams
+  headerComponentParams: ColumnSpecificParams
 }
 
 namespace cellValueConversion {
@@ -287,13 +291,15 @@ export function useTableInputArgument(
     width: 40,
     maxWidth: 40,
     headerComponentParams: {
-      type: 'newColumn',
-      enabled: mayAddNewColumn(),
-      newColumnRequested: () => {
-        const edit = graph.startEdit()
-        fixColumns(edit)
-        addColumn(edit, `${DEFAULT_COLUMN_PREFIX}${columns.value.length + 1}`)
-        onUpdate({ edit, directInteraction: true })
+      columnParams: {
+        type: 'newColumn',
+        enabled: mayAddNewColumn(),
+        newColumnRequested: () => {
+          const edit = graph.startEdit()
+          fixColumns(edit)
+          addColumn(edit, `${DEFAULT_COLUMN_PREFIX}${columns.value.length + 1}`)
+          onUpdate({ edit, directInteraction: true })
+        },
       },
     },
     mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
@@ -309,9 +315,7 @@ export function useTableInputArgument(
     editable: false,
     resizable: false,
     suppressNavigable: true,
-    headerComponentParams: {
-      type: 'rowIndexColumn',
-    },
+    headerComponentParams: { columnParams: { type: 'rowIndexColumn' } },
     mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
     contextMenuItems: [removeRowMenuItem],
     cellClass: 'rowIndexCell',
@@ -355,8 +359,8 @@ export function useTableInputArgument(
             return true
           },
           headerComponentParams: {
-            type: 'astColumn',
-            editHandlers: {
+            columnParams: {
+              type: 'astColumn',
               nameSetter: (newName: string) => {
                 const edit = graph.startEdit()
                 fixColumns(edit)
@@ -405,7 +409,9 @@ export function useTableInputArgument(
     return rows
   })
 
-  const nothingImport = computed(() => requiredImportsByFQN(suggestions, NOTHING_PATH, true))
+  const nothingImport = computed(() =>
+    requiredImportsByProjectPath(suggestions, NOTHING_PATH, true),
+  )
 
   function convertWithImport(value: unknown, edit: Ast.MutableModule) {
     const { ast, requireNothingImport } = cellValueConversion.agGridToAst(value, edit)
@@ -497,7 +503,7 @@ export function useTableInputArgument(
       addRow(edit, (_colId, index) => newValueGetter(i, index))
     }
     const newColCount = Math.max(pastedColsEnd, columns.value.length)
-    let modifiedColumnsAst: Ast.Vector | undefined
+    let modifiedColumnsAst: Ast.Vector | undefined = undefined
     for (let i = columns.value.length; i < newColCount; ++i) {
       if (!mayAddNewColumn(newRowCount, i)) {
         actuallyPastedColsEnd = i

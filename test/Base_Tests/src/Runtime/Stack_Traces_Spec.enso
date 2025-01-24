@@ -124,7 +124,7 @@ add_specs suite_builder = suite_builder.group "Stack traces" group_builder->
         out . should_contain "f5"
 
     group_builder.specify "should capture traces correctly" <|
-        modname = Meta.get_simple_type_name Stack_Traces_Spec
+        modname = Stack_Traces_Spec.to Meta.Type . name
         stack = My_Type.foo
         names = [modname + ".bar", modname + ".baz", "Number.foo", modname + ".foo", "My_Type.foo"]
         stack.take (..First 5) . map .name . should_equal names
@@ -132,7 +132,7 @@ add_specs suite_builder = suite_builder.group "Stack traces" group_builder->
         stack.take (..First 5) . map (.source_location >> .file) . each (_.should_equal file)
 
     group_builder.specify "should respect Runtime.Context.Dataflow_Stack_Trace (for error thrown from Enso)" <|
-        modname = Meta.get_simple_type_name Stack_Traces_Spec
+        modname = Stack_Traces_Spec.to Meta.Type . name
         names = [modname + ".deep_e", modname + ".deep_d", modname + ".deep_c", modname + ".deep_b", modname + ".deep_a"]
 
         shallow_stack_trace = deep_a.stack_trace

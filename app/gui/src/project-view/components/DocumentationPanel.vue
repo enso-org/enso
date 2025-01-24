@@ -11,6 +11,7 @@ import type { Docs, FunctionDocs, Sections, TypeDocs } from '@/components/Docume
 import { lookupDocumentation, placeholder } from '@/components/DocumentationPanel/ir'
 import SvgButton from '@/components/SvgButton.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
+import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
@@ -55,9 +56,11 @@ const types = computed<TypeDocs[]>(() => {
 
 const isPlaceholder = computed(() => documentation.value.kind === 'Placeholder')
 
+const projectNames = injectProjectNames()
+
 const name = computed<Opt<QualifiedName>>(() => {
   const docs = documentation.value
-  return docs.kind === 'Placeholder' ? null : docs.name
+  return docs.kind === 'Placeholder' ? null : projectNames.printProjectPath(docs.name)
 })
 
 // === Breadcrumbs ===
@@ -106,8 +109,8 @@ function handleBreadcrumbClick(index: number) {
   if (name.value) {
     const qName = qnSlice(name.value, 0, index + 2)
     if (qName.ok) {
-      const [id] = db.entries.nameToId.lookup(qName.value)
-      if (id) {
+      const id = db.entries.findByProjectPath(projectNames.parseProjectPath(qName.value))
+      if (id != null) {
         historyStack.record(id)
       }
     }

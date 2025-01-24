@@ -46,7 +46,7 @@ public abstract class GenericBinaryObjectMapOperation<
           builder.appendNulls(1);
         } else {
           OutputType result = run(storage.getItemBoxed(i), casted);
-          builder.appendNoGrow(result);
+          builder.append(result);
         }
 
         context.safepoint();

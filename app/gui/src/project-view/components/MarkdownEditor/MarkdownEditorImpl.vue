@@ -2,7 +2,7 @@
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
 import { ensoMarkdown } from '@/components/MarkdownEditor/markdown'
-import VueComponentHost from '@/components/VueComponentHost.vue'
+import VueHostRender, { VueHost } from '@/components/VueHostRender.vue'
 import { useCodeMirror } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { useLinkTitles } from '@/util/codemirror/links'
@@ -20,7 +20,7 @@ const { content } = defineProps<{
 const focused = ref(false)
 const editing = computed(() => !readonly.value && focused.value)
 
-const vueHost = useTemplateRef<ComponentInstance<typeof VueComponentHost>>('vueHost')
+const vueHost = new VueHost()
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
   content: () => content,
@@ -31,7 +31,7 @@ const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
     EditorView.clipboardInputFilter.of(transformPastedText),
     ensoMarkdown(),
   ],
-  vueHost: () => vueHost.value || undefined,
+  vueHost: () => vueHost,
 })
 
 useLinkTitles(editorView, { readonly })
@@ -65,7 +65,7 @@ defineExpose({
     :class="{ editing }"
     @focusout="focused = false"
   />
-  <VueComponentHost ref="vueHost" />
+  <VueHostRender :host="vueHost" />
 </template>
 
 <style scoped>
