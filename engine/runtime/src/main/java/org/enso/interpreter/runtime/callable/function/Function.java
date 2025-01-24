@@ -191,6 +191,26 @@ public final class Function extends EnsoObject {
     return true;
   }
 
+  @ExportMessage
+  boolean hasSourceLocation() {
+    return getSourceSection() != null;
+  }
+
+  @ExportMessage
+  SourceSection getSourceLocation() {
+    return callTarget.getRootNode().getSourceSection();
+  }
+
+  @ExportMessage
+  boolean hasExecutableName() {
+    return getName() != null;
+  }
+
+  @ExportMessage
+  String getExecutableName() {
+    return this.getName();
+  }
+
   /**
    * A class representing the executable behaviour of the function.
    *
