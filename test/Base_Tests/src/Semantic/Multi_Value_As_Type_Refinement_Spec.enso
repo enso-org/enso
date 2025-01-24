@@ -258,6 +258,14 @@ add_specs suite_builder =
             ab2.a_method . should_equal "A method"
             ab2.b_method . should_equal "B method"
 
+        group_builder.specify "calling both throw_on_warning and catch should not lose the refinements" <|
+            ab = make_a_and_b
+            r = ab.throw_on_warning Illegal_State . catch Any _->"catched"
+            r.is_a A . should_be_true
+            r.is_a B . should_be_true
+            r.a_method . should_equal "A method"
+            r.b_method . should_equal "B method"
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
