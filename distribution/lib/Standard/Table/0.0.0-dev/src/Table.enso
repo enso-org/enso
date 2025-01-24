@@ -2472,9 +2472,9 @@ type Table
         unique.mark_used self.column_names
 
         resolved = case value of
+            _ : Column -> value
             _ : Text -> self.make_constant_column value
             _ : Expression -> self.evaluate_expression value on_problems
-            _ : Column -> value
             _ : Constant_Column -> self.make_constant_column value.value
             _ : Simple_Expression -> value.evaluate self (set_mode==Set_Mode.Update && as=="") on_problems
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
