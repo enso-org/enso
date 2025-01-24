@@ -124,8 +124,8 @@ add_specs suite_builder =
             Test.expect_panic Type_Error (my_integer_fn c1)
             my_integer_fn c1:Integer . should_equal 85
 
-            Test.expect_panic No_Such_Method <|
-                my_text_fn (table.at "b" : Text)
+            Test.expect_panic Type_Error <|
+                my_text_fn (table.at "b")
             my_text_fn (table.at "b" : Text) . should_equal "hello!"
 
 
