@@ -54,7 +54,7 @@ export async function loginAsTestUser(page: Page) {
   // Login screen
   await expect(page.getByRole('textbox', { name: 'email' })).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'password' })).toBeVisible()
-  if (process.env.ENSO_TEST_USER == null || process.env.ENSO_TEST_USER_PASSWORD == null) {
+  if (!process.env.ENSO_TEST_USER || !process.env.ENSO_TEST_USER_PASSWORD) {
     throw Error(
       'Cannot log in; `ENSO_TEST_USER` and `ENSO_TEST_USER_PASSWORD` env variables are not provided',
     )

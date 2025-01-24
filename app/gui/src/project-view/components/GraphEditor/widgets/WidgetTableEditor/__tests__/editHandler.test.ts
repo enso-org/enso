@@ -142,12 +142,40 @@ test.each([
   expect(editedCell.value).toBeUndefined()
 })
 
-test.each([
-  { initial: { colKey: 'col1', rowIndex: 0 }, expected: { colKey: 'col1', rowIndex: 1 } },
-])('Pressing `enter` while editing $initial', async ({ initial, expected }) => {
+test.each`
+  initial                                            | expected
+  ${{ colKey: 'col1', rowIndex: 0 }}                 | ${{ colKey: 'col1', rowIndex: 1 }}
+  ${{ colKey: 'col2', rowIndex: 3 }}                 | ${{ colKey: 'col1', rowIndex: 4 }}
+  ${{ colKey: 'col1', rowIndex: 'header' as const }} | ${{ colKey: 'col1', rowIndex: 0 }}
+  ${{ colKey: 'col2', rowIndex: 'header' as const }} | ${{ colKey: 'col1', rowIndex: 0 }}
+`('Pressing `enter` while editing $initial', async ({ initial, expected }) => {
   const {
-    gridState,
-    composable: { handler, editedCell },
-    edited,
-  }
+    composable: { handler, editedCell, gridEventHandlers },
+    editedInGrid,
+  } = fixture()
+
+  await editedInGrid(initial)
+  expect(editedCell.value).toEqual(initial)
+  gridEventHandlers.keydown(new KeyboardEvent('keydown', { code: 'Enter' }))
+  await nextTick()
+  expect(editedCell.value).toEqual(expected)
+  expect(handler.isActive()).toBeTruthy()
+})
+
+test.each`
+  initialCol | expectedCell
+  ${'col1'}  | ${{ colKey: 'col2', rowIndex: 'header' as const }}
+  ${'col2'}  | ${{ colKey: 'col1', rowIndex: 0 }}
+`('Pressing `tab` while editing header $initialCol', async ({ initialCol, expectedCell }) => {
+  const {
+    composable: { handler, editedCell, gridEventHandlers },
+    editedInGrid,
+  } = fixture()
+  const initialCell = { colKey: initialCol, rowIndex: 'header' as const }
+  await editedInGrid(initialCell)
+  expect(editedCell.value).toEqual(initialCell)
+  gridEventHandlers.keydown(new KeyboardEvent('keydown', { code: 'Tab' }))
+  await nextTick()
+  expect(editedCell.value).toEqual(expectedCell)
+  expect(handler.isActive()).toBeTruthy()
 })
