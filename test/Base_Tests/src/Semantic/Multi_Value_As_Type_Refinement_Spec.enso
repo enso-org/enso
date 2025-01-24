@@ -8,6 +8,7 @@ from Standard.Test import all
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Common.No_Such_Conversion
 import Standard.Base.Errors.Common.No_Such_Method
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from project.Semantic.Type_Refinement.Types import A, B, make_a_and_b
 
@@ -181,6 +182,81 @@ add_specs suite_builder =
                 _ -> "structural matching of B.B_Ctor failed"
             r.should_equal "matched: (A_Ctor 1)"
 
+        group_builder.specify "calling a method on one of the types should not lose the intersection type" <|
+            ab = make_a_and_b
+
+            ab.a_id_unchecked . is_a A . should_be_true
+            ab.a_id_unchecked . is_a B . should_be_true
+            ab.a_id_unchecked.a_method . should_equal "A method"
+            ab.a_id_unchecked.b_method . should_equal "B method"
+
+            # Checked variant can hide the B part
+            ab.a_id . is_a A . should_be_true
+            ab.a_id . is_a B . should_be_false
+            # But it can be uncovered via explicit cast
+            b = (ab.a_id):B
+            b.is_a A . should_be_false
+            b.is_a B . should_be_true
+
+            new_ab = (ab.a_id):A&B
+            new_ab.is_a A . should_be_true
+            new_ab.is_a B . should_be_true
+            new_ab.a_method . should_equal "A method"
+            new_ab.b_method . should_equal "B method"
+
+            # The same should apply to the B part
+            ab.b_id_unchecked . is_a A . should_be_true
+            ab.b_id_unchecked . is_a B . should_be_true
+            ab.b_id_unchecked.a_method . should_equal "A method"
+            ab.b_id_unchecked.b_method . should_equal "B method"
+
+            ab.b_id . is_a A . should_be_false
+            ab.b_id . is_a B . should_be_true
+            new_ab_2 = (ab.b_id):A&B
+            new_ab_2.is_a A . should_be_true
+            new_ab_2.is_a B . should_be_true
+
+        group_builder.specify "calling `.catch` on an intersection type should not lose the refinements" <|
+            ab = make_a_and_b
+            r = ab.catch Any _->"catched"
+            r.is_a A . should_be_true
+            r.is_a B . should_be_true
+            r.a_method . should_equal "A method"
+            r.b_method . should_equal "B method"
+
+        group_builder.specify "calling `.throw_on_warning` on an intersection type should not lose the refinements" <|
+            ab = make_a_and_b
+            r = ab.throw_on_warning
+            r.is_a A . should_be_true
+            r.is_a B . should_be_true
+            r.a_method . should_equal "A method"
+            r.b_method . should_equal "B method"
+
+        group_builder.specify "attaching warnings to an intersection type should not lose the refinements" <|
+            ab = make_a_and_b
+            ab_with_warning = Warning.attach (Illegal_State.Error "my warning") ab
+            ab_with_warning.is_a A . should_be_true
+            ab_with_warning.is_a B . should_be_true
+            ab_with_warning.a_method . should_equal "A method"
+            ab_with_warning.b_method . should_equal "B method"
+            Problems.expect_only_warning Illegal_State ab_with_warning
+
+        group_builder.specify "removing warnings from an intersection type should not lose the refinements" <|
+            ab = make_a_and_b
+            ab_with_warning = Warning.attach (Illegal_State.Error "my warning") ab
+
+            ab_without_warning = ab_with_warning.remove_warnings
+            Problems.assume_no_problems ab_without_warning
+            ab_without_warning.is_a A . should_be_true
+            ab_without_warning.is_a B . should_be_true
+            ab_without_warning.a_method . should_equal "A method"
+            ab_without_warning.b_method . should_equal "B method"
+
+            ab2 = ab.remove_warnings
+            ab2.is_a A . should_be_true
+            ab2.is_a B . should_be_true
+            ab2.a_method . should_equal "A method"
+            ab2.b_method . should_equal "B method"
 
 main filter=Nothing =
     suite = Test.build suite_builder->
