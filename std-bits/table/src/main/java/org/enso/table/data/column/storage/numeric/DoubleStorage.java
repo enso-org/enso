@@ -102,6 +102,12 @@ public final class DoubleStorage extends Storage<Double>
     return isNothing.get((int) idx);
   }
 
+  @Override
+  public int size() {
+    // ToDo: DoubleArrayAdapter should be removed in the next step.
+    return (int)getSize();
+  }
+
   /** Used by the DoubleBuilder in appendBulkStorage. */
   public double[] getRawData() {
     return data;
@@ -144,15 +150,15 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   private Storage<?> fillMissingDouble(double arg, ProblemAggregator problemAggregator) {
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, size(), problemAggregator);
+    long n = getSize();
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
     Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
-      if (isNothing.get(i)) {
+    for (long i = 0; i < getSize(); i++) {
+      if (isNothing(i)) {
         builder.appendDouble(arg);
       } else {
-        builder.appendDouble(data[i]);
+        builder.appendDouble(getPrimitive(i));
       }
-
       context.safepoint();
     }
     return builder.seal();
@@ -160,15 +166,15 @@ public final class DoubleStorage extends Storage<Double>
 
   /** Special handling to ensure loss of precision is reported. */
   private Storage<?> fillMissingBigInteger(BigInteger arg, ProblemAggregator problemAggregator) {
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, size(), problemAggregator);
+    long n = getSize();
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
     Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
-      if (isNothing.get(i)) {
+    for (long i = 0; i < n; i++) {
+      if (isNothing(i)) {
         builder.append(arg);
       } else {
-        builder.appendDouble(data[i]);
+        builder.appendDouble(getPrimitive(i));
       }
-
       context.safepoint();
     }
     return builder.seal();
@@ -176,15 +182,15 @@ public final class DoubleStorage extends Storage<Double>
 
   /** Special handling to ensure loss of precision is reported. */
   private Storage<?> fillMissingLong(long arg, ProblemAggregator problemAggregator) {
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, size(), problemAggregator);
+    long n = getSize();
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
     Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
-      if (isNothing.get(i)) {
+    for (long i = 0; i < n; i++) {
+      if (isNothing(i)) {
         builder.appendLong(arg);
       } else {
-        builder.appendDouble(data[i]);
+        builder.appendDouble(getPrimitive(i));
       }
-
       context.safepoint();
     }
     return builder.seal();
@@ -207,57 +213,54 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public DoubleStorage fillMissingFromPrevious(BoolStorage missingIndicator) {
+  public Storage<Double> fillMissingFromPrevious(BoolStorage missingIndicator) {
     if (missingIndicator != null) {
       throw new IllegalStateException(
           "Custom missing value semantics are not supported by DoubleStorage.");
     }
 
-    int n = size();
-    double[] newData = new double[n];
-    BitSet newIsNothing = new BitSet();
+    long n = getSize();
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, null);
     double previousValue = 0;
     boolean hasPrevious = false;
 
     Context context = Context.getCurrent();
-    for (int i = 0; i < n; i++) {
+    for (long i = 0; i < n; i++) {
       boolean isCurrentMissing = isNothing(i);
       if (isCurrentMissing) {
         if (hasPrevious) {
-          newData[i] = previousValue;
+          builder.appendDouble(previousValue);
         } else {
-          newIsNothing.set(i);
+          builder.appendNulls(1);
         }
       } else {
-        newData[i] = data[i];
-        previousValue = data[i];
+        double value = getPrimitive(i);
+        builder.appendDouble(value);
+        previousValue = value;
         hasPrevious = true;
       }
 
       context.safepoint();
     }
 
-    return new DoubleStorage(newData, n, newIsNothing);
+    return builder.seal();
   }
 
   @Override
   public Storage<Double> applyFilter(BitSet filterMask, int newLength) {
-    BitSet newIsNothing = new BitSet();
-    double[] newData = new double[newLength];
-    int resIx = 0;
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, newLength, null);
     Context context = Context.getCurrent();
     for (int i = 0; i < size; i++) {
       if (filterMask.get(i)) {
         if (isNothing.get(i)) {
-          newIsNothing.set(resIx++);
+          builder.appendNulls(1);
         } else {
-          newData[resIx++] = data[i];
+          builder.appendDouble(data[i]);
         }
       }
-
       context.safepoint();
     }
-    return new DoubleStorage(newData, newLength, newIsNothing);
+    return builder.seal();
   }
 
   @Override

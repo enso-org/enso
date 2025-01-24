@@ -3,8 +3,10 @@ package org.enso.table.data.column.operation.map.text;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
+import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.error.UnexpectedTypeException;
@@ -19,27 +21,24 @@ public abstract class StringLongToStringOp
   protected abstract String doOperation(String a, long b);
 
   @Override
-  public Storage<?> runBinaryMap(
+  public Storage<String> runBinaryMap(
       SpecializedStorage<String> storage,
       Object arg,
       MapOperationProblemAggregator problemAggregator) {
-    int size = storage.size();
-    var builder = Builder.getForText(size, TextType.VARIABLE_LENGTH);
+    long size = storage.getSize();
     if (arg == null) {
-      builder.appendNulls(size);
-      return builder.seal();
+      return StringStorage.makeEmpty(size, TextType.VARIABLE_LENGTH);
     } else if (arg instanceof Long argLong) {
+      var builder = Builder.getForText(size, TextType.VARIABLE_LENGTH);
       Context context = Context.getCurrent();
-      for (int i = 0; i < size; i++) {
+      for (long i = 0; i < size; i++) {
         if (storage.isNothing(i)) {
           builder.appendNulls(1);
         } else {
           builder.append(doOperation(storage.getBoxed(i), argLong));
         }
-
         context.safepoint();
       }
-
       return builder.seal();
     } else {
       throw new UnexpectedTypeException("a Text");
@@ -47,24 +46,22 @@ public abstract class StringLongToStringOp
   }
 
   @Override
-  public Storage<?> runZip(
+  public Storage<String> runZip(
       SpecializedStorage<String> storage,
       Storage<?> arg,
       MapOperationProblemAggregator problemAggregator) {
     if (arg instanceof LongStorage v) {
-      int size = storage.size();
+      long size = storage.getSize();
       var builder = Builder.getForText(size, TextType.VARIABLE_LENGTH);
       Context context = Context.getCurrent();
-      for (int i = 0; i < size; i++) {
+      for (long i = 0; i < size; i++) {
         if (storage.isNothing(i) || v.isNothing(i)) {
           builder.appendNulls(1);
         } else {
           builder.append(doOperation(storage.getBoxed(i), v.getBoxed(i)));
         }
-
         context.safepoint();
       }
-
       return builder.seal();
     } else {
       throw new UnexpectedTypeException("a Text column");

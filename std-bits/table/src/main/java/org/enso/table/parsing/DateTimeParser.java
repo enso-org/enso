@@ -13,7 +13,7 @@ public class DateTimeParser extends BaseTimeParser {
   }
 
   @Override
-  protected Builder makeBuilderWithCapacity(int capacity, ProblemAggregator problemAggregator) {
+  protected Builder makeBuilderWithCapacity(long capacity, ProblemAggregator problemAggregator) {
     return Builder.getForType(DateTimeType.INSTANCE, capacity, problemAggregator);
   }
 }

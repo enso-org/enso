@@ -1,11 +1,13 @@
 package org.enso.table.data.column.storage;
 
+import java.math.BigDecimal;
 import java.util.BitSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import org.enso.base.CompareException;
 import org.enso.base.Text_Utils;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.CountUntrimmed;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
@@ -16,6 +18,7 @@ import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
 import org.enso.table.data.column.operation.map.text.StringLongToStringOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
+import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.graalvm.polyglot.Context;
@@ -36,6 +39,11 @@ public final class StringStorage extends SpecializedStorage<String> {
     untrimmedCount =
         CompletableFuture.supplyAsync(
             () -> CountUntrimmed.compute(this, CountUntrimmed.DEFAULT_SAMPLE_SIZE, null));
+  }
+
+  public static StringStorage makeEmpty(long size, TextType type) {
+    int intSize = Builder.checkSize(size);
+    return new StringStorage(new String[intSize], type);
   }
 
   @Override
@@ -82,44 +90,42 @@ public final class StringStorage extends SpecializedStorage<String> {
     t.add(
         new BinaryMapOperation<>(Maps.EQ) {
           @Override
-          public BoolStorage runBinaryMap(
+          public Storage<Boolean> runBinaryMap(
               SpecializedStorage<String> storage,
               Object arg,
               MapOperationProblemAggregator problemAggregator) {
-            BitSet r = new BitSet();
-            BitSet isNothing = new BitSet();
+            long size = storage.getSize();
+            var builder = Builder.getForBoolean(size);
             Context context = Context.getCurrent();
-            for (int i = 0; i < storage.size(); i++) {
+            for (long i = 0; i < size; i++) {
               if (storage.getBoxed(i) == null || arg == null) {
-                isNothing.set(i);
-              } else if (arg instanceof String s && Text_Utils.equals(storage.getBoxed(i), s)) {
-                r.set(i);
+                builder.appendNulls(1);
+              } else {
+                builder.appendBoolean(arg instanceof String s && Text_Utils.equals(storage.getBoxed(i), s));
               }
-
               context.safepoint();
             }
-            return new BoolStorage(r, isNothing, storage.size(), false);
+            return builder.seal();
           }
 
           @Override
-          public BoolStorage runZip(
+          public Storage<Boolean> runZip(
               SpecializedStorage<String> storage,
               Storage<?> arg,
               MapOperationProblemAggregator problemAggregator) {
-            BitSet r = new BitSet();
-            BitSet isNothing = new BitSet();
+            long size = storage.getSize();
+            var builder = Builder.getForBoolean(size);
             Context context = Context.getCurrent();
-            for (int i = 0; i < storage.size(); i++) {
+            for (long i = 0; i < storage.size(); i++) {
               if (storage.getBoxed(i) == null || i >= arg.size() || arg.isNothing(i)) {
-                isNothing.set(i);
-              } else if (arg.getBoxed(i) instanceof String s
-                  && Text_Utils.equals(storage.getBoxed(i), s)) {
-                r.set(i);
+                builder.appendNulls(1);
+              } else {
+                builder.appendBoolean(arg.getBoxed(i) instanceof String s
+                    && Text_Utils.equals(storage.getBoxed(i), s));
               }
-
               context.safepoint();
             }
-            return new BoolStorage(r, isNothing, storage.size(), false);
+            return builder.seal();
           }
         });
     t.add(

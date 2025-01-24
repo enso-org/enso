@@ -152,21 +152,21 @@ public final class BoolStorage extends Storage<Boolean>
 
     boolean previousValue = false;
     boolean hasPrevious = false;
-    BitSet newIsNothing = new BitSet();
-    BitSet newValues = new BitSet();
+    long size = getSize();
+    var builder = Builder.getForBoolean(size);
 
     Context context = Context.getCurrent();
-    for (int i = 0; i < size; i++) {
-      boolean isCurrentValueMissing = isNothing.get(i);
+    for (long i = 0; i < size; i++) {
+      boolean isCurrentValueMissing = isNothing(i);
       if (isCurrentValueMissing) {
         if (hasPrevious) {
-          newValues.set(i, previousValue);
+          builder.appendBoolean(previousValue);
         } else {
-          newIsNothing.set(i);
+          builder.appendNulls(1);
         }
       } else {
         boolean currentValue = getPrimitive(i);
-        newValues.set(i, currentValue);
+        builder.appendBoolean(currentValue);
         previousValue = currentValue;
         hasPrevious = true;
       }
@@ -174,31 +174,24 @@ public final class BoolStorage extends Storage<Boolean>
       context.safepoint();
     }
 
-    return new BoolStorage(newValues, newIsNothing, size, false);
+    return builder.seal();
   }
 
   @Override
-  public BoolStorage applyFilter(BitSet filterMask, int newLength) {
+  public Storage<Boolean> applyFilter(BitSet filterMask, int newLength) {
     Context context = Context.getCurrent();
-    BitSet newIsNothing = new BitSet();
-    BitSet newValues = new BitSet();
-    int resultIx = 0;
+    var builder = Builder.getForBoolean(newLength);
     for (int i = 0; i < size; i++) {
       if (filterMask.get(i)) {
         if (isNothing.get(i)) {
-          newIsNothing.set(resultIx++);
-        } else if (values.get(i)) {
-          newValues.set(resultIx++);
+          builder.appendNulls(1);
         } else {
-          // We don't set any bits, but still increment the counter to indicate that we have just
-          // 'inserted' a false value.
-          resultIx++;
+          builder.appendBoolean(getPrimitive(i));
         }
       }
-
       context.safepoint();
     }
-    return new BoolStorage(newValues, newIsNothing, newLength, negated);
+    return builder.seal();
   }
 
   @Override

@@ -16,7 +16,7 @@ public class IdentityParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  public Builder makeBuilderWithCapacity(int capacity, ProblemAggregator problemAggregator) {
+  public Builder makeBuilderWithCapacity(long capacity, ProblemAggregator problemAggregator) {
     return Builder.getForType(TextType.VARIABLE_LENGTH, capacity, problemAggregator);
   }
 

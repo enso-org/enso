@@ -61,48 +61,40 @@ public abstract class StringBooleanOp
   }
 
   @Override
-  public BoolStorage runZip(
+  public Storage<Boolean> runZip(
       SpecializedStorage<String> storage,
       Storage<?> arg,
       MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     if (arg instanceof StringStorage v) {
-      BitSet newVals = new BitSet();
-      BitSet newIsNothing = new BitSet();
-      for (int i = 0; i < storage.size(); i++) {
-        if (!storage.isNothing(i) && i < v.size() && !v.isNothing(i)) {
-          if (doString(storage.getBoxed(i), v.getBoxed(i))) {
-            newVals.set(i);
-          }
+      long size = storage.getSize();
+      var builder = Builder.getForBoolean(size);
+      for (long i = 0; i < size; i++) {
+        if (!storage.isNothing(i) && i < v.getSize() && !v.isNothing(i)) {
+          builder.appendBoolean(doString(storage.getBoxed(i), v.getBoxed(i)));
         } else {
-          newIsNothing.set(i);
+          builder.appendNulls(1);
         }
-
         context.safepoint();
       }
-      return new BoolStorage(newVals, newIsNothing, storage.size(), false);
+      return builder.seal();
     } else {
-      BitSet newVals = new BitSet();
-      BitSet newIsNothing = new BitSet();
-      for (int i = 0; i < storage.size(); i++) {
-        if (!storage.isNothing(i) && i < arg.size() && !arg.isNothing(i)) {
+      long size = storage.getSize();
+      var builder = Builder.getForBoolean(size);
+      for (long i = 0; i < size; i++) {
+        if (!storage.isNothing(i) && i < arg.getSize() && !arg.isNothing(i)) {
           Object x = arg.getBoxed(i);
           if (x instanceof String str) {
-            if (doString(storage.getBoxed(i), str)) {
-              newVals.set(i);
-            }
+            builder.appendBoolean(doString(storage.getBoxed(i), str));
           } else {
-            if (doObject(storage.getBoxed(i), x)) {
-              newVals.set(i);
-            }
+            builder.appendBoolean(doObject(storage.getBoxed(i), x));
           }
         } else {
-          newIsNothing.set(i);
+          builder.appendNulls(1);
         }
-
         context.safepoint();
       }
-      return new BoolStorage(newVals, newIsNothing, storage.size(), false);
+      return builder.seal();
     }
   }
 }

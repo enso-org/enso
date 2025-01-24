@@ -22,11 +22,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   /** A constant representing the index of a missing value in a column. */
   public static final int NOT_FOUND_INDEX = -1;
 
-  /**
-   * @return the number of elements in this column (including NAs)
-   */
-  public final int size() {
-    return Math.toIntExact(getSize());
+  public int size() { return -1;
   }
 
   @Override

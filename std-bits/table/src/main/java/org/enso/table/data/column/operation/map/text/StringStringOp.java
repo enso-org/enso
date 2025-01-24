@@ -21,28 +21,25 @@ public abstract class StringStringOp
   protected abstract TextType computeResultType(TextType a, TextType b);
 
   @Override
-  public Storage<?> runBinaryMap(
+  public Storage<String> runBinaryMap(
       SpecializedStorage<String> storage,
       Object arg,
       MapOperationProblemAggregator problemAggregator) {
-    int size = storage.size();
+    long size = storage.getSize();
     if (arg == null) {
-      var builder = Builder.getForText(size, TextType.VARIABLE_LENGTH);
-      builder.appendNulls(size);
-      return builder.seal();
+      return StringStorage.makeEmpty(size, TextType.VARIABLE_LENGTH);
     } else if (arg instanceof String argString) {
       TextType argumentType = TextType.preciseTypeForValue(argString);
       TextType newType = computeResultType((TextType) storage.getType(), argumentType);
 
       var builder = Builder.getForText(size, newType);
       Context context = Context.getCurrent();
-      for (int i = 0; i < size; i++) {
+      for (long i = 0; i < size; i++) {
         if (storage.isNothing(i)) {
           builder.appendNulls(1);
         } else {
           builder.append(doString(storage.getBoxed(i), argString));
         }
-
         context.safepoint();
       }
 
@@ -53,25 +50,23 @@ public abstract class StringStringOp
   }
 
   @Override
-  public Storage<?> runZip(
+  public Storage<String> runZip(
       SpecializedStorage<String> storage,
       Storage<?> arg,
       MapOperationProblemAggregator problemAggregator) {
     if (arg instanceof StringStorage v) {
       TextType newType = computeResultType((TextType) storage.getType(), v.getType());
-      int size = storage.size();
+      long size = storage.getSize();
       var builder = Builder.getForText(size, newType);
       Context context = Context.getCurrent();
-      for (int i = 0; i < size; i++) {
+      for (long i = 0; i < size; i++) {
         if (storage.isNothing(i) || v.isNothing(i)) {
           builder.appendNulls(1);
         } else {
           builder.append(doString(storage.getBoxed(i), v.getBoxed(i)));
         }
-
         context.safepoint();
       }
-
       return builder.seal();
     } else {
       throw new UnexpectedTypeException("a Text column");

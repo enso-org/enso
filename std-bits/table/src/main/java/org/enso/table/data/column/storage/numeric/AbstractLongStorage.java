@@ -122,9 +122,9 @@ public abstract class AbstractLongStorage extends Storage<Long>
         new IntegerType[] {IntegerType.INT_16, IntegerType.INT_32, IntegerType.INT_64};
 
     int currentTypeIdx = 0;
-    int n = size();
+    long n = getSize();
     Context context = Context.getCurrent();
-    for (int i = 0; i < n; i++) {
+    for (long i = 0; i < n; i++) {
       if (isNothing(i)) {
         continue;
       }
@@ -171,13 +171,13 @@ public abstract class AbstractLongStorage extends Storage<Long>
           "Custom missing value semantics are not supported by AbstractLongStorage.");
     }
 
-    int n = size();
+    long n = getSize();
     var builder = Builder.getForLong(IntegerType.INT_64, n, null);
     long previousValue = 0;
     boolean hasPrevious = false;
 
     Context context = Context.getCurrent();
-    for (int i = 0; i < n; i++) {
+    for (long i = 0; i < n; i++) {
       boolean isCurrentNothing = isNothing(i);
       if (isCurrentNothing) {
         if (hasPrevious) {

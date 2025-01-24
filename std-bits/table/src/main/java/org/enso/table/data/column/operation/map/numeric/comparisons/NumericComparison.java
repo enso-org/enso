@@ -159,27 +159,22 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     return builder.seal();
   }
 
-  protected BoolStorage runBigIntegerMap(
+  protected Storage<Boolean> runBigIntegerMap(
       BigIntegerArrayAdapter lhs, BigInteger rhs, MapOperationProblemAggregator problemAggregator) {
     int n = lhs.size();
-    BitSet comparisonResults = new BitSet();
-    BitSet isNothing = new BitSet();
+    var builder = Builder.getForBoolean(n);
     Context context = Context.getCurrent();
     for (int i = 0; i < n; ++i) {
       BigInteger item = lhs.getItem(i);
       if (item == null) {
-        isNothing.set(i);
+        builder.appendNulls(1);
       } else {
         boolean r = doBigInteger(item, rhs);
-        if (r) {
-          comparisonResults.set(i);
-        }
+        builder.appendBoolean(r);
       }
-
       context.safepoint();
     }
-
-    return new BoolStorage(comparisonResults, isNothing, n, false);
+    return builder.seal();
   }
 
   protected Storage<Boolean> runBigDecimalMap(
