@@ -161,6 +161,8 @@ export const Text = memo(
     const textElementRef = React.useRef<HTMLElement>(null)
     const textContext = textProvider.useTextContext()
 
+    console.log('textContext', className)
+
     const textClasses = TEXT_STYLE({
       variant,
       font,
