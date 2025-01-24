@@ -2,11 +2,11 @@
  * @file Breadcrumbs component implementation.
  */
 
+import { useText } from '#/providers/TextProvider'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { createLeafComponent } from '@react-aria/collections'
 import { isValidElement } from 'react'
 import * as aria from 'react-aria-components'
-import { useText } from '../../providers/TextProvider'
 import { Button, Menu, Text, type Addon, type IconProp, type TestIdProps } from '../AriaComponents'
 import { Icon as IconComponent } from '../Icon'
 
@@ -19,8 +19,11 @@ export const BREADCRUMB_ITEM_STYLES = tv({
   },
   variants: {
     isCurrent: {
-      true: 'px-2',
+      true: { link: 'px-2' },
     },
+  },
+  defaultVariants: {
+    isCurrent: false,
   },
 })
 
@@ -85,7 +88,9 @@ export function BreadcrumbItem(props: BreadcrumbItemProps) {
         'download' | 'href' | 'hrefLang' | 'ping' | 'referrerPolicy' | 'rel' | 'target'
       >)
 
-  const styles = variants({ isCurrent })
+  const styles = variants({
+    isCurrent,
+  })
 
   return (
     <aria.Breadcrumb
@@ -159,6 +164,7 @@ interface BreadcrumbCollapsedItemProps<T extends object> {
   readonly items: T[]
   /** The children to render */
   readonly children: (item: T) => React.ReactNode
+  readonly triggerLabel?: string
 }
 
 /**
@@ -169,13 +175,13 @@ interface BreadcrumbCollapsedItemProps<T extends object> {
 export const BreadcrumbCollapsedItem = createLeafComponent(
   'BreadcrumbCollapsedItem',
   function BreadcrumbCollapsedItem<T extends object>(props: BreadcrumbCollapsedItemProps<T>) {
-    const { items, children } = props
-
     const { getText } = useText()
+
+    const { items, children, triggerLabel = getText('more') } = props
 
     return (
       <Menu.Trigger>
-        <Button aria-label={getText('more')} className="aspect-square">
+        <Button aria-label={triggerLabel} className="aspect-square">
           {/* eslint-disable-next-line no-restricted-syntax */}
           <span aria-hidden="true">...</span>
         </Button>
