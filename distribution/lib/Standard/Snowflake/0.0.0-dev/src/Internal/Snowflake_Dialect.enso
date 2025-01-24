@@ -36,6 +36,7 @@ import Standard.Database.Internal.IR.Query.Query
 import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
 import Standard.Database.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import Standard.Database.Internal.Replace_Params.Replace_Params
+import Standard.Database.Internal.SQL_Part.SQL_Part
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.Internal.Statement_Setter.Statement_Setter
