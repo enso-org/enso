@@ -95,7 +95,7 @@ object DistributionPackage {
     }
   }
 
-  def executableName(baseName: String): String =
+  private def executableName(baseName: String): String =
     if (Platform.isWindows) baseName + ".exe" else baseName
 
   private def batOrExeName(baseName: String): String =
@@ -249,11 +249,12 @@ object DistributionPackage {
     ) { diff =>
       if (diff.modified.nonEmpty) {
         log.info(s"Generating index for $libName ")
-        val pathToExecute: String =
-          Platform.executableFile(ensoExecutable.getAbsoluteFile)
+        val fileToExecute = new File(
+          ensoExecutable.getParentFile,
+          batOrExeName(ensoExecutable.getName)
+        )
 
         def assertExecutable(when: String) = {
-          val fileToExecute: File = new File(pathToExecute)
           if (!fileToExecute.canExecute()) {
             log.warn(s"Not an executable file ${fileToExecute} $when")
             var dir = fileToExecute
@@ -273,7 +274,7 @@ object DistributionPackage {
         }
         assertExecutable("before launching")
         val command = Seq(
-          pathToExecute,
+          fileToExecute.getAbsolutePath,
           "--no-compile-dependencies",
           "--no-global-cache",
           "--compile",
