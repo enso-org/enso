@@ -2401,6 +2401,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`runtime-suggestions` / Compile / exportedModule).value,
       (`runtime-parser` / Compile / exportedModule).value,
       (`runtime-compiler` / Compile / exportedModule).value,
+      (`runtime-compiler-dump` / Compile / exportedModule).value,
       (`polyglot-api` / Compile / exportedModule).value,
       (`polyglot-api-macros` / Compile / exportedModule).value,
       (`pkg` / Compile / exportedModule).value,
