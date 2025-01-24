@@ -2701,9 +2701,9 @@ run_vectorized_binary_op column name operand new_name=Nothing fallback_fn=Nothin
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
         storage_type = resolve_storage_type expected_result_type
         case operand of
-            Column.Value col2 ->
+            operand_column : Column ->
                 s1 = column.java_column.getStorage
-                s2 = col2.getStorage
+                s2 = operand_column.java_column.getStorage
                 rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                     s1.vectorizedOrFallbackZip name problem_builder fallback_fn s2 skip_nulls storage_type
                 Column.from_storage effective_new_name rs
@@ -2794,9 +2794,9 @@ run_vectorized_binary_op_with_fallback_problem_handling column name operand fall
             _ -> fallback_fn problem_builder
         storage_type = resolve_storage_type expected_result_type
         case operand of
-            Column.Value col2 ->
+            operand_column : Column ->
                 s1 = column.java_column.getStorage
-                s2 = col2.getStorage
+                s2 = operand_column.java_column.getStorage
                 rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                     s1.vectorizedOrFallbackZip name problem_builder applied_fn s2 skip_nulls storage_type
                 Column.from_storage new_name rs
