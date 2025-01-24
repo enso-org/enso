@@ -31,33 +31,6 @@ function locateRootDirectoryDropzone(page: Page) {
 
 const PASS_TIMEOUT = 5_000
 
-test('extra columns should stick to right side of assets table', ({ page }) =>
-  mockAllAndLogin({ page })
-    .withAssetsTable(async (table) => {
-      await table.evaluate((element) => {
-        let scrollableParent: HTMLElement | SVGElement | null = element
-        while (
-          scrollableParent != null &&
-          scrollableParent.scrollWidth <= scrollableParent.clientWidth
-        ) {
-          scrollableParent = scrollableParent.parentElement
-        }
-        scrollableParent?.scrollTo({ left: 999999, behavior: 'instant' })
-      })
-    })
-    .withAssetsTable(async (assetsTable, _, thePage) => {
-      const extraColumns = locateExtraColumns(thePage)
-      await expect(async () => {
-        const extraColumnsRight = await extraColumns.evaluate(
-          (element) => element.getBoundingClientRect().right,
-        )
-        const assetsTableRight = await assetsTable.evaluate(
-          (element) => element.getBoundingClientRect().right,
-        )
-        expect(extraColumnsRight).toEqual(assetsTableRight - 8)
-      }).toPass({ timeout: PASS_TIMEOUT })
-    }))
-
 test('extra columns should stick to top of scroll container', ({ page }) =>
   mockAllAndLogin({
     page,

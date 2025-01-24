@@ -1,5 +1,6 @@
 /** @file Type definitions common between all backends. */
 
+import type { TextId } from '../text'
 import * as array from '../utilities/data/array'
 import * as dateTime from '../utilities/data/dateTime'
 import * as newtype from '../utilities/data/newtype'
@@ -78,6 +79,10 @@ export const SecretId = newtype.newtypeConstructor<SecretId>()
 /** Unique identifier for a project session. */
 export type ProjectSessionId = newtype.Newtype<string, 'ProjectSessionId'>
 export const ProjectSessionId = newtype.newtypeConstructor<ProjectSessionId>()
+
+/** Unique identifier for a project execution. */
+export type ProjectExecutionId = newtype.Newtype<string, 'ProjectExecutionId'>
+export const ProjectExecutionId = newtype.newtypeConstructor<ProjectExecutionId>()
 
 /** Unique identifier for a Datalink. */
 export type DatalinkId = newtype.Newtype<string, 'DatalinkId'>
@@ -196,9 +201,27 @@ export interface User extends UserInfo {
   readonly isOrganizationAdmin: boolean
   readonly rootDirectoryId: DirectoryId
   readonly profilePicture?: HttpsUrl
+  /**
+   * Contains the IDs of the user groups that the user is a member of.
+   * @deprecated Use `groups` instead.
+   */
   readonly userGroups: readonly UserGroupId[] | null
   readonly removeAt?: dateTime.Rfc3339DateTime | null
   readonly plan?: Plan | undefined
+  /**
+   * Contains the user groups that the user is a member of.
+   * Has enriched metadata, like the name of the group and the home directory ID.
+   */
+  readonly groups?: readonly UserGroup[]
+  /** Whether the user is a member of the Enso team. */
+  readonly isEnsoTeamMember: boolean
+}
+
+/** A user related to the current user. */
+export interface UserGroup {
+  readonly id: UserGroupId
+  readonly name: string
+  readonly homeDirectoryId: DirectoryId
 }
 
 /** A `Directory` returned by `createDirectory`. */
@@ -327,6 +350,127 @@ export interface ProjectSession {
   readonly createdAt: dateTime.Rfc3339DateTime
   readonly closedAt?: dateTime.Rfc3339DateTime
   readonly userEmail: EmailAddress
+}
+
+export const PROJECT_PARALLEL_MODES = ['ignore', 'restart', 'parallel'] as const
+
+export const PARALLEL_MODE_TO_TEXT_ID = {
+  ignore: 'ignoreParallelMode',
+  restart: 'restartParallelMode',
+  parallel: 'parallelParallelMode',
+} satisfies {
+  [K in ProjectParallelMode]: TextId & `${K}ParallelMode`
+}
+
+export const PARALLEL_MODE_TO_DESCRIPTION_ID = {
+  ignore: 'ignoreParallelModeDescription',
+  restart: 'restartParallelModeDescription',
+  parallel: 'parallelParallelModeDescription',
+} satisfies {
+  [K in ProjectParallelMode]: TextId & `${K}ParallelModeDescription`
+}
+
+/**
+ * The behavior when manually starting a new execution when the previous one is not yet complete.
+ * One of the following:
+ * - `ignore` - do not start the new execution.
+ * - `restart` - stop the old execution and start the new execution.
+ * - `parallel` - keep the old execution running but also run the new execution.
+ */
+export type ProjectParallelMode = (typeof PROJECT_PARALLEL_MODES)[number]
+
+export const PROJECT_EXECUTION_REPEAT_TYPES = [
+  'none',
+  'hourly',
+  'daily',
+  'monthly-date',
+  'monthly-weekday',
+  'monthly-last-weekday',
+] as const
+
+export const PROJECT_EXECUTION_REPEAT_TYPE_TO_TEXT_ID = {
+  none: 'noneProjectExecutionRepeatType',
+  hourly: 'hourlyProjectExecutionRepeatType',
+  daily: 'dailyProjectExecutionRepeatType',
+  'monthly-date': 'monthlyProjectExecutionRepeatType',
+  'monthly-weekday': 'monthlyProjectExecutionRepeatType',
+  'monthly-last-weekday': 'monthlyProjectExecutionRepeatType',
+} satisfies {
+  readonly [K in ProjectExecutionRepeatType]: TextId & `${string}ProjectExecutionRepeatType`
+}
+
+/** The interval at which a project schedule repeats. */
+export type ProjectExecutionRepeatType = ProjectExecutionRepeatInfo['type']
+
+/** Details for a project execution that repeats hourly. */
+export interface ProjectExecutionNoneRepeatInfo {
+  readonly type: 'none'
+}
+
+/** Details for a project execution that repeats hourly. */
+export interface ProjectExecutionHourlyRepeatInfo {
+  readonly type: 'hourly'
+  readonly startHour: number
+  readonly endHour: number
+}
+
+/** Details for a project execution that repeats daily. */
+export interface ProjectExecutionDailyRepeatInfo {
+  readonly type: 'daily'
+  readonly daysOfWeek: readonly number[]
+}
+
+/** Details for a project execution that repeats monthly on a specific date. */
+export interface ProjectExecutionMonthlyDateRepeatInfo {
+  readonly type: 'monthly-date'
+  readonly date: number
+  readonly months: readonly number[]
+}
+
+/**
+ * Details for a project execution that repeats monthly on a specific weekday of a specific week
+ * of a specific month.
+ */
+export interface ProjectExecutionMonthlyWeekdayRepeatInfo {
+  readonly type: 'monthly-weekday'
+  readonly weekNumber: number
+  readonly dayOfWeek: number
+  readonly months: readonly number[]
+}
+
+/**
+ * Details for a project execution that repeats monthly on a specific weekday of the last week
+ * of a specific month.
+ */
+export interface ProjectExecutionMonthlyLastWeekdayRepeatInfo {
+  readonly type: 'monthly-last-weekday'
+  readonly dayOfWeek: number
+  readonly months: readonly number[]
+}
+
+export type ProjectExecutionRepeatInfo =
+  | ProjectExecutionHourlyRepeatInfo
+  | ProjectExecutionDailyRepeatInfo
+  | ProjectExecutionMonthlyDateRepeatInfo
+  | ProjectExecutionMonthlyWeekdayRepeatInfo
+  | ProjectExecutionMonthlyLastWeekdayRepeatInfo
+  | ProjectExecutionNoneRepeatInfo
+
+/** Metadata for a {@link ProjectExecution}. */
+export interface ProjectExecutionInfo {
+  readonly projectId: ProjectId
+  readonly timeZone: string
+  readonly repeat: ProjectExecutionRepeatInfo
+  readonly parallelMode: ProjectParallelMode
+  readonly maxDurationMinutes: number
+  readonly startDate: dateTime.Rfc3339DateTime
+}
+
+/** A specific execution schedule of a project. */
+export interface ProjectExecution extends ProjectExecutionInfo {
+  readonly enabled: boolean
+  readonly executionId: ProjectExecutionId
+  readonly versionId: S3ObjectVersionId
 }
 
 /** Metadata describing the location of an uploaded file. */
@@ -488,7 +632,7 @@ export interface UserPermission {
 
 /** User permission for a specific user group. */
 export interface UserGroupPermission {
-  readonly userGroup: UserGroupInfo
+  readonly userGroup: UserGroup
   readonly permission: permissions.PermissionAction
 }
 
@@ -544,7 +688,7 @@ export function isUserGroupPermissionAnd(predicate: (permission: UserGroupPermis
 
 /** Get the property representing the name on an arbitrary variant of {@link UserPermission}. */
 export function getAssetPermissionName(permission: AssetPermission) {
-  return isUserPermission(permission) ? permission.user.name : permission.userGroup.groupName
+  return isUserPermission(permission) ? permission.user.name : permission.userGroup.name
 }
 
 /** Get the property representing the id on an arbitrary variant of {@link UserPermission}. */
@@ -652,19 +796,19 @@ export const COLORS = [
   { lightness: 50, chroma: 66, hue: 34 },
   // Yellow
   { lightness: 50, chroma: 66, hue: 80 },
-  // Turquoise
+  // Green
   { lightness: 50, chroma: 66, hue: 139 },
   // Teal
   { lightness: 50, chroma: 66, hue: 172 },
   // Blue
   { lightness: 50, chroma: 66, hue: 271 },
-  // Lavender
+  // Purple
   { lightness: 50, chroma: 66, hue: 295 },
   // Pink
   { lightness: 50, chroma: 66, hue: 332 },
-  // Light blue
+  // Light blueish grey
   { lightness: 50, chroma: 22, hue: 252 },
-  // Dark blue
+  // Dark blueish grey
   { lightness: 22, chroma: 13, hue: 252 },
 ] as const satisfies LChColor[]
 
@@ -1170,8 +1314,8 @@ export function compareAssetPermissions(a: AssetPermission, b: AssetPermission) 
   } else {
     // NOTE [NP]: Although `userId` is unique, and therefore sufficient to sort permissions, sort
     // name first, so that it's easier to find a permission in a long list (i.e., for readability).
-    const aName = 'user' in a ? a.user.name : a.userGroup.groupName
-    const bName = 'user' in b ? b.user.name : b.userGroup.groupName
+    const aName = 'user' in a ? a.user.name : a.userGroup.name
+    const bName = 'user' in b ? b.user.name : b.userGroup.name
     const aUserId = 'user' in a ? a.user.userId : a.userGroup.id
     const bUserId = 'user' in b ? b.user.userId : b.userGroup.id
     return (
@@ -1291,6 +1435,14 @@ export interface OpenProjectRequestBody {
   readonly cognitoCredentials: CognitoCredentials | null
   /** Only used by the Local backend. */
   readonly parentId: DirectoryId
+}
+
+/** HTTP request body for the "create project execution" endpoint. */
+export interface CreateProjectExecutionRequestBody extends ProjectExecutionInfo {}
+
+/** HTTP request body for the "update project execution" endpoint. */
+export interface UpdateProjectExecutionRequestBody {
+  readonly enabled?: boolean | undefined
 }
 
 /** HTTP request body for the "create secret" endpoint. */
@@ -1668,11 +1820,35 @@ export default abstract class Backend {
   abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */
   abstract closeProject(projectId: ProjectId, title: string): Promise<void>
-  /** Return a list of sessions for the current project. */
+  /** Return a list of sessions for a project. */
   abstract listProjectSessions(
     projectId: ProjectId,
     title: string,
   ): Promise<readonly ProjectSession[]>
+  /** Create a project execution. */
+  abstract createProjectExecution(
+    body: CreateProjectExecutionRequestBody,
+    title: string,
+  ): Promise<ProjectExecution>
+  abstract updateProjectExecution(
+    executionId: ProjectExecutionId,
+    body: UpdateProjectExecutionRequestBody,
+    projectTitle: string,
+  ): Promise<ProjectExecution>
+  /** Delete a project execution. */
+  abstract deleteProjectExecution(
+    executionId: ProjectExecutionId,
+    projectTitle: string,
+  ): Promise<void>
+  /** Return a list of executions for a project. */
+  abstract listProjectExecutions(
+    projectId: ProjectId,
+    title: string,
+  ): Promise<readonly ProjectExecution[]>
+  abstract syncProjectExecution(
+    executionId: ProjectExecutionId,
+    projectTitle: string,
+  ): Promise<ProjectExecution>
   /** Restore a project from a different version. */
   abstract restoreProject(
     projectId: ProjectId,

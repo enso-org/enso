@@ -1,0 +1,92 @@
+private
+
+import project.Any.Any
+import project.Data.Text.Text
+import project.Function.Function
+import project.Meta
+import project.Internal.Meta_Helpers
+import project.Data.Vector.Vector
+import project.Nothing.Nothing
+import project.Runtime.Managed_Resource.Managed_Resource
+
+## PRIVATE
+   ADVANCED
+
+   Builder to create instrumentation for a function
+type Instrumentor
+    private Value impl
+
+    ## PRIVATE
+       ADVANCED
+
+       Registers callback to be executed at the begining of node/expression
+       execution. The callback `fn` gets UUID of the node/expression that is
+       being executed and can return `Nothing` to continue regular execution
+       or anything else to skip the execution and just return given value.
+
+       Arguments:
+       - fn: The callback function accepting UUID.
+    on_enter self (fn : Text -> Any | Nothing) =
+        new = Meta_Helpers.instrumentor_builtin "onEnter" [ self.impl, fn ]
+        Instrumentor.Value new
+
+    ## PRIVATE
+       ADVANCED
+
+       Registers callback to be executed when a node/expression evaluation
+       is over. The callback `fn` gets UUID and the computed value (or value
+       of `expression` if specified). Usually
+       the value is _cached_ and returned from `on_enter` callback next time
+       the same expression is evaluated.
+
+       > Example
+         Specify `expression` to _"inline evaluate"_ it.
+            see_a_b uuid:Text ~result =
+              if uuid == "expected-uuid" then
+                IO.println "evalutated to "+result.to_text
+
+            Meta.meta .fn . instrument . on_return fn=see_a_b expression="a+b" . activate
+
+       Arguments:
+       - fn: The callback function accepting UUID and computed value
+       - expression: Expression to evaluate on_return - by default Nothing -
+         e.g. to provide the return value of the function
+    on_return self (fn : Text -> Any -> Nothing) expression:(Text | Nothing)=Nothing =
+        new = Meta_Helpers.instrumentor_builtin "onReturn" [ self.impl, fn, expression ]
+        Instrumentor.Value new
+
+    ## PRIVATE
+       ADVANCED
+
+       Registers callback to be executed when a node/expression representing function is about to be called.
+       The callback `fn` shall accept three arguments. The UUID to identify the expression, the function to be
+       invoked and the arguments to pass to the function. The callback can return `Nothing`
+       (in such case the function gets executed with provided arguments) or some other value,
+       which is then returned instead of calling the function.
+
+       Arguments:
+       - fn: The callback function accepting UUID and function value
+    on_call self (fn : Text -> Function -> Vector Any -> Any | Nothing) =
+        new = Meta_Helpers.instrumentor_builtin "onCall" [ self.impl, fn ]
+        Instrumentor.Value new
+
+    ## PRIVATE
+       ADVANCED
+
+       Activates configured instrumentor. Returns managed resource to
+       deactivate the instrumentor later.
+
+       Arguments:
+       - value: The value of the atom in the meta representation.
+    activate self =
+        finalize_instrumentor impl = Meta_Helpers.instrumentor_builtin "deactivate" [ impl ]
+        create action = (Meta_Helpers.instrumentor_builtin action [ self.impl, finalize_instrumentor ]) : Managed_Resource
+        create "activate"
+
+
+## ADVANCED
+   GROUP Metadata
+   ICON metadata
+
+   Starts building an instrumentation for a given node
+Meta.Unresolved_Symbol.instrument self -> Instrumentor = Instrumentor.Value (Meta_Helpers.instrumentor_builtin "newBuilder" [ self.impl ])

@@ -38,22 +38,22 @@
             user-scalable = no"
     />
     <title>Enso %ENSO_IDE_VERSION%</title>
-
     <script type="module">
-      import { platform } from '../common/src/detect.ts'
+      import { platform } from 'enso-common/src/detect'
 
-      const currentPlatform = platform()
-
-      document.documentElement.setAttribute('data-version', '%ENSO_IDE_VERSION%')
-      document.documentElement.classList.add(currentPlatform.toLowerCase())
+      document.documentElement.classList.add(platform().toLowerCase())
     </script>
   </head>
+
   <body>
     <div id="enso-spotlight" class="enso-spotlight"></div>
     <div id="enso-app" class="enso-app"></div>
     <div id="enso-chat" class="enso-chat"></div>
     <div id="enso-portal-root" class="enso-portal-root"></div>
+
+    <script type="module" src="/src/config.ts"></script>
     <script type="module" src="/src/entrypoint.ts"></script>
+
     <noscript> This page requires JavaScript to run. Please enable it in your browser. </noscript>
   </body>
 </html>

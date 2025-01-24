@@ -1,16 +1,8 @@
 /** @file A column listing the users with which this asset is shared. */
-import * as React from 'react'
-
-import Plus2Icon from '#/assets/plus2.svg'
-import { Button } from '#/components/AriaComponents'
 import type { AssetColumnProps } from '#/components/dashboard/column'
 import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
-import { useRemoveSelfPermissionMutation } from '#/hooks/backendHooks'
-import ManagePermissionsModal from '#/modals/ManagePermissionsModal'
-import { useFullUserSession } from '#/providers/AuthProvider'
-import { useSetModal } from '#/providers/ModalProvider'
 import { getAssetPermissionId, getAssetPermissionName } from '#/services/Backend'
-import { PermissionAction, tryFindSelfPermission } from '#/utilities/permissions'
+import { PermissionAction } from '#/utilities/permissions'
 
 // ========================
 // === SharedWithColumn ===
@@ -30,21 +22,10 @@ interface SharedWithColumnPropsInternal extends Pick<AssetColumnProps, 'item'> {
 
 /** A column listing the users with which this asset is shared. */
 export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
-  const { item, state, isReadonly = false } = props
-  const { backend, category, setQuery } = state
-
-  const { user } = useFullUserSession()
-
-  const removeSelfPermissionMutation = useRemoveSelfPermissionMutation(backend)
+  const { item, state } = props
+  const { category, setQuery } = state
 
   const assetPermissions = item.permissions ?? []
-  const { setModal } = useSetModal()
-  const self = tryFindSelfPermission(user, item.permissions)
-  const plusButtonRef = React.useRef<HTMLButtonElement>(null)
-  const managesThisAsset =
-    !isReadonly &&
-    category.type !== 'trash' &&
-    (self?.permission === PermissionAction.own || self?.permission === PermissionAction.admin)
 
   return (
     <div className="group flex items-center gap-column-items [content-visibility:auto]">
@@ -73,29 +54,6 @@ export default function SharedWithColumn(props: SharedWithColumnPropsInternal) {
           {getAssetPermissionName(other)}
         </PermissionDisplay>
       ))}
-      {managesThisAsset && (
-        <Button
-          ref={plusButtonRef}
-          size="medium"
-          variant="ghost"
-          icon={Plus2Icon}
-          showIconOnHover
-          onPress={() => {
-            setModal(
-              <ManagePermissionsModal
-                backend={backend}
-                category={category}
-                item={item}
-                self={self}
-                eventTarget={plusButtonRef.current}
-                doRemoveSelf={() => {
-                  removeSelfPermissionMutation.mutate(item.id)
-                }}
-              />,
-            )
-          }}
-        />
-      )}
     </div>
   )
 }

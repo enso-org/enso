@@ -11,14 +11,14 @@ polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
 Table.should_equal : Any -> Integer -> Any
 Table.should_equal self expected frames_to_skip=0 =
-    loc = Meta.get_source_location 1+frames_to_skip
+    loc = Test.get_source_location 1+frames_to_skip
     rhs_error_check expected
     Panic.catch Test_Failure_Error (table_should_equal_impl self expected loc) error->
         Test.fail error.payload.message
 
 Column.should_equal : Any -> Integer -> Any
 Column.should_equal self expected frames_to_skip=0 =
-    loc = Meta.get_source_location 1+frames_to_skip
+    loc = Test.get_source_location 1+frames_to_skip
     rhs_error_check expected
     Panic.catch Test_Failure_Error (column_should_equal_impl self expected loc) error->
         Test.fail error.payload.message
@@ -111,7 +111,7 @@ set_writable file writable =
    For example, if `example` is `[[1, 2], [3]]`, then both `[1, 2, 3]` and
    `[2, 1, 3]` will be accepted, but `[2, 3, 1]` will be rejected.
 Any.should_have_relative_ordering self (example : Vector) =
-    loc = Meta.get_source_location 1
+    loc = Test.get_source_location 1
     case self of
         _ : Vector ->
             example.each v-> case v of
@@ -144,7 +144,7 @@ Any.should_have_relative_ordering self (example : Vector) =
 ## PRIVATE
    See `Any.should_have_relative_ordering`.
 Error.should_have_relative_ordering self example =
-    loc = Meta.get_source_location 1
+    loc = Test.get_source_location 1
     _ = example
     Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+loc+")."
 

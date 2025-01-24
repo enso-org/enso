@@ -189,7 +189,7 @@ public final class BoolStorage extends Storage<Boolean>
     BitSet newVals = new BitSet();
     for (int i = 0; i < mask.length(); i++) {
       int position = mask.get(i);
-      if (position == Storage.NOT_FOUND_INDEX || isNothing.get(position)) {
+      if (position == OrderMask.NOT_FOUND_INDEX || isNothing.get(position)) {
         newNa.set(i);
       } else if (values.get(position)) {
         newVals.set(i);
@@ -215,7 +215,7 @@ public final class BoolStorage extends Storage<Boolean>
     Builder builder = Builder.getForType(resultStorageType, size, problemAggregator);
     for (int i = 0; i < size; i++) {
       if (isNothing.get(i)) {
-        builder.append(null);
+        builder.appendNulls(1);
       } else if (getItem(i)) {
         builder.append(on_true.apply(i));
       } else {

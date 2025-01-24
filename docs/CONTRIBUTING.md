@@ -188,6 +188,33 @@ helper tools for that. We recommend:
 - [Jenv](http://www.jenv.be/)
 - or [sdkman](https://sdkman.io/)
 
+**On Windows**: you need a few additional requirements:
+
+1. `Developer Mode` must be enabled to support creating filesystem symlinks.
+   E.g., using this instruction:
+   https://pureinfotech.com/enable-developer-mode-windows-11/
+2. You must create either `.bazelrc.local` at repository root, or
+   `%USERPROFILE%\.bazelrc` (consult https://bazel.build/run/bazelrc for more
+   possible locations), containing the following:
+
+```
+# Use different drive letter if needed, but the path must be SHORT
+startup --output_base=C:/_bzl
+common --disk_cache=C:/_bzl-disk
+common --repository_cache=C:/_bzl-repo
+```
+
+3. You need to have `bash.exe` available in `PATH`. `bash.exe` from WSL is
+   **not** suitable so either:
+
+- install MSYS2 (https://www.msys2.org/)
+- or use bash executable provided with Git by adding the following to your
+  `PATH` variable: `C:\Program Files\Git\bin`, if you have it installed.
+- or configure Git installation selecting the third option:
+  ![Git installation settings](https://github.com/user-attachments/assets/def189fa-985b-47f3-8c8b-153c0f39fa26)
+- or have `BAZEL_SH` environment variable set to exact path to `bash.exe`,
+  whatever way you have it installed.
+
 **For users of M1 Mac**: installing GraalVM on M1 Mac requires manual actions,
 please refer to a [dedicated documentation](./graalvm-m1-mac.md).
 

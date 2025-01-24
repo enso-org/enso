@@ -58,8 +58,10 @@ public abstract class Atom extends EnsoObject {
    * Creates a new Atom for a given constructor.
    *
    * @param constructor the Atom's constructor
+   * @param skipCheck don't assert whether the arity is non-zero
    */
-  Atom(AtomConstructor constructor) {
+  Atom(AtomConstructor constructor, boolean skipCheck) {
+    assert skipCheck || constructor.getArity() != 0;
     this.constructor = constructor;
   }
 
@@ -451,6 +453,6 @@ public abstract class Atom extends EnsoObject {
   }
 
   private boolean hasProjectPrivateConstructor() {
-    return constructor.getType().isProjectPrivate();
+    return constructor.getType().hasAllConstructorsPrivate();
   }
 }

@@ -695,7 +695,10 @@ public final class Module extends EnsoObject {
     }
 
     private static Object generateDocs(Module module, EnsoContext context) {
-      return context.getCompiler().generateDocs(module.asCompilerModule());
+      var compilerModule = module.asCompilerModule();
+      var res = context.getCompiler().generateDocs(compilerModule);
+      assert res == compilerModule;
+      return module;
     }
 
     @CompilerDirectives.TruffleBoundary

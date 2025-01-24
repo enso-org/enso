@@ -5,15 +5,16 @@ import type { WidgetUpdate } from '@/providers/widgetRegistry'
 import { GraphDb, nodeIdFromOuterAst, type NodeId } from '@/stores/graph/graphDatabase'
 import {
   addImports,
+  analyzeImports,
   detectImportConflicts,
   filterOutRedundantImports,
-  readImports,
+  type AbstractImport,
   type DetectedConflict,
-  type Import,
   type RequiredImport,
 } from '@/stores/graph/imports'
 import { useUnconnectedEdges, type UnconnectedEdge } from '@/stores/graph/unconnectedEdges'
 import { type ProjectStore } from '@/stores/project'
+import { type ProjectNameStore } from '@/stores/projectNames'
 import { type SuggestionDbStore } from '@/stores/suggestionDatabase'
 import { assert, assertDefined, assertNever, bail } from '@/util/assert'
 import { Ast } from '@/util/ast'
@@ -23,9 +24,9 @@ import { reactiveModule } from '@/util/ast/reactive'
 import { partition } from '@/util/data/array'
 import { stringUnionToArray, type Events } from '@/util/data/observable'
 import { Rect } from '@/util/data/rect'
-import { andThen, Err, mapOk, Ok, unwrap, type Result } from '@/util/data/result'
+import { andThen, Err, Ok, unwrap, type Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
-import { normalizeQualifiedName, tryQualifiedName } from '@/util/qualifiedName'
+import { type MethodPointer } from '@/util/methodPointer'
 import { useWatchContext } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
@@ -45,11 +46,7 @@ import {
   type ShallowRef,
 } from 'vue'
 import { SourceDocument } from 'ydoc-shared/ast/sourceDocument'
-import type {
-  ExpressionUpdate,
-  Path as LsPath,
-  MethodPointer,
-} from 'ydoc-shared/languageServerTypes'
+import type { ExpressionUpdate, Path as LsPath } from 'ydoc-shared/languageServerTypes'
 import { reachable } from 'ydoc-shared/util/data/graph'
 import type { LocalUserActionOrigin, Origin, VisualizationMetadata } from 'ydoc-shared/yjsModel'
 import { defaultLocalOrigin, visMetadataEquals } from 'ydoc-shared/yjsModel'
@@ -84,7 +81,7 @@ export class PortViewInstance {
 export type GraphStore = ReturnType<typeof useGraphStore>
 export const [provideGraphStore, useGraphStore] = createContextStore(
   'graph',
-  (proj: ProjectStore, suggestionDb: SuggestionDbStore) => {
+  (proj: ProjectStore, suggestionDb: SuggestionDbStore, projectNames: ProjectNameStore) => {
     proj.setObservedFileName('Main.enso')
 
     const nodeRects = reactive(new Map<NodeId, Rect>())
@@ -104,6 +101,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       suggestionDb.entries,
       toRef(suggestionDb, 'groups'),
       proj.computedValueRegistry,
+      projectNames,
     )
     const portInstances = shallowReactive(new Map<PortId, Set<PortViewInstance>>())
     const editedNodeInfo = ref<NodeEditInfo>()
@@ -149,6 +147,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
     const lastKnownResolvedMethodAstId = ref<AstId>()
     watch(immediateMethodAst, (ast) => {
       if (ast.ok) lastKnownResolvedMethodAstId.value = ast.value.id
+      else console.log('immediateMethodAst', ast.error)
     })
 
     const fallbackMethodAst = computed(() => {
@@ -215,21 +214,13 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       const topLevel = (edit ?? syncModule.value)?.root()
       if (!topLevel) return Err('Module unavailable')
       assert(topLevel instanceof Ast.BodyBlock)
-      const modulePath =
-        proj.modulePath ?
-          mapOk(proj.modulePath, normalizeQualifiedName)
-        : Err('Unknown current module name')
-      if (!modulePath?.ok) return modulePath
-      const ptrModule = mapOk(tryQualifiedName(ptr.module), normalizeQualifiedName)
-      const ptrDefinedOnType = mapOk(tryQualifiedName(ptr.definedOnType), normalizeQualifiedName)
-      if (!ptrModule.ok) return ptrModule
-      if (!ptrDefinedOnType.ok) return ptrDefinedOnType
-      if (ptrModule.value !== modulePath.value)
+      if (!proj.moduleProjectPath?.ok)
+        return proj.moduleProjectPath ?? Err('Unknown module project path')
+      if (!ptr.module.equals(proj.moduleProjectPath.value))
         return Err('Cannot read method from different module')
-      if (ptrModule.value !== ptrDefinedOnType.value)
-        return Err('Method pointer is not a module method')
+      if (!ptr.module.equals(ptr.definedOnType)) return Err('Method pointer is not a module method')
       const method = Ast.findModuleMethod(topLevel, ptr.name)
-      if (!method) return Err(`No method with name ${ptr.name} in ${modulePath.value}`)
+      if (!method) return Err(`No method with name ${ptr.name} in ${proj.moduleProjectPath.value}`)
       return Ok(method.statement)
     }
 
@@ -285,7 +276,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
         return
       }
       const topLevel = edit.getVersion(moduleRoot.value)
-      const existingImports = readImports(topLevel)
+      const existingImports = analyzeImports(topLevel, projectNames)
 
       const conflicts = []
       const nonConflictingImports = []
@@ -307,7 +298,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
     function addMissingImportsDisregardConflicts(
       edit: MutableModule,
       imports: RequiredImport[],
-      existingImports?: Import[] | undefined,
+      existingImports?: AbstractImport[] | undefined,
     ) {
       if (!imports.length) return
       if (!moduleRoot.value) {
@@ -315,11 +306,11 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
         return
       }
       const topLevel = edit.getVersion(moduleRoot.value)
-      const existingImports_ = existingImports ?? readImports(topLevel)
+      const existingImports_ = existingImports ?? analyzeImports(topLevel, projectNames)
 
       const importsToAdd = filterOutRedundantImports(existingImports_, imports)
       if (!importsToAdd.length) return
-      addImports(edit.getVersion(topLevel), importsToAdd)
+      addImports(edit.getVersion(topLevel), importsToAdd, projectNames)
     }
 
     function deleteNodes(ids: Iterable<NodeId>) {
@@ -769,13 +760,9 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
     }
 
     function nodeCanBeEntered(id: NodeId): boolean {
-      if (!proj.modulePath?.ok) return false
-
-      const expressionInfo = db.getExpressionInfo(id)
-      if (expressionInfo?.methodCall == null) return false
-
-      const definedOnType = tryQualifiedName(expressionInfo.methodCall.methodPointer.definedOnType)
-      if (definedOnType.ok && definedOnType.value !== proj.modulePath.value) {
+      const methodCall = db.getExpressionInfo(id)?.methodCall
+      if (!methodCall || !proj.moduleProjectPath?.ok) return false
+      if (!methodCall.methodPointer.definedOnType.equals(proj.moduleProjectPath.value)) {
         // Cannot enter node that is not defined on current module.
         // TODO: Support entering nodes in other modules within the same project.
         return false

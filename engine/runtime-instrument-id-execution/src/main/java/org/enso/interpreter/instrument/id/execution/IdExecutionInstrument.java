@@ -35,7 +35,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
@@ -268,10 +267,10 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       public void onReturnExceptional(VirtualFrame frame, Throwable exception) {
         if (exception instanceof TailCallException) {
           onTailCallReturn(exception, Function.ArgumentsHelper.getState(frame.getArguments()));
-        } else if (exception instanceof PanicException panicException) {
-          onReturnValue(frame, new PanicSentinel(panicException, context.getInstrumentedNode()));
-        } else if (exception instanceof AbstractTruffleException) {
+        } else if (exception instanceof PanicSentinel) {
           onReturnValue(frame, exception);
+        } else if (exception instanceof AbstractTruffleException ex) {
+          onReturnValue(frame, new PanicSentinel(ex, context.getInstrumentedNode()));
         }
       }
 

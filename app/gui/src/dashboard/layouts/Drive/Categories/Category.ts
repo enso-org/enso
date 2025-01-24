@@ -16,8 +16,8 @@ import {
   type DirectoryId,
   type Path,
   type User,
+  type UserGroup,
   type UserGroupId,
-  type UserGroupInfo,
 } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
 
@@ -72,7 +72,7 @@ export const TEAM_CATEGORY_SCHEMA = z
   .object({
     type: z.literal('team'),
     id: z.custom<UserGroupId>(() => true),
-    team: z.custom<UserGroupInfo>(() => true),
+    team: z.custom<UserGroup>(() => true),
     rootPath: PATH_SCHEMA,
     homeDirectoryId: DIRECTORY_ID_SCHEMA,
   })
