@@ -128,7 +128,7 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
                 + ". This is a bug in the Table library.");
       }
     } else if (storage.getType() instanceof NullType) {
-      appendNulls(storage.size());
+      appendNulls(Math.toIntExact(storage.getSize()));
     } else {
       throw new StorageTypeMismatchException(getType(), storage.getType());
     }

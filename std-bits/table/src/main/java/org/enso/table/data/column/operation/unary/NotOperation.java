@@ -22,8 +22,6 @@ public class NotOperation extends AbstractUnaryBooleanOperation {
   @Override
   public boolean canApply(ColumnStorage<?> storage) {
     return storage.getType() instanceof BooleanType || storage.getType() instanceof NullType;
-  public boolean canApply(ColumnStorage storage) {
-    return storage.getType() instanceof BooleanType || storage.getType() instanceof NullType;
   }
 
   @Override

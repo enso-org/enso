@@ -37,7 +37,7 @@ public class CountUntrimmed {
     if (sampleSize < size) {
       var rng = new Random(RANDOM_SEED);
       for (int i = 0; i < sampleSize; i++) {
-        long idx = rng.nextInt(Math.toIntExact(size));
+        long idx = rng.nextLong(size);
         var val = storage.getBoxed(idx);
         if (val instanceof String str && Text_Utils.has_leading_trailing_whitespace(str)) {
           count++;

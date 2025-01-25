@@ -230,7 +230,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
     Context context = Context.getCurrent();
     for (int i = 0; i < mask.length(); i++) {
       int position = mask.get(i);
-      if (position == Storage.NOT_FOUND_INDEX || isNothing(position)) {
+      if (position == OrderMask.NOT_FOUND_INDEX || isNothing(position)) {
         builder.appendNulls(1);
       } else {
         builder.appendLong(getPrimitive(position));

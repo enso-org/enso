@@ -37,7 +37,7 @@ public class ObjectBuilder extends TypedBuilder<Object> {
       System.arraycopy(specializedStorage.getData(), 0, data, currentSize, toCopy);
       currentSize += toCopy;
     } else if (storage.getType() instanceof NullType) {
-      appendNulls(storage.size());
+      appendNulls(Math.toIntExact(storage.getSize()));
     } else {
       long n = storage.getSize();
       for (long i = 0; i < n; i++) {

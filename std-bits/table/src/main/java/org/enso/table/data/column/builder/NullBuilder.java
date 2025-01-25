@@ -28,15 +28,15 @@ public final class NullBuilder implements Builder {
   public void appendBulkStorage(Storage<?> storage) {
     // For any storage that is not all-null, check if non-null values are present
     if (!(storage.getType() instanceof NullType)) {
-      for (int i = 0; i < storage.size(); i++) {
+      for (long i = 0; i < storage.getSize(); i++) {
         if (!storage.isNothing(i)) {
           throw new IllegalArgumentException(
-              "NullBuilder can only append nulls, but got " + storage.getItemBoxed(i));
+              "NullBuilder can only append nulls, but got " + storage.getBoxed(i));
         }
       }
     }
 
-    length += storage.size();
+    length += Math.toIntExact(storage.getSize());
   }
 
   @Override

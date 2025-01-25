@@ -16,15 +16,15 @@ import org.graalvm.polyglot.Value;
 
 /** A specialized storage that can be used by columns that contain only null values. */
 public class NullStorage extends Storage<Void> {
-  private final int size;
+  private final long size;
   private final MapOperationStorage<Void, NullStorage> ops = buildOps();
 
-  public NullStorage(int size) {
+  public NullStorage(long size) {
     this.size = size;
   }
 
   @Override
-  public int size() {
+  public long getSize() {
     return size;
   }
 
@@ -39,7 +39,7 @@ public class NullStorage extends Storage<Void> {
   }
 
   @Override
-  public Void getItemBoxed(int idx) {
+  public Void getBoxed(long idx) {
     return null;
   }
 
@@ -170,7 +170,8 @@ public class NullStorage extends Storage<Void> {
     @Override
     public Storage<?> runBinaryMap(
         NullStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
-      return Storage.fromRepeatedItem(Value.asValue(arg), storage.size(), problemAggregator);
+      int checkedSize = Builder.checkSize(storage.getSize());
+      return Storage.fromRepeatedItem(Value.asValue(arg), checkedSize, problemAggregator);
     }
 
     @Override
@@ -191,10 +192,11 @@ public class NullStorage extends Storage<Void> {
     public Storage<?> runBinaryMap(
         NullStorage storage, Object arg, MapOperationProblemAggregator problemAggregator) {
       if (arg == null) {
-        return new NullStorage(storage.size());
+        return new NullStorage(storage.getSize());
       } else if (arg instanceof Boolean b) {
+        int checkedSize = Builder.checkSize(storage.getSize());
         return Storage.fromRepeatedItem(
-            Value.asValue(doBool(b)), storage.size(), problemAggregator);
+            Value.asValue(doBool(b)), checkedSize, problemAggregator);
       } else {
         throw new UnexpectedTypeException("Boolean", arg.toString());
       }
@@ -203,14 +205,14 @@ public class NullStorage extends Storage<Void> {
     @Override
     public Storage<?> runZip(
         NullStorage storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
-      BuilderForBoolean builder = Builder.getForBoolean(storage.size());
-      for (int i = 0; i < storage.size(); i++) {
+      BuilderForBoolean builder = Builder.getForBoolean(storage.getSize());
+      for (long i = 0; i < storage.getSize(); i++) {
         if (arg.isNothing(i)) {
           builder.appendNulls(1);
-        } else if (arg.getItemBoxed(i) instanceof Boolean bool) {
+        } else if (arg.getBoxed(i) instanceof Boolean bool) {
           builder.append(doBool(bool));
         } else {
-          throw new UnexpectedTypeException("Boolean", arg.getItemBoxed(i).toString());
+          throw new UnexpectedTypeException("Boolean", arg.getBoxed(i).toString());
         }
       }
       return builder.seal();
