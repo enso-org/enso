@@ -19,5 +19,5 @@ public interface ColumnStorage<T> {
   boolean isNothing(long index);
 
   /* Gets the value at a given index. */
-  T getBoxed(long index);
+  T getItemBoxed(long index);
 }

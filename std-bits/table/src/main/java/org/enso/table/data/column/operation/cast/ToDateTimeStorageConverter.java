@@ -33,7 +33,7 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
         Builder.getForDateTime(mixedStorage.getSize()),
         mixedStorage,
         (i) -> {
-          Object o = mixedStorage.getBoxed(i);
+          Object o = mixedStorage.getItemBoxed(i);
           return switch (o) {
             case ZonedDateTime d -> d;
             case LocalDate d -> convertDate(d);
@@ -51,7 +51,7 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
         Builder.getForDateTime(dateStorage.getSize()),
         dateStorage,
         (i) -> {
-          LocalDate date = dateStorage.getBoxed(i);
+          LocalDate date = dateStorage.getItemBoxed(i);
           return convertDate(date);
         });
   }

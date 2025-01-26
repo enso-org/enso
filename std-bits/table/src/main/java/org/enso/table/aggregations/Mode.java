@@ -29,7 +29,7 @@ public class Mode extends KnownTypeAggregator {
     int count = 0;
     Map<Object, Integer> currentMap = null;
     for (int row : indexes) {
-      Object value = storage.getBoxed(row);
+      Object value = storage.getItemBoxed(row);
       if (value != null) {
         // Merge all numbers onto a Long if possible or a Double if needed
         Long lValue = NumericConverter.tryConvertingToLong(value);

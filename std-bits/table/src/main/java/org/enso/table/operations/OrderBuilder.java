@@ -50,7 +50,7 @@ public class OrderBuilder {
       }
 
       final Comparator<Object> cmp = itemCmp;
-      return (i, j) -> cmp.compare(storage.getBoxed(i), storage.getBoxed(j));
+      return (i, j) -> cmp.compare(storage.getItemBoxed(i), storage.getItemBoxed(j));
     }
   }
 

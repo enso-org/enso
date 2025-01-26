@@ -36,7 +36,7 @@ type Boxed_Map_Test
         builder = Builder.getForBoolean n
         storage = get_storage_for_column self.text_column
         0.up_to n . each i->
-            item = storage.getBoxed i
+            item = storage.getItemBoxed i
             case item of
                 Nothing ->
                     builder.appendNulls 1

@@ -16,6 +16,6 @@ public class GroupBy extends KnownTypeAggregator {
 
   @Override
   public Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator) {
-    return indexes.isEmpty() ? null : storage.getBoxed(indexes.get(0));
+    return indexes.isEmpty() ? null : storage.getItemBoxed(indexes.get(0));
   }
 }

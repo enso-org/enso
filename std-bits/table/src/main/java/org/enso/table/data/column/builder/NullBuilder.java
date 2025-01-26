@@ -31,7 +31,7 @@ public final class NullBuilder implements Builder {
       for (long i = 0; i < storage.getSize(); i++) {
         if (!storage.isNothing(i)) {
           throw new IllegalArgumentException(
-              "NullBuilder can only append nulls, but got " + storage.getBoxed(i));
+              "NullBuilder can only append nulls, but got " + storage.getItemBoxed(i));
         }
       }
     }

@@ -50,7 +50,7 @@ public class LikeOp extends StringBooleanOp {
         if (storage.isNothing(i)) {
           builder.appendNulls(1);
         } else {
-          builder.appendBoolean(pattern.matcher(storage.getBoxed(i)).matches());
+          builder.appendBoolean(pattern.matcher(storage.getItemBoxed(i)).matches());
         }
 
         context.safepoint();

@@ -60,7 +60,7 @@ public interface BigDecimalArrayAdapter {
 
     @Override
     public BigDecimal getItem(long i) {
-      return storage.getBoxed(i);
+      return storage.getItemBoxed(i);
     }
 
     @Override
@@ -87,7 +87,7 @@ public interface BigDecimalArrayAdapter {
 
     @Override
     public BigDecimal getItem(long i) {
-      return new BigDecimal(storage.getBoxed(i));
+      return new BigDecimal(storage.getItemBoxed(i));
     }
 
     @Override

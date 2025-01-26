@@ -60,7 +60,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         Builder.getForText(mixedStorage.getSize(), targetType),
         mixedStorage,
         (i) -> {
-          Object o = mixedStorage.getBoxed(i);
+          Object o = mixedStorage.getItemBoxed(i);
           return switch (o) {
             case LocalTime d -> adapt(convertTime(d), problemAggregator);
             case LocalDate d -> adapt(convertDate(d), problemAggregator);
@@ -110,7 +110,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         Builder.getForText(storage.getSize(), targetType),
         storage,
         (i) -> {
-          var value = storage.getBoxed(i);
+          var value = storage.getItemBoxed(i);
           return adapt(converter.apply(value), problemAggregator);
         });
   }
@@ -121,7 +121,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         Builder.getForText(stringStorage.getSize(), targetType),
         stringStorage,
         (i) -> {
-          String value = stringStorage.getBoxed(i);
+          String value = stringStorage.getItemBoxed(i);
           // Adapting an existing string storage into a new type is done without warnings.
           return adaptWithoutWarning(value);
         });
@@ -173,7 +173,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     long maxLength = Long.MIN_VALUE;
     long minLength = Long.MAX_VALUE;
     for (long i = 0; i < stringStorage.getSize(); i++) {
-      String value = stringStorage.getBoxed(i);
+      String value = stringStorage.getItemBoxed(i);
       if (value == null) {
         continue;
       }

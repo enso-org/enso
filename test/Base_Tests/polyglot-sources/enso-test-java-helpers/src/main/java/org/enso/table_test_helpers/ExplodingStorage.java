@@ -46,7 +46,7 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public Long getBoxed(long idx) {
+  public Long getItemBoxed(long idx) {
     checkIndex(idx);
     return array[Math.toIntExact(idx)];
   }

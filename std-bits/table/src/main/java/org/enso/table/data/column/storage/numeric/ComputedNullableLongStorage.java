@@ -19,7 +19,7 @@ public abstract class ComputedNullableLongStorage extends AbstractLongStorage {
   }
 
   @Override
-  public Long getBoxed(long idx) {
+  public Long getItemBoxed(long idx) {
     if (idx < 0 || idx >= getSize()) {
       throw new IndexOutOfBoundsException(
           "Index " + idx + " is out of bounds for range of length " + getSize() + ".");
@@ -30,12 +30,12 @@ public abstract class ComputedNullableLongStorage extends AbstractLongStorage {
 
   @Override
   public boolean isNothing(long idx) {
-    return getBoxed(idx) == null;
+    return this.getItemBoxed(idx) == null;
   }
 
   @Override
   public long getPrimitive(long idx) throws ValueIsNothingException {
-    Long result = getBoxed(idx);
+    Long result = this.getItemBoxed(idx);
     if (result == null) {
       throw new ValueIsNothingException(idx);
     }

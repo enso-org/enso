@@ -68,7 +68,7 @@ public abstract class GenericBinaryOpReturningBoolean<T, S extends SpecializedSt
       if (storage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
-        T storageItem = storage.getBoxed(i);
+        T storageItem = storage.getItemBoxed(i);
         assert storageItem != null : "isNothing returned true but element was null";
         boolean r = doOperation(storageItem, arg);
         builder.append(r);
@@ -87,7 +87,7 @@ public abstract class GenericBinaryOpReturningBoolean<T, S extends SpecializedSt
       if (storage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
-        T storageItem = storage.getBoxed(i);
+        T storageItem = storage.getItemBoxed(i);
         assert storageItem != null : "isNothing returned true but element was null";
         boolean r = doOther(storageItem, arg);
         builder.append(r);
@@ -108,8 +108,8 @@ public abstract class GenericBinaryOpReturningBoolean<T, S extends SpecializedSt
       if (storage.isNothing(i) || !(i < m) || argStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
-        T storageItem = storage.getBoxed(i);
-        T argItem = argStorage.getBoxed(i);
+        T storageItem = storage.getItemBoxed(i);
+        T argItem = argStorage.getItemBoxed(i);
         assert storageItem != null : "isNothing returned true but element was null";
         assert argItem != null : "isNothing returned true but element was null";
         boolean r = doOperation(storageItem, argItem);
@@ -131,8 +131,8 @@ public abstract class GenericBinaryOpReturningBoolean<T, S extends SpecializedSt
       if (storage.isNothing(i) || !(i < m) || argStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
-        T storageItem = storage.getBoxed(i);
-        Object argItem = argStorage.getBoxed(i);
+        T storageItem = storage.getItemBoxed(i);
+        Object argItem = argStorage.getItemBoxed(i);
         assert storageItem != null : "isNothing returned true but element was null";
         assert argItem != null : "isNothing returned true but element was null";
 

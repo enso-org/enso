@@ -57,7 +57,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
   }
 
   @Override
-  public Long getBoxed(long index) {
+  public Long getItemBoxed(long index) {
     return isNothing(index) ? null : getPrimitive(index);
   }
 
@@ -290,7 +290,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
       @Override
       protected Long computeItem(int idx) {
         if (idx < size) {
-          return parent.getBoxed(idx);
+          return parent.getItemBoxed(idx);
         } else {
           return null;
         }

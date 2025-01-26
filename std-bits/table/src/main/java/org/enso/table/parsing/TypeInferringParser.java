@@ -59,7 +59,7 @@ public class TypeInferringParser extends DatatypeParser {
       Builder builder = parser.makeBuilderWithCapacity(size, innerAggregator);
 
       for (long i = 0; i < size; ++i) {
-        String cell = sourceStorage.getBoxed(i);
+        String cell = sourceStorage.getItemBoxed(i);
         if (cell != null) {
           Object parsed = parser.parseSingleValue(cell, innerAggregator);
           if (innerAggregator.hasProblems()) {

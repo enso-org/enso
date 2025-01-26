@@ -90,7 +90,7 @@ public class StorageListView implements List<Object> {
 
   @Override
   public Object get(int index) {
-    return storage.getBoxed(from + index);
+    return storage.getItemBoxed(from + index);
   }
 
   @Override

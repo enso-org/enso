@@ -152,7 +152,7 @@ fan_out_to_rows_and_columns_fixed input_storage function at_least_one_row:Boolea
     maybe_add_empty_row vecs = if vecs.is_empty && at_least_one_row then empty_row else vecs
 
     0.up_to num_input_rows . each i->
-        input_value = input_storage.getBoxed i
+        input_value = input_storage.getItemBoxed i
         output_values = maybe_add_empty_row (function input_value)
 
         output_values.each row_unchecked->
@@ -192,7 +192,7 @@ fan_out_to_rows_and_columns_dynamic input_storage function at_least_one_row colu
         [Vector.fill output_column_builders.length Nothing]
 
     0.up_to num_input_rows . each i->
-        input_value = input_storage.getBoxed i
+        input_value = input_storage.getItemBoxed i
         output_values = maybe_add_empty_row (function input_value)
 
         # get the column names for the row.
@@ -250,7 +250,7 @@ map_columns_to_multiple input_column function column_count column_builder=make_s
             builders = Builder.new
 
             0.up_to num_rows . each i->
-                input_value = input_storage.getBoxed i
+                input_value = input_storage.getItemBoxed i
                 output_values = function input_value
 
                 # Add more builders if necessary to accommodate `output_values`.
@@ -276,7 +276,7 @@ map_columns_to_multiple input_column function column_count column_builder=make_s
             builders = Vector.new column_count (_-> column_builder num_rows)
 
             output_lengths = 0.up_to num_rows . map i->
-                input_value = input_storage.getBoxed i
+                input_value = input_storage.getItemBoxed i
                 output_values = function input_value
 
                 ## Add `output_values` to builders; if there are more builders

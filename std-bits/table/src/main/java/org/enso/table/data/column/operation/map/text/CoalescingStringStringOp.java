@@ -32,7 +32,7 @@ public abstract class CoalescingStringStringOp extends StringStringOp {
         if (storage.isNothing(i)) {
           builder.appendNulls(1);
         } else {
-          builder.append(doString(storage.getBoxed(i), argString));
+          builder.append(doString(storage.getItemBoxed(i), argString));
         }
 
         context.safepoint();
@@ -55,8 +55,8 @@ public abstract class CoalescingStringStringOp extends StringStringOp {
       var builder = Builder.getForText(size, newType);
       Context context = Context.getCurrent();
       for (long i = 0; i < size; i++) {
-        String a = storage.getBoxed(i);
-        String b = v.getBoxed(i);
+        String a = storage.getItemBoxed(i);
+        String b = v.getItemBoxed(i);
         String r;
         if (a == null && b == null) {
           r = null;

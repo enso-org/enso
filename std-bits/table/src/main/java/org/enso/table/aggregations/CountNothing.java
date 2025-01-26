@@ -33,7 +33,7 @@ public class CountNothing extends KnownTypeAggregator {
     Context context = Context.getCurrent();
     long count = 0;
     for (int row : indexes) {
-      count += ((storage.getBoxed(row) == null) == isNothing ? 1L : 0L);
+      count += ((storage.getItemBoxed(row) == null) == isNothing ? 1L : 0L);
       context.safepoint();
     }
     return count;

@@ -70,7 +70,7 @@ public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends BinaryM
       } else {
         if (arg.isEmpty()) {
           builder.appendBoolean(false);
-        } else if (compactRepresentation.coercedValues.contains(storage.getBoxed(i))) {
+        } else if (compactRepresentation.coercedValues.contains(storage.getItemBoxed(i))) {
           builder.appendBoolean(true);
         } else if (compactRepresentation.hasNulls) {
           builder.appendNulls(1);

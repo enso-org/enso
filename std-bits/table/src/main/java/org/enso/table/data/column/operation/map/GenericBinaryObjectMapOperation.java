@@ -46,7 +46,7 @@ public abstract class GenericBinaryObjectMapOperation<
         if (storage.isNothing(i)) {
           builder.appendNulls(1);
         } else {
-          OutputType result = run(storage.getBoxed(i), casted);
+          OutputType result = run(storage.getItemBoxed(i), casted);
           builder.append(result);
         }
 
@@ -71,8 +71,8 @@ public abstract class GenericBinaryObjectMapOperation<
         if (storage.isNothing(i) || otherCasted.isNothing(i)) {
           builder.appendNulls(1);
         } else {
-          InputType left = storage.getBoxed(i);
-          InputType right = otherCasted.getBoxed(i);
+          InputType left = storage.getItemBoxed(i);
+          InputType right = otherCasted.getItemBoxed(i);
           OutputType result = run(left, right);
           builder.append(result);
         }
@@ -89,8 +89,8 @@ public abstract class GenericBinaryObjectMapOperation<
         if (storage.isNothing(i) || arg.isNothing(i)) {
           builder.appendNulls(1);
         } else {
-          InputType left = storage.getBoxed(i);
-          Object right = arg.getBoxed(i);
+          InputType left = storage.getItemBoxed(i);
+          Object right = arg.getItemBoxed(i);
           if (inputTypeClass.isInstance(right)) {
             OutputType result = run(left, inputTypeClass.cast(right));
             builder.append(result);

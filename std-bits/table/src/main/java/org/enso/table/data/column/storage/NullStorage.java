@@ -39,7 +39,7 @@ public class NullStorage extends Storage<Void> {
   }
 
   @Override
-  public Void getBoxed(long idx) {
+  public Void getItemBoxed(long idx) {
     return null;
   }
 
@@ -208,10 +208,10 @@ public class NullStorage extends Storage<Void> {
       for (long i = 0; i < storage.getSize(); i++) {
         if (arg.isNothing(i)) {
           builder.appendNulls(1);
-        } else if (arg.getBoxed(i) instanceof Boolean bool) {
+        } else if (arg.getItemBoxed(i) instanceof Boolean bool) {
           builder.append(doBool(bool));
         } else {
-          throw new UnexpectedTypeException("Boolean", arg.getBoxed(i).toString());
+          throw new UnexpectedTypeException("Boolean", arg.getItemBoxed(i).toString());
         }
       }
       return builder.seal();

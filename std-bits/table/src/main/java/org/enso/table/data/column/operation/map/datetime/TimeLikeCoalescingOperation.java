@@ -35,7 +35,7 @@ public abstract class TimeLikeCoalescingOperation<T>
         Builder builder = createOutputBuilder(size);
         Context context = Context.getCurrent();
         for (long i = 0; i < size; i++) {
-          T r = storage.isNothing(i) ? casted : doOperation(storage.getBoxed(i), casted);
+          T r = storage.isNothing(i) ? casted : doOperation(storage.getItemBoxed(i), casted);
           builder.append(r);
           context.safepoint();
         }
@@ -60,8 +60,8 @@ public abstract class TimeLikeCoalescingOperation<T>
         Builder builder = createOutputBuilder(n);
         Context context = Context.getCurrent();
         for (long i = 0; i < n; i++) {
-          T a = storage.getBoxed(i);
-          T b = argTStorage.getBoxed(i);
+          T a = storage.getItemBoxed(i);
+          T b = argTStorage.getItemBoxed(i);
           T r;
           if (a == null && b == null) {
             r = null;

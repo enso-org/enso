@@ -38,7 +38,7 @@ public class CountUntrimmed {
       var rng = new Random(RANDOM_SEED);
       for (int i = 0; i < sampleSize; i++) {
         long idx = rng.nextLong(size);
-        var val = storage.getBoxed(idx);
+        var val = storage.getItemBoxed(idx);
         if (val instanceof String str && Text_Utils.has_leading_trailing_whitespace(str)) {
           count++;
         }
@@ -50,7 +50,7 @@ public class CountUntrimmed {
       count = Math.min(size, (long) Math.ceil((double) count / sampleSize * size));
     } else {
       for (long i = 0; i < storage.getSize(); i++) {
-        var val = storage.getBoxed(i);
+        var val = storage.getItemBoxed(i);
         if (val instanceof String str && Text_Utils.has_leading_trailing_whitespace(str)) {
           count++;
         }

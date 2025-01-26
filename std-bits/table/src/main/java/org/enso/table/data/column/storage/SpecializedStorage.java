@@ -45,7 +45,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
    * @param idx an index
    * @return the data item contained at the given index.
    */
-  public T getBoxed(long idx) {
+  public T getItemBoxed(long idx) {
     if (idx >= data.length) {
       throw new IndexOutOfBoundsException(idx);
     }
@@ -54,7 +54,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
 
   @Override
   public boolean isNothing(long idx) {
-    return this.getBoxed(idx) == null;
+    return this.getItemBoxed(idx) == null;
   }
 
   @Override

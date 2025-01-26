@@ -47,8 +47,8 @@ public class MixedStorageFacade extends Storage<Object> {
   }
 
   @Override
-  public Object getBoxed(long idx) {
-    return underlyingStorage.getBoxed(idx);
+  public Object getItemBoxed(long idx) {
+    return underlyingStorage.getItemBoxed(idx);
   }
 
   @Override

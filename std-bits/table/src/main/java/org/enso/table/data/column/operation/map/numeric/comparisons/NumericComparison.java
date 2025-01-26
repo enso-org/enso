@@ -103,7 +103,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
       var builder = Builder.getForBoolean(n);
       Context context = Context.getCurrent();
       for (int i = 0; i < n; ++i) {
-        Object item = storage.getBoxed(i);
+        Object item = storage.getItemBoxed(i);
         if (item == null) {
           builder.appendNulls(1);
         } else {
@@ -369,8 +369,8 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     var builder = Builder.getForBoolean(n);
     Context context = Context.getCurrent();
     for (long i = 0; i < n; ++i) {
-      Object x = lhs.getBoxed(i);
-      Object y = i >= m ? null : rhs.getBoxed(i);
+      Object x = lhs.getItemBoxed(i);
+      Object y = i >= m ? null : rhs.getItemBoxed(i);
       if (x == null || y == null) {
         builder.appendNulls(1);
       } else {

@@ -95,11 +95,11 @@ public final class StringStorage extends SpecializedStorage<String> {
             var builder = Builder.getForBoolean(size);
             Context context = Context.getCurrent();
             for (long i = 0; i < size; i++) {
-              if (storage.getBoxed(i) == null || arg == null) {
+              if (storage.getItemBoxed(i) == null || arg == null) {
                 builder.appendNulls(1);
               } else {
                 builder.appendBoolean(
-                    arg instanceof String s && Text_Utils.equals(storage.getBoxed(i), s));
+                    arg instanceof String s && Text_Utils.equals(storage.getItemBoxed(i), s));
               }
               context.safepoint();
             }
@@ -115,12 +115,12 @@ public final class StringStorage extends SpecializedStorage<String> {
             var builder = Builder.getForBoolean(size);
             Context context = Context.getCurrent();
             for (long i = 0; i < size; i++) {
-              if (storage.getBoxed(i) == null || i >= arg.getSize() || arg.isNothing(i)) {
+              if (storage.getItemBoxed(i) == null || i >= arg.getSize() || arg.isNothing(i)) {
                 builder.appendNulls(1);
               } else {
                 builder.appendBoolean(
-                    arg.getBoxed(i) instanceof String s
-                        && Text_Utils.equals(storage.getBoxed(i), s));
+                    arg.getItemBoxed(i) instanceof String s
+                        && Text_Utils.equals(storage.getItemBoxed(i), s));
               }
               context.safepoint();
             }
@@ -249,7 +249,7 @@ public final class StringStorage extends SpecializedStorage<String> {
     long minLength = Long.MAX_VALUE;
     long maxLength = Long.MIN_VALUE;
     for (long i = 0; i < getSize(); i++) {
-      String s = getBoxed(i);
+      String s = getItemBoxed(i);
       if (s != null) {
         long length = Text_Utils.grapheme_length(s);
         minLength = Math.min(minLength, length);

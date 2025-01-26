@@ -98,7 +98,7 @@ public class Sum extends Aggregator {
         }
       } else if (storage instanceof BigIntegerStorage bigIntegerStorage) {
         for (int row : indexes) {
-          BigInteger value = bigIntegerStorage.getBoxed(row);
+          BigInteger value = bigIntegerStorage.getItemBoxed(row);
           if (value != null) {
             addBigInteger(value);
           }
@@ -106,7 +106,7 @@ public class Sum extends Aggregator {
         }
       } else {
         for (int row : indexes) {
-          add(storage.getBoxed(row));
+          add(storage.getItemBoxed(row));
           context.safepoint();
         }
       }
@@ -177,7 +177,7 @@ public class Sum extends Aggregator {
         }
       } else {
         for (int row : indexes) {
-          add(storage.getBoxed(row));
+          add(storage.getItemBoxed(row));
           context.safepoint();
         }
       }

@@ -78,7 +78,7 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
 
       Context context = Context.getCurrent();
       for (long i = 0; i < getSize(); i++) {
-        var item = getBoxed(i);
+        var item = getItemBoxed(i);
         if (item == null) {
           continue;
         }
@@ -133,7 +133,7 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
         Builder builder =
             Builder.getForType(inferredType, getSize(), BlackholeProblemAggregator.INSTANCE);
         for (long i = 0; i < getSize(); i++) {
-          builder.append(getBoxed(i));
+          builder.append(getItemBoxed(i));
         }
         cachedInferredStorage = builder.seal();
       }

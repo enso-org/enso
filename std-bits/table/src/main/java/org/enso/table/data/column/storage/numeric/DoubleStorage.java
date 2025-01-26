@@ -71,7 +71,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public Double getBoxed(long idx) {
+  public Double getItemBoxed(long idx) {
     return isNothing(idx) ? null : data[Math.toIntExact(idx)];
   }
 

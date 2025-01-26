@@ -34,7 +34,7 @@ public abstract class StringLongToStringOp
         if (storage.isNothing(i)) {
           builder.appendNulls(1);
         } else {
-          builder.append(doOperation(storage.getBoxed(i), argLong));
+          builder.append(doOperation(storage.getItemBoxed(i), argLong));
         }
         context.safepoint();
       }
@@ -57,7 +57,7 @@ public abstract class StringLongToStringOp
         if (storage.isNothing(i) || v.isNothing(i)) {
           builder.appendNulls(1);
         } else {
-          builder.append(doOperation(storage.getBoxed(i), v.getBoxed(i)));
+          builder.append(doOperation(storage.getItemBoxed(i), v.getItemBoxed(i)));
         }
         context.safepoint();
       }

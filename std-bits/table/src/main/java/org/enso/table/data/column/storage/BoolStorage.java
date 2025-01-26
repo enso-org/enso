@@ -60,7 +60,7 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public Boolean getBoxed(long idx) {
+  public Boolean getItemBoxed(long idx) {
     return isNothing(idx) ? null : negated != values.get((int) idx);
   }
 
@@ -236,7 +236,7 @@ public final class BoolStorage extends Storage<Boolean>
 
   private static IntFunction<Object> makeRowProvider(Value value) {
     if (value.isHostObject() && value.asHostObject() instanceof Storage<?> s) {
-      return i -> (Object) s.getBoxed(i);
+      return i -> (Object) s.getItemBoxed(i);
     }
     var converted = Polyglot_Utils.convertPolyglotValue(value);
     return i -> converted;
@@ -352,7 +352,7 @@ public final class BoolStorage extends Storage<Boolean>
       Context context = Context.getCurrent();
       for (long i = 0; i < n; i++) {
         if (!storage.isNothing(i) && i < arg.getSize() && !arg.isNothing(i)) {
-          builder.appendBoolean(((Boolean) storage.getPrimitive(i)).equals(arg.getBoxed(i)));
+          builder.appendBoolean(((Boolean) storage.getPrimitive(i)).equals(arg.getItemBoxed(i)));
         } else {
           builder.appendNulls(1);
         }
@@ -419,8 +419,8 @@ public final class BoolStorage extends Storage<Boolean>
       }
       int current = isNothing.nextSetBit(0);
       while (current != -1) {
-        Boolean a = storage.getBoxed(current);
-        Boolean b = (current < v.size) ? v.getBoxed(current) : null;
+        Boolean a = storage.getItemBoxed(current);
+        Boolean b = (current < v.size) ? v.getItemBoxed(current) : null;
         if (a == Boolean.FALSE || b == Boolean.FALSE) {
           isNothing.clear(current);
           boolean falseValue = negated;
@@ -491,8 +491,8 @@ public final class BoolStorage extends Storage<Boolean>
       }
       int current = isNothing.nextSetBit(0);
       while (current != -1) {
-        Boolean a = storage.getBoxed(current);
-        Boolean b = (current < v.size) ? v.getBoxed(current) : null;
+        Boolean a = storage.getItemBoxed(current);
+        Boolean b = (current < v.size) ? v.getItemBoxed(current) : null;
         if (a == Boolean.TRUE || b == Boolean.TRUE) {
           isNothing.clear(current);
           boolean trueValue = !negated;
@@ -542,7 +542,7 @@ public final class BoolStorage extends Storage<Boolean>
             builder.appendNulls(1);
           } else {
             boolean a = storage.getPrimitive(i);
-            Object b = arg.getBoxed(i);
+            Object b = arg.getItemBoxed(i);
             if (b instanceof Boolean bBool) {
               boolean r = doCompare(a, bBool);
               builder.appendBoolean(r);

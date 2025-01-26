@@ -40,7 +40,7 @@ public class MinOrMax extends KnownTypeAggregator {
     Context context = Context.getCurrent();
     Object current = null;
     for (int row : indexes) {
-      Object value = storage.getBoxed(row);
+      Object value = storage.getItemBoxed(row);
       if (value != null) {
         try {
           if (current == null

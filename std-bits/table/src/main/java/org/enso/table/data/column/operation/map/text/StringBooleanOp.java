@@ -37,7 +37,7 @@ public abstract class StringBooleanOp
         if (storage.isNothing(i)) {
           builder.appendNulls(1);
         } else {
-          builder.appendBoolean(doString(storage.getBoxed(i), argString));
+          builder.appendBoolean(doString(storage.getItemBoxed(i), argString));
         }
         context.safepoint();
       }
@@ -50,7 +50,7 @@ public abstract class StringBooleanOp
         if (storage.isNothing(i)) {
           builder.appendNulls(1);
         } else {
-          builder.appendBoolean(doObject(storage.getBoxed(i), arg));
+          builder.appendBoolean(doObject(storage.getItemBoxed(i), arg));
         }
         context.safepoint();
       }
@@ -69,7 +69,7 @@ public abstract class StringBooleanOp
       var builder = Builder.getForBoolean(size);
       for (long i = 0; i < size; i++) {
         if (!storage.isNothing(i) && i < v.getSize() && !v.isNothing(i)) {
-          builder.appendBoolean(doString(storage.getBoxed(i), v.getBoxed(i)));
+          builder.appendBoolean(doString(storage.getItemBoxed(i), v.getItemBoxed(i)));
         } else {
           builder.appendNulls(1);
         }
@@ -81,11 +81,11 @@ public abstract class StringBooleanOp
       var builder = Builder.getForBoolean(size);
       for (long i = 0; i < size; i++) {
         if (!storage.isNothing(i) && i < arg.getSize() && !arg.isNothing(i)) {
-          Object x = arg.getBoxed(i);
+          Object x = arg.getItemBoxed(i);
           if (x instanceof String str) {
-            builder.appendBoolean(doString(storage.getBoxed(i), str));
+            builder.appendBoolean(doString(storage.getItemBoxed(i), str));
           } else {
-            builder.appendBoolean(doObject(storage.getBoxed(i), x));
+            builder.appendBoolean(doObject(storage.getItemBoxed(i), x));
           }
         } else {
           builder.appendNulls(1);

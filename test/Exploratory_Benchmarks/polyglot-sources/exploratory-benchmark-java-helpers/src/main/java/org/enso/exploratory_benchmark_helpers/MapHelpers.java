@@ -23,7 +23,7 @@ public class MapHelpers {
     var builder = Builder.getForText(n, TextType.VARIABLE_LENGTH);
     for (long i = 0; i < n; i++) {
       if (!storage1.isNothing(i) && !storage2.isNothing(i)) {
-        builder.append(storage1.getBoxed(i) + storage2.getBoxed(i));
+        builder.append(storage1.getItemBoxed(i) + storage2.getItemBoxed(i));
       } else {
         builder.appendNulls(1);
       }
@@ -55,7 +55,7 @@ public class MapHelpers {
       if (storage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
-        builder.appendBoolean(Text_Utils.ends_with(storage.getBoxed(i), suffix));
+        builder.appendBoolean(Text_Utils.ends_with(storage.getItemBoxed(i), suffix));
       }
     }
     return builder.seal();
@@ -79,7 +79,7 @@ public class MapHelpers {
     var builder = Builder.getForLong(IntegerType.INT_64, n, BlackholeProblemAggregator.INSTANCE);
     for (long i = 0; i < n; i++) {
       if (!storage.isNothing(i)) {
-        builder.appendLong(storage.getBoxed(i).getYear());
+        builder.appendLong(storage.getItemBoxed(i).getYear());
       } else {
         builder.appendNulls(1);
       }
@@ -96,7 +96,7 @@ public class MapHelpers {
     Builder builder = Builder.getForType(expectedType, n, problemAggregator);
     for (long i = 0; i < n; i++) {
       if (!storage.isNothing(i)) {
-        builder.append(fn.apply(storage.getBoxed(i)));
+        builder.append(fn.apply(storage.getItemBoxed(i)));
       } else {
         builder.appendNulls(1);
       }

@@ -111,9 +111,9 @@ public class LookupJoin {
       for (LookupOutputColumn.MergeColumns mergeColumns : columnsToMerge) {
         Object itemToAdd;
         if (lookupRow != OrderMask.NOT_FOUND_INDEX) {
-          itemToAdd = mergeColumns.lookupReplacement.getBoxed(lookupRow);
+          itemToAdd = mergeColumns.lookupReplacement.getItemBoxed(lookupRow);
         } else {
-          itemToAdd = mergeColumns.original.getBoxed(i);
+          itemToAdd = mergeColumns.original.getItemBoxed(i);
         }
         mergeColumns.builder.append(itemToAdd);
       }

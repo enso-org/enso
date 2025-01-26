@@ -35,7 +35,7 @@ public class Concatenate extends KnownTypeAggregator {
     Context context = Context.getCurrent();
     StringBuilder current = null;
     for (int row : indexes) {
-      Object value = storage.getBoxed(row);
+      Object value = storage.getItemBoxed(row);
       if (value == null || value instanceof String) {
         String textValue = toQuotedString(value, quote, separator);
 

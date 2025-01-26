@@ -38,7 +38,7 @@ public abstract class StringStringOp
         if (storage.isNothing(i)) {
           builder.appendNulls(1);
         } else {
-          builder.append(doString(storage.getBoxed(i), argString));
+          builder.append(doString(storage.getItemBoxed(i), argString));
         }
         context.safepoint();
       }
@@ -63,7 +63,7 @@ public abstract class StringStringOp
         if (storage.isNothing(i) || v.isNothing(i)) {
           builder.appendNulls(1);
         } else {
-          builder.append(doString(storage.getBoxed(i), v.getBoxed(i)));
+          builder.append(doString(storage.getItemBoxed(i), v.getItemBoxed(i)));
         }
         context.safepoint();
       }

@@ -40,7 +40,7 @@ public class StandardDeviation extends KnownTypeAggregator {
     Context context = Context.getCurrent();
     Calculation current = null;
     for (int row : indexes) {
-      Object value = storage.getBoxed(row);
+      Object value = storage.getItemBoxed(row);
       if (value != null) {
         Double dValue = NumericConverter.tryConvertingToDouble(value);
         if (dValue == null) {

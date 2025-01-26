@@ -38,7 +38,7 @@ public abstract class IncrementalDatatypeParser extends DatatypeParser {
 
     Context context = Context.getCurrent();
     for (long i = 0; i < size; ++i) {
-      String cell = sourceStorage.getBoxed(i);
+      String cell = sourceStorage.getItemBoxed(i);
       if (cell != null) {
         Object parsed = parseSingleValue(cell, problemAggregator);
         builder.append(parsed);

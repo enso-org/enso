@@ -200,7 +200,7 @@ public class AddRunning {
     }
 
     public void calculateNextValue(int i, RunningIterator<T> it) {
-      Object value = sourceColumn.getStorage().getBoxed(i);
+      Object value = sourceColumn.getStorage().getItemBoxed(i);
       if (value == null) {
         columnAggregatedProblemAggregator.reportColumnAggregatedProblem(
             new IgnoredNothing(sourceColumn.getName(), i));

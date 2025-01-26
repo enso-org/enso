@@ -50,7 +50,7 @@ public final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
     if (storage.getType() instanceof DateType) {
       Context context = Context.getCurrent();
       for (long i = 0; i < storage.getSize(); ++i) {
-        var date = storage.getBoxed(i);
+        var date = storage.getItemBoxed(i);
         if (date == null) {
           appendNulls(1);
         } else if (date instanceof LocalDate localDate) {

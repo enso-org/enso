@@ -128,7 +128,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
       if (storage instanceof BigIntegerStorage bigIntegerStorage) {
         long n = bigIntegerStorage.getSize();
         for (long i = 0; i < n; i++) {
-          BigInteger item = bigIntegerStorage.getBoxed(i);
+          BigInteger item = bigIntegerStorage.getItemBoxed(i);
           if (item == null) {
             appendNulls(1);
           } else {

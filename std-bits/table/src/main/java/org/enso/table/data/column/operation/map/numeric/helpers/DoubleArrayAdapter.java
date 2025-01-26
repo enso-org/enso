@@ -92,7 +92,7 @@ public interface DoubleArrayAdapter {
 
     @Override
     public double getItemAsDouble(int i) {
-      BigInteger x = storage.getBoxed(i);
+      BigInteger x = storage.getItemBoxed(i);
       return x.doubleValue();
     }
 
@@ -117,7 +117,7 @@ public interface DoubleArrayAdapter {
 
     @Override
     public double getItemAsDouble(int i) {
-      BigDecimal x = storage.getBoxed(i);
+      BigDecimal x = storage.getItemBoxed(i);
       return x.doubleValue();
     }
 

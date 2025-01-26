@@ -25,7 +25,7 @@ public abstract class MultiValueKeyBase {
 
   /** A helper function to get the item from the nth column of the key's row. */
   public Object get(int column) {
-    return storages[column].getBoxed(rowIndex);
+    return storages[column].getItemBoxed(rowIndex);
   }
 
   public List<Object> getValues() {

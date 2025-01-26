@@ -36,8 +36,8 @@ type Boxed_Bi_Map_Test
             storage_1 = get_storage_for_column self.text_column_1
             storage_2 = get_storage_for_column self.text_column_2
             0.up_to n . each i->
-                item_1 = storage_1.getBoxed i
-                item_2 = storage_2.getBoxed i
+                item_1 = storage_1.getItemBoxed i
+                item_2 = storage_2.getItemBoxed i
                 if item_1.is_nothing || item_2.is_nothing then builder.appendNulls 1 else
                     res = item_1 + item_2
                     builder.append res

@@ -77,7 +77,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
         Builder.getForLong(targetType, mixedStorage.getSize(), problemAggregator),
         mixedStorage,
         (builder, i) -> {
-          Object o = mixedStorage.getBoxed(i);
+          Object o = mixedStorage.getItemBoxed(i);
           if (o instanceof Boolean b) {
             builder.appendLong(booleanAsLong(b));
           } else if (NumericConverter.isCoercibleToLong(o)) {
@@ -166,7 +166,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
         Builder.getForLong(targetType, storage.getSize(), problemAggregator),
         storage,
         (builder, i) -> {
-          BigInteger value = storage.getBoxed(i);
+          BigInteger value = storage.getItemBoxed(i);
           if (targetType.fits(value)) {
             builder.appendLong(value.longValue());
           } else {
@@ -182,7 +182,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
         Builder.getForLong(targetType, storage.getSize(), problemAggregator),
         storage,
         (builder, i) -> {
-          BigDecimal value = storage.getBoxed(i);
+          BigDecimal value = storage.getItemBoxed(i);
           BigInteger bigInteger = value.toBigInteger();
           if (targetType.fits(bigInteger)) {
             builder.appendLong(bigInteger.longValue());

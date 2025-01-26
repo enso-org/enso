@@ -41,7 +41,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   public abstract boolean isNothing(long index);
 
   @Override
-  public abstract T getBoxed(long index);
+  public abstract T getItemBoxed(long index);
 
   /**
    * @return the type of the values in this column's storage. Most storages just return their type.
@@ -145,7 +145,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
 
     Context context = Context.getCurrent();
     for (long i = 0; i < getSize(); i++) {
-      Object it = getBoxed(i);
+      Object it = getItemBoxed(i);
       if (skipNulls && it == null) {
         storageBuilder.appendNulls(1);
       } else {
@@ -177,8 +177,8 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     Builder storageBuilder = Builder.getForType(expectedResultType, getSize(), problemAggregator);
     Context context = Context.getCurrent();
     for (long i = 0; i < getSize(); i++) {
-      Object it1 = getBoxed(i);
-      Object it2 = i < arg.getSize() ? arg.getBoxed(i) : null;
+      Object it1 = getItemBoxed(i);
+      Object it2 = i < arg.getSize() ? arg.getItemBoxed(i) : null;
       if (skipNa && (it1 == null || it2 == null)) {
         storageBuilder.appendNulls(1);
       } else {
@@ -318,7 +318,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     Object convertedFallback = Polyglot_Utils.convertPolyglotValue(arg);
     Context context = Context.getCurrent();
     for (long i = 0; i < getSize(); i++) {
-      Object it = getBoxed(i);
+      Object it = getItemBoxed(i);
       builder.append(it == null ? convertedFallback : it);
       context.safepoint();
     }
@@ -338,7 +338,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     var builder = Builder.getForType(commonType, getSize(), problemAggregator);
     Context context = Context.getCurrent();
     for (long i = 0; i < getSize(); i++) {
-      builder.append(isNothing(i) ? other.getBoxed(i) : getBoxed(i));
+      builder.append(isNothing(i) ? other.getItemBoxed(i) : getItemBoxed(i));
       context.safepoint();
     }
     return builder.seal();
@@ -403,7 +403,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     var builder =
         Builder.getForLong(IntegerType.INT_64, getSize(), BlackholeProblemAggregator.INSTANCE);
     for (long i = 0; i < getSize(); i++) {
-      var value = getBoxed(i);
+      var value = getItemBoxed(i);
       var count = occurenceCount.getOrDefault(value, 0);
       builder.appendLong(count);
       occurenceCount.put(value, count + 1);

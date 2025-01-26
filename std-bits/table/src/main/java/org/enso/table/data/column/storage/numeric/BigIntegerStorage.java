@@ -140,7 +140,7 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
         new ComputedNullableLongStorage((int) getSize()) {
           @Override
           protected Long computeItem(int idx) {
-            BigInteger bigInteger = parent.getBoxed(idx);
+            BigInteger bigInteger = parent.getItemBoxed(idx);
             if (bigInteger == null) {
               return null;
             }
