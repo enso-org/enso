@@ -1,7 +1,5 @@
 package org.enso.table.data.column.storage;
 
-import java.math.BigDecimal;
-import java.util.BitSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -18,7 +16,6 @@ import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
 import org.enso.table.data.column.operation.map.text.StringLongToStringOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
-import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.graalvm.polyglot.Context;
@@ -101,7 +98,8 @@ public final class StringStorage extends SpecializedStorage<String> {
               if (storage.getBoxed(i) == null || arg == null) {
                 builder.appendNulls(1);
               } else {
-                builder.appendBoolean(arg instanceof String s && Text_Utils.equals(storage.getBoxed(i), s));
+                builder.appendBoolean(
+                    arg instanceof String s && Text_Utils.equals(storage.getBoxed(i), s));
               }
               context.safepoint();
             }
@@ -120,8 +118,9 @@ public final class StringStorage extends SpecializedStorage<String> {
               if (storage.getBoxed(i) == null || i >= arg.getSize() || arg.isNothing(i)) {
                 builder.appendNulls(1);
               } else {
-                builder.appendBoolean(arg.getBoxed(i) instanceof String s
-                    && Text_Utils.equals(storage.getBoxed(i), s));
+                builder.appendBoolean(
+                    arg.getBoxed(i) instanceof String s
+                        && Text_Utils.equals(storage.getBoxed(i), s));
               }
               context.safepoint();
             }

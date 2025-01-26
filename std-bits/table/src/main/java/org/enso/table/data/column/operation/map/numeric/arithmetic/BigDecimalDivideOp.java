@@ -18,7 +18,7 @@ public class BigDecimalDivideOp<T extends Number, I extends Storage<? super T>>
     } catch (ArithmeticException e) {
       String extraMessage =
           " Please use `.divide` with an explicit `Math_Context` to limit the numeric precision.";
-      problemAggregator.reportArithmeticError(e.getMessage() + extraMessage, (int)ix);
+      problemAggregator.reportArithmeticError(e.getMessage() + extraMessage, (int) ix);
       return null;
     }
   }

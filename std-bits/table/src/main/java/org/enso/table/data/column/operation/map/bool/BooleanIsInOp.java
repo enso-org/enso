@@ -61,7 +61,7 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
 
   private BoolStorage run(BoolStorage storage, boolean hadNull, boolean hadTrue, boolean hadFalse) {
     // ToDo: BoolStorage works on ints, so casting to an int here.
-    int size = (int)storage.getSize();
+    int size = (int) storage.getSize();
     ImmutableBitSet values = new ImmutableBitSet(storage.getValues(), size);
     ImmutableBitSet isNothing = new ImmutableBitSet(storage.getIsNothingMap(), size);
 

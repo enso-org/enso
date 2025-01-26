@@ -110,8 +110,7 @@ public class NumberParser extends IncrementalDatatypeParser {
   public Storage<?> parseColumn(
       Storage<String> sourceStorage, CommonParseProblemAggregator problemAggregator) {
     long size = sourceStorage.getSize();
-    Builder builder =
-        makeBuilderWithCapacity(size, problemAggregator.createSimpleChild());
+    Builder builder = makeBuilderWithCapacity(size, problemAggregator.createSimpleChild());
 
     var context = Context.getCurrent();
     for (long i = 0; i < size; i++) {

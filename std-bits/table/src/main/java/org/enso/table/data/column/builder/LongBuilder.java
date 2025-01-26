@@ -90,7 +90,7 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
     if (Objects.equals(storage.getType(), getType())
         && storage instanceof LongStorage longStorage) {
       // A fast path for the same type - no conversions/checks needed.
-      int n = (int)longStorage.getSize();
+      int n = (int) longStorage.getSize();
       ensureFreeSpaceFor(n);
       System.arraycopy(longStorage.getRawData(), 0, data, currentSize, n);
       BitSets.copy(longStorage.getIsNothingMap(), isNothing, currentSize, n);

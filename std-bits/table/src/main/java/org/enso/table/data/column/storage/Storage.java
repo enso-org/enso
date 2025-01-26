@@ -139,7 +139,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     Builder storageBuilder = Builder.getForType(expectedResultType, getSize(), problemAggregator);
     if (skipNulls && argument == null) {
       // ToDo: appendNulls should take a long, not an int. Should have a constant Storage for null.
-      storageBuilder.appendNulls((int)getSize());
+      storageBuilder.appendNulls((int) getSize());
       return storageBuilder.seal();
     }
 
@@ -400,7 +400,8 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   public Storage<?> duplicateCount() {
     HashMap<Object, Integer> occurenceCount = new HashMap<>();
     Context context = Context.getCurrent();
-    var builder = Builder.getForLong(IntegerType.INT_64, getSize(), BlackholeProblemAggregator.INSTANCE);
+    var builder =
+        Builder.getForLong(IntegerType.INT_64, getSize(), BlackholeProblemAggregator.INSTANCE);
     for (long i = 0; i < getSize(); i++) {
       var value = getBoxed(i);
       var count = occurenceCount.getOrDefault(value, 0);

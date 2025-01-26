@@ -16,7 +16,7 @@ public class ModOp<T extends Number, I extends Storage<? super T>>
       double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
     if (b == 0.0) {
       // ToDo: ProblemAggregator should accept a long instead of an int.
-      problemAggregator.reportDivisionByZero((int)ix);
+      problemAggregator.reportDivisionByZero((int) ix);
     }
 
     return a % b;
@@ -26,7 +26,7 @@ public class ModOp<T extends Number, I extends Storage<? super T>>
   public Long doLong(long a, long b, long ix, MapOperationProblemAggregator problemAggregator) {
     if (b == 0) {
       // ToDo: ProblemAggregator should accept a long instead of an int.
-      problemAggregator.reportDivisionByZero((int)ix);
+      problemAggregator.reportDivisionByZero((int) ix);
       return null;
     }
 
@@ -38,7 +38,7 @@ public class ModOp<T extends Number, I extends Storage<? super T>>
       BigInteger a, BigInteger b, long ix, MapOperationProblemAggregator problemAggregator) {
     if (b.equals(BigInteger.ZERO)) {
       // ToDo: ProblemAggregator should accept a long instead of an int.
-      problemAggregator.reportDivisionByZero((int)ix);
+      problemAggregator.reportDivisionByZero((int) ix);
       return null;
     }
 
@@ -50,7 +50,7 @@ public class ModOp<T extends Number, I extends Storage<? super T>>
       BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator) {
     if (b.equals(BigDecimal.ZERO)) {
       // ToDo: ProblemAggregator should accept a long instead of an int.
-      problemAggregator.reportDivisionByZero((int)ix);
+      problemAggregator.reportDivisionByZero((int) ix);
       return null;
     }
 

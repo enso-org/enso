@@ -33,7 +33,7 @@ public class ObjectBuilder extends TypedBuilder<Object> {
 
     if (storage instanceof SpecializedStorage<?> specializedStorage) {
       // We can safely cast here, as for SpecializedStorage the size is always an int.
-      int toCopy = (int)storage.getSize();
+      int toCopy = (int) storage.getSize();
       System.arraycopy(specializedStorage.getData(), 0, data, currentSize, toCopy);
       currentSize += toCopy;
     } else if (storage.getType() instanceof NullType) {

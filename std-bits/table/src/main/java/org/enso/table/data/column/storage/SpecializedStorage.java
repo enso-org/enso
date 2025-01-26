@@ -1,6 +1,5 @@
 package org.enso.table.data.column.storage;
 
-import java.util.AbstractList;
 import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.operation.CountNothing;

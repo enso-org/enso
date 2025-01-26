@@ -106,7 +106,7 @@ public final class DoubleStorage extends Storage<Double>
   @Override
   public int size() {
     // ToDo: DoubleArrayAdapter should be removed in the next step.
-    return (int)getSize();
+    return (int) getSize();
   }
 
   /** Used by the DoubleBuilder in appendBulkStorage. */
@@ -249,7 +249,8 @@ public final class DoubleStorage extends Storage<Double>
 
   @Override
   public Storage<Double> applyFilter(BitSet filterMask, int newLength) {
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, newLength, BlackholeProblemAggregator.INSTANCE);
+    var builder =
+        Builder.getForDouble(FloatType.FLOAT_64, newLength, BlackholeProblemAggregator.INSTANCE);
     Context context = Context.getCurrent();
     for (int i = 0; i < size; i++) {
       if (filterMask.get(i)) {

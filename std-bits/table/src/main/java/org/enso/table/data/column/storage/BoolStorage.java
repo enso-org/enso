@@ -61,7 +61,7 @@ public final class BoolStorage extends Storage<Boolean>
 
   @Override
   public Boolean getBoxed(long idx) {
-    return isNothing(idx) ? null : negated != values.get((int)idx);
+    return isNothing(idx) ? null : negated != values.get((int) idx);
   }
 
   @Override
@@ -75,15 +75,15 @@ public final class BoolStorage extends Storage<Boolean>
       throw new ValueIsNothingException(index);
     }
 
-    return negated != values.get((int)index);
+    return negated != values.get((int) index);
   }
 
   @Override
   public boolean isNothing(long idx) {
-      if (idx < 0 || idx >= getSize()) {
-          throw new IndexOutOfBoundsException("Index out of bounds: " + idx);
-      }
-      return isNothing.get((int) idx);
+    if (idx < 0 || idx >= getSize()) {
+      throw new IndexOutOfBoundsException("Index out of bounds: " + idx);
+    }
+    return isNothing.get((int) idx);
   }
 
   @Override
@@ -711,7 +711,8 @@ public final class BoolStorage extends Storage<Boolean>
             } else if (isNothingB) {
               builder.appendBoolean(storage.getPrimitive(i));
             } else {
-              builder.appendBoolean(doOperation(storage.getPrimitive(i), argBoolStorage.getPrimitive(i)));
+              builder.appendBoolean(
+                  doOperation(storage.getPrimitive(i), argBoolStorage.getPrimitive(i)));
             }
           }
           context.safepoint();

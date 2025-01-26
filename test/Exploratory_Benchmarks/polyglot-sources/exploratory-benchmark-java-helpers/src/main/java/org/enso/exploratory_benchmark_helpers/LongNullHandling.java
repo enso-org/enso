@@ -32,7 +32,8 @@ public class LongNullHandling {
         if (storage.isNothing(i) || arg.isNothing(i)) {
           builder.appendNulls(1);
         } else {
-          builder.appendLong(doLong(storage.getPrimitive(i), arg.getPrimitive(i), i, problemAggregator));
+          builder.appendLong(
+              doLong(storage.getPrimitive(i), arg.getPrimitive(i), i, problemAggregator));
         }
       }
       return builder.seal();
@@ -95,7 +96,13 @@ public class LongNullHandling {
         if (storage.isNothing(i) || arg.isNothing(i)) {
           builder.appendNulls(1);
         } else {
-          long x = doLong(storage.getPrimitive(i), arg.getPrimitive(i), i, problemAggregator, nullityReporter);
+          long x =
+              doLong(
+                  storage.getPrimitive(i),
+                  arg.getPrimitive(i),
+                  i,
+                  problemAggregator,
+                  nullityReporter);
           if (nullityReporter.wasLastNull) {
             builder.appendNulls(1);
             nullityReporter.wasLastNull = false;
@@ -124,7 +131,7 @@ public class LongNullHandling {
               long a, long b, long ix, MapOperationProblemAggregator problemAggregator) {
             if (b == 0) {
               // ToDo: ProblemAggregator should accept a long instead of an int.
-              problemAggregator.reportDivisionByZero((int)ix);
+              problemAggregator.reportDivisionByZero((int) ix);
               return 0;
             } else {
               return a / b;
@@ -145,7 +152,7 @@ public class LongNullHandling {
               long a, long b, long ix, MapOperationProblemAggregator problemAggregator) {
             if (b == 0) {
               // ToDo: ProblemAggregator should accept a long instead of an int.
-              problemAggregator.reportDivisionByZero((int)ix);
+              problemAggregator.reportDivisionByZero((int) ix);
               return null;
             } else {
               return a / b;
@@ -170,7 +177,7 @@ public class LongNullHandling {
               NullityReporter nullityReporter) {
             if (b == 0) {
               // ToDo: ProblemAggregator should accept a long instead of an int.
-              problemAggregator.reportDivisionByZero((int)ix);
+              problemAggregator.reportDivisionByZero((int) ix);
               nullityReporter.willBeNull();
               return 0;
             } else {

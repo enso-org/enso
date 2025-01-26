@@ -4,7 +4,6 @@ import static org.enso.table.data.column.operation.map.numeric.helpers.DoubleArr
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.BitSet;
 import org.enso.base.CompareException;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;

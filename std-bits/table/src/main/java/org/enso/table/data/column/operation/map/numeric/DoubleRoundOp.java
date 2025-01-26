@@ -36,7 +36,8 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
 
     if (decimalPlaces <= 0) {
       // Return Long storage
-      var longBuilder = Builder.getForLong(IntegerType.INT_64, storage.getSize(), problemAggregator);
+      var longBuilder =
+          Builder.getForLong(IntegerType.INT_64, storage.getSize(), problemAggregator);
 
       for (long i = 0; i < storage.getSize(); i++) {
         if (!storage.isNothing(i)) {
@@ -48,7 +49,7 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
           } else {
             String msg = "Value is " + item;
             // ToDo: ProblemAggregator should accept a long instead of an int.
-            problemAggregator.reportArithmeticError(msg, (int)i);
+            problemAggregator.reportArithmeticError(msg, (int) i);
             longBuilder.appendNulls(1);
           }
         } else {
@@ -73,7 +74,7 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
           } else {
             String msg = "Value is " + item;
             // ToDo: ProblemAggregator should accept a long instead of an int.
-            problemAggregator.reportArithmeticError(msg, (int)i);
+            problemAggregator.reportArithmeticError(msg, (int) i);
             doubleBuilder.appendNulls(1);
           }
         } else {

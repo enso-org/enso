@@ -3,7 +3,6 @@ package org.enso.table.data.column.operation.map;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.List;
-
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;

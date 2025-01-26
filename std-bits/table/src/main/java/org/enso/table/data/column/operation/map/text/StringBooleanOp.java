@@ -1,7 +1,5 @@
 package org.enso.table.data.column.operation.map.text;
 
-import java.util.BitSet;
-
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;

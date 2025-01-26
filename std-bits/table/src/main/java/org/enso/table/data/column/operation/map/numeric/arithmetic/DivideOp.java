@@ -14,7 +14,7 @@ public class DivideOp<T extends Number, I extends Storage<? super T>>
       double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
     if (b == 0.0) {
       // ToDo: ProblemAggregator should accept a long instead of an int.
-      problemAggregator.reportDivisionByZero((int)ix);
+      problemAggregator.reportDivisionByZero((int) ix);
     }
     return a / b;
   }

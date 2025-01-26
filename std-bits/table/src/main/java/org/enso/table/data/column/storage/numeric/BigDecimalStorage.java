@@ -1,6 +1,7 @@
 package org.enso.table.data.column.storage.numeric;
 
 import java.math.BigDecimal;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.BigDecimalRoundOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
@@ -16,7 +17,6 @@ import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterCompa
 import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterOrEqualComparison;
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparison;
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
-import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 

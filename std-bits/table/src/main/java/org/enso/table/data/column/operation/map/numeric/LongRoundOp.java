@@ -59,7 +59,7 @@ public class LongRoundOp extends TernaryMapOperation<Long, AbstractLongStorage> 
                   + " (inclusive), but was "
                   + item;
           // ToDo: ProblemAggregator should accept a long instead of an int.
-          problemAggregator.reportIllegalArgumentError(msg, (int)i);
+          problemAggregator.reportIllegalArgumentError(msg, (int) i);
           builder.appendNulls(1);
         }
       } else {

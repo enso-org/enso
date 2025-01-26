@@ -49,8 +49,8 @@ public class SortJoin implements JoinStrategy {
     JoinResult.Builder resultBuilder = new JoinResult.Builder();
 
     // ToDo: Will need to rework to longs in next step.
-    int leftRowCount = (int)leftStorages[0].getSize();
-    int rightRowCount = (int)lowerStorages[0].getSize();
+    int leftRowCount = (int) leftStorages[0].getSize();
+    int rightRowCount = (int) lowerStorages[0].getSize();
     if (leftRowCount == 0 || rightRowCount == 0) {
       // if one group is completely empty, there will be no matches to report
       return resultBuilder.buildAndInvalidate();

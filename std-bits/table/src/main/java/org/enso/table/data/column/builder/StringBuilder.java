@@ -48,7 +48,7 @@ public final class StringBuilder extends TypedBuilder<String> {
           // storage.T == String
           @SuppressWarnings("unchecked")
           SpecializedStorage<String> specializedStorage = (SpecializedStorage<String>) storage;
-          int toCopy = (int)storage.getSize();
+          int toCopy = (int) storage.getSize();
           System.arraycopy(specializedStorage.getData(), 0, data, currentSize, toCopy);
           currentSize += toCopy;
           return;

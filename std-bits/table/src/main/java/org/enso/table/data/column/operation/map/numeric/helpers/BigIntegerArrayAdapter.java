@@ -1,7 +1,6 @@
 package org.enso.table.data.column.operation.map.numeric.helpers;
 
 import java.math.BigInteger;
-
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
@@ -45,7 +44,7 @@ public interface BigIntegerArrayAdapter {
     @Override
     public int size() {
       // ToDo: Will remove these adapters in the next step.
-      return (int)storage.getSize();
+      return (int) storage.getSize();
     }
 
     @Override
@@ -74,7 +73,7 @@ public interface BigIntegerArrayAdapter {
     @Override
     public int size() {
       // ToDo: Will remove these adapters in the next step.
-      return (int)storage.getSize();
+      return (int) storage.getSize();
     }
   }
 }

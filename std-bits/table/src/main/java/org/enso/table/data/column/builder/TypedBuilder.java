@@ -50,7 +50,7 @@ public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderFor
         // This cast is safe, because storage.getType() == this.getType() iff storage.T == this.T
         @SuppressWarnings("unchecked")
         SpecializedStorage<T> specializedStorage = (SpecializedStorage<T>) storage;
-        int toCopy = (int)storage.getSize();
+        int toCopy = (int) storage.getSize();
         if (currentSize + toCopy > data.length) {
           resize(currentSize + toCopy);
         }

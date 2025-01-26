@@ -195,8 +195,7 @@ public class NullStorage extends Storage<Void> {
         return new NullStorage(storage.getSize());
       } else if (arg instanceof Boolean b) {
         int checkedSize = Builder.checkSize(storage.getSize());
-        return Storage.fromRepeatedItem(
-            Value.asValue(doBool(b)), checkedSize, problemAggregator);
+        return Storage.fromRepeatedItem(Value.asValue(doBool(b)), checkedSize, problemAggregator);
       } else {
         throw new UnexpectedTypeException("Boolean", arg.toString());
       }
