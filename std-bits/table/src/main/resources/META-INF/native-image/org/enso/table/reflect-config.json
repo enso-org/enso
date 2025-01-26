@@ -1840,14 +1840,5 @@
                 ]
             }
         ]
-    },
-    {
-        "name": "java.awt.Toolkit",
-        "methods": [
-            {
-                "name": "getDefaultToolkit",
-                "parameterTypes": []
-            }
-        ]
     }
 ]

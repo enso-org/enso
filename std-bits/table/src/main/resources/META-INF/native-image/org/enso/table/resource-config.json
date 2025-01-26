@@ -86,8 +86,5 @@
   }, {
     "name":"org.apache.xmlbeans.impl.regex.message",
     "locales":[""]
-  }, {
-    "name":"sun.awt.resources.awt",
-    "classNames":["sun.awt.resources.awt"]
   }]
 }

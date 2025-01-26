@@ -1,13 +1,5 @@
 [
   {
-    "name":"java.awt.Color",
-    "fields":[{"name":"value"}]
-  },
-  {
-    "name":"java.awt.GraphicsEnvironment",
-    "methods":[{"name":"isHeadless","parameterTypes":[] }]
-  },
-  {
     "name":"java.lang.Boolean",
     "methods":[{"name":"getBoolean","parameterTypes":["java.lang.String"] }]
   },
