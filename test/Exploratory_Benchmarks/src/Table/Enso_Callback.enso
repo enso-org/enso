@@ -91,12 +91,9 @@ type Primitive_Enso_Callback_Test
         builder = Builder.getForLong IntegerType.INT_64 n Nothing
         storage = Storage.get_storage_for_column self.int_column
         0.up_to n . each i->
-            case storage.isNothing i of
-                True ->
-                    builder.appendNulls 1
-                False ->
-                    item = storage.getPrimitive i
-                    builder.append (fn item)
+            if storage.isNothing i then builder.appendNulls 1 else
+                item = storage.getItemLong i
+                builder.append (fn item)
         Column.from_storage "result" builder.seal
 
     enso_map_with_builder_1_call_boxed self =

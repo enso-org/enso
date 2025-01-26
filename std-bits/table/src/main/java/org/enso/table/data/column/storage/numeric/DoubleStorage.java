@@ -81,7 +81,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public double getPrimitive(long index) throws ValueIsNothingException {
+  public double getItemDouble(long index) throws ValueIsNothingException {
     if (isNothing(index)) {
       throw new ValueIsNothingException(index);
     }
@@ -95,7 +95,7 @@ public final class DoubleStorage extends Storage<Double>
 
   @Override
   public double getItemAsDouble(int i) {
-    return getPrimitive(i);
+    return getItemDouble(i);
   }
 
   @Override
@@ -158,7 +158,7 @@ public final class DoubleStorage extends Storage<Double>
       if (isNothing(i)) {
         builder.appendDouble(arg);
       } else {
-        builder.appendDouble(getPrimitive(i));
+        builder.appendDouble(getItemDouble(i));
       }
       context.safepoint();
     }
@@ -174,7 +174,7 @@ public final class DoubleStorage extends Storage<Double>
       if (isNothing(i)) {
         builder.append(arg);
       } else {
-        builder.appendDouble(getPrimitive(i));
+        builder.appendDouble(getItemDouble(i));
       }
       context.safepoint();
     }
@@ -190,7 +190,7 @@ public final class DoubleStorage extends Storage<Double>
       if (isNothing(i)) {
         builder.appendLong(arg);
       } else {
-        builder.appendDouble(getPrimitive(i));
+        builder.appendDouble(getItemDouble(i));
       }
       context.safepoint();
     }
@@ -235,7 +235,7 @@ public final class DoubleStorage extends Storage<Double>
           builder.appendNulls(1);
         }
       } else {
-        double value = getPrimitive(i);
+        double value = getItemDouble(i);
         builder.appendDouble(value);
         previousValue = value;
         hasPrevious = true;
@@ -405,7 +405,7 @@ public final class DoubleStorage extends Storage<Double>
               return null;
             }
 
-            double value = parent.getPrimitive(idx);
+            double value = parent.getItemDouble(idx);
             assert value % 1.0 == 0.0
                 : "The value " + value + " should be a whole number (guaranteed by checks).";
             return (long) value;

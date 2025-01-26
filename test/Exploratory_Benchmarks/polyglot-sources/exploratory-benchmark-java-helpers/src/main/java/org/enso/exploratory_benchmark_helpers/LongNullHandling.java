@@ -33,7 +33,7 @@ public class LongNullHandling {
           builder.appendNulls(1);
         } else {
           builder.appendLong(
-              doLong(storage.getPrimitive(i), arg.getPrimitive(i), i, problemAggregator));
+              doLong(storage.getItemLong(i), arg.getItemLong(i), i, problemAggregator));
         }
       }
       return builder.seal();
@@ -56,7 +56,7 @@ public class LongNullHandling {
         if (storage.isNothing(i) || arg.isNothing(i)) {
           builder.appendNulls(1);
         } else {
-          Long x = doLong(storage.getPrimitive(i), arg.getPrimitive(i), i, problemAggregator);
+          Long x = doLong(storage.getItemLong(i), arg.getItemLong(i), i, problemAggregator);
           if (x == null) {
             builder.appendNulls(1);
           } else {
@@ -98,8 +98,8 @@ public class LongNullHandling {
         } else {
           long x =
               doLong(
-                  storage.getPrimitive(i),
-                  arg.getPrimitive(i),
+                  storage.getItemLong(i),
+                  arg.getItemLong(i),
                   i,
                   problemAggregator,
                   nullityReporter);

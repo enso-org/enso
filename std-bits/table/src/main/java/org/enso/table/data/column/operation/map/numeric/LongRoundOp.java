@@ -46,7 +46,7 @@ public class LongRoundOp extends TernaryMapOperation<Long, AbstractLongStorage> 
     var builder = Builder.getForLong(IntegerType.INT_64, storage.getSize(), problemAggregator);
     for (long i = 0; i < storage.getSize(); i++) {
       if (!storage.isNothing(i)) {
-        long item = storage.getPrimitive(i);
+        long item = storage.getItemLong(i);
         boolean outOfRange = item < ROUND_MIN_LONG || item > ROUND_MAX_LONG;
         if (!outOfRange) {
           builder.appendLong(Core_Math_Utils.roundLong(item, decimalPlaces, useBankers));

@@ -164,7 +164,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
     Context context = Context.getCurrent();
     for (int i = 0; i < data.length; i++) {
       boolean isCurrentValueMissing =
-          missingIndicator == null ? isNothing(i) : missingIndicator.getPrimitive(i);
+          missingIndicator == null ? isNothing(i) : missingIndicator.getItemBoolean(i);
       if (!isCurrentValueMissing) {
         previous = data[i];
         hasPrevious = true;

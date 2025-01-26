@@ -40,7 +40,7 @@ public class MapHelpers {
     var builder = Builder.getForLong(IntegerType.INT_64, n, BlackholeProblemAggregator.INSTANCE);
     for (long i = 0; i < n; i++) {
       if (!storage1.isNothing(i) && !storage2.isNothing(i)) {
-        builder.appendLong(storage1.getPrimitive(i) + storage2.getPrimitive(i));
+        builder.appendLong(storage1.getItemLong(i) + storage2.getItemLong(i));
       } else {
         builder.appendNulls(1);
       }
@@ -66,7 +66,7 @@ public class MapHelpers {
     var builder = Builder.getForLong(IntegerType.INT_64, n, BlackholeProblemAggregator.INSTANCE);
     for (long i = 0; i < n; i++) {
       if (!storage.isNothing(i)) {
-        builder.appendLong(storage.getPrimitive(i) + shift);
+        builder.appendLong(storage.getItemLong(i) + shift);
       } else {
         builder.appendNulls(1);
       }

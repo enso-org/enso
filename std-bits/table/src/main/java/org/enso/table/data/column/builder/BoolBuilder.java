@@ -75,7 +75,7 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
           if (columnBooleanStorage.isNothing(i)) {
             appendNulls(1);
           } else {
-            appendBoolean(columnBooleanStorage.getPrimitive(i));
+            appendBoolean(columnBooleanStorage.getItemBoolean(i));
           }
         }
       } else {

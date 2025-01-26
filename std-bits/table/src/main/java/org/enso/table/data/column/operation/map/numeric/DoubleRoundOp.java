@@ -41,7 +41,7 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
 
       for (long i = 0; i < storage.getSize(); i++) {
         if (!storage.isNothing(i)) {
-          double item = storage.getPrimitive(i);
+          double item = storage.getItemDouble(i);
           boolean special = Double.isNaN(item) || Double.isInfinite(item);
           if (!special) {
             longBuilder.appendLong(
@@ -66,7 +66,7 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
 
       for (long i = 0; i < storage.getSize(); i++) {
         if (!storage.isNothing(i)) {
-          double item = storage.getPrimitive(i);
+          double item = storage.getItemDouble(i);
           boolean special = Double.isNaN(item) || Double.isInfinite(item);
           if (!special) {
             doubleBuilder.appendDouble(

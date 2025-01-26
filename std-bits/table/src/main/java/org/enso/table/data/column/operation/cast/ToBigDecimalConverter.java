@@ -43,7 +43,7 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
         Builder.getForBigDecimal(doubleStorage.getSize()),
         doubleStorage,
         (i) -> {
-          double x = doubleStorage.getPrimitive(i);
+          double x = doubleStorage.getItemDouble(i);
           return BigDecimal.valueOf(x);
         });
   }
@@ -54,7 +54,7 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
         Builder.getForBigDecimal(longStorage.getSize()),
         longStorage,
         (i) -> {
-          long x = longStorage.getPrimitive(i);
+          long x = longStorage.getItemLong(i);
           return BigDecimal.valueOf(x);
         });
   }
@@ -65,7 +65,7 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
         Builder.getForBigDecimal(boolStorage.getSize()),
         boolStorage,
         (i) -> {
-          boolean x = boolStorage.getPrimitive(i);
+          boolean x = boolStorage.getItemBoolean(i);
           return booleanAsBigDecimal(x);
         });
   }

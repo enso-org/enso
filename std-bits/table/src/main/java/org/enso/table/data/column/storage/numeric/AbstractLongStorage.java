@@ -58,7 +58,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
 
   @Override
   public Long getItemBoxed(long index) {
-    return isNothing(index) ? null : getPrimitive(index);
+    return isNothing(index) ? null : getItemLong(index);
   }
 
   @Override
@@ -72,7 +72,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
   }
 
   @Override
-  public abstract long getPrimitive(long index) throws ValueIsNothingException;
+  public abstract long getItemLong(long index) throws ValueIsNothingException;
 
   @Override
   public boolean isBinaryOpVectorized(String name) {
@@ -130,7 +130,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
         continue;
       }
 
-      long item = getPrimitive(i);
+      long item = getItemLong(i);
       while (!possibleTypes[currentTypeIdx].fits(item)) {
         currentTypeIdx++;
       }
@@ -187,7 +187,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
           builder.appendNulls(1);
         }
       } else {
-        long currentValue = getPrimitive(i);
+        long currentValue = getItemLong(i);
         builder.appendLong(currentValue);
         previousValue = currentValue;
         hasPrevious = true;
@@ -216,7 +216,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
         if (isNothing(i)) {
           builder.appendNulls(1);
         } else {
-          builder.appendLong(getPrimitive(i));
+          builder.appendLong(getItemLong(i));
         }
       }
 
@@ -235,7 +235,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
       if (position == OrderMask.NOT_FOUND_INDEX || isNothing(position)) {
         builder.appendNulls(1);
       } else {
-        builder.appendLong(getPrimitive(position));
+        builder.appendLong(getItemLong(position));
       }
 
       context.safepoint();
@@ -254,7 +254,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
       if (isNothing(offset + i)) {
         builder.appendNulls(1);
       } else {
-        builder.appendLong(getPrimitive(offset + i));
+        builder.appendLong(getItemLong(offset + i));
       }
       context.safepoint();
     }
@@ -274,7 +274,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
         if (isNothing(rangeStart + i)) {
           builder.appendNulls(1);
         } else {
-          builder.appendLong(getPrimitive(rangeStart + i));
+          builder.appendLong(getItemLong(rangeStart + i));
         }
         context.safepoint();
       }
