@@ -1,5 +1,4 @@
 /** @file A dropdown menu of user actions and settings. */
-import { IS_DEV_MODE } from 'enso-common/src/detect'
 import DefaultUserIcon from '#/assets/default_user.svg'
 import { Popover, Text } from '#/components/AriaComponents'
 import MenuEntry from '#/components/MenuEntry'
@@ -13,6 +12,7 @@ import { useText } from '#/providers/TextProvider'
 import { Plan } from '#/services/Backend'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
+import { IS_DEV_MODE } from 'enso-common/src/detect'
 import { useNavigate } from 'react-router-dom'
 import { LOGIN_PATH } from '../appUtils'
 import { useToggleEnsoDevtools } from '../components/Devtools'
