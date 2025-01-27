@@ -81,7 +81,7 @@ public final class BoolStorage extends Storage<Boolean>
   @Override
   public boolean isNothing(long idx) {
     if (idx < 0 || idx >= getSize()) {
-      throw new IndexOutOfBoundsException("Index out of bounds: " + idx);
+      throw new IndexOutOfBoundsException(idx);
     }
     return isNothing.get((int) idx);
   }

@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage.numeric;
 
 import java.util.BitSet;
-
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -13,8 +12,10 @@ import org.graalvm.polyglot.Context;
  * <p>This storage allows for missing values. Prefer {@link ComputedLongStorage} for non-nullable
  * case.
  */
-public abstract class ComputedNullableLongStorage extends AbstractLongStorage implements ColumnStorageWithNothingMap {
+public abstract class ComputedNullableLongStorage extends AbstractLongStorage
+    implements ColumnStorageWithNothingMap {
   protected abstract Long computeItem(int idx);
+
   private BitSet isNothing;
 
   protected ComputedNullableLongStorage(int size) {
@@ -24,16 +25,17 @@ public abstract class ComputedNullableLongStorage extends AbstractLongStorage im
   @Override
   public Long getItemBoxed(long idx) {
     if (idx < 0 || idx >= getSize()) {
-      throw new IndexOutOfBoundsException(
-          "Index " + idx + " is out of bounds for range of length " + getSize() + ".");
+      throw new IndexOutOfBoundsException(idx);
     }
-
     return computeItem((int) idx);
   }
 
   @Override
   public boolean isNothing(long idx) {
     if (isNothing != null) {
+      if (idx < 0 || idx >= getSize()) {
+        throw new IndexOutOfBoundsException(idx);
+      }
       return isNothing.get((int) idx);
     }
     return this.getItemBoxed(idx) == null;

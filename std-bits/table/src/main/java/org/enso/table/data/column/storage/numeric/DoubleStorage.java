@@ -95,6 +95,9 @@ public final class DoubleStorage extends Storage<Double>
 
   @Override
   public boolean isNothing(long idx) {
+    if (idx < 0 || idx >= getSize()) {
+      throw new IndexOutOfBoundsException(idx);
+    }
     return isNothing.get((int) idx);
   }
 

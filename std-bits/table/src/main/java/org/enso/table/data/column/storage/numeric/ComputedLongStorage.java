@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage.numeric;
 
 import java.util.BitSet;
-
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -11,7 +10,8 @@ import org.enso.table.data.column.storage.type.IntegerType;
  *
  * <p>This storage assumes that _all_ values are present.
  */
-public abstract class ComputedLongStorage extends AbstractLongStorage implements ColumnStorageWithNothingMap {
+public abstract class ComputedLongStorage extends AbstractLongStorage
+    implements ColumnStorageWithNothingMap {
   private static final BitSet EMPTY = new BitSet();
 
   protected abstract long computeItem(int idx);
@@ -22,11 +22,17 @@ public abstract class ComputedLongStorage extends AbstractLongStorage implements
 
   @Override
   public long getItemAsLong(long index) throws ValueIsNothingException {
+    if (index < 0 || index >= getSize()) {
+      throw new IndexOutOfBoundsException(index);
+    }
     return computeItem((int) index);
   }
 
   @Override
   public boolean isNothing(long idx) {
+    if (idx < 0 || idx >= getSize()) {
+      throw new IndexOutOfBoundsException(idx);
+    }
     return false;
   }
 

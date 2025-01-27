@@ -22,7 +22,6 @@ import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualC
 import org.enso.table.data.column.operation.map.numeric.isin.LongIsInOp;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -32,8 +31,7 @@ import org.enso.table.data.mask.SliceRange;
 import org.enso.table.problems.BlackholeProblemAggregator;
 import org.graalvm.polyglot.Context;
 
-public abstract class AbstractLongStorage extends Storage<Long>
-    implements ColumnLongStorage {
+public abstract class AbstractLongStorage extends Storage<Long> implements ColumnLongStorage {
   private static final MapOperationStorage<Long, AbstractLongStorage> ops = buildOps();
 
   private final long size;

@@ -280,6 +280,8 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       BigInteger y = b.getItem(i);
       if (x != null && y != null) {
         builder.append(doBigInteger(x, y, i, problemAggregator));
+      } else {
+        builder.appendNulls(1);
       }
       context.safepoint();
     }

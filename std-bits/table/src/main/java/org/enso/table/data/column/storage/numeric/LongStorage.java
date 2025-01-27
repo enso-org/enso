@@ -7,6 +7,7 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -53,11 +54,17 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
    * @return the data item contained at the given index.
    */
   public long getItemAsLong(long idx) {
+    if (isNothing(idx)) {
+      throw new ValueIsNothingException(idx);
+    }
     return data[Math.toIntExact(idx)];
   }
 
   @Override
   public boolean isNothing(long idx) {
+    if (idx < 0 || idx >= getSize()) {
+      throw new IndexOutOfBoundsException(idx);
+    }
     return isNothing.get(Math.toIntExact(idx));
   }
 
