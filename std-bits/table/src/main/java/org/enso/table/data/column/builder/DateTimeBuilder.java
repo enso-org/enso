@@ -13,7 +13,7 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.graalvm.polyglot.Context;
 
 /** A builder for ZonedDateTime columns. */
-public class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
+public final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
   private final boolean allowDateToDateTimeConversion;
   private final BitSet wasLocalDate;
 

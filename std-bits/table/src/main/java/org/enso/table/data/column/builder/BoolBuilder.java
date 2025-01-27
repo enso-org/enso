@@ -4,12 +4,13 @@ import java.util.BitSet;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.util.BitSets;
 
 /** A builder for boolean columns. */
-public class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
+public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
   private final BitSet vals;
   private final BitSet isNothing;
   int size = 0;
@@ -72,6 +73,8 @@ public class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
                 + storage
                 + ". This is a bug in the Table library.");
       }
+    } else if (storage.getType() instanceof NullType) {
+      appendNulls(storage.size());
     } else {
       throw new StorageTypeMismatchException(getType(), storage.getType());
     }

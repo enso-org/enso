@@ -390,19 +390,19 @@ add_specs suite_builder =
 
         group_builder.specify "empty table" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]] . take 0
-            expected = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]] . take 0
+            expected = Table.from_rows ["foo", "bar", "baz"] []
             actual = t.parse_to_columns "bar" "\d+"
             actual.should_equal expected
 
         group_builder.specify "empty table, with regex groups" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]] . take 0
-            expected = Table.from_rows ["foo", "bar 1", "bar 2", "baz"] [["x", "a", "a", "y"]] . take 0
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "baz"] []
             actual = t.parse_to_columns "bar" "(\d)(\d)"
             actual.should_equal expected
 
         group_builder.specify "empty table, with named and unnamed regex groups" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]] . take 0
-            expected = Table.from_rows ["foo", "quux", "bar 1", "foo 1", "bar 2", "baz"] [["x", "a", "a", "a", "a", "y"]] . take 0
+            expected = Table.from_rows ["foo", "quux", "bar 1", "foo 1", "bar 2", "baz"] []
             actual = t.parse_to_columns "bar" "(?<quux>)(\d)(?<foo>\d)(\d)"
             actual.should_equal expected
 
@@ -419,13 +419,13 @@ add_specs suite_builder =
 
         group_builder.specify "input with no matches, with regex groups" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]]
-            expected = Table.from_rows ["foo", "bar 1", "bar 2", "baz"] [["x", Nothing, Nothing, "y"], ["", "", "", ""]] . take 1
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "baz"] [["x", Nothing, Nothing, "y"]]
             actual = t.parse_to_columns "bar" "(\d)(\d)"
             actual.should_equal expected
 
         group_builder.specify "input with no matches, with named and unnamed regex groups" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]]
-            expected = Table.from_rows ["foo", "quux", "bar 1", "foo 1", "bar 2", "baz"] [["x", Nothing, Nothing, Nothing, Nothing, "y"], ["", "", "", "", "", ""]] . take 1
+            expected = Table.from_rows ["foo", "quux", "bar 1", "foo 1", "bar 2", "baz"] [["x", Nothing, Nothing, Nothing, Nothing, "y"]]
             actual = t.parse_to_columns "bar" "(?<quux>)(\d)(?<foo>\d)(\d)"
             actual.should_equal expected
 

@@ -21,6 +21,7 @@ public sealed interface StorageType
         DateType,
         FloatType,
         IntegerType,
+        NullType,
         TextType,
         TimeOfDayType {
   /**

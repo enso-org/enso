@@ -2,6 +2,7 @@ private
 
 from Standard.Base import all
 import Standard.Base.Data.Vector.No_Wrap
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Column_Description.Column_Description
 import project.Connection.Connection.Connection
@@ -10,6 +11,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.SQL_Query.SQL_Query
 import project.SQL_Statement.SQL_Statement
+from project.Errors import Unsupported_Database_Type
 
 ## PRIVATE
 make_batched_insert_template : Connection -> Text -> Vector (Vector Text) -> SQL_Query
@@ -32,6 +34,9 @@ prepare_create_table_statement connection table_name columns primary_key tempora
     type_mapping = connection.dialect.get_type_mapping
     column_descriptors = columns.map on_problems=No_Wrap.Value def->
         sql_type = type_mapping.value_type_to_sql def.value_type on_problems
+            . catch Unsupported_Database_Type error->
+                Error.throw (Illegal_Argument.Error "Definition for column ["+def.name+"] is invalid: "+error.to_display_text)
+
         sql_type_text = type_mapping.sql_type_to_text sql_type
         Create_Column_Descriptor.Value def.name sql_type_text def.constraints
     connection.dialect.generate_sql <|

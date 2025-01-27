@@ -546,6 +546,7 @@ type Column
                         run_binary_op self fn other new_name
                     _ ->
                         run_vectorized_binary_op self Java_Storage.Maps.SUB other
+            Nothing -> self.const Nothing
 
     ## ALIAS multiply, product, times
        GROUP Standard.Base.Operators

@@ -8,6 +8,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.polyglot.Polyglot_Utils;
+import org.enso.table.data.column.storage.NullStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
@@ -17,6 +18,7 @@ import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
@@ -25,7 +27,7 @@ import org.enso.table.problems.ProblemAggregator;
 /**
  * A builder performing type inference on the appended elements, choosing the best possible storage.
  */
-public class InferredBuilder implements Builder {
+public final class InferredBuilder implements Builder {
   private BuilderWithRetyping currentBuilder = null;
   private int currentSize = 0;
   private final int initialSize;
@@ -82,8 +84,12 @@ public class InferredBuilder implements Builder {
 
   @Override
   public void appendBulkStorage(Storage<?> storage) {
-    for (int i = 0; i < storage.size(); i++) {
-      append(storage.getItemBoxed(i));
+    if (storage.getType() instanceof NullType) {
+      appendNulls(storage.size());
+    } else {
+      for (int i = 0; i < storage.size(); i++) {
+        append(storage.getItemBoxed(i));
+      }
     }
   }
 
@@ -185,7 +191,8 @@ public class InferredBuilder implements Builder {
   @Override
   public Storage<?> seal() {
     if (currentBuilder == null) {
-      initBuilderFor(null);
+      // If all values that the builder got were nulls, we can return a special null storage.
+      return new NullStorage(currentSize);
     }
     return currentBuilder.seal();
   }

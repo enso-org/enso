@@ -597,12 +597,13 @@ type DB_Column
          cause a hard error, the value may be truncated or wrap-around etc.
     + : DB_Column | Any -> DB_Column
     + self other =
-        op = case Value_Type_Helpers.resolve_addition_kind self other of
-            Value_Type_Helpers.Addition_Kind.Numeric_Add -> "ADD_NUMBER"
-            Value_Type_Helpers.Addition_Kind.Text_Concat -> "ADD_TEXT"
-        op.if_not_error <|
-            new_name = self.naming_helper.binary_operation_name "+" self other
-            self.make_binary_op op other new_name
+        new_name = self.naming_helper.binary_operation_name "+" self other
+        case Value_Type_Helpers.resolve_addition_kind self other of
+            Value_Type_Helpers.Addition_Kind.Numeric_Add ->
+                self.make_binary_op "ADD_NUMBER" other new_name
+            Value_Type_Helpers.Addition_Kind.Text_Concat ->
+                self.make_binary_op "ADD_TEXT" other new_name
+            Nothing -> self.const Nothing
 
     ## ALIAS minus, subtract, time difference
        GROUP Standard.Base.Operators
@@ -632,6 +633,7 @@ type DB_Column
                 self.make_binary_op "-" other
             Value_Type_Helpers.Subtraction_Kind.Date_Time_Difference ->
                 Error.throw (Unsupported_Database_Operation.Error "Subtracting date/time value")
+            Nothing -> self.const Nothing
 
     ## ALIAS multiply, product, times
        GROUP Standard.Base.Operators
