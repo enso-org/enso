@@ -225,7 +225,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     long m = Math.min(n, b.getSize());
     var builder = Builder.getForLong(INTEGER_RESULT_TYPE, n, problemAggregator);
     for (long i = 0; i < n; i++) {
-      if (a.isNothing(i) || (i >= m || b.isNothing(i))) {
+      if (a.isNothing(i) || i >= m || b.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         Long r = doLong(a.getItemAsLong(i), b.getItemAsLong(i), i, problemAggregator);
@@ -275,10 +275,10 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       BigIntegerArrayAdapter b,
       MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    int n = a.size();
-    int m = Math.min(a.size(), b.size());
+    long n = a.size();
+    long m = Math.min(n, b.size());
     var builder = Builder.getForBigInteger(n, BlackholeProblemAggregator.INSTANCE);
-    for (int i = 0; i < m; i++) {
+    for (long i = 0; i < m; i++) {
       BigInteger x = a.getItem(i);
       BigInteger y = b.getItem(i);
       if (x != null && y != null) {
@@ -288,7 +288,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     }
 
     if (m < n) {
-      builder.appendNulls(n - m);
+      builder.appendNulls(Math.toIntExact(n - m));
     }
 
     return builder.seal();
@@ -297,9 +297,9 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
   protected Storage<BigInteger> runBigIntegerMap(
       BigIntegerArrayAdapter a, BigInteger b, MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    int n = a.size();
+    long n = a.size();
     var builder = Builder.getForBigInteger(n, BlackholeProblemAggregator.INSTANCE);
-    for (int i = 0; i < n; i++) {
+    for (long i = 0; i < n; i++) {
       BigInteger x = a.getItem(i);
       if (x == null || b == null) {
         builder.appendNulls(1);
@@ -341,7 +341,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     long n = a.size();
     var builder = Builder.getForBigDecimal(n);
 
-    for (int i = 0; i < n; i++) {
+    for (long i = 0; i < n; i++) {
       BigDecimal x = a.getItem(i);
       if (x == null || b == null) {
         builder.appendNulls(1);

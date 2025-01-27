@@ -144,12 +144,12 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
       BigIntegerArrayAdapter a,
       BigIntegerArrayAdapter b,
       MapOperationProblemAggregator problemAggregator) {
-    int n = a.size();
-    int m = Math.min(a.size(), b.size());
+    long n = a.size();
+    long m = Math.min(n, b.size());
     var builder = Builder.getForBigInteger(n, problemAggregator);
     Context context = Context.getCurrent();
 
-    for (int i = 0; i < n; i++) {
+    for (long i = 0; i < n; i++) {
       BigInteger x = a.getItem(i);
       BigInteger y = i >= m ? null : b.getItem(i);
       if (x == null && y == null) {
@@ -177,9 +177,9 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
     }
 
     Context context = Context.getCurrent();
-    int n = a.size();
+    long n = a.size();
     var builder = Builder.getForBigInteger(n, problemAggregator);
-    for (int i = 0; i < n; i++) {
+    for (long i = 0; i < n; i++) {
       BigInteger x = a.getItem(i);
       if (x == null) {
         builder.append(b);

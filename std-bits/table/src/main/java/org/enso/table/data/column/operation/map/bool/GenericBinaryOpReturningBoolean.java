@@ -105,7 +105,7 @@ public abstract class GenericBinaryOpReturningBoolean<T, S extends SpecializedSt
     var builder = Builder.getForBoolean(n);
     Context context = Context.getCurrent();
     for (long i = 0; i < n; i++) {
-      if (storage.isNothing(i) || !(i < m) || argStorage.isNothing(i)) {
+      if (i >= m || storage.isNothing(i) || argStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         T storageItem = storage.getItemBoxed(i);
@@ -128,7 +128,7 @@ public abstract class GenericBinaryOpReturningBoolean<T, S extends SpecializedSt
     long m = argStorage.getSize();
     var builder = Builder.getForBoolean(n);
     for (long i = 0; i < n; i++) {
-      if (storage.isNothing(i) || !(i < m) || argStorage.isNothing(i)) {
+      if (i >= m || storage.isNothing(i) || argStorage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
         T storageItem = storage.getItemBoxed(i);

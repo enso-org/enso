@@ -160,10 +160,10 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
 
   protected Storage<Boolean> runBigIntegerMap(
       BigIntegerArrayAdapter lhs, BigInteger rhs, MapOperationProblemAggregator problemAggregator) {
-    int n = lhs.size();
+    long n = lhs.size();
     var builder = Builder.getForBoolean(n);
     Context context = Context.getCurrent();
-    for (int i = 0; i < n; ++i) {
+    for (long i = 0; i < n; ++i) {
       BigInteger item = lhs.getItem(i);
       if (item == null) {
         builder.appendNulls(1);
@@ -319,11 +319,11 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
       BigIntegerArrayAdapter lhs,
       BigIntegerArrayAdapter rhs,
       MapOperationProblemAggregator problemAggregator) {
-    int n = lhs.size();
-    int m = Math.min(n, rhs.size());
+    long n = lhs.size();
+    long m = Math.min(n, rhs.size());
     var builder = Builder.getForBoolean(n);
     Context context = Context.getCurrent();
-    for (int i = 0; i < n; ++i) {
+    for (long i = 0; i < n; ++i) {
       BigInteger x = lhs.getItem(i);
       BigInteger y = i >= m ? null : rhs.getItem(i);
       if (x == null || y == null) {

@@ -2,66 +2,65 @@ package org.enso.table.data.column.operation.map.numeric.helpers;
 
 import java.math.BigInteger;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
-import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.problems.BlackholeProblemAggregator;
 
 public interface BigIntegerArrayAdapter {
-  BigInteger getItem(int i);
+  BigInteger getItem(long i);
 
-  int size();
+  long size();
 
   default Storage<BigInteger> intoStorage() {
-    int n = size();
+    long n = size();
     var builder = Builder.getForBigInteger(n, BlackholeProblemAggregator.INSTANCE);
-    for (int i = 0; i < n; i++) {
+    for (long i = 0; i < n; i++) {
       builder.append(getItem(i));
     }
     return builder.seal();
   }
 
-  static BigIntegerArrayAdapter fromStorage(BigIntegerStorage storage) {
+  static BigIntegerArrayAdapter fromStorage(Storage<BigInteger> storage) {
     return new BigIntegerStorageAsBigInteger(storage);
   }
 
-  static BigIntegerArrayAdapter fromStorage(AbstractLongStorage storage) {
+  static BigIntegerArrayAdapter fromStorage(ColumnLongStorage storage) {
     return new LongStorageAsBigInteger(storage);
   }
 
   class BigIntegerStorageAsBigInteger implements BigIntegerArrayAdapter {
-    private final BigIntegerStorage storage;
+    private final Storage<BigInteger> storage;
 
-    private BigIntegerStorageAsBigInteger(BigIntegerStorage storage) {
+    private BigIntegerStorageAsBigInteger(Storage<BigInteger> storage) {
       this.storage = storage;
     }
 
     @Override
-    public BigInteger getItem(int i) {
+    public BigInteger getItem(long i) {
       return storage.getItemBoxed(i);
     }
 
     @Override
-    public int size() {
+    public long size() {
       // ToDo: Will remove these adapters in the next step.
       return (int) storage.getSize();
     }
 
     @Override
-    public BigIntegerStorage intoStorage() {
+    public Storage<BigInteger> intoStorage() {
       return storage;
     }
   }
 
   class LongStorageAsBigInteger implements BigIntegerArrayAdapter {
-    private final AbstractLongStorage storage;
+    private final ColumnLongStorage storage;
 
-    private LongStorageAsBigInteger(AbstractLongStorage storage) {
+    private LongStorageAsBigInteger(ColumnLongStorage storage) {
       this.storage = storage;
     }
 
     @Override
-    public BigInteger getItem(int i) {
+    public BigInteger getItem(long i) {
       if (storage.isNothing(i)) {
         return null;
       } else {
@@ -71,9 +70,8 @@ public interface BigIntegerArrayAdapter {
     }
 
     @Override
-    public int size() {
-      // ToDo: Will remove these adapters in the next step.
-      return (int) storage.getSize();
+    public long size() {
+      return storage.getSize();
     }
   }
 }
