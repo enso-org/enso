@@ -24,7 +24,7 @@ public class CatchAnyNode extends Node {
     this.invokeCallableNode.setTailStatus(BaseNode.TailStatus.TAIL_DIRECT);
   }
 
-  Object execute(Object self, Object handler) {
-    return self;
+  Object execute(Object obj, Object handler) {
+    return obj;
   }
 }

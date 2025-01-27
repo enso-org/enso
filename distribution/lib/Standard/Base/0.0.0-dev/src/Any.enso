@@ -9,6 +9,7 @@ import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
+import project.Internal.Any_Helpers
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
@@ -76,7 +77,7 @@ type Any
 
              7.to_text
     to_text : Text
-    to_text self = @Builtin_Method "Any.to_text"
+    to_text self = Any_Helpers.any_to_text self
 
     ## GROUP convert
        ICON enso_logo
@@ -96,7 +97,7 @@ type Any
              ## Returns a Text
                 'Hello World!'
     pretty : Text
-    pretty self = @Builtin_Method "Any.pretty"
+    pretty self = Any_Helpers.any_pretty self
 
     ## PRIVATE
        Generic conversion of an arbitrary Enso value to a corresponding short
@@ -107,7 +108,7 @@ type Any
 
              7.to_display_text
     to_display_text : Text
-    to_display_text self = @Builtin_Method "Any.to_display_text"
+    to_display_text self = Any_Helpers.any_to_display_text self
 
     ## ALIAS equals
        GROUP Operators
@@ -156,7 +157,7 @@ type Any
                  a = 7 * 21
                  a == 147
     == : Any -> Boolean
-    == self that = @Builtin_Method "Any.=="
+    == self that = Any_Helpers.any_equals self that
 
     ## ALIAS not equals
        GROUP Operators
@@ -384,7 +385,7 @@ type Any
        Arguments:
        - handler: The function to call on this if it is an error value.
     catch_primitive : (Error -> Any) -> Any
-    catch_primitive self handler = @Builtin_Method "Any.catch_primitive"
+    catch_primitive self handler = Any_Helpers.any_catch_primitive self handler
 
     ## ICON column_add
        Transforms an error.

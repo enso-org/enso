@@ -1,3 +1,4 @@
 private
 
 println message ends_with = @Builtin_Method "IO.println"
+any_to_text obj = @Builtin_Method "Any.to_text"

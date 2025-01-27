@@ -41,12 +41,12 @@ public final class EqualsBuiltinNode extends Node {
    * Compares two objects for equality.
    *
    * @param frame the stack frame we are executing at
-   * @param self the self object
+   * @param obj the self object
    * @param other the other object
    * @return {@code true} if {@code self} and {@code that} seem equal
    */
-  public Object execute(VirtualFrame frame, Object self, Object other) {
-    var areEqual = node.execute(frame, self, other);
+  public Object execute(VirtualFrame frame, Object obj, Object other) {
+    var areEqual = node.execute(frame, obj, other);
     if (areEqual.getWarnings() != null) {
       if (append == null) {
         CompilerDirectives.transferToInterpreterAndInvalidate();

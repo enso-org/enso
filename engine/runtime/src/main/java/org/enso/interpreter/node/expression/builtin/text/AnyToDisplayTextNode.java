@@ -25,7 +25,7 @@ public abstract class AnyToDisplayTextNode extends Node {
     return AnyToDisplayTextNodeGen.create();
   }
 
-  abstract Text execute(Object self);
+  abstract Text execute(Object obj);
 
   @Specialization(guards = {"iop.isException(self)", "iop.hasExceptionMessage(self)"})
   Text showExceptions(Object self, @Shared("iop") @CachedLibrary(limit = "3") InteropLibrary iop) {
