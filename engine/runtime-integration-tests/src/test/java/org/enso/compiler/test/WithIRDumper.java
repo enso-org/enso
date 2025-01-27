@@ -5,6 +5,7 @@ import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
 import org.enso.test.utils.IRDumperTestWrapper;
 
+/** A mixin interface to be used in the tests to dump IR graphs in IGV. */
 public interface WithIRDumper {
   IRDumperTestWrapper dumper = new IRDumperTestWrapper();
 
