@@ -6,6 +6,7 @@ import org.enso.editions.EditionResolutionError.{
 }
 import org.enso.editions.Editions.{RawEdition, ResolvedEdition}
 import org.enso.editions.provider.EditionProvider
+import org.slf4j.LoggerFactory
 
 import scala.annotation.tailrec
 
@@ -26,7 +27,15 @@ case class EditionResolver(provider: EditionProvider) {
   def resolve(
     edition: RawEdition
   ): Either[EditionResolutionError, ResolvedEdition] =
-    resolveEdition(edition, Nil)
+    resolveEdition(edition, Nil).left.flatMap { err =>
+      LoggerFactory
+        .getLogger(classOf[EditionResolver])
+        .warn(
+          "Failed to resolve original edition. Trying fallback to the default one",
+          err
+        )
+      resolveEdition(DefaultEdition.getDefaultEdition, Nil).left.map(_ => err)
+    }
 
   /** A helper method that resolves an edition and keeps a list of already
     * visited edition names to avoid cycles.
