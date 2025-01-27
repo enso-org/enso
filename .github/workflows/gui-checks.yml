@@ -48,9 +48,10 @@ jobs:
         with:
           path: |
             **/.eslintcache
-          key: ${{ runner.os }}-gui-eslint-${{ github.run_id }}
+            **/node_modules/.vite
+          key: ${{ runner.os }}-gui-lint-${{ github.run_id }}
           restore-keys: |
-            ${{ runner.os }}-gui-eslint
+            ${{ runner.os }}-gui-lint
 
       # Next Tasks are depend on Typecheck, because we build libraries at this stage
       - name: ⚙️ Compile
@@ -94,6 +95,7 @@ jobs:
           key: ${{ steps.cache.outputs.cache-primary-key }}
           path: |
             **/.eslintcache
+            **/node_modules/.vite
 
       - name: ❌ Fail if any check failed
         if: always() && (steps.lint.outcome == 'failure' || steps.compile.outcome == 'failure' || steps.typecheck.outcome == 'failure' || steps.unit-tests.outcome == 'failure')
