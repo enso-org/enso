@@ -2,6 +2,7 @@
  * @file Utilities for the Breadcrumbs component
  */
 import type * as aria from 'react-aria-components'
+import invariant from 'tiny-invariant'
 
 const DEFAULT_START_VISIBLE_ITEMS_COUNT = 1
 const DEFAULT_END_VISIBLE_ITEMS_COUNT = 2
@@ -42,6 +43,12 @@ export function getItemsWithCollapsedItem<T>(
     endVisibleItemsCount = DEFAULT_END_VISIBLE_ITEMS_COUNT,
   } = options
 
+  invariant(
+    startVisibleItemsCount >= 0,
+    'startVisibleItemsCount must be greater than or equal to 0',
+  )
+  invariant(endVisibleItemsCount >= 0, 'endVisibleItemsCount must be greater than or equal to 0')
+
   const totalVisibleItemsCount = startVisibleItemsCount + endVisibleItemsCount
 
   const itemsArray = Array.from(items)
@@ -50,16 +57,19 @@ export function getItemsWithCollapsedItem<T>(
     return itemsArray
   }
 
-  const firstVisibleItems = itemsArray.slice(0, startVisibleItemsCount)
-  const lastVisibleItems = itemsArray.slice(-endVisibleItemsCount)
+  const startVisibleItems = itemsArray.slice(0, startVisibleItemsCount)
+  const endVisibleItems = endVisibleItemsCount === 0 ? [] : itemsArray.slice(-endVisibleItemsCount)
 
   const dropdownItem = {
     [DROPDOWN_ITEM_BRAND]: true,
     id: 'collapsed-item',
-    items: itemsArray.slice(startVisibleItemsCount, -endVisibleItemsCount),
+    items:
+      endVisibleItemsCount === 0
+        ? itemsArray.slice(startVisibleItemsCount)
+        : itemsArray.slice(startVisibleItemsCount, -endVisibleItemsCount),
   } satisfies BreadcrumbCollapsedItem<T>
 
-  return [...firstVisibleItems, dropdownItem, ...lastVisibleItems]
+  return [...startVisibleItems, dropdownItem, ...endVisibleItems]
 }
 
 /**

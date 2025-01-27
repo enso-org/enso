@@ -24,6 +24,7 @@ describe('getItemsWithCollapsedItem', (it) => {
     expect(items).toMatchObject([
       'Home',
       { items: ['Projects', 'Team', 'Documents'] },
+      'Reports',
       'Current Report',
     ])
   })
@@ -43,7 +44,7 @@ describe('getItemsWithCollapsedItem', (it) => {
       startVisibleItemsCount: 2,
     })
 
-    expect(items).toMatchObject(['Home', 'Projects', { items: ['Team'] }, 'Reports'])
+    expect(items).toMatchObject(['Home', 'Projects', { items: ['Team'] }, 'Documents', 'Reports'])
   })
 
   it('handles custom endVisibleItemsCount', ({ expect }) => {
@@ -104,6 +105,7 @@ describe('getItemsWithCollapsedItem', (it) => {
     expect(items).toMatchObject([
       { id: 1, name: 'Home' },
       { items: [{ id: 2, name: 'Projects' }] },
+      { id: 3, name: 'Team' },
       { id: 4, name: 'Final' },
     ])
   })
@@ -112,6 +114,6 @@ describe('getItemsWithCollapsedItem', (it) => {
     const set = new Set(['Home', 'Projects', 'Team', 'Documents'])
     const items = getItemsWithCollapsedItem(set)
 
-    expect(items).toMatchObject(['Home', { items: ['Projects', 'Team'] }, 'Documents'])
+    expect(items).toMatchObject(['Home', { items: ['Projects'] }, 'Team', 'Documents'])
   })
 })
