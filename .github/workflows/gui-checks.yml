@@ -133,6 +133,10 @@ jobs:
           node-version-file: .node-version
           cache: "pnpm"
 
+      - uses: bazel-contrib/setup-bazel@0.13.0
+        with:
+          bazelrc: build --remote_cache=http://${{ secrets.ENSO_BAZEL_CACHE_USERNAME  }}@${{ vars.ENSO_BAZEL_CACHE_URI }}
+
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 
