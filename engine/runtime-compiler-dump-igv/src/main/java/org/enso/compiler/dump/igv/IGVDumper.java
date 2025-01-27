@@ -170,7 +170,8 @@ public final class IGVDumper implements IRDumper {
           StandardOpenOption.WRITE,
           StandardOpenOption.TRUNCATE_EXISTING);
     } catch (IOException e) {
-      throw new IllegalStateException(e);
+      throw new IllegalStateException(
+          "Failed to create byte channel to file " + path.toAbsolutePath(), e);
     }
   }
 }
