@@ -5,6 +5,7 @@ import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
 import FullscreenButton from '@/components/FullscreenButton.vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { htmlToMarkdown } from '@/components/MarkdownEditor/htmlToMarkdown'
+import SvgButton from '@/components/SvgButton.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
@@ -73,6 +74,9 @@ const handler = documentationEditorBindings.handler({
     <div class="DocumentationEditor">
       <div ref="toolbarElement" class="toolbar">
         <FullscreenButton v-model="fullscreen" />
+        <SvgButton name="header1" />
+        <SvgButton name="header2" />
+        <SvgButton name="header3" />
       </div>
       <slot name="belowToolbar" />
       <div
