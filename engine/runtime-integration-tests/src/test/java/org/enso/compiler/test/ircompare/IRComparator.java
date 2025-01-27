@@ -5,13 +5,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Empty;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Name;
 import org.enso.test.utils.IRDumperTestWrapper;
+import scala.jdk.javaapi.CollectionConverters;
 
 public final class IRComparator {
   private final String name;
   private final boolean compareMeta;
   private final IRDumperTestWrapper dumper = new IRDumperTestWrapper();
+  private IR expectedRoot;
+  private IR actualRoot;
 
   private IRComparator(String name, boolean compareMeta) {
     this.name = name;
@@ -24,8 +29,8 @@ public final class IRComparator {
 
   /**
    * Compares IRs and dumps the diff the {@code actualIR} IR does not match the {@code expectedIR}
-   * one. IRs are compared recursively. {@code expectedIR} IR can have {@link SkipIR} nodes. When
-   * the {@link IRComparator} encounters {@link SkipIR} node in the {@code expectedIR} IR, the
+   * one. IRs are compared recursively. {@code expectedIR} IR can have {@link org.enso.compiler.core.ir.Empty} nodes. When
+   * the {@link IRComparator} encounters {@link org.enso.compiler.core.ir.Empty} node in the {@code expectedIR} IR, the
    * corresponding subtree in the {@code actualIR} IR is skipped.
    *
    * <p>Traverses the IRs in the BFS order.
@@ -37,13 +42,15 @@ public final class IRComparator {
    * @param actualIR
    */
   public void compare(IR expectedIR, IR actualIR) throws IRComparisonFailure {
+    expectedRoot = expectedIR;
+    actualRoot = actualIR;
     var nodesToProcess = new ArrayDeque<NodePair>();
     nodesToProcess.add(new NodePair(expectedIR, actualIR));
     while (!nodesToProcess.isEmpty()) {
       var nodePairToProcess = nodesToProcess.poll();
       var expected = nodePairToProcess.expected;
       var actual = nodePairToProcess.actual;
-      if (expected instanceof SkipIR) {
+      if (expected instanceof Empty) {
         continue;
       }
       compareTwoNodes(expected, actual);
@@ -106,10 +113,37 @@ public final class IRComparator {
   }
 
   private IRComparisonFailure fail(String msg, IR expected, IR actual) {
-    dumper.dump(expected, name, "expected");
-    dumper.dump(actual, name, "actual");
+    dumper.dump(expectedRoot, name, "expected");
+    dumper.dump(actualRoot, name, "actual");
     System.err.println("Dumped expected and actual IRs to IGV with name " + name);
     return new IRComparisonFailure(msg, expected, actual);
+  }
+
+  private IR copyRootWithSwap(IR root, Expression node, Expression replacement) {
+    var duplRoot = root.duplicate(false, false, false, false);
+    var nodesToProcess = new ArrayDeque<IR>();
+    nodesToProcess.add(duplRoot);
+    while (!nodesToProcess.isEmpty()) {
+      var nodeToProcess = nodesToProcess.poll();
+      if (nodeToProcess == node) {
+
+      }
+    }
+  }
+
+  private IR replaceChild(IR node, int childIdx, IR replacement) {
+    var children = node.children();
+    var newChildren = new ArrayList<IR>();
+    for (var i = 0; i < children.size(); i++) {
+      if (childIdx == i) {
+        newChildren.add(replacement);
+      } else {
+        newChildren.add(children.apply(i));
+      }
+    }
+    // Replace via reflection
+    var newChildrenList = CollectionConverters.asScala(newChildren).toList();
+    throw new UnsupportedOperationException("unimplemented");
   }
 
   private record NodePair(IR expected, IR actual) {}

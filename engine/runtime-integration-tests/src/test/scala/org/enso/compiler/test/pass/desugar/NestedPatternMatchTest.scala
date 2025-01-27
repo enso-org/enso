@@ -3,10 +3,11 @@ package org.enso.compiler.test.pass.desugar
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.ir.expression.Case
-import org.enso.compiler.core.ir.{Expression, Literal, Module, Name, Pattern}
+import org.enso.compiler.core.ir.{Empty, Expression, Literal, Module, Name, Pattern}
 import org.enso.compiler.pass.desugar.NestedPatternMatch
 import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
-import org.enso.compiler.test.CompilerTest
+import org.enso.compiler.test.ircompare.{IRComparator}
+import org.enso.compiler.test.{CompilerTest}
 
 class NestedPatternMatchTest extends CompilerTest {
 
@@ -341,5 +342,88 @@ class NestedPatternMatchTest extends CompilerTest {
         .name shouldEqual "Nil"
       consANilBranch2Expr.branches.head.terminalBranch shouldBe true
     }
+  }
+
+  "Simple nested pattern desugaring" should {
+    implicit val ctx: InlineContext = mkInlineContext
+
+    // IGV graph: https://github.com/user-attachments/assets/b5387e61-e577-4b03-8a4a-ca05e27f2462
+    "One nested pattern" in {
+      val ir =
+        """
+          |case x of
+          |    Cons (Nested a) -> num
+          |""".stripMargin.preprocessExpression.get
+      val processed = ir.desugar
+
+      val expectedIR = Expression.Block(
+        expressions = List(
+          Expression.Binding(
+            name = lit("<internal-0>"),
+            expression = emptyIR(),
+            identifiedLocation = null
+          )
+        ),
+        returnValue = Case.Expr(
+          scrutinee = lit("<internal-10>"),
+          branches = List(
+            Case.Branch(
+              pattern = Pattern.Constructor(
+                constructor = lit("Cons"),
+                fields = List(
+                  Pattern.Name(lit("<internal-1>"), identifiedLocation = null)
+                ),
+                identifiedLocation = null
+              ),
+              expression = Expression.Block(
+                expressions = List(
+                  Expression.Binding(
+                    name = lit("<internal-2>"),
+                    expression = emptyIR(),
+                    identifiedLocation = null
+                  ),
+                ),
+                returnValue = Case.Expr(
+                  scrutinee = lit("<internal-2>"),
+                  branches = List(
+                    Case.Branch(
+                      pattern = Pattern.Constructor(
+                        constructor = lit("Nested"),
+                        fields = List(
+                          Pattern.Name(lit("a"), identifiedLocation = null)
+                        ),
+                        identifiedLocation = null
+                      ),
+                      expression = lit("num"),
+                      terminalBranch = true,
+                      identifiedLocation = null
+                    )
+                  ),
+                  isNested = true,
+                  identifiedLocation = null
+                ),
+                identifiedLocation = null
+              ),
+              identifiedLocation = null,
+              terminalBranch = false
+            ),
+          ),
+          isNested = false,
+          identifiedLocation = null
+        ),
+        identifiedLocation = null
+      )
+
+      val comparator = IRComparator.builder().name("One nested pattern").build()
+      comparator.compare(expectedIR, processed)
+    }
+  }
+
+  private def lit(name: String): Name.Literal = {
+    Name.Literal(name = name, isMethod = false, identifiedLocation = null)
+  }
+
+  private def emptyIR(): Empty = {
+    new Empty(null)
   }
 }
