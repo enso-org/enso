@@ -75,6 +75,7 @@ import type {
   GetRowIdFunc,
   GridApi,
   GridReadyEvent,
+  ICellEditorComp,
   IHeaderComp,
   IHeaderParams,
   MenuItemDef,
@@ -317,14 +318,15 @@ const vueHost = new VueHost()
 
 const mappedComponents = computed(() => {
   if (!props.components) return
-  const retval: Record<string, new () => IHeaderComp> = {}
+  const retval: Record<string, new () => IHeaderComp | ICellEditorComp> = {}
   for (const [key, comp] of Object.entries(props.components)) {
     class ComponentWrapper implements IHeaderComp {
       private readonly container: HTMLElement = document.createElement('div')
       private handle: VueComponentHandle | undefined
 
       init(params: IHeaderParams) {
-        this.handle = vueHost.register(h(comp, params), this.container)
+        console.log('init')
+        this.handle = vueHost.register(h(comp, params), this.container, params.column.getColId())
       }
 
       getGui() {
@@ -337,6 +339,7 @@ const mappedComponents = computed(() => {
       }
 
       destroy() {
+        console.log('destroy')
         this.handle?.unregister()
       }
     }

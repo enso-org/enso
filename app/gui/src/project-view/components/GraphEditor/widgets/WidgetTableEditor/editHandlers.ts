@@ -1,14 +1,7 @@
 import { NEW_COLUMN_ID } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
-import { InteractionHandler } from '@/providers/interactionHandler'
-import { WidgetInput } from '@/providers/widgetRegistry'
 import { WidgetEditHandler, WidgetEditHooks } from '@/providers/widgetRegistry/editHandler'
 import { ToValue } from '@/util/reactivity'
-import {
-  CellEditingStartedEvent,
-  CellEditingStoppedEvent,
-  CellPosition,
-  StartEditingCellParams,
-} from 'ag-grid-enterprise'
+import { CellEditingStoppedEvent, CellPosition, StartEditingCellParams } from 'ag-grid-enterprise'
 import { computed, ref, toValue, watch } from 'vue'
 
 export interface EditedCell {
@@ -90,21 +83,28 @@ export function useTableEditHandler(
         handler.start()
       }
     },
-    cellEditingStopped() {
+    cellEditingStopped(event: { rowIndex: number | undefined; column: { getColId(): string } }) {
+      console.error(event)
       const api = toValue(gridApi)
-      if (!api?.getEditingCells().length && handler.isActive()) {
+      if (
+        event.rowIndex === editedCell.value?.rowIndex &&
+        event.column.getColId() === editedCell.value?.colKey &&
+        !api?.getEditingCells().length &&
+        handler.isActive()
+      ) {
         handler.end()
       }
     },
     rowDataUpdated() {
-      syncGridWithEditedCell()
+      console.error('Row data updated!', editedCell.value)
+      // syncGridWithEditedCell()
     },
     keydown(event: KeyboardEvent) {
       const handler =
         event.code === 'Tab' ? tabPressed
         : event.code === 'Enter' ? enterPressed
         : undefined
-      if (handler?.() === false) {
+      if (handler && handler() !== false) {
         event.stopPropagation()
       }
     },
@@ -132,6 +132,7 @@ export function useTableEditHandler(
   }
 
   function tabPressed() {
+    console.log('Tab pressed when edited', editedCell.value)
     // When cell is edited, AgGrid handles tab correctly.
     if (editedCell.value == null || editedCell.value.rowIndex !== 'header') return false
     const currentIndex = columnIndexById.value.get(editedCell.value.colKey)

@@ -6,11 +6,13 @@ import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { findIndexOpt } from '@/util/data/array'
 import { Err, Ok, type Result, transposeResult, unwrapOrWithLog } from '@/util/data/result'
+import { arrayEquals } from '@/util/equals'
 import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
-import type { ToValue } from '@/util/reactivity'
+import { cachedGetter, type ToValue } from '@/util/reactivity'
 import type { ColDef } from 'ag-grid-enterprise'
 import * as iter from 'enso-common/src/utilities/data/iter'
-import { computed, toValue } from 'vue'
+import { a } from 'vitest/dist/chunks/suite.BJU7kdY9.js'
+import { computed, ref, toValue, watch, watchEffect } from 'vue'
 import type { ColumnSpecificParams } from './TableHeader.vue'
 
 /** Id of a fake column with "Add new column" option. */
@@ -154,6 +156,11 @@ export function useTableInputArgument(
     return unwrapOrWithLog(cols, [], errorMessagePreamble)
   })
 
+  const columnHeaders = cachedGetter(
+    () => Array.from(columns.value, (col) => ({ id: col.id, name: col.name.rawTextContent })),
+    (a, b) => arrayEquals(a, b, (a, b) => a.id === b.id && a.name === b.name),
+  )
+
   const rowCount = computed(() =>
     columns.value.reduce((soFar, col) => Math.max(soFar, col.data.length), 0),
   )
@@ -183,7 +190,7 @@ export function useTableInputArgument(
 
   function mayAddNewColumn(
     rowCount_: number = rowCount.value,
-    colCount: number = columns.value.length,
+    colCount: number = columnHeaders.value.length,
   ): boolean {
     return rowCount_ * (colCount + 1) <= CELLS_LIMIT
   }
@@ -197,8 +204,9 @@ export function useTableInputArgument(
       return
     }
     for (const [index, column] of columns.value.entries()) {
+      console.log('AR', index, column.data.id, valueGetter(column.data.id, index))
       const editedCol = edit.getVersion(column.data)
-      editedCol.push(convertWithImport(valueGetter(column.data.id, index), edit))
+      editedCol.push(convertWithImport(valueGetter(column.id, index), edit))
     }
   }
 
@@ -278,59 +286,70 @@ export function useTableInputArgument(
     },
   })
 
-  const newColumnDef = computed<ColumnDef>(() => ({
-    colId: NEW_COLUMN_ID,
-    headerName: '',
-    valueGetter: () => null,
-    editable: false,
-    resizable: false,
-    suppressNavigable: true,
-    width: 40,
-    maxWidth: 40,
-    headerComponentParams: {
-      columnParams: {
-        type: 'newColumn',
-        enabled: mayAddNewColumn(),
-        newColumnRequested: () => {
-          const edit = graph.startEdit()
-          fixColumns(edit)
-          addColumn(edit, `${DEFAULT_COLUMN_PREFIX}${columns.value.length + 1}`)
-          onUpdate({ edit, directInteraction: true })
+  const newColumnDef = computed<ColumnDef>(
+    () => (
+      console.error('Updating newColumnDef'),
+      {
+        colId: NEW_COLUMN_ID,
+        headerName: '',
+        valueGetter: () => null,
+        editable: false,
+        resizable: false,
+        suppressNavigable: true,
+        width: 40,
+        maxWidth: 40,
+        headerComponentParams: {
+          columnParams: {
+            type: 'newColumn',
+            enabled: mayAddNewColumn(),
+            newColumnRequested: () => {
+              const edit = graph.startEdit()
+              fixColumns(edit)
+              addColumn(edit, `${DEFAULT_COLUMN_PREFIX}${columns.value.length + 1}`)
+              onUpdate({ edit, directInteraction: true })
+            },
+          },
         },
-      },
-    },
-    mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
-    contextMenuItems: [removeRowMenuItem],
-    lockPosition: 'right',
-    cellClass: 'newColumnCell',
-  }))
+        mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
+        contextMenuItems: [removeRowMenuItem],
+        lockPosition: 'right',
+        cellClass: 'newColumnCell',
+      }
+    ),
+  )
 
-  const rowIndexColumnDef = computed<ColumnDef>(() => ({
-    colId: ROW_INDEX_COLUMN_ID,
-    headerName: ROW_INDEX_HEADER,
-    valueGetter: ({ data }: { data: RowData | undefined }) => data?.index,
-    editable: false,
-    resizable: false,
-    suppressNavigable: true,
-    headerComponentParams: { columnParams: { type: 'rowIndexColumn' } },
-    mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
-    contextMenuItems: [removeRowMenuItem],
-    cellClass: 'rowIndexCell',
-    lockPosition: 'left',
-    rowDrag: ({ data }: { data: RowData | undefined }) =>
-      data?.index != null && data.index < rowCount.value,
-  }))
+  const rowIndexColumnDef = computed<ColumnDef>(
+    () => (
+      console.error('Updating rowIndexColumnDef'),
+      {
+        colId: ROW_INDEX_COLUMN_ID,
+        headerName: ROW_INDEX_HEADER,
+        valueGetter: ({ data }: { data: RowData | undefined }) => data?.index,
+        editable: false,
+        resizable: false,
+        suppressNavigable: true,
+        headerComponentParams: { columnParams: { type: 'rowIndexColumn' } },
+        mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
+        contextMenuItems: [removeRowMenuItem],
+        cellClass: 'rowIndexCell',
+        lockPosition: 'left',
+        rowDrag: ({ data }: { data: RowData | undefined }) =>
+          data?.index != null && data.index < rowCount.value,
+      }
+    ),
+  )
 
   const columnDefs = computed(() => {
+    console.error('Updating columnDefs')
     const cols: ColumnDef[] = Array.from(
-      columns.value,
-      (col) =>
+      columnHeaders.value,
+      (col, i) =>
         ({
           colId: col.id,
-          headerName: col.name.rawTextContent,
+          headerName: col.name,
           valueGetter: ({ data }: { data: RowData | undefined }) => {
             if (data == null) return undefined
-            const ast = toValue(input).value.module.tryGet(data.cells[col.data.id])
+            const ast = toValue(input).value.module.tryGet(data.cells[col.id])
             if (ast == null) return null
             const value = cellValueConversion.astToAgGrid(ast as Ast.Expression)
             if (!value.ok) {
@@ -342,15 +361,19 @@ export function useTableInputArgument(
             return value.value
           },
           valueSetter: ({ data, newValue }: { data: RowData; newValue: any }): boolean => {
-            const astId = data?.cells[col.data.id]
+            const astId = data?.cells[col.id]
             const edit = graph.startEdit()
             fixColumns(edit)
+            console.log('valueSetter', data.index, rowCount.value)
             if (data.index === rowCount.value) {
-              addRow(edit, (colId) => (colId === col.data.id ? newValue : null))
+              console.log('Adding new row', col.id)
+              addRow(edit, (colId) => (colId === col.id ? newValue : null))
             } else {
+              console.log('Setting ast')
               const newValueAst = convertWithImport(newValue, edit)
               if (astId != null) edit.replaceValue(astId, newValueAst)
-              else edit.getVersion(col.data).set(data.index, newValueAst)
+              // TODO
+              else edit.getVersion(columns.value[i]!.data).set(data.index, newValueAst)
             }
             onUpdate({ edit, directInteraction: true })
             return true
@@ -361,7 +384,7 @@ export function useTableInputArgument(
               nameSetter: (newName: string) => {
                 const edit = graph.startEdit()
                 fixColumns(edit)
-                edit.getVersion(col.name).setRawTextContent(newName)
+                edit.getVersion(columns.value[i]!.name).setRawTextContent(newName)
                 onUpdate({ edit, directInteraction: true })
               },
             },
@@ -386,25 +409,44 @@ export function useTableInputArgument(
     return cols
   })
 
-  const rowData = computed(() => {
-    const rows: RowData[] = []
-    for (const col of columns.value) {
-      for (const [rowIndex, value] of col.data.enumerate()) {
-        const row: RowData = rows.at(rowIndex) ?? { index: rowIndex, cells: {} }
-        assert(rowIndex <= rows.length)
-        if (rowIndex === rows.length) {
-          rows.push(row)
-        }
-        if (value?.id) {
-          row.cells[col.data.id] = value?.id
+  const rowData = ref<RowData[]>([])
+
+  watch(
+    columns,
+    (columns) => {
+      console.log('Update rowData if needed')
+      for (const col of columns) {
+        for (const [rowIndex, value] of col.data.enumerate()) {
+          const row: RowData = rowData.value.at(rowIndex) ?? { index: rowIndex, cells: {} }
+          assert(rowIndex <= rowData.value.length)
+          if (rowIndex === rowData.value.length) {
+            rowData.value.push(row)
+          }
+          if (value?.id && row.cells[col.id] != value.id) {
+            row.cells[col.id] = value.id
+          } else if (!value?.id && row.cells[col.id]) {
+            delete row.cells[col.id]
+          }
         }
       }
-    }
-    if (mayAddNewRow()) {
-      rows.push({ index: rows.length, cells: {} })
-    }
-    return rows
-  })
+      const expectedRowNumber = rowCount.value + (mayAddNewRow() ? 1 : 0)
+      console.log('expectedRowNumber', expectedRowNumber)
+      if (expectedRowNumber < rowData.value.length) {
+        rowData.value.splice(expectedRowNumber)
+      } else if (expectedRowNumber > rowData.value.length) {
+        const toAdd = expectedRowNumber - rowData.value.length
+        rowData.value.splice(
+          rowData.value.length,
+          0,
+          ...Array(toAdd).fill({ index: rowCount.value, cells: {} }),
+        )
+      }
+      console.log('NEW ROW DATA', rowData.value)
+    },
+    { immediate: true },
+  )
+
+  watch(rowData, () => console.error('Updating rowData'), { flush: 'sync' })
 
   const nothingImport = computed(() => requiredImportsByFQN(suggestions, NOTHING_PATH, true))
 
