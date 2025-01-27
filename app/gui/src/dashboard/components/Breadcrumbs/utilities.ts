@@ -64,9 +64,9 @@ export function getItemsWithCollapsedItem<T>(
     [DROPDOWN_ITEM_BRAND]: true,
     id: 'collapsed-item',
     items:
-      endVisibleItemsCount === 0
-        ? itemsArray.slice(startVisibleItemsCount)
-        : itemsArray.slice(startVisibleItemsCount, -endVisibleItemsCount),
+      endVisibleItemsCount === 0 ?
+        itemsArray.slice(startVisibleItemsCount)
+      : itemsArray.slice(startVisibleItemsCount, -endVisibleItemsCount),
   } satisfies BreadcrumbCollapsedItem<T>
 
   return [...startVisibleItems, dropdownItem, ...endVisibleItems]
