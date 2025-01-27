@@ -68,7 +68,6 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
       @outputPortDoubleClick="(_event, port) => emit('nodeOutputPortDoubleClick', port)"
       @enterNode="emit('enterNode', id)"
       @createNodes="emit('createNodes', id, $event)"
-      @executeExpression="emit('executeExpression', $event)"
       @toggleDocPanel="emit('toggleDocPanel')"
       @setNodeColor="graphStore.overrideNodeColor(id, $event)"
       @update:edited="graphStore.setEditedNode(id, $event)"

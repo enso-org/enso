@@ -496,11 +496,6 @@ function clearFocus() {
   }
 }
 
-function executeExpressionFromSource(expression: string) {
-  console.log({expression})
-  console.log('SUCESSS')
-}
-
 function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[]) {
   const sourcePort = graphStore.db.getNodeFirstOutputPort(sourceNode)
   if (sourcePort == null) return
@@ -645,7 +640,6 @@ const groupColors = computed(() => {
             @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
             @enterNode="(id) => stackNavigator.enterNode(id)"
             @createNodes="createNodesFromSource"
-            @executeExpression="executeExpressionFromSource"
             @toggleDocPanel="toggleRightDockHelpPanel"
           />
           <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
