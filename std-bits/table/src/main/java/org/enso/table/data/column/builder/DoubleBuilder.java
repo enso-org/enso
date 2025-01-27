@@ -110,7 +110,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
     } else if (storage.getType() instanceof IntegerType) {
       if (storage instanceof ColumnLongStorage longStorage) {
         long n = longStorage.getSize();
-        for (int i = 0; i < n; i++) {
+        for (long i = 0; i < n; i++) {
           if (storage.isNothing(i)) {
             appendNulls(1);
           } else {

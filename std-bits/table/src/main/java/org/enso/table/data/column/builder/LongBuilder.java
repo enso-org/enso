@@ -2,9 +2,9 @@ package org.enso.table.data.column.builder;
 
 import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.BooleanType;
@@ -96,7 +96,7 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
       BitSets.copy(longStorage.getIsNothingMap(), isNothing, currentSize, n);
       currentSize += n;
     } else if (storage.getType() instanceof IntegerType otherType && getType().fits(otherType)) {
-      if (storage instanceof AbstractLongStorage longStorage) {
+      if (storage instanceof ColumnLongStorage longStorage) {
         long n = longStorage.getSize();
         for (long i = 0; i < n; i++) {
           if (longStorage.isNothing(i)) {
@@ -112,7 +112,7 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
                 + ". This is a bug in the Table library.");
       }
     } else if (Objects.equals(storage.getType(), BooleanType.INSTANCE)) {
-      if (storage instanceof BoolStorage boolStorage) {
+      if (storage instanceof ColumnBooleanStorage boolStorage) {
         long n = boolStorage.getSize();
         for (long i = 0; i < n; i++) {
           if (boolStorage.isNothing(i)) {

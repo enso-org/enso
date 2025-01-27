@@ -25,9 +25,9 @@ public class ObjectBuilder extends TypedBuilder<Object> {
 
   @Override
   public void appendBulkStorage(Storage<?> storage) {
-    var newSize = currentSize + storage.getSize();
+    long newSize = currentSize + storage.getSize();
     if (newSize > data.length) {
-      var newSizeInt = Builder.checkSize(newSize);
+      int newSizeInt = Builder.checkSize(newSize);
       resize(newSizeInt);
     }
 
