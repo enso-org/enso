@@ -1,0 +1,43 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.No_Such_Method
+import Standard.Base.Errors.Common.Type_Error
+
+from Standard.Table import Column, Table, Value_Type
+
+from Standard.Test import all
+
+add_specs suite_builder =
+    suite_builder.group "single-column Table" group_builder->
+        group_builder.specify "should be a Table but also a Column" <|
+            t1 = Table.new [["A", [1, 2, 3]]]
+            t1.should_be_a Table
+            (t1:Column).name.should_equal "A"
+            (t1:Column).to_vector.should_equal [1, 2, 3]
+            # Still has table methods
+            t1.column_info.should_be_a Table
+
+
+        group_builder.specify "will not be a Column if it has more than one column" <|
+            t1 = Table.new [["A", [1, 2, 3]], ["B", [4, 5, 6]]]
+            t1.should_be_a Table
+            Test.expect_panic Type_Error (t1:Column)
+
+        group_builder.specify "should allow passing the casted column to methods expecting column" <|
+            t1 = Table.new [["A", [1, 2, 3]]]
+            (t1:Column).zip (t1:Column) (+) . to_vector . should_equal [2, 4, 6]
+
+        group_builder.specify "should also work for Tables returned from various operations" <|
+            t1 = Table.new [["A", [1, 2]], ["B", [3, 4]]]
+
+            t2 = t1.select_columns ["A"]
+            t2.should_be_a Table
+            (t2:Column).name.should_equal "A"
+
+            t3 = t1.remove_columns ["A"]
+            t3.should_be_a Table
+            (t3:Column).name.should_equal "B"
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
