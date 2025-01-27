@@ -5,6 +5,7 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.problems.ProblemAggregator;
 
@@ -14,7 +15,7 @@ import org.enso.table.problems.ProblemAggregator;
  * <p>This builder starts off delegating to LongBuilder, but if it receives a BigInteger, it retypes
  * the LongBuilder to a BigIntegerBuilder.
  */
-public class InferredIntegerBuilder implements Builder {
+public final class InferredIntegerBuilder implements Builder {
   private BuilderWithRetyping longBuilder;
   private Builder bigIntegerBuilder = null;
 
@@ -65,8 +66,12 @@ public class InferredIntegerBuilder implements Builder {
 
   @Override
   public void appendBulkStorage(Storage<?> storage) {
-    for (int i = 0; i < storage.size(); i++) {
-      append(storage.getItemBoxed(i));
+    if (storage.getType() instanceof NullType) {
+      appendNulls(storage.size());
+    } else {
+      for (int i = 0; i < storage.size(); i++) {
+        append(storage.getItemBoxed(i));
+      }
     }
   }
 

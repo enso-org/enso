@@ -147,7 +147,7 @@ Any.to_js_object self =
                     0.up_to field_names.length . map i-> builder.append [field_names.at i, fs.at i . to_js_object]
                 JS_Object.from_pairs pairs
         _ : Meta.Constructor ->
-            type_name = Meta.get_qualified_type_name self . split '.' . at -2
+            type_name = self.to Meta.Type . qualified_name . split '.' . at -2
             JS_Object.from_pairs [["type", type_name], ["constructor", m.name]]
         _ -> Error.throw ("Cannot convert " + self.to_text + " to JSON")
 

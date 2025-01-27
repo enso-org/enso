@@ -85,7 +85,7 @@ type Test_Setup
 
     ## Checks if the provided column has integer type as defined by the backend.
     expect_integer_type self column =
-        loc = Meta.get_source_location 1
+        loc = Test.get_source_location 1
         value_type = column.value_type
         if self.is_integer_type value_type then column else
             Test.fail ("Expected column ["+column.name+"] to have integer type, but got "+value_type.to_display_text+" (at " + loc + ").")

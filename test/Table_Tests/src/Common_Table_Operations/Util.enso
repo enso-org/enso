@@ -50,7 +50,7 @@ within_table table =
 
 ## PRIVATE
 Any.should_equal_tz_agnostic self other =
-    loc = Meta.get_source_location 1
+    loc = Test.get_source_location 1
     _ = other
     Test.fail "Expected a vector but got "+self.to_display_text+" (at "+loc+")."
 
@@ -61,7 +61,7 @@ Any.should_equal_tz_agnostic self other =
    timezone that is attached to them. This is simply done by converting them to
    UTC.
 Vector.should_equal_tz_agnostic self other =
-    loc = Meta.get_source_location 1
+    loc = Test.get_source_location 1
     case other of
         _ : Vector ->
             utc = Time_Zone.utc
@@ -75,7 +75,7 @@ Vector.should_equal_tz_agnostic self other =
 
 ## PRIVATE
 Error.should_equal_tz_agnostic self other =
-    loc = Meta.get_source_location 1
+    loc = Test.get_source_location 1
     _ = other
     Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+loc+")."
 

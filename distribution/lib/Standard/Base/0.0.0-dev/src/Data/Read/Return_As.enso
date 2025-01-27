@@ -3,10 +3,12 @@ import project.Data.Read.Many_Files_List.Many_Files_List
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Common.Failed_To_Load
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Function.Function
+import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
 import project.Nothing.Nothing
@@ -33,7 +35,7 @@ type Return_As
     to_display_text self -> Text = self.underlying.to_display_text
 
     ## PRIVATE
-    make_return self (input : Many_Files_List) (objects : Vector Any) (on_problems : Problem_Behavior) =
+    make_return self (input : Many_Files_List) (objects : Vector (Any | Failed_To_Load)) (on_problems : Problem_Behavior) =
         self.underlying.make_return input objects on_problems
 
     ## PRIVATE
@@ -77,9 +79,17 @@ type Return_As_Base
         Panic.catch Type_Error (value:Return_As_Base) _->Nothing
 
     ## PRIVATE
-    make_return self (input : Many_Files_List) (objects : Vector Any) (on_problems : Problem_Behavior) =
-        _ = [input, on_problems]
-        objects
+    make_return self (input : Many_Files_List) (objects : Vector (Any | Failed_To_Load)) (on_problems : Problem_Behavior) =
+        _ = input
+        replace_with_nothing_and_propagate objects on_problems
+
+## PRIVATE
+   A helper method that takes a Vector and replaces `Failed_To_Load` with `Nothing`, raising them as warnings.
+replace_with_nothing_and_propagate (vector : Vector (Any | Failed_To_Load)) (on_problems : Problem_Behavior) =
+    failed = vector.filter o-> o.is_a Failed_To_Load
+    if failed.is_empty then vector else
+        on_problems.attach_problems_before failed <|
+            vector.map o-> if o.is_a Failed_To_Load then Nothing else o
 
 ## PRIVATE
 Return_As.from (that : Return_As_Base) =

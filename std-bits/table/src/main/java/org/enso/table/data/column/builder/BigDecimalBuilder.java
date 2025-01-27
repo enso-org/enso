@@ -7,7 +7,7 @@ import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for BigDecimal columns. */
-public class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
+public final class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
   BigDecimalBuilder(int size) {
     super(BigDecimalType.INSTANCE, new BigDecimal[size]);
   }

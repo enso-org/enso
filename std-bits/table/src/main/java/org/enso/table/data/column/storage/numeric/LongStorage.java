@@ -179,7 +179,7 @@ public final class LongStorage extends AbstractLongStorage {
     Context context = Context.getCurrent();
     for (int i = 0; i < mask.length(); i++) {
       int position = mask.get(i);
-      if (position == Storage.NOT_FOUND_INDEX || isNothing.get(position)) {
+      if (position == OrderMask.NOT_FOUND_INDEX || isNothing.get(position)) {
         newIsNothing.set(i);
       } else {
         newData[i] = data[position];

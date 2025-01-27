@@ -4,6 +4,7 @@ import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.NullType;
 
 /** A builder for boxed object columns. */
 public class ObjectBuilder extends TypedBuilder<Object> {
@@ -31,6 +32,8 @@ public class ObjectBuilder extends TypedBuilder<Object> {
     if (storage instanceof SpecializedStorage<?> specializedStorage) {
       System.arraycopy(specializedStorage.getData(), 0, data, currentSize, storage.size());
       currentSize += storage.size();
+    } else if (storage.getType() instanceof NullType) {
+      appendNulls(storage.size());
     } else {
       int n = storage.size();
       for (int i = 0; i < n; i++) {

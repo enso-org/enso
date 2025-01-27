@@ -8,10 +8,11 @@ import { memo, type ReactElement, type ReactNode } from 'react'
 import type { MenuItemProps as AriaMenuItemProps, MenuItemRenderProps } from 'react-aria-components'
 import { MenuItem as AriaMenuItem, Keyboard } from 'react-aria-components'
 import { AnimatedBackground } from '../../AnimatedBackground'
+import { Icon } from '../../Icon'
 import SvgMask from '../../SvgMask'
 import { Check } from '../Check'
 import { Text, TEXT_STYLE } from '../Text'
-import type { TestIdProps } from '../types'
+import type { IconProp, TestIdProps } from '../types'
 
 export const MENU_ITEM_STYLES = tv({
   base: 'group flex w-full cursor-default gap-3 rounded-3xl px-[14px] py-1 outline-none transition-colors duration-75 text-left',
@@ -57,10 +58,7 @@ export type MenuItemProps<T extends object> = MenuItemBaseProps &
  */
 export interface MenuItemBaseProps {
   /** Icon to display before the menu item text. Can be a string (path to SVG), ReactElement, or a render function */
-  readonly icon?:
-    | ReactElement
-    | string
-    | ((renderProps: MenuItemRenderProps) => ReactElement | string)
+  readonly icon?: IconProp<MenuItemRenderProps>
   /** Keyboard shortcut text to display */
   readonly shortcut?: string
   /** Additional class name */
@@ -166,15 +164,11 @@ interface MenuItemIconProps extends MenuItemRenderProps {
 const MenuItemIcon = memo(function MenuItemIcon(props: MenuItemIconProps) {
   const { icon, className, ...renderProps } = props
 
-  if (icon == null) return null
-
-  const iconContent = typeof icon === 'function' ? icon(renderProps) : icon
-
-  if (typeof iconContent === 'string') {
-    return <SvgMask src={iconContent} className={className} />
-  }
-
-  return iconContent
+  return (
+    <Icon color="current" renderProps={renderProps} className={className}>
+      {icon}
+    </Icon>
+  )
 })
 
 /** Renders the selection indicator for the menu item */

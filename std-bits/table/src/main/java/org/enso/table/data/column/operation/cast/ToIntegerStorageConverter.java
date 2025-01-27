@@ -17,6 +17,7 @@ import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.NullType;
 import org.graalvm.polyglot.Context;
 
 public class ToIntegerStorageConverter implements StorageConverter<Long> {
@@ -42,7 +43,8 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
       return convertBigIntegerStorage(bigIntegerStorage, problemAggregator);
     } else if (storage instanceof BigDecimalStorage bigDecimalStorage) {
       return convertBigDecimalStorage(bigDecimalStorage, problemAggregator);
-    } else if (storage.getType() instanceof AnyObjectType) {
+    } else if (storage.getType() instanceof AnyObjectType
+        || storage.getType() instanceof NullType) {
       return castFromMixed(storage, problemAggregator);
     } else {
       throw new IllegalStateException(

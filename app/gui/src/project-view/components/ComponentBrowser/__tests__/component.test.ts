@@ -22,7 +22,7 @@ test.each([
   [makeStaticMethod('Standard.Base.Data.Vector.new'), 'Vector.new'],
   [makeMethod('Standard.Base.Data.Vector.get'), 'get'],
   [makeConstructor('Standard.Table.Join_Kind.Join_Kind.Inner'), 'Join_Kind.Inner'],
-  [makeModuleMethod('local.Project.main'), 'Project.main'],
+  [makeModuleMethod('local.Mock_Project.main'), 'Main.main'],
 ])("$name Component's label is valid", (suggestion, expected) => {
   expect(labelOfEntry(suggestion, { score: 0 }).label).toBe(expected)
 })
@@ -31,42 +31,42 @@ test('Suggestions are ordered properly', () => {
   const sortedEntries: MatchedSuggestion[] = [
     {
       id: 100,
-      entry: makeModuleMethod('local.Project.Z.best_score'),
+      entry: makeModuleMethod('local.Mock_Project.Z.best_score'),
       match: { score: 0 },
     },
     {
       id: 90,
-      entry: { ...makeModuleMethod('local.Project.Z.b'), groupIndex: 0 },
+      entry: { ...makeModuleMethod('local.Mock_Project.Z.b'), groupIndex: 0 },
       match: { score: 50 },
     },
     {
       id: 91,
-      entry: { ...makeModuleMethod('local.Project.Z.a'), groupIndex: 0 },
+      entry: { ...makeModuleMethod('local.Mock_Project.Z.a'), groupIndex: 0 },
       match: { score: 50 },
     },
     {
       id: 89,
-      entry: { ...makeModuleMethod('local.Project.A.foo'), groupIndex: 1 },
+      entry: { ...makeModuleMethod('local.Mock_Project.A.foo'), groupIndex: 1 },
       match: { score: 50 },
     },
     {
       id: 88,
-      entry: { ...makeModuleMethod('local.Project.B.another_module'), groupIndex: 1 },
+      entry: { ...makeModuleMethod('local.Mock_Project.B.another_module'), groupIndex: 1 },
       match: { score: 50 },
     },
     {
       id: 87,
-      entry: { ...makeModule('local.Project.A'), groupIndex: 1 },
+      entry: { ...makeModule('local.Mock_Project.A'), groupIndex: 1 },
       match: { score: 50 },
     },
     {
       id: 50,
-      entry: makeModuleMethod('local.Project.Z.module_content'),
+      entry: makeModuleMethod('local.Mock_Project.Z.module_content'),
       match: { score: 50 },
     },
     {
       id: 49,
-      entry: makeModule('local.Project.Z.Module'),
+      entry: makeModule('local.Mock_Project.Z.Module'),
       match: { score: 50 },
     },
   ]
@@ -82,16 +82,16 @@ test('Suggestions are ordered properly', () => {
 
 test.each`
   name                           | aliases                          | highlighted
-  ${'foo_bar'}                   | ${[]}                            | ${'Project.<foo><_bar>'}
-  ${'foo_xyz_barabc'}            | ${[]}                            | ${'Project.<foo>_xyz<_bar>abc'}
-  ${'fooabc_barabc'}             | ${[]}                            | ${'Project.<foo>abc<_bar>abc'}
-  ${'bar'}                       | ${['foo_bar', 'foo']}            | ${'Project.bar (<foo><_bar>)'}
-  ${'bar'}                       | ${['foo', 'foo_xyz_barabc']}     | ${'Project.bar (<foo>_xyz<_bar>abc)'}
-  ${'bar'}                       | ${['foo', 'fooabc_barabc']}      | ${'Project.bar (<foo>abc<_bar>abc)'}
-  ${'xyz_foo_abc_bar_xyz'}       | ${[]}                            | ${'Project.xyz_<foo>_abc<_bar>_xyz'}
-  ${'xyz_fooabc_abc_barabc_xyz'} | ${[]}                            | ${'Project.xyz_<foo>abc_abc<_bar>abc_xyz'}
-  ${'bar'}                       | ${['xyz_foo_abc_bar_xyz']}       | ${'Project.bar (xyz_<foo>_abc<_bar>_xyz)'}
-  ${'bar'}                       | ${['xyz_fooabc_abc_barabc_xyz']} | ${'Project.bar (xyz_<foo>abc_abc<_bar>abc_xyz)'}
+  ${'foo_bar'}                   | ${[]}                            | ${'Main.<foo><_bar>'}
+  ${'foo_xyz_barabc'}            | ${[]}                            | ${'Main.<foo>_xyz<_bar>abc'}
+  ${'fooabc_barabc'}             | ${[]}                            | ${'Main.<foo>abc<_bar>abc'}
+  ${'bar'}                       | ${['foo_bar', 'foo']}            | ${'Main.bar (<foo><_bar>)'}
+  ${'bar'}                       | ${['foo', 'foo_xyz_barabc']}     | ${'Main.bar (<foo>_xyz<_bar>abc)'}
+  ${'bar'}                       | ${['foo', 'fooabc_barabc']}      | ${'Main.bar (<foo>abc<_bar>abc)'}
+  ${'xyz_foo_abc_bar_xyz'}       | ${[]}                            | ${'Main.xyz_<foo>_abc<_bar>_xyz'}
+  ${'xyz_fooabc_abc_barabc_xyz'} | ${[]}                            | ${'Main.xyz_<foo>abc_abc<_bar>abc_xyz'}
+  ${'bar'}                       | ${['xyz_foo_abc_bar_xyz']}       | ${'Main.bar (xyz_<foo>_abc<_bar>_xyz)'}
+  ${'bar'}                       | ${['xyz_fooabc_abc_barabc_xyz']} | ${'Main.bar (xyz_<foo>abc_abc<_bar>abc_xyz)'}
 `('Matched ranges of $highlighted are correct', ({ name, aliases, highlighted }) => {
   function replaceMatches(component: Component) {
     if (!component.matchedRanges) return component.label
@@ -104,7 +104,7 @@ test.each`
   }
 
   const pattern = 'foo_bar'
-  const entry = makeModuleMethod(`local.Project.${name}`, { aliases: aliases ?? [] })
+  const entry = makeModuleMethod(`local.Mock_Project.${name}`, { aliases: aliases ?? [] })
   const filtering = new Filtering({ pattern })
   const match = filtering.filter(entry, [])
   expect(match).not.toBeNull()

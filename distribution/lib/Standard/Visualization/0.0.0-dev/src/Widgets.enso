@@ -2,7 +2,6 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Not_Invokable
 import Standard.Base.Metadata.Widget
 from Standard.Base.Logging import all
-from Standard.Base.Meta import Instrumentor
 
 from Standard.Table import all
 
@@ -19,7 +18,7 @@ get_widget_json value call_name argument_names uuids="{}" =
     cache (name_or_index:Text|Integer) -> Any =
         arg = other_args.get name_or_index.to_text
         case arg of
-            uuid:Text -> Instrumentor.uuid uuid
+            uuid:Text -> Runtime.value_for_uuid uuid
             _ -> Nothing
 
     log_panic argument err =

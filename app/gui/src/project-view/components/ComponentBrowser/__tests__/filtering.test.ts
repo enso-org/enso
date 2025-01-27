@@ -1,5 +1,5 @@
 import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
-import { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import { type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import {
   makeConstructor,
   makeFunction,
@@ -9,9 +9,12 @@ import {
   makeModuleMethod,
   makeStaticMethod,
 } from '@/stores/suggestionDatabase/mockSuggestion'
-import { qnLastSegment, QualifiedName } from '@/util/qualifiedName'
+import { assert } from '@/util/assert'
+import { parseAbsoluteProjectPath } from '@/util/projectPath'
+import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { expect, test } from 'vitest'
-import { Opt } from 'ydoc-shared/util/data/opt'
+import { type Opt } from 'ydoc-shared/util/data/opt'
+import { unwrap } from 'ydoc-shared/util/data/result'
 
 test.each([
   makeModuleMethod('Standard.Base.Data.read', { group: 'Standard.Base.MockGroup1' }),
@@ -37,11 +40,19 @@ test.each([
   expect(filtering.filter(entry, [])).toBeNull()
 })
 
+function stdPath(path: string) {
+  assert(path.startsWith('Standard.'))
+  return parseAbsoluteProjectPath(unwrap(tryQualifiedName(path)))
+}
+
 test('An Instance method is shown when self arg matches', () => {
   const entry1 = makeMethod('Standard.Base.Data.Vector.Vector.get')
   const entry2 = makeMethod('Standard.Base.Data.Table.get')
   const filteringWithSelfType = new Filtering({
-    selfArg: { type: 'known', typename: 'Standard.Base.Data.Vector.Vector' },
+    selfArg: {
+      type: 'known',
+      typename: stdPath('Standard.Base.Data.Vector.Vector'),
+    },
   })
   expect(filteringWithSelfType.filter(entry1, [])).not.toBeNull()
   expect(filteringWithSelfType.filter(entry2, [])).toBeNull()
@@ -59,7 +70,10 @@ test('`Any` type methods taken into account when filtering', () => {
   const entry1 = makeMethod('Standard.Base.Data.Vector.Vector.get')
   const entry2 = makeMethod('Standard.Base.Any.Any.to_string')
   const filtering = new Filtering({
-    selfArg: { type: 'known', typename: 'Standard.Base.Data.Vector.Vector' },
+    selfArg: {
+      type: 'known',
+      typename: stdPath('Standard.Base.Data.Vector.Vector'),
+    },
   })
   expect(filtering.filter(entry1, [])).not.toBeNull()
   expect(filtering.filter(entry2, [])).not.toBeNull()
@@ -72,9 +86,9 @@ test('`Any` type methods taken into account when filtering', () => {
 test('Additional self types are taken into account when filtering', () => {
   const entry1 = makeMethod('Standard.Base.Data.Numbers.Float.abs')
   const entry2 = makeMethod('Standard.Base.Data.Numbers.Number.sqrt')
-  const additionalSelfType = 'Standard.Base.Data.Numbers.Number' as QualifiedName
+  const additionalSelfType = stdPath('Standard.Base.Data.Numbers.Number')
   const filtering = new Filtering({
-    selfArg: { type: 'known', typename: 'Standard.Base.Data.Numbers.Float' },
+    selfArg: { type: 'known', typename: stdPath('Standard.Base.Data.Numbers.Float') },
   })
   expect(filtering.filter(entry1, [additionalSelfType])).not.toBeNull()
   expect(filtering.filter(entry2, [additionalSelfType])).not.toBeNull()
@@ -97,7 +111,10 @@ test.each([
   makeMethod('Standard.Base.Data.Vector.Vector2.get'),
 ])('$name is filtered out when Vector self type is specified', (entry) => {
   const filtering = new Filtering({
-    selfArg: { type: 'known', typename: 'Standard.Base.Data.Vector.Vector' },
+    selfArg: {
+      type: 'known',
+      typename: stdPath('Standard.Base.Data.Vector.Vector'),
+    },
   })
   expect(filtering.filter(entry, [])).toBeNull()
 })
@@ -203,14 +220,14 @@ test.each<MatchingTestCase>([
     ],
   },
   {
-    pattern: 'pr.foo',
+    pattern: 'ma.foo',
     matchedSorted: [
-      { module: 'local.Pr', name: 'foo' }, // exact match
-      { module: 'local.Project', name: 'foo' }, // name exact match and owner name start match
-      { module: 'local.Pr', name: 'foobar' }, // module exact match and name start match
-      { module: 'local.Pr', name: 'bar', aliases: ['baz', 'foo'] }, // exact alias match
-      { module: 'local.Project', name: 'bar', aliases: ['baz', 'foo'] }, // exact alias match, but nonexact owner match
-      { module: 'local.Project', name: 'bar', aliases: ['bazbar', 'foobar'] }, // alias start match
+      { module: 'local.Project.Ma', name: 'foo' }, // exact match
+      { module: 'local.Project.Main', name: 'foo' }, // name exact match and owner name start match
+      { module: 'local.Project.Ma', name: 'foobar' }, // module exact match and name start match
+      { module: 'local.Project.Ma', name: 'bar', aliases: ['baz', 'foo'] }, // exact alias match
+      { module: 'local.Project.Main', name: 'bar', aliases: ['baz', 'foo'] }, // exact alias match, but nonexact owner match
+      { module: 'local.Project.Main', name: 'bar', aliases: ['bazbar', 'foobar'] }, // alias start match
       { name: 'bar_foo' }, // name word exact match
       { name: 'baz_foobar' }, // name word start match
       { name: 'bar', aliases: ['bar_foo'] }, // alias word exact match
@@ -220,22 +237,25 @@ test.each<MatchingTestCase>([
     ],
     notMatched: [
       { module: 'local.Project.Data', name: 'foo' },
-      { module: 'local.Ploject', name: 'foo' },
       { module: 'local.Pr', name: 'bar' },
     ],
   },
 ])('Matching pattern $pattern', ({ pattern, matchedSorted, notMatched }) => {
   const filtering = new Filtering({ pattern })
-  const matchedSortedEntries = Array.from(matchedSorted, ({ name, aliases, module }) =>
+  const matchedSortedEntries = matchedSorted.map(({ name, aliases, module }) =>
     makeModuleMethod(`${module ?? 'local.Project'}.${name}`, { aliases: aliases ?? [] }),
   )
-  const matchResults = Array.from(matchedSortedEntries, (entry) => filtering.filter(entry, []))
+  const matchResults = matchedSortedEntries.map((entry) => filtering.filter(entry, []))
   // Checking matching entries
   function checkResult(entry: SuggestionEntry, result: Opt<MatchResult>) {
-    expect(result, `Matching entry ${entry.definitionPath}`).not.toBeNull()
+    expect(result, `Matching entry ${JSON.stringify(entry.definitionPath)}`).not.toBeNull()
     expect(
       matchedText(
-        'memberOf' in entry && entry.memberOf ? qnLastSegment(entry.memberOf) : '',
+        'memberOf' in entry ?
+          entry.memberOf.path ?
+            qnLastSegment(entry.memberOf.path)
+          : 'Main'
+        : '',
         entry.name,
         result!,
       )
@@ -257,10 +277,9 @@ test.each<MatchingTestCase>([
 
   // Checking non-matching entries
   for (const { module, name, aliases } of notMatched) {
-    const entry = {
-      ...makeModuleMethod(`${module ?? 'local.Project'}.${name}`),
+    const entry = makeModuleMethod(`${module ?? 'local.Project'}.${name}`, {
       aliases: aliases ?? [],
-    }
-    expect(filtering.filter(entry, []), entry.definitionPath).toBeNull()
+    })
+    expect(filtering.filter(entry, []), JSON.stringify(entry.definitionPath)).toBeNull()
   }
 })

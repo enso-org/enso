@@ -32,15 +32,13 @@ export function tagValue(doc: Doc.Section[], tag: string): string | undefined {
 /** @internal */
 export function getGroupIndex(
   groupName: string,
-  entryModule: QualifiedName,
+  project: QualifiedName,
   groups: DeepReadonly<Group[]>,
 ): number | undefined {
   let normalized: string
   if (groupName.indexOf('.') >= 0) {
     normalized = groupName
   } else {
-    const project = /^[^.]+\.[^.]+/.exec(entryModule)
-    if (project == null) return
     normalized = `${project}.${groupName}`
   }
   const index = findIndexOpt(groups, (group) => `${group.project}.${group.name}` == normalized)
@@ -50,12 +48,12 @@ export function getGroupIndex(
 /** TODO: Add docs */
 export function documentationData(
   documentation: Opt<string>,
-  definedIn: QualifiedName,
+  project: QualifiedName | undefined,
   groups: DeepReadonly<Group[]>,
 ): DocumentationData {
   const parsed = documentation != null ? parseDocs(documentation) : []
   const groupName = tagValue(parsed, 'Group')
-  const groupIndex = groupName ? getGroupIndex(groupName, definedIn, groups) : undefined
+  const groupIndex = groupName && project ? getGroupIndex(groupName, project, groups) : undefined
   const iconName = tagValue(parsed, 'Icon')
 
   return {
