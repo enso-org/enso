@@ -39,6 +39,12 @@ jobs:
         with:
           version: v0.12.1
 
+      - uses: bazel-contrib/setup-bazel@0.9.0
+        with:
+          bazelisk-cache: true
+          disk-cache: true
+          repository-cache: true
+
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -48,9 +54,10 @@ jobs:
         with:
           path: |
             **/.eslintcache
-          key: ${{ runner.os }}-gui-${{ github.run_id }}
+            **/node_modules/.vite
+          key: ${{ runner.os }}-gui-lint-${{ github.run_id }}
           restore-keys: |
-            ${{ runner.os }}-gui
+            ${{ runner.os }}-gui-lint
 
       # Next Tasks are depend on Typecheck, because we build libraries at this stage
       - name: ⚙️ Compile
@@ -68,11 +75,6 @@ jobs:
         continue-on-error: true
         run: pnpm run ci:lint
 
-      - name: 🧪 Unit Tests
-        id: unit-tests
-        continue-on-error: true
-        run: pnpm run ci:unit-test
-
       - name: 📝 Annotate Code Linting Results
         if: always()
         continue-on-error: true
@@ -86,14 +88,10 @@ jobs:
           fail-on-error: false
           fail-on-warning: false
 
-      - name: ❌ Fail if any check failed
-        if: always() && (steps.lint.outcome == 'failure' || steps.compile.outcome == 'failure' || steps.typecheck.outcome == 'failure' || steps.unit-tests.outcome == 'failure')
-        run: |
-          echo "Lint outcome: ${{ steps.lint.outcome }}"
-          echo "Compile outcome: ${{ steps.compile.outcome }}"
-          echo "Typecheck outcome: ${{ steps.typecheck.outcome }}"
-          echo "Unit tests outcome: ${{ steps.unit-tests.outcome }}"
-          exit 1
+      - name: 🧪 Unit Tests
+        id: unit-tests
+        continue-on-error: true
+        run: pnpm run ci:unit-test
 
       - name: 💾 Save cache
         uses: actions/cache/save@v4
@@ -103,6 +101,16 @@ jobs:
           key: ${{ steps.cache.outputs.cache-primary-key }}
           path: |
             **/.eslintcache
+            **/node_modules/.vite
+
+      - name: ❌ Fail if any check failed
+        if: always() && (steps.lint.outcome == 'failure' || steps.compile.outcome == 'failure' || steps.typecheck.outcome == 'failure' || steps.unit-tests.outcome == 'failure')
+        run: |
+          echo "Lint outcome: ${{ steps.lint.outcome }}"
+          echo "Compile outcome: ${{ steps.compile.outcome }}"
+          echo "Typecheck outcome: ${{ steps.typecheck.outcome }}"
+          echo "Unit tests outcome: ${{ steps.unit-tests.outcome }}"
+          exit 1
 
   playwright:
     name: 🎭 Playwright Tests
@@ -116,8 +124,8 @@ jobs:
       fail-fast: false
       max-parallel: 24
       matrix:
-        shardIndex: [1, 2, 3, 4]
-        shardTotal: [4]
+        shardIndex: [1, 2, 3, 4, 5, 6]
+        shardTotal: [6]
 
     steps:
       - uses: actions/checkout@v4

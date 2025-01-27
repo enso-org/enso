@@ -797,7 +797,6 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       visibleNodeAreas,
       visibleArea,
       unregisterNodeRect,
-      methodAst,
       getMethodAst,
       generateLocallyUniqueIdent,
       moduleRoot,
@@ -831,9 +830,12 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       addMissingImportsDisregardConflicts,
       isConnectedTarget,
       nodeCanBeEntered,
-      currentMethodPointer,
       modulePath,
       connectedEdges,
+      currentMethod: proxyRefs({
+        ast: methodAst,
+        pointer: currentMethodPointer,
+      }),
       ...unconnectedEdges,
     })
   },

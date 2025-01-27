@@ -14,6 +14,7 @@ import * as twv from '#/utilities/tailwindVariants'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { ResetButtonGroupContext } from '../Button'
+import { Close } from './Close'
 import * as dialogProvider from './DialogProvider'
 import * as dialogStackProvider from './DialogStackProvider'
 import { DialogTrigger } from './DialogTrigger'
@@ -86,7 +87,6 @@ export function Popover(props: PopoverProps) {
     size,
     rounded,
     variant,
-    placement = 'bottom start',
     isDismissable = true,
     ...ariaPopoverProps
   } = props
@@ -110,7 +110,6 @@ export function Popover(props: PopoverProps) {
         })
       }
       UNSTABLE_portalContainer={root}
-      placement={placement}
       style={popoverStyle}
       shouldCloseOnInteractOutside={() => false}
       {...ariaPopoverProps}
@@ -209,3 +208,4 @@ function PopoverContent(props: PopoverContentProps) {
 }
 
 Popover.Trigger = DialogTrigger
+Popover.Close = Close
