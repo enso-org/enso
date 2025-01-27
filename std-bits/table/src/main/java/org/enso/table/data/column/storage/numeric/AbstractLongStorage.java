@@ -33,17 +33,15 @@ import org.enso.table.problems.BlackholeProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 public abstract class AbstractLongStorage extends Storage<Long>
-    implements ColumnLongStorage, ColumnStorageWithNothingMap {
+    implements ColumnLongStorage {
   private static final MapOperationStorage<Long, AbstractLongStorage> ops = buildOps();
 
   private final long size;
   private final IntegerType type;
-  protected BitSet isNothing;
 
-  protected AbstractLongStorage(long size, IntegerType type, BitSet isNothing) {
+  protected AbstractLongStorage(long size, IntegerType type) {
     this.size = size;
     this.type = type;
-    this.isNothing = isNothing;
   }
 
   @Override
@@ -62,14 +60,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
   }
 
   @Override
-  public boolean isNothing(long idx) {
-    return isNothing.get((int) idx);
-  }
-
-  @Override
-  public BitSet getIsNothingMap() {
-    return isNothing;
-  }
+  public abstract boolean isNothing(long idx);
 
   @Override
   public abstract long getItemAsLong(long index) throws ValueIsNothingException;

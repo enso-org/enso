@@ -5,6 +5,7 @@ import java.util.BitSet;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -16,11 +17,12 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A column storing 64-bit integers. */
-public final class LongStorage extends AbstractLongStorage {
+public final class LongStorage extends AbstractLongStorage implements ColumnStorageWithNothingMap {
   // TODO [RW] at some point we will want to add separate storage classes for byte, short and int,
   // for more compact storage and more efficient handling of smaller integers; for now we will be
   // handling this just by checking the bounds
   private final long[] data;
+  private final BitSet isNothing;
 
   /**
    * @param data the underlying data
@@ -30,8 +32,9 @@ public final class LongStorage extends AbstractLongStorage {
    * @param type the type specifying the bit-width of integers that are allowed in this storage
    */
   public LongStorage(long[] data, int size, BitSet isNothing, IntegerType type) {
-    super(size, type, isNothing);
+    super(size, type);
     this.data = data;
+    this.isNothing = isNothing;
   }
 
   public static LongStorage makeEmpty(long size, IntegerType type) {
@@ -51,6 +54,16 @@ public final class LongStorage extends AbstractLongStorage {
    */
   public long getItemAsLong(long idx) {
     return data[Math.toIntExact(idx)];
+  }
+
+  @Override
+  public boolean isNothing(long idx) {
+    return isNothing.get(Math.toIntExact(idx));
+  }
+
+  @Override
+  public BitSet getIsNothingMap() {
+    return isNothing;
   }
 
   private Storage<?> fillMissingDouble(double arg, ProblemAggregator problemAggregator) {

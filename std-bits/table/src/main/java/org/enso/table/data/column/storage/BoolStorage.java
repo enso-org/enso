@@ -61,7 +61,7 @@ public final class BoolStorage extends Storage<Boolean>
 
   @Override
   public Boolean getItemBoxed(long idx) {
-    return isNothing(idx) ? null : negated != values.get((int) idx);
+    return isNothing(idx) ? null : getItemAsBoolean(idx);
   }
 
   @Override
