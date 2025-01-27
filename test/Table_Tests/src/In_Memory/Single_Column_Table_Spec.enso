@@ -13,8 +13,7 @@ add_specs suite_builder =
             (t1:Column).name.should_equal "A"
             (t1:Column).to_vector.should_equal [1, 2, 3]
             # Still has table methods
-            t1.column_info.should_be_a Table
-
+            t1.column_names.should_equal ["A"]
 
         group_builder.specify "will not be a Column if it has more than one column" <|
             t1 = Table.new [["A", [1, 2, 3]], ["B", [4, 5, 6]]]
