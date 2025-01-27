@@ -12,6 +12,7 @@ import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
@@ -41,6 +42,7 @@ public class Mean extends KnownTypeAggregator {
       case IntegerType integerType -> FloatType.FLOAT_64;
       case BigIntegerType bigIntegerType -> BigDecimalType.INSTANCE;
       case BigDecimalType bigDecimalType -> BigDecimalType.INSTANCE;
+      case NullType nullType -> nullType;
       default -> throw new IllegalStateException(
           "Unexpected input type for Mean aggregate: " + inputType);
     };
@@ -59,6 +61,7 @@ public class Mean extends KnownTypeAggregator {
     return switch (getType()) {
       case FloatType floatType -> new FloatMeanAccumulator();
       case BigDecimalType bigDecimalType -> new BigDecimalMeanAccumulator();
+      case NullType nullType -> new NullAccumulator();
       default -> throw new IllegalStateException(
           "Unexpected output type in Mean aggregate: " + getType());
     };
@@ -153,6 +156,21 @@ public class Mean extends KnownTypeAggregator {
     @Override
     Object summarize() {
       return count == 0 ? null : total.divide(BigDecimal.valueOf(count), MathContext.DECIMAL128);
+    }
+  }
+
+  /** A special case for a null input column. */
+  private static final class NullAccumulator extends MeanAccumulator {
+
+    @Override
+    void accumulate(
+        List<Integer> indexes, Storage<?> storage, ProblemAggregator problemAggregator) {
+      assert storage.getType() instanceof NullType;
+    }
+
+    @Override
+    Object summarize() {
+      return null;
     }
   }
 }

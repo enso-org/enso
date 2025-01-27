@@ -18,7 +18,7 @@
     "prettier": "^3.4.2",
     "prettier-plugin-organize-imports": "^4.1.0",
     "prettier-plugin-tailwindcss": "^0.5.14",
-    "vitest": "3.0.0-beta.3"
+    "vitest": "3.0.3"
   },
   "dependencies": {
     "@bazel/bazelisk": "^1.22.1",
@@ -38,7 +38,7 @@
     "format:workflows": "prettier --write .github/workflows",
     "ci-check": "corepack pnpm run -r compile && corepack pnpm run --aggregate-output /^ci:/",
     "ci:prettier": "prettier --check --cache .",
-    "ci:lint": "corepack pnpm run -r --parallel lint --output-file eslint_report.json --format json",
+    "ci:lint": "corepack pnpm run -r --parallel lint --output-file eslint_report.json --format json --cache-strategy content",
     "ci:test": "corepack pnpm run -r --parallel test",
     "ci:unit-test": "corepack pnpm run -r --parallel test:unit",
     "ci:typecheck": "corepack pnpm run -r typecheck",

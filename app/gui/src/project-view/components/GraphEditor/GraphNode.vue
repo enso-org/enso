@@ -17,6 +17,7 @@ import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import PointFloatingMenu from '@/components/PointFloatingMenu.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { useComponentColors } from '@/composables/componentColors'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
 import { provideComponentButtons } from '@/providers/componentButtons'
@@ -157,8 +158,6 @@ const visibleMessage = computed(
 )
 
 const nodeHovered = computed(() => graph.nodeHovered.get(nodeId.value) ?? false)
-
-const selected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
 
 const isOnlyOneSelected = computed(
   () =>
@@ -317,9 +316,9 @@ const isRecordingOverridden = computed({
   },
 })
 
-const expressionInfo = computed(() => graph.db.getExpressionInfo(props.node.innerExpr.externalId))
-const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
-const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
+const typename = computed(
+  () => graph.db.getExpressionInfo(props.node.innerExpr.externalId)?.rawTypename,
+)
 
 const nodeEditHandler = nodeEditBindings.handler({
   cancel(e) {
@@ -372,16 +371,6 @@ const dataSource = computed(
   () => ({ type: 'node', nodeId: props.node.rootExpr.externalId }) as const,
 )
 
-const pending = computed(() => {
-  switch (executionState.value) {
-    case 'Unknown':
-    case 'Pending':
-      return true
-    default:
-      return false
-  }
-})
-
 // === Recompute node expression ===
 
 function useRecomputation() {
@@ -404,13 +393,15 @@ const nodeStyle = computed(() => {
   return {
     transform: transform.value,
     minWidth: isVisualizationEnabled.value ? `${visualizationWidth.value ?? 200}px` : undefined,
-    '--node-group-color': color.value,
+    '--node-group-color': baseColor.value,
     ...(props.node.zIndex ? { 'z-index': props.node.zIndex } : {}),
     '--viz-below-node': `${graphSelectionSize.value.y - nodeSize.value.y}px`,
     '--node-size-x': `${nodeSize.value.x}px`,
     '--node-size-y': `${nodeSize.value.y}px`,
   }
 })
+
+const { baseColor, selected, pending } = useComponentColors(graph.db, nodeSelection, nodeId)
 
 const nodeClass = computed(() => {
   return {
@@ -486,6 +477,7 @@ onBlur(() => {
     :style="nodeStyle"
     :class="nodeClass"
     :data-node-id="nodeId"
+    @pointerdown.stop
     @pointerenter="(graph.setNodeHovered(nodeId, true), updateNodeHover($event))"
     @pointerleave="(graph.setNodeHovered(nodeId, false), updateNodeHover(undefined))"
     @pointermove="updateNodeHover"
@@ -513,7 +505,7 @@ onBlur(() => {
       :isComponentMenuVisible="menuVisible"
       :currentType="props.node.vis?.identifier"
       :dataSource="dataSource"
-      :typename="expressionInfo?.rawTypename"
+      :typename="typename"
       :width="visualizationWidth"
       :height="visualizationHeight"
       :isFocused="isOnlyOneSelected"

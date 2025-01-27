@@ -113,7 +113,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
     T[] newData = newUnderlyingArray(mask.length());
     for (int i = 0; i < mask.length(); i++) {
       int position = mask.get(i);
-      newData[i] = position == Storage.NOT_FOUND_INDEX ? null : data[position];
+      newData[i] = position == OrderMask.NOT_FOUND_INDEX ? null : data[position];
       context.safepoint();
     }
     return newInstance(newData, newData.length);

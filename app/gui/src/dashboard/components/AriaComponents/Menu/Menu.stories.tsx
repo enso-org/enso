@@ -8,17 +8,19 @@ import EyeClosed from '#/assets/eye_crossed.svg'
 import Folder from '#/assets/folder.svg'
 import type { Meta, StoryObj } from '@storybook/react'
 
+import { useText } from '#/providers/TextProvider'
 import { expect, userEvent, within } from '@storybook/test'
 import type { MenuProps } from '.'
 import { Menu } from '.'
+import { passwordSchema } from '../../../pages/authentication/schemas'
 import { Button } from '../Button'
+import { Popover } from '../Dialog'
+import { Form } from '../Form'
+import { Input } from '../Inputs'
 
 const meta = {
   title: 'Components/Menu',
   component: Menu,
-  parameters: {
-    layout: 'centered',
-  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     const button = canvas.getByRole('button', { name: 'Open Menu' })
@@ -189,7 +191,7 @@ function MenuContentWithDescription() {
         <Menu.Item icon={Folder} description="This is a description" shortcut="⌘O">
           Open Submenu
         </Menu.Item>
-        <Menu selectionMode="multiple" placement="right">
+        <Menu selectionMode="multiple">
           <Menu.Item description="This is a description" icon={Eye}>
             Submenu item
           </Menu.Item>
@@ -266,5 +268,70 @@ export const DynamicContent: Story = {
     await userEvent.click(button)
 
     await expect(canvas.getByRole('menu')).toBeInTheDocument()
+  },
+}
+
+export const WithPopover: Story = {
+  render: () => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const { getText } = useText()
+    return (
+      <Menu.Trigger>
+        <Button>Open Menu</Button>
+
+        <Menu>
+          <Menu.Item>New File</Menu.Item>
+
+          <Menu.Separator />
+
+          <Menu.Item>Save</Menu.Item>
+          <Menu.Item>Cut</Menu.Item>
+          <Menu.Item>Copy</Menu.Item>
+          <Menu.Item>Paste</Menu.Item>
+          <Menu.Item>Delete</Menu.Item>
+          <Menu.Item>Rename</Menu.Item>
+          <Menu.Item>Move</Menu.Item>
+
+          <Menu.SubmenuTrigger>
+            <Menu.Item>Edit Secret</Menu.Item>
+
+            <Popover isDismissable={false}>
+              <Form
+                method="dialog"
+                schema={(z) => z.object({ name: z.string(), password: passwordSchema(getText) })}
+                onSubmit={() => new Promise((resolve) => setTimeout(resolve, 1000))}
+              >
+                <Input name="name" label="Name" />
+                <Input name="password" type="password" label="Password" testId="password" />
+
+                <Button.Group>
+                  <Form.Submit>Save</Form.Submit>
+                  <Popover.Close>Cancel</Popover.Close>
+                </Button.Group>
+                <Form.FormError />
+              </Form>
+            </Popover>
+          </Menu.SubmenuTrigger>
+        </Menu>
+      </Menu.Trigger>
+    )
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+
+    const button = canvas.getByRole('button', { name: 'Open Menu' })
+    await userEvent.click(button)
+
+    await userEvent.hover(canvas.getByRole('menuitem', { name: 'Edit Secret' }))
+
+    const nameInput = await canvas.findByRole('textbox', { name: 'Name' })
+    await userEvent.type(nameInput, 'John')
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const passwordInput = canvas.getByTestId('password').querySelector('input')!
+    await userEvent.type(passwordInput, 'abc123sadflmsdkf')
+
+    const saveButton = await canvas.findByRole('button', { name: 'Save' })
+    await userEvent.click(saveButton)
   },
 }

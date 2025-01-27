@@ -12,12 +12,14 @@ import * as suspense from '#/components/Suspense'
 
 import * as mergeRefs from '#/utilities/mergeRefs'
 
-import { DialogDismiss } from '#/components/AriaComponents'
+import { DialogDismiss, ResetButtonGroupContext } from '#/components/AriaComponents'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasure } from '#/hooks/measureHooks'
 import { LayoutGroup, motion, type Spring } from '#/utilities/motion'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
+import { unsafeWriteValue } from '#/utilities/write'
+import { useRootContext } from '../../UIProviders'
 import { Close } from './Close'
 import * as dialogProvider from './DialogProvider'
 import * as dialogStackProvider from './DialogStackProvider'
@@ -25,6 +27,7 @@ import { DialogTrigger } from './DialogTrigger'
 import type * as types from './types'
 import * as utlities from './utilities'
 import { DIALOG_BACKGROUND } from './variants'
+
 // eslint-disable-next-line no-restricted-syntax
 const MotionDialog = motion(aria.Dialog)
 
@@ -254,6 +257,8 @@ function DialogContent(props: DialogContentProps) {
   const scrollerRef = React.useRef<HTMLDivElement | null>(null)
   const dialogId = aria.useId()
 
+  const { appRoot } = useRootContext()
+
   const titleId = `${dialogId}-title`
   const padding = paddingRaw ?? (type === 'modal' ? 'medium' : 'xlarge')
   const isFullscreen = type === 'fullscreen'
@@ -297,6 +302,20 @@ function DialogContent(props: DialogContentProps) {
     }
   }, [isFullscreen])
 
+  React.useEffect(() => {
+    if (isFullscreen && modalState.isOpen) {
+      unsafeWriteValue(appRoot.style, 'scale', '0.99')
+      unsafeWriteValue(appRoot.style, 'filter', 'blur(8px)')
+      unsafeWriteValue(appRoot.style, 'willChange', 'scale, filter')
+
+      return () => {
+        unsafeWriteValue(appRoot.style, 'scale', '')
+        unsafeWriteValue(appRoot.style, 'filter', '')
+        unsafeWriteValue(appRoot.style, 'willChange', '')
+      }
+    }
+  }, [isFullscreen, modalState, appRoot])
+
   const styles = variants({
     className,
     type,
@@ -322,86 +341,88 @@ function DialogContent(props: DialogContentProps) {
   }
 
   return (
-    <LayoutGroup>
-      <MotionDialog
-        layout
-        transition={TRANSITION}
-        style={{ height: getDialogHeight() }}
-        id={dialogId}
-        onLayoutAnimationStart={() => {
-          if (scrollerRef.current) {
-            scrollerRef.current.style.overflowY = 'clip'
-          }
-        }}
-        onLayoutAnimationComplete={() => {
-          if (scrollerRef.current) {
-            scrollerRef.current.style.overflowY = ''
-          }
-        }}
-        ref={(ref: HTMLDivElement | null) => {
-          mergeRefs.mergeRefs(dialogRef, (element) => {
-            if (element) {
-              // This is a workaround for the `data-testid` attribute not being
-              // supported by the 'react-aria-components' library.
-              // We need to set the `data-testid` attribute on the dialog element
-              // so that we can use it in our tests.
-              // This is a temporary solution until we refactor the Dialog component
-              // to use `useDialog` hook from the 'react-aria-components' library.
-              // this will allow us to set the `data-testid` attribute on the dialog
-              element.dataset.testid = testId
+    <ResetButtonGroupContext>
+      <LayoutGroup>
+        <MotionDialog
+          layout
+          transition={TRANSITION}
+          style={{ height: getDialogHeight() }}
+          id={dialogId}
+          onLayoutAnimationStart={() => {
+            if (scrollerRef.current) {
+              scrollerRef.current.style.overflowY = 'clip'
             }
-          })(ref)
-        }}
-        className={styles.base()}
-        aria-labelledby={titleId}
-        {...ariaDialogProps}
-      >
-        {(opts) => (
-          <>
-            <motion.div layout className="w-full" transition={{ duration: 0 }}>
-              <DialogHeader
-                closeButton={closeButton}
-                title={title}
-                titleId={titleId}
-                scrollerRef={scrollerRef}
-                fitContent={fitContent}
-                hideCloseButton={hideCloseButton}
-                padding={padding}
-                rounded={rounded}
-                size={size}
-                type={type}
-                headerDimensionsRef={headerDimensionsRef}
-                close={opts.close}
-                variants={variants}
-              />
-            </motion.div>
+          }}
+          onLayoutAnimationComplete={() => {
+            if (scrollerRef.current) {
+              scrollerRef.current.style.overflowY = ''
+            }
+          }}
+          ref={(ref: HTMLDivElement | null) => {
+            mergeRefs.mergeRefs(dialogRef, (element) => {
+              if (element) {
+                // This is a workaround for the `data-testid` attribute not being
+                // supported by the 'react-aria-components' library.
+                // We need to set the `data-testid` attribute on the dialog element
+                // so that we can use it in our tests.
+                // This is a temporary solution until we refactor the Dialog component
+                // to use `useDialog` hook from the 'react-aria-components' library.
+                // this will allow us to set the `data-testid` attribute on the dialog
+                element.dataset.testid = testId
+              }
+            })(ref)
+          }}
+          className={styles.base()}
+          aria-labelledby={titleId}
+          {...ariaDialogProps}
+        >
+          {(opts) => (
+            <>
+              <motion.div layout className="w-full" transition={{ duration: 0 }}>
+                <DialogHeader
+                  closeButton={closeButton}
+                  title={title}
+                  titleId={titleId}
+                  scrollerRef={scrollerRef}
+                  fitContent={fitContent}
+                  hideCloseButton={hideCloseButton}
+                  padding={padding}
+                  rounded={rounded}
+                  size={size}
+                  type={type}
+                  headerDimensionsRef={headerDimensionsRef}
+                  close={opts.close}
+                  variants={variants}
+                />
+              </motion.div>
 
-            <motion.div
-              layout
-              layoutScroll
-              className={styles.scroller()}
-              ref={scrollerRef}
-              transition={{ duration: 0 }}
-            >
-              <DialogBody
-                close={opts.close}
-                contentDimensionsRef={contentDimensionsRef}
-                dialogId={dialogId}
-                headerDimensionsRef={headerDimensionsRef}
-                scrollerRef={scrollerRef}
-                measurerWrapperClassName={styles.measurerWrapper()}
-                contentClassName={styles.content()}
-                type={type}
+              <motion.div
+                layout
+                layoutScroll
+                className={styles.scroller()}
+                ref={scrollerRef}
+                transition={{ duration: 0 }}
               >
-                {children}
-              </DialogBody>
-            </motion.div>
-          </>
-        )}
-      </MotionDialog>
+                <DialogBody
+                  close={opts.close}
+                  contentDimensionsRef={contentDimensionsRef}
+                  dialogId={dialogId}
+                  headerDimensionsRef={headerDimensionsRef}
+                  scrollerRef={scrollerRef}
+                  measurerWrapperClassName={styles.measurerWrapper()}
+                  contentClassName={styles.content()}
+                  type={type}
+                >
+                  {children}
+                </DialogBody>
+              </motion.div>
+            </>
+          )}
+        </MotionDialog>
 
-      <dialogStackProvider.DialogStackRegistrar id={dialogId} type={TYPE_TO_DIALOG_TYPE[type]} />
-    </LayoutGroup>
+        <dialogStackProvider.DialogStackRegistrar id={dialogId} type={TYPE_TO_DIALOG_TYPE[type]} />
+      </LayoutGroup>
+    </ResetButtonGroupContext>
   )
 }
 

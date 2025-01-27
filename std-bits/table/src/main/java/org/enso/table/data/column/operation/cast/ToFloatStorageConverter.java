@@ -18,6 +18,7 @@ import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.Bits;
 import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.NullType;
 import org.graalvm.polyglot.Context;
 
 public class ToFloatStorageConverter implements StorageConverter<Double> {
@@ -40,7 +41,8 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
       return convertBigIntegerStorage(bigIntegerStorage, problemAggregator);
     } else if (storage instanceof BigDecimalStorage bigDecimalStorage) {
       return convertBigDecimalStorage(bigDecimalStorage, problemAggregator);
-    } else if (storage.getType() instanceof AnyObjectType) {
+    } else if (storage.getType() instanceof AnyObjectType
+        || storage.getType() instanceof NullType) {
       return castFromMixed(storage, problemAggregator);
     } else {
       throw new IllegalStateException(

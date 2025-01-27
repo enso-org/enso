@@ -9,6 +9,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.NullType;
 
 public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTime> {
   @Override
@@ -17,7 +18,8 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
       return dateTimeStorage;
     } else if (storage instanceof DateStorage dateStorage) {
       return convertDateStorage(dateStorage, problemAggregator);
-    } else if (storage.getType() instanceof AnyObjectType) {
+    } else if (storage.getType() instanceof AnyObjectType
+        || storage.getType() instanceof NullType) {
       return castFromMixed(storage, problemAggregator);
     } else {
       throw new IllegalStateException(
