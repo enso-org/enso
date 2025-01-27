@@ -500,7 +500,7 @@ public class ExcelWriter {
     if (storage.isNothing(j)) {
       cell.setBlank();
     } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
-      cell.setCellValue(doubleStorage.getItemDouble(j));
+      cell.setCellValue(doubleStorage.getItemAsDouble(j));
     } else if (storage instanceof ColumnLongStorage longStorage) {
       cell.setCellValue(longStorage.getItemLong(j));
     } else if (storage instanceof ColumnBooleanStorage boolStorage) {

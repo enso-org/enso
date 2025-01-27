@@ -98,7 +98,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
           if (storage.isNothing(i)) {
             appendNulls(1);
           } else {
-            appendDouble(doubleStorage.getItemDouble(i));
+            appendDouble(doubleStorage.getItemAsDouble(i));
           }
         }
       } else {

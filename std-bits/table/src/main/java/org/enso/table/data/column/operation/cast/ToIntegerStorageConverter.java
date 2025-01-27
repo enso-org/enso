@@ -131,7 +131,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
         Builder.getForLong(targetType, doubleStorage.getSize(), problemAggregator),
         doubleStorage,
         (builder, i) -> {
-          double value = doubleStorage.getItemDouble(i);
+          double value = doubleStorage.getItemAsDouble(i);
           if (targetType.fits(value)) {
             long converted = (long) value;
             builder.appendLong(converted);

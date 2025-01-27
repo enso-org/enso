@@ -99,7 +99,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         Builder.getForText(targetType, doubleStorage.getSize()),
         doubleStorage,
         (i) -> {
-          double value = doubleStorage.getItemDouble(i);
+          double value = doubleStorage.getItemAsDouble(i);
           return adapt(Double.toString(value), problemAggregator);
         });
   }

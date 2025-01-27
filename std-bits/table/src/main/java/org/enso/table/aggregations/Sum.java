@@ -171,7 +171,7 @@ public class Sum extends Aggregator {
       if (storage instanceof ColumnDoubleStorage doubleStorage) {
         for (int row : indexes) {
           if (!doubleStorage.isNothing(row)) {
-            addDouble(doubleStorage.getItemDouble(row));
+            addDouble(doubleStorage.getItemAsDouble(row));
           }
           context.safepoint();
         }

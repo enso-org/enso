@@ -131,7 +131,7 @@ public interface BigDecimalArrayAdapter {
       if (storage.isNothing(i)) {
         return null;
       } else {
-        double x = storage.getItemDouble(i);
+        double x = storage.getItemAsDouble(i);
         return BigDecimal.valueOf(x);
       }
     }

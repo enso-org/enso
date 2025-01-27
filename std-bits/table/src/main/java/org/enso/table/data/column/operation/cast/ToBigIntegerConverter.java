@@ -43,7 +43,7 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
         Builder.getForBigInteger(doubleStorage.getSize(), problemAggregator),
         doubleStorage,
         (i) -> {
-          double x = doubleStorage.getItemDouble(i);
+          double x = doubleStorage.getItemAsDouble(i);
           return BigDecimal.valueOf(x).toBigInteger();
         });
   }

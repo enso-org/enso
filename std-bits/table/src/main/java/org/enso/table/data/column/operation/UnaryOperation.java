@@ -168,7 +168,7 @@ public interface UnaryOperation {
         doubleStorage,
         nothingUnchanged,
         builder,
-        i -> function.accept(doubleStorage.isNothing(i), doubleStorage.getItemDouble(i)));
+        i -> function.accept(doubleStorage.isNothing(i), doubleStorage.getItemAsDouble(i)));
   }
 
   @FunctionalInterface

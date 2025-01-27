@@ -43,7 +43,7 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
         Builder.getForBigDecimal(doubleStorage.getSize()),
         doubleStorage,
         (i) -> {
-          double x = doubleStorage.getItemDouble(i);
+          double x = doubleStorage.getItemAsDouble(i);
           return BigDecimal.valueOf(x);
         });
   }

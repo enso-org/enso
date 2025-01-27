@@ -12,7 +12,7 @@ import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.problems.BlackholeProblemAggregator;
 
 public interface DoubleArrayAdapter {
-  double getItemAsDouble(int i);
+  double getItemAsDouble(long i);
 
   boolean isNothing(long i);
 
@@ -66,7 +66,7 @@ public interface DoubleArrayAdapter {
     }
 
     @Override
-    public double getItemAsDouble(int i) {
+    public double getItemAsDouble(long i) {
       long x = storage.getItemLong(i);
       return (double) x;
     }
@@ -91,7 +91,7 @@ public interface DoubleArrayAdapter {
     }
 
     @Override
-    public double getItemAsDouble(int i) {
+    public double getItemAsDouble(long i) {
       BigInteger x = storage.getItemBoxed(i);
       return x.doubleValue();
     }
@@ -116,7 +116,7 @@ public interface DoubleArrayAdapter {
     }
 
     @Override
-    public double getItemAsDouble(int i) {
+    public double getItemAsDouble(long i) {
       BigDecimal x = storage.getItemBoxed(i);
       return x.doubleValue();
     }

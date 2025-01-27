@@ -81,7 +81,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public double getItemDouble(long index) throws ValueIsNothingException {
+  public double getItemAsDouble(long index) throws ValueIsNothingException {
     if (isNothing(index)) {
       throw new ValueIsNothingException(index);
     }
@@ -91,11 +91,6 @@ public final class DoubleStorage extends Storage<Double>
   @Override
   public StorageType getType() {
     return FloatType.FLOAT_64;
-  }
-
-  @Override
-  public double getItemAsDouble(int i) {
-    return getItemDouble(i);
   }
 
   @Override
@@ -158,7 +153,7 @@ public final class DoubleStorage extends Storage<Double>
       if (isNothing(i)) {
         builder.appendDouble(arg);
       } else {
-        builder.appendDouble(getItemDouble(i));
+        builder.appendDouble(getItemAsDouble(i));
       }
       context.safepoint();
     }
@@ -174,7 +169,7 @@ public final class DoubleStorage extends Storage<Double>
       if (isNothing(i)) {
         builder.append(arg);
       } else {
-        builder.appendDouble(getItemDouble(i));
+        builder.appendDouble(getItemAsDouble(i));
       }
       context.safepoint();
     }
@@ -190,7 +185,7 @@ public final class DoubleStorage extends Storage<Double>
       if (isNothing(i)) {
         builder.appendLong(arg);
       } else {
-        builder.appendDouble(getItemDouble(i));
+        builder.appendDouble(getItemAsDouble(i));
       }
       context.safepoint();
     }
@@ -235,7 +230,7 @@ public final class DoubleStorage extends Storage<Double>
           builder.appendNulls(1);
         }
       } else {
-        double value = getItemDouble(i);
+        double value = getItemAsDouble(i);
         builder.appendDouble(value);
         previousValue = value;
         hasPrevious = true;
@@ -405,7 +400,7 @@ public final class DoubleStorage extends Storage<Double>
               return null;
             }
 
-            double value = parent.getItemDouble(idx);
+            double value = parent.getItemAsDouble(idx);
             assert value % 1.0 == 0.0
                 : "The value " + value + " should be a whole number (guaranteed by checks).";
             return (long) value;
