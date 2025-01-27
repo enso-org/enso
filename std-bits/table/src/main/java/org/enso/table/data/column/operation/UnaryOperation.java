@@ -132,7 +132,7 @@ public interface UnaryOperation {
         booleanStorage,
         nothingUnchanged,
         builder,
-        i -> function.accept(booleanStorage.isNothing(i), booleanStorage.getItemBoolean(i)));
+        i -> function.accept(booleanStorage.isNothing(i), booleanStorage.getItemAsBoolean(i)));
   }
 
   @FunctionalInterface
@@ -150,7 +150,7 @@ public interface UnaryOperation {
         longStorage,
         nothingUnchanged,
         builder,
-        i -> function.accept(longStorage.isNothing(i), longStorage.getItemLong(i)));
+        i -> function.accept(longStorage.isNothing(i), longStorage.getItemAsLong(i)));
   }
 
   @FunctionalInterface

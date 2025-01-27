@@ -92,7 +92,7 @@ type Primitive_Enso_Callback_Test
         storage = Storage.get_storage_for_column self.int_column
         0.up_to n . each i->
             if storage.isNothing i then builder.appendNulls 1 else
-                item = storage.getItemLong i
+                item = storage.getItemAsLong i
                 builder.append (fn item)
         Column.from_storage "result" builder.seal
 

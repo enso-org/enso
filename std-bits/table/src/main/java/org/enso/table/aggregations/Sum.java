@@ -92,7 +92,7 @@ public class Sum extends Aggregator {
       if (storage instanceof ColumnLongStorage longStorage) {
         for (int row : indexes) {
           if (!longStorage.isNothing(row)) {
-            addLong(longStorage.getItemLong(row));
+            addLong(longStorage.getItemAsLong(row));
           }
           context.safepoint();
         }

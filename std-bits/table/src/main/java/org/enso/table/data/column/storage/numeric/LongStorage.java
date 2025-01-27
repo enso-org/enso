@@ -49,7 +49,7 @@ public final class LongStorage extends AbstractLongStorage {
    * @param idx an index
    * @return the data item contained at the given index.
    */
-  public long getItemLong(long idx) {
+  public long getItemAsLong(long idx) {
     return data[Math.toIntExact(idx)];
   }
 

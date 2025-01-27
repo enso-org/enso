@@ -65,7 +65,7 @@ public interface BigIntegerArrayAdapter {
       if (storage.isNothing(i)) {
         return null;
       } else {
-        long x = storage.getItemLong(i);
+        long x = storage.getItemAsLong(i);
         return BigInteger.valueOf(x);
       }
     }

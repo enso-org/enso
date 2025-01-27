@@ -102,7 +102,7 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
           if (longStorage.isNothing(i)) {
             appendNulls(1);
           } else {
-            appendLong(longStorage.getItemLong(i));
+            appendLong(longStorage.getItemAsLong(i));
           }
         }
       } else {
@@ -118,7 +118,7 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
           if (boolStorage.isNothing(i)) {
             appendNulls(1);
           } else {
-            appendLong(boolStorage.getItemBoolean(i) ? 1L : 0L);
+            appendLong(boolStorage.getItemAsBoolean(i) ? 1L : 0L);
           }
         }
       } else {

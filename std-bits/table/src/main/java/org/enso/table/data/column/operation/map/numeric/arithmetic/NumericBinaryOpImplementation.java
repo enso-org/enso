@@ -228,7 +228,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       if (a.isNothing(i) || (i >= m || b.isNothing(i))) {
         builder.appendNulls(1);
       } else {
-        Long r = doLong(a.getItemLong(i), b.getItemLong(i), i, problemAggregator);
+        Long r = doLong(a.getItemAsLong(i), b.getItemAsLong(i), i, problemAggregator);
         if (r == null) {
           builder.appendNulls(1);
         } else {
@@ -256,7 +256,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       if (a.isNothing(i)) {
         builder.appendNulls(1);
       } else {
-        Long r = doLong(a.getItemLong(i), bNonNull, i, problemAggregator);
+        Long r = doLong(a.getItemAsLong(i), bNonNull, i, problemAggregator);
         if (r == null) {
           builder.appendNulls(1);
         } else {

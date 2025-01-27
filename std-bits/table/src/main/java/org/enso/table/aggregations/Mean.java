@@ -93,7 +93,7 @@ public class Mean extends KnownTypeAggregator {
       } else if (storage instanceof ColumnLongStorage longStorage) {
         for (int i : indexes) {
           if (!longStorage.isNothing(i)) {
-            total += longStorage.getItemLong(i);
+            total += longStorage.getItemAsLong(i);
             count++;
           }
           context.safepoint();

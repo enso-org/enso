@@ -103,7 +103,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
         Builder.getForDouble(FloatType.FLOAT_64, longStorage.getSize(), problemAggregator),
         longStorage,
         (builder, i) -> {
-          long value = longStorage.getItemLong(i);
+          long value = longStorage.getItemAsLong(i);
           builder.appendLong(value);
         });
   }
@@ -114,7 +114,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
         Builder.getForDouble(FloatType.FLOAT_64, boolStorage.getSize(), problemAggregator),
         boolStorage,
         (builder, i) -> {
-          boolean value = boolStorage.getItemBoolean(i);
+          boolean value = boolStorage.getItemAsBoolean(i);
           builder.appendDouble(booleanAsDouble(value));
         });
   }

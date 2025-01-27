@@ -114,7 +114,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
           if (storage.isNothing(i)) {
             appendNulls(1);
           } else {
-            long item = longStorage.getItemLong(i);
+            long item = longStorage.getItemAsLong(i);
             appendDouble(convertLongToDouble(item));
           }
         }
@@ -148,7 +148,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
           if (boolStorage.isNothing(i)) {
             appendNulls(1);
           } else {
-            appendDouble(boolStorage.getItemBoolean(i) ? 1.0 : 0.0);
+            appendDouble(boolStorage.getItemAsBoolean(i) ? 1.0 : 0.0);
           }
         }
       } else {

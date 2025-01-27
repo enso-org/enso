@@ -108,7 +108,7 @@ public interface BigDecimalArrayAdapter {
       if (storage.isNothing(i)) {
         return null;
       } else {
-        long x = storage.getItemLong(i);
+        long x = storage.getItemAsLong(i);
         return BigDecimal.valueOf(x);
       }
     }

@@ -54,7 +54,7 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
         Builder.getForBigInteger(longStorage.getSize(), problemAggregator),
         longStorage,
         (i) -> {
-          long x = longStorage.getItemLong(i);
+          long x = longStorage.getItemAsLong(i);
           return BigInteger.valueOf(x);
         });
   }
@@ -65,7 +65,7 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
         Builder.getForBigInteger(boolStorage.getSize(), problemAggregator),
         boolStorage,
         (i) -> {
-          boolean x = boolStorage.getItemBoolean((int) i);
+          boolean x = boolStorage.getItemAsBoolean((int) i);
           return booleanAsBigInteger(x);
         });
   }

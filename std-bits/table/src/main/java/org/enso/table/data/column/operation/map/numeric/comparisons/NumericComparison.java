@@ -127,7 +127,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
       if (lhs.isNothing(i)) {
         builder.appendNulls(1);
       } else {
-        long item = lhs.getItemLong(i);
+        long item = lhs.getItemAsLong(i);
         boolean r = doLong(item, rhs);
         builder.appendBoolean(r);
       }
@@ -279,8 +279,8 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
       if (lhs.isNothing(i) || (i >= m || rhs.isNothing(i))) {
         builder.appendNulls(1);
       } else {
-        long x = lhs.getItemLong(i);
-        long y = rhs.getItemLong(i);
+        long x = lhs.getItemAsLong(i);
+        long y = rhs.getItemAsLong(i);
         boolean r = doLong(x, y);
         builder.appendBoolean(r);
       }

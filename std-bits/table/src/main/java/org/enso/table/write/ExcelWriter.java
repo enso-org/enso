@@ -502,9 +502,9 @@ public class ExcelWriter {
     } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
       cell.setCellValue(doubleStorage.getItemAsDouble(j));
     } else if (storage instanceof ColumnLongStorage longStorage) {
-      cell.setCellValue(longStorage.getItemLong(j));
+      cell.setCellValue(longStorage.getItemAsLong(j));
     } else if (storage instanceof ColumnBooleanStorage boolStorage) {
-      cell.setCellValue(boolStorage.getItemBoolean(j));
+      cell.setCellValue(boolStorage.getItemAsBoolean(j));
     } else {
       Object value = storage.getItemBoxed(j);
       switch (value) {

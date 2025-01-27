@@ -70,7 +70,7 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public boolean getItemBoolean(long index) throws ValueIsNothingException {
+  public boolean getItemAsBoolean(long index) throws ValueIsNothingException {
     if (isNothing(index)) {
       throw new ValueIsNothingException(index);
     }
@@ -165,7 +165,7 @@ public final class BoolStorage extends Storage<Boolean>
           builder.appendNulls(1);
         }
       } else {
-        boolean currentValue = getItemBoolean(i);
+        boolean currentValue = getItemAsBoolean(i);
         builder.appendBoolean(currentValue);
         previousValue = currentValue;
         hasPrevious = true;
@@ -186,7 +186,7 @@ public final class BoolStorage extends Storage<Boolean>
         if (isNothing.get(i)) {
           builder.appendNulls(1);
         } else {
-          builder.appendBoolean(getItemBoolean(i));
+          builder.appendBoolean(getItemAsBoolean(i));
         }
       }
       context.safepoint();
@@ -203,7 +203,7 @@ public final class BoolStorage extends Storage<Boolean>
       if (position == OrderMask.NOT_FOUND_INDEX || isNothing.get(position)) {
         builder.appendNulls(1);
       } else {
-        builder.appendBoolean(getItemBoolean(position));
+        builder.appendBoolean(getItemAsBoolean(position));
       }
       context.safepoint();
     }
@@ -222,7 +222,7 @@ public final class BoolStorage extends Storage<Boolean>
     for (int i = 0; i < size; i++) {
       if (isNothing.get(i)) {
         builder.appendNulls(1);
-      } else if (getItemBoolean(i)) {
+      } else if (getItemAsBoolean(i)) {
         builder.append(on_true.apply(i));
       } else {
         builder.append(on_false.apply(i));
@@ -315,7 +315,7 @@ public final class BoolStorage extends Storage<Boolean>
         if (isNothing.get(range.start() + i)) {
           builder.appendNulls(1);
         } else {
-          builder.appendBoolean(getItemBoolean(range.start() + i));
+          builder.appendBoolean(getItemAsBoolean(range.start() + i));
         }
         context.safepoint();
       }
@@ -352,7 +352,7 @@ public final class BoolStorage extends Storage<Boolean>
       Context context = Context.getCurrent();
       for (long i = 0; i < n; i++) {
         if (!storage.isNothing(i) && i < arg.getSize() && !arg.isNothing(i)) {
-          builder.appendBoolean(((Boolean) storage.getItemBoolean(i)).equals(arg.getItemBoxed(i)));
+          builder.appendBoolean(((Boolean) storage.getItemAsBoolean(i)).equals(arg.getItemBoxed(i)));
         } else {
           builder.appendNulls(1);
         }
@@ -524,8 +524,8 @@ public final class BoolStorage extends Storage<Boolean>
           if (storage.isNothing(i) || (i >= m || argBoolStorage.isNothing(i))) {
             builder.appendNulls(1);
           } else {
-            boolean a = storage.getItemBoolean(i);
-            boolean b = argBoolStorage.getItemBoolean(i);
+            boolean a = storage.getItemAsBoolean(i);
+            boolean b = argBoolStorage.getItemAsBoolean(i);
             boolean r = doCompare(a, b);
             builder.appendBoolean(r);
           }
@@ -541,7 +541,7 @@ public final class BoolStorage extends Storage<Boolean>
           if (storage.isNothing(i) || (i >= m || arg.isNothing(i))) {
             builder.appendNulls(1);
           } else {
-            boolean a = storage.getItemBoolean(i);
+            boolean a = storage.getItemAsBoolean(i);
             Object b = arg.getItemBoxed(i);
             if (b instanceof Boolean bBool) {
               boolean r = doCompare(a, bBool);
@@ -707,12 +707,12 @@ public final class BoolStorage extends Storage<Boolean>
             builder.appendNulls(1);
           } else {
             if (isNothingA) {
-              builder.appendBoolean(argBoolStorage.getItemBoolean(i));
+              builder.appendBoolean(argBoolStorage.getItemAsBoolean(i));
             } else if (isNothingB) {
-              builder.appendBoolean(storage.getItemBoolean(i));
+              builder.appendBoolean(storage.getItemAsBoolean(i));
             } else {
               builder.appendBoolean(
-                  doOperation(storage.getItemBoolean(i), argBoolStorage.getItemBoolean(i)));
+                  doOperation(storage.getItemAsBoolean(i), argBoolStorage.getItemAsBoolean(i)));
             }
           }
           context.safepoint();
