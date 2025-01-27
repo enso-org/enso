@@ -105,7 +105,7 @@ pub fn setup_bazel() -> Step {
             ),
             (
                 "bazelrc".to_string(),
-                Value::String("build --remote_cache=grpc://enso-org-bazel-cache:9092".to_string()),
+                Value::String("build --remote_cache=http://${{ secrets.ENSO_BAZEL_CACHE_USERNAME  }}:${{ secrets.ENSO_BAZEL_CACHE_PASSWORD }}@${{ var.ENSO_BAZEL_CACHE_URI }}".to_string()),
             ),
         ]))),
         ..default()
