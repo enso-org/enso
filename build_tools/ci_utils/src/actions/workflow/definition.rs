@@ -97,11 +97,17 @@ pub fn setup_bazel_env() -> Step {
 pub fn setup_bazel() -> Step {
     Step {
         name: Some("Setup bazel environment".into()),
-        uses: Some("bazel-contrib/setup-bazel@09f3a72d13a081857b0ee94e986ffa84caef7c85".into()),
-        with: Some(step::Argument::Other(BTreeMap::from([(
-            "output-base".to_string(),
-            Value::String(format!("${{{{ {} && 'c:/_bazel' || '' }}}}", is_windows_runner())),
-        )]))),
+        uses: Some("bazel-contrib/setup-bazel@0.13.0".into()),
+        with: Some(step::Argument::Other(BTreeMap::from([
+            (
+                "output-base".to_string(),
+                Value::String(format!("${{{{ {} && 'c:/_bazel' || '' }}}}", is_windows_runner())),
+            ),
+            (
+                "bazelrc".to_string(),
+                Value::String("build --remote_cache=grpc://enso-org-bazel-cache:9092".to_string()),
+            ),
+        ]))),
         ..default()
     }
 }
