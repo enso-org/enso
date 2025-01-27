@@ -38,6 +38,8 @@ export interface EditableSpanProps {
 export default function EditableSpan(props: EditableSpanProps) {
   const { className = '', editable = false, children } = props
 
+  const [isEditing, setIsEditing] = React.useState(false)
+
   return (
     <AnimatePresence initial={false}>
       {editable && <EditForm {...props} />}

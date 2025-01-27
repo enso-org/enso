@@ -47,7 +47,7 @@ export function useAssetTree(options: UseAssetTreeOptions) {
 
   const directories = useQueries({
     // We query only expanded directories, as we don't want to load the data for directories that are not visible.
-    queries: expandedDirectoryIds.map((directoryId) => ({
+    queries: Array.from(new Set(expandedDirectoryIds)).map((directoryId) => ({
       ...listDirectoryQueryOptions({
         backend,
         parentId: directoryId,

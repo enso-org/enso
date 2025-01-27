@@ -7,8 +7,13 @@ import { Path, createRootDirectoryAsset } from 'enso-common/src/services/Backend
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useBackend } from '#/providers/BackendProvider'
-import { useExpandedDirectoryIds, useSetExpandedDirectoryIds } from '#/providers/DriveProvider'
+import {
+  useExpandedDirectoryIds,
+  useReplaceExpandedDirectoryIds,
+  useSetExpandedDirectoryIds,
+} from '#/providers/DriveProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
+import { useCallback } from 'react'
 
 /** Options for {@link useDirectoryIds}. */
 export interface UseDirectoryIdsOptions {
@@ -35,6 +40,7 @@ export function useDirectoryIds(options: UseDirectoryIdsOptions) {
    */
   const privateExpandedDirectoryIds = useExpandedDirectoryIds()
   const setExpandedDirectoryIds = useSetExpandedDirectoryIds()
+  const replaceExpandedDirectoryIds = useReplaceExpandedDirectoryIds()
 
   const [localRootDirectory] = useLocalStorageState('localRootDirectory')
 
@@ -54,5 +60,11 @@ export function useDirectoryIds(options: UseDirectoryIdsOptions) {
     privateExpandedDirectoryIds.filter((id) => id !== rootDirectoryId),
   )
 
-  return { setExpandedDirectoryIds, rootDirectoryId, rootDirectory, expandedDirectoryIds } as const
+  return {
+    setExpandedDirectoryIds,
+    rootDirectoryId,
+    rootDirectory,
+    expandedDirectoryIds,
+    replaceExpandedDirectoryIds,
+  } as const
 }

@@ -18,6 +18,7 @@ import CategorySwitcher from '#/layouts/CategorySwitcher'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import DriveBar from '#/layouts/DriveBar'
 import Labels from '#/layouts/Labels'
+import { AssetsTable as AssetsTablePage } from '#/pages/dashboard/AssetsTable/AssetsTable'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
@@ -276,13 +277,13 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
 
           {status === 'offline' ?
             <OfflineMessage supportLocalBackend={supportLocalBackend} setCategory={setCategory} />
-          : <AssetsTable
-              assetManagementApiRef={assetsManagementApiRef}
-              hidden={hidden}
+          : <AssetsTablePage
+              // assetManagementApiRef={assetsManagementApiRef}
+              // hidden={hidden}
               query={query}
               setQuery={setQuery}
               category={deferredCategory}
-              initialProjectName={initialProjectName}
+              // initialProjectName={initialProjectName}
             />
           }
         </div>

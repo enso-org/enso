@@ -60,6 +60,7 @@ interface DriveStore {
   readonly pasteData: PasteData<DrivePastePayload> | null
   readonly setPasteData: (pasteData: PasteData<DrivePastePayload> | null) => void
   readonly expandedDirectoryIds: readonly DirectoryId[]
+  readonly replaceExpandedDirectoryIds: (id: DirectoryId) => void
   readonly setExpandedDirectoryIds: (selectedKeys: readonly DirectoryId[]) => void
   readonly selectedKeys: ReadonlySet<AssetId>
   readonly selectedAssets: readonly SelectedAssetInfo[]
@@ -148,6 +149,9 @@ export default function DriveProvider(props: ProjectsProviderProps) {
         if (get().expandedDirectoryIds !== expandedDirectoryIds) {
           set({ expandedDirectoryIds })
         }
+      },
+      replaceExpandedDirectoryIds: (id) => {
+        set({ expandedDirectoryIds: [id] })
       },
       selectedKeys: EMPTY_SET,
       selectedAssets: EMPTY_ARRAY,
@@ -287,6 +291,14 @@ export function useSetExpandedDirectoryIds() {
   return useStore(store, (state) => state.setExpandedDirectoryIds, {
     unsafeEnableTransition: true,
   })
+}
+
+/**
+ * Replace the expanded directory ID with the given ID.
+ */
+export function useReplaceExpandedDirectoryIds() {
+  const store = useDriveStore()
+  return useStore(store, (state) => state.replaceExpandedDirectoryIds)
 }
 
 /** The selected keys in the Asset Table. */

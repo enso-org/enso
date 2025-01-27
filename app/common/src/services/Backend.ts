@@ -1,6 +1,6 @@
 /** @file Type definitions common between all backends. */
 
-import type { TextId } from '../text'
+import type { GetText, TextId } from '../text'
 import * as array from '../utilities/data/array'
 import * as dateTime from '../utilities/data/dateTime'
 import * as newtype from '../utilities/data/newtype'
@@ -856,11 +856,18 @@ export enum AssetType {
   /**
    * A special {@link AssetType} representing the unknown items of a directory, before the
    * request to retrieve the items completes.
+   * @deprecated
    */
   specialLoading = 'specialLoading',
-  /** A special {@link AssetType} representing a directory listing that is empty. */
+  /**
+   * A special {@link AssetType} representing a directory listing that is empty.
+   * @deprecated
+   */
   specialEmpty = 'specialEmpty',
-  /** A special {@link AssetType} representing a directory listing that errored. */
+  /**
+   * A special {@link AssetType} representing a directory listing that errored.
+   * @deprecated
+   */
   specialError = 'specialError',
 }
 
@@ -1706,6 +1713,30 @@ export function isNewTitleUnique(
     const hasSameTitle = sibling.title.toLowerCase() === newTitle.toLowerCase()
     return !hasSameTitle
   })
+}
+
+/**
+ * Check whether a new title is unique among the siblings.
+ */
+export function isNewTitleUnique2(
+  itemId: AnyAsset['id'],
+  newTitle: string,
+  nodeMap: Set<AnyAsset> = new Set(),
+) {
+  let isUnique = true
+
+  for (const sibling of nodeMap) {
+    if (sibling.id === itemId) {
+      continue
+    }
+
+    if (sibling.title.toLowerCase() === newTitle.toLowerCase()) {
+      isUnique = false
+      break
+    }
+  }
+
+  return isUnique
 }
 
 /** Network error class. */
