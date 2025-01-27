@@ -3721,7 +3721,9 @@ lazy val `engine-runner` = project
         `table-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
         `database-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
         `std-aws-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
-        `std-microsoft-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath())
+        `std-microsoft-polyglot-root`
+          .listFiles("*.jar")
+          .map(_.getAbsolutePath())
 
       core ++ stdLibsJars
     },
