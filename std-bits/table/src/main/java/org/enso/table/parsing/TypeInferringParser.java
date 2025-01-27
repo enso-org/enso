@@ -47,9 +47,9 @@ public class TypeInferringParser extends DatatypeParser {
 
     // If there are no values, the Auto parser would guess some random type (the first one that is
     // checked). Instead, we return a Null-type column.
-    boolean hasNoValues = (sourceStorage.getSize() == 0) || CountNothing.allNothing(sourceStorage);
+    boolean hasNoValues = (size == 0) || CountNothing.allNothing(sourceStorage);
     if (hasNoValues) {
-      return new NullStorage(Math.toIntExact(sourceStorage.getSize()));
+      return new NullStorage(size);
     }
 
     Context context = Context.getCurrent();
