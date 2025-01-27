@@ -30,7 +30,7 @@ public abstract class CoalescingStringStringOp extends StringStringOp {
       Context context = Context.getCurrent();
       for (long i = 0; i < size; i++) {
         if (storage.isNothing(i)) {
-          builder.appendNulls(1);
+          builder.append(argString);
         } else {
           builder.append(doString(storage.getItemBoxed(i), argString));
         }
