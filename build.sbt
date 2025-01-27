@@ -6782,14 +6782,16 @@ updateLibraryManifests := {
   )
 }
 
-
 // Helper function to detect the OS and determine the default data directory
 def getDataDirectory(): String = {
-  val osName = System.getProperty("os.name").toLowerCase(java.util.Locale.ENGLISH)
+  val osName =
+    System.getProperty("os.name").toLowerCase(java.util.Locale.ENGLISH)
   val homeDir = System.getProperty("user.home")
   val dataDirectory = sys.env.get("ENSO_DATA_DIRECTORY").orElse {
     if (osName.contains("linux")) {
-      Some(sys.env.getOrElse("XDG_DATA_HOME", s"$homeDir/.local/share") + "/enso")
+      Some(
+        sys.env.getOrElse("XDG_DATA_HOME", s"$homeDir/.local/share") + "/enso"
+      )
     } else if (osName.contains("mac")) {
       Some(s"$homeDir/Library/Application Support/org.enso")
     } else if (osName.contains("win")) {
@@ -6808,12 +6810,15 @@ def getDataDirectory(): String = {
 lazy val deleteIrCache = taskKey[Unit]("Delete IR cache directory")
 
 deleteIrCache := {
-  import java.nio.file.{Paths, Files}
+  import java.nio.file.{Files, Paths}
   val dataDirectory = getDataDirectory()
-  val irCacheDir = Paths.get(dataDirectory, "cache", "ir")
+  val irCacheDir    = Paths.get(dataDirectory, "cache", "ir")
   if (Files.exists(irCacheDir)) {
     println(s"Deleting directory: $irCacheDir")
-    Files.walk(irCacheDir).sorted(java.util.Comparator.reverseOrder()).forEach(Files.delete)
+    Files
+      .walk(irCacheDir)
+      .sorted(java.util.Comparator.reverseOrder())
+      .forEach(Files.delete)
   } else {
     println(s"Directory does not exist: $irCacheDir")
   }
