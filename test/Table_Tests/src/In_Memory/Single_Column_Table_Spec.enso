@@ -1,8 +1,7 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Common.Type_Error
 
-from Standard.Table import Column, Table, Value_Type
+from Standard.Table import Column, Table
 
 from Standard.Test import all
 
@@ -36,6 +35,10 @@ add_specs suite_builder =
             t3 = t1.remove_columns ["A"]
             t3.should_be_a Table
             (t3:Column).name.should_equal "B"
+
+            t4 = t1.aggregate [..Count]
+            t4.should_be_a Table
+            (t4:Column).name.should_equal "Count"
 
 main filter=Nothing =
     suite = Test.build suite_builder->
