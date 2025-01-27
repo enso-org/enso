@@ -352,7 +352,8 @@ public final class BoolStorage extends Storage<Boolean>
       Context context = Context.getCurrent();
       for (long i = 0; i < n; i++) {
         if (!storage.isNothing(i) && i < arg.getSize() && !arg.isNothing(i)) {
-          builder.appendBoolean(((Boolean) storage.getItemAsBoolean(i)).equals(arg.getItemBoxed(i)));
+          builder.appendBoolean(
+              ((Boolean) storage.getItemAsBoolean(i)).equals(arg.getItemBoxed(i)));
         } else {
           builder.appendNulls(1);
         }

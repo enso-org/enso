@@ -208,8 +208,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
 
   @Override
   public Storage<Long> applyFilter(BitSet filterMask, int newLength) {
-    var builder =
-        Builder.getForLong(getType(), newLength, BlackholeProblemAggregator.INSTANCE);
+    var builder = Builder.getForLong(getType(), newLength, BlackholeProblemAggregator.INSTANCE);
     Context context = Context.getCurrent();
     for (int i = 0; i < getSize(); i++) {
       if (filterMask.get(i)) {
@@ -227,8 +226,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
 
   @Override
   public Storage<Long> applyMask(OrderMask mask) {
-    var builder =
-        Builder.getForLong(getType(), mask.length(), BlackholeProblemAggregator.INSTANCE);
+    var builder = Builder.getForLong(getType(), mask.length(), BlackholeProblemAggregator.INSTANCE);
     Context context = Context.getCurrent();
     for (int i = 0; i < mask.length(); i++) {
       int position = mask.get(i);
@@ -247,8 +245,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
   public Storage<Long> slice(int offset, int limit) {
     int size = (int) getSize();
     int newSize = Math.min(size - offset, limit);
-    var builder =
-        Builder.getForLong(getType(), newSize, BlackholeProblemAggregator.INSTANCE);
+    var builder = Builder.getForLong(getType(), newSize, BlackholeProblemAggregator.INSTANCE);
     Context context = Context.getCurrent();
     for (int i = 0; i < newSize; i++) {
       if (isNothing(offset + i)) {
@@ -264,8 +261,7 @@ public abstract class AbstractLongStorage extends Storage<Long>
   @Override
   public Storage<Long> slice(List<SliceRange> ranges) {
     int newSize = SliceRange.totalLength(ranges);
-    var builder =
-        Builder.getForLong(getType(), newSize, BlackholeProblemAggregator.INSTANCE);
+    var builder = Builder.getForLong(getType(), newSize, BlackholeProblemAggregator.INSTANCE);
     Context context = Context.getCurrent();
     for (SliceRange range : ranges) {
       int rangeStart = range.start();
