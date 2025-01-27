@@ -46,7 +46,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
    * @return the data item contained at the given index.
    */
   public T getItemBoxed(long idx) {
-    if (idx <=0 || idx >= data.length) {
+    if (idx < 0 || idx >= data.length) {
       throw new IndexOutOfBoundsException(idx);
     }
     return data[(int) idx];
