@@ -6,6 +6,7 @@
 import type * as aria from '#/components/aria'
 import type { ExtractFunction } from '#/utilities/tailwindVariants'
 import type { ReactElement, ReactNode } from 'react'
+import type { Addon, IconProp, TestIdProps } from '../types'
 import type { BUTTON_STYLES, ButtonVariants } from './variants'
 
 /**
@@ -61,19 +62,15 @@ interface PropsWithoutHref {
 
 /** Base props for a button. */
 export interface BaseButtonProps<Render>
-  extends Omit<ButtonVariants, 'iconOnly' | 'isJoined' | 'position'> {
+  extends Omit<ButtonVariants, 'iconOnly' | 'isJoined' | 'position'>,
+    TestIdProps {
   /** If `true`, the loader will not be shown. */
   readonly hideLoader?: boolean
   /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
   readonly tooltip?: ReactElement | string | false | null
   readonly tooltipPlacement?: aria.Placement
   /** The icon to display in the button */
-  readonly icon?:
-    | ReactElement
-    | string
-    | ((render: Render) => ReactElement | string | null)
-    | null
-    | undefined
+  readonly icon?: IconProp<Render>
   /** When `true`, icon will be shown only when hovered. */
   readonly showIconOnHover?: boolean
   /**
@@ -82,7 +79,6 @@ export interface BaseButtonProps<Render>
    */
   readonly onPress?: ((event: aria.PressEvent) => Promise<void> | void) | null | undefined
   readonly contentClassName?: string
-  readonly testId?: string
   readonly isDisabled?: boolean
   readonly formnovalidate?: boolean
   /**
@@ -94,20 +90,8 @@ export interface BaseButtonProps<Render>
 
   readonly children?: ReactNode | ((render: Render) => ReactNode)
 
-  readonly addonStart?:
-    | ReactElement
-    | string
-    | false
-    | ((render: Render) => ReactElement | string | null)
-    | null
-    | undefined
-  readonly addonEnd?:
-    | ReactElement
-    | string
-    | false
-    | ((render: Render) => ReactElement | string | null)
-    | null
-    | undefined
+  readonly addonStart?: Addon<Render>
+  readonly addonEnd?: Addon<Render>
 }
 
 /**

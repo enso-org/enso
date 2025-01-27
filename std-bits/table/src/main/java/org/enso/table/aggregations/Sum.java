@@ -13,6 +13,7 @@ import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
@@ -36,6 +37,7 @@ public class Sum extends Aggregator {
       case BigIntegerType bigIntegerType -> Builder.getForType(
           bigIntegerType, size, problemAggregator);
       case FloatType floatType -> Builder.getForDouble(floatType, size, problemAggregator);
+      case NullType nullType -> Builder.getForType(nullType, size, problemAggregator);
       default -> throw new IllegalStateException(
           "Unexpected input type for Sum aggregate: " + inputType);
     };
@@ -55,6 +57,7 @@ public class Sum extends Aggregator {
       case IntegerType integerType -> new IntegerSumAccumulator();
       case BigIntegerType bigIntegerType -> new IntegerSumAccumulator();
       case FloatType floatType -> new FloatSumAccumulator();
+      case NullType nullType -> new NullAccumulator();
       default -> throw new IllegalStateException(
           "Unexpected input type for Sum aggregate: " + inputType);
     };
@@ -191,6 +194,18 @@ public class Sum extends Aggregator {
 
     Double summarize() {
       return accumulator;
+    }
+  }
+
+  private static final class NullAccumulator extends SumAccumulator {
+    @Override
+    void accumulate(List<Integer> indexes, Storage<?> storage) {
+      assert storage.getType() instanceof NullType;
+    }
+
+    @Override
+    Object summarize() {
+      return null;
     }
   }
 }

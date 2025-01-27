@@ -134,7 +134,9 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
         group_builder.specify "should fail if an unsupported type is specified" <|
             run_with_and_without_output <|
                 r1 = data.connection.create_table (Name_Generator.random_name "creating-table") structure=[Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Y" Value_Type.Mixed] temporary=True
-                r1.should_fail_with Unsupported_Database_Type
+                r1.should_fail_with Illegal_Argument
+                r1.to_display_text . should_contain "Definition for column [Y] is invalid"
+                r1.to_display_text . should_contain "do not support Mixed types"
 
         group_builder.specify "should fail if empty structure is provided" <|
             run_with_and_without_output <|

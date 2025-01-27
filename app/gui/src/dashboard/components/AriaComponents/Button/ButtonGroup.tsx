@@ -21,6 +21,7 @@ const STYLES = tv({
     width: { auto: 'w-auto', full: 'w-full', min: 'w-min', max: 'w-max' },
     gap: {
       custom: '',
+      none: 'gap-0',
       joined: 'gap-0',
       large: 'gap-3.5',
       medium: 'gap-2',

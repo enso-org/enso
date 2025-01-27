@@ -5,7 +5,6 @@ import java.util.List;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
@@ -158,27 +157,7 @@ public class Column {
    */
   public static Column fromRepeatedItem(
       String name, Value item, int repeat, ProblemAggregator problemAggregator) {
-    if (repeat < 0) {
-      throw new IllegalArgumentException("Repeat count must be non-negative.");
-    }
-
-    Object converted = Polyglot_Utils.convertPolyglotValue(item);
-
-    if (converted == null) {
-      var builder = Builder.getForType(AnyObjectType.INSTANCE, repeat, problemAggregator);
-      builder.appendNulls(repeat);
-      return new Column(name, builder.seal());
-    }
-
-    StorageType storageType = StorageType.forBoxedItem(converted);
-    Builder builder = Builder.getForType(storageType, repeat, problemAggregator);
-    Context context = Context.getCurrent();
-    for (int i = 0; i < repeat; i++) {
-      builder.append(converted);
-      context.safepoint();
-    }
-
-    return new Column(name, builder.seal());
+    return new Column(name, Storage.fromRepeatedItem(item, repeat, problemAggregator));
   }
 
   /**
