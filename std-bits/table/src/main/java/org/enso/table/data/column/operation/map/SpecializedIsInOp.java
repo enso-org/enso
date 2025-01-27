@@ -54,9 +54,9 @@ public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends BinaryM
   }
 
   public Storage<?> runMap(S storage, List<?> arg) {
-    if (arg.isEmpty() && storage instanceof ColumnStorageWithNothingMap nothingMap) {
+    if (arg.isEmpty()) {
       int size = Math.toIntExact(storage.getSize());
-      return new BoolStorage(new BitSet(), nothingMap.getIsNothingMap(), size, false);
+      return new BoolStorage(new BitSet(), new BitSet(), size, false);
     }
 
     long size = storage.getSize();
@@ -68,9 +68,7 @@ public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends BinaryM
       if (storage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
-        if (arg.isEmpty()) {
-          builder.appendBoolean(false);
-        } else if (compactRepresentation.coercedValues.contains(storage.getItemBoxed(i))) {
+        if (compactRepresentation.coercedValues.contains(storage.getItemBoxed(i))) {
           builder.appendBoolean(true);
         } else if (compactRepresentation.hasNulls) {
           builder.appendNulls(1);
