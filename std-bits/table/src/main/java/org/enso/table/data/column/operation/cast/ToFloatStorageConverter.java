@@ -6,12 +6,10 @@ import java.util.function.ObjLongConsumer;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForDouble;
-import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
@@ -33,9 +31,9 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
   public Storage<Double> cast(Storage<?> storage, CastProblemAggregator problemAggregator) {
     if (storage instanceof DoubleStorage doubleStorage) {
       return doubleStorage;
-    } else if (storage instanceof AbstractLongStorage longStorage) {
+    } else if (storage instanceof ColumnLongStorage longStorage) {
       return convertLongStorage(longStorage, problemAggregator);
-    } else if (storage instanceof BoolStorage boolStorage) {
+    } else if (storage instanceof ColumnBooleanStorage boolStorage) {
       return convertBoolStorage(boolStorage, problemAggregator);
     } else if (storage instanceof BigIntegerStorage bigIntegerStorage) {
       return convertBigIntegerStorage(bigIntegerStorage, problemAggregator);

@@ -7,12 +7,15 @@ import java.time.format.DateTimeFormatter;
 import java.util.function.Function;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.datetime.TimeOfDayStorage;
-import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.TextType;
@@ -33,11 +36,11 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         return adaptStringStorage(stringStorage, problemAggregator);
       }
     }
-    if (storage instanceof AbstractLongStorage longStorage) {
+    if (storage instanceof ColumnLongStorage longStorage) {
       return castLongStorage(longStorage, problemAggregator);
-    } else if (storage instanceof DoubleStorage doubleStorage) {
+    } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
       return castDoubleStorage(doubleStorage, problemAggregator);
-    } else if (storage instanceof BoolStorage boolStorage) {
+    } else if (storage instanceof ColumnBooleanStorage boolStorage) {
       return castBoolStorage(boolStorage, problemAggregator);
     } else if (storage instanceof TimeOfDayStorage timeOfDayStorage) {
       return castTemporalStorage(timeOfDayStorage, this::convertTime, problemAggregator);

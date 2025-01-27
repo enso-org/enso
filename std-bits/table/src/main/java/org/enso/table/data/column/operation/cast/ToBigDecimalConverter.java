@@ -3,15 +3,13 @@ package org.enso.table.data.column.operation.cast;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.NullType;
 
@@ -20,13 +18,13 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
   public Storage<BigDecimal> cast(Storage<?> storage, CastProblemAggregator problemAggregator) {
     if (storage instanceof BigDecimalStorage bigDecimalStorage) {
       return bigDecimalStorage;
-    } else if (storage instanceof AbstractLongStorage longStorage) {
+    } else if (storage instanceof ColumnLongStorage longStorage) {
       return convertLongStorage(longStorage, problemAggregator);
-    } else if (storage instanceof DoubleStorage doubleStorage) {
+    } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
       return convertDoubleStorage(doubleStorage, problemAggregator);
     } else if (storage instanceof BigIntegerStorage bigIntegerStorage) {
       return convertBigIntegerStorage(bigIntegerStorage, problemAggregator);
-    } else if (storage instanceof BoolStorage boolStorage) {
+    } else if (storage instanceof ColumnBooleanStorage boolStorage) {
       return convertBoolStorage(boolStorage, problemAggregator);
     } else if (storage.getType() instanceof AnyObjectType
         || storage.getType() instanceof NullType) {
@@ -60,7 +58,7 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
   }
 
   private Storage<BigDecimal> convertBoolStorage(
-      BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
+      ColumnBooleanStorage boolStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
         Builder.getForBigDecimal(boolStorage.getSize()),
         boolStorage,
@@ -71,7 +69,7 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
   }
 
   private Storage<BigDecimal> convertBigIntegerStorage(
-      BigIntegerStorage bigIntegerStorage, CastProblemAggregator problemAggregator) {
+      Storage<BigInteger> bigIntegerStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
         Builder.getForBigDecimal(bigIntegerStorage.getSize()),
         bigIntegerStorage,
