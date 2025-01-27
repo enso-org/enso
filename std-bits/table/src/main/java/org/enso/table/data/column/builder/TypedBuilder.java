@@ -3,6 +3,7 @@ package org.enso.table.data.column.builder;
 import java.util.Arrays;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 
 public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T> {
@@ -59,6 +60,8 @@ public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderFor
                 + storage
                 + ". This is a bug in the Table library.");
       }
+    } else if (storage.getType() instanceof NullType) {
+      appendNulls(storage.size());
     } else {
       throw new StorageTypeMismatchException(getType(), storage.getType());
     }

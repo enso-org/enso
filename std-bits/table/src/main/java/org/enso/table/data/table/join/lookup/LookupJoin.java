@@ -104,12 +104,12 @@ public class LookupJoin {
       // Find corresponding row in the lookup table
       int lookupRow = findLookupRow(i);
 
-      assert allowUnmatchedRows || lookupRow != Storage.NOT_FOUND_INDEX;
+      assert allowUnmatchedRows || lookupRow != OrderMask.NOT_FOUND_INDEX;
 
       // Merge columns replacing old values
       for (LookupOutputColumn.MergeColumns mergeColumns : columnsToMerge) {
         Object itemToAdd;
-        if (lookupRow != Storage.NOT_FOUND_INDEX) {
+        if (lookupRow != OrderMask.NOT_FOUND_INDEX) {
           itemToAdd = mergeColumns.lookupReplacement.getItemBoxed(lookupRow);
         } else {
           itemToAdd = mergeColumns.original.getItemBoxed(i);
@@ -132,7 +132,7 @@ public class LookupJoin {
     List<Integer> lookupRowIndices = lookupIndex.get(key);
     if (lookupRowIndices == null) {
       if (allowUnmatchedRows) {
-        return Storage.NOT_FOUND_INDEX;
+        return OrderMask.NOT_FOUND_INDEX;
       } else {
         List<Object> exampleKeyValues =
             IntStream.range(0, keyColumnNames.size()).mapToObj(key::get).toList();

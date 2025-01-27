@@ -98,15 +98,10 @@ pub fn setup_bazel() -> Step {
     Step {
         name: Some("Setup bazel environment".into()),
         uses: Some("bazel-contrib/setup-bazel@09f3a72d13a081857b0ee94e986ffa84caef7c85".into()),
-        with: Some(step::Argument::Other(BTreeMap::from([
-            (
-                "output-base".to_string(),
-                Value::String(format!("${{{{ {} && 'c:/_bazel' || '' }}}}", is_windows_runner())),
-            ),
-            ("bazelisk-cache".to_string(), Value::Bool(true)),
-            ("disk-cache".to_string(), Value::Bool(true)),
-            ("repository-cache".to_string(), Value::Bool(true)),
-        ]))),
+        with: Some(step::Argument::Other(BTreeMap::from([(
+            "output-base".to_string(),
+            Value::String(format!("${{{{ {} && 'c:/_bazel' || '' }}}}", is_windows_runner())),
+        )]))),
         ..default()
     }
 }
