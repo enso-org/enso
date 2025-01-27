@@ -42,8 +42,7 @@ public interface BigIntegerArrayAdapter {
 
     @Override
     public long size() {
-      // ToDo: Will remove these adapters in the next step.
-      return (int) storage.getSize();
+      return storage.getSize();
     }
 
     @Override

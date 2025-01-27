@@ -99,9 +99,8 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public int size() {
-    // ToDo: DoubleArrayAdapter should be removed in the next step.
-    return (int) getSize();
+  public long size() {
+    return getSize();
   }
 
   /** Used by the DoubleBuilder in appendBulkStorage. */

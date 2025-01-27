@@ -1,7 +1,5 @@
 package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
-import static org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter.fromAnyStorage;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
@@ -23,7 +21,7 @@ public abstract class NumericBinaryOpReturningDouble<T extends Number, I extends
       return DoubleStorage.makeEmpty(storage.getSize());
     }
 
-    DoubleArrayAdapter lhs = fromAnyStorage(storage);
+    DoubleArrayAdapter lhs = DoubleArrayAdapter.fromAnyStorage(storage);
     double rhs =
         (arg instanceof BigInteger bigInteger)
             ? bigInteger.doubleValue()
@@ -34,8 +32,8 @@ public abstract class NumericBinaryOpReturningDouble<T extends Number, I extends
   @Override
   public Storage<? extends Number> runZip(
       I storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
-    DoubleArrayAdapter lhs = fromAnyStorage(storage);
-    DoubleArrayAdapter rhs = fromAnyStorage(arg);
+    DoubleArrayAdapter lhs = DoubleArrayAdapter.fromAnyStorage(storage);
+    DoubleArrayAdapter rhs = DoubleArrayAdapter.fromAnyStorage(arg);
     return runDoubleZip(lhs, rhs, problemAggregator);
   }
 

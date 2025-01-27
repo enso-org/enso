@@ -1,7 +1,5 @@
 package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
-import static org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter.fromAnyStorage;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
@@ -76,7 +74,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
           case AbstractLongStorage s -> runDoubleMap(
               DoubleArrayAdapter.fromStorage(s), doubleArg, problemAggregator);
           case BigIntegerStorage s -> runDoubleMap(
-              DoubleArrayAdapter.fromStorage(s), doubleArg, problemAggregator);
+              DoubleArrayAdapter.fromBigIntegerStorage(s), doubleArg, problemAggregator);
           case BigDecimalStorage s -> runBigDecimalMap(
               BigDecimalArrayAdapter.fromBigDecimalStorage(s),
               BigDecimal.valueOf(doubleArg),
@@ -104,7 +102,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
           BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromBigDecimalStorage(rhs);
           yield runBigDecimalZip(left, right, problemAggregator);
         }
-        default -> runDoubleZip(lhs, fromAnyStorage(arg), problemAggregator);
+        default -> runDoubleZip(lhs, DoubleArrayAdapter.fromAnyStorage(arg), problemAggregator);
       };
 
       case AbstractLongStorage lhs -> switch (arg) {
@@ -138,7 +136,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
             yield runBigIntegerZip(left, right, problemAggregator);
           }
           case DoubleStorage rhs -> runDoubleZip(
-              DoubleArrayAdapter.fromStorage(lhs), rhs, problemAggregator);
+              DoubleArrayAdapter.fromBigIntegerStorage(lhs), rhs, problemAggregator);
           case BigDecimalStorage rhs -> {
             BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromBigIntegerStorage(lhs);
             BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromBigDecimalStorage(rhs);
@@ -163,10 +161,10 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
   protected Storage<Double> runDoubleZip(
       DoubleArrayAdapter a, DoubleArrayAdapter b, MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    int n = a.size();
-    int m = Math.min(a.size(), b.size());
+    long n = a.size();
+    long m = Math.min(n, b.size());
     var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
-    for (int i = 0; i < m; i++) {
+    for (long i = 0; i < m; i++) {
       if (a.isNothing(i) || b.isNothing(i)) {
         builder.appendNulls(1);
       } else {
@@ -177,7 +175,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     }
 
     if (m < n) {
-      builder.appendNulls(n - m);
+      builder.appendNulls(Math.toIntExact(n - m));
     }
 
     return builder.seal();
@@ -201,9 +199,9 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
 
     double bNonNull = b;
     Context context = Context.getCurrent();
-    int n = a.size();
+    long n = a.size();
     var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
-    for (int i = 0; i < n; i++) {
+    for (long i = 0; i < n; i++) {
       if (a.isNothing(i)) {
         builder.appendNulls(1);
       } else {

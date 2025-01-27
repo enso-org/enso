@@ -26,12 +26,12 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
   @Override
   protected Storage<Double> runDoubleZip(
       DoubleArrayAdapter a, DoubleArrayAdapter b, MapOperationProblemAggregator problemAggregator) {
-    int n = a.size();
-    int m = Math.min(n, b.size());
+    long n = a.size();
+    long m = Math.min(n, b.size());
     var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
     Context context = Context.getCurrent();
 
-    for (int i = 0; i < n; i++) {
+    for (long i = 0; i < n; i++) {
       boolean aNothing = a.isNothing(i);
       boolean bNothing = i >= m || b.isNothing(i);
       if (aNothing && bNothing) {
@@ -63,9 +63,9 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
 
     double bNonNull = b;
     Context context = Context.getCurrent();
-    int n = a.size();
+    long n = a.size();
     var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
-    for (int i = 0; i < n; i++) {
+    for (long i = 0; i < n; i++) {
       builder.appendDouble(
           a.isNothing(i)
               ? bNonNull

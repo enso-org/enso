@@ -1,7 +1,5 @@
 package org.enso.table.data.column.operation.map.numeric.comparisons;
 
-import static org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter.fromAnyStorage;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.base.CompareException;
@@ -140,10 +138,10 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
 
   protected Storage<Boolean> runDoubleMap(
       DoubleArrayAdapter lhs, double rhs, MapOperationProblemAggregator problemAggregator) {
-    int n = lhs.size();
+    long n = lhs.size();
     var builder = Builder.getForBoolean(n);
     Context context = Context.getCurrent();
-    for (int i = 0; i < n; ++i) {
+    for (long i = 0; i < n; ++i) {
       if (lhs.isNothing(i)) {
         builder.appendNulls(1);
       } else {
@@ -208,7 +206,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
           if (arg.getType() instanceof AnyObjectType) {
             yield runMixedZip(lhs, arg, problemAggregator);
           } else {
-            yield runDoubleZip(lhs, fromAnyStorage(arg), problemAggregator);
+            yield runDoubleZip(lhs, DoubleArrayAdapter.fromAnyStorage(arg), problemAggregator);
           }
         }
       };
@@ -245,7 +243,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
             BigDecimalArrayAdapter.fromBigDecimalStorage(rhs),
             problemAggregator);
         case DoubleStorage rhs -> runDoubleZip(
-            DoubleArrayAdapter.fromStorage(lhs), rhs, problemAggregator);
+            DoubleArrayAdapter.fromBigIntegerStorage(lhs), rhs, problemAggregator);
         default -> runMixedZip(lhs, arg, problemAggregator);
       };
 
@@ -295,11 +293,11 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
       DoubleArrayAdapter lhs,
       DoubleArrayAdapter rhs,
       MapOperationProblemAggregator problemAggregator) {
-    int n = lhs.size();
-    int m = Math.min(n, rhs.size());
+    long n = lhs.size();
+    long m = Math.min(n, rhs.size());
     var builder = Builder.getForBoolean(n);
     Context context = Context.getCurrent();
-    for (int i = 0; i < n; ++i) {
+    for (long i = 0; i < n; ++i) {
       if (lhs.isNothing(i) || (i >= m || rhs.isNothing(i))) {
         builder.appendNulls(1);
       } else {
