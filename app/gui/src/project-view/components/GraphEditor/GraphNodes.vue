@@ -47,8 +47,8 @@ useEvent(window, 'keydown', displacingWithArrows.events.keydown)
 
 const uploadingFiles = computed<[FileName, File][]>(() => {
   const uploads = [...projectStore.awareness.allUploads()]
-  if (uploads.length == 0 || !graphStore.methodAst.ok) return []
-  const currentMethod = graphStore.methodAst.value.externalId
+  if (uploads.length == 0 || !graphStore.currentMethod.ast.ok) return []
+  const currentMethod = graphStore.currentMethod.ast.value.externalId
   return uploads.filter(([, file]) => file.method === currentMethod)
 })
 </script>
