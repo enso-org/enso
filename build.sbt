@@ -3670,7 +3670,7 @@ lazy val `engine-runner` = project
     run / connectInput := true
   )
   .settings(
-    NativeImage.smallJdk := None, //Some(buildSmallJdk.value),
+    NativeImage.smallJdk := Some(buildSmallJdk.value),
     NativeImage.additionalCp := {
       val runnerDeps =
         (Compile / fullClasspath).value.map(_.data.getAbsolutePath)
@@ -3813,13 +3813,11 @@ lazy val `engine-runner` = project
               // "-H:-DeleteLocalSymbols",
               // you may need to set smallJdk := None to use following flags:
               // "--trace-class-initialization=org.enso.syntax2.Parser",
-              "--diagnostics-mode",
-              "--verbose",
+              // "--diagnostics-mode",
+              // "--verbose",
               "-Dnic=nic",
               "-Dorg.enso.feature.native.lib.output=" + (engineDistributionRoot.value / "bin"),
-              "-Dorg.sqlite.lib.exportPath=" + (engineDistributionRoot.value / "bin"),
-              "--trace-class-initialization=org.apache.commons.logging.LogFactory",
-              "--trace-class-initialization=com.amazonaws.auth.profile.internal.BasicProfileConfigFileLoader,org.apache.commons.logging.impl.LogFactoryImpl"
+              "-Dorg.sqlite.lib.exportPath=" + (engineDistributionRoot.value / "bin")
             ),
             mainClass = Some("org.enso.runner.Main"),
             initializeAtRuntime = Seq(
