@@ -80,6 +80,7 @@ from project.Errors import all
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 from project.Internal.Lookup_Helpers import make_java_lookup_column_description
 from project.Internal.Rows_View import Rows_View
+from project.Internal.Type_Refinements.Single_Column_Table import refine_with_single_column
 
 polyglot java import java.util.UUID
 polyglot java import org.enso.base.ObjectComparator
@@ -4040,8 +4041,8 @@ make_fill_nothing_default_widget table cache=Nothing =
 
 ## PRIVATE
    Helper method for internal use to make a Table from a Java Table.
-from_java_table java_table =
-    Table.Value java_table
+from_java_table java_table -> Table =
+    Table.Value java_table |> refine_with_single_column
 
 ## PRIVATE
 Many_Files_List.from (that : Table) =
