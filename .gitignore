@@ -150,6 +150,7 @@ build-cache
 ######################
 ## Enso-Development ##
 ######################
+*.local
 dist/
 distribution/lib/Standard/Examples/*/data/scratch_file
 distribution/lib/Standard/Examples/*/data/image.png
