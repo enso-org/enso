@@ -275,7 +275,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     Context context = Context.getCurrent();
     long n = a.size();
     long m = Math.min(n, b.size());
-    var builder = Builder.getForBigInteger(n, BlackholeProblemAggregator.INSTANCE);
+    var builder = Builder.getForBigInteger(n, problemAggregator);
     for (long i = 0; i < m; i++) {
       BigInteger x = a.getItem(i);
       BigInteger y = b.getItem(i);
@@ -296,7 +296,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       BigIntegerArrayAdapter a, BigInteger b, MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     long n = a.size();
-    var builder = Builder.getForBigInteger(n, BlackholeProblemAggregator.INSTANCE);
+    var builder = Builder.getForBigInteger(n, problemAggregator);
     for (long i = 0; i < n; i++) {
       BigInteger x = a.getItem(i);
       if (x == null || b == null) {
