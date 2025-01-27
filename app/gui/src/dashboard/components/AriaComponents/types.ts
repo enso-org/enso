@@ -21,7 +21,8 @@ export type Placement = reactAria.Placement
 export type IconProp<Render> =
   | ReactElement
   | string
-  | ((render: Render) => ReactElement | string | null | undefined)
+  | false
+  | ((render: Render) => ReactElement | string | false | null | undefined)
   | null
   | undefined
 
@@ -31,6 +32,7 @@ export type IconProp<Render> =
 export type Addon<Render> =
   | ReactElement
   | string
-  | ((render: Render) => ReactElement | string | null | undefined)
+  | false
+  | ((render: Render) => ReactElement | string | false | null | undefined)
   | null
   | undefined
