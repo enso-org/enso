@@ -1,7 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
 
-from Standard.Database import DB_Column, DB_Table
+import Standard.Database.DB_Column.DB_Column
+import Standard.Database.DB_Table.DB_Table
 
 from Standard.Test import all
 
