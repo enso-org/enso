@@ -8,7 +8,9 @@ from project.Internal.Type_Refinements.Single_Column_Table_Conversions import al
 
 refine_with_single_column (table : Table) =
     if is_single_column table . not then table else
-        table : Table & Column
+        # The variable `r` is a workaround for bug: Serialization of bindings `Standard.Table` failed: No persistance for org.enso.compiler.core.ir.Type$Ascription`
+        r = table : Table & Column
+        r
 
 is_single_column table:Table -> Boolean =
     table.column_count == 1
