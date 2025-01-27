@@ -24,7 +24,7 @@ public final class IRDumperTestWrapper implements AutoCloseable {
       dumpers.put(moduleName, dumper);
     }
     if (ir instanceof Module modIr) {
-      dumper.dump(modIr, moduleName, null, passName);
+      dumper.dumpModule(modIr, moduleName, null, passName);
     } else if (ir instanceof Expression expr) {
       dumper.dumpExpression(expr, moduleName, passName);
     } else {

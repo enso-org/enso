@@ -74,14 +74,14 @@ public final class IGVDumper implements IRDumper {
   }
 
   @Override
-  public void dump(Module ir, String moduleName, File srcFile, String afterPass) {
-    assert moduleName.equals(this.moduleName);
-    dumpTask(ir, moduleName, srcFile, afterPass);
+  public void dumpModule(Module ir, String graphName, File srcFile, String afterPass) {
+    assert graphName.equals(this.moduleName);
+    dumpTask(ir, graphName, srcFile, afterPass);
   }
 
   @Override
-  public void dumpExpression(Expression expr, String moduleName, String afterPass) {
-    dumpTask(expr, moduleName, null, afterPass);
+  public void dumpExpression(Expression expr, String graphName, String afterPass) {
+    dumpTask(expr, graphName, null, afterPass);
   }
 
   private void dumpTask(IR ir, String moduleName, File srcFile, String afterPass) {

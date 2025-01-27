@@ -178,7 +178,7 @@ class PassManager(
   ): Unit = {
     (ir, moduleName, irDumper) match {
       case (moduleIr: Module, Some(modName), Some(dumper)) =>
-        dumper.dump(moduleIr, modName, getSrcFile(), passName)
+        dumper.dumpModule(moduleIr, modName, getSrcFile(), passName)
       case _ => ()
     }
   }

@@ -29,7 +29,7 @@ final class IRDumpSingleton {
     public void shutdown() {}
 
     @Override
-    public void dump(Module ir, String moduleName, File srcFile, String afterPass) {}
+    public void dumpModule(Module ir, String graphName, File srcFile, String afterPass) {}
 
     @Override
     public void close() {}
