@@ -39,6 +39,7 @@ from project.Internal.Column_Format import all
 from project.Internal.Java_Exports import make_string_builder
 from project.Internal.Storage import enso_to_java, java_to_enso
 from project.Internal.Type_Refinements.Single_Value_Column import refine_with_single_value
+from project.Table import from_java_table
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
@@ -2380,7 +2381,7 @@ type Column
 
              example_to_table = Examples.integer_column.to_table
     to_table : Table
-    to_table self = Table.Value self.java_column.toTable
+    to_table self = from_java_table self.java_column.toTable
 
     ## ALIAS column type, field info, metadata
        GROUP Standard.Base.Metadata

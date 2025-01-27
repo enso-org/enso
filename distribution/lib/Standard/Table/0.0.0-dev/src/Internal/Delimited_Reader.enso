@@ -12,6 +12,7 @@ import project.Internal.Java_Problems
 import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 from project.Errors import Empty_File_Error, Mismatched_Quote, Parser_Error
+from project.Table import from_java_table
 
 polyglot java import com.univocity.parsers.common.TextParsingException
 polyglot java import java.io.InputStream
@@ -98,7 +99,7 @@ read_from_reader format java_reader on_problems:Problem_Behavior max_columns=409
         Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
             reader = prepare_reader format max_columns on_problems java_problem_aggregator
             java_table = reader.read java_reader
-            format.row_limit.attach_warning (Table.Value java_table)
+            format.row_limit.attach_warning (from_java_table java_table)
 
 ## PRIVATE
 prepare_reader format:Delimited_Format max_columns on_problems:Problem_Behavior java_problem_aggregator newline_override=Nothing =
