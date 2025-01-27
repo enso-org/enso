@@ -277,7 +277,7 @@ public class GoogleAnalyticsReader {
 
       var builders = new Builder[dimensions.size() + metrics.size()];
       for (int i = 0; i < dimensions.size() + metrics.size(); i++) {
-        builders[i] = Builder.getForText(rowCount, TextType.VARIABLE_LENGTH);
+        builders[i] = Builder.getForText(TextType.VARIABLE_LENGTH, rowCount);
       }
 
       // Load the data

@@ -104,7 +104,7 @@ public final class InferredBuilder implements Builder {
     } else if (NumericConverter.isFloatLike(o)) {
       newBuilder = new InferredDoubleBuilder(initialCapacity, problemAggregator);
     } else if (o instanceof String) {
-      newBuilder = Builder.getForText(initialCapacity, TextType.VARIABLE_LENGTH);
+      newBuilder = Builder.getForText(TextType.VARIABLE_LENGTH, initialCapacity);
     } else if (o instanceof BigInteger) {
       newBuilder = Builder.getForBigInteger(initialCapacity, problemAggregator);
     } else if (o instanceof BigDecimal) {

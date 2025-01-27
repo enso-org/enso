@@ -57,7 +57,7 @@ public interface Builder {
           case TimeOfDayType _ -> getForTime(size);
           case FloatType floatType -> getForDouble(floatType, size, problemAggregator);
           case IntegerType integerType -> getForLong(integerType, size, problemAggregator);
-          case TextType textType -> getForText(size, textType);
+          case TextType textType -> getForText(textType, size);
           case BigDecimalType _ -> getForBigDecimal(size);
           case BigIntegerType _ -> getForBigInteger(size, problemAggregator);
           case NullType x -> new NullBuilder();
@@ -151,7 +151,7 @@ public interface Builder {
     return new DateTimeBuilder(checkedSize, false);
   }
 
-  static BuilderForType<String> getForText(long size, TextType textType) {
+  static BuilderForType<String> getForText(TextType textType, long size) {
     int checkedSize = checkSize(size);
     return new StringBuilder(checkedSize, textType);
   }

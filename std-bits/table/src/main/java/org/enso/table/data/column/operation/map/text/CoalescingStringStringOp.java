@@ -26,7 +26,7 @@ public abstract class CoalescingStringStringOp extends StringStringOp {
       TextType newType = computeResultType((TextType) storage.getType(), argumentType);
 
       long size = storage.getSize();
-      var builder = Builder.getForText(size, newType);
+      var builder = Builder.getForText(newType, size);
       Context context = Context.getCurrent();
       for (long i = 0; i < size; i++) {
         if (storage.isNothing(i)) {
@@ -52,7 +52,7 @@ public abstract class CoalescingStringStringOp extends StringStringOp {
     if (arg instanceof StringStorage v) {
       long size = storage.getSize();
       TextType newType = computeResultType((TextType) storage.getType(), v.getType());
-      var builder = Builder.getForText(size, newType);
+      var builder = Builder.getForText(newType, size);
       Context context = Context.getCurrent();
       for (long i = 0; i < size; i++) {
         String a = storage.getItemBoxed(i);

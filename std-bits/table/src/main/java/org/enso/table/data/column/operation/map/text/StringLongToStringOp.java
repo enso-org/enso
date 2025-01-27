@@ -28,7 +28,7 @@ public abstract class StringLongToStringOp
     if (arg == null) {
       return StringStorage.makeEmpty(size, TextType.VARIABLE_LENGTH);
     } else if (arg instanceof Long argLong) {
-      var builder = Builder.getForText(size, TextType.VARIABLE_LENGTH);
+      var builder = Builder.getForText(TextType.VARIABLE_LENGTH, size);
       Context context = Context.getCurrent();
       for (long i = 0; i < size; i++) {
         if (storage.isNothing(i)) {
@@ -51,7 +51,7 @@ public abstract class StringLongToStringOp
       MapOperationProblemAggregator problemAggregator) {
     if (arg instanceof LongStorage v) {
       long size = storage.getSize();
-      var builder = Builder.getForText(size, TextType.VARIABLE_LENGTH);
+      var builder = Builder.getForText(TextType.VARIABLE_LENGTH, size);
       Context context = Context.getCurrent();
       for (long i = 0; i < size; i++) {
         if (storage.isNothing(i) || v.isNothing(i)) {

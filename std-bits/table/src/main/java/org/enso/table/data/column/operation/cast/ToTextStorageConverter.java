@@ -57,7 +57,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   private Storage<String> castFromMixed(
       ColumnStorage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForText(mixedStorage.getSize(), targetType),
+        Builder.getForText(targetType, mixedStorage.getSize()),
         mixedStorage,
         (i) -> {
           Object o = mixedStorage.getItemBoxed(i);
@@ -74,7 +74,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   private Storage<String> castLongStorage(
       ColumnLongStorage longStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForText(longStorage.getSize(), targetType),
+        Builder.getForText(targetType, longStorage.getSize()),
         longStorage,
         (i) -> {
           long value = longStorage.getItemLong(i);
@@ -85,7 +85,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   private Storage<String> castBoolStorage(
       ColumnBooleanStorage boolStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForText(boolStorage.getSize(), targetType),
+        Builder.getForText(targetType, boolStorage.getSize()),
         boolStorage,
         (i) -> {
           boolean value = boolStorage.getItemBoolean(i);
@@ -96,7 +96,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   private Storage<String> castDoubleStorage(
       ColumnDoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForText(doubleStorage.getSize(), targetType),
+        Builder.getForText(targetType, doubleStorage.getSize()),
         doubleStorage,
         (i) -> {
           double value = doubleStorage.getItemDouble(i);
@@ -107,7 +107,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   private <T> Storage<String> castTemporalStorage(
       Storage<T> storage, Function<T, String> converter, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForText(storage.getSize(), targetType),
+        Builder.getForText(targetType, storage.getSize()),
         storage,
         (i) -> {
           var value = storage.getItemBoxed(i);
@@ -118,7 +118,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   private Storage<String> adaptStringStorage(
       StringStorage stringStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForText(stringStorage.getSize(), targetType),
+        Builder.getForText(targetType, stringStorage.getSize()),
         stringStorage,
         (i) -> {
           String value = stringStorage.getItemBoxed(i);

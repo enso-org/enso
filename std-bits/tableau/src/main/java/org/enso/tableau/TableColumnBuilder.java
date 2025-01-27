@@ -128,7 +128,7 @@ record TableColumnBuilder(Builder builder, Consumer<Result> appendMethod) {
             column.length().isEmpty()
                 ? new TextType(-1, false)
                 : new TextType(column.length().getAsInt(), column.typeID() == Types.CHAR);
-        var textBuilder = Builder.getForText(initialRowCount, textType);
+        var textBuilder = Builder.getForText(textType, initialRowCount);
         return new TableColumnBuilder(
             textBuilder,
             nullAppender(

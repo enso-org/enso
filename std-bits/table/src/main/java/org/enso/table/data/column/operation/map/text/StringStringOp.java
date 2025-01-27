@@ -32,7 +32,7 @@ public abstract class StringStringOp
       TextType argumentType = TextType.preciseTypeForValue(argString);
       TextType newType = computeResultType((TextType) storage.getType(), argumentType);
 
-      var builder = Builder.getForText(size, newType);
+      var builder = Builder.getForText(newType, size);
       Context context = Context.getCurrent();
       for (long i = 0; i < size; i++) {
         if (storage.isNothing(i)) {
@@ -57,7 +57,7 @@ public abstract class StringStringOp
     if (arg instanceof StringStorage v) {
       TextType newType = computeResultType((TextType) storage.getType(), v.getType());
       long size = storage.getSize();
-      var builder = Builder.getForText(size, newType);
+      var builder = Builder.getForText(newType, size);
       Context context = Context.getCurrent();
       for (long i = 0; i < size; i++) {
         if (storage.isNothing(i) || v.isNothing(i)) {

@@ -20,7 +20,7 @@ public class MapHelpers {
     }
 
     long n = storage1.getSize();
-    var builder = Builder.getForText(n, TextType.VARIABLE_LENGTH);
+    var builder = Builder.getForText(TextType.VARIABLE_LENGTH, n);
     for (long i = 0; i < n; i++) {
       if (!storage1.isNothing(i) && !storage2.isNothing(i)) {
         builder.append(storage1.getItemBoxed(i) + storage2.getItemBoxed(i));

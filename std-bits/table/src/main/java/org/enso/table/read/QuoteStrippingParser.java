@@ -36,6 +36,6 @@ public class QuoteStrippingParser extends IncrementalDatatypeParser {
 
   @Override
   protected Builder makeBuilderWithCapacity(long capacity, ProblemAggregator problemAggregator) {
-    return Builder.getForText(capacity, TextType.VARIABLE_LENGTH);
+    return Builder.getForText(TextType.VARIABLE_LENGTH, capacity);
   }
 }
