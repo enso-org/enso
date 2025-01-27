@@ -121,9 +121,7 @@ function createEdge(source: AstId, target: PortId) {
 }
 
 const nodeIdsWithOutputPorts = computed(() =>
-  Array.from(graph.db.nodeIdToNode.entries())
-    .filter(([_, node]) => node.type !== 'output')
-    .map(([id]) => id),
+  [...graph.db.nodeOutputPorts.allForward()].map(([id]) => id),
 )
 </script>
 
