@@ -38,7 +38,7 @@ public final class StringStorage extends SpecializedStorage<String> {
             () -> CountUntrimmed.compute(this, CountUntrimmed.DEFAULT_SAMPLE_SIZE, null));
   }
 
-  public static StringStorage makeEmpty(long size, TextType type) {
+  public static StringStorage makeEmpty(TextType type, long size) {
     int intSize = Builder.checkSize(size);
     return new StringStorage(new String[intSize], type);
   }

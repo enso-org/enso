@@ -27,7 +27,7 @@ public abstract class StringStringOp
       MapOperationProblemAggregator problemAggregator) {
     long size = storage.getSize();
     if (arg == null) {
-      return StringStorage.makeEmpty(size, TextType.VARIABLE_LENGTH);
+      return StringStorage.makeEmpty(TextType.VARIABLE_LENGTH, size);
     } else if (arg instanceof String argString) {
       TextType argumentType = TextType.preciseTypeForValue(argString);
       TextType newType = computeResultType((TextType) storage.getType(), argumentType);

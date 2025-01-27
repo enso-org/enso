@@ -26,7 +26,7 @@ public abstract class StringLongToStringOp
       MapOperationProblemAggregator problemAggregator) {
     long size = storage.getSize();
     if (arg == null) {
-      return StringStorage.makeEmpty(size, TextType.VARIABLE_LENGTH);
+      return StringStorage.makeEmpty(TextType.VARIABLE_LENGTH, size);
     } else if (arg instanceof Long argLong) {
       var builder = Builder.getForText(TextType.VARIABLE_LENGTH, size);
       Context context = Context.getCurrent();
