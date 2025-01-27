@@ -245,21 +245,10 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
     <div className={tailwindMerge.twMerge('relative flex grow', hidden && 'hidden')}>
       <div
         data-testid="drive-view"
-        className="mt-4 flex flex-1 flex-col gap-4 overflow-visible px-page-x"
+        className="mt-4 flex flex-1 flex-col gap-4 overflow-visible px-4"
       >
-        <DriveBar
-          key={rootDirectoryId}
-          backend={backend}
-          query={query}
-          setQuery={setQuery}
-          category={category}
-          isEmpty={isEmpty}
-          shouldDisplayStartModal={shouldDisplayStartModal}
-          isDisabled={shouldDisableActions}
-        />
-
         <div className="flex flex-1 gap-drive overflow-hidden">
-          <div className="flex w-40 flex-none flex-col gap-drive-sidebar overflow-y-auto overflow-x-hidden py-drive-sidebar-y">
+          <div className="flex w-40 flex-none flex-col gap-drive-sidebar overflow-y-auto overflow-x-hidden pt-1">
             <CategorySwitcher category={category} setCategoryId={setCategory} />
 
             {isCloud && (
@@ -274,17 +263,30 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
             <AssetsTableAssetsUnselector />
           </div>
 
-          {status === 'offline' ?
-            <OfflineMessage supportLocalBackend={supportLocalBackend} setCategory={setCategory} />
-          : <AssetsTable
-              assetManagementApiRef={assetsManagementApiRef}
-              hidden={hidden}
+          <div className="flex flex-1 flex-col gap-drive">
+            <DriveBar
+              key={rootDirectoryId}
+              backend={backend}
               query={query}
               setQuery={setQuery}
-              category={deferredCategory}
-              initialProjectName={initialProjectName}
+              category={category}
+              isEmpty={isEmpty}
+              shouldDisplayStartModal={shouldDisplayStartModal}
+              isDisabled={shouldDisableActions}
             />
-          }
+
+            {status === 'offline' ?
+              <OfflineMessage supportLocalBackend={supportLocalBackend} setCategory={setCategory} />
+            : <AssetsTable
+                assetManagementApiRef={assetsManagementApiRef}
+                hidden={hidden}
+                query={query}
+                setQuery={setQuery}
+                category={deferredCategory}
+                initialProjectName={initialProjectName}
+              />
+            }
+          </div>
         </div>
       </div>
 

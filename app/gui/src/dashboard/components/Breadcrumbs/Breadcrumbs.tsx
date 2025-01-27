@@ -38,7 +38,7 @@ export function Breadcrumbs<T extends object>(props: BreadcrumbsProps<T>) {
 
   if (items != null && typeof children === 'function') {
     return (
-      <Button.Group gap="none" buttonVariants={{ variant: 'icon' }}>
+      <Button.Group gap="none" className="w-auto flex-none" buttonVariants={{ variant: 'icon' }}>
         <BreadcrumbsItemsCollection<T> {...props} items={items} children={children} />
       </Button.Group>
     )
@@ -47,7 +47,7 @@ export function Breadcrumbs<T extends object>(props: BreadcrumbsProps<T>) {
   const itemsWithCollapsedItem = getItemsWithCollapsedItem<ReactElement>(flattenChildren(children))
 
   return (
-    <Button.Group gap="none" buttonVariants={{ variant: 'icon' }}>
+    <Button.Group gap="none" className="w-auto flex-none" buttonVariants={{ variant: 'icon' }}>
       <aria.Breadcrumbs {...props} className={styles.base({ className })} data-testid={testId}>
         {itemsWithCollapsedItem.map((item, index) => {
           const isLastItem = index === itemsWithCollapsedItem.length - 1

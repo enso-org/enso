@@ -6,16 +6,21 @@ import * as React from 'react'
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
+import PinIcon from '#/assets/accessed_by_projects.svg'
 import AddDatalinkIcon from '#/assets/add_datalink.svg'
 import AddFolderIcon from '#/assets/add_folder.svg'
 import AddKeyIcon from '#/assets/add_key.svg'
 import DataDownloadIcon from '#/assets/data_download.svg'
 import DataUploadIcon from '#/assets/data_upload.svg'
+import BackIcon from '#/assets/expand_arrow_left.svg'
+import ForwardIcon from '#/assets/expand_arrow_right.svg'
 import Plus2Icon from '#/assets/plus2.svg'
 import {
   Button,
   ButtonGroup,
+  CopyButton,
   DialogTrigger,
+  Menu,
   Text,
   useVisualTooltip,
 } from '#/components/AriaComponents'
@@ -57,6 +62,7 @@ import type Backend from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
+import { Breadcrumbs } from '../components/Breadcrumbs'
 import { useFullUserSession } from '../providers/AuthProvider'
 import { AssetPanelToggle } from './AssetPanel'
 
@@ -201,7 +207,7 @@ export default function DriveBar(props: DriveBarProps) {
   switch (category.type) {
     case 'recent': {
       return (
-        <ButtonGroup className="my-0.5 grow-0">
+        <ButtonGroup className="grow-0">
           {pasteDataStatus}
           {searchBar}
           {assetPanelToggle}
@@ -210,7 +216,7 @@ export default function DriveBar(props: DriveBarProps) {
     }
     case 'trash': {
       return (
-        <ButtonGroup className="my-0.5 grow-0">
+        <ButtonGroup className="grow-0">
           <DialogTrigger>
             <Button size="medium" variant="outline" isDisabled={shouldBeDisabled || isEmpty}>
               {getText('clearTrash')}
@@ -235,117 +241,142 @@ export default function DriveBar(props: DriveBarProps) {
     case 'team':
     case 'local-directory': {
       return (
-        <ButtonGroup className="my-0.5 grow-0">
-          <ButtonGroup
-            ref={createAssetButtonsRef}
-            className="grow-0"
-            {...createAssetsVisualTooltip.targetProps}
-          >
-            <DialogTrigger defaultOpen={shouldDisplayStartModal}>
+        <div className="flex flex-col gap-2">
+          <div className="flex w-auto flex-none items-center gap-4">
+            <ButtonGroup className="w-auto flex-none">
+              <Button variant="icon" size="small" icon={BackIcon} aria-label={getText('back')} />
+              <Button
+                variant="icon"
+                size="small"
+                icon={ForwardIcon}
+                aria-label={getText('forward')}
+              />
+            </ButtonGroup>
+            <Breadcrumbs>
+              <Breadcrumbs.Item href="/">Home</Breadcrumbs.Item>
+              <Breadcrumbs.Item>Home</Breadcrumbs.Item>
+              <Breadcrumbs.Item>Home</Breadcrumbs.Item>
+              <Breadcrumbs.Item>Home</Breadcrumbs.Item>
+              <Breadcrumbs.Item>Home</Breadcrumbs.Item>
+            </Breadcrumbs>
+
+            <CopyButton copyText="Home" tooltip="Copy as path" size="small" />
+
+            <div className="ml-auto">{assetPanelToggle}</div>
+          </div>
+
+          <ButtonGroup className="">
+            <ButtonGroup
+              ref={createAssetButtonsRef}
+              className="grow-0"
+              {...createAssetsVisualTooltip.targetProps}
+            >
+              <DialogTrigger defaultOpen={shouldDisplayStartModal}>
+                <Button
+                  size="medium"
+                  variant="accent"
+                  isDisabled={shouldBeDisabled || isCreatingProject}
+                  icon={Plus2Icon}
+                  loaderPosition="icon"
+                  className="hidden"
+                >
+                  {getText('startWithATemplate')}
+                </Button>
+
+                <StartModal
+                  createProject={(templateId, templateName) => {
+                    void newProject([templateId, templateName])
+                  }}
+                />
+              </DialogTrigger>
               <Button
                 size="medium"
-                variant="accent"
+                variant="outline"
                 isDisabled={shouldBeDisabled || isCreatingProject}
                 icon={Plus2Icon}
                 loaderPosition="icon"
+                onPress={async () => {
+                  await newProject([null, null])
+                }}
               >
-                {getText('startWithATemplate')}
+                {getText('newEmptyProject')}
               </Button>
+              <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-[11px]">
+                <Button
+                  variant="icon"
+                  size="medium"
+                  icon={AddFolderIcon}
+                  isDisabled={shouldBeDisabled}
+                  aria-label={getText('newFolder')}
+                  onPress={async () => {
+                    await newFolder()
+                  }}
+                />
+                {isCloud && (
+                  <DialogTrigger>
+                    <Button
+                      variant="icon"
+                      size="medium"
+                      icon={AddKeyIcon}
+                      isDisabled={shouldBeDisabled}
+                      aria-label={getText('newSecret')}
+                    />
+                    <UpsertSecretModal
+                      id={null}
+                      name={null}
+                      doCreate={async (name, value) => {
+                        await newSecret(name, value)
+                      }}
+                    />
+                  </DialogTrigger>
+                )}
 
-              <StartModal
-                createProject={(templateId, templateName) => {
-                  void newProject([templateId, templateName])
-                }}
-              />
-            </DialogTrigger>
-            <Button
-              size="medium"
-              variant="outline"
-              isDisabled={shouldBeDisabled || isCreatingProject}
-              icon={Plus2Icon}
-              loaderPosition="icon"
-              onPress={async () => {
-                await newProject([null, null])
-              }}
-            >
-              {getText('newEmptyProject')}
-            </Button>
-            <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-[11px]">
-              <Button
-                variant="icon"
-                size="medium"
-                icon={AddFolderIcon}
-                isDisabled={shouldBeDisabled}
-                aria-label={getText('newFolder')}
-                onPress={async () => {
-                  await newFolder()
-                }}
-              />
-              {isCloud && (
-                <DialogTrigger>
-                  <Button
-                    variant="icon"
-                    size="medium"
-                    icon={AddKeyIcon}
-                    isDisabled={shouldBeDisabled}
-                    aria-label={getText('newSecret')}
-                  />
-                  <UpsertSecretModal
-                    id={null}
-                    name={null}
-                    doCreate={async (name, value) => {
-                      await newSecret(name, value)
-                    }}
-                  />
-                </DialogTrigger>
-              )}
-
-              {isCloud && (
-                <DialogTrigger>
-                  <Button
-                    variant="icon"
-                    size="medium"
-                    icon={AddDatalinkIcon}
-                    isDisabled={shouldBeDisabled}
-                    aria-label={getText('newDatalink')}
-                  />
-                  <UpsertDatalinkModal
-                    doCreate={async (name, value) => {
-                      await newDatalink(name, value)
-                    }}
-                  />
-                </DialogTrigger>
-              )}
-              <Button
-                variant="icon"
-                size="medium"
-                icon={DataUploadIcon}
-                isDisabled={shouldBeDisabled}
-                aria-label={getText('uploadFiles')}
-                onPress={async () => {
-                  const files = await readUserSelectedFile()
-                  await uploadFiles(Array.from(files))
-                }}
-              />
-              <Button
-                isDisabled={!canDownload || shouldBeDisabled}
-                variant="icon"
-                size="medium"
-                icon={DataDownloadIcon}
-                aria-label={getText('downloadFiles')}
-                onPress={() => {
-                  unsetModal()
-                  const { selectedAssets } = driveStore.getState()
-                  downloadAssetsMutation.mutate(selectedAssets)
-                }}
-              />
-            </div>
-            {createAssetsVisualTooltip.tooltip}
+                {isCloud && (
+                  <DialogTrigger>
+                    <Button
+                      variant="icon"
+                      size="medium"
+                      icon={AddDatalinkIcon}
+                      isDisabled={shouldBeDisabled}
+                      aria-label={getText('newDatalink')}
+                    />
+                    <UpsertDatalinkModal
+                      doCreate={async (name, value) => {
+                        await newDatalink(name, value)
+                      }}
+                    />
+                  </DialogTrigger>
+                )}
+                <Button
+                  variant="icon"
+                  size="medium"
+                  icon={DataUploadIcon}
+                  isDisabled={shouldBeDisabled}
+                  aria-label={getText('uploadFiles')}
+                  onPress={async () => {
+                    const files = await readUserSelectedFile()
+                    await uploadFiles(Array.from(files))
+                  }}
+                />
+                <Button
+                  isDisabled={!canDownload || shouldBeDisabled}
+                  variant="icon"
+                  size="medium"
+                  icon={DataDownloadIcon}
+                  aria-label={getText('downloadFiles')}
+                  onPress={() => {
+                    unsetModal()
+                    const { selectedAssets } = driveStore.getState()
+                    downloadAssetsMutation.mutate(selectedAssets)
+                  }}
+                />
+              </div>
+              {createAssetsVisualTooltip.tooltip}
+            </ButtonGroup>
+            {pasteDataStatus}
+            {searchBar}
           </ButtonGroup>
-          {pasteDataStatus}
-          {searchBar}
-          {assetPanelToggle}
-        </ButtonGroup>
+        </div>
       )
     }
   }
