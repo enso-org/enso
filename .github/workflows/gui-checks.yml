@@ -39,6 +39,12 @@ jobs:
         with:
           version: v0.12.1
 
+      - uses: bazel-contrib/setup-bazel@0.9.0
+        with:
+          bazelisk-cache: true
+          disk-cache: true
+          repository-cache: true
+
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 

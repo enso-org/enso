@@ -39,6 +39,12 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-tags: false
 
+      - uses: bazel-contrib/setup-bazel@0.9.0
+        with:
+          bazelisk-cache: true
+          disk-cache: true
+          repository-cache: true
+
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v4
 
