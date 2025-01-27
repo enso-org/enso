@@ -29,6 +29,7 @@ const emit = defineEmits<{
   updateToolbar: [items: ToValue<Readonly<ToolbarItem[]>>]
   updateToolbarOverlay: [enable: boolean]
   createNodes: [nodes: NodeCreationOptions[]]
+  executeExpression: [expression: string]
 }>()
 
 // =========================
@@ -51,6 +52,7 @@ provideVisualizationConfig({
   setToolbar: (items) => emit('updateToolbar', items),
   setToolbarOverlay: (overlay) => emit('updateToolbarOverlay', overlay),
   createNodes: (...nodes) => emit('createNodes', nodes),
+  executeExpression: (expression) => {console.log('123456'); emit('executeExpression', expression)}
 })
 </script>
 

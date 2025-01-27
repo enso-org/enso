@@ -46,6 +46,7 @@ const emit = defineEmits<{
   'update:height': [height: number]
   'update:nodePosition': [pos: Vec2]
   createNodes: [options: NodeCreationOptions[]]
+  executeExpression: [expression: string]
 }>()
 
 // ===================================
@@ -255,6 +256,7 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
             @updateToolbar="setToolbarDefinition($event.detail[0])"
             @updateToolbarOverlay="toolbarOverlay = $event.detail[0]"
             @createNodes="emit('createNodes', $event.detail[0])"
+            @executeExpression="console.log('67891011'); emit('executeExpression', $event.detail[0])"
           />
         </div>
       </div>

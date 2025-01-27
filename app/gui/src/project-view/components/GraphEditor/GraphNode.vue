@@ -72,6 +72,7 @@ const emit = defineEmits<{
   'update:visualizationEnabled': [enabled: boolean]
   'update:visualizationWidth': [width: number]
   'update:visualizationHeight': [height: number]
+  executeExpression: [expression: string]
 }>()
 
 const nodeSelection = injectGraphSelection(true)
@@ -514,6 +515,7 @@ const showMenuAt = ref<{ x: number; y: number }>()
       @update:height="emit('update:visualizationHeight', $event)"
       @update:nodePosition="graph.setNodePosition(nodeId, $event)"
       @createNodes="emit('createNodes', $event)"
+      @executeExpression="console.log('1112131415'); emit('executeExpression', $event)"
       @click.capture="setSoleSelected"
     />
     <GraphNodeComment

@@ -18,6 +18,7 @@ const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: AstId]
   enterNode: [nodeId: NodeId]
   createNodes: [source: NodeId, options: NodeCreationOptions[]]
+  executeExpression: [expression: string]
   toggleDocPanel: []
 }>()
 
@@ -67,6 +68,7 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
       @outputPortDoubleClick="(_event, port) => emit('nodeOutputPortDoubleClick', port)"
       @enterNode="emit('enterNode', id)"
       @createNodes="emit('createNodes', id, $event)"
+      @executeExpression="emit('executeExpression', $event)"
       @toggleDocPanel="emit('toggleDocPanel')"
       @setNodeColor="graphStore.overrideNodeColor(id, $event)"
       @update:edited="graphStore.setEditedNode(id, $event)"

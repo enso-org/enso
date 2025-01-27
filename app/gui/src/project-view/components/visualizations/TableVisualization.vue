@@ -245,6 +245,10 @@ function formatText(params: ICellRendererParams) {
 // const expression = Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
 // return projectStore.executeExpression(dataSourceValue.contextId, expression.code())
 
+watchEffect(() => {
+  config.executeExpression('hello')
+})
+
 function createFakeServer() {
   return {
     getData: () => {
