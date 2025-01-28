@@ -9,18 +9,18 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 
 final class AllOfTypesCheckNode extends AbstractTypeCheckNode {
 
   @Children private AbstractTypeCheckNode[] checks;
-  @Child private TypesLibrary types;
+  @Child private TypeOfNode typeNode;
   @Child private EnsoMultiValue.NewNode newNode;
 
   AllOfTypesCheckNode(String name, AbstractTypeCheckNode[] checks) {
     super(name);
     this.checks = checks;
-    this.types = TypesLibrary.getFactory().createDispatched(checks.length);
+    this.typeNode = TypeOfNode.create();
     this.newNode = EnsoMultiValue.NewNode.create();
   }
 
@@ -46,7 +46,8 @@ final class AllOfTypesCheckNode extends AbstractTypeCheckNode {
       if (result == null) {
         return null;
       }
-      var t = types.getType(result);
+      var t = typeNode.findTypeOrNull(result);
+      assert t != null : "Value " + result + " doesn't have type!";
       var ctx = EnsoContext.get(this);
       if (ctx.getBuiltins().number().getInteger() == t) {
         if (++integers > 1) {

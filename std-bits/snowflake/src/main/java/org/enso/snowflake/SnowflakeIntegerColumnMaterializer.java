@@ -101,7 +101,7 @@ public class SnowflakeIntegerColumnMaterializer implements Builder {
     resize(currentSize);
     return switch (mode) {
       case LONG -> new LongStorage(ints, currentSize, intsMissing, IntegerType.INT_64);
-      case BIG_INTEGER -> new BigIntegerStorage(bigInts, currentSize);
+      case BIG_INTEGER -> new BigIntegerStorage(bigInts);
     };
   }
 

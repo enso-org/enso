@@ -6,7 +6,8 @@
 import * as React from 'react'
 
 import * as authProvider from '#/providers/AuthProvider'
-import { useShowEnsoDevtools } from './EnsoDevtoolsProvider'
+import { useEffect } from 'react'
+import { ensoDevtoolsStore, useShowEnsoDevtools } from './EnsoDevtoolsProvider'
 
 const EnsoDevtoolsImpl = React.lazy(() =>
   import('./EnsoDevtoolsImpl').then((mod) => ({ default: mod.EnsoDevtools })),
@@ -17,6 +18,12 @@ export function EnsoDevtools() {
   const { isEnsoTeamMember } = authProvider.useUser()
 
   const showEnsoDevtools = useShowEnsoDevtools()
+
+  useEffect(() => {
+    if (isEnsoTeamMember) {
+      addToggleDevtoolsToWindow()
+    }
+  }, [isEnsoTeamMember])
 
   const shouldDisplayDevtools = (() => {
     if (showEnsoDevtools == null) {
@@ -31,4 +38,13 @@ export function EnsoDevtools() {
   }
 
   return <EnsoDevtoolsImpl />
+}
+
+/**
+ * Adds the `toggleDevtools` function to the window object.
+ */
+function addToggleDevtoolsToWindow() {
+  if (typeof window !== 'undefined') {
+    window.toggleDevtools = ensoDevtoolsStore.getState().toggleDevtools
+  }
 }

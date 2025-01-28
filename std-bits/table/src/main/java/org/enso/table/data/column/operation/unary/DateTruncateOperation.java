@@ -6,7 +6,6 @@ import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
-import org.enso.table.data.column.storage.type.DateType;
 
 public class DateTruncateOperation extends AbstractUnaryOperation {
   public static String TRUNCATE = "truncate";
@@ -17,14 +16,14 @@ public class DateTruncateOperation extends AbstractUnaryOperation {
   }
 
   @Override
-  public boolean canApply(ColumnStorage storage) {
+  public boolean canApply(ColumnStorage<?> storage) {
     return storage.getType() == DateTimeType.INSTANCE;
   }
 
   @Override
   protected Builder createBuilder(
-      ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
-    return Builder.getForType(DateType.INSTANCE, storage.getSize(), problemAggregator);
+      ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
+    return Builder.getForDate(storage.getSize());
   }
 
   @Override

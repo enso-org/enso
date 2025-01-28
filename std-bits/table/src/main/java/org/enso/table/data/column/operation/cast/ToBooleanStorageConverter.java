@@ -22,13 +22,13 @@ public class ToBooleanStorageConverter implements StorageConverter<Boolean> {
   }
 
   private Storage<Boolean> castFromMixed(
-      ColumnStorage mixedStorage, CastProblemAggregator problemAggregator) {
+      ColumnStorage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     // As mixed storage is already boxed, use the standard inner loop.
     return StorageConverter.innerLoop(
         Builder.getForBoolean(mixedStorage.getSize()),
         mixedStorage,
         (i) -> {
-          Object o = mixedStorage.getItemAsObject(i);
+          Object o = mixedStorage.getItemBoxed(i);
           if (o instanceof Boolean b) {
             return b;
           } else {

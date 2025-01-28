@@ -493,7 +493,7 @@ public class DelimitedReader {
   private void initBuilders(int count) {
     builders = new ArrayList<>(count);
     for (int i = 0; i < count; i++) {
-      builders.add(Builder.getForText(INITIAL_ROW_CAPACITY, TextType.VARIABLE_LENGTH));
+      builders.add(Builder.getForText(TextType.VARIABLE_LENGTH, INITIAL_ROW_CAPACITY));
     }
   }
 

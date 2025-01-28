@@ -1,0 +1,34 @@
+from Standard.Base import all
+
+type SQL_Part
+
+    ## The text literal SELECT
+    Select
+
+    ## The expressions defining the columns to be returned
+       e.g. Column1, Column2, left(Column3, 5) as Zip
+    Columns
+
+    ## The table or sub query that the query selects from
+       e.g. FROM Table1
+    From
+
+    ## The expressions making up the WHERE part of the query
+       e.g. WHERE Zip=90210
+    Where
+
+    ## The expressions making up the GROUP BY part of the query
+       e.g. GROUP BY Column1
+    Group
+
+    ## The expressions making up the ORDER BY part of the query
+       e.g. ORDER BY Column1
+    Order
+
+    ## The LIMIT part of the query
+       e.g. LIMIT 100
+    Limit
+
+    ## Any dialect defined query extensions with an identifying name
+    Extension (name : Text)
+    

@@ -2,8 +2,8 @@ package org.enso.table.data.column.builder;
 
 import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
+import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -45,7 +45,7 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
         return res;
       }
       case BigDecimalType _ -> {
-        var res = Builder.getForType(type, data.length, problemAggregator);
+        var res = Builder.getForBigDecimal(data.length);
         for (int i = 0; i < currentSize; i++) {
           if (data[i] == null) {
             res.appendNulls(1);
@@ -61,7 +61,7 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
 
   @Override
   protected Storage<BigInteger> doSeal() {
-    return new BigIntegerStorage(data, currentSize);
+    return new BigIntegerStorage(data);
   }
 
   @Override
@@ -98,14 +98,14 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   @Override
   public void appendBulkStorage(Storage<?> storage) {
     if (storage.getType() instanceof IntegerType) {
-      if (storage instanceof AbstractLongStorage longStorage) {
-        int n = longStorage.size();
-        for (int i = 0; i < n; i++) {
+      if (storage instanceof ColumnLongStorage longStorage) {
+        long n = longStorage.getSize();
+        for (long i = 0; i < n; i++) {
           if (storage.isNothing(i)) {
-            data[currentSize++] = null;
+            appendNulls(1);
           } else {
-            long item = longStorage.getItem(i);
-            data[currentSize++] = BigInteger.valueOf(item);
+            long item = longStorage.getItemAsLong(i);
+            append(BigInteger.valueOf(item));
           }
         }
       } else {

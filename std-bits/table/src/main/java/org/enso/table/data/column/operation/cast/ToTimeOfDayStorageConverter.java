@@ -27,12 +27,12 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
   }
 
   private Storage<LocalTime> castFromMixed(
-      ColumnStorage mixedStorage, CastProblemAggregator problemAggregator) {
+      ColumnStorage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
         Builder.getForTime(mixedStorage.getSize()),
         mixedStorage,
         (i) -> {
-          Object o = mixedStorage.getItemAsObject(i);
+          Object o = mixedStorage.getItemBoxed(i);
           return switch (o) {
             case LocalTime d -> d;
             case ZonedDateTime d -> convertDateTime(d);
@@ -45,12 +45,12 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
   }
 
   private Storage<LocalTime> convertDateTimeStorage(
-      DateTimeStorage dateTimeStorage, CastProblemAggregator problemAggregator) {
+      Storage<ZonedDateTime> dateTimeStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForTime(dateTimeStorage.size()),
+        Builder.getForTime(dateTimeStorage.getSize()),
         dateTimeStorage,
         (i) -> {
-          ZonedDateTime dateTime = dateTimeStorage.getItem(i);
+          ZonedDateTime dateTime = dateTimeStorage.getItemBoxed(i);
           return convertDateTime(dateTime);
         });
   }

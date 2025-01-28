@@ -20,54 +20,48 @@ public abstract class StringLongToStringOp
   protected abstract String doOperation(String a, long b);
 
   @Override
-  public Storage<?> runBinaryMap(
+  public Storage<String> runBinaryMap(
       SpecializedStorage<String> storage,
       Object arg,
       MapOperationProblemAggregator problemAggregator) {
-    int size = storage.size();
+    long size = storage.getSize();
     if (arg == null) {
-      var builder = Builder.getForType(TextType.VARIABLE_LENGTH, size, problemAggregator);
-      builder.appendNulls(size);
-      return builder.seal();
+      return StringStorage.makeEmpty((TextType) storage.getType(), size);
     } else if (arg instanceof Long argLong) {
-      String[] newVals = new String[size];
+      var builder = Builder.getForText((TextType) storage.getType(), size);
       Context context = Context.getCurrent();
-      for (int i = 0; i < size; i++) {
+      for (long i = 0; i < size; i++) {
         if (storage.isNothing(i)) {
-          newVals[i] = null;
+          builder.appendNulls(1);
         } else {
-          newVals[i] = doOperation(storage.getItem(i), argLong);
+          builder.append(doOperation(storage.getItemBoxed(i), argLong));
         }
-
         context.safepoint();
       }
-
-      return new StringStorage(newVals, size, (TextType) storage.getType());
+      return builder.seal();
     } else {
       throw new UnexpectedTypeException("a Text");
     }
   }
 
   @Override
-  public Storage<?> runZip(
+  public Storage<String> runZip(
       SpecializedStorage<String> storage,
       Storage<?> arg,
       MapOperationProblemAggregator problemAggregator) {
     if (arg instanceof LongStorage v) {
-      int size = storage.size();
-      String[] newVals = new String[size];
+      long size = storage.getSize();
+      var builder = Builder.getForText(TextType.VARIABLE_LENGTH, size);
       Context context = Context.getCurrent();
-      for (int i = 0; i < size; i++) {
+      for (long i = 0; i < size; i++) {
         if (storage.isNothing(i) || v.isNothing(i)) {
-          newVals[i] = null;
+          builder.appendNulls(1);
         } else {
-          newVals[i] = doOperation(storage.getItem(i), v.getItem(i));
+          builder.append(doOperation(storage.getItemBoxed(i), v.getItemBoxed(i)));
         }
-
         context.safepoint();
       }
-
-      return new StringStorage(newVals, size, (TextType) storage.getType());
+      return builder.seal();
     } else {
       throw new UnexpectedTypeException("a Text column");
     }

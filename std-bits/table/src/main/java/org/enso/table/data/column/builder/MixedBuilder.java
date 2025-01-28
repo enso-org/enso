@@ -25,7 +25,7 @@ public final class MixedBuilder extends ObjectBuilder implements BuilderWithRety
 
   @Override
   public Storage<Object> doSeal() {
-    return new MixedStorage(data, currentSize);
+    return new MixedStorage(data);
   }
 
   @Override
