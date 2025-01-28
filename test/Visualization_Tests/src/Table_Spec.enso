@@ -165,7 +165,7 @@ add_specs suite_builder =
             space_table = Table.new [["A", space_data]]
             vis = Visualization.prepare_visualization space_table 1000
             value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"], ["size", Nothing], ["variable_length", True]]
-            json = make_json header=["A"] data=[space_data.take 1000] all_rows=11000 value_type=[value_type_char] has_index_col=True get_child_node="get_row" number_of_nothing=[0] number_of_untrimmed_whitespace_sampled=[8266] number_non_trivial_ws_sampled=[0]
+            json = make_json header=["A"] data=[space_data.take 1000] all_rows=11000 value_type=[value_type_char] has_index_col=True get_child_node="get_row" number_of_nothing=[0] number_of_untrimmed_whitespace_sampled=[8267] number_non_trivial_ws_sampled=[0]
             vis . should_equal json
 
         group_builder.specify "should indicate number of non trivial whitespace with sample if more than 10000 rows" <|
@@ -176,7 +176,7 @@ add_specs suite_builder =
             space_table = Table.new [["A", space_data]]
             vis = Visualization.prepare_visualization space_table 1000
             value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"], ["size", Nothing], ["variable_length", True]]
-            json = make_json header=["A"] data=[space_data.take 1000] all_rows=11000 value_type=[value_type_char] has_index_col=True get_child_node="get_row" number_of_nothing=[0] number_of_untrimmed_whitespace_sampled=[3678] number_non_trivial_ws_sampled=[7285]
+            json = make_json header=["A"] data=[space_data.take 1000] all_rows=11000 value_type=[value_type_char] has_index_col=True get_child_node="get_row" number_of_nothing=[0] number_of_untrimmed_whitespace_sampled=[3659] number_non_trivial_ws_sampled=[7285]
             vis . should_equal json
 
 main filter=Nothing =

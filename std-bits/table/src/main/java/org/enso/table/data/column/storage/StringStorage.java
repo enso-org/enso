@@ -28,10 +28,7 @@ public final class StringStorage extends SpecializedStorage<String> {
 
   private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(StringStorage.class);
 
-  private final TextType type;
-
-  record DataQualityMetrics(Long untrimmedCount, Long whitespaceCount) {}
-  ;
+  record DataQualityMetrics(Long untrimmedCount, Long whitespaceCount) {};
 
   private Future<DataQualityMetrics> dataQualityMetricsValues;
   /**
@@ -75,6 +72,8 @@ public final class StringStorage extends SpecializedStorage<String> {
   /**
    * Counts the number of cells in the columns with whitespace. If the calculation fails then it
    * returns null.
+   *
+   * @return the number of cells with untrimmed whitespace
    */
   public Long cachedUntrimmedCount() throws InterruptedException {
     if (dataQualityMetricsValues.isCancelled()) {
@@ -95,7 +94,7 @@ public final class StringStorage extends SpecializedStorage<String> {
    * Counts the number of cells in the columns with non trivial whitespace. If the calculation fails
    * then it returns null.
    *
-   * @return the number of cells with whitespace
+   * @return the number of cells with non trivial whitespace
    */
   public Long cachedWhitespaceCount() throws InterruptedException {
     if (dataQualityMetricsValues.isCancelled()) {
