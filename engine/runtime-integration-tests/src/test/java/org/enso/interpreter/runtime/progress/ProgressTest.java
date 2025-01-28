@@ -2,11 +2,16 @@ package org.enso.interpreter.runtime.progress;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.enso.common.MethodNames;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.logger.test.TestLogMessage;
 import org.enso.logger.test.TestLogger;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Value;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -84,5 +89,69 @@ public class ProgressTest {
               assertEquals("Got almost four", 4.0, r4.asDouble(), 0.001);
             });
     assertEquals("50*2 + 2: " + fiftyTimes, 102, fiftyTimes.size());
+  }
+
+  @Test
+  public void useExistingProgressFromJava() throws Exception {
+    var code =
+        """
+    from Standard.Base import Integer, Float
+    from Standard.Base.Logging import Progress
+
+    up_to n combine =
+        Progress.run "from 0 to "+n.to_text n progress->
+            loop count_down =
+                if count_down <= 0 then combine.get else
+                    combine.accept count_down progress
+                    @Tail_Call loop count_down-1
+
+            loop n
+    """;
+    var upTo = ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "up_to");
+
+    var acc = new Accumulator(1);
+
+    var log = LoggerFactory.getLogger("Standard.Base.Logging.Progress");
+
+    var msgs =
+        TestLogger.apply(
+            log,
+            () -> {
+              var fac5 = upTo.execute(5, acc);
+              assertEquals(120, fac5.asInt());
+            });
+
+    assertEquals("Seven messsages " + msgs, 7, msgs.size());
+    var txt = msgs.stream().map(TestLogMessage::msg).collect(Collectors.joining("\n"));
+    assertEquals(
+        "Initialize five steps. Then five `advance` calls and finally advance to finish.",
+        """
+        from 0 to 5@5.0
+        from 0 to 5+1.0
+        from 0 to 5+1.0
+        from 0 to 5+1.0
+        from 0 to 5+1.0
+        from 0 to 5+1.0
+        from 0 to 5+5.0""",
+        txt);
+  }
+
+  public static final class Accumulator implements BiConsumer<Long, Value>, Supplier<Long> {
+    private long mul;
+
+    private Accumulator(long mul) {
+      this.mul = mul;
+    }
+
+    @Override
+    public void accept(Long t, Value progress) {
+      mul *= t;
+      progress.invokeMember("advance", 1);
+    }
+
+    @Override
+    public Long get() {
+      return mul;
+    }
   }
 }
