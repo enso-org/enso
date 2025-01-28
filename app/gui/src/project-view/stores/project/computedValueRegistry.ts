@@ -1,6 +1,6 @@
 import type { ExecutionContext } from '@/stores/project/executionContext'
 import { mockProjectNameStore, type ProjectNameStore } from '@/stores/projectNames'
-import { unwrapOr } from '@/util/data/result'
+import { Ok, Result, unwrapOr } from '@/util/data/result'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { ANY_TYPE_QN } from '@/util/ensoTypes'
 import { parseMethodPointer, type MethodCall } from '@/util/methodPointer'
@@ -84,11 +84,21 @@ function updateInfo(
   if (newInfo.profilingInfo !== info.profilingInfo) info.profilingInfo = update.profilingInfo
 }
 
-function translateMethodCall(ls: LSMethodCall, projectNames: ProjectNameStore): MethodCall {
-  return {
-    methodPointer: parseMethodPointer(ls.methodPointer, projectNames),
+/**
+ * Translate the MethodCall retrieved from language server to our structure.
+ *
+ * The qualified names are validated and stored as {@link ProjectPath}s.
+ */
+export function translateMethodCall(
+  ls: LSMethodCall,
+  projectNames: ProjectNameStore,
+): Result<MethodCall> {
+  const methodPointer = parseMethodPointer(ls.methodPointer, projectNames)
+  if (!methodPointer.ok) return methodPointer
+  return Ok({
+    methodPointer: methodPointer.value,
     notAppliedArguments: ls.notAppliedArguments,
-  }
+  })
 }
 
 function combineInfo(
@@ -107,11 +117,16 @@ function combineInfo(
   if (typename && !typename.ok) {
     typename.error.log('Discarding invalid type in expression update')
   }
+  const newMethodCall =
+    update.methodCall ? translateMethodCall(update.methodCall, projectNames) : undefined
+  if (newMethodCall && !newMethodCall.ok) {
+    newMethodCall.error.log('Discarding invalid methodCall in expression update')
+  }
   return {
     typename: typename ? unwrapOr(typename, undefined) : undefined,
     rawTypename,
     methodCall:
-      update.methodCall ? translateMethodCall(update.methodCall, projectNames)
+      newMethodCall?.ok ? newMethodCall.value
       : isPending ? info?.methodCall
       : undefined,
     payload: update.payload,
