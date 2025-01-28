@@ -30,11 +30,13 @@
 - [Reducing helper methods in `Standard.Base.Meta`.][12031]
 - [Added Table.Offset][12071]
 - [Added Column.Offset][12092]
+- [Progress API][12163]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
 [12071]: https://github.com/enso-org/enso/pull/12071
 [12092]: https://github.com/enso-org/enso/pull/12092
+[12163]: https://github.com/enso-org/enso/pull/12163
 
 #### Enso Language & Runtime
 
