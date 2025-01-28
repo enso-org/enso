@@ -89,7 +89,7 @@ add_specs suite_builder =
 
             Test.expect_panic No_Such_Method (b2.a_method)
             b2.b_method.should_equal "B method"
-
+ Test.expect_panic Type_Error (b2:A)
         group_builder.specify "unpacking an intersection type via pattern matching" <|
             ab = make_a_and_b
             case ab of
