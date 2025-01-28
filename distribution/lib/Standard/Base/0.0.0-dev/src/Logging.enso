@@ -61,7 +61,7 @@ type Progress
        accumulated work towards `up_to` value provided when creating this `Progress`.
 
        Arguments:
-       - amount: value to add to the progress. Must not be >= 0.0
+       - amount: value to add to the progress. Must be >= 0.0
 
        Returns:
        The self value.
