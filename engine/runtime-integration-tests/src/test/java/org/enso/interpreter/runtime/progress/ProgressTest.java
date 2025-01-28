@@ -2,8 +2,6 @@ package org.enso.interpreter.runtime.progress;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.function.BiConsumer;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.enso.common.MethodNames;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -93,6 +91,19 @@ public class ProgressTest {
 
   @Test
   public void useExistingProgressFromJava() throws Exception {
+    performExistingProgressFromJavaWith(new Accumulator(1));
+  }
+
+  @Test
+  public void useExistingProgressFromJavaViaProgressInterface() throws Exception {
+    performExistingProgressFromJavaWith(new AccumulatorWithProgress(1));
+  }
+
+  /**
+   * Expecting {@code acc} to have methods {@code accumulate} (two arguments) and {@code result} (no
+   * argument).
+   */
+  private void performExistingProgressFromJavaWith(Object acc) {
     var code =
         """
     from Standard.Base import Integer, Float
@@ -101,15 +112,13 @@ public class ProgressTest {
     up_to n combine =
         Progress.run "from 0 to "+n.to_text n progress->
             loop count_down =
-                if count_down <= 0 then combine.get else
-                    combine.accept count_down progress
+                if count_down <= 0 then combine.result else
+                    combine.accumulate count_down progress
                     @Tail_Call loop count_down-1
 
             loop n
     """;
     var upTo = ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "up_to");
-
-    var acc = new Accumulator(1);
 
     var log = LoggerFactory.getLogger("Standard.Base.Logging.Progress");
 
@@ -136,21 +145,43 @@ public class ProgressTest {
         txt);
   }
 
-  public static final class Accumulator implements BiConsumer<Long, Value>, Supplier<Long> {
+  public static interface Progress {
+    public void advance(int steps);
+
+    public void log(String detail);
+  }
+
+  public static final class Accumulator {
     private long mul;
 
     private Accumulator(long mul) {
       this.mul = mul;
     }
 
-    @Override
-    public void accept(Long t, Value progress) {
+    public void accumulate(Long t, Value progress) {
       mul *= t;
       progress.invokeMember("advance", 1);
     }
 
-    @Override
-    public Long get() {
+    public Long result() {
+      return mul;
+    }
+  }
+
+  public static final class AccumulatorWithProgress {
+    // implements BiConsumer<Long, Progress>, Supplier<Long> {
+    private long mul;
+
+    private AccumulatorWithProgress(long mul) {
+      this.mul = mul;
+    }
+
+    public void accumulate(Long t, Progress progress) {
+      mul *= t;
+      progress.advance(1);
+    }
+
+    public Long result() {
       return mul;
     }
   }
