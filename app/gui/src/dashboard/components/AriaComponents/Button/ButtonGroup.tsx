@@ -1,5 +1,5 @@
 /** @file A group of buttons. */
-import { forwardRef, type PropsWithChildren } from 'react'
+import { forwardRef, Fragment, type PropsWithChildren } from 'react'
 import flattenChildren from 'react-keyed-flatten-children'
 
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
@@ -130,7 +130,7 @@ function JoinedButtons(props: PropsWithChildren) {
 
   return flattenChildren(children).map((child, index, array) => {
     if (array.length === 1) {
-      return <>{child}</>
+      return <Fragment key={child.key}>{child}</Fragment>
     }
 
     let position: PrivateJoinedButtonPosition = 'middle'
@@ -144,7 +144,7 @@ function JoinedButtons(props: PropsWithChildren) {
     }
 
     return (
-      <JoinedButtonPrivateContextProvider isJoined position={position}>
+      <JoinedButtonPrivateContextProvider key={child.key} isJoined position={position}>
         {child}
       </JoinedButtonPrivateContextProvider>
     )

@@ -52,37 +52,30 @@ export function useSearchParamsState<T = unknown>(
   const prefixedKey = `${appUtils.SEARCH_PARAMS_PREFIX}${key}`
 
   const lazyDefaultValueInitializer = lazyMemo.useLazyMemoHooks(defaultValue, [])
-  const stablePredicate = eventCallback.useEventCallback(predicate)
 
   const clear = eventCallback.useEventCallback((replace: boolean = false) => {
     searchParams.delete(prefixedKey)
     setSearchParams(searchParams, { replace })
   })
 
-  const unprefixedValue = searchParams.get(key)
-  if (unprefixedValue != null) {
-    searchParams.set(prefixedKey, unprefixedValue)
-    searchParams.delete(key)
-    setSearchParams(searchParams)
-  }
-
-  const rawValue = React.useMemo<T>(() => {
+  const rawValue = (() => {
     const maybeValue = searchParams.get(prefixedKey)
     const defaultValueFrom = lazyDefaultValueInitializer()
 
     return maybeValue != null ?
         safeJsonParse.safeJsonParse(maybeValue, defaultValueFrom, (unknown): unknown is T => true)
       : defaultValueFrom
-  }, [prefixedKey, lazyDefaultValueInitializer, searchParams])
+  })()
 
-  const isValueValid = stablePredicate(rawValue)
+  const isValueValid = predicate(rawValue)
 
   const value = isValueValid ? rawValue : lazyDefaultValueInitializer()
 
-  if (!isValueValid) {
-    clear(true)
-  }
-
+  React.useEffect(() => {
+    if (!isValueValid) {
+      clear(true)
+    }
+  }, [isValueValid, clear])
   /**
    * Set the value in the URL search params. If the next value is the same as the default value, it will remove the key from the URL search params.
    * Function reference is always the same.

@@ -13,6 +13,7 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { DrivePastePayload } from '#/providers/DriveProvider'
 import {
   useDriveStore,
+  useSetCurrentDirectoryId,
   useSetDragTargetAssetId,
   useSetIsDraggingOverSelectedRow,
   useSetLabelsDragPayload,
@@ -53,6 +54,7 @@ import * as permissions from '#/utilities/permissions'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
+import { useTransition } from 'react'
 
 /**
  * The amount of time (in milliseconds) the drag item must be held over this component
@@ -87,7 +89,6 @@ export interface AssetRowProps {
   readonly grabKeyboardFocus: (item: backendModule.AnyAsset) => void
   readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
   readonly select: (item: backendModule.AnyAsset) => void
-  readonly isExpanded: boolean
   readonly onDragStart?: (
     event: React.DragEvent<HTMLTableRowElement>,
     item: backendModule.AnyAsset,
@@ -254,13 +255,14 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
     columns,
     onClick,
     isPlaceholder,
-    isExpanded,
     type,
     asset,
   } = props
   const { path, hidden: hiddenRaw, grabKeyboardFocus, visibility: visibilityRaw, depth } = props
   const { nodeMap, doCopy, doCut, doPaste } = state
   const { category, rootDirectoryId, backend } = state
+
+  const [isLoading, startTransition] = useTransition()
 
   const driveStore = useDriveStore()
   const { user } = useFullUserSession()
@@ -276,6 +278,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
     driveStore,
     ({ selectedKeys }) => selectedKeys.size === 0 || !selected || isSoleSelected,
   )
+  const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const draggableProps = dragAndDropHooks.useDraggable({ isDisabled: !selected })
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
@@ -473,6 +476,13 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
             tabIndex={0}
             data-selected={selected}
             data-id={asset.id}
+            onDoubleClick={() => {
+              if (asset.type === backendModule.AssetType.directory) {
+                startTransition(() => {
+                  setCurrentDirectoryId(asset.id)
+                })
+              }
+            }}
             ref={(element) => {
               rootRef.current = element
 
@@ -616,7 +626,6 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                 <td key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>
                   <Render
                     isPlaceholder={isPlaceholder}
-                    isExpanded={isExpanded}
                     isOpened={isOpened}
                     backendType={backend.type}
                     item={asset}

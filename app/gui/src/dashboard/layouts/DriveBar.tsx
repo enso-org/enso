@@ -6,7 +6,6 @@ import * as React from 'react'
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import PinIcon from '#/assets/accessed_by_projects.svg'
 import AddDatalinkIcon from '#/assets/add_datalink.svg'
 import AddFolderIcon from '#/assets/add_folder.svg'
 import AddKeyIcon from '#/assets/add_key.svg'
@@ -20,7 +19,6 @@ import {
   ButtonGroup,
   CopyButton,
   DialogTrigger,
-  Menu,
   Text,
   useVisualTooltip,
 } from '#/components/AriaComponents'
@@ -278,7 +276,6 @@ export default function DriveBar(props: DriveBarProps) {
                   isDisabled={shouldBeDisabled || isCreatingProject}
                   icon={Plus2Icon}
                   loaderPosition="icon"
-                  className="hidden"
                 >
                   {getText('startWithATemplate')}
                 </Button>

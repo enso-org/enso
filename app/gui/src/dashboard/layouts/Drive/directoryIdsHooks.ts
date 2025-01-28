@@ -7,7 +7,7 @@ import { Path, createRootDirectoryAsset } from 'enso-common/src/services/Backend
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useBackend } from '#/providers/BackendProvider'
-import { useExpandedDirectoryIds, useSetExpandedDirectoryIds } from '#/providers/DriveProvider'
+import { useCurrentDirectoryId, useSetExpandedDirectoryIds } from '#/providers/DriveProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 
 /** Options for {@link useDirectoryIds}. */
@@ -28,12 +28,6 @@ export function useDirectoryIds(options: UseDirectoryIdsOptions) {
 
   const organization = organizationQuery.data
 
-  /**
-   * The expanded directories in the asset tree.
-   * The root directory is not included as it might change when a user switches
-   * between items in sidebar and we don't want to reset the expanded state using `useEffect`.
-   */
-  const privateExpandedDirectoryIds = useExpandedDirectoryIds()
   const setExpandedDirectoryIds = useSetExpandedDirectoryIds()
 
   const [localRootDirectory] = useLocalStorageState('localRootDirectory')
@@ -50,9 +44,12 @@ export function useDirectoryIds(options: UseDirectoryIdsOptions) {
 
   const rootDirectory = createRootDirectoryAsset(rootDirectoryId)
 
-  const expandedDirectoryIds = [rootDirectoryId].concat(
-    privateExpandedDirectoryIds.filter((id) => id !== rootDirectoryId),
-  )
+  const currentDirectoryId = useCurrentDirectoryId() ?? rootDirectoryId
 
-  return { setExpandedDirectoryIds, rootDirectoryId, rootDirectory, expandedDirectoryIds } as const
+  return {
+    setExpandedDirectoryIds,
+    rootDirectoryId,
+    rootDirectory,
+    currentDirectoryId,
+  } as const
 }

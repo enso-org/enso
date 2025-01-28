@@ -2,11 +2,10 @@
 import { useMutation } from '@tanstack/react-query'
 
 import FolderIcon from '#/assets/folder.svg'
-import FolderArrowIcon from '#/assets/folder_arrow.svg'
 
 import { backendMutationOptions } from '#/hooks/backendHooks'
 
-import { useDriveStore, useToggleDirectoryExpansion } from '#/providers/DriveProvider'
+import { useDriveStore, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import type * as column from '#/components/dashboard/column'
@@ -15,12 +14,12 @@ import EditableSpan from '#/components/EditableSpan'
 import * as backendModule from '#/services/Backend'
 
 import { Button } from '#/components/AriaComponents'
-import { useStore } from '#/hooks/storeHooks'
 import * as eventModule from '#/utilities/event'
 import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import * as validation from '#/utilities/validation'
+import { useTransition } from 'react'
 
 // =====================
 // === DirectoryName ===
@@ -38,13 +37,13 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {
  */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
   const { item, depth, selected, state, rowState, setRowState, isEditable } = props
+
+  const [isLoading, startTransition] = useTransition()
+
   const { backend, nodeMap } = state
   const { getText } = textProvider.useText()
   const driveStore = useDriveStore()
-  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
-  const isExpanded = useStore(driveStore, (storeState) =>
-    storeState.expandedDirectoryIds.includes(item.id),
-  )
+  const setCurrentDirectoryId = useSetCurrentDirectoryId()
 
   const updateDirectoryMutation = useMutation(backendMutationOptions(backend, 'updateDirectory'))
 
@@ -86,19 +85,18 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       }}
     >
       <Button
-        icon={({ isHovered }) => (isHovered || isExpanded ? FolderArrowIcon : FolderIcon)}
+        icon={FolderIcon}
         size="medium"
         variant="icon"
-        aria-label={isExpanded ? getText('collapse') : getText('expand')}
+        loading={isLoading}
+        aria-label={getText('open')}
         tooltipPlacement="left"
-        data-testid="directory-row-expand-button"
-        data-expanded={isExpanded}
-        className={tailwindMerge.twJoin(
-          'mx-1 transition-transform duration-arrow',
-          isExpanded && 'rotate-90',
-        )}
+        testId="directory-row-expand-button"
+        className="mx-1 transition-transform duration-arrow"
         onPress={() => {
-          toggleDirectoryExpansion(item.id)
+          startTransition(() => {
+            setCurrentDirectoryId(item.id)
+          })
         }}
       />
 

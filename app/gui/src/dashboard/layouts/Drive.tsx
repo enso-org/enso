@@ -277,14 +277,18 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
 
             {status === 'offline' ?
               <OfflineMessage supportLocalBackend={supportLocalBackend} setCategory={setCategory} />
-            : <AssetsTable
-                assetManagementApiRef={assetsManagementApiRef}
-                hidden={hidden}
-                query={query}
-                setQuery={setQuery}
-                category={deferredCategory}
-                initialProjectName={initialProjectName}
-              />
+            : <Suspense>
+                <ErrorBoundary>
+                  <AssetsTable
+                    assetManagementApiRef={assetsManagementApiRef}
+                    hidden={hidden}
+                    query={query}
+                    setQuery={setQuery}
+                    category={deferredCategory}
+                    initialProjectName={initialProjectName}
+                  />
+                </ErrorBoundary>
+              </Suspense>
             }
           </div>
         </div>

@@ -14,9 +14,9 @@ import { BreadcrumbCollapsedItem, BreadcrumbItem } from './BreadcrumbItem'
 import { getItemsWithCollapsedItem, isCollapsedItem } from './utilities'
 
 export const BREADCRUMBS_STYLES = tv({
-  base: 'flex items-center gap-2 w-full',
+  base: 'flex items-center w-full',
   slots: {
-    separator: 'text-primary last:hidden',
+    separator: 'text-primary last:hidden w-2.5 h-2.5',
   },
 })
 
@@ -62,12 +62,12 @@ export function Breadcrumbs<T extends object>(props: BreadcrumbsProps<T>) {
             : item
 
           return (
-            <>
+            <Fragment key={element.key}>
               {element}
               {!isLastItem ?
                 <BreadcrumbSeparator className={styles.separator()} />
               : null}
-            </>
+            </Fragment>
           )
         })}
       </aria.Breadcrumbs>

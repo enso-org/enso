@@ -103,7 +103,6 @@ import {
   useSetSelectedAssets,
   useSetTargetDirectory,
   useSetVisuallySelectedKeys,
-  useToggleDirectoryExpansion,
   type SelectedAssetInfo,
 } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
@@ -274,8 +273,6 @@ function AssetsTable(props: AssetsTableProps) {
 
   const nameOfProjectToImmediatelyOpenRef = useRef(initialProjectName)
 
-  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
-
   const uploadFiles = useUploadFiles(backend, category)
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
   const cutAndPaste = useCutAndPaste(backend, category)
@@ -284,19 +281,21 @@ function AssetsTable(props: AssetsTableProps) {
   const addAssetsLabelsMutation = useMutation(addAssetsLabelsMutationOptions(backend))
   const removeAssetsLabelsMutation = useMutation(removeAssetsLabelsMutationOptions(backend))
 
-  const { rootDirectoryId, rootDirectory, expandedDirectoryIds } = useDirectoryIds({ category })
-  const { isLoading, isError, assetTree } = useAssetTree({
-    hidden,
+  const { rootDirectoryId, rootDirectory, currentDirectoryId } = useDirectoryIds({ category })
+  const { assetTree } = useAssetTree({
     category,
     rootDirectory,
-    expandedDirectoryIds,
+    expandedDirectoryId: currentDirectoryId,
   })
   const { displayItems, visibleItems, visibilities } = useAssetsTableItems({
     assetTree,
     query,
     sortInfo,
-    expandedDirectoryIds,
+    expandedDirectoryIds: [currentDirectoryId],
   })
+
+  const isLoading = false
+  const isError = false
 
   const [isDraggingFiles, setIsDraggingFiles] = useState(false)
   const [droppedFilesCount, setDroppedFilesCount] = useState(0)
@@ -645,7 +644,12 @@ function AssetsTable(props: AssetsTableProps) {
     [driveStore, isCloud, nodeMapRef, setCanDownload],
   )
 
-  const initialProjectNameDeps = useSyncRef({ assetTree, doOpenProject, isLoading, toastAndLog })
+  const initialProjectNameDeps = useSyncRef({
+    assetTree,
+    doOpenProject,
+    isLoading: false,
+    toastAndLog,
+  })
   useEffect(() => {
     const deps = initialProjectNameDeps.current
     if (deps.isLoading) {
@@ -951,7 +955,6 @@ function AssetsTable(props: AssetsTableProps) {
       if (pasteData.data.ids.has(newParentKey)) {
         toast.error('Cannot paste a folder into itself.')
       } else {
-        toggleDirectoryExpansion(newParentId, true)
         if (pasteData.type === 'copy') {
           copyAssetsMutation.mutate([[...pasteData.data.ids], newParentId])
         } else {
@@ -1270,7 +1273,6 @@ function AssetsTable(props: AssetsTableProps) {
             <NameColumn
               key={node.item.id}
               isPlaceholder={node.isPlaceholder()}
-              isExpanded={false}
               item={node.item}
               depth={0}
               isOpened={false}
@@ -1389,11 +1391,6 @@ function AssetsTable(props: AssetsTableProps) {
           <AssetRow
             key={item.item.id + item.path}
             isPlaceholder={item.isPlaceholder()}
-            isExpanded={
-              item.item.type === AssetType.directory ?
-                expandedDirectoryIds.includes(item.item.id)
-              : false
-            }
             onCutAndPaste={cutAndPaste}
             isOpened={isOpenedByYou || isOpenedOnTheBackend}
             visibility={visibilities.get(item.item.id)}

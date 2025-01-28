@@ -9,6 +9,7 @@ import type { AnyCloudCategory } from '#/layouts/Drive/Categories/Category'
 import { useUser } from '#/providers/AuthProvider'
 import { useSetExpandedDirectoryIds, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { AssetType, DirectoryId, isDirectoryId } from '#/services/Backend'
+import { parseDirectoriesPath } from '#/services/utilities'
 import { Fragment, useTransition } from 'react'
 import invariant from 'tiny-invariant'
 import type { AssetColumnProps } from '../column'
@@ -27,6 +28,7 @@ export default function PathColumn(props: AssetColumnProps) {
 
   // Path navigation exist only for cloud categories.
   const { getCategoryByDirectoryId } = useCloudCategoryList()
+  const { getCategoryById } = useCategoriesAPI()
 
   // Parents path is a string of directory ids separated by slashes.
   const splitPath = parentsPath.split('/').filter(isDirectoryId)
@@ -39,6 +41,8 @@ export default function PathColumn(props: AssetColumnProps) {
   const virtualParentsIds = splitPath.slice(1)
 
   const { rootDirectoryId } = useUser()
+
+  const { fullPath } = parseDirectoriesPath(parentsPath, virtualParentsPath)
 
   const navigateToDirectory = useEventCallback((targetDirectory: DirectoryId) => {
     const targetDirectoryIndex = finalPath.findIndex(({ id }) => id === targetDirectory)

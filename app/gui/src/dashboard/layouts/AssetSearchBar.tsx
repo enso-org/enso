@@ -347,7 +347,7 @@ function AssetSearchBar(props: AssetSearchBarProps) {
               innerProps,
               {
                 className:
-                  'z-1 group flex grow items-center gap-asset-search-bar rounded-full px-1.5 py-1 text-primary border-0.5 border-primary/20',
+                  'z-1 group flex grow items-center gap-asset-search-bar rounded-full px-1.5 py-[3.5px] text-primary border-0.5 border-primary/20',
                 ref: rootRef,
                 onFocus: () => {
                   setAreSuggestionsVisible(true)

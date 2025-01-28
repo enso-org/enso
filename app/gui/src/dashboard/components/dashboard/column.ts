@@ -29,7 +29,6 @@ export interface AssetColumnProps {
   readonly setRowState: Dispatch<SetStateAction<AssetRowState>>
   readonly isEditable: boolean
   readonly isPlaceholder: boolean
-  readonly isExpanded: boolean
 }
 
 /** Props for a {@link AssetColumn}. */

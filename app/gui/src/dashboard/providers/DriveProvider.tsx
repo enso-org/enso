@@ -10,16 +10,17 @@ import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import type { AnyAssetTreeNode } from '#/utilities/AssetTreeNode'
 import type { PasteData } from '#/utilities/pasteData'
 import { EMPTY_SET } from '#/utilities/set'
-import type {
-  AnyAsset,
-  AssetId,
-  BackendType,
-  DirectoryAsset,
-  DirectoryId,
-  LabelName,
+import {
+  type AnyAsset,
+  type AssetId,
+  type BackendType,
+  type DirectoryAsset,
+  type DirectoryId,
+  type LabelName,
 } from 'enso-common/src/services/Backend'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 import { unsafeMutable } from 'enso-common/src/utilities/data/object'
+import { useSearchParamsState } from '../hooks/searchParamsStateHooks'
 
 // ==================
 // === DriveStore ===
@@ -44,6 +45,14 @@ export type SelectedAssetInfo =
 export interface LabelsDragPayload {
   readonly typeWhenAppliedToSelection: 'add' | 'remove'
   readonly labels: readonly LabelName[]
+}
+
+/**
+ * This interface is used to represent a single directory in the breadcrumbs.
+ */
+export interface DirectoryPath {
+  readonly id: DirectoryId
+  readonly name: string
 }
 
 /** The state of this zustand store. */
@@ -84,6 +93,10 @@ interface DriveStore {
 export type ProjectsContextType = StoreApi<DriveStore>
 
 const DriveContext = React.createContext<ProjectsContextType | null>(null)
+const CurrentDirectoryIdContext = React.createContext<{
+  readonly currentDirectoryId: DirectoryId | null
+  readonly setCurrentDirectoryId: (nextValue: DirectoryId | null) => void
+} | null>(null)
 
 /** Props for a {@link DriveProvider}. */
 export interface ProjectsProviderProps {
@@ -103,6 +116,11 @@ export interface ProjectsProviderProps {
 export default function DriveProvider(props: ProjectsProviderProps) {
   const { children } = props
 
+  const [currentDirectoryId, setCurrentDirectoryId] = useSearchParamsState<DirectoryId | null>(
+    'currentDirectoryId',
+    null,
+  )
+
   const [store] = React.useState(() =>
     createStore<DriveStore>((set, get) => ({
       resetAssetTableState: () => {
@@ -110,8 +128,8 @@ export default function DriveProvider(props: ProjectsProviderProps) {
           targetDirectory: null,
           selectedKeys: EMPTY_SET,
           visuallySelectedKeys: null,
-          expandedDirectoryIds: EMPTY_ARRAY,
         })
+        setCurrentDirectoryId(null)
       },
       targetDirectory: null,
       setTargetDirectory: (targetDirectory) => {
@@ -200,9 +218,11 @@ export default function DriveProvider(props: ProjectsProviderProps) {
   const resetAssetTableState = useStore(store, (state) => state.resetAssetTableState)
 
   return (
-    <DriveContext.Provider value={store}>
-      {typeof children === 'function' ? children({ store, resetAssetTableState }) : children}
-    </DriveContext.Provider>
+    <CurrentDirectoryIdContext.Provider value={{ currentDirectoryId, setCurrentDirectoryId }}>
+      <DriveContext.Provider value={store}>
+        {typeof children === 'function' ? children({ store, resetAssetTableState }) : children}
+      </DriveContext.Provider>
+    </CurrentDirectoryIdContext.Provider>
   )
 }
 
@@ -390,4 +410,22 @@ export function useToggleDirectoryExpansion() {
       })
     }
   })
+}
+
+/** The current directory ID. */
+export function useCurrentDirectoryId() {
+  const context = React.useContext(CurrentDirectoryIdContext)
+
+  invariant(context, 'Current directory ID can only be used inside an `DriveProvider`.')
+
+  return context.currentDirectoryId
+}
+
+/** A function to set the current directory ID. */
+export function useSetCurrentDirectoryId() {
+  const context = React.useContext(CurrentDirectoryIdContext)
+
+  invariant(context, 'Current directory ID can only be used inside an `DriveProvider`.')
+
+  return context.setCurrentDirectoryId
 }
