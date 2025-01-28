@@ -38,7 +38,7 @@ public class CountNonTrivialWhitespace {
       var rng = new Random(RANDOM_SEED);
       for (int i = 0; i < sampleSize; i++) {
         long idx = rng.nextInt(Math.toIntExact(size));
-        var val = storage.getItemAsObject(idx);
+        var val = storage.getItemBoxed(idx);
         if (val instanceof String str && Text_Utils.has_non_trivial_whitespace(str)) {
           count++;
         }
@@ -50,7 +50,7 @@ public class CountNonTrivialWhitespace {
       count = Math.min(size, (long) Math.ceil((double) count / sampleSize * size));
     } else {
       for (long i = 0; i < storage.getSize(); i++) {
-        var val = storage.getItemAsObject(i);
+        var val = storage.getItemBoxed(i);
         if (val instanceof String str && Text_Utils.has_non_trivial_whitespace(str)) {
           count++;
         }

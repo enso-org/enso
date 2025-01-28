@@ -66,16 +66,13 @@ public final class StringStorage extends SpecializedStorage<String> {
     return new String[size];
   }
 
-  @Override
-  public TextType getType() {
-    return type;
-  }
   DataQualityMetrics createDataQualityMetricsWitDefaultSize() {
     return new DataQualityMetrics(
         CountUntrimmed.compute(this, SampleOperation.DEFAULT_SAMPLE_SIZE, null),
         CountNonTrivialWhitespace.compute(this, SampleOperation.DEFAULT_SAMPLE_SIZE, null));
   }
-  
+
+  /**
    * Counts the number of cells in the columns with whitespace. If the calculation fails then it
    * returns null.
    */
