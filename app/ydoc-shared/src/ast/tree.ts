@@ -3086,6 +3086,10 @@ export class Vector extends BaseExpression {
     }
   }
 
+  at(index: number): Expression | undefined {
+    return this.module.get(this.fields.get('elements')[index]?.value?.node) as Expression
+  }
+
   /** TODO: Add docs */
   get length() {
     return this.fields.get('elements').length

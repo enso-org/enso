@@ -12,7 +12,7 @@ import { cachedGetter, type ToValue } from '@/util/reactivity'
 import type { ColDef } from 'ag-grid-enterprise'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { a } from 'vitest/dist/chunks/suite.BJU7kdY9.js'
-import { computed, ref, toValue, watch, watchEffect } from 'vue'
+import { computed, reactive, ref, toValue, watch, watchEffect } from 'vue'
 import type { ColumnSpecificParams } from './TableHeader.vue'
 
 /** Id of a fake column with "Add new column" option. */
@@ -32,8 +32,6 @@ export const CELLS_LIMIT = 256
 
 export type RowData = {
   index: number
-  /* Column id to given row's cell id. */
-  cells: Record<Ast.AstId, Ast.AstId>
 }
 
 /**
@@ -42,8 +40,8 @@ export type RowData = {
  */
 export interface ColumnDef extends ColDef<RowData> {
   colId: string
-  valueGetter: ({ data }: { data: RowData | undefined }) => any
-  valueSetter?: ({ data, newValue }: { data: RowData; newValue: string }) => boolean
+  valueGetter: (params: { data: RowData | undefined }) => any
+  valueSetter?: (params: { data: RowData; newValue: string }) => boolean
   mainMenuItems: (string | MenuItem<RowData>)[]
   contextMenuItems: (string | MenuItem<RowData>)[]
   rowDrag?: ({ data }: { data: RowData | undefined }) => boolean
@@ -146,6 +144,7 @@ export function useTableInputArgument(
   suggestions: SuggestionDb,
   onUpdate: (update: WidgetUpdate) => void,
 ) {
+  watch(toValue(input), (input) => console.error('NEW INPUT', input), { flush: 'sync', deep: true })
   const errorMessagePreamble = 'Table Editor Widget should not have been matched'
   const columnsAst = computed(() => retrieveColumnsAst(toValue(input).value))
 
@@ -161,7 +160,7 @@ export function useTableInputArgument(
     (a, b) => arrayEquals(a, b, (a, b) => a.id === b.id && a.name === b.name),
   )
 
-  const rowCount = computed(() =>
+  const rowCount = cachedGetter(() =>
     columns.value.reduce((soFar, col) => Math.max(soFar, col.data.length), 0),
   )
 
@@ -194,6 +193,8 @@ export function useTableInputArgument(
   ): boolean {
     return rowCount_ * (colCount + 1) <= CELLS_LIMIT
   }
+
+  const mayAddNewColumnCurrently = cachedGetter(() => mayAddNewColumn())
 
   function addRow(
     edit: Ast.MutableModule,
@@ -301,7 +302,7 @@ export function useTableInputArgument(
         headerComponentParams: {
           columnParams: {
             type: 'newColumn',
-            enabled: mayAddNewColumn(),
+            enabled: mayAddNewColumnCurrently.value,
             newColumnRequested: () => {
               const edit = graph.startEdit()
               fixColumns(edit)
@@ -349,7 +350,8 @@ export function useTableInputArgument(
           headerName: col.name,
           valueGetter: ({ data }: { data: RowData | undefined }) => {
             if (data == null) return undefined
-            const ast = toValue(input).value.module.tryGet(data.cells[col.id])
+
+            const ast = columns.value //toValue(input).value.module.tryGet(data.cells[col.id])
             if (ast == null) return null
             const value = cellValueConversion.astToAgGrid(ast as Ast.Expression)
             if (!value.ok) {
@@ -409,44 +411,47 @@ export function useTableInputArgument(
     return cols
   })
 
-  const rowData = ref<RowData[]>([])
+  const rowData: RowData[]
 
-  watch(
-    columns,
-    (columns) => {
-      console.log('Update rowData if needed')
-      for (const col of columns) {
-        for (const [rowIndex, value] of col.data.enumerate()) {
-          const row: RowData = rowData.value.at(rowIndex) ?? { index: rowIndex, cells: {} }
-          assert(rowIndex <= rowData.value.length)
-          if (rowIndex === rowData.value.length) {
-            rowData.value.push(row)
-          }
-          if (value?.id && row.cells[col.id] != value.id) {
-            row.cells[col.id] = value.id
-          } else if (!value?.id && row.cells[col.id]) {
-            delete row.cells[col.id]
-          }
+  watchEffect(() => {
+    console.log('Update rowData if needed', rowData)
+    for (const col of columns.value) {
+      for (const [rowIndex, value] of col.data.enumerate()) {
+        const row: RowData = rowData.at(rowIndex) ?? { index: rowIndex, cells: {} }
+        assert(rowIndex <= rowData.length)
+        if (rowIndex === rowData.length) {
+          rowData.push(row)
+        }
+        console.log('Updating cell', col.id, rowIndex, value)
+        if (value?.id && row.cells[col.id] != value.id) {
+          console.log('Setting cell value')
+          row.cells[col.id] = value.id
+        } else if (!value?.id && row.cells[col.id]) {
+          console.log('Removing cell value')
+          delete row.cells[col.id]
         }
       }
-      const expectedRowNumber = rowCount.value + (mayAddNewRow() ? 1 : 0)
-      console.log('expectedRowNumber', expectedRowNumber)
-      if (expectedRowNumber < rowData.value.length) {
-        rowData.value.splice(expectedRowNumber)
-      } else if (expectedRowNumber > rowData.value.length) {
-        const toAdd = expectedRowNumber - rowData.value.length
-        rowData.value.splice(
-          rowData.value.length,
-          0,
-          ...Array(toAdd).fill({ index: rowCount.value, cells: {} }),
-        )
-      }
-      console.log('NEW ROW DATA', rowData.value)
-    },
-    { immediate: true },
-  )
+    }
+    const extraRow = mayAddNewRow()
+    if (extraRow) {
+      console.log('Setting extra row')
+      rowData[rowCount.value] = { index: rowCount.value, cells: {} }
+    }
+    const expectedRowNumber = rowCount.value + (extraRow ? 1 : 0)
+    console.log('expectedRowNumber', expectedRowNumber)
+    if (expectedRowNumber < rowData.length) {
+      console.log('Removingcell value')
+      rowData.splice(expectedRowNumber)
+    }
+    console.log('NEW ROW DATA', rowData)
+  })
 
-  watch(rowData, () => console.error('Updating rowData'), { flush: 'sync' })
+  watch(columnsAst, () => console.error('New columnsAst'), { flush: 'sync', deep: true })
+  watch(columns, () => console.error('New columns'), { flush: 'sync', deep: true })
+  watch(rowData, () => console.error('Updating rowData'), {
+    deep: true,
+    immediate: true,
+  })
 
   const nothingImport = computed(() => requiredImportsByFQN(suggestions, NOTHING_PATH, true))
 

@@ -54,7 +54,7 @@ function emitEditEnd() {
   props.onHeaderEditingStopped?.(props.column.getColId())
 }
 
-watch(inputElement, (newVal, oldVal) => {
+watch(inputElement, (newVal) => {
   if (newVal != null) {
     // Whenever input field appears, put text, focus and select
     // We don't do that through props, because we don't want updates.
