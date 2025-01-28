@@ -19,6 +19,7 @@ import {
   type WatchSource,
 } from 'vue'
 import { Awareness } from 'y-protocols/awareness.js'
+import { markdownParser } from 'ydoc-shared/ast/ensoMarkdown'
 import { assert } from 'ydoc-shared/util/assert'
 import * as Y from 'yjs'
 
@@ -101,9 +102,34 @@ export function useCodeMirror(
      */
     readonly,
     putTextAt,
+    addHeader: (level: number) => addHeader(editorView, level),
     /** The DOM element containing the editor's content. */
     contentElement: editorView.contentDOM,
   }
+}
+
+export function addHeader(view: EditorView, level: number) {
+  assert(level >= 1 && level <= 3, 'Invalid header level')
+  const prefix = '#'.repeat(level)
+  const startLine = view.state.doc.lineAt(view.state.selection.main.from)
+  const endLine = view.state.doc.lineAt(view.state.selection.main.to)
+  const tree = markdownParser.parse(view.state.doc.toString())
+  const changes = []
+  for (let lineIndex = startLine.number; lineIndex <= endLine.number; lineIndex++) {
+    const line = view.state.doc.line(lineIndex)
+    const src = view.state.doc.toString()
+    const nodeUnderCursor = tree.resolve(line.to, -1)
+    let lineText = line.text
+    if (nodeUnderCursor.type.name.startsWith('ATXHeading')) {
+      const headerMark = nodeUnderCursor.getChild('HeaderMark')
+      if (headerMark) {
+        // Heading text is everything after the header mark
+        lineText = src.slice(headerMark.to, line.to)
+      }
+    }
+    changes.push({ from: line.from, to: line.to, insert: prefix + ' ' + lineText })
+  }
+  view.dispatch({ changes })
 }
 
 function useBindings({

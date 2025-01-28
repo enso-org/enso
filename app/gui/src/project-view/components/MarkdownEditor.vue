@@ -29,6 +29,9 @@ defineExpose({
   putTextAtCoord: (text: string, coords: Vec2) => {
     inner.value?.putTextAtCoords(text, coords)
   },
+  addHeader: (level: number) => {
+    inner.value?.addHeader(level)
+  },
 })
 </script>
 

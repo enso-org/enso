@@ -74,9 +74,9 @@ const handler = documentationEditorBindings.handler({
     <div class="DocumentationEditor">
       <div ref="toolbarElement" class="toolbar">
         <FullscreenButton v-model="fullscreen" />
-        <SvgButton name="header1" />
-        <SvgButton name="header2" />
-        <SvgButton name="header3" />
+        <SvgButton name="header1" @click.stop="markdownEditor?.addHeader(1)" />
+        <SvgButton name="header2" @click.stop="markdownEditor?.addHeader(2)" />
+        <SvgButton name="header3" @click.stop="markdownEditor?.addHeader(3)" />
       </div>
       <slot name="belowToolbar" />
       <div

@@ -1,4 +1,6 @@
 import { ensoMarkdown } from '@/components/MarkdownEditor/markdown'
+import { assert } from '@/util/assert'
+import { addHeader } from '@/util/codemirror/index'
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { EditorState } from '@codemirror/state'
 import { Decoration, EditorView } from '@codemirror/view'
@@ -206,10 +208,15 @@ test.each([
 })
 
 const setupEditor = (source: string) => {
+  const selectionStart = source.indexOf('|')
+  const selectionEnd = source.lastIndexOf('|')
+  const selection = { anchor: selectionStart, head: selectionEnd }
+  const doc = source.replaceAll('|', '')
   const view = new EditorView({
     state: EditorState.create({
-      doc: 'Header',
+      doc,
       extensions: ensoMarkdown(),
+      selection,
     }),
   })
   const vueHost = {
@@ -223,16 +230,47 @@ const setupEditor = (source: string) => {
   return view
 }
 
-test('markdown headers', () => {
-  const view = setupEditor('Header')
+interface TestCase {
+  source: string
+  headerLevel: number
+  expected: string
+}
 
-  const source = view.state.doc.toString()
-  expect(debugTree(markdownParser.parse(source), source)).toEqual([
-    'Document',
-    ['Paragraph', 'Header'],
-  ])
-  view.dispatch({ changes: { from: 0, to: 0, insert: '# ' } })
-  const afterChange = view.state.doc.toString()
-  const tree = markdownParser.parse(afterChange)
-  expect(debugTree(tree, afterChange)).toEqual(['Document', ['ATXHeading1', ['HeaderMark', '# ']]])
+const testCases: TestCase[] = [
+  {
+    source: 'Some| text',
+    headerLevel: 1,
+    expected: '# Some text',
+  },
+  {
+    source: '|Some| text',
+    headerLevel: 1,
+    expected: '# Some text',
+  },
+  {
+    source: '|Some| text',
+    headerLevel: 2,
+    expected: '## Some text',
+  },
+  {
+    source: '## |Some text',
+    headerLevel: 1,
+    expected: '# Some text',
+  },
+  {
+    source: '### |Some text',
+    headerLevel: 1,
+    expected: '# Some text',
+  },
+  {
+    source: 'Fir|st line\nSecond| line',
+    headerLevel: 1,
+    expected: '# First line\n# Second line',
+  },
+]
+
+test.each(testCases)('markdown headers $source', ({ source, headerLevel, expected }) => {
+  const view = setupEditor(source)
+  addHeader(view, headerLevel)
+  expect(view.state.doc.toString()).toEqual(expected)
 })
