@@ -2928,10 +2928,11 @@ type DB_Table
 
          - `Auto_Detect`: The file format is determined by the provided file.
          - `Bytes` and `Plain_Text`: The Table does not support these types in
-            the `write` function. If passed as format, an
-            `Illegal_Argument` is raised. To write out the table as plain
-            text, the user needs to call the `Text.from Table` method and then
-            use the `Text.write` function.
+           the `write` function. If passed as format, an
+           `Illegal_Argument` is raised. To write out the table as plain
+           text, the user needs to convert the Table to Text
+           (e.g. using `to_delimited` method) and then use the `Text.write`
+           function.
 
        > Example
          Write a database table to a CSV file.

@@ -3478,8 +3478,9 @@ type Table
          - `Bytes` and `Plain_Text`: The Table does not support these types in
            the `write` function. If passed as format, an
            `Illegal_Argument` is raised. To write out the table as plain
-           text, the user needs to call the `Text.from Table` method and then
-           use the `Text.write` function.
+           text, the user needs to convert the Table to Text
+           (e.g. using `to_delimited` method) and then use the `Text.write`
+           function.
 
        > Example
          Write a table to a CSV file, without writing the header.
@@ -3924,6 +3925,14 @@ type Table
         data = self.columns.map c->("[" + c.name.pretty + ", " + c.to_vector.pretty + "]") . join ", "
         "Table.new [" + data + "]"
 
+    ## Converts all table contents to a text value in delimited format.
+
+       Arguments:
+       - format: Allows to customize the delimiter and other settings of the
+         format. Defaults to tab-separated values.
+    to_delimited self (format:Delimited_Format = ..Delimited '\t') -> Text =
+        Delimited_Writer.write_text self format
+
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.
 slice_ranges table ranges =
@@ -3959,17 +3968,6 @@ Table.from (that : Text) (format = Delimited_Format.Delimited '\t') (on_problems
         case resolved_format of
             _ : Delimited_Format -> Delimited_Reader.read_text that resolved_format on_problems
             _ -> Unimplemented.throw "Table.from is currently only implemented for Delimited_Format."
-
-## PRIVATE
-   Converts a Table into a Text value.
-
-   The format of the text is determined by the `format` argument.
-
-   Arguments:
-   - that: The table to convert.
-   - format: The format of the text.
-Text.from (that : Table) (format:Delimited_Format = ..Delimited '\t') =
-    Delimited_Writer.write_text that format
 
 ## PRIVATE
    Conversion method to a Table from a Vector.
