@@ -18,7 +18,9 @@ import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.IRDumperTestWrapper;
 import org.enso.test.utils.ProjectUtils;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
@@ -35,6 +37,13 @@ public class IRDumpTest {
   private ByteArrayOutputStream out;
 
   @Rule public PrintOutRule printOutRule = new PrintOutRule();
+
+  @BeforeClass
+  public static void skipOnWindows() {
+    Assume.assumeFalse(
+        "This test suite should be skipped on Windows",
+        System.getProperty("os.name").toLowerCase().contains("win"));
+  }
 
   @Before
   public void before() {
