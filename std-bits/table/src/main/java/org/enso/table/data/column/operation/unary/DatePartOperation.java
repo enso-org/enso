@@ -65,7 +65,7 @@ public class DatePartOperation extends AbstractUnaryLongOperation {
   }
 
   @Override
-  public boolean canApply(ColumnStorage storage) {
+  public boolean canApply(ColumnStorage<?> storage) {
     return timeField ? storage.getType().hasTime() : storage.getType().hasDate();
   }
 

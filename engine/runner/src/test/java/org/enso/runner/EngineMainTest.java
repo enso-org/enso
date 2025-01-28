@@ -100,7 +100,12 @@ public class EngineMainTest {
     }
 
     @Override
-    void println(String msg) {
+    void stdout(String msg) {
+      linesOut.add(msg);
+    }
+
+    @Override
+    void stderr(String msg) {
       linesOut.add(msg);
     }
 

@@ -65,7 +65,11 @@ type JDBC_Connection
        `synchronized` critical section (including the current thread).
     run_maintenance_action_if_possible : (Nothing -> Any) -> Nothing
     run_maintenance_action_if_possible self callback =
-        self.operation_synchronizer.runMaintenanceActionIfPossible callback
+        # TODO The wrapping is a workaround for https://github.com/enso-org/enso/issues/7117
+        wrapped_callback x =
+            Context.Output.with_enabled <|
+                callback x
+        self.operation_synchronizer.runMaintenanceActionIfPossible wrapped_callback
 
     ## PRIVATE
 

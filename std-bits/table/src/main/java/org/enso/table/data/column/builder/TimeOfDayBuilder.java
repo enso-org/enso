@@ -7,13 +7,14 @@ import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for LocalTime columns. */
-public class TimeOfDayBuilder extends TypedBuilder<LocalTime> {
+public final class TimeOfDayBuilder extends TypedBuilder<LocalTime> {
   TimeOfDayBuilder(int size) {
     super(TimeOfDayType.INSTANCE, new LocalTime[size]);
   }
 
   @Override
-  public void appendNoGrow(Object o) {
+  public void append(Object o) {
+    ensureSpaceToAppend();
     try {
       data[currentSize++] = (LocalTime) o;
     } catch (ClassCastException e) {
@@ -28,6 +29,6 @@ public class TimeOfDayBuilder extends TypedBuilder<LocalTime> {
 
   @Override
   protected Storage<LocalTime> doSeal() {
-    return new TimeOfDayStorage(data, currentSize);
+    return new TimeOfDayStorage(data);
   }
 }

@@ -7,13 +7,14 @@ import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for BigDecimal columns. */
-public class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
+public final class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
   BigDecimalBuilder(int size) {
     super(BigDecimalType.INSTANCE, new BigDecimal[size]);
   }
 
   @Override
-  public void appendNoGrow(Object o) {
+  public void append(Object o) {
+    ensureSpaceToAppend();
     try {
       data[currentSize++] = (BigDecimal) o;
     } catch (ClassCastException e) {
@@ -28,6 +29,6 @@ public class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
 
   @Override
   protected Storage<BigDecimal> doSeal() {
-    return new BigDecimalStorage(data, currentSize);
+    return new BigDecimalStorage(data);
   }
 }

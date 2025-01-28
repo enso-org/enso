@@ -1,0 +1,90 @@
+{
+  "resources":{
+
+  "includes":[
+    {
+      "pattern": "org/apache/poi/schemas/ooxml/system/ooxml/.*\\.xsb$"
+    },
+    {
+      "pattern": "org/apache/poi/schemas/ooxml/element/.*\\.xsb$"
+    },
+    {
+      "pattern": "org/apache/xmlbeans/metadata/.*\\.xsb$"
+    },
+    {
+      "pattern": "org/apache/xmlbeans/metadata/.*\\.xsd$"
+    },
+    {
+    "pattern":"\\QMETA-INF/log4j-provider.properties\\E"
+  }, {
+    "pattern":"\\QMETA-INF/maven/org.xerial/sqlite-jdbc/pom.properties\\E"
+  }, {
+    "pattern":"\\QMETA-INF/org/enso/interpreter/node/expression/builtin/BuiltinMethods.metadata\\E"
+  }, {
+    "pattern":"\\QMETA-INF/org/enso/interpreter/node/expression/builtin/BuiltinTypes.metadata\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/ch.qos.logback.classic.spi.Configurator\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.lang.Cloneable\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.lang.System$LoggerFinder\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.net.ContentHandlerFactory\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.nio.charset.spi.CharsetProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.sql.Driver\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.time.zone.ZoneRulesProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/java.util.spi.ResourceBundleControlProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/javax.xml.parsers.DocumentBuilderFactory\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/javax.xml.parsers.SAXParserFactory\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/javax.xml.transform.TransformerFactory\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/javax.xml.xpath.XPathFactory\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/org.apache.logging.log4j.spi.Provider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/org.apache.logging.log4j.util.PropertySource\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/org.apache.tika.detect.EncodingDetector\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/org.enso.base.file_format.FileFormatSPI\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/org.enso.base.read.ReadManyReturnSPI\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/org.enso.persist.Persistance\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/org.slf4j.spi.SLF4JServiceProvider\\E"
+  }, {
+    "pattern":"\\QMETA-INF/services/org.w3c.dom.DOMImplementationSourceList\\E"
+  }, {
+    "pattern":"\\Qlog4j2.StatusLogger.properties\\E"
+  }, {
+    "pattern":"\\Qlog4j2.component.properties\\E"
+  }, {
+    "pattern":"\\Qlog4j2.system.properties\\E"
+  }, {
+    "pattern":"\\Qlogback.xml\\E"
+  }, {
+    "pattern":"\\Qreference.conf\\E"
+  }, {
+    "pattern":"\\Qsqlite-jdbc.properties\\E"
+  }, {
+    "pattern":"\\Qurlhandler.props\\E"
+  }]},
+  "bundles":[{
+    "name":"com.sun.org.apache.xml.internal.serializer.XMLEntities",
+    "locales":[""]
+  }, {
+    "name":"com.sun.org.apache.xml.internal.serializer.utils.SerializerMessages",
+    "classNames":["com.sun.org.apache.xml.internal.serializer.utils.SerializerMessages", "com.sun.org.apache.xml.internal.serializer.utils.SerializerMessages_en"]
+  }, {
+    "name":"org.apache.xmlbeans.impl.regex.message",
+    "locales":[""]
+  }]
+}

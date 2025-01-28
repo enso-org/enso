@@ -13,6 +13,8 @@ import * as suspense from '#/components/Suspense'
 import * as twv from '#/utilities/tailwindVariants'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { ResetButtonGroupContext } from '../Button'
+import { Close } from './Close'
 import * as dialogProvider from './DialogProvider'
 import * as dialogStackProvider from './DialogStackProvider'
 import { DialogTrigger } from './DialogTrigger'
@@ -34,8 +36,8 @@ export const POPOVER_STYLES = twv.tv({
   variants: {
     variant: {
       custom: { dialog: '' },
-      primary: { dialog: variants.DIALOG_BACKGROUND({ variant: 'light' }) },
-      inverted: { dialog: variants.DIALOG_BACKGROUND({ variant: 'dark' }) },
+      light: { base: variants.DIALOG_BACKGROUND({ variant: 'light' }) },
+      dark: { base: variants.DIALOG_BACKGROUND({ variant: 'dark' }) },
     },
     isEntering: {
       true: 'animate-in fade-in placement-bottom:slide-in-from-top-1 placement-top:slide-in-from-bottom-1 placement-left:slide-in-from-right-1 placement-right:slide-in-from-left-1 ease-out duration-200',
@@ -44,13 +46,16 @@ export const POPOVER_STYLES = twv.tv({
       true: 'animate-out fade-out placement-bottom:slide-out-to-top-1 placement-top:slide-out-to-bottom-1 placement-left:slide-out-to-right-1 placement-right:slide-out-to-left-1 ease-in duration-150',
     },
     size: {
-      auto: { base: 'w-[unset]', dialog: 'p-2.5 px-0' },
-      xxsmall: { base: 'max-w-[206px]', dialog: 'p-2 px-0' },
-      xsmall: { base: 'max-w-xs', dialog: 'p-2.5 px-0' },
-      small: { base: 'max-w-sm', dialog: 'py-3 px-2' },
-      medium: { base: 'max-w-md', dialog: 'p-3.5 px-2.5' },
-      large: { base: 'max-w-lg', dialog: 'px-4 py-3' },
-      hero: { base: 'max-w-xl', dialog: 'px-6 py-5' },
+      custom: { base: '', dialog: '' },
+      auto: { base: 'w-[unset]', dialog: 'p-2.5' },
+      xxsmall: { base: 'max-w-[206px]', dialog: 'p-1.5' },
+      xsmall: { base: 'max-w-xs', dialog: 'p-3' },
+      small: { base: 'max-w-sm', dialog: 'px-4 p-3' },
+      medium: { base: 'max-w-md', dialog: 'px-5 p-3.5' },
+      large: { base: 'max-w-lg', dialog: 'p-4' },
+      xlarge: { base: 'max-w-xl', dialog: 'p-6' },
+      xxlarge: { base: 'max-w-2xl', dialog: 'px-8 py-7' },
+      xxxlarge: { base: 'max-w-3xl', dialog: 'px-10 py-9' },
     },
     rounded: {
       none: { base: 'rounded-none', dialog: 'rounded-none' },
@@ -64,9 +69,9 @@ export const POPOVER_STYLES = twv.tv({
     },
   },
   slots: {
-    dialog: 'flex-auto overflow-y-auto [scrollbar-gutter:stable_both-edges] max-h-[inherit]',
+    dialog: 'flex-auto overflow-y-auto max-h-[inherit]',
   },
-  defaultVariants: { rounded: 'xxxlarge', size: 'small', variant: 'primary' },
+  defaultVariants: { rounded: 'xxlarge', size: 'small', variant: 'light' },
 })
 
 const SUSPENSE_LOADER_PROPS = { minHeight: 'h32' } as const
@@ -82,7 +87,6 @@ export function Popover(props: PopoverProps) {
     size,
     rounded,
     variant,
-    placement = 'bottom start',
     isDismissable = true,
     ...ariaPopoverProps
   } = props
@@ -106,7 +110,6 @@ export function Popover(props: PopoverProps) {
         })
       }
       UNSTABLE_portalContainer={root}
-      placement={placement}
       style={popoverStyle}
       shouldCloseOnInteractOutside={() => false}
       {...ariaPopoverProps}
@@ -149,12 +152,7 @@ function PopoverContent(props: PopoverContentProps) {
   const dialogRef = React.useRef<HTMLDivElement>(null)
   const dialogId = aria.useId()
 
-  // We use as here to make the types more accurate
-  // eslint-disable-next-line no-restricted-syntax
-  const contextState = React.useContext(
-    aria.OverlayTriggerStateContext,
-  ) as aria.OverlayTriggerState | null
-
+  const contextState = React.useContext(aria.OverlayTriggerStateContext)
   const dialogContext = React.useContext(aria.DialogContext)
 
   // This is safe, because the labelledBy provided by DialogTrigger is always
@@ -182,7 +180,7 @@ function PopoverContent(props: PopoverContentProps) {
   })
 
   return (
-    <>
+    <ResetButtonGroupContext>
       <dialogStackProvider.DialogStackRegistrar id={dialogId} type="popover" />
       <div
         id={dialogId}
@@ -205,8 +203,9 @@ function PopoverContent(props: PopoverContentProps) {
           </errorBoundary.ErrorBoundary>
         </dialogProvider.DialogProvider>
       </div>
-    </>
+    </ResetButtonGroupContext>
   )
 }
 
 Popover.Trigger = DialogTrigger
+Popover.Close = Close

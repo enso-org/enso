@@ -6,7 +6,9 @@ import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.NullStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.NullType;
 
 public class NotOperation extends AbstractUnaryBooleanOperation {
   public static final String NAME = "not";
@@ -18,15 +20,19 @@ public class NotOperation extends AbstractUnaryBooleanOperation {
   }
 
   @Override
-  public boolean canApply(ColumnStorage storage) {
-    return storage.getType() instanceof BooleanType;
+  public boolean canApply(ColumnStorage<?> storage) {
+    return storage.getType() instanceof BooleanType || storage.getType() instanceof NullType;
   }
 
   @Override
-  public ColumnStorage apply(
-      ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<?> apply(
+      ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     if (storage instanceof BoolStorage boolStorage) {
       return boolStorage.makeNegated();
+    }
+
+    if (storage.getType() instanceof NullType) {
+      return new NullStorage(Math.toIntExact(storage.getSize()));
     }
 
     var builder = createBuilder(storage, problemAggregator);

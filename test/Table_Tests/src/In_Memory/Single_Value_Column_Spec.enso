@@ -1,0 +1,184 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.No_Such_Method
+import Standard.Base.Errors.Common.Type_Error
+
+from Standard.Table import Column, Table, Value_Type
+
+from Standard.Test import all
+
+add_specs suite_builder =
+    suite_builder.group "single-value Column" group_builder->
+        group_builder.specify "should be a Column but also Integer" <|
+            c1 = Column.from_vector "ints" [1]
+            c1.should_be_a Column
+            (c1:Integer).should_equal 1
+            Test.expect_panic Type_Error (c1:Text)
+
+            # Also test with a large integer
+            c2 = Column.from_vector "bigger ints" [3^500]
+            c2.should_be_a Column
+            (c2:Integer).should_equal (3^500)
+
+        group_builder.specify "should be a Column but also Float" <|
+            c1 = Column.from_vector "floats" [1.5]
+            c1.should_be_a Column
+            (c1:Float).should_equal 1.5
+            # But a float is not an integer:
+            Test.expect_panic Type_Error (c1:Integer)
+
+            # Integral float is still not an integer
+            c10 = Column.from_vector "c10" [1.0]
+            c10.should_be_a Column
+            (c10:Float).should_equal 1.0
+            Test.expect_panic Type_Error (1.0 : Integer)
+            Test.expect_panic Type_Error (c10:Integer)
+
+        group_builder.specify "should be a Column but also Text" <|
+            c1 = Column.from_vector "texts" ["a"]
+            c1.should_be_a Column
+            (c1:Text).should_equal "a"
+            Test.expect_panic Type_Error (c1:Integer)
+
+        group_builder.specify "should be a Column but also Boolean" <|
+            c1 = Column.from_vector "bools" [True]
+            c1.should_be_a Column
+            (c1:Boolean).should_equal True
+
+        group_builder.specify "should be a Column but also Date" <|
+            c1 = Column.from_vector "dates" [Date.new 2021 1 1]
+            c1.should_be_a Column
+            (c1:Date).should_equal (Date.new 2021 1 1)
+
+        group_builder.specify "should be a Column but also Time_Of_Day" <|
+            c1 = Column.from_vector "times" [Time_Of_Day.new 12 0 0]
+            c1.should_be_a Column
+            (c1:Time_Of_Day).should_equal (Time_Of_Day.new 12 0 0)
+
+        group_builder.specify "should be a Column but also Date_Time" <|
+            c1 = Column.from_vector "date times" [Date_Time.new 2021 1 1 12 0 0]
+            c1.should_be_a Column
+            (c1:Date_Time).should_equal (Date_Time.new 2021 1 1 12 0 0)
+
+        group_builder.specify "should be a Column but also Decimal" <|
+            c1 = Column.from_vector "decimals" [Decimal.new "3.5"]
+            c1.should_be_a Column
+            (c1:Decimal).should_equal (Decimal.new "3.5")
+
+        group_builder.specify "does not apply to columns that have more rows" <|
+            c1 = Column.from_vector "more rows" [1, 2]
+            c1.should_be_a Column
+            Test.expect_panic Type_Error (c1:Integer)
+
+        group_builder.specify "nothing column is not a single Nothing value" <|
+            c = Column.from_vector "n" [Nothing]
+            c.should_be_a Column
+            c.is_a Nothing . should_be_false
+            Test.expect_panic Type_Error (c:Nothing)
+            Test.expect_panic Type_Error (c:Integer)
+            Test.expect_panic Type_Error (c:Text)
+
+        group_builder.specify "also works for Mixed columns" <|
+            c1 = Column.from_vector "mixed int" [23] Value_Type.Mixed
+            c1.value_type.should_equal Value_Type.Mixed
+            (c1:Integer).should_equal 23
+            Test.expect_panic Type_Error (c1:Float)
+
+            c2 = Column.from_vector "mixed float" [42.0] Value_Type.Mixed
+            c2.value_type.should_equal Value_Type.Mixed
+            (c2:Float).should_equal 42.0
+            Test.expect_panic Type_Error (c2:Integer)
+
+            c3 = Column.from_vector "mixed text" ["hello"] Value_Type.Mixed
+            c3.value_type.should_equal Value_Type.Mixed
+            (c3:Text).should_equal "hello"
+
+        group_builder.specify "should still allow all column operations and preserve its single-value-ness" <|
+            c1 = Column.from_vector "c1" [23]
+            c1.length . should_equal 1
+            c1.count_nothing . should_equal 0
+            c1.value_type . should_equal Value_Type.Integer
+            c1.at 0 . should_equal 23
+
+            c2 = c1 + 100
+            c2.should_be_a Column
+            (c2:Integer).should_equal 123
+
+        group_builder.specify "should also be accepted as right-hand side of binary operators (if casted) and return just a number" <|
+            c1 = Column.from_vector "c1" [23]
+            r1 = 100 + c1:Integer
+            r1.is_a Column . should_be_false
+            r1 . should_equal 123
+
+            r2 = (2 * c1:Integer) + 100
+            r2 . should_equal 146
+
+        group_builder.specify "will also allow to call methods of the single value (if casted)" <|
+            c1 = Column.from_vector "c1" [1000]
+            # Assuming Column has no log function
+            Test.expect_panic No_Such_Method (c1.log 10)
+            r1 = (c1:Number).log 10
+            r1 . should_equal 3 epsilon=0.001
+
+            c2 = Column.from_vector "c2" [Date.new 2025 1 1]
+            Test.expect_panic No_Such_Method (c2.add_work_days 100)
+            (c2:Date).add_work_days 100 . should_equal (Date.new 2025 5 21)
+
+        my_integer_fn (x : Integer) -> Integer =
+            1 + x*2
+        my_text_fn (x : Text) -> Text =
+            x + "!"
+        group_builder.specify "can be passed to functions that expect a matching single value (if explicitly casted)" <|
+            c1 = Column.from_vector "c1" [10]
+            # Without cast it is a panic
+            Test.expect_panic Type_Error (my_integer_fn c1)
+            # But passes with cast
+            r1 = my_integer_fn (c1:Integer)
+            r1 . should_equal 21
+            r1.should_be_a Integer
+            # The value is no longer a column after passing it to a function
+            r1 . is_a Column . should_be_false
+
+            c2 = Column.from_vector "c2" ["hello"]
+            Test.expect_panic Type_Error (my_text_fn c2)
+            r2 = my_text_fn c2:Text
+            r2 . should_equal "hello!"
+
+        group_builder.specify "retain the properties after being transformed using column operations" <|
+            c1 = Column.from_vector "c1" [10]
+            c2 = Column.from_vector "c2" ["hello"]
+
+            c3 = c1.zip c2 a-> b-> a.to_text+" "+b
+            c3.should_be_a Column
+            r3 = my_text_fn c3:Text
+            r3 . should_equal "10 hello!"
+
+            c4 = c1.is_nothing
+            c4.should_be_a Column
+            (c4:Boolean).should_equal False
+
+            (c1.is_present : Boolean).should_equal True
+            (c2.text_length : Integer).should_equal 5
+            (c2.text_left 1 : Text).should_equal "h"
+            (c2.is_in [] : Boolean).should_equal False
+
+            c5 = Column.from_vector "c5" [Date.new 2024 1 2]
+            (c5.day : Integer).should_equal 2
+            (c5.year : Integer).should_equal 2024
+
+        group_builder.specify "should also work for columns extracted from a Table" <|
+            table = Table.new [["a", [42]], ["b", ["hello"]]]
+            c1 = table.at "a"
+            c1.should_be_a Column
+            (c1:Integer).should_equal 42
+            Test.expect_panic Type_Error (my_integer_fn c1)
+            my_integer_fn c1:Integer . should_equal 85
+
+            Test.expect_panic Type_Error <|
+                my_text_fn (table.at "b")
+            my_text_fn (table.at "b" : Text) . should_equal "hello!"
+
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

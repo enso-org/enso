@@ -3,7 +3,7 @@ import { memo, type Dispatch, type JSX, type SetStateAction } from 'react'
 
 import type { AssetRowState, AssetsTableState } from '#/layouts/AssetsTable'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import type { AnyAsset, Asset, BackendType } from '#/services/Backend'
+import type { AnyAsset, BackendType } from '#/services/Backend'
 import type { SortInfo } from '#/utilities/sorting'
 import type { SortableColumn } from './column/columnUtils'
 import { Column } from './column/columnUtils'

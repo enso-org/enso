@@ -1,12 +1,13 @@
 package org.enso.interpreter.epb;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.TruffleOptions;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
-import java.util.Set;
+import java.util.SortedSet;
 
 /**
  * This exception is thrown once a foreign method cannot be parsed because the associated foreign
@@ -23,7 +24,7 @@ class ForeignParsingException extends AbstractTruffleException {
    *     distribution.
    * @param location Location node passed to {@link AbstractTruffleException}.
    */
-  public ForeignParsingException(String truffleLangId, Set<String> installedLangs, Node location) {
+  ForeignParsingException(String truffleLangId, SortedSet<String> installedLangs, Node location) {
     this(createMessage(truffleLangId, installedLangs), location);
   }
 
@@ -31,16 +32,20 @@ class ForeignParsingException extends AbstractTruffleException {
    * @param msg message of the exception
    * @param location Location node passed to {@link AbstractTruffleException}.
    */
-  public ForeignParsingException(String msg, Node location) {
+  ForeignParsingException(String msg, Node location) {
     super(msg, location);
     this.message = msg;
   }
 
   @TruffleBoundary
-  private static String createMessage(String truffleLangId, Set<String> installedLangs) {
-    return String.format(
-        "Cannot parse foreign %s method. Only available languages are %s",
-        truffleLangId, installedLangs);
+  private static String createMessage(String truffleLangId, Iterable<String> installedLangs) {
+    var allLangs = String.join(", ", installedLangs);
+    var format = "Cannot parse `foreign %s` method. Only available languages are %s. %s";
+    var extraInfo = "";
+    if (TruffleOptions.AOT) {
+      extraInfo = "\nMore languages may be available in JVM mode. Try running with --jvm option.";
+    }
+    return String.format(format, truffleLangId, allLangs, extraInfo);
   }
 
   @Override

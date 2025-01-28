@@ -31,7 +31,7 @@ type Existing_File_Behavior
 
     ## PRIVATE
     widget (include_overwrite:Boolean = True) (include_backup:Boolean = True) (include_append:Boolean = True) (include_error:Boolean = True) -> Widget =
-        fqn = Meta.get_qualified_type_name Existing_File_Behavior
+        fqn = Existing_File_Behavior.to Meta.Type . qualified_name
         options = Vector.build builder->
             if include_overwrite then
                 builder.append (Option "Overwrite" fqn+".Overwrite")

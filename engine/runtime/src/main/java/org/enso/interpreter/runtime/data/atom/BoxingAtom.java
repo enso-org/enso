@@ -48,12 +48,12 @@ final class BoxingAtom extends Atom {
   private final Object[] fields;
 
   private BoxingAtom(AtomConstructor constructor, Object[] fields) {
-    super(constructor);
+    super(constructor, false);
     this.fields = fields;
   }
 
   private BoxingAtom(AtomConstructor constructor) {
-    super(constructor);
+    super(constructor, true);
     this.fields = NO_FIELDS;
   }
 
@@ -101,7 +101,11 @@ final class BoxingAtom extends Atom {
     @Override
     public Atom execute(AtomConstructor constructor, Layout layout, Object[] args) {
       assert constructor.getBoxedLayout() == layout;
-      return new BoxingAtom(constructor, args);
+      if (args.length == 0) {
+        return constructor.newInstance(new Object[0]);
+      } else {
+        return new BoxingAtom(constructor, args);
+      }
     }
   }
 

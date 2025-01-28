@@ -437,7 +437,7 @@ public class Table {
       System.arraycopy(id_columns, 0, newColumns, 0, id_columns.length);
 
       int size = id_columns.length == 0 ? 0 : id_columns[0].getSize();
-      var builder = Builder.getForType(TextType.VARIABLE_LENGTH, size, problemAggregator);
+      var builder = Builder.getForText(TextType.VARIABLE_LENGTH, size);
       builder.appendNulls(size);
       Storage<?> newStorage = builder.seal();
       newColumns[id_columns.length] = new Column(name_field, newStorage);
@@ -457,8 +457,7 @@ public class Table {
                 storage[i] =
                     Builder.getForType(
                         id_columns[i].getStorage().getType(), new_count, problemAggregator));
-    storage[id_columns.length] =
-        Builder.getForType(TextType.VARIABLE_LENGTH, new_count, problemAggregator);
+    storage[id_columns.length] = Builder.getForText(TextType.VARIABLE_LENGTH, new_count);
     storage[id_columns.length + 1] = Builder.getInferredBuilder(new_count, problemAggregator);
 
     // Load Data

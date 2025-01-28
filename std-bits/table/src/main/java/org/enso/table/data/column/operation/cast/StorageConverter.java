@@ -1,6 +1,6 @@
 package org.enso.table.data.column.operation.cast;
 
-import java.util.function.IntFunction;
+import java.util.function.LongFunction;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -12,6 +12,7 @@ import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
@@ -35,24 +36,20 @@ public interface StorageConverter<T> {
       case TimeOfDayType timeOfDayType -> new ToTimeOfDayStorageConverter();
       case BigIntegerType bigIntegerType -> new ToBigIntegerConverter();
       case BigDecimalType bigDecimalType -> new ToBigDecimalConverter();
+      case NullType nullType -> throw new IllegalArgumentException("Cannot cast to Null type.");
     };
   }
 
   static <T> Storage<T> innerLoop(
-      BuilderForType<T> builder, ColumnStorage storage, IntFunction<T> converter) {
+      BuilderForType<T> builder, ColumnStorage<?> storage, LongFunction<T> converter) {
     Context context = Context.getCurrent();
 
     long n = storage.getSize();
-    if (n > Integer.MAX_VALUE) {
-      throw new IllegalArgumentException(
-          "Cannot currently operate on columns larger than " + Integer.MAX_VALUE + ".");
-    }
-
-    for (int i = 0; i < n; i++) {
+    for (long i = 0; i < n; i++) {
       if (storage.isNothing(i)) {
         builder.appendNulls(1);
       } else {
-        builder.appendNoGrow(converter.apply(i));
+        builder.append(converter.apply(i));
       }
 
       context.safepoint();

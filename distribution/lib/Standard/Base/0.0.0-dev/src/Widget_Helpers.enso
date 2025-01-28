@@ -16,7 +16,7 @@ from project.Metadata.Choice import Option
 ## PRIVATE
    Creates a Single_Choice Widget for text or secret value.
 make_text_secret_selector display:Display=..When_Modified -> Widget =
-    fqn = Meta.get_qualified_type_name Enso_Secret
+    fqn = Enso_Secret.to Meta.Type . qualified_name
     make_single_choice [['<Text Value>', '""'], ['<Secret Value>', fqn+".get"]] display=display
 
 ## PRIVATE
@@ -49,7 +49,7 @@ make_number_format_selector (value:Number=1234.564321) =
    Creates a Single_Choice Widget for parsing dates.
 make_date_format_selector : Date -> Widget
 make_date_format_selector (date:Date=(Date.new 2012 3 14)) =
-    fqn = Meta.get_qualified_type_name Date_Time_Formatter
+    fqn = Date_Time_Formatter.to Meta.Type . qualified_name
     iso_format = ['ISO-Format (e.g. ' + date.format Date_Time_Formatter.iso_date + ')', fqn+".iso_date"]
     formats = ['d/M/yyyy', 'dd/MM/yyyy', 'd-MMM-yy', 'd MMMM yyyy', 'M/d/yyyy', 'MM/dd/yyyy', 'MMMM d, yyyy', 'yyyy-MM'].map f->
         [f + " (e.g. " + date.format f + ")", f.pretty]
@@ -68,7 +68,7 @@ make_date_format_selector (date:Date=(Date.new 2012 3 14)) =
    Creates a Single_Choice Widget for parsing date times.
 make_date_time_format_selector : Date_Time -> Widget
 make_date_time_format_selector (date_time:Date_Time=(Date_Time.new 2012 3 14 15 9 26 123)) =
-    fqn = Meta.get_qualified_type_name Date_Time_Formatter
+    fqn = Date_Time_Formatter.to Meta.Type . qualified_name
     enso_format =
         format = Date_Time_Formatter.default_enso_zoned_date_time
         ['Default (e.g. ' + date_time.format format + ')', fqn+".default_enso_zoned_date_time"]
@@ -95,7 +95,7 @@ make_date_time_format_selector (date_time:Date_Time=(Date_Time.new 2012 3 14 15 
    Creates a Single_Choice Widget for parsing times.
 make_time_format_selector : Time_Of_Day -> Widget
 make_time_format_selector (time:Time_Of_Day=(Time_Of_Day.new 13 30 55 123)) =
-    fqn = Meta.get_qualified_type_name Date_Time_Formatter
+    fqn = Date_Time_Formatter.to Meta.Type . qualified_name
     iso_format = ['ISO-Format (e.g. ' + time.format Date_Time_Formatter.iso_time + ')', fqn+".iso_time"]
     formats = ['HH:mm[:ss]', 'HH:mm:ss', 'h:mm[:ss] a', 'hh:mm:ss a', 'HH:mm:ss.S'].map f->
         [f + " (e.g. " + time.format f + ")", f.pretty]

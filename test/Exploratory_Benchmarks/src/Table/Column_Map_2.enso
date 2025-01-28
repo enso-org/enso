@@ -43,20 +43,6 @@ type Boxed_Map_Test_2
                     builder.appendLong date.year
         Column.from_storage "result" builder.seal
 
-    ## This is the same as above, but uses `appendNoGrow` instead of
-       `appendLong`. I suspect it could be more efficient, so I'm testing it.
-    enso_map_with_builder_append_object self =
-        n = self.date_column.length
-        builder = Builder.getForLong IntegerType.INT_64 n Nothing
-        storage = get_storage_for_column self.date_column
-        0.up_to n . each i->
-            case storage.getItemBoxed i of
-                Nothing ->
-                    builder.appendNulls 1
-                date ->
-                    builder.appendNoGrow date.year
-        Column.from_storage "result" builder.seal
-
     verify_correctness self =
         Helpers.check_results [self.current_implementation, self.java_map, self.enso_map_as_vector convert_polyglot_dates=True, self.enso_map_as_vector convert_polyglot_dates=False, self.enso_map_with_builder_append_long, self.enso_map_with_builder_append_object]
 
