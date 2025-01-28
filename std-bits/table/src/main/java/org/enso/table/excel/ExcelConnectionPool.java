@@ -202,9 +202,6 @@ public class ExcelConnectionPool {
 
   void release(ReadOnlyExcelConnection excelConnection) throws IOException {
     synchronized (this) {
-      System.out.println("AAAAAo");
-      System.err.println("AAAAAe");
-      new Exception().printStackTrace();
       excelConnection.record.refCount--;
       if (excelConnection.record.refCount <= 0) {
         excelConnection.record.close();
