@@ -607,3 +607,13 @@ type Floating_Point_Equality
             "(Error  (location = "+location+"))"
         Floating_Point_Equality.Used_As_Dictionary_Key value ->
             "(Used_As_Dictionary_Key (value = "+value.to_text+"))"
+
+## A warning indicating that a file failed to be loaded.
+type Failed_To_Load
+    ## PRIVATE
+    Warning path cause
+
+    ## PRIVATE
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self = "Failed to load file at path: "+self.path.to_display_text+": "+self.cause.to_display_text

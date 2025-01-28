@@ -4,13 +4,12 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.stream.IntStream;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
 
 public class Offset {
-  public static Storage<?>[] offset(
+  public static Column[] offset(
       Column[] sourceColumns,
       int n,
       FillWith fillWith,
@@ -18,8 +17,7 @@ public class Offset {
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator) {
-    if (n == 0 || sourceColumns.length == 0)
-      return Arrays.stream(sourceColumns).map(c -> c.getStorage()).toArray(Storage<?>[]::new);
+    if (n == 0 || sourceColumns.length == 0) return sourceColumns;
     var rowOrderMask =
         groupingColumns.length == 0 && orderingColumns.length == 0
             ? calculate_ungrouped_unordered_mask(sourceColumns[0].getSize(), n, fillWith)
@@ -32,14 +30,14 @@ public class Offset {
                 directions,
                 problemAggregator);
     return Arrays.stream(sourceColumns)
-        .map(c -> c.getStorage().applyMask(OrderMask.fromArray(rowOrderMask)))
-        .toArray(Storage<?>[]::new);
+        .map(c -> c.applyMask(OrderMask.fromArray(rowOrderMask)))
+        .toArray(Column[]::new);
   }
 
-  public static Storage<?> offset_single_column(Column sourceColumn, int n, FillWith fillWith) {
-    if (n == 0) return sourceColumn.getStorage();
+  public static Column offset_single_column(Column sourceColumn, int n, FillWith fillWith) {
+    if (n == 0) return sourceColumn;
     var rowOrderMask = calculate_ungrouped_unordered_mask(sourceColumn.getSize(), n, fillWith);
-    return sourceColumn.getStorage().applyMask(OrderMask.fromArray(rowOrderMask));
+    return sourceColumn.applyMask(OrderMask.fromArray(rowOrderMask));
   }
 
   private static int[] calculate_ungrouped_unordered_mask(int numRows, int n, FillWith fillWith) {
@@ -52,13 +50,13 @@ public class Offset {
     int result = rowIndex + n;
     if (result < 0) {
       return switch (fillWith) {
-        case NOTHING -> Storage.NOT_FOUND_INDEX;
+        case NOTHING -> OrderMask.NOT_FOUND_INDEX;
         case CLOSEST_VALUE -> 0;
         case WRAP_AROUND -> (result % numRows) == 0 ? 0 : (result % numRows) + numRows;
       };
     } else if (result >= numRows) {
       return switch (fillWith) {
-        case NOTHING -> Storage.NOT_FOUND_INDEX;
+        case NOTHING -> OrderMask.NOT_FOUND_INDEX;
         case CLOSEST_VALUE -> numRows - 1;
         case WRAP_AROUND -> result % numRows;
       };
@@ -162,7 +160,7 @@ public class Offset {
 
     int getFillValue() {
       return switch (fillWith) {
-        case NOTHING -> Storage.NOT_FOUND_INDEX;
+        case NOTHING -> OrderMask.NOT_FOUND_INDEX;
         case CLOSEST_VALUE -> closestPos;
         case WRAP_AROUND -> n < 0 ? rolling_queue.poll() : fill_queue.poll();
       };

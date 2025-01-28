@@ -9,13 +9,18 @@ import {
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
 import { MenuItem } from '@/components/shared/AgGridTableView.vue'
 import { WidgetInput } from '@/providers/widgetRegistry'
+import { type RequiredImport } from '@/stores/graph/imports'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import { makeType } from '@/stores/suggestionDatabase/mockSuggestion'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import { type Identifier } from '@/util/ast/abstract'
+import { parseAbsoluteProjectPath } from '@/util/projectPath'
+import { tryQualifiedName } from '@/util/qualifiedName'
 import { GetContextMenuItems, GetMainMenuItems } from 'ag-grid-enterprise'
 import { expect, test, vi } from 'vitest'
 import { assertDefined } from 'ydoc-shared/util/assert'
+import { unwrap } from 'ydoc-shared/util/data/result'
 
 function suggestionDbWithNothing() {
   const db = new SuggestionDb()
@@ -35,6 +40,11 @@ const expectedNewColumnDef = { cellClass: 'newColumnCell' }
 
 const CELLS_LIMIT_SQRT = Math.sqrt(CELLS_LIMIT)
 assert(CELLS_LIMIT_SQRT === Math.floor(CELLS_LIMIT_SQRT))
+
+function stdPath(path: string) {
+  assert(path.startsWith('Standard.'))
+  return parseAbsoluteProjectPath(unwrap(tryQualifiedName(path)))
+}
 
 test.each([
   {
@@ -203,9 +213,9 @@ function tableEditFixture(code: string, expectedCode: string) {
     expect(imports).toEqual([
       {
         kind: 'Unqualified',
-        from: 'Standard.Base.Nothing',
-        import: 'Nothing',
-      },
+        from: stdPath('Standard.Base.Nothing'),
+        import: 'Nothing' as Identifier,
+      } satisfies RequiredImport,
     ])
   })
   const tableNewArgs = useTableInputArgument(

@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.Map_Error
+import Standard.Base.Errors.Common.Failed_To_Load
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -126,11 +127,7 @@ add_specs suite_builder =
         group_builder.specify "should allow to Report_Error if any file fails to load" <|
             r1 = Data.read_many three_files return=..As_Vector on_problems=..Report_Error
             # The error reports as File_Error
-            r1.should_fail_with File_Error
-            # But it's actually Map_Error with index metadata
-            r1.should_fail_with unwrap_errors=False Map_Error
-            r1.catch.index . should_equal 1
-            r1.catch.inner_error.should_be_a File_Error.Not_Found
+            r1.should_fail_with Failed_To_Load
 
         group_builder.specify "should allow to Ignore errors if any file fails to load" <|
             r1 = Data.read_many three_files return=..As_Vector on_problems=..Ignore
@@ -140,12 +137,16 @@ add_specs suite_builder =
         group_builder.specify "should allow to continue loading if errors are encountered, but report them as warnings" <|
             r1 = Data.read_many three_files return=..As_Vector on_problems=..Report_Warning
             r1.should_equal [js_object, Nothing, "Hello World!"]
-            Problems.expect_only_warning File_Error r1
+            Problems.expect_only_warning Failed_To_Load r1
 
         group_builder.specify "should return empty vector if no files were provided" <|
             r1 = Data.read_many [] return=..As_Vector
             r1.should_equal []
             Problems.assume_no_problems r1
+
+        group_builder.specify "should raise an error if input vector contains Nothing" <|
+            r1 = Data.read_many [Nothing] return=..As_Vector
+            r1.should_fail_with Illegal_Argument
 
 main filter=Nothing =
     suite = Test.build suite_builder->

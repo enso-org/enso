@@ -14,8 +14,6 @@ interface AnyUnconnectedEdge {
   disconnectedEdgeTarget?: PortId
   /** Identifies what the disconnected end should be attached to. */
   anchor: UnconnectedEdgeAnchor
-  /** CSS value; if provided, overrides any color calculation. */
-  color?: string
 }
 export interface UnconnectedSource extends AnyUnconnectedEdge {
   source: undefined

@@ -3,6 +3,7 @@ package org.enso.table.data.column.builder;
 import java.util.Arrays;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 
 public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T> {
@@ -49,8 +50,12 @@ public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderFor
         // This cast is safe, because storage.getType() == this.getType() iff storage.T == this.T
         @SuppressWarnings("unchecked")
         SpecializedStorage<T> specializedStorage = (SpecializedStorage<T>) storage;
-        System.arraycopy(specializedStorage.getData(), 0, data, currentSize, storage.size());
-        currentSize += storage.size();
+        int toCopy = (int) storage.getSize();
+        if (currentSize + toCopy > data.length) {
+          resize(currentSize + toCopy);
+        }
+        System.arraycopy(specializedStorage.getData(), 0, data, currentSize, toCopy);
+        currentSize += toCopy;
       } else {
         throw new IllegalStateException(
             "Unexpected storage implementation for type "
@@ -59,6 +64,8 @@ public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderFor
                 + storage
                 + ". This is a bug in the Table library.");
       }
+    } else if (storage.getType() instanceof NullType) {
+      appendNulls(Math.toIntExact(storage.getSize()));
     } else {
       throw new StorageTypeMismatchException(getType(), storage.getType());
     }

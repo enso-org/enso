@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import ArgumentRow from '@/components/GraphEditor/widgets/WidgetFunctionDef/ArgumentRow.vue'
 import { FunctionName } from '@/components/GraphEditor/widgets/WidgetFunctionName.vue'
 import { DisplayIcon } from '@/components/GraphEditor/widgets/WidgetIcon.vue'
 import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widgetRegistry'
 import { DocumentationData } from '@/stores/suggestionDatabase/documentation'
 import { Ast } from '@/util/ast'
+import { type MethodPointer } from '@/util/methodPointer'
 import { computed, Ref } from 'vue'
-import { MethodPointer } from 'ydoc-shared/languageServerTypes'
-import ArgumentRow from './WidgetFunctionDef/ArgumentRow.vue'
 
 const { input } = defineProps(widgetProps(widgetDefinition))
 
@@ -25,7 +25,7 @@ const funcNameInput = computed(() => {
   }
 
   const methodPointer = input[FunctionInfoKey]?.methodPointer
-  if (nameAst.code() !== 'main' && methodPointer != null) {
+  if (methodPointer) {
     widgetInput[FunctionName] = {
       editableNameExpression: nameAst.externalId,
       methodPointer,

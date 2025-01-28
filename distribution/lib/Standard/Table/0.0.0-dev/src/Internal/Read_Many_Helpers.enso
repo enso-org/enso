@@ -2,7 +2,9 @@ private
 
 from Standard.Base import all
 import Standard.Base.Data.Read.Many_Files_List.Many_Files_List
+import Standard.Base.Errors.Common.Failed_To_Load
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Data.Read.Return_As import replace_with_nothing_and_propagate
 
 import project.Column.Column
 import project.Errors.Invalid_Value_Type
@@ -30,15 +32,18 @@ ensure_column_type_valid_to_be_files_list (column : Column) ~action =
         Value_Type.Mixed -> True
         # Columns containing paths as Text will be Char
         Value_Type.Char _ _ -> True
+        # Empty columns are also valid
+        Value_Type.Null -> True
         _ -> False
     if is_expected_type then action else
         Error.throw (Invalid_Value_Type.Column "Text or Mixed" column.value_type column.name)
 
-make_return (return_shape : Return_As_Table) (input : Many_Files_List) (objects : Vector Any) (on_problems : Problem_Behavior) -> Table =
+make_return (return_shape : Return_As_Table) (input : Many_Files_List) (objects : Vector (Any | Failed_To_Load)) (on_problems : Problem_Behavior) -> Table =
     base_table = _input_as_table input
     case return_shape of
         Return_As_Table.With_New_Column ->
-            _add_objects_column base_table objects
+            replaced = replace_with_nothing_and_propagate objects on_problems
+            _add_objects_column base_table replaced
         Return_As_Table.As_Merged_Table columns_to_keep match_columns ->
             tables = input.paths_to_load.zip objects path-> object->
                 strategy = Read_Many_As_Merged_Table_Strategy.from object

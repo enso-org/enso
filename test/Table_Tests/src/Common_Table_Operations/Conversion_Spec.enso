@@ -352,6 +352,11 @@ add_conversion_specs suite_builder setup =
             r1 = t.at "X" . cast Value_Type.Boolean
             r1.should_fail_with Illegal_Argument
 
+        group_builder.specify "does not allow to cast a column to Null type" <|
+            t = table_builder [["X", [1, 2]]]
+            r1 = t.at "X" . cast Value_Type.Null
+            r1.should_fail_with Illegal_Argument
+
         group_builder.specify "should report an error pointing to the Table.parse method where applicable" <|
             t = table_builder [["X", ["1", "2", "3"]]]
             r1 = t.at "X" . cast Value_Type.Integer

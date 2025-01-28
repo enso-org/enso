@@ -38,7 +38,7 @@ make_long_builder initial_size bits java_problem_aggregator=(Missing_Argument.en
 make_string_builder : Integer -> Value_Type -> Builder
 make_string_builder initial_size value_type=Value_Type.Char =
     storage_type = Storage.from_value_type_strict value_type
-    Builder.getForType storage_type initial_size Nothing
+    Builder.getForText storage_type initial_size
 
 ## PRIVATE
 make_inferred_builder : Integer -> ProblemAggregator -> Builder

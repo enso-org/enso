@@ -496,7 +496,7 @@ object TestMessages {
         expressionIds.toSet.map { expressionId =>
           Api.ExpressionUpdate(
             expressionId,
-            None,
+            Some(Vector(ConstantsGen.PANIC)),
             methodCall,
             Vector(Api.ProfilingInfo.ExecutionTime(0)),
             false,

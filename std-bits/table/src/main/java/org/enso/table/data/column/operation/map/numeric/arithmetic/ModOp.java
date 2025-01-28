@@ -13,18 +13,20 @@ public class ModOp<T extends Number, I extends Storage<? super T>>
 
   @Override
   public double doDouble(
-      double a, double b, int ix, MapOperationProblemAggregator problemAggregator) {
+      double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
     if (b == 0.0) {
-      problemAggregator.reportDivisionByZero(ix);
+      // ToDo: ProblemAggregator should accept a long instead of an int.
+      problemAggregator.reportDivisionByZero((int) ix);
     }
 
     return a % b;
   }
 
   @Override
-  public Long doLong(long a, long b, int ix, MapOperationProblemAggregator problemAggregator) {
+  public Long doLong(long a, long b, long ix, MapOperationProblemAggregator problemAggregator) {
     if (b == 0) {
-      problemAggregator.reportDivisionByZero(ix);
+      // ToDo: ProblemAggregator should accept a long instead of an int.
+      problemAggregator.reportDivisionByZero((int) ix);
       return null;
     }
 
@@ -33,9 +35,10 @@ public class ModOp<T extends Number, I extends Storage<? super T>>
 
   @Override
   public BigInteger doBigInteger(
-      BigInteger a, BigInteger b, int ix, MapOperationProblemAggregator problemAggregator) {
+      BigInteger a, BigInteger b, long ix, MapOperationProblemAggregator problemAggregator) {
     if (b.equals(BigInteger.ZERO)) {
-      problemAggregator.reportDivisionByZero(ix);
+      // ToDo: ProblemAggregator should accept a long instead of an int.
+      problemAggregator.reportDivisionByZero((int) ix);
       return null;
     }
 
@@ -44,9 +47,10 @@ public class ModOp<T extends Number, I extends Storage<? super T>>
 
   @Override
   public BigDecimal doBigDecimal(
-      BigDecimal a, BigDecimal b, int ix, MapOperationProblemAggregator problemAggregator) {
+      BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator) {
     if (b.equals(BigDecimal.ZERO)) {
-      problemAggregator.reportDivisionByZero(ix);
+      // ToDo: ProblemAggregator should accept a long instead of an int.
+      problemAggregator.reportDivisionByZero((int) ix);
       return null;
     }
 

@@ -33,11 +33,11 @@ abstract class AbstractUnaryOperation implements UnaryOperation {
   }
 
   @Override
-  public abstract boolean canApply(ColumnStorage storage);
+  public abstract boolean canApply(ColumnStorage<?> storage);
 
   @Override
-  public ColumnStorage apply(
-      ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<?> apply(
+      ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     var builder = createBuilder(storage, problemAggregator);
 
     switch (storage) {
@@ -53,7 +53,7 @@ abstract class AbstractUnaryOperation implements UnaryOperation {
   }
 
   protected Builder createBuilder(
-      ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
+      ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     return Builder.getInferredBuilder(storage.getSize(), problemAggregator);
   }
 
@@ -83,7 +83,7 @@ abstract class AbstractUnaryOperation implements UnaryOperation {
 
   /** Apply the operation to an Object Storage. */
   protected void applyObject(
-      ColumnStorage objectStorage,
+      ColumnStorage<?> objectStorage,
       Builder builder,
       MapOperationProblemAggregator problemAggregator) {
     UnaryOperation.applyOverObjectStorage(

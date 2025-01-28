@@ -1820,7 +1820,87 @@ class RuntimeErrorsTest
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("101")
+  }
 
+  it should "continue execution after thrown exception" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+    val metadata   = new Metadata
+    val xId        = metadata.addItem(102, 40, "aa")
+    val yId        = metadata.addItem(151, 11, "ab")
+
+    val code =
+      """from Standard.Base import all
+        |polyglot java import java.lang.IllegalArgumentException
+        |
+        |main =
+        |    x = Panic.throw IllegalArgumentException.new
+        |    y = x.row_count
+        |    y
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // Open the new file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      4
+    ) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.panic(
+        contextId,
+        xId,
+        Api.MethodCall(
+          Api.MethodPointer(
+            "Standard.Base.Panic",
+            "Standard.Base.Panic.Panic",
+            "throw"
+          )
+        ),
+        Api.ExpressionUpdate.Payload.Panic(
+          "IllegalArgumentException",
+          Seq(xId)
+        ),
+        builtin = false
+      ),
+      TestMessages.panic(
+        contextId,
+        yId,
+        Api.ExpressionUpdate.Payload.Panic(
+          "IllegalArgumentException",
+          Seq(xId)
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual Seq()
   }
 
   it should "send updates when panic changes in expression" in {
@@ -2204,10 +2284,10 @@ class RuntimeErrorsTest
         xId,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
         Api.ExpressionUpdate.Payload.Panic(
-          "java.lang.NullPointerException",
+          "NullPointerException",
           Seq(xId)
         ),
-        None
+        builtin = false
       ),
       context.executionComplete(contextId)
     )

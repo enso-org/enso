@@ -9,32 +9,39 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.cast.CastProblemAggregator;
 import org.enso.table.data.column.operation.cast.StorageConverter;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
-import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.numeric.LongConstantStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** An abstract representation of a data column. */
-public abstract class Storage<T> implements ColumnStorage {
-  /** A constant representing the index of a missing value in a column. */
-  public static final int NOT_FOUND_INDEX = -1;
-
-  /**
-   * @return the number of elements in this column (including NAs)
-   */
-  public abstract int size();
-
+public abstract class Storage<T> implements ColumnStorage<T> {
   @Override
-  public long getSize() {
-    return size();
-  }
+  public abstract long getSize();
 
   @Override
   public abstract StorageType getType();
+
+  /**
+   * Returns a more specialized storage, if available.
+   *
+   * <p>This storage should have the same type as returned by {@code inferPreciseType}. See {@link
+   * MixedStorage} for more information.
+   */
+  public Storage<?> tryGettingMoreSpecializedStorage() {
+    return this;
+  }
+
+  @Override
+  public abstract boolean isNothing(long index);
+
+  @Override
+  public abstract T getItemBoxed(long index);
 
   /**
    * @return the type of the values in this column's storage. Most storages just return their type.
@@ -56,27 +63,6 @@ public abstract class Storage<T> implements ColumnStorage {
   public StorageType inferPreciseTypeShrunk() {
     return getType();
   }
-
-  /**
-   * Returns a more specialized storage, if available.
-   *
-   * <p>This storage should have the same type as returned by {@code inferPreciseType}. See {@link
-   * MixedStorage} for more information.
-   */
-  public Storage<?> tryGettingMoreSpecializedStorage() {
-    return this;
-  }
-
-  @Override
-  public abstract boolean isNothing(long index);
-
-  /**
-   * Returns a boxed representation of an item. Missing values are denoted with null.
-   *
-   * @param idx the index to look up
-   * @return the item at position {@code idx}
-   */
-  public abstract T getItemBoxed(int idx);
 
   /** A container for names of vectorizable operation. */
   public static final class Maps {
@@ -150,14 +136,15 @@ public abstract class Storage<T> implements ColumnStorage {
       boolean skipNulls,
       StorageType expectedResultType,
       ProblemAggregator problemAggregator) {
-    Builder storageBuilder = Builder.getForType(expectedResultType, size(), problemAggregator);
+    Builder storageBuilder = Builder.getForType(expectedResultType, getSize(), problemAggregator);
     if (skipNulls && argument == null) {
-      storageBuilder.appendNulls(size());
+      // ToDo: appendNulls should take a long, not an int. Should have a constant Storage for null.
+      storageBuilder.appendNulls((int) getSize());
       return storageBuilder.seal();
     }
 
     Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
+    for (long i = 0; i < getSize(); i++) {
       Object it = getItemBoxed(i);
       if (skipNulls && it == null) {
         storageBuilder.appendNulls(1);
@@ -187,11 +174,11 @@ public abstract class Storage<T> implements ColumnStorage {
       boolean skipNa,
       StorageType expectedResultType,
       ProblemAggregator problemAggregator) {
-    Builder storageBuilder = Builder.getForType(expectedResultType, size(), problemAggregator);
+    Builder storageBuilder = Builder.getForType(expectedResultType, getSize(), problemAggregator);
     Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
+    for (long i = 0; i < getSize(); i++) {
       Object it1 = getItemBoxed(i);
-      Object it2 = i < arg.size() ? arg.getItemBoxed(i) : null;
+      Object it2 = i < arg.getSize() ? arg.getItemBoxed(i) : null;
       if (skipNa && (it1 == null || it2 == null)) {
         storageBuilder.appendNulls(1);
       } else {
@@ -327,10 +314,10 @@ public abstract class Storage<T> implements ColumnStorage {
    */
   public Storage<?> fillMissing(
       Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
-    Builder builder = Builder.getForType(commonType, size(), problemAggregator);
+    Builder builder = Builder.getForType(commonType, getSize(), problemAggregator);
     Object convertedFallback = Polyglot_Utils.convertPolyglotValue(arg);
     Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
+    for (long i = 0; i < getSize(); i++) {
       Object it = getItemBoxed(i);
       builder.append(it == null ? convertedFallback : it);
       context.safepoint();
@@ -348,13 +335,12 @@ public abstract class Storage<T> implements ColumnStorage {
    */
   public Storage<?> fillMissingFrom(
       Storage<?> other, StorageType commonType, ProblemAggregator problemAggregator) {
-    var builder = Builder.getForType(commonType, size(), problemAggregator);
+    var builder = Builder.getForType(commonType, getSize(), problemAggregator);
     Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
+    for (long i = 0; i < getSize(); i++) {
       builder.append(isNothing(i) ? other.getItemBoxed(i) : getItemBoxed(i));
       context.safepoint();
     }
-
     return builder.seal();
   }
 
@@ -412,17 +398,18 @@ public abstract class Storage<T> implements ColumnStorage {
    * @return a storage counting the number of times each value in this one has been seen before.
    */
   public Storage<?> duplicateCount() {
-    long[] data = new long[size()];
     HashMap<Object, Integer> occurenceCount = new HashMap<>();
     Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
+    var builder =
+        Builder.getForLong(IntegerType.INT_64, getSize(), BlackholeProblemAggregator.INSTANCE);
+    for (long i = 0; i < getSize(); i++) {
       var value = getItemBoxed(i);
       var count = occurenceCount.getOrDefault(value, 0);
-      data[i] = count;
+      builder.appendLong(count);
       occurenceCount.put(value, count + 1);
       context.safepoint();
     }
-    return new LongStorage(data, IntegerType.INT_64);
+    return builder.seal();
   }
 
   public final Storage<?> cast(
@@ -431,8 +418,31 @@ public abstract class Storage<T> implements ColumnStorage {
     return converter.cast(this, castProblemAggregator);
   }
 
-  @Override
-  public Object getItemAsObject(long index) {
-    return getItemBoxed((int) index);
+  /** Creates a storage containing a single repeated item. */
+  public static Storage<?> fromRepeatedItem(
+      Value item, int repeat, ProblemAggregator problemAggregator) {
+    if (repeat < 0) {
+      throw new IllegalArgumentException("Repeat count must be non-negative.");
+    }
+
+    Object converted = Polyglot_Utils.convertPolyglotValue(item);
+
+    if (converted == null) {
+      return new NullStorage(repeat);
+    }
+
+    if (converted instanceof Long longValue) {
+      return new LongConstantStorage(longValue, repeat);
+    }
+
+    StorageType storageType = StorageType.forBoxedItem(converted);
+    Builder builder = Builder.getForType(storageType, repeat, problemAggregator);
+    Context context = Context.getCurrent();
+    for (int i = 0; i < repeat; i++) {
+      builder.append(converted);
+      context.safepoint();
+    }
+
+    return builder.seal();
   }
 }

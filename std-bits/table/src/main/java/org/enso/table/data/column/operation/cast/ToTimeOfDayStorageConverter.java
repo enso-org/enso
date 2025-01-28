@@ -8,6 +8,7 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.datetime.TimeOfDayStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.NullType;
 
 public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> {
   @Override
@@ -16,7 +17,8 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
       return timeOfDayStorage;
     } else if (storage instanceof DateTimeStorage dateTimeStorage) {
       return convertDateTimeStorage(dateTimeStorage, problemAggregator);
-    } else if (storage.getType() instanceof AnyObjectType) {
+    } else if (storage.getType() instanceof AnyObjectType
+        || storage.getType() instanceof NullType) {
       return castFromMixed(storage, problemAggregator);
     } else {
       throw new IllegalStateException(
@@ -25,12 +27,12 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
   }
 
   private Storage<LocalTime> castFromMixed(
-      ColumnStorage mixedStorage, CastProblemAggregator problemAggregator) {
+      ColumnStorage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
         Builder.getForTime(mixedStorage.getSize()),
         mixedStorage,
         (i) -> {
-          Object o = mixedStorage.getItemAsObject(i);
+          Object o = mixedStorage.getItemBoxed(i);
           return switch (o) {
             case LocalTime d -> d;
             case ZonedDateTime d -> convertDateTime(d);
@@ -43,12 +45,12 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
   }
 
   private Storage<LocalTime> convertDateTimeStorage(
-      DateTimeStorage dateTimeStorage, CastProblemAggregator problemAggregator) {
+      Storage<ZonedDateTime> dateTimeStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForTime(dateTimeStorage.size()),
+        Builder.getForTime(dateTimeStorage.getSize()),
         dateTimeStorage,
         (i) -> {
-          ZonedDateTime dateTime = dateTimeStorage.getItem(i);
+          ZonedDateTime dateTime = dateTimeStorage.getItemBoxed(i);
           return convertDateTime(dateTime);
         });
   }

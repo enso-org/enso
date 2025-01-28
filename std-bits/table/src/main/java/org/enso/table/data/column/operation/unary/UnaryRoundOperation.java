@@ -45,18 +45,18 @@ public class UnaryRoundOperation extends AbstractUnaryOperation {
   }
 
   protected Builder createBuilder(
-      ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
+      ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     return Builder.getInferredBuilder(storage.getSize(), problemAggregator);
   }
 
   @Override
-  public boolean canApply(ColumnStorage storage) {
+  public boolean canApply(ColumnStorage<?> storage) {
     return storage.getType().isNumeric();
   }
 
   @Override
-  public ColumnStorage apply(
-      ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<?> apply(
+      ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     if (storage instanceof ColumnLongStorage || storage instanceof BigIntegerStorage) {
       // For an integral type storage, the operation is an identity operation.
       return storage;

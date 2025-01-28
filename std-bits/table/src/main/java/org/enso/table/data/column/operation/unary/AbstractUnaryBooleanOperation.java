@@ -19,7 +19,7 @@ abstract class AbstractUnaryBooleanOperation extends AbstractUnaryOperation {
 
   @Override
   protected BuilderForBoolean createBuilder(
-      ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
+      ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     return Builder.getForBoolean(storage.getSize());
   }
 

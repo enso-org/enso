@@ -27,15 +27,15 @@ table_offset_impl table:Table (columns:(Vector | Text | Integer | Regex)=[]) n:I
         new_names = resolved_columns.map c-> 
             if set_mode!=Set_Mode.Add then c.name else
                 Column_Naming_Helper.in_memory.function_name "offset" [c, n, fillWith]
-        new_storages = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+        new_columns_java = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
             Java_Offset.offset resolved_java_columns n fillWith_java grouping_java_columns ordering_java_columns directions java_problem_aggregator
-        new_columns = new_names.zip new_storages.to_vector new_name-> new_storage -> Column.from_storage new_name new_storage
-        new_columns.fold table t-> c->
-            t.set c c.name set_mode
+        new_columns = new_columns_java.map Column.from_java_column
+        new_columns.zip new_names . fold table t-> pair->
+            t.set pair.first pair.second set_mode
 
 column_offset_impl column:Column n:Integer=-1 fillWith:Fill_With=..Nothing =
     java_column = column.java_column
     fillWith_java = fillWith.to_java
-    new_storage = Java_Offset.offset_single_column java_column n fillWith_java
+    new_column = Column.from_java_column <| Java_Offset.offset_single_column java_column n fillWith_java
     new_name = Column_Naming_Helper.in_memory.function_name "offset" [column, n, fillWith]
-    Column.from_storage new_name new_storage
+    new_column.rename new_name
