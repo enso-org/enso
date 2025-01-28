@@ -39,6 +39,20 @@ add_specs suite_builder =
             t4.should_be_a Table
             (t4:Column).name.should_equal "Count"
 
+        group_builder.specify "should also act as individual value if the only column has only one row" <|
+            t1 = Table.new [["A", [32]]]
+            t1.should_be_a Table
+            (t1:Column).to_vector.should_equal [32]
+            (t1:Integer).should_equal 32
+            (t1:Integer)+100 . should_equal 132
+            (10 + (t1:Integer)) . should_equal 42
+
+            # But a table with more rows won't do that:
+            t2 = Table.new [["A", [32, 33]]]
+            t2.should_be_a Table
+            Test.expect_panic Type_Error (t2:Integer)
+
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
