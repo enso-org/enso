@@ -35,7 +35,7 @@ add_specs suite_builder =
             t3.should_be_a Table
             (t3:Column).name.should_equal "B"
 
-            t4 = t1.aggregate [Aggregate_Column.Count]
+            t4 = t1.aggregate columns=[Aggregate_Column.Count]
             t4.should_be_a Table
             (t4:Column).name.should_equal "Count"
 
