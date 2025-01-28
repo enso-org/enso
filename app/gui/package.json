@@ -23,7 +23,7 @@
   ],
   "scripts": {
     "typecheck": "vue-tsc --noEmit -p tsconfig.app.json",
-    "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 vite build",
+    "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 NODE_ENV=production vite build",
     "build-cloud": "cross-env CLOUD_BUILD=true corepack pnpm run build",
     "preview": "vite preview",
     "lint": "eslint . --cache --max-warnings=0",
