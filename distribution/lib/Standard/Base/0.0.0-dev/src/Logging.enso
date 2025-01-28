@@ -21,6 +21,67 @@ Any.log_message self ~message:Text level:Log_Level=Log_Level.Info =
         Log_Level.Severe -> logger.error message
     self
 
+##
+   Infrastructure for reporting logs and progress of computations.
+   Useful for longer running actions (more than a second). A must
+   for long running actions (more than ten seconds). 
+   Start by invoking `Progress.run`, providing your own action
+   to preform and report progress as your action advances. Nest
+   your `Progress.run` invocations freely - the infrastructure is
+   going to take care of combining the overall status of the computations
+   together and will report it as a whole to a
+   [progress displaying facility](https://github.com/enso-org/enso/pull/12126).
+type Progress
+    private Running label:Text max:Float
+
+    ##
+       Performs provided `action` while reporting its progress.
+       `action` is a function that takes a `Progress` handle
+       and uses its methods to report progress of the computation.
+       The value returned from `action` is returned from this
+       method.
+
+       Arguments:
+       - label: Overall description of the action
+       - up_to: how _"long"_ - e.g. how many steps the action is expected to take 
+       - action: function performing the computation while reporting its `Progress`
+
+    run label:Text up_to:Float action:Progress->Any -> Any =
+        progress = Progress.Running label up_to
+        progress.log_message self.label+"@"+up_to Log_Level.Finest # TBD
+        res = action progress
+        progress.finish
+        res
+
+    ## 
+       Reports progress of the computation. Adds provided `amount` to the already
+       accumulated work towards `up_to` value provided when creating this `Progress`.
+
+       Arguments:
+       - amount: value to add to the progress. Must not be >= 0.0
+
+       Returns:
+       The self value.
+
+    advance self amount:Float -> Progress = 
+        if amount >= 0.0 . not then Panic.throw "Error"+amount.to_text
+        self.log_message self.label+"+"+amount Log_Level.Finest # TBD
+        self
+
+    ## 
+        Provides additional human readable detail about the actual status of the
+        computation.
+
+       Arguments:
+       - info: textual description of what's going on
+
+       Returns:
+       The self value.
+
+    log self detail:Text -> Progress =
+        self.log_message self.label+":"+detail Log_Level.Finest #TBD
+        self
+
 ## PRIVATE
 type Log_Level
     ## Finest (Trace) level log message.
