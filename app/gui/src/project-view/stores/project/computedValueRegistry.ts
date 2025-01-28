@@ -1,10 +1,10 @@
 import type { ExecutionContext } from '@/stores/project/executionContext'
 import { mockProjectNameStore, type ProjectNameStore } from '@/stores/projectNames'
+import { unwrapOr } from '@/util/data/result'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { ANY_TYPE_QN } from '@/util/ensoTypes'
 import { parseMethodPointer, type MethodCall } from '@/util/methodPointer'
 import { type ProjectPath } from '@/util/projectPath'
-import { isQualifiedName } from '@/util/qualifiedName'
 import { markRaw } from 'vue'
 import type {
   ExpressionId,
@@ -99,11 +99,16 @@ function combineInfo(
   const isPending = update.payload.type === 'Pending'
   const updateSingleValueType = update.type.at(0) // TODO: support multi-value (aka intersection) types
   const rawTypename = updateSingleValueType ?? (isPending ? info?.rawTypename : undefined)
+  // TODO[ao]: why do we discard Any type here?
+  const typename =
+    rawTypename && rawTypename !== ANY_TYPE_QN ?
+      projectNames.parseProjectPathRaw(rawTypename)
+    : undefined
+  if (typename && !typename.ok) {
+    typename.error.log('Discarding invalid type in expression update')
+  }
   return {
-    typename:
-      rawTypename && isQualifiedName(rawTypename) && rawTypename !== ANY_TYPE_QN ?
-        projectNames.parseProjectPath(rawTypename)
-      : undefined,
+    typename: typename ? unwrapOr(typename, undefined) : undefined,
     rawTypename,
     methodCall:
       update.methodCall ? translateMethodCall(update.methodCall, projectNames)

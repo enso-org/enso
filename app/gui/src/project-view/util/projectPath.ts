@@ -1,21 +1,24 @@
+import { Err, Ok, Result } from '@/util/data/result'
 import {
   qnJoin,
   qnSplit,
   type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
-import { assert, assertDefined } from 'ydoc-shared/util/assert'
+import { assertDefined } from 'ydoc-shared/util/assert'
 
 export type ProjectName = QualifiedName
 
 /** Parses the qualified name as a literal project path. */
-export function parseAbsoluteProjectPath(path: QualifiedName): ProjectPath {
+export function parseAbsoluteProjectPath(path: QualifiedName): Result<ProjectPath> {
   const parts = /^([^.]+\.[^.]+)(?:\.(.+))?$/.exec(path)
-  assert(parts != null)
+  if (parts == null) return Err(`${path} is not absolute project path`)
   assertDefined(parts[1])
-  return ProjectPath.create(
-    parts[1] as QualifiedName,
-    parts[2] ? (parts[2] as QualifiedName) : undefined,
+  return Ok(
+    ProjectPath.create(
+      parts[1] as QualifiedName,
+      parts[2] ? (parts[2] as QualifiedName) : undefined,
+    ),
   )
 }
 

@@ -1,7 +1,9 @@
 import { createContextStore } from '@/providers'
+import { Ok, Result } from '@/util/data/result'
 import { parseAbsoluteProjectPath, ProjectPath } from '@/util/projectPath'
-import { normalizeQualifiedName, qnJoin } from '@/util/qualifiedName'
+import { normalizeQualifiedName, qnJoin, qnSegments, tryQualifiedName } from '@/util/qualifiedName'
 import { type ToValue } from '@/util/reactivity'
+import { chain } from 'enso-common/src/utilities/data/iter'
 import { computed, readonly, ref, toRef, toValue } from 'vue'
 import { type Identifier, type QualifiedName } from 'ydoc-shared/ast'
 
@@ -36,11 +38,23 @@ function useProjectNameStore(
    * To ensure that QNs are interpreted correctly during and after project renames, this should be applied to data
    * from the backend as it is received.
    */
-  function parseProjectPath(path: QualifiedName): ProjectPath {
+  function parseProjectPath(path: QualifiedName): Result<ProjectPath> {
     const parsed = parseAbsoluteProjectPath(path)
-    return parsed.project === inboundProject.value ?
-        ProjectPath.create(undefined, parsed.path)
+    if (!parsed.ok) return parsed
+    return parsed.value.project === inboundProject.value ?
+        Ok(ProjectPath.create(undefined, parsed.value.path))
       : parsed
+  }
+
+  /**
+   * Interpret a string as a project path.
+   *
+   * Same as {@link parseProjectPath}, but the path is also checked for being an actual Qualified Name.
+   */
+  function parseProjectPathRaw(path: string): Result<ProjectPath> {
+    const qn = tryQualifiedName(path)
+    if (!qn.ok) return qn
+    return parseProjectPath(qn.value)
   }
 
   /**
@@ -64,8 +78,15 @@ function useProjectNameStore(
     return path.path ? qnJoin(project, path.path) : project
   }
 
+  function pathSegments(projectPath: ProjectPath) {
+    const project = projectPath.project ?? outboundProject.value
+    const pathSegments = projectPath.path ? qnSegments(projectPath.path) : []
+    return chain(qnSegments(project), pathSegments)
+  }
+
   return {
     parseProjectPath,
+    parseProjectPathRaw,
     printProjectPath,
     serializeProjectPathForBackend,
     onProjectRenameRequested: (newName: Identifier) => {
@@ -78,6 +99,7 @@ function useProjectNameStore(
       }
     },
     displayName: readonly(toRef(displayName)),
+    pathSegments,
   }
 }
 
