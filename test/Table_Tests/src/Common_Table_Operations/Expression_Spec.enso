@@ -8,7 +8,7 @@ from Standard.Table import Table, Column, Sort_Column, Aggregate_Column, Value_T
 from Standard.Table.Errors import all
 import Standard.Table.Expression.Expression_Error
 
-from Standard.Database.Errors import SQL_Error
+from Standard.Database.Errors import SQL_Error, Unsupported_Database_Type
 import Standard.Database.Feature.Feature
 
 from Standard.Test import all
@@ -25,7 +25,7 @@ add_specs suite_builder detailed setup =
     if setup.is_feature_supported Feature.Column_Operations then (add_expression_specs suite_builder detailed setup)
 
 add_expression_specs suite_builder detailed setup =
-    prefix = setup.prefix
+    prefix = setup.prefix+"(Expression_Spec) "
     table_builder = build_sorted_table setup
     column_a_description = ["A", [1, 2, 3, 4, 5]]
     column_odd_description = ["Bad] Name", [True, False, True, False, True]]
@@ -142,42 +142,56 @@ add_expression_specs suite_builder detailed setup =
                     c.to_vector.should_equal [True, False, False]
 
     suite_builder.group prefix+"Expression Nothing literals" group_builder->
-        specify_test "should be able to add an nothing column" group_builder expression_test->
+        if setup.is_database.not then specify_test "should be able to add an nothing column" group_builder expression_test->
             expression_test "null" Nothing
             expression_test "nUlL" Nothing
             expression_test "Nothing" Nothing
             expression_test "NOTHING" Nothing
 
-        group_builder.specify "should allow to create a NULL column" <|
+        group_builder.specify "should allow to create a NULL column (or fail gracefully)" <|
             t = table_builder [["X", [1, 2, 3]]]
             c = t.evaluate_expression "null"
-            c.name . should_equal "null"
-            c.to_vector.should_equal [Nothing, Nothing, Nothing]
-            ## We do not specify the value type.
-               It usually will be `Mixed` in in-memory and
-               `Unsupported_Data_Type` in DB.
-            c.value_type.should_be_a Value_Type
 
-            c.is_nothing.to_vector.should_equal [True, True, True]
+            should_be_supported = setup.is_database.not || c.is_error.not
+            case should_be_supported of
+                True ->
+                    c.name . should_equal "null"
+                    c.to_vector.should_equal [Nothing, Nothing, Nothing]
+                    ## We do not specify the value type.
+                       It usually will be `Mixed` in in-memory and
+                       `Unsupported_Data_Type` in DB.
+                    c.value_type.should_be_a Value_Type
 
-        ## TODO that may not necessarily be good, I think we may need to
-           introduce a Value_Type.Null and make it accepted by all
-           `Value_Type.expect_*` checks.
-           See: https://github.com/enso-org/enso/issues/6281
-        group_builder.specify "a null column may fail typechecks that expect a concrete type" <|
+                    c.is_nothing.to_vector.should_equal [True, True, True]
+
+                # If not supported, verify that the error is sane.
+                False -> c.should_fail_with Unsupported_Database_Type
+
+        group_builder.specify "a null column should work with operations on any type" pending=(if setup.is_database then "Null columns not supported in DB") <|
             t = table_builder [["X", [1, 2, 3]]]
             c = t.evaluate_expression "null"
-            (c + c) . should_fail_with Illegal_Argument
-            (c - c) . should_fail_with Invalid_Value_Type
-            (c.starts_with "X") . should_fail_with Invalid_Value_Type
-            c.not . should_fail_with Invalid_Value_Type
+            nulls = [Nothing, Nothing, Nothing]
+            c.not . to_vector . should_equal nulls
 
-            t.evaluate_expression "not(Nothing)" . should_fail_with Invalid_Value_Type
-            t.evaluate_expression "Nothing + Nothing" . should_fail_with Illegal_Argument
-            t.evaluate_expression "Nothing * Nothing" . should_fail_with Invalid_Value_Type
+            (c + c) . to_vector . should_equal nulls
+            (c - c) . to_vector . should_equal nulls
+            (c * c) . to_vector . should_equal nulls
+            (c / c) . to_vector . should_equal nulls
+            (c ^ c) . to_vector . should_equal nulls
+            (c % c) . to_vector . should_equal nulls
+            (c.starts_with c) . to_vector . should_equal nulls
+            (c.ends_with c) . to_vector . should_equal nulls
+            (c.contains c) . to_vector . should_equal nulls
 
-            t.evaluate_expression "[X] + Nothing" . to_vector . should_equal [Nothing, Nothing, Nothing]
-            t.evaluate_expression "Nothing + [X]" . should_fail_with Illegal_Argument
+            t.evaluate_expression "not(Nothing)" . to_vector . should_equal nulls
+            t.evaluate_expression "Nothing + Nothing" . to_vector . should_equal nulls
+            t.evaluate_expression "[X] + Nothing" . to_vector . should_equal nulls
+            t.evaluate_expression "Nothing + [X]" . to_vector . should_equal nulls
+
+            t.evaluate_expression "Nothing * Nothing" . to_vector . should_equal nulls
+            t.evaluate_expression "Nothing / Nothing" . to_vector . should_equal nulls
+            t.evaluate_expression "Nothing ^ Nothing" . to_vector . should_equal nulls
+            t.evaluate_expression "Nothing % Nothing" . to_vector . should_equal nulls
 
     suite_builder.group prefix+"Expression Date and Time literals" group_builder->
         specify_test "should be able to add a date or time column" group_builder pending=pending_datetime expression_test->
@@ -308,13 +322,16 @@ add_expression_specs suite_builder detailed setup =
         specify_test "should be able to check null" group_builder expression_test->
             expression_test "1 IS NULL" False
             expression_test "1 IS NoTHing" False
-            expression_test "Nothing IS NULL" True
             expression_test "1 IS NOT NULL" True
-            expression_test "Nothing IS NOT NULL" False
             expression_test "[A] IS NULL" [False, False, False, False, False]
             expression_test "[C] IS NULL" [False, False, False, False, True]
             expression_test "[A] IS NOT NULL" [True, True, True, True, True]
             expression_test "[C] IS NOT NULL" [True, True, True, True, False]
+
+            # This requires Null columns, so it's not generally tested on DB backends.
+            if setup.is_database.not || (setup.prefix.contains "SQLite") then
+                expression_test "Nothing IS NULL" True
+                expression_test "Nothing IS NOT NULL" False
 
         specify_test "should be able to check empty" group_builder expression_test->
             expression_test "'Hello World' IS EMPTY" False
@@ -342,8 +359,15 @@ add_expression_specs suite_builder detailed setup =
     suite_builder.group prefix+"Expression Boolean Operators" group_builder->
         specify_test "should be able to AND booleans" group_builder expression_test->
             expression_test "True && TRUE" True
-            expression_test "True && Nothing" Nothing
             expression_test "True AND False" False
+
+            expression_test "True && Nothing" Nothing
+
+            # This requires Null columns, so it's not generally tested on DB backends.
+            if setup.is_database.not || (setup.prefix.contains "SQLite")  then
+                expression_test "Nothing && False" False
+                expression_test "Nothing && True" Nothing
+
             expression_test "True && [Bad]] Name]" [True, False, True, False, True]
             expression_test "False AND [Bad]] Name]" False
 
@@ -351,6 +375,12 @@ add_expression_specs suite_builder detailed setup =
             expression_test "True || TRUE" True
             expression_test "True OR False" True
             expression_test "False OR False" False
+
+            # This requires Null columns, so it's not generally tested on DB backends.
+            if setup.is_database.not || (setup.prefix.contains "SQLite") then
+                expression_test "Nothing || False" Nothing
+                expression_test "Nothing || True" True
+
             expression_test "True OR [Bad]] Name]" True
             expression_test "False || [Bad]] Name]" [True, False, True, False, True]
 

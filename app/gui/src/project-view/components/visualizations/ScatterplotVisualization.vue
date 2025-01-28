@@ -727,11 +727,12 @@ watchPostEffect(() => {
     })
     .transition()
     .duration(animationDuration.value)
+    .attr('class', 'scatterPoint')
     .attr(
       'd',
       symbol.type(matchShape).size((d) => (d.size ?? 0.15) * SIZE_SCALE_MULTIPLER),
     )
-    .style('fill', (d) => colorScale(d))
+    .style('--color', (d) => colorScale(d))
     .attr('transform', (d) => `translate(${xScale_(Number(d.x))}, ${yScale_(d.y)})`)
   if (data.value.points.labels === VISIBLE_POINTS) {
     d3Points.value
@@ -950,6 +951,16 @@ config.setToolbar(useScatterplotVizToolbar())
   user-select: none;
   display: flex;
   flex-direction: column;
+
+  &:deep(path.scatterPoint) {
+    fill: var(--color);
+    stroke: transparent;
+    stroke-width: 5px;
+    transition: stroke 200ms;
+    &:hover {
+      stroke: color-mix(in srgb, var(--color) 50%, transparent 50%);
+    }
+  }
 }
 
 .WarningsScatterplotVisualization {

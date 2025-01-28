@@ -88,9 +88,15 @@
     #aaa 40%
   );
   --color-node-text-missing-value: white;
+  --color-edge-from-node: color-mix(
+    in oklab,
+    var(--node-group-color) 85%,
+    white 15%
+  );
 
   &.pending {
-    --color-node-primary: var(--color-node-pending);
+    --color-node-background: var(--color-node-pending);
+    --color-edge-from-node: var(--color-node-pending);
   }
 
   &.selected {
@@ -108,6 +114,11 @@
       in oklab,
       var(--color-node-primary) 70%,
       black 30%
+    );
+    --color-edge-from-node: color-mix(
+      in oklab,
+      var(--color-node-primary) 40%,
+      white 60%
     );
   }
 }

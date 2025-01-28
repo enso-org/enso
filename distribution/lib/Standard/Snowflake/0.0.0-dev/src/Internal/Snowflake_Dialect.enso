@@ -36,6 +36,7 @@ import Standard.Database.Internal.IR.Query.Query
 import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
 import Standard.Database.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import Standard.Database.Internal.Replace_Params.Replace_Params
+import Standard.Database.Internal.SQL_Part.SQL_Part
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.Internal.Statement_Setter.Statement_Setter
@@ -94,7 +95,13 @@ type Snowflake_Dialect
        Generates SQL modifier for limiting the number of rows and its position in the query
     get_limit_sql_modifier : Integer -> Any
     get_limit_sql_modifier self limit =
-        [700, SQL_Builder.code (" LIMIT " + limit.to_text)]
+        SQL_Builder.code (" LIMIT " + limit.to_text)
+
+    ## PRIVATE
+       Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
+       If you add extensions using Context_Extension you have to provide an order for them here
+    get_part_order self part:SQL_Part -> Integer =
+        [SQL_Part.Select, SQL_Part.Columns, SQL_Part.From, SQL_Part.Where, SQL_Part.Group, SQL_Part.Extension "snowflake_distinct", SQL_Part.Order, SQL_Part.Limit] . index_of part
 
     ## PRIVATE
        Wraps and possibly escapes the identifier so that it can be used in a
@@ -846,7 +853,7 @@ make_distinct_extension distinct_expressions =
            This may be related to #10321
            Once fixed, should re-enable the `Distinct_Returns_First_Row_From_Group_If_Ordered` flag back to `True`.
         SQL_Builder.code " QUALIFY ROW_NUMBER() OVER (PARTITION BY " ++ joined ++ " ORDER BY 1) = 1 "
-    Context_Extension.Value position=550 expressions=distinct_expressions run_generator=run_generator
+    Context_Extension.Value part_name=(SQL_Part.Extension "snowflake_distinct") expressions=distinct_expressions run_generator=run_generator
 
 ## PRIVATE
    Returns a custom cast expression if it is needed for a specific pair of types,

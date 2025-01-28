@@ -9,6 +9,7 @@ import {
   type Import,
   type RequiredImport,
 } from '@/stores/graph/imports'
+import { mockProjectNameStore } from '@/stores/projectNames'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   makeConstructor,
@@ -25,6 +26,12 @@ import { assertDefined } from 'ydoc-shared/util/assert'
 
 const qn = (s: string) => unwrap(tryQualifiedName(s))
 
+const projectNames = mockProjectNameStore('local', 'Project')
+
+function projectPath(path: string) {
+  return projectNames.parseProjectPath(unwrap(tryQualifiedName(path)))
+}
+
 interface CoverCase {
   description: string
   existing: Import
@@ -40,7 +47,7 @@ test.each<CoverCase>([
     },
     required: {
       kind: 'Qualified',
-      module: qn('Standard.Base'),
+      module: projectPath('Standard.Base'),
     },
     expected: true,
   },
@@ -52,43 +59,43 @@ test.each<CoverCase>([
     },
     required: {
       kind: 'Qualified',
-      module: qn('Standard.Base'),
+      module: projectPath('Standard.Base'),
     },
     expected: true,
   },
   {
     description: 'Module imported from parent',
     existing: {
-      from: qn('Standard'),
-      imported: { kind: 'List', names: [unwrap(tryIdentifier('Base'))] },
+      from: qn('Standard.Numbers'),
+      imported: { kind: 'List', names: [unwrap(tryIdentifier('Number'))] },
     },
     required: {
       kind: 'Qualified',
-      module: qn('Standard.Base'),
+      module: projectPath('Standard.Numbers.Number'),
     },
     expected: true,
   },
   {
     description: 'Module imported from parent with all',
     existing: {
-      from: qn('Standard'),
+      from: qn('Standard.Numbers'),
       imported: { kind: 'All', except: [] },
     },
     required: {
       kind: 'Qualified',
-      module: qn('Standard.Base'),
+      module: projectPath('Standard.Numbers.Number'),
     },
     expected: true,
   },
   {
     description: 'Module hidden when importing all from parent',
     existing: {
-      from: qn('Standard'),
-      imported: { kind: 'All', except: [unwrap(tryIdentifier('Base'))] },
+      from: qn('Standard.Numbers'),
+      imported: { kind: 'All', except: [unwrap(tryIdentifier('Number'))] },
     },
     required: {
       kind: 'Qualified',
-      module: qn('Standard.Base'),
+      module: projectPath('Standard.Numbers.Number'),
     },
     expected: false,
   },
@@ -100,7 +107,7 @@ test.each<CoverCase>([
     },
     required: {
       kind: 'Unqualified',
-      from: qn('Standard.Base'),
+      from: projectPath('Standard.Base'),
       import: unwrap(tryIdentifier('Table')),
     },
     expected: true,
@@ -113,7 +120,7 @@ test.each<CoverCase>([
     },
     required: {
       kind: 'Unqualified',
-      from: qn('Standard.Base'),
+      from: projectPath('Standard.Base'),
       import: unwrap(tryIdentifier('Table')),
     },
     expected: true,
@@ -126,13 +133,21 @@ test.each<CoverCase>([
     },
     required: {
       kind: 'Unqualified',
-      from: qn('Standard.Base'),
+      from: projectPath('Standard.Base'),
       import: unwrap(tryIdentifier('Table')),
     },
     expected: false,
   },
 ])('Existing imports cover required, $description', ({ existing, required, expected }) => {
-  expect(covers(existing, required)).toStrictEqual(expected)
+  expect(
+    covers(
+      {
+        from: projectNames.parseProjectPath(existing.from),
+        imported: existing.imported,
+      },
+      required,
+    ),
+  ).toStrictEqual(expected)
 })
 
 const mockDb = () => {
@@ -183,7 +198,7 @@ test.each<ConflictCase>([
     description: 'Conflicting Vector',
     importing: {
       kind: 'Unqualified',
-      from: qn('Project.Foo'),
+      from: projectPath('Project.Foo'),
       import: 'Vector' as Identifier,
     },
     alreadyImported: [
@@ -195,7 +210,7 @@ test.each<ConflictCase>([
     description: 'Conflicting Vector (2)',
     importing: {
       kind: 'Unqualified',
-      from: qn('Project.Foo'),
+      from: projectPath('Project.Foo'),
       import: 'Vector' as Identifier,
     },
     alreadyImported: [{ from: qn('Standard.Base'), imported: { kind: 'All', except: [] } }],
@@ -204,11 +219,18 @@ test.each<ConflictCase>([
 ])('Conflicting imports: $description', ({ importing, alreadyImported, expected }) => {
   const db = mockDb()
 
-  const conflicts = detectImportConflicts(db, alreadyImported, importing)
+  const conflicts = detectImportConflicts(
+    db,
+    alreadyImported.map(({ from, imported }) => ({
+      from: projectNames.parseProjectPath(from),
+      imported,
+    })),
+    importing,
+  )
   expect(conflicts).toEqual({
     detected: true,
     pattern: qn(expected.name),
-    fullyQualified: qn(expected.fullyQualified),
+    fullyQualified: projectPath(expected.fullyQualified),
   } satisfies ConflictInfo)
 })
 
@@ -218,7 +240,7 @@ test.each([
     expected: [
       {
         kind: 'Qualified',
-        module: qn('Standard.Base'),
+        module: projectPath('Standard.Base'),
       },
     ],
   },
@@ -227,7 +249,7 @@ test.each([
     expected: [
       {
         kind: 'Unqualified',
-        from: qn('Standard.Base'),
+        from: projectPath('Standard.Base'),
         import: unwrap(tryIdentifier('Type')),
       },
     ],
@@ -237,7 +259,7 @@ test.each([
     expected: [
       {
         kind: 'Unqualified',
-        from: qn('Standard.Base'),
+        from: projectPath('Standard.Base'),
         import: unwrap(tryIdentifier('Connections')),
       },
     ],
@@ -247,7 +269,7 @@ test.each([
     expected: [
       {
         kind: 'Unqualified',
-        from: qn('Standard.Base'),
+        from: projectPath('Standard.Base'),
         import: unwrap(tryIdentifier('DB_Table')),
       },
     ],
@@ -257,7 +279,7 @@ test.each([
     expected: [
       {
         kind: 'Unqualified',
-        from: qn('Standard.Base'),
+        from: projectPath('Standard.Base'),
         import: unwrap(tryIdentifier('Type')),
       },
     ],
@@ -267,7 +289,7 @@ test.each([
     expected: [
       {
         kind: 'Unqualified',
-        from: qn('Standard.Base'),
+        from: projectPath('Standard.Base'),
         import: unwrap(tryIdentifier('Type')),
       },
     ],
@@ -281,7 +303,7 @@ test.each([
     expected: [
       {
         kind: 'Qualified',
-        module: qn('Standard.Base'),
+        module: projectPath('Standard.Base'),
       },
     ],
   },
@@ -394,7 +416,7 @@ test.each<{
   {
     import: {
       kind: 'Unqualified',
-      from: qn('Standard.Base.Table'),
+      from: projectPath('Standard.Base.Table'),
       import: unwrap(tryIdentifier('Table')),
     },
     expected: 'from Standard.Base.Table import Table',
@@ -402,27 +424,29 @@ test.each<{
   {
     import: {
       kind: 'Qualified',
-      module: qn('Standard.Base.Data'),
+      module: projectPath('Standard.Base.Data'),
     },
     expected: 'import Standard.Base.Data',
   },
   {
     import: {
       kind: 'Qualified',
-      module: qn('local'),
+      module: projectPath('local.Other_Project'),
     },
-    expected: 'import local',
+    expected: 'import local.Other_Project',
   },
 ])('Generating import $expected', ({ import: import_, expected }) => {
-  expect(requiredImportToAst(import_).code()).toStrictEqual(expected)
+  expect(requiredImportToAst(import_, projectNames).code()).toStrictEqual(expected)
 })
 
 test('Insert after other imports in module', () => {
   const module_ = Ast.parseBlock('from Standard.Base import all\n\nmain = 42\n')
   const edit = module_.module.edit()
-  addImports(edit.getVersion(module_), [
-    { kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Visualization')) },
-  ])
+  addImports(
+    edit.getVersion(module_),
+    [{ kind: 'Qualified', module: projectPath('Standard.Visualization') }],
+    projectNames,
+  )
   expect(edit.getVersion(module_).code()).toBe(
     'from Standard.Base import all\nimport Standard.Visualization\n\nmain = 42\n',
   )
@@ -431,8 +455,10 @@ test('Insert after other imports in module', () => {
 test('Insert import in module with no other imports', () => {
   const module_ = Ast.parseBlock('main = 42\n')
   const edit = module_.module.edit()
-  addImports(edit.getVersion(module_), [
-    { kind: 'Qualified', module: unwrap(tryQualifiedName('Standard.Visualization')) },
-  ])
+  addImports(
+    edit.getVersion(module_),
+    [{ kind: 'Qualified', module: projectPath('Standard.Visualization') }],
+    projectNames,
+  )
   expect(edit.getVersion(module_).code()).toBe('import Standard.Visualization\nmain = 42\n')
 })

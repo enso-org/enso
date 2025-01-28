@@ -1,14 +1,18 @@
+import { type ProjectNameStore } from '@/stores/projectNames'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import { astToQualifiedName, MutableModule, parseIdent, parseIdents } from '@/util/ast/abstract'
-import { unwrap } from '@/util/data/result'
 import {
+  astToQualifiedName,
+  parseIdents,
+  type Identifier,
+  type IdentifierOrOperatorIdentifier,
+} from '@/util/ast/abstract'
+import { type ProjectPath } from '@/util/projectPath'
+import {
+  normalizeQualifiedName,
   qnLastSegment,
   qnSegments,
-  qnSplit,
-  tryQualifiedName,
-  type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
 
@@ -16,30 +20,37 @@ import {
 // === Imports analysis ===
 // ========================
 
+/** Read imports from given module block */
+export function readImports(ast: Ast.BodyBlock): RawImport[] {
+  const imports: RawImport[] = []
+  for (const stmt of ast.statements()) {
+    if (stmt instanceof Ast.Import) {
+      const recognized = recognizeImport(stmt)
+      if (recognized) imports.push(recognized)
+    }
+  }
+  return imports
+}
+
 /** Parse import statement. */
-export function recognizeImport(ast: Ast.Import): Import | null {
-  const from = ast.from
-  const as = ast.as
-  const import_ = ast.import_
-  const all = ast.all
-  const hiding = ast.hiding
-  const moduleAst = from ?? import_
+export function recognizeImport(ast: Ast.Import): RawImport | null {
+  const moduleAst = ast.from ?? ast.import_
   const module = moduleAst ? astToQualifiedName(moduleAst) : null
   if (!module) return null
-  if (all) {
-    const except = (hiding != null ? parseIdents(hiding) : []) ?? []
+  if (ast.all) {
+    const except = (ast.hiding != null ? parseIdents(ast.hiding) : []) ?? []
     return {
       from: module,
       imported: { kind: 'All', except },
     }
-  } else if (from && import_) {
-    const names = parseIdents(import_) ?? []
+  } else if (ast.from && ast.import_) {
+    const names = parseIdents(ast.import_) ?? []
     return {
       from: module,
       imported: { kind: 'List', names },
     }
-  } else if (import_) {
-    const alias = as ? parseIdent(as) : null
+  } else if (ast.import_) {
+    const alias = ast.as instanceof Ast.Ident ? ast.as.code() : null
     return {
       from: module,
       imported: alias ? { kind: 'Module', alias } : { kind: 'Module' },
@@ -50,32 +61,44 @@ export function recognizeImport(ast: Ast.Import): Import | null {
   }
 }
 
-export type ModuleName = QualifiedName
+/** Read the imports and transform their literal project paths to logical project paths. */
+export function analyzeImports(
+  ast: Ast.BodyBlock,
+  projectNames: ProjectNameStore,
+): AbstractImport[] {
+  return readImports(ast).map(({ from, imported }) => ({
+    from: projectNames.parseProjectPath(normalizeQualifiedName(from)),
+    imported,
+  }))
+}
 
 /** Information about parsed import statement. */
-export interface Import {
-  from: ModuleName
+export interface Import<ModulePath = QualifiedName> {
+  from: ModulePath
   imported: ImportedNames
 }
+
+export type RawImport = Import<QualifiedName>
+export type AbstractImport = Import<ProjectPath>
 
 export type ImportedNames = Module | List | All
 
 /** import Module.Path (as Alias)? */
 export interface Module {
   kind: 'Module'
-  alias?: IdentifierOrOperatorIdentifier
+  alias?: Identifier
 }
 
 /** from Module.Path import (Ident),+ */
 export interface List {
   kind: 'List'
-  names: IdentifierOrOperatorIdentifier[]
+  names: Identifier[]
 }
 
 /** from Module.Path import all (hiding (Ident),*)? */
 export interface All {
   kind: 'All'
-  except: IdentifierOrOperatorIdentifier[]
+  except: Identifier[]
 }
 
 // ========================
@@ -88,35 +111,23 @@ export type RequiredImport = QualifiedImport | UnqualifiedImport
 /** import Module.Path */
 export interface QualifiedImport {
   kind: 'Qualified'
-  module: QualifiedName
+  module: ProjectPath
 }
 
 /** from Module.Path import SomeIdentifier */
 export interface UnqualifiedImport {
   kind: 'Unqualified'
-  from: QualifiedName
-  import: IdentifierOrOperatorIdentifier
-}
-
-/** Read imports from given module block */
-export function readImports(ast: Ast.BodyBlock): Import[] {
-  const imports: Import[] = []
-  ast.visitRecursive((node) => {
-    if (node instanceof Ast.Import) {
-      const recognized = recognizeImport(node)
-      if (recognized) {
-        imports.push(recognized)
-      }
-      return false
-    }
-    return true
-  })
-  return imports
+  from: ProjectPath
+  import: Identifier
 }
 
 /** Insert the given imports into the given block at an appropriate location. */
-export function addImports(scope: Ast.MutableBodyBlock, importsToAdd: RequiredImport[]) {
-  const imports = importsToAdd.map((info) => requiredImportToAst(info, scope.module))
+export function addImports(
+  scope: Ast.MutableBodyBlock,
+  importsToAdd: RequiredImport[],
+  projectNames: ProjectNameStore,
+) {
+  const imports = importsToAdd.map((info) => requiredImportToAst(info, projectNames, scope.module))
   const position = newImportsLocation(scope)
   scope.insert(position, ...imports)
 }
@@ -147,13 +158,21 @@ function newImportsLocation(scope: Ast.BodyBlock): number {
  * Create an AST representing the required import statement.
  * @internal
  */
-export function requiredImportToAst(value: RequiredImport, module?: MutableModule) {
-  const module_ = module ?? MutableModule.Transient()
+export function requiredImportToAst(
+  value: RequiredImport,
+  projectNames: ProjectNameStore,
+  module?: Ast.MutableModule,
+) {
+  const module_ = module ?? Ast.MutableModule.Transient()
   switch (value.kind) {
     case 'Qualified':
-      return Ast.Import.Qualified(qnSegments(value.module), module_)!
+      return Ast.Import.Qualified(qnSegments(projectNames.printProjectPath(value.module)), module_)!
     case 'Unqualified':
-      return Ast.Import.Unqualified(qnSegments(value.from), value.import, module_)!
+      return Ast.Import.Unqualified(
+        qnSegments(projectNames.printProjectPath(value.from)),
+        value.import,
+        module_,
+      )!
   }
 }
 
@@ -163,11 +182,11 @@ export function requiredImports(
   entry: SuggestionEntry,
   directConImport: boolean = false,
 ): RequiredImport[] {
-  const unqualifiedImport = (from: QualifiedName): UnqualifiedImport[] => [
+  const unqualifiedImport = (from: ProjectPath): UnqualifiedImport[] => [
     {
       kind: 'Unqualified',
-      from,
-      import: entry.name,
+      from: from.normalized(),
+      import: entry.name as Identifier,
     },
   ]
   switch (entry.kind) {
@@ -177,18 +196,14 @@ export function requiredImports(
         : [
             {
               kind: 'Qualified',
-              module: entry.definedIn,
+              module: entry.definedIn.normalized(),
             },
           ]
     case SuggestionKind.Type:
-      return unqualifiedImport(entry.reexportedIn ? entry.reexportedIn : entry.definedIn)
+      return unqualifiedImport(entry.reexportedIn ?? entry.definedIn)
     case SuggestionKind.Constructor:
       if (directConImport) {
-        return (
-          entry.reexportedIn ? unqualifiedImport(entry.reexportedIn)
-          : entry.memberOf ? unqualifiedImport(entry.memberOf)
-          : []
-        )
+        return unqualifiedImport(entry.reexportedIn ?? entry.memberOf)
       } else {
         const selfType = selfTypeEntry(db, entry)
         return selfType ? requiredImports(db, selfType) : []
@@ -196,7 +211,7 @@ export function requiredImports(
     case SuggestionKind.Method: {
       const isStatic = entry.selfType == null
       const selfType = selfTypeEntry(db, entry)
-      const isExtension = selfType && selfType.definedIn !== entry.definedIn
+      const isExtension = selfType && !selfType.definedIn.equals(entry.definedIn)
       const definedIn = definedInEntry(db, entry)
       const extensionImports = isExtension && definedIn ? requiredImports(db, definedIn) : []
       const selfTypeImports = isStatic && selfType ? requiredImports(db, selfType) : []
@@ -214,14 +229,13 @@ export function requiredImports(
 }
 
 /** TODO: Add docs */
-export function requiredImportsByFQN(
+export function requiredImportsByProjectPath(
   db: SuggestionDb,
-  fqn: QualifiedName,
+  projectPath: ProjectPath,
   directConImport: boolean = false,
 ) {
-  const entry = db.getEntryByQualifiedName(fqn)
-  if (!entry) return []
-  return requiredImports(db, entry, directConImport)
+  const entry = db.getEntryByProjectPath(projectPath)
+  return entry ? requiredImports(db, entry, directConImport) : []
 }
 
 function selfTypeEntry(db: SuggestionDb, entry: SuggestionEntry): SuggestionEntry | undefined {
@@ -229,20 +243,18 @@ function selfTypeEntry(db: SuggestionDb, entry: SuggestionEntry): SuggestionEntr
     (entry.kind === SuggestionKind.Method || entry.kind === SuggestionKind.Constructor) &&
     entry.memberOf
   ) {
-    return db.getEntryByQualifiedName(entry.memberOf)
+    return db.getEntryByProjectPath(entry.memberOf)
   }
 }
 
 function definedInEntry(db: SuggestionDb, entry: SuggestionEntry): SuggestionEntry | undefined {
-  return db.getEntryByQualifiedName(entry.definedIn)
+  return db.getEntryByProjectPath(entry.definedIn)
 }
 
-function entryFQNFromRequiredImport(importStatement: RequiredImport): QualifiedName {
-  if (importStatement.kind === 'Qualified') {
-    return importStatement.module
-  } else {
-    return unwrap(tryQualifiedName(`${importStatement.from}.${importStatement.import}`))
-  }
+function entryPathFromRequiredImport(importStatement: RequiredImport): ProjectPath {
+  return importStatement.kind === 'Qualified' ?
+      importStatement.module
+    : importStatement.from.append(importStatement.import)
 }
 
 /** TODO: Add docs */
@@ -250,41 +262,47 @@ export function requiredImportEquals(left: RequiredImport, right: RequiredImport
   if (left.kind != right.kind) return false
   switch (left.kind) {
     case 'Qualified':
-      return left.module === (right as QualifiedImport).module
+      return left.module.equals((right as QualifiedImport).module)
     case 'Unqualified':
       return (
-        left.from === (right as UnqualifiedImport).from &&
+        left.from.equals((right as UnqualifiedImport).from) &&
         left.import === (right as UnqualifiedImport).import
       )
   }
 }
 
 /** Check if `existing` import statement covers `required`. */
-export function covers(existing: Import, required: RequiredImport): boolean {
-  const [parent, name] =
-    required.kind === 'Qualified' ? qnSplit(required.module)
-    : required.kind === 'Unqualified' ? [required.from, required.import]
-    : [undefined, '']
-  const directlyImported =
-    required.kind === 'Qualified' &&
-    existing.imported.kind === 'Module' &&
-    existing.from === required.module
+export function covers(existing: AbstractImport, required: RequiredImport): boolean {
+  if (required.kind === 'Qualified') {
+    if (existing.imported.kind === 'Module' && existing.from.equals(required.module)) return true
+    const parentAndName = required.module.splitAtName()
+    if (!parentAndName) return false
+    const [parent, name] = parentAndName
+    return coversUnqualified(existing, parent, name)
+  } else {
+    return coversUnqualified(existing, required.from, required.import)
+  }
+}
+
+function coversUnqualified(
+  existing: AbstractImport,
+  parent: ProjectPath,
+  name: IdentifierOrOperatorIdentifier,
+) {
   const importedInList =
     existing.imported.kind === 'List' &&
-    parent != null &&
-    existing.from === parent &&
-    existing.imported.names.includes(name)
+    existing.from.equals(parent) &&
+    existing.imported.names.includes(name as Identifier)
   const importedWithAll =
     existing.imported.kind === 'All' &&
-    parent != null &&
-    existing.from === parent &&
-    !existing.imported.except.includes(name)
-  return directlyImported || importedInList || importedWithAll
+    existing.from.equals(parent) &&
+    !existing.imported.except.includes(name as Identifier)
+  return importedInList || importedWithAll
 }
 
 /** TODO: Add docs */
 export function filterOutRedundantImports(
-  existing: Import[],
+  existing: AbstractImport[],
   required: RequiredImport[],
 ): RequiredImport[] {
   return required.filter((info) => !existing.some((existing) => covers(existing, info)))
@@ -295,9 +313,9 @@ export interface DetectedConflict {
   /* Always true, for more expressive API usage. */
   detected: boolean
   /* Advisory to replace the following name (qualified name or single ident)… */
-  pattern: QualifiedName | IdentifierOrOperatorIdentifier
+  pattern: QualifiedName | Identifier
   /* … with this fully qualified name. */
-  fullyQualified: QualifiedName
+  fullyQualified: ProjectPath
 }
 
 export type ConflictInfo = DetectedConflict | undefined
@@ -305,18 +323,21 @@ export type ConflictInfo = DetectedConflict | undefined
 /** Detect possible name clash when adding `importsForEntry` with `existingImports` present. */
 export function detectImportConflicts(
   suggestionDb: SuggestionDb,
-  existingImports: Import[],
+  existingImports: AbstractImport[],
   importToCheck: RequiredImport,
 ): ConflictInfo {
-  const entryFQN = entryFQNFromRequiredImport(importToCheck)
-  const [entryId] = suggestionDb.nameToId.lookup(entryFQN)
+  const entryPath = entryPathFromRequiredImport(importToCheck)
+  const entryId = suggestionDb.findByProjectPath(entryPath)
   if (entryId == null) return
-  const name = qnLastSegment(entryFQN)
+  const name =
+    entryPath.path ? qnLastSegment(entryPath.path)
+    : entryPath.project ? qnLastSegment(entryPath.project)
+    : undefined
+  if (!name) return
   const conflictingIds = suggestionDb.conflictingNames.lookup(name)
-  // Obviously, the entry doesn’t conflict with itself.
-  conflictingIds.delete(entryId)
 
   for (const id of conflictingIds) {
+    if (id === entryId) continue
     const e = suggestionDb.get(id)
     const required = e ? requiredImports(suggestionDb, e) : []
     for (const req of required) {
@@ -324,7 +345,7 @@ export function detectImportConflicts(
         return {
           detected: true,
           pattern: name,
-          fullyQualified: entryFQN,
+          fullyQualified: entryPath,
         }
       }
     }

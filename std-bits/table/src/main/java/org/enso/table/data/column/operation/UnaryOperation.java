@@ -32,7 +32,7 @@ public interface UnaryOperation {
       UnaryOperation operation,
       String newColumnName,
       MapOperationProblemAggregator problemAggregator) {
-    ColumnStorage storage = column.getStorage();
+    ColumnStorage<?> storage = column.getStorage();
 
     // If the storage has an inferred storage (e.g. a Mixed column) and the first level can't do get
     // an inferred storage.
@@ -76,7 +76,7 @@ public interface UnaryOperation {
         nothingUnchanged,
         storageBuilder,
         i -> {
-          Value result = function.apply(column.getStorage().getItemAsObject(i));
+          Value result = function.apply(column.getStorage().getItemBoxed(i));
           Object converted = Polyglot_Utils.convertPolyglotValue(result);
           storageBuilder.append(converted);
         });
@@ -87,13 +87,13 @@ public interface UnaryOperation {
   String getName();
 
   /** Can the operation be applied to the given Storage? */
-  boolean canApply(ColumnStorage storage);
+  boolean canApply(ColumnStorage<?> storage);
 
   /** Applies the operation to the given Storage. */
-  ColumnStorage apply(ColumnStorage storage, MapOperationProblemAggregator problemAggregator);
+  ColumnStorage<?> apply(ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator);
 
   private static void applyStorageInner(
-      ColumnStorage columnStorage,
+      ColumnStorage<?> columnStorage,
       boolean nothingUnchanged,
       Builder builder,
       LongConsumer callback) {
@@ -111,7 +111,7 @@ public interface UnaryOperation {
 
   /** Applies the operation to the given Storage. */
   static void applyOverObjectStorage(
-      ColumnStorage objectStorage,
+      ColumnStorage<?> objectStorage,
       boolean nothingUnchanged,
       Builder builder,
       Consumer<Object> function) {
@@ -119,7 +119,7 @@ public interface UnaryOperation {
         objectStorage,
         nothingUnchanged,
         builder,
-        i -> function.accept(objectStorage.getItemAsObject(i)));
+        i -> function.accept(objectStorage.getItemBoxed(i)));
   }
 
   /** Applies the operation to the given Boolean Storage. */
@@ -132,7 +132,7 @@ public interface UnaryOperation {
         booleanStorage,
         nothingUnchanged,
         builder,
-        i -> function.accept(booleanStorage.isNothing(i), booleanStorage.get(i)));
+        i -> function.accept(booleanStorage.isNothing(i), booleanStorage.getItemAsBoolean(i)));
   }
 
   @FunctionalInterface
@@ -150,7 +150,7 @@ public interface UnaryOperation {
         longStorage,
         nothingUnchanged,
         builder,
-        i -> function.accept(longStorage.isNothing(i), longStorage.get(i)));
+        i -> function.accept(longStorage.isNothing(i), longStorage.getItemAsLong(i)));
   }
 
   @FunctionalInterface
@@ -168,7 +168,7 @@ public interface UnaryOperation {
         doubleStorage,
         nothingUnchanged,
         builder,
-        i -> function.accept(doubleStorage.isNothing(i), doubleStorage.get(i)));
+        i -> function.accept(doubleStorage.isNothing(i), doubleStorage.getItemAsDouble(i)));
   }
 
   @FunctionalInterface

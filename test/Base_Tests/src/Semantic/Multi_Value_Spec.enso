@@ -163,7 +163,6 @@ add_specs suite_builder =
             Test.expect_panic Type_Error <|
                 _ = a_or_b : (A&B)
 
-        # This test is failing
         group_builder.specify "B --> (A|C) is possible" <|
             b = B.B 42
             a_or_c = b : (A|C)

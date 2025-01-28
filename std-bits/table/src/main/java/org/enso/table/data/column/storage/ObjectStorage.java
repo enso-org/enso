@@ -2,35 +2,26 @@ package org.enso.table.data.column.storage;
 
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
-import org.enso.table.data.column.storage.type.StorageType;
 
 /** A column storing arbitrary Java objects. */
 public sealed class ObjectStorage extends SpecializedStorage<Object> permits MixedStorage {
+  /** An empty object storage. */
+  public static ObjectStorage EMPTY = new ObjectStorage(new Object[0]);
+
   /**
    * @param data the underlying data
-   * @param size the number of items stored
    */
-  public ObjectStorage(Object[] data, int size) {
-    super(data, size, buildObjectOps());
+  public ObjectStorage(Object[] data) {
+    super(AnyObjectType.INSTANCE, data, new MapOperationStorage<>());
   }
 
   @Override
-  protected SpecializedStorage<Object> newInstance(Object[] data, int size) {
-    return new ObjectStorage(data, size);
+  protected SpecializedStorage<Object> newInstance(Object[] data) {
+    return new ObjectStorage(data);
   }
 
   @Override
   protected Object[] newUnderlyingArray(int size) {
     return new Object[size];
-  }
-
-  @Override
-  public StorageType getType() {
-    return AnyObjectType.INSTANCE;
-  }
-
-  public static <T, S extends SpecializedStorage<T>> MapOperationStorage<T, S> buildObjectOps() {
-    MapOperationStorage<T, S> ops = new MapOperationStorage<>();
-    return ops;
   }
 }

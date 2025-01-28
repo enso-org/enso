@@ -11,7 +11,7 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A double builder variant that preserves types and can be retyped to Mixed. */
-public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRetyping {
+public final class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRetyping {
   /**
    * Converts the provided LongBuilder to a DoubleBuilder.
    *
@@ -145,7 +145,7 @@ public class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithR
   @Override
   public Builder retypeTo(StorageType type) {
     if (type instanceof BigDecimalType) {
-      Builder res = Builder.getForType(BigDecimalType.INSTANCE, data.length, null);
+      Builder res = Builder.getForBigDecimal(data.length);
       for (int i = 0; i < currentSize; i++) {
         if (isNothing.get(i)) {
           res.appendNulls(1);

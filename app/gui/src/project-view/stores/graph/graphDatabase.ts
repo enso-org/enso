@@ -1,8 +1,8 @@
 import { computeNodeColor } from '@/composables/nodeColors'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
+import { mockProjectNameStore, type ProjectNameStore } from '@/stores/projectNames'
 import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
 import { type CallableSuggestionEntry } from '@/stores/suggestionDatabase/entry'
-import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
 import { MutableModule } from '@/util/ast/abstract'
@@ -14,11 +14,13 @@ import { unwrap } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import {
-  isIdentifierOrOperatorIdentifier,
-  isQualifiedName,
-  normalizeQualifiedName,
-  tryIdentifier,
-} from '@/util/qualifiedName'
+  methodPointerEquals,
+  parseMethodPointer,
+  type MethodCall,
+  type MethodPointer,
+  type StackItem,
+} from '@/util/methodPointer'
+import { tryIdentifier } from '@/util/qualifiedName'
 import {
   nonReactiveView,
   resumeReactivity,
@@ -36,12 +38,7 @@ import {
   type WatchStopHandle,
 } from 'vue'
 import { type SourceDocument } from 'ydoc-shared/ast/sourceDocument'
-import {
-  methodPointerEquals,
-  type MethodCall,
-  type MethodPointer,
-  type StackItem,
-} from 'ydoc-shared/languageServerTypes'
+import type { MethodCall as LSMethodCall } from 'ydoc-shared/languageServerTypes'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 import type { ExternalId, VisualizationMetadata } from 'ydoc-shared/yjsModel'
 import { isUuid, visMetadataEquals } from 'ydoc-shared/yjsModel'
@@ -64,11 +61,12 @@ export class GraphDb {
     [info.identifier, id],
   ])
 
-  /** TODO: Add docs */
+  /** Constructor. */
   constructor(
-    private suggestionDb: SuggestionDb,
-    private groups: Ref<DeepReadonly<Group[]>>,
-    private valuesRegistry: ComputedValueRegistry,
+    private readonly suggestionDb: SuggestionDb,
+    private readonly groups: Ref<DeepReadonly<Group[]>>,
+    private readonly valuesRegistry: ComputedValueRegistry,
+    private readonly projectNames: ProjectNameStore,
   ) {}
 
   private nodeIdToPatternExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
@@ -144,7 +142,7 @@ export class GraphDb {
     return computeNodeColor(
       () => entry.type,
       () => tryGetIndex(this.groups.value, this.getNodeMainSuggestion(id)?.groupIndex),
-      () => this.getExpressionInfo(id)?.typename,
+      () => this.getExpressionInfo(id)?.rawTypename,
     )
   })
 
@@ -213,7 +211,10 @@ export class GraphDb {
     const info = this.getExpressionInfo(id)
     if (info == null) return
     return (
-      info.methodCall ?? (info.payload.type === 'Value' ? info.payload.functionSchema : undefined)
+      info.methodCall ??
+      (info.payload.type === 'Value' && info.payload.functionSchema ?
+        translateMethodCall(info.payload.functionSchema, this.projectNames)
+      : undefined)
     )
   }
 
@@ -485,19 +486,20 @@ export class GraphDb {
     const suggestion = this.suggestionDb.findByMethodPointer(oldMethodPointer)
     const suggestionEntry = suggestion != null ? this.suggestionDb.get(suggestion) : null
     if (suggestionEntry != null) {
-      DEV: assert(isQualifiedName(newMethodPointer.module))
-      DEV: assert(isQualifiedName(newMethodPointer.definedOnType))
-      DEV: assert(isIdentifierOrOperatorIdentifier(newMethodPointer.name))
       Object.assign(suggestionEntry, {
-        definedIn: normalizeQualifiedName(newMethodPointer.module),
-        memberOf: normalizeQualifiedName(newMethodPointer.definedOnType),
+        definedIn: newMethodPointer.module,
+        memberOf: newMethodPointer.definedOnType,
         name: newMethodPointer.name,
       })
     }
   }
   /** TODO: Add docs */
-  static Mock(registry = ComputedValueRegistry.Mock(), db = new SuggestionDb()): GraphDb {
-    return new GraphDb(db, ref([]), registry)
+  static Mock(
+    registry = ComputedValueRegistry.Mock(),
+    db = new SuggestionDb(),
+    projectNames = mockProjectNameStore(),
+  ): GraphDb {
+    return new GraphDb(db, ref([]), registry, projectNames)
   }
 
   /** TODO: Add docs */
@@ -527,6 +529,13 @@ export class GraphDb {
     this.nodeIdToNode.set(id, node)
     this.bindings.set(bindingId, { identifier: binding, usages: new Set() })
     return node
+  }
+}
+
+function translateMethodCall(ls: LSMethodCall, projectNames: ProjectNameStore): MethodCall {
+  return {
+    methodPointer: parseMethodPointer(ls.methodPointer, projectNames),
+    notAppliedArguments: ls.notAppliedArguments,
   }
 }
 

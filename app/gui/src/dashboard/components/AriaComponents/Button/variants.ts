@@ -124,7 +124,7 @@ export const BUTTON_STYLES = tv({
     },
     iconOnly: {
       // Specified in the compoundVariants
-      true: '',
+      true: 'aspect-square',
     },
     rounded: {
       full: 'rounded-full',

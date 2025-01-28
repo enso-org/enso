@@ -21,15 +21,15 @@ public class IsNaNOperation extends AbstractUnaryBooleanOperation {
   }
 
   @Override
-  public boolean canApply(ColumnStorage storage) {
+  public boolean canApply(ColumnStorage<?> storage) {
     var type = storage.getType();
     // We also allow this operation on Mixed type to facilitate `internal_is_nan` helper.
     return type.isNumeric() || type instanceof AnyObjectType;
   }
 
   @Override
-  public ColumnStorage apply(
-      ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<?> apply(
+      ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     if (storage instanceof ColumnLongStorage
         && storage instanceof ColumnStorageWithNothingMap withNothingMap) {
       // For a Column of Longs where we have the Nothing map, we can produce result immediately.

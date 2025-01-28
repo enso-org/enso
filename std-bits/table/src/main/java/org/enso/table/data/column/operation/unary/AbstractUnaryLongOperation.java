@@ -26,7 +26,7 @@ abstract class AbstractUnaryLongOperation extends AbstractUnaryOperation {
 
   @Override
   protected BuilderForLong createBuilder(
-      ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
+      ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     return Builder.getForLong(returnType, storage.getSize(), problemAggregator);
   }
 

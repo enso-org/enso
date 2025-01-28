@@ -506,7 +506,9 @@ public final class EnsoMultiValue extends EnsoObject {
   @Override
   public String toString() {
     var both = EnsoMultiType.AllTypesWith.getUncached().executeAllTypes(dispatch, extra, 0);
-    return Stream.of(both).map(t -> t.getName()).collect(Collectors.joining(" & "));
+    return Stream.of(both)
+        .map(t -> t != null ? t.getName() : "[?]")
+        .collect(Collectors.joining(" & "));
   }
 
   /** Casts {@link EnsoMultiValue} to requested type effectively. */

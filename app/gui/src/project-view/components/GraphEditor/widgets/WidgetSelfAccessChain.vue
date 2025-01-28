@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import { DisplayIcon } from '@/components/GraphEditor/widgets/WidgetIcon.vue'
 import { injectFunctionInfo } from '@/providers/functionInfo'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
+import { useGraphStore } from '@/stores/graph'
 import { Ast } from '@/util/ast'
-import { displayedIconOf } from '@/util/getIconName'
-import { computed } from 'vue'
-import { DisplayIcon } from './WidgetIcon.vue'
+import { displayedIconOf, useDisplayedIcon } from '@/util/getIconName'
+import { computed, toRef } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const functionInfo = injectFunctionInfo(true)
+const graph = useGraphStore()
+const tree = injectWidgetTree()
 
-const displayedIcon = computed(() => {
+const baseIcon = computed(() => {
   const callInfo = functionInfo?.callInfo
   return displayedIconOf(
     callInfo?.suggestion,
@@ -19,13 +22,13 @@ const displayedIcon = computed(() => {
     functionInfo?.outputType ?? 'Unknown',
   )
 })
+const { displayedIcon } = useDisplayedIcon(graph.db, toRef(tree, 'externalId'), baseIcon)
 
 const iconInput = computed(() => {
   const lhs = props.input.value.lhs
   if (!lhs) return
   const input = WidgetInput.WithPort(WidgetInput.FromAst(lhs))
-  const icon = displayedIcon.value
-  if (icon) input[DisplayIcon] = { icon, showContents: showFullAccessChain.value }
+  input[DisplayIcon] = { icon: displayedIcon.value, showContents: showFullAccessChain.value }
   return input
 })
 
