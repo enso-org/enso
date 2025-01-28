@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.enso.compiler.Compiler;
@@ -309,24 +310,23 @@ public class DocsGenerateTest {
         sig);
   }
 
-  private static void generateDocumentation(String name, String code, DocsVisit v)
+  static void generateDocumentation(Path projDir, String projName, String code, DocsVisit v)
       throws IOException {
-    var pathCalc = TEMP.newFolder(name);
-    ProjectUtils.createProject(name, code, pathCalc.toPath());
+    ProjectUtils.createProject(projName, code, projDir);
     ProjectUtils.generateProjectDocs(
         "api",
         ContextUtils.defaultContextBuilder(),
-        pathCalc.toPath(),
+        projDir,
         (context) -> {
           var enso = ContextUtils.leakContext(context);
           var modules = enso.getTopScope().getModules();
           var optMod =
-              modules.stream().filter(m -> m.getName().toString().contains(name)).findFirst();
+              modules.stream().filter(m -> m.getName().toString().contains(projName)).findFirst();
           assertTrue(
-              "Found " + name + " in " + modules.stream().map(m -> m.getName()).toList(),
+              "Found " + projName + " in " + modules.stream().map(m -> m.getName()).toList(),
               optMod.isPresent());
           var mod = optMod.get();
-          assertEquals("local." + name + ".Main", mod.getName().toString());
+          assertEquals("local." + projName + ".Main", mod.getName().toString());
           var ir = mod.getIr();
           assertNotNull("Ir for " + mod + " found", ir);
 
@@ -336,6 +336,12 @@ public class DocsGenerateTest {
             throw raise(RuntimeException.class, e);
           }
         });
+  }
+
+  private static void generateDocumentation(String projectName, String code, DocsVisit v)
+      throws IOException {
+    var pathCalc = TEMP.newFolder(projectName);
+    generateDocumentation(pathCalc.toPath(), projectName, code, v);
   }
 
   private static final class MockVisitor implements DocsVisit {
