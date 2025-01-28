@@ -5,8 +5,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import org.enso.base.CompareException;
 import org.enso.base.Text_Utils;
-import org.enso.table.data.column.operation.CountNonTrivialWhitespace;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.CountNonTrivialWhitespace;
 import org.enso.table.data.column.operation.CountUntrimmed;
 import org.enso.table.data.column.operation.SampleOperation;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
@@ -28,9 +28,11 @@ public final class StringStorage extends SpecializedStorage<String> {
 
   private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(StringStorage.class);
 
-  record DataQualityMetrics(Long untrimmedCount, Long whitespaceCount) {};
+  record DataQualityMetrics(Long untrimmedCount, Long whitespaceCount) {}
+  ;
 
   private Future<DataQualityMetrics> dataQualityMetricsValues;
+
   /**
    * @param data the underlying data
    * @param type the type of the column
