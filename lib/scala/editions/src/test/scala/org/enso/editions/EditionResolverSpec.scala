@@ -1,7 +1,10 @@
 package org.enso.editions
 
 import org.enso.semver.SemVer
-import org.enso.editions.EditionResolutionError.EditionResolutionCycle
+import org.enso.editions.EditionResolutionError.{
+  CannotLoadEdition,
+  EditionResolutionCycle
+}
 import org.enso.editions.Editions.{RawEdition, Repository}
 import org.enso.editions.provider.{
   EditionLoadingError,
@@ -209,7 +212,7 @@ class EditionResolverSpec
       }
     }
 
-    "defer to default version when parent is missing" in new WithDefaultContext {
+    "not defer to default version when parent is missing" in new WithDefaultContext {
       ctx =>
       val localRepo = Repository("main", "http://example.com/local")
 
@@ -229,12 +232,9 @@ class EditionResolverSpec
         )
       )
 
-      inside(ctx.resolver.resolve(edition)) { case Right(resolved) =>
-        resolved.parent should be(defined)
-        resolved.engineVersion should not be defined
-        resolved.parent.get.engineVersion should equal(
-          Some(SemVer.of(0, 0, 0, "dev"))
-        )
+      inside(ctx.resolver.resolve(edition)) {
+        case Left(CannotLoadEdition(name, _)) =>
+          name shouldEqual "2020.2"
       }
     }
 
