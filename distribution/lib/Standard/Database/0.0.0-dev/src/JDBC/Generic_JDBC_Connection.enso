@@ -82,7 +82,7 @@ type Generic_JDBC_Connection
        GROUP Standard.Base.Input
        ICON data_input
 
-       Execute a raw SQL query, or an `SQL_Statement`.Generic_JDBC_Connection.
+       Execute a raw SQL query, or an `SQL_Statement`.
 
        Returns the resulting rows.
 
