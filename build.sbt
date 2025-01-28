@@ -5125,9 +5125,9 @@ launcherDistributionRoot := packageBuilder.localArtifact("launcher") / "enso"
 projectManagerDistributionRoot :=
   packageBuilder.localArtifact("project-manager") / "enso"
 
-lazy val createEngineIndex =
+lazy val createStdLibsIndexes =
   taskKey[Unit]("Creates index files for standard libraries")
-createEnginePackage := {
+createStdLibsIndexes := {
   updateLibraryManifests.value
   buildEngineDistributionNoIndex.value
   val modulesToCopy    = componentModulesPaths.value
@@ -5143,11 +5143,11 @@ createEnginePackage := {
     cacheFactory   = cacheFactory.sub("stdlib"),
     log            = log
   )
-  log.info(s"Standard library indexes create for $root")
+  log.info(s"Standard library indexes create for $distributionRoot")
 }
 
-ThisBuild / createEngineIndex := {
-  createEngineIndex.result.value
+ThisBuild / createStdLibsIndexes := {
+  createStdLibsIndexes.result.value
 }
 
 lazy val createEnginePackageNoIndex =
@@ -5169,8 +5169,7 @@ createEnginePackageNoIndex := {
     editionName         = currentEdition,
     sourceStdlibVersion = stdLibVersion,
     targetStdlibVersion = targetStdlibVersion,
-    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value,
-    generateIndex       = false
+    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value
   )
   log.info(s"Engine package created at $root")
 }
@@ -5194,7 +5193,7 @@ buildEngineDistributionNoIndex := Def.taskIf {
 // of other tasks.
 ThisBuild / buildEngineDistributionNoIndex := {
   updateLibraryManifests.value
-  createEnginePackage.value
+  createEnginePackageNoIndex.value
 }
 
 lazy val shouldBuildNativeImage = taskKey[Boolean](
@@ -5233,8 +5232,8 @@ lazy val buildEngineDistribution =
   taskKey[Unit]("Builds the engine distribution")
 buildEngineDistribution := {
   buildEngineDistributionNoIndex.value
-  createEnginePackage.value
-  createEngineIndex.value
+  createEnginePackageNoIndex.value
+  createStdLibsIndexes.value
 }
 
 // This makes the buildEngineDistributionNoIndex task usable as a dependency
