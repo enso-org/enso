@@ -67,12 +67,12 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.Type_Refinements.DB_Table_Refinements
 import project.SQL_Query.SQL_Query
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
 import project.Take_Drop_Helpers
 from project.Errors import Integrity_Error, SQL_Error, Table_Not_Found, Unsupported_Database_Operation
-from project.Internal.Type_Refinements.Single_Column_DB_Table import refine_with_single_column
 from project.Take_Drop_Helpers import Take_Drop
 
 polyglot java import java.sql.JDBCType
@@ -93,8 +93,9 @@ type DB_Table
 
        It can perform some additional operations, like refining the type,
        so it should always be preferred over calling `DB_Table.Value` directly.
-    private new (internal_name:Text) connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context =
-        DB_Table.Value internal_name connection internal_columns context |> refine_with_single_column
+    private new (internal_name:Text) connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context -> DB_Table =
+        DB_Table_Refinements.refine_table <|
+            DB_Table.Value internal_name connection internal_columns context
 
     ## GROUP Standard.Base.Metadata
        ICON metadata

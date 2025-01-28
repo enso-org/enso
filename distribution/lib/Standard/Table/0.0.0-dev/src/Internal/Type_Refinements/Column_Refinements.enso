@@ -6,7 +6,7 @@ import project.Column.Column
 import project.Value_Type.Value_Type
 from project.Internal.Type_Refinements.Single_Value_Column_Conversions import all
 
-refine_with_single_value (column : Column) =
+refine_column (column : Column) =
     ## We treat a column as single value if it contains a single not-nothing value.
     if is_single_value column . not then column else case column.inferred_precise_value_type of
         Value_Type.Integer _ ->
