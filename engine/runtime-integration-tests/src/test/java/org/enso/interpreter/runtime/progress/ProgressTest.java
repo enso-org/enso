@@ -1,0 +1,64 @@
+package org.enso.interpreter.runtime.progress;
+
+import static org.junit.Assert.assertEquals;
+
+import org.enso.common.MethodNames;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.test.utils.ContextUtils;
+import org.graalvm.polyglot.Context;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+public class ProgressTest {
+  private static Context ctx;
+  private static EnsoContext ensoCtx;
+
+  @BeforeClass
+  public static void initCtx() throws Exception {
+    ctx = ContextUtils.createDefaultContext();
+    ensoCtx = ContextUtils.leakContext(ctx);
+  }
+
+  @AfterClass
+  public static void closeCtx() throws Exception {
+    ctx.close();
+    ctx = null;
+  }
+
+  public ProgressTest() {}
+
+  @Test
+  public void advanceMultipleTimes() {
+    var code =
+        """
+    from Standard.Base import Integer, Float
+    from Standard.Base.Logging import Progress
+
+    geom n:Integer a1:Float q:Float =
+        Progress.run "geometric sequence" n progress->
+            loop i:Integer v:Float acc:Float =
+                if i == n then acc else
+                    progress.log "Step #"+i.to_text
+                    next = v*q
+                    sum = next+acc
+                    progress.advance 1
+                    @Tail_Call loop i+1 next sum
+
+            progress.log "About to compute geometric sequence for "+n.to_text
+            res = loop 1 a1 a1
+            progress.log "We have the result "+res.to_text
+            res
+    """;
+
+    var geom = ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "geom");
+    var r1 = geom.execute(1, 2.0, 0.5);
+    assertEquals("Only two", 2.0, r1.asDouble(), 0.001);
+    var r2 = geom.execute(2, 2.0, 0.5);
+    assertEquals("Three", 3.0, r2.asDouble(), 0.001);
+    var r3 = geom.execute(3, 2.0, 0.5);
+    assertEquals("Three and half", 3.5, r3.asDouble(), 0.001);
+    var r4 = geom.execute(50, 2.0, 0.5);
+    assertEquals("Got almost four", 4.0, r4.asDouble(), 0.001);
+  }
+}

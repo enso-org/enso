@@ -1,7 +1,9 @@
 import project.Any.Any
 import project.Data.Text.Text
+import project.Data.Numbers.Float
 import project.Meta
 import project.Nothing.Nothing
+import project.Panic
 
 polyglot java import org.slf4j.LoggerFactory
 
@@ -46,10 +48,10 @@ type Progress
        - up_to: how _"long"_ - e.g. how many steps the action is expected to take 
        - action: function performing the computation while reporting its `Progress`
 
-    run label:Text up_to:Float action:Progress->Any -> Any =
-        if up_to >= 0.0 . not then Panic.throw "Error"+up_to.to_text
+    run label:Text up_to:Float action:(Progress->Any) -> Any =
+        if up_to>=0.0 . not then Panic.throw "Error"+up_to.to_text
         progress = Progress.Running label up_to
-        progress.log_message self.label+"@"+up_to Log_Level.Finest # TBD
+        progress.log_message progress.label+"@"+up_to.to_text Log_Level.Finest # TBD
         res = action progress
         progress.advance up_to
         res
@@ -65,8 +67,8 @@ type Progress
        The self value.
 
     advance self amount:Float -> Progress = 
-        if amount >= 0.0 . not then Panic.throw "Error"+amount.to_text
-        self.log_message self.label+"+"+amount Log_Level.Finest # TBD
+        if amount>=0.0 . not then Panic.throw "Error"+amount.to_text
+        self.log_message self.label+"+"+amount.to_text Log_Level.Finest # TBD
         self
 
     ## 
