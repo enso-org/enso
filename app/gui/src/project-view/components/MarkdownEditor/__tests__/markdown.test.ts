@@ -3,6 +3,7 @@ import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { EditorState } from '@codemirror/state'
 import { Decoration, EditorView } from '@codemirror/view'
 import { expect, test } from 'vitest'
+import { debugTree, markdownParser } from 'ydoc-shared/ast/ensoMarkdown'
 
 function decorations<T>(
   source: string,
@@ -202,4 +203,36 @@ test.each([
         },
       ],
   )
+})
+
+const setupEditor = (source: string) => {
+  const view = new EditorView({
+    state: EditorState.create({
+      doc: 'Header',
+      extensions: ensoMarkdown(),
+    }),
+  })
+  const vueHost = {
+    register: () => ({
+      unregister: () => {},
+      update: () => {},
+    }),
+    teleportations: new Map(),
+  }
+  view.dispatch({ effects: setVueHost.of(vueHost) })
+  return view
+}
+
+test('markdown headers', () => {
+  const view = setupEditor('Header')
+
+  const source = view.state.doc.toString()
+  expect(debugTree(markdownParser.parse(source), source)).toEqual([
+    'Document',
+    ['Paragraph', 'Header'],
+  ])
+  view.dispatch({ changes: { from: 0, to: 0, insert: '# ' } })
+  const afterChange = view.state.doc.toString()
+  const tree = markdownParser.parse(afterChange)
+  expect(debugTree(tree, afterChange)).toEqual(['Document', ['ATXHeading1', ['HeaderMark', '# ']]])
 })
