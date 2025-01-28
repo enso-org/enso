@@ -335,6 +335,7 @@ lazy val enso = (project in file("."))
     `logging-config`,
     `logging-service`,
     `logging-service-logback`,
+    `logging-test-utils`,
     `logging-truffle-connector`,
     `logging-utils`,
     `logging-utils-akka`,
@@ -1045,6 +1046,24 @@ lazy val `logging-utils` = project
       "org.scalatest" %% "scalatest" % scalatestVersion % Test,
       "org.slf4j"      % "slf4j-api" % slf4jVersion
     ) ++ logbackTest,
+    Compile / moduleDependencies ++=
+      Seq(
+        "org.slf4j" % "slf4j-api" % slf4jVersion
+      )
+  )
+
+lazy val `logging-test-utils` = project
+  .in(file("lib/scala/logging-test-utils"))
+  .enablePlugins(JPMSPlugin)
+  .settings(
+    frgaalJavaCompilerSetting,
+    scalaModuleDependencySetting,
+    compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      "org.scalatest" %% "scalatest" % scalatestVersion,
+      "org.slf4j"      % "slf4j-api" % slf4jVersion
+    ) ++ logbackPkg,
     Compile / moduleDependencies ++=
       Seq(
         "org.slf4j" % "slf4j-api" % slf4jVersion
@@ -3039,6 +3058,7 @@ lazy val `runtime-integration-tests` =
     .dependsOn(`runtime`)
     .dependsOn(`runtime-test-instruments`)
     .dependsOn(`logging-service-logback` % "test->test")
+    .dependsOn(`logging-test-utils` % Test)
     .dependsOn(testkit % Test)
     .dependsOn(`connected-lock-manager-server`)
     .dependsOn(`test-utils`)
@@ -4451,7 +4471,7 @@ lazy val `library-manager-test` = project
   )
   .dependsOn(`library-manager`)
   .dependsOn(`process-utils`)
-  .dependsOn(`logging-utils` % "test->test")
+  .dependsOn(`logging-test-utils`)
   .dependsOn(testkit)
   .dependsOn(`logging-service-logback` % "test->test")
 

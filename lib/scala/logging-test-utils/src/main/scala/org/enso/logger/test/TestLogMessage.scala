@@ -1,4 +1,4 @@
-package org.enso.logger
+package org.enso.logger.test
 
 import org.slf4j.event.Level
 import ch.qos.logback.classic.{Level => LogbackLevel}

@@ -6,13 +6,13 @@ import org.enso.librarymanager.test.published.repository.{
   DownloaderTest,
   ExampleRepository
 }
-import org.enso.logger.TestLogMessage
+import org.enso.logger.test.TestLogMessage
 import org.enso.pkg.PackageManager
 import org.enso.testkit.{RetrySpec, WithTemporaryDirectory}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.slf4j.event.Level
-import org.enso.logger.TestLogger
+import org.enso.logger.test.TestLogger
 
 import java.nio.file.{Files, Path}
 
