@@ -47,10 +47,11 @@ type Progress
        - action: function performing the computation while reporting its `Progress`
 
     run label:Text up_to:Float action:Progress->Any -> Any =
+        if up_to >= 0.0 . not then Panic.throw "Error"+up_to.to_text
         progress = Progress.Running label up_to
         progress.log_message self.label+"@"+up_to Log_Level.Finest # TBD
         res = action progress
-        progress.finish
+        progress.advance up_to
         res
 
     ## 
