@@ -68,11 +68,11 @@ public class ProgressTest {
               assertEquals("Only two", 2.0, r1.asDouble(), 0.001);
             });
     assertEquals("One time: " + oneTimeLog, 4, oneTimeLog.size());
-    assertEquals("geometric sequence@1.0", oneTimeLog.get(0).msg());
+    assertEquals("geometric sequence@1", oneTimeLog.get(0).msg());
     assertEquals(
         "geometric sequence:About to compute geometric sequence for 1", oneTimeLog.get(1).msg());
     assertEquals("geometric sequence:We have the result 2.0", oneTimeLog.get(2).msg());
-    assertEquals("geometric sequence+1.0", oneTimeLog.get(3).msg());
+    assertEquals("geometric sequence+1", oneTimeLog.get(3).msg());
 
     var r2 = geom.execute(2, 2.0, 0.5);
     assertEquals("Three", 3.0, r2.asDouble(), 0.001);
@@ -135,13 +135,13 @@ public class ProgressTest {
     assertEquals(
         "Initialize five steps. Then five `advance` calls and finally advance to finish.",
         """
-        from 0 to 5@5.0
-        from 0 to 5+1.0
-        from 0 to 5+1.0
-        from 0 to 5+1.0
-        from 0 to 5+1.0
-        from 0 to 5+1.0
-        from 0 to 5+5.0""",
+        from 0 to 5@5
+        from 0 to 5+1
+        from 0 to 5+1
+        from 0 to 5+1
+        from 0 to 5+1
+        from 0 to 5+1
+        from 0 to 5+5""",
         txt);
   }
 

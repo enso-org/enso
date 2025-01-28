@@ -1,9 +1,8 @@
 import project.Any.Any
 import project.Data.Text.Text
-import project.Data.Numbers.Float
+import project.Data.Numbers.Integer
 import project.Meta
 import project.Nothing.Nothing
-import project.Panic
 
 polyglot java import org.slf4j.LoggerFactory
 
@@ -34,7 +33,7 @@ Any.log_message self ~message:Text level:Log_Level=Log_Level.Info =
    together and will report it as a whole to a
    [progress displaying facility](https://github.com/enso-org/enso/pull/12126).
 type Progress
-    private Running label:Text max:Float
+    private Running label:Text max:Integer
 
     ##
        Performs provided `action` while reporting its progress.
@@ -45,12 +44,12 @@ type Progress
 
        Arguments:
        - label: Overall description of the action
-       - up_to: how _"long"_ - e.g. how many steps the action is expected to take 
+       - up_to: how _"long"_ - e.g. how many steps the action is expected to take. 
+           It has to be at least one or higher.
        - action: function performing the computation while reporting its `Progress`
 
-    run label:Text up_to:Float action:(Progress->Any) -> Any =
-        if up_to>=0.0 . not then Panic.throw "Error"+up_to.to_text
-        progress = Progress.Running label up_to
+    run label:Text up_to:Integer action:(Progress->Any) -> Any =
+        progress = Progress.Running label (up_to.max 1)
         progress.log_message progress.label+"@"+up_to.to_text Log_Level.Finest # TBD
         res = action progress
         progress.advance up_to
@@ -61,14 +60,14 @@ type Progress
        accumulated work towards `up_to` value provided when creating this `Progress`.
 
        Arguments:
-       - amount: value to add to the progress. Must be >= 0.0
+       - amount: value to add to the progress. Must be >= 0
 
        Returns:
        The self value.
 
-    advance self amount:Float -> Progress = 
-        if amount>=0.0 . not then Panic.throw "Error"+amount.to_text
-        self.log_message self.label+"+"+amount.to_text Log_Level.Finest # TBD
+    advance self amount:Integer -> Progress = 
+        add = if amount>=0 then amount else 0
+        self.log_message self.label+"+"+add.to_text Log_Level.Finest # TBD
         self
 
     ## 
