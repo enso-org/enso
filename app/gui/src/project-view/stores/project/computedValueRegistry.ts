@@ -109,7 +109,8 @@ function combineInfo(
   const isPending = update.payload.type === 'Pending'
   const updateSingleValueType = update.type.at(0) // TODO: support multi-value (aka intersection) types
   const rawTypename = updateSingleValueType ?? (isPending ? info?.rawTypename : undefined)
-  // TODO[ao]: why do we discard Any type here?
+  // As all objects descend from Any, we can treat Any as implicit. This reduces the depth of all type
+  // hierarchies that have to be stored and have to be walked when filtering.
   const typename =
     rawTypename && rawTypename !== ANY_TYPE_QN ?
       projectNames.parseProjectPathRaw(rawTypename)
