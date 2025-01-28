@@ -599,6 +599,9 @@ public final class EnsoMultiValue extends EnsoObject {
     for (var t : EnsoMultiType.AllTypesWith.getUncached().executeAllTypes(dispatch, null, 0)) {
       var fnAndType = node.execute(t, symbol);
       if (fnAndType != null) {
+        if (fnAndType.getRight() == ctx.getBuiltins().any()) {
+          return fnAndType;
+        }
         if (dispatch.typesLength() == 1 || fnAndType.getRight() != ctx.getBuiltins().any()) {
           return Pair.create(fnAndType.getLeft(), t);
         }
