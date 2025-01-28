@@ -15,8 +15,7 @@ import { makeType } from '@/stores/suggestionDatabase/mockSuggestion'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { type Identifier } from '@/util/ast/abstract'
-import { parseAbsoluteProjectPath } from '@/util/projectPath'
-import { tryQualifiedName } from '@/util/qualifiedName'
+import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
 import { GetContextMenuItems, GetMainMenuItems } from 'ag-grid-enterprise'
 import { expect, test, vi } from 'vitest'
 import { assertDefined } from 'ydoc-shared/util/assert'
@@ -43,7 +42,7 @@ assert(CELLS_LIMIT_SQRT === Math.floor(CELLS_LIMIT_SQRT))
 
 function stdPath(path: string) {
   assert(path.startsWith('Standard.'))
-  return parseAbsoluteProjectPath(unwrap(tryQualifiedName(path)))
+  return unwrap(parseAbsoluteProjectPathRaw(path))
 }
 
 test.each([

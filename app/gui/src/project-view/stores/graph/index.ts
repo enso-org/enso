@@ -276,7 +276,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
         return
       }
       const topLevel = edit.getVersion(moduleRoot.value)
-      const existingImports = analyzeImports(topLevel, projectNames)
+      const existingImports = [...analyzeImports(topLevel, projectNames)]
 
       const conflicts = []
       const nonConflictingImports = []
@@ -306,7 +306,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
         return
       }
       const topLevel = edit.getVersion(moduleRoot.value)
-      const existingImports_ = existingImports ?? analyzeImports(topLevel, projectNames)
+      const existingImports_ = existingImports ?? [...analyzeImports(topLevel, projectNames)]
 
       const importsToAdd = filterOutRedundantImports(existingImports_, imports)
       if (!importsToAdd.length) return

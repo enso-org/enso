@@ -2,6 +2,7 @@ import { Err, Ok, Result } from '@/util/data/result'
 import {
   qnJoin,
   qnSplit,
+  tryQualifiedName,
   type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
@@ -20,6 +21,13 @@ export function parseAbsoluteProjectPath(path: QualifiedName): Result<ProjectPat
       parts[2] ? (parts[2] as QualifiedName) : undefined,
     ),
   )
+}
+
+/** Parses the string as a literal project path. */
+export function parseAbsoluteProjectPathRaw(path: string): Result<ProjectPath> {
+  const qn = tryQualifiedName(path)
+  if (!qn.ok) return qn
+  return parseAbsoluteProjectPath(qn.value)
 }
 
 /** Prints a literal project path. */
