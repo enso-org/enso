@@ -128,6 +128,9 @@ function useSelectionImpl<T, PackedT>(
         if (id != null) onDeselected(id)
       }
     }
+    if (newSelection.size === 1) {
+      onSoleSelected(set.first(newSelection)!)
+    }
   }
 
   function execAdd() {
@@ -245,10 +248,6 @@ function useSelectionImpl<T, PackedT>(
         const packed = pack(id)
         if (packed) rawSelected.add(packed)
       }
-    },
-    setSoleSelected: (element: T) => {
-      setSelection(new Set([element]))
-      onSoleSelected?.(element)
     },
     deselectAll: () => rawSelected.clear(),
     isSelected: (element: T) => {

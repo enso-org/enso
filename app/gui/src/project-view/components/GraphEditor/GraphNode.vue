@@ -210,7 +210,7 @@ watch(menuVisible, (visible) => {
 })
 
 function setSoleSelected() {
-  nodeSelection?.setSoleSelected(nodeId.value)
+  nodeSelection?.setSelection(new Set([nodeId.value]))
 }
 
 function ensureSelected() {

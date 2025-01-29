@@ -140,7 +140,7 @@ const nodeIdsWithOutputPorts = computed(() =>
           :nodeId="id"
           :forceVisible="graph.nodeHovered.get(id) ?? false"
           @newNodeClick="
-            (nodeSelection?.setSoleSelected(id),
+            (nodeSelection?.setSelection(new Set([id])),
             emit('createNodeFromPort', id, [{ commit: false, content: undefined }]))
           "
           @portClick="(event, portId) => graph.createEdgeFromOutput(portId, event)"
