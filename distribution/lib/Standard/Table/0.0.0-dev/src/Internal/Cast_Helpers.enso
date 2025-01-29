@@ -7,8 +7,6 @@ import project.Internal.Storage
 import project.Value_Type.Value_Type
 from project.Errors import Conversion_Failure
 
-polyglot java import org.enso.table.data.column.storage.type.StorageType
-
 ## PRIVATE
    Checks if one type can be cast into another and returns a dataflow error
    explaining the situation if not.

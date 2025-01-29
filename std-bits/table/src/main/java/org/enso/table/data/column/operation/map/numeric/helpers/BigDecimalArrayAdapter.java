@@ -1,127 +1,133 @@
 package org.enso.table.data.column.operation.map.numeric.helpers;
 
 import java.math.BigDecimal;
-import org.enso.table.data.column.storage.SpecializedStorage;
+import java.math.BigInteger;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
 
 public interface BigDecimalArrayAdapter {
-  BigDecimal getItem(int i);
+  BigDecimal getItem(long i);
 
-  int size();
+  long size();
 
-  default SpecializedStorage<BigDecimal> intoStorage() {
-    int n = size();
-    BigDecimal[] values = new BigDecimal[n];
-    for (int i = 0; i < n; i++) {
-      values[i] = getItem(i);
+  default Storage<BigDecimal> intoStorage() {
+    long n = size();
+    var builder = Builder.getForBigDecimal(n);
+    for (long i = 0; i < n; i++) {
+      builder.append(getItem(i));
     }
-    return new BigDecimalStorage(values, n);
+    return builder.seal();
   }
 
-  static BigDecimalArrayAdapter fromStorage(SpecializedStorage<BigDecimal> storage) {
+  static BigDecimalArrayAdapter fromBigDecimalStorage(ColumnStorage<BigDecimal> storage) {
     return new BigDecimalStorageAsBigDecimal(storage);
   }
 
-  static BigDecimalArrayAdapter fromStorage(BigIntegerStorage storage) {
+  static BigDecimalArrayAdapter fromBigIntegerStorage(ColumnStorage<BigInteger> storage) {
     return new BigIntegerStorageAsBigDecimal(storage);
   }
 
-  static BigDecimalArrayAdapter fromStorage(AbstractLongStorage storage) {
+  static BigDecimalArrayAdapter fromStorage(ColumnLongStorage storage) {
     return new LongStorageAsBigDecimal(storage);
   }
 
-  static BigDecimalArrayAdapter fromStorage(DoubleStorage storage) {
+  static BigDecimalArrayAdapter fromStorage(ColumnDoubleStorage storage) {
     return new DoubleStorageAsBigDecimal(storage);
   }
 
-  static BigDecimalArrayAdapter fromAnyStorage(Storage<?> storage) {
+  static BigDecimalArrayAdapter fromAnyStorage(ColumnStorage<?> storage) {
     return switch (storage) {
-      case DoubleStorage s -> fromStorage(s);
-      case AbstractLongStorage s -> fromStorage(s);
-      case BigIntegerStorage s -> fromStorage(s);
-      case BigDecimalStorage s -> fromStorage(s);
+      case ColumnDoubleStorage s -> fromStorage(s);
+      case ColumnLongStorage s -> fromStorage(s);
+      case BigIntegerStorage s -> new BigIntegerStorageAsBigDecimal(s);
+      case BigDecimalStorage s -> new BigDecimalStorageAsBigDecimal(s);
       default -> throw new IllegalStateException(
           "Unsupported storage: " + storage.getClass().getCanonicalName());
     };
   }
 
   class BigDecimalStorageAsBigDecimal implements BigDecimalArrayAdapter {
-    private final SpecializedStorage<BigDecimal> storage;
+    private final ColumnStorage<BigDecimal> storage;
 
-    private BigDecimalStorageAsBigDecimal(SpecializedStorage<BigDecimal> storage) {
+    private BigDecimalStorageAsBigDecimal(ColumnStorage<BigDecimal> storage) {
       this.storage = storage;
     }
 
     @Override
-    public BigDecimal getItem(int i) {
+    public BigDecimal getItem(long i) {
       return storage.getItemBoxed(i);
     }
 
     @Override
-    public int size() {
-      return storage.size();
+    public long size() {
+      return storage.getSize();
     }
 
     @Override
-    public SpecializedStorage<BigDecimal> intoStorage() {
-      return storage;
+    public Storage<BigDecimal> intoStorage() {
+      if (storage instanceof Storage<BigDecimal> specialized) {
+        return specialized;
+      } else {
+        return BigDecimalArrayAdapter.super.intoStorage();
+      }
     }
   }
 
   class BigIntegerStorageAsBigDecimal implements BigDecimalArrayAdapter {
-    private final BigIntegerStorage storage;
+    private final ColumnStorage<BigInteger> storage;
 
-    private BigIntegerStorageAsBigDecimal(BigIntegerStorage storage) {
+    private BigIntegerStorageAsBigDecimal(ColumnStorage<BigInteger> storage) {
       this.storage = storage;
     }
 
     @Override
-    public BigDecimal getItem(int i) {
+    public BigDecimal getItem(long i) {
       return new BigDecimal(storage.getItemBoxed(i));
     }
 
     @Override
-    public int size() {
-      return storage.size();
+    public long size() {
+      return storage.getSize();
     }
   }
 
   class LongStorageAsBigDecimal implements BigDecimalArrayAdapter {
-    private final AbstractLongStorage storage;
+    private final ColumnLongStorage storage;
 
-    private LongStorageAsBigDecimal(AbstractLongStorage storage) {
+    private LongStorageAsBigDecimal(ColumnLongStorage storage) {
       this.storage = storage;
     }
 
     @Override
-    public BigDecimal getItem(int i) {
+    public BigDecimal getItem(long i) {
       if (storage.isNothing(i)) {
         return null;
       } else {
-        long x = storage.getItem(i);
+        long x = storage.getItemAsLong(i);
         return BigDecimal.valueOf(x);
       }
     }
 
     @Override
-    public int size() {
-      return storage.size();
+    public long size() {
+      return storage.getSize();
     }
   }
 
   class DoubleStorageAsBigDecimal implements BigDecimalArrayAdapter {
-    private final DoubleStorage storage;
+    private final ColumnDoubleStorage storage;
 
-    private DoubleStorageAsBigDecimal(DoubleStorage storage) {
+    private DoubleStorageAsBigDecimal(ColumnDoubleStorage storage) {
       this.storage = storage;
     }
 
     @Override
-    public BigDecimal getItem(int i) {
+    public BigDecimal getItem(long i) {
       if (storage.isNothing(i)) {
         return null;
       } else {
@@ -131,8 +137,8 @@ public interface BigDecimalArrayAdapter {
     }
 
     @Override
-    public int size() {
-      return storage.size();
+    public long size() {
+      return storage.getSize();
     }
   }
 }

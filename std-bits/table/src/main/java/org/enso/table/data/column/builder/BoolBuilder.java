@@ -2,6 +2,7 @@ package org.enso.table.data.column.builder;
 
 import java.util.BitSet;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.NullType;
@@ -64,9 +65,19 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
   public void appendBulkStorage(Storage<?> storage) {
     if (storage.getType().equals(getType())) {
       if (storage instanceof BoolStorage boolStorage) {
-        BitSets.copy(boolStorage.getValues(), vals, size, boolStorage.size());
-        BitSets.copy(boolStorage.getIsNothingMap(), isNothing, size, boolStorage.size());
-        size += boolStorage.size();
+        // We know this is valid for a BoolStorage.
+        int toCopy = (int) boolStorage.getSize();
+        BitSets.copy(boolStorage.getValues(), vals, size, toCopy);
+        BitSets.copy(boolStorage.getIsNothingMap(), isNothing, size, toCopy);
+        size += toCopy;
+      } else if (storage instanceof ColumnBooleanStorage columnBooleanStorage) {
+        for (long i = 0; i < columnBooleanStorage.getSize(); i++) {
+          if (columnBooleanStorage.isNothing(i)) {
+            appendNulls(1);
+          } else {
+            appendBoolean(columnBooleanStorage.getItemAsBoolean(i));
+          }
+        }
       } else {
         throw new IllegalStateException(
             "Unexpected storage implementation for type BOOLEAN: "
@@ -74,7 +85,7 @@ public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping
                 + ". This is a bug in the Table library.");
       }
     } else if (storage.getType() instanceof NullType) {
-      appendNulls(storage.size());
+      appendNulls(Math.toIntExact(storage.getSize()));
     } else {
       throw new StorageTypeMismatchException(getType(), storage.getType());
     }

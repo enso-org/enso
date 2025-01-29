@@ -2,9 +2,9 @@ package org.enso.table.data.column.builder;
 
 import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.BooleanType;
@@ -90,20 +90,19 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
     if (Objects.equals(storage.getType(), getType())
         && storage instanceof LongStorage longStorage) {
       // A fast path for the same type - no conversions/checks needed.
-      int n = longStorage.size();
+      int n = (int) longStorage.getSize();
       ensureFreeSpaceFor(n);
       System.arraycopy(longStorage.getRawData(), 0, data, currentSize, n);
       BitSets.copy(longStorage.getIsNothingMap(), isNothing, currentSize, n);
       currentSize += n;
     } else if (storage.getType() instanceof IntegerType otherType && getType().fits(otherType)) {
-      if (storage instanceof AbstractLongStorage longStorage) {
-        int n = longStorage.size();
-        ensureFreeSpaceFor(n);
-        for (int i = 0; i < n; i++) {
+      if (storage instanceof ColumnLongStorage longStorage) {
+        long n = longStorage.getSize();
+        for (long i = 0; i < n; i++) {
           if (longStorage.isNothing(i)) {
-            isNothing.set(currentSize++);
+            appendNulls(1);
           } else {
-            appendLong(longStorage.getItem(i));
+            appendLong(longStorage.getItemAsLong(i));
           }
         }
       } else {
@@ -113,13 +112,13 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
                 + ". This is a bug in the Table library.");
       }
     } else if (Objects.equals(storage.getType(), BooleanType.INSTANCE)) {
-      if (storage instanceof BoolStorage boolStorage) {
-        int n = boolStorage.size();
-        for (int i = 0; i < n; i++) {
+      if (storage instanceof ColumnBooleanStorage boolStorage) {
+        long n = boolStorage.getSize();
+        for (long i = 0; i < n; i++) {
           if (boolStorage.isNothing(i)) {
-            isNothing.set(currentSize++);
+            appendNulls(1);
           } else {
-            data[currentSize++] = boolStorage.getItem(i) ? 1L : 0L;
+            appendLong(boolStorage.getItemAsBoolean(i) ? 1L : 0L);
           }
         }
       } else {
@@ -129,7 +128,7 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
                 + ". This is a bug in the Table library.");
       }
     } else if (storage.getType() instanceof NullType) {
-      appendNulls(storage.size());
+      appendNulls(Math.toIntExact(storage.getSize()));
     } else {
       throw new StorageTypeMismatchException(getType(), storage.getType());
     }

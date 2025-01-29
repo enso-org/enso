@@ -19,7 +19,7 @@ import org.graalvm.polyglot.Context;
  * specific type.
  */
 public final class MixedStorage extends ObjectStorage implements ColumnStorageWithInferredStorage {
-  private StorageType inferredType = null;
+  private StorageType inferredType;
 
   /**
    * Holds a specialized storage for the inferred type, if available.
@@ -29,8 +29,7 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
    * inferred type. This allows it to support operations of that type.
    *
    * <p>Once the specialized storage is first computed, all vectorized operations will be forwarded
-   * to it - assuming that it will most likely provide more efficient implementations, even for
-   * operations that are also defined on ObjectStorage.
+   * to it - assuming that it will most likely provide more efficient implementations.
    */
   private Storage<?> cachedInferredStorage = null;
 
@@ -38,16 +37,15 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
 
   /**
    * @param data the underlying data
-   * @param size the number of items stored
    */
-  public MixedStorage(Object[] data, int size) {
-    super(data, size);
+  public MixedStorage(Object[] data) {
+    super(data);
     inferredType = null;
   }
 
   @Override
-  protected SpecializedStorage<Object> newInstance(Object[] data, int size) {
-    return new MixedStorage(data, size);
+  protected SpecializedStorage<Object> newInstance(Object[] data) {
+    return new MixedStorage(data);
   }
 
   private boolean isNumeric(StorageType type) {
@@ -79,7 +77,7 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
       StorageType currentType = null;
 
       Context context = Context.getCurrent();
-      for (int i = 0; i < size(); i++) {
+      for (long i = 0; i < getSize(); i++) {
         var item = getItemBoxed(i);
         if (item == null) {
           continue;
@@ -133,8 +131,8 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
         // for purposes of a
         // computation.
         Builder builder =
-            Builder.getForType(inferredType, size(), BlackholeProblemAggregator.INSTANCE);
-        for (int i = 0; i < size(); i++) {
+            Builder.getForType(inferredType, getSize(), BlackholeProblemAggregator.INSTANCE);
+        for (long i = 0; i < getSize(); i++) {
           builder.append(getItemBoxed(i));
         }
         cachedInferredStorage = builder.seal();

@@ -32,13 +32,14 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
 import org.enso.table.data.mask.SliceRange;
+import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A column containing floating point numbers. */
-public final class DoubleStorage extends NumericStorage<Double>
+public final class DoubleStorage extends Storage<Double>
     implements DoubleArrayAdapter, ColumnStorageWithNothingMap, ColumnDoubleStorage {
   private final double[] data;
   private final BitSet isNothing;
@@ -57,52 +58,57 @@ public final class DoubleStorage extends NumericStorage<Double>
     this.size = size;
   }
 
-  public static DoubleStorage makeEmpty(int size) {
-    BitSet isNothing = new BitSet(size);
-    isNothing.set(0, size);
-    return new DoubleStorage(new double[0], size, isNothing);
+  public static DoubleStorage makeEmpty(long size) {
+    int intSize = Builder.checkSize(size);
+    BitSet isNothing = new BitSet(intSize);
+    isNothing.set(0, intSize);
+    return new DoubleStorage(new double[0], intSize, isNothing);
   }
 
-  /**
-   * @inheritDoc
-   */
   @Override
-  public int size() {
+  public long getSize() {
     return size;
   }
 
-  /**
-   * @param idx an index
-   * @return the data item contained at the given index.
-   */
-  public double getItem(long idx) {
-    return data[(int) idx];
+  @Override
+  public Double getItemBoxed(long idx) {
+    return isNothing(idx) ? null : data[Math.toIntExact(idx)];
   }
 
   @Override
-  public Double getItemBoxed(int idx) {
-    return isNothing.get(idx) ? null : data[idx];
+  public BitSet getIsNothingMap() {
+    return isNothing;
   }
 
-  /**
-   * @inheritDoc
-   */
+  @Override
+  public double getItemAsDouble(long index) throws ValueIsNothingException {
+    if (isNothing(index)) {
+      throw new ValueIsNothingException(index);
+    }
+    return data[Math.toIntExact(index)];
+  }
+
   @Override
   public StorageType getType() {
     return FloatType.FLOAT_64;
   }
 
-  /**
-   * @inheritDoc
-   */
   @Override
   public boolean isNothing(long idx) {
+    if (idx < 0 || idx >= getSize()) {
+      throw new IndexOutOfBoundsException(idx);
+    }
     return isNothing.get((int) idx);
   }
 
   @Override
-  public double getItemAsDouble(int i) {
-    return data[i];
+  public long size() {
+    return getSize();
+  }
+
+  /** Used by the DoubleBuilder in appendBulkStorage. */
+  public double[] getRawData() {
+    return data;
   }
 
   @Override
@@ -142,15 +148,15 @@ public final class DoubleStorage extends NumericStorage<Double>
   }
 
   private Storage<?> fillMissingDouble(double arg, ProblemAggregator problemAggregator) {
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, size(), problemAggregator);
+    long n = getSize();
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
     Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
-      if (isNothing.get(i)) {
+    for (long i = 0; i < getSize(); i++) {
+      if (isNothing(i)) {
         builder.appendDouble(arg);
       } else {
-        builder.appendDouble(data[i]);
+        builder.appendDouble(getItemAsDouble(i));
       }
-
       context.safepoint();
     }
     return builder.seal();
@@ -158,15 +164,15 @@ public final class DoubleStorage extends NumericStorage<Double>
 
   /** Special handling to ensure loss of precision is reported. */
   private Storage<?> fillMissingBigInteger(BigInteger arg, ProblemAggregator problemAggregator) {
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, size(), problemAggregator);
+    long n = getSize();
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
     Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
-      if (isNothing.get(i)) {
+    for (long i = 0; i < n; i++) {
+      if (isNothing(i)) {
         builder.append(arg);
       } else {
-        builder.appendDouble(data[i]);
+        builder.appendDouble(getItemAsDouble(i));
       }
-
       context.safepoint();
     }
     return builder.seal();
@@ -174,15 +180,15 @@ public final class DoubleStorage extends NumericStorage<Double>
 
   /** Special handling to ensure loss of precision is reported. */
   private Storage<?> fillMissingLong(long arg, ProblemAggregator problemAggregator) {
-    var builder = Builder.getForDouble(FloatType.FLOAT_64, size(), problemAggregator);
+    long n = getSize();
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
     Context context = Context.getCurrent();
-    for (int i = 0; i < size(); i++) {
-      if (isNothing.get(i)) {
+    for (long i = 0; i < n; i++) {
+      if (isNothing(i)) {
         builder.appendLong(arg);
       } else {
-        builder.appendDouble(data[i]);
+        builder.appendDouble(getItemAsDouble(i));
       }
-
       context.safepoint();
     }
     return builder.seal();
@@ -205,57 +211,55 @@ public final class DoubleStorage extends NumericStorage<Double>
   }
 
   @Override
-  public DoubleStorage fillMissingFromPrevious(BoolStorage missingIndicator) {
+  public Storage<Double> fillMissingFromPrevious(BoolStorage missingIndicator) {
     if (missingIndicator != null) {
       throw new IllegalStateException(
           "Custom missing value semantics are not supported by DoubleStorage.");
     }
 
-    int n = size();
-    double[] newData = new double[n];
-    BitSet newIsNothing = new BitSet();
+    long n = getSize();
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, BlackholeProblemAggregator.INSTANCE);
     double previousValue = 0;
     boolean hasPrevious = false;
 
     Context context = Context.getCurrent();
-    for (int i = 0; i < n; i++) {
+    for (long i = 0; i < n; i++) {
       boolean isCurrentMissing = isNothing(i);
       if (isCurrentMissing) {
         if (hasPrevious) {
-          newData[i] = previousValue;
+          builder.appendDouble(previousValue);
         } else {
-          newIsNothing.set(i);
+          builder.appendNulls(1);
         }
       } else {
-        newData[i] = data[i];
-        previousValue = data[i];
+        double value = getItemAsDouble(i);
+        builder.appendDouble(value);
+        previousValue = value;
         hasPrevious = true;
       }
 
       context.safepoint();
     }
 
-    return new DoubleStorage(newData, n, newIsNothing);
+    return builder.seal();
   }
 
   @Override
   public Storage<Double> applyFilter(BitSet filterMask, int newLength) {
-    BitSet newIsNothing = new BitSet();
-    double[] newData = new double[newLength];
-    int resIx = 0;
+    var builder =
+        Builder.getForDouble(FloatType.FLOAT_64, newLength, BlackholeProblemAggregator.INSTANCE);
     Context context = Context.getCurrent();
     for (int i = 0; i < size; i++) {
       if (filterMask.get(i)) {
         if (isNothing.get(i)) {
-          newIsNothing.set(resIx++);
+          builder.appendNulls(1);
         } else {
-          newData[resIx++] = data[i];
+          builder.appendDouble(data[i]);
         }
       }
-
       context.safepoint();
     }
-    return new DoubleStorage(newData, newLength, newIsNothing);
+    return builder.seal();
   }
 
   @Override
@@ -274,10 +278,6 @@ public final class DoubleStorage extends NumericStorage<Double>
       context.safepoint();
     }
     return new DoubleStorage(newData, newData.length, newIsNothing);
-  }
-
-  public double[] getRawData() {
-    return data;
   }
 
   private static MapOperationStorage<Double, DoubleStorage> buildOps() {
@@ -402,7 +402,7 @@ public final class DoubleStorage extends NumericStorage<Double>
               return null;
             }
 
-            double value = parent.getItem(idx);
+            double value = parent.getItemAsDouble(idx);
             assert value % 1.0 == 0.0
                 : "The value " + value + " should be a whole number (guaranteed by checks).";
             return (long) value;
@@ -411,18 +411,5 @@ public final class DoubleStorage extends NumericStorage<Double>
 
     // And rely on its shrinking logic.
     return longAdapter.inferPreciseTypeShrunk();
-  }
-
-  @Override
-  public BitSet getIsNothingMap() {
-    return isNothing;
-  }
-
-  @Override
-  public double get(long index) throws ValueIsNothingException {
-    if (isNothing(index)) {
-      throw new ValueIsNothingException(index);
-    }
-    return getItem(Math.toIntExact(index));
   }
 }

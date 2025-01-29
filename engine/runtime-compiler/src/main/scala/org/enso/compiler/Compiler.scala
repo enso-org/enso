@@ -7,8 +7,6 @@ import org.enso.compiler.context.{
   InlineContext,
   ModuleContext
 }
-import org.enso.compiler.dump.DocsGenerate
-import org.enso.compiler.dump.DocsVisit
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.Implicits.AsMetadata
@@ -32,6 +30,8 @@ import org.enso.compiler.phase.{ImportResolver, ImportResolverAlgorithm}
 import org.enso.editions.LibraryName
 import org.enso.pkg.QualifiedName
 import org.enso.common.CompilationStage
+import org.enso.compiler.docs.{DocsGenerate, DocsVisit}
+import org.enso.compiler.dump.service.{IRDumpFactoryService, IRDumper}
 import org.enso.compiler.phase.exports.{
   ExportCycleException,
   ExportSymbolAnalysis,
@@ -50,6 +50,7 @@ import java.util.concurrent.{
   TimeUnit
 }
 import java.util.logging.Level
+import scala.collection.immutable.HashMap
 
 /** This class encapsulates the static transformation processes that take place
   * on source code, including parsing, desugaring, type-checking, static
@@ -74,9 +75,6 @@ class Compiler(
       new PrintStream(config.outputRedirect.get)
     else context.getOut
 
-  /** Java accessor */
-  def getConfig(): CompilerConfig = config
-
   /** The thread pool that handles parsing of modules. */
   private val pool: ExecutorService = if (config.parallelParsing) {
     new ThreadPoolExecutor(
@@ -90,6 +88,9 @@ class Compiler(
       }
     )
   } else null
+
+  /** Java accessor */
+  def getConfig(): CompilerConfig = config
 
   /** Duplicates this compiler with a different config.
     * @param newConfig Configuration to be used in the duplicated Compiler.
@@ -292,6 +293,28 @@ class Compiler(
       }
     )
 
+    var moduleIrDumpers: HashMap[Module, IRDumper] = new HashMap()
+    def getOrCreateDumper(module: Module): Option[IRDumper] = {
+      config.dumpModuleIR.flatMap(pattern => {
+        if (module.getName().toString.contains(pattern)) {
+          moduleIrDumpers.get(module) match {
+            case Some(existing) => Some(existing)
+            case None =>
+              val dumper =
+                IRDumpFactoryService.DEFAULT.create(module.getName.toString)
+              moduleIrDumpers = moduleIrDumpers.updated(module, dumper)
+              Some(dumper)
+          }
+        } else {
+          None
+        }
+      })
+    }
+
+    def closeAllDumpers(): Unit = {
+      moduleIrDumpers.foreach { case (_, dumper) => dumper.close() }
+    }
+
     val requiredModules = modules.flatMap { module =>
       val isLoadedFromSource =
         (m: Module) => !context.wasLoadedFromCache(m) && !context.isSynthetic(m)
@@ -320,7 +343,8 @@ class Compiler(
         parseModule(
           module,
           irCachingEnabled && !context.isInteractive(module),
-          generateDocs
+          generateDocs,
+          irDumper = getOrCreateDumper(module)
         )
         importedModules
           .filter(isLoadedFromSource)
@@ -329,7 +353,8 @@ class Compiler(
               parseModule(
                 m,
                 irCachingEnabled && !context.isInteractive(module),
-                generateDocs
+                generateDocs,
+                irDumper = getOrCreateDumper(module)
               )
             }
           })
@@ -360,7 +385,11 @@ class Compiler(
           isGeneratingDocs = generateDocs
         )
         val compilerOutput =
-          runGlobalTypingPasses(context.getIr(module), moduleContext)
+          runGlobalTypingPasses(
+            context.getIr(module),
+            moduleContext,
+            irDumper = getOrCreateDumper(module)
+          )
 
         context.updateModule(
           module,
@@ -390,7 +419,11 @@ class Compiler(
             isGeneratingDocs = generateDocs
           )
           val compilerOutput =
-            runMethodBodyPasses(context.getIr(module), moduleContext)
+            runMethodBodyPasses(
+              context.getIr(module),
+              moduleContext,
+              irDumper = getOrCreateDumper(module)
+            )
           context.updateModule(
             module,
             { u =>
@@ -418,7 +451,11 @@ class Compiler(
             isGeneratingDocs = generateDocs
           )
           val compilerOutput =
-            runFinalTypeInferencePasses(context.getIr(module), moduleContext)
+            runFinalTypeInferencePasses(
+              context.getIr(module),
+              moduleContext,
+              irDumper = getOrCreateDumper(module)
+            )
           context.updateModule(
             module,
             { u =>
@@ -510,8 +547,10 @@ class Compiler(
           }
         }
       }
-
     }
+
+    closeAllDumpers()
+
     requiredModules
   }
 
@@ -629,7 +668,8 @@ class Compiler(
   private def parseModule(
     module: Module,
     useCaches: Boolean,
-    generateDocs: Boolean
+    generateDocs: Boolean,
+    irDumper: Option[IRDumper] = None
   ): Unit = {
     context.log(
       Compiler.defaultLogLevel,
@@ -645,7 +685,7 @@ class Compiler(
       return
     }
 
-    uncachedParseModule(module, generateDocs)
+    uncachedParseModule(module, generateDocs, irDumper)
   }
 
   /** Retrieve module bindings from cache, if available.
@@ -664,7 +704,8 @@ class Compiler(
 
   private def uncachedParseModule(
     module: Module,
-    generateDocs: Boolean
+    generateDocs: Boolean,
+    irDumper: Option[IRDumper]
   ): Unit = {
     context.log(
       Compiler.defaultLogLevel,
@@ -691,7 +732,7 @@ class Compiler(
         injectSyntheticModuleExports(expr, module.getDirectModulesRefs)
     context.updateModule(module, _.ir(exprWithModuleExports))
     val discoveredModule =
-      recognizeBindings(exprWithModuleExports, moduleContext)
+      recognizeBindings(exprWithModuleExports, moduleContext, irDumper)
     if (context.wasLoadedFromCache(module)) {
       if (module.getBindingsMap() != null) {
         discoveredModule.passData.update(
@@ -857,12 +898,14 @@ class Compiler(
 
   private def recognizeBindings(
     module: IRModule,
-    moduleContext: ModuleContext
+    moduleContext: ModuleContext,
+    irDumper: Option[IRDumper]
   ): IRModule = {
     passManager.runPassesOnModule(
       module,
       moduleContext,
-      passes.moduleDiscoveryPasses
+      passes.moduleDiscoveryPasses,
+      irDumper
     )
   }
 
@@ -873,26 +916,38 @@ class Compiler(
     */
   private def runMethodBodyPasses(
     ir: IRModule,
-    moduleContext: ModuleContext
+    moduleContext: ModuleContext,
+    irDumper: Option[IRDumper]
   ): IRModule = {
     context.log(
       Level.FINEST,
       "Passing module {0} with method body passes",
       moduleContext.module.getName
     )
-    passManager.runPassesOnModule(ir, moduleContext, passes.functionBodyPasses)
+    passManager.runPassesOnModule(
+      ir,
+      moduleContext,
+      passes.functionBodyPasses,
+      irDumper
+    )
   }
 
   private def runGlobalTypingPasses(
     ir: IRModule,
-    moduleContext: ModuleContext
+    moduleContext: ModuleContext,
+    irDumper: Option[IRDumper]
   ): IRModule = {
     context.log(
       Level.FINEST,
       "Passing module {0} with global typing passes",
       moduleContext.module.getName
     )
-    passManager.runPassesOnModule(ir, moduleContext, passes.globalTypingPasses)
+    passManager.runPassesOnModule(
+      ir,
+      moduleContext,
+      passes.globalTypingPasses,
+      irDumper
+    )
   }
 
   /** Runs the final type inference passes, if they are enabled.
@@ -901,12 +956,14 @@ class Compiler(
     */
   private def runFinalTypeInferencePasses(
     ir: IRModule,
-    moduleContext: ModuleContext
+    moduleContext: ModuleContext,
+    irDumper: Option[IRDumper]
   ): IRModule = {
     passManager.runPassesOnModule(
       ir,
       moduleContext,
-      passes.typeInferenceFinalPasses
+      passes.typeInferenceFinalPasses,
+      irDumper
     )
   }
 

@@ -29,6 +29,6 @@ public final class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
 
   @Override
   protected Storage<BigDecimal> doSeal() {
-    return new BigDecimalStorage(data, currentSize);
+    return new BigDecimalStorage(data);
   }
 }

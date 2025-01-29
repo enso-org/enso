@@ -27,12 +27,12 @@ public class ToDateStorageConverter implements StorageConverter<LocalDate> {
   }
 
   private Storage<LocalDate> castFromMixed(
-      ColumnStorage mixedStorage, CastProblemAggregator problemAggregator) {
+      ColumnStorage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
         Builder.getForDate(mixedStorage.getSize()),
         mixedStorage,
         (i) -> {
-          Object o = mixedStorage.getItemAsObject(i);
+          Object o = mixedStorage.getItemBoxed(i);
           return switch (o) {
             case LocalDate d -> d;
             case ZonedDateTime d -> d.toLocalDate();
@@ -45,12 +45,12 @@ public class ToDateStorageConverter implements StorageConverter<LocalDate> {
   }
 
   private Storage<LocalDate> convertDateTimeStorage(
-      DateTimeStorage dateTimeStorage, CastProblemAggregator problemAggregator) {
+      Storage<ZonedDateTime> dateTimeStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForDate(dateTimeStorage.size()),
+        Builder.getForDate(dateTimeStorage.getSize()),
         dateTimeStorage,
         (i) -> {
-          ZonedDateTime dateTime = dateTimeStorage.getItem(i);
+          ZonedDateTime dateTime = dateTimeStorage.getItemBoxed(i);
           return dateTime.toLocalDate();
         });
   }

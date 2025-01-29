@@ -50,8 +50,12 @@ public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderFor
         // This cast is safe, because storage.getType() == this.getType() iff storage.T == this.T
         @SuppressWarnings("unchecked")
         SpecializedStorage<T> specializedStorage = (SpecializedStorage<T>) storage;
-        System.arraycopy(specializedStorage.getData(), 0, data, currentSize, storage.size());
-        currentSize += storage.size();
+        int toCopy = (int) storage.getSize();
+        if (currentSize + toCopy > data.length) {
+          resize(currentSize + toCopy);
+        }
+        System.arraycopy(specializedStorage.getData(), 0, data, currentSize, toCopy);
+        currentSize += toCopy;
       } else {
         throw new IllegalStateException(
             "Unexpected storage implementation for type "
@@ -61,7 +65,7 @@ public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderFor
                 + ". This is a bug in the Table library.");
       }
     } else if (storage.getType() instanceof NullType) {
-      appendNulls(storage.size());
+      appendNulls(Math.toIntExact(storage.getSize()));
     } else {
       throw new StorageTypeMismatchException(getType(), storage.getType());
     }

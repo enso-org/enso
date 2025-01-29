@@ -2366,7 +2366,7 @@ type Column
     to_js_object self =
         name = self.java_column.getName
         storage = self.java_column.getStorage
-        storage_proxy = Array_Proxy.new storage.size i-> storage.getItemBoxed i
+        storage_proxy = Array_Proxy.new storage.getSize i-> storage.getItemBoxed i
         storage_json = Vector.from_polyglot_array storage_proxy
         JS_Object.from_pairs [["name", name], ["data", storage_json]]
 
