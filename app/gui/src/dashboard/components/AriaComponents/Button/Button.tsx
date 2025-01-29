@@ -28,7 +28,10 @@ const ICON_LOADER_DELAY = 150
 // Manually casting types to make TS infer the final type correctly (e.g. RenderProps in icon)
 // eslint-disable-next-line no-restricted-syntax
 export const Button = memo(
-  forwardRef(function Button(props: ButtonProps, ref: ForwardedRef<HTMLButtonElement>) {
+  forwardRef(function Button<IconType extends string>(
+    props: ButtonProps<IconType>,
+    ref: ForwardedRef<HTMLButtonElement>,
+  ) {
     props = useMergedButtonStyles(props)
     const {
       className,
@@ -252,7 +255,9 @@ export const Button = memo(
       </TooltipTrigger>
     )
   }),
-) as unknown as ((props: ButtonProps & { ref?: ForwardedRef<HTMLButtonElement> }) => ReactNode) & {
+) as unknown as (<IconType extends string>(
+  props: ButtonProps<IconType> & { ref?: ForwardedRef<HTMLButtonElement> },
+) => ReactNode) & {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   Group: typeof ButtonGroup
   // eslint-disable-next-line @typescript-eslint/naming-convention

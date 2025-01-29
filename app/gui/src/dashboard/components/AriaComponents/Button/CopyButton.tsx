@@ -17,7 +17,8 @@ import type { ButtonProps } from './types'
 // ==================
 
 /** Props for a {@link CopyButton}. */
-export interface CopyButtonProps extends Omit<ButtonProps, 'icon' | 'loading' | 'onPress'> {
+export interface CopyButtonProps<IconType extends string>
+  extends Omit<ButtonProps<IconType>, 'icon' | 'loading' | 'onPress'> {
   /** The text to copy to the clipboard. */
   readonly copyText: string
   /**
@@ -38,7 +39,7 @@ export interface CopyButtonProps extends Omit<ButtonProps, 'icon' | 'loading' | 
 }
 
 /** A button that copies text to the clipboard. */
-export function CopyButton(props: CopyButtonProps) {
+export function CopyButton<IconType extends string>(props: CopyButtonProps<IconType>) {
   const {
     variant = 'icon',
     copyIcon = CopyIcon,
