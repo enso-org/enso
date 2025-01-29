@@ -41,6 +41,12 @@ add_specs suite_builder (prefix : Text) setup =
             t3.should_be_a DB_Table
             (t3:DB_Column).name.should_equal "B"
 
+        group_builder.specify "in database, does not act as a single value" <|
+            t1 = setup.table_builder [["A", [23]]]
+            t1.should_be_a DB_Table
+            (t1:DB_Column).name.should_equal "A"
+            Test.expect_panic Type_Error (t1:Integer).to_vector
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
