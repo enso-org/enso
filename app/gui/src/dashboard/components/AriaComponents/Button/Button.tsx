@@ -10,11 +10,10 @@ import {
 } from 'react'
 
 import * as aria from '#/components/aria'
-import { StatelessSpinner } from '#/components/StatelessSpinner'
-import SvgMask from '#/components/SvgMask'
-
 import { useVisualTooltip } from '#/components/AriaComponents/Text'
 import { Tooltip, TooltipTrigger } from '#/components/AriaComponents/Tooltip'
+import { Icon as IconComponent } from '#/components/Icon'
+import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { forwardRef } from '#/utilities/react'
 import { ButtonGroup, ButtonGroupJoin } from './ButtonGroup'
@@ -387,7 +386,7 @@ const Icon = memo(function Icon(props: IconProps) {
 
   const actualIcon = (() => {
     return typeof icon === 'string' ?
-        <SvgMask src={icon} className={styles.icon()} />
+        <IconComponent className={styles.icon()}>{icon}</IconComponent>
       : <span className={styles.icon()}>{icon}</span>
   })()
 

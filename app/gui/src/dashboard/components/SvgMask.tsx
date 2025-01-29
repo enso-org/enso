@@ -62,4 +62,7 @@ const SvgMask = React.forwardRef(function SvgMask(
   )
 })
 
+/**
+ * @deprecated Prefer `<Icon />` or `<SvgUse />` instead.
+ */
 export default React.memo(SvgMask)
