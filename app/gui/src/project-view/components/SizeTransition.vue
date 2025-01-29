@@ -140,7 +140,7 @@ function runAnimation(e: HTMLElement, done: Done, isEnter: boolean) {
 
 function cleanup(e: HTMLElement) {
   delete e.dataset['transitioning']
-  queuePostFlushCb(() => {
+  requestAnimationFrame(() => {
     animCounter?.modify(-1)
   })
 }
