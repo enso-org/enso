@@ -702,6 +702,18 @@ pub async fn runner_sanity_test(
             .run_ok()
             .await;
 
+        let test_aws = Command::new(&enso)
+            .args(["--run", repo_root.test.join("AWS_Tests").as_str()])
+            .set_env(ENSO_DATA_DIRECTORY, engine_package)?
+            .run_ok()
+            .await;
+
+        let test_microsoft = Command::new(&enso)
+            .args(["--run", repo_root.test.join("Microsoft_Tests").as_str()])
+            .set_env(ENSO_DATA_DIRECTORY, engine_package)?
+            .run_ok()
+            .await;
+
         let test_geo = Command::new(&enso)
             .args(["--run", repo_root.test.join("Geo_Tests").as_str()])
             .set_env(ENSO_DATA_DIRECTORY, engine_package)?
@@ -714,7 +726,7 @@ pub async fn runner_sanity_test(
             .run_ok()
             .await;
 
-        let all_cmds = test_base.and(test_internal_base).and(test_table).and(test_geo).and(test_image);
+        let all_cmds = test_base.and(test_internal_base).and(test_table).and(test_aws).and(test_microsoft).and(test_geo).and(test_image);
 
         // The following test does not actually run anything, it just checks if the engine
         // can accept `--jvm` argument and evaluates something.
