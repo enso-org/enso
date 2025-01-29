@@ -314,7 +314,7 @@ add_specs suite_builder =
             y.b_method . should_equal "B method"
             Problems.expect_only_warning Illegal_State y
 
-        group_builder.specify "removing warnings from an intersection type should not lose even the hidden refinements" pending=dispatch_pending <|
+        group_builder.specify "removing warnings from an intersection type should not lose even the hidden refinements" <|
             ab = make_a_and_b
             x1 = Warning.attach (Illegal_State.Error "my warning") (ab:A)
             x2 = (Warning.attach (Illegal_State.Error "my warning") ab):A
