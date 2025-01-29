@@ -3,6 +3,7 @@ package org.enso.compiler.docs;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.IdentityHashMap;
+import java.util.List;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Module;
@@ -11,7 +12,7 @@ import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.filesystem.FileSystem;
 import org.enso.pkg.QualifiedName;
 import scala.collection.immutable.Seq;
-import scala.jdk.CollectionConverters;
+import scala.jdk.javaapi.CollectionConverters;
 
 /** Generator of documentation for an Enso project. */
 public final class DocsGenerate {
@@ -68,7 +69,7 @@ public final class DocsGenerate {
     var dispatch = DocsDispatch.create(visitor, w);
 
     if (dispatch.dispatchModule(moduleName, ir)) {
-      var moduleBindings = asJava(ir.bindings());
+      var moduleBindings = BindingSorter.sortedBindings(ir);
       var alreadyDispatched = new IdentityHashMap<IR, IR>();
       for (var b : moduleBindings) {
         if (alreadyDispatched.containsKey(b)) {
@@ -77,7 +78,7 @@ public final class DocsGenerate {
         switch (b) {
           case Definition.Type t -> {
             if (dispatch.dispatchType(t)) {
-              for (var d : asJava(t.members())) {
+              for (var d : BindingSorter.sortConstructors(asJava(t.members()))) {
                 if (!d.isPrivate()) {
                   dispatch.dispatchConstructor(t, d);
                 }
@@ -112,7 +113,7 @@ public final class DocsGenerate {
     }
   }
 
-  private static <T> Iterable<T> asJava(Seq<T> seq) {
-    return CollectionConverters.IterableHasAsJava(seq).asJava();
+  private static <T> List<T> asJava(Seq<T> seq) {
+    return CollectionConverters.asJava(seq);
   }
 }

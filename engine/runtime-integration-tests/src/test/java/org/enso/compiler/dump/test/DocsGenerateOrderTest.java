@@ -31,9 +31,8 @@ public class DocsGenerateOrderTest {
   public void moduleElementsAreVisitedInCorrectOrder() throws IOException {
     var projName = "Proj";
     var moduleName = "local." + projName + ".Main";
-    var aTypeName = moduleName + ".A_Type";
-    var bTypeName = moduleName + ".B_Type";
-    var anyTypeName = "Standard.Base.Any.Any";
+    var aTypeName = "A_Type";
+    var bTypeName = "B_Type";
     var src =
         """
         import Standard.Base.Any.Any
@@ -67,7 +66,7 @@ public class DocsGenerateOrderTest {
             new VisitedType(bTypeName),
             new VisitedMethod(null, "a_module_method"),
             new VisitedMethod(null, "b_module_method"),
-            new VisitedMethod(anyTypeName, "extension_method"));
+            new VisitedMethod(null, "extension_method"));
     var expectedEventsArr = expectedEvents.toArray(Event[]::new);
     assertThat(events, contains(expectedEventsArr));
   }
@@ -76,37 +75,37 @@ public class DocsGenerateOrderTest {
     private final List<Event> events = new ArrayList<>();
 
     @Override
-    public boolean visitModule(QualifiedName name, Module ir, PrintWriter writer)
-        throws IOException {
+    public boolean visitModule(QualifiedName name, Module ir, PrintWriter writer) {
+      events.add(new VisitedModule(name.toString()));
       return true;
     }
 
     @Override
-    public boolean visitUnknown(IR ir, PrintWriter w) throws IOException {
+    public boolean visitUnknown(IR ir, PrintWriter w) {
       return true;
     }
 
     @Override
-    public void visitMethod(Type t, Explicit m, PrintWriter writer) throws IOException {
+    public void visitMethod(Type t, Explicit m, PrintWriter writer) {
       var typeName = t == null ? null : t.name().name();
       events.add(new VisitedMethod(typeName, m.methodName().name()));
     }
 
     @Override
-    public void visitConversion(Conversion c, PrintWriter w) throws IOException {
+    public void visitConversion(Conversion c, PrintWriter w) {
       var targetTypeName = c.typeName().get().name();
       var sourceTypeName = ((Name.Literal) c.sourceTypeName()).name();
       events.add(new VisitedConversion(targetTypeName, sourceTypeName));
     }
 
     @Override
-    public boolean visitType(Type t, PrintWriter w) throws IOException {
+    public boolean visitType(Type t, PrintWriter w) {
       events.add(new VisitedType(t.name().name()));
       return true;
     }
 
     @Override
-    public void visitConstructor(Type t, Data d, PrintWriter w) throws IOException {
+    public void visitConstructor(Type t, Data d, PrintWriter w) {
       events.add(new VisitedConstructor(t.name().name(), d.name().name()));
     }
   }
