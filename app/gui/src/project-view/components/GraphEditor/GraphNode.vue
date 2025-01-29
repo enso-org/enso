@@ -242,6 +242,8 @@ const isVisualizationVisible = computed(
   () => isVisualizationEnabled.value || isVisualizationPreviewed.value,
 )
 watch(isVisualizationVisible, (val) => {
+  // When visualization is being hidden, we don’t receive `pointerleave` event for some reason.
+  // So we need to set `visualizationHovered` to `false` manually.
   if (!val) {
     visualizationHovered.value = false
   }
