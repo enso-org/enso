@@ -1,9 +1,8 @@
 import { createContextStore } from '@/providers'
 import { Ok, Result } from '@/util/data/result'
 import { parseAbsoluteProjectPath, ProjectPath } from '@/util/projectPath'
-import { normalizeQualifiedName, qnJoin, qnSegments, tryQualifiedName } from '@/util/qualifiedName'
+import { normalizeQualifiedName, qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import { type ToValue } from '@/util/reactivity'
-import { chain } from 'enso-common/src/utilities/data/iter'
 import { computed, readonly, ref, toRef, toValue } from 'vue'
 import { type Identifier, type QualifiedName } from 'ydoc-shared/ast'
 
@@ -78,12 +77,6 @@ function useProjectNameStore(
     return path.path ? qnJoin(project, path.path) : project
   }
 
-  function pathSegments(projectPath: ProjectPath) {
-    const project = projectPath.project ?? outboundProject.value
-    const pathSegments = projectPath.path ? qnSegments(projectPath.path) : []
-    return chain(qnSegments(project), pathSegments)
-  }
-
   return {
     parseProjectPath,
     parseProjectPathRaw,
@@ -99,7 +92,6 @@ function useProjectNameStore(
       }
     },
     displayName: readonly(toRef(displayName)),
-    pathSegments,
   }
 }
 

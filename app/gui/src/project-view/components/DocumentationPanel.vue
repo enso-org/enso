@@ -20,7 +20,7 @@ import { type Opt } from '@/util/data/opt'
 import { Ok } from '@/util/data/result'
 import type { Icon as IconName } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
-import { qnSlice } from '@/util/qualifiedName'
+import { qnSegments, qnSlice } from '@/util/qualifiedName'
 import { computed, watch } from 'vue'
 
 const props = defineProps<{ selectedEntry: SuggestionId | undefined; aiMode?: boolean }>()
@@ -99,7 +99,7 @@ watch(historyStack.current, (current) => {
 
 const breadcrumbs = computed<Breadcrumb[]>(() => {
   if (name.value) {
-    const segments = [...projectNames.pathSegments(name.value)]
+    const segments = [...qnSegments(projectNames.printProjectPath(name.value))]
     return segments.slice(1).map((s) => ({ label: s.toLowerCase() }))
   } else {
     return []
@@ -110,8 +110,8 @@ function handleBreadcrumbClick(index: number) {
   if (name.value) {
     const pathSlice = name.value.path ? qnSlice(name.value.path, 0, index) : Ok(undefined)
     if (pathSlice.ok) {
-      const qName = name.value.withPath(pathSlice.value)
-      const id = db.entries.findByProjectPath(qName)
+      const projectPathSlice = name.value.withPath(pathSlice.value)
+      const id = db.entries.findByProjectPath(projectPathSlice)
       if (id != null) {
         historyStack.record(id)
       }
