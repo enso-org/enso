@@ -8,8 +8,7 @@ import { createLeafComponent } from '@react-aria/collections'
 import { isValidElement } from 'react'
 import * as aria from 'react-aria-components'
 import { Button, Menu, Text, type Addon, type IconProp, type TestIdProps } from '../AriaComponents'
-import { Icon as IconComponent } from '../Icon'
-import { renderIcon } from '../Icon/Icon'
+import { Icon as IconComponent, renderIcon } from '../Icon'
 
 export const BREADCRUMB_ITEM_STYLES = tv({
   base: 'flex items-center gap-2',

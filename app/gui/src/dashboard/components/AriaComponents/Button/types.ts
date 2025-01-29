@@ -42,7 +42,7 @@ export interface LinkRenderProps extends aria.LinkRenderProps {
 }
 
 /** Props for a Button. */
-export type ButtonProps<IconType extends string> =
+export type ButtonProps<IconType extends string = string> =
   | (BaseButtonProps<IconType, ButtonRenderProps> &
       Omit<aria.ButtonProps, 'children' | 'isPending' | 'onPress'> &
       PropsWithoutHref)
