@@ -145,7 +145,7 @@ const blurHandlers = new Set<() => void>()
  * Register a callback to be called when the window is blurred.
  * The callback will be called when the window is blurred, and will be removed when the component is unmounted.
  */
-export function onBlur(callback: () => void) {
+export function onWindowBlur(callback: () => void) {
   blurHandlers.add(callback)
   onUnmounted(() => {
     blurHandlers.delete(callback)
@@ -153,7 +153,7 @@ export function onBlur(callback: () => void) {
 }
 
 /**
- * This function should be called on application mount to make all {@link onBlur} work
+ * This function should be called on application mount to make all {@link onWindowBlur} work
  * properly.
  */
 export function registerGlobalBlurHandler() {
