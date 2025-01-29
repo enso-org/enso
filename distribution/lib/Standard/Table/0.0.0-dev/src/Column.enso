@@ -163,8 +163,12 @@ type Column
        A representation of a column in a Table.
 
        Arguments:
-       - java_column: The internal representation of the column.
-    private Value java_column
+       - internal_java_column: The internal representation of the column.
+    private Value internal_java_column
+
+    ## PRIVATE
+       A getter that is a workaround for bug https://github.com/enso-org/enso/issues/12180
+    private java_column self = self.internal_java_column
 
     ## PRIVATE
        ADVANCED
