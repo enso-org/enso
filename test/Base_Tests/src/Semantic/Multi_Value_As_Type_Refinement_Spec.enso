@@ -277,7 +277,7 @@ add_specs suite_builder =
             r.a_method . should_equal "A method"
             r.b_method . should_equal "B method"
 
-        group_builder.specify "calling `.catch` on an intersection type should not lose even the hidden refinements" pending=dispatch_pending <|
+        group_builder.specify "calling `.catch` on an intersection type should not lose even the hidden refinements" <|
             ab = make_a_and_b
             x = ab:A
             r = x.catch Any _->"catched"
