@@ -1179,21 +1179,29 @@ add_specs suite_builder =
         group_builder.specify "should clear cache on simulated reload old" <|
             ExcelConnectionPool.INSTANCE.simulateReloadTestOnly
             check_workbook <| xlsx_sheet.read
+            Runtime.gc
             ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
             check_workbook <| xlsx_sheet.read
+            Runtime.gc
             ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
             check_workbook <| xls_sheet.read
+            Runtime.gc
             ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
             check_workbook <| xls_sheet.read
+            Runtime.gc
             ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
             ExcelConnectionPool.INSTANCE.simulateReloadTestOnly
             check_workbook <| xlsx_sheet.read
+            Runtime.gc
             ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
             check_workbook <| xlsx_sheet.read
+            Runtime.gc
             ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
             check_workbook <| xls_sheet.read
+            Runtime.gc
             ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
             check_workbook <| xls_sheet.read
+            Runtime.gc
             ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
 
     suite_builder.group "Problems" group_builder->
