@@ -2,14 +2,15 @@ package org.enso.table.data.column.builder;
 
 import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
@@ -26,7 +27,7 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
   }
 
   static LongBuilder make(int initialSize, IntegerType type, ProblemAggregator problemAggregator) {
-    if (type.equals(IntegerType.INT_64)) {
+    if (type == null || type.equals(IntegerType.INT_64)) {
       return new LongBuilder(initialSize, problemAggregator);
     } else {
       return new BoundCheckedIntegerBuilder(initialSize, type, problemAggregator);
@@ -89,20 +90,19 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
     if (Objects.equals(storage.getType(), getType())
         && storage instanceof LongStorage longStorage) {
       // A fast path for the same type - no conversions/checks needed.
-      int n = longStorage.size();
+      int n = (int) longStorage.getSize();
       ensureFreeSpaceFor(n);
       System.arraycopy(longStorage.getRawData(), 0, data, currentSize, n);
       BitSets.copy(longStorage.getIsNothingMap(), isNothing, currentSize, n);
       currentSize += n;
     } else if (storage.getType() instanceof IntegerType otherType && getType().fits(otherType)) {
-      if (storage instanceof AbstractLongStorage longStorage) {
-        int n = longStorage.size();
-        ensureFreeSpaceFor(n);
-        for (int i = 0; i < n; i++) {
+      if (storage instanceof ColumnLongStorage longStorage) {
+        long n = longStorage.getSize();
+        for (long i = 0; i < n; i++) {
           if (longStorage.isNothing(i)) {
-            isNothing.set(currentSize++);
+            appendNulls(1);
           } else {
-            appendLong(longStorage.getItem(i));
+            appendLong(longStorage.getItemAsLong(i));
           }
         }
       } else {
@@ -112,13 +112,13 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
                 + ". This is a bug in the Table library.");
       }
     } else if (Objects.equals(storage.getType(), BooleanType.INSTANCE)) {
-      if (storage instanceof BoolStorage boolStorage) {
-        int n = boolStorage.size();
-        for (int i = 0; i < n; i++) {
+      if (storage instanceof ColumnBooleanStorage boolStorage) {
+        long n = boolStorage.getSize();
+        for (long i = 0; i < n; i++) {
           if (boolStorage.isNothing(i)) {
-            isNothing.set(currentSize++);
+            appendNulls(1);
           } else {
-            data[currentSize++] = boolStorage.getItem(i) ? 1L : 0L;
+            appendLong(boolStorage.getItemAsBoolean(i) ? 1L : 0L);
           }
         }
       } else {
@@ -127,6 +127,8 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
                 + storage
                 + ". This is a bug in the Table library.");
       }
+    } else if (storage.getType() instanceof NullType) {
+      appendNulls(Math.toIntExact(storage.getSize()));
     } else {
       throw new StorageTypeMismatchException(getType(), storage.getType());
     }
@@ -138,24 +140,22 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
    * @param value the integer to append
    */
   public void appendLong(long value) {
-    if (currentSize >= this.data.length) {
-      grow();
-    }
-
-    assert currentSize < this.data.length;
+    ensureSpaceToAppend();
     this.data[currentSize++] = value;
   }
 
-  public void appendNoGrow(Object o) {
+  @Override
+  public void append(Object o) {
     if (o == null) {
-      isNothing.set(currentSize++);
+      appendNulls(1);
+      return;
+    }
+
+    Long x = NumericConverter.tryConvertingToLong(o);
+    if (x != null) {
+      appendLong(x);
     } else {
-      Long x = NumericConverter.tryConvertingToLong(o);
-      if (x != null) {
-        this.data[currentSize++] = x;
-      } else {
-        throw new ValueTypeMismatchException(getType(), o);
-      }
+      throw new ValueTypeMismatchException(getType(), o);
     }
   }
 

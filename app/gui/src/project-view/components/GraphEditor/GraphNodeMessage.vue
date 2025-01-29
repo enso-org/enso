@@ -3,10 +3,12 @@ import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useGraphStore } from '@/stores/graph'
 import { QualifiedImport } from '@/stores/graph/imports'
+import { injectProjectNames } from '@/stores/projectNames'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { QualifiedName } from '@/util/qualifiedName'
 
 const graph = useGraphStore()
+const projectNames = injectProjectNames()
 
 const props = defineProps<{
   message: string
@@ -28,14 +30,12 @@ function copyText() {
 }
 function fixImport() {
   const libName = containsLibraryName()
-  if (typeof libName == `string`) {
+  if (libName) {
     const theImport = {
       kind: 'Qualified',
-      module: libName as QualifiedName,
-    } as QualifiedImport
-    const edit = graph.startEdit()
-    graph.addMissingImports(edit, [theImport])
-    graph.commitEdit(edit)
+      module: projectNames.parseProjectPath(libName as QualifiedName),
+    } satisfies QualifiedImport
+    graph.edit((edit) => graph.addMissingImports(edit, [theImport]))
   }
 }
 </script>

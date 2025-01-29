@@ -2,7 +2,6 @@ package org.enso.table.parsing;
 
 import org.enso.base.time.EnsoDateTimeFormatter;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.problems.ProblemAggregator;
 
 public class DateParser extends BaseTimeParser {
@@ -13,7 +12,7 @@ public class DateParser extends BaseTimeParser {
   }
 
   @Override
-  protected Builder makeBuilderWithCapacity(int capacity, ProblemAggregator problemAggregator) {
-    return Builder.getForType(DateType.INSTANCE, capacity, problemAggregator);
+  protected Builder makeBuilderWithCapacity(long capacity, ProblemAggregator problemAggregator) {
+    return Builder.getForDate(capacity);
   }
 }

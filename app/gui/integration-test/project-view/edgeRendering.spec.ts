@@ -65,8 +65,8 @@ test('Hover behaviour of edges', async ({ page }) => {
 
   // Expect the top edge part to be dimmed
   const topEdge = page.locator('svg.behindNodes g:nth-child(2) path:nth-child(1)')
-  await expect(topEdge).toHaveClass('edge visible dimmed')
+  await expect(topEdge).toHaveClass('edge define-node-colors visible dimmed pending')
   // Expect the bottom edge part not to be dimmed
   const bottomEdge = page.locator('svg.behindNodes g:nth-child(2) path:nth-child(3)')
-  await expect(bottomEdge).toHaveClass('edge visible')
+  await expect(bottomEdge).toHaveClass('edge define-node-colors visible pending')
 })

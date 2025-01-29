@@ -25,7 +25,7 @@ const variants = [
 const sizes = ['hero', 'large', 'medium', 'small', 'xsmall', 'xxsmall'] as const
 
 export default {
-  title: 'Components/AriaComponents/Button',
+  title: 'Components/Button',
   component: Button,
   render: (props) => <Button {...props} />,
   argTypes: {

@@ -154,7 +154,7 @@ add_specs suite_builder =
             space_table = Table.new [["A", space_data]]
             vis = Visualization.prepare_visualization space_table 1000
             value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"], ["size", Nothing], ["variable_length", True]]
-            json = make_json header=["A"] data=[space_data.take 1000] all_rows=11000 value_type=[value_type_char] has_index_col=True get_child_node="get_row" number_of_nothing=[0] number_of_whitespace_sampled=[8266]
+            json = make_json header=["A"] data=[space_data.take 1000] all_rows=11000 value_type=[value_type_char] has_index_col=True get_child_node="get_row" number_of_nothing=[0] number_of_whitespace_sampled=[8267]
             vis . should_equal json
 
 main filter=Nothing =

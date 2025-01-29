@@ -22,6 +22,7 @@ import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
 import Standard.Database.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import Standard.Database.Internal.Postgres.Postgres_Dialect
 import Standard.Database.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
+import Standard.Database.Internal.SQL_Part.SQL_Part
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.Internal.Statement_Setter.Statement_Setter
@@ -75,7 +76,13 @@ type Redshift_Dialect
        Generates SQL modifier for limiting the number of rows and its position in the query
     get_limit_sql_modifier : Integer -> Any
     get_limit_sql_modifier self limit =
-        [700, SQL_Builder.code (" LIMIT " + limit.to_text)]
+        SQL_Builder.code (" LIMIT " + limit.to_text)
+
+    ## PRIVATE
+       Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
+       If you add extensions using Context_Extension you have to provide an order for them here
+    get_part_order self part:SQL_Part -> Integer =
+        Base_Generator.default_get_part_order part
 
     ## PRIVATE
        Wraps and possibly escapes the identifier so that it can be used in a

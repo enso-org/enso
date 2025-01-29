@@ -9,23 +9,20 @@ import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
 import org.enso.table.data.column.operation.map.datetime.TimeLikeBinaryOpReturningBoolean;
 import org.enso.table.data.column.operation.map.datetime.TimeLikeCoalescingOperation;
-import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
-import org.enso.table.data.column.storage.type.StorageType;
 
 public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
   /**
    * @param data the underlying data
-   * @param size the number of items stored
    */
-  public DateTimeStorage(ZonedDateTime[] data, int size) {
-    super(data, size, buildOps());
+  public DateTimeStorage(ZonedDateTime[] data) {
+    super(DateTimeType.INSTANCE, data, buildOps());
   }
 
   private static MapOperationStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> buildOps() {
     MapOperationStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> t =
-        ObjectStorage.buildObjectOps();
+        new MapOperationStorage<>();
     t.add(new DateTimeIsInOp<>(ZonedDateTime.class));
     t.add(
         new TimeLikeBinaryOpReturningBoolean<>(Maps.EQ, ZonedDateTime.class) {
@@ -72,7 +69,7 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
             ZonedDateTime, SpecializedStorage<ZonedDateTime>, Duration>(
             Maps.SUB, ZonedDateTime.class, DateTimeStorage.class) {
           @Override
-          protected Builder createOutputBuilder(int size) {
+          protected Builder createOutputBuilder(long size) {
             return Builder.getObjectBuilder(size);
           }
 
@@ -84,8 +81,8 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
     t.add(
         new TimeLikeCoalescingOperation<>(Maps.MIN, ZonedDateTime.class) {
           @Override
-          protected Builder createOutputBuilder(int size) {
-            return Builder.getForType(DateTimeType.INSTANCE, size, null);
+          protected Builder createOutputBuilder(long size) {
+            return Builder.getForDateTime(size);
           }
 
           @Override
@@ -96,8 +93,8 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
     t.add(
         new TimeLikeCoalescingOperation<>(Maps.MAX, ZonedDateTime.class) {
           @Override
-          protected Builder createOutputBuilder(int size) {
-            return Builder.getForType(DateTimeType.INSTANCE, size, null);
+          protected Builder createOutputBuilder(long size) {
+            return Builder.getForDateTime(size);
           }
 
           @Override
@@ -109,18 +106,13 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
   }
 
   @Override
-  protected SpecializedStorage<ZonedDateTime> newInstance(ZonedDateTime[] data, int size) {
-    return new DateTimeStorage(data, size);
+  protected SpecializedStorage<ZonedDateTime> newInstance(ZonedDateTime[] data) {
+    return new DateTimeStorage(data);
   }
 
   @Override
   protected ZonedDateTime[] newUnderlyingArray(int size) {
     return new ZonedDateTime[size];
-  }
-
-  @Override
-  public StorageType getType() {
-    return DateTimeType.INSTANCE;
   }
 
   private abstract static class DateTimeComparisonOp

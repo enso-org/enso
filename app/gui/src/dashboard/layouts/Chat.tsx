@@ -22,10 +22,10 @@ import SvgMask from '#/components/SvgMask'
 import Twemoji from '#/components/Twemoji'
 
 import { useSyncRef } from '#/hooks/syncRefHooks'
-import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
 import * as object from '#/utilities/object'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 
 // ================
 // === Newtypes ===

@@ -3,14 +3,16 @@
  * The state of the asset panel. Can be used to control the asset panel's visibility,
  * selected tab, and other properties from outside the component.
  */
+import { startTransition } from 'react'
+
+import { z } from 'zod'
+
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type Backend from '#/services/Backend'
 import type { AnyAsset } from '#/services/Backend'
 import LocalStorage from '#/utilities/LocalStorage'
 import * as zustand from '#/utilities/zustand'
-import { startTransition } from 'react'
-import { z } from 'zod'
-import type { AssetPropertiesSpotlight } from '../AssetProperties'
+import type { AssetPropertiesSpotlight } from './components/AssetProperties'
 import { ASSET_PANEL_TABS, type AssetPanelTab } from './types'
 
 declare module '#/utilities/LocalStorage' {

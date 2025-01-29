@@ -1,5 +1,6 @@
 from Standard.Base import all
 from Standard.Test import all
+from Standard.Table import all
 
 from Standard.Database.Errors import Unsupported_Database_Operation
 import Standard.Database.Feature.Feature
@@ -19,6 +20,9 @@ add_specs suite_builder setup =
                 t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
                 t2 = t.offset ["X"]
                 t2.should_fail_with (Unsupported_Database_Operation.Error "offset")
+                c = t.at 0
+                c2 = c.offset
+                c2.should_fail_with (Unsupported_Database_Operation.Error "offset")
 
 add_offset_specs suite_builder setup =
     prefix = setup.prefix
@@ -27,11 +31,11 @@ add_offset_specs suite_builder setup =
     c = t.at 0 
     c_nothings = t.at 1
     c_zero_rows = t.take 0 . at 0
-    suite_builder.group prefix+"Column.Offset with default fill strategy" pending="TODO Column.Offset" group_builder->
+    suite_builder.group prefix+"Column.Offset with default fill strategy" group_builder->
         group_builder.specify "Works with default values" <|
             r = c.offset
             r.to_vector . should_equal [Nothing, 1, 2]
-            r.name . should_equal c.name
+            r.name . should_equal "offset([A], -1, Fill_With.Nothing)"
         group_builder.specify "Negative n shifts the values down" <|
             r = c.offset -1
             r.to_vector . should_equal [Nothing, 1, 2]
@@ -50,7 +54,7 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Works with zero rows" <|
             r = c_zero_rows.offset
             r.to_vector . should_equal []
-    suite_builder.group prefix+"Column.Offset with closest value fill strategy" pending="TODO Column.Offset" group_builder->
+    suite_builder.group prefix+"Column.Offset with closest value fill strategy" group_builder->
         group_builder.specify "Negative n shifts the values down" <|
             r = c.offset -1 ..Closest_Value
             r.to_vector . should_equal [1, 1, 2]
@@ -75,7 +79,7 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Works with positive n and column of nothings" <|
             r = c_nothings.offset 1 ..Closest_Value
             r.to_vector . should_equal [Nothing, Nothing, Nothing]
-    suite_builder.group prefix+"Column.Offset with wrap around fill strategy" pending="TODO Column.Offset" group_builder->
+    suite_builder.group prefix+"Column.Offset with wrap around fill strategy" group_builder->
         group_builder.specify "Negative n shifts the values down" <|
             r = c.offset -1 ..Wrap_Around
             r.to_vector . should_equal [3, 1, 2]
@@ -106,7 +110,7 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Works with positive n and column of nothings" <|
             r = c_nothings.offset 1 ..Wrap_Around
             r.to_vector . should_equal [Nothing, Nothing, Nothing]
-    suite_builder.group prefix+"Column.Offset with constant fill strategy" pending="TODO Column.Offset" group_builder->
+    suite_builder.group prefix+"Column.Offset with constant fill strategy" pending="TODO - constant fill strategy" group_builder->
         group_builder.specify "Negative n shifts the values down" <|
             r = c.offset -1 42
             r.to_vector . should_equal [42, 1, 2]
@@ -134,6 +138,25 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Can create mixed colums" <|
             r = c.offset -1 "42"
             r.to_vector . should_equal ["42", 1, 2]
+    suite_builder.group prefix+"Works in Table.set expressions with default" group_builder->
+        group_builder.specify "Works with default values" <|
+            r = t.set (expr 'offset([A])') . at "offset([A])"
+            r.to_vector . should_equal [Nothing, 1, 2]
+        group_builder.specify "Negative n shifts the values down" <|
+            r = t.set (expr 'offset([A], -1)')  . at "offset([A], -1)"
+            r.to_vector . should_equal [Nothing, 1, 2]
+        group_builder.specify "Positive n shifts the values up" <|
+            r = t.set (expr 'offset([A], 1)')  . at "offset([A], 1)"
+            r.to_vector . should_equal [2, 3, Nothing]
+        group_builder.specify "Zero n is a no-op" <|
+            r = t.set (expr 'offset([A], 0)')  . at "offset([A], 0)"
+            r.to_vector . should_equal [1, 2, 3]
+        group_builder.specify "Large negative n values work" <|
+            r = t.set (expr 'offset([A], -1024)')  . at "offset([A], -1024)"
+            r.to_vector . should_equal [Nothing, Nothing, Nothing]
+        group_builder.specify "Large positive n values work" <|
+            r = t.set (expr 'offset([A], 1024)')  . at "offset([A], 1024)"
+            r.to_vector . should_equal [Nothing, Nothing, Nothing]
     suite_builder.group prefix+"Table.Offset with default fill strategy" group_builder->
         group_builder.specify "Works with default values" <|
             r = t.offset ["A"]

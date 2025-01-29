@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Failed_To_Load
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Columns_To_Keep.Columns_To_Keep
@@ -40,10 +41,17 @@ Read_Many_As_Merged_Table_Strategy.from (that : Vector) =
     Read_Many_As_Merged_Table_Strategy.Value callback
 
 ## PRIVATE
+Read_Many_As_Merged_Table_Strategy.from (that : Failed_To_Load) =
+    callback path _ _ on_problems =
+        on_problems.attach_problem_after Read_Many_As_Table_Result.No_Data <|
+            (No_Rows.Warning "The "+path.to_display_text+" failed to load, so it is not included in the `As_Merged_Table` result of `read_many`. Caused by: "+that.cause.to_display_text)
+    Read_Many_As_Merged_Table_Strategy.Value callback
+
+## PRIVATE
    The fallback strategy for converting a generic object into a table.
    Custom data types may implement a conversion to override this strategy, like above.
 Read_Many_As_Merged_Table_Strategy.from (that : Any) =
-    callback path _ _ on_problems = 
+    callback path _ _ on_problems =
         Read_Many_As_Table_Result.Table metadata=Nothing data=(_interpret_as_table that path on_problems)
     Read_Many_As_Merged_Table_Strategy.Value callback
 

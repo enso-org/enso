@@ -526,7 +526,7 @@ filter_blank_rows table when treat_nans_as_blank =
    `is_table` and if it returns `True`.
 is_column obj =
     known_types = ["Standard.Table.Column.Column", "Standard.Database.DB_Column.DB_Column"]
-    known_types.contains (Meta.get_qualified_type_name obj)
+    known_types.contains (obj.to Meta.Type . qualified_name)
 
 ## PRIVATE
    A helper method that resolves what should be the result type of a particular

@@ -19,12 +19,8 @@ abstract class AbstractUnaryBooleanOperation extends AbstractUnaryOperation {
 
   @Override
   protected BuilderForBoolean createBuilder(
-      ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
-    if (storage.getSize() > Integer.MAX_VALUE) {
-      throw new IllegalArgumentException(
-          "Cannot currently operate on columns larger than " + Integer.MAX_VALUE + ".");
-    }
-    return Builder.getForBoolean((int) storage.getSize());
+      ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
+    return Builder.getForBoolean(storage.getSize());
   }
 
   @Override

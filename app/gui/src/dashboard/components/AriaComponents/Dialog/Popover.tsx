@@ -14,6 +14,7 @@ import * as twv from '#/utilities/tailwindVariants'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { ResetButtonGroupContext } from '../Button'
+import { Close } from './Close'
 import * as dialogProvider from './DialogProvider'
 import * as dialogStackProvider from './DialogStackProvider'
 import { DialogTrigger } from './DialogTrigger'
@@ -86,7 +87,6 @@ export function Popover(props: PopoverProps) {
     size,
     rounded,
     variant,
-    placement = 'bottom start',
     isDismissable = true,
     ...ariaPopoverProps
   } = props
@@ -110,7 +110,6 @@ export function Popover(props: PopoverProps) {
         })
       }
       UNSTABLE_portalContainer={root}
-      placement={placement}
       style={popoverStyle}
       shouldCloseOnInteractOutside={() => false}
       {...ariaPopoverProps}
@@ -153,10 +152,7 @@ function PopoverContent(props: PopoverContentProps) {
   const dialogRef = React.useRef<HTMLDivElement>(null)
   const dialogId = aria.useId()
 
-  // eslint-disable-next-line no-restricted-syntax
-  const contextState = React.useContext(
-    aria.OverlayTriggerStateContext,
-  ) as aria.OverlayTriggerState | null
+  const contextState = React.useContext(aria.OverlayTriggerStateContext)
   const dialogContext = React.useContext(aria.DialogContext)
 
   // This is safe, because the labelledBy provided by DialogTrigger is always
@@ -212,3 +208,4 @@ function PopoverContent(props: PopoverContentProps) {
 }
 
 Popover.Trigger = DialogTrigger
+Popover.Close = Close

@@ -85,7 +85,6 @@ polyglot java import java.util.UUID
 polyglot java import org.enso.base.ObjectComparator
 polyglot java import org.enso.table.data.index.MultiValueIndex
 polyglot java import org.enso.table.data.mask.OrderMask
-polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.data.table.join.conditions.Between as Java_Join_Between
 polyglot java import org.enso.table.data.table.join.conditions.Equals as Java_Join_Equals
 polyglot java import org.enso.table.data.table.join.conditions.EqualsIgnoreCase as Java_Join_Equals_Ignore_Case
@@ -145,13 +144,13 @@ type Table
     new : Vector (Vector | Column) -> Table
     new columns =
         invalid_input_shape =
-            Error.throw (Illegal_Argument.Error "Each column must be represented by a pair whose first element is the column name and the second element is a vector of elements that will constitute that column, or an existing column.")
+            Error.throw (Illegal_Argument.Error "Each column must be represented by a pair whose first element is the column name and the second element is a vector of elements that will constitute that column, or an existing column. Got: "+columns.to_text)
         cols = columns.map on_problems=No_Wrap.Value c->
             case c of
                 v : Vector ->
                     if v.length != 2 then invalid_input_shape else
                         Column.from_vector (v.at 0) (v.at 1) . java_column
-                Column.Value java_col -> java_col
+                col : Column -> col.java_column
                 _ -> invalid_input_shape
         Panic.recover Illegal_Argument <|
             if cols.is_empty then
@@ -342,8 +341,7 @@ type Table
     at : Integer | Text -> Column ! No_Such_Column | Index_Out_Of_Bounds
     at self (selector:(Integer | Text)=0) = case selector of
         _ : Integer ->
-            java_columns = Vector.from_polyglot_array self.java_table.getColumns
-            Column.Value (java_columns.at selector)
+            Column.from_java_column (self.java_table.getColumns.at selector)
         _ -> self.get selector (Error.throw (No_Such_Column.Error selector))
 
     ## ICON select_column
@@ -386,7 +384,7 @@ type Table
         java_column = case selector of
             _ : Integer -> Vector.from_polyglot_array self.java_table.getColumns . get selector
             _ : Text -> self.java_table.getColumnByName selector
-        if java_column.is_nothing then if_missing else Column.Value java_column
+        if java_column.is_nothing then if_missing else Column.from_java_column java_column
 
     ## ALIAS cell value, get cell
        GROUP Standard.Base.Selections
@@ -1569,7 +1567,7 @@ type Table
                         new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                             parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator column.name type
                             parser.parseColumn storage parse_problem_aggregator
-                        Column.Value (Java_Column.new column.name new_storage)
+                        Column.from_storage column.name new_storage
             Table.new new_columns
 
     ## GROUP Standard.Base.Conversions
@@ -2474,9 +2472,9 @@ type Table
         unique.mark_used self.column_names
 
         resolved = case value of
+            _ : Column -> value
             _ : Text -> self.make_constant_column value
             _ : Expression -> self.evaluate_expression value on_problems
-            _ : Column -> value
             _ : Constant_Column -> self.make_constant_column value.value
             _ : Simple_Expression -> value.evaluate self (set_mode==Set_Mode.Update && as=="") on_problems
             _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
@@ -2599,7 +2597,7 @@ type Table
     columns : Vector
     columns self = Vector.from_polyglot_array <|
         Array_Proxy.new self.java_table.getColumns.length i->
-            Column.Value (self.java_table.getColumns.at i)
+            Column.from_java_column (self.java_table.getColumns.at i)
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -3048,7 +3046,7 @@ type Table
        ? Row Ordering For Database Tables
 
          The ordering of rows in the resulting table is not specified.
-    @keep_unmatched (make_single_choice [["True", "Boolean.True"], ["False", "Boolean.False"], ["Report", Meta.get_qualified_type_name Report_Unmatched]])
+    @keep_unmatched (make_single_choice [["True", "Boolean.True"], ["False", "Boolean.False"], ["Report", Report_Unmatched.to Meta.Type . qualified_name]])
     zip : Table -> Boolean | Report_Unmatched -> Text -> Problem_Behavior -> Table
     zip self right:Table keep_unmatched=Report_Unmatched right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning =
         keep_unmatched_bool = case keep_unmatched of

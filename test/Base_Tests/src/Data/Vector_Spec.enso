@@ -537,8 +537,8 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         vec.slice 1 1 . should_equal []
         vec.slice 0 100 . should_equal [1, 2, 3, 4, 5, 6]
 
-        Meta.get_qualified_type_name (vec.slice 1 1) . should_equal (Meta.meta Vector . qualified_name)
-        Meta.get_simple_type_name (vec.slice 1 1) . should_equal "Vector"
+        (vec.slice 1 1) . to Meta.Type . qualified_name . should_equal (Meta.meta Vector . qualified_name)
+        (vec.slice 1 1) . to Meta.Type . name . should_equal "Vector"
 
     group_builder.specify "should define take and drop family of operations" <|
         vec = alter [1, 2, 3, 4, 5, 6]
