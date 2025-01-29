@@ -1,19 +1,13 @@
 package org.enso.compiler.dump.test;
 
-import static org.enso.test.utils.ContextUtils.compileModule;
 import static org.enso.test.utils.ContextUtils.defaultContextBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.function.BiConsumer;
-import org.enso.compiler.dump.DocsGenerate;
-import org.enso.compiler.dump.DocsVisit;
-import org.enso.pkg.QualifiedName;
 import org.graalvm.polyglot.Context;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -196,27 +190,10 @@ public final class ApiModificationTest {
       String prevSource, String newSource, BiConsumer<String, String> signatureComparator)
       throws IOException {
     var modName = "local.Proj.Main";
-    var prevSignature = generateSignatures(prevSource, modName);
-    var newSignature = generateSignatures(newSource, modName);
+    var prevSignature = DumpTestUtils.generateSignatures(ctx, prevSource, modName);
+    var newSignature = DumpTestUtils.generateSignatures(ctx, newSource, modName);
     assertThat("Signature was generated", prevSignature.isEmpty(), is(false));
     assertThat("Signature was generated", newSignature.isEmpty(), is(false));
     signatureComparator.accept(prevSignature, newSignature);
-  }
-
-  /**
-   * Returns generated signatures as string
-   *
-   * @param moduleSrc Source code of the module
-   * @return
-   */
-  private static String generateSignatures(String moduleSrc, String modName) throws IOException {
-    var modIr = compileModule(ctx, moduleSrc, modName);
-    var sigGenerator = DocsVisit.createSignatures();
-    var out = new ByteArrayOutputStream();
-    var writer = new PrintWriter(out);
-    var modFqn = QualifiedName.fromString(modName);
-    DocsGenerate.visitModule(sigGenerator, modFqn, modIr, writer);
-    writer.flush();
-    return out.toString();
   }
 }

@@ -14,7 +14,7 @@ import org.enso.compiler.core.ir.module.scope.Definition.Data;
 import org.enso.compiler.core.ir.module.scope.Definition.Type;
 import org.enso.compiler.core.ir.module.scope.definition.Method.Conversion;
 import org.enso.compiler.core.ir.module.scope.definition.Method.Explicit;
-import org.enso.compiler.dump.DocsVisit;
+import org.enso.compiler.docs.DocsVisit;
 import org.enso.pkg.QualifiedName;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -54,10 +54,11 @@ public class DocsGenerateOrderTest {
         """;
     var projDir = TMP_DIR.newFolder();
     var timestampVisitor = new TimestampVisitor();
-    DocsGenerateTest.generateDocumentation(projDir.toPath(), "Proj", src, timestampVisitor);
+    DumpTestUtils.generateDocumentation(projDir.toPath(), "Proj", src, timestampVisitor);
     var events = timestampVisitor.events;
     List<Event> expectedEvents =
         List.of(
+            new VisitedModule(moduleName),
             new VisitedType(aTypeName),
             new VisitedConstructor(aTypeName, "A_Cons"),
             new VisitedConstructor(aTypeName, "B_Cons"),
@@ -112,6 +113,8 @@ public class DocsGenerateOrderTest {
 
   /** All names are unqualified */
   private interface Event {}
+
+  private record VisitedModule(String moduleName) implements Event {}
 
   /**
    * @param typeName Can be null if this is a module method
