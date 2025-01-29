@@ -64,7 +64,7 @@ add_specs suite_builder =
             t1.should_be_a Table
             (t1:Column).to_vector.should_equal ["hello"]
             (t1:Text).should_equal "hello"
-            (t1:Text) + "!" . should_equal "hello!"
+            ((t1:Text) + "!") . should_equal "hello!"
 
         group_builder.specify "should also act as individual value if the only column has only one row (Boolean)" <|
             t1 = Table.new [["A", [True]]]
