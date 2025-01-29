@@ -46,9 +46,10 @@ add_specs suite_builder =
         group_builder.specify "after passing A&B value to a function expecting A argument, B becomes hidden" <|
             ab = make_a_and_b
             a2 = id_a ab
-            # checks also hidden types
             a2.is_a A . should_be_true
-            a2.is_a B . should_be_true
+            a2.is_a B . should_be_true # B is a hidden type
+            Test.expect_panic No_Such_Method (a2.b_method)
+
 
             # Passing a2 to a function expecting B fails because B part was hidden
             Test.expect_panic Type_Error (id_b a2)
@@ -61,9 +62,9 @@ add_specs suite_builder =
         group_builder.specify "after casting A&B to A, B part is again hidden" <|
             ab = make_a_and_b
             a2 = ab:A
-            # checks also hidden types
             a2.is_a A . should_be_true
-            a2.is_a B . should_be_true
+            a2.is_a B . should_be_true # B is hidden type
+            Test.expect_panic No_Such_Method (a2.b_method)
 
             # Passing a2 to a function expecting B fails because B part was hidden
             Test.expect_panic Type_Error (id_b a2)
@@ -76,9 +77,9 @@ add_specs suite_builder =
             ab = make_a_and_b
             b2 = id_b ab
             a2 = b2:A
-            # checks also hidden types
             a2.is_a A . should_be_true
-            a2.is_a B . should_be_true
+            a2.is_a B . should_be_true # B is hidden type
+            Test.expect_panic No_Such_Method (a2.b_method)
 
             a2.a_method.should_equal "A method"
             Test.expect_panic No_Such_Method (a2.b_method)
@@ -87,11 +88,11 @@ add_specs suite_builder =
             ab = make_a_and_b
             a2 = id_a ab
             b2 = a2:B
-            # checks also hidden types
-            b2.is_a A . should_be_true
-            b2.is_a B . should_be_true
 
+            b2.is_a B . should_be_true
+            b2.is_a A . should_be_true # A is hidden type
             Test.expect_panic No_Such_Method (b2.a_method)
+
             b2.b_method.should_equal "B method"
             # We can still explicitly cast back to A
             (b2:A).a_method.should_equal "A method"
@@ -102,15 +103,15 @@ add_specs suite_builder =
                 ab_as_a : A ->
                     ab_as_a.a_method . should_equal "A method"
                     ab_as_a.is_a A . should_be_true
-                    # checks also hidden types
-                    ab_as_a.is_a B . should_be_true
+                    ab_as_a.is_a B . should_be_true # B is hidden type
+                    Test.expect_panic No_Such_Method (ab_as_a.b_method)
                 _ -> Test.fail "Expected ab to go to `: A` branch"
 
             case ab of
                 ab_as_b : B ->
                     ab_as_b.b_method . should_equal "B method"
-                    # checks also hidden types
-                    ab_as_b.is_a A . should_be_true
+                    ab_as_b.is_a A . should_be_true # A is hidden type
+                    Test.expect_panic No_Such_Method (ab_as_b.a_method)
                     ab_as_b.is_a B . should_be_true
                 _ -> Test.fail "Expected ab to go to `: B` branch"
 
@@ -148,13 +149,12 @@ add_specs suite_builder =
             # We hide A&B parts by casting to C
             c = abc:C
 
-            # is_a checks also hidden types
-            c.is_a A . should_be_true
-            c.is_a B . should_be_true
+            c.is_a A . should_be_true # A is a hidden type
+            Test.expect_panic No_Such_Method (c.a_method)
+            c.is_a B . should_be_true # B is a hidden type
+            Test.expect_panic No_Such_Method (c.b_method)
             c.is_a C . should_be_true
 
-            Test.expect_panic No_Such_Method (c.a_method)
-            Test.expect_panic No_Such_Method (c.b_method)
             c.c_method . should_equal "C method"
 
             # But because the structure was not lost, only hidden, we can cast back to A/B
