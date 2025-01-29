@@ -12,9 +12,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.enso.interpreter.runtime.EnsoContext;
 
 /**
- * Internal representation of {@code Type[]} that supports identity comparision with {@code ==} to
+ * Internal representation of {@code Type[]} that supports identity comparison with {@code ==} to
  * support inline caching of {@link EnsoMultiValue}. This is a separate and hidden concept from
- * {@link Type} which is used thru out the Enso codebase.
+ * {@link Type} which is used throughout the codebase.
  *
  * <p>Think twice before opening this type to public!
  */
