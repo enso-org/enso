@@ -1,4 +1,4 @@
-package org.enso.compiler.dump;
+package org.enso.compiler.docs;
 
 import java.io.IOException;
 import org.enso.compiler.core.ir.Module;

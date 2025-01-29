@@ -1152,7 +1152,7 @@ add_specs suite_builder =
                 r3.at "Value" . at 0 . should_be_a Table
                 r3.at "Value" . at 1 . should_be_a Excel_Workbook
 
-        group_builder.specify "should clear cache on simulated reload" <|
+        group_builder.specify "should clear cache on simulated reload" pending="https://github.com/enso-org/enso/issues/12166" <|
             ExcelConnectionPool.INSTANCE.simulateReloadTestOnly
             check_workbook <| xlsx_sheet.read
             ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1

@@ -10,7 +10,7 @@ Please set the following environment variables:
 - 'ENSO_SQLSERVER_HOST' - the name of the server hosting SQLServer,
 - 'ENSO_SQLSERVER_PORT' - the port SQLServer is on,
 - 'ENSO_SQLSERVER_USER' - the user name to use to connect,
-- 'ENSO_SQLSERVER_PASSWORD' - the pasword for that user,
+- 'ENSO_SQLSERVER_PASSWORD' - the password for that user,
 - 'ENSO_SQLSERVER_DATABASE' - the database on the SQLServer to use.
 
 ## Docker
