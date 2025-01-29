@@ -25,7 +25,7 @@ import type {
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
-import { ComponentInstance, computed, proxyRefs, ref, watch } from 'vue'
+import { ComponentInstance, computed, ComputedRef, proxyRefs, ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { z } from 'zod'
 import TableHeader, { HeaderParams } from './WidgetTableEditor/TableHeader.vue'
@@ -65,6 +65,9 @@ const { rowData, columnDefs, moveColumn, moveRow, pasteFromClipboard } = useTabl
   props.onUpdate,
 )
 
+// Without this "cast" AgGridTableView gets confused when deducing its generic parameters.
+const columnDefsTyped: ComputedRef<ColDef<RowData>[]> = columnDefs
+
 // === Edit Handlers ===
 
 const { editedCell, gridEventHandlers, headerEventHandlers } = useTableEditHandler(
@@ -92,13 +95,6 @@ watch(
   () => props.input,
   () => grid.value?.gridApi?.refreshCells(),
 )
-
-// const rowDataSuppressed = ref<typeof rowData.value>([])
-// watchEffect(() => {
-//   if (!handler.isActive() || true) {
-//     rowDataSuppressed.value = rowData.value
-//   }
-// })
 
 // === Resizing ===
 
@@ -213,7 +209,7 @@ export const widgetDefinition = defineWidget(
         ref="grid"
         class="inner"
         :defaultColDef="defaultColDef"
-        :columnDefs="columnDefs"
+        :columnDefs="columnDefsTyped"
         :rowData="rowData"
         :getRowId="(row) => `${row.data.index}`"
         :components="{

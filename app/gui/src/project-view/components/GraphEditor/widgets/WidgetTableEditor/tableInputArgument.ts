@@ -38,8 +38,8 @@ export type RowData = {
  */
 export interface ColumnDef extends ColDef<RowData> {
   colId: string
-  valueGetter: (params: { data: RowData | undefined }) => any
-  valueSetter?: (params: { data: RowData; newValue: string }) => boolean
+  valueGetter: ({ data }: { data: RowData | undefined }) => any
+  valueSetter?: ({ data, newValue }: { data: RowData; newValue: string }) => boolean
   mainMenuItems: (string | MenuItem<RowData>)[]
   contextMenuItems: (string | MenuItem<RowData>)[]
   rowDrag?: ({ data }: { data: RowData | undefined }) => boolean
