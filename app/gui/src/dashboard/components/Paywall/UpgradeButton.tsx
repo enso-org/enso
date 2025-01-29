@@ -14,7 +14,7 @@ import * as textProvider from '#/providers/TextProvider'
 import * as ariaComponents from '#/components/AriaComponents'
 
 /** Props for an {@link UpgradeButton}. */
-export type UpgradeButtonProps<IconType extends string> = Omit<
+export type UpgradeButtonProps<IconType extends string = string> = Omit<
   ariaComponents.ButtonProps<IconType>,
   'variant'
 > & {
