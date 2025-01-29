@@ -52,12 +52,14 @@ delete_afterwards file ~action =
     Panic.with_finalizer file.delete action
 
 
-## Reads the datalink as plain text and replaces the placeholder username with
-   actual one. It then writes the new contents to a temporary file and returns
-   it.
-replace_username_in_data_link base_file =
+## Reads the datalink as plain text and replaces the placeholder username and
+   suffix with actual ones. It then writes the new contents to a temporary file
+   and returns it.
+replace_username_and_suffix_in_data_link base_file suffix =
     content = Data_Link.read_raw_config base_file
-    new_content = content.replace "USERNAME" Enso_User.current.name
+    new_content = content
+        . replace "USERNAME" Enso_User.current.name
+        . replace "SUFFIX" suffix
     temp_file = File.create_temporary_file prefix=base_file.name suffix=base_file.extension
     Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
 
@@ -571,11 +573,12 @@ add_specs suite_builder =
             (enso_project.data / "simple.datalink") . read . should_equal "Hello WORLD!"
 
         group_builder.specify "should be able to read a data link with custom credentials and secrets" pending=cloud_setup.pending <| cloud_setup.with_prepared_environment <|
-            transformed_data_link_file = replace_username_in_data_link (enso_project.data / "credentials-with-secrets.datalink")
-            secret_key_id = Enso_Secret.create "datalink-secret-AWS-keyid-"+unique_suffix test_credentials.access_key_id
+            suffix = unique_suffix
+            transformed_data_link_file = replace_username_and_suffix_in_data_link (enso_project.data / "credentials-with-secrets.datalink") suffix
+            secret_key_id = Enso_Secret.create "datalink-secret-AWS-keyid-"+suffix test_credentials.access_key_id
             secret_key_id.should_succeed
             Panic.with_finalizer secret_key_id.delete <|
-                secret_key_value = Enso_Secret.create "datalink-secret-AWS-secretkey-"+unique_suffix test_credentials.secret_access_key
+                secret_key_value = Enso_Secret.create "datalink-secret-AWS-secretkey-"+suffix test_credentials.secret_access_key
                 secret_key_value.should_succeed
                 Panic.with_finalizer secret_key_value.delete <| Test.with_retries <|
                     transformed_data_link_file.read . should_equal "Hello WORLD!"
