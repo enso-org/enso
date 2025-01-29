@@ -51,12 +51,6 @@ jobs:
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
       - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
@@ -100,12 +94,6 @@ jobs:
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
       - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
@@ -158,12 +146,6 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
       - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
@@ -218,12 +200,6 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
       - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
@@ -281,12 +257,6 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
       - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
@@ -344,12 +314,6 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
       - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
@@ -395,12 +359,6 @@ jobs:
       - run: ./run backend sbt '--' verifyLicensePackages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
       - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
