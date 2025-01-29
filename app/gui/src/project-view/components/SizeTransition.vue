@@ -16,7 +16,7 @@ export default {}
 <script setup lang="ts">
 import { injectAnimationCounter } from '@/providers/animationCounter'
 import { hookBeforeFunctionCall } from '@/util/patching'
-import { nextTick, queuePostFlushCb } from 'vue'
+import { nextTick } from 'vue'
 
 const PROGRESS_VAR = '--size-transition-progress'
 
