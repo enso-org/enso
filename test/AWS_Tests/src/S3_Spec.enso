@@ -61,6 +61,12 @@ replace_username_in_data_link base_file =
     temp_file = File.create_temporary_file prefix=base_file.name suffix=base_file.extension
     Data_Link.write_raw_config temp_file new_content replace_existing=True . if_not_error temp_file
 
+## Renders a that can be appended to asset names, ensuring uniqueness.
+   It consists of the current time (to allow associating assets with when their
+   test run occurred) and a short random string to decrease the chance of collisions.
+unique_suffix =
+    (Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|") + "-" + (Random.uuid.take 5)
+
 ## To run these tests you need to set the following environment variables:
    - ENSO_LIB_S3_AWS_ACCESS_KEY_ID
    - ENSO_LIB_S3_AWS_SECRET_ACCESS_KEY
@@ -161,10 +167,10 @@ add_specs suite_builder =
             S3.list_buckets (AWS_Credential.Key "foo" "bar") . should_fail_with S3_Error
 
         group_builder.specify "should allow to use Enso secrets within credentials" pending=cloud_setup.pending <| cloud_setup.with_prepared_environment <|
-            secret_key_id = Enso_Secret.create "my_test_secret-AWS-keyid" test_credentials.access_key_id
+            secret_key_id = Enso_Secret.create "my_test_secret-AWS-keyid-"+unique_suffix test_credentials.access_key_id
             secret_key_id.should_succeed
             Panic.with_finalizer secret_key_id.delete <|
-                secret_key_value = Enso_Secret.create "my_test_secret-AWS-secretkey" test_credentials.secret_access_key
+                secret_key_value = Enso_Secret.create "my_test_secret-AWS-secretkey-"+unique_suffix test_credentials.secret_access_key
                 secret_key_value.should_succeed
                 Panic.with_finalizer secret_key_value.delete <| Test.with_retries <|
                     r2 = S3.list_buckets (AWS_Credential.Key secret_key_id secret_key_value)
@@ -338,7 +344,7 @@ add_specs suite_builder =
             # AWS S3 does not record creation time, only last modified time.
             hello_txt.creation_time . should_fail_with S3_Error
 
-    my_writable_dir = writable_root / ("test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")+"/")
+    my_writable_dir = writable_root / ("test-run-"+unique_suffix+"/")
 
     suite_builder.group "S3_File writing" pending=api_pending group_builder->
         assert my_writable_dir.is_directory
@@ -566,11 +572,10 @@ add_specs suite_builder =
 
         group_builder.specify "should be able to read a data link with custom credentials and secrets" pending=cloud_setup.pending <| cloud_setup.with_prepared_environment <|
             transformed_data_link_file = replace_username_in_data_link (enso_project.data / "credentials-with-secrets.datalink")
-
-            secret_key_id = Enso_Secret.create "datalink-secret-AWS-keyid" test_credentials.access_key_id
+            secret_key_id = Enso_Secret.create "datalink-secret-AWS-keyid-"+unique_suffix test_credentials.access_key_id
             secret_key_id.should_succeed
             Panic.with_finalizer secret_key_id.delete <|
-                secret_key_value = Enso_Secret.create "datalink-secret-AWS-secretkey" test_credentials.secret_access_key
+                secret_key_value = Enso_Secret.create "datalink-secret-AWS-secretkey-"+unique_suffix test_credentials.secret_access_key
                 secret_key_value.should_succeed
                 Panic.with_finalizer secret_key_value.delete <| Test.with_retries <|
                     transformed_data_link_file.read . should_equal "Hello WORLD!"
