@@ -87,13 +87,13 @@ type Generic_JDBC_Connection
        Returns the resulting rows.
 
        Arguments:
-       - sql: The SQL query or `SQL_Statement` to execute.
+       - sql: The SQL query to execute.
 
        > Example
          Query a table.
 
              connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
-             connection.execute "select a, b, c from foo"
+             table = connection.read "select a, b, c from foo"
     read self sql:(Text | SQL_Statement) -> Table =
         self.jdbc_connection.with_prepared_statement sql Statement_Setter.default stmt->
             rs = stmt.executeQuery
@@ -102,6 +102,25 @@ type Generic_JDBC_Connection
             table = result_set_to_table rs make_fallback_fetcher
             SQL_Warning_Helper.process_warnings stmt <|
                 table
+
+    ## ALIAS import, load, read
+       GROUP Standard.Base.Input
+       ICON data_input
+
+       Read the contents of a table.
+
+       Returns an in-memory `Table`.
+
+       Arguments:
+       - table_name: The table to read.
+
+       > Example
+         Read a table.
+
+             connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
+             table = connection.read_tablle "foo"
+    read_table self table_name:Text -> Table =
+        self.read "select * from "+self.quote(table_name)
 
     ## ALIAS catalog schema database
        GROUP Standard.Base.Metadata
