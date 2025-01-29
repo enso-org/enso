@@ -7,6 +7,7 @@ import { newExternalId } from './idMap'
 import type { AstId, DeepReadonly, NodeChild, Owned } from './tree'
 import { Ast } from './tree'
 export import TokenType = RawAst.Token.Type
+export import tokenTypes = RawAst.Token.typeNames
 
 /** Whether the given value is a {@link Token}. */
 export function isToken(maybeToken: unknown): maybeToken is Token {
@@ -34,15 +35,11 @@ export interface SyncTokenId {
 
 /** A structure representing a lexical source code unit in the AST. */
 export class Token implements SyncTokenId {
-  readonly id: TokenId
-  code_: string
-  tokenType_: TokenType | undefined
-
-  private constructor(code: string, type: TokenType | undefined, id: TokenId) {
-    this.id = id
-    this.code_ = code
-    this.tokenType_ = type
-  }
+  private constructor(
+    readonly code_: string,
+    readonly tokenType_: TokenType | undefined,
+    readonly id: TokenId,
+  ) {}
 
   /** The id of this token. */
   get externalId(): TokenId {
@@ -71,8 +68,8 @@ export class Token implements SyncTokenId {
   }
 
   /** The name of the token type of this token. */
-  typeName(): string {
-    if (this.tokenType_) return RawAst.Token.typeNames[this.tokenType_]!
+  get typeName(): string {
+    if (this.tokenType_ != null) return RawAst.Token.typeNames[this.tokenType_]!
     else return 'Raw'
   }
 }

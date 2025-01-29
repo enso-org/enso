@@ -1,11 +1,7 @@
 /** @file Test copying, moving, cutting and pasting. */
-import * as test from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
-import * as actions from './actions'
-
-// =================
-// === Constants ===
-// =================
+import { mockAllAndLogin } from './actions'
 
 /** The name of the uploaded file. */
 const FILE_NAME = 'foo.txt'
@@ -16,50 +12,38 @@ const SECRET_NAME = 'a secret name'
 /** The value of the created secret. */
 const SECRET_VALUE = 'a secret value'
 
-// =============
-// === Tests ===
-// =============
-
-test.test('create folder', ({ page }) =>
-  actions
-    .mockAllAndLogin({ page })
+test('create folder', ({ page }) =>
+  mockAllAndLogin({ page })
     .createFolder()
     .driveTable.withRows(async (rows) => {
-      await test.expect(rows).toHaveCount(1)
-      await test.expect(rows.nth(0)).toBeVisible()
-      await test.expect(rows.nth(0)).toHaveText(/^New Folder 1/)
-    }),
-)
+      await expect(rows).toHaveCount(1)
+      await expect(rows.nth(0)).toBeVisible()
+      await expect(rows.nth(0)).toHaveText(/^New Folder 1/)
+    }))
 
-test.test('create project', ({ page }) =>
-  actions
-    .mockAllAndLogin({ page })
+test('create project', ({ page }) =>
+  mockAllAndLogin({ page })
     .newEmptyProject()
     // FIXME[sb]: https://github.com/enso-org/cloud-v2/issues/1615
     // Uncomment once cloud execution in the browser is re-enabled.
-    // .do((thePage) => test.expect(actions.locateEditor(thePage)).toBeAttached())
+    // .do((thePage) => expect(locateEditor(thePage)).toBeAttached())
     // .goToPage.drive()
-    .driveTable.withRows((rows) => test.expect(rows).toHaveCount(1)),
-)
+    .driveTable.withRows((rows) => expect(rows).toHaveCount(1)))
 
-test.test('upload file', ({ page }) =>
-  actions
-    .mockAllAndLogin({ page })
+test('upload file', ({ page }) =>
+  mockAllAndLogin({ page })
     .uploadFile(FILE_NAME, FILE_CONTENTS)
     .driveTable.withRows(async (rows) => {
-      await test.expect(rows).toHaveCount(1)
-      await test.expect(rows.nth(0)).toBeVisible()
-      await test.expect(rows.nth(0)).toHaveText(new RegExp('^' + FILE_NAME))
-    }),
-)
+      await expect(rows).toHaveCount(1)
+      await expect(rows.nth(0)).toBeVisible()
+      await expect(rows.nth(0)).toHaveText(new RegExp('^' + FILE_NAME))
+    }))
 
-test.test('create secret', ({ page }) =>
-  actions
-    .mockAllAndLogin({ page })
+test('create secret', ({ page }) =>
+  mockAllAndLogin({ page })
     .createSecret(SECRET_NAME, SECRET_VALUE)
     .driveTable.withRows(async (rows) => {
-      await test.expect(rows).toHaveCount(1)
-      await test.expect(rows.nth(0)).toBeVisible()
-      await test.expect(rows.nth(0)).toHaveText(new RegExp('^' + SECRET_NAME))
-    }),
-)
+      await expect(rows).toHaveCount(1)
+      await expect(rows.nth(0)).toBeVisible()
+      await expect(rows.nth(0)).toHaveText(new RegExp('^' + SECRET_NAME))
+    }))

@@ -15,6 +15,7 @@ import { injectInteractionHandler, type Interaction } from '@/providers/interact
 import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
 import { useProjectStore } from '@/stores/project'
+import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { type Typename } from '@/stores/suggestionDatabase/entry'
 import type { VisualizationDataSource } from '@/stores/visualization'
@@ -50,6 +51,7 @@ const projectStore = useProjectStore()
 const suggestionDbStore = useSuggestionDbStore()
 const graphStore = useGraphStore()
 const interaction = injectInteractionHandler()
+const projectNames = injectProjectNames()
 
 const props = defineProps<{
   nodePosition: Vec2
@@ -71,8 +73,6 @@ const emit = defineEmits<{
 
 const cbRoot = ref<HTMLElement>()
 const componentList = ref<ComponentInstance<typeof ComponentList>>()
-
-defineExpose({ cbRoot })
 
 const clickOutsideAssociatedElements = (e: PointerEvent) => {
   return props.associatedElements.length === 0 ?
@@ -179,7 +179,7 @@ const input = useComponentBrowserInput()
 
 const currentFiltering = computed(() => {
   if (input.mode.mode === 'componentBrowsing') {
-    const currentModule = projectStore.modulePath
+    const currentModule = projectStore.moduleProjectPath
     return new Filtering(input.mode.filter, currentModule?.ok ? currentModule.value : undefined)
   } else {
     return undefined
@@ -240,10 +240,6 @@ const nodeColor = computed(() => {
   }
   return 'var(--node-color-no-type)'
 })
-watchEffect(() => {
-  if (!graphStore.cbEditedEdge) return
-  graphStore.cbEditedEdge.color = nodeColor.value
-})
 
 const selectedSuggestionIcon = computed(() => {
   return selectedSuggestion.value ? suggestionEntryToIcon(selectedSuggestion.value) : undefined
@@ -266,18 +262,18 @@ const previewedCode = debouncedGetter<string>(() => input.code, 200)
 const previewedSuggestionReturnType = computed(() => {
   const id = input.mode.mode === 'codeEditing' ? input.mode.appliedSuggestion : undefined
   const appliedEntry = id != null ? suggestionDbStore.entries.get(id) : undefined
-  if (appliedEntry != null) return appliedEntry.returnType
-  else if (props.usage.type === 'editNode') {
-    return graphStore.db.getNodeMainSuggestion(props.usage.node)?.returnType
-  }
-  return undefined
+  const entry =
+    appliedEntry ? appliedEntry
+    : props.usage.type === 'editNode' ? graphStore.db.getNodeMainSuggestion(props.usage.node)
+    : undefined
+  return entry?.returnType(projectNames)
 })
 
 const previewDataSource = computed<VisualizationDataSource | undefined>(() => {
   if (input.mode.mode !== 'codeEditing') return
   if (!previewedCode.value.trim()) return
-  if (!graphStore.methodAst.ok) return
-  const body = graphStore.methodAst.value.body
+  if (!graphStore.currentMethod.ast.ok) return
+  const body = graphStore.currentMethod.ast.value.body
   if (!body) return
   return {
     type: 'expression',
@@ -322,7 +318,7 @@ function applySuggestion(component: Opt<Component> = null) {
 function acceptInput() {
   const appliedReturnType =
     input.mode.mode === 'codeEditing' && input.mode.appliedSuggestion != null ?
-      suggestionDbStore.entries.get(input.mode.appliedSuggestion)?.returnType
+      suggestionDbStore.entries.get(input.mode.appliedSuggestion)?.returnType(projectNames)
     : undefined
   emit('accepted', input.code.trim(), input.importsToAdd(), appliedReturnType)
   interaction.ended(cbOpen)
@@ -384,7 +380,7 @@ const handler = componentBrowserBindings.handler({
       :nodeSize="inputSize"
       :nodePosition="nodePosition"
       :scale="1"
-      :isCircularMenuVisible="false"
+      :isComponentMenuVisible="false"
       :isFullscreen="false"
       :isFullscreenAllowed="false"
       :isResizable="false"

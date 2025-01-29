@@ -4,7 +4,7 @@ import java.time.temporal.ChronoField;
 import java.time.temporal.IsoFields;
 import java.time.temporal.Temporal;
 import java.time.temporal.TemporalField;
-import org.enso.table.data.column.builder.LongBuilder;
+import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -65,13 +65,13 @@ public class DatePartOperation extends AbstractUnaryLongOperation {
   }
 
   @Override
-  public boolean canApply(ColumnStorage storage) {
+  public boolean canApply(ColumnStorage<?> storage) {
     return timeField ? storage.getType().hasTime() : storage.getType().hasDate();
   }
 
   @Override
   protected void applyObjectRow(
-      Object value, LongBuilder builder, MapOperationProblemAggregator problemAggregator) {
+      Object value, BuilderForLong builder, MapOperationProblemAggregator problemAggregator) {
     if (value instanceof Temporal s) {
       var longValue = s.getLong(field);
       builder.appendLong(longValue);

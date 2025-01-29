@@ -12,10 +12,10 @@ import org.apache.poi.ss.usermodel.Name;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.error.ColumnCountMismatchException;
@@ -53,7 +53,8 @@ public class ExcelWriter {
           ExistingDataException,
           IllegalStateException,
           ColumnNameMismatchException,
-          ColumnCountMismatchException {
+          ColumnCountMismatchException,
+          InterruptedException {
     if (sheetIndex == 0 || sheetIndex > workbook.getNumberOfSheets()) {
       int i = 1;
       while (workbook.getSheet("Sheet" + i) != null) {
@@ -77,7 +78,8 @@ public class ExcelWriter {
       headers =
           headers != ExcelHeaders.HeaderBehavior.INFER
               ? headers
-              : shouldWriteHeaders(new ExcelSheet(workbook, sheetIndex), firstRow + 1, 1, -1);
+              : shouldWriteHeaders(
+                  ExcelSheet.forPOIUserModel(workbook, sheetIndex), firstRow + 1, 1, -1);
 
       String sheetName = workbook.getSheetName(sheetIndex - 1);
       workbook.removeSheetAt(sheetIndex - 1);
@@ -115,7 +117,8 @@ public class ExcelWriter {
           ExistingDataException,
           IllegalStateException,
           ColumnNameMismatchException,
-          ColumnCountMismatchException {
+          ColumnCountMismatchException,
+          InterruptedException {
     int sheetIndex = workbook.getNumberOfSheets() == 0 ? -1 : workbook.getSheetIndex(sheetName);
     if (sheetIndex == -1) {
       writeTableToSheet(
@@ -130,7 +133,8 @@ public class ExcelWriter {
       headers =
           headers != ExcelHeaders.HeaderBehavior.INFER
               ? headers
-              : shouldWriteHeaders(new ExcelSheet(workbook, sheetIndex), firstRow + 1, 1, -1);
+              : shouldWriteHeaders(
+                  ExcelSheet.forPOIUserModel(workbook, sheetIndex), firstRow + 1, 1, -1);
 
       workbook.removeSheetAt(sheetIndex);
       Sheet sheet = workbook.createSheet(sheetName);
@@ -167,7 +171,8 @@ public class ExcelWriter {
           RangeExceededException,
           ExistingDataException,
           ColumnNameMismatchException,
-          ColumnCountMismatchException {
+          ColumnCountMismatchException,
+          InterruptedException {
     Name name = workbook.getName(rangeNameOrAddress);
     ExcelRange excelRange;
     try {
@@ -192,13 +197,14 @@ public class ExcelWriter {
           RangeExceededException,
           ExistingDataException,
           ColumnNameMismatchException,
-          ColumnCountMismatchException {
+          ColumnCountMismatchException,
+          InterruptedException {
     int sheetIndex = workbook.getSheetIndex(range.getSheetName());
     if (sheetIndex == -1) {
       throw new InvalidLocationException(
           range.getSheetName(), "Unknown sheet '" + range.getSheetName() + "'.");
     }
-    ExcelSheet sheet = new ExcelSheet(workbook, sheetIndex);
+    ExcelSheet sheet = ExcelSheet.forPOIUserModel(workbook, sheetIndex);
 
     if (skipRows != 0) {
       if (range.isWholeColumn()) {
@@ -261,7 +267,8 @@ public class ExcelWriter {
       throws RangeExceededException,
           ExistingDataException,
           ColumnNameMismatchException,
-          ColumnCountMismatchException {
+          ColumnCountMismatchException,
+          InterruptedException {
     Table mappedTable =
         switch (existingDataMode) {
           case APPEND_BY_INDEX -> ColumnMapper.mapColumnsByPosition(
@@ -331,7 +338,7 @@ public class ExcelWriter {
       Long rowLimit,
       ExcelHeaders.HeaderBehavior headers,
       ExcelSheet sheet)
-      throws RangeExceededException, ExistingDataException {
+      throws RangeExceededException, ExistingDataException, InterruptedException {
     boolean writeHeaders = headers == ExcelHeaders.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS;
     int requiredRows =
         Math.min(table.rowCount(), rowLimit == null ? Integer.MAX_VALUE : rowLimit.intValue())
@@ -381,7 +388,8 @@ public class ExcelWriter {
    * @param sheet Sheet containing the range.
    * @return True if range is empty and clear is False, otherwise returns False.
    */
-  private static boolean rangeIsNotEmpty(Workbook workbook, ExcelRange range, ExcelSheet sheet) {
+  private static boolean rangeIsNotEmpty(Workbook workbook, ExcelRange range, ExcelSheet sheet)
+      throws InterruptedException {
     ExcelRange fullRange = range.getAbsoluteRange(workbook);
     for (int row = fullRange.getTopRow(); row <= fullRange.getBottomRow(); row++) {
       ExcelRow excelRow = sheet.get(row);
@@ -399,7 +407,8 @@ public class ExcelWriter {
    * @param range The range to clear.
    * @param sheet Sheet containing the range.
    */
-  private static void clearRange(Workbook workbook, ExcelRange range, ExcelSheet sheet) {
+  private static void clearRange(Workbook workbook, ExcelRange range, ExcelSheet sheet)
+      throws InterruptedException {
     ExcelRange fullRange = range.getAbsoluteRange(workbook);
     for (int row = fullRange.getTopRow(); row <= fullRange.getBottomRow(); row++) {
       ExcelRow excelRow = sheet.get(row);
@@ -490,12 +499,12 @@ public class ExcelWriter {
       throws IllegalStateException {
     if (storage.isNothing(j)) {
       cell.setBlank();
-    } else if (storage instanceof DoubleStorage doubleStorage) {
+    } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
       cell.setCellValue(doubleStorage.getItemAsDouble(j));
-    } else if (storage instanceof AbstractLongStorage longStorage) {
-      cell.setCellValue(longStorage.getItem(j));
-    } else if (storage instanceof BoolStorage boolStorage) {
-      cell.setCellValue(boolStorage.getItem(j));
+    } else if (storage instanceof ColumnLongStorage longStorage) {
+      cell.setCellValue(longStorage.getItemAsLong(j));
+    } else if (storage instanceof ColumnBooleanStorage boolStorage) {
+      cell.setCellValue(boolStorage.getItemAsBoolean(j));
     } else {
       Object value = storage.getItemBoxed(j);
       switch (value) {
@@ -545,7 +554,7 @@ public class ExcelWriter {
    * @return EXCEL_COLUMN_NAMES if the range has headers, otherwise USE_FIRST_ROW_AS_HEADERS.
    */
   private static ExcelHeaders.HeaderBehavior shouldWriteHeaders(
-      ExcelSheet excelSheet, int topRow, int startCol, int endCol) {
+      ExcelSheet excelSheet, int topRow, int startCol, int endCol) throws InterruptedException {
     ExcelRow row = excelSheet.get(topRow);
 
     // If the first row is missing or empty, should write headers.

@@ -17,7 +17,7 @@ export default function LabelsColumnHeading(props: AssetColumnHeadingProps) {
   })
 
   return (
-    <div className="flex h-table-row w-full items-center gap-icon-with-text">
+    <div className="isolate flex h-table-row w-full items-center gap-icon-with-text">
       <Button
         variant="icon"
         icon={TagIcon}
@@ -25,7 +25,9 @@ export default function LabelsColumnHeading(props: AssetColumnHeadingProps) {
         tooltip={false}
         onPress={hideThisColumn}
       />
-      <Text className="fond-semibold text-sm">{getText('labelsColumnName')}</Text>
+      <Text weight="bold" truncate="1" color="custom">
+        {getText('labelsColumnName')}
+      </Text>
     </div>
   )
 }

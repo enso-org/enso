@@ -58,8 +58,10 @@ public abstract class Atom extends EnsoObject {
    * Creates a new Atom for a given constructor.
    *
    * @param constructor the Atom's constructor
+   * @param skipCheck don't assert whether the arity is non-zero
    */
-  Atom(AtomConstructor constructor) {
+  Atom(AtomConstructor constructor, boolean skipCheck) {
+    assert skipCheck || constructor.getArity() != 0;
     this.constructor = constructor;
   }
 
@@ -155,7 +157,7 @@ public abstract class Atom extends EnsoObject {
 
   /**
    * Returns list of fields of the Atom. If {@code includeInternal} is true, all methods, including
-   * project-private, are included. Fields are returned as filed getters, i.e., methods. Only fields
+   * project-private, are included. Fields are returned as field getters, i.e., methods. Only fields
    * for the constructor that was used to construct this atom are returned.
    */
   @ExportMessage
@@ -451,6 +453,6 @@ public abstract class Atom extends EnsoObject {
   }
 
   private boolean hasProjectPrivateConstructor() {
-    return constructor.getType().isProjectPrivate();
+    return constructor.getType().hasAllConstructorsPrivate();
   }
 }

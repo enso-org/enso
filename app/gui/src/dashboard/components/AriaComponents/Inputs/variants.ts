@@ -7,7 +7,7 @@ import { tv } from '#/utilities/tailwindVariants'
 import { TEXT_STYLE } from '../Text'
 
 export const INPUT_STYLES = tv({
-  base: 'block w-full overflow-hidden bg-transparent transition-[border-color,outline] duration-200',
+  base: 'block w-full bg-transparent transition-[border-color,outline] duration-200',
   variants: {
     // All variants SHOULD use objects, otherwise extending from them with e.g. `{ base: '' }`
     // results in `readOnly: { true: 'cursor-default [object Object]' }` for example.

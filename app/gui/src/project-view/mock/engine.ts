@@ -66,6 +66,8 @@ func2 a =
    ![Image](/images/image.png)
    ![Image](../images/image.png)
    ![Image](</images/image.png>)
+
+   Here is a link: <https://example.com>
 main =
     five = 5
     ten = 10

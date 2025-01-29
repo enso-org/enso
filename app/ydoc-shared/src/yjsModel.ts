@@ -1,6 +1,7 @@
 import * as object from 'lib0/object'
 import * as random from 'lib0/random'
 import * as Y from 'yjs'
+import { type SourceRange, type SourceRangeKey, sourceRangeKey } from './util/data/text'
 
 export type Uuid = `${string}-${string}-${string}-${string}-${string}`
 
@@ -117,11 +118,10 @@ export class DistributedProject {
 
 /** TODO: Add docs */
 export class ModuleDoc {
-  ydoc: Y.Doc
-  nodes: Y.Map<any>
+  readonly nodes: Y.Map<any>
+
   /** TODO: Add docs */
-  constructor(ydoc: Y.Doc) {
-    this.ydoc = ydoc
+  constructor(readonly ydoc: Y.Doc) {
     this.nodes = ydoc.getMap('nodes')
   }
 }
@@ -165,19 +165,6 @@ export function tryAsOrigin(origin: string): Origin | undefined {
   if (isLocalUserActionOrigin(origin)) return origin
   if (origin === 'local:autoLayout') return origin
   if (origin === 'remote') return origin
-}
-
-export type SourceRange = readonly [start: number, end: number]
-declare const brandSourceRangeKey: unique symbol
-export type SourceRangeKey = string & { [brandSourceRangeKey]: never }
-
-/** TODO: Add docs */
-export function sourceRangeKey(range: SourceRange): SourceRangeKey {
-  return `${range[0].toString(16)}:${range[1].toString(16)}` as SourceRangeKey
-}
-/** TODO: Add docs */
-export function sourceRangeFromKey(key: SourceRangeKey): SourceRange {
-  return key.split(':').map(x => parseInt(x, 16)) as [number, number]
 }
 
 /** TODO: Add docs */
@@ -278,34 +265,4 @@ const uuidRegex = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/
 /** TODO: Add docs */
 export function isUuid(x: unknown): x is Uuid {
   return typeof x === 'string' && x.length === 36 && uuidRegex.test(x)
-}
-
-/** TODO: Add docs */
-export function rangeEquals(a: SourceRange, b: SourceRange): boolean {
-  return a[0] == b[0] && a[1] == b[1]
-}
-
-/** TODO: Add docs */
-export function rangeIncludes(a: SourceRange, b: number): boolean {
-  return a[0] <= b && a[1] >= b
-}
-
-/** TODO: Add docs */
-export function rangeLength(a: SourceRange): number {
-  return a[1] - a[0]
-}
-
-/** TODO: Add docs */
-export function rangeEncloses(a: SourceRange, b: SourceRange): boolean {
-  return a[0] <= b[0] && a[1] >= b[1]
-}
-
-/** TODO: Add docs */
-export function rangeIntersects(a: SourceRange, b: SourceRange): boolean {
-  return a[0] <= b[1] && a[1] >= b[0]
-}
-
-/** Whether the given range is before the other range. */
-export function rangeIsBefore(a: SourceRange, b: SourceRange): boolean {
-  return a[1] <= b[0]
 }

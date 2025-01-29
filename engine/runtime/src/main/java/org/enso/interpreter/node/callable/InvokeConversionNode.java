@@ -100,7 +100,10 @@ public abstract class InvokeConversionNode extends BaseNode {
     return extractType(this, self);
   }
 
-  static boolean hasType(TypeOfNode typeOfNode, Object value) {
+  static boolean hasTypeNoMulti(TypeOfNode typeOfNode, Object value) {
+    if (value instanceof EnsoMultiValue) {
+      return false;
+    }
     return typeOfNode.hasType(value);
   }
 
@@ -109,7 +112,11 @@ public abstract class InvokeConversionNode extends BaseNode {
   }
 
   @Specialization(
-      guards = {"hasType(dispatch, that)", "!isDataflowError(self)", "!isDataflowError(that)"})
+      guards = {
+        "hasTypeNoMulti(dispatch, that)",
+        "!isDataflowError(self)",
+        "!isDataflowError(that)"
+      })
   Object doConvertFrom(
       VirtualFrame frame,
       State state,
@@ -181,15 +188,23 @@ public abstract class InvokeConversionNode extends BaseNode {
       Object self,
       EnsoMultiValue that,
       Object[] arguments,
+      @Shared("typeOfNode") @Cached TypeOfNode dispatch,
       @Cached EnsoMultiValue.CastToNode castTo) {
     var type = extractType(self);
-    var result = castTo.executeCast(type, that);
-    if (result == null) {
-      throw new PanicException(
-          EnsoContext.get(this).getBuiltins().error().makeNoSuchConversion(type, self, conversion),
-          this);
+    var hasBeenCastTo = dispatch.findAllTypesOrNull(that, false);
+    if (hasBeenCastTo != null) {
+      for (var t : hasBeenCastTo) {
+        var val = castTo.findTypeOrNull(t, that, false, false);
+        assert val != null;
+        var result = execute(frame, state, conversion, self, val, arguments);
+        if (result != null) {
+          return result;
+        }
+      }
     }
-    return result;
+    throw new PanicException(
+        EnsoContext.get(this).getBuiltins().error().makeNoSuchConversion(type, self, conversion),
+        this);
   }
 
   @Specialization
@@ -265,7 +280,7 @@ public abstract class InvokeConversionNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasType(typeOfNode, that)",
+        "!hasTypeNoMulti(typeOfNode, that)",
         "!interop.isTime(that)",
         "interop.isDate(that)",
       })
@@ -287,7 +302,7 @@ public abstract class InvokeConversionNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasType(typeOfNode, that)",
+        "!hasTypeNoMulti(typeOfNode, that)",
         "interop.isTime(that)",
         "!interop.isDate(that)",
       })
@@ -309,7 +324,7 @@ public abstract class InvokeConversionNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasType(typeOfNode, that)",
+        "!hasTypeNoMulti(typeOfNode, that)",
         "interop.isTime(that)",
         "interop.isDate(that)",
       })
@@ -331,7 +346,7 @@ public abstract class InvokeConversionNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasType(typeOfNode, that)",
+        "!hasTypeNoMulti(typeOfNode, that)",
         "interop.isDuration(that)",
       })
   Object doConvertDuration(
@@ -352,7 +367,7 @@ public abstract class InvokeConversionNode extends BaseNode {
 
   @Specialization(
       guards = {
-        "!hasType(typeOfNode, thatMap)",
+        "!hasTypeNoMulti(typeOfNode, thatMap)",
         "interop.hasHashEntries(thatMap)",
       })
   Object doConvertMap(
@@ -374,7 +389,7 @@ public abstract class InvokeConversionNode extends BaseNode {
     return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
-  @Specialization(guards = {"!hasType(methods, that)", "!interop.isString(that)"})
+  @Specialization(guards = {"!hasTypeNoMulti(methods, that)", "!interop.isString(that)"})
   Object doFallback(
       VirtualFrame frame,
       State state,

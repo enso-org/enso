@@ -26,7 +26,7 @@ public class CryptoTest extends ExecutorSetup {
         CompletableFuture.supplyAsync(
                 () -> {
                   var ctx = contextBuilder.build();
-                  crypto.initialize(ctx);
+                  crypto.initialize(eval(ctx));
                   return ctx;
                 },
                 executor)

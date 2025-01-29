@@ -63,6 +63,7 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
     return optionsOrFormInstance
   } else {
     const {
+      method,
       schema,
       onSubmit,
       canSubmitOffline = false,
@@ -70,7 +71,6 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
       onSubmitted,
       onSubmitSuccess,
       debugName,
-      method,
       ...options
     } = optionsOrFormInstance
 
@@ -102,6 +102,19 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
                 return {
                   message: getText('arbitraryFieldInvalid'),
                 }
+              case 'invalid_literal':
+              case 'invalid_enum_value':
+              case 'invalid_union':
+              case 'unrecognized_keys':
+              case 'invalid_union_discriminator':
+              case 'invalid_arguments':
+              case 'invalid_return_type':
+              case 'invalid_string':
+              case 'not_multiple_of':
+              case 'custom':
+              case 'invalid_intersection_types':
+              case 'invalid_date':
+              case 'not_finite':
               default:
                 return {
                   message: getText('arbitraryFieldInvalid'),
@@ -158,6 +171,8 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
           if (method === 'dialog') {
             closeRef.current()
           }
+
+          formInstance.reset()
 
           return result
         } catch (error) {
@@ -226,12 +241,15 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
     const form: types.UseFormReturn<Schema> = {
       ...formInstance,
       submit,
+      // @ts-expect-error Our `UseFormRegister<Schema>` is the same as `react-hook-form`'s,
+      // just with an added constraint.
       control: { ...formInstance.control, register },
       register,
       schema: computedSchema,
       setFormError,
       handleSubmit: formInstance.handleSubmit,
       closeRef,
+      formProps: { onSubmit: submit, noValidate: true },
     }
 
     return form

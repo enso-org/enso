@@ -14,7 +14,7 @@ import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /** Aggregate Column computing a percentile value in a group. */
-public class Percentile extends Aggregator {
+public class Percentile extends KnownTypeAggregator {
   private final Storage<?> storage;
   private final double percentile;
 

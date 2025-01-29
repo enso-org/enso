@@ -1,3 +1,9 @@
+import { linkEditPopup } from '@/util/codemirror/linkEditPopup'
+import {
+  linkAttributesFactory,
+  linkAttributesFactoryChanged,
+  linkDecoratorStateExt,
+} from '@/util/codemirror/links'
 import { LINKABLE_EMAIL_REGEX, LINKABLE_URL_REGEX } from '@/util/link'
 import { RangeSetBuilder, type Extension } from '@codemirror/state'
 import {
@@ -8,8 +14,7 @@ import {
   type ViewUpdate,
 } from '@codemirror/view'
 
-/** CodeMirror extension rendering URLs and email addresses as links. */
-export const linkifyUrls: Extension = ViewPlugin.fromClass(
+const viewPlugin = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet
 
@@ -18,7 +23,9 @@ export const linkifyUrls: Extension = ViewPlugin.fromClass(
     }
 
     update(update: ViewUpdate) {
-      if (update.docChanged || update.viewportChanged) this.decorations = decorate(update.view)
+      if (update.docChanged || update.viewportChanged || linkAttributesFactoryChanged(update)) {
+        this.decorations = decorate(update.view)
+      }
     }
   },
   {
@@ -55,6 +62,8 @@ const MATCHERS = [
 ]
 
 function decorate(view: EditorView): DecorationSet {
+  const makeAttributes = view.state.facet(linkAttributesFactory)
+  if (!makeAttributes) return Decoration.none
   const decorations = new RangeSetBuilder<Decoration>()
   for (const visibleRange of view.visibleRanges) {
     const visibleText = view.state.doc.sliceString(visibleRange.from, visibleRange.to)
@@ -65,7 +74,7 @@ function decorate(view: EditorView): DecorationSet {
           visibleRange.from + match.to,
           Decoration.mark({
             tagName: 'a',
-            attributes: { href: match.value, target: '_blank' },
+            attributes: makeAttributes(match.value),
           }),
         )
       }
@@ -73,3 +82,12 @@ function decorate(view: EditorView): DecorationSet {
   }
   return decorations.finish()
 }
+
+/** Displays a popup when the cursor is inside a URL. */
+const urlEditPopup = linkEditPopup(
+  (el) => (el instanceof HTMLAnchorElement ? el.href : undefined),
+  { popOut: true },
+)
+
+/** CodeMirror extension rendering URLs and email addresses as links. */
+export const linkifyUrls: Extension = [linkDecoratorStateExt, viewPlugin, urlEditPopup]

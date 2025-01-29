@@ -72,7 +72,7 @@ make_json_for_row row =
     header = ["header", ["column", "value"]]
     all_rows = ["all_rows_count", row.length]
     column_names = row.column_names
-    values = ((0.up_to row.length).map idx-> row.get idx)
+    values = ((0.up_to row.length).map idx-> make_json_for_value (row.get idx))
     data = ["data", [column_names, values]]
     links = ["get_child_node_action", "at"]
     get_child_node_action_link_name = ["get_child_node_link_name", "column"]
@@ -91,7 +91,7 @@ make_json_for_vector vector max_rows =
         if matrix.is_nothing.not then JS_Object.from_pairs [["type", "Matrix"], all_rows, ["json", matrix], ["column_count", matrix.fold 0 c->v-> if v.is_nothing then c else c.max v.length], get_child_node_action] else
             object_matrix = make_json_for_object_matrix (Builder.new truncated.length) truncated
             if object_matrix.is_nothing.not then JS_Object.from_pairs [["type", "Object_Matrix"], all_rows, ["json", object_matrix], get_child_node_action] else
-                JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value], get_child_node_action]
+                JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value], get_child_node_action, ["child_label", "value"]]
 
 ## PRIVATE
    Render Vector of Vector / Array to JSON
@@ -137,7 +137,7 @@ make_json_for_object_matrix current vector idx=0 = if idx == vector.length then 
 
 ## PRIVATE
    Render Dictionary to JSON
-make_json_for_dictionary : Dictionary -> Integer -> Text -> JS_Object
+make_json_for_dictionary : Dictionary -> Integer -> JS_Object
 make_json_for_dictionary dict max_items =
     header = ["header", ["key", "value"]]
     all_rows = ["all_rows_count", dict.size]
@@ -146,7 +146,7 @@ make_json_for_dictionary dict max_items =
     data = ["data", [mapped.map .first, mapped.map .second]]
     links = ["get_child_node_action", "at"]
     get_child_node_action_link_name = ["get_child_node_link_name", "key"]
-    JS_Object.from_pairs [header, data, all_rows, links, get_child_node_action_link_name, ["type", "Map"]]
+    JS_Object.from_pairs [header, data, all_rows, links, get_child_node_action_link_name, ["type", "Map"], ["child_label", "value"]]
 
 ## PRIVATE
    Render JS_Object to JSON
@@ -202,13 +202,14 @@ make_json_for_table dataframe max_rows all_rows_count include_index_col is_db_ta
     all_rows             = ["all_rows_count", all_rows_count]
     has_index_col        = ["has_index_col", include_index_col]
     links                = ["get_child_node_action", "get_row"]
+    child_label          = ["child_label", "row"]
     data_quality_metrics = if is_db_table then [] else
         number_nothing = JS_Object.from_pairs [["name", "Count nothings"], ["percentage_value", columns.map .count_nothing]]
         number_untrimmed = case all_rows_count > Column.default_sample_size of
             False -> JS_Object.from_pairs [["name", "Count untrimmed whitespace"], ["percentage_value", columns.map .count_untrimmed]]
             True -> JS_Object.from_pairs [["name", "Count untrimmed whitespace (sampled)"], ["percentage_value", columns.map .count_untrimmed]]
         [number_nothing, number_untrimmed]
-    pairs                = [header, value_type, data, all_rows, has_index_col, links, ["data_quality_metrics", data_quality_metrics] ,["type", "Table"]]
+    pairs                = [header, value_type, data, all_rows, has_index_col, links, ["data_quality_metrics", data_quality_metrics] ,["type", "Table"], child_label]
     JS_Object.from_pairs pairs
 
 ## PRIVATE
@@ -226,7 +227,11 @@ make_json_for_other x =
                 if js_value.contains_key 'links' then [["links", js_value.get 'links']] else []
             additional_fields = if js_value.is_a JS_Object . not then [] else
                 if js_value.contains_key 'get_child_node_action' then [["get_child_node_action", js_value.get 'get_child_node_action']] else []
-            JS_Object.from_pairs <| [["json", value]] + additional_fields + link_fields
+            label = if js_value.is_a JS_Object . not then [] else
+                if js_value.contains_key 'child_label' then [["child_label", js_value.get 'child_label']] else []
+            header = if js_value.is_a JS_Object . not then [] else
+                if js_value.contains_key 'visualization_header' then [["visualization_header", js_value.get 'visualization_header']] else []
+            JS_Object.from_pairs <| [["json", value]] + additional_fields + link_fields + label + header
 
         # Fallback for objects that fail to be serialized through `to_js_object`.
         False ->

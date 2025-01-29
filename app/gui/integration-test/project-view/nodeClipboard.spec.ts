@@ -49,8 +49,8 @@ test('Copy component with comment', async ({ page }) => {
 
   // Check state before operation.
   const originalNodes = await locate.graphNode(page).count()
-  await expect(locate.nodeComment(page)).toExist()
-  const originalNodeComments = await locate.nodeComment(page).count()
+  await expect(locate.nodeCommentContent(page)).toExist()
+  const originalNodeComments = await locate.nodeCommentContent(page).count()
 
   // Select a node.
   const nodeToCopy = locate.graphNodeByBinding(page, 'final')
@@ -64,7 +64,7 @@ test('Copy component with comment', async ({ page }) => {
 
   // Node and comment have been copied.
   await expect(locate.graphNode(page)).toHaveCount(originalNodes + 1)
-  await expect(locate.nodeComment(page)).toHaveCount(originalNodeComments + 1)
+  await expect(locate.nodeCommentContent(page)).toHaveCount(originalNodeComments + 1)
 })
 
 async function testCopyMultiple(
@@ -75,8 +75,8 @@ async function testCopyMultiple(
 
   // Check state before operation.
   const originalNodes = await locate.graphNode(page).count()
-  await expect(locate.nodeComment(page)).toExist()
-  const originalNodeComments = await locate.nodeComment(page).count()
+  await expect(locate.nodeCommentContent(page)).toExist()
+  const originalNodeComments = await locate.nodeCommentContent(page).count()
 
   // Select some nodes.
   const node1 = locate.graphNodeByBinding(page, 'final')
@@ -92,7 +92,7 @@ async function testCopyMultiple(
   // Nodes and comment have been copied.
   await expect(locate.graphNode(page)).toHaveCount(originalNodes + 2)
   // `final` node has a comment.
-  await expect(locate.nodeComment(page)).toHaveCount(originalNodeComments + 1)
+  await expect(locate.nodeCommentContent(page)).toHaveCount(originalNodeComments + 1)
   // Check that two copied nodes are isolated, i.e. connected to each other, not original nodes.
   await expect(locate.graphNodeByBinding(page, 'prod1')).toBeVisible()
   await expect(locate.graphNodeByBinding(page, 'final1')).toBeVisible()

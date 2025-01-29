@@ -487,11 +487,18 @@ final class TruffleCompilerContext implements CompilerContext {
   private boolean deserializeModuleDirect(CompilerContext.Module module)
       throws InterruptedException {
     var pool = serializationPool;
-    if (pool.isWaitingForSerialization(module.getName())) {
-      pool.abort(module.getName());
+    var moduleName = module.getName();
+    var awaitingSerialization = pool.isWaitingForSerialization(moduleName);
+    logSerializationManager(
+        Level.FINE,
+        "deserializing module [{0}]. Awaiting serialization: {1}",
+        moduleName,
+        awaitingSerialization);
+    if (awaitingSerialization) {
+      pool.abort(moduleName);
       return false;
     } else {
-      pool.waitWhileSerializing(module.getName());
+      pool.waitWhileSerializing(moduleName);
 
       var loaded = loadCache(((Module) module).getCache());
       if (loaded.isPresent()) {
@@ -505,12 +512,11 @@ final class TruffleCompilerContext implements CompilerContext {
         logSerializationManager(
             Level.FINE,
             "Restored IR from cache for module [{0}] at stage [{1}].",
-            module.getName(),
+            moduleName,
             loaded.get().compilationStage());
         return true;
       } else {
-        logSerializationManager(
-            Level.FINE, "Unable to load a cache for module [{0}].", module.getName());
+        logSerializationManager(Level.FINE, "Unable to load a cache for module [{0}].", moduleName);
         return false;
       }
     }

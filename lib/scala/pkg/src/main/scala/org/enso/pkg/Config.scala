@@ -5,6 +5,7 @@ import org.enso.semver.SemVer
 import org.enso.editions.{EditionName, Editions}
 import org.enso.pkg.validation.NameValidation
 import org.enso.scala.yaml.{YamlDecoder, YamlEncoder}
+import org.enso.version.BuildVersion
 import org.yaml.snakeyaml.{DumperOptions, Yaml}
 import org.yaml.snakeyaml.error.YAMLException
 import org.yaml.snakeyaml.nodes.{MappingNode, Node}
@@ -95,9 +96,6 @@ object Contact {
   *                             edition
   * @param componentGroups the description of component groups provided by this
   *                        package
-  * @param originalJson a Json object holding the original values that this
-  *                     Config was created from, used to preserve configuration
-  *                     keys that are not known
   */
 case class Config(
   name: String,
@@ -114,7 +112,19 @@ case class Config(
 
   /** Converts the configuration into a YAML representation. */
   def toYaml: String = {
-    val node          = implicitly[YamlEncoder[Config]].encode(this)
+    val config: Config = this
+    val noDevEdition: Config =
+      if (
+        config.edition.exists(
+          _.parent
+            .exists(p => p.toString == BuildVersion.defaultDevEnsoVersion())
+        )
+      ) {
+        config.copy(edition = None)
+      } else {
+        config
+      }
+    val node          = implicitly[YamlEncoder[Config]].encode(noDevEdition)
     val dumperOptions = new DumperOptions()
     dumperOptions.setIndent(2)
     dumperOptions.setPrettyFlow(true)

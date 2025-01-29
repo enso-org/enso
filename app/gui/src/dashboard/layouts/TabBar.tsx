@@ -5,8 +5,8 @@ import * as reactQuery from '@tanstack/react-query'
 
 import type * as text from 'enso-common/src/text'
 
+import ErrorFilledIcon from '#/assets/warning.svg'
 import * as projectHooks from '#/hooks/projectHooks'
-
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 
@@ -19,9 +19,9 @@ import { AnimatedBackground } from '#/components/AnimatedBackground'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useBackendForProjectType } from '#/providers/BackendProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
-import { ProjectState } from '#/services/Backend'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import { twJoin } from '#/utilities/tailwindMerge'
 import { motion } from 'framer-motion'
 
 /** Props for a {@link TabBar}. */
@@ -38,15 +38,11 @@ export default function TabBar<T extends object>(props: TabBarProps<T>) {
   return (
     <AnimatedBackground>
       <div className={classes}>
-        <aria.TabList<T> className="flex h-12 shrink-0 grow" {...rest} />
+        <aria.TabList<T> className="flex h-12 shrink-0 grow px-2" {...rest} />
       </div>
     </AnimatedBackground>
   )
 }
-
-// ===========
-// === Tab ===
-// ===========
 
 /** Props for a {@link Tab}. */
 export interface TabProps extends Readonly<React.PropsWithChildren> {
@@ -99,17 +95,21 @@ export function Tab(props: TabProps) {
       {({ isSelected, isHovered }) => (
         <AnimatedBackground.Item
           isSelected={isSelected}
-          className="h-full w-full rounded-t-3xl pl-4 pr-4"
+          className="h-full w-full rounded-t-3xl px-4"
           underlayElement={UNDERLAY_ELEMENT}
         >
-          <div className="relative z-1 flex h-full w-full items-center justify-center gap-3">
+          <div
+            className={twJoin(
+              'relative flex h-full w-full items-center justify-center gap-3',
+              isSelected || isHovered ? 'text-primary' : 'text-disabled',
+            )}
+          >
             <motion.div
               variants={{ active: { opacity: 1 }, inactive: { opacity: 0 } }}
               initial="inactive"
               animate={!isSelected && isHovered ? 'active' : 'inactive'}
-              className="absolute -inset-x-2.5 inset-y-2 -z-1 rounded-3xl bg-dashboard transition-colors duration-300"
+              className="pointer-events-none absolute -inset-x-2.5 inset-y-2 -z-1 rounded-3xl bg-dashboard transition-colors duration-300"
             />
-
             {typeof icon === 'string' ?
               <SvgMask
                 src={icon}
@@ -118,16 +118,11 @@ export function Tab(props: TabProps) {
                 )}
               />
             : icon}
-
-            <ariaComponents.Text truncate="1" className="max-w-40">
+            <ariaComponents.Text truncate="1" className="max-w-40" color="current">
               {children}
             </ariaComponents.Text>
 
-            {onClose && (
-              <div className="relative">
-                <ariaComponents.CloseButton onPress={onClose} />
-              </div>
-            )}
+            {onClose && <ariaComponents.CloseButton onPress={onClose} />}
           </div>
         </AnimatedBackground.Item>
       )}
@@ -135,9 +130,7 @@ export function Tab(props: TabProps) {
   )
 }
 
-/**
- * Props for a {@link ProjectTab}.
- */
+/** Props for a {@link ProjectTab}. */
 export interface ProjectTabProps extends Omit<TabProps, 'onClose'> {
   readonly project: LaunchedProject
   readonly onLoadEnd?: (project: LaunchedProject) => void
@@ -146,9 +139,7 @@ export interface ProjectTabProps extends Omit<TabProps, 'onClose'> {
 
 const SPINNER = <StatelessSpinner state="loading-medium" size={16} />
 
-/**
- * Project Tab is a {@link Tab} that displays the name of the project.
- */
+/** A {@link Tab} that displays the name of the project. */
 export function ProjectTab(props: ProjectTabProps) {
   const { project, onLoadEnd, onClose, icon: iconRaw, ...rest } = props
 
@@ -163,13 +154,16 @@ export function ProjectTab(props: ProjectTabProps) {
     onClose?.(project)
   })
 
-  const { data: isOpened, isSuccess } = reactQuery.useQuery({
+  const {
+    data: isOpened,
+    isSuccess,
+    isError,
+  } = reactQuery.useQuery({
     ...projectHooks.createGetProjectDetailsQuery({
       assetId: project.id,
-      parentId: project.parentId,
       backend,
     }),
-    select: (data) => data.state.type === ProjectState.opened,
+    select: (data) => projectHooks.OPENED_PROJECT_STATES.has(data.state.type),
   })
 
   const isReady = isSuccess && isOpened
@@ -187,7 +181,17 @@ export function ProjectTab(props: ProjectTabProps) {
     }
   }, [isReady])
 
-  const icon = isReady ? iconRaw : SPINNER
+  const icon = (() => {
+    if (isReady) {
+      return iconRaw
+    }
+
+    if (isError) {
+      return <SvgMask src={ErrorFilledIcon} className="text-danger" />
+    }
+
+    return SPINNER
+  })()
 
   return <Tab {...rest} icon={icon} onClose={stableOnClose} />
 }

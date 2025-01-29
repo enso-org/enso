@@ -1,37 +1,83 @@
 package org.enso.table.excel;
 
-import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 
 /** Wrapper class to handle Excel sheets. */
-public class ExcelSheet {
-  private final Sheet sheet;
-  private final int firstRow;
-  private final int lastRow;
-  private final boolean use1904Format;
+public interface ExcelSheet {
+  /** Gets the index of the sheet within the workbook (0-based). */
+  int getSheetIndex();
 
-  public ExcelSheet(Workbook workbook, int sheetIndex) {
-    this.sheet = workbook.getSheetAt(sheetIndex);
-    this.firstRow = sheet.getFirstRowNum() + 1;
-    this.lastRow = sheet.getLastRowNum() + 1;
-    this.use1904Format = ExcelUtils.is1904DateSystem(workbook);
+  /** Gets the name of the sheet. */
+  String getName();
+
+  /** Gets the initial row index within the sheet (1-based). */
+  int getFirstRow() throws InterruptedException;
+
+  /** Gets the final row index within the sheet (1-based). */
+  int getLastRow() throws InterruptedException;
+
+  /**
+   * Gets the row at the given index within the sheet (1-based)
+   *
+   * @param row the row index (1-based)/
+   * @return the row object or null if the row index is out of range or doesn't exist.
+   */
+  ExcelRow get(int row) throws InterruptedException;
+
+  /** Gets the underlying Apache POI Sheet object - may be null. Provided for Writer use only. */
+  Sheet getSheet();
+
+  /** Gets the underlying Apache POI Sheet object. */
+  static ExcelSheet forPOIUserModel(Workbook workbook, int sheetIndex) {
+    var sheet = workbook.getSheetAt(sheetIndex);
+    return new ExcelSheetFromPOIUserModel(
+        sheet,
+        sheetIndex,
+        sheet.getSheetName(),
+        sheet.getFirstRowNum() + 1,
+        sheet.getLastRowNum() + 1,
+        ExcelUtils.is1904DateSystem(workbook));
   }
 
-  public int getLastRow() {
-    return lastRow;
-  }
+  record ExcelSheetFromPOIUserModel(
+      Sheet sheet,
+      int sheetIndex,
+      String sheetName,
+      int firstRow,
+      int lastRow,
+      boolean use1904Format)
+      implements ExcelSheet {
+    @Override
+    public int getSheetIndex() {
+      return sheetIndex;
+    }
 
-  public int getFirstRow() {
-    return firstRow;
-  }
+    @Override
+    public String getName() {
+      return sheetName;
+    }
 
-  public ExcelRow get(int row) {
-    Row underlyingRow = row < firstRow || row > lastRow ? null : sheet.getRow(row - 1);
-    return underlyingRow == null ? null : new ExcelRow(underlyingRow, use1904Format);
-  }
+    @Override
+    public int getFirstRow() {
+      return firstRow;
+    }
 
-  public Sheet getSheet() {
-    return sheet;
+    @Override
+    public int getLastRow() {
+      return lastRow;
+    }
+
+    @Override
+    public ExcelRow get(int row) {
+      return row < firstRow || row > lastRow
+          ? null
+          : ExcelRow.forPOIUserModel(sheet, row, use1904Format);
+    }
+
+    @Override
+    public Sheet getSheet() {
+      return sheet;
+    }
   }
 }

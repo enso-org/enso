@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { getCellValueType } from '../TableVisualization/tableVizUtils'
+import { getCellValueType, isNumericType } from '../TableVisualization/tableVizUtils'
 
 test('getCellValueType (Text)', () => {
   expect(getCellValueType('Alan')).toEqual('Char')
@@ -31,4 +31,12 @@ test('getCellValueType (Date_Time with nanoseccond etc)', () => {
 
 test('getCellValueType (Date_Time with time zone and with nanoseccond etc)', () => {
   expect(getCellValueType('1997-02-01 12:30:45.02[+02:00]')).toEqual('Date_Time')
+})
+
+test('isNumericType (Numeric Type)', () => {
+  expect(isNumericType('Integer')).toEqual(true)
+})
+
+test('isNumericType (Char Type)', () => {
+  expect(isNumericType('Char')).toEqual(false)
 })

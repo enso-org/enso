@@ -76,7 +76,9 @@ export interface ProjectIconProps {
 /** An interactive icon indicating the status of a project. */
 export default function ProjectIcon(props: ProjectIconProps) {
   const { backend, item, isOpened, isDisabled: isDisabledRaw, isPlaceholder } = props
+
   const isUnconditionallyDisabled = !projectHooks.useCanOpenProjects()
+
   const isDisabled = isDisabledRaw || isUnconditionallyDisabled
 
   const openProject = projectHooks.useOpenProject()
@@ -91,7 +93,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const { data: projectState, isError } = reactQuery.useQuery({
     ...projectHooks.createGetProjectDetailsQuery({
       assetId: item.id,
-      parentId: item.parentId,
       backend,
     }),
     select: (data) => data.state,
@@ -166,6 +167,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
     openProjectTab(item.id)
   })
 
+  const getTooltip = (defaultTooltip: string) =>
+    disabledTooltip ?? userOpeningProjectTooltip ?? defaultTooltip
+
   switch (state) {
     case backendModule.ProjectState.new:
     case backendModule.ProjectState.closing:
@@ -173,14 +177,16 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.created:
       return (
         <ariaComponents.Button
-          size="custom"
+          size="large"
           variant="icon"
           icon={PlayIcon}
-          aria-label={disabledTooltip ?? getText('openInEditor')}
+          aria-label={getTooltip(getText('openInEditor'))}
           tooltipPlacement="left"
           extraClickZone="xsmall"
           isDisabled={isDisabled || projectState?.type === backendModule.ProjectState.closing}
+          className="shrink-0"
           onPress={doOpenProject}
+          testId="open-project"
         />
       )
     case backendModule.ProjectState.openInProgress:
@@ -195,11 +201,12 @@ export default function ProjectIcon(props: ProjectIconProps) {
             extraClickZone="xsmall"
             isDisabled={isDisabled || isOtherUserUsingProject}
             icon={StopIcon}
-            aria-label={userOpeningProjectTooltip ?? getText('stopExecution')}
+            aria-label={getTooltip(getText('stopExecution'))}
             tooltipPlacement="left"
             className={tailwindMerge.twJoin(isRunningInBackground && 'text-green')}
             {...(isOtherUserUsingProject ? { title: getText('otherUserIsUsingProjectError') } : {})}
             onPress={doCloseProject}
+            testId="stop-project"
           />
           <StatelessSpinner
             state={spinnerState}
@@ -220,10 +227,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
               extraClickZone="xsmall"
               isDisabled={isDisabled || isOtherUserUsingProject}
               icon={StopIcon}
-              aria-label={userOpeningProjectTooltip ?? getText('stopExecution')}
+              aria-label={getTooltip(getText('stopExecution'))}
               tooltipPlacement="left"
               className={tailwindMerge.twJoin(isRunningInBackground && 'text-green')}
               onPress={doCloseProject}
+              testId="stop-project"
             />
             <Spinner
               state="done"
@@ -240,10 +248,11 @@ export default function ProjectIcon(props: ProjectIconProps) {
               variant="icon"
               extraClickZone="xsmall"
               icon={ArrowUpIcon}
-              aria-label={userOpeningProjectTooltip ?? getText('openInEditor')}
+              aria-label={getTooltip(getText('openInEditor'))}
               isDisabled={isDisabled}
               tooltipPlacement="right"
               onPress={doOpenProjectTab}
+              testId="switch-to-project"
             />
           )}
         </div>

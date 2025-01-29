@@ -1,7 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Common.Dry_Run_Operation
-import Standard.Base.Errors.Common.Unsupported_Argument_Types
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -14,11 +13,12 @@ polyglot java import org.enso.base_test_helpers.FileSystemHelper
 from Standard.Test import all
 import Standard.Test.Test_Environment
 
+import project.Data.Data_Spec
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
 ## We rely on a less strict equality for `File` as it is fine if a relative file gets resolved to absolute.
 File.should_equal self other frames_to_skip=0 =
-    loc = Meta.get_source_location 1+frames_to_skip
+    loc = Test.get_source_location 1+frames_to_skip
     are_same = case other of
         _ : File -> self.absolute.normalize.path == other.absolute.normalize.path
         _ -> False
@@ -39,6 +39,8 @@ add_specs suite_builder =
         Platform.OS.Windows -> Nothing
         _ -> "This test runs only on Windows."
 
+    add_data_specs suite_builder
+
     suite_builder.group "File Operations" group_builder->
         group_builder.specify "should get name of the root" <|
             root = File.new "/"
@@ -51,7 +53,10 @@ add_specs suite_builder =
 
         group_builder.specify "invalid character in path on Windows" pending=only_on_windows <|
             err = File.new "C:\dev:a"
-            err . should_fail_with Unsupported_Argument_Types
+            err . should_fail_with Illegal_Argument
+
+            err2 = File.new "." / ":"
+            err2 . should_fail_with Illegal_Argument
 
         group_builder.specify "should have `new` be a no-op on a file" <|
             file = File.new sample_file
@@ -329,6 +334,7 @@ add_specs suite_builder =
         group_builder.specify "will not resolve a relative directory to absolute in `parent` if not necessary" <|
             f = File.new "foo/bar"
             f.parent . should_equal (File.new "foo")
+            f.parent.path . should_equal "foo"
 
         group_builder.specify "will return Nothing for a root path that has no parent" <|
             root = File.new "/" . absolute . normalize
@@ -391,7 +397,7 @@ add_specs suite_builder =
             subdir.should_succeed
             cleanup =
                 Enso_User.flush_caches
-                subdir.delete
+                subdir.delete recursive=True
             Panic.with_finalizer cleanup <|
                 Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_PROJECT_DIRECTORY_PATH" subdir.path <|
                     # Flush caches to ensure fresh dir is used
@@ -415,6 +421,9 @@ add_specs suite_builder =
                 txt.write f . should_succeed
                 Panic.with_finalizer f.delete_if_exists <|
                     Data.read "abc/def.txt" . should_equal txt
+
+        group_builder.specify "will resolve empty path to the current working directory" <|
+            File.new "" . should_equal File.current_directory
 
     suite_builder.group "read_text" group_builder->
         group_builder.specify "should allow reading a UTF-8 file" <|
@@ -910,8 +919,8 @@ add_specs suite_builder =
 
         group_builder.specify "should list files in a directory" <|
             root = enso_project.data / "tree"
-            immediate = root.list.map .to_text . sort
-            expected = [root / "sample.csv", root / "sample.txt", root / "subdirectory"].map .to_text . sort
+            immediate = root.list.map .to_text
+            expected = [root / "sample.csv", root / "sample.txt", root / "subdirectory"].map .to_text
             immediate.should_equal expected
 
             filtered1 = root.list name_filter="s[a-cw]mple.{t?t,md}"
@@ -920,35 +929,49 @@ add_specs suite_builder =
             filtered2 = Data.list root name_filter="*di*"
             filtered2.should_equal [root / "subdirectory"]
 
+        group_builder.specify "File.list should sort its result" <|
+            dir = enso_project.data / "list_sort"
+            dir.delete_if_exists recursive=True
+            dir.create_directory
+
+            nums = (0.up_to 10 . to_vector) + (30.down_to 20 . to_vector)
+            nums.each i->
+                f = dir / i.to_text
+                "abcd".write f
+                lst = dir.list
+                lst . should_equal (lst.sort on=.path)
+
+            dir.delete recursive=True . should_succeed
+
         group_builder.specify "should list files in a directory recursively" <|
             root = enso_project.data / "tree"
             resolve files = files.map str-> (root / str) . to_text
 
             all = root.list recursive=True . map .to_text
-            all.sort.should_equal (resolve ["", "sample.csv", "sample.txt", "subdirectory", "subdirectory/a.txt", "subdirectory/nested", "subdirectory/nested/b.txt"])
+            all.should_equal (resolve ["", "sample.csv", "sample.txt", "subdirectory", "subdirectory/a.txt", "subdirectory/nested", "subdirectory/nested/b.txt"])
 
             filtered1 = root.list name_filter="**.txt" recursive=True . map .to_text
-            filtered1.sort.should_equal (resolve ["sample.txt", "subdirectory/a.txt", "subdirectory/nested/b.txt"])
+            filtered1.should_equal (resolve ["sample.txt", "subdirectory/a.txt", "subdirectory/nested/b.txt"])
 
             filtered1b = root.list name_filter="*.txt" recursive=True . map .to_text
-            filtered1b.sort.should_equal (resolve ["sample.txt", "subdirectory/a.txt", "subdirectory/nested/b.txt"])
+            filtered1b.should_equal (resolve ["sample.txt", "subdirectory/a.txt", "subdirectory/nested/b.txt"])
 
             # It should also work if more complicated pattern is used
             filtered1c = root.list name_filter="{*.txt,foobarbaz}" recursive=True . map .to_text
-            filtered1c.sort.should_equal (resolve ["sample.txt", "subdirectory/a.txt", "subdirectory/nested/b.txt"])
+            filtered1c.should_equal (resolve ["sample.txt", "subdirectory/a.txt", "subdirectory/nested/b.txt"])
 
             # And correctly match file 'starts with' condition in recursive mode
             filtered1d = root.list name_filter="a*.txt" recursive=True . map .to_text
-            filtered1d.sort.should_equal (resolve ["subdirectory/a.txt"])
+            filtered1d.should_equal (resolve ["subdirectory/a.txt"])
 
             filtered2 = root.list name_filter="*/*/*" recursive=True . map .to_text
             filtered2.should_equal (resolve ["subdirectory/nested/b.txt"])
 
             filtered3 = root.list name_filter="a.txt" recursive=True . map .to_text
-            filtered3.sort.should_equal (resolve ["subdirectory/a.txt"])
+            filtered3.should_equal (resolve ["subdirectory/a.txt"])
 
             filtered4 = root.list name_filter="nested/*.txt" recursive=True . map .to_text
-            filtered4.sort.should_equal (resolve ["subdirectory/nested/b.txt"])
+            filtered4.should_equal (resolve ["subdirectory/nested/b.txt"])
 
         add_create_and_delete_directory_specs group_builder (enso_project.data / "transient")
 
@@ -1034,6 +1057,10 @@ add_create_and_delete_directory_specs group_builder ~parent_dir =
         r.catch.should_be_a File_Error.Not_Found
 
         dir.delete_if_exists . should_equal Nothing
+
+add_data_specs suite_builder =
+    file_maker path_element:Text = enso_project.data / "transient" / (path_element+".txt")
+    Data_Spec.add_specs "(File) " suite_builder file_maker
 
 add_copy_edge_cases_specs group_builder ~parent_dir file_from_path=File.new =
     group_builder.specify "should allow copy/move edge case with source=target" <|

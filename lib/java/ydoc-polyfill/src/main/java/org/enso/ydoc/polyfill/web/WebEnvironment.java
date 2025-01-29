@@ -1,8 +1,11 @@
 package org.enso.ydoc.polyfill.web;
 
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Function;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.HostAccess;
+import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.Value;
 
 /** Web polyfill environment. */
 public final class WebEnvironment {
@@ -13,32 +16,42 @@ public final class WebEnvironment {
   private WebEnvironment() {}
 
   public static void initialize(Context ctx, ScheduledExecutorService executor) {
+    Function<java.net.URL, Value> eval =
+        (url) -> {
+          var src = Source.newBuilder("js", url).buildLiteral();
+          return ctx.eval(src);
+        };
+    initialize(eval, executor);
+  }
+
+  public static void initialize(
+      Function<java.net.URL, Value> eval, ScheduledExecutorService executor) {
     var performance = new Performance();
-    performance.initialize(ctx);
+    performance.initialize(eval);
 
     var eventTarget = new EventTarget();
-    eventTarget.initialize(ctx);
+    eventTarget.initialize(eval);
 
     var eventEmitter = new EventEmitter();
-    eventEmitter.initialize(ctx);
+    eventEmitter.initialize(eval);
 
     var timers = new Timers(executor);
-    timers.initialize(ctx);
+    timers.initialize(eval);
 
     var crypto = new Crypto();
-    crypto.initialize(ctx);
+    crypto.initialize(eval);
 
     var encoding = new Util();
-    encoding.initialize(ctx);
+    encoding.initialize(eval);
 
     var abortController = new AbortController();
-    abortController.initialize(ctx);
+    abortController.initialize(eval);
 
     var zlib = new Zlib();
-    zlib.initialize(ctx);
+    zlib.initialize(eval);
 
     var webSocketPolyfill = new WebSocket(executor);
-    webSocketPolyfill.initialize(ctx);
+    webSocketPolyfill.initialize(eval);
   }
 
   public static Context.Builder createContext() {

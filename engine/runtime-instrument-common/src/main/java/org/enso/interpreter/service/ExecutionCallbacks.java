@@ -220,7 +220,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     }
 
     var typeOfNode = TypeOfNode.getUncached();
-    Type[] allTypes = value == null ? null : typeOfNode.findAllTypesOrNull(value);
+    Type[] allTypes = value == null ? null : typeOfNode.findAllTypesOrNull(value, true);
     if (allTypes != null) {
       String[] result = new String[allTypes.length];
       for (var i = 0; i < allTypes.length; i++) {

@@ -33,7 +33,7 @@ import * as listen from '#/authentication/listen'
  */
 export interface AmplifyConfig {
   readonly region: string
-  readonly endpoint: string
+  readonly endpoint: string | undefined
   readonly userPoolId: string
   readonly userPoolWebClientId: string
   readonly urlOpener: ((url: string, redirectUrl: string) => void) | null
@@ -67,7 +67,7 @@ interface OauthAmplifyConfig {
 /** Same as {@link AmplifyConfig}, but in a format recognized by the AWS Amplify library. */
 export interface NestedAmplifyConfig {
   readonly region: string
-  readonly endpoint: string
+  readonly endpoint: string | undefined
   readonly userPoolId: string
   readonly userPoolWebClientId: string
   readonly oauth: OauthAmplifyConfig
@@ -82,7 +82,9 @@ export interface NestedAmplifyConfig {
 export function toNestedAmplifyConfig(config: AmplifyConfig): NestedAmplifyConfig {
   return {
     region: config.region,
-    endpoint: config.endpoint,
+    // endpoint: config.endpoint,
+    // TODO: Use the endpoint when it is working.
+    endpoint: undefined,
     userPoolId: config.userPoolId,
     userPoolWebClientId: config.userPoolWebClientId,
     oauth: {
@@ -181,16 +183,15 @@ function loadAmplifyConfig(
     setDeepLinkHandler(logger, navigate)
   }
 
-  const redirectUrl = process.env.ENSO_CLOUD_REDIRECT ?? window.location.origin
-
   /** Load the platform-specific Amplify configuration. */
-  const signInOutRedirect = supportsDeepLinks ? `${common.DEEP_LINK_SCHEME}://auth` : redirectUrl
+  const signInOutRedirect =
+    supportsDeepLinks ? `${common.DEEP_LINK_SCHEME}://auth` : window.location.origin
   return {
-    endpoint: process.env.ENSO_CLOUD_AUTH_ENDPOINT,
-    userPoolId: process.env.ENSO_CLOUD_COGNITO_USER_POOL_ID,
-    userPoolWebClientId: process.env.ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
-    domain: process.env.ENSO_CLOUD_COGNITO_DOMAIN,
-    region: process.env.ENSO_CLOUD_COGNITO_REGION,
+    endpoint: $config.AUTH_ENDPOINT,
+    userPoolId: $config.COGNITO_USER_POOL_ID ?? '',
+    userPoolWebClientId: $config.COGNITO_USER_POOL_WEB_CLIENT_ID ?? '',
+    domain: $config.COGNITO_DOMAIN ?? '',
+    region: $config.COGNITO_REGION ?? '',
     redirectSignIn: signInOutRedirect,
     redirectSignOut: signInOutRedirect,
     scope: ['email', 'openid', 'aws.cognito.signin.user.admin'],

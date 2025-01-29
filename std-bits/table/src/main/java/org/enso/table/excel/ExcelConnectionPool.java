@@ -20,6 +20,9 @@ import org.apache.poi.openxml4j.opc.PackageAccess;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.enso.base.cache.ReloadDetector;
+import org.enso.table.excel.xssfreader.XSSFReaderWorkbook;
+import org.enso.table.util.FunctionWithException;
 
 public class ExcelConnectionPool {
   public static final ExcelConnectionPool INSTANCE = new ExcelConnectionPool();
@@ -27,13 +30,15 @@ public class ExcelConnectionPool {
   private ExcelConnectionPool() {}
 
   public ReadOnlyExcelConnection openReadOnlyConnection(File file, ExcelFileFormat format)
-      throws IOException {
+      throws IOException, InterruptedException {
     synchronized (this) {
       if (isCurrentlyWriting) {
         throw new IllegalStateException(
             "Cannot open a read-only Excel connection while an Excel file is being "
                 + "written to. This is a bug in the Table library.");
       }
+
+      clearOnReload();
 
       if (!file.exists()) {
         throw new FileNotFoundException(file.toString());
@@ -64,7 +69,7 @@ public class ExcelConnectionPool {
         record.refCount = 1;
         record.file = file;
         record.format = format;
-        record.workbook = openWorkbook(file, format, false);
+        record.reopen(true);
         records.put(key, record);
         return new ReadOnlyExcelConnection(this, key, record);
       }
@@ -130,7 +135,7 @@ public class ExcelConnectionPool {
    */
   public <R> R lockForWriting(
       File file, ExcelFileFormat format, File[] accompanyingFiles, Function<WriteHelper, R> action)
-      throws IOException {
+      throws IOException, InterruptedException {
     synchronized (this) {
       if (isCurrentlyWriting) {
         throw new IllegalStateException(
@@ -208,14 +213,38 @@ public class ExcelConnectionPool {
   private final HashMap<String, ConnectionRecord> records = new HashMap<>();
   private boolean isCurrentlyWriting = false;
 
+  /** Used to clear the ConnectionRecord on reload. */
+  private final ReloadDetector reloadDetector = new ReloadDetector();
+
+  /** If a reload has just happened, clear the ConnectionRecord cache. */
+  private void clearOnReload() throws IOException {
+    if (reloadDetector.hasReloadOccurred()) {
+      for (var record : records.values()) {
+        record.close();
+      }
+      records.clear();
+    }
+  }
+
+  /** Public for testing. */
+  public int getConnectionRecordCount() {
+    return records.size();
+  }
+
+  /** Public for testing. */
+  public void simulateReloadTestOnly() {
+    reloadDetector.simulateReloadTestOnly();
+  }
+
   static class ConnectionRecord {
     private int refCount;
     private File file;
     private ExcelFileFormat format;
-    private Workbook workbook;
+    private ExcelWorkbook workbook;
     private IOException initializationException = null;
 
-    <T> T withWorkbook(Function<Workbook, T> action) throws IOException {
+    <T> T withWorkbook(FunctionWithException<ExcelWorkbook, T, InterruptedException> action)
+        throws IOException, InterruptedException {
       synchronized (this) {
         return action.apply(accessCurrentWorkbook());
       }
@@ -231,14 +260,17 @@ public class ExcelConnectionPool {
       }
     }
 
-    void reopen(boolean throwOnFailure) throws IOException {
+    void reopen(boolean throwOnFailure) throws IOException, InterruptedException {
       synchronized (this) {
         if (workbook != null) {
           throw new IllegalStateException("The workbook is already open.");
         }
 
         try {
-          workbook = openWorkbook(file, format, false);
+          workbook =
+              format == ExcelFileFormat.XLSX
+                  ? new XSSFReaderWorkbook(file.getAbsolutePath())
+                  : ExcelWorkbook.forPOIUserModel(openWorkbook(file, format, false));
         } catch (IOException e) {
           initializationException = e;
           if (throwOnFailure) {
@@ -248,7 +280,7 @@ public class ExcelConnectionPool {
       }
     }
 
-    private Workbook accessCurrentWorkbook() throws IOException {
+    private ExcelWorkbook accessCurrentWorkbook() throws IOException {
       synchronized (this) {
         if (workbook == null) {
           if (initializationException != null) {
@@ -278,7 +310,7 @@ public class ExcelConnectionPool {
           throw e;
         }
       }
-      case XLSX -> {
+      case XLSX, XLSX_FALLBACK -> {
         try {
           PackageAccess access = writeAccess ? PackageAccess.READ_WRITE : PackageAccess.READ;
           OPCPackage pkg = OPCPackage.open(file, access);
@@ -300,7 +332,7 @@ public class ExcelConnectionPool {
   private static Workbook createEmptyWorkbook(ExcelFileFormat format) {
     return switch (format) {
       case XLS -> new HSSFWorkbook();
-      case XLSX -> new XSSFWorkbook();
+      case XLSX, XLSX_FALLBACK -> new XSSFWorkbook();
     };
   }
 

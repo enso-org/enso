@@ -6,7 +6,7 @@ import { type NodeId } from '@/stores/graph'
 import type { Rect } from '@/util/data/rect'
 import { intersectionSize } from '@/util/data/set'
 import { Vec2 } from '@/util/data/vec2'
-import { dataAttribute, elementHierarchy } from '@/util/dom'
+import { dataAttribute, selectorHierarchy } from '@/util/dom'
 import { identity } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import * as set from 'lib0/set'
@@ -266,7 +266,7 @@ export function useGraphHover(isPortEnabled: (port: PortId) => boolean) {
 
   const hoveredPort = computed<PortId | undefined>(() => {
     if (!hoveredElement.value) return undefined
-    for (const element of elementHierarchy(hoveredElement.value, '.WidgetPort')) {
+    for (const element of selectorHierarchy(hoveredElement.value, '.WidgetPort')) {
       const portId = dataAttribute<PortId>(element, 'port')
       if (portId && isPortEnabled(portId)) return portId
     }

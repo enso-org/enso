@@ -1,13 +1,12 @@
 import * as random from 'lib0/random'
 import {
-  type ExternalId,
   type SourceRange,
   type SourceRangeKey,
-  IdMap,
   sourceRangeFromKey,
   sourceRangeKey,
-} from '../yjsModel'
-import { type Token } from './token'
+} from '../util/data/text'
+import { type ExternalId, IdMap } from '../yjsModel'
+import { type Token, type TokenId } from './token'
 import { type Ast, type AstId, ExpressionStatement } from './tree'
 
 declare const nodeKeyBrand: unique symbol
@@ -18,11 +17,11 @@ declare const tokenKeyBrand: unique symbol
 export type TokenKey = SourceRangeKey & { [tokenKeyBrand]: never }
 /** Create a source-range key for an `Ast`. */
 export function nodeKey(start: number, length: number): NodeKey {
-  return sourceRangeKey([start, start + length]) as NodeKey
+  return sourceRangeKey({ from: start, to: start + length }) as NodeKey
 }
 /** Create a source-range key for a `Token`. */
 export function tokenKey(start: number, length: number): TokenKey {
-  return sourceRangeKey([start, start + length]) as TokenKey
+  return sourceRangeKey({ from: start, to: start + length }) as TokenKey
 }
 
 /** Maps from source ranges to `Ast`s. */
@@ -56,13 +55,20 @@ export function spanMapToIdMap(spans: SpanMap): IdMap {
   return idMap
 }
 
-/** Given a `SpanMap`, return a function that can look up source ranges by AST ID. */
-export function spanMapToSpanGetter(spans: SpanMap): (id: AstId) => SourceRange | undefined {
+/** Returns a function that can look up source ranges by AST ID. */
+export function spanMapToSpanGetter(spans: NodeSpanMap): (id: AstId) => SourceRange | undefined {
   const reverseMap = new Map<AstId, SourceRange>()
-  for (const [key, asts] of spans.nodes) {
+  for (const [key, asts] of spans) {
     for (const ast of asts) {
       reverseMap.set(ast.id, sourceRangeFromKey(key))
     }
   }
-  return id => reverseMap.get(id)
+  return (id) => reverseMap.get(id)
+}
+
+/** Returns a function that can look up token source ranges. */
+export function tokenSpanGetter(spans: TokenSpanMap): (token: Token) => SourceRange | undefined {
+  const reverseMap = new Map<TokenId, SourceRange>()
+  for (const [key, token] of spans) reverseMap.set(token.id, sourceRangeFromKey(key))
+  return ({ id }) => reverseMap.get(id)
 }

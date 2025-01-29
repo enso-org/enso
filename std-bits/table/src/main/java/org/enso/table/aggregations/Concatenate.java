@@ -10,7 +10,7 @@ import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
-public class Concatenate extends Aggregator {
+public class Concatenate extends KnownTypeAggregator {
   private final Storage<?> storage;
   private final String separator;
   private final String prefix;
@@ -39,7 +39,7 @@ public class Concatenate extends Aggregator {
       if (value == null || value instanceof String) {
         String textValue = toQuotedString(value, quote, separator);
 
-        if (!separator.equals("") && quote.equals("") && textValue.contains(separator)) {
+        if (!separator.isEmpty() && quote.isEmpty() && textValue.contains(separator)) {
           innerAggregator.reportColumnAggregatedProblem(
               new UnquotedDelimiter(this.getName(), row, "Unquoted delimiter."));
         }

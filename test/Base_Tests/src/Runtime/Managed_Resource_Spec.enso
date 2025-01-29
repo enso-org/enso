@@ -95,6 +95,7 @@ add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
 
             # finalizes the resource
             mr.finalize
+            mr.has_been_finalized . should_be_true
             builder.append "Finalized:"+mr.to_text
 
             # operation on finalized resource

@@ -67,3 +67,13 @@ type More_Records_Available
     ## PRIVATE
     to_display_text : Text
     to_display_text self = self.message
+
+## A generic warning related to S3.
+type S3_Warning
+    private Warning message:Text
+
+    ## PRIVATE
+    to_display_text self = self.message
+
+    ## PRIVATE
+    to_text self = self.message

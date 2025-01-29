@@ -11,6 +11,7 @@ import project.Column_Description.Column_Description
 import project.Connection.Connection.Connection
 import project.DB_Table.DB_Table
 import project.Dialect
+import project.Internal.Common.Connections_Helpers
 import project.Internal.IR.Query.Query
 import project.Internal.JDBC_Connection
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
@@ -287,4 +288,5 @@ type SQLite_Connection
        Converts this value to a JSON serializable object.
     to_js_object : JS_Object
     to_js_object self =
-        JS_Object.from_pairs [["type", "SQLite_Connection"], ["links", self.connection.tables.at "Name" . to_vector], ["get_child_node_action", "query"]]
+        additional_visualization_fields = Connections_Helpers.get_data_viz_pairs
+        JS_Object.from_pairs <| [["type", "SQLite_Connection"], ["links", self.connection.tables.at "Name" . to_vector]] + additional_visualization_fields

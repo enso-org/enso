@@ -2,21 +2,20 @@ import * as iter from 'enso-common/src/utilities/data/iter'
 import * as map from 'lib0/map'
 import { assert, assertDefined } from '../util/assert'
 import {
+  type SourceRange,
   type SourceRangeEdit,
+  type SourceRangeEditDesc,
+  type SourceRangeKey,
   type SpanTree,
   applyTextEdits,
   applyTextEditsToSpans,
   enclosingSpans,
-  textChangeToEdits,
-  trimEnd,
-} from '../util/data/text'
-import {
-  type SourceRange,
-  type SourceRangeKey,
   rangeLength,
   sourceRangeFromKey,
   sourceRangeKey,
-} from '../yjsModel'
+  textChangeToEdits,
+  trimEnd,
+} from '../util/data/text'
 import { xxHash128 } from './ffi'
 import { type NodeKey, type NodeSpanMap, newExternalId } from './idMap'
 import type { Module, MutableModule } from './mutableModule'
@@ -29,7 +28,6 @@ import {
   type AstId,
   MutableAssignment,
   type MutableAst,
-  type Owned,
   rewriteRefs,
   syncFields,
   syncNodeMetadata,
@@ -89,7 +87,7 @@ function calculateCorrespondence(
   astSpans: NodeSpanMap,
   parsedRoot: Ast,
   parsedSpans: NodeSpanMap,
-  textEdits: SourceRangeEdit[],
+  textEdits: SourceRangeEditDesc[],
   codeAfter: string,
 ): Map<AstId, Ast> {
   const newSpans = new Map<AstId, SourceRange>()
@@ -114,12 +112,12 @@ function calculateCorrespondence(
     partAfterToAstBefore.set(sourceRangeKey(partAfter), astBefore)
   }
   const matchingPartsAfter = spansBeforeAndAfter.map(([_before, after]) => after)
-  const parsedSpanTree = new AstWithSpans(parsedRoot, id => newSpans.get(id)!)
+  const parsedSpanTree = new AstWithSpans(parsedRoot, (id) => newSpans.get(id)!)
   const astsMatchingPartsAfter = enclosingSpans(parsedSpanTree, matchingPartsAfter)
   for (const [astAfter, partsAfter] of astsMatchingPartsAfter) {
     for (const partAfter of partsAfter) {
       const astBefore = partAfterToAstBefore.get(sourceRangeKey(partAfter))!
-      if (astBefore.typeName() === astAfter.typeName()) {
+      if (astBefore.typeName === astAfter.typeName) {
         ;(rangeLength(newSpans.get(astAfter.id)!) === rangeLength(partAfter) ?
           toSync
         : candidates
@@ -141,10 +139,10 @@ function calculateCorrespondence(
   const newHashes = syntaxHash(parsedRoot).hashes
   const oldHashes = syntaxHash(ast).hashes
   for (const [hash, newAsts] of newHashes) {
-    const unmatchedNewAsts = newAsts.filter(ast => !newIdsMatched.has(ast.id))
-    const unmatchedOldAsts = oldHashes.get(hash)?.filter(ast => !oldIdsMatched.has(ast.id)) ?? []
+    const unmatchedNewAsts = newAsts.filter((ast) => !newIdsMatched.has(ast.id))
+    const unmatchedOldAsts = oldHashes.get(hash)?.filter((ast) => !oldIdsMatched.has(ast.id)) ?? []
     for (const [unmatchedNew, unmatchedOld] of iter.zip(unmatchedNewAsts, unmatchedOldAsts)) {
-      if (unmatchedNew.typeName() === unmatchedOld.typeName()) {
+      if (unmatchedNew.typeName === unmatchedOld.typeName) {
         toSync.set(unmatchedOld.id, unmatchedNew)
         // Update the matched-IDs indices.
         oldIdsMatched.add(unmatchedOld.id)
@@ -157,13 +155,13 @@ function calculateCorrespondence(
   // movement-matching.
   for (const [beforeId, after] of candidates) {
     if (oldIdsMatched.has(beforeId) || newIdsMatched.has(after.id)) continue
-    if (after.typeName() === ast.module.get(beforeId).typeName()) {
+    if (after.typeName === ast.module.get(beforeId).typeName) {
       toSync.set(beforeId, after)
     }
   }
 
   for (const [idBefore, astAfter] of toSync.entries())
-    assert(ast.module.get(idBefore).typeName() === astAfter.typeName())
+    assert(ast.module.get(idBefore).typeName === astAfter.typeName)
   return toSync
 }
 
@@ -175,38 +173,36 @@ export function applyTextEditsToAst(
 ) {
   const printed = printWithSpans(ast)
   const code = applyTextEdits(printed.code, textEdits)
-  ast.module.transact(() => {
-    const parsed = parseInSameContext(ast.module, code, ast)
-    const toSync = calculateCorrespondence(
-      ast,
-      printed.info.nodes,
-      parsed.root,
-      parsed.spans.nodes,
-      textEdits,
-      code,
-    )
-    syncTree(ast, parsed.root, toSync, ast.module, metadataSource)
-  })
+  const parsed = parseInSameContext(code, ast)
+  const toSync = calculateCorrespondence(
+    ast,
+    printed.info.nodes,
+    parsed.root,
+    parsed.spans.nodes,
+    textEdits,
+    code,
+  )
+  ast.module.transact(() => syncTree(ast, parsed.root, toSync, ast.module, metadataSource))
 }
 
 /** Replace `target` with `newContent`, reusing nodes according to the correspondence in `toSync`. */
 function syncTree(
   target: MutableAst,
-  newContent: Owned,
+  newContent: Ast,
   toSync: Map<AstId, Ast>,
   edit: MutableModule,
   metadataSource: Module,
 ) {
   const newIdToEquivalent = new Map<AstId, AstId>()
   for (const [beforeId, after] of toSync) newIdToEquivalent.set(after.id, beforeId)
-  const childReplacerFor = (parentId: AstId) => (id: AstId) => {
+  const childSplicerFor = (parentId: AstId) => (id: AstId) => {
     const original = newIdToEquivalent.get(id)
     if (original) {
       const replacement = edit.get(original)
       if (replacement.parentId !== parentId) replacement.fields.set('parent', parentId)
       return original
     } else {
-      const child = edit.get(id)
+      const child = edit.splice(newContent.module.get(id)!)
       if (child.parentId !== parentId) child.fields.set('parent', parentId)
     }
   }
@@ -215,13 +211,17 @@ function syncTree(
   const parent = edit.get(parentId)
   const targetSyncEquivalent = toSync.get(target.id)
   const syncRoot = targetSyncEquivalent?.id === newContent.id ? targetSyncEquivalent : undefined
-  if (!syncRoot) {
-    parent.replaceChild(target.id, newContent)
-    newContent.fields.set('metadata', target.fields.get('metadata').clone())
+  let newRoot: MutableAst
+  if (syncRoot) {
+    newRoot = target
+  } else {
+    const spliced = edit.splice(newContent)
+    parent.replaceChild(target.id, spliced)
+    newRoot = spliced
+    newRoot.fields.set('metadata', target.fields.get('metadata').clone())
     target.fields.get('metadata').set('externalId', newExternalId())
   }
-  const newRoot = syncRoot ? target : newContent
-  newRoot.visitRecursive(ast => {
+  newRoot.visitRecursive((ast) => {
     const syncFieldsFrom = toSync.get(ast.id)
     const editAst = edit.getVersion(ast)
     if (syncFieldsFrom) {
@@ -229,7 +229,7 @@ function syncTree(
         ast instanceof Assignment ?
           metadataSource.get(ast.fields.get('expression').node)
         : undefined
-      syncFields(edit.getVersion(ast), syncFieldsFrom, childReplacerFor(ast.id))
+      syncFields(editAst, syncFieldsFrom, childSplicerFor(ast.id))
       if (editAst instanceof MutableAssignment && originalAssignmentExpression) {
         if (editAst.expression.externalId !== originalAssignmentExpression.externalId)
           editAst.expression.setExternalId(originalAssignmentExpression.externalId)
@@ -239,7 +239,7 @@ function syncTree(
         )
       }
     } else {
-      rewriteRefs(editAst, childReplacerFor(ast.id))
+      rewriteRefs(editAst, childSplicerFor(ast.id))
     }
     return true
   })

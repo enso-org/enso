@@ -53,22 +53,6 @@ object TestArchivePackager {
   }
 
   private def packZip(source: Path, destination: Path): Unit = {
-    val files = FileSystem.listDirectory(source)
-    val exitCode = Process(
-      Seq(
-        "powershell",
-        "Compress-Archive",
-        "-Path",
-        files.map(_.getFileName.toString).mkString(","),
-        "-DestinationPath",
-        destination.toAbsolutePath.toString
-      ),
-      source.toFile
-    ).!
-    if (exitCode != 0) {
-      throw new RuntimeException(
-        s"tar failed. Cannot create fake-archive for $source"
-      )
-    }
+    CompressZipArchive.compress(source, destination)
   }
 }

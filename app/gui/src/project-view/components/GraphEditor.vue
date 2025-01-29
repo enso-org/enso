@@ -22,6 +22,7 @@ import { uploadedExpression, Uploader } from '@/components/GraphEditor/upload'
 import GraphMissingView from '@/components/GraphMissingView.vue'
 import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
+import RightDockPanel from '@/components/RightDockPanel.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
 import { builtinWidgets } from '@/components/widgets'
@@ -30,6 +31,7 @@ import { keyboardBusy, keyboardBusyExceptIn, unrefElement, useEvent } from '@/co
 import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
 import { provideGraphEditorLayers } from '@/providers/graphEditorLayers'
+import { provideGraphEditorState } from '@/providers/graphEditorState'
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
 import { provideNodeColors } from '@/providers/graphNodeColors'
@@ -47,6 +49,7 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { providePersisted } from '@/stores/persisted'
 import { useProjectStore } from '@/stores/project'
 import { provideNodeExecution } from '@/stores/project/nodeExecution'
+import { injectProjectNames } from '@/stores/projectNames'
 import { provideRightDock, StorageMode } from '@/stores/rightDock'
 import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId, Typename } from '@/stores/suggestionDatabase/entry'
@@ -72,13 +75,12 @@ import {
   watch,
   type ComponentInstance,
 } from 'vue'
-import { isDevMode } from 'ydoc-shared/util/detect'
-import RightDockPanel from './RightDockPanel.vue'
 
 const keyboard = provideKeyboard()
 const projectStore = useProjectStore()
-const suggestionDb = provideSuggestionDbStore(projectStore)
-const graphStore = provideGraphStore(projectStore, suggestionDb)
+const projectNames = injectProjectNames()
+const suggestionDb = provideSuggestionDbStore(projectStore, projectNames)
+const graphStore = provideGraphStore(projectStore, suggestionDb, projectNames)
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
 const _visualizationStore = provideVisualizationStore(projectStore)
 
@@ -87,7 +89,7 @@ provideNodeExecution(projectStore)
 
 onMounted(() => {
   widgetRegistry.loadWidgets(Object.entries(builtinWidgets))
-  if (isDevMode) {
+  if (import.meta.env.DEV) {
     ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
   }
 })
@@ -121,7 +123,7 @@ const persisted = providePersisted(
   () => zoomToAll(true),
 )
 
-const rightDock = provideRightDock(graphStore, persisted)
+const rightDock = provideRightDock(graphStore, projectStore, persisted)
 
 // === Zoom/pan ===
 
@@ -160,8 +162,10 @@ function panToSelected() {
 
 // == Breadcrumbs ==
 
-const stackNavigator = provideStackNavigator(projectStore, graphStore)
-const graphMissing = computed(() => graphStore.moduleRoot != null && !graphStore.methodAst.ok)
+const stackNavigator = provideStackNavigator(projectStore, graphStore, projectNames)
+const graphMissing = computed(
+  () => graphStore.moduleRoot != null && !graphStore.currentMethod.ast.ok,
+)
 
 // === Toasts ===
 
@@ -252,7 +256,7 @@ useEvent(
   'keydown',
   (event) =>
     interactionBindingsHandler(event) ||
-    (!keyboardBusyExceptIn(documentationEditorArea.value) && undoBindingsHandler(event)) ||
+    (!keyboardBusy() && undoBindingsHandler(event)) ||
     (!keyboardBusy() && graphBindingsHandler(event)) ||
     (!keyboardBusyExceptIn(codeEditorArea.value) && codeEditorHandler(event)) ||
     (!keyboardBusyExceptIn(documentationEditorArea.value) && documentationEditorHandler(event)) ||
@@ -286,7 +290,7 @@ const graphBindingsHandler = graphBindings.handler({
     projectStore.lsRpcConnection.profilingStop()
   },
   openComponentBrowser() {
-    if (graphNavigator.sceneMousePos != null && !componentBrowserVisible.value) {
+    if (graphNavigator.sceneMousePos != null && !componentBrowserOpened.value) {
       createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
     }
   },
@@ -390,23 +394,25 @@ const documentationEditorHandler = documentationEditorBindings.handler({
 
 // === Component Browser ===
 
-const componentBrowserVisible = ref(false)
+const { componentBrowserOpened } = provideGraphEditorState({
+  componentBrowserOpened: ref(false),
+})
 const componentBrowserNodePosition = ref<Vec2>(Vec2.Zero)
 const componentBrowserUsage = ref<Usage>({ type: 'newNode' })
 
-watch(componentBrowserVisible, (v) =>
+watch(componentBrowserOpened, (v) =>
   rightDock.setStorageMode(v ? StorageMode.ComponentBrowser : StorageMode.Default),
 )
 
 function openComponentBrowser(usage: Usage, position: Vec2) {
   componentBrowserUsage.value = usage
   componentBrowserNodePosition.value = position
-  componentBrowserVisible.value = true
+  componentBrowserOpened.value = true
 }
 
 function hideComponentBrowser() {
   graphStore.editedNodeInfo = undefined
-  componentBrowserVisible.value = false
+  componentBrowserOpened.value = false
   displayedDocs.value = undefined
 }
 
@@ -456,13 +462,10 @@ watch(
   },
 )
 
-const componentBrowser = ref()
-const docPanel = ref()
+const componentBrowser = ref<ComponentInstance<typeof ComponentBrowser>>()
+const docPanel = ref<ComponentInstance<typeof RightDockPanel>>()
 
-const componentBrowserElements = computed(() => [
-  componentBrowser.value?.cbRoot,
-  docPanel.value?.root,
-])
+const componentBrowserElements = computed(() => [componentBrowser.value?.$el, docPanel.value?.$el])
 
 // === Node Creation ===
 
@@ -539,7 +542,7 @@ function collapseNodes(nodes: Node[]) {
       toasts.userActionFailed.show(`Unable to group nodes: ${info.error.payload}.`)
       return
     }
-    const currentMethodName = unwrapOr(graphStore.currentMethodPointer, undefined)?.name
+    const currentMethodName = unwrapOr(graphStore.currentMethod.pointer, undefined)?.name
     if (currentMethodName == null) {
       bail(`Cannot get the method name for the current execution stack item.`)
     }
@@ -580,6 +583,7 @@ async function handleFileDrop(event: DragEvent) {
   if (!event.dataTransfer?.items) return
   ;[...event.dataTransfer.items].forEach(async (item, index) => {
     if (item.kind === 'file') {
+      if (!graphStore.currentMethod.ast.ok) return
       const file = item.getAsFile()
       if (!file) return
       const clientPos = new Vec2(event.clientX, event.clientY)
@@ -591,7 +595,7 @@ async function handleFileDrop(event: DragEvent) {
         pos,
         projectStore.isOnLocalBackend,
         event.shiftKey,
-        projectStore.executionContext.getStackTop(),
+        graphStore.currentMethod.ast.value.externalId,
       )
       const uploadResult = await uploader.upload()
       if (uploadResult.ok) {
@@ -642,7 +646,7 @@ const groupColors = computed(() => {
           />
           <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
           <ComponentBrowser
-            v-if="componentBrowserVisible"
+            v-if="componentBrowserOpened"
             ref="componentBrowser"
             :navigator="graphNavigator"
             :nodePosition="componentBrowserNodePosition"
@@ -689,11 +693,8 @@ const groupColors = computed(() => {
 
 <style scoped>
 .GraphEditor {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  width: 100%;
+  height: 100%;
   contain: layout;
   user-select: none;
   /* Prevent touchpad back gesture, which can be triggered while panning. */

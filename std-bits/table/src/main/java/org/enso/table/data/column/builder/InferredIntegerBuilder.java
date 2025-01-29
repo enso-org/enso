@@ -5,6 +5,7 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.problems.ProblemAggregator;
 
@@ -14,45 +15,20 @@ import org.enso.table.problems.ProblemAggregator;
  * <p>This builder starts off delegating to LongBuilder, but if it receives a BigInteger, it retypes
  * the LongBuilder to a BigIntegerBuilder.
  */
-public class InferredIntegerBuilder extends Builder {
-  private LongBuilder longBuilder = null;
-  private TypedBuilder bigIntegerBuilder = null;
-  private int currentSize = 0;
-  private final int initialSize;
-  private final ProblemAggregator problemAggregator;
+public final class InferredIntegerBuilder implements Builder {
+  private BuilderWithRetyping longBuilder;
+  private Builder bigIntegerBuilder = null;
 
   /** Creates a new instance of this builder, with the given known result length. */
   public InferredIntegerBuilder(int initialSize, ProblemAggregator problemAggregator) {
-    this.initialSize = initialSize;
-    this.problemAggregator = problemAggregator;
-
-    longBuilder =
-        NumericBuilder.createLongBuilder(this.initialSize, IntegerType.INT_64, problemAggregator);
-  }
-
-  @Override
-  public void appendNoGrow(Object o) {
-    if (o == null) {
-      appendNulls(1);
-    } else if (o instanceof BigInteger bi) {
-      retypeToBigIntegerMaybe();
-      bigIntegerBuilder.appendNoGrow(bi);
+    var baseBuilder = Builder.getForLong(IntegerType.INT_64, initialSize, problemAggregator);
+    if (baseBuilder instanceof BuilderWithRetyping builderWithRetyping) {
+      longBuilder = builderWithRetyping;
     } else {
-      Long lng = NumericConverter.tryConvertingToLong(o);
-      if (lng == null) {
-        throw new IllegalStateException(
-            "Unexpected value added to InferredIntegerBuilder "
-                + o.getClass()
-                + ". This is a bug in the Table library.");
-      } else {
-        if (bigIntegerBuilder != null) {
-          bigIntegerBuilder.appendNoGrow(BigInteger.valueOf(lng));
-        } else {
-          longBuilder.appendNoGrow(lng);
-        }
-      }
+      throw new IllegalStateException(
+          "InferredIntegerBuilder must be able to retype to BigIntegerBuilder, but the base "
+              + "builder does not support retyping.");
     }
-    currentSize++;
   }
 
   @Override
@@ -77,7 +53,6 @@ public class InferredIntegerBuilder extends Builder {
         }
       }
     }
-    currentSize++;
   }
 
   @Override
@@ -87,19 +62,24 @@ public class InferredIntegerBuilder extends Builder {
     } else {
       longBuilder.appendNulls(count);
     }
-    currentSize += count;
   }
 
   @Override
   public void appendBulkStorage(Storage<?> storage) {
-    for (int i = 0; i < storage.size(); i++) {
-      append(storage.getItemBoxed(i));
+    if (storage.getType() instanceof NullType) {
+      appendNulls(Math.toIntExact(storage.getSize()));
+    } else {
+      for (long i = 0; i < storage.getSize(); i++) {
+        append(storage.getItemBoxed(i));
+      }
     }
   }
 
   @Override
   public int getCurrentSize() {
-    return currentSize;
+    return bigIntegerBuilder != null
+        ? bigIntegerBuilder.getCurrentSize()
+        : longBuilder.getCurrentSize();
   }
 
   @Override
@@ -128,5 +108,14 @@ public class InferredIntegerBuilder extends Builder {
     }
     bigIntegerBuilder = longBuilder.retypeTo(BigIntegerType.INSTANCE);
     longBuilder = null;
+  }
+
+  @Override
+  public void copyDataTo(Object[] items) {
+    if (bigIntegerBuilder != null) {
+      bigIntegerBuilder.copyDataTo(items);
+    } else {
+      longBuilder.copyDataTo(items);
+    }
   }
 }

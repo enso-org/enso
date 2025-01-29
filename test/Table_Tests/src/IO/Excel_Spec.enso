@@ -24,6 +24,7 @@ from project.Common_Table_Operations.Util import within_table
 from project.IO.Read_Many_Spec import with_temp_dir
 
 polyglot java import org.enso.table_test_helpers.RandomHelpers
+polyglot java import org.enso.table.excel.ExcelConnectionPool
 
 spec_fmt suite_builder header file read_method sheet_count=5 =
     suite_builder.group header group_builder->
@@ -1112,7 +1113,7 @@ add_specs suite_builder =
 
                     Problems.expect_warning Duplicate_Output_Column_Names r3
                     Problems.expect_warning Column_Count_Mismatch r3
-                
+
         group_builder.specify "during `read_many`, should correctly handle empty sheets" <|
             with_temp_dir base_dir->
                 tsv_file = base_dir / "1.tsv"
@@ -1150,6 +1151,26 @@ add_specs suite_builder =
                 r3.at "Path" . to_vector . map .name . should_equal [tsv_file.name, empty_xls_file.name]
                 r3.at "Value" . at 0 . should_be_a Table
                 r3.at "Value" . at 1 . should_be_a Excel_Workbook
+
+        group_builder.specify "should clear cache on simulated reload" pending="https://github.com/enso-org/enso/issues/12166" <|
+            ExcelConnectionPool.INSTANCE.simulateReloadTestOnly
+            check_workbook <| xlsx_sheet.read
+            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
+            check_workbook <| xlsx_sheet.read
+            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
+            check_workbook <| xls_sheet.read
+            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
+            check_workbook <| xls_sheet.read
+            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
+            ExcelConnectionPool.INSTANCE.simulateReloadTestOnly
+            check_workbook <| xlsx_sheet.read
+            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
+            check_workbook <| xlsx_sheet.read
+            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
+            check_workbook <| xls_sheet.read
+            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
+            check_workbook <| xls_sheet.read
+            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
 
     suite_builder.group "Problems" group_builder->
         group_builder.specify "should report a user-friendly error message when format is missing a required argument" <|
@@ -1217,6 +1238,29 @@ add_specs suite_builder =
             workbook.sheet_count . should_fail_with Illegal_State
             workbook.close . should_equal Nothing
             workbook.read "Sheet1" . should_fail_with Illegal_State
+
+        group_builder.specify "should be able to read a XLSX with inline strings" <|
+            workbook = (enso_project.data / "Sales_Sample_Data.xlsx") . read
+            workbook.sheet_count . should_equal 29
+            workbook.sheet_names . should_equal ['202201', '202202', '202203', '202204', '202205', '202206', '202207', '202208', '202209', '202210', '202211', '202212', '202301', '202302', '202303', '202304', '202305', '202306', '202307', '202308', '202309', '202310', '202311', '202312', '202401', '202402', '202403', '202404', '202405']
+
+            column_names = ['TERRITORY', 'DEALSIZE', 'PRODUCTLINE', 'OrderCount', 'SALES']
+
+            first_sheet = workbook.read '202201'
+            first_sheet.column_names . should_equal column_names
+            first_sheet.at 'TERRITORY' . to_vector . should_equal ['EMEA', 'NA', 'EMEA', 'EMEA', 'EMEA', 'EMEA', 'NA', 'EMEA', 'EMEA', 'EMEA']
+            first_sheet.at 'DEALSIZE' . to_vector . should_equal ['Medium', 'Medium', 'Small', 'Small', 'Small', 'Medium', 'Small', 'Medium', 'Small', 'Medium']
+            first_sheet.at 'PRODUCTLINE' . to_vector . should_equal ['Classic Cars', 'Vintage Cars', 'Classic Cars', 'Vintage Cars', 'Trucks and Buses', 'Trains', 'Vintage Cars', 'Vintage Cars', 'Trains', 'Trucks and Buses']
+            first_sheet.at 'OrderCount' . to_vector . should_equal [7, 3, 3, 7, 2, 1, 3, 3, 1, 9]
+            first_sheet.at 'SALES' . to_vector . should_equal [34585.61, 13349.31, 6606.17, 15482.34, 2856.68, 3227.63, 5647.99, 12347.2, 1705.92, 33944.75]
+
+            last_sheet = workbook.read '202405'
+            last_sheet.column_names . should_equal column_names
+            last_sheet.at 'TERRITORY' . to_vector . should_equal ['NA', 'EMEA', 'EMEA', 'NA', 'EMEA', 'EMEA', 'NA', 'EMEA', 'EMEA', 'EMEA', 'NA', 'NA', 'EMEA', 'EMEA', 'EMEA', 'NA', 'EMEA', 'NA']
+            last_sheet.at 'DEALSIZE' . to_vector . should_equal ['Large', 'Medium', 'Small', 'Medium', 'Medium', 'Small', 'Small', 'Medium', 'Medium', 'Small', 'Medium', 'Small', 'Small', 'Small', 'Large', 'Medium', 'Large', 'Small']
+            last_sheet.at 'PRODUCTLINE' . to_vector . should_equal ['Classic Cars', 'Planes', 'Trucks and Buses', 'Classic Cars', 'Trucks and Buses', 'Vintage Cars', 'Vintage Cars', 'Classic Cars', 'Motorcycles', 'Classic Cars', 'Trucks and Buses', 'Trains', 'Planes', 'Motorcycles', 'Classic Cars', 'Trains', 'Trucks and Buses', 'Trucks and Buses']
+            last_sheet.at 'OrderCount' . to_vector . should_equal [2, 4, 2, 5, 3, 2, 1, 10, 1, 6, 3, 1, 6, 1, 3, 1, 1, 2]
+            last_sheet.at 'SALES' . to_vector . should_equal [16914.55, 17742.36, 3838.83, 22429.29, 14910.28, 3513.13, 2095.45, 46915.8, 4764.6, 8776.53, 14680.72, 1193.04, 12686.65, 2803.2, 28823.4, 3256.35, 8498.0, 4772.04]
 
         group_builder.specify "should be able to read a mixed Date and DateTime column" <|
             table = (enso_project.data / "MixedExcel.xlsx") . read ..Sheet

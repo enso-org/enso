@@ -1,15 +1,13 @@
 /** @file Test the user settings tab. */
-import * as test from '@playwright/test'
+import { test } from '@playwright/test'
 
-import * as actions from './actions'
+import { mockAllAndLogin } from './actions'
 
 const DATA_LINK_NAME = 'a data link'
 
-test.test('data link editor', ({ page }) =>
-  actions
-    .mockAllAndLogin({ page })
+test('data link editor', ({ page }) =>
+  mockAllAndLogin({ page })
     .openDataLinkModal()
     .withNameInput(async (input) => {
       await input.fill(DATA_LINK_NAME)
-    }),
-)
+    }))

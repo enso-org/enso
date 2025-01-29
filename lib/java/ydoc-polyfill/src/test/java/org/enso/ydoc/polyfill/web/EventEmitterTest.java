@@ -25,8 +25,8 @@ public class EventEmitterTest extends ExecutorSetup {
         CompletableFuture.supplyAsync(
                 () -> {
                   var ctx = contextBuilder.build();
-                  eventTarget.initialize(ctx);
-                  eventEmitter.initialize(ctx);
+                  eventTarget.initialize(eval(ctx));
+                  eventEmitter.initialize(eval(ctx));
                   return ctx;
                 },
                 executor)

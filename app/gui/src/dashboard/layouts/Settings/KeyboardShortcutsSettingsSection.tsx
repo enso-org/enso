@@ -53,12 +53,13 @@ export default function KeyboardShortcutsSettingsSection() {
           <ConfirmDeleteModal
             actionText={getText('resetAllKeyboardShortcuts')}
             actionButtonLabel={getText('resetAll')}
-            doDelete={() => {
+            doDelete={async () => {
               for (const k in inputBindings.metadata) {
                 // eslint-disable-next-line no-restricted-syntax
                 inputBindings.reset(k as DashboardBindingKey)
               }
               doRefresh()
+              await Promise.resolve()
             }}
           />
         </DialogTrigger>
@@ -73,7 +74,7 @@ export default function KeyboardShortcutsSettingsSection() {
             })}
           >
             <table className="table-fixed border-collapse rounded-rows">
-              <thead className="sticky top-0">
+              <thead className="sticky top-0 z-1 bg-dashboard">
                 <tr className="h-row text-left text-sm font-semibold">
                   <th className="min-w-8 pl-cell-x pr-1.5">{/* Icon */}</th>
                   <th className="min-w-36 px-cell-x">{getText('name')}</th>

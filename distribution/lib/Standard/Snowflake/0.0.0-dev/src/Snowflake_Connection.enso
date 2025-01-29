@@ -9,6 +9,7 @@ from Standard.Table import Table
 import Standard.Database.Column_Description.Column_Description
 import Standard.Database.Connection.Connection.Connection
 import Standard.Database.DB_Table.DB_Table
+import Standard.Database.Internal.Common.Connections_Helpers
 import Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup
 import Standard.Database.Internal.JDBC_Connection
@@ -327,4 +328,5 @@ type Snowflake_Connection
        Converts this value to a JSON serializable object.
     to_js_object : JS_Object
     to_js_object self =
-        JS_Object.from_pairs [["type", "Snowflake_Connection"], ["links", self.tables.at "Name" . to_vector], ["get_child_node_action", "query"]]
+        additional_visualization_fields = Connections_Helpers.get_data_viz_pairs
+        JS_Object.from_pairs <| [["type", "SQLite_Connection"], ["links", self.connection.tables.at "Name" . to_vector]] + additional_visualization_fields

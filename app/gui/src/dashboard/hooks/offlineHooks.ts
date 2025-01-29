@@ -10,7 +10,7 @@ export function useOffline() {
   const isOnline = React.useSyncExternalStore(
     reactQuery.onlineManager.subscribe.bind(reactQuery.onlineManager),
     () => reactQuery.onlineManager.isOnline(),
-    () => navigator.onLine,
+    () => false,
   )
 
   return { isOffline: !isOnline }

@@ -13,7 +13,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.graalvm.polyglot.Context;
 
-public class SnowflakeIntegerColumnMaterializer extends Builder {
+public class SnowflakeIntegerColumnMaterializer implements Builder {
   private static final BigInteger LONG_MIN = BigInteger.valueOf(Long.MIN_VALUE);
   private static final BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
   // We start in integer mode and will switch to BigInteger mode if we encounter a value that
@@ -56,12 +56,12 @@ public class SnowflakeIntegerColumnMaterializer extends Builder {
   }
 
   @Override
-  public void appendNoGrow(Object o) {
+  public void append(Object o) {
+    ensureSpaceToAppend();
     switch (o) {
       case BigInteger bigInteger -> {
         switch (mode) {
           case BIG_INTEGER -> bigInts[currentSize++] = bigInteger;
-
           case LONG -> {
             if (fitsInLong(bigInteger)) {
               ints[currentSize++] = bigInteger.longValue();
@@ -72,19 +72,8 @@ public class SnowflakeIntegerColumnMaterializer extends Builder {
           }
         }
       }
-
-      case null -> appendNulls(1);
       default -> throw new ValueTypeMismatchException(BigIntegerType.INSTANCE, o);
     }
-  }
-
-  @Override
-  public void append(Object o) {
-    if (currentSize >= capacity()) {
-      grow();
-    }
-
-    appendNoGrow(o);
   }
 
   @Override
@@ -112,39 +101,52 @@ public class SnowflakeIntegerColumnMaterializer extends Builder {
     resize(currentSize);
     return switch (mode) {
       case LONG -> new LongStorage(ints, currentSize, intsMissing, IntegerType.INT_64);
-      case BIG_INTEGER -> new BigIntegerStorage(bigInts, currentSize);
+      case BIG_INTEGER -> new BigIntegerStorage(bigInts);
     };
   }
 
   @Override
   public StorageType getType() {
     // The type of the builder can change over time, so we do not report any stable type here.
-    // Same as in InferredBuilder.
     return null;
+  }
+
+  @Override
+  public void copyDataTo(Object[] items) {
+    if (currentSize > 0) {
+      if (mode == Mode.LONG) {
+        for (int i = 0; i < currentSize; i++) {
+          if (intsMissing.get(i)) {
+            items[i] = null;
+          } else {
+            items[i] = ints[i];
+          }
+        }
+      } else {
+        System.arraycopy(bigInts, 0, items, 0, currentSize);
+      }
+    }
   }
 
   private int capacity() {
     return mode == Mode.LONG ? ints.length : bigInts.length;
   }
 
-  private void grow() {
-    int desiredCapacity = 3;
-    if (capacity() > 1) {
-      desiredCapacity = (capacity() * 3 / 2);
+  private void ensureSpaceToAppend() {
+    // Check current size. If there is space, we don't need to grow.
+    int dataLength = capacity();
+    if (currentSize < dataLength) {
+      return;
     }
 
-    // It is possible for the `currentSize` to grow arbitrarily larger than
-    // the capacity, because when nulls are being added the array is not
-    // resized, only the counter is incremented. Thus, we need to ensure
-    // that we have allocated enough space for at least one element.
-    if (currentSize >= desiredCapacity) {
-      desiredCapacity = currentSize + 1;
-    }
-
+    int desiredCapacity = Math.max(currentSize + 1, dataLength > 1 ? dataLength * 3 / 2 : 3);
     resize(desiredCapacity);
   }
 
   private void resize(int desiredCapacity) {
+    if (capacity() == desiredCapacity) {
+      return;
+    }
     switch (mode) {
       case LONG -> ints = Arrays.copyOf(ints, desiredCapacity);
       case BIG_INTEGER -> bigInts = Arrays.copyOf(bigInts, desiredCapacity);

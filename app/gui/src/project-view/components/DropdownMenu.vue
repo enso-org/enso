@@ -63,9 +63,9 @@ const { floatingStyles } = useFloating(rootElement, floatElement, {
 
 .arrow {
   position: absolute;
-  bottom: -5px;
+  bottom: calc(-8px - var(--arrow-offset, 0px));
   left: 50%;
-  opacity: 0.5;
+  opacity: 0.8;
   /* Prevent the parent from receiving a pointerout event if the mouse is over the arrow, which causes flickering. */
   pointer-events: none;
   --icon-transform: translateX(-50%) rotate(90deg) scale(0.7);

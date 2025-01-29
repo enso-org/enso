@@ -1,29 +1,21 @@
 /** @file Actions for going to a different page. */
-import type * as baseActions from './BaseActions'
+import type { PageCallback } from './BaseActions'
 import BaseActions from './BaseActions'
 import DrivePageActions from './DrivePageActions'
 import EditorPageActions from './EditorPageActions'
 import SettingsPageActions from './SettingsPageActions'
 
-// =======================
-// === GoToPageActions ===
-// =======================
-
 /** Actions for going to a different page. */
-export interface GoToPageActions {
-  readonly drive: () => DrivePageActions
-  readonly editor: () => EditorPageActions
-  readonly settings: () => SettingsPageActions
+export interface GoToPageActions<Context> {
+  readonly drive: () => DrivePageActions<Context>
+  readonly editor: () => EditorPageActions<Context>
+  readonly settings: () => SettingsPageActions<Context>
 }
 
-// =======================
-// === goToPageActions ===
-// =======================
-
 /** Generate actions for going to a different page. */
-export function goToPageActions(
-  step: (name: string, callback: baseActions.PageCallback) => BaseActions,
-): GoToPageActions {
+export function goToPageActions<Context>(
+  step: (name: string, callback: PageCallback<Context>) => BaseActions<Context>,
+): GoToPageActions<Context> {
   return {
     drive: () =>
       step('Go to "Data Catalog" page', (page) =>
@@ -31,14 +23,14 @@ export function goToPageActions(
           .getByRole('tab')
           .filter({ has: page.getByText('Data Catalog') })
           .click(),
-      ).into(DrivePageActions),
+      ).into(DrivePageActions<Context>),
     editor: () =>
       step('Go to "Spatial Analysis" page', (page) =>
         page.getByTestId('editor-tab-button').click(),
-      ).into(EditorPageActions),
+      ).into(EditorPageActions<Context>),
     settings: () =>
       step('Go to "settings" page', (page) => BaseActions.press(page, 'Mod+,')).into(
-        SettingsPageActions,
+        SettingsPageActions<Context>,
       ),
   }
 }

@@ -1,8 +1,10 @@
 ## An API for manual resource management.
 
 import project.Any.Any
+import project.Errors.Common.Uninitialized_State
+import project.Meta
 import project.Nothing.Nothing
-from project.Data.Boolean import Boolean, False
+from project.Data.Boolean import Boolean, False, True
 
 ## Resource provides an API for manual management of computation resources.
 
@@ -77,8 +79,7 @@ type Managed_Resource
          the `Managed_Resource` (or to `Uninitialized_State` error).
        Returns:
        Value returned from the `action`
-
-    with : (Any -> Any) -> Any -> Any
+    with : (Any -> Any) -> Any
     with self ~action = @Tail_Call with_builtin self action
 
     ## PRIVATE
@@ -90,5 +91,18 @@ type Managed_Resource
     take : Any
     take self = @Builtin_Method "Managed_Resource.take"
 
+    ## PRIVATE
+       ADVANCED
+
+       Returns true iff the resource has been collected by the engine, false
+       otherwise. If `with` throws any other error, it is propagated.
+    has_been_finalized : Boolean
+    has_been_finalized self -> Boolean = self.with x->
+        if x.is_error.not then False else
+            if x.catch.is_a Uninitialized_State then True else x
+
+## PRIVATE
 register_builtin r fn sys:Boolean = @Builtin_Method "Managed_Resource.register_builtin"
+
+## PRIVATE
 with_builtin r fn = @Builtin_Method "Managed_Resource.with_builtin"

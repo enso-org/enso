@@ -12,6 +12,11 @@ export function useKeyboard() {
     ctrl: ref(false),
   }
 
+  /**
+   * Update the known state of modifier keys using the information in the given event. This can be used in an event
+   * handler to ensure the state is accurate; currently we miss transitions in some cases when they occur while the
+   * window is not focused.
+   */
   const updateState = (e: MouseEvent | KeyboardEvent) => {
     state.alt.value = e.altKey
     state.shift.value = e.shiftKey
@@ -28,5 +33,6 @@ export function useKeyboard() {
     meta: state.meta,
     ctrl: state.ctrl,
     mod: isMacLike ? state.meta : state.ctrl,
+    updateState,
   })
 }

@@ -15,6 +15,8 @@ import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
 from project.Network.Enso_Cloud.Cloud_Tests_Setup import create_local_datalink_to
 
+type Lazy_Ref
+    Value ~get
 
 add_specs suite_builder setup:Cloud_Tests_Setup =
     suite_builder.group "DataLinks in Enso Cloud" pending=setup.real_cloud_pending group_builder->
@@ -65,7 +67,11 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
             # But we can still read the raw Data Link config:
             Data_Link.read_raw_config datalink . should_contain '{'
 
-        group_builder.specify "does not allow to use  Data_Link to read/write regular files" <|
+        # Testing Enso Cloud data links pointing to Enso Cloud files
+        cloud_data_link_to_cloud = Symlink_Test_Setup.make (test_root.get / "datalink-target") (test_root.get / "datalink-location") create_data_link_to_cloud
+        add_symlink_spec group_builder "Cloud -> Cloud" cloud_data_link_to_cloud
+
+        group_builder.specify "does not allow to use Data_Link to read/write regular files" <|
             temp_file = File.create_temporary_file "not-a-datalink" ".txt"
             Test.expect_panic Illegal_Argument <|
                 Data_Link.write_raw_config temp_file "{}"
@@ -85,7 +91,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
         group_builder.specify "should be able to read a datalink in the Cloud to Enso File" <|
             my_target_enso_file = "Hello Enso Cloud File!".write (test_root.get / "my-file.txt") . should_succeed
             datalink = test_root.get / "TestDataLink-EnsoFile.datalink"
-            Data_Link.write_raw_config datalink (enso_file_data_link_content.replace "<PATH>" my_target_enso_file.path) . should_succeed
+            create_data_link_to_cloud datalink my_target_enso_file . should_succeed
             datalink.read . should_equal "Hello Enso Cloud File!"
 
         group_builder.specify "should be able to write Text to a data link pointing to a Cloud file" <|
@@ -150,6 +156,15 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
             r.should_fail_with File_Error
             r.catch.should_be_a File_Error.Not_Found
 
+        local_temporary_directory = Lazy_Ref.Value <|
+            name = "tmp-" + Random.uuid
+            dir = (enso_project.data / "transient" / name) . create_directory
+            group_builder.teardown <| dir.delete recursive=True
+            dir
+
+        local_data_link_to_cloud = Symlink_Test_Setup.make (test_root.get / "datalink-target") (local_temporary_directory.get) create_data_link_to_cloud
+        add_symlink_spec group_builder "Local -> Cloud" local_data_link_to_cloud
+
 main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare
     suite = Test.build suite_builder->
@@ -195,3 +210,91 @@ enso_file_data_link_content = """
         "libraryName": "Standard.Base",
         "path": "<PATH>"
     }
+
+create_data_link_to_cloud link_location target:Enso_File =
+    Data_Link.write_raw_config link_location (enso_file_data_link_content.replace "<PATH>" target.path) replace_existing=True
+
+add_symlink_spec group_builder prefix setup:Lazy_Ref pending=Nothing =
+    full_prefix = "("+prefix+") "
+    group_builder.specify full_prefix+"allows Data.list to be used to list the target directory of the data link" pending=pending <|
+        dir_datalink = setup.get.dir_datalink
+
+        # Normal list needs to be sorted
+        dir_datalink.list . map .name . sort . should_equal ["file1.txt", "file2.txt"]
+
+        # Data.list sorts on its own
+        Data.list dir_datalink . map .name . should_equal ["file1.txt", "file2.txt"]
+
+        # But if called on a file data link, it's an error like locally
+        file_datalink = setup.get.file_datalink
+        file_datalink.list . should_fail_with Illegal_Argument
+
+    group_builder.specify full_prefix+"allows to cross file-systems through the directory datalink using `/`" pending=pending <|
+        dir_datalink = setup.get.dir_datalink
+        (dir_datalink / "file1.txt").read . should_equal setup.get.file1_content
+        (dir_datalink / "file1.txt").path . should_equal (setup.get.target_subdir / "file1.txt").path
+
+        # It should also work if multiple parts are provided in one sub-path and one of them is a data link:
+        (setup.get.datalink_location / "to-directory.datalink/file1.txt") . read . should_equal setup.get.file1_content
+        
+        # Or when the path is resolved from a string:
+        crossing_path = setup.get.datalink_location.path+"/to-directory.datalink/file1.txt"
+
+        # Some backends may need additional setup to resolve raw text paths.
+        setup.get.with_prepared_environment_for_file_new <|
+            File.new crossing_path . read . should_equal setup.get.file1_content
+
+    group_builder.specify full_prefix+"calling size on a datalink checks the size of the target" pending=pending <|
+        file_datalink = setup.get.file_datalink
+        file_datalink.size . should_equal setup.get.file1_content.length
+
+    group_builder.specify full_prefix+"calling is_directory/is_regular_file on a datalink checks the target" pending=pending <|
+        file_datalink = setup.get.file_datalink
+        file_datalink.is_directory . should_be_false
+        file_datalink.is_regular_file . should_be_true
+
+        dir_datalink = setup.get.dir_datalink
+        dir_datalink.is_directory . should_be_true
+        dir_datalink.is_regular_file . should_be_false
+
+    # We want this to work, because it is possible for filesystems not aware of Enso to contain directories named with the `.datalink` suffix and Enso should still be able to cope with that.
+    group_builder.specify full_prefix+"a directory with name 'just-a-directory.datalink' is still handled correctly" pending=pending <|
+        # Some backends (e.g. S3) need the `/` suffix to distinguish a file from directory.
+        directory_name = "just-a-directory.datalink" + (if setup.get.needs_directory_suffix then "/" else "")
+        just_a_directory = setup.get.datalink_location / directory_name
+        just_a_directory.create_directory . should_equal just_a_directory
+        just_a_directory.is_directory . should_be_true
+        just_a_directory.is_regular_file . should_be_false
+
+        "test".write (just_a_directory / "file.txt") . should_equal (just_a_directory / "file.txt")
+        (just_a_directory / "file.txt").read . should_equal "test"
+
+type Symlink_Test_Setup
+    Value ~target_location ~datalink_location needs_directory_suffix:Boolean with_prepared_environment_for_file_new:Function
+
+    # The trailing slash is needed e.g. for the S3 backend to treat the path as directory.
+    target_subdir self = self.target_location / "symlink-test-subdir/"
+    dir_datalink self = self.datalink_location / "to-directory.datalink"
+    file_datalink self = self.datalink_location / "to-file.datalink"
+
+    # We create a string of length 1234 to ensure that the size is predictable and unlikely to clash with the size of the JSON definition of the datalink.
+    file1_content self -> Text =
+        expected_size = 1234
+        Vector.fill expected_size "a" . join
+
+    ## PRIVATE
+       Arguments: TODO
+    make ~target_location ~datalink_location create_data_link needs_directory_suffix:Boolean=False with_prepared_environment_for_file_new:Function|Nothing=Nothing -> Lazy_Ref =
+        Lazy_Ref.Value <|
+            setup = Symlink_Test_Setup.Value target_location datalink_location needs_directory_suffix (with_prepared_environment_for_file_new.if_nothing (x->x))
+            setup.target_subdir.create_directory . should_equal setup.target_subdir
+            file1 = (setup.target_subdir / "file1.txt")
+            file2 = (setup.target_subdir / "file2.txt")
+            setup.file1_content.write file1 . should_equal file1
+            "baz".write file2 . should_equal file2
+
+            if setup.datalink_location.exists.not then
+                setup.datalink_location.create_directory . should_succeed
+            create_data_link setup.dir_datalink setup.target_subdir . should_equal setup.dir_datalink
+            create_data_link setup.file_datalink file1 . should_equal setup.file_datalink
+            setup

@@ -10,7 +10,6 @@ test.each([
   },
   {
     clipboard: 'example.com',
-    inserted: '<https://example.com>',
   },
   {
     clipboard: 'http://example.com',
@@ -22,15 +21,12 @@ test.each([
   },
   {
     clipboard: 'example.com/Address containing spaces and a < character',
-    inserted: '<https://example.com/Address containing spaces and a %3C character>',
   },
   {
     clipboard: 'example.com/Address resembling *bold syntax*',
-    inserted: '<https://example.com/Address resembling %2Abold syntax%2A>',
   },
   {
     clipboard: 'Url: www.a.example.com, another: www.b.example.com',
-    inserted: 'Url: <https://www.a.example.com>, another: <https://www.b.example.com>',
   },
   {
     clipboard: 'gopher:///no/autolinking/unusual/protocols',
@@ -52,6 +48,9 @@ test.each([
   },
   {
     clipboard: 'example.com with trailing text',
+  },
+  {
+    clipboard: 'Standard.Base.Math',
   },
 ])('Auto-linking pasted text: $clipboard', ({ clipboard, inserted }) => {
   expect(transformPastedText(clipboard)).toBe(inserted ?? clipboard)

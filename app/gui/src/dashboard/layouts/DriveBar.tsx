@@ -4,7 +4,7 @@
  */
 import * as React from 'react'
 
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import AddDatalinkIcon from '#/assets/add_datalink.svg'
 import AddFolderIcon from '#/assets/add_folder.svg'
@@ -19,20 +19,22 @@ import {
   Text,
   useVisualTooltip,
 } from '#/components/AriaComponents'
-import AssetEventType from '#/events/AssetEventType'
+import {
+  deleteAssetsMutationOptions,
+  downloadAssetsMutationOptions,
+  getAllTrashedItems,
+} from '#/hooks/backendBatchedHooks'
 import {
   useNewDatalink,
   useNewFolder,
   useNewProject,
   useNewSecret,
   useRootDirectoryId,
-  useUploadFiles,
 } from '#/hooks/backendHooks'
+import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
-import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import AssetSearchBar from '#/layouts/AssetSearchBar'
-import { useDispatchAssetEvent } from '#/layouts/AssetsTable/EventListProvider'
 import {
   canTransferBetweenCategories,
   isCloudCategory,
@@ -55,11 +57,8 @@ import type Backend from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import { inputFiles } from '#/utilities/input'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+import { useFullUserSession } from '../providers/AuthProvider'
 import { AssetPanelToggle } from './AssetPanel'
-
-// ================
-// === DriveBar ===
-// ================
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
@@ -67,7 +66,9 @@ export interface DriveBarProps {
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
-  readonly doEmptyTrash: () => void
+  readonly isEmpty: boolean
+  readonly shouldDisplayStartModal: boolean
+  readonly isDisabled: boolean
 }
 
 /**
@@ -75,24 +76,22 @@ export interface DriveBarProps {
  * and a column display mode switcher.
  */
 export default function DriveBar(props: DriveBarProps) {
-  const { backend, query, setQuery, category, doEmptyTrash } = props
+  const { backend, query, setQuery, category, isEmpty, shouldDisplayStartModal, isDisabled } = props
 
-  const [startModalDefaultOpen, , resetStartModalDefaultOpen] = useSearchParamsState(
-    'startModalDefaultOpen',
-    false,
-  )
-
+  const queryClient = useQueryClient()
   const { unsetModal } = useSetModal()
   const { getText } = useText()
   const driveStore = useDriveStore()
   const inputBindings = useInputBindings()
-  const dispatchAssetEvent = useDispatchAssetEvent()
   const canCreateAssets = useCanCreateAssets()
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
   const isCloud = isCloudCategory(category)
   const { isOffline } = useOffline()
+  const { user } = useFullUserSession()
   const canDownload = useCanDownload()
-  const shouldBeDisabled = (isCloud && isOffline) || !canCreateAssets
+
+  const shouldBeDisabled = (isCloud && isOffline) || !canCreateAssets || isDisabled
+
   const error =
     !shouldBeDisabled ? null
     : isCloud && isOffline ? getText('youAreOffline')
@@ -107,7 +106,7 @@ export default function DriveBar(props: DriveBarProps) {
   const effectivePasteData =
     (
       pasteData?.data.backendType === backend.type &&
-      canTransferBetweenCategories(pasteData.data.category, category)
+      canTransferBetweenCategories(pasteData.data.category, category, user)
     ) ?
       pasteData
     : null
@@ -115,25 +114,27 @@ export default function DriveBar(props: DriveBarProps) {
   const getTargetDirectory = useEventCallback(() => driveStore.getState().targetDirectory)
   const rootDirectoryId = useRootDirectoryId(backend, category)
 
+  const downloadAssetsMutation = useMutation(downloadAssetsMutationOptions(backend))
+  const deleteAssetsMutation = useMutation(deleteAssetsMutationOptions(backend))
   const newFolderRaw = useNewFolder(backend, category)
   const newFolder = useEventCallback(async () => {
     const parent = getTargetDirectory()
-    return await newFolderRaw(parent?.directoryId ?? rootDirectoryId, parent?.path)
+    return await newFolderRaw(parent?.item.parentId ?? rootDirectoryId, parent?.path)
   })
   const uploadFilesRaw = useUploadFiles(backend, category)
   const uploadFiles = useEventCallback(async (files: readonly File[]) => {
     const parent = getTargetDirectory()
-    await uploadFilesRaw(files, parent?.directoryId ?? rootDirectoryId, parent?.path)
+    await uploadFilesRaw(files, parent?.item.parentId ?? rootDirectoryId, parent?.path)
   })
   const newSecretRaw = useNewSecret(backend, category)
   const newSecret = useEventCallback(async (name: string, value: string) => {
     const parent = getTargetDirectory()
-    return await newSecretRaw(name, value, parent?.directoryId ?? rootDirectoryId, parent?.path)
+    return await newSecretRaw(name, value, parent?.item.parentId ?? rootDirectoryId, parent?.path)
   })
   const newDatalinkRaw = useNewDatalink(backend, category)
   const newDatalink = useEventCallback(async (name: string, value: unknown) => {
     const parent = getTargetDirectory()
-    return await newDatalinkRaw(name, value, parent?.directoryId ?? rootDirectoryId, parent?.path)
+    return await newDatalinkRaw(name, value, parent?.item.parentId ?? rootDirectoryId, parent?.path)
   })
   const newProjectRaw = useNewProject(backend, category)
   const newProjectMutation = useMutation({
@@ -145,13 +146,17 @@ export default function DriveBar(props: DriveBarProps) {
       const parent = getTargetDirectory()
       return await newProjectRaw(
         { templateName, templateId },
-        parent?.directoryId ?? rootDirectoryId,
+        parent?.item.parentId ?? rootDirectoryId,
         parent?.path,
       )
     },
   })
   const newProject = newProjectMutation.mutateAsync
   const isCreatingProject = newProjectMutation.isPending
+  const clearTrash = useEventCallback(async () => {
+    const allTrashedItems = await getAllTrashedItems(queryClient, backend)
+    await deleteAssetsMutation.mutateAsync([allTrashedItems.map((item) => item.id), true])
+  })
 
   React.useEffect(() => {
     return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
@@ -207,12 +212,15 @@ export default function DriveBar(props: DriveBarProps) {
       return (
         <ButtonGroup className="my-0.5 grow-0">
           <DialogTrigger>
-            <Button size="medium" variant="outline" isDisabled={shouldBeDisabled}>
+            <Button size="medium" variant="outline" isDisabled={shouldBeDisabled || isEmpty}>
               {getText('clearTrash')}
             </Button>
+
             <ConfirmDeleteModal
               actionText={getText('allTrashedItemsForever')}
-              doDelete={doEmptyTrash}
+              doDelete={async () => {
+                await clearTrash()
+              }}
             />
           </DialogTrigger>
           {pasteDataStatus}
@@ -233,12 +241,7 @@ export default function DriveBar(props: DriveBarProps) {
             className="grow-0"
             {...createAssetsVisualTooltip.targetProps}
           >
-            <DialogTrigger
-              defaultOpen={startModalDefaultOpen}
-              onClose={() => {
-                resetStartModalDefaultOpen(true)
-              }}
-            >
+            <DialogTrigger defaultOpen={shouldDisplayStartModal}>
               <Button
                 size="medium"
                 variant="accent"
@@ -332,7 +335,8 @@ export default function DriveBar(props: DriveBarProps) {
                 aria-label={getText('downloadFiles')}
                 onPress={() => {
                   unsetModal()
-                  dispatchAssetEvent({ type: AssetEventType.downloadSelected })
+                  const { selectedAssets } = driveStore.getState()
+                  downloadAssetsMutation.mutate(selectedAssets)
                 }}
               />
             </div>

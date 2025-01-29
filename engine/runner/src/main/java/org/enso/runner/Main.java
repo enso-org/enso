@@ -78,6 +78,7 @@ public class Main {
   private static final String PROFILING_PATH = "profiling-path";
   private static final String PROFILING_TIME = "profiling-time";
   private static final String LANGUAGE_SERVER_OPTION = "server";
+  private static final String LANGUAGE_SERVER_NATIVE_OPTION = "native-server";
   private static final String IN_PROJECT_OPTION = "in-project";
   private static final String VERSION_OPTION = "version";
   private static final String JSON_OPTION = "json";
@@ -145,8 +146,13 @@ public class Main {
             .build();
     var docs =
         cliOptionBuilder()
+            .hasArg(true)
+            .numberOfArgs(1)
+            .optionalArg(true)
             .longOpt(DOCS_OPTION)
-            .desc("Runs the Enso documentation generator.")
+            .desc(
+                "Runs the Enso documentation generator. Additional argument may specify format -"
+                    + " either the default `md` or `api`.")
             .build();
     var preinstall =
         cliOptionBuilder()
@@ -215,6 +221,11 @@ public class Main {
             .build();
     var lsOption =
         cliOptionBuilder().longOpt(LANGUAGE_SERVER_OPTION).desc("Runs Language Server").build();
+    var lsNativeOption =
+        cliOptionBuilder()
+            .longOpt(LANGUAGE_SERVER_NATIVE_OPTION)
+            .desc("Runs Language Server in native-image mode")
+            .build();
     var lsProfilingPathOption =
         cliOptionBuilder()
             .hasArg(true)
@@ -483,6 +494,7 @@ public class Main {
         .addOption(newProjectAuthorNameOpt)
         .addOption(newProjectAuthorEmailOpt)
         .addOption(lsOption)
+        .addOption(lsNativeOption)
         .addOption(lsProfilingPathOption)
         .addOption(lsProfilingTimeOption)
         .addOption(deamonizeOption)
@@ -524,8 +536,16 @@ public class Main {
     new HelpFormatter().printHelp(LanguageInfo.ID, CLI_OPTIONS);
   }
 
-  /** Terminates the process with a failure exit code. */
-  private RuntimeException exitFail() {
+  /**
+   * Terminates the process with a failure exit code.
+   *
+   * @param error the error message to send to stderr before terminating the process, can be {@code
+   *     null}
+   */
+  private RuntimeException exitFail(String error) {
+    if (error != null) {
+      stderr(error);
+    }
     return doExit(1);
   }
 
@@ -577,14 +597,12 @@ public class Main {
 
     var template =
         templateOption.map(
-            (n) -> {
-              return Template.fromString(n)
-                  .getOrElse(
-                      () -> {
-                        logger.error("Unknown project template name: '" + n + "'.");
-                        throw exitFail();
-                      });
-            });
+            (n) ->
+                Template.fromString(n)
+                    .getOrElse(
+                        () -> {
+                          throw exitFail("Unknown project template name: '" + n + "'.");
+                        }));
 
     PackageManager$.MODULE$
         .Default()
@@ -626,8 +644,7 @@ public class Main {
       boolean logMasking) {
     var file = new File(packagePath);
     if (!file.exists() || !file.isDirectory()) {
-      println("No package exists at " + file + ".");
-      throw exitFail();
+      throw exitFail("No package exists at " + file + ".");
     }
 
     var context =
@@ -646,11 +663,11 @@ public class Main {
 
     var topScope = context.getTopScope();
     try {
-      topScope.compile(shouldCompileDependencies);
+      topScope.compile(shouldCompileDependencies, scala.Option.empty());
       throw exitSuccess();
     } catch (Throwable t) {
       logger.error("Unexpected internal error", t);
-      throw exitFail();
+      throw exitFail("Unexpected internal error");
     } finally {
       context.context().close();
     }
@@ -691,7 +708,7 @@ public class Main {
       throws IOException {
     var fileAndProject = Utils.findFileAndProject(path, projectPath);
     if (fileAndProject == null) {
-      throw exitFail();
+      throw exitFail("Cannot find " + path + " and " + projectPath);
     }
     var projectMode = fileAndProject._1();
     var file = fileAndProject._2();
@@ -699,17 +716,14 @@ public class Main {
     if (projectMode) {
       var result = PackageManager$.MODULE$.Default().loadPackage(file);
       if (result.isSuccess()) {
-        @SuppressWarnings("unchecked")
-        var pkg = (org.enso.pkg.Package<java.io.File>) result.get();
+        var pkg = result.get();
 
         mainFile = pkg.mainFile();
         if (!mainFile.exists()) {
-          println("Main file does not exist.");
-          throw exitFail();
+          throw exitFail("Main file does not exist.");
         }
       } else {
-        println(result.failed().get().getMessage());
-        throw exitFail();
+        throw exitFail(result.failed().get().getMessage());
       }
     }
 
@@ -732,8 +746,7 @@ public class Main {
 
     if (inspect) {
       if (enableDebugServer) {
-        println("Cannot use --inspect and --repl and --run at once");
-        throw exitFail();
+        throw exitFail("Cannot use --inspect and --repl and --run at once");
       }
       options.put("inspect", "");
     }
@@ -748,14 +761,11 @@ public class Main {
       if (projectMode) {
         var result = PackageManager$.MODULE$.Default().loadPackage(file);
         if (result.isSuccess()) {
-          var s = (scala.util.Success) result;
-          @SuppressWarnings("unchecked")
-          var pkg = (org.enso.pkg.Package<java.io.File>) s.get();
+          var pkg = result.get();
           var mainModuleName = pkg.moduleNameForFile(pkg.mainFile()).toString();
           runPackage(context, mainModuleName, file, additionalArgs);
         } else {
-          println(((scala.util.Failure) result).exception().getMessage());
-          throw exitFail();
+          throw exitFail(result.failed().get().getMessage());
         }
       } else {
         runSingleFile(context, file, additionalArgs);
@@ -782,12 +792,15 @@ public class Main {
    * @param enableIrCaches are the IR caches enabled
    */
   private void genDocs(
-      String projectPath, Level logLevel, boolean logMasking, boolean enableIrCaches) {
-    if (projectPath.isEmpty()) {
-      println("Path hasn't been provided.");
-      throw exitFail();
+      String docsFormat,
+      String projectPath,
+      Level logLevel,
+      boolean logMasking,
+      boolean enableIrCaches) {
+    if (projectPath == null || projectPath.isEmpty()) {
+      throw exitFail("Specify path to a project with --in-project option");
     }
-    generateDocsFrom(projectPath, logLevel, logMasking, enableIrCaches);
+    generateDocsFrom(docsFormat, projectPath, logLevel, logMasking, enableIrCaches);
     throw exitSuccess();
   }
 
@@ -796,7 +809,7 @@ public class Main {
    * path.
    */
   private void generateDocsFrom(
-      String path, Level logLevel, boolean logMasking, boolean enableIrCaches) {
+      String docsFormat, String path, Level logLevel, boolean logMasking, boolean enableIrCaches) {
     var executionContext =
         new PolyglotContext(
             ContextFactory.create()
@@ -813,17 +826,8 @@ public class Main {
     var main = pkg.map(x -> x.mainFile());
 
     if (main.exists(x -> x.exists())) {
-      var mainFile = main.get();
-      var mainModuleName = pkg.get().moduleNameForFile(mainFile).toString();
       var topScope = executionContext.getTopScope();
-      var mainModule = topScope.getModule(mainModuleName);
-      var generated = mainModule.generateDocs();
-      println(generated.toString());
-
-      // TODO:
-      // - go through executed code and get all HTML docs
-      //   with their corresponding atoms/methods etc.
-      // - Save those to files
+      topScope.compile(false, scala.Option.apply(docsFormat == null ? "md" : docsFormat));
     }
   }
 
@@ -837,15 +841,14 @@ public class Main {
    */
   private void preinstallDependencies(String projectPath, Level logLevel) {
     if (projectPath == null) {
-      println("Dependency installation is only available for projects.");
-      throw exitFail();
+      throw exitFail("Dependency installation is only available for projects.");
     }
     try {
       DependencyPreinstaller.preinstallDependencies(new File(projectPath), logLevel);
       throw exitSuccess();
     } catch (RuntimeException error) {
       logger.error("Dependency installation failed: " + error.getMessage(), error);
-      throw exitFail();
+      throw exitFail("Dependency installation failed: " + error.getMessage());
     }
   }
 
@@ -875,12 +878,11 @@ public class Main {
       var mainType = mainModule.getAssociatedType();
       var mainFun = mainModule.getMethod(mainType, mainMethodName);
       if (mainFun.isEmpty()) {
-        System.err.println(
+        throw exitFail(
             "The module "
                 + mainModule.getName()
                 + " does not contain a `main` "
                 + "function. It could not be run.");
-        throw exitFail();
       }
       var main = mainFun.get();
       if (!DEFAULT_MAIN_METHOD_NAME.equals(mainMethodName)) {
@@ -906,7 +908,7 @@ public class Main {
         var res = main.execute(listOfArgs.reverse());
         if (!res.isNull()) {
           var textRes = res.isString() ? res.asString() : res.toString();
-          println(textRes);
+          stdout(textRes);
           if (res.isException()) {
             try {
               throw res.throwException();
@@ -923,7 +925,7 @@ public class Main {
         throw doExit(e.getExitStatus());
       } else {
         printPolyglotException(e, rootPkgPath);
-        throw exitFail();
+        throw exitFail(e.getMessage());
       }
     }
   }
@@ -1001,7 +1003,7 @@ public class Main {
     var customVersion = CurrentVersion.getVersion().toString();
     var versionDescription =
         VersionDescription.make("Enso Compiler and Runtime", true, false, List.of(), customVersion);
-    println(versionDescription.asString(useJson));
+    stdout(versionDescription.asString(useJson));
   }
 
   /** Parses the log level option. */
@@ -1014,8 +1016,7 @@ public class Main {
           Stream.of(Level.values())
               .map(x -> x.toString().toLowerCase())
               .collect(Collectors.joining(", "));
-      System.err.println("Invalid log level. Possible values are " + possible + ".");
-      throw exitFail();
+      throw exitFail("Invalid log level. Possible values are " + possible + ".");
     } else {
       return found.get();
     }
@@ -1026,8 +1027,7 @@ public class Main {
     try {
       return new URI(string);
     } catch (URISyntaxException ex) {
-      System.err.println("`" + string + "` is not a valid URI.");
-      throw exitFail();
+      throw exitFail("`" + string + "` is not a valid URI.");
     }
   }
 
@@ -1076,12 +1076,11 @@ public class Main {
               .map(x -> Path.of(x))
               .getOrElse(
                   () -> {
-                    logger.error(
+                    throw exitFail(
                         "When uploading, the "
                             + IN_PROJECT_OPTION
                             + " is mandatory "
                             + "to specify which project to upload.");
-                    throw exitFail();
                   });
 
       try {
@@ -1095,7 +1094,7 @@ public class Main {
       } catch (UploadFailedError ex) {
         // We catch this error to avoid printing an unnecessary stack trace.
         // The error itself is already logged.
-        throw exitFail();
+        throw exitFail(ex.getMessage());
       }
     }
 
@@ -1105,14 +1104,13 @@ public class Main {
               .map(x -> Path.of(x))
               .getOrElse(
                   () -> {
-                    logger.error("The " + IN_PROJECT_OPTION + " is mandatory.");
-                    throw exitFail();
+                    throw exitFail("The " + IN_PROJECT_OPTION + " is mandatory.");
                   });
       try {
         ProjectUploader.updateManifest(projectRoot, logLevel);
       } catch (Throwable err) {
         err.printStackTrace();
-        throw exitFail();
+        throw exitFail(err.getMessage());
       }
       throw exitSuccess();
     }
@@ -1161,14 +1159,18 @@ public class Main {
     }
     if (line.hasOption(DOCS_OPTION)) {
       genDocs(
-          line.getOptionValue(IN_PROJECT_OPTION), logLevel, logMasking, shouldEnableIrCaches(line));
+          line.getOptionValue(DOCS_OPTION),
+          line.getOptionValue(IN_PROJECT_OPTION),
+          logLevel,
+          logMasking,
+          shouldEnableIrCaches(line));
     }
     if (line.hasOption(PREINSTALL_OPTION)) {
       preinstallDependencies(line.getOptionValue(IN_PROJECT_OPTION), logLevel);
     }
     if (line.getOptions().length == 0) {
       printHelp();
-      throw exitFail();
+      throw exitFail(null);
     }
   }
 
@@ -1250,8 +1252,8 @@ public class Main {
         } else if (items.length == 1) {
           props.put(items[0], "true");
         } else {
-          println("Argument to " + SYSTEM_PROPERTY + " must be in the form <property>=<value>");
-          throw exitFail();
+          throw exitFail(
+              "Argument to " + SYSTEM_PROPERTY + " must be in the form <property>=<value>");
         }
       }
       return props;
@@ -1295,7 +1297,7 @@ public class Main {
         exception.isSyntaxError(),
         msg,
         relativeTo,
-        this::println,
+        this::stderr,
         fnLangId,
         fnRootName,
         fnSourceSection);
@@ -1311,8 +1313,12 @@ public class Main {
     return scala.collection.immutable.$colon$colon$.MODULE$.apply(head, tail);
   }
 
-  void println(String msg) {
+  void stdout(String msg) {
     System.out.println(msg);
+  }
+
+  void stderr(String msg) {
+    System.err.println(msg);
   }
 
   private void launch(String[] args) throws IOException, InterruptedException, URISyntaxException {
@@ -1336,14 +1342,13 @@ public class Main {
       }
       var shouldLaunchJvm = current == null || !current.equals(jvm);
       if (!shouldLaunchJvm) {
-        println(JVM_OPTION + " option has no effect - already running in JVM " + current);
+        stderr(JVM_OPTION + " option has no effect - already running in JVM " + current);
       } else {
         var commandAndArgs = new ArrayList<String>();
         if (jvm == null) {
           var javaExe = JavaFinder.findJavaExecutable();
           if (javaExe == null) {
-            println("Cannot find java executable");
-            throw exitFail();
+            throw exitFail("Cannot find java executable");
           }
           commandAndArgs.add(javaExe);
         } else {
@@ -1429,9 +1434,8 @@ public class Main {
           System.currentTimeMillis() - startParsing);
       return line;
     } catch (Exception e) {
-      println(e.getMessage());
       printHelp();
-      throw exitFail();
+      throw exitFail(e.getMessage());
     }
   }
 
@@ -1458,10 +1462,17 @@ public class Main {
         LanguageServerApi.launchLanguageServer(line, conf, logLevel);
         throw exitSuccess();
       } catch (WrongOption e) {
-        System.err.println(e.getMessage());
-        throw exitFail();
+        throw exitFail(e.getMessage());
       }
     } else {
+      if (line.hasOption(LANGUAGE_SERVER_NATIVE_OPTION)) {
+        stderr(
+            "\"--"
+                + LANGUAGE_SERVER_NATIVE_OPTION
+                + "\" has no effect without --\""
+                + LANGUAGE_SERVER_OPTION
+                + "\"");
+      }
       try {
         var conf = parseProfilingConfig(line);
         try {
@@ -1476,12 +1487,10 @@ public class Main {
           if (logger.isDebugEnabled()) {
             logger.error("Error during execution", ex);
           }
-          System.out.println("Command failed with an error: " + ex);
-          throw exitFail();
+          throw exitFail("Command failed with an error: " + ex.getMessage());
         }
       } catch (WrongOption e) {
-        System.err.println(e.getMessage());
-        throw exitFail();
+        throw exitFail(e.getMessage());
       }
     }
   }
@@ -1497,7 +1506,7 @@ public class Main {
    * @param dir directory with other files that should be older than base
    * @return
    */
-  private static boolean checkOutdatedLauncher(File base, File dir) {
+  private boolean checkOutdatedLauncher(File base, File dir) {
     var needsCheck = base.canExecute();
     if (needsCheck) {
       var files = dir.listFiles();
@@ -1505,8 +1514,7 @@ public class Main {
         var baseTime = base.lastModified();
         for (var f : files) {
           if (baseTime < f.lastModified()) {
-            System.err.println(
-                "File " + base + " is older than " + f + " consider running in --jvm mode");
+            stderr("File " + base + " is older than " + f + " consider running in --jvm mode");
             return false;
           }
         }

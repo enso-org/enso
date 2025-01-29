@@ -48,7 +48,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
   const { user } = useFullUserSession()
   const toastAndLog = useToastAndLog()
   const { data: users } = useBackendQuery(backend, 'listUsers', [])
-  const userGroups = useListUserGroupsWithUsers(backend)
+  const { data: userGroups } = useListUserGroupsWithUsers(backend)
   const rootRef = useRef<HTMLDivElement>(null)
   const bodyRef = useRef<HTMLTableSectionElement>(null)
   const changeUserGroup = useMutation(
@@ -139,7 +139,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
   return (
     <>
       {isAdmin && (
-        <ButtonGroup verticalAlign="center">
+        <ButtonGroup verticalAlign="center" className="flex-initial">
           {shouldDisplayPaywall && (
             <PaywallDialogButton
               feature="userGroupsFull"
@@ -178,7 +178,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
       <div
         ref={rootRef}
         className={twMerge(
-          'overflow-auto overflow-x-hidden transition-all lg:mb-2',
+          'min-h-0 flex-initial overflow-y-auto overflow-x-hidden transition-all lg:mb-2',
           shadowClassName,
         )}
         onScroll={onUserGroupsTableScroll}
@@ -188,7 +188,7 @@ export default function UserGroupsSettingsSection(props: UserGroupsSettingsSecti
           className="w-full max-w-3xl table-fixed self-start rounded-rows"
           dragAndDropHooks={dragAndDropHooks}
         >
-          <TableHeader className="sticky top h-row">
+          <TableHeader className="sticky top-0 z-1 h-row bg-dashboard">
             <Column
               isRowHeader
               className="w-full border-x-2 border-transparent bg-clip-padding px-cell-x text-left text-sm font-semibold last:border-r-0"

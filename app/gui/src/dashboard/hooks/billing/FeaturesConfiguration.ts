@@ -16,6 +16,7 @@ export const PAYWALL_FEATURES = {
   inviteUserFull: 'inviteUserFull',
   share: 'share',
   shareFull: 'shareFull',
+  uploadToCloud: 'uploadToCloud',
 } as const
 
 /** Paywall features. */
@@ -64,6 +65,7 @@ const PAYWALL_FEATURES_LABELS: Record<PaywallFeatureName, text.TextId> = {
   inviteUserFull: 'inviteUserFullFeatureLabel',
   share: 'shareFeatureLabel',
   shareFull: 'shareFullFeatureLabel',
+  uploadToCloud: 'uploadToCloudFeatureLabel',
 } satisfies { [K in PaywallFeatureName]: `${K}FeatureLabel` }
 
 const PAYWALL_FEATURE_META = {
@@ -74,6 +76,7 @@ const PAYWALL_FEATURE_META = {
   userGroupsFull: undefined,
   share: undefined,
   shareFull: undefined,
+  uploadToCloud: undefined,
 } satisfies { [K in PaywallFeatureName]: unknown }
 
 /** Basic feature configuration. */
@@ -92,6 +95,11 @@ export type FeatureConfiguration<Key extends PaywallFeatureName = PaywallFeature
   }
 
 const PAYWALL_CONFIGURATION: Record<PaywallFeatureName, BasicFeatureConfiguration> = {
+  uploadToCloud: {
+    level: PAYWALL_LEVELS.solo,
+    bulletPointsTextId: 'uploadToCloudFeatureBulletPoints',
+    descriptionTextId: 'uploadToCloudFeatureDescription',
+  },
   userGroups: {
     level: PAYWALL_LEVELS.team,
     bulletPointsTextId: 'userGroupsFeatureBulletPoints',

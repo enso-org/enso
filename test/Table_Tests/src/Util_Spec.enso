@@ -1,10 +1,59 @@
 from Standard.Base import all
+
 from Standard.Table import Column, Table
-from project.Util import all
+
+from Standard.Database import all
+
 from Standard.Test import all
 
+from enso_dev.Test_Tests.Helpers import expect_test_failure
+
+from project.Util import all
+
 add_specs suite_builder =
-    suite_builder.group "Column should_equal" group_builder->
+    suite_builder.group "Table/Column.should_equal helpers" group_builder->
+        group_builder.specify "should report correct location for Table" <|
+            r1 = expect_test_failure <|
+                (Table.new [["X", [1]]]) . should_equal (Table.new [["X", [2]]])
+            r1.message.should_contain "Util_Spec.enso:17"
+
+            r2 = expect_test_failure <|
+                (Table.new [["X", [1]]]) . should_equal (Table.new [["A", [1]]])
+            r2.message.should_contain "Util_Spec.enso:21"
+
+        group_builder.specify "should report correct location for Column" <|
+            r1 = expect_test_failure <|
+                Column.from_vector "X" [1] . should_equal (Column.from_vector "X" [2])
+            r1.message.should_contain "Util_Spec.enso:26"
+
+            r2 = expect_test_failure <|
+                Column.from_vector "X" [1] . should_equal (Column.from_vector "A" [1])
+            r2.message.should_contain "Util_Spec.enso:30"
+
+        group_builder.specify "should report correct location for DB_Table" <|
+            tables = DB_Tables.make
+            r1 = expect_test_failure <|
+                tables.t1 . should_equal tables.t2
+            r1.message.should_contain "Util_Spec.enso:36"
+
+            r2 = expect_test_failure <|
+                tables.t1 . should_equal tables.tA
+            r2.message.should_contain "Util_Spec.enso:40"
+
+        group_builder.specify "should report correct location for DB_Column" <|
+            tables = DB_Tables.make
+            c1 = tables.t1.at "X"
+            c2 = tables.t2.at "X"
+            cA = tables.tA.at "A"
+
+            r1 = expect_test_failure <|
+                c1 . should_equal c2
+            r1.message.should_contain "Util_Spec.enso:50"
+
+            r2 = expect_test_failure <|
+                c1 . should_equal cA
+            r2.message.should_contain "Util_Spec.enso:54"
+
         group_builder.specify "Two Columns Are Equal" <|
             expected_column = Column.from_vector "Col" ["Quis", "custodiet", "ipsos", "custodes?"]
             actual_column = Column.from_vector "Col" ["Quis", "custodiet", "ipsos", "custodes?"]
@@ -44,7 +93,7 @@ add_specs suite_builder =
             expected_column = Column.from_vector "Col" [1.0, 2.0, Number.nan]
             actual_column = Column.from_vector "Col" [1.0, 2.0, Number.nan]
             actual_column.should_equal expected_column
-    suite_builder.group "Table should_equal" group_builder->
+
         group_builder.specify "Two Tables Are Equal" <|
             expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
             actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
@@ -74,6 +123,17 @@ add_specs suite_builder =
             actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"]]
             res = Panic.recover Test_Failure_Error (table_should_equal_impl actual_table expected_table "LOCATION_PATH")
             res.catch.message.should_equal "Got a Table, but expected a 42 (at LOCATION_PATH)."
+
+type DB_Tables
+    Value t1 t2 tA
+
+    make =
+        connection = Database.connect ..In_Memory
+        t1 = (Table.new [["X", [1]]]).select_into_database_table connection "t1"
+        t2 = (Table.new [["X", [2]]]).select_into_database_table connection "t2"
+        tA = (Table.new [["A", [1]]]).select_into_database_table connection "tA"
+        DB_Tables.Value t1 t2 tA
+
 
 main filter=Nothing =
     suite = Test.build suite_builder->

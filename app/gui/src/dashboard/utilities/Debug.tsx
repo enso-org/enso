@@ -35,7 +35,7 @@ export default function Debug(props: DebugProps) {
     children,
   } = props
   const childPropsRaw: unknown = children.props
-  const childProps: object = typeof childPropsRaw === 'object' ? childPropsRaw ?? {} : {}
+  const childProps: object = typeof childPropsRaw === 'object' ? (childPropsRaw ?? {}) : {}
   const propsValues: unknown[] = Object.values(childProps)
   const typeRaw: unknown = children.type
   const typeName =

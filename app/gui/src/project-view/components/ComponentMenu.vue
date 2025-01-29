@@ -13,7 +13,7 @@ const isDropdownOpened = ref(false)
 
 <template>
   <div
-    class="CircularMenu"
+    class="ComponentMenu"
     :class="{
       menu: !componentButtons.pickColor.state,
       openedDropdown: isDropdownOpened,
@@ -58,7 +58,7 @@ const isDropdownOpened = ref(false)
 </template>
 
 <style scoped>
-.CircularMenu {
+.ComponentMenu {
   position: absolute;
   left: -36px;
   bottom: -36px;

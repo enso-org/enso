@@ -26,7 +26,7 @@ export interface UserRowProps {
   readonly id: string
   readonly draggable?: boolean
   readonly user: backend.User
-  readonly doDeleteUser?: ((user: backend.User) => void) | null
+  readonly doDeleteUser?: ((user: backend.User) => Promise<void>) | null
 }
 
 /** A row representing a user in a table of users. */
@@ -40,7 +40,6 @@ export default function UserRow(props: UserRowProps) {
   const doDeleteUser = isSelf ? null : doDeleteUserRaw
 
   const contextMenuRef = contextMenuHooks.useContextMenuRef(
-    user.userId,
     getText('userContextMenuLabel'),
     () =>
       doDeleteUser == null ? null : (
@@ -51,8 +50,8 @@ export default function UserRow(props: UserRowProps) {
               <ConfirmDeleteModal
                 defaultOpen
                 actionText={getText('deleteUserActionText', user.name)}
-                doDelete={() => {
-                  doDeleteUser(user)
+                doDelete={async () => {
+                  await doDeleteUser(user)
                 }}
               />,
             )
@@ -107,8 +106,8 @@ export default function UserRow(props: UserRowProps) {
             </ariaComponents.Button>
             <ConfirmDeleteModal
               actionText={getText('deleteUserActionText', user.name)}
-              doDelete={() => {
-                doDeleteUser(user)
+              doDelete={async () => {
+                await doDeleteUser(user)
               }}
             />
           </ariaComponents.DialogTrigger>

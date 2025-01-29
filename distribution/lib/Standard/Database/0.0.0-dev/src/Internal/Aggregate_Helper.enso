@@ -35,7 +35,7 @@ from project.Errors import Aggregagtion_Requires_Order
 make_aggregate_column : DB_Table -> Aggregate_Column -> Text -> Dialect -> (Text -> Vector -> SQL_Expression -> SQL_Type_Reference) -> Problem_Builder -> Internal_Column
 make_aggregate_column table aggregate as dialect infer_return_type problem_builder -> Internal_Column =
     simple_aggregate op_kind columns =
-        expression = dialect.cast_op_type op_kind columns (SQL_Expression.Operation op_kind (columns.map c->c.expression))
+        expression = dialect.cast_aggregate_columns op_kind columns
         sql_type_ref = infer_return_type op_kind columns expression
         Internal_Column.Value as sql_type_ref expression
 

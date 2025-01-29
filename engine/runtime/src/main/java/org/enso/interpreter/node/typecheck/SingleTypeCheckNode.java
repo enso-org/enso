@@ -1,14 +1,7 @@
 package org.enso.interpreter.node.typecheck;
 
-import com.oracle.truffle.api.CompilerAsserts;
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
-import com.oracle.truffle.api.nodes.InvalidAssumptionException;
-import com.oracle.truffle.api.nodes.Node;
+import java.util.Arrays;
+
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
@@ -27,6 +20,16 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.graalvm.collections.Pair;
+
+import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.InvalidAssumptionException;
+import com.oracle.truffle.api.nodes.Node;
 
 non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
   private final Type expectedType;
@@ -104,7 +107,7 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
         CompilerDirectives.transferToInterpreter();
         var enso = EnsoLanguage.get(this);
         var node = (AbstractTypeCheckNode) copy();
-        lazyCheck = new LazyCheckRootNode(enso, new TypeCheckValueNode(node));
+        lazyCheck = new LazyCheckRootNode(enso, new TypeCheckValueNode(node, isAllTypes()));
       }
       var lazyCheckFn = lazyCheck.wrapThunk(fn);
       return lazyCheckFn;
@@ -115,12 +118,12 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
         CompilerDirectives.transferToInterpreter();
         castTo = insert(EnsoMultiValue.CastToNode.create());
       }
-      var result = castTo.executeCast(expectedType, mv);
+      var result = castTo.findTypeOrNull(expectedType, mv, true, isAllTypes());
       if (result != null) {
         return result;
       }
     }
-    if (checkType.execute(expectedType, v)) {
+    if (checkType.execute(expectedType, v, isAllTypes())) {
       return v;
     }
     return null;
@@ -167,14 +170,13 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
     return null;
   }
 
-  Type[] findType(TypeOfNode typeOfNode, Object v) {
+  final Type[] findType(TypeOfNode typeOfNode, Object v) {
     return findType(typeOfNode, v, null);
   }
 
-  Type[] findType(TypeOfNode typeOfNode, Object v, Type[] previous) {
+  final Type[] findType(TypeOfNode typeOfNode, Object v, Type[] previous) {;
     if (v instanceof EnsoMultiValue multi) {
-      var all = typeOfNode.findAllTypesOrNull(multi);
-      assert all != null;
+      var all = typeOfNode.findAllTypesOrNull(multi, false);
       return all;
     }
     if (v instanceof UnresolvedConstructor) {

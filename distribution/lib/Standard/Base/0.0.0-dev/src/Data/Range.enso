@@ -7,6 +7,7 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Common.Not_Found
 import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
@@ -397,7 +398,7 @@ type Range
     @condition range_default_filter_condition_widget
     any : (Filter_Condition | (Integer -> Boolean)) -> Boolean
     any self (condition : Filter_Condition | (Integer -> Boolean)) =
-        self.find condition . is_nothing . not
+        self.find condition if_missing=Nothing . is_nothing . not
 
     ## GROUP Selections
        ICON find
@@ -422,7 +423,7 @@ type Range
              1.up_to 100 . find (..Greater than=10)
     @condition range_default_filter_condition_widget
     find : (Filter_Condition | (Integer -> Boolean)) -> Integer -> Any -> Any
-    find self (condition : Filter_Condition | (Integer -> Boolean)) (start : Integer = 0) ~if_missing=Nothing =
+    find self (condition : Filter_Condition | (Integer -> Boolean)) (start : Integer = 0) ~if_missing=(Error.throw Not_Found) =
         predicate = unify_condition_or_predicate condition
         check_start_valid start self used_start->
             result = find_internal self used_start predicate

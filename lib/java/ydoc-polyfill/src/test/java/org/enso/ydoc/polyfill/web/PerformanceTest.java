@@ -24,7 +24,7 @@ public class PerformanceTest extends ExecutorSetup {
         CompletableFuture.supplyAsync(
                 () -> {
                   var ctx = contextBuilder.build();
-                  eventTarget.initialize(ctx);
+                  eventTarget.initialize(eval(ctx));
                   return ctx;
                 },
                 executor)

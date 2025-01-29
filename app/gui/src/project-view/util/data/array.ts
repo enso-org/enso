@@ -7,7 +7,7 @@ export type NonEmptyArray<T> = [T, ...T[]]
 
 /** An equivalent of `Array.prototype.findIndex` method, but returns null instead of -1. */
 export function findIndexOpt<T>(
-  arr: T[],
+  arr: ReadonlyArray<T>,
   pred: (elem: T, index: number) => boolean,
 ): number | null {
   const index = arr.findIndex(pred)
@@ -90,7 +90,8 @@ export function partition<T>(array: Iterable<T>, pred: (elem: T) => boolean): [T
 }
 
 /**
- * Find smallest index at which two arrays differ. Returns an index past the array (i.e. array length) when both arrays are equal.
+ * Find smallest index at which two arrays differ. Returns an index past the array (i.e. array length) when both arrays
+ * are equal. Note that the default comparator uses strict equality, and so `NaN` values will be considered different.
  */
 export function findDifferenceIndex<T>(
   lhs: T[],

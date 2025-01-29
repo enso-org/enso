@@ -2,7 +2,7 @@ import { test, type Page } from '@playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
 import { mockCollapsedFunctionInfo } from './expressionUpdates'
-import { CONTROL_KEY } from './keyboard'
+import { CONTROL_KEY, DELETE_KEY } from './keyboard'
 import * as locate from './locate'
 import { edgesFromNode, edgesToNode } from './locate'
 import { mockSuggestion } from './suggestionUpdates'
@@ -198,6 +198,37 @@ test('Input node is not collapsed', async ({ page }) => {
     'a',
   ])
   await expect(locate.outputNode(page)).toHaveCount(1)
+})
+
+test('Collapsed call shows argument placeholders', async ({ page }) => {
+  await actions.goToGraph(page)
+  await mockCollapsedFunctionInfo(page, 'final', 'func1', [0])
+  await mockSuggestion(page, {
+    type: 'method',
+    module: 'local.Mock_Project.Main',
+    name: 'func1',
+    arguments: [
+      {
+        name: 'arg1',
+        reprType: 'Standard.Base.Any.Any',
+        isSuspended: false,
+        hasDefault: false,
+        defaultValue: null as any,
+        tagValues: null as any,
+      },
+    ],
+    selfType: 'local.Mock_Project.Main',
+    returnType: 'Standard.Base.Any.Any',
+    isStatic: true,
+    documentation: '',
+    annotations: [],
+  })
+  const collapsedCallComponent = locate.graphNodeByBinding(page, 'final')
+  await locate.graphNodeByBinding(page, 'prod').click()
+  await page.keyboard.press(DELETE_KEY)
+  await expect(await edgesToNode(page, collapsedCallComponent)).toHaveCount(0)
+  await expect(locate.selectedNodes(page)).toHaveCount(0)
+  await expect(collapsedCallComponent.locator('.WidgetArgumentName .name')).toHaveText('arg1')
 })
 
 async function expectInsideMain(page: Page) {

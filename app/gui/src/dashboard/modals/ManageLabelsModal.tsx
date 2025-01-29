@@ -1,5 +1,5 @@
 /** @file A modal to select labels for an asset. */
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { useMutation } from '@tanstack/react-query'
 
@@ -41,7 +41,7 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
   const toastAndLog = useToastAndLog()
   const { data: allLabels } = useBackendQuery(backend, 'listTags', [])
   const [color, setColor] = useState<LChColor | null>(null)
-  const leastUsedColor = useMemo(() => findLeastUsedColor(allLabels ?? []), [allLabels])
+  const leastUsedColor = findLeastUsedColor(allLabels ?? [])
 
   const createTagMutation = useMutation(backendMutationOptions(backend, 'createTag'))
   const associateTagMutation = useMutation(backendMutationOptions(backend, 'associateTag'))
@@ -77,11 +77,9 @@ export default function ManageLabelsModal<Asset extends AnyAsset = AnyAsset>(
   const query = Form.useWatch({ control: form.control, name: 'name' })
   const labels = Form.useWatch({ control: form.control, name: 'labels' })
 
-  const regex = useMemo(() => new RegExp(regexEscape(query), 'i'), [query])
-  const canSelectColor = useMemo(
-    () => query !== '' && (allLabels ?? []).filter((label) => regex.test(label.value)).length === 0,
-    [allLabels, query, regex],
-  )
+  const regex = new RegExp(regexEscape(query), 'i')
+  const canSelectColor =
+    query !== '' && (allLabels ?? []).filter((label) => regex.test(label.value)).length === 0
   const canCreateNewLabel = canSelectColor
 
   return (

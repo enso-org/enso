@@ -97,9 +97,11 @@ export default function BackendProvider(props: BackendProviderProps) {
  */
 export function useRemoteBackend() {
   const remoteBackend = React.useContext(BackendContext).remoteBackend
+
   if (remoteBackend == null) {
     throw new Error('This component requires a Cloud Backend to function.')
   }
+
   return remoteBackend
 }
 

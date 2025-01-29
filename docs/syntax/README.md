@@ -43,6 +43,8 @@ The various components of Enso's syntax are described below:
 - [**Functions:**](./functions.md) The syntax for writing functions in Enso.
 - [**Function Arguments:**](./function-arguments.md) The syntax for function
   arguments in Enso.
+- [**Conversions:**](./conversions.md) The syntax of special _conversion
+  functions_ in Enso.
 - [**Field Access:**](./projections.md) The syntax for working with fields of
   data types in Enso.
 - [**Comments:**](./comments.md) The syntax for writing comments in Enso.

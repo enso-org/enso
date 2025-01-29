@@ -1,4 +1,5 @@
 import { ensoMarkdown } from '@/components/MarkdownEditor/markdown'
+import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { EditorState } from '@codemirror/state'
 import { Decoration, EditorView } from '@codemirror/view'
 import { expect, test } from 'vitest'
@@ -7,15 +8,19 @@ function decorations<T>(
   source: string,
   recognize: (from: number, to: number, decoration: Decoration) => T | undefined,
 ) {
-  const vueHost = {
-    register: () => ({ unregister: () => {} }),
-  }
-  const state = EditorState.create({
-    doc: source,
-    extensions: [ensoMarkdown({ vueHost })],
+  const view = new EditorView({
+    state: EditorState.create({
+      doc: source,
+      extensions: ensoMarkdown(),
+    }),
   })
-  const view = new EditorView({ state })
-  const decorationSets = state.facet(EditorView.decorations)
+  const vueHost = {
+    register: () => ({
+      unregister: () => {},
+    }),
+  }
+  view.dispatch({ effects: setVueHost.of(vueHost) })
+  const decorationSets = view.state.facet(EditorView.decorations)
   const results = []
   for (const decorationSet of decorationSets) {
     const resolvedDecorations =
@@ -36,6 +41,7 @@ function links(source: string) {
       return {
         text: source.substring(from, to),
         href: deco.spec.attributes.href,
+        title: deco.spec.attributes.title,
       }
     }
   })
@@ -61,6 +67,16 @@ test.each([
       {
         text: 'Link text',
         href: 'https://www.example.com/index.html',
+      },
+    ],
+  },
+  {
+    markdown: '[Link text](https://www.example.com/index.html "title text")',
+    expectedLinks: [
+      {
+        text: 'Link text',
+        href: 'https://www.example.com/index.html',
+        title: '"title text"',
       },
     ],
   },

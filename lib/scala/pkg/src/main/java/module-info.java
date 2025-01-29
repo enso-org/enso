@@ -3,6 +3,7 @@ module org.enso.pkg {
   requires org.apache.commons.compress;
   requires org.enso.editions;
   requires org.enso.semver;
+  requires org.enso.version.output;
   requires org.enso.scala.yaml;
   // For io.circe
   requires org.enso.scala.wrapper;

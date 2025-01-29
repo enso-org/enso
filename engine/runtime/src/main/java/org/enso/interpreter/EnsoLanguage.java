@@ -20,6 +20,7 @@ import java.io.PrintStream;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
+import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
@@ -72,8 +73,6 @@ import org.graalvm.options.OptionCategory;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
 import org.graalvm.options.OptionType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * The root of the Enso implementation.
@@ -113,8 +112,6 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
 
   private final ContextThreadLocal<ExecutionEnvironment[]> executionEnvironment =
       locals.createContextThreadLocal((ctx, thread) -> new ExecutionEnvironment[1]);
-
-  private static final Logger logger = LoggerFactory.getLogger(EnsoLanguage.class);
 
   public static EnsoLanguage get(Node node) {
     return REFERENCE.get(node);
@@ -266,7 +263,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
               false,
               true,
               false,
-              false,
+              scala.Option.empty(),
               true,
               false,
               scala.Option.apply(new PrintStream(outputRedirect)));
@@ -467,7 +464,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
         }
       }
     } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
-      logger.warn("Unexpected exception", e);
+      context.getLogger().log(Level.WARNING, "Unexpected exception", e);
     }
     return null;
   }

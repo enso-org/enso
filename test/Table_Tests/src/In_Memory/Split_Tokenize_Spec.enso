@@ -2,7 +2,7 @@ from Standard.Base import all
 
 import Standard.Test.Extensions
 
-from Standard.Table import Table
+from Standard.Table import Table, Value_Type
 from Standard.Table.Columns_To_Add import Columns_To_Add
 from Standard.Table.Errors import Invalid_Value_Type, Column_Count_Exceeded, Duplicate_Output_Column_Names, No_Such_Column
 from Standard.Test import all
@@ -204,7 +204,7 @@ add_specs suite_builder =
             cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]]]
             t = Table.new cols
             expected_rows = [[0, "a", "c", Nothing, Nothing], [1, "c", "d", "ef", Nothing], [2, "gh", "ij", "u", Nothing]]
-            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3", "bar 3"] expected_rows
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3", "bar 4"] expected_rows . cast "bar 4" Value_Type.Char
             t2 = t.split_to_columns "bar" "b" column_count=(Columns_To_Add.First 4)
             t2.should_equal expected
             t2.at "bar 3" . value_type . is_text . should_be_true
@@ -213,7 +213,7 @@ add_specs suite_builder =
             cols = [["foo", [0, 1, 2]], ["bar", ["abc", "cbdbef", "ghbijbu"]]]
             t = Table.new cols
             expected_rows = [[0, "a", "c", Nothing, Nothing], [1, "c", "d", "ef", Nothing], [2, "gh", "ij", "u", Nothing]]
-            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3", "bar 3"] expected_rows
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3", "bar 4"] expected_rows . cast "bar 4" Value_Type.Char
             t2 = t.split_to_columns "bar" "b" column_count=4
             t2.should_equal expected
             t2.at "bar 3" . value_type . is_text . should_be_true    
@@ -262,7 +262,7 @@ add_specs suite_builder =
             cols = [["foo", [0, 1, 2]], ["bar", ["ghbijbu", "cbdbef", "abc"]]]
             t = Table.new cols
             expected_rows = [[0, "gh", "ij", "u", Nothing], [1, "c", "d", "ef", Nothing], [2, "a", "c", Nothing, Nothing]]
-            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3", "bar 3"] expected_rows
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3", "bar 4"] expected_rows . cast "bar 4" Value_Type.Char
             t2 = t.split_to_columns "bar" "b" column_count=(Columns_To_Add.First 4)
             t2.should_equal expected
             t2.at "bar 3" . value_type . is_text . should_be_true
@@ -271,7 +271,7 @@ add_specs suite_builder =
             cols = [["foo", [0, 1, 2]], ["bar", ["ghbijbu", "cbdbef", "abc"]]]
             t = Table.new cols
             expected_rows = [[0, "gh", "ij", "u", Nothing], [1, "c", "d", "ef", Nothing], [2, "a", "c", Nothing, Nothing]]
-            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3", "bar 3"] expected_rows
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "bar 3", "bar 4"] expected_rows . cast "bar 4" Value_Type.Char
             t2 = t.split_to_columns "bar" "b" column_count=4
             t2.should_equal expected
             t2.at "bar 3" . value_type . is_text . should_be_true    
@@ -390,19 +390,19 @@ add_specs suite_builder =
 
         group_builder.specify "empty table" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]] . take 0
-            expected = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]] . take 0
+            expected = Table.from_rows ["foo", "bar", "baz"] []
             actual = t.parse_to_columns "bar" "\d+"
             actual.should_equal expected
 
         group_builder.specify "empty table, with regex groups" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]] . take 0
-            expected = Table.from_rows ["foo", "bar 1", "bar 2", "baz"] [["x", "a", "a", "y"]] . take 0
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "baz"] []
             actual = t.parse_to_columns "bar" "(\d)(\d)"
             actual.should_equal expected
 
         group_builder.specify "empty table, with named and unnamed regex groups" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]] . take 0
-            expected = Table.from_rows ["foo", "quux", "bar 1", "foo 1", "bar 2", "baz"] [["x", "a", "a", "a", "a", "y"]] . take 0
+            expected = Table.from_rows ["foo", "quux", "bar 1", "foo 1", "bar 2", "baz"] []
             actual = t.parse_to_columns "bar" "(?<quux>)(\d)(?<foo>\d)(\d)"
             actual.should_equal expected
 
@@ -419,13 +419,13 @@ add_specs suite_builder =
 
         group_builder.specify "input with no matches, with regex groups" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]]
-            expected = Table.from_rows ["foo", "bar 1", "bar 2", "baz"] [["x", Nothing, Nothing, "y"], ["", "", "", ""]] . take 1
+            expected = Table.from_rows ["foo", "bar 1", "bar 2", "baz"] [["x", Nothing, Nothing, "y"]]
             actual = t.parse_to_columns "bar" "(\d)(\d)"
             actual.should_equal expected
 
         group_builder.specify "input with no matches, with named and unnamed regex groups" <|
             t = Table.from_rows ["foo", "bar", "baz"] [["x", "a", "y"]]
-            expected = Table.from_rows ["foo", "quux", "bar 1", "foo 1", "bar 2", "baz"] [["x", Nothing, Nothing, Nothing, Nothing, "y"], ["", "", "", "", "", ""]] . take 1
+            expected = Table.from_rows ["foo", "quux", "bar 1", "foo 1", "bar 2", "baz"] [["x", Nothing, Nothing, Nothing, Nothing, "y"]]
             actual = t.parse_to_columns "bar" "(?<quux>)(\d)(?<foo>\d)(\d)"
             actual.should_equal expected
 
@@ -433,4 +433,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

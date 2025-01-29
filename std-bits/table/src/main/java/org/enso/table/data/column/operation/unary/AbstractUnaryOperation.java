@@ -1,7 +1,6 @@
 package org.enso.table.data.column.operation.unary;
 
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.InferredBuilder;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
@@ -34,11 +33,11 @@ abstract class AbstractUnaryOperation implements UnaryOperation {
   }
 
   @Override
-  public abstract boolean canApply(ColumnStorage storage);
+  public abstract boolean canApply(ColumnStorage<?> storage);
 
   @Override
-  public ColumnStorage apply(
-      ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<?> apply(
+      ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     var builder = createBuilder(storage, problemAggregator);
 
     switch (storage) {
@@ -54,13 +53,8 @@ abstract class AbstractUnaryOperation implements UnaryOperation {
   }
 
   protected Builder createBuilder(
-      ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
-    if (storage.getSize() > Integer.MAX_VALUE) {
-      throw new IllegalArgumentException(
-          "Cannot currently operate on columns larger than " + Integer.MAX_VALUE + ".");
-    }
-
-    return new InferredBuilder((int) storage.getSize(), problemAggregator);
+      ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
+    return Builder.getInferredBuilder(storage.getSize(), problemAggregator);
   }
 
   /** Apply the operation to a Boolean Storage. */
@@ -89,7 +83,7 @@ abstract class AbstractUnaryOperation implements UnaryOperation {
 
   /** Apply the operation to an Object Storage. */
   protected void applyObject(
-      ColumnStorage objectStorage,
+      ColumnStorage<?> objectStorage,
       Builder builder,
       MapOperationProblemAggregator problemAggregator) {
     UnaryOperation.applyOverObjectStorage(

@@ -49,8 +49,9 @@ public class TypeOfNodeMultiValueTest {
                 new TestRootNode(
                     (frame) -> {
                       var arg = frame.getArguments()[0];
+                      var allTypes = (boolean) frame.getArguments()[1];
                       var t = node.findTypeOrError(arg);
-                      var all = node.findAllTypesOrNull(arg);
+                      var all = node.findAllTypesOrNull(arg, allTypes);
                       return new Object[] {t, all};
                     });
             root.insertChildren(node);
@@ -87,17 +88,27 @@ public class TypeOfNodeMultiValueTest {
     if (!polyValue.isNull()) {
       assertTrue("Type of " + polyValue + " is " + t, t.isMetaObject());
       var rawValue = ContextUtils.unwrapValue(ctx(), polyValue);
+      if (rawValue instanceof EnsoMultiValue) {
+        return;
+      }
+      var rawInt = (Type) ContextUtils.unwrapValue(ctx(), g.typeInteger());
       var rawType = ContextUtils.unwrapValue(ctx(), t);
       if (rawType instanceof Type type) {
-        var singleMultiValue = EnsoMultiValue.create(new Type[] {type}, new Object[] {rawValue});
+        if (rawType == rawInt) {
+          return;
+        }
+        var singleMultiValue =
+            EnsoMultiValue.NewNode.getUncached()
+                .newValue(new Type[] {type}, 1, 0, new Object[] {rawValue});
         var n = t.getMetaSimpleName();
         data.add(new Object[] {singleMultiValue, n, 0});
-        var rawInt = (Type) ContextUtils.unwrapValue(ctx(), g.typeInteger());
         var secondMultiValue =
-            EnsoMultiValue.create(new Type[] {rawInt, type}, new Object[] {5L, rawValue});
+            EnsoMultiValue.NewNode.getUncached()
+                .newValue(new Type[] {rawInt, type}, 2, 0, new Object[] {5L, rawValue});
         data.add(new Object[] {secondMultiValue, n, 1});
         var firstMultiValue =
-            EnsoMultiValue.create(new Type[] {type, rawInt}, new Object[] {rawValue, 6L});
+            EnsoMultiValue.NewNode.getUncached()
+                .newValue(new Type[] {type, rawInt}, 2, 0, new Object[] {rawValue, 6L});
         data.add(new Object[] {firstMultiValue, n, 0});
       } else {
         if (!t.isHostObject()) {
@@ -116,16 +127,22 @@ public class TypeOfNodeMultiValueTest {
   }
 
   @Test
-  public void typeOfCheck() {
-    assertType(value, type, typeIndex);
+  public void typeOfCheckAllTypes() {
+    assertType(value, type, typeIndex, true);
   }
 
-  private static void assertType(Object value, String expectedTypeName, int typeIndex) {
+  @Test
+  public void typeOfCheckHasBeenCastToTypes() {
+    assertType(value, type, typeIndex, false);
+  }
+
+  private static void assertType(
+      Object value, String expectedTypeName, int typeIndex, boolean allTypes) {
     assertNotNull("Value " + value + " should have a type", expectedTypeName);
     ContextUtils.executeInContext(
         ctx(),
         () -> {
-          var pairResult = (Object[]) testTypesCall.call(value);
+          var pairResult = (Object[]) testTypesCall.call(value, allTypes);
           var t = pairResult[0];
           var all = (Object[]) pairResult[1];
 

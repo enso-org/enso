@@ -95,7 +95,7 @@ XML_Element.to_table self =
              headers = Examples.simple_table_json_headers
              Table.from_objects json headers
 @fields (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='""')
-Table.from_objects : Any -> Vector | Nothing -> Boolean -> Table
+Table.from_objects : Any -> Vector | Nothing -> Table
 Table.from_objects value (fields : Vector | Nothing = Nothing) =
     Expand_Objects_Helpers.create_table_from_objects value fields treat_dictionary_as_sequence=False
 

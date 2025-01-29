@@ -41,10 +41,12 @@ export default function NameColumnHeading(props: AssetColumnHeadingProps) {
           getText('stopSortingByName')
         : getText('sortByNameDescending')
       }
-      className="group flex h-table-row w-full items-center justify-start gap-icon-with-text px-name-column-x"
+      className="group sticky left-0 flex h-table-row w-full items-center justify-start gap-icon-with-text bg-dashboard px-name-column-x"
       onPress={cycleSortDirection}
     >
-      <Text className="text-sm font-semibold">{getText('nameColumnName')}</Text>
+      <Text weight="bold" truncate="1" color="custom">
+        {getText('nameColumnName')}
+      </Text>
       <img
         alt={isDescending ? getText('sortDescending') : getText('sortAscending')}
         src={SortAscendingIcon}

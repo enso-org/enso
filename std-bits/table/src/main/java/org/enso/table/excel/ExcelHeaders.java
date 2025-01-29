@@ -57,7 +57,7 @@ public class ExcelHeaders {
 
     String[] output = new String[currentEndCol - startCol + 1];
     for (int col = startCol; col <= currentEndCol; col++) {
-      String cellText = row.getFormattedCell(col);
+      String cellText = row.getCellText(col);
       String name = cellText.isEmpty() ? "" : deduplicator.makeUnique(cellText);
 
       output[col - startCol] = name;

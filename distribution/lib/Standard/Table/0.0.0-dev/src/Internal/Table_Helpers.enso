@@ -8,9 +8,9 @@ import project.Blank_Selector.Blank_Selector
 import project.Column.Column
 import project.Expression.Expression
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
+import project.Internal.Match_Columns_Helpers.Column_Set
 import project.Internal.Problem_Builder.Problem_Builder
 import project.Internal.Value_Type_Helpers
-import project.Internal.Match_Columns_Helpers.Column_Set
 import project.Position.Position
 import project.Set_Mode.Set_Mode
 import project.Sort_Column.Sort_Column
@@ -526,7 +526,7 @@ filter_blank_rows table when treat_nans_as_blank =
    `is_table` and if it returns `True`.
 is_column obj =
     known_types = ["Standard.Table.Column.Column", "Standard.Database.DB_Column.DB_Column"]
-    known_types.contains (Meta.get_qualified_type_name obj)
+    known_types.contains (obj.to Meta.Type . qualified_name)
 
 ## PRIVATE
    A helper method that resolves what should be the result type of a particular
@@ -588,7 +588,8 @@ replace_columns_with_transformed_columns table selectors transformer error_on_mi
     replace_columns_with_columns table columns new_columns
 
 
-## Takes a table and a list of counts and returns a new table with the rows
+## PRIVATE
+   Takes a table and a list of counts and returns a new table with the rows
    duplicated according to the counts.
    The vector should have the same number of elements as the number of rows in the table.
 duplicate_rows (table : Table) (counts : Vector Integer) -> Table =

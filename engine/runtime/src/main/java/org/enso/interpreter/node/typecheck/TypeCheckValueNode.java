@@ -18,10 +18,12 @@ import org.enso.interpreter.runtime.util.CachingSupplier;
 /** A node and a factory for nodes performing type checks (including necessary conversions). */
 public final class TypeCheckValueNode extends Node {
   private @Child AbstractTypeCheckNode check;
+  private final boolean allTypes;
 
-  TypeCheckValueNode(AbstractTypeCheckNode check) {
+  TypeCheckValueNode(AbstractTypeCheckNode check, boolean allTypes) {
     assert check != null;
     this.check = check;
+    this.allTypes = allTypes;
   }
 
   /**
@@ -83,8 +85,8 @@ public final class TypeCheckValueNode extends Node {
     var arr = toArray(flatten);
     return switch (arr.length) {
       case 0 -> null;
-      case 1 -> new TypeCheckValueNode(arr[0]);
-      default -> new TypeCheckValueNode(new AllOfTypesCheckNode(comment, arr));
+      case 1 -> new TypeCheckValueNode(arr[0], true);
+      default -> new TypeCheckValueNode(new AllOfTypesCheckNode(comment, arr), true);
     };
   }
 
@@ -106,7 +108,7 @@ public final class TypeCheckValueNode extends Node {
       default -> {
         var abstractTypeCheckList = list.stream().map(n -> n.check).toList();
         var abstractTypeCheckArr = toArray(abstractTypeCheckList);
-        yield new TypeCheckValueNode(new OneOfTypesCheckNode(comment, abstractTypeCheckArr));
+        yield new TypeCheckValueNode(new OneOfTypesCheckNode(comment, abstractTypeCheckArr), true);
       }
     };
   }
@@ -120,7 +122,7 @@ public final class TypeCheckValueNode extends Node {
    */
   public static TypeCheckValueNode single(String comment, Type expectedType) {
     var typeCheckNodeImpl = SingleTypeCheckNodeGen.create(comment, expectedType);
-    return new TypeCheckValueNode(typeCheckNodeImpl);
+    return new TypeCheckValueNode(typeCheckNodeImpl, true);
   }
 
   /**
@@ -134,7 +136,25 @@ public final class TypeCheckValueNode extends Node {
       String comment, Supplier<? extends Object> metaObjectSupplier) {
     var cachingSupplier = CachingSupplier.wrap(metaObjectSupplier);
     var typeCheckNodeImpl = MetaTypeCheckNodeGen.create(comment, cachingSupplier);
-    return new TypeCheckValueNode(typeCheckNodeImpl);
+    return new TypeCheckValueNode(typeCheckNodeImpl, true);
+  }
+
+  /**
+   * Creates new node with different {@code allTypes} state. Otherwise the behavior is the same as
+   * {@code node}. All types state influences the behavior of type checking {@link EnsoMultiValue} -
+   * should all types the value is convertible to be used or only those types that the value has
+   * already been converted to?
+   *
+   * <pre>
+   * method arg:Text = # this check has allTypes == false
+   *   num = arg:Number # this check has allTypes == true
+   * </pre>
+   *
+   * @param allTypes the value of all types state for the new node
+   * @param node the previous node with type checking logic
+   */
+  public static TypeCheckValueNode allTypes(boolean allTypes, TypeCheckValueNode node) {
+    return node == null ? null : new TypeCheckValueNode(node.check, allTypes);
   }
 
   /**
@@ -178,5 +198,9 @@ public final class TypeCheckValueNode extends Node {
       }
     }
     return arr;
+  }
+
+  final boolean isAllTypes() {
+    return allTypes;
   }
 }

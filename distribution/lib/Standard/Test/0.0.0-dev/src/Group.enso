@@ -35,11 +35,15 @@ type Group_Builder
     ## Provide a teardown of a group - a method that will be called once all the tests from the
        group are finished.
 
+       If called multiple times, the teardown operations will be chained.
+
        Arguments:
        - code: A function that does the teardown of a group. This function does not take any arguments,
                and its return value is ignored.
     teardown self (~code : Any) =
-        self.teardown_ref.put (_ -> code)
+        self.teardown_ref.modify old_teardown-> x->
+            old_teardown x
+            code
 
 
 type Group

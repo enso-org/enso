@@ -90,6 +90,7 @@ public class BuiltinsProcessor extends AbstractProcessor {
    */
   public void handleClassElement(Element element, RoundEnvironment roundEnv) throws IOException {
     TypeElement elt = (TypeElement) element;
+    ensureBuiltinClassExtendsBuiltinObject(elt);
     Builtin annotation = element.getAnnotation(Builtin.class);
     String clazzName =
         annotation.name().isEmpty() ? element.getSimpleName().toString() : annotation.name();
@@ -345,6 +346,31 @@ public class BuiltinsProcessor extends AbstractProcessor {
                   return name.equals(builtinMethodName);
                 })
             .count();
+  }
+
+  /**
+   * @param builtinClass Class annotated with {@link Builtin}.
+   */
+  private void ensureBuiltinClassExtendsBuiltinObject(TypeElement builtinClass) {
+    var builtinObjectBinName = "org.enso.interpreter.runtime.builtin.BuiltinObject";
+    if (!isSubtype(builtinClass, builtinObjectBinName)) {
+      processingEnv
+          .getMessager()
+          .printMessage(
+              Kind.ERROR, "Builtin class must extend " + builtinObjectBinName, builtinClass);
+    }
+  }
+
+  /**
+   * Returns true if the given {@code clazz} is a subtype of class with binary name {@code
+   * binaryName}.
+   *
+   * @param clazz class to check
+   * @param binaryName binary name of the class to check against
+   */
+  private boolean isSubtype(TypeElement clazz, String binaryName) {
+    var superType = processingEnv.getElementUtils().getTypeElement(binaryName);
+    return processingEnv.getTypeUtils().isSubtype(clazz.asType(), superType.asType());
   }
 
   private final List<String> typeNecessaryImports =

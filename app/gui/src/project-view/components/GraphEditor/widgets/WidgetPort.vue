@@ -202,7 +202,6 @@ export const widgetDefinition = defineWidget(
   border-radius: var(--node-port-border-radius);
   min-height: var(--node-port-height);
   min-width: var(--node-port-height);
-  box-sizing: border-box;
   transition: background-color 0.2s ease;
 }
 

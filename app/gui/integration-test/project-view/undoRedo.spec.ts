@@ -44,7 +44,7 @@ test('Removing node', async ({ page }) => {
   await page.keyboard.press(`${CONTROL_KEY}+Z`)
   await expect(locate.graphNode(page)).toHaveCount(nodesCount)
   await expect(deletedNode.locator('.WidgetToken')).toHaveText(['Main', '.', 'func1', 'prod'])
-  await expect(locate.nodeComment(deletedNode)).toHaveText('This node can be entered')
+  await expect(locate.nodeCommentContent(deletedNode)).toHaveText('This node can be entered')
 
   const restoredBBox = await deletedNode.boundingBox()
   expect(restoredBBox).toEqual(deletedNodeBBox)

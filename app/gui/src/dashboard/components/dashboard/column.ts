@@ -1,26 +1,22 @@
 /** @file Column types and column display modes. */
 import { memo, type Dispatch, type JSX, type SetStateAction } from 'react'
 
-import type { SortableColumn } from '#/components/dashboard/column/columnUtils'
-import { Column } from '#/components/dashboard/column/columnUtils'
-import DocsColumn from '#/components/dashboard/column/DocsColumn'
-import LabelsColumn from '#/components/dashboard/column/LabelsColumn'
-import ModifiedColumn from '#/components/dashboard/column/ModifiedColumn'
-import NameColumn from '#/components/dashboard/column/NameColumn'
-import PlaceholderColumn from '#/components/dashboard/column/PlaceholderColumn'
-import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 import type { AssetRowState, AssetsTableState } from '#/layouts/AssetsTable'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import type { AnyAsset, Asset, AssetId, BackendType } from '#/services/Backend'
+import type { AnyAsset, BackendType } from '#/services/Backend'
 import type { SortInfo } from '#/utilities/sorting'
-
-// ===================
-// === AssetColumn ===
-// ===================
+import type { SortableColumn } from './column/columnUtils'
+import { Column } from './column/columnUtils'
+import DocsColumn from './column/DocsColumn'
+import LabelsColumn from './column/LabelsColumn'
+import ModifiedColumn from './column/ModifiedColumn'
+import NameColumn from './column/NameColumn'
+import PathColumn from './column/PathColumn'
+import PlaceholderColumn from './column/PlaceholderColumn'
+import SharedWithColumn from './column/SharedWithColumn'
 
 /** Props for an arbitrary variant of {@link Asset}. */
 export interface AssetColumnProps {
-  readonly keyProp: AssetId
   readonly isOpened: boolean
   readonly item: AnyAsset
   readonly depth: number
@@ -67,4 +63,5 @@ export const COLUMN_RENDERER: Readonly<
   [Column.accessedByProjects]: memo(PlaceholderColumn),
   [Column.accessedData]: memo(PlaceholderColumn),
   [Column.docs]: memo(DocsColumn),
+  [Column.path]: memo(PathColumn),
 }

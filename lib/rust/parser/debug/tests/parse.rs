@@ -346,12 +346,14 @@ fn type_def_full() {
 
 #[test]
 fn type_def_defaults() {
-    let code = ["type Result error ok=Nothing", "    Ok value:ok = Nothing"];
-    test!(code.join("\n"),
+    test!("type Result error ok=Nothing\n    Ok value:ok=Nothing\n    Error (value:e = Nothing)",
         (TypeDef Result #((() (Ident error) () ())
                                (() (Ident ok) () ((Ident Nothing))))
          #(,(Constructor::new("Ok")
-             .with_arg(sexp![(() (Ident value) (":" (Ident ok)) ((Ident Nothing)))])))));
+             .with_arg(sexp![(() (Ident value) (":" (Ident ok)) ((Ident Nothing)))]))
+           ,(Constructor::new("Error")
+             .with_arg(sexp![(() (Ident value) (":" (Ident e)) ((Ident Nothing)))])))));
+    expect_invalid_node("type Result\n    Ok value:ok = Nothing");
 }
 
 #[test]

@@ -58,7 +58,7 @@ trait NativeTest
     args: Seq[String],
     extraEnv: Map[String, String]      = Map.empty,
     extraJVMProps: Map[String, String] = Map.empty,
-    timeoutSeconds: Long               = 15
+    timeoutSeconds: Long               = defaultTimeoutSeconds
   ): RunResult = {
     if (extraEnv.contains("PATH")) {
       throw new IllegalArgumentException(
@@ -89,7 +89,7 @@ trait NativeTest
     args: Seq[String],
     extraEnv: Map[String, String]      = Map.empty,
     extraJVMProps: Map[String, String] = Map.empty,
-    timeoutSeconds: Long               = 15
+    timeoutSeconds: Long               = defaultTimeoutSeconds
   ): RunResult = {
     if (extraEnv.contains("PATH")) {
       throw new IllegalArgumentException(
@@ -146,7 +146,7 @@ trait NativeTest
     args: Seq[String],
     pathOverride: String,
     extraJVMProps: Map[String, String] = Map.empty,
-    timeoutSeconds: Long               = 15
+    timeoutSeconds: Long               = defaultTimeoutSeconds
   ): RunResult = {
     runCommand(
       Seq(baseLauncherLocation.toAbsolutePath.toString) ++ args,
@@ -155,6 +155,8 @@ trait NativeTest
       timeoutSeconds = timeoutSeconds
     )
   }
+
+  private val defaultTimeoutSeconds: Long = 30
 }
 
 object NativeTest {

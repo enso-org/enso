@@ -73,25 +73,21 @@ test('Different ways of opening Component Browser', async ({ page }) => {
   await expectAndCancelBrowser(page, '', 'selected')
 })
 
-test('Opening Component Browser with small plus buttons', async ({ page }) => {
+test('Opening Component Browser from output port buttons', async ({ page }) => {
   await actions.goToGraph(page)
 
   // Small (+) button shown when node is hovered
-  await page.keyboard.press('Escape')
-  await page.mouse.move(100, 80)
-  await expect(locate.smallPlusButton(page)).toBeHidden()
-  await locate.graphNodeIcon(locate.graphNodeByBinding(page, 'selected')).hover()
-  await expect(locate.smallPlusButton(page)).toBeVisible()
-  await locate.smallPlusButton(page).click()
+  const node = locate.graphNodeByBinding(page, 'selected')
+  await locate.graphNodeIcon(node).hover()
+  await expect(locate.createNodeFromPort(node)).toBeVisible()
+  await locate.createNodeFromPort(node).click({ force: true })
   await expectAndCancelBrowser(page, '', 'selected')
 
-  // Small (+) button shown when node is sole selection
+  // Small (+) button shown when node is selected
   await page.keyboard.press('Escape')
-  await page.mouse.move(300, 300)
-  await expect(locate.smallPlusButton(page)).toBeHidden()
-  await locate.graphNodeByBinding(page, 'selected').click()
-  await expect(locate.smallPlusButton(page)).toBeVisible()
-  await locate.smallPlusButton(page).click()
+  await node.click()
+  await expect(locate.createNodeFromPort(node)).toBeVisible()
+  await locate.createNodeFromPort(node).click({ force: true })
   await expectAndCancelBrowser(page, '', 'selected')
 })
 

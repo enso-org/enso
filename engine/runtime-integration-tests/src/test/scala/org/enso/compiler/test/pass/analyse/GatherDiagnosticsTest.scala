@@ -26,7 +26,12 @@ class GatherDiagnosticsTest extends CompilerTest {
     val plusApp = Application.Prefix(
       plusOp,
       List(
-        CallArgument.Specified(None, error1, false, identifiedLocation = null)
+        new CallArgument.Specified(
+          None,
+          error1,
+          false,
+          identifiedLocation = null
+        )
       ),
       hasDefaultsSuspended = false,
       identifiedLocation   = null

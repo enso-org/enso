@@ -1,23 +1,19 @@
 /** @file Available actions for the login page. */
-import * as test from '@playwright/test'
+import { expect } from '@playwright/test'
 
 import { TEXT, VALID_EMAIL, VALID_PASSWORD } from '.'
 import BaseActions, { type LocatorCallback } from './BaseActions'
 import LoginPageActions from './LoginPageActions'
 
-// ========================
-// === LoginPageActions ===
-// ========================
-
 /** Available actions for the login page. */
-export default class RegisterPageActions extends BaseActions {
+export default class RegisterPageActions<Context> extends BaseActions<Context> {
   /** Actions for navigating to another page. */
   get goToPage() {
     return {
-      login: (): LoginPageActions =>
+      login: (): LoginPageActions<Context> =>
         this.step("Go to 'login' page", async (page) =>
           page.getByRole('link', { name: TEXT.alreadyHaveAnAccount, exact: true }).click(),
-        ).into(LoginPageActions),
+        ).into(LoginPageActions<Context>),
     }
   }
 
@@ -25,7 +21,7 @@ export default class RegisterPageActions extends BaseActions {
   register(email = VALID_EMAIL, password = VALID_PASSWORD, confirmPassword = password) {
     return this.step('Reegister', () =>
       this.registerInternal(email, password, confirmPassword),
-    ).into(LoginPageActions)
+    ).into(LoginPageActions<Context>)
   }
 
   /** Perform a failing login. */
@@ -55,11 +51,11 @@ export default class RegisterPageActions extends BaseActions {
       return next
     } else if (formError != null) {
       return next.step(`Expect form error to be '${formError}'`, async (page) => {
-        await test.expect(page.getByTestId('form-submit-error')).toHaveText(formError)
+        await expect(page.getByTestId('form-submit-error')).toHaveText(formError)
       })
     } else {
       return next.step('Expect no form error', async (page) => {
-        await test.expect(page.getByTestId('form-submit-error')).not.toBeVisible()
+        await expect(page.getByTestId('form-submit-error')).not.toBeVisible()
       })
     }
   }
@@ -72,9 +68,9 @@ export default class RegisterPageActions extends BaseActions {
   }
 
   /** Interact with the email input. */
-  withEmailInput(callback: LocatorCallback) {
-    return this.step('Interact with email input', async (page) => {
-      await callback(page.getByPlaceholder(TEXT.emailPlaceholder))
+  withEmailInput(callback: LocatorCallback<Context>) {
+    return this.step('Interact with email input', async (page, context) => {
+      await callback(page.getByPlaceholder(TEXT.emailPlaceholder), context)
     })
   }
 
@@ -95,6 +91,6 @@ export default class RegisterPageActions extends BaseActions {
       .getByRole('button', { name: TEXT.register, exact: true })
       .getByText(TEXT.register)
       .click()
-    await test.expect(this.page.getByText(TEXT.loadingAppMessage)).not.toBeVisible()
+    await expect(this.page.getByText(TEXT.loadingAppMessage)).not.toBeVisible()
   }
 }

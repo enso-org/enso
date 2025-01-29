@@ -19,7 +19,7 @@ import scala.collection.mutable
   * @see
   */
 object JPMSUtils {
-  val slf4jVersion          = "2.0.9"
+  val slf4jVersion          = "2.0.16"
   val logbackClassicVersion = "1.3.7"
 
   /** Filters modules by their IDs from the given classpath.
@@ -59,6 +59,11 @@ object JPMSUtils {
         log.error(
           s"[JPMSUtils/$projName] Expected: (${distinctModules.size}): $distinctModules"
         )
+        val names = ret.map(f => {
+          val i = f.data.getName.lastIndexOf("-")
+          f.data.getName.substring(0, i)
+        })
+        log.error("diff: " + distinctModules.map(_.name).diff(names))
       }
     }
     ret

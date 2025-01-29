@@ -1,6 +1,7 @@
 package org.enso.interpreter.node;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
@@ -24,6 +25,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
+import org.graalvm.collections.Pair;
 
 final class BinaryOperatorNode extends ExpressionNode {
   private @Child ExpressionNode left;
@@ -140,7 +142,48 @@ final class BinaryOperatorNode extends ExpressionNode {
       return doDispatch(frame, self, that, selfType, thatType, symbolFn, convertNode, invokeNode);
     }
 
-    @Specialization(replaces = "doThatConversionCached")
+    @Specialization(
+        limit = "5",
+        guards = {"multi.getDispatchId() == cachedDispatchId"})
+    final Object doThatConversionWithMulti(
+        VirtualFrame frame,
+        String symbol,
+        Object self,
+        EnsoMultiValue multi,
+        @Shared("typeOf") @Cached TypeOfNode typeOfNode,
+        @Cached("multi.getDispatchId()") Object cachedDispatchId,
+        @Cached("findFnForMulti(typeOfNode, multi, symbol)") Pair<Function, Type> fnAndType,
+        @Shared("convert") @Cached InteropConversionCallNode convertNode,
+        @Shared("invoke") @Cached(allowUncached = true, value = "buildWithArity(2)")
+            InvokeFunctionNode invokeNode) {
+      var selfType = findType(typeOfNode, self);
+      if (fnAndType != null) {
+        var fn = fnAndType.getLeft();
+        var thatType = fnAndType.getRight();
+        var result =
+            doDispatch(frame, self, multi, selfType, thatType, fn, convertNode, invokeNode);
+        if (result != null) {
+          return result;
+        }
+      }
+      return null;
+    }
+
+    @TruffleBoundary
+    final Pair<Function, Type> findFnForMulti(
+        TypeOfNode typeOfNode, EnsoMultiValue multi, String symbol) {
+      var all = typeOfNode.findAllTypesOrNull(multi, false);
+      Function fn = null;
+      for (var thatType : all) {
+        fn = findSymbol(symbol, thatType);
+        if (fn != null) {
+          return Pair.create(fn, thatType);
+        }
+      }
+      return null;
+    }
+
+    @Specialization(replaces = {"doThatConversionCached", "doThatConversionWithMulti"})
     final Object doThatConversionUncached(
         VirtualFrame frame,
         String symbol,
@@ -152,18 +195,14 @@ final class BinaryOperatorNode extends ExpressionNode {
             InvokeFunctionNode invokeNode) {
       var selfType = findType(typeOfNode, self);
       if (that instanceof EnsoMultiValue multi) {
-        var all = typeOfNode.findAllTypesOrNull(multi);
-        assert all != null;
-        for (var thatType : all) {
-          var fn = findSymbol(symbol, thatType);
-          if (fn != null) {
-            var thatCasted = EnsoMultiValue.CastToNode.getUncached().executeCast(thatType, multi);
-            var result =
-                doDispatch(
-                    frame, self, thatCasted, selfType, thatType, fn, convertNode, invokeNode);
-            if (result != null) {
-              return result;
-            }
+        var fnAndType = findFnForMulti(typeOfNode, multi, symbol);
+        if (fnAndType != null) {
+          var fn = fnAndType.getLeft();
+          var thatType = fnAndType.getRight();
+          var result =
+              doDispatch(frame, self, multi, selfType, thatType, fn, convertNode, invokeNode);
+          if (result != null) {
+            return result;
           }
         }
       } else {

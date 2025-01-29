@@ -21,10 +21,10 @@
     "url": "https://github.com/enso-org/enso/issues"
   },
   "devDependencies": {
-    "@types/node": "^22.9.0",
-    "typescript": "^5.5.3"
+    "@types/node": "^22.10.4",
+    "typescript": "^5.7.2"
   },
   "dependencies": {
-    "spectorjs": "^0.9.27"
+    "spectorjs": "^0.9.30"
   }
 }

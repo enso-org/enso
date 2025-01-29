@@ -30,3 +30,8 @@ export const isDateTime = (item: string) => {
     item,
   )
 }
+
+export const isNumericType = (valueType: string) => {
+  const isNumber = ['Integer', 'Float', 'Decimal', 'Byte']
+  return isNumber.indexOf(valueType) != -1
+}

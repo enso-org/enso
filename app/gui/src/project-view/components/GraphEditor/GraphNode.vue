@@ -17,8 +17,8 @@ import GraphNodeOutputPorts from '@/components/GraphEditor/GraphNodeOutputPorts.
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import PointFloatingMenu from '@/components/PointFloatingMenu.vue'
-import SmallPlusButton from '@/components/SmallPlusButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { useComponentColors } from '@/composables/componentColors'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
 import { provideComponentButtons } from '@/providers/componentButtons'
@@ -52,7 +52,6 @@ const contentNodeStyle = {
 const props = defineProps<{
   node: Node
   edited: boolean
-  graphNodeSelections: HTMLElement | undefined
 }>()
 
 const emit = defineEmits<{
@@ -136,7 +135,8 @@ const availableMessage = computed<Message | undefined>(() => {
       const text = rawText?.split(' (at')[0]
       if (!text) return undefined
       const alwaysShow = !inputExternalIds().some((id) => getDataflowError(id) === rawText)
-      return { type: 'error', text, alwaysShow } satisfies Message
+      const type = rawText.includes('Missing_Argument') ? 'missing' : 'error'
+      return { type, text, alwaysShow } satisfies Message
     }
     case 'Value': {
       const warning = info.payload.warnings?.value
@@ -159,9 +159,6 @@ const visibleMessage = computed(
 )
 
 const nodeHovered = ref(false)
-
-const selected = computed(() => nodeSelection?.isSelected(nodeId.value) ?? false)
-const selectionVisible = ref(false)
 
 const isOnlyOneSelected = computed(
   () =>
@@ -309,9 +306,9 @@ const isRecordingOverridden = computed({
   },
 })
 
-const expressionInfo = computed(() => graph.db.getExpressionInfo(props.node.innerExpr.externalId))
-const executionState = computed(() => expressionInfo.value?.payload.type ?? 'Unknown')
-const color = computed(() => graph.db.getNodeColorStyle(nodeId.value))
+const typename = computed(
+  () => graph.db.getExpressionInfo(props.node.innerExpr.externalId)?.rawTypename,
+)
 
 const nodeEditHandler = nodeEditBindings.handler({
   cancel(e) {
@@ -364,16 +361,6 @@ const dataSource = computed(
   () => ({ type: 'node', nodeId: props.node.rootExpr.externalId }) as const,
 )
 
-const pending = computed(() => {
-  switch (executionState.value) {
-    case 'Unknown':
-    case 'Pending':
-      return true
-    default:
-      return false
-  }
-})
-
 // === Recompute node expression ===
 
 function useRecomputation() {
@@ -396,7 +383,7 @@ const nodeStyle = computed(() => {
   return {
     transform: transform.value,
     minWidth: isVisualizationEnabled.value ? `${visualizationWidth.value ?? 200}px` : undefined,
-    '--node-group-color': color.value,
+    '--node-group-color': baseColor.value,
     ...(props.node.zIndex ? { 'z-index': props.node.zIndex } : {}),
     '--viz-below-node': `${graphSelectionSize.value.y - nodeSize.value.y}px`,
     '--node-size-x': `${nodeSize.value.x}px`,
@@ -404,10 +391,11 @@ const nodeStyle = computed(() => {
   }
 })
 
+const { baseColor, selected, pending } = useComponentColors(graph.db, nodeSelection, nodeId)
+
 const nodeClass = computed(() => {
   return {
     selected: selected.value,
-    selectionVisible: selectionVisible.value,
     pending: pending.value,
     inputNode: props.node.type === 'input',
     outputNode: props.node.type === 'output',
@@ -475,8 +463,9 @@ const showMenuAt = ref<{ x: number; y: number }>()
     :style="nodeStyle"
     :class="nodeClass"
     :data-node-id="nodeId"
-    @pointerenter="(nodeHovered = true), updateNodeHover($event)"
-    @pointerleave="(nodeHovered = false), updateNodeHover(undefined)"
+    @pointerdown.stop
+    @pointerenter="((nodeHovered = true), updateNodeHover($event))"
+    @pointerleave="((nodeHovered = false), updateNodeHover(undefined))"
     @pointermove="updateNodeHover"
   >
     <div class="binding" v-text="node.pattern?.code()" />
@@ -484,9 +473,9 @@ const showMenuAt = ref<{ x: number; y: number }>()
       v-if="!menuVisible && isRecordingOverridden"
       class="overrideRecordButton clickable"
       data-testid="recordingOverriddenButton"
-      @click="(isRecordingOverridden = false), setSoleSelected()"
+      @click="((isRecordingOverridden = false), setSoleSelected())"
     >
-      <SvgIcon name="record" />
+      <SvgIcon name="workflow_play" />
     </button>
     <ComponentMenu
       v-if="menuVisible"
@@ -499,10 +488,10 @@ const showMenuAt = ref<{ x: number; y: number }>()
       :nodeSize="nodeSize"
       :scale="navigator?.scale ?? 1"
       :nodePosition="nodePosition"
-      :isCircularMenuVisible="menuVisible"
+      :isComponentMenuVisible="menuVisible"
       :currentType="props.node.vis?.identifier"
       :dataSource="dataSource"
-      :typename="expressionInfo?.typename"
+      :typename="typename"
       :width="visualizationWidth"
       :height="visualizationHeight"
       :isFocused="isOnlyOneSelected"
@@ -530,7 +519,7 @@ const showMenuAt = ref<{ x: number; y: number }>()
       :style="contentNodeStyle"
       v-on="dragPointer.events"
       @click="handleNodeClick"
-      @contextmenu.stop.prevent="ensureSelected(), (showMenuAt = $event)"
+      @contextmenu.stop.prevent="(ensureSelected(), (showMenuAt = $event))"
     >
       <ComponentWidgetTree
         :ast="props.node.innerExpr"
@@ -561,17 +550,15 @@ const showMenuAt = ref<{ x: number; y: number }>()
         v-if="props.node.type !== 'output'"
         :nodeId="nodeId"
         :forceVisible="nodeHovered"
+        @newNodeClick="
+          (setSoleSelected(), emit('createNodes', [{ commit: false, content: undefined }]))
+        "
         @portClick="(...args) => emit('outputPortClick', ...args)"
         @portDoubleClick="(...args) => emit('outputPortDoubleClick', ...args)"
         @update:hoverAnim="emit('update:hoverAnim', $event)"
         @update:nodeHovered="outputHovered = $event"
       />
     </svg>
-    <SmallPlusButton
-      v-if="menuVisible"
-      :class="isVisualizationVisible ? 'afterNode' : 'belowMenu'"
-      @createNodes="setSoleSelected(), emit('createNodes', $event)"
-    />
   </div>
   <PointFloatingMenu v-if="showMenuAt" :point="showMenuAt" @close="showMenuAt = undefined">
     <ComponentContextMenu @close="showMenuAt = undefined" />
@@ -636,11 +623,11 @@ const showMenuAt = ref<{ x: number; y: number }>()
   white-space: nowrap;
 }
 
-.selectionVisible .binding {
+.selected .binding {
   opacity: 1;
 }
 
-.CircularMenu {
+.ComponentMenu {
   z-index: 25;
   &.partial {
     z-index: 1;
@@ -693,7 +680,7 @@ const showMenuAt = ref<{ x: number; y: number }>()
   transition: opacity 0.2s ease-in-out;
 }
 
-.GraphNode.selectionVisible .statuses {
+.GraphNode.selected .statuses {
   opacity: 0;
 }
 

@@ -83,10 +83,17 @@ add_specs suite_builder =
             text_set.compute Statistic.Maximum . should_equal "D"
 
         group_builder.specify "should be able to get sum of values" <|
-            simple_set.compute Statistic.Sum . should_equal 15 epsilon=double_error
+            int_sum = simple_set.compute Statistic.Sum
+            int_sum.should_equal 15
+            int_sum.should_be_a Integer
             number_set.compute Statistic.Sum . should_equal -101.28 epsilon=double_error
             missing_set.compute Statistic.Sum . should_equal -81.8 epsilon=double_error
             with_nans_set.compute Statistic.Sum . should_equal -81.8 epsilon=double_error
+
+        group_builder.specify "should be able to get a sum of big integer values" <|
+            r1 = [2^62, 2^62, 2^62, 2^62, 2^62].compute ..Sum
+            r1.should_equal (5 * 2^62)
+            r1.should_be_a Integer
 
         group_builder.specify "should be able to get product of values" <|
             simple_set.compute Statistic.Product . should_equal 120 epsilon=double_error
@@ -371,4 +378,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

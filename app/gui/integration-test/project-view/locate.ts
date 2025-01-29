@@ -79,13 +79,14 @@ export const graphEditor = componentLocator('.GraphEditor')
 export const codeEditor = componentLocator('.CodeEditor')
 export const anyVisualization = componentLocator('.GraphVisualization')
 export const loadingVisualization = componentLocator('.LoadingVisualization')
-export const circularMenu = componentLocator('.CircularMenu')
+export const componentMenu = componentLocator('.ComponentMenu')
 export const addNewNodeButton = componentLocator('.PlusButton')
 export const componentBrowser = componentLocator('.ComponentBrowser')
 export const nodeOutputPort = componentLocator('.outputPortHoverArea')
-export const smallPlusButton = componentLocator('.SmallPlusButton')
-export const editorRoot = componentLocator('.EditorRoot')
-export const nodeComment = componentLocator('.GraphNodeComment div[contentEditable]')
+export const createNodeFromPort = componentLocator('.CreateNodeFromPortButton .plusIcon')
+export const editorRoot = componentLocator('.CodeMirror')
+export const nodeComment = componentLocator('.GraphNodeComment')
+export const nodeCommentContent = componentLocator('.GraphNodeComment div[contentEditable]')
 
 /**
  * A not-selected variant of Component Browser Entry.

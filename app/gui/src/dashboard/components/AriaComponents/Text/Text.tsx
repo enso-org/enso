@@ -9,13 +9,15 @@ import * as twv from '#/utilities/tailwindVariants'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { forwardRef } from '#/utilities/react'
 import { memo } from 'react'
+import type { TestIdProps } from '../types'
 import * as textProvider from './TextProvider'
 import * as visualTooltip from './useVisualTooltip'
 
 /** Props for the Text component */
 export interface TextProps
   extends Omit<aria.TextProps, 'color'>,
-    twv.VariantProps<typeof TEXT_STYLE> {
+    twv.VariantProps<typeof TEXT_STYLE>,
+    TestIdProps {
   readonly elementType?: keyof HTMLElementTagNameMap
   readonly lineClamp?: number
   readonly tooltip?: React.ReactElement | string | false | null
@@ -34,7 +36,9 @@ export const TEXT_STYLE = twv.tv({
       primary: 'text-primary',
       danger: 'text-danger',
       success: 'text-accent-dark',
-      disabled: 'text-primary/30',
+      accent: 'text-accent-dark',
+      muted: 'text-primary/40',
+      disabled: 'text-disabled',
       invert: 'text-invert',
       inherit: 'text-inherit',
       current: 'text-current',
@@ -51,7 +55,7 @@ export const TEXT_STYLE = twv.tv({
       body: 'text-xs leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-medium',
       // eslint-disable-next-line @typescript-eslint/naming-convention
       'body-sm':
-        'text-[10.5px] leading-[16px] before:h-[1.5px] after:h-[1.5px] macos:before:h-[0.5px] macos:after:h-[2.5px] font-medium',
+        'text-[10.5px] leading-[16px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-medium',
       h1: 'text-xl leading-[29px] before:h-0.5 after:h-[5px] macos:before:h-[3px] macos:after:h-[3px] font-bold',
       subtitle:
         'text-[13.5px] leading-[19px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-bold',
@@ -81,7 +85,7 @@ export const TEXT_STYLE = twv.tv({
     },
     truncate: {
       /* eslint-disable @typescript-eslint/naming-convention */
-      '1': 'truncate ellipsis',
+      '1': 'block truncate ellipsis',
       '2': 'line-clamp-2 ellipsis',
       '3': 'line-clamp-3 ellipsis',
       '4': 'line-clamp-4 ellipsis',
@@ -142,6 +146,7 @@ export const Text = memo(
       children,
       color,
       balance,
+      testId,
       elementType: ElementType = 'span',
       tooltip: tooltipElement = children,
       tooltipDisplay = 'whenOverflowing',
@@ -209,6 +214,7 @@ export const Text = memo(
             // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             mergeRefs.mergeRefs(ref, textElementRef)(el)
           }}
+          data-testid={testId}
           className={textClasses}
           {...aria.mergeProps<React.HTMLAttributes<HTMLElement>>()(
             ariaProps,
@@ -248,13 +254,14 @@ const Heading = memo(
   }),
 )
 
-Text.Heading = Heading
-
 /** Text group component. It's used to visually group text elements together */
-Text.Group = function TextGroup(props: React.PropsWithChildren) {
+function TextGroup(props: React.PropsWithChildren) {
   return (
     <textProvider.TextProvider value={{ isInsideTextComponent: true }}>
       {props.children}
     </textProvider.TextProvider>
   )
 }
+
+Text.Heading = Heading
+Text.Group = TextGroup

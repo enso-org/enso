@@ -65,9 +65,9 @@ class OperatorToFunctionTest extends MiniPassTest {
     val loc = new IdentifiedLocation(new Location(1, 33))
 
     val leftArg =
-      CallArgument.Specified(None, left, false, left.identifiedLocation())
+      new CallArgument.Specified(None, left, false, left.identifiedLocation())
     val rightArg =
-      CallArgument.Specified(None, right, false, right.identifiedLocation())
+      new CallArgument.Specified(None, right, false, right.identifiedLocation())
 
     val binOp =
       Operator.Binary(leftArg, name, rightArg, loc)
@@ -84,23 +84,23 @@ class OperatorToFunctionTest extends MiniPassTest {
   // === The Tests ============================================================
   val opName =
     Name.Literal("=:=", isMethod = true, null)
-  val left     = Empty(null)
-  val right    = Empty(null)
-  val rightArg = CallArgument.Specified(None, Empty(null), false, null)
+  val left     = new Empty(null)
+  val right    = new Empty(null)
+  val rightArg = new CallArgument.Specified(None, new Empty(null), false, null)
 
   val (operator, operatorFn) = genOprAndFn(opName, left, right)
 
-  val oprArg   = CallArgument.Specified(None, operator, false, null)
-  val oprFnArg = CallArgument.Specified(None, operatorFn, false, null)
+  val oprArg   = new CallArgument.Specified(None, operator, false, null)
+  val oprFnArg = new CallArgument.Specified(None, operatorFn, false, null)
 
   "Operators" should {
     val opName =
       Name.Literal("=:=", isMethod = true, identifiedLocation = null)
-    val left  = Empty(identifiedLocation = null)
-    val right = Empty(identifiedLocation = null)
-    val rightArg = CallArgument.Specified(
+    val left  = new Empty(null)
+    val right = new Empty(null)
+    val rightArg = new CallArgument.Specified(
       None,
-      Empty(identifiedLocation = null),
+      new Empty(null),
       false,
       identifiedLocation = null
     )
@@ -108,9 +108,19 @@ class OperatorToFunctionTest extends MiniPassTest {
     val (operator, operatorFn) = genOprAndFn(opName, left, right)
 
     val oprArg =
-      CallArgument.Specified(None, operator, false, identifiedLocation = null)
+      new CallArgument.Specified(
+        None,
+        operator,
+        false,
+        identifiedLocation = null
+      )
     val oprFnArg =
-      CallArgument.Specified(None, operatorFn, false, identifiedLocation = null)
+      new CallArgument.Specified(
+        None,
+        operatorFn,
+        false,
+        identifiedLocation = null
+      )
 
     "be translated to functions" in {
       OperatorToFunctionTestPass.runExpression(

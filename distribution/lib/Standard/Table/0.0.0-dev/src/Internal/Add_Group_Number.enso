@@ -1,0 +1,50 @@
+private
+
+from Standard.Base import all
+import Standard.Base.Errors.Common.Unsupported_Argument_Types
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import project.Column.Column
+import project.Grouping_Method.Grouping_Method
+import project.Internal.Java_Problems
+import project.Internal.Problem_Builder.Problem_Builder
+import project.Internal.Table_Helpers
+import project.Set_Mode.Set_Mode
+import project.Table.Table
+from project.Internal.Add_Row_Number import rename_columns_if_needed
+
+polyglot java import java.lang.ArithmeticException
+polyglot java import org.enso.table.operations.AddGroupNumber
+
+add_group_number (table:Table) (grouping_method:Grouping_Method) (name:Text) (from:Integer) (step:Integer) (on_problems:Problem_Behavior=..Report_Warning) -> Table =
+    problem_builder = Problem_Builder.new error_on_missing_columns=True
+
+    handle_arithmetic_exception _ =
+        Error.throw (Illegal_Argument.Error "The row number has exceeded the 64-bit integer range. BigInteger numbering is currently not supported. Please use a smaller start/step.")
+
+    Panic.catch ArithmeticException handler=handle_arithmetic_exception <| Panic.catch Unsupported_Argument_Types handler=handle_arithmetic_exception <|
+        Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+            new_storage = case grouping_method of
+                Grouping_Method.Unique group_by ->
+                    _illegal_if group_by.is_empty "..Unique requires a non-empty 'group_by'" <|
+                        grouping = _prepare_group_by table problem_builder group_by
+                        AddGroupNumber.numberGroupsUnique table.row_count from step grouping java_problem_aggregator
+                Grouping_Method.Equal_Count group_count order_by ->
+                    _illegal_if (group_count < 1) "group_count must be at least 1" <|
+                        ordering = _prepare_ordering table problem_builder order_by
+                        AddGroupNumber.numberGroupsEqualCount table.row_count group_count from step (ordering.at 0) (ordering.at 1) java_problem_aggregator
+            new_column = Column.from_storage name new_storage
+            renamed_table = rename_columns_if_needed table name on_problems Table.new
+            problem_builder.attach_problems_before on_problems <| 
+                renamed_table.set new_column name set_mode=Set_Mode.Add
+
+_prepare_group_by table problem_builder group_by =
+    table.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder . map c->c.java_column
+
+_prepare_ordering table problem_builder order_by =
+    ordering = Table_Helpers.resolve_order_by table.columns order_by problem_builder
+    ordering_columns = ordering.map c->c.column.java_column
+    directions = ordering.map c->c.associated_selector.direction.to_sign
+    [ordering_columns, directions]
+
+_illegal_if b msg ~cont = if b then Error.throw (Illegal_Argument.Error msg) else cont

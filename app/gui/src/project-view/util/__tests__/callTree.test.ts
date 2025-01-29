@@ -2,6 +2,7 @@ import * as widgetCfg from '@/providers/widgetRegistry/configuration'
 import { GraphDb } from '@/stores/graph/graphDatabase'
 import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
 import { SuggestionDb } from '@/stores/suggestionDatabase'
+import { type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import {
   makeArgument,
   makeConstructor,
@@ -9,10 +10,9 @@ import {
   makeModule,
   makeModuleMethod,
   makeType,
-  type SuggestionEntry,
-} from '@/stores/suggestionDatabase/entry'
+} from '@/stores/suggestionDatabase/mockSuggestion'
 import { Ast } from '@/util/ast'
-import type { AstId } from '@/util/ast/abstract'
+import { type AstId } from '@/util/ast/abstract'
 import {
   ArgumentApplication,
   ArgumentAst,
@@ -20,17 +20,19 @@ import {
   getMethodCallInfoRecursively,
   interpretCall,
 } from '@/util/callTree'
+import { type MethodCall } from '@/util/methodPointer'
+import { parseAbsoluteProjectPath } from '@/util/projectPath'
+import { tryQualifiedName, type Identifier } from '@/util/qualifiedName'
 import { fail } from 'assert'
 import { assert, expect, test } from 'vitest'
-import type { ExpressionUpdatePayload, MethodCall } from 'ydoc-shared/languageServerTypes'
-import { assertEqual, assertNotEqual } from 'ydoc-shared/util/assert'
+import type { ExpressionUpdatePayload } from 'ydoc-shared/languageServerTypes'
+import { assertDefined, assertEqual, assertNotEqual } from 'ydoc-shared/util/assert'
+import { unwrap } from 'ydoc-shared/util/data/result'
 
 const prefixFixture = {
-  allowInfix: false,
-  mockSuggestion: {
-    ...makeModuleMethod('local.Foo.Bar.func'),
-    arguments: ['self', 'a', 'b', 'c', 'd'].map((name) => makeArgument(name)),
-  },
+  mockSuggestion: makeModuleMethod('local.Foo.Bar.func', {
+    args: ['self', 'a', 'b', 'c', 'd'].map((name) => makeArgument(name)),
+  }),
   argsParameters: new Map<string, widgetCfg.WidgetConfiguration & widgetCfg.WithDisplay>([
     [
       'a',
@@ -42,11 +44,9 @@ const prefixFixture = {
 }
 
 const infixFixture = {
-  allowInfix: true,
-  mockSuggestion: {
-    ...makeMethod('local.Foo.Bar.Buz.+'),
-    arguments: ['lhs', 'rhs'].map((name) => makeArgument(name)),
-  },
+  mockSuggestion: makeMethod('local.Foo.Bar.Buz.+', {
+    args: ['lhs', 'rhs'].map((name) => makeArgument(name)),
+  }),
   argsParameters: new Map<string, widgetCfg.WidgetConfiguration & widgetCfg.WithDisplay>([
     [
       'lhs',
@@ -96,19 +96,16 @@ test.each`
   ${'x +'}                   | ${'@lhs ?rhs'}         | ${infixFixture}
 `(
   "Creating argument application's info: $expression $expectedPattern",
-  ({
-    expression,
-    expectedPattern,
-    fixture: { allowInfix, mockSuggestion, argsParameters },
-  }: TestData) => {
+  ({ expression, expectedPattern, fixture: { mockSuggestion, argsParameters } }: TestData) => {
     const ast = Ast.parseExpression(expression.trim())
+    assertDefined(ast)
 
     const configuration: widgetCfg.FunctionCall = {
       kind: 'FunctionCall',
       parameters: argsParameters,
     }
 
-    const interpreted = interpretCall(ast, allowInfix)
+    const interpreted = interpretCall(ast)
     const call = ArgumentApplication.FromInterpretedWithInfo(interpreted, {
       suggestion: mockSuggestion,
       widgetCfg: configuration,
@@ -131,7 +128,7 @@ interface TestCase {
   expectedNotAppliedArguments: number[]
 }
 
-test.each([
+test.each<TestCase>([
   {
     description: 'Base case',
     code: 'Aggregate_Column.Sum',
@@ -202,19 +199,21 @@ test.each([
     notAppliedArguments: [0, 1],
     expectedNotAppliedArguments: [],
   },
-] as TestCase[])(
+])(
   'Getting MethodCallInfo for sub-applications: $description',
   ({ code, subapplicationIndex, notAppliedArguments, expectedNotAppliedArguments }: TestCase) => {
     const { db, expectedMethodCall, expectedSuggestion, setExpressionInfo } =
       prepareMocksForGetMethodCallTest()
     const ast = Ast.parseExpression(code)
+    assertDefined(ast)
     db.updateExternalIds(ast)
     const subApplication = nthSubapplication(ast, subapplicationIndex)
     assert(subApplication)
     setExpressionInfo(subApplication.id, {
       typename: undefined,
+      rawTypename: undefined,
       methodCall: { ...expectedMethodCall, notAppliedArguments },
-      payload: { type: 'Pending' } as ExpressionUpdatePayload,
+      payload: { type: 'Pending' },
       profilingInfo: [],
     })
 
@@ -228,10 +227,10 @@ test.each([
 )
 
 interface ArgsTestCase extends TestCase {
-  expectedSameIds: Array<[string, string]>
+  expectedSameIds: Array<[string, string | undefined | null]>
 }
 
-test.each([
+test.each<ArgsTestCase>([
   {
     description: 'Base case',
     code: 'Aggregate_Column.Sum',
@@ -341,16 +340,18 @@ test.each([
       ['0', 'column'],
     ],
   },
-] as ArgsTestCase[])(
+])(
   'Computing IDs of arguments: $description',
   ({ code, subapplicationIndex, notAppliedArguments, expectedSameIds }: ArgsTestCase) => {
     const { db, expectedMethodCall, setExpressionInfo } = prepareMocksForGetMethodCallTest()
     const ast = Ast.parseExpression(code)
+    assertDefined(ast)
     const subApplication = nthSubapplication(ast, subapplicationIndex)
     assert(subApplication)
     db.updateExternalIds(ast)
     setExpressionInfo(subApplication.id, {
       typename: undefined,
+      rawTypename: undefined,
       methodCall: { ...expectedMethodCall, notAppliedArguments },
       payload: { type: 'Pending' } as ExpressionUpdatePayload,
       profilingInfo: [],
@@ -386,6 +387,11 @@ test.each([
   },
 )
 
+function stdPath(path: string) {
+  assert(path.startsWith('Standard.'))
+  return unwrap(parseAbsoluteProjectPath(unwrap(tryQualifiedName(path))))
+}
+
 function prepareMocksForGetMethodCallTest(): {
   db: GraphDb
   expectedMethodCall: MethodCall
@@ -395,22 +401,29 @@ function prepareMocksForGetMethodCallTest(): {
   const suggestionDb = new SuggestionDb()
   suggestionDb.set(1, makeModule('Standard.Table.Aggregate_Column'))
   suggestionDb.set(2, makeType('Standard.Table.Aggregate_Column.Aggregate_Column'))
-  const con = makeConstructor('Standard.Table.Aggregate_Column.Aggregate_Column.Sum')
-  con.arguments = [makeArgument('column', 'Any'), makeArgument('as', 'Any')]
-  suggestionDb.set(3, con)
-  const expectedSuggestion = suggestionDb.get(3)!
+  suggestionDb.set(
+    3,
+    makeConstructor('Standard.Table.Aggregate_Column.Aggregate_Column.Sum', {
+      args: [makeArgument('column', 'Any'), makeArgument('as', 'Any')],
+    }),
+  )
+  const expectedSuggestion = suggestionDb.get(3)
+  assertDefined(expectedSuggestion)
   const registry = ComputedValueRegistry.Mock()
   const db = GraphDb.Mock(registry, suggestionDb)
   const expectedMethodCall = {
     methodPointer: {
-      module: 'Standard.Table.Aggregate_Column',
-      definedOnType: 'Standard.Table.Aggregate_Column.Aggregate_Column',
-      name: 'Sum',
+      module: stdPath('Standard.Table.Aggregate_Column'),
+      definedOnType: stdPath('Standard.Table.Aggregate_Column.Aggregate_Column'),
+      name: 'Sum' as Identifier,
     },
     notAppliedArguments: [0, 1],
   }
-  const setExpressionInfo = (id: AstId, info: ExpressionInfo) =>
-    registry.db.set(db.idToExternal(id)!, info)
+  const setExpressionInfo = (id: AstId, info: ExpressionInfo) => {
+    const externalId = db.idToExternal(id)
+    assertDefined(externalId)
+    registry.db.set(externalId, info)
+  }
   return { db, expectedMethodCall, expectedSuggestion, setExpressionInfo }
 }
 
@@ -423,7 +436,7 @@ function nthSubapplication(root: Ast.Ast, n: number): Ast.Ast | undefined {
   return current
 }
 
-function printArgPattern(application: ArgumentApplication | Ast.Ast) {
+function printArgPattern(application: ArgumentApplication | Ast.Expression) {
   const parts: string[] = []
   let current: ArgumentApplication['target'] = application
 
@@ -441,7 +454,7 @@ function printArgPattern(application: ArgumentApplication | Ast.Ast) {
 }
 
 function checkArgsConfig(
-  application: ArgumentApplication | Ast.Ast,
+  application: ArgumentApplication | Ast.Expression,
   argConfig: Map<string, widgetCfg.WidgetConfiguration | widgetCfg.WithDisplay>,
 ) {
   let current: ArgumentApplication['target'] = application

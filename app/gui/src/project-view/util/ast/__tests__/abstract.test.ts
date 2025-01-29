@@ -30,14 +30,6 @@ test('Raw block abstracts to Ast.BodyBlock', () => {
 const normalizingCases = [
   { input: ' a', normalized: '    a' },
   { input: 'a ', normalized: 'a \n' },
-  {
-    input: ['main =', '  foo', ' bar', '  baz'].join('\n'),
-    normalized: ['main =', '  foo', '  bar', '  baz'].join('\n'),
-  },
-  {
-    input: ['main =', '  foo', ' bar', 'baz'].join('\n'),
-    normalized: ['main =', '  foo', '  bar', 'baz'].join('\n'),
-  },
 ]
 const cases = [
   'Console.',
@@ -383,6 +375,8 @@ const cases = [
   '\n\n',
   '\na',
   '\n\na',
+  ['main =', '  foo', ' bar', '  baz'].join('\n'),
+  ['main =', '  foo', ' bar', 'baz'].join('\n'),
   ...normalizingCases,
 ]
 test.each(cases)('parse/print round-trip: %s', (testCase) => {
@@ -671,6 +665,30 @@ describe('Code edit', () => {
     expect(after.arg2.id).toBe(before.arg2.id)
     expect(after['func 123'].id).toBe(before['func arg1'].id)
     expect(after['func 123 arg2'].id).toBe(before['func arg1 arg2'].id)
+  })
+
+  test('syncToCode does not create unneeded AST nodes', () => {
+    const beforeRoot = Ast.parseModule('main = func 1 2\n')
+    beforeRoot.module.setRoot(beforeRoot)
+    const edit = beforeRoot.module.edit()
+    const newCode = 'main = func 10 2\n'
+    let changes: Record<string, number> | undefined = undefined
+    edit.observe(
+      (update) =>
+        (changes = {
+          added: update.nodesAdded.size,
+          deleted: update.nodesDeleted.size,
+          updated: update.nodesUpdated.size,
+        }),
+    )
+    edit.syncToCode(newCode)
+    expect(edit.root()?.code()).toBe(newCode)
+    expect(edit.root()?.id).toBe(beforeRoot.id)
+    expect(changes).toEqual({
+      added: 0,
+      deleted: 0,
+      updated: 1,
+    })
   })
 
   test('Insert argument names', () => {

@@ -6,12 +6,10 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.function.Function;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterOutputStream;
-import org.enso.ydoc.Polyfill;
 import org.enso.ydoc.polyfill.Arguments;
-import org.graalvm.polyglot.Context;
-import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.ByteSequence;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
@@ -19,7 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Implements the <a href="https://nodejs.org/api/zlib.html">Zlib</a> Node.js interface. */
-final class Zlib implements Polyfill, ProxyExecutable {
+final class Zlib implements ProxyExecutable {
 
   private static final Logger log = LoggerFactory.getLogger(Zlib.class);
 
@@ -33,11 +31,9 @@ final class Zlib implements Polyfill, ProxyExecutable {
 
   private static final String ZLIB_JS = "zlib.js";
 
-  @Override
-  public void initialize(Context ctx) {
-    final var jsSource = Source.newBuilder("js", getClass().getResource(ZLIB_JS)).buildLiteral();
-
-    ctx.eval(jsSource).execute(this);
+  final void initialize(Function<java.net.URL, Value> eval) {
+    var fn = eval.apply(getClass().getResource(ZLIB_JS));
+    fn.execute(this);
   }
 
   @Override

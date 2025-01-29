@@ -134,7 +134,9 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
         group_builder.specify "should fail if an unsupported type is specified" <|
             run_with_and_without_output <|
                 r1 = data.connection.create_table (Name_Generator.random_name "creating-table") structure=[Column_Description.Value "X" Value_Type.Integer, Column_Description.Value "Y" Value_Type.Mixed] temporary=True
-                r1.should_fail_with Unsupported_Database_Type
+                r1.should_fail_with Illegal_Argument
+                r1.to_display_text . should_contain "Definition for column [Y] is invalid"
+                r1.to_display_text . should_contain "do not support Mixed types"
 
         group_builder.specify "should fail if empty structure is provided" <|
             run_with_and_without_output <|
@@ -242,7 +244,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
         group_builder.specify "should not issue a DELETE statement for the original table name in dry run mode, even if the table does not exist" <|
             original_table_name = Name_Generator.random_name "no-delete-test"
 
-            log_file = enso_project.data / "transient" / "sql.log"
+            log_file = (Project_Description.new enso_dev.Table_Tests).data / "transient" / "sql.log"
             log_file.delete_if_exists
             Test_Environment.unsafe_with_environment_override "ENSO_SQL_LOG_PATH" log_file.absolute.path <|
                 Context.Output.with_disabled <|
@@ -498,7 +500,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
             copied_table = db_table.select_into_database_table tmp_connection (Name_Generator.random_name "copied-table") temporary=False
             copied_table.is_trivial_query . should_be_true
             name = copied_table.name
-            Panic.with_finalizer (data.connection.drop_table name) <|
+            Panic.with_finalizer (data.connection.drop_table name if_exists=True) <|
                 setup.expect_integer_type <| copied_table.at "X"
                 copied_table.at "Y" . value_type . is_text . should_be_true
                 copied_table.at "Z" . value_type . is_floating_point . should_be_true

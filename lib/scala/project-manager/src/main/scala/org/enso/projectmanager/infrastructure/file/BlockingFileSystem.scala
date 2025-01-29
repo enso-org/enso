@@ -73,7 +73,10 @@ class BlockingFileSystem[F[+_, +_]: Sync: ErrorChannel](
   /** @inheritdoc */
   override def createDir(path: File): F[FileSystemFailure, Unit] =
     Sync[F]
-      .blockingOp { FileUtils.forceMkdir(path) }
+      .blockingOp {
+        if (path.exists()) throw new FileExistsException()
+        FileUtils.forceMkdir(path)
+      }
       .mapError(toFsFailure)
       .timeoutFail(OperationTimeout)(ioTimeout)
 

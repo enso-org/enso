@@ -1,5 +1,6 @@
-import { expect, test } from 'playwright/test'
+import { test } from 'playwright/test'
 import * as actions from './actions'
+import { expect } from './customExpect'
 import { mockCollapsedFunctionInfo, mockMethodCallInfo } from './expressionUpdates'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
@@ -91,4 +92,20 @@ test('Documentation reflects entered function', async ({ page }) => {
 
   // Editor should contain collapsed function's docs
   await expect(locate.editorRoot(locate.rightDock(page))).toHaveText('A collapsed function')
+})
+
+test('Link in documentation is rendered and interactive', async ({ page, context }) => {
+  await actions.goToGraph(page)
+  await page.keyboard.press(`${CONTROL_KEY}+D`)
+  await expect(locate.rightDock(page)).toBeVisible()
+  const docs = locate.editorRoot(locate.rightDock(page)).first()
+  await expect(docs.locator('a')).toHaveAccessibleDescription(/Click to edit.*Click to open link/)
+  await expect(docs.locator('a')).toHaveText('https://example.com')
+  await docs.locator('a').click()
+  await expect(docs.locator('.LinkEditPopup')).toExist()
+  await locate.graphEditor(page).click()
+  await expect(docs.locator('.LinkEditPopup')).not.toBeVisible()
+  const newPagePromise = new Promise<true>((resolve) => context.once('page', () => resolve(true)))
+  await docs.locator('a').click({ modifiers: ['ControlOrMeta'] })
+  await expect(() => newPagePromise).toPass({ timeout: 5000 })
 })

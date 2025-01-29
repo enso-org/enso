@@ -1,6 +1,7 @@
-import { normalizeQualifiedName, qnFromSegments } from '@/util/qualifiedName'
+import { qnFromSegments } from '@/util/qualifiedName'
 import type {
   Expression,
+  Identifier,
   IdentifierOrOperatorIdentifier,
   Mutable,
   MutableExpression,
@@ -131,11 +132,8 @@ export function deleteFromParentBlock(ast: MutableStatement) {
  *  operator-application tree are identifier expressions, return the identifiers from left to right.
  *  This is analogous to `ast.code().split(operator)`, but type-enforcing.
  */
-export function unrollOprChain(
-  ast: Ast,
-  leftAssociativeOperator: string,
-): IdentifierOrOperatorIdentifier[] | null {
-  const idents: IdentifierOrOperatorIdentifier[] = []
+export function unrollOprChain(ast: Ast, leftAssociativeOperator: string): Identifier[] | null {
+  const idents: Identifier[] = []
   let ast_: Ast | undefined = ast
   while (
     ast_ instanceof OprApp &&
@@ -169,23 +167,14 @@ export function unrollPropertyAccess(ast: Ast): IdentifierOrOperatorIdentifier[]
 }
 
 /** TODO: Add docs */
-export function parseIdent(ast: Ast): IdentifierOrOperatorIdentifier | null {
-  if (ast instanceof Ident) {
-    return ast.code()
-  } else {
-    return null
-  }
-}
-
-/** TODO: Add docs */
-export function parseIdents(ast: Ast): IdentifierOrOperatorIdentifier[] | null {
+export function parseIdents(ast: Ast): Identifier[] | null {
   return unrollOprChain(ast, ',')
 }
 
-/** TODO: Add docs */
-export function parseQualifiedName(ast: Ast): QualifiedName | null {
+/** If the syntax tree represents a valid qualified name, return an equivalent {@link QualifiedName}. */
+export function astToQualifiedName(ast: Ast): QualifiedName | null {
   const idents = unrollPropertyAccess(ast)
-  return idents && normalizeQualifiedName(qnFromSegments(idents))
+  return idents && qnFromSegments(idents)
 }
 
 /**
@@ -223,7 +212,7 @@ export function substituteQualifiedName(
   to: QualifiedName,
 ) {
   if (expr instanceof MutablePropertyAccess || expr instanceof MutableIdent) {
-    const qn = parseQualifiedName(expr)
+    const qn = astToQualifiedName(expr)
     if (qn === pattern) {
       expr.updateValue(() => parseExpression(to, expr.module)!)
     } else if (qn && qn.startsWith(pattern)) {
@@ -348,7 +337,7 @@ export function parseUpdatingIdMap(
     if (idMap) setExternalIds(root.module, spans, idMap)
     return { root, spans }
   })
-  const getSpan = spanMapToSpanGetter(spans)
+  const getSpan = spanMapToSpanGetter(spans.nodes)
   const idMapOut = spanMapToIdMap(spans)
   return { root, idMap: idMapOut, getSpan }
 }

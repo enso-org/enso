@@ -5,8 +5,8 @@ use crate::syntax::maybe_with_error;
 use crate::syntax::operator::Precedence;
 use crate::syntax::statement::apply_excess_private_keywords;
 use crate::syntax::statement::compound_lines;
+use crate::syntax::statement::function_def::parse_args;
 use crate::syntax::statement::function_def::parse_constructor_definition;
-use crate::syntax::statement::function_def::parse_type_args;
 use crate::syntax::statement::parse_statement;
 use crate::syntax::statement::scan_private_keywords;
 use crate::syntax::statement::EvaluationContext;
@@ -66,7 +66,7 @@ pub fn try_parse_type_def<'s>(
         default()
     };
 
-    let params = parse_type_args(items, start + 2, precedence, args_buffer);
+    let params = parse_args(items, start + 2, precedence, args_buffer);
 
     let name = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
 

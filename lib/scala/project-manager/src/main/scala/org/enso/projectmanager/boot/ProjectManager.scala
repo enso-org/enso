@@ -111,7 +111,10 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         .as("")
     }
 
-  private def killAllLanguageServer(mainModule: MainModule[ZIO[ZAny, +*, +*]]) =
+  @scala.annotation.nowarn("msg=pure expression does nothing")
+  private def killAllLanguageServer(
+    mainModule: MainModule[ZIO[ZAny, +*, +*]]
+  ): ZIO[ZAny, Nothing, Unit] =
     mainModule.languageServerGateway
       .killAllServers()
       .foldZIO(

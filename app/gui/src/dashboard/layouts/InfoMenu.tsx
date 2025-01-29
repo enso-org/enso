@@ -9,6 +9,7 @@ import SvgMask from '#/components/SvgMask'
 import AboutModal from '#/modals/AboutModal'
 import { useAuth } from '#/providers/AuthProvider'
 import { useSetModal } from '#/providers/ModalProvider'
+import { useSessionAPI } from '#/providers/SessionProvider.tsx'
 import { useText } from '#/providers/TextProvider'
 
 // ================
@@ -23,12 +24,14 @@ export interface InfoMenuProps {
 /** A menu containing info about the app. */
 export default function InfoMenu(props: InfoMenuProps) {
   const { hidden = false } = props
-  const { signOut, session } = useAuth()
+
+  const { signOut } = useSessionAPI()
+  const { session } = useAuth()
   const { setModal } = useSetModal()
   const { getText } = useText()
 
   return (
-    <Popover {...(!hidden ? { testId: 'info-menu' } : {})} size="xxsmall">
+    <Popover {...(!hidden ? { 'data-testid': 'info-menu' } : {})} size="xxsmall">
       <div className="mb-2 flex items-center gap-icons overflow-hidden px-menu-entry transition-all duration-user-menu">
         <SvgMask src={LogoIcon} className="pointer-events-none h-7 w-7 text-primary" />
         <Text>{PRODUCT_NAME}</Text>

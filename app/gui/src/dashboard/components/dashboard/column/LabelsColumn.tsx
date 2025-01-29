@@ -11,7 +11,6 @@ import * as textProvider from '#/providers/TextProvider'
 
 import { Button, DialogTrigger } from '#/components/AriaComponents'
 import ContextMenu from '#/components/ContextMenu'
-import ContextMenus from '#/components/ContextMenus'
 import type * as column from '#/components/dashboard/column'
 import Label from '#/components/dashboard/Label'
 import MenuEntry from '#/components/MenuEntry'
@@ -20,7 +19,10 @@ import ManageLabelsModal from '#/modals/ManageLabelsModal'
 
 import * as backendModule from '#/services/Backend'
 
+import { useStore } from '#/hooks/storeHooks'
+import { useDriveStore } from '#/providers/DriveProvider'
 import * as permissions from '#/utilities/permissions'
+import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 
 // ====================
 // === LabelsColumn ===
@@ -28,13 +30,18 @@ import * as permissions from '#/utilities/permissions'
 
 /** A column listing the labels on this asset. */
 export default function LabelsColumn(props: column.AssetColumnProps) {
-  const { item, state, rowState } = props
+  const { item, state } = props
   const { backend, category, setQuery } = state
-  const { temporarilyAddedLabels, temporarilyRemovedLabels } = rowState
   const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const { data: labels } = backendHooks.useBackendQuery(backend, 'listTags', [])
+  const driveStore = useDriveStore()
+  const showDraggedLabelsFallback = useStore(
+    driveStore,
+    ({ selectedKeys, isDraggingOverSelectedRow }) =>
+      isDraggingOverSelectedRow && selectedKeys.has(item.id),
+  )
   const labelsByName = React.useMemo(() => {
     return new Map(labels?.map((label) => [label.value, label]))
   }, [labels])
@@ -43,9 +50,41 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     category.type !== 'trash' &&
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)
+  const temporarilyAddedLabels = useStore(
+    driveStore,
+    ({ labelsDragPayload, dragTargetAssetId }) => {
+      const areTemporaryLabelsRelevant = (() => {
+        if (showDraggedLabelsFallback) {
+          return labelsDragPayload?.typeWhenAppliedToSelection === 'add'
+        } else {
+          return item.id === dragTargetAssetId
+        }
+      })()
+      if (areTemporaryLabelsRelevant) {
+        return labelsDragPayload?.labels ?? EMPTY_ARRAY
+      }
+      return EMPTY_ARRAY
+    },
+  )
+  const temporarilyRemovedLabels = useStore(
+    driveStore,
+    ({ labelsDragPayload, dragTargetAssetId }) => {
+      const areTemporaryLabelsRelevant = (() => {
+        if (showDraggedLabelsFallback) {
+          return labelsDragPayload?.typeWhenAppliedToSelection === 'remove'
+        } else {
+          return item.id === dragTargetAssetId
+        }
+      })()
+      if (areTemporaryLabelsRelevant) {
+        return labelsDragPayload?.labels ?? EMPTY_ARRAY
+      }
+      return EMPTY_ARRAY
+    },
+  )
 
   return (
-    <div className="group flex items-center gap-column-items contain-strict [contain-intrinsic-size:37px] [content-visibility:auto]">
+    <div className="group flex items-center gap-column-items">
       {(item.labels ?? [])
         .filter((label) => labelsByName.has(label))
         .map((label) => (
@@ -54,9 +93,9 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             data-testid="asset-label"
             title={getText('rightClickToRemoveLabel')}
             color={labelsByName.get(label)?.color ?? backendModule.COLORS[0]}
-            active={!temporarilyRemovedLabels.has(label)}
-            isDisabled={temporarilyRemovedLabels.has(label)}
-            negated={temporarilyRemovedLabels.has(label)}
+            active={!temporarilyRemovedLabels.includes(label)}
+            isDisabled={temporarilyRemovedLabels.includes(label)}
+            negated={temporarilyRemovedLabels.includes(label)}
             onContextMenu={(event) => {
               event.preventDefault()
               event.stopPropagation()
@@ -66,15 +105,13 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
                 void backend.associateTag(item.id, newLabels, item.title)
               }
               setModal(
-                <ContextMenus key={`label-${label}`} event={event}>
-                  <ContextMenu aria-label={getText('labelContextMenuLabel')}>
-                    <MenuEntry
-                      action="delete"
-                      label={getText('deleteLabelShortcut')}
-                      doAction={doDelete}
-                    />
-                  </ContextMenu>
-                </ContextMenus>,
+                <ContextMenu aria-label={getText('labelContextMenuLabel')} event={event}>
+                  <MenuEntry
+                    action="delete"
+                    label={getText('deleteLabelShortcut')}
+                    doAction={doDelete}
+                  />
+                </ContextMenu>,
               )
             }}
             onPress={(event) => {
@@ -86,7 +123,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             {label}
           </Label>
         ))}
-      {...[...temporarilyAddedLabels]
+      {temporarilyAddedLabels
         .filter((label) => item.labels?.includes(label) !== true)
         .map((label) => (
           <Label

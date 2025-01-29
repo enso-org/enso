@@ -29,24 +29,32 @@ final class ArraySlice extends EnsoObject {
   private final long start;
   private final long end;
 
-  private ArraySlice(Object storage, long start, long end) {
-    if (storage instanceof ArraySlice slice) {
+  private ArraySlice(Object base, long start, long end) {
+    var s = findStorage(base);
+    if (s instanceof ArraySlice slice) {
       this.storage = slice.storage;
       this.start = slice.start + start;
       this.end = Math.min(slice.end, slice.start + end);
     } else {
       if (CompilerDirectives.inInterpreter()) {
-        if (!InteropLibrary.getUncached().hasArrayElements(storage)) {
+        if (!InteropLibrary.getUncached().hasArrayElements(s)) {
           throw EnsoContext.get(null)
               .raiseAssertionPanic(
-                  null, "ArraySlice needs array-like delegate, but got: " + storage, null);
+                  null, "ArraySlice needs array-like delegate, but got: " + s, null);
         }
       }
-
-      this.storage = storage;
+      this.storage = s;
       this.start = start;
       this.end = end;
     }
+  }
+
+  private static Object findStorage(Object storage) {
+    return switch (storage) {
+      case Vector.Generic gen -> gen.toArray();
+      case ArraySlice slice -> slice;
+      default -> storage;
+    };
   }
 
   static Vector createOrNull(Object storage, long start, long this_length, long end) {

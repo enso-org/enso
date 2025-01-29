@@ -182,6 +182,7 @@ pub fn parse_args<'s>(
     items: &mut Vec<Item<'s>>,
     start: usize,
     precedence: &mut Precedence<'s>,
+    args_buffer: &mut Vec<ArgumentDefinition<'s>>,
 ) -> Vec<ArgumentDefinition<'s>> {
     let mut arg_starts = vec![];
     for (i, item) in items.iter().enumerate().skip(start) {
@@ -189,13 +190,11 @@ pub fn parse_args<'s>(
             arg_starts.push(i);
         }
     }
-    let mut defs: Vec<_> = arg_starts
-        .drain(..)
-        .rev()
-        .map(|arg_start| parse_arg_def(items, arg_start, precedence))
-        .collect();
-    defs.reverse();
-    defs
+    args_buffer.extend(
+        arg_starts.drain(..).rev().map(|arg_start| parse_arg_def(items, arg_start, precedence)),
+    );
+    debug_assert_eq!(items.len(), start);
+    args_buffer.drain(..).rev().collect()
 }
 
 pub fn parse_constructor_definition<'s>(
@@ -270,41 +269,10 @@ fn parse_constructor_decl<'s>(
     precedence: &mut Precedence<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
 ) -> (token::Ident<'s>, Vec<ArgumentDefinition<'s>>) {
-    let args = parse_type_args(items, start + 1, precedence, args_buffer);
+    let args = parse_args(items, start + 1, precedence, args_buffer);
     let name = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
     debug_assert_eq!(items.len(), start);
     (name, args)
-}
-
-pub fn parse_type_args<'s>(
-    items: &mut Vec<Item<'s>>,
-    start: usize,
-    precedence: &mut Precedence<'s>,
-    args_buffer: &mut Vec<ArgumentDefinition<'s>>,
-) -> Vec<ArgumentDefinition<'s>> {
-    if start == items.len() {
-        return default();
-    }
-    let mut arg_starts = vec![start];
-    let mut expecting_rhs = false;
-    for (i, item) in items.iter().enumerate().skip(start + 1) {
-        if expecting_rhs {
-            expecting_rhs = false;
-            continue;
-        }
-        if let Item::Token(Token { variant: token::Variant::AssignmentOperator(_), .. }) = item {
-            expecting_rhs = true;
-            continue;
-        }
-        if Spacing::of_item(item) == Spacing::Spaced {
-            arg_starts.push(i);
-        }
-    }
-    args_buffer.extend(
-        arg_starts.drain(..).rev().map(|arg_start| parse_arg_def(items, arg_start, precedence)),
-    );
-    debug_assert_eq!(items.len(), start);
-    args_buffer.drain(..).rev().collect()
 }
 
 pub fn try_parse_foreign_function<'s>(
@@ -493,12 +461,7 @@ fn parse_arg_def<'s>(
                 .or_else(|| open2.as_ref().map(|t| t.code.position_after()))
                 .or_else(|| open1.as_ref().map(|t| t.code.position_after()))
                 .or_else(|| type_.as_ref().map(|t| t.operator.left_offset.code.position_before()))
-                // Why does this one need a type annotation???
-                .or_else(|| {
-                    close2
-                        .as_ref()
-                        .map(|t: &token::CloseSymbol| t.left_offset.code.position_before())
-                })
+                .or_else(|| close2.as_ref().map(|t| t.left_offset.code.position_before()))
                 .or_else(|| default.as_ref().map(|t| t.equals.left_offset.code.position_before()))
                 .or_else(|| close1.as_ref().map(|t| t.left_offset.code.position_before()))
                 .unwrap(),

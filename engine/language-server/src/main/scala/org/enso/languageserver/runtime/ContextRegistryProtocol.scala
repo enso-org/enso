@@ -231,8 +231,17 @@ object ContextRegistryProtocol {
         )
       }
 
-      case class Pending(message: Option[String], progress: Option[Double])
-          extends Payload
+      /** Indicates that an expression is pending a computation
+        */
+      case class Pending(
+        message: Option[String],
+        progress: Option[Double],
+        wasInterrupted: Boolean
+      ) extends Payload
+
+      /** Indicates that an expression's computation has been interrupted and shall be retried.
+        */
+      case object PendingInterrupted extends Payload
 
       /** Indicates that the expression was computed to an error.
         *
@@ -257,6 +266,8 @@ object ContextRegistryProtocol {
         val Value = "Value"
 
         val Pending = "Pending"
+
+        val PendingInterrupted = "PendingInterrupted"
 
         val DataflowError = "DataflowError"
 
@@ -291,6 +302,14 @@ object ContextRegistryProtocol {
               .deepMerge(
                 Json.obj(CodecField.Type -> PayloadType.Pending.asJson)
               )
+          case m: Payload.PendingInterrupted.type =>
+            Encoder[Payload.PendingInterrupted.type]
+              .apply(m)
+              .deepMerge(
+                Json.obj(
+                  CodecField.Type -> PayloadType.PendingInterrupted.asJson
+                )
+              )
         }
 
       implicit val decoder: Decoder[Payload] =
@@ -307,6 +326,9 @@ object ContextRegistryProtocol {
 
             case PayloadType.Pending =>
               Decoder[Payload.Pending].tryDecode(cursor)
+
+            case PayloadType.PendingInterrupted =>
+              Decoder[Payload.PendingInterrupted.type].tryDecode(cursor)
           }
         }
     }

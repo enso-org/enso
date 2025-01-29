@@ -76,7 +76,7 @@ export function useRadioGroupContext(props: UseRadioGroupContextProps) {
 
   /**
    * Tells if a sibling Radio element is being pressed
-   * It's not the same as selected value, instead it says if a user is clicking on a sibling Radio element at the moment
+   * It's not the same as selected value, instead it says if a user is clicking on a sibling Radio element now.
    */
   const isSiblingPressed = context.pressedRadio != null && value !== context.pressedRadio
 

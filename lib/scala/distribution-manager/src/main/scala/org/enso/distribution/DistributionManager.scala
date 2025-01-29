@@ -138,9 +138,11 @@ class DistributionManager(val env: Environment) {
   /** Determines paths that should be used by the launcher.
     */
   lazy val paths: DistributionPaths = {
-    val paths = detectPaths()
+    detectPaths()
+  }
+
+  def logPaths(): Unit = {
     logger.debug("Detected paths: {}", paths)
-    paths
   }
 
   protected def detectPaths(): DistributionPaths = {

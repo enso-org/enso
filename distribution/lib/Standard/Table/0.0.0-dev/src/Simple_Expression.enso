@@ -68,7 +68,6 @@ type Simple_Expression
        Create a widget for operation
     default_widget table:Table_Ref display:Display=..Always -> Widget =
         with_everything = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True add_nothing=True
-        with_all_types = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True
         with_number_text = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True
         filter_cond = Widget_Helpers.make_filter_condition_selector table
 
@@ -87,8 +86,10 @@ type Simple_Expression
         ## Constants
         constants = make_any_selector add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True . values
         expression = Option "<Expression>" "(expr '["+table.column_names.first+"]')"
-        derived = Option "<Simple Expression>" "..Simple_Expr" [["input", with_all_types], ["operation", Single_Choice options]]
-        Single_Choice constants+[expression, derived] display=display
+
+        input_column = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True columns_first=True
+        derived = Option "<Simple Expression>" "..Simple_Expr" [["input", input_column], ["operation", Single_Choice options]]
+        Single_Choice [derived, expression]+constants display=display
 
 ## Defines a set of Text based operations.
 type Text_Operation

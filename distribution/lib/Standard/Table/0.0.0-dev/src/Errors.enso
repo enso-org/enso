@@ -891,9 +891,9 @@ type Mixing_Date_Time_Types
 
 ## Indicates that a table with no rows has been returned.
 type No_Rows
-   ## PRIVATE
-      The message should be used to provide additional context.
-   private Warning message:Text
+    ## PRIVATE
+       The message should be used to provide additional context.
+    private Warning message:Text
 
-   ## PRIVATE
-   to_display_text self -> Text = self.message
+    ## PRIVATE
+    to_display_text self -> Text = self.message

@@ -500,16 +500,15 @@ class RuntimeAsyncCommandsTest
 
     responses should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
-      TestMessages.update(
+      TestMessages.pendingInterrupted(
         contextId,
-        vId,
-        ConstantsGen.INTEGER,
         methodCall = Some(
           MethodCall(
             MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "loop"),
             Vector(1)
           )
-        )
+        ),
+        vId
       ),
       context.executionComplete(contextId)
     )

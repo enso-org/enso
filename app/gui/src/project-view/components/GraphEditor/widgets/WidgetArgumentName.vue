@@ -2,10 +2,11 @@
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectPortInfo } from '@/providers/portInfo'
 import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import { isRequiredArgument } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import { ApplicationKind, ArgumentInfoKey, ArgumentPlaceholder } from '@/util/callTree'
+import { ApplicationKind, ArgumentInfoKey } from '@/util/callTree'
 import { computed } from 'vue'
-import type { SuggestionEntryArgument } from 'ydoc-shared/languageServerTypes/suggestions'
+import { type SuggestionEntryArgument } from 'ydoc-shared/languageServerTypes/suggestions'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
@@ -19,7 +20,10 @@ const showArgumentValue = computed(() => {
   )
 })
 
-const placeholder = computed(() => props.input instanceof ArgumentPlaceholder)
+const missing = computed(
+  () =>
+    WidgetInput.isPlaceholder(props.input) && isRequiredArgument(props.input[ArgumentInfoKey].info),
+)
 const primary = computed(() => props.nesting < 2)
 
 const innerInput = computed(() => ({
@@ -30,7 +34,7 @@ const innerInput = computed(() => ({
 
 <script lang="ts">
 function hasKnownArgumentName(input: WidgetInput): input is WidgetInput & {
-  value: Ast.Ast | string | undefined
+  value: Exclude<WidgetInput['value'], Ast.Token>
   [ArgumentInfoKey]: { info: SuggestionEntryArgument }
 } {
   return !WidgetInput.isToken(input) && input[ArgumentInfoKey]?.info != null
@@ -41,10 +45,9 @@ export const widgetDefinition = defineWidget(
   {
     priority: 100,
     score: (props) => {
-      const isPlaceholder = !(props.input.value instanceof Ast.Ast)
       const isTopArg =
         props.nesting < 2 && props.input[ArgumentInfoKey].appKind === ApplicationKind.Prefix
-      return isPlaceholder || isTopArg ? Score.Perfect : Score.Mismatch
+      return WidgetInput.isPlaceholder(props.input) || isTopArg ? Score.Perfect : Score.Mismatch
     },
   },
   import.meta.hot,
@@ -54,8 +57,12 @@ export const ArgumentNameShownKey: unique symbol = Symbol.for('WidgetInput:Argum
 </script>
 
 <template>
-  <div class="WidgetArgumentName" :class="{ placeholder, primary }">
-    <span class="name widgetApplyPadding">{{ props.input[ArgumentInfoKey].info.name }}</span>
+  <div class="WidgetArgumentName" :class="{ primary, missing }">
+    <span class="name">
+      <span class="widgetApplyPadding" :class="{ widgetRounded: missing }">{{
+        props.input[ArgumentInfoKey].info.name
+      }}</span>
+    </span>
     <NodeWidget v-if="showArgumentValue" :input="innerInput" allowEmpty />
   </div>
 </template>
@@ -68,8 +75,17 @@ export const ArgumentNameShownKey: unique symbol = Symbol.for('WidgetInput:Argum
   gap: var(--widget-token-pad-unit);
 }
 
-.placeholder,
 .name {
   opacity: 0.6;
+  border-radius: var(--node-port-border-radius);
+  transition:
+    background-color,
+    color,
+    opacity 0.2s ease;
+  .missing & {
+    opacity: 1;
+    background-color: var(--color-missing-value);
+    color: var(--color-node-text-missing-value);
+  }
 }
 </style>

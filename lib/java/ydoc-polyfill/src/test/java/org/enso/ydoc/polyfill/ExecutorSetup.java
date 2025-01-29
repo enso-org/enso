@@ -5,6 +5,10 @@ import static org.junit.Assert.fail;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Source;
+import org.graalvm.polyglot.Value;
 import org.junit.After;
 import org.junit.Before;
 
@@ -27,5 +31,12 @@ public abstract class ExecutorSetup {
         fail("Pending " + pending.size() + " tasks: " + pending);
       }
     }
+  }
+
+  protected final Function<java.net.URL, Value> eval(Context ctx) {
+    return (url) -> {
+      var src = Source.newBuilder("js", url).buildLiteral();
+      return ctx.eval(src);
+    };
   }
 }

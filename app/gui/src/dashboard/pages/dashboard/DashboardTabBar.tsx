@@ -4,10 +4,9 @@ import NetworkIcon from '#/assets/network.svg'
 import SettingsIcon from '#/assets/settings.svg'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import TabBar from '#/layouts/TabBar'
+import TabBar, { ProjectTab, type ProjectTabProps, type TabProps } from '#/layouts/TabBar'
 
 import {
-  TabType,
   useLaunchedProjects,
   usePage,
   useSetPage,
@@ -17,7 +16,7 @@ import { useText } from '#/providers/TextProvider'
 import type { ProjectId } from '#/services/Backend'
 import type { TextId } from 'enso-common/src/text'
 
-/** The props for the {@link DashboardTabBar} component. */
+/** Props for a {@link DashboardTabBar}. */
 export interface DashboardTabBarProps {
   readonly onCloseProject: (project: LaunchedProject) => void
   readonly onOpenEditor: (projectId: ProjectId) => void
@@ -41,55 +40,60 @@ export function DashboardTabBar(props: DashboardTabBarProps) {
   })
 
   const onCloseSettings = useEventCallback(() => {
-    setPage(TabType.drive)
+    setPage('drive')
   })
 
-  const tabs = [
-    {
-      id: TabType.drive,
-      icon: DriveIcon,
-      'data-testid': 'drive-tab-button',
-      labelId: 'drivePageName' satisfies TextId,
-      isActive: page === TabType.drive,
-      children: getText('drivePageName'),
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      Component: TabBar.Tab,
-    },
-    ...launchedProjects.map(
-      (project) =>
-        ({
-          id: project.id,
-          icon: NetworkIcon,
-          'data-testid': 'editor-tab-button',
-          labelId: 'editorPageName' satisfies TextId,
-          // There is no shared enum type, but the other union member is the same type.
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
-          isActive: page === project.id,
-          children: project.title,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          Component: TabBar.ProjectTab,
-          project,
-          onClose,
-          onLoadEnd,
-        }) as const,
-    ),
-    {
-      id: TabType.settings,
-      icon: SettingsIcon,
-      labelId: 'settingsPageName' satisfies TextId,
-      'data-testid': 'settings-tab-button',
-      isHidden: page !== TabType.settings,
-      children: getText('settingsPageName'),
-      onClose: onCloseSettings,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      Component: TabBar.Tab,
-    },
-  ]
+  const tabs: readonly ((ProjectTabProps & { type: 'project' }) | (TabProps & { type: 'tab' }))[] =
+    [
+      {
+        type: 'tab',
+        id: 'drive',
+        icon: DriveIcon,
+        'data-testid': 'drive-tab-button',
+        labelId: 'drivePageName' satisfies TextId,
+        isActive: page === 'drive',
+        children: getText('drivePageName'),
+      },
+      ...launchedProjects.map(
+        (project) =>
+          ({
+            type: 'project',
+            id: project.id,
+            icon: NetworkIcon,
+            'data-testid': 'editor-tab-button',
+            labelId: 'editorPageName' satisfies TextId,
+            isActive: page === project.id,
+            children: project.title,
+            project,
+            onClose,
+            onLoadEnd,
+          }) as const,
+      ),
+      {
+        type: 'tab',
+        id: 'settings',
+        icon: SettingsIcon,
+        labelId: 'settingsPageName' satisfies TextId,
+        'data-testid': 'settings-tab-button',
+        isActive: true,
+        isHidden: page !== 'settings',
+        children: getText('settingsPageName'),
+        onClose: onCloseSettings,
+      },
+    ]
 
   return (
-    <TabBar className="bg-primary/5" items={tabs}>
-      {/* @ts-expect-error - Making ts happy here requires too much attention */}
-      {(tab) => <tab.Component {...tab} />}
+    <TabBar className="bg-primary/10" items={tabs}>
+      {(tabProps) => {
+        switch (tabProps.type) {
+          case 'tab': {
+            return <TabBar.Tab {...tabProps} />
+          }
+          case 'project': {
+            return <ProjectTab {...tabProps} />
+          }
+        }
+      }}
     </TabBar>
   )
 }

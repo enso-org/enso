@@ -1,5 +1,5 @@
 /** @file A panel to switch between settings tabs. */
-import type { Dispatch, SetStateAction } from 'react'
+import { memo, type Dispatch, type SetStateAction } from 'react'
 
 import { Header } from '#/components/aria'
 import { ButtonGroup } from '#/components/AriaComponents'
@@ -25,7 +25,7 @@ export interface SettingsSidebarProps {
 }
 
 /** A panel to switch between settings tabs. */
-export default function SettingsSidebar(props: SettingsSidebarProps) {
+function SettingsSidebar(props: SettingsSidebarProps) {
   const { context, tabsToShow, isMenu = false, tab, setTab } = props
   const { onClickCapture } = props
   const { getText } = useText()
@@ -91,3 +91,5 @@ export default function SettingsSidebar(props: SettingsSidebarProps) {
     </FocusArea>
   )
 }
+
+export default memo(SettingsSidebar)

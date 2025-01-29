@@ -10,16 +10,15 @@ import scala.sys.process._
 
 object NativeImage {
 
-  /** Specifies whether the build executable should include debug symbols.
-    * Should be set to false for production builds. May work only on Linux.
-    */
-  private val includeDebugInfo: Boolean = false
-
   lazy val smallJdk = taskKey[Option[File]]("Location of a minimal JDK")
   lazy val additionalCp =
     taskKey[Seq[String]](
       "Additional class-path entries to be added to the native image"
     )
+
+  lazy val additionalOpts = settingKey[Seq[String]](
+    "Additional options for the native-image tool"
+  )
 
   /** List of classes that should be initialized at build time by the native image.
     * Note that we strive to initialize as much classes during the native image build
@@ -64,9 +63,10 @@ object NativeImage {
     * of its resources directory. More information can be found at
     * [[https://github.com/oracle/graal/blob/master/substratevm/BuildConfiguration.md]].
     *
-    * @param artifactName name of the artifact to create
+    * @param name name of the artifact to create
     * @param staticOnLinux specifies whether to link statically (applies only
     *                      on Linux)
+    * @param excludeConfigs comma-separated list of jar-/file-patterns to exclude undesired NI configs
     * @param additionalOptions additional options for the Native Image build
     *                          tool
     * @param buildMemoryLimitMegabytes a memory limit for the build tool, in
@@ -87,6 +87,7 @@ object NativeImage {
     name: String,
     staticOnLinux: Boolean,
     targetDir: File                          = null,
+    excludeConfigs: Seq[String]              = Seq.empty,
     additionalOptions: Seq[String]           = Seq.empty,
     buildMemoryLimitMegabytes: Option[Int]   = Some(15608),
     runtimeThreadStackMegabytes: Option[Int] = Some(2),
@@ -97,7 +98,7 @@ object NativeImage {
   ): Def.Initialize[Task[Unit]] = Def
     .task {
       val log       = state.value.log
-      val targetLoc = artifactFile(targetDir, name, false)
+      val targetLoc = artifactFile(targetDir, name, withExtension = false)
 
       def nativeImagePath(prefix: Path)(path: Path): Path = {
         val base = path.resolve(prefix)
@@ -143,9 +144,6 @@ object NativeImage {
 
       }
 
-      val debugParameters =
-        if (includeDebugInfo) Seq("-H:GenerateDebugInfo=1") else Seq()
-
       val (staticParameters, pathExts) =
         if (staticOnLinux && Platform.isLinux) {
           // Note [Static Build On Linux]
@@ -168,9 +166,6 @@ object NativeImage {
           )
           Seq()
         }
-
-      val quickBuildOption =
-        if (BuildInfo.isReleaseMode) Seq() else Seq("-Ob")
 
       val buildMemoryLimitOptions =
         buildMemoryLimitMegabytes.map(megs => s"-J-Xmx${megs}M").toSeq
@@ -199,11 +194,16 @@ object NativeImage {
       log.debug("Class-path: " + cpStr)
 
       val verboseOpt = if (verbose) Seq("--verbose") else Seq()
+      val excludeConfigsOpt =
+        if (excludeConfigs.nonEmpty)
+          excludeConfigs.flatMap(ex => Seq("--exclude-config") ++ ex.split(","))
+        else Seq.empty
 
       var args: Seq[String] =
+        excludeConfigsOpt ++
         Seq("-cp", cpStr) ++
-        quickBuildOption ++
-        debugParameters ++ staticParameters ++ configs ++
+        staticParameters ++
+        configs ++
         Seq("--no-fallback", "--no-server") ++
         Seq("-march=compatibility") ++
         initializeAtBuildtimeOptions ++
@@ -211,6 +211,7 @@ object NativeImage {
         buildMemoryLimitOptions ++
         runtimeMemoryOptions ++
         additionalOptions ++
+        additionalOpts.value ++
         Seq("-o", targetLoc.toString)
 
       args = mainClass match {
@@ -253,7 +254,7 @@ object NativeImage {
         s"Started building $targetLoc native image. The output is captured."
       )
       val retCode    = process.!(processLogger)
-      val targetFile = artifactFile(targetDir, name, true)
+      val targetFile = artifactFile(targetDir, name)
       if (retCode != 0 || !targetFile.exists()) {
         log.error(s"Native Image build of $targetFile failed, with output: ")
         println(sb.toString())
@@ -306,7 +307,7 @@ object NativeImage {
           else
             Def.task {
               streams.value.log.info(
-                s"No source changes, $artifactName Native Image is up to date."
+                s"No source changes, $name Native Image is up to date."
               )
             }
       }
@@ -318,7 +319,7 @@ object NativeImage {
   def artifactFile(
     targetDir: File,
     name: String,
-    withExtension: Boolean = false
+    withExtension: Boolean = true
   ): File = {
     val artifactName =
       if (withExtension && Platform.isWindows) name + ".exe"

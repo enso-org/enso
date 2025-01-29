@@ -47,7 +47,7 @@ export function UpgradeButton(props: UpgradeButtonProps) {
       size={size}
       rounded={rounded}
       href={
-        isEnterprise ? appUtils.getContactSalesURL() : href ?? appUtils.getUpgradeURL(level.name)
+        isEnterprise ? appUtils.getContactSalesURL() : (href ?? appUtils.getUpgradeURL(level.name))
       }
       /* This is safe because we are passing all props to the button */
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any,no-restricted-syntax */
@@ -64,6 +64,6 @@ const VARIANT_BY_LEVEL: Record<
 > = {
   free: 'primary',
   enterprise: 'primary',
-  solo: 'outline',
+  solo: 'accent',
   team: 'submit',
 }

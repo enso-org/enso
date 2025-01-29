@@ -23,7 +23,7 @@ export default function StartModal(props: StartModalProps) {
   const { getText } = textProvider.useText()
 
   return (
-    <ariaComponents.Dialog type="fullscreen" title={getText('selectTemplate')}>
+    <ariaComponents.Dialog type="fullscreen" title={getText('selectTemplate')} testId="start-modal">
       {(opts) => (
         <div className="mb-4 flex flex-1 flex-col gap-home text-xs text-primary">
           <WhatsNew />

@@ -7,7 +7,6 @@ import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.TernaryMapOperation;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
 
@@ -37,17 +36,16 @@ public class BigDecimalRoundOp
     }
 
     assert decimalPlaces >= ROUND_MIN_DECIMAL_PLACES && decimalPlaces <= ROUND_MAX_DECIMAL_PLACES;
+    int decimalPlacesInt = (int) decimalPlaces.longValue();
 
-    Builder builder =
-        Builder.getForType(BigDecimalType.INSTANCE, storage.size(), problemAggregator);
-
+    Builder builder = Builder.getForBigDecimal(storage.getSize());
     Context context = Context.getCurrent();
 
-    for (int i = 0; i < storage.size(); i++) {
+    for (long i = 0; i < storage.getSize(); i++) {
       if (!storage.isNothing(i)) {
-        BigDecimal value = storage.getItem(i);
-        BigDecimal result = Decimal_Utils.round(value, (int) decimalPlaces.longValue(), useBankers);
-        builder.appendNoGrow(result);
+        BigDecimal value = storage.getItemBoxed(i);
+        BigDecimal result = Decimal_Utils.round(value, decimalPlacesInt, useBankers);
+        builder.append(result);
       } else {
         builder.appendNulls(1);
       }

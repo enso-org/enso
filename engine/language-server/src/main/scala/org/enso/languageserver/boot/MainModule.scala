@@ -305,7 +305,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   val stdIn     = new ObservablePipedInputStream(stdInSink)
 
   val extraOptions = new java.util.HashMap[String, String]()
-  extraOptions.put(RuntimeServerInfo.ENABLE_OPTION, "true")
   extraOptions.put(RuntimeOptions.INTERACTIVE_MODE, "true")
   extraOptions.put(
     RuntimeOptions.LOG_MASKING,
@@ -317,7 +316,13 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     Runtime.getRuntime.availableProcessors().toString
   )
 
-  val builder = ContextFactory
+  if (java.lang.Boolean.getBoolean("com.oracle.graalvm.isaot")) {
+    log.trace("Running Language Server in AOT mode")
+  } else {
+    log.trace("Running Language Server in non-AOT mode")
+  }
+
+  private val builder = ContextFactory
     .create()
     .projectRoot(serverConfig.contentRootPath)
     .logLevel(logLevel)
@@ -328,6 +333,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     .err(stdErr)
     .in(stdIn)
     .options(extraOptions)
+    .enableRuntimeServerInfoKey(RuntimeServerInfo.ENABLE_OPTION)
     .messageTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
         val connection = new RuntimeConnector.Endpoint(

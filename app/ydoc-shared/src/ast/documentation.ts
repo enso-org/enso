@@ -102,7 +102,7 @@ function toRawMarkdown(elements: undefined | TextToken<ConcreteRefs>[]) {
  * Convert the Markdown input to a format with rendered-style linebreaks: Hard-wrapped lines within a paragraph will be
  * joined, and only a single linebreak character is used to separate paragraphs.
  */
-function normalizeMarkdown(rawMarkdown: string): string {
+export function normalizeMarkdown(rawMarkdown: string): string {
   let normalized = ''
   let prevTo = 0
   let prevName: string | undefined = undefined

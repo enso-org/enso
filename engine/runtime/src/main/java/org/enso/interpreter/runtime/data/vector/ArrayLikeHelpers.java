@@ -5,12 +5,19 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import java.nio.ByteBuffer;
 import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.runtime.builtin.BuiltinObject;
 import org.enso.interpreter.runtime.data.EnsoObject;
 
 /** Publicly available operations on array-like classes. */
 @Builtin(pkg = "immutable", stdlibName = "Standard.Base.Internal.Array_Like_Helpers")
-public final class ArrayLikeHelpers {
+public final class ArrayLikeHelpers extends BuiltinObject {
+
   private ArrayLikeHelpers() {}
+
+  @Override
+  protected String builtinName() {
+    return "Array_Like_Helpers";
+  }
 
   @Builtin.Method(
       name = "new_array_proxy_builtin",
@@ -120,5 +127,10 @@ public final class ArrayLikeHelpers {
 
   public static EnsoObject asVectorEmpty() {
     return Vector.fromEnsoOnlyArray(null);
+  }
+
+  @Override
+  public Object toDisplayString(boolean allowSideEffects) {
+    return "Array_Like_Helpers";
   }
 }

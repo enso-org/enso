@@ -34,8 +34,10 @@ class LambdaShorthandToLambdaMini(
     parent match {
       case Application.Prefix(fn, args, _, _, _) =>
         val hasBlankArg = args.exists {
-          case CallArgument.Specified(_, _: Name.Blank, _, _, _) => true
-          case _                                                 => false
+          case arg: CallArgument.Specified
+              if arg.value.isInstanceOf[Name.Blank] =>
+            true
+          case _ => false
         }
         val hasBlankFn = fn.isInstanceOf[Name.Blank]
         hasBlankArg || hasBlankFn

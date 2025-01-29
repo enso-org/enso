@@ -1,10 +1,6 @@
 /** @file Paths used by the `RemoteBackend`. */
-import type * as backend from '#/services/Backend'
+import * as backend from '#/services/Backend'
 import { newtypeConstructor, type Newtype } from 'enso-common/src/utilities/data/newtype'
-
-// =============
-// === Paths ===
-// =============
 
 /** Relative HTTP path to the "list users" endpoint of the Cloud backend API. */
 export const LIST_USERS_PATH = 'users'
@@ -68,8 +64,6 @@ export const LIST_TAGS_PATH = 'tags'
 export const CREATE_USER_GROUP_PATH = 'usergroups'
 /** Relative HTTP path to the "list user groups" endpoint of the Cloud backend API. */
 export const LIST_USER_GROUPS_PATH = 'usergroups'
-/** Relative HTTP path to the "list versions" endpoint of the Cloud backend API. */
-export const LIST_VERSIONS_PATH = 'versions'
 /** Relative HTTP path to the "create checkout session" endpoint of the Cloud backend API. */
 export const CREATE_CHECKOUT_SESSION_PATH = 'payments/subscriptions'
 /** Relative HTTP path to the "get checkout session" endpoint of the Cloud backend API. */
@@ -161,6 +155,26 @@ export function openProjectPath(projectId: backend.ProjectId) {
 export function projectUpdatePath(projectId: backend.ProjectId) {
   return `projects/${projectId}`
 }
+/** Relative HTTP path to the "list project executions" endpoint of the Cloud backend API. */
+export function listProjectExecutionsPath(projectId: backend.ProjectId) {
+  return `projects/${projectId}/executions`
+}
+/** Relative HTTP path to the "create project execution" endpoint of the Cloud backend API. */
+export function createProjectExecutionPath(projectId: backend.ProjectId) {
+  return `projects/${projectId}/executions/new`
+}
+/** Relative HTTP path to the "update project execution" endpoint of the Cloud backend API. */
+export function updateProjectExecutionPath(executionId: backend.ProjectExecutionId) {
+  return `executions/${executionId}`
+}
+/** Relative HTTP path to the "sync project execution" endpoint of the Cloud backend API. */
+export function syncProjectExecutionPath(executionId: backend.ProjectExecutionId) {
+  return `executions/${executionId}/sync`
+}
+/** Relative HTTP path to the "delete project execution" endpoint of the Cloud backend API. */
+export function deleteProjectExecutionPath(executionId: backend.ProjectExecutionId) {
+  return `project-executions/${executionId}`
+}
 /** Relative HTTP path to the "get file details" endpoint of the Cloud backend API. */
 export function getFileDetailsPath(fileId: backend.FileId) {
   return `files/${fileId}`
@@ -198,16 +212,11 @@ export function getCheckoutSessionPath(checkoutSessionId: backend.CheckoutSessio
   return `${GET_CHECKOUT_SESSION_PATH}/${checkoutSessionId}`
 }
 
-// ===========
-// === IDs ===
-// ===========
-
 /** Unique identifier for a directory. */
 type DirectoryId = Newtype<string, 'DirectoryId'>
-// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-redeclare
+// eslint-disable-next-line @typescript-eslint/no-redeclare
 const DirectoryId = newtypeConstructor<DirectoryId>()
-export const ROOT_PARENT_DIRECTORY_ID = DirectoryId('')
 /** The ID of the directory containing the home directories of all users. */
-export const USERS_DIRECTORY_ID = DirectoryId('directory-0000000000000000000000users')
+export const USERS_DIRECTORY_ID = backend.DirectoryId('directory-0000000000000000000000users')
 /** The ID of the directory containing home directories of all teams. */
-export const TEAMS_DIRECTORY_ID = DirectoryId('directory-0000000000000000000000teams')
+export const TEAMS_DIRECTORY_ID = backend.DirectoryId('directory-0000000000000000000000teams')

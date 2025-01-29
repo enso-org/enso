@@ -1,27 +1,28 @@
 /** @file Displays the description of an element on hover or focus. */
 import * as aria from '#/components/aria'
-import * as portal from '#/components/Portal'
+import { useStrictPortalContext } from '#/components/Portal'
 
-import * as twv from '#/utilities/tailwindVariants'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import { ResetButtonGroupContext } from '../Button'
 
 import { DIALOG_BACKGROUND } from '../Dialog'
-import * as text from '../Text'
+import { TEXT_STYLE } from '../Text'
 
 // =================
 // === Constants ===
 // =================
 
-export const TOOLTIP_STYLES = twv.tv({
-  base: 'group flex justify-center items-center text-center text-balance [overflow-wrap:anywhere] z-tooltip',
+export const TOOLTIP_STYLES = tv({
+  base: 'group flex justify-center items-center text-center [overflow-wrap:anywhere]',
   variants: {
     variant: {
       custom: '',
-      primary: DIALOG_BACKGROUND({ variant: 'dark', className: 'text-white/80' }),
+      primary: DIALOG_BACKGROUND({ variant: 'dark', className: 'text-invert' }),
       inverted: DIALOG_BACKGROUND({ variant: 'light', className: 'text-primary' }),
     },
     size: {
       custom: '',
-      medium: text.TEXT_STYLE({ className: 'px-2 py-1', color: 'custom', balance: true }),
+      medium: TEXT_STYLE({ className: 'px-2 py-1', color: 'custom', balance: true }),
     },
     rounded: {
       custom: '',
@@ -67,7 +68,7 @@ const DEFAULT_OFFSET = 9
 /** Props for a {@link Tooltip}. */
 export interface TooltipProps
   extends Omit<Readonly<aria.TooltipProps>, 'offset' | 'UNSTABLE_portalContainer'>,
-    Omit<twv.VariantProps<typeof TOOLTIP_STYLES>, 'isEntering' | 'isExiting'> {}
+    Omit<VariantProps<typeof TOOLTIP_STYLES>, 'isEntering' | 'isExiting'> {}
 
 /** Displays the description of an element on hover or focus. */
 export function Tooltip(props: TooltipProps) {
@@ -75,24 +76,31 @@ export function Tooltip(props: TooltipProps) {
     className,
     containerPadding = DEFAULT_CONTAINER_PADDING,
     variant,
+    size,
+    rounded,
     ...ariaTooltipProps
   } = props
-  const root = portal.useStrictPortalContext()
+
+  const root = useStrictPortalContext()
 
   return (
-    <aria.Tooltip
-      offset={DEFAULT_OFFSET}
-      containerPadding={containerPadding}
-      UNSTABLE_portalContainer={root}
-      className={aria.composeRenderProps(className, (classNames, values) =>
-        TOOLTIP_STYLES({ className: classNames, variant, ...values }),
-      )}
-      data-ignore-click-outside
-      {...ariaTooltipProps}
-    />
+    <ResetButtonGroupContext>
+      <aria.Tooltip
+        offset={DEFAULT_OFFSET}
+        containerPadding={containerPadding}
+        UNSTABLE_portalContainer={root}
+        className={aria.composeRenderProps(className, (classNames, values) =>
+          TOOLTIP_STYLES({ className: classNames, variant, size, rounded, ...values }),
+        )}
+        data-ignore-click-outside
+        {...ariaTooltipProps}
+      />
+    </ResetButtonGroupContext>
   )
 }
 
 // Re-export the TooltipTrigger component from `react-aria-components`
 // eslint-disable-next-line no-restricted-syntax
 export const TooltipTrigger = aria.TooltipTrigger
+
+Tooltip.Trigger = TooltipTrigger

@@ -1,0 +1,44 @@
+# This file is not auto-generated. Feel free to edit it.
+
+name: IDE Changed Files
+
+on:
+  workflow_call:
+    outputs:
+      all_changed_files:
+        description: "Returns all changed files"
+        value: ${{ jobs.ide-changed-files.outputs.all_changed_files }}
+      any_changed:
+        description: "Returns `true` when any of the filenames have changed"
+        value: ${{ jobs.ide-changed-files.outputs.any_changed }}
+
+jobs:
+  ide-changed-files:
+    runs-on: ubuntu-latest
+    name: Changed Files
+    outputs:
+      all_changed_files: ${{ steps.ide-changed-files.outputs.all_changed_files }}
+      any_changed: ${{ steps.ide-changed-files.outputs.any_changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Get changed files
+        id: ide-changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: |
+            app/ide-desktop/**
+            package.json
+            pnpm-lock.yaml
+            .github/workflows/ide*
+      - name: List all changed files
+        env:
+          ALL_CHANGED_FILES: ${{ steps.ide-changed-files.outputs.all_changed_files }}
+        run: |
+          if [[ "${{ steps.ide-changed-files.outputs.any_changed }}" == "true" ]]; then
+            echo "Files changed:"
+          fi
+          for file in ${ALL_CHANGED_FILES}; do
+            echo "$file"
+          done

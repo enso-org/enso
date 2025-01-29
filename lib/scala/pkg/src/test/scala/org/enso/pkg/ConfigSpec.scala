@@ -46,6 +46,26 @@ class ConfigSpec
       parsed.edition shouldBe empty
     }
 
+    "persist normal edition" in {
+      val parsed = Config.fromYaml("name: fooBar\nedition: 2024.4.2").get
+      parsed.name shouldEqual "fooBar"
+      parsed.normalizedName shouldEqual None
+      parsed.moduleName shouldEqual "FooBar"
+
+      val ser = parsed.toYaml
+      ser shouldEqual "name: fooBar\nnamespace: local\nedition: 2024.4.2\n"
+    }
+
+    "don't persist dev edition" in {
+      val parsed = Config.fromYaml("name: fooBar\nedition: 0.0.0-dev").get
+      parsed.name shouldEqual "fooBar"
+      parsed.normalizedName shouldEqual None
+      parsed.moduleName shouldEqual "FooBar"
+
+      val ser = parsed.toYaml
+      ser shouldEqual "name: fooBar\nnamespace: local\n"
+    }
+
     "correctly de-serialize and serialize back the shortened edition syntax " +
     "if there are no overrides" in {
       val config =

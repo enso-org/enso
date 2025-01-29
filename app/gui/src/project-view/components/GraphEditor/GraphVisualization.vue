@@ -25,7 +25,7 @@ const DEFAULT_CONTENT_HEIGHT_PX = 150
 
 const props = defineProps<{
   currentType?: Opt<VisualizationIdentifier>
-  isCircularMenuVisible: boolean
+  isComponentMenuVisible: boolean
   isFullscreenAllowed: boolean
   isResizable: boolean
   isPreview?: boolean
@@ -230,7 +230,7 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
           :showControls="!isPreview"
           :hideVisualizationButton="
             isFullscreen ? 'hide'
-            : isCircularMenuVisible ? 'invisible'
+            : isComponentMenuVisible ? 'invisible'
             : 'show'
           "
           :isFullscreenAllowed="isFullscreenAllowed"

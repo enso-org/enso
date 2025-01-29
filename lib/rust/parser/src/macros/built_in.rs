@@ -277,7 +277,8 @@ fn lambda_body<'s>(
     let (body, mut rest) = segments.pop();
     let arguments = rest.pop().unwrap();
     let backslash = arguments.header.with_variant(token::variant::LambdaOperator());
-    let arguments = syntax::parse_args(&mut arguments.result.tokens(), 0, precedence);
+    let arguments =
+        syntax::parse_args(&mut arguments.result.tokens(), 0, precedence, &mut default());
     let arrow = body.header.with_variant(token::variant::ArrowOperator());
     let body_expression = precedence.resolve(&mut body.result.tokens());
     let body_expression =

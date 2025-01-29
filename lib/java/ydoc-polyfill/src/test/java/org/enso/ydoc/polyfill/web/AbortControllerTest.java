@@ -25,8 +25,8 @@ public class AbortControllerTest extends ExecutorSetup {
         CompletableFuture.supplyAsync(
                 () -> {
                   var ctx = contextBuilder.build();
-                  eventTarget.initialize(ctx);
-                  abortController.initialize(ctx);
+                  eventTarget.initialize(eval(ctx));
+                  abortController.initialize(eval(ctx));
                   return ctx;
                 },
                 executor)

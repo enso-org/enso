@@ -25,6 +25,11 @@ import java.util.Set;
 import java.util.TimeZone;
 import org.enso.common.MethodNames;
 import org.enso.common.MethodNames.Module;
+import org.enso.interpreter.node.expression.foreign.HostValueToEnsoNode;
+import org.enso.interpreter.runtime.data.EnsoMultiValue;
+import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
@@ -863,6 +868,41 @@ public final class ValuesGenerator {
       collect.add(v(null, prelude, "Problem_Behavior.Ignore").type());
     }
     return collect;
+  }
+
+  public List<Value> numbersMultiText() {
+    var leak = ContextUtils.leakContext(ctx);
+    var numberTextTypes =
+        new Type[] {
+          leak.getBuiltins().number().getInteger(), leak.getBuiltins().text(),
+        };
+    var textNumberTypes =
+        new Type[] {
+          leak.getBuiltins().text(), leak.getBuiltins().number().getInteger(),
+        };
+    var collect = new ArrayList<Value>();
+    var toEnso = HostValueToEnsoNode.getUncached();
+    for (var n : numbers()) {
+      for (var t : textual()) {
+        var rawN = toEnso.execute(ContextUtils.unwrapValue(ctx, n));
+        var rawT = ContextUtils.unwrapValue(ctx, t);
+        if (!(rawT instanceof EnsoObject)) {
+          continue;
+        }
+        addMultiToCollect(collect, numberTextTypes, 2, rawN, rawT);
+        addMultiToCollect(collect, numberTextTypes, 1, rawN, rawT);
+        addMultiToCollect(collect, textNumberTypes, 2, rawT, rawN);
+        addMultiToCollect(collect, textNumberTypes, 1, rawT, rawN);
+      }
+    }
+    return collect;
+  }
+
+  private void addMultiToCollect(
+      List<Value> collect, Type[] types, int dispatchTypes, Object... values) {
+    var raw = EnsoMultiValue.NewNode.getUncached().newValue(types, dispatchTypes, 0, values);
+    var wrap = ctx.asValue(raw);
+    collect.add(wrap);
   }
 
   public List<Value> noWrap() {

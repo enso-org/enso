@@ -24,8 +24,6 @@ const props = defineProps<{
 }>()
 
 const slideInPanel = ref<HTMLElement>()
-const root = ref<HTMLElement>()
-defineExpose({ root })
 
 const computedSize = useResizeObserver(slideInPanel)
 const computedBounds = computed(() => new Rect(Vec2.Zero, computedSize.value))
@@ -48,7 +46,7 @@ const tabStyle = {
 </script>
 
 <template>
-  <div ref="root" class="DockPanel" data-testid="rightDockRoot">
+  <div class="DockPanel" data-testid="rightDockRoot">
     <ToggleIcon
       v-model="show"
       :title="`Documentation Panel (${documentationEditorBindings.bindings.toggle.humanReadable})`"

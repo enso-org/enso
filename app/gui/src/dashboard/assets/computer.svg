@@ -1,10 +1,3 @@
-<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-	<rect x="2" y="2" width="12" height="9" rx="1" stroke="black" stroke-width="2" />
-	<path
-		d="M7.06963 13.5822L7.43037 11.4178C7.47055 11.1767 7.67914 11 7.92356 11H8.07644C8.32086 11 8.52945 11.1767 8.56963 11.4178L9 14H6.57644C6.82086 14 7.02945 13.8233 7.06963 13.5822Z"
-		fill="black" />
-	<path
-		d="M11.5 14H9M9 14H4.5H6.57644C6.82086 14 7.02945 13.8233 7.06963 13.5822L7.43037 11.4178C7.47055 11.1767 7.67914 11 7.92356 11H8.07644C8.32086 11 8.52945 11.1767 8.56963 11.4178L9 14Z"
-		stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-	<rect opacity="0.3" x="3" y="3" width="10" height="7" fill="black" />
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M3 6.25C3 4.45507 4.45507 3 6.25 3H17.75C19.5449 3 21 4.45507 21 6.25V16H22.25C22.6642 16 23 16.3358 23 16.75V17.75C23 19.5449 21.5449 21 19.75 21H4.25C2.45507 21 1 19.5449 1 17.75V16.75C1 16.3358 1.33579 16 1.75 16H3V6.25ZM2.5 17.5V17.75C2.5 18.7165 3.2835 19.5 4.25 19.5H19.75C20.7165 19.5 21.5 18.7165 21.5 17.75V17.5H2.5Z" fill="black"/>
 </svg>

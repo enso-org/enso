@@ -1,8 +1,12 @@
 import { computeNodeColor } from '@/composables/nodeColors'
-import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
+import {
+  ComputedValueRegistry,
+  translateMethodCall,
+  type ExpressionInfo,
+} from '@/stores/project/computedValueRegistry'
+import { mockProjectNameStore, type ProjectNameStore } from '@/stores/projectNames'
 import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
-import type { SuggestionEntry } from '@/stores/suggestionDatabase/entry'
-import { assert } from '@/util/assert'
+import { type CallableSuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
 import { MutableModule } from '@/util/ast/abstract'
@@ -14,11 +18,12 @@ import { unwrap } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import {
-  isIdentifierOrOperatorIdentifier,
-  isQualifiedName,
-  normalizeQualifiedName,
-  tryIdentifier,
-} from '@/util/qualifiedName'
+  methodPointerEquals,
+  type MethodCall,
+  type MethodPointer,
+  type StackItem,
+} from '@/util/methodPointer'
+import { tryIdentifier } from '@/util/qualifiedName'
 import {
   nonReactiveView,
   resumeReactivity,
@@ -27,14 +32,15 @@ import {
 } from '@/util/reactivity'
 import * as objects from 'enso-common/src/utilities/data/object'
 import * as set from 'lib0/set'
-import { reactive, ref, shallowReactive, type Ref, type WatchStopHandle } from 'vue'
-import { type SourceDocument } from 'ydoc-shared/ast/sourceDocument'
 import {
-  methodPointerEquals,
-  type MethodCall,
-  type MethodPointer,
-  type StackItem,
-} from 'ydoc-shared/languageServerTypes'
+  reactive,
+  ref,
+  shallowReactive,
+  type DeepReadonly,
+  type Ref,
+  type WatchStopHandle,
+} from 'vue'
+import { type SourceDocument } from 'ydoc-shared/ast/sourceDocument'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 import type { ExternalId, VisualizationMetadata } from 'ydoc-shared/yjsModel'
 import { isUuid, visMetadataEquals } from 'ydoc-shared/yjsModel'
@@ -42,7 +48,7 @@ import { isUuid, visMetadataEquals } from 'ydoc-shared/yjsModel'
 export interface MethodCallInfo {
   methodCall: MethodCall
   methodCallSource: Ast.AstId
-  suggestion: SuggestionEntry
+  suggestion: CallableSuggestionEntry
 }
 
 /** TODO: Add docs */
@@ -57,11 +63,12 @@ export class GraphDb {
     [info.identifier, id],
   ])
 
-  /** TODO: Add docs */
+  /** Constructor. */
   constructor(
-    private suggestionDb: SuggestionDb,
-    private groups: Ref<Group[]>,
-    private valuesRegistry: ComputedValueRegistry,
+    private readonly suggestionDb: SuggestionDb,
+    private readonly groups: Ref<DeepReadonly<Group[]>>,
+    private readonly valuesRegistry: ComputedValueRegistry,
+    private readonly projectNames: ProjectNameStore,
   ) {}
 
   private nodeIdToPatternExprIds = new ReactiveIndex(this.nodeIdToNode, (id, entry) => {
@@ -137,13 +144,13 @@ export class GraphDb {
     return computeNodeColor(
       () => entry.type,
       () => tryGetIndex(this.groups.value, this.getNodeMainSuggestion(id)?.groupIndex),
-      () => this.getExpressionInfo(id)?.typename,
+      () => this.getExpressionInfo(id)?.rawTypename,
     )
   })
 
   /** TODO: Add docs */
   getNodeFirstOutputPort(id: NodeId | undefined): AstId | undefined {
-    return id ? set.first(this.nodeOutputPorts.lookup(id)) ?? this.idFromExternal(id) : undefined
+    return id ? (set.first(this.nodeOutputPorts.lookup(id)) ?? this.idFromExternal(id)) : undefined
   }
 
   /** TODO: Add docs */
@@ -205,18 +212,23 @@ export class GraphDb {
   getMethodCall(id: AstId): MethodCall | undefined {
     const info = this.getExpressionInfo(id)
     if (info == null) return
-    return (
-      info.methodCall ?? (info.payload.type === 'Value' ? info.payload.functionSchema : undefined)
-    )
+    if (info.methodCall) return info.methodCall
+    if (info.payload.type === 'Value' && info.payload.functionSchema) {
+      const translated = translateMethodCall(info.payload.functionSchema, this.projectNames)
+      if (translated.ok) return translated.value
+      else
+        translated.error.log(
+          "Ignoring MethodCall value in functionSchema, because it' ill formatted",
+        )
+    }
+    return
   }
 
   /** TODO: Add docs */
   getMethodCallInfo(id: AstId): MethodCallInfo | undefined {
     const methodCall = this.getMethodCall(id)
     if (methodCall == null) return
-    const suggestionId = this.suggestionDb.findByMethodPointer(methodCall.methodPointer)
-    if (suggestionId == null) return
-    const suggestion = this.suggestionDb.get(suggestionId)
+    const suggestion = this.suggestionDb.entryByMethodPointer(methodCall.methodPointer)
     if (suggestion == null) return
     return { methodCall, methodCallSource: id, suggestion }
   }
@@ -480,19 +492,20 @@ export class GraphDb {
     const suggestion = this.suggestionDb.findByMethodPointer(oldMethodPointer)
     const suggestionEntry = suggestion != null ? this.suggestionDb.get(suggestion) : null
     if (suggestionEntry != null) {
-      DEV: assert(isQualifiedName(newMethodPointer.module))
-      DEV: assert(isQualifiedName(newMethodPointer.definedOnType))
-      DEV: assert(isIdentifierOrOperatorIdentifier(newMethodPointer.name))
       Object.assign(suggestionEntry, {
-        definedIn: normalizeQualifiedName(newMethodPointer.module),
-        memberOf: normalizeQualifiedName(newMethodPointer.definedOnType),
+        definedIn: newMethodPointer.module,
+        memberOf: newMethodPointer.definedOnType,
         name: newMethodPointer.name,
       })
     }
   }
   /** TODO: Add docs */
-  static Mock(registry = ComputedValueRegistry.Mock(), db = new SuggestionDb()): GraphDb {
-    return new GraphDb(db, ref([]), registry)
+  static Mock(
+    registry = ComputedValueRegistry.Mock(),
+    db = new SuggestionDb(),
+    projectNames = mockProjectNameStore(),
+  ): GraphDb {
+    return new GraphDb(db, ref([]), registry, projectNames)
   }
 
   /** TODO: Add docs */

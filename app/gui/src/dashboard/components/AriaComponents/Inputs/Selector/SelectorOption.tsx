@@ -71,7 +71,8 @@ export const SELECTOR_OPTION_STYLES = tv({
         'relative flex flex-1 w-full items-center justify-center transition-colors duration-200',
       variant: 'body',
     }),
-    hover: 'absolute inset-x-0 inset-y-0 transition-colors duration-200',
+    hover:
+      'absolute inset-x-0 inset-y-0 transition-[background-color,transform] duration-200 isolate',
   },
   compoundSlots: [
     {
@@ -125,12 +126,12 @@ export const SELECTOR_OPTION_STYLES = tv({
       variant: 'outline',
       isHovered: true,
       isSelected: false,
-      class: { hover: 'bg-primary/5' },
+      class: { hover: 'bg-invert/50' },
     },
     {
       variant: 'outline',
       isPressed: true,
-      class: { hover: 'bg-primary/10' },
+      class: { hover: 'bg-invert scale-x-[0.95] scale-y-[0.85]' },
     },
     {
       variant: 'outline',
@@ -190,8 +191,8 @@ export const SelectorOption = memo(
         >
           {({ isHovered, isSelected, isPressed }) => (
             <>
-              {label}
               <div className={styles.hover({ isHovered, isSelected, isPressed })} />
+              <span className="isolate">{label}</span>
             </>
           )}
         </Radio>

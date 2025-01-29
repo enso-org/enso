@@ -1,6 +1,9 @@
 /** @file Contains useful error types common across the module. */
+import { ErrorWithDisplayMessage } from 'enso-common/src/utilities/errors'
 import isNetworkErrorLib from 'is-network-error'
 import type * as toastify from 'react-toastify'
+
+export * from 'enso-common/src/utilities/errors'
 
 // =====================
 // === tryGetMessage ===
@@ -89,6 +92,18 @@ export function getMessageOrToString<T>(error: MustNotBeKnown<T>) {
   return tryGetMessage(error) ?? String(error)
 }
 
+/**
+ * Extracts the display message from an error.
+ * This is the message that should be displayed to the user.
+ */
+export function extractDisplayMessage(error: MustNotBeKnown<unknown>) {
+  if (error instanceof ErrorWithDisplayMessage) {
+    return error.displayMessage
+  } else {
+    return null
+  }
+}
+
 /** Return a toastify option object that renders an error message. */
 export function render(f: (message: string) => string): toastify.UpdateOptions {
   return { render: ({ data }) => f(getMessageOrToString(data)) }
@@ -173,7 +188,7 @@ export function isJSError(error: unknown): boolean {
  * Checks if the given error is a network error.
  * Wraps the `is-network-error` library to add additional network errors to the check.
  */
-export function isNetworkError(error: unknown): boolean {
+export function isNetworkError(error: unknown): error is TypeError {
   const customNetworkErrors = new Set([
     // aws amplify network error
     'Network error',

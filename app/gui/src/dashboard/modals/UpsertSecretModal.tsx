@@ -1,36 +1,11 @@
 /** @file Modal for confirming delete of any type of asset. */
-import {
-  ButtonGroup,
-  Dialog,
-  DialogDismiss,
-  Form,
-  INPUT_STYLES,
-  Input,
-} from '#/components/AriaComponents'
+import { ButtonGroup, Dialog, DialogDismiss, Form, Input } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
 import type { SecretId } from '#/services/Backend'
-import { tv } from '#/utilities/tailwindVariants'
 
 // =========================
 // === UpsertSecretModal ===
 // =========================
-
-const CLASSIC_INPUT_STYLES = tv({
-  extend: INPUT_STYLES,
-  slots: {
-    base: '',
-    textArea: 'rounded-full border-0.5 border-primary/20 px-1.5',
-    inputContainer: 'before:h-0 after:h-0.5',
-  },
-})
-
-const CLASSIC_FIELD_STYLES = tv({
-  extend: Form.FIELD_STYLES,
-  slots: {
-    base: '',
-    label: 'px-2',
-  },
-})
 
 /** Props for a {@link UpsertSecretModal}. */
 export interface UpsertSecretModalProps {
@@ -52,49 +27,37 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
   const { getText } = useText()
 
   const isCreatingSecret = id == null
-  const isNameEditable = nameRaw == null
 
   const form = Form.useForm({
     method: 'dialog',
     schema: (z) =>
-      z.object({ name: z.string().min(1, getText('emptyStringError')), value: z.string() }),
-    defaultValues: { name: nameRaw ?? '', value: '' },
-    onSubmit: async ({ name, value }) => {
-      await doCreate(name, value)
+      z.object({ title: z.string().min(1, getText('emptyStringError')), value: z.string() }),
+    defaultValues: { title: nameRaw ?? '', value: '' },
+    onSubmit: async ({ title, value }) => {
+      await doCreate(title, value)
+      form.reset({ title, value })
     },
   })
 
   const content = (
     <Form form={form} testId="upsert-secret-modal" gap="none" className="w-full">
-      {isNameEditable && (
-        <Input
-          form={form}
-          name="name"
-          size="custom"
-          rounded="full"
-          autoFocus={isNameEditable}
-          autoComplete="off"
-          isDisabled={!isNameEditable}
-          label={getText('name')}
-          placeholder={getText('secretNamePlaceholder')}
-          variants={CLASSIC_INPUT_STYLES}
-          fieldVariants={CLASSIC_FIELD_STYLES}
-        />
-      )}
+      <Input
+        form={form}
+        name="title"
+        autoFocus
+        autoComplete="off"
+        label={getText('name')}
+        placeholder={getText('secretNamePlaceholder')}
+      />
       <Input
         form={form}
         name="value"
         type="password"
-        size="custom"
-        rounded="full"
-        autoFocus={!isNameEditable}
         autoComplete="off"
         label={getText('value')}
         placeholder={
-          isNameEditable ? getText('secretValuePlaceholder') : getText('secretValueHidden')
+          nameRaw == null ? getText('secretValuePlaceholder') : getText('secretValueHidden')
         }
-        variants={CLASSIC_INPUT_STYLES}
-        fieldVariants={CLASSIC_FIELD_STYLES}
       />
       <ButtonGroup className="mt-2">
         <Form.Submit>{isCreatingSecret ? getText('create') : getText('update')}</Form.Submit>
