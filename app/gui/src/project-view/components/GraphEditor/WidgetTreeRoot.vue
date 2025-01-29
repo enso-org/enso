@@ -5,7 +5,7 @@ import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
 import { WidgetEditHandlerParent } from '@/providers/widgetRegistry/editHandler'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { Ast } from '@/util/ast'
-import { toRef, watch, watchEffect } from 'vue'
+import { toRef, watch } from 'vue'
 import { AstId } from 'ydoc-shared/ast'
 import { ExternalId } from 'ydoc-shared/yjsModel'
 
