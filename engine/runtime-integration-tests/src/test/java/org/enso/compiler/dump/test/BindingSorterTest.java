@@ -1,6 +1,7 @@
 package org.enso.compiler.dump.test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
 import java.util.Arrays;
@@ -8,6 +9,7 @@ import java.util.List;
 import org.enso.compiler.core.ir.Empty;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.MetadataStorage;
+import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.Name.MethodReference;
 import org.enso.compiler.core.ir.module.scope.Definition;
@@ -23,7 +25,7 @@ public final class BindingSorterTest {
   public void compareTwoModuleMethods() {
     var method1 = method(null, "method_a");
     var method2 = method(null, "method_b");
-    var sorted = BindingSorter.sortBindings(List.of(method2, method1));
+    var sorted = sortBindings(method2, method1);
     assertThat("Nothing is dropped", sorted.size(), is(2));
     assertThat("method1 is first", sorted.get(0), is(method1));
     assertThat("method2 is second", sorted.get(1), is(method2));
@@ -48,21 +50,13 @@ public final class BindingSorterTest {
   }
 
   @Test
-  public void compareTypeAndInstanceMethod() {
-    var type = type("A_Type");
-    var method = method("Z_Type", "method");
-    var sorted = sortBindings(method, type);
-    assertThat(sorted.get(0), is(type));
-    assertThat(sorted.get(1), is(method));
-  }
-
-  @Test
   public void compareInstanceMethodAndType() {
-    var method = method("A_Type", "method");
-    var type = type("Z_Type");
-    var sorted = sortBindings(type, method);
-    assertThat(sorted.get(0), is(method));
-    assertThat(sorted.get(1), is(type));
+    var aType = type("A_Type");
+    var aTypeMethod = method("A_Type", "method");
+    var zType = type("Z_Type");
+    var sorted = sortBindings(zType, aTypeMethod, aType);
+    var expected = List.of(aType, aTypeMethod, zType);
+    assertSameItems(expected, sorted);
   }
 
   @Test
@@ -104,21 +98,51 @@ public final class BindingSorterTest {
   @Test
   public void compareInstanceMethodAndModuleMethod() {
     var moduleMethod = method(null, "AA", false, false);
+    var type = type("My_Type");
     var instanceMethod = method("My_Type", "XX", false, false);
-    var sorted = sortBindings(instanceMethod, moduleMethod);
-    assertThat(sorted.get(0), is(instanceMethod));
-    assertThat(sorted.get(1), is(moduleMethod));
+    var sorted = sortBindings(instanceMethod, moduleMethod, type);
+    assertThat(sorted.get(0), is(type));
+    assertThat(sorted.get(1), is(instanceMethod));
+    assertThat(sorted.get(2), is(moduleMethod));
+  }
+
+  @Test
+  public void compareInstanceMethodAndExtensionMethod() {
+    var type = type("My_Type");
+    var instanceMethod = method("My_Type", "XX");
+    var extensionMethod = method("Any", "AA");
+    var sorted = sortBindings(extensionMethod, instanceMethod, type);
+    assertThat(sorted.get(0), is(type));
+    assertThat(sorted.get(1), is(instanceMethod));
+    assertThat(sorted.get(2), is(extensionMethod));
   }
 
   @Test
   public void compareUnknownBindings_ShouldReturnSameOrder() {}
 
+  private static <T, U> void assertSameItems(List<T> expected, List<U> actual) {
+    var expectedArr = expected.toArray();
+    assertThat(actual, contains(expectedArr));
+  }
+
   private static List<Definition> sortBindings(Definition... items) {
-    return BindingSorter.sortBindings(Arrays.stream(items).toList());
+    var modIr = module(items);
+    return BindingSorter.sortedBindings(modIr);
   }
 
   private static List<Definition.Data> sortConstructors(Definition.Data... items) {
     return BindingSorter.sortConstructors(Arrays.stream(items).toList());
+  }
+
+  private static Module module(Definition... bindings) {
+    var bindingsList = Arrays.asList(bindings);
+    return new Module(
+        emptyScalaList(),
+        emptyScalaList(),
+        CollectionConverters.asScala(bindingsList).toList(),
+        false,
+        null,
+        new MetadataStorage());
   }
 
   private static Method.Explicit method(String typeName, String methodName) {
