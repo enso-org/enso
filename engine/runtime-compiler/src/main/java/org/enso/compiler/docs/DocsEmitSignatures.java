@@ -35,6 +35,7 @@ final class DocsEmitSignatures implements DocsVisit {
     if (t != null) {
       w.append("    - ");
     } else {
+      w.append("- ");
       if (m.typeName().isDefined()) {
         var fqn = DocsUtils.toFqnOrSimpleName(m.typeName().get());
         w.append(fqn + ".");
@@ -47,6 +48,7 @@ final class DocsEmitSignatures implements DocsVisit {
   public void visitConversion(Method.Conversion c, PrintWriter w) throws IOException {
     assert c.typeName().isDefined() : "Conversions need type name: " + c;
     var fqn = DocsUtils.toFqnOrSimpleName(c.typeName().get());
+    w.append("- ");
     w.append(fqn + ".");
     w.append(DocsVisit.toSignature(c));
     w.append(" -> ").println(fqn);

@@ -1,5 +1,8 @@
 package org.enso.compiler.dump.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -240,6 +243,34 @@ public class DocsGenerateTest {
     var modName = "local.Empty.Main";
     var sig = DumpTestUtils.generateSignatures(ctx, codeWithImports, modName);
     assertTrue("Empty signature for module with only imports", sig.isEmpty());
+  }
+
+  @Test
+  public void generatedSignature_HasCorrectMarkdownFormat() throws IOException {
+    var code =
+        """
+        from Standard.Base import all
+
+        module_method = 42
+
+        type My_Type
+            Cons x
+            instance_method self = 42
+
+        My_Type.static_method = 42
+        Any.extension_method = 42
+        My_Type.from (that: Integer) = My_Type.Cons that
+        """;
+    var modName = "local.Proj.Main";
+    var sig = DumpTestUtils.generateSignatures(ctx, code, modName);
+    sig.lines()
+        .forEach(
+            line -> {
+              assertThat(
+                  "Is heading or a list item",
+                  line,
+                  anyOf(startsWith("#"), startsWith("-"), startsWith("    -")));
+            });
   }
 
   @Test
