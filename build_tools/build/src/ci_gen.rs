@@ -13,8 +13,6 @@ use crate::version::ENSO_VERSION;
 use ide_ci::actions::workflow::definition::checkout_repo_step;
 use ide_ci::actions::workflow::definition::get_input;
 use ide_ci::actions::workflow::definition::get_input_expression;
-use ide_ci::actions::workflow::definition::is_non_windows_runner;
-use ide_ci::actions::workflow::definition::is_windows_runner;
 use ide_ci::actions::workflow::definition::run;
 use ide_ci::actions::workflow::definition::setup_artifact_api;
 use ide_ci::actions::workflow::definition::setup_bazel;
@@ -310,7 +308,6 @@ impl RunStepsBuilder {
         let mut steps = setup_script_steps();
         steps.push(clean_before);
         steps.extend(run_steps);
-        steps.extend(list_everything_on_failure());
         steps.push(clean_after);
         steps
     }
@@ -389,25 +386,6 @@ pub fn setup_script_steps() -> Vec<Step> {
     let command = "./run --help || (git clean -ffdx && ./run --help)";
     ret.push(shell(command).with_name("Build Script Setup"));
     ret
-}
-
-
-pub fn list_everything_on_failure() -> impl IntoIterator<Item = Step> {
-    let win = Step {
-        name: Some("List files if failed (Windows)".into()),
-        r#if: Some(format!("failure() && {}", is_windows_runner())),
-        run: Some("Get-ChildItem -Force -Recurse".into()),
-        ..default()
-    };
-
-    let non_win = Step {
-        name: Some("List files if failed (non-Windows)".into()),
-        r#if: Some(format!("failure() && {}", is_non_windows_runner())),
-        run: Some("ls -lAR".into()),
-        ..default()
-    };
-
-    [win, non_win]
 }
 
 #[derive(Clone, Copy, Debug)]

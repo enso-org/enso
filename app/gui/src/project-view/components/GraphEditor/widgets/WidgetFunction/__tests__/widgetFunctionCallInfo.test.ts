@@ -17,6 +17,7 @@ import {
 } from '@/stores/suggestionDatabase/mockSuggestion'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import { unwrap } from '@/util/data/result'
 import { expect, test } from 'vitest'
 import { ref, type Ref } from 'vue'
 import { type Opt } from 'ydoc-shared/util/data/opt'
@@ -92,7 +93,7 @@ test.each`
         getExpressionInfo(astId) {
           if (subjectSpan != null && astId === id('subject')) {
             return {
-              typename: projectNames.parseProjectPath(subjectType),
+              typename: unwrap(projectNames.parseProjectPath(subjectType)),
               rawTypename: subjectType,
               methodCall: undefined,
               payload: { type: 'Value' },

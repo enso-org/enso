@@ -1,4 +1,5 @@
 import { type ProjectNameStore } from '@/stores/projectNames'
+import { Ok, Result } from '@/util/data/result'
 import { type ProjectPath } from '@/util/projectPath'
 import { type QualifiedName } from '@/util/qualifiedName'
 import * as encoding from 'lib0/encoding'
@@ -40,13 +41,17 @@ export function methodPointerEquals(left: MethodPointer, right: MethodPointer): 
 export function parseMethodPointer(
   ptr: LSMethodPointer,
   projectNames: ProjectNameStore,
-): MethodPointer {
+): Result<MethodPointer> {
   const { module, definedOnType, name } = ptr
-  return {
-    module: projectNames.parseProjectPath(module as QualifiedName),
-    definedOnType: projectNames.parseProjectPath(definedOnType as QualifiedName),
+  const parsedModule = projectNames.parseProjectPath(module as QualifiedName)
+  if (!parsedModule.ok) return parsedModule
+  const parsedDefinedOnType = projectNames.parseProjectPath(definedOnType as QualifiedName)
+  if (!parsedDefinedOnType.ok) return parsedDefinedOnType
+  return Ok({
+    module: parsedModule.value,
+    definedOnType: parsedDefinedOnType.value,
     name: name as Identifier,
-  }
+  })
 }
 
 export type StackItem = ExplicitCall | LocalCall
