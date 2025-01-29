@@ -38,6 +38,9 @@ public final class DocsGenerate {
     fs.createDirectories(api);
 
     for (var module : modules) {
+      if (module.isSynthetic()) {
+        continue;
+      }
       var ir = module.getIr();
       assert ir != null : "need IR for " + module;
       if (ir.isPrivate()) {
