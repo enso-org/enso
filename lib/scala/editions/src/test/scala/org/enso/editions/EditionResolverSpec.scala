@@ -1,8 +1,11 @@
 package org.enso.editions
 
 import org.enso.semver.SemVer
-import org.enso.editions.EditionResolutionError.EditionResolutionCycle
-import org.enso.editions.Editions.Repository
+import org.enso.editions.EditionResolutionError.{
+  CannotLoadEdition,
+  EditionResolutionCycle
+}
+import org.enso.editions.Editions.{RawEdition, Repository}
 import org.enso.editions.provider.{
   EditionLoadingError,
   EditionNotFound,
@@ -17,9 +20,9 @@ class EditionResolverSpec
     with Matchers
     with Inside
     with OptionValues {
-  object FakeEditionProvider extends EditionProvider {
+  class FakeEditionProvider extends EditionProvider {
     val mainRepo = Repository("main", "https://example.com/main")
-    val editions: Map[String, Editions.RawEdition] = Map(
+    val _editions: Map[String, Editions.RawEdition] = Map(
       "2021.0" -> Editions.Raw.Edition(
         parent        = None,
         engineVersion = Some(SemVer.of(1, 2, 3)),
@@ -48,6 +51,7 @@ class EditionResolverSpec
         libraries     = Map()
       )
     )
+    def editions = _editions
 
     override def findEditionForName(
       name: String
@@ -58,7 +62,25 @@ class EditionResolverSpec
       editions.keys.toSeq
   }
 
-  val resolver = EditionResolver(FakeEditionProvider)
+  object FakeEditionProvider {
+    val mainRepo = Repository("main", "https://example.com/main")
+  }
+
+  class FakeEditionProviderWithDefault extends FakeEditionProvider {
+    override lazy val editions: Map[String, RawEdition] =
+      super.editions + ("0.0.0-dev" -> Editions.Raw.Edition(
+        parent        = None,
+        engineVersion = Some(SemVer.of(0, 0, 0, "dev")),
+        repositories  = Map(),
+        libraries     = Map()
+      ))
+  }
+
+  class WithDefaultContext {
+    val resolver = EditionResolver(new FakeEditionProviderWithDefault)
+  }
+
+  val resolver = EditionResolver(new FakeEditionProvider)
 
   "EditionResolver" should {
     "resolve a simple edition" in {
@@ -189,5 +211,32 @@ class EditionResolverSpec
         editions shouldEqual Seq("cycleA", "cycleB", "cycleA")
       }
     }
+
+    "not defer to default version when parent is missing" in new WithDefaultContext {
+      ctx =>
+      val localRepo = Repository("main", "http://example.com/local")
+
+      localRepo should not equal FakeEditionProvider.mainRepo
+
+      val edition = Editions.Raw.Edition(
+        parent        = Some("2020.2"),
+        engineVersion = None,
+        repositories  = Map("main" -> localRepo),
+        libraries = Map(
+          LibraryName("foo", "bar") -> Editions.Raw
+            .PublishedLibrary(
+              LibraryName("foo", "bar"),
+              SemVer.of(1, 2, 3),
+              "main"
+            )
+        )
+      )
+
+      inside(ctx.resolver.resolve(edition)) {
+        case Left(CannotLoadEdition(name, _)) =>
+          name shouldEqual "2020.2"
+      }
+    }
+
   }
 }
