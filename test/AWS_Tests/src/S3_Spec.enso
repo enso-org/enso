@@ -674,7 +674,7 @@ create_data_link_to_s3 credential:AWS_Credential link_location target:S3_File =
     Data_Link.write_raw_config link_location new_content replace_existing=True
 
 add_data_specs suite_builder writable_root =
-    my_writable_dir = writable_root / ("test-run-"+(Date_Time.now.format "yyyy-MM-dd_HHmmss.fV" . replace "/" "|")+"/")
+    my_writable_dir = writable_root / ("test-run-"+unique_suffix+"/")
     file_maker path_element:Text = my_writable_dir / "data_spec" / (path_element+".txt")
     Data_Spec.add_specs "(S3_File) " suite_builder file_maker
 
