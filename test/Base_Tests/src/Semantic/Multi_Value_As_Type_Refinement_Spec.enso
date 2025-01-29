@@ -291,7 +291,7 @@ add_specs suite_builder =
             y.a_method . should_equal "A method"
             y.b_method . should_equal "B method"
 
-        group_builder.specify "calling `.throw_on_warning` on an intersection type should not lose even the hidden refinements" pending=dispatch_pending <|
+        group_builder.specify "calling `.throw_on_warning` on an intersection type should not lose even the hidden refinements" <|
             ab = make_a_and_b
             x = ab:A
             r = x.throw_on_warning
