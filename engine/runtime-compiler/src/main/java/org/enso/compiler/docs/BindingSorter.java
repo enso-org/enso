@@ -123,10 +123,11 @@ public final class BindingSorter {
           yield explicitMethod1.methodName().name()
               .compareTo(explicitMethod2.methodName().name());
         }
+        // Comparison of conversion methods is not supported.
         case Method.Conversion conversion1 when method2 instanceof Method.Conversion conversion2 ->
-            conversion1.methodName().name().compareTo(conversion2.methodName().name());
-        case Method.Explicit explicit when method2 instanceof Method.Conversion -> 1;
-        case Method.Conversion conversion when method2 instanceof Method.Explicit -> -1;
+            0;
+        case Method.Explicit explicit when method2 instanceof Method.Conversion -> -1;
+        case Method.Conversion conversion when method2 instanceof Method.Explicit -> 1;
         default -> throw new AssertionError(
             "Unexpected type: method1=%s, method2=%s".formatted(method1.getClass(),
                 method2.getClass()));

@@ -49,6 +49,7 @@ public class DocsGenerateOrderTest {
             b_method self = 1           # 4
             a_method self = 2           # 3
 
+        B_Type.from _:A_Type = 4        # 9
         a_module_method = 2             # 6
         """;
     var projDir = TMP_DIR.newFolder();
@@ -66,7 +67,8 @@ public class DocsGenerateOrderTest {
             new VisitedType(bTypeName),
             new VisitedMethod(null, "a_module_method"),
             new VisitedMethod(null, "b_module_method"),
-            new VisitedMethod(null, "extension_method"));
+            new VisitedMethod(null, "extension_method"),
+            new VisitedConversion(bTypeName, aTypeName));
     var expectedEventsArr = expectedEvents.toArray(Event[]::new);
     assertThat(events, contains(expectedEventsArr));
   }

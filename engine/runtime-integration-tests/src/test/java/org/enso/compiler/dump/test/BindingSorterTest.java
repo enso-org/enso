@@ -118,7 +118,24 @@ public final class BindingSorterTest {
   }
 
   @Test
-  public void compareUnknownBindings_ShouldReturnSameOrder() {}
+  public void compareInstanceMethodAndConversionMethod() {
+    var type = type("My_Type");
+    var instanceMethod = method("My_Type", "AA");
+    var conversionMethod = conversionMethod("My_Type", "Any");
+    var sorted = sortBindings(conversionMethod, instanceMethod, type);
+    assertThat(sorted.get(0), is(type));
+    assertThat(sorted.get(1), is(instanceMethod));
+    assertThat(sorted.get(2), is(conversionMethod));
+  }
+
+  @Test
+  public void compareModuleMethodAndConversionMethod() {
+    var moduleMethod = method(null, "AA");
+    var conversionMethod = conversionMethod("My_Type", "Any");
+    var sorted = sortBindings(conversionMethod, moduleMethod);
+    assertThat(sorted.get(0), is(moduleMethod));
+    assertThat(sorted.get(1), is(conversionMethod));
+  }
 
   private static <T, U> void assertSameItems(List<T> expected, List<U> actual) {
     var expectedArr = expected.toArray();
@@ -167,6 +184,17 @@ public final class BindingSorterTest {
     Reference<Expression> bodyRef = Reference.of(empty());
     return new Method.Explicit(
         methodRef, bodyRef, isStatic, isPrivate, false, null, new MetadataStorage());
+  }
+
+  private static Method.Conversion conversionMethod(String targetTypeName, String sourceTypeName) {
+    var methodRef =
+        new Name.MethodReference(
+            Option.apply(name(targetTypeName, false)),
+            name("from", true),
+            null,
+            new MetadataStorage());
+    return new Method.Conversion(
+        methodRef, name(sourceTypeName, false), empty(), null, new MetadataStorage());
   }
 
   private static Name name(String nm, boolean isMethod) {
