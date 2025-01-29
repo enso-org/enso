@@ -60,6 +60,16 @@ export async function uploadBundle(
   return bumpMetadata(targetPath, directory, name ?? null)
 }
 
+/** Create a .tar.gz enso-project bundle. */
+export function createBundle(directory: string): stream.Readable {
+  return tar.c(
+    {
+      z: true,
+    },
+    [directory],
+  )
+}
+
 // ================
 // === Metadata ===
 // ================

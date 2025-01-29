@@ -5,6 +5,7 @@
 import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
 import * as http from 'node:http'
+import * as https from 'node:https'
 import * as path from 'node:path'
 
 import * as tar from 'tar'
@@ -21,6 +22,7 @@ import * as projectManagement from './projectManagement'
 const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
+const HTTP_STATUS_INTERNAL_SERVER_ERROR = 500
 const PROJECTS_ROOT_DIRECTORY = projectManagement.getProjectsDirectory()
 
 const COMMON_HEADERS = {
@@ -135,6 +137,56 @@ export default function projectManagerShimMiddleware(
       ),
       { end: true },
     )
+  } else if (requestUrl != null && requestUrl.startsWith('/api/cloud/')) {
+    switch (requestPath) {
+      case '/api/cloud/upload-project': {
+        const url = new URL(`https://example.com/${requestUrl}`)
+        const uploadUrl = url.searchParams.get('upload_url')
+        const projectDir = url.searchParams.get('directory')
+
+        if (uploadUrl == null) {
+          response
+            .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
+            .end('Request is missing search parameter `upload_url`.')
+          break
+        }
+        if (projectDir == null) {
+          response
+            .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
+            .end('Request is missing search parameter `directory`.')
+          break
+        }
+
+        const projectBundle = projectManagement.createBundle(projectDir)
+
+        const uploadRequest = https.request(uploadUrl, { method: 'POST' }, (actualResponse) => {
+          if (!response.writableFinished) {
+            response.writeHead(
+              // This is SAFE. The documentation says:
+              // Only valid for response obtained from ClientRequest.
+              actualResponse.statusCode!,
+              actualResponse.statusMessage,
+              actualResponse.headers,
+            )
+            actualResponse.pipe(response, { end: true })
+          }
+        })
+        uploadRequest.write(projectBundle, (err) => {
+          if (err) {
+            response
+              .writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR)
+              .end('Failed to write project bundle.')
+          }
+        })
+
+        request.pipe(uploadRequest, { end: true })
+        break
+      }
+      default: {
+        console.error(`Unknown Cloud middleware request:`, requestPath)
+        break
+      }
+    }
   } else if (request.method === 'POST') {
     switch (requestPath) {
       case '/api/upload-file': {

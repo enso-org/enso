@@ -109,6 +109,10 @@ export function getProjectContentPath(
 export function getProjectAssetPath(projectId: backend.ProjectId, relativePath: string) {
   return `projects/${projectId}/files/${relativePath.replace('./', '')}`
 }
+/** Relative HTTP path to the upload project endpoint of the Cloud backend API. */
+export function getProjectUploadPath(projectId: backend.ProjectId) {
+  return `projects/${projectId}/upload`
+}
 
 /** Relative HTTP path to the "update asset" endpoint of the Cloud backend API. */
 export function updateAssetPath(assetId: backend.AssetId) {

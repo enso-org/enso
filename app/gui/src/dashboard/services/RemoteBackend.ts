@@ -1471,6 +1471,20 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Upload an asset. */
+  override async upload(id: backend.AssetId, path: string) {
+    const asset = backend.extractTypeFromId(id)
+    if (asset.type === backend.AssetType.project) {
+      const uploadPath = remoteBackendPaths.getProjectUploadPath(asset.id)
+      const url = new URL('./api/cloud/upload-project')
+      url.searchParams.set('upload_url', `${$config.API_URL}/${uploadPath}`)
+      url.searchParams.set('directory', path)
+      await this.client.get(url.toString())
+    } else {
+      await Promise.resolve()
+    }
+  }
+
   /** Fetch the URL of the customer portal. */
   override async createCustomerPortalSession() {
     const response = await this.post<backend.CreateCustomerPortalSessionResponse>(

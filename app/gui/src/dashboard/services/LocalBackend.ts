@@ -769,6 +769,11 @@ export default class LocalBackend extends Backend {
     await Promise.resolve()
   }
 
+  /** Upload an asset. */
+  override async upload(id: backend.AssetId, path: string) {
+    return Promise.resolve()
+  }
+
   /** Invalid operation. */
   override restoreProject() {
     return this.invalidOperation()
