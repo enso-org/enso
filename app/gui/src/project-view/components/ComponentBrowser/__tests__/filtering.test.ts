@@ -10,8 +10,8 @@ import {
   makeStaticMethod,
 } from '@/stores/suggestionDatabase/mockSuggestion'
 import { assert } from '@/util/assert'
-import { parseAbsoluteProjectPath } from '@/util/projectPath'
-import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
+import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
+import { qnLastSegment } from '@/util/qualifiedName'
 import { expect, test } from 'vitest'
 import { type Opt } from 'ydoc-shared/util/data/opt'
 import { unwrap } from 'ydoc-shared/util/data/result'
@@ -42,7 +42,7 @@ test.each([
 
 function stdPath(path: string) {
   assert(path.startsWith('Standard.'))
-  return parseAbsoluteProjectPath(unwrap(tryQualifiedName(path)))
+  return unwrap(parseAbsoluteProjectPathRaw(path))
 }
 
 test('An Instance method is shown when self arg matches', () => {

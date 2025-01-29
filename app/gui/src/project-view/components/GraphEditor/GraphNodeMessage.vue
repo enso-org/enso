@@ -5,7 +5,7 @@ import { useGraphStore } from '@/stores/graph'
 import { QualifiedImport } from '@/stores/graph/imports'
 import { injectProjectNames } from '@/stores/projectNames'
 import type { Icon } from '@/util/iconMetadata/iconName'
-import { QualifiedName } from '@/util/qualifiedName'
+import { ProjectPath } from '@/util/projectPath'
 
 const graph = useGraphStore()
 const projectNames = injectProjectNames()
@@ -15,12 +15,15 @@ const props = defineProps<{
   type: MessageType
 }>()
 
-function containsLibraryName(): string | null {
+function containsLibraryName(): ProjectPath | null {
   const prefix = 'Compile error: Fully qualified name references a library '
   if (props.message.startsWith(prefix)) {
     const rest = props.message.substring(prefix.length)
     const libName = rest.split(' ')
-    return libName[0] ? libName[0] : null
+    if (!libName[0]) return null
+    const path = projectNames.parseProjectPathRaw(libName[0])
+    if (!path.ok) return null
+    return path.value
   } else {
     return null
   }
@@ -33,7 +36,7 @@ function fixImport() {
   if (libName) {
     const theImport = {
       kind: 'Qualified',
-      module: projectNames.parseProjectPath(libName as QualifiedName),
+      module: libName,
     } satisfies QualifiedImport
     graph.edit((edit) => graph.addMissingImports(edit, [theImport]))
   }

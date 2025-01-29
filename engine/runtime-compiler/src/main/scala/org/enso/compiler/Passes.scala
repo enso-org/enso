@@ -1,7 +1,6 @@
 package org.enso.compiler
 
 import org.enso.compiler.data.CompilerConfig
-import org.enso.compiler.dump.IRDumperPass
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.analyse.types.scope.StaticModuleScopeAnalysis
@@ -109,9 +108,7 @@ class Passes(config: CompilerConfig) {
                      TypeInferenceSignatures.INSTANCE,
                      StaticModuleScopeAnalysis.INSTANCE
                    )
-                 } else Nil) ++ (if (config.dumpIrs) {
-                                   List(IRDumperPass.INSTANCE)
-                                 } else Nil)
+                 } else Nil)
   )
 
   val typeInferenceFinalPasses = new PassGroup(

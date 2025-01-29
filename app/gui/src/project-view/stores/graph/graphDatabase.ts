@@ -1,5 +1,9 @@
 import { computeNodeColor } from '@/composables/nodeColors'
-import { ComputedValueRegistry, type ExpressionInfo } from '@/stores/project/computedValueRegistry'
+import {
+  ComputedValueRegistry,
+  translateMethodCall,
+  type ExpressionInfo,
+} from '@/stores/project/computedValueRegistry'
 import { mockProjectNameStore, type ProjectNameStore } from '@/stores/projectNames'
 import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
 import { type CallableSuggestionEntry } from '@/stores/suggestionDatabase/entry'
@@ -15,7 +19,6 @@ import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import {
   methodPointerEquals,
-  parseMethodPointer,
   type MethodCall,
   type MethodPointer,
   type StackItem,
@@ -38,7 +41,6 @@ import {
   type WatchStopHandle,
 } from 'vue'
 import { type SourceDocument } from 'ydoc-shared/ast/sourceDocument'
-import type { MethodCall as LSMethodCall } from 'ydoc-shared/languageServerTypes'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 import type { ExternalId, VisualizationMetadata } from 'ydoc-shared/yjsModel'
 import { isUuid, visMetadataEquals } from 'ydoc-shared/yjsModel'
@@ -210,12 +212,16 @@ export class GraphDb {
   getMethodCall(id: AstId): MethodCall | undefined {
     const info = this.getExpressionInfo(id)
     if (info == null) return
-    return (
-      info.methodCall ??
-      (info.payload.type === 'Value' && info.payload.functionSchema ?
-        translateMethodCall(info.payload.functionSchema, this.projectNames)
-      : undefined)
-    )
+    if (info.methodCall) return info.methodCall
+    if (info.payload.type === 'Value' && info.payload.functionSchema) {
+      const translated = translateMethodCall(info.payload.functionSchema, this.projectNames)
+      if (translated.ok) return translated.value
+      else
+        translated.error.log(
+          "Ignoring MethodCall value in functionSchema, because it' ill formatted",
+        )
+    }
+    return
   }
 
   /** TODO: Add docs */
@@ -529,13 +535,6 @@ export class GraphDb {
     this.nodeIdToNode.set(id, node)
     this.bindings.set(bindingId, { identifier: binding, usages: new Set() })
     return node
-  }
-}
-
-function translateMethodCall(ls: LSMethodCall, projectNames: ProjectNameStore): MethodCall {
-  return {
-    methodPointer: parseMethodPointer(ls.methodPointer, projectNames),
-    notAppliedArguments: ls.notAppliedArguments,
   }
 }
 
