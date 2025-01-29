@@ -33,9 +33,8 @@ public final class DocsGenerate {
       DocsVisit visitor, org.enso.pkg.Package<File> pkg, Iterable<CompilerContext.Module> modules)
       throws IOException {
     var fs = pkg.fileSystem();
-    var docs = fs.getChild(pkg.root(), "docs");
-    var api = fs.getChild(docs, "api");
-    fs.createDirectories(api);
+    var apiDir = defaultOutputDir(pkg);
+    fs.createDirectories(apiDir);
 
     for (var module : modules) {
       if (module.isSynthetic()) {
@@ -47,17 +46,40 @@ public final class DocsGenerate {
         continue;
       }
       var moduleName = module.getName();
-      var dir = createPkg(fs, api, moduleName);
+      var dir = createDirs(fs, apiDir, stripNamespace(moduleName));
       var md = fs.getChild(dir, moduleName.item() + ".md");
       try (var mdWriter = fs.newBufferedWriter(md);
           var pw = new PrintWriter(mdWriter)) {
         visitModule(visitor, moduleName, ir, pw);
       }
     }
+    return apiDir;
+  }
+
+  public static <File> File defaultOutputDir(org.enso.pkg.Package<File> pkg) {
+    var fs = pkg.fileSystem();
+    var docs = fs.getChild(pkg.root(), "docs");
+    var api = fs.getChild(docs, "api");
     return api;
   }
 
-  private static <File> File createPkg(FileSystem<File> fs, File root, QualifiedName pkg)
+  /**
+   * Strips namespace part from the given qualified {@code name}.
+   *
+   * @param name
+   */
+  private static QualifiedName stripNamespace(QualifiedName name) {
+    if (!name.isSimple()) {
+      var path = name.pathAsJava();
+      assert path.size() >= 2;
+      var dropped = path.subList(2, path.size());
+      return new QualifiedName(asScala(dropped), name.item());
+    } else {
+      return name;
+    }
+  }
+
+  private static <File> File createDirs(FileSystem<File> fs, File root, QualifiedName pkg)
       throws IOException {
     var dir = root;
     for (var item : pkg.pathAsJava()) {
@@ -118,5 +140,9 @@ public final class DocsGenerate {
 
   private static <T> List<T> asJava(Seq<T> seq) {
     return CollectionConverters.asJava(seq);
+  }
+
+  private static <T> scala.collection.immutable.List<T> asScala(List<T> list) {
+    return CollectionConverters.asScala(list).toList();
   }
 }

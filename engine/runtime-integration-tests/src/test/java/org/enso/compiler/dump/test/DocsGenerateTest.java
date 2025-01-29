@@ -2,6 +2,7 @@ package org.enso.compiler.dump.test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -11,15 +12,20 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
+import org.enso.compiler.docs.DocsGenerate;
 import org.enso.compiler.docs.DocsVisit;
+import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.QualifiedName;
 import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ProjectUtils;
+import org.enso.test.utils.SourceModule;
 import org.graalvm.polyglot.Context;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -271,6 +277,38 @@ public class DocsGenerateTest {
                   line,
                   anyOf(startsWith("#"), startsWith("-"), startsWith("    -")));
             });
+  }
+
+  @Test
+  public void generatedSignaturesForProject_HasSameDirectoryHierarchyAsSources()
+      throws IOException {
+    var projName = "Proj";
+    var modules =
+        Set.of(
+            new SourceModule(QualifiedName.fromString("Main"), "main = 42"),
+            new SourceModule(QualifiedName.fromString("Subdir.Submodule"), "submodule = 42"));
+    var projDir = TEMP.newFolder(projName);
+    ProjectUtils.createProject(projName, modules, projDir.toPath());
+    ProjectUtils.generateProjectDocs(
+        "api",
+        ContextUtils.defaultContextBuilder(),
+        projDir.toPath(),
+        ctx -> {
+          var ensoCtx = ContextUtils.leakContext(ctx);
+          var pkg =
+              ensoCtx
+                  .getPackageRepository()
+                  .getPackageForLibrary(LibraryName.apply("local", projName));
+          assertThat(pkg.isDefined(), is(true));
+          var signatureOutDir = DocsGenerate.defaultOutputDir(pkg.get());
+          assertThat(
+              "Default output dir for signatures was created", signatureOutDir.exists(), is(true));
+          var srcDir = pkg.get().sourceDir();
+          assertThat(srcDir.resolve("Main.enso").exists(), is(true));
+          assertThat(signatureOutDir.resolve("Main.md").exists(), is(true));
+          assertThat(srcDir.resolve("Subdir").resolve("Submodule.enso").exists(), is(true));
+          assertThat(signatureOutDir.resolve("Subdir").resolve("Submodule.md").exists(), is(true));
+        });
   }
 
   @Test
