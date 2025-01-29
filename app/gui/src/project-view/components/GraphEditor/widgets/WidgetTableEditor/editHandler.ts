@@ -1,7 +1,7 @@
 import { NEW_COLUMN_ID } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
 import { WidgetEditHandler, WidgetEditHooks } from '@/providers/widgetRegistry/editHandler'
 import { ToValue } from '@/util/reactivity'
-import { CellEditingStoppedEvent, CellPosition, StartEditingCellParams } from 'ag-grid-enterprise'
+import { CellPosition, StartEditingCellParams } from 'ag-grid-enterprise'
 import { computed, ref, toValue, watch } from 'vue'
 
 export interface EditedCell {
@@ -14,7 +14,6 @@ export interface EditedCell {
  *
  * Contains logic of synchronizing state between AgGrid cells and our custom headers,
  * and react for user input received from them.
- * @param pointerdown should check if click is outside input element inside the grid.
  */
 export function useTableEditHandler(
   gridApi: ToValue<
@@ -84,7 +83,6 @@ export function useTableEditHandler(
       }
     },
     cellEditingStopped(event: { rowIndex: number | undefined; column: { getColId(): string } }) {
-      console.error(event)
       const api = toValue(gridApi)
       if (
         event.rowIndex === editedCell.value?.rowIndex &&
@@ -96,8 +94,9 @@ export function useTableEditHandler(
       }
     },
     rowDataUpdated() {
-      console.error('Row data updated!', editedCell.value)
-      // syncGridWithEditedCell()
+      // Sometimes edited cell appears only after updating row data, for example after filling
+      // value in "new row" and pressing enter.
+      syncGridWithEditedCell()
     },
     keydown(event: KeyboardEvent) {
       const handler =
@@ -132,14 +131,12 @@ export function useTableEditHandler(
   }
 
   function tabPressed() {
-    console.log('Tab pressed when edited', editedCell.value)
     // When cell is edited, AgGrid handles tab correctly.
     if (editedCell.value == null || editedCell.value.rowIndex !== 'header') return false
     const currentIndex = columnIndexById.value.get(editedCell.value.colKey)
     if (currentIndex == null) return
     const columnDefs = toValue(colDefs)
     const colOnRight = columnDefs[currentIndex + 1]
-    console.log(colOnRight)
     if (colOnRight != null && colOnRight.colId != NEW_COLUMN_ID) {
       editedCell.value = { rowIndex: 'header', colKey: colOnRight.colId }
     } else if (firstColumn.value != null) {

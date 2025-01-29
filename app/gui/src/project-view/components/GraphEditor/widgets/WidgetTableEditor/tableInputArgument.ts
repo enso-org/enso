@@ -2,7 +2,6 @@ import { commonContextMenuActions, type MenuItem } from '@/components/shared/AgG
 import type { WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
 import { type RequiredImport, requiredImportsByFQN } from '@/stores/graph/imports'
 import type { SuggestionDb } from '@/stores/suggestionDatabase'
-import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { findIndexOpt } from '@/util/data/array'
 import { Err, Ok, type Result, transposeResult, unwrapOrWithLog } from '@/util/data/result'
@@ -11,8 +10,7 @@ import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import { cachedGetter, type ToValue } from '@/util/reactivity'
 import type { ColDef } from 'ag-grid-enterprise'
 import * as iter from 'enso-common/src/utilities/data/iter'
-import { a } from 'vitest/dist/chunks/suite.BJU7kdY9.js'
-import { computed, reactive, ref, toValue, watch, watchEffect } from 'vue'
+import { computed, toValue } from 'vue'
 import type { ColumnSpecificParams } from './TableHeader.vue'
 
 /** Id of a fake column with "Add new column" option. */
@@ -144,7 +142,6 @@ export function useTableInputArgument(
   suggestions: SuggestionDb,
   onUpdate: (update: WidgetUpdate) => void,
 ) {
-  watch(toValue(input), (input) => console.error('NEW INPUT', input), { flush: 'sync', deep: true })
   const errorMessagePreamble = 'Table Editor Widget should not have been matched'
   const columnsAst = computed(() => retrieveColumnsAst(toValue(input).value))
 
@@ -155,11 +152,13 @@ export function useTableInputArgument(
     return unwrapOrWithLog(cols, [], errorMessagePreamble)
   })
 
+  // Why cachedGetter - see comment on columnDefs.
   const columnHeaders = cachedGetter(
     () => Array.from(columns.value, (col) => ({ id: col.id, name: col.name.rawTextContent })),
     (a, b) => arrayEquals(a, b, (a, b) => a.id === b.id && a.name === b.name),
   )
 
+  // Why cachedGetter - see comment on rowData.
   const rowCount = cachedGetter(() =>
     columns.value.reduce((soFar, col) => Math.max(soFar, col.data.length), 0),
   )
@@ -195,6 +194,7 @@ export function useTableInputArgument(
   }
 
   const mayAddNewColumnCurrently = cachedGetter(() => mayAddNewColumn())
+  const mayAddNewRowCurrently = cachedGetter(() => mayAddNewRow())
 
   function addRow(
     edit: Ast.MutableModule,
@@ -205,7 +205,6 @@ export function useTableInputArgument(
       return
     }
     for (const [index, column] of columns.value.entries()) {
-      console.log('AR', index, column.data.id, valueGetter(column.data.id, index))
       const editedCol = edit.getVersion(column.data)
       editedCol.push(convertWithImport(valueGetter(column.id, index), edit))
     }
@@ -287,61 +286,54 @@ export function useTableInputArgument(
     },
   })
 
-  const newColumnDef = computed<ColumnDef>(
-    () => (
-      console.error('Updating newColumnDef'),
-      {
-        colId: NEW_COLUMN_ID,
-        headerName: '',
-        valueGetter: () => null,
-        editable: false,
-        resizable: false,
-        suppressNavigable: true,
-        width: 40,
-        maxWidth: 40,
-        headerComponentParams: {
-          columnParams: {
-            type: 'newColumn',
-            enabled: mayAddNewColumnCurrently.value,
-            newColumnRequested: () => {
-              const edit = graph.startEdit()
-              fixColumns(edit)
-              addColumn(edit, `${DEFAULT_COLUMN_PREFIX}${columns.value.length + 1}`)
-              onUpdate({ edit, directInteraction: true })
-            },
-          },
+  const newColumnDef = computed<ColumnDef>(() => ({
+    colId: NEW_COLUMN_ID,
+    headerName: '',
+    valueGetter: () => null,
+    editable: false,
+    resizable: false,
+    suppressNavigable: true,
+    width: 40,
+    maxWidth: 40,
+    headerComponentParams: {
+      columnParams: {
+        type: 'newColumn',
+        enabled: mayAddNewColumnCurrently.value,
+        newColumnRequested: () => {
+          const edit = graph.startEdit()
+          fixColumns(edit)
+          addColumn(edit, `${DEFAULT_COLUMN_PREFIX}${columns.value.length + 1}`)
+          onUpdate({ edit, directInteraction: true })
         },
-        mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
-        contextMenuItems: [removeRowMenuItem],
-        lockPosition: 'right',
-        cellClass: 'newColumnCell',
-      }
-    ),
-  )
+      },
+    },
+    mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
+    contextMenuItems: [removeRowMenuItem],
+    lockPosition: 'right',
+    cellClass: 'newColumnCell',
+  }))
 
-  const rowIndexColumnDef = computed<ColumnDef>(
-    () => (
-      console.error('Updating rowIndexColumnDef'),
-      {
-        colId: ROW_INDEX_COLUMN_ID,
-        headerName: ROW_INDEX_HEADER,
-        valueGetter: ({ data }: { data: RowData | undefined }) => data?.index,
-        editable: false,
-        resizable: false,
-        suppressNavigable: true,
-        headerComponentParams: { columnParams: { type: 'rowIndexColumn' } },
-        mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
-        contextMenuItems: [removeRowMenuItem],
-        cellClass: 'rowIndexCell',
-        lockPosition: 'left',
-        rowDrag: ({ data }: { data: RowData | undefined }) =>
-          data?.index != null && data.index < rowCount.value,
-      }
-    ),
-  )
+  const rowIndexColumnDef = computed<ColumnDef>(() => ({
+    colId: ROW_INDEX_COLUMN_ID,
+    headerName: ROW_INDEX_HEADER,
+    valueGetter: ({ data }: { data: RowData | undefined }) => data?.index,
+    editable: false,
+    resizable: false,
+    suppressNavigable: true,
+    headerComponentParams: { columnParams: { type: 'rowIndexColumn' } },
+    mainMenuItems: ['autoSizeThis', 'autoSizeAll'],
+    contextMenuItems: [removeRowMenuItem],
+    cellClass: 'rowIndexCell',
+    lockPosition: 'left',
+    rowDrag: ({ data }: { data: RowData | undefined }) =>
+      data?.index != null && data.index < rowCount.value,
+  }))
 
+  // columnDefs change may cause excessive recreating components in AgGrid and stop any editing,
+  // which may ruin user experience (for example, edits are stopped in the middle of typing).
+  // Therefore we must be careful to not make unnecessary dependency to e.g. cells' values.
+  // That's why `column.value` is accessed only inside closures.
   const columnDefs = computed(() => {
-    console.error('Updating columnDefs')
     const cols: ColumnDef[] = Array.from(
       columnHeaders.value,
       (col, i) =>
@@ -350,8 +342,7 @@ export function useTableInputArgument(
           headerName: col.name,
           valueGetter: ({ data }: { data: RowData | undefined }) => {
             if (data == null) return undefined
-
-            const ast = columns.value //toValue(input).value.module.tryGet(data.cells[col.id])
+            const ast = columns.value[i]?.data.at(data.index)
             if (ast == null) return null
             const value = cellValueConversion.astToAgGrid(ast as Ast.Expression)
             if (!value.ok) {
@@ -363,19 +354,20 @@ export function useTableInputArgument(
             return value.value
           },
           valueSetter: ({ data, newValue }: { data: RowData; newValue: any }): boolean => {
-            const astId = data?.cells[col.id]
+            const colData = columns.value[i]?.data
+            if (colData == null) {
+              console.error('Tried to set value in column no longer existing in code')
+              return false
+            }
+            const ast = colData.at(data.index)
             const edit = graph.startEdit()
             fixColumns(edit)
-            console.log('valueSetter', data.index, rowCount.value)
             if (data.index === rowCount.value) {
-              console.log('Adding new row', col.id)
               addRow(edit, (colId) => (colId === col.id ? newValue : null))
             } else {
-              console.log('Setting ast')
               const newValueAst = convertWithImport(newValue, edit)
-              if (astId != null) edit.replaceValue(astId, newValueAst)
-              // TODO
-              else edit.getVersion(columns.value[i]!.data).set(data.index, newValueAst)
+              if (ast != null) edit.getVersion(ast).replace(newValueAst)
+              else edit.getVersion(colData).set(data.index, newValueAst)
             }
             onUpdate({ edit, directInteraction: true })
             return true
@@ -385,8 +377,13 @@ export function useTableInputArgument(
               type: 'astColumn',
               nameSetter: (newName: string) => {
                 const edit = graph.startEdit()
+                const column = columns.value[i]
+                if (column == null) {
+                  console.error('Tried to rename column no longer existing in code')
+                  return
+                }
                 fixColumns(edit)
-                edit.getVersion(columns.value[i]!.name).setRawTextContent(newName)
+                edit.getVersion(column.name).setRawTextContent(newName)
                 onUpdate({ edit, directInteraction: true })
               },
             },
@@ -411,47 +408,13 @@ export function useTableInputArgument(
     return cols
   })
 
-  const rowData: RowData[]
-
-  watchEffect(() => {
-    console.log('Update rowData if needed', rowData)
-    for (const col of columns.value) {
-      for (const [rowIndex, value] of col.data.enumerate()) {
-        const row: RowData = rowData.at(rowIndex) ?? { index: rowIndex, cells: {} }
-        assert(rowIndex <= rowData.length)
-        if (rowIndex === rowData.length) {
-          rowData.push(row)
-        }
-        console.log('Updating cell', col.id, rowIndex, value)
-        if (value?.id && row.cells[col.id] != value.id) {
-          console.log('Setting cell value')
-          row.cells[col.id] = value.id
-        } else if (!value?.id && row.cells[col.id]) {
-          console.log('Removing cell value')
-          delete row.cells[col.id]
-        }
-      }
-    }
-    const extraRow = mayAddNewRow()
-    if (extraRow) {
-      console.log('Setting extra row')
-      rowData[rowCount.value] = { index: rowCount.value, cells: {} }
-    }
-    const expectedRowNumber = rowCount.value + (extraRow ? 1 : 0)
-    console.log('expectedRowNumber', expectedRowNumber)
-    if (expectedRowNumber < rowData.length) {
-      console.log('Removingcell value')
-      rowData.splice(expectedRowNumber)
-    }
-    console.log('NEW ROW DATA', rowData)
-  })
-
-  watch(columnsAst, () => console.error('New columnsAst'), { flush: 'sync', deep: true })
-  watch(columns, () => console.error('New columns'), { flush: 'sync', deep: true })
-  watch(rowData, () => console.error('Updating rowData'), {
-    deep: true,
-    immediate: true,
-  })
+  // rowData change may cause excessive recreating components in AgGrid and stop any editing,
+  // similarly as it is with `columnDefs`. Therefore we create rowData depending only on row count.
+  const rowData = computed<RowData[]>(() =>
+    Array.from({ length: rowCount.value + (mayAddNewRowCurrently.value ? 1 : 0) }, (_, index) => ({
+      index,
+    })),
+  )
 
   const nothingImport = computed(() => requiredImportsByFQN(suggestions, NOTHING_PATH, true))
 

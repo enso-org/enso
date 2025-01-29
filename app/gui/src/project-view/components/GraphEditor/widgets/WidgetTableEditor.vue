@@ -25,11 +25,11 @@ import type {
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
-import { ComponentInstance, computed, proxyRefs, ref, watch, watchEffect } from 'vue'
+import { ComponentInstance, computed, proxyRefs, ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { z } from 'zod'
 import TableHeader, { HeaderParams } from './WidgetTableEditor/TableHeader.vue'
-import { useTableEditHandler } from './WidgetTableEditor/editHandlers'
+import { useTableEditHandler } from './WidgetTableEditor/editHandler'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -67,7 +67,7 @@ const { rowData, columnDefs, moveColumn, moveRow, pasteFromClipboard } = useTabl
 
 // === Edit Handlers ===
 
-const { handler, editedCell, gridEventHandlers, headerEventHandlers } = useTableEditHandler(
+const { editedCell, gridEventHandlers, headerEventHandlers } = useTableEditHandler(
   () => grid.value?.gridApi,
   columnDefs,
   (hooks) => {
@@ -90,10 +90,7 @@ const { handler, editedCell, gridEventHandlers, headerEventHandlers } = useTable
 
 watch(
   () => props.input,
-  () => {
-    console.log('Input changed; refreshing cells')
-    grid.value?.gridApi?.refreshCells()
-  },
+  () => grid.value?.gridApi?.refreshCells(),
 )
 
 // const rowDataSuppressed = ref<typeof rowData.value>([])

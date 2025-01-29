@@ -1,12 +1,11 @@
-import { InteractionHandler, provideInteractionHandler } from '@/providers/interactionHandler'
+import { InteractionHandler } from '@/providers/interactionHandler'
 import { PortId } from '@/providers/portInfo'
 import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
-import { provideWidgetTree, useCurrentEdit } from '@/providers/widgetTree'
-import { withSetup } from '@/util/testing'
+import { useCurrentEdit } from '@/providers/widgetTree'
 import { CellPosition } from 'ag-grid-enterprise'
 import { expect, test, vi } from 'vitest'
 import { nextTick } from 'vue'
-import { EditedCell, useTableEditHandler } from '../editHandlers'
+import { EditedCell, useTableEditHandler } from '../editHandler'
 import { NEW_COLUMN_ID, ROW_INDEX_COLUMN_ID } from '../tableInputArgument'
 
 const colDefs = [
@@ -70,7 +69,10 @@ function fixture() {
     }
     // Inform that previous edit stopped, as this is what AgGrid does.
     if (oldEdit != null) {
-      composable.gridEventHandlers.cellEditingStopped()
+      composable.gridEventHandlers.cellEditingStopped({
+        rowIndex: oldEdit.rowIndex,
+        column: { getColId: () => oldEdit.colKey },
+      })
     }
     // AgGrid does not keep separate state of edited headers: it's the same as composable's ref.
     if (cell == null && composable.editedCell.value?.rowIndex === 'header') {
@@ -121,7 +123,7 @@ test.each([
 ])('User edit sequence: select %s and then stop editing', async (selections) => {
   const {
     gridState,
-    composable: { handler, editedCell, gridEventHandlers, headerEventHandlers },
+    composable: { handler, editedCell },
     editedInGrid,
   } = fixture()
 
