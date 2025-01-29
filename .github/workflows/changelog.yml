@@ -23,15 +23,7 @@ jobs:
       - name: Setup bazel environment
         uses: bazel-contrib/setup-bazel@09f3a72d13a081857b0ee94e986ffa84caef7c85
         with:
-          bazelisk-cache: true
-          disk-cache: true
           output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
-          repository-cache: true
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.12.1
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:

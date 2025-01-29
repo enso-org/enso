@@ -123,7 +123,7 @@ const persisted = providePersisted(
   () => zoomToAll(true),
 )
 
-const rightDock = provideRightDock(graphStore, persisted)
+const rightDock = provideRightDock(graphStore, projectStore, persisted)
 
 // === Zoom/pan ===
 
@@ -163,7 +163,9 @@ function panToSelected() {
 // == Breadcrumbs ==
 
 const stackNavigator = provideStackNavigator(projectStore, graphStore, projectNames)
-const graphMissing = computed(() => graphStore.moduleRoot != null && !graphStore.methodAst.ok)
+const graphMissing = computed(
+  () => graphStore.moduleRoot != null && !graphStore.currentMethod.ast.ok,
+)
 
 // === Toasts ===
 
@@ -540,7 +542,7 @@ function collapseNodes(nodes: Node[]) {
       toasts.userActionFailed.show(`Unable to group nodes: ${info.error.payload}.`)
       return
     }
-    const currentMethodName = unwrapOr(graphStore.currentMethodPointer, undefined)?.name
+    const currentMethodName = unwrapOr(graphStore.currentMethod.pointer, undefined)?.name
     if (currentMethodName == null) {
       bail(`Cannot get the method name for the current execution stack item.`)
     }
@@ -581,7 +583,7 @@ async function handleFileDrop(event: DragEvent) {
   if (!event.dataTransfer?.items) return
   ;[...event.dataTransfer.items].forEach(async (item, index) => {
     if (item.kind === 'file') {
-      if (!graphStore.methodAst.ok) return
+      if (!graphStore.currentMethod.ast.ok) return
       const file = item.getAsFile()
       if (!file) return
       const clientPos = new Vec2(event.clientX, event.clientY)
@@ -593,7 +595,7 @@ async function handleFileDrop(event: DragEvent) {
         pos,
         projectStore.isOnLocalBackend,
         event.shiftKey,
-        graphStore.methodAst.value.externalId,
+        graphStore.currentMethod.ast.value.externalId,
       )
       const uploadResult = await uploader.upload()
       if (uploadResult.ok) {

@@ -63,7 +63,7 @@ export const [providePersisted, usePersisted] = createContextStore(
 
     const storageOps = useSyncLocalStorage<GraphStoredState>({
       storageKey: 'enso-graph-state',
-      mapKeyEncoder: (enc) => encodeKey(enc, graphStore.currentMethodPointer),
+      mapKeyEncoder: (enc) => encodeKey(enc, graphStore.currentMethod.pointer),
       debounce: 200,
       captureState() {
         return {

@@ -76,7 +76,8 @@ public class Column {
    * @return the number of items in this column.
    */
   public int getSize() {
-    return getStorage().size();
+    // ToDo: Work through changing to long.
+    return Math.toIntExact(getStorage().getSize());
   }
 
   /**

@@ -31,6 +31,7 @@ import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
 import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
 import project.Internal.Replace_Params.Replace_Params
+import project.Internal.SQL_Part.SQL_Part
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.Statement_Setter.Statement_Setter
@@ -86,7 +87,13 @@ type Postgres_Dialect
        Generates SQL modifier for limiting the number of rows and its position in the query
     get_limit_sql_modifier : Integer -> Any
     get_limit_sql_modifier self limit =
-        [700, SQL_Builder.code (" LIMIT " + limit.to_text)]
+        SQL_Builder.code (" LIMIT " + limit.to_text)
+
+    ## PRIVATE
+       Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
+       If you add extensions using Context_Extension you have to provide an order for them here
+    get_part_order self part:SQL_Part -> Integer =
+        [SQL_Part.Select, SQL_Part.Extension "postgres_distinct", SQL_Part.Columns, SQL_Part.From, SQL_Part.Where, SQL_Part.Group, SQL_Part.Order, SQL_Part.Limit] . index_of part
 
     ## PRIVATE
        Wraps and possibly escapes the identifier so that it can be used in a
@@ -825,7 +832,7 @@ as_int32 expr =
 make_distinct_extension expressions =
     run_generator sql_expressions =
         SQL_Builder.code "DISTINCT ON (" ++ (SQL_Builder.join ", " sql_expressions) ++ ") "
-    Context_Extension.Value position=120 expressions=expressions run_generator=run_generator
+    Context_Extension.Value part_name=(SQL_Part.Extension "postgres_distinct") expressions=expressions run_generator=run_generator
 
 ## PRIVATE
    The RUNTIME_ERROR operation should allow the query to compile fine and it

@@ -201,7 +201,7 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
                 <Menu.Trigger>
                   <Button icon={ArrowDownIcon} aria-label={getText('more')} />
 
-                  <Menu placement="bottom end">
+                  <Menu>
                     {item.menu.map((menuItem) => (
                       <Menu.Item href={menuItem.url} {...getSafetyProps(menuItem.url)}>
                         {getText(menuItem.name)}
@@ -217,7 +217,7 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
             <Menu.Trigger>
               <Button icon={ArrowDownIcon}>{getText(item.name)}</Button>
 
-              <Menu placement="bottom end">
+              <Menu>
                 {item.menu.map((menuItem) => (
                   <Menu.Item href={menuItem.url} {...getSafetyProps(menuItem.url)}>
                     {getText(menuItem.name)}

@@ -1,5 +1,5 @@
 /** @file Execute a function on scroll. */
-import { useRef, useState, type MutableRefObject, type RefObject } from 'react'
+import { useState, type MutableRefObject, type RefObject } from 'react'
 
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import useOnScroll from '#/hooks/useOnScroll'

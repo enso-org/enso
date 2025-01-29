@@ -498,7 +498,6 @@ const config = [
       'jsdoc/no-defaults': 'error',
       'jsdoc/no-multi-asterisks': 'error',
       'jsdoc/no-types': 'error',
-      'jsdoc/no-undefined-types': 'error',
       'jsdoc/require-asterisk-prefix': 'error',
       'jsdoc/require-description': 'error',
       // This rule does not handle `# Heading`s and "etc.", "e.g.", "vs." etc.
@@ -593,9 +592,27 @@ const config = [
   // === React Compiler Rules ===
   {
     files: ['app/gui/src/dashboard/**/*.ts', 'app/gui/src/dashboard/**/*.tsx'],
-    ignores: ['**/*.d.ts', '**/*.spec.ts', '**/*.stories.tsx', '**/*.test.tsx', '**/*.test.ts'],
+    ignores: [
+      '**/*.d.ts',
+      '**/*.spec.ts',
+      '**/*.stories.tsx',
+      '**/*.test.tsx',
+      '**/*.test.ts',
+      '**/utilities/*.ts',
+      '**/services/*.ts',
+      '**/assets/*',
+      '**/authentication/*',
+      '**/configuration/*',
+      '**/index.ts',
+    ],
     plugins: { 'react-compiler': reactCompiler },
     rules: { 'react-compiler/react-compiler': 'error' },
+  },
+  // === Index Files ===
+  {
+    files: ['**/index.ts'],
+    // Index files should not have file overviews, because their purpose is obvious.
+    rules: { 'jsdoc/require-file-overview': 'off' },
   },
 ]
 

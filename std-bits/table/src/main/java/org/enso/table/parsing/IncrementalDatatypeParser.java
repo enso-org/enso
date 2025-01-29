@@ -24,19 +24,20 @@ public abstract class IncrementalDatatypeParser extends DatatypeParser {
    * builder.
    */
   protected abstract Builder makeBuilderWithCapacity(
-      int capacity, ProblemAggregator problemAggregator);
+      long capacity, ProblemAggregator problemAggregator);
 
   /**
-   * Parses a column of texts (represented as a {@code StringStorage}) and returns a new storage,
+   * Parses a column of texts (represented as a {@code Storage<String>}) and returns a new storage,
    * containing the parsed elements.
    */
   @Override
   public Storage<?> parseColumn(
       Storage<String> sourceStorage, CommonParseProblemAggregator problemAggregator) {
-    Builder builder = makeBuilderWithCapacity(sourceStorage.size(), problemAggregator);
+    long size = sourceStorage.getSize();
+    Builder builder = makeBuilderWithCapacity(size, problemAggregator);
 
     Context context = Context.getCurrent();
-    for (int i = 0; i < sourceStorage.size(); ++i) {
+    for (long i = 0; i < size; ++i) {
       String cell = sourceStorage.getItemBoxed(i);
       if (cell != null) {
         Object parsed = parseSingleValue(cell, problemAggregator);

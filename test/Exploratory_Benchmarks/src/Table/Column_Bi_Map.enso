@@ -32,7 +32,7 @@ type Boxed_Bi_Map_Test
     enso_map_with_builder self =
         n = self.text_column_1.length
         if self.text_column_2.length != n then Panic.throw "LENGTH MISMATCH" else
-            builder = Builder.getForType TextType.VARIABLE_LENGTH n Nothing
+            builder = Builder.getForText TextType.VARIABLE_LENGTH n
             storage_1 = get_storage_for_column self.text_column_1
             storage_2 = get_storage_for_column self.text_column_2
             0.up_to n . each i->
@@ -71,8 +71,8 @@ type Primitive_Bi_Map_Test
             storage_2 = get_storage_for_column self.int_column_2
             0.up_to n . each i->
                 if storage_1.isNothing i || storage_2.isNothing i then builder.appendNulls 1 else
-                    item_1 = storage_1.getItem i
-                    item_2 = storage_2.getItem i
+                    item_1 = storage_1.getItemAsLong i
+                    item_2 = storage_2.getItemAsLong i
                     res = item_1 + item_2
                     builder.appendLong res
             Column.from_storage "result" builder.seal

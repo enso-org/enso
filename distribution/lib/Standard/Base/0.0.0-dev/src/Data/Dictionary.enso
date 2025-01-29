@@ -174,9 +174,9 @@ type Dictionary key value
     insert self key=(Missing_Argument.throw "key") value=(Missing_Argument.throw "value") no_warning:Boolean=False =
         new_dict = self.insert_builtin key value
         case key of
-            _ : Float ->
+            key_as_float : Float ->
                 if no_warning then new_dict else
-                    Warning.attach (Floating_Point_Equality.Used_As_Dictionary_Key key) new_dict
+                    Warning.attach (Floating_Point_Equality.Used_As_Dictionary_Key key_as_float) new_dict
             _ -> new_dict
 
     ## GROUP Selections
