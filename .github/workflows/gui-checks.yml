@@ -85,7 +85,7 @@ jobs:
       - name: 🧪 Unit Tests
         id: unit-tests
         continue-on-error: true
-        run: pnpm run ci:unit-test --changed ${{ github.event.pull_request.head.ref }}
+        run: pnpm run ci:unit-test --changed ${{ github.base_ref }}
 
       - name: 💾 Save cache
         uses: actions/cache/save@v4
