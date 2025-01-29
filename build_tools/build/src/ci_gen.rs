@@ -13,8 +13,6 @@ use crate::version::ENSO_VERSION;
 use ide_ci::actions::workflow::definition::checkout_repo_step;
 use ide_ci::actions::workflow::definition::get_input;
 use ide_ci::actions::workflow::definition::get_input_expression;
-use ide_ci::actions::workflow::definition::is_non_windows_runner;
-use ide_ci::actions::workflow::definition::is_windows_runner;
 use ide_ci::actions::workflow::definition::run;
 use ide_ci::actions::workflow::definition::setup_artifact_api;
 use ide_ci::actions::workflow::definition::setup_bazel;
