@@ -47,12 +47,6 @@ jobs:
       - run: ./run backend benchmark runtime
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
       - if: (always())
         name: Clean after
         run: ./run git-clean

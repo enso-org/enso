@@ -1,10 +1,10 @@
 import type { ExecutionContext } from '@/stores/project/executionContext'
 import { mockProjectNameStore, type ProjectNameStore } from '@/stores/projectNames'
+import { Ok, Result, unwrapOr } from '@/util/data/result'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { ANY_TYPE_QN } from '@/util/ensoTypes'
 import { parseMethodPointer, type MethodCall } from '@/util/methodPointer'
 import { type ProjectPath } from '@/util/projectPath'
-import { isQualifiedName } from '@/util/qualifiedName'
 import { markRaw } from 'vue'
 import type {
   ExpressionId,
@@ -84,11 +84,21 @@ function updateInfo(
   if (newInfo.profilingInfo !== info.profilingInfo) info.profilingInfo = update.profilingInfo
 }
 
-function translateMethodCall(ls: LSMethodCall, projectNames: ProjectNameStore): MethodCall {
-  return {
-    methodPointer: parseMethodPointer(ls.methodPointer, projectNames),
+/**
+ * Translate the MethodCall retrieved from language server to our structure.
+ *
+ * The qualified names are validated and stored as {@link ProjectPath}s.
+ */
+export function translateMethodCall(
+  ls: LSMethodCall,
+  projectNames: ProjectNameStore,
+): Result<MethodCall> {
+  const methodPointer = parseMethodPointer(ls.methodPointer, projectNames)
+  if (!methodPointer.ok) return methodPointer
+  return Ok({
+    methodPointer: methodPointer.value,
     notAppliedArguments: ls.notAppliedArguments,
-  }
+  })
 }
 
 function combineInfo(
@@ -99,14 +109,25 @@ function combineInfo(
   const isPending = update.payload.type === 'Pending'
   const updateSingleValueType = update.type.at(0) // TODO: support multi-value (aka intersection) types
   const rawTypename = updateSingleValueType ?? (isPending ? info?.rawTypename : undefined)
+  // As all objects descend from Any, we can treat Any as implicit. This reduces the depth of all type
+  // hierarchies that have to be stored and have to be walked when filtering.
+  const typename =
+    rawTypename && rawTypename !== ANY_TYPE_QN ?
+      projectNames.parseProjectPathRaw(rawTypename)
+    : undefined
+  if (typename && !typename.ok) {
+    typename.error.log('Discarding invalid type in expression update')
+  }
+  const newMethodCall =
+    update.methodCall ? translateMethodCall(update.methodCall, projectNames) : undefined
+  if (newMethodCall && !newMethodCall.ok) {
+    newMethodCall.error.log('Discarding invalid methodCall in expression update')
+  }
   return {
-    typename:
-      rawTypename && isQualifiedName(rawTypename) && rawTypename !== ANY_TYPE_QN ?
-        projectNames.parseProjectPath(rawTypename)
-      : undefined,
+    typename: typename ? unwrapOr(typename, undefined) : undefined,
     rawTypename,
     methodCall:
-      update.methodCall ? translateMethodCall(update.methodCall, projectNames)
+      newMethodCall?.ok ? newMethodCall.value
       : isPending ? info?.methodCall
       : undefined,
     payload: update.payload,

@@ -30,6 +30,7 @@ import { targetIsOutside } from '@/util/autoBlur'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
+import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { autoUpdate, offset, shift, size, useFloating } from '@floating-ui/vue'
 import type { Ref, RendererNode, VNode } from 'vue'
@@ -110,15 +111,22 @@ class ExpressionTag {
     public parameters?: ArgumentWidgetConfiguration[],
   ) {}
 
-  static FromQualifiedName(qn: Ast.QualifiedName, label?: Opt<string>): ExpressionTag {
-    const entry = suggestions.entries.getEntryByProjectPath(projectNames.parseProjectPath(qn))
+  static FromProjectPath(path: ProjectPath, label?: Opt<string>): ExpressionTag | null {
+    const entry = suggestions.entries.getEntryByProjectPath(path)
     if (entry) return ExpressionTag.FromEntry(entry, label)
-    return new ExpressionTag(qn, label ?? qnLastSegment(qn))
+    else return null
   }
 
   static FromExpression(expression: string, label?: Opt<string>): ExpressionTag {
     const qn = tryQualifiedName(expression)
-    if (qn.ok) return ExpressionTag.FromQualifiedName(qn.value, label)
+    if (qn.ok) {
+      const projectPath = projectNames.parseProjectPath(qn.value)
+      if (projectPath.ok) {
+        const fromProjPath = ExpressionTag.FromProjectPath(projectPath.value, label)
+        if (fromProjPath) return fromProjPath
+      }
+      return new ExpressionTag(qn.value, label ?? qnLastSegment(qn.value))
+    }
     return new ExpressionTag(expression, label)
   }
 
