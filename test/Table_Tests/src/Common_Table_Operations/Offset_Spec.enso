@@ -9,6 +9,7 @@ from Standard.Table.Errors import Missing_Input_Columns
 
 from project.Common_Table_Operations.Util import run_default_backend
 import project.Common_Table_Operations.Util
+import project.Util as Test_Utils
 
 main filter=Nothing = run_default_backend add_specs filter
 
@@ -158,69 +159,79 @@ add_offset_specs suite_builder setup =
             r = t.set (expr 'offset([A], 1024)')  . at "offset([A], 1024)"
             r.to_vector . should_equal [Nothing, Nothing, Nothing]
     suite_builder.group prefix+"Table.Offset with default fill strategy" group_builder->
+        colA = ["A", [1, 2, 3]]
+        t1 = build_sorted_table [colA]
         group_builder.specify "Works with default values" <|
-            r = t.offset ["A"]
-            r . at "offset([A], -1, Fill_With.Nothing)" . to_vector . should_equal [Nothing, 1, 2]
+            t1.offset ["A"] . should_equal ignore_order=setup.is_database
+                Table.input [colA, ["offset([A], -1, Fill_With.Nothing)", [Nothing, 1, 2]]]
         group_builder.specify "Works with negative n values" <|
-            r = t.offset ["A"] -2
-            r . at "offset([A], -2, Fill_With.Nothing)" . to_vector . should_equal [Nothing, Nothing, 1]
+            t1.offset ["A"] -2 . should_equal ignore_order=setup.is_database
+                Table.input [colA, ["offset([A], -2, Fill_With.Nothing)", [Nothing, Nothing, 1]]]
         group_builder.specify "Works with positive n values (n=1)" <|
-            r = t.offset ["A"] 1
-            r . at "offset([A], 1, Fill_With.Nothing)" . to_vector . should_equal [2, 3, Nothing]
+            t1.offset ["A"] 1 . should_equal ignore_order=setup.is_database
+                Table.input [colA, ["offset([A], 1, Fill_With.Nothing)", [2, 3, Nothing]]]
         group_builder.specify "Works with positive n values (n=2)" <|
-            r = t.offset ["A"] 2
-            r . at "offset([A], 2, Fill_With.Nothing)" . to_vector . should_equal [3, Nothing, Nothing]
+            t1.offset ["A"] 2 . should_equal ignore_order=setup.is_database
+                Table.input [colA, ["offset([A], 2, Fill_With.Nothing)", [3, Nothing, Nothing]]]
         group_builder.specify "Zero n is a no-op" <|
-            r = t.offset ["A"] 0
-            r . at "offset([A], 0, Fill_With.Nothing)" . to_vector . should_equal [1, 2, 3]
+            t1.offset ["A"] 0 . should_equal ignore_order=setup.is_database
+                Table.input [colA, ["offset([A], 0, Fill_With.Nothing)" , [1, 2, 3]]]
         group_builder.specify "Large negative n values work" <|
-            r = t.offset ["A"] -1024
-            r . at "offset([A], -1024, Fill_With.Nothing)" . to_vector . should_equal [Nothing, Nothing, Nothing]
+            t1.offset ["A"] -1024 . should_equal ignore_order=setup.is_database
+                Table.input [colA, ["offset([A], -1024, Fill_With.Nothing)", [Nothing, Nothing, Nothing], Value_Type.Integer]]
         group_builder.specify "Large positive n values work" <|
-            r = t.offset ["A"] 1024
-            r . at "offset([A], 1024, Fill_With.Nothing)" . to_vector . should_equal [Nothing, Nothing, Nothing]
+            t1.offset ["A"] 1024 . should_equal ignore_order=setup.is_database
+                Table.input [colA, ["offset([A], 1024, Fill_With.Nothing)", [Nothing, Nothing, Nothing], Value_Type.Integer]]
         group_builder.specify "Works with zero rows" <|
-            r = t.take 0 . offset ["A"]
-            r . at "offset([A], -1, Fill_With.Nothing)" . to_vector . should_equal []
+            t1.take 0 . offset ["A"] . should_equal ignore_order=setup.is_database
+                Table.input [["A", [], Value_Type.Integer], ["offset([A], -1, Fill_With.Nothing)", [], Value_Type.Integer]]
     suite_builder.group prefix+"Table.Offset with default fill strategy (Text Values)" group_builder->
+        colText = ["Text Values", ["A", "B", "C"]]
+        t1 = build_sorted_table [colText]
         group_builder.specify "Works with default values" <|
-            r = t.offset ["Text Values"]
-            r . at "offset([Text Values], -1, Fill_With.Nothing)" . to_vector . should_equal [Nothing, "A", "B"]
+            t1.offset ["Text Values"] . should_equal ignore_order=setup.is_database
+                Table.input [colText, ["offset([Text Values], -1, Fill_With.Nothing)", [Nothing, "A", "B"]]]
         group_builder.specify "Works with negative n values" <|
-            r = t.offset ["Text Values"] -2
-            r . at "offset([Text Values], -2, Fill_With.Nothing)" . to_vector . should_equal [Nothing, Nothing, "A"]
+            t1.offset ["Text Values"] -2 . should_equal ignore_order=setup.is_database
+                Table.input [colText, ["offset([Text Values], -2, Fill_With.Nothing)", [Nothing, Nothing, "A"]]]
         group_builder.specify "Works with positive n values (n=1)" <|
-            r = t.offset ["Text Values"] 1
-            r . at "offset([Text Values], 1, Fill_With.Nothing)" . to_vector . should_equal ["B", "C", Nothing]
+            t1.offset ["Text Values"] 1 . should_equal ignore_order=setup.is_database
+                Table.input [colText, ["offset([Text Values], 1, Fill_With.Nothing)", ["B", "C", Nothing]]]
         group_builder.specify "Works with positive n values (n=2)" <|
-            r = t.offset ["Text Values"] 2
-            r . at "offset([Text Values], 2, Fill_With.Nothing)" . to_vector . should_equal ["C", Nothing, Nothing]
+            t1.offset ["Text Values"] 2 . should_equal ignore_order=setup.is_database
+                Table.input [colText, ["offset([Text Values], 2, Fill_With.Nothing)", ["C", Nothing, Nothing]]]
     suite_builder.group prefix+"Table.Offset with closest value fill strategy" group_builder->
+        colA = ["A", [1, 2, 3]]
+        colB = ["B", [Nothing, Nothing, Nothing]]
+        t1 = build_sorted_table [colA, colB]
         group_builder.specify "Negative n shifts the values down" <|
-            r = t.offset ["A"] -1 ..Closest_Value
-            r . at "offset([A], -1, Fill_With.Closest_Value)" . to_vector . should_equal [1, 1, 2]
+            t1.offset ["A"] -1 ..Closest_Value . should_equal ignore_order=setup.is_database
+                Table.input [colA, colB, ["offset([A], -1, Fill_With.Closest_Value)", [1, 1, 2]]]
         group_builder.specify "Positive n shifts the values up" <|
-            r = t.offset ["A"] 1 ..Closest_Value
-            r . at "offset([A], 1, Fill_With.Closest_Value)" . to_vector . should_equal [2, 3, 3]
+            t1.offset ["A"] 1 ..Closest_Value . should_equal ignore_order=setup.is_database
+                Table.input [colA, colB, ["offset([A], 1, Fill_With.Closest_Value)", [2, 3, 3]]]
         group_builder.specify "Zero n is a no-op" <|
-            r = t.offset ["A"] 0 ..Closest_Value
-            r . at "offset([A], 0, Fill_With.Closest_Value)" . to_vector . should_equal [1, 2, 3]
+            t1.offset ["A"] 0 ..Closest_Value . should_equal ignore_order=setup.is_database
+                Table.input [colA, colB, ["offset([A], 0, Fill_With.Closest_Value)", [1, 2, 3]]]
         group_builder.specify "Large negative n values work" <|
-            r = t.offset ["A"] -1024 ..Closest_Value
-            r . at "offset([A], -1024, Fill_With.Closest_Value)" . to_vector . should_equal [1, 1, 1]
+            t1.offset ["A"] -1024 ..Closest_Value . should_equal ignore_order=setup.is_database
+                Table.input [colA, colB, ["offset([A], -1024, Fill_With.Closest_Value)", [1, 1, 1]]]
         group_builder.specify "Large positive n values work" <|
-            r = t.offset ["A"] 1024 ..Closest_Value
-            r . at "offset([A], 1024, Fill_With.Closest_Value)" . to_vector . should_equal [3, 3, 3]
+            t1.offset ["A"] 1024 ..Closest_Value . should_equal ignore_order=setup.is_database
+                Table.input [colA, colB, ["offset([A], 1024, Fill_With.Closest_Value)", [3, 3, 3]]]
         group_builder.specify "Works with zero rows" <|
-            r = t.take 0 . offset ["A"] -1 ..Closest_Value
-            r . at "offset([A], -1, Fill_With.Closest_Value)" . to_vector . should_equal []
+            t1.take 0 . offset ["A"] -1 ..Closest_Value . should_equal ignore_order=setup.is_database
+                Table.input [["A", [], Value_Type.Integer], ["B", []], ["offset([A], -1, Fill_With.Closest_Value)", [], Value_Type.Integer]]
         group_builder.specify "Works with negative n and column of nothings" <|
-            r = t.offset ["B"] -1 ..Closest_Value
-            r . at "offset([B], -1, Fill_With.Closest_Value)" . to_vector . should_equal [Nothing, Nothing, Nothing]
+            t1.offset ["B"] -1 ..Closest_Value . should_equal ignore_order=setup.is_database
+                Table.input [colA, colB, ["offset([B], -1, Fill_With.Closest_Value)", [Nothing, Nothing, Nothing]]]
         group_builder.specify "Works with positive n and column of nothings" <|
-            r = t.offset ["B"] 1 ..Closest_Value
-            r . at "offset([B], 1, Fill_With.Closest_Value)" . to_vector . should_equal [Nothing, Nothing, Nothing]
+            t1.offset ["B"] 1 ..Closest_Value . should_equal ignore_order=setup.is_database
+                Table.input [colA, colB, ["offset([B], 1, Fill_With.Closest_Value)", [Nothing, Nothing, Nothing]]]
     suite_builder.group prefix+"Table.Offset with wrap around fill strategy" group_builder->
+        colA = ["A", [1, 2, 3]]
+        colB = ["B", [Nothing, Nothing, Nothing]]
+        t1 = build_sorted_table [colA, colB]
         group_builder.specify "Negative n shifts the values down" <|
             r = t.offset ["A"] -1 ..Wrap_Around
             r . at "offset([A], -1, Fill_With.Wrap_Around)" . to_vector . should_equal [3, 1, 2]
