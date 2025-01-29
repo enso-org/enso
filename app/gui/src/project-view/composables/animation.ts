@@ -1,8 +1,10 @@
 /** @file Vue composables for running a callback on every frame, and smooth interpolation. */
 
+import { provideAnimationCounter } from '@/providers/animationCounter'
 import type { Vec2 } from '@/util/data/vec2'
 import { watchSourceToRef } from '@/util/reactivity'
 import {
+  computed,
   onScopeDispose,
   proxyRefs,
   readonly,
@@ -158,11 +160,13 @@ function useApproachBase<T>(
 
 /** TODO: Add docs */
 export function useTransitioning(observedProperties?: Set<string>) {
-  const hasActiveAnimations = ref(false)
+  const hasActiveTransitions = ref(false)
+  const animCounter = provideAnimationCounter()
+
   let numActiveTransitions = 0
   function onTransitionStart(e: TransitionEvent) {
     if (!observedProperties || observedProperties.has(e.propertyName)) {
-      if (numActiveTransitions == 0) hasActiveAnimations.value = true
+      if (numActiveTransitions == 0) hasActiveTransitions.value = true
       numActiveTransitions += 1
     }
   }
@@ -170,12 +174,12 @@ export function useTransitioning(observedProperties?: Set<string>) {
   function onTransitionEnd(e: TransitionEvent) {
     if (!observedProperties || observedProperties.has(e.propertyName)) {
       numActiveTransitions -= 1
-      if (numActiveTransitions == 0) hasActiveAnimations.value = false
+      if (numActiveTransitions == 0) hasActiveTransitions.value = false
     }
   }
 
   return {
-    active: hasActiveAnimations,
+    active: computed(() => hasActiveTransitions.value || animCounter.count > 0),
     events: {
       transitionstart: onTransitionStart,
       transitionend: onTransitionEnd,

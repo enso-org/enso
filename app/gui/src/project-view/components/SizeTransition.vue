@@ -14,8 +14,9 @@
 export default {}
 </script>
 <script setup lang="ts">
+import { injectAnimationCounter } from '@/providers/animationCounter'
 import { hookBeforeFunctionCall } from '@/util/patching'
-import { nextTick } from 'vue'
+import { nextTick, queuePostFlushCb } from 'vue'
 
 const PROGRESS_VAR = '--size-transition-progress'
 
@@ -34,6 +35,8 @@ const props = withDefaults(
   }>(),
   { duration: 200, easing: 'ease-out' },
 )
+
+const animCounter = injectAnimationCounter(true)
 
 type Done = (cancelled: boolean) => void
 type StyleSnapshot = { width: string; height: string; marginLeft: string; progress: string }
@@ -125,13 +128,21 @@ function runAnimation(e: HTMLElement, done: Done, isEnter: boolean) {
     cleanup(e)
     done(true)
   })
+  animation.addEventListener('remove', () => {
+    cleanup(e)
+    done(true)
+  })
   e.dataset['transitioning'] = isEnter ? 'enter' : 'leave'
+  animCounter?.modify(1)
   animation.play()
   animationsMap.set(e, animation)
 }
 
 function cleanup(e: HTMLElement) {
   delete e.dataset['transitioning']
+  queuePostFlushCb(() => {
+    animCounter?.modify(-1)
+  })
 }
 </script>
 
