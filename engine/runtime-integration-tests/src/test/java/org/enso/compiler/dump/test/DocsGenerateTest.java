@@ -1,13 +1,11 @@
 package org.enso.compiler.dump.test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.enso.compiler.Compiler;
@@ -15,12 +13,10 @@ import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
-import org.enso.compiler.docs.DocsGenerate;
 import org.enso.compiler.docs.DocsVisit;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.QualifiedName;
 import org.enso.test.utils.ContextUtils;
-import org.enso.test.utils.ProjectUtils;
 import org.graalvm.polyglot.Context;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -227,6 +223,26 @@ public class DocsGenerateTest {
   }
 
   @Test
+  public void noSignatureIsGenerated_ForEmptyModule() throws IOException {
+    var emptyCode = "";
+    var modName = "local.Empty.Main";
+    var sig = DumpTestUtils.generateSignatures(ctx, emptyCode, modName);
+    assertTrue("Empty signature for empty module", sig.isEmpty());
+  }
+
+  @Test
+  public void noSignatureIsGenerated_ForModuleContainingOnlyImports() throws IOException {
+    var codeWithImports =
+        """
+        import Standard.Base.Any.Any
+        import Standard.Base.Data.Vector.Vector
+        """;
+    var modName = "local.Empty.Main";
+    var sig = DumpTestUtils.generateSignatures(ctx, codeWithImports, modName);
+    assertTrue("Empty signature for module with only imports", sig.isEmpty());
+  }
+
+  @Test
   public void vectorWithElements() throws Exception {
     var code =
         """
@@ -310,38 +326,10 @@ public class DocsGenerateTest {
         sig);
   }
 
-  static void generateDocumentation(Path projDir, String projName, String code, DocsVisit v)
-      throws IOException {
-    ProjectUtils.createProject(projName, code, projDir);
-    ProjectUtils.generateProjectDocs(
-        "api",
-        ContextUtils.defaultContextBuilder(),
-        projDir,
-        (context) -> {
-          var enso = ContextUtils.leakContext(context);
-          var modules = enso.getTopScope().getModules();
-          var optMod =
-              modules.stream().filter(m -> m.getName().toString().contains(projName)).findFirst();
-          assertTrue(
-              "Found " + projName + " in " + modules.stream().map(m -> m.getName()).toList(),
-              optMod.isPresent());
-          var mod = optMod.get();
-          assertEquals("local." + projName + ".Main", mod.getName().toString());
-          var ir = mod.getIr();
-          assertNotNull("Ir for " + mod + " found", ir);
-
-          try {
-            DocsGenerate.visitModule(v, mod.getName(), ir, null);
-          } catch (IOException e) {
-            throw raise(RuntimeException.class, e);
-          }
-        });
-  }
-
   private static void generateDocumentation(String projectName, String code, DocsVisit v)
       throws IOException {
     var pathCalc = TEMP.newFolder(projectName);
-    generateDocumentation(pathCalc.toPath(), projectName, code, v);
+    DumpTestUtils.generateDocumentation(pathCalc.toPath(), projectName, code, v);
   }
 
   private static final class MockVisitor implements DocsVisit {
@@ -387,11 +375,6 @@ public class DocsGenerateTest {
         throws IOException {
       visitConstructor.add(d);
     }
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <E extends Exception> E raise(Class<E> type, Exception t) throws E {
-    throw (E) t;
   }
 
   record TypeAnd<IRElement>(Definition.Type t, IRElement ir) {}

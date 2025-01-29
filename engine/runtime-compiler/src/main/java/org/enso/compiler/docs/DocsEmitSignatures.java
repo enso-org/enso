@@ -21,9 +21,13 @@ final class DocsEmitSignatures implements DocsVisit {
 
   @Override
   public boolean visitModule(QualifiedName name, Module module, PrintWriter w) throws IOException {
-    w.println("## Enso Signatures 1.0");
-    w.println("## module " + name);
-    return true;
+    if (isEmpty(module)) {
+      return false;
+    } else {
+      w.println("## Enso Signatures 1.0");
+      w.println("## module " + name);
+      return true;
+    }
   }
 
   @Override
@@ -63,5 +67,9 @@ final class DocsEmitSignatures implements DocsVisit {
   public void visitConstructor(Definition.Type t, Definition.Data d, PrintWriter w)
       throws IOException {
     w.println("    - " + DocsVisit.toSignature(d));
+  }
+
+  private static boolean isEmpty(Module mod) {
+    return mod.bindings().isEmpty() && mod.exports().isEmpty();
   }
 }
