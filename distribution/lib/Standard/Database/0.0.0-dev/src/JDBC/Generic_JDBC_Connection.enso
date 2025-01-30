@@ -281,7 +281,7 @@ type Generic_JDBC_Connection
        - literal: The literal to quote.
 
        > Example
-         Quote an literal.
+         Quote a literal.
 
          connection.quote_identifier 'abc-def'
          # => '\'abc-def\''
