@@ -65,7 +65,7 @@ type Progress
        Returns:
        The self value.
 
-    advance self amount:Integer -> Progress = 
+    advance self amount:Integer=1 -> Progress =
         add = if amount>=0 then amount else 0
         self.log_message self.label+"+"+add.to_text Log_Level.Finest # TBD
         self

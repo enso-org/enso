@@ -48,7 +48,7 @@ public class ProgressTest {
                     progress.log "Step #"+i.to_text
                     next = v*q
                     sum = next+acc
-                    progress.advance 1
+                    progress.advance
                     @Tail_Call loop i+1 next sum
 
             progress.log "About to compute geometric sequence for "+n.to_text
