@@ -4764,8 +4764,6 @@ lazy val `enso-generic-jdbc-connection-helpers` = project
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
-    Compile / packageBin / artifactPath :=
-      file("test/Generic_JDBC_Tests/polyglot/java/helpers.jar"),
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided",
       "com.h2database"       % "h2"       % h2Version
