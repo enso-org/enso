@@ -22,8 +22,8 @@ Any.log_message self ~message:Text level:Log_Level=Log_Level.Info =
         Log_Level.Severe -> logger.error message
     self
 
-##
-   Infrastructure for reporting logs and progress of computations.
+## Infrastructure for reporting logs and progress of computations.
+
    Useful for longer running actions (more than a second). A must
    for long running actions (more than ten seconds). 
    Start by invoking `Progress.run`, providing your own action
@@ -35,9 +35,9 @@ Any.log_message self ~message:Text level:Log_Level=Log_Level.Info =
 type Progress
     private Running label:Text max:Integer
 
-    ##
-       Performs provided `action` while reporting its progress.
-       `action` is a function that takes a `Progress` handle
+    ## Performs provided `action` while reporting its progress.
+
+       The `action` is a function that takes a `Progress` handle
        and uses its methods to report progress of the computation.
        The value returned from `action` is returned from this
        method.
@@ -55,8 +55,9 @@ type Progress
         progress.advance up_to
         res
 
-    ## 
-       Reports progress of the computation. Adds provided `amount` to the already
+    ## Reports progress of the computation.
+
+       Adds provided `amount` to the already
        accumulated work towards `up_to` value provided when creating this `Progress`.
 
        Arguments:
@@ -70,9 +71,7 @@ type Progress
         self.log_message self.label+"+"+add.to_text Log_Level.Finest # TBD
         self
 
-    ## 
-        Provides additional human readable detail about the actual status of the
-        computation.
+    ## Provides additional human readable detail of the status of the computation.
 
        Arguments:
        - info: textual description of what's going on
