@@ -119,7 +119,7 @@ type Generic_JDBC_Connection
              connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
              table = connection.read_tablle "foo"
     read_table self table_name:Text -> Table =
-        self.read "select * from "+self.quote(table_name)
+        self.read "select * from "+self.quote table_name
 
     ## ALIAS catalog schema database
        GROUP Standard.Base.Metadata
@@ -244,10 +244,50 @@ type Generic_JDBC_Connection
     get_table_info self catalog:(Text | Nothing)=Nothing schema_pattern:(Text | Nothing)="" table_name_pattern:(Text | Nothing)=Nothing table_types:(Text | Nothing)=Nothing -> Table =
         rs_to_table_ (self.with_metadata (m-> m.getTables catalog schema_pattern table_name_pattern table_types))
 
-    ## PRIVATE
+    ## ALIAS enquote escape
        Execute the function with the database metadata.
     with_metadata self f:(DatabaseMetaData -> Any) -> Any =
         self.jdbc_connection.with_metadata f
+
+    ## PRIVATE
+       GROUP Standard.Base.Input
+       ICON data_input
+
+       Quote an identifier using the driver's quoting convention. Only performs
+       the quoting if the identifier requires it; otherwise, returns the
+       identifier unchanged.
+
+       Arguments:
+       - identifier: The identifier to quote.
+
+       > Example
+         Quote an identifier.
+
+         connection.quote_identifier("abc-def")
+         # => ""
+    quote_identifier self identifier:Text -> Text =
+        self.jdbc_connection.with_connection connection->
+            connection.createStatement.enquoteIdentifier identifier True
+
+    ## PRIVATE
+       GROUP Standard.Base.Input
+       ICON data_input
+
+       Quote a literal using the driver's quoting convention. Only performs
+       the quoting if the literal requires it; otherwise, returns the
+       literal unchanged.
+
+       Arguments:
+       - literal: The literal to quote.
+
+       > Example
+         Quote an literal.
+
+         connection.quote_literal('a"b"c')
+         # => ""
+    quote_literal self literal:Text -> Text =
+        self.jdbc_connection.with_connection connection->
+            connection.createStatement.enquoteLiteral literal
 
 ## PRVIATE
    Convert a JDBC ResultSet to a Table using the fallback fetcher.

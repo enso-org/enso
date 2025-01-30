@@ -170,6 +170,20 @@ add_specs suite_builder =
                 r3 = conn.read "select B from foo"
                 r3.at "B" . to_vector . should_equal ['asdf', 'uuuu']
 
+        group_builder.specify "should be able to quote identifiers" <|
+            with_connection "quote_identifiers" conn->
+                conn.quote_identifier "foo" . should_equal '"foo"'
+                conn.quote_identifier "abc-def" . should_equal '"abc-def"'
+                conn.quote_identifier "a$s$d$f" . should_equal '"a$s$d$f"'
+
+        group_builder.specify "should be able to quote literals" <|
+            with_connection "quote_literals" conn->
+                conn.quote_literal "foo" . should_equal '\'foo\''
+                conn.quote_literal "abc-def" . should_equal '\'abc-def\''
+                conn.quote_literal "abc def " . should_equal '\'abc def \''
+                conn.quote_literal "a$s$d$f" . should_equal '\'a$s$d$f\''
+                conn.quote_literal 'a"b"c"d' . should_equal '\'a"b"c"d\''
+
         group_builder.specify "should handle SQL errors" <|
             with_connection "sql_errors" conn->
                 conn.execute "create table ((((((()" . should_fail_with SQL_Error
