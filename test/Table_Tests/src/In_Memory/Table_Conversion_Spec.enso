@@ -258,7 +258,7 @@ add_specs suite_builder =
         group_builder.specify "will add all fields when fields=[]" <|
             table = Table.new [["aaa", [1, 2]], ["bbb", data.uniform_json], ["ccc", [5, 6]]]
             r = table.expand_column "bbb" fields=[]
-            expected = Table.new [["aaa", [1, 2]], ["bbb last", ["Smith", Nothing]], ["bbb height", [Nothing, 1.9]], ["bbb foo", [Nothing, Nothing]], ["ccc", [5, 6]]]
+            expected = Table.new [["aaa", [1, 2]], ["bbb first", ["Mary", "Joe"]], ["bbb last", ["Smith", "Burton"]], ["bbb age", [23, 34]], ["ccc", [5, 6]]]
             r . should_equal expected
 
         group_builder.specify "Can expand with no prefix" <|
