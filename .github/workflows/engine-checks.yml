@@ -134,6 +134,15 @@ jobs:
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        name: Engine Test Reporter
+        uses: dorny/test-reporter@v1
+        with:
+          max-annotations: 50
+          name: Engine Tests Report (GraalVM CE, linux, amd64)
+          path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
+          path-replace-backslashes: true
+          reporter: java-junit
       - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
