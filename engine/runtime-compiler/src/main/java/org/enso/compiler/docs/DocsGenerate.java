@@ -1,9 +1,11 @@
 package org.enso.compiler.docs;
 
+import static org.enso.scala.wrapper.ScalaConversions.asJava;
+import static org.enso.scala.wrapper.ScalaConversions.asScala;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.IdentityHashMap;
-import java.util.List;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Module;
@@ -11,8 +13,6 @@ import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.filesystem.FileSystem;
 import org.enso.pkg.QualifiedName;
-import scala.collection.immutable.Seq;
-import scala.jdk.javaapi.CollectionConverters;
 
 /** Generator of documentation for an Enso project. */
 public final class DocsGenerate {
@@ -136,13 +136,5 @@ public final class DocsGenerate {
         }
       }
     }
-  }
-
-  private static <T> List<T> asJava(Seq<T> seq) {
-    return CollectionConverters.asJava(seq);
-  }
-
-  private static <T> scala.collection.immutable.List<T> asScala(List<T> list) {
-    return CollectionConverters.asScala(list).toList();
   }
 }
