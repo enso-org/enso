@@ -4742,7 +4742,7 @@ lazy val `enso-test-java-helpers` = project
     Compile / packageBin / artifactPath :=
       file("test/Base_Tests/polyglot/java/helpers.jar"),
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
     ),
     Compile / packageBin := Def.task {
       val result          = (Compile / packageBin).value
@@ -4753,13 +4753,6 @@ lazy val `enso-test-java-helpers` = project
       secondaryLocations.foreach { target =>
         IO.copyFile(primaryLocation, target)
       }
-      val _ = StdBits
-        .copyDependencies(
-          file("test/Table_Tests/polyglot/java/"),
-          Seq(),
-          ignoreScalaLibrary = true
-        )
-        .value
       result
     }.value
   )
