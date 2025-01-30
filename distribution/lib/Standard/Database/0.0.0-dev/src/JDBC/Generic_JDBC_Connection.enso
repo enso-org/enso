@@ -263,8 +263,8 @@ type Generic_JDBC_Connection
        > Example
          Quote an identifier.
 
-         connection.quote_identifier("abc-def")
-         # => ""
+         connection.quote_identifier 'abc-def'
+         # => '"abc-def"'
     quote_identifier self identifier:Text -> Text =
         self.jdbc_connection.with_connection connection->
             connection.createStatement.enquoteIdentifier identifier True
@@ -283,8 +283,8 @@ type Generic_JDBC_Connection
        > Example
          Quote an literal.
 
-         connection.quote_literal('a"b"c')
-         # => ""
+         connection.quote_identifier 'abc-def'
+         # => '\'abc-def\''
     quote_literal self literal:Text -> Text =
         self.jdbc_connection.with_connection connection->
             connection.createStatement.enquoteLiteral literal
