@@ -3,15 +3,22 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import java.util.HashSet;
 import java.util.List;
+import org.enso.pkg.QualifiedName;
 import org.enso.test.utils.ContextUtils;
+import org.enso.test.utils.ProjectUtils;
+import org.enso.test.utils.SourceModule;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.TypeLiteral;
 import org.junit.AfterClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class EnsoMultiValueTest {
   private static Context ctx;
+  @Rule public final TemporaryFolder dir = new TemporaryFolder();
 
   private static Context ctx() {
     if (ctx == null) {
@@ -26,6 +33,57 @@ public class EnsoMultiValueTest {
       ctx.close();
       ctx = null;
     }
+  }
+
+  @Test
+  public void keepIdentityOfAandB() throws Exception {
+    var types =
+        """
+    from project.PrivateConversion import all
+    type A
+        A_Ctor x
+
+        id_a self -> A = self
+    type B
+        B_Ctor x
+
+    ab =
+        a = A.A_Ctor 1
+        (a : A & B)
+    """;
+
+    var privateConversion =
+        """
+    from project.Types import all
+
+    B.from (that : A) = B.B_Ctor that
+    """;
+
+    var main =
+        """
+    from project.Types import all
+
+    main =
+        v = ab.id_a
+        [v.to_text, (v:A).to_text, (v:B).to_text]
+    """;
+
+    var prjDir = dir.newFolder();
+    var sources = new HashSet<SourceModule>();
+    sources.add(new SourceModule(QualifiedName.fromString("Types"), types));
+    sources.add(new SourceModule(QualifiedName.fromString("PrivateConversion"), privateConversion));
+    sources.add(new SourceModule(QualifiedName.fromString("Main"), main));
+    ProjectUtils.createProject("Keep_Id", sources, prjDir.toPath());
+
+    ProjectUtils.testProjectRun(
+        prjDir.toPath(),
+        (tripple) -> {
+          var texts = tripple.as(new TypeLiteral<List<String>>() {});
+          assertEquals(3, texts.size());
+          assertStartsWith("(A_Ctor", texts.get(0));
+          assertStartsWith("(A_Ctor", texts.get(1));
+          assertStartsWith("(B_Ctor", texts.get(2));
+        });
   }
 
   @Test
