@@ -316,7 +316,7 @@ lazy val enso = (project in file("."))
     `engine-common`,
     `engine-runner`,
     `engine-runner-common`,
-    `enso-generic-jdbc-connection-helpers`,
+    `enso-generic-jdbc-connection-spec-dependencies`,
     `enso-test-java-helpers`,
     `exploratory-benchmark-java-helpers`,
     `fansi-wrapper`,
@@ -2829,7 +2829,7 @@ lazy val runtime = (project in file("engine/runtime"))
     (Runtime / compile) := (Runtime / compile)
       .dependsOn(`std-base` / Compile / packageBin)
       .dependsOn(`enso-test-java-helpers` / Compile / packageBin)
-      .dependsOn(`enso-generic-jdbc-connection-helpers` / Compile / packageBin)
+      .dependsOn(`enso-generic-jdbc-connection-spec-dependencies` / Compile / packageBin)
       .dependsOn(`benchmark-java-helpers` / Compile / packageBin)
       .dependsOn(`exploratory-benchmark-java-helpers` / Compile / packageBin)
       .dependsOn(`std-image` / Compile / packageBin)
@@ -3947,7 +3947,7 @@ lazy val `engine-runner` = project
   .dependsOn(`engine-runner-common`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`enso-test-java-helpers`)
-  .dependsOn(`enso-generic-jdbc-connection-helpers`)
+  .dependsOn(`enso-generic-jdbc-connection-spec-dependencies`)
 
 lazy val buildSmallJdk =
   taskKey[File]("Build a minimal JDK used for native image generation")
@@ -4759,7 +4759,7 @@ lazy val `enso-test-java-helpers` = project
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
 
-lazy val `enso-generic-jdbc-connection-helpers` = project
+lazy val `enso-generic-jdbc-connection-spec-dependencies` = project
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -5447,7 +5447,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-table` / Compile / packageBin).value
     case "TestHelpers" =>
       (`enso-test-java-helpers` / Compile / packageBin).value
-      (`enso-generic-jdbc-connection-helpers` / Compile / packageBin).value
+      (`enso-generic-jdbc-connection-spec-dependencies` / Compile / packageBin).value
       (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
       (`benchmark-java-helpers` / Compile / packageBin).value
     case "AWS" =>
@@ -5461,7 +5461,7 @@ pkgStdLibInternal := Def.inputTask {
     case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
-      (`enso-generic-jdbc-connection-helpers` / Compile / packageBin).value
+      (`enso-generic-jdbc-connection-spec-dependencies` / Compile / packageBin).value
       (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
       (`benchmark-java-helpers` / Compile / packageBin).value
       (`std-table` / Compile / packageBin).value
