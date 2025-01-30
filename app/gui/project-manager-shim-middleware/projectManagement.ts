@@ -70,6 +70,23 @@ export function createBundle(directory: string): stream.Readable {
   )
 }
 
+/** Unpack a .tar.gz enso-project bundle into a temporary directory */
+export async function unpackBundle(bundle: stream.Readable): Promise<string> {
+  const documentsDirectory = desktopEnvironment.DOCUMENTS || os.tmpdir()
+  const tempDirectory = fs.mkdtempSync(pathModule.join(documentsDirectory, 'cloud'))
+
+  return new Promise((resolve, reject) => {
+    bundle
+      .pipe(
+        tar.x({
+          C: tempDirectory,
+        }),
+      )
+      .on('finish', () => resolve(tempDirectory))
+      .on('error', (err) => reject(err))
+  })
+}
+
 // ================
 // === Metadata ===
 // ================

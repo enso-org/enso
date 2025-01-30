@@ -7,6 +7,7 @@ import * as fs from 'node:fs/promises'
 import * as http from 'node:http'
 import * as https from 'node:https'
 import * as path from 'node:path'
+import * as stream from 'node:stream'
 
 import * as tar from 'tar'
 import * as yaml from 'yaml'
@@ -139,6 +140,36 @@ export default function projectManagerShimMiddleware(
     )
   } else if (requestUrl != null && requestUrl.startsWith('/api/cloud/')) {
     switch (requestPath) {
+      case '/api/cloud/download-project': {
+        const url = new URL(`https://example.com/${requestUrl}`)
+        const downloadUrl = url.searchParams.get('download_url')
+
+        if (downloadUrl == null) {
+          response
+            .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
+            .end('Request is missing search parameter `download_url`.')
+          break
+        }
+
+        const downloadRequest = https.request(downloadUrl, { method: 'GET' }, (actualResponse) => {
+          let data: Buffer[] = []
+          actualResponse
+            .on('data', (chunk) => data.push(Buffer.from(chunk, 'binary')))
+            .on('end', () => {
+              const buffer = Buffer.concat(data)
+              const readable = stream.Readable.from(buffer)
+              projectManagement.unpackBundle(readable).then((projectDirectory) => {
+                response
+                .writeHead(HTTP_STATUS_OK, COMMON_HEADERS)
+                .end({ path: projectDirectory })
+              })
+            })
+        })
+
+        downloadRequest.end()
+
+        break
+      }
       case '/api/cloud/upload-project': {
         const url = new URL(`https://example.com/${requestUrl}`)
         const uploadUrl = url.searchParams.get('upload_url')
