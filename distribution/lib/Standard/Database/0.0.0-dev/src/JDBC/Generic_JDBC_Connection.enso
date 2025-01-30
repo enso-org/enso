@@ -103,7 +103,7 @@ type Generic_JDBC_Connection
     read self sql_query:SQL_Query -> Table =
         resolved_sql = case sql_query of
             SQL_Query.Raw_SQL raw_sql -> raw_sql
-            SQL_Query.Table_Name table_name -> "select * from "+(self.quote table_name)
+            SQL_Query.Table_Name table_name -> "select * from "+(self.quote_identifier table_name)
 
         self.jdbc_connection.with_prepared_statement resolved_sql Statement_Setter.default stmt->
             rs = stmt.executeQuery
@@ -112,7 +112,6 @@ type Generic_JDBC_Connection
             table = result_set_to_table rs make_fallback_fetcher
             SQL_Warning_Helper.process_warnings stmt <|
                 table
--        
 
     ## ALIAS catalog schema database
        GROUP Standard.Base.Metadata

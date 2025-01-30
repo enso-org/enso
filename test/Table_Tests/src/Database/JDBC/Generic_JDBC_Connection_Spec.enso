@@ -5,7 +5,7 @@ from Standard.Test import all
 
 import Standard.Database.Errors.SQL_Error
 import Standard.Database.JDBC.Generic_JDBC_Connection.Generic_JDBC_Connection
-import project.SQL_Query.SQL_Query
+import Standard.Database.SQL_Query.SQL_Query
 
 add_specs suite_builder =
     data_dir = enso_project.data / "transient"
@@ -180,11 +180,11 @@ add_specs suite_builder =
                 conn.execute "insert into bar (c, d) values (20, 'qqqq')"
                 conn.execute "insert into bar (c, d) values (30, 'zzzz')"
 
-                r = conn.read (SQL_Query.Table_Name "foo")
+                r = conn.read (SQL_Query.Table_Name "FOO")
                 r.at "A" . to_vector . should_equal [10, 20]
                 r.at "B" . to_vector . should_equal ['asdf', 'zxcv']
 
-                r2 = conn.read (SQL_Query.Table_Name "bar")
+                r2 = conn.read (SQL_Query.Table_Name "BAR")
                 r2.at "C" . to_vector . should_equal [20, 30]
                 r2.at "D" . to_vector . should_equal ['qqqq', 'zzzz']
 
