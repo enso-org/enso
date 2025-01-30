@@ -325,7 +325,6 @@ const mappedComponents = computed(() => {
       private handle: VueComponentHandle | undefined
 
       init(params: IHeaderParams) {
-        console.log('init')
         this.handle = vueHost.register(h(comp, params), this.container, params.column.getColId())
       }
 
@@ -339,7 +338,6 @@ const mappedComponents = computed(() => {
       }
 
       destroy() {
-        console.log('destroy')
         this.handle?.unregister()
       }
     }

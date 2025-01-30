@@ -4,7 +4,7 @@ import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { useCurrentEdit } from '@/providers/widgetTree'
 import { CellPosition } from 'ag-grid-enterprise'
 import { expect, test, vi } from 'vitest'
-import { nextTick } from 'vue'
+import { nextTick, proxyRefs } from 'vue'
 import { EditedCell, useTableEditHandler } from '../editHandler'
 import { NEW_COLUMN_ID, ROW_INDEX_COLUMN_ID } from '../tableInputArgument'
 
@@ -53,7 +53,7 @@ function fixture() {
         'port' as PortId,
         hooks,
         undefined,
-        useCurrentEdit(),
+        proxyRefs(useCurrentEdit()),
         interactionHandler,
       ),
   )

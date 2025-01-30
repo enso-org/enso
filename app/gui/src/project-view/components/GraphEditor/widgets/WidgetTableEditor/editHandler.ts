@@ -64,11 +64,6 @@ export function useTableEditHandler(
     end() {
       editedCell.value = undefined
     },
-    suspend: () => {
-      return {
-        resume: () => syncGridWithEditedCell(),
-      }
-    },
   })
 
   const gridEventHandlers = {
