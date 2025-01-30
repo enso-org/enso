@@ -316,6 +316,7 @@ lazy val enso = (project in file("."))
     `engine-common`,
     `engine-runner`,
     `engine-runner-common`,
+    `enso-generic-jdbc-connection-helpers`,
     `enso-test-java-helpers`,
     `exploratory-benchmark-java-helpers`,
     `fansi-wrapper`,
@@ -2828,6 +2829,7 @@ lazy val runtime = (project in file("engine/runtime"))
     (Runtime / compile) := (Runtime / compile)
       .dependsOn(`std-base` / Compile / packageBin)
       .dependsOn(`enso-test-java-helpers` / Compile / packageBin)
+      .dependsOn(`enso-generic-jdbc-connection-helpers` / Compile / packageBin)
       .dependsOn(`benchmark-java-helpers` / Compile / packageBin)
       .dependsOn(`exploratory-benchmark-java-helpers` / Compile / packageBin)
       .dependsOn(`std-image` / Compile / packageBin)
@@ -3945,6 +3947,7 @@ lazy val `engine-runner` = project
   .dependsOn(`engine-runner-common`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`enso-test-java-helpers`)
+  .dependsOn(`enso-generic-jdbc-connection-helpers`)
 
 lazy val buildSmallJdk =
   taskKey[File]("Build a minimal JDK used for native image generation")
@@ -4740,7 +4743,6 @@ lazy val `enso-test-java-helpers` = project
       file("test/Base_Tests/polyglot/java/helpers.jar"),
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided",
-      "com.h2database"       % "h2"       % h2Version
     ),
     Compile / packageBin := Def.task {
       val result          = (Compile / packageBin).value
@@ -4754,6 +4756,33 @@ lazy val `enso-test-java-helpers` = project
       val _ = StdBits
         .copyDependencies(
           file("test/Table_Tests/polyglot/java/"),
+          Seq(),
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }.value
+  )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+
+lazy val `enso-generic-jdbc-connection-helpers` = project
+  .in(file("test/Generic_JDBC_Tests/polyglot-sources/enso-generic-jdbc-connection-helpers"))
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    Compile / packageBin / artifactPath :=
+      file("test/Generic_JDBC_Tests/polyglot/java/helpers.jar"),
+    libraryDependencies ++= Seq(
+      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided",
+      "com.h2database"       % "h2"       % h2Version
+    ),
+    Compile / packageBin := Def.task {
+      val result          = (Compile / packageBin).value
+      val primaryLocation = (Compile / packageBin / artifactPath).value
+      val _ = StdBits
+        .copyDependencies(
+          file("test/Generic_JDBC_Tests/polyglot/java/"),
           Seq(),
           ignoreScalaLibrary = true
         )
@@ -5428,6 +5457,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-table` / Compile / packageBin).value
     case "TestHelpers" =>
       (`enso-test-java-helpers` / Compile / packageBin).value
+      (`enso-generic-jdbc-connection-helpers` / Compile / packageBin).value
       (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
       (`benchmark-java-helpers` / Compile / packageBin).value
     case "AWS" =>
@@ -5441,6 +5471,7 @@ pkgStdLibInternal := Def.inputTask {
     case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
+      (`enso-generic-jdbc-connection-helpers` / Compile / packageBin).value
       (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
       (`benchmark-java-helpers` / Compile / packageBin).value
       (`std-table` / Compile / packageBin).value
