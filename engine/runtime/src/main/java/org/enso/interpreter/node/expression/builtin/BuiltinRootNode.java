@@ -6,7 +6,6 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.nodes.ControlFlowException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
@@ -65,15 +64,13 @@ public abstract class BuiltinRootNode extends RootNode {
   @Override
   public abstract String getName();
 
-  protected static final class ReturnValue extends ControlFlowException {
-    private final TruffleObject value;
+  protected static final class ArgContext {
+    private TruffleObject returnValue;
 
-    private ReturnValue(TruffleObject value) {
-      this.value = value;
-    }
+    public ArgContext() {}
 
-    public TruffleObject get() {
-      return value;
+    public TruffleObject getReturnValue() {
+      return returnValue;
     }
   }
 
@@ -102,16 +99,16 @@ public abstract class BuiltinRootNode extends RootNode {
     }
 
     @SuppressWarnings("unchecked")
-    public final <T> T processArgument(Class<T> type, Object value) throws ReturnValue {
+    public final <T> T processArgument(Class<T> type, Object value, ArgContext context) {
       if (checkErrors && value instanceof DataflowError err) {
-        throw new ReturnValue(err);
+        context.returnValue = err;
+        return null;
       }
       var ctx = EnsoContext.get(this);
       if (this.ensoType == null) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
         var builtin = ctx.getBuiltins().getByRepresentationType(type);
         if (builtin == null) {
-          System.err.println("found no builtin for " + type);
           this.ensoType = ctx.getBuiltins().any();
         } else {
           this.ensoType = builtin.getType();

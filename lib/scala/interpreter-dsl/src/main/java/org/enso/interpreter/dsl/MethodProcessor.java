@@ -371,7 +371,7 @@ public class MethodProcessor
               "    int arg" + arg.getPosition() + "Idx = " + arg.getPosition() + " + prefix;");
         }
       }
-      out.println("  try {");
+      out.println("    var argCtx = new ArgContext();");
       boolean warningsPossible =
           generateWarningsCheck(out, methodDefinition.getArguments(), "arguments");
       for (MethodDefinition.ArgumentDefinition ad : methodDefinition.getArguments()) {
@@ -391,6 +391,7 @@ public class MethodProcessor
         }
         out.println("      /***  End of processing argument " + ad.getPosition() + "  ***/");
       }
+      out.println("    if (argCtx.getReturnValue() != null) return argCtx.getReturnValue();");
       String executeCall = "bodyNode.execute(" + String.join(", ", callArgNames) + ")";
       if (warningsPossible) {
         out.println("    if (anyWarnings) {");
@@ -405,9 +406,6 @@ public class MethodProcessor
       } else {
         out.println(wrapInTryCatch("return " + executeCall + ";", 6));
       }
-      out.println("    } catch (ReturnValue ex) {");
-      out.println("        return ex.get();");
-      out.println("    }");
       out.println("  }");
 
       out.println();
@@ -521,7 +519,7 @@ public class MethodProcessor
             + wrapperTypeName(arg)
             + ".class, "
             + argReference
-            + ");");
+            + ", argCtx);");
   }
 
   private void generateUncastedArgumentRead(
