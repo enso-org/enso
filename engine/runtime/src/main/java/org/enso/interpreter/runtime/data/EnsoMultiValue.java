@@ -595,16 +595,21 @@ public final class EnsoMultiValue extends EnsoObject {
   public final Pair<Function, Type> resolveSymbol(
       MethodResolverNode node, UnresolvedSymbol symbol) {
     var ctx = EnsoContext.get(node);
-    Pair<Function, Type> foundAnyMethod = null;
+    Pair<Function, Type> fallbackToAnyMethod = null;
     for (var t : EnsoMultiType.AllTypesWith.getUncached().executeAllTypes(dispatch, null, 0)) {
       var fnAndType = node.execute(t, symbol);
       if (fnAndType != null) {
-        if (dispatch.typesLength() == 1 || fnAndType.getRight() != ctx.getBuiltins().any()) {
-          return Pair.create(fnAndType.getLeft(), t);
+        if (fnAndType.getRight() != ctx.getBuiltins().any()) {
+          // if there is a non-Any method available in any of the
+          // dispach types, then use it!
+          return fnAndType;
         }
-        foundAnyMethod = fnAndType;
+        if (fallbackToAnyMethod == null) {
+          // remember a suitable method on Any
+          fallbackToAnyMethod = fnAndType;
+        }
       }
     }
-    return foundAnyMethod;
+    return fallbackToAnyMethod;
   }
 }

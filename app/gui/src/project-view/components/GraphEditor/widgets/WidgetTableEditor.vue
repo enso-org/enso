@@ -22,18 +22,16 @@ import { useToast } from '@/util/toast'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
 import type {
-  CellEditingStartedEvent,
-  CellEditingStoppedEvent,
   ColDef,
-  Column,
   ColumnMovedEvent,
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
-import { ComponentInstance, computed, proxyRefs, ref } from 'vue'
+import { ComponentInstance, computed, ComputedRef, proxyRefs, ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { z } from 'zod'
 import TableHeader, { HeaderParams } from './WidgetTableEditor/TableHeader.vue'
+import { useTableEditHandler } from './WidgetTableEditor/editHandler'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
@@ -69,106 +67,36 @@ const { rowData, columnDefs, moveColumn, moveRow, pasteFromClipboard } = useTabl
   props.onUpdate,
 )
 
+// Without this "cast" AgGridTableView gets confused when deducing its generic parameters.
+const columnDefsTyped: ComputedRef<ColDef<RowData>[]> = columnDefs
+
 // === Edit Handlers ===
 
-class CellEditing {
-  handler: WidgetEditHandler
-  editedCell: { rowIndex: number; colKey: Column<RowData> } | undefined
-  supressNextStopEditEvent: boolean = false
-
-  constructor() {
-    this.handler = WidgetEditHandler.New('WidgetTableEditor.cellEditHandler', props.input, {
-      cancel() {
-        grid.value?.gridApi?.stopEditing(true)
-      },
-      end() {
-        grid.value?.gridApi?.stopEditing(false)
-      },
-      suspend: () => {
-        return {
-          resume: () => this.editedCell && grid.value?.gridApi?.startEditingCell(this.editedCell),
-        }
-      },
-    })
-  }
-
-  cellEditedInGrid(event: CellEditingStartedEvent) {
-    this.editedCell =
-      event.rowIndex != null ? { rowIndex: event.rowIndex, colKey: event.column } : undefined
-    if (!this.handler.isActive()) {
-      this.handler.start()
-    }
-  }
-
-  cellEditingStoppedInGrid(event: CellEditingStoppedEvent) {
-    if (!this.handler.isActive()) return
-    if (this.supressNextStopEditEvent && this.editedCell) {
-      this.supressNextStopEditEvent = false
-      // If row data changed, the editing will be stopped, but we want to continue it.
-      grid.value?.gridApi?.startEditingCell(this.editedCell)
-    } else {
-      this.handler.end()
-    }
-  }
-
-  rowDataChanged() {
-    if (this.handler.isActive()) {
-      this.supressNextStopEditEvent = true
-    }
-  }
-}
-
-const cellEditHandler = new CellEditing()
-
-class HeaderEditing {
-  handler: WidgetEditHandler
-  editedColId = ref<string>()
-  revertChangesCallback: (() => void) | undefined
-
-  constructor() {
-    this.handler = WidgetEditHandler.New('WidgetTableEditor.headerEditHandler', props.input, {
-      cancel: () => {
-        this.revertChangesCallback?.()
-        this.editedColId.value = undefined
-      },
-      end: () => {
-        this.editedColId.value = undefined
-      },
+const { editedCell, gridEventHandlers, headerEventHandlers } = useTableEditHandler(
+  () => grid.value?.gridApi,
+  columnDefs,
+  (hooks) => {
+    const handler = WidgetEditHandler.New('WidgetTableEditor', props.input, {
+      ...hooks,
       pointerdown: (event) => {
         if (
           !(event.target instanceof HTMLInputElement) ||
           targetIsOutside(event, grid.value?.$el)
         ) {
-          this.handler.end()
+          handler.end()
         } else {
           return false
         }
       },
     })
-  }
+    return handler
+  },
+)
 
-  headerEditedInGrid(colId: string, revertChanges: () => void) {
-    if (this.editedColId.value !== colId) {
-      this.editedColId.value = colId
-      if (!this.handler.isActive()) {
-        this.handler.start()
-      }
-    }
-    this.revertChangesCallback = revertChanges
-  }
-
-  headerEditingStoppedInGrid(colId: string) {
-    if (this.editedColId.value === colId) {
-      this.revertChangesCallback = undefined
-      this.editedColId.value = undefined
-      if (this.handler.isActive()) {
-        this.handler.end()
-      }
-    }
-  }
-}
-
-const headerEditHandler = new HeaderEditing()
+watch(
+  () => props.input,
+  () => grid.value?.gridApi?.refreshCells(),
+)
 
 // === Resizing ===
 
@@ -238,9 +166,11 @@ function processDataFromClipboard({ data, api }: ProcessDataFromClipboardParams<
 // === Column Default Definition ===
 
 const headerComponentParams = proxyRefs({
-  editedColId: headerEditHandler.editedColId,
-  onHeaderEditingStarted: headerEditHandler.headerEditedInGrid.bind(headerEditHandler),
-  onHeaderEditingStopped: headerEditHandler.headerEditingStoppedInGrid.bind(headerEditHandler),
+  editedColId: computed(() =>
+    editedCell.value?.rowIndex === 'header' ? editedCell.value.colKey : undefined,
+  ),
+  onHeaderEditingStarted: headerEventHandlers.headerEditingStarted,
+  onHeaderEditingStopped: headerEventHandlers.headerEditingStopped,
 })
 
 const defaultColDef: ColDef<RowData> & {
@@ -284,7 +214,7 @@ export const widgetDefinition = defineWidget(
         ref="grid"
         class="inner"
         :defaultColDef="defaultColDef"
-        :columnDefs="columnDefs"
+        :columnDefs="columnDefsTyped"
         :rowData="rowData"
         :getRowId="(row) => `${row.data.index}`"
         :components="{
@@ -294,16 +224,13 @@ export const widgetDefinition = defineWidget(
         :suppressDragLeaveHidesColumns="true"
         :suppressMoveWhenColumnDragging="true"
         :processDataFromClipboard="processDataFromClipboard"
-        @keydown.enter.stop
+        v-on="gridEventHandlers"
         @keydown.arrow-left.stop
         @keydown.arrow-right.stop
         @keydown.arrow-up.stop
         @keydown.arrow-down.stop
         @keydown.backspace.stop
         @keydown.delete.stop
-        @cellEditingStarted="cellEditHandler.cellEditedInGrid($event)"
-        @cellEditingStopped="cellEditHandler.cellEditingStoppedInGrid($event)"
-        @rowDataUpdated="cellEditHandler.rowDataChanged()"
         @pointerdown.stop
         @click.stop
         @columnMoved="onColumnMoved"

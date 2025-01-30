@@ -34,6 +34,10 @@ add_specs suite_builder =
             c = Complex.new 1.5 0.0
             (c:Complex).re . should_equal 1.5
             (c:Float) . should_equal 1.5
+        group_builder.specify "Complex & Float remain after instance method invocation" <|
+            c = Complex.new 1.5 0.0 . confuse_me
+            (c:Complex).re . should_equal 1.5
+            (c:Float) . should_equal 1.5
 
     suite_builder.group "Chain Multi Value" group_builder->
         to_b_to_c obj =
@@ -172,6 +176,8 @@ add_specs suite_builder =
             a = A
             Test.expect_panic Type_Error <|
                 a : C
+
+Any.confuse_me self = self
 
 main filter=Nothing =
     suite = Test.build suite_builder->
