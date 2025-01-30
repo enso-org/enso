@@ -5,7 +5,6 @@ import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.JDBC_Connection
 import project.Internal.SQL_Warning_Helper
 import project.Internal.Statement_Setter.Statement_Setter
-import project.SQL_Statement.SQL_Statement
 from project.Internal.Result_Set import read_column, result_set_to_table
 
 polyglot java import java.sql.DatabaseMetaData
@@ -61,20 +60,20 @@ type Generic_JDBC_Connection
        GROUP Standard.Base.Output
        ICON data_output
 
-       Execute a raw SQL query or statement, or an `SQL_Statement`.
+       Execute a raw SQL query or statement.
 
        Returns the row count for a SQL DML statement, or 0 for SQL statements
        that return nothing.
 
        Arguments:
-       - sql: The SQL query or statement or `SQL_Statement` to execute.
+       - sql: The SQL query or statement to execute.
 
        > Example
          Create a table.
 
              connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
              connection.execute "create table foo (a int)"
-    execute self sql:(Text | SQL_Statement) -> Integer =
+    execute self sql:Text -> Integer =
         self.jdbc_connection.with_prepared_statement sql Statement_Setter.default stmt->
             stmt.executeUpdate
 
@@ -82,7 +81,7 @@ type Generic_JDBC_Connection
        GROUP Standard.Base.Input
        ICON data_input
 
-       Execute a raw SQL query, or an `SQL_Statement`.
+       Execute a raw SQL query.
 
        Returns the resulting rows.
 
@@ -94,7 +93,7 @@ type Generic_JDBC_Connection
 
              connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
              table = connection.read "select a, b, c from foo"
-    read self sql:(Text | SQL_Statement) -> Table =
+    read self sql:Text -> Table =
         self.jdbc_connection.with_prepared_statement sql Statement_Setter.default stmt->
             rs = stmt.executeQuery
             make_fallback_fetcher _ =

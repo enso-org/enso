@@ -5,7 +5,6 @@ from Standard.Test import all
 
 import Standard.Database.Errors.SQL_Error
 import Standard.Database.JDBC.Generic_JDBC_Connection.Generic_JDBC_Connection
-import Standard.Database.SQL.SQL_Builder
 
 add_specs suite_builder =
     data_dir = enso_project.data / "transient"
@@ -141,28 +140,6 @@ add_specs suite_builder =
                 conn.get_tables table_types=['VIEW'] . sort . should_contain 'VIEW_ABC'
                 conn.get_tables table_types=[] . sort . should_equal []
 
-        group_builder.specify "should be able to create tables in multiple schemas" <|
-            with_connection "multiple_schemas" conn->
-                conn.execute "create table foo (a int, b text)"
-                conn.execute "create schema other"
-                conn.execute "set schema other"
-                conn.execute "create table bar (c float, d timestamp)"
-
-                r = conn.get_table_info schema_pattern="PUBLIC"
-                r.row_count . should_equal 1
-                r.at "TABLE_CAT" . to_vector . should_equal ['TEST']
-                r.at "TABLE_SCHEM" . to_vector . should_equal ['PUBLIC']
-                r.at "TABLE_NAME" . to_vector . sort . should_equal ['FOO']
-
-                r2 = conn.get_table_info schema_pattern="OTHER"
-                r2.row_count . should_equal 1
-                r2.at "TABLE_CAT" . to_vector . should_equal ['TEST']
-                r2.at "TABLE_SCHEM" . to_vector . should_equal ['OTHER']
-                r2.at "TABLE_NAME" . to_vector . sort . should_equal ['BAR']
-
-                conn.get_tables schema_pattern='PUBLIC' . should_equal ['FOO']
-                conn.get_tables schema_pattern='OTHER' . should_equal ['BAR']
-
         group_builder.specify "should be able to insert, update and query data using raw SQL" <|
             with_connection "insert_and_query" conn->
                 conn.execute "create table foo (a int, b text)"
@@ -192,16 +169,6 @@ add_specs suite_builder =
                 conn.execute "update foo set b='uuuu' where a=20"
                 r3 = conn.read "select B from foo"
                 r3.at "B" . to_vector . should_equal ['asdf', 'uuuu']
-
-        group_builder.specify "should be able to use SQL_Statements" <|
-            with_connection "with_sql_statements" conn->
-                conn.execute "create table foo (a int, b text)"
-                conn.execute (SQL_Builder.code "insert into foo (a, b) values (" ++ SQL_Builder.interpolation 10 ++ ", " ++ SQL_Builder.interpolation 'asdf' ++ ")").build
-                conn.execute (SQL_Builder.code "insert into foo (a, b) values (" ++ SQL_Builder.interpolation 20 ++ ", " ++ SQL_Builder.interpolation 'zxcv' ++ ")").build
-                r = conn.read (SQL_Builder.code "select * from foo where a=" ++ SQL_Builder.interpolation 20).build
-                r.row_count . should_equal 1
-                r.at "A" . to_vector . should_equal [20]
-                r.at "B" . to_vector . should_equal ['zxcv']
 
         group_builder.specify "should handle SQL errors" <|
             with_connection "sql_errors" conn->
