@@ -538,8 +538,19 @@ public class MethodProcessor
 
   private void generateUncheckedArgumentRead(
       PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    String castName = "TypesGen.as" + capitalize(arg.getTypeName());
-    String varName = mkArgumentInternalVarName(arg);
+    var checkName = "TypesGen.is" + capitalize(arg.getTypeName());
+    var castName = "TypesGen.as" + capitalize(arg.getTypeName());
+    var varName = mkArgumentInternalVarName(arg);
+    out.println(
+        "    if (!"
+            + checkName
+            + "("
+            + argsArray
+            + "[arg"
+            + arg.getPosition()
+            + "Idx])) throw EnsoContext.get(bodyNode).raiseAssertionPanic(bodyNode, \""
+            + arg.getTypeName()
+            + "\", null);");
     out.println(
         "    "
             + arg.getTypeName()
