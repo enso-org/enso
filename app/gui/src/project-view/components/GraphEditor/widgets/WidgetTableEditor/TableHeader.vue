@@ -1,6 +1,6 @@
 <script lang="ts">
 import SvgButton from '@/components/SvgButton.vue'
-import type { IHeaderParams } from 'ag-grid-community'
+import type { IHeaderParams } from 'ag-grid-enterprise'
 import { computed, ref, watch } from 'vue'
 
 /**
@@ -54,9 +54,11 @@ function emitEditEnd() {
   props.onHeaderEditingStopped?.(props.column.getColId())
 }
 
-watch(inputElement, (newVal, oldVal) => {
+watch(inputElement, (newVal) => {
   if (newVal != null) {
-    // Whenever input field appears, focus and select text
+    // Whenever input field appears, put text, focus and select
+    // We don't do that through props, because we don't want updates.
+    newVal.value = props.displayName
     newVal.focus()
     newVal.select()
   }
@@ -115,12 +117,14 @@ function onMouseRightClick(event: MouseEvent) {
         v-if="editing"
         ref="inputElement"
         class="ag-input-field-input ag-text-field-input"
-        :value="displayName"
-        @change="acceptNewName"
         @keydown.arrow-left.stop
         @keydown.arrow-right.stop
         @keydown.arrow-up.stop
         @keydown.arrow-down.stop
+        @keydown.tab.prevent="{
+          // We prevent default, because switching edit on tab is handled by the widget edit
+          // handlers
+        }"
       />
       <span
         v-else
