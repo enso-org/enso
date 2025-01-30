@@ -4760,7 +4760,6 @@ lazy val `enso-test-java-helpers` = project
   .dependsOn(`std-table` % "provided")
 
 lazy val `enso-generic-jdbc-connection-helpers` = project
-  .in(file("test/Generic_JDBC_Tests/polyglot-sources/enso-generic-jdbc-connection-helpers"))
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
