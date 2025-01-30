@@ -1701,7 +1701,7 @@ type DB_Table
                 Row_Limit.No_Limit -> Nothing
                 Row_Limit.Limit limit -> limit
             limit_problems = if row_limit.is_nothing || (right.row_count < row_limit) then [] else
-                [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
+                [Cross_Join_Row_Limit_Exceeded.Error row_limit right.row_count]
             on_problems.attach_problems_before limit_problems <|
                 self.join_or_cross_join right join_kind=Join_Kind_Cross on=[] right_prefix on_problems
 
