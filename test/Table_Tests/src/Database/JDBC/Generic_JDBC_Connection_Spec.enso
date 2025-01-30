@@ -182,7 +182,34 @@ add_specs suite_builder =
                 conn.quote_literal "abc-def" . should_equal '\'abc-def\''
                 conn.quote_literal "abc def " . should_equal '\'abc def \''
                 conn.quote_literal "a$s$d$f" . should_equal '\'a$s$d$f\''
-                conn.quote_literal 'a"b"c"d' . should_equal '\'a"b"c"d\''
+                conn.quote_literal 'a"b"c' . should_equal '\'a"b"c\''
+
+        group_builder.specify "should be able to use quoting to create and use tables with non-standard names" <|
+            with_connection "use_quote_identifier" conn->
+                table_name = 'abc-def'
+                quoted_table_name = conn.quote_identifier table_name
+
+                conn.execute "create table "+quoted_table_name+" (a int, b text)"
+                conn.execute "insert into "+quoted_table_name+" (a, b) values (10, 'asdf')"
+                conn.execute "insert into "+quoted_table_name+" (a, b) values (20, 'zxcv')"
+
+                r = conn.read "select * from "+quoted_table_name
+                r.at "A" . to_vector . should_equal [10, 20]
+                r.at "B" . to_vector . should_equal ['asdf', 'zxcv']
+
+        group_builder.specify "should be able to use quoting to specify values containing quotes" <|
+            with_connection "use_quote_literal" conn->
+                s0 = "ab'cd"
+                s1 = 'ab"cd'
+                quoted_s0 = conn.quote_literal s0
+                quoted_s1 = conn.quote_literal s1
+
+                conn.execute "create table foo (a text, b text)"
+                conn.execute "insert into foo (a, b) values ("+quoted_s0+", "+quoted_s1+")"
+
+                r = conn.read "select * from foo"
+                r.at "A" . to_vector . should_equal [s0]
+                r.at "B" . to_vector . should_equal [s1]
 
         group_builder.specify "should handle SQL errors" <|
             with_connection "sql_errors" conn->
