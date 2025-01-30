@@ -260,7 +260,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         name: Engine Test Reporter
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@main
         with:
           max-annotations: 50
           name: Engine Tests Report (GraalVM CE, linux, amd64)
@@ -314,7 +314,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         name: Engine Test Reporter
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@main
         with:
           max-annotations: 50
           name: Engine Tests Report (GraalVM CE, macos, aarch64)
@@ -366,7 +366,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         name: Engine Test Reporter
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@main
         with:
           max-annotations: 50
           name: Engine Tests Report (GraalVM CE, macos, amd64)
@@ -419,7 +419,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         name: Engine Test Reporter
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@main
         with:
           max-annotations: 50
           name: Engine Tests Report (GraalVM CE, windows, amd64)
@@ -472,7 +472,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         name: Engine Test Reporter
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@main
         with:
           max-annotations: 50
           name: Engine Tests Report (Oracle GraalVM, linux, amd64)
@@ -528,7 +528,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         name: Standard Library Test Reporter
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@main
         with:
           max-annotations: 50
           name: Standard Library Tests Report (GraalVM CE, linux, amd64)
@@ -585,7 +585,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         name: Standard Library Test Reporter
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@main
         with:
           max-annotations: 50
           name: Standard Library Tests Report (GraalVM CE, macos, aarch64)
@@ -640,7 +640,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         name: Standard Library Test Reporter
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@main
         with:
           max-annotations: 50
           name: Standard Library Tests Report (GraalVM CE, macos, amd64)
@@ -696,7 +696,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         name: Standard Library Test Reporter
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@main
         with:
           max-annotations: 50
           name: Standard Library Tests Report (GraalVM CE, windows, amd64)
@@ -752,7 +752,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         name: Standard Library Test Reporter
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@main
         with:
           max-annotations: 50
           name: Standard Library Tests Report (Oracle GraalVM, linux, amd64)
