@@ -2790,7 +2790,7 @@ type Table
        - right_row_limit: If the number of rows in the right table exceeds this,
          then a `Cross_Join_Row_Limit_Exceeded` problem is raised. The check
          exists to avoid exploding the size of the table by accident. This check
-         can be disabled by setting this parameter to `Nothing`.
+         can be disabled by setting this parameter to `All_Rows`.
        - right_prefix: The prefix added to right table column names in case of
          name conflict. See "Column Renaming" below for more information.
        - on_problems: Specifies how to handle problems if they occur, reporting
@@ -2815,10 +2815,15 @@ type Table
          table. This applies only if the order of the rows was specified (for
          example, by sorting the table; in-memory tables will keep the memory
          layout order while for database tables the order may be unspecified).
-    cross_join : Table -> Integer | Nothing -> Text -> Problem_Behavior -> Table
-    cross_join self right:Table=(Missing_Argument.throw "right") right_row_limit=100 right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning = Out_Of_Memory.handle_java_exception "cross_join" <|
-        limit_problems = if right_row_limit.is_nothing || (right.row_count < right_row_limit) then [] else
-            [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
+    @right_row_limit Rows_To_Read.default_widget
+    cross_join : Table -> Rows_To_Read -> Text -> Problem_Behavior -> Table
+    cross_join self right:Table=(Missing_Argument.throw "right") right_row_limit:Rows_To_Read=(..First 100) right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning = Out_Of_Memory.handle_java_exception "cross_join" <|
+        row_limit = case right_row_limit of
+            Rows_To_Read.All_Rows -> Nothing
+            Rows_To_Read.First limit -> limit
+            Rows_To_Read.First_With_Warning limit -> limit
+        limit_problems = if row_limit.is_nothing || (right.row_count < row_limit) then [] else
+            [Cross_Join_Row_Limit_Exceeded.Error row_limit right.row_count]
         on_problems.attach_problems_before limit_problems <|
             new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
                 self.java_table.crossJoin right.java_table right_prefix java_aggregator
