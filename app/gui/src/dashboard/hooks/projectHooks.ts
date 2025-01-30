@@ -206,26 +206,49 @@ export function useOpenProjectMutation() {
       type,
       parentId,
       inBackground = false,
-    }: LaunchedProject & { inBackground?: boolean }) => {
+      runCloudLocally = false,
+    }: LaunchedProject & { inBackground?: boolean; runCloudLocally?: boolean }) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
 
-      return backend.openProject(
-        id,
-        {
-          executeAsync: inBackground,
-          cognitoCredentials: {
-            accessToken: session.accessToken,
-            refreshToken: session.refreshToken,
-            clientId: session.clientId,
-            expireAt: session.expireAt,
-            refreshUrl: session.refreshUrl,
+      if (runCloudLocally) {
+        invariant(localBackend != null, 'Local Backend is null')
+
+        remoteBackend.downloadToTemp(id).then((directoryId) => {
+          return localBackend.openProject(
+            id,
+            {
+              executeAsync: inBackground,
+              cognitoCredentials: {
+                accessToken: session.accessToken,
+                refreshToken: session.refreshToken,
+                clientId: session.clientId,
+                expireAt: session.expireAt,
+                refreshUrl: session.refreshUrl,
+              },
+              parentId: directoryId,
+            },
+            title,
+          )
+        })
+      } else {
+        return backend.openProject(
+          id,
+          {
+            executeAsync: inBackground,
+            cognitoCredentials: {
+              accessToken: session.accessToken,
+              refreshToken: session.refreshToken,
+              clientId: session.clientId,
+              expireAt: session.expireAt,
+              refreshUrl: session.refreshUrl,
+            },
+            parentId,
           },
-          parentId,
-        },
-        title,
-      )
+          title,
+        )
+      }
     },
     onMutate: ({ type, id, parentId }) => {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(id)

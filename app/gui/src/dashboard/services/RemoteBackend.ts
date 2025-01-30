@@ -1471,18 +1471,28 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Upload an asset. */
-  override async upload(id: backend.AssetId, path: string) {
-    const asset = backend.extractTypeFromId(id)
-    if (asset.type === backend.AssetType.project) {
-      const uploadPath = remoteBackendPaths.getProjectUploadPath(asset.id)
-      const url = new URL('./api/cloud/upload-project')
-      url.searchParams.set('upload_url', `${$config.API_URL}/${uploadPath}`)
-      url.searchParams.set('directory', path)
-      await this.client.get(url.toString())
-    } else {
-      await Promise.resolve()
-    }
+  /** Download the project to a temporary location. */
+  async downloadProject(id: backend.ProjectId): Promise<DirectoryId> {
+    const details = await this.getProjectDetails(id, true)
+
+    invariant(details.url != null, 'The download URL of the project must be present.')
+
+    const url = new URL('./api/cloud/download-project')
+    url.searchParams.set('download_url', details.url)
+
+    const response = await this.client.get<{path: string}>(url.toString())
+    const responseBody = await response.json()
+
+    return responseBody.path as DirectoryId
+  }
+
+  /** Upload the project. */
+  async uploadProject(id: backend.ProjectId, path: string): Promise<void> {
+    const uploadPath = remoteBackendPaths.getProjectUploadPath(id)
+    const url = new URL('./api/cloud/upload-project')
+    url.searchParams.set('upload_url', `${$config.API_URL}/${uploadPath}`)
+    url.searchParams.set('directory', path)
+    await this.client.get(url.toString())
   }
 
   /** Fetch the URL of the customer portal. */

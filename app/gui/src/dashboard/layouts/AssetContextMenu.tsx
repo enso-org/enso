@@ -260,7 +260,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 title: asset.title,
                 parentId: asset.parentId,
                 type: state.backend.type,
-                inBackground: true,
+                runCloudLocally: true,
               })
             }}
           />

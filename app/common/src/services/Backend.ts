@@ -1953,8 +1953,6 @@ export default abstract class Backend {
   ): Promise<void>
   /** Download an asset. */
   abstract download(assetId: AssetId, title: string): Promise<void>
-  /** Upload an asset. */
-  abstract upload(id: AssetId, path: string): Promise<void>
 
   /**
    * Get the URL for the customer portal.
