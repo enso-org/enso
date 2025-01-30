@@ -389,7 +389,7 @@ test.each<ArgsTestCase>([
 
 function stdPath(path: string) {
   assert(path.startsWith('Standard.'))
-  return parseAbsoluteProjectPath(unwrap(tryQualifiedName(path)))
+  return unwrap(parseAbsoluteProjectPath(unwrap(tryQualifiedName(path))))
 }
 
 function prepareMocksForGetMethodCallTest(): {

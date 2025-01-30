@@ -726,7 +726,13 @@ pub async fn runner_sanity_test(
             .run_ok()
             .await;
 
-        let all_cmds = test_base.and(test_internal_base).and(test_table).and(test_aws).and(test_microsoft).and(test_geo).and(test_image);
+        let all_cmds = test_base
+            .and(test_internal_base)
+            .and(test_table)
+            .and(test_aws)
+            .and(test_microsoft)
+            .and(test_geo)
+            .and(test_image);
 
         // The following test does not actually run anything, it just checks if the engine
         // can accept `--jvm` argument and evaluates something.
