@@ -69,6 +69,7 @@ import project.Match_Columns.Match_Columns
 import project.Position.Position
 import project.Prefix_Name.Prefix_Name
 import project.Row.Row
+import project.Row_Limit.Row_Limit
 import project.Rows_To_Read.Rows_To_Read
 import project.Set_Mode.Set_Mode
 import project.Simple_Expression.Simple_Expression
@@ -2815,13 +2816,11 @@ type Table
          table. This applies only if the order of the rows was specified (for
          example, by sorting the table; in-memory tables will keep the memory
          layout order while for database tables the order may be unspecified).
-    @right_row_limit Rows_To_Read.default_widget
-    cross_join : Table -> Rows_To_Read -> Text -> Problem_Behavior -> Table
-    cross_join self right:Table=(Missing_Argument.throw "right") right_row_limit:Rows_To_Read=(..First 100) right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning = Out_Of_Memory.handle_java_exception "cross_join" <|
+    cross_join : Table -> Row_Limit -> Text -> Problem_Behavior -> Table
+    cross_join self right:Table=(Missing_Argument.throw "right") right_row_limit:Row_Limit=(..Limit 100) right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning = Out_Of_Memory.handle_java_exception "cross_join" <|
         row_limit = case right_row_limit of
-            Rows_To_Read.All_Rows -> Nothing
-            Rows_To_Read.First limit -> limit
-            Rows_To_Read.First_With_Warning limit -> limit
+            Row_Limit.No_Limit -> Nothing
+            Row_Limit.Limit limit -> limit
         limit_problems = if row_limit.is_nothing || (right.row_count < row_limit) then [] else
             [Cross_Join_Row_Limit_Exceeded.Error row_limit right.row_count]
         on_problems.attach_problems_before limit_problems <|

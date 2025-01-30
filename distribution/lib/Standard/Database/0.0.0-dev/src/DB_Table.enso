@@ -42,6 +42,7 @@ import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
 import Standard.Table.Row.Row
+import Standard.Table.Row_Limit.Row_Limit
 import Standard.Table.Rows_To_Read.Rows_To_Read
 import Standard.Table.Value_Type.By_Type
 from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Fill_With, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Report_Unmatched, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
@@ -1693,14 +1694,12 @@ type DB_Table
        ? Result Ordering For Database Tables
 
          The ordering of rows in the resulting table is not specified.
-    @right_row_limit Rows_To_Read.default_widget
-    cross_join : DB_Table -> Rows_To_Read -> Text -> Problem_Behavior -> DB_Table
-    cross_join self right:DB_Table=(Missing_Argument.throw "right") right_row_limit:Rows_To_Read=(..First 100) right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning =
+    cross_join : DB_Table -> Row_Limit -> Text -> Problem_Behavior -> DB_Table
+    cross_join self right:DB_Table=(Missing_Argument.throw "right") right_row_limit:Row_Limit=(..Limit 100) right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning =
         Feature.Cross_Join.if_supported_else_throw self.connection.dialect "cross_join" <|
             row_limit = case right_row_limit of
-                Rows_To_Read.All_Rows -> Nothing
-                Rows_To_Read.First limit -> limit
-                Rows_To_Read.First_With_Warning limit -> limit
+                Row_Limit.No_Limit -> Nothing
+                Row_Limit.Limit limit -> limit
             limit_problems = if row_limit.is_nothing || (right.row_count < row_limit) then [] else
                 [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
             on_problems.attach_problems_before limit_problems <|
