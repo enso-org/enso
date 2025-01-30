@@ -5,7 +5,7 @@ import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
 import { assert, assertDefined } from '@/util/assert'
 import { unwrap } from '@/util/data/result'
 import { parseDocs } from '@/util/docParser'
-import { parseAbsoluteProjectPath, ProjectPath } from '@/util/projectPath'
+import { parseAbsoluteProjectPathRaw, ProjectPath } from '@/util/projectPath'
 import {
   tryIdentifier,
   tryQualifiedName,
@@ -18,7 +18,7 @@ import { type SuggestionsDatabaseUpdate } from 'ydoc-shared/languageServerTypes/
 
 function stdPath(path: string) {
   assert(path.startsWith('Standard.'))
-  return parseAbsoluteProjectPath(unwrap(tryQualifiedName(path)))
+  return unwrap(parseAbsoluteProjectPathRaw(path))
 }
 
 const projectNames = mockProjectNameStore()

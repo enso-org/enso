@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { junctionPoints, pathElements, toSvgPath } from '@/components/GraphEditor/GraphEdge/layout'
+import { useComponentColors } from '@/composables/componentColors'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import type { Edge } from '@/stores/graph'
@@ -135,11 +136,7 @@ const sourceMask = computed<NodeMask | undefined>(() => {
   return { id, rect, radius }
 })
 
-const edgeColor = computed(() =>
-  'color' in edge ? edge.color
-  : sourceNode.value ? graph.db.getNodeColorStyle(sourceNode.value)
-  : undefined,
-)
+const { baseColor, selected, pending } = useComponentColors(graph.db, selection, sourceNode)
 
 const sourceOriginPoint = computed(() => {
   const source = sourceRect.value
@@ -240,7 +237,7 @@ const targetEndIsDimmed = computed(() => {
   return distances.sourceToMouse < distances.mouseToTarget
 })
 
-const baseStyle = computed(() => ({ '--node-base-color': edgeColor.value ?? 'tan' }))
+const baseStyle = computed(() => (baseColor.value ? { '--node-group-color': baseColor.value } : {}))
 
 function click(event: PointerEvent) {
   const distances = mouseLocationOnEdge.value
@@ -301,6 +298,9 @@ const sourceHoverAnimationStyle = computed(() => {
 const baseClass = computed(() => {
   return { dimmed: activePath.value || isSuggestion.value }
 })
+const colorClasses = computed(() => {
+  return { selected: selected.value, pending: pending.value }
+})
 </script>
 
 <template>
@@ -335,8 +335,8 @@ const baseClass = computed(() => {
       <path
         ref="base"
         :d="basePath"
-        class="edge visible"
-        :class="baseClass"
+        class="edge define-node-colors visible"
+        :class="{ ...baseClass, ...colorClasses }"
         :style="{ ...baseStyle, ...sourceHoverAnimationStyle }"
         :data-source-node-id="sourceNode"
         :data-target-node-id="targetNode"
@@ -355,7 +355,8 @@ const baseClass = computed(() => {
       <path
         v-if="activePath"
         :d="basePath"
-        class="edge visible"
+        class="edge define-node-colors visible"
+        :class="colorClasses"
         :style="{ ...baseStyle, ...activeStyle }"
         :data-source-node-id="sourceNode"
         :data-target-node-id="targetNode"
@@ -364,15 +365,16 @@ const baseClass = computed(() => {
         v-if="arrowTransform"
         :transform="arrowTransform"
         :d="arrowPath"
-        class="arrow visible"
-        :class="{ dimmed: targetEndIsDimmed }"
+        class="arrow define-node-colors visible"
+        :class="{ ...colorClasses, dimmed: targetEndIsDimmed }"
         :style="baseStyle"
       />
       <polygon
         v-if="backwardEdgeArrowTransform"
         :transform="backwardEdgeArrowTransform"
         points="0,-9.375 -9.375,9.375 9.375,9.375"
-        class="arrow visible"
+        class="arrow define-node-colors visible"
+        :class="colorClasses"
         :style="baseStyle"
         :data-source-node-id="sourceNode"
         :data-target-node-id="targetNode"
@@ -384,18 +386,18 @@ const baseClass = computed(() => {
 <style scoped>
 .visible {
   pointer-events: none;
-  --edge-color: color-mix(in oklab, var(--node-base-color) 85%, white 15%);
+  --node-group-color: var(--group-color-fallback);
 }
 
 .edge {
   fill: none;
-  stroke: var(--edge-color);
+  stroke: var(--color-edge-from-node);
   transition: stroke 0.2s ease;
   contain: strict;
 }
 
 .arrow {
-  fill: var(--edge-color);
+  fill: var(--color-edge-from-node);
   transition: fill 0.2s ease;
 }
 
@@ -410,11 +412,10 @@ const baseClass = computed(() => {
 }
 
 .edge.visible.dimmed {
-  /* stroke: rgba(255, 255, 255, 0.4); */
-  stroke: color-mix(in oklab, var(--edge-color) 60%, white 40%);
+  stroke: color-mix(in oklab, var(--color-edge-from-node) 60%, white 40%);
 }
 
 .arrow.visible.dimmed {
-  fill: color-mix(in oklab, var(--edge-color) 60%, white 40%);
+  fill: color-mix(in oklab, var(--color-edge-from-node) 60%, white 40%);
 }
 </style>

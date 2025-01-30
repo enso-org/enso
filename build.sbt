@@ -351,6 +351,8 @@ lazy val enso = (project in file("."))
     `runtime-and-langs`,
     `runtime-benchmarks`,
     `runtime-compiler`,
+    `runtime-compiler-dump`,
+    `runtime-compiler-dump-igv`,
     `runtime-parser`,
     `runtime-parser-dsl`,
     `runtime-parser-processor`,
@@ -722,6 +724,8 @@ lazy val componentModulesPaths =
     (`runtime` / Compile / exportedModuleBin).value,
     (`syntax-rust-definition` / Compile / exportedModuleBin).value,
     (`runtime-compiler` / Compile / exportedModuleBin).value,
+    (`runtime-compiler-dump` / Compile / exportedModuleBin).value,
+    (`runtime-compiler-dump-igv` / Compile / exportedModuleBin).value,
     (`runtime-parser` / Compile / exportedModuleBin).value,
     (`runtime-suggestions` / Compile / exportedModuleBin).value,
     (`runtime-instrument-common` / Compile / exportedModuleBin).value,
@@ -1920,7 +1924,8 @@ lazy val `ydoc-polyfill` = project
       "com.github.sbt"       % "junit-interface"             % junitIfVersion            % Test
     ),
     libraryDependencies ++= {
-      GraalVM.modules ++ GraalVM.jsPkgs ++ GraalVM.chromeInspectorPkgs ++ helidon
+      GraalVM.modules ++ GraalVM.jsPkgs
+        .map(_ % "provided") ++ GraalVM.chromeInspectorPkgs ++ helidon
     }
   )
   .dependsOn(`syntax-rust-definition`)
@@ -2397,6 +2402,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`runtime-suggestions` / Compile / exportedModule).value,
       (`runtime-parser` / Compile / exportedModule).value,
       (`runtime-compiler` / Compile / exportedModule).value,
+      (`runtime-compiler-dump` / Compile / exportedModule).value,
       (`polyglot-api` / Compile / exportedModule).value,
       (`polyglot-api-macros` / Compile / exportedModule).value,
       (`pkg` / Compile / exportedModule).value,
@@ -2939,6 +2945,8 @@ lazy val `runtime-integration-tests` =
         (`runtime-suggestions` / Compile / exportedModule).value,
         (`runtime-parser` / Compile / exportedModule).value,
         (`runtime-compiler` / Compile / exportedModule).value,
+        (`runtime-compiler-dump` / Compile / exportedModule).value,
+        (`runtime-compiler-dump-igv` / Compile / exportedModule).value,
         (`polyglot-api` / Compile / exportedModule).value,
         (`polyglot-api-macros` / Compile / exportedModule).value,
         (`pkg` / Compile / exportedModule).value,
@@ -3017,6 +3025,13 @@ lazy val `runtime-integration-tests` =
         )
       },
       Test / addExports := {
+        // Add necessary exports for IR module dumping to IGV
+        // Which is used in the test utils
+        val irDumperExports = Map(
+          "jdk.internal.vm.compiler/org.graalvm.graphio" -> Seq(
+            (`runtime-compiler-dump-igv` / javaModuleName).value
+          )
+        )
         val runtimeModName = (`runtime` / javaModuleName).value
         val exports = Map(
           (`runtime-instrument-common` / javaModuleName).value + "/org.enso.interpreter.instrument.job" -> Seq(
@@ -3032,7 +3047,7 @@ lazy val `runtime-integration-tests` =
         val testPkgsExports = testPkgs.map { pkg =>
           runtimeModName + "/" + pkg -> Seq("ALL-UNNAMED")
         }.toMap
-        exports ++ testPkgsExports
+        exports ++ testPkgsExports ++ irDumperExports
       }
     )
     .dependsOn(`runtime`)
@@ -3114,6 +3129,7 @@ lazy val `runtime-benchmarks` =
         (`runtime-suggestions` / Compile / exportedModule).value,
         (`runtime-parser` / Compile / exportedModule).value,
         (`runtime-compiler` / Compile / exportedModule).value,
+        (`runtime-compiler-dump` / Compile / exportedModule).value,
         (`polyglot-api` / Compile / exportedModule).value,
         (`polyglot-api-macros` / Compile / exportedModule).value,
         (`pkg` / Compile / exportedModule).value,
@@ -3337,6 +3353,7 @@ lazy val `runtime-compiler` =
         (`engine-common` / Compile / exportedModule).value,
         (`pkg` / Compile / exportedModule).value,
         (`runtime-parser` / Compile / exportedModule).value,
+        (`runtime-compiler-dump` / Compile / exportedModule).value,
         (`syntax-rust-definition` / Compile / exportedModule).value,
         (`scala-libs-wrapper` / Compile / exportedModule).value,
         (`persistance` / Compile / exportedModule).value,
@@ -3392,10 +3409,60 @@ lazy val `runtime-compiler` =
       }
     )
     .dependsOn(`runtime-parser`)
+    .dependsOn(`runtime-compiler-dump`)
     .dependsOn(pkg)
     .dependsOn(`engine-common`)
     .dependsOn(editions)
     .dependsOn(`persistance-dsl` % "provided")
+
+/** This project contains only a single service (interface) definition.
+  */
+lazy val `runtime-compiler-dump` =
+  (project in file("engine/runtime-compiler-dump"))
+    .enablePlugins(JPMSPlugin)
+    .settings(
+      frgaalJavaCompilerSetting,
+      javaModuleName := "org.enso.runtime.compiler.dump",
+      Compile / internalModuleDependencies := {
+        val transitiveDeps =
+          (`runtime-parser` / Compile / internalModuleDependencies).value
+        Seq(
+          (`runtime-parser` / Compile / exportedModule).value
+        ) ++ transitiveDeps
+      }
+    )
+    .dependsOn(`runtime-parser`)
+
+/** This is a standalone project that is not compiled with Frgaal on purpose.
+  * It depends on jdk.internal.vm.compiler module, which cannot be included in Frgaal.
+  * It includes a service provider for service definition in `runtime-compiler-dump`.
+  */
+lazy val `runtime-compiler-dump-igv` =
+  (project in file("engine/runtime-compiler-dump-igv"))
+    .enablePlugins(JPMSPlugin)
+    .settings(
+      scalaModuleDependencySetting,
+      javaModuleName := "org.enso.runtime.compiler.dump.igv",
+      Compile / internalModuleDependencies := {
+        val transitiveDeps =
+          (`runtime-compiler` / Compile / internalModuleDependencies).value
+        Seq(
+          (`runtime-compiler` / Compile / exportedModule).value
+        ) ++ transitiveDeps
+      },
+      Compile / moduleDependencies ++= Seq(
+        "org.slf4j" % "slf4j-api" % slf4jVersion
+      ),
+      Compile / addExports ++= {
+        Map(
+          "jdk.internal.vm.compiler/org.graalvm.graphio" -> Seq(
+            javaModuleName.value
+          )
+        )
+      }
+    )
+    .dependsOn(`runtime-compiler-dump`)
+    .dependsOn(`runtime-compiler`)
 
 lazy val `runtime-suggestions` =
   (project in file("engine/runtime-suggestions"))
@@ -3462,6 +3529,7 @@ lazy val `runtime-instrument-common` =
         (`refactoring-utils` / Compile / exportedModule).value,
         (`runtime` / Compile / exportedModule).value,
         (`runtime-compiler` / Compile / exportedModule).value,
+        (`runtime-compiler-dump` / Compile / exportedModule).value,
         (`runtime-parser` / Compile / exportedModule).value,
         (`runtime-suggestions` / Compile / exportedModule).value,
         (`text-buffer` / Compile / exportedModule).value,
@@ -3491,6 +3559,7 @@ lazy val `runtime-instrument-id-execution` =
       Compile / internalModuleDependencies := Seq(
         (`runtime` / Compile / exportedModule).value,
         (`runtime-compiler` / Compile / exportedModule).value,
+        (`runtime-compiler-dump` / Compile / exportedModule).value,
         (`polyglot-api` / Compile / exportedModule).value
       )
     )
@@ -3717,7 +3786,13 @@ lazy val `engine-runner` = project
       val stdLibsJars =
         `base-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
         `image-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
-        `table-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath())
+        `table-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
+        `database-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
+        `std-aws-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
+        `std-microsoft-polyglot-root`
+          .listFiles("*.jar")
+          .map(_.getAbsolutePath())
+
       core ++ stdLibsJars
     },
     buildSmallJdk := {
@@ -3728,7 +3803,7 @@ lazy val `engine-runner` = project
       val NI_MODULES =
         "org.graalvm.nativeimage,org.graalvm.nativeimage.builder,org.graalvm.nativeimage.base,org.graalvm.nativeimage.driver,org.graalvm.nativeimage.librarysupport,org.graalvm.nativeimage.objectfile,org.graalvm.nativeimage.pointsto,com.oracle.graal.graal_enterprise,com.oracle.svm.svm_enterprise"
       val JDK_MODULES =
-        "jdk.localedata,jdk.httpserver,java.naming,java.net.http"
+        "jdk.localedata,jdk.httpserver,java.naming,java.net.http,java.desktop"
       val DEBUG_MODULES  = "jdk.jdwp.agent"
       val PYTHON_MODULES = "jdk.security.auth,java.naming"
 
@@ -3791,6 +3866,12 @@ lazy val `engine-runner` = project
             "enso",
             targetDir     = engineDistributionRoot.value / "bin",
             staticOnLinux = false,
+            // sqlite-jdbc includes `--enable-url-protocols=jar` in its native-image.properites file,
+            // which breaks all our class loading. We still want to run `SqliteJdbcFeature` which extracts a proper
+            // native library from the jar.
+            excludeConfigs = Seq(
+              s".*sqlite-jdbc-.*\\.jar,META-INF/native-image/org\\.xerial/sqlite-jdbc/native-image\\.properties"
+            ),
             additionalOptions = Seq(
               "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
               "-H:IncludeResources=.*Main.enso$",
@@ -3802,8 +3883,11 @@ lazy val `engine-runner` = project
               // "-H:-DeleteLocalSymbols",
               // you may need to set smallJdk := None to use following flags:
               // "--trace-class-initialization=org.enso.syntax2.Parser",
+              // "--diagnostics-mode",
+              // "--verbose",
               "-Dnic=nic",
-              "-Dorg.enso.feature.native.lib.output=" + (engineDistributionRoot.value / "bin")
+              "-Dorg.enso.feature.native.lib.output=" + (engineDistributionRoot.value / "bin"),
+              "-Dorg.sqlite.lib.exportPath=" + (engineDistributionRoot.value / "bin")
             ),
             mainClass = Some("org.enso.runner.Main"),
             initializeAtRuntime = Seq(
@@ -3825,7 +3909,9 @@ lazy val `engine-runner` = project
               "org.enso.base",
               "org.enso.image",
               "org.enso.table",
-              "org.eclipse.jgit"
+              "org.enso.database",
+              "org.eclipse.jgit",
+              "com.amazonaws"
             )
           )
       }
@@ -4734,7 +4820,8 @@ lazy val `std-table` = project
       "org.apache.poi"           % "poi-ooxml"               % poiOoxmlVersion,
       "org.apache.xmlbeans"      % "xmlbeans"                % xmlbeansVersion,
       "org.antlr"                % "antlr4-runtime"          % antlrVersion,
-      "org.apache.logging.log4j" % "log4j-to-slf4j"          % "2.18.0" // org.apache.poi uses log4j
+      "org.apache.logging.log4j" % "log4j"                   % "2.24.3",
+      "org.apache.logging.log4j" % "log4j-to-slf4j"          % "2.24.3" // org.apache.poi uses log4j
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
@@ -5112,34 +5199,29 @@ launcherDistributionRoot := packageBuilder.localArtifact("launcher") / "enso"
 projectManagerDistributionRoot :=
   packageBuilder.localArtifact("project-manager") / "enso"
 
-lazy val createEnginePackage =
-  taskKey[Unit]("Creates the engine distribution package")
-createEnginePackage := {
+lazy val createStdLibsIndexes =
+  taskKey[Unit]("Creates index files for standard libraries")
+createStdLibsIndexes := {
   updateLibraryManifests.value
   buildEngineDistributionNoIndex.value
-  val modulesToCopy = componentModulesPaths.value
-  val root          = engineDistributionRoot.value
-  val log           = streams.value.log
-  val cacheFactory  = streams.value.cacheStoreFactory
-  DistributionPackage.createEnginePackage(
-    distributionRoot    = root,
-    cacheFactory        = cacheFactory,
-    log                 = log,
-    jarModulesToCopy    = modulesToCopy,
-    graalVersion        = graalMavenPackagesVersion,
-    javaVersion         = graalVersion,
-    ensoVersion         = ensoVersion,
-    editionName         = currentEdition,
-    sourceStdlibVersion = stdLibVersion,
-    targetStdlibVersion = targetStdlibVersion,
-    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value,
-    generateIndex       = true
+  val modulesToCopy    = componentModulesPaths.value
+  val distributionRoot = engineDistributionRoot.value
+  val log              = streams.value.log
+  val cacheFactory     = streams.value.cacheStoreFactory
+
+  DistributionPackage.indexStdLibs(
+    stdLibVersion  = targetStdlibVersion,
+    ensoVersion    = ensoVersion,
+    stdLibRoot     = distributionRoot / "lib",
+    ensoExecutable = distributionRoot / "bin" / "enso",
+    cacheFactory   = cacheFactory.sub("stdlib"),
+    log            = log
   )
-  log.info(s"Engine package created at $root")
+  log.info(s"Standard library indexes create for $distributionRoot")
 }
 
-ThisBuild / createEnginePackage := {
-  createEnginePackage.result.value
+ThisBuild / createStdLibsIndexes := {
+  createStdLibsIndexes.result.value
 }
 
 lazy val createEnginePackageNoIndex =
@@ -5161,8 +5243,7 @@ createEnginePackageNoIndex := {
     editionName         = currentEdition,
     sourceStdlibVersion = stdLibVersion,
     targetStdlibVersion = targetStdlibVersion,
-    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value,
-    generateIndex       = false
+    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value
   )
   log.info(s"Engine package created at $root")
 }
@@ -5186,25 +5267,7 @@ buildEngineDistributionNoIndex := Def.taskIf {
 // of other tasks.
 ThisBuild / buildEngineDistributionNoIndex := {
   updateLibraryManifests.value
-  val modulesToCopy = componentModulesPaths.value
-  val root          = engineDistributionRoot.value
-  val log           = streams.value.log
-  val cacheFactory  = streams.value.cacheStoreFactory
-  DistributionPackage.createEnginePackage(
-    distributionRoot    = root,
-    cacheFactory        = cacheFactory,
-    log                 = log,
-    jarModulesToCopy    = modulesToCopy,
-    graalVersion        = graalMavenPackagesVersion,
-    javaVersion         = graalVersion,
-    ensoVersion         = ensoVersion,
-    editionName         = currentEdition,
-    sourceStdlibVersion = stdLibVersion,
-    targetStdlibVersion = targetStdlibVersion,
-    targetDir           = (`syntax-rust-definition` / rustParserTargetDirectory).value,
-    generateIndex       = false
-  )
-  log.info(s"Engine package created at $root")
+  createEnginePackageNoIndex.value
 }
 
 lazy val shouldBuildNativeImage = taskKey[Boolean](
@@ -5243,7 +5306,8 @@ lazy val buildEngineDistribution =
   taskKey[Unit]("Builds the engine distribution")
 buildEngineDistribution := {
   buildEngineDistributionNoIndex.value
-  createEnginePackage.value
+  createEnginePackageNoIndex.value
+  createStdLibsIndexes.value
 }
 
 // This makes the buildEngineDistributionNoIndex task usable as a dependency

@@ -9,23 +9,19 @@ import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
 import org.enso.table.data.column.operation.map.datetime.TimeLikeBinaryOpReturningBoolean;
 import org.enso.table.data.column.operation.map.datetime.TimeLikeCoalescingOperation;
-import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 
 public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
   /**
    * @param data the underlying data
-   * @param size the number of items stored
    */
-  public TimeOfDayStorage(LocalTime[] data, int size) {
-    super(data, size, buildOps());
+  public TimeOfDayStorage(LocalTime[] data) {
+    super(TimeOfDayType.INSTANCE, data, buildOps());
   }
 
   private static MapOperationStorage<LocalTime, SpecializedStorage<LocalTime>> buildOps() {
-    MapOperationStorage<LocalTime, SpecializedStorage<LocalTime>> t =
-        ObjectStorage.buildObjectOps();
+    MapOperationStorage<LocalTime, SpecializedStorage<LocalTime>> t = new MapOperationStorage<>();
     t.add(new DateTimeIsInOp<>(LocalTime.class));
     t.add(
         new TimeLikeBinaryOpReturningBoolean<>(Maps.EQ, LocalTime.class) {
@@ -71,7 +67,7 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
         new GenericBinaryObjectMapOperation<LocalTime, SpecializedStorage<LocalTime>, Duration>(
             Maps.SUB, LocalTime.class, TimeOfDayStorage.class) {
           @Override
-          protected Builder createOutputBuilder(int size) {
+          protected Builder createOutputBuilder(long size) {
             return Builder.getObjectBuilder(size);
           }
 
@@ -83,8 +79,8 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
     t.add(
         new TimeLikeCoalescingOperation<>(Maps.MIN, LocalTime.class) {
           @Override
-          protected Builder createOutputBuilder(int size) {
-            return Builder.getForType(TimeOfDayType.INSTANCE, size, null);
+          protected Builder createOutputBuilder(long size) {
+            return Builder.getForTime(size);
           }
 
           @Override
@@ -95,8 +91,8 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
     t.add(
         new TimeLikeCoalescingOperation<>(Maps.MAX, LocalTime.class) {
           @Override
-          protected Builder createOutputBuilder(int size) {
-            return Builder.getForType(TimeOfDayType.INSTANCE, size, null);
+          protected Builder createOutputBuilder(long size) {
+            return Builder.getForTime(size);
           }
 
           @Override
@@ -108,18 +104,13 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
   }
 
   @Override
-  protected SpecializedStorage<LocalTime> newInstance(LocalTime[] data, int size) {
-    return new TimeOfDayStorage(data, size);
+  protected SpecializedStorage<LocalTime> newInstance(LocalTime[] data) {
+    return new TimeOfDayStorage(data);
   }
 
   @Override
   protected LocalTime[] newUnderlyingArray(int size) {
     return new LocalTime[size];
-  }
-
-  @Override
-  public StorageType getType() {
-    return TimeOfDayType.INSTANCE;
   }
 
   private abstract static class TimeOfDayComparisonOp

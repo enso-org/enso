@@ -33,7 +33,7 @@ public class BooleanParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  protected Builder makeBuilderWithCapacity(int capacity, ProblemAggregator problemAggregator) {
+  protected Builder makeBuilderWithCapacity(long capacity, ProblemAggregator problemAggregator) {
     return Builder.getForBoolean(capacity);
   }
 }

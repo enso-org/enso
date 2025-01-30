@@ -19,7 +19,7 @@ public class IsEmptyOperation extends AbstractUnaryBooleanOperation {
   }
 
   @Override
-  public boolean canApply(ColumnStorage storage) {
+  public boolean canApply(ColumnStorage<?> storage) {
     var type = storage.getType();
     // We also allow this operation on Mixed type to facilitate `internal_is_empty` helper.
     return type instanceof TextType || type instanceof AnyObjectType;

@@ -1,12 +1,11 @@
 package org.enso.table.data.column.operation.map.numeric;
 
-import java.util.BitSet;
 import org.enso.polyglot.common_utils.Core_Math_Utils;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.TernaryMapOperation;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
@@ -44,15 +43,13 @@ public class LongRoundOp extends TernaryMapOperation<Long, AbstractLongStorage> 
     }
 
     Context context = Context.getCurrent();
-    long[] out = new long[storage.size()];
-    BitSet isNothing = new BitSet();
-
-    for (int i = 0; i < storage.size(); i++) {
+    var builder = Builder.getForLong(IntegerType.INT_64, storage.getSize(), problemAggregator);
+    for (long i = 0; i < storage.getSize(); i++) {
       if (!storage.isNothing(i)) {
-        long item = storage.getItem(i);
+        long item = storage.getItemAsLong(i);
         boolean outOfRange = item < ROUND_MIN_LONG || item > ROUND_MAX_LONG;
         if (!outOfRange) {
-          out[i] = Core_Math_Utils.roundLong(item, decimalPlaces, useBankers);
+          builder.appendLong(Core_Math_Utils.roundLong(item, decimalPlaces, useBankers));
         } else {
           String msg =
               "Error: `round` can only accept values between "
@@ -61,17 +58,17 @@ public class LongRoundOp extends TernaryMapOperation<Long, AbstractLongStorage> 
                   + ROUND_MAX_LONG
                   + " (inclusive), but was "
                   + item;
-          problemAggregator.reportIllegalArgumentError(msg, i);
-          isNothing.set(i);
+          // ToDo: ProblemAggregator should accept a long instead of an int.
+          problemAggregator.reportIllegalArgumentError(msg, (int) i);
+          builder.appendNulls(1);
         }
-
       } else {
-        isNothing.set(i);
+        builder.appendNulls(1);
       }
 
       context.safepoint();
     }
 
-    return new LongStorage(out, storage.size(), isNothing, IntegerType.INT_64);
+    return builder.seal();
   }
 }

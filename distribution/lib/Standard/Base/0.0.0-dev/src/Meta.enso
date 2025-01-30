@@ -247,7 +247,7 @@ Any.is_a self typ -> Boolean = Meta_Helpers.is_a_builtin self typ
 
    Arguments:
    - typ: The type to check `self` against.
-Base_Error.is_a self typ -> Boolean = typ==Any || typ==Base_Error
+Base_Error.is_a self typ -> Boolean = (Meta.is_same_object Any typ) || (Meta.is_same_object typ Base_Error)
 
 ## PRIVATE
 

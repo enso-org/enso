@@ -15,7 +15,7 @@ import { AnimatedBackground } from '../../AnimatedBackground'
 import { Popover } from '../Dialog'
 import { Separator, SEPARATOR_STYLES, type SeparatorProps } from '../Separator'
 import { Text } from '../Text'
-import type { Placement, TestIdProps } from '../types'
+import type { TestIdProps } from '../types'
 import { MenuItem } from './MenuItem'
 import { MenuTrigger } from './MenuTrigger'
 
@@ -45,7 +45,6 @@ export interface MenuProps<T extends object>
     TestIdProps {
   readonly variant?: 'dark' | 'light'
   readonly className?: string
-  readonly placement?: Placement
 }
 
 /** Props for {@link MenuSection} */
@@ -91,7 +90,6 @@ export const Menu = createHideableComponent(function Menu<T extends object>(prop
     variant,
     className,
     children,
-    placement = 'bottom start',
     variants = MENU_STYLES,
     testId = 'menu',
     ...menuProps
@@ -100,13 +98,7 @@ export const Menu = createHideableComponent(function Menu<T extends object>(prop
   const styles = variants()
 
   return (
-    <Popover
-      variant={variant}
-      placement={placement}
-      className={styles.popover()}
-      size="xxsmall"
-      rounded="xxxlarge"
-    >
+    <Popover variant={variant} className={styles.popover()} size="xxsmall" rounded="xxxlarge">
       {() => (
         <AnimatedBackground>
           <aria.Menu<T> data-testid={testId} className={styles.base({ className })} {...menuProps}>

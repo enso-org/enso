@@ -71,7 +71,8 @@ public class LookupJoin {
     lookupIndex =
         MultiValueIndex.makeUnorderedIndex(
             lookupKeyColumns, 0, textFoldingStrategies, problemAggregator);
-    baseTableRowCount = baseKeyStorages[0].size();
+    // ToDo: Will need to rework to longs in next step.
+    baseTableRowCount = (int) baseKeyStorages[0].getSize();
   }
 
   private void checkNullsInKey() {

@@ -1,12 +1,16 @@
-import type { NodeId } from '@/stores/graph'
-import { GraphDb } from '@/stores/graph/graphDatabase'
+import { type NodeId } from '@/stores/graph'
+import { type GraphDb } from '@/stores/graph/graphDatabase'
 import {
   SuggestionKind,
   type SuggestionEntry,
   type Typename,
 } from '@/stores/suggestionDatabase/entry'
-import type { Icon } from '@/util/iconMetadata/iconName'
+import { type URLString } from '@/util/data/urlString'
+import { type Icon } from '@/util/iconMetadata/iconName'
 import { type MethodPointer } from '@/util/methodPointer'
+import { type ToValue } from '@/util/reactivity'
+import { computed, toValue } from 'vue'
+import { type ExternalId } from 'ydoc-shared/yjsModel'
 
 const typeNameToIconLookup: Record<string, Icon> = {
   'Standard.Base.Data.Text.Text': 'text_input',
@@ -66,5 +70,23 @@ export function iconOfNode(node: NodeId, graphDb: GraphDb) {
       return 'data_output'
     case 'input':
       return 'data_input'
+  }
+}
+
+/**
+ * Returns the icon to show on a component, using either the provided base icon or an icon representing its current
+ * status.
+ */
+export function useDisplayedIcon(
+  graphDb: GraphDb,
+  externalId: ToValue<ExternalId>,
+  baseIcon: ToValue<Icon | URLString>,
+) {
+  const evaluating = computed(() => {
+    const payload = graphDb.getExpressionInfo(toValue(externalId))?.payload
+    return payload?.type === 'Pending' && payload.progress
+  })
+  return {
+    displayedIcon: computed(() => (evaluating.value ? '$evaluating' : toValue(baseIcon))),
   }
 }

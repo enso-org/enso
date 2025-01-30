@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
-import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 
 public class EqualsComparison<T extends Number, I extends Storage<? super T>>
@@ -19,14 +18,14 @@ public class EqualsComparison<T extends Number, I extends Storage<? super T>>
   }
 
   @Override
-  protected BoolStorage runDoubleMap(
+  protected Storage<Boolean> runDoubleMap(
       DoubleArrayAdapter lhs, double rhs, MapOperationProblemAggregator problemAggregator) {
     problemAggregator.reportFloatingPointEquality(-1);
     return super.runDoubleMap(lhs, rhs, problemAggregator);
   }
 
   @Override
-  protected BoolStorage runDoubleZip(
+  protected Storage<Boolean> runDoubleZip(
       DoubleArrayAdapter lhs,
       DoubleArrayAdapter rhs,
       MapOperationProblemAggregator problemAggregator) {
