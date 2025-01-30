@@ -3,42 +3,60 @@ import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useBackend } from '@/composables/backend'
+import { injectBackend } from '@/providers/backend'
 import type { ToValue } from '@/util/reactivity'
+import { useToast } from '@/util/toast'
 import type {
+  DatalinkAsset,
+  DatalinkId,
   DirectoryAsset,
   DirectoryId,
   FileAsset,
   FileId,
 } from 'enso-common/src/services/Backend'
-import Backend, { assetIsDirectory, assetIsFile } from 'enso-common/src/services/Backend'
+import Backend, {
+  assetIsDatalink,
+  assetIsDirectory,
+  assetIsFile,
+} from 'enso-common/src/services/Backend'
 import { computed, ref, toValue, watch } from 'vue'
+import { Err, Ok } from 'ydoc-shared/util/data/result'
 
 const emit = defineEmits<{
   pathSelected: [path: string]
 }>()
 
 const { query, ensureQueryData } = useBackend('remote')
+const { remote: backend } = injectBackend()
+
+const errorToast = useToast.error()
 
 // === Current Directory ===
 
 interface Directory {
-  id: DirectoryId | null
+  id: DirectoryId
   title: string
 }
 
-const directoryStack = ref<Directory[]>([
-  {
-    id: null,
-    title: 'Cloud',
-  },
-])
-const currentDirectory = computed(() => directoryStack.value[directoryStack.value.length - 1]!)
 const currentUser = query('usersMe', [])
-const currentPath = computed(
-  () =>
-    currentUser.data.value &&
-    `enso://Users/${currentUser.data.value.name}${Array.from(directoryStack.value.slice(1), (frame) => '/' + frame.title).join()}`,
+const currentOrganization = query('getOrganization', [])
+const directoryStack = ref({
+  isLoading: true,
+  stack: [] as Directory[],
+})
+const currentDirectory = computed(
+  () => directoryStack.value.stack[directoryStack.value.stack.length - 1],
 )
+
+const currentPath = computed(() => {
+  if (!currentUser.data.value) return
+  let root = backend?.rootPath(currentUser.data.value)
+  if (root && !root.endsWith('/')) root += '/'
+  return `${root}${directoryStack.value.stack
+    .slice(1)
+    .map((dir) => `${dir.title}/`)
+    .join('')}`
+})
 
 // === Directory Contents ===
 
@@ -59,23 +77,25 @@ function listDirectoryArgs(params: ToValue<Directory | undefined>) {
   })
 }
 
-const { isPending, isError, data, error } = query(
+const { isPending, isError, data, error, promise } = query(
   'listDirectory',
   listDirectoryArgs(currentDirectory),
 )
 const compareTitle = (a: { title: string }, b: { title: string }) => a.title.localeCompare(b.title)
 const directories = computed(
-  () => data.value && data.value.filter<DirectoryAsset>(assetIsDirectory).sort(compareTitle),
+  () => data.value && data.value.filter((asset) => assetIsDirectory(asset)).sort(compareTitle),
 )
 const files = computed(
-  () => data.value && data.value.filter<FileAsset>(assetIsFile).sort(compareTitle),
+  () =>
+    data.value &&
+    data.value.filter((asset) => assetIsFile(asset) || assetIsDatalink(asset)).sort(compareTitle),
 )
 const isEmpty = computed(() => directories.value?.length === 0 && files.value?.length === 0)
 
 // === Selected File ===
 
 interface File {
-  id: FileId
+  id: FileId | DatalinkId
   title: string
 }
 
@@ -94,19 +114,41 @@ watch(directories, (directories) => {
 // === Interactivity ===
 
 function enterDir(dir: DirectoryAsset) {
-  directoryStack.value.push(dir)
+  directoryStack.value.stack.push(dir)
+}
+
+class DirNotFoundError {
+  constructor(public dirName: string) {}
+
+  toString() {
+    return `Directory "${this.dirName}" not found`
+  }
+}
+
+function enterDirByName(name: string) {
+  return promise.value.then((assets) => {
+    const nextDir = assets.find(
+      (asset): asset is DirectoryAsset => assetIsDirectory(asset) && asset.title === name,
+    )
+    if (!nextDir) return Err(new DirNotFoundError(name))
+    enterDir(nextDir)
+    return Ok()
+  })
 }
 
 function popTo(index: number) {
-  directoryStack.value.splice(index + 1)
+  directoryStack.value.stack.splice(index + 1)
 }
 
-function chooseFile(file: FileAsset) {
+function chooseFile(file: FileAsset | DatalinkAsset) {
   selectedFile.value = file
 }
 
 const isBusy = computed(
-  () => isPending.value || (selectedFile.value && currentUser.isPending.value),
+  () =>
+    directoryStack.value.isLoading ||
+    isPending.value ||
+    (selectedFile.value && currentUser.isPending.value),
 )
 
 const anyError = computed(() =>
@@ -117,23 +159,41 @@ const anyError = computed(() =>
 
 const selectedFilePath = computed(
   () =>
-    selectedFile.value && currentPath.value && `${currentPath.value}/${selectedFile.value.title}`,
+    selectedFile.value && currentPath.value && `${currentPath.value}${selectedFile.value.title}`,
 )
 
 watch(selectedFilePath, (path) => {
   if (path) emit('pathSelected', path)
 })
+
+Promise.all([currentUser.promise.value, currentOrganization.promise.value]).then(
+  async ([user, organization]) => {
+    if (!user) {
+      errorToast.show('Cannot load file list: not logged in.')
+      return
+    }
+    const rootDirectoryId =
+      backend?.rootDirectoryId(user, organization, null) ?? user.rootDirectoryId
+    directoryStack.value.stack = [{ id: rootDirectoryId, title: 'Cloud' }]
+    if (rootDirectoryId != user.rootDirectoryId) {
+      let result = await enterDirByName('Users')
+      result = result.ok ? await enterDirByName(user.name) : result
+      if (!result.ok) errorToast.reportError(result.error, 'Cannot enter home directory')
+    }
+    directoryStack.value.isLoading = false
+  },
+)
 </script>
 
 <template>
   <div class="FileBrowserWidget">
     <div class="directoryStack">
       <TransitionGroup>
-        <template v-for="(directory, index) in directoryStack" :key="directory.id ?? 'root'">
+        <template v-for="(directory, index) in directoryStack.stack" :key="directory.id ?? 'root'">
           <SvgIcon v-if="index > 0" name="arrow_right_head_only" />
           <div
             class="clickable"
-            :class="{ nonInteractive: index === directoryStack.length - 1 }"
+            :class="{ nonInteractive: index === directoryStack.stack.length - 1 }"
             @click.stop="popTo(index)"
             v-text="directory.title"
           ></div>
@@ -143,7 +203,7 @@ watch(selectedFilePath, (path) => {
     <div v-if="isBusy" class="centerContent contents"><LoadingSpinner /></div>
     <div v-else-if="anyError" class="centerContent contents">Error: {{ anyError }}</div>
     <div v-else-if="isEmpty" class="centerContent contents">Directory is empty</div>
-    <div v-else :key="currentDirectory.id ?? 'root'" class="listing contents">
+    <div v-else :key="currentDirectory?.id ?? 'root'" class="listing contents">
       <TransitionGroup>
         <div v-for="entry in directories" :key="entry.id">
           <SvgButton :label="entry.title" name="folder" class="entry" @click="enterDir(entry)" />
