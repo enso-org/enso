@@ -37,6 +37,7 @@ moving_backup file action = recover_io_and_not_found <|
     handle_existing_file _ =
         write_file_backing_up_old_one file action
     handle_write_failure_dataflow caught_panic =
+        IO.println "AAAAA\n"+caught_panic.stack_trace
         Error.throw caught_panic.payload.cause
     handle_file_already_exists = catch_already_exists handle_existing_file
     handle_internal_dataflow = Panic.catch Internal_Write_Operation_Errored handler=handle_write_failure_dataflow
@@ -47,6 +48,7 @@ moving_backup file action = recover_io_and_not_found <|
        temporary file and creates a backup.
     handle_file_already_exists <| handle_internal_dataflow <|
         Panic.rethrow <| file.with_output_stream [File_Access.Write, File_Access.Create_New] output_stream->
+            Panic.throw (Internal_Write_Operation_Errored.Error "asdf")
             action output_stream . catch Any dataflow_error->
                 Panic.throw (Internal_Write_Operation_Errored.Error dataflow_error)
 
