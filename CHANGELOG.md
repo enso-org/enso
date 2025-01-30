@@ -13,6 +13,7 @@
 - [Fixed bug when clicking header in Table Editor Widget didn't start editing
   it][12064]
 - [Fixed bugs occurring after renaming project from within graph editor][12106].
+- [Added support for rendering numbered and nested lists][12190].
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -22,6 +23,7 @@
 [12067]: https://github.com/enso-org/enso/pull/12067
 [12064]: https://github.com/enso-org/enso/pull/12064
 [12106]: https://github.com/enso-org/enso/pull/12106
+[12190]: https://github.com/enso-org/enso/pull/12190
 
 #### Enso Standard Library
 
