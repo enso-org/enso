@@ -87,6 +87,48 @@ public class EnsoMultiValueTest {
   }
 
   @Test
+  public void sameFieldAccessAandB() {
+    sameFieldAccess("A & B");
+  }
+
+  @Test
+  public void sameFieldAccessBandA() {
+    sameFieldAccess("B & A");
+  }
+
+  private void sameFieldAccess(String cast) {
+    var code =
+        """
+    type A
+        A_Ctor x y
+
+        x_from_a self = self.x
+
+    type B
+        B_Ctor x y
+
+        x_from_b self = self.x
+
+    B.from (that : A) = B.B_Ctor "B" that.y
+
+    pair =
+        a = A.A_Ctor "A" 1
+        both = (a : $cast)
+
+        v_a = both.x_from_a
+        v_b = both.x_from_b
+        [v_a, v_b]
+    """
+            .replace("$cast", cast);
+
+    var pair = ContextUtils.evalModule(ctx(), code, "fields.enso", "pair");
+    var texts = pair.as(new TypeLiteral<List<String>>() {});
+    assertEquals(2, texts.size());
+    assertEquals("A", texts.get(0));
+    assertEquals("B", texts.get(1));
+  }
+
+  @Test
   public void trippleCastConfusion() {
     var code =
         """

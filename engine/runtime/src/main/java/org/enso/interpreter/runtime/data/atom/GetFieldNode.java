@@ -33,10 +33,10 @@ final class GetFieldNode extends GetFieldBaseNode {
    * @param frame current execution frame
    * @return the field value at predefined index
    */
+  @Override
   public Object execute(VirtualFrame frame) {
-    // this is safe, as only Atoms will ever get here through method dispatch.
-    Atom atom = (Atom) Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[0];
-    return structs.getField(atom, index);
+    var obj = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[0];
+    return structs.getField(obj, index);
   }
 
   @Override

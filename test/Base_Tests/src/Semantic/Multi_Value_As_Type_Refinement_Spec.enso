@@ -213,11 +213,11 @@ add_specs suite_builder =
             new_ab.a_method . should_equal "A method"
             new_ab.b_method . should_equal "B method"
 
-            # But unchecked variant should keep both types and not hide anything
+            # dispatching method on self casts to Self type and always hides other types
             ab.a_id_unchecked . is_a A . should_be_true
             ab.a_id_unchecked . is_a B . should_be_true
             ab.a_id_unchecked.a_method . should_equal "A method"
-            ab.a_id_unchecked.b_method . should_equal "B method"
+            Test.expect_panic No_Such_Method (ab.a_id_unchecked.b_method)
 
             # The same should apply to the B part
             ab.b_id . is_a A . should_be_true # A is a hidden type
@@ -228,7 +228,7 @@ add_specs suite_builder =
             new_ab_2.is_a B . should_be_true
             ab.b_id_unchecked . is_a A . should_be_true
             ab.b_id_unchecked . is_a B . should_be_true
-            ab.b_id_unchecked.a_method . should_equal "A method"
+            Test.expect_panic No_Such_Method (ab.b_id_unchecked.a_method)
             ab.b_id_unchecked.b_method . should_equal "B method"
 
         group_builder.specify "calling `.catch` on an intersection type should not lose the refinements" <|
