@@ -81,7 +81,7 @@ test.each([
   ['local.Project.elem', true],
   ['local.Project.Module.elem', false],
 ])('pathIsTopElement(%s) returns %s', (name, result) => {
-  expect(projectNames.parseProjectPath(unwrap(tryQualifiedName(name))).isTopElement()).toBe(result)
+  expect(unwrap(projectNames.parseProjectPathRaw(name)).isTopElement()).toBe(result)
 })
 
 test.each([
