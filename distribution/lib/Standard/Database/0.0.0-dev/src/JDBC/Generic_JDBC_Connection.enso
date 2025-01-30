@@ -5,6 +5,7 @@ import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.JDBC_Connection
 import project.Internal.SQL_Warning_Helper
 import project.Internal.Statement_Setter.Statement_Setter
+import project.SQL_Query.SQL_Query
 from project.Internal.Result_Set import read_column, result_set_to_table
 
 polyglot java import java.sql.DatabaseMetaData
@@ -81,45 +82,37 @@ type Generic_JDBC_Connection
        GROUP Standard.Base.Input
        ICON data_input
 
-       Execute a raw SQL query.
+       Execute a raw SQL query or read the contents of a table by name.
 
-       Returns the resulting rows.
+       Returns the resulting rows as an in-memory table.
 
        Arguments:
-       - sql: The SQL query to execute.
+       - sql_query: Either a table name or a raw SQL query.
 
        > Example
-         Query a table.
+         Run a raw SQL query.
 
              connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
-             table = connection.read "select a, b, c from foo"
-    read self sql:Text -> Table =
-        self.jdbc_connection.with_prepared_statement sql Statement_Setter.default stmt->
+             table = connection.read (SQL_Query.Raw_SQL "select a, b, c from foo")
+
+       > Example
+         Read the contents of a table.
+
+             connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
+             table = connection.read (SQL_Query.Table_name "foo")
+    read self sql_query:SQL_Query -> Table =
+        resolved_sql = case sql_query of
+            SQL_Query.Raw_SQL raw_sql -> raw_sql
+            SQL_Query.Table_Name table_name -> "select * from "+(self.quote table_name)
+
+        self.jdbc_connection.with_prepared_statement resolved_sql Statement_Setter.default stmt->
             rs = stmt.executeQuery
             make_fallback_fetcher _ =
                 Column_Fetcher_Module.fallback_fetcher
             table = result_set_to_table rs make_fallback_fetcher
             SQL_Warning_Helper.process_warnings stmt <|
                 table
-
-    ## ALIAS import, load, read
-       GROUP Standard.Base.Input
-       ICON data_input
-
-       Read the contents of a table.
-
-       Returns an in-memory `Table`.
-
-       Arguments:
-       - table_name: The table to read.
-
-       > Example
-         Read a table.
-
-             connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
-             table = connection.read_tablle "foo"
-    read_table self table_name:Text -> Table =
-        self.read "select * from "+self.quote table_name
+-        
 
     ## ALIAS catalog schema database
        GROUP Standard.Base.Metadata

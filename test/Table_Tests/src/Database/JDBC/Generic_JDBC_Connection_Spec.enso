@@ -5,6 +5,7 @@ from Standard.Test import all
 
 import Standard.Database.Errors.SQL_Error
 import Standard.Database.JDBC.Generic_JDBC_Connection.Generic_JDBC_Connection
+import project.SQL_Query.SQL_Query
 
 add_specs suite_builder =
     data_dir = enso_project.data / "transient"
@@ -153,13 +154,13 @@ add_specs suite_builder =
                 tables.should_contain 'FOO'
                 tables.should_contain 'BAR'
 
-                r = conn.read "select * from foo"
+                r = conn.read (SQL_Query.Raw_SQL "select * from foo")
                 r.row_count . should_equal 2
                 r.columns . map .name . should_equal ["A", "B"]
                 r.at "A" . to_vector . should_equal [10, 20]
                 r.at "B" . to_vector . should_equal ['asdf', 'zxcv']
 
-                r2 = conn.read "select foo.a, foo.b, bar.d from foo join bar on foo.a = bar.c"
+                r2 = conn.read (SQL_Query.Raw_SQL "select foo.a, foo.b, bar.d from foo join bar on foo.a = bar.c")
                 r2.row_count . should_equal 1
                 r2.columns . map .name . should_equal ["A", "B", "D"]
                 r2.at "A" . to_vector . should_equal [20]
@@ -167,8 +168,25 @@ add_specs suite_builder =
                 r2.at "D" . to_vector . should_equal ['qqqq']
 
                 conn.execute "update foo set b='uuuu' where a=20"
-                r3 = conn.read "select B from foo"
+                r3 = conn.read (SQL_Query.Raw_SQL "select B from foo")
                 r3.at "B" . to_vector . should_equal ['asdf', 'uuuu']
+
+        group_builder.specify "should be able to read a table by name" <|
+            with_connection "read_table" conn->
+                conn.execute "create table foo (a int, b text)"
+                conn.execute "insert into foo (a, b) values (10, 'asdf')"
+                conn.execute "insert into foo (a, b) values (20, 'zxcv')"
+                conn.execute "create table bar (c int, d text)"
+                conn.execute "insert into bar (c, d) values (20, 'qqqq')"
+                conn.execute "insert into bar (c, d) values (30, 'zzzz')"
+
+                r = conn.read (SQL_Query.Table_Name "foo")
+                r.at "A" . to_vector . should_equal [10, 20]
+                r.at "B" . to_vector . should_equal ['asdf', 'zxcv']
+
+                r2 = conn.read (SQL_Query.Table_Name "bar")
+                r2.at "C" . to_vector . should_equal [20, 30]
+                r2.at "D" . to_vector . should_equal ['qqqq', 'zzzz']
 
         group_builder.specify "should be able to quote identifiers" <|
             with_connection "quote_identifiers" conn->
@@ -193,7 +211,7 @@ add_specs suite_builder =
                 conn.execute "insert into "+quoted_table_name+" (a, b) values (10, 'asdf')"
                 conn.execute "insert into "+quoted_table_name+" (a, b) values (20, 'zxcv')"
 
-                r = conn.read "select * from "+quoted_table_name
+                r = conn.read (SQL_Query.Raw_SQL "select * from "+quoted_table_name)
                 r.at "A" . to_vector . should_equal [10, 20]
                 r.at "B" . to_vector . should_equal ['asdf', 'zxcv']
 
@@ -207,7 +225,7 @@ add_specs suite_builder =
                 conn.execute "create table foo (a text, b text)"
                 conn.execute "insert into foo (a, b) values ("+quoted_s0+", "+quoted_s1+")"
 
-                r = conn.read "select * from foo"
+                r = conn.read (SQL_Query.Raw_SQL "select * from foo")
                 r.at "A" . to_vector . should_equal [s0]
                 r.at "B" . to_vector . should_equal [s1]
 
@@ -216,7 +234,7 @@ add_specs suite_builder =
                 conn.execute "create table ((((((()" . should_fail_with SQL_Error
                 conn.execute "create table foo (a int)" . should_succeed
                 conn.execute "create table foo (a int)" . should_fail_with SQL_Error
-                conn.read "select * from nonexistent" . should_fail_with SQL_Error
+                conn.read (SQL_Query.Raw_SQL "select * from nonexistent") . should_fail_with SQL_Error
                 conn.execute "insert into foo (a) values ('asdf')" . should_fail_with SQL_Error
                 conn.execute "set schema nonexistent" . should_fail_with SQL_Error
 
