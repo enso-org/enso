@@ -17,7 +17,7 @@ pub fn test_reporter(
 ) -> Step {
     Step {
         name: Some(step_name.into()),
-        uses: Some("dorny/test-reporter@main".into()),
+        uses: Some("dorny/test-reporter@v1".into()),
         // The action does not support running on forks.
         r#if: Some(format!("(success() || failure()) && {}", not_a_fork())),
         ..default()

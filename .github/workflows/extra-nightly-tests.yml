@@ -60,7 +60,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         name: Extra Library Test Reporter
-        uses: dorny/test-reporter@main
+        uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
           name: Extra Library Tests Report (GraalVM CE, linux, amd64)
@@ -121,7 +121,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         name: Standard Library Test Reporter
-        uses: dorny/test-reporter@main
+        uses: dorny/test-reporter@v1
         with:
           max-annotations: 50
           name: Standard Library Tests Report (GraalVM CE, linux, amd64)
