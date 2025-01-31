@@ -15,6 +15,7 @@ import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.pkg.QualifiedName;
 
 /** Root node for use by all the builtin functions. */
@@ -88,34 +89,41 @@ public abstract class BuiltinRootNode extends RootNode {
       this.flags = flags;
     }
 
-    final boolean is(byte what) {
+    private boolean is(byte what) {
       return (flags & what) != 0;
     }
 
     @SuppressWarnings("unchecked")
     public final <T> T processArgument(Class<T> type, Object value, ArgContext context) {
+      assert value != null;
       if (is(CHECK_ERRORS) && value instanceof DataflowError err) {
         context.returnValue = err;
         return null;
       }
-      var ctx = EnsoContext.get(this);
-      if (this.ensoType == null) {
-        CompilerDirectives.transferToInterpreterAndInvalidate();
-        var builtin = ctx.getBuiltins().getByRepresentationType(type);
-        if (builtin == null) {
-          this.ensoType = ctx.getBuiltins().any();
-        } else {
-          this.ensoType = builtin.getType();
+      if (is(CHECK_PANIC_SENTINEL) && value instanceof PanicSentinel sentinel) {
+        throw sentinel.getPanic();
+      }
+      if (is(REQUIRES_CAST)) {
+        var ctx = EnsoContext.get(this);
+        if (this.ensoType == null) {
+          CompilerDirectives.transferToInterpreterAndInvalidate();
+          var builtin = ctx.getBuiltins().getByRepresentationType(type);
+          if (builtin == null) {
+            this.ensoType = ctx.getBuiltins().any();
+          } else {
+            this.ensoType = builtin.getType();
+          }
         }
+        var conv = executeConversion(value);
+        if (conv == null) {
+          CompilerDirectives.transferToInterpreter();
+          var err = ctx.getBuiltins().error().makeTypeError(this.ensoType, value, type.getName());
+          throw new PanicException(err, this);
+        }
+        return type.cast(conv);
+      } else {
+        return type.cast(value);
       }
-      assert value != null;
-      var conv = executeConversion(value);
-      if (conv == null) {
-        CompilerDirectives.transferToInterpreter();
-        var err = ctx.getBuiltins().error().makeTypeError(this.ensoType, value, type.getName());
-        throw new PanicException(err, this);
-      }
-      return type.cast(conv);
     }
 
     abstract Object executeConversion(Object obj);
