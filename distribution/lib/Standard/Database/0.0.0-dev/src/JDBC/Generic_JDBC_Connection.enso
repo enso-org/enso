@@ -1,4 +1,9 @@
 from Standard.Base import all
+
+import Standard.Base.Errors.Common.Forbidden_Operation
+import Standard.Base.Errors.Common.Missing_Argument
+import Standard.Base.Runtime.Context
+
 from Standard.Table import Table
 
 import project.Internal.Column_Fetcher as Column_Fetcher_Module
@@ -39,7 +44,7 @@ type Generic_JDBC_Connection
          Connect to an H2 database instance.
 
              connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
-    connect url:Text -> Generic_JDBC_Connection =
+    connect (url : Text = (Missing_Argument.throw "url")) -> Generic_JDBC_Connection =
         jdbc_connection = JDBC_Connection.create url []
         Generic_JDBC_Connection.Value jdbc_connection
 
@@ -61,7 +66,8 @@ type Generic_JDBC_Connection
        GROUP Standard.Base.Output
        ICON data_output
 
-       Execute a raw SQL query or statement.
+       Execute a raw SQL query or statement. `execute` does not execute the SQL
+       unless the output context is enabled.
 
        Returns the row count for a SQL DML statement, or 0 for SQL statements
        that return nothing.
@@ -74,9 +80,10 @@ type Generic_JDBC_Connection
 
              connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
              connection.execute "create table foo (a int)"
-    execute self sql:Text -> Integer =
-        self.jdbc_connection.with_prepared_statement sql Statement_Setter.default stmt->
-            stmt.executeUpdate
+    execute self (sql : Text = (Missing_Argument.throw "sql")) -> Integer =
+        when_output_enabled <|
+            self.jdbc_connection.with_prepared_statement sql Statement_Setter.default stmt->
+                stmt.executeUpdate
 
     ## ALIAS import, load
        GROUP Standard.Base.Input
@@ -100,7 +107,7 @@ type Generic_JDBC_Connection
 
              connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
              table = connection.read (SQL_Query.Table_name "foo")
-    read self sql_query:SQL_Query -> Table =
+    read self (sql_query : SQL_Query = (Missing_Argument.throw "sql_query")) -> Table =
         resolved_sql = case sql_query of
             SQL_Query.Raw_SQL raw_sql -> raw_sql
             SQL_Query.Table_Name table_name -> "select * from "+(self.quote_identifier table_name)
@@ -287,3 +294,9 @@ private rs_to_table_ rs =
     make_fallback_fetcher _ =
         Column_Fetcher_Module.fallback_fetcher
     result_set_to_table rs make_fallback_fetcher
+
+## PRIVATE
+   Run the action if Output is enabled, otherwise raise a dataflow error
+when_output_enabled ~action =
+    if Context.Output.is_enabled then action else
+        Error.throw (Forbidden_Operation.Error ("As writing is disabled, this operation was not executed. Press the Write button ▶ to execute it."))
