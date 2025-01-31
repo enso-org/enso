@@ -31,7 +31,7 @@ const supportedImageTypes: Record<MimeType, { extensions: string[] }> = {
   'image/apng': { extensions: ['apng'] },
   'image/avif': { extensions: ['avif'] },
   'image/gif': { extensions: ['gif'] },
-  'image/jpeg': { extensions: ['jpg', 'jpeg'] },
+  'image/jpeg': { extensions: ['jpg', 'jpeg', 'jfif', 'pjpeg', 'pjp'] },
   'image/png': { extensions: ['png'] },
   'image/svg+xml': { extensions: ['svg'] },
   'image/webp': { extensions: ['webp'] },
