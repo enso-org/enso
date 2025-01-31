@@ -37,6 +37,8 @@ from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
 import enso_dev.Base_Tests.Network.Http.Http_Test_Setup
+import enso_dev.Generic_JDBC_Tests.Generic_JDBC_Connection_Spec
+import enso_dev.Table_Tests
 
 
 type Basic_Test_Data
@@ -1089,12 +1091,39 @@ add_data_link_specs suite_builder =
     Audit_Spec.add_specs suite_builder prefix data_link_file.get database_pending=pending
     Save_Connection_Data_Link.add_specs suite_builder prefix connection_details pending
 
+type Postgres_JDBC_Config
+    Value connection_details:Postgres
+
+    name self = "Postgres"
+
+    with_connection self name ~action =
+        user = self.connection_details.credentials.username
+        password = self.connection_details.credentials.password
+        properties = [Pair.new "user" user, Pair.new "password" password]
+
+        db_name = self.connection_details.database
+        url = 'jdbc:postgresql:' + db_name
+
+        conn = Generic_JDBC_Connection.connect url properties
+        cleanup =
+            conn.execute "drop database "+name
+            conn.close
+        Panic.with_finalizer cleanup <|
+            conn.execute "drop database if exists "+name
+            conn.execute "create database "+name
+            conn.execute "use "+name
+            action conn
+
+add_generic_jdbc_specs suite_builder =
+    config = Postgres_JDBC_Config.Value get_configured_connection_details
+    Generic_JDBC_Connection_Spec.add_specs_for_backend config suite_builder
 
 add_specs suite_builder =
     add_table_specs suite_builder
     add_pgpass_specs suite_builder
     add_connection_setup_specs suite_builder
     add_data_link_specs suite_builder
+    add_generic_jdbc_specs suite_builder
 
 main filter=Nothing =
     suite = Test.build suite_builder->

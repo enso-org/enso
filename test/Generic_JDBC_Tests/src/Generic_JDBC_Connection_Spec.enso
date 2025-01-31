@@ -7,13 +7,16 @@ import Standard.Database.Errors.SQL_Error
 import Standard.Database.JDBC.Generic_JDBC_Connection.Generic_JDBC_Connection
 import Standard.Database.SQL_Query.SQL_Query
 
-add_specs suite_builder =
-    data_dir = enso_project.data / "transient"
-    database_name = 'test'
+data_dir = enso_project.data / "transient"
 
-    with_database name action =
+type H2_JDBC_Config
+    Value
+
+    name self = "H2"
+
+    with_database self name ~action =
         database_root = data_dir / name
-        url = "jdbc:h2:" + database_root.path + "/" + database_name
+        url = "jdbc:h2:" + database_root.path + "/test"
         cleanup =
             database_root . delete_if_exists recursive=True
         cleanup
@@ -21,21 +24,32 @@ add_specs suite_builder =
             database_root . create_directory
             action url
 
-    with_connection name action =
-        with_database name url->
+    with_connection self name action =
+        self.with_database name url->
             conn = Generic_JDBC_Connection.connect url
             conn.should_succeed
-            Panic.with_finalizer conn.close <|
+            cleanup =
+                conn.close
+            Panic.with_finalizer cleanup <|
                 action conn
 
-    suite_builder.group "Generic JDBC Connection (H2 database engine)" group_builder->
+## These specs are added by individual backend specs such as `Postgres_Spec`,
+   because such specs set up access to database instances. However, these specs
+   do not access these instances through the `Database` library, but use JDBC
+   directly.
+add_specs_for_backend config suite_builder =
+    prefix = "(" + config.name + ")asdfasdf "
+
+    suite_builder.group prefix+"Generic JDBC Connection" group_builder->
+        with_connection = config.with_connection
+
         group_builder.specify "should be able to create a connection" <|
             with_connection "create_connection" (conn-> conn . should_succeed)
 
         group_builder.specify "should be able to create a table" <|
             with_connection "create_table" conn->
                 conn.execute "create table foo (a int)"
-                conn.get_tables . should_equal ["FOO"]
+                conn.get_tables . map (x-> x.to_case ..Lower) . should_contain "foo"
 
         group_builder.specify "should be able to get table info" <|
             with_connection "get_table_info" conn->
@@ -242,6 +256,10 @@ add_specs suite_builder =
             Generic_JDBC_Connection.connect "jdbc:h3:asdf" . should_fail_with SQL_Error
             Generic_JDBC_Connection.connect "" . should_fail_with SQL_Error
             Generic_JDBC_Connection.connect "//:://" . should_fail_with SQL_Error
+
+## When this spec is run directly, it tests with the H2 engine.
+add_specs suite_builder =
+    add_specs_for_backend H2_JDBC_Config.Value suite_builder
 
 main filter=Nothing =
     suite = Test.build suite_builder->
