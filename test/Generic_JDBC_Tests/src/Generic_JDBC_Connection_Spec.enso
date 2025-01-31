@@ -9,34 +9,10 @@ import Standard.Database.SQL_Query.SQL_Query
 
 data_dir = enso_project.data / "transient"
 
-type H2_JDBC_Config
-    Value
-
-    name self = "H2"
-
-    with_database self name ~action =
-        database_root = data_dir / name
-        url = "jdbc:h2:" + database_root.path + "/test"
-        cleanup =
-            database_root . delete_if_exists recursive=True
-        cleanup
-        Panic.with_finalizer cleanup <|
-            database_root . create_directory
-            action url
-
-    with_connection self name ~action =
-        self.with_database name url->
-            conn = Generic_JDBC_Connection.connect url
-            conn.should_succeed
-            cleanup =
-                conn.close
-            Panic.with_finalizer cleanup <|
-                action conn
-
-## These specs are added by individual backend specs such as `Postgres_Spec`,
-   because such specs set up access to database instances. However, these specs
-   do not access these instances through the `Database` library, but use JDBC
-   directly.
+## These specs are added by individual backend specs such as `H2_Spec`,
+   `Postgres_Spec`, etc. because such specs set up access to database instances.
+   However, these specs do not access these instances through the `Database`
+   library, but use JDBC directly.
 add_specs_for_backend config suite_builder =
     prefix = "(" + config.name + ")asdfasdf "
 
@@ -69,71 +45,9 @@ add_specs_for_backend config suite_builder =
                 conn.execute "create table foo (a int, b text)"
                 conn.execute "create table bar (c float, d timestamp)"
 
-                r = conn.get_table_info schema_pattern="PUBLIC"
-                r.row_count . should_equal 2
-                r.at "TABLE_CAT" . to_vector . should_equal ['TEST', 'TEST']
-                r.at "TABLE_SCHEM" . to_vector . should_equal ['PUBLIC', 'PUBLIC']
-                r.at "TABLE_NAME" . to_vector . sort . should_equal ['BAR', 'FOO']
-
-        group_builder.specify "should be able to get catalogs" <|
-            with_connection "get_catalogs" conn->
-                conn.get_catalogs . should_equal ['TEST']
-
-        group_builder.specify "should be able to get schemas" <|
-            with_connection "get_schemas" conn-> cleanup_schemas conn ["other"]
-                conn.get_schemas . sort . should_equal ['INFORMATION_SCHEMA', 'PUBLIC']
-                conn.execute "create schema other"
-                conn.get_schemas . sort . should_equal ['INFORMATION_SCHEMA', 'OTHER', 'PUBLIC']
-
-        ## TODO: implement this for a driver that supports multiple catalogs
-           group_builder.specify "should be able to get schemas by catalog" <|
-
-        group_builder.specify "should be able to get schemas by pattern" <|
-            with_connection "schemas_by_pattern" conn-> cleanup_schemas conn ["abc", "abd", "aed"]
-                conn.execute "create schema abc"
-                conn.execute "create schema abd"
-                conn.execute "create schema aed"
-                conn.get_schemas schema_pattern=Nothing . sort . should_contain 'ABC'
-                conn.get_schemas schema_pattern=Nothing . sort . should_contain 'ABD'
-                conn.get_schemas schema_pattern=Nothing . sort . should_contain 'AED'
-                conn.get_schemas schema_pattern="%A%" . sort . should_contain 'ABC'
-                conn.get_schemas schema_pattern="%A%" . sort . should_contain 'ABD'
-                conn.get_schemas schema_pattern="%A%" . sort . should_contain 'AED'
-                conn.get_schemas schema_pattern="%AB%" . sort . should_contain 'ABC'
-                conn.get_schemas schema_pattern="%AB%" . sort . should_contain 'ABD'
-                conn.get_schemas schema_pattern="%AB%" . sort . should_not_contain 'AED'
-                conn.get_schemas schema_pattern="%ABD%" . sort . should_not_contain 'ABC'
-                conn.get_schemas schema_pattern="%ABD%" . sort . should_contain 'ABD'
-                conn.get_schemas schema_pattern="%ABD%" . sort . should_not_contain 'AED'
-                conn.get_schemas schema_pattern="" . sort . should_equal []
-
-        ## TODO: implement this for a driver that supports multiple catalogs
-           group_builder.specify "should be able to get tables by catalog" <|
-
-        group_builder.specify "should be able to get tables by schema pattern" <|
-            with_connection "tables_by_schema_pattern" conn-> cleanup_schemas conn ["abc", "abd", "aed"]
-                conn.execute "create schema abc"
-                conn.execute "create schema abd"
-                conn.execute "create schema aed"
-                conn.execute "set schema abc"
-                conn.execute "create table foo_abc (a int)"
-                conn.execute "set schema abd"
-                conn.execute "create table foo_abd (a int)"
-                conn.execute "set schema aed"
-                conn.execute "create table foo_aed (a int)"
-                conn.get_tables schema_pattern=Nothing . sort . should_contain 'FOO_ABC'
-                conn.get_tables schema_pattern=Nothing . sort . should_contain 'FOO_ABD'
-                conn.get_tables schema_pattern=Nothing . sort . should_contain 'FOO_AED'
-                conn.get_tables schema_pattern="%A%" . sort . should_contain 'FOO_ABC'
-                conn.get_tables schema_pattern="%A%" . sort . should_contain 'FOO_ABD'
-                conn.get_tables schema_pattern="%A%" . sort . should_contain 'FOO_AED'
-                conn.get_tables schema_pattern="%AB%" . sort . should_contain 'FOO_ABC'
-                conn.get_tables schema_pattern="%AB%" . sort . should_contain 'FOO_ABD'
-                conn.get_tables schema_pattern="%AB%" . sort . should_not_contain 'FOO_AED'
-                conn.get_tables schema_pattern="%ABD%" . sort . should_not_contain 'FOO_ABC'
-                conn.get_tables schema_pattern="%ABD%" . sort . should_contain 'FOO_ABD'
-                conn.get_tables schema_pattern="%ABD%" . sort . should_not_contain 'FOO_AED'
-                conn.get_tables schema_pattern="" . sort . should_equal []
+                r = conn.get_table_info
+                r.at "TABLE_NAME" . to_vector . sort . should_contain 'FOO'
+                r.at "TABLE_NAME" . to_vector . sort . should_contain 'BAR'
 
         group_builder.specify "should be able to get tables by pattern" <|
             with_connection "tables_by_pattern" conn-> cleanup_tables conn ["abc"] <|
@@ -270,12 +184,3 @@ add_specs_for_backend config suite_builder =
             Generic_JDBC_Connection.connect "jdbc:h3:asdf" . should_fail_with SQL_Error
             Generic_JDBC_Connection.connect "" . should_fail_with SQL_Error
             Generic_JDBC_Connection.connect "//:://" . should_fail_with SQL_Error
-
-## When this spec is run directly, it tests with the H2 engine.
-add_specs suite_builder =
-    add_specs_for_backend H2_JDBC_Config.Value suite_builder
-
-main filter=Nothing =
-    suite = Test.build suite_builder->
-        add_specs suite_builder
-    suite.run_with_filter filter
