@@ -453,7 +453,18 @@ impl JobArchetype for GuiBuild {
     fn job(&self, target: Target) -> Job {
         let command: &str = "gui build";
         RunStepsBuilder::new(command)
-            .customize(|step| vec![expose_gui_vars(step)])
+            .customize(move |step| {
+                let mut steps = vec![expose_gui_vars(step)];
+
+                if target.0 == OS::Linux {
+                    let upload_gui = step::upload_artifact("Upload gui")
+                        .with_custom_argument("name", "gui")
+                        .with_custom_argument("path", "dist/gui/");
+                    steps.push(upload_gui);
+                }
+
+                steps
+            })
             .build_job("GUI build", target)
     }
 }
@@ -474,7 +485,30 @@ pub struct BuildBackend;
 
 impl JobArchetype for BuildBackend {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "Build Backend", "backend get")
+        RunStepsBuilder::new("backend get")
+            .customize(move |step| {
+                let mut steps = vec![step];
+
+                if target.0 == OS::Linux {
+                    let upload_edition_file = step::upload_artifact("Upload Edition File")
+                        .with_custom_argument("name", paths::EDITION_FILE_ARTIFACT_NAME)
+                        .with_custom_argument("path", "distribution/editions/*.yaml");
+                    steps.push(upload_edition_file);
+
+                    let upload_fbs_schema = step::upload_artifact("Upload fbs-schema")
+                        .with_custom_argument("name", "fbs-schema")
+                        .with_custom_argument("path", "engine/language-server/src/main/schema/");
+                    steps.push(upload_fbs_schema)
+                }
+
+                let upload_project_manager = step::upload_artifact("Upload project-manager")
+                    .with_custom_argument("name", format!("project-manager-{}", target.0))
+                    .with_custom_argument("path", "dist/backend/");
+                steps.push(upload_project_manager);
+
+                steps
+            })
+            .build_job("Build Backend", target)
     }
 }
 
@@ -656,6 +690,14 @@ impl JobArchetype for PackageIde {
                 ..Default::default()
             };
             steps.push(upload_test_traces_step);
+
+            let upload_ide = step::upload_artifact("Upload ide")
+                .with_custom_argument("name", format!("ide-{}", target.0))
+                .with_custom_argument(
+                    "path",
+                    format!("dist/ide/enso-*.{}", target.0.package_extension()),
+                );
+            steps.push(upload_ide);
 
             // After the E2E tests run, they create a credentials file in user home directory.
             // If that file is not cleaned up, future runs of our tests may randomly get

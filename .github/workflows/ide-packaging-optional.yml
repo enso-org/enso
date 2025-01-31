@@ -51,6 +51,11 @@ jobs:
       - run: ./run backend get
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload project-manager
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-manager-macos
+          path: dist/backend/
       - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
@@ -181,6 +186,11 @@ jobs:
           compression-level: 0
           name: test-traces-macos-amd64
           path: app/ide-desktop/client/test-traces
+      - name: Upload ide
+        uses: actions/upload-artifact@v4
+        with:
+          name: ide-macos
+          path: dist/ide/enso-*.dmg
       - run: rm $HOME/.enso/credentials
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
