@@ -223,11 +223,12 @@ impl JobArchetype for JvmTests {
     fn job(&self, target: Target) -> Job {
         let graal_edition = self.graal_edition;
         let job_name = format!("JVM Tests ({graal_edition})");
-        let test_results_dir = paths::ENSO_TEST_JUNIT_DIR.get().ok()
+        let test_results_dir = paths::ENSO_TEST_JUNIT_DIR
+            .get()
+            .ok()
             .and_then(|buf| buf.to_str().map(|s| s.to_owned()))
             .unwrap_or_else(|| "target/test-results/".to_owned());
-        let _upload_artifact_job =
-          step::upload_artifact("Upload test results")
+        let _upload_artifact_job = step::upload_artifact("Upload test results")
             .with_custom_argument("name", format!("Test_Results_{}", target.0))
             .with_custom_argument("path", test_results_dir);
         let mut job = RunStepsBuilder::new("backend test jvm")
@@ -681,15 +682,14 @@ impl JobArchetype for CiCheckBackend {
         let job_name = format!("Engine ({})", self.graal_edition);
         let mut job_builder = RunStepsBuilder::new("backend ci-check");
         if target.0 == OS::Linux && self.graal_edition == graalvm::Edition::Community {
-            let upload_edition_file =
-                step::upload_artifact("Upload Edition File")
-                    .with_custom_argument("name", paths::EDITION_FILE_ARTIFACT_NAME)
-                    .with_custom_argument("path", "distribution/editions/*.yaml");
-            let upload_fbs_schema =
-                step::upload_artifact("Upload fbs-schema")
-                    .with_custom_argument("name", "fbs-schema")
-                    .with_custom_argument("path", "engine/language-server/src/main/schema/");
-            job_builder = job_builder.customize(move |step| vec![step, upload_edition_file, upload_fbs_schema]);
+            let upload_edition_file = step::upload_artifact("Upload Edition File")
+                .with_custom_argument("name", paths::EDITION_FILE_ARTIFACT_NAME)
+                .with_custom_argument("path", "distribution/editions/*.yaml");
+            let upload_fbs_schema = step::upload_artifact("Upload fbs-schema")
+                .with_custom_argument("name", "fbs-schema")
+                .with_custom_argument("path", "engine/language-server/src/main/schema/");
+            job_builder = job_builder
+                .customize(move |step| vec![step, upload_edition_file, upload_fbs_schema]);
         }
         let mut job = job_builder.build_job(job_name, target);
         match self.graal_edition {
