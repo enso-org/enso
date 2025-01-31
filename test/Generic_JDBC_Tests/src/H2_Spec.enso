@@ -16,8 +16,8 @@ type H2_JDBC_Config
 
     name self = "H2"
 
-    with_database self name ~action =
-        database_root = data_dir / name
+    with_database self ~action =
+        database_root = data_dir / "h2_tests"
         url = "jdbc:h2:" + database_root.path + "/test"
         cleanup =
             database_root . delete_if_exists recursive=True
@@ -26,8 +26,8 @@ type H2_JDBC_Config
             database_root . create_directory
             action url
 
-    with_connection self name ~action =
-        self.with_database name url->
+    with_connection self ~action =
+        self.with_database url->
             conn = Generic_JDBC_Connection.connect url
             conn.should_succeed
             cleanup =
@@ -40,6 +40,8 @@ add_specs suite_builder =
 
     Generic_JDBC_Connection_Spec.add_specs_for_backend config suite_builder
 
+    ## These tests are here instead of in Generic_JDBC_Connection_Spec because
+       they are backend-dependent.
     suite_builder.group "(H2) Generic JDBC Connection" group_builder->
         with_connection = config.with_connection
 
@@ -57,7 +59,7 @@ add_specs suite_builder =
         lower x = x.to_case ..Lower
 
         group_builder.specify "should be able to get table info" <|
-            with_connection "get_table_info" conn-> cleanup_tables conn ["foo", "bar"] <|
+            with_connection conn-> cleanup_tables conn ["foo", "bar"] <|
                 conn.execute "create table foo (a int, b text)"
                 conn.execute "create table bar (c float, d timestamp)"
 
@@ -68,17 +70,17 @@ add_specs suite_builder =
                 r.at "TABLE_NAME" . to_vector . sort . should_equal ['BAR', 'FOO']
 
         group_builder.specify "should be able to get catalogs" <|
-            with_connection "get_catalogs" conn->
+            with_connection conn->
                 conn.get_catalogs . should_equal ['TEST']
 
         group_builder.specify "should be able to get schemas" <|
-            with_connection "get_schemas" conn-> cleanup_schemas conn ["other"]
+            with_connection conn-> cleanup_schemas conn ["other"]
                 conn.get_schemas . sort . should_equal ['INFORMATION_SCHEMA', 'PUBLIC']
                 conn.execute "create schema other"
                 conn.get_schemas . sort . should_equal ['INFORMATION_SCHEMA', 'OTHER', 'PUBLIC']
 
         group_builder.specify "should be able to get schemas by pattern" <|
-            with_connection "schemas_by_pattern" conn-> cleanup_schemas conn ["abc", "abd", "aed"]
+            with_connection conn-> cleanup_schemas conn ["abc", "abd", "aed"]
                 conn.execute "create schema abc"
                 conn.execute "create schema abd"
                 conn.execute "create schema aed"
@@ -97,7 +99,7 @@ add_specs suite_builder =
                 conn.get_schemas schema_pattern="" . should_equal []
 
         group_builder.specify "should be able to get tables by pattern" <|
-            with_connection "tables_by_pattern" conn-> cleanup_tables conn ["abc", "abd", "aed"] <|
+            with_connection conn-> cleanup_tables conn ["abc", "abd", "aed"] <|
                 conn.execute "create table abc (a int)"
                 conn.execute "create table abd (a int)"
                 conn.execute "create table aed (a int)"
@@ -117,7 +119,7 @@ add_specs suite_builder =
                 conn.get_tables table_name_pattern="" . should_equal []
 
         group_builder.specify "should be able to get tables by type" <|
-            with_connection "tables_by_type" conn-> cleanup_tables conn ["abc"] <| cleanup_views conn ["view_abc"] <|
+            with_connection conn-> cleanup_tables conn ["abc"] <| cleanup_views conn ["view_abc"] <|
                 conn.execute "create table abc (a int)"
                 conn.execute "create view view_abc as (select * from abc)"
                 conn.get_tables . should_contain 'ABC'
@@ -131,7 +133,7 @@ add_specs suite_builder =
                 conn.get_tables table_types=[] . should_equal []
 
         group_builder.specify "should be able to get tables by schema pattern" <|
-            with_connection "tables_by_schema_pattern" conn-> cleanup_schemas conn ["abc", "abd", "aed"]
+            with_connection conn-> cleanup_schemas conn ["abc", "abd", "aed"]
                 conn.execute "create schema abc"
                 conn.execute "create schema abd"
                 conn.execute "create schema aed"
@@ -156,7 +158,7 @@ add_specs suite_builder =
                 conn.get_tables schema_pattern="" . should_equal []
 
         group_builder.specify "should be able to read a table by name" <|
-            with_connection "read_table" conn-> cleanup_tables conn ["foo", "bar"] <|
+            with_connection conn-> cleanup_tables conn ["foo", "bar"] <|
                 conn.execute "create table foo (a int, b text)"
                 conn.execute "insert into foo (a, b) values (10, 'asdf')"
                 conn.execute "insert into foo (a, b) values (20, 'zxcv')"

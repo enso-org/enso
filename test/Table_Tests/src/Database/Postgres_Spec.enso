@@ -1097,7 +1097,7 @@ type Postgres_JDBC_Config
 
     name self = "Postgres"
 
-    with_connection self name ~action =
+    with_connection self ~action =
         conn = Postgres_JDBC_Config.create_connection_from_details self.connection_details
         action conn
 
