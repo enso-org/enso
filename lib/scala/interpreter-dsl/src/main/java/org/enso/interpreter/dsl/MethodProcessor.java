@@ -322,18 +322,22 @@ public class MethodProcessor
         } else if (ad.isCallerInfo()) {
           callArgNames.add("callerInfo");
         } else {
-          callArgNames.add(mkArgumentInternalVarName(ad));
+          var plain = ad.getTypeName();
+          var boxed = wrapperTypeName(ad);
+          if (plain.equals(boxed)) {
+            callArgNames.add(mkArgumentInternalVarName(ad));
+          } else {
+            callArgNames.add("(" + plain + ")" + mkArgumentInternalVarName(ad));
+          }
           var argReference = "arguments[arg" + ad.getPosition() + "Idx]";
           var varName = mkArgumentInternalVarName(ad);
           out.println(
-              "    "
-                  + ad.getTypeName()
-                  + " "
+              "    var "
                   + varName
                   + " = argNodes["
                   + ad.getPosition()
                   + "].processArgument(frame, "
-                  + wrapperTypeName(ad)
+                  + boxed
                   + ".class, "
                   + argReference
                   + ", argCtx);");
