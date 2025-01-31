@@ -3215,21 +3215,18 @@ type DB_Table
                             descriptors -> descriptors
                     grouping_expressions = (grouping_columns.map _.as_internal).map .expression
                     resolved_columns = self.columns_helper.select_columns_helper columns Case_Sensitivity.Default True problem_builder
-                    new_expr = Offset_Helpers.make_offset n (resolved_columns.at 0 . as_internal) order_descriptors grouping_expressions
+                    new_exprs = resolved_columns.map c->(Offset_Helpers.make_offset n (c.as_internal) order_descriptors grouping_expressions)
 
                     type_mapping = self.connection.dialect.get_type_mapping
                     infer_from_database_callback expression =
                         SQL_Type_Reference.new self.connection self.context expression
-                    new_type_ref = type_mapping.infer_return_type infer_from_database_callback "OFFSET" [] new_expr
+                    new_type_refs = new_exprs.map expr->(type_mapping.infer_return_type infer_from_database_callback "OFFSET" [] expr)
                     
-                    name = if set_mode==Set_Mode.Add then self.column_naming_helper.function_name "offset" [resolved_columns.at 0, n, fill_with] else (resolved_columns.at 0).name
-                    new_column = Internal_Column.Value name new_type_ref new_expr
+                    new_names = resolved_columns.map c->(if set_mode==Set_Mode.Add then self.column_naming_helper.function_name "offset" [c, n, fill_with] else c.name)
+                    new_columns = (new_names.zip new_type_refs).zip new_exprs a->b->(Internal_Column.Value a.first a.second b)
 
-                    rebuild_table columns =
-                        self.updated_columns (columns.map .as_internal)
-                    renamed_table = Add_Row_Number.rename_columns_if_needed self name on_problems rebuild_table
-
-                    updated_table = self.set (self.make_column new_column)
+                    updated_table = new_columns.fold self t-> col->
+                        t.set (self.make_column col)
                     updated_table.as_subquery
 
 ## PRIVATE
