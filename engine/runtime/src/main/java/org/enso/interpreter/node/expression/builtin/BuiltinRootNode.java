@@ -75,32 +75,26 @@ public abstract class BuiltinRootNode extends RootNode {
   }
 
   protected abstract static class ArgNode extends Node {
-    private final boolean isSelf;
-    private final boolean isArray;
-    private final boolean requiresCast;
-    private final boolean checkErrors;
-    private final boolean checkPanicSentinel;
-    private final boolean checkWarnings;
+    private static final byte IS_SELF = 0x01;
+    private static final byte IS_ARRAY = 0x02;
+    private static final byte REQUIRES_CAST = 0x04;
+    private static final byte CHECK_ERRORS = 0x08;
+    private static final byte CHECK_PANIC_SENTINEL = 0x10;
+    private static final byte CHECK_WARNINGS = 0x20;
+    private final byte flags;
     @CompilerDirectives.CompilationFinal private Type ensoType;
 
-    ArgNode(
-        boolean isSelf,
-        boolean isArray,
-        boolean requiresCast,
-        boolean checkErrors,
-        boolean checkPanicSentinel,
-        boolean checkWarnings) {
-      this.isSelf = isSelf;
-      this.isArray = isArray;
-      this.requiresCast = requiresCast;
-      this.checkErrors = checkErrors;
-      this.checkPanicSentinel = checkPanicSentinel;
-      this.checkWarnings = checkWarnings;
+    ArgNode(byte flags) {
+      this.flags = flags;
+    }
+
+    final boolean is(byte what) {
+      return (flags & what) != 0;
     }
 
     @SuppressWarnings("unchecked")
     public final <T> T processArgument(Class<T> type, Object value, ArgContext context) {
-      if (checkErrors && value instanceof DataflowError err) {
+      if (is(CHECK_ERRORS) && value instanceof DataflowError err) {
         context.returnValue = err;
         return null;
       }
@@ -144,8 +138,26 @@ public abstract class BuiltinRootNode extends RootNode {
         boolean checkErrors,
         boolean checkPanicSentinel,
         boolean checkWarnings) {
-      return BuiltinRootNodeFactory.ArgNodeGen.create(
-          isSelf, isArray, requiresCast, checkErrors, checkPanicSentinel, checkWarnings);
+      byte flags = 0x00;
+      if (isSelf) {
+        flags |= IS_SELF;
+      }
+      if (isArray) {
+        flags |= IS_ARRAY;
+      }
+      if (requiresCast) {
+        flags |= REQUIRES_CAST;
+      }
+      if (checkErrors) {
+        flags |= CHECK_ERRORS;
+      }
+      if (checkPanicSentinel) {
+        flags |= CHECK_PANIC_SENTINEL;
+      }
+      if (checkWarnings) {
+        flags |= CHECK_WARNINGS;
+      }
+      return BuiltinRootNodeFactory.ArgNodeGen.create(flags);
     }
 
     /*
