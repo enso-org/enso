@@ -347,7 +347,7 @@ add_offset_specs suite_builder setup =
         orderColumn = ["Order", [1, 4, 2, 5, 3]]
         dataCol = ["Col", ["A", "D", "B", "E", "C"]]
         t2 = build_sorted_table [orderColumn, dataCol]
-        group_builder.specify "Negative n shifts the values downX" <|
+        group_builder.specify "Negative n shifts the values down" <|
             t2.offset ["Col"] -1 ..Nothing order_by=["Order"] . should_equal ignore_order=setup.is_database
                 Table.input [orderColumn, dataCol, ["offset([Col], -1, Fill_With.Nothing)", [Nothing, "C", "A", "D", "B"]]]
         group_builder.specify "Positive n shifts the values up" <|

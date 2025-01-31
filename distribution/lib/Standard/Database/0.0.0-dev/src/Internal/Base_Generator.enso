@@ -555,18 +555,24 @@ make_row_number (arguments : Vector) (metadata : Row_Number_Metadata) = if argum
     SQL_Builder.code "(row_number() OVER (" ++ group_part ++ " ORDER BY " ++ SQL_Builder.join ", " ordering ++ ") * " ++ step.paren ++ " + " ++ offset.paren ++ ")"
 
 ## PRIVATE
-make_lead_lag lead_lag:Text arguments:Vector metadata:Row_Number_Metadata -> SQL_Builder = if arguments.length < 3 then Error.throw (Illegal_State.Error "Wrong amount of parameters in LEAD/LAG IR. This is a bug in the Database library.") else
+make_lead_lag lead_lag:Text arguments:Vector metadata:Row_Number_Metadata -> SQL_Builder = if arguments.length < 4 then Error.throw (Illegal_State.Error "Wrong amount of parameters in LEAD/LAG IR. This is a bug in the Database library.") else
     n = arguments.at 0
     colName = arguments.at 1
+    fill = arguments.at 2
 
-    ordering_and_grouping = arguments.drop 2
+    ordering_and_grouping = arguments.drop 3
     ordering = ordering_and_grouping.drop (..Last metadata.groupings_count)
     grouping = ordering_and_grouping.take (..Last metadata.groupings_count)
 
     group_part = if grouping.length == 0 then "" else
         SQL_Builder.code "PARTITION BY " ++ SQL_Builder.join ", " grouping
 
-    SQL_Builder.code "(" ++ lead_lag ++ "(" ++ colName ++ ", " ++ n ++ ", NULL) OVER (" ++ group_part ++ " ORDER BY " ++ SQL_Builder.join ", " ordering ++ "))"
+    partition_sql = SQL_Builder.code "OVER(" ++ group_part ++ " ORDER BY " ++ SQL_Builder.join ", " ordering ++ ")"
+    lead_lag_sql = SQL_Builder.code "(" ++ lead_lag ++ "(" ++ colName ++ ", " ++ n ++ ", NULL) " ++ partition_sql ++ ")"
+    fill_sql = if fill.is_empty then SQL_Builder.code "NULL" else (SQL_Builder.code "" ++ fill ++ "(" ++ colName ++ ") " ++ partition_sql)
+    
+    if fill.is_empty then lead_lag_sql else
+        SQL_Builder.code "CASE WHEN ROW_NUMBER() " ++ partition_sql ++ " <= " ++ n ++ " THEN " ++ fill_sql ++ " ELSE " ++ lead_lag_sql ++ " END"
 
 ## PRIVATE
    A helper for `lookup_and_replace`, and perhaps other operation.

@@ -3214,7 +3214,7 @@ type DB_Table
                         Nothing -> Error.throw (Illegal_Argument.Error "The table has no existing ordering (e.g. from a `sort` operation or primary key). `offset` requires an ordering in database.")
                         descriptors -> descriptors
                 grouping_expressions = (grouping_columns.map _.as_internal).map .expression
-                new_exprs = resolved_columns.map c->(Offset_Helpers.make_offset n (c.as_internal) order_descriptors grouping_expressions)
+                new_exprs = resolved_columns.map c->(Offset_Helpers.make_offset n (c.as_internal) order_descriptors grouping_expressions fill_with)
 
                 type_mapping = self.connection.dialect.get_type_mapping
                 infer_from_database_callback expression =
