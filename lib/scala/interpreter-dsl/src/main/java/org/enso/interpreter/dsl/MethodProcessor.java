@@ -11,7 +11,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
@@ -196,14 +195,7 @@ public class MethodProcessor
                 + " extends BuiltinRootNode implements InlineableNode.Root {");
       }
       out.println("  private @Child " + methodDefinition.getOriginalClassName() + " bodyNode;");
-      out.println(
-          "  private @Child AppendWarningNode appendWarningNode = AppendWarningNode.build();");
-      out.println(
-          "  private @Child WarningsLibrary warnLib ="
-              + " WarningsLibrary.getFactory().createDispatched(5);");
-      out.println(
-          "  private @Child HashMapInsertAllNode mapInsertAllNode = HashMapInsertAllNode.build();");
-      out.println("    @Children private ArgNode[] argNodes = new ArgNode[] {");
+      out.println("  private @Children ArgNode[] argNodes = new ArgNode[] {");
       for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
         var checkErrors = arg.shouldCheckErrors();
         var checkPanicSentinel = arg.isPositional() && !arg.isSelf();
@@ -292,22 +284,13 @@ public class MethodProcessor
                 + " body = "
                 + methodDefinition.getConstructorExpression()
                 + ";");
-        out.println(
-            "      private @Child AppendWarningNode appendWarningNode ="
-                + " AppendWarningNode.build();");
-        out.println(
-            "      private @Child WarningsLibrary warnLib ="
-                + " WarningsLibrary.getFactory().createDispatched(5);");
-        out.println(
-            "      private @Child HashMapInsertAllNode mapInsertAllNode ="
-                + " HashMapInsertAllNode.build();");
-        out.println("    @Children private ArgNode[] argNodes = new ArgNode[] {");
+        out.println("      private @Children ArgNode[] argNodes = new ArgNode[] {");
         for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
           var checkErrors = arg.shouldCheckErrors();
           var checkPanicSentinel = arg.isPositional() && !arg.isSelf();
           var checkWarnings = arg.shouldCheckWarnings();
           out.println(
-              "      ArgNode.create("
+              "        ArgNode.create("
                   + arg.isSelf()
                   + ", "
                   + arg.isArray()
@@ -321,12 +304,10 @@ public class MethodProcessor
                   + checkWarnings
                   + "),");
         }
-        out.println("    };");
+        out.println("      };");
         out.println("      @Override");
         out.println("      public Object call(VirtualFrame frame, Object[] args) {");
-        out.println(
-            "        return handleExecute(argNodes, frame, extra, body, appendWarningNode, warnLib,"
-                + " mapInsertAllNode, args);");
+        out.println("        return handleExecute(argNodes, frame, extra, body, args);");
         out.println("      }");
         out.println("    }");
         out.println();
@@ -343,15 +324,13 @@ public class MethodProcessor
       } else {
         out.println(
             "    return handleExecute(argNodes, frame, this.internals, bodyNode,"
-                + " this.appendWarningNode, this.warnLib, this.mapInsertAllNode,"
                 + " frame.getArguments());");
         out.println("  }");
         out.println(
             "  private static Object handleExecute(ArgNode[] argNodes, VirtualFrame frame,"
                 + " Internals internals, "
                 + methodDefinition.getOriginalClassName()
-                + " bodyNode, AppendWarningNode appendWarningNode, WarningsLibrary warnLib,"
-                + " HashMapInsertAllNode mapInsertAllNode, Object[] args) {");
+                + " bodyNode, Object[] args) {");
       }
       out.println("    var prefix = internals.staticOrInstanceMethod ? 1 : 0;");
       out.println("    State state = Function.ArgumentsHelper.getState(args);");
@@ -373,9 +352,11 @@ public class MethodProcessor
       }
       out.println("    var argCtx = new ArgContext();");
       boolean warningsPossible =
-          generateWarningsCheck(out, methodDefinition.getArguments(), "arguments");
+          methodDefinition.getArguments().stream()
+                  .filter(ArgumentDefinition::shouldCheckWarnings)
+                  .count()
+              != 0;
       for (MethodDefinition.ArgumentDefinition ad : methodDefinition.getArguments()) {
-        out.println("    /***  Start of processing argument " + ad.getPosition() + "  ***/");
         if (ad.isImplicit()) {
         } else if (ad.isState()) {
           callArgNames.add("state");
@@ -389,22 +370,19 @@ public class MethodProcessor
           callArgNames.add(mkArgumentInternalVarName(ad));
           generateArgumentRead(out, ad, "arguments");
         }
-        out.println("      /***  End of processing argument " + ad.getPosition() + "  ***/");
       }
       out.println("    if (argCtx.getReturnValue() != null) return argCtx.getReturnValue();");
-      String executeCall = "bodyNode.execute(" + String.join(", ", callArgNames) + ")";
+      out.println("    Object result;");
+      var executeCall = "bodyNode.execute(" + String.join(", ", callArgNames) + ")";
+      out.println(wrapInTryCatch("result = " + executeCall + ";", 4));
       if (warningsPossible) {
-        out.println("    if (anyWarnings) {");
-        out.println("      internals.anyWarningsProfile.enter();");
-        out.println("      Object result;");
-        out.println(wrapInTryCatch("result = " + executeCall + ";", 6));
-        out.println(
-            "      return appendWarningNode.executeAppend(frame, result, gatheredWarnings);");
+        out.println("    if (argCtx.hasWarnings()) {");
+        out.println("      return argNodes[0].processWarnings(frame, result, argCtx);");
         out.println("    } else {");
-        out.println(wrapInTryCatch("return " + executeCall + ";", 6));
+        out.println("      return result;");
         out.println("    }");
       } else {
-        out.println(wrapInTryCatch("return " + executeCall + ";", 6));
+        out.println("    return result;");
       }
       out.println("  }");
 
@@ -509,13 +487,13 @@ public class MethodProcessor
     var argReference = argsArray + "[arg" + arg.getPosition() + "Idx]";
     var varName = mkArgumentInternalVarName(arg);
     out.println(
-        "      "
+        "    "
             + arg.getTypeName()
             + " "
             + varName
             + " = argNodes["
             + arg.getPosition()
-            + "].processArgument("
+            + "].processArgument(frame, "
             + wrapperTypeName(arg)
             + ".class, "
             + argReference
@@ -623,45 +601,6 @@ public class MethodProcessor
             + ");");
     out.println("      throw new PanicException(error, bodyNode);");
     out.println("    }");
-  }
-
-  private boolean generateWarningsCheck(
-      PrintWriter out, List<MethodDefinition.ArgumentDefinition> arguments, String argumentsArray) {
-    if (true) {
-      return false;
-    }
-    List<MethodDefinition.ArgumentDefinition> argsToCheck =
-        arguments.stream()
-            .filter(ArgumentDefinition::shouldCheckWarnings)
-            .collect(Collectors.toList());
-    if (argsToCheck.isEmpty()) {
-      return false;
-    } else {
-      out.println("    boolean anyWarnings = false;");
-      out.println("    int maxWarnings = EnsoContext.get(bodyNode).getWarningsLimit();");
-      out.println("    EnsoHashMap gatheredWarnings = EnsoHashMap.empty();");
-      for (var arg : argsToCheck) {
-        String argCode = arrayRead(argumentsArray, arg.getPosition());
-        out.println(
-            "    if ("
-                + arrayRead(argumentsArray, arg.getPosition())
-                + " instanceof WithWarnings withWarnings) {");
-        out.println(
-            "      internals." + mkArgumentInternalVarName(arg) + "warnProfile" + ".enter();");
-        out.println("      anyWarnings = true;");
-        out.println("      try {"); // begin try
-        out.println("        var warns = warnLib.getWarnings(withWarnings, false);");
-        out.println("        " + argCode + " = withWarnings.getValue();");
-        out.println(
-            "        gatheredWarnings = mapInsertAllNode.executeInsertAll(frame, gatheredWarnings,"
-                + " warns, maxWarnings);");
-        out.println("      } catch (UnsupportedMessageException e) {"); // end try
-        out.println("        throw CompilerDirectives.shouldNotReachHere(e);");
-        out.println("      }"); // end catch
-        out.println("    }"); // end hasWarnings
-      }
-      return true;
-    }
   }
 
   /**

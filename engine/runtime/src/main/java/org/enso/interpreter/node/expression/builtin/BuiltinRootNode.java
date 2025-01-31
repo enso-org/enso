@@ -6,6 +6,7 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
@@ -13,9 +14,13 @@ import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertAllNode;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.pkg.QualifiedName;
 
 /** Root node for use by all the builtin functions. */
@@ -67,11 +72,26 @@ public abstract class BuiltinRootNode extends RootNode {
 
   protected static final class ArgContext {
     private TruffleObject returnValue;
+    private EnsoHashMap warnings;
 
     public ArgContext() {}
 
     public TruffleObject getReturnValue() {
       return returnValue;
+    }
+
+    public boolean hasWarnings() {
+      return this.warnings != null;
+    }
+
+    private void addWarnings(
+        VirtualFrame frame, HashMapInsertAllNode insertNode, EnsoHashMap newWarnings) {
+      if (this.warnings == null) {
+        this.warnings = newWarnings;
+      } else {
+        int maxWarnings = EnsoContext.get(insertNode).getWarningsLimit();
+        this.warnings = insertNode.executeInsertAll(frame, this.warnings, newWarnings, maxWarnings);
+      }
     }
   }
 
@@ -85,8 +105,15 @@ public abstract class BuiltinRootNode extends RootNode {
     private final byte flags;
     @CompilerDirectives.CompilationFinal private Type ensoType;
 
+    @Child private WarningsLibrary warnings;
+    @Child private AppendWarningNode appendWarningNode;
+    @Child private HashMapInsertAllNode mapInsertAllNode;
+
     ArgNode(byte flags) {
       this.flags = flags;
+      if (is(CHECK_WARNINGS)) {
+        this.warnings = WarningsLibrary.getFactory().createDispatched(5);
+      }
     }
 
     private boolean is(byte what) {
@@ -94,7 +121,8 @@ public abstract class BuiltinRootNode extends RootNode {
     }
 
     @SuppressWarnings("unchecked")
-    public final <T> T processArgument(Class<T> type, Object value, ArgContext context) {
+    public final <T> T processArgument(
+        VirtualFrame frame, Class<T> type, Object value, ArgContext context) {
       assert value != null;
       if (is(CHECK_ERRORS) && value instanceof DataflowError err) {
         context.returnValue = err;
@@ -102,6 +130,22 @@ public abstract class BuiltinRootNode extends RootNode {
       }
       if (is(CHECK_PANIC_SENTINEL) && value instanceof PanicSentinel sentinel) {
         throw sentinel.getPanic();
+      }
+      if (warnings != null) {
+        if (warnings.hasWarnings(value)) {
+          if (mapInsertAllNode == null) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            this.mapInsertAllNode = HashMapInsertAllNode.build();
+          }
+          if (this.mapInsertAllNode != null) {
+            try {
+              context.addWarnings(frame, mapInsertAllNode, warnings.getWarnings(value, false));
+              value = warnings.removeWarnings(value);
+            } catch (UnsupportedMessageException ex) {
+              throw raise(RuntimeException.class, ex);
+            }
+          }
+        }
       }
       if (is(REQUIRES_CAST)) {
         var ctx = EnsoContext.get(this);
@@ -124,6 +168,15 @@ public abstract class BuiltinRootNode extends RootNode {
       } else {
         return type.cast(value);
       }
+    }
+
+    public final Object processWarnings(VirtualFrame frame, Object result, ArgContext context) {
+      assert context.warnings != null;
+      if (this.appendWarningNode == null) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        this.appendWarningNode = insert(AppendWarningNode.build());
+      }
+      return appendWarningNode.executeAppend(frame, result, context.warnings);
     }
 
     abstract Object executeConversion(Object obj);
@@ -180,5 +233,10 @@ public abstract class BuiltinRootNode extends RootNode {
     }
 
       */
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <E extends Exception> E raise(Class<E> clazz, Throwable t) throws E {
+    throw (E) t;
   }
 }
