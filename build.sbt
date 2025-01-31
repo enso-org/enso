@@ -2829,7 +2829,9 @@ lazy val runtime = (project in file("engine/runtime"))
     (Runtime / compile) := (Runtime / compile)
       .dependsOn(`std-base` / Compile / packageBin)
       .dependsOn(`enso-test-java-helpers` / Compile / packageBin)
-      .dependsOn(`enso-generic-jdbc-connection-spec-dependencies` / Compile / packageBin)
+      .dependsOn(
+        `enso-generic-jdbc-connection-spec-dependencies` / Compile / packageBin
+      )
       .dependsOn(`benchmark-java-helpers` / Compile / packageBin)
       .dependsOn(`exploratory-benchmark-java-helpers` / Compile / packageBin)
       .dependsOn(`std-image` / Compile / packageBin)
