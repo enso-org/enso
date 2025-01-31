@@ -157,7 +157,12 @@ function useApproachBase<T>(
   return readonly(proxyRefs({ value: current, skip }))
 }
 
-/** TODO: Add docs */
+/**
+ * Create `events` to check if any CSS transitions of declared properties
+ * within a DOM subtree are currently in progress.
+ *
+ * The state is reported back using the `active` computed property.
+ */
 export function useTransitioning(observedProperties?: Set<string>) {
   const hasActiveTransitions = ref(false)
 
