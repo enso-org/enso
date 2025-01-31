@@ -183,8 +183,8 @@ add_offset_specs suite_builder setup =
             t1.offset ["A"] 1024 . should_equal ignore_order=setup.is_database
                 Table.input [colA, ["offset([A], 1024, Fill_With.Nothing)", [Nothing, Nothing, Nothing], Value_Type.Integer]]
         group_builder.specify "Works with zero rows" <|
-            t1.take 0 . offset ["A"] . should_equal ignore_order=setup.is_database
-                Table.input [["A", [], Value_Type.Integer], ["offset([A], -1, Fill_With.Nothing)", [], Value_Type.Integer]]
+            build_sorted_table [["A",[], Value_Type.Integer],["B",[], Value_Type.Integer]] . sort ["B"] . offset ["A"] -1 . should_equal ignore_order=setup.is_database
+                Table.input [["A", [], Value_Type.Integer], ["B", [], Value_Type.Integer], ["offset([A], -1, Fill_With.Nothing)", [], Value_Type.Integer]]
     suite_builder.group prefix+"Table.Offset with default fill strategy (Text Values)" group_builder->
         colText = ["Text Values", ["A", "B", "C"]]
         t1 = build_sorted_table [colText]
@@ -220,8 +220,8 @@ add_offset_specs suite_builder setup =
             t1.offset ["A"] 1024 ..Closest_Value . should_equal ignore_order=setup.is_database
                 Table.input [colA, colB, ["offset([A], 1024, Fill_With.Closest_Value)", [3, 3, 3]]]
         group_builder.specify "Works with zero rows" <|
-            t1.take 0 . offset ["A"] -1 ..Closest_Value . should_equal ignore_order=setup.is_database
-                Table.input [["A", [], Value_Type.Integer], ["B", []], ["offset([A], -1, Fill_With.Closest_Value)", [], Value_Type.Integer]]
+            build_sorted_table [["A",[], Value_Type.Integer],["B",[], Value_Type.Integer]] . sort ["B"] . offset ["A"] -1 ..Closest_Value . should_equal ignore_order=setup.is_database
+                Table.input [["A", [], Value_Type.Integer], ["B", [], Value_Type.Integer], ["offset([A], -1, Fill_With.Closest_Value)", [], Value_Type.Integer]]
         group_builder.specify "Works with negative n and column of nothings" <|
             t1.offset ["B"] -1 ..Closest_Value . should_equal ignore_order=setup.is_database
                 Table.input [colA, colB, ["offset([B], -1, Fill_With.Closest_Value)", [Nothing, Nothing, Nothing], Value_Type.Integer]]
@@ -260,8 +260,8 @@ add_offset_specs suite_builder setup =
             t1.offset ["A"] 1024 ..Wrap_Around . should_equal ignore_order=setup.is_database
                 Table.input [colA, colB, ["offset([A], 1024, Fill_With.Wrap_Around)", [2, 3, 1]]]
         group_builder.specify "Works with zero rows" <|
-            t1.take 0 . offset ["A"] -1 ..Wrap_Around . should_equal ignore_order=setup.is_database
-                Table.input [["A", [], Value_Type.Integer], ["B", []], ["offset([A], -1, Fill_With.Wrap_Around)", [], Value_Type.Integer]]
+            build_sorted_table [["A",[], Value_Type.Integer],["B",[], Value_Type.Integer]] . sort ["B"] . offset ["A"] -1 ..Wrap_Around . should_equal ignore_order=setup.is_database
+                Table.input [["A", [], Value_Type.Integer], ["B", [], Value_Type.Integer], ["offset([A], -1, Fill_With.Wrap_Around)", [], Value_Type.Integer]]
         group_builder.specify "Works with negative n and column of nothings" <|
             t1.offset ["B"] -1 ..Wrap_Around . should_equal ignore_order=setup.is_database
                 Table.input [colA, colB, ["offset([B], -1, Fill_With.Wrap_Around)", [Nothing, Nothing, Nothing], Value_Type.Integer]]
