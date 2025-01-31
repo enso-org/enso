@@ -62,6 +62,7 @@ const {
   setToolbarDefinition,
   visualizationDefinedToolbar,
   toolbarOverlay,
+  executeExpression
 } = useVisualizationData({
   selectedVis: toRef(props, 'currentType'),
   dataSource: toRef(props, 'dataSource'),
@@ -191,6 +192,7 @@ const visParams = computed(() => {
     data: effectiveVisualizationData.value,
     size: contentElementSize.value,
     nodeType: props.typename,
+    executeExpression
   }
 })
 </script>
@@ -256,7 +258,6 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
             @updateToolbar="setToolbarDefinition($event.detail[0])"
             @updateToolbarOverlay="toolbarOverlay = $event.detail[0]"
             @createNodes="emit('createNodes', $event.detail[0])"
-            @executeExpression="console.log('67891011'); emit('executeExpression', $event.detail[0])"
           />
         </div>
       </div>

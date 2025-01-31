@@ -225,28 +225,12 @@ function formatText(params: ICellRendererParams) {
   return `<span > ${newString} <span>`
 }
 
-// const projectStore = useProjectStore()
-// const tempModule = Ast.MutableModule.Transient()
-// const preprocessorModule = Ast.parseExpression(
-//           'Standard.Visualization.Table.Visualization',
-//           tempModule,
-//         )!
-// const preprocessorQn = Ast.PropertyAccess.new(
-//           tempModule,
-//           preprocessorModule,
-//           'get_rows_for_table',)
-
-// const args = ['100']
-// const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
-//           Ast.Wildcard.new(tempModule),
-//           ...args.map((arg) => Ast.Group.new(tempModule, Ast.parseExpression(arg, tempModule)!)),
-//         ])
-// const rhs = Ast.parseExpression(dataSourceValue.expression, tempModule)!
-// const expression = Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
-// return projectStore.executeExpression(dataSourceValue.contextId, expression.code())
-
-watchEffect(() => {
-  config.executeExpression('hello')
+watchEffect(async () => {
+  const exe = config.executeExpression
+  const xyz = await exe('Standard.Visualization.Table.Visualization',
+  'get_rows_for_table',
+  '1997')
+  console.log({xyz})
 })
 
 function createFakeServer() {
@@ -266,7 +250,6 @@ function createServerSideDatasource(): IServerSideDatasource {
     getRows: async (params) => {
       const server = createFakeServer()
       const response = server.getData()
-      console.log({ response })
       setTimeout(() => {
         if (response.success) {
           params.success({ rowData: response.rows })

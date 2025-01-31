@@ -12,7 +12,6 @@ export interface VisualizationConfig {
   readonly size: Vec2
   /** Create graph nodes. */
   createNodes: (...options: NodeCreationOptions[]) => void
-  executeExpression: (expression: string) => void
   /** Set the preprocessor that prepares the visualization data on the backend. */
   setPreprocessor: (
     visualizationModule: string,
@@ -26,6 +25,7 @@ export interface VisualizationConfig {
    * it. By default, this is `false`.
    */
   setToolbarOverlay: (enableOverlay: boolean) => void
+  executeExpression: (visulizationModule: string, expressionString: string, ...positionalArgumentsExpressions: string[]) => any,
 }
 
 export { provideVisualizationConfig }

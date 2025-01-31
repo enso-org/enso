@@ -92,6 +92,38 @@ export function useVisualizationData({
     },
   )
 
+  const executeExpression = async (visulizationModule: string, expressionString: string, ...positionalArgumentsExpressions: string[]) => {
+    // console.log({visulizationModule})
+    // console.log({expressionString})
+    const dataSourceValue = toValue(dataSource)
+    const args = positionalArgumentsExpressions
+    // console.log({args})
+    try {
+      const tempModule = Ast.MutableModule.Transient()
+      const preprocessorModule = Ast.parseExpression(
+        visulizationModule,
+        tempModule,
+      )!
+      const preprocessorQn = Ast.PropertyAccess.new(
+        tempModule,
+        preprocessorModule,
+        expressionString,
+      )
+    const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
+      Ast.Wildcard.new(tempModule),
+      ...args.map((arg) => Ast.Group.new(tempModule, Ast.parseExpression(arg, tempModule)!)),
+    ])
+    const rhs = Ast.parseExpression('a', tempModule)!
+    const expression = Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
+    console.log({expression: expression.code()})
+    const result =  projectStore.executeExpression(dataSourceValue.nodeId, expression.code())
+      return result
+    } catch (e) {
+      console.error(e)
+      throw e
+    }
+  }
+
   const currentType = computed(() => {
     const selectedTypeValue = toValue(selectedVis)
     if (selectedTypeValue) return selectedTypeValue
@@ -110,7 +142,11 @@ export function useVisualizationData({
 
   const nodeVisualizationData = projectStore.useVisualizationData(() => {
     const dataSourceValue = toValue(dataSource)
+    console.log('nodeVizData')
+    console.log({dataSourceValue})
     if (dataSourceValue?.type !== 'node') return
+    console.log(visPreprocessor.value)
+    console.log(dataSourceValue.nodeId)
     return {
       ...visPreprocessor.value,
       expressionId: dataSourceValue.nodeId,
@@ -119,8 +155,10 @@ export function useVisualizationData({
 
   const expressionVisualizationData = computedAsync(
     () => {
+      console.log('IN func')
       try {
         const dataSourceValue = toValue(dataSource)
+        console.log({dataSourceValue})
         if (dataSourceValue?.type !== 'expression') return
         if (preprocessorLoading.value) return
         const preprocessor = visPreprocessor.value
@@ -146,7 +184,9 @@ export function useVisualizationData({
           ...args.map((arg) => Ast.Group.new(tempModule, Ast.parseExpression(arg, tempModule)!)),
         ])
         const rhs = Ast.parseExpression(dataSourceValue.expression, tempModule)!
+        console.log({rhs})
         const expression = Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
+        console.log({expression})
         return projectStore.executeExpression(dataSourceValue.contextId, expression.code())
       } catch (e) {
         console.error(e)
@@ -173,6 +213,9 @@ export function useVisualizationData({
     expression: string,
     ...positionalArgumentsExpressions: string[]
   ) {
+    console.log('updae pre', visualizationModule)
+    console.log('update pre', expression)
+    console.log('update pre', positionalArgumentsExpressions)
     visPreprocessor.value = { visualizationModule, expression, positionalArgumentsExpressions }
   }
 
@@ -186,6 +229,7 @@ export function useVisualizationData({
   )
 
   watchEffect(async () => {
+    console.log('viz data watch effect')
     preprocessorLoading.value = true
     if (currentType.value == null) return
     visualization.value = undefined
@@ -260,5 +304,6 @@ export function useVisualizationData({
       (toolbarDefinition.value = definition),
     visualizationDefinedToolbar: computed(() => toValue(toolbarDefinition.value)),
     toolbarOverlay,
+    executeExpression: (visulizationModule: string, expressionString: string, ...positionalArgumentsExpressions: string[]) => executeExpression(visulizationModule, expressionString, ...positionalArgumentsExpressions)
   }
 }
