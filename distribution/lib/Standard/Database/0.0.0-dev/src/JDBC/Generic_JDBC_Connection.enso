@@ -81,7 +81,7 @@ type Generic_JDBC_Connection
              connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
              connection.execute "create table foo (a int)"
     execute self (sql : Text = (Missing_Argument.throw "sql")) -> Integer =
-        when_output_enabled <|
+        when_output_enabled_ <|
             self.jdbc_connection.with_prepared_statement sql Statement_Setter.default stmt->
                 stmt.executeUpdate
 
@@ -297,6 +297,6 @@ private rs_to_table_ rs =
 
 ## PRIVATE
    Run the action if Output is enabled, otherwise raise a dataflow error
-when_output_enabled ~action =
+private when_output_enabled_ ~action =
     if Context.Output.is_enabled then action else
         Error.throw (Forbidden_Operation.Error ("As writing is disabled, this operation was not executed. Press the Write button ▶ to execute it."))
