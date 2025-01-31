@@ -195,27 +195,7 @@ public class MethodProcessor
                 + " extends BuiltinRootNode implements InlineableNode.Root {");
       }
       out.println("  private @Child " + methodDefinition.getOriginalClassName() + " bodyNode;");
-      out.println("  private @Children ArgNode[] argNodes = new ArgNode[] {");
-      for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
-        var checkErrors = arg.shouldCheckErrors();
-        var checkPanicSentinel = arg.isPositional() && !arg.isSelf();
-        var checkWarnings = arg.shouldCheckWarnings();
-        out.println(
-            "      ArgNode.create("
-                + arg.isSelf()
-                + ", "
-                + arg.isArray()
-                + ", "
-                + arg.requiresCast()
-                + ", "
-                + checkErrors
-                + ", "
-                + checkPanicSentinel
-                + ", "
-                + checkWarnings
-                + "),");
-      }
-      out.println("    };");
+      defineArgNodes(out, "  ", methodDefinition);
       out.println("  private static final class Internals {");
       out.println("    Internals(boolean s) {");
       out.println("      this.staticOrInstanceMethod = s;");
@@ -284,27 +264,7 @@ public class MethodProcessor
                 + " body = "
                 + methodDefinition.getConstructorExpression()
                 + ";");
-        out.println("      private @Children ArgNode[] argNodes = new ArgNode[] {");
-        for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
-          var checkErrors = arg.shouldCheckErrors();
-          var checkPanicSentinel = arg.isPositional() && !arg.isSelf();
-          var checkWarnings = arg.shouldCheckWarnings();
-          out.println(
-              "        ArgNode.create("
-                  + arg.isSelf()
-                  + ", "
-                  + arg.isArray()
-                  + ", "
-                  + arg.requiresCast()
-                  + ", "
-                  + checkErrors
-                  + ", "
-                  + checkPanicSentinel
-                  + ", "
-                  + checkWarnings
-                  + "),");
-        }
-        out.println("      };");
+        defineArgNodes(out, "      ", methodDefinition);
         out.println("      @Override");
         out.println("      public Object call(VirtualFrame frame, Object[] args) {");
         out.println("        return handleExecute(argNodes, frame, extra, body, args);");
@@ -368,7 +328,20 @@ public class MethodProcessor
           callArgNames.add("callerInfo");
         } else {
           callArgNames.add(mkArgumentInternalVarName(ad));
-          generateArgumentRead(out, ad, "arguments");
+          var argReference = "arguments[arg" + ad.getPosition() + "Idx]";
+          var varName = mkArgumentInternalVarName(ad);
+          out.println(
+              "    "
+                  + ad.getTypeName()
+                  + " "
+                  + varName
+                  + " = argNodes["
+                  + ad.getPosition()
+                  + "].processArgument(frame, "
+                  + wrapperTypeName(ad)
+                  + ".class, "
+                  + argReference
+                  + ", argCtx);");
         }
       }
       out.println("    if (argCtx.getReturnValue() != null) return argCtx.getReturnValue();");
@@ -421,6 +394,34 @@ public class MethodProcessor
 
       out.println("}");
     }
+  }
+
+  private void defineArgNodes(
+      final PrintWriter out, final String sep, MethodDefinition methodDefinition) {
+    out.println(sep + "private @Children ArgNode[] argNodes = new ArgNode[] {");
+    for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
+      if (arg.isPositional()) {
+        var checkErrors = arg.shouldCheckErrors();
+        var checkPanicSentinel = arg.isPositional() && !arg.isSelf();
+        var checkWarnings = arg.shouldCheckWarnings();
+        out.println(
+            sep
+                + "  ArgNode.create("
+                + arg.isSelf()
+                + ", "
+                + arg.isArray()
+                + ", "
+                + arg.requiresCast()
+                + ", "
+                + checkErrors
+                + ", "
+                + checkPanicSentinel
+                + ", "
+                + checkWarnings
+                + "),");
+      }
+    }
+    out.println(sep + "};");
   }
 
   private String wrapInTryCatch(String statement, int indent) {
@@ -480,24 +481,6 @@ public class MethodProcessor
     } else {
       return tn;
     }
-  }
-
-  private void generateArgumentRead(
-      PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    var argReference = argsArray + "[arg" + arg.getPosition() + "Idx]";
-    var varName = mkArgumentInternalVarName(arg);
-    out.println(
-        "    "
-            + arg.getTypeName()
-            + " "
-            + varName
-            + " = argNodes["
-            + arg.getPosition()
-            + "].processArgument(frame, "
-            + wrapperTypeName(arg)
-            + ".class, "
-            + argReference
-            + ", argCtx);");
   }
 
   private void generateUncastedArgumentRead(
