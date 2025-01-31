@@ -3,7 +3,6 @@
 import type { Vec2 } from '@/util/data/vec2'
 import { watchSourceToRef } from '@/util/reactivity'
 import {
-  computed,
   onScopeDispose,
   proxyRefs,
   readonly,
@@ -161,7 +160,7 @@ function useApproachBase<T>(
  * Create `events` to check if any CSS transitions of declared properties
  * within a DOM subtree are currently in progress.
  *
- * The state is reported back using the `active` computed property.
+ * The state is reported back using the `active` property.
  */
 export function useTransitioning(observedProperties?: Set<string>) {
   const hasActiveTransitions = ref(false)
@@ -182,7 +181,7 @@ export function useTransitioning(observedProperties?: Set<string>) {
   }
 
   return {
-    active: computed(() => hasActiveTransitions.value),
+    active: readonly(hasActiveTransitions),
     events: {
       transitionstart: onTransitionStart,
       transitionend: onTransitionEnd,
