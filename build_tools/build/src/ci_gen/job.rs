@@ -222,8 +222,12 @@ impl JobArchetype for JvmTests {
     fn job(&self, target: Target) -> Job {
         let graal_edition = self.graal_edition;
         let job_name = format!("JVM Tests ({graal_edition})");
+        let upload_artifact_job = 
+          step::upload_artifact("Upload test results")
+            .with_custom_argument("name", format!("Test_Results_{}", target.0))
+            .with_custom_argument("path", "target/test-results/");
         let mut job = RunStepsBuilder::new("backend test jvm")
-            .customize(move |step| vec![step, step::engine_test_reporter(target, graal_edition)])
+            .customize(move |step| vec![step, upload_artifact_job, step::engine_test_reporter(target, graal_edition)])
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
@@ -671,7 +675,14 @@ pub struct CiCheckBackend {
 impl JobArchetype for CiCheckBackend {
     fn job(&self, target: Target) -> Job {
         let job_name = format!("Engine ({})", self.graal_edition);
-        let mut job = RunStepsBuilder::new("backend ci-check").build_job(job_name, target);
+        let upload_edition_file = 
+            step::upload_artifact("Upload Edition File")
+                .with_if(format!("{}", target.0 == OS::Linux))
+                .with_custom_argument("name", "Edition File")
+                .with_custom_argument("path", "distribution/editions/*.yaml");
+        let mut job = RunStepsBuilder::new("backend ci-check")
+            .customize(move |step| vec![step, upload_edition_file])
+            .build_job(job_name, target);
         match self.graal_edition {
             graalvm::Edition::Community =>
                 job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Community),
