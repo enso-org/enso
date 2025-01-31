@@ -54,13 +54,15 @@ add_specs_for_backend config suite_builder =
         cleanup_views = cleanup "view"
         cleanup_schemas = cleanup "schema"
 
+        lower x = x.to_case ..Lower
+
         group_builder.specify "should be able to create a connection" <|
             with_connection "create_connection" (conn-> conn . should_succeed)
 
         group_builder.specify "should be able to create a table" <|
             with_connection "create_table" conn-> cleanup_tables conn ["foo"] <|
                 conn.execute "create table foo (a int)"
-                conn.get_tables . map (x-> x.to_case ..Lower) . should_contain "foo"
+                conn.get_tables . map lower . should_contain "foo"
 
         group_builder.specify "should be able to get table info" <|
             with_connection "get_table_info" conn-> cleanup_tables conn ["foo", "bar"] <|
