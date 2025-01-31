@@ -508,20 +508,6 @@ impl RunContext {
             }
         }
 
-        if self.config.build_engine_package {
-            let schema_dir = self.paths.repo_root.join_iter([
-                "engine",
-                "language-server",
-                "src",
-                "main",
-                "schema",
-            ]);
-            if is_in_env() {
-                ide_ci::actions::artifacts::upload_compressed_directory(&schema_dir, "fbs-schema")
-                    .await?;
-            }
-        }
-
         let graal_version = engine::deduce_graal_bundle(&self.repo_root.build_sbt).await?;
         for bundle in ret.bundles() {
             bundle.create(&self.repo_root, &graal_version).await?;

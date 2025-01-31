@@ -679,13 +679,17 @@ pub struct CiCheckBackend {
 impl JobArchetype for CiCheckBackend {
     fn job(&self, target: Target) -> Job {
         let job_name = format!("Engine ({})", self.graal_edition);
-        let upload_edition_file = 
-            step::upload_artifact("Upload Edition File")
-                .with_custom_argument("name", paths::EDITION_FILE_ARTIFACT_NAME)
-                .with_custom_argument("path", "distribution/editions/*.yaml");
         let mut job_builder = RunStepsBuilder::new("backend ci-check");
-        if target.0 == OS::Linux && ide_ci::ci::run_in_ci() && self.graal_edition == graalvm::Edition::Community {
-            job_builder = job_builder.customize(move |step| vec![step, upload_edition_file]);
+        if target.0 == OS::Linux && self.graal_edition == graalvm::Edition::Community {
+            let upload_edition_file =
+                step::upload_artifact("Upload Edition File")
+                    .with_custom_argument("name", paths::EDITION_FILE_ARTIFACT_NAME)
+                    .with_custom_argument("path", "distribution/editions/*.yaml");
+            let upload_fbs_schema =
+                step::upload_artifact("Upload fbs-schema")
+                    .with_custom_argument("name", "fbs-schema")
+                    .with_custom_argument("path", "engine/language-server/src/main/schema/");
+            job_builder = job_builder.customize(move |step| vec![step, upload_edition_file, upload_fbs_schema]);
         }
         let mut job = job_builder.build_job(job_name, target);
         match self.graal_edition {
