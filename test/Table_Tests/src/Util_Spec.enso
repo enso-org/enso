@@ -102,22 +102,22 @@ add_specs suite_builder =
             expected_column = Column.from_vector "Col" [1.0, 2.0, 3.0]
             actual_column = Column.from_vector "Col" [1.0, 2.0, Nothing]
             res = Panic.recover Test_Failure_Error (column_should_equal_impl actual_column expected_column "LOCATION_PATH")
-            res.catch.message.should_equal 'Column: Col differs at row 0.\n\t  Actual  : Who\n\t  Expected: Quis\n\t (at LOCATION_PATH).'
+            res.catch.message.should_equal 'Column: Col differs at row 2.\n\t  Actual  : Nothing\n\t  Expected: 3.0\n\t (at LOCATION_PATH).'
         group_builder.specify "Comparing to Expected Nothing Value should fail" <|
             expected_column = Column.from_vector "Col" [1.0, 2.0, Nothing]
             actual_column = Column.from_vector "Col" [1.0, 2.0, 3.0]
             res = Panic.recover Test_Failure_Error (column_should_equal_impl actual_column expected_column "LOCATION_PATH")
-            res.catch.message.should_equal 'Column: Col differs at row 0.\n\t  Actual  : Who\n\t  Expected: Quis\n\t (at LOCATION_PATH).'
+            res.catch.message.should_equal 'Column: Col differs at row 2.\n\t  Actual  : 3.0\n\t  Expected: Nothing\n\t (at LOCATION_PATH).'
         group_builder.specify "Comparing to Actual Nothing Value to Expected NaN Value should fail" <|
             expected_column = Column.from_vector "Col" [1.0, 2.0, Number.nan]
             actual_column = Column.from_vector "Col" [1.0, 2.0, Nothing]
             res = Panic.recover Test_Failure_Error (column_should_equal_impl actual_column expected_column "LOCATION_PATH")
-            res.catch.message.should_equal 'Column: Col differs at row 0.\n\t  Actual  : Who\n\t  Expected: Quis\n\t (at LOCATION_PATH).'
+            res.catch.message.should_equal 'Column: Col differs at row 2.\n\t  Actual  : Nothing\n\t  Expected: NaN\n\t (at LOCATION_PATH).'
         group_builder.specify "Comparing to Actual NaN Value to Expected Nothing Value should fail" <|
-            expected_column = Column.from_vector "Col" [1.0, 2.0, Number.nan]
-            actual_column = Column.from_vector "Col" [1.0, 2.0, Nothing]
+            expected_column = Column.from_vector "Col" [1.0, 2.0, Nothing]
+            actual_column = Column.from_vector "Col" [1.0, 2.0, Number.nan]
             res = Panic.recover Test_Failure_Error (column_should_equal_impl actual_column expected_column "LOCATION_PATH")
-            res.catch.message.should_equal 'Column: Col differs at row 0.\n\t  Actual  : Who\n\t  Expected: Quis\n\t (at LOCATION_PATH).'
+            res.catch.message.should_equal 'Column: Col differs at row 2.\n\t  Actual  : NaN\n\t  Expected: Nothing\n\t (at LOCATION_PATH).'
 
         group_builder.specify "Two Tables Are Equal" <|
             expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
