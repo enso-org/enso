@@ -3791,6 +3791,9 @@ lazy val `engine-runner` = project
         `std-aws-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
         `std-microsoft-polyglot-root`
           .listFiles("*.jar")
+          .map(_.getAbsolutePath()) ++
+        `std-tableau-polyglot-root`
+          .listFiles("*.jar")
           .map(_.getAbsolutePath())
 
       core ++ stdLibsJars
@@ -3910,8 +3913,11 @@ lazy val `engine-runner` = project
               "org.enso.image",
               "org.enso.table",
               "org.enso.database",
+              "org.enso.tableau",
               "org.eclipse.jgit",
-              "com.amazonaws"
+              "com.amazonaws",
+              "com.sun.jna",
+              "com.tableau.hyperapi"
             )
           )
       }

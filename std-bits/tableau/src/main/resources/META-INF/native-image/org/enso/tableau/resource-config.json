@@ -1,0 +1,22 @@
+{
+    "resources": {
+        "includes": [
+            {
+                "pattern": "\\QMETA-INF/services/com.tableau.hyperapi.impl.SharedLibraryProvider\\E"
+            },
+            {
+                "pattern": "\\Qlinux-x86-64/libtableauhyperapi.so\\E"
+            },
+            {
+                "pattern": "\\Qdarwin-aarch64/libtableauhyperapi.dylib\\E"
+            },
+            {
+                "pattern": "\\Qdarwin-x86-64/libtableauhyperapi.dylib\\E"
+            },
+            {
+                "pattern": "\\Qwin32-x86-64/tableauhyperapi.dll\\E"
+            }
+        ]
+    },
+    "bundles": []
+}
