@@ -55,7 +55,7 @@ public class MethodProcessor
         if (elt.getKind() == ElementKind.CLASS) {
           try {
             var needsFrame = BuiltinsProcessor.checkNeedsFrame(elt);
-            handleTypeElement((TypeElement) elt, roundEnv, needsFrame);
+            handleTypeElement((TypeElement) elt, needsFrame);
           } catch (IOException e) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, e.getMessage());
           }
@@ -72,8 +72,7 @@ public class MethodProcessor
     return true;
   }
 
-  private void handleTypeElement(TypeElement element, RoundEnvironment roundEnv, Boolean needsFrame)
-      throws IOException {
+  private void handleTypeElement(TypeElement element, Boolean needsFrame) throws IOException {
     ExecutableElement executeMethod =
         element.getEnclosedElements().stream()
             .filter(
@@ -159,10 +158,6 @@ public class MethodProcessor
           "org.enso.interpreter.runtime.warning.WarningsLibrary",
           "org.enso.interpreter.runtime.warning.WithWarnings",
           "org.enso.interpreter.runtime.warning.AppendWarningNode");
-
-  /** List of exception types that should be caught from the builtin's execute method. */
-  private static final List<String> handleExceptionTypes =
-      List.of("UnsupportedSpecializationException");
 
   private void generateCode(MethodDefinition methodDefinition) throws IOException {
     JavaFileObject gen =
@@ -428,7 +423,7 @@ public class MethodProcessor
     var indentStr = Strings.repeat(" ", indent);
     var sb = new StringBuilder();
     sb.append(indentStr).append("try {").append("\n");
-    sb.append(indentStr).append("  " + statement).append("\n");
+    sb.append(indentStr).append("  ").append(statement).append("\n");
     sb.append(indentStr)
         .append("} catch (UnsupportedSpecializationException unsupSpecEx) {")
         .append("\n");
@@ -483,121 +478,22 @@ public class MethodProcessor
     }
   }
 
-  private void generateUncastedArgumentRead(
-      PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    String varName = mkArgumentInternalVarName(arg);
-    out.println(
-        "    "
-            + arg.getTypeName()
-            + " "
-            + varName
-            + " = "
-            + argsArray
-            + "[arg"
-            + arg.getPosition()
-            + "Idx];");
-  }
-
-  private void generateUncheckedArgumentRead(
-      PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    String castName = "TypesGen.as" + capitalize(arg.getTypeName());
-    String varName = mkArgumentInternalVarName(arg);
-    out.println(
-        "    "
-            + arg.getTypeName()
-            + " "
-            + varName
-            + " = "
-            + castName
-            + "("
-            + argsArray
-            + "[arg"
-            + arg.getPosition()
-            + "Idx]);");
-  }
-
-  private void generateUncheckedArrayCast(
-      PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    String castName = arg.getTypeName();
-    String varName = mkArgumentInternalVarName(arg);
-    out.println(
-        "    "
-            + arg.getTypeName()
-            + " "
-            + varName
-            + " = ("
-            + castName
-            + ")"
-            + argsArray
-            + "[arg"
-            + arg.getPosition()
-            + "Idx];");
-  }
-
-  private void generateCheckedArgumentRead(
-      PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    String builtinName = capitalize(arg.getTypeName());
-    String castName = "TypesGen.expect" + builtinName;
-    String varName = mkArgumentInternalVarName(arg);
-    out.println("    " + arg.getTypeName() + " " + varName + ";");
-    out.println("    try {");
-    out.println(
-        "      "
-            + varName
-            + " = "
-            + castName
-            + "("
-            + argsArray
-            + "[arg"
-            + arg.getPosition()
-            + "Idx]);");
-    out.println("    } catch (UnexpectedResultException e) {");
-    out.println("      CompilerDirectives.transferToInterpreter();");
-    out.println("      var builtins = EnsoContext.get(bodyNode).getBuiltins();");
-    out.println(
-        "      var ensoTypeName = org.enso.interpreter.runtime.type.ConstantsGen.getEnsoTypeName(\""
-            + builtinName
-            + "\");");
-    out.println("      var error = (ensoTypeName != null)");
-    out.println(
-        "        ? builtins.error().makeTypeError(ensoTypeName, arguments[arg"
-            + arg.getPosition()
-            + "Idx], \""
-            + varName
-            + "\")");
-    out.println(
-        "        : builtins.error().makeUnsupportedArgumentsError(new Object[] { arguments[arg"
-            + arg.getPosition()
-            + "Idx] }, \"Unsupported argument for "
-            + varName
-            + " expected a '"
-            + builtinName
-            + "' but got a '\""
-            + " + arguments[arg"
-            + arg.getPosition()
-            + "Idx]"
-            + " + \"' [\""
-            + " + arguments[arg"
-            + arg.getPosition()
-            + "Idx].getClass()"
-            + " + \"]\""
-            + ");");
-    out.println("      throw new PanicException(error, bodyNode);");
-    out.println("    }");
-  }
-
   /**
    * Dumps the information about the collected builtin methods to {@link
    * MethodProcessor#metadataPath()} resource file.
    *
-   * <p>The format of a single row in the metadata file: <full name of the method>:<class name of
-   * the root node>
+   * <p>The format of a single row in the metadata file:
+   *
+   * <pre>
+   * "full name of the method":"class name of the root node"
+   * </pre>
    *
    * @param writer a writer to the metadata resource
    * @param pastEntries entries from the previously created metadata file, if any. Entries that
    *     should not be appended to {@code writer} should be removed
    * @throws IOException
    */
+  @Override
   protected void storeMetadata(Writer writer, Map<String, MethodMetadataEntry> pastEntries)
       throws IOException {
     for (Filer f : builtinMethods.keySet()) {
@@ -631,16 +527,8 @@ public class MethodProcessor
     builtinMethods.clear();
   }
 
-  private String warningCheck(MethodDefinition.ArgumentDefinition arg) {
-    return "(" + mkArgumentInternalVarName(arg) + " instanceof WithWarnings)";
-  }
-
   private String mkArgumentInternalVarName(MethodDefinition.ArgumentDefinition arg) {
     return "arg" + arg.getPosition();
-  }
-
-  private String arrayRead(String array, int index) {
-    return array + "[arg" + index + "Idx]";
   }
 
   private String capitalize(String name) {
