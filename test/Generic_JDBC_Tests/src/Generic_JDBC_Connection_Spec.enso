@@ -17,7 +17,7 @@ data_dir = enso_project.data / "transient"
    Table columns are accessed by number instead of name below since the case of
    the column names depends on the backend.
 add_specs_for_backend config suite_builder =
-    prefix = "(" + config.name + ")asdfasdf "
+    prefix = "(" + config.name + ")"
 
     suite_builder.group prefix+"Generic JDBC Connection" group_builder->
         with_connection = config.with_connection
