@@ -24,7 +24,7 @@ type H2_JDBC_Config
             database_root . create_directory
             action url
 
-    with_connection self name action =
+    with_connection self name ~action =
         self.with_database name url->
             conn = Generic_JDBC_Connection.connect url
             conn.should_succeed
