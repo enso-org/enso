@@ -137,11 +137,6 @@ jobs:
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        with:
-          name: Test_Results_linux
-          path: target/test-results/
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         name: Engine Test Reporter
         uses: dorny/test-reporter@v1
@@ -196,11 +191,6 @@ jobs:
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        with:
-          name: Test_Results_windows
-          path: target/test-results/
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         name: Engine Test Reporter
         uses: dorny/test-reporter@v1

@@ -11,6 +11,7 @@ use crate::ci_gen::RunnerType;
 use crate::ci_gen::RELEASE_CLEANING_POLICY;
 use crate::engine::env as engine_env;
 use crate::ide::web::env as ide_env;
+use crate::paths;
 
 use core::panic;
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
@@ -222,12 +223,15 @@ impl JobArchetype for JvmTests {
     fn job(&self, target: Target) -> Job {
         let graal_edition = self.graal_edition;
         let job_name = format!("JVM Tests ({graal_edition})");
-        let upload_artifact_job = 
+        let test_results_dir = paths::ENSO_TEST_JUNIT_DIR.get().ok()
+            .and_then(|buf| buf.to_str().map(|s| s.to_owned()))
+            .unwrap_or_else(|| "target/test-results/".to_owned());
+        let _upload_artifact_job =
           step::upload_artifact("Upload test results")
             .with_custom_argument("name", format!("Test_Results_{}", target.0))
-            .with_custom_argument("path", "target/test-results/");
+            .with_custom_argument("path", test_results_dir);
         let mut job = RunStepsBuilder::new("backend test jvm")
-            .customize(move |step| vec![step, upload_artifact_job, step::engine_test_reporter(target, graal_edition)])
+            .customize(move |step| vec![step, step::engine_test_reporter(target, graal_edition)])
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
@@ -677,12 +681,13 @@ impl JobArchetype for CiCheckBackend {
         let job_name = format!("Engine ({})", self.graal_edition);
         let upload_edition_file = 
             step::upload_artifact("Upload Edition File")
-                .with_if(format!("{}", target.0 == OS::Linux))
-                .with_custom_argument("name", "Edition File")
+                .with_custom_argument("name", paths::EDITION_FILE_ARTIFACT_NAME)
                 .with_custom_argument("path", "distribution/editions/*.yaml");
-        let mut job = RunStepsBuilder::new("backend ci-check")
-            .customize(move |step| vec![step, upload_edition_file])
-            .build_job(job_name, target);
+        let mut job_builder = RunStepsBuilder::new("backend ci-check");
+        if target.0 == OS::Linux && ide_ci::ci::run_in_ci() && self.graal_edition == graalvm::Edition::Community {
+            job_builder = job_builder.customize(move |step| vec![step, upload_edition_file]);
+        }
+        let mut job = job_builder.build_job(job_name, target);
         match self.graal_edition {
             graalvm::Edition::Community =>
                 job.env(engine_env::GRAAL_EDITION, graalvm::Edition::Community),
