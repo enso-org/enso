@@ -14,7 +14,7 @@
 export default {}
 </script>
 <script setup lang="ts">
-import { injectAnimationCounter } from '@/providers/animationCounter'
+import { useLayoutAnimationReporter } from '@/providers/animationCounter'
 import { hookBeforeFunctionCall } from '@/util/patching'
 import { nextTick } from 'vue'
 
@@ -36,7 +36,7 @@ const props = withDefaults(
   { duration: 200, easing: 'ease-out' },
 )
 
-const animCounter = injectAnimationCounter(true)
+const animReporter = useLayoutAnimationReporter()
 
 type Done = (cancelled: boolean) => void
 type StyleSnapshot = { width: string; height: string; marginLeft: string; progress: string }
@@ -133,16 +133,14 @@ function runAnimation(e: HTMLElement, done: Done, isEnter: boolean) {
     done(true)
   })
   e.dataset['transitioning'] = isEnter ? 'enter' : 'leave'
-  animCounter?.modify(1)
+  animReporter.reportAnimationStarted()
   animation.play()
   animationsMap.set(e, animation)
 }
 
 function cleanup(e: HTMLElement) {
   delete e.dataset['transitioning']
-  requestAnimationFrame(() => {
-    animCounter?.modify(-1)
-  })
+  animReporter.reportAnimationEnded()
 }
 </script>
 
