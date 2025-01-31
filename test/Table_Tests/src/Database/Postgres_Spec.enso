@@ -1091,28 +1091,25 @@ add_data_link_specs suite_builder =
     Audit_Spec.add_specs suite_builder prefix data_link_file.get database_pending=pending
     Save_Connection_Data_Link.add_specs suite_builder prefix connection_details pending
 
+## PRIVATE
 type Postgres_JDBC_Config
     Value connection_details:Postgres
 
     name self = "Postgres"
 
     with_connection self name ~action =
-        user = self.connection_details.credentials.username
-        password = self.connection_details.credentials.password
+        conn = Postgres_JDBC_Config.create_connection_from_details self.connection_details
+        action conn
+
+    create_connection_from_details connection_details:Postgres -> Generic_JDBC_Connection =
+        user = connection_details.credentials.username
+        password = connection_details.credentials.password
         properties = [Pair.new "user" user, Pair.new "password" password]
 
-        db_name = self.connection_details.database
+        db_name = connection_details.database
         url = 'jdbc:postgresql:' + db_name
 
-        conn = Generic_JDBC_Connection.connect url properties
-        cleanup =
-            conn.execute "drop database "+name
-            conn.close
-        Panic.with_finalizer cleanup <|
-            conn.execute "drop database if exists "+name
-            conn.execute "create database "+name
-            conn.execute "use "+name
-            action conn
+        Generic_JDBC_Connection.connect url properties
 
 add_generic_jdbc_specs suite_builder =
     config = Postgres_JDBC_Config.Value get_configured_connection_details
