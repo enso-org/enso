@@ -871,7 +871,6 @@ add_specs suite_builder =
         workbook.is_a Excel_Workbook . should_be_true
         workbook.sheet_count . should_equal sheets
         workbook.named_ranges_count . should_equal ranges
-        workbook
 
     suite_builder.group "Read XLSX / XLS Files" group_builder->
         group_builder.specify "should let you read the workbook with Auto_Detect" <|
@@ -1175,34 +1174,6 @@ add_specs suite_builder =
             w7 = xls_sheet.read
             ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
             [w4, w5, w6, w7].each check_workbook
-
-        group_builder.specify "should clear cache on simulated reload old" <|
-            ExcelConnectionPool.INSTANCE.simulateReloadTestOnly
-            check_workbook <| xlsx_sheet.read
-            Runtime.gc
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
-            check_workbook <| xlsx_sheet.read
-            Runtime.gc
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
-            check_workbook <| xls_sheet.read
-            Runtime.gc
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
-            check_workbook <| xls_sheet.read
-            Runtime.gc
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
-            ExcelConnectionPool.INSTANCE.simulateReloadTestOnly
-            check_workbook <| xlsx_sheet.read
-            Runtime.gc
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
-            check_workbook <| xlsx_sheet.read
-            Runtime.gc
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
-            check_workbook <| xls_sheet.read
-            Runtime.gc
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
-            check_workbook <| xls_sheet.read
-            Runtime.gc
-            ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
 
     suite_builder.group "Problems" group_builder->
         group_builder.specify "should report a user-friendly error message when format is missing a required argument" <|
