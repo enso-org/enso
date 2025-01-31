@@ -13,6 +13,8 @@
 - [Fixed bug when clicking header in Table Editor Widget didn't start editing
   it][12064]
 - [Fixed bugs occurring after renaming project from within graph editor][12106].
+- [Users having "Team" plan or above may now access shared directories in Cloud
+  File Browser][12208]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -22,6 +24,7 @@
 [12067]: https://github.com/enso-org/enso/pull/12067
 [12064]: https://github.com/enso-org/enso/pull/12064
 [12106]: https://github.com/enso-org/enso/pull/12106
+[12208]: https://github.com/enso-org/enso/pull/12208
 
 #### Enso Standard Library
 
