@@ -1,4 +1,5 @@
 from Standard.Base import all
+from Standard.Table import Fill_With
 
 import project.Internal.IR.Operation_Metadata
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
@@ -6,8 +7,12 @@ import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.Internal_Column.Internal_Column
 
 ## PRIVATE
-make_offset (n : Integer) (colName: Internal_Column) (order_descriptors : Vector Order_Descriptor) (grouping_expressions : Vector SQL_Expression) -> SQL_Expression =
-    params = [SQL_Expression.Literal n.abs.to_text, colName.expression] + order_descriptors + grouping_expressions
-    metadata = Operation_Metadata.Row_Number_Metadata.Value grouping_expressions.length
+make_offset (n : Integer) (colName: Internal_Column) (order_descriptors : Vector Order_Descriptor) (grouping_expressions : Vector SQL_Expression) fill_with:Fill_With -> SQL_Expression =
     lead_lag = if n<0 then "LAG" else "LEAD"
+    fill = case fill_with of
+        Fill_With.Nothing -> ""
+        Fill_With.Closest_Value -> if n<0 then "FIRST_VALUE" else "LAST_VALUE"
+        _ -> ""
+    params = [SQL_Expression.Literal n.abs.to_text, colName.expression, SQL_Expression.Literal fill] + order_descriptors + grouping_expressions
+    metadata = Operation_Metadata.Row_Number_Metadata.Value grouping_expressions.length
     SQL_Expression.Operation lead_lag params metadata
