@@ -477,7 +477,8 @@ case object TailCallMegaPass extends IRPass {
     arg: DefinitionArgument
   ): DefinitionArgument = {
     arg match {
-      case arg @ DefinitionArgument.Specified(_, _, default, _, _, _) =>
+      case arg: DefinitionArgument.Specified =>
+        val default = arg.defaultValue
         arg
           .copy(
             defaultValue =

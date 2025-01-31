@@ -566,23 +566,16 @@ final class SuggestionBuilder[A: IndexedSource](
         (acc, targs.lastOption)
       } else {
         vargs match {
-          case DefinitionArgument.Specified(
-                name: Name.Self,
-                _,
-                defaultValue,
-                suspended,
-                _,
-                _
-              ) +: vtail =>
+          case (defArg: DefinitionArgument.Specified) +: vtail =>
             if (isStatic) {
               go(vtail, targs, acc)
             } else {
               val thisArg = Suggestion.Argument(
-                name         = name.name,
+                name         = defArg.name.name,
                 reprType     = selfType.toString,
-                isSuspended  = suspended,
-                hasDefault   = defaultValue.isDefined,
-                defaultValue = defaultValue.map(buildDefaultValue)
+                isSuspended  = defArg.suspended,
+                hasDefault   = defArg.defaultValue.isDefined,
+                defaultValue = defArg.defaultValue.map(buildDefaultValue)
               )
               go(vtail, targs, acc :+ thisArg)
             }

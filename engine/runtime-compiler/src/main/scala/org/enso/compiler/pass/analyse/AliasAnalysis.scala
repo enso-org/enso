@@ -500,6 +500,13 @@ case object AliasAnalysis extends IRPass {
     }
   }
 
+  private def isSyntheticSelf(name: Name): Boolean = {
+    name match {
+      case Name.Self(_, true, _) => true
+      case _                     => false
+    }
+  }
+
   /** Performs alias analysis on the argument definitions for a function.
     *
     * Care is taken during this analysis to ensure that spurious resolutions do
@@ -519,18 +526,11 @@ case object AliasAnalysis extends IRPass {
     builder: GraphBuilder
   ): List[DefinitionArgument] = {
     args.map {
-      case arg @ DefinitionArgument.Specified(
-            selfName @ Name.Self(_, true, _),
-            _,
-            _,
-            _,
-            _,
-            _
-          ) =>
+      case arg: DefinitionArgument.Specified if isSyntheticSelf(arg.name) =>
         // Synthetic `self` must not be added to the scope, but it has to be added as a
         // definition for frame index metadata
         val definition = builder.newDef(
-          selfName.name,
+          arg.name.name,
           arg.getId(),
           arg.getExternalId
         )
@@ -546,14 +546,10 @@ case object AliasAnalysis extends IRPass {
             ascribedType = arg.ascribedType.map(analyseExpression(_, builder))
           )
 
-      case arg @ DefinitionArgument.Specified(
-            name,
-            _,
-            value,
-            suspended,
-            _,
-            _
-          ) =>
+      case arg: DefinitionArgument.Specified =>
+        val name      = arg.name
+        val value     = arg.defaultValue
+        val suspended = arg.suspended
         val nameOccursInScope =
           builder.findDef(
             name.name

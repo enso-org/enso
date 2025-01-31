@@ -194,16 +194,11 @@ case object UnusedBindings extends IRPass {
     val isUsed = aliasInfo.graph.linksFor(aliasInfo.id).nonEmpty
 
     argument match {
-      case s @ DefinitionArgument.Specified(
-            _: Name.Self,
-            _,
-            _,
-            _,
-            _,
-            _
-          ) =>
+      case s: DefinitionArgument.Specified if s.name.isInstanceOf[Name.Self] =>
         s
-      case s @ DefinitionArgument.Specified(name, _, default, _, _, _) =>
+      case s: DefinitionArgument.Specified =>
+        val name    = s.name
+        val default = s.defaultValue
         if (!isIgnored && !isUsed) {
           val nameToReport = name match {
             case literal: Name.Literal =>
