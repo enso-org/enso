@@ -4,6 +4,10 @@ import { createContextStore } from '.'
 /**
  * A counter context that is counting actively running javascript-based layout animations,
  * interfaced with using `useAnimationReporter` and `useAnimationsState` composables.
+ *
+ * This context supports nesting. Any animation reports within a child context will be
+ * also reported back to parent contexts, to make sure that `anyAnimationActive` property
+ * is correctly representing the whole component subtree, even when nesting is present.
  */
 const [provideAnimationCounter, injectAnimationCounter] = createContextStore(
   'animation counter',
