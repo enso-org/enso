@@ -32,7 +32,7 @@ add_offset_specs suite_builder setup =
     c = t.at 0 
     c_nothings = t.at 1
     c_zero_rows = t.take 0 . at 0
-    suite_builder.group prefix+"Column.Offset with default fill strategy" group_builder->
+    if setup.is_database.not then suite_builder.group prefix+"Column.Offset with default fill strategy" group_builder->
         group_builder.specify "Works with default values" <|
             r = c.offset
             r.to_vector . should_equal [Nothing, 1, 2]
@@ -55,7 +55,7 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Works with zero rows" <|
             r = c_zero_rows.offset
             r.to_vector . should_equal []
-    suite_builder.group prefix+"Column.Offset with closest value fill strategy" group_builder->
+    if setup.is_database.not then suite_builder.group prefix+"Column.Offset with closest value fill strategy" group_builder->
         group_builder.specify "Negative n shifts the values down" <|
             r = c.offset -1 ..Closest_Value
             r.to_vector . should_equal [1, 1, 2]
@@ -80,7 +80,7 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Works with positive n and column of nothings" <|
             r = c_nothings.offset 1 ..Closest_Value
             r.to_vector . should_equal [Nothing, Nothing, Nothing]
-    suite_builder.group prefix+"Column.Offset with wrap around fill strategy" group_builder->
+    if setup.is_database.not then suite_builder.group prefix+"Column.Offset with wrap around fill strategy" group_builder->
         group_builder.specify "Negative n shifts the values down" <|
             r = c.offset -1 ..Wrap_Around
             r.to_vector . should_equal [3, 1, 2]
@@ -111,7 +111,7 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Works with positive n and column of nothings" <|
             r = c_nothings.offset 1 ..Wrap_Around
             r.to_vector . should_equal [Nothing, Nothing, Nothing]
-    suite_builder.group prefix+"Column.Offset with constant fill strategy" pending="TODO - constant fill strategy" group_builder->
+    if setup.is_database.not then suite_builder.group prefix+"Column.Offset with constant fill strategy" pending="TODO - constant fill strategy" group_builder->
         group_builder.specify "Negative n shifts the values down" <|
             r = c.offset -1 42
             r.to_vector . should_equal [42, 1, 2]
@@ -139,7 +139,7 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Can create mixed colums" <|
             r = c.offset -1 "42"
             r.to_vector . should_equal ["42", 1, 2]
-    suite_builder.group prefix+"Works in Table.set expressions with default" group_builder->
+    if setup.is_database.not then suite_builder.group prefix+"Works in Table.set expressions with default" group_builder->
         group_builder.specify "Works with default values" <|
             r = t.set (expr 'offset([A])') . at "offset([A])"
             r.to_vector . should_equal [Nothing, 1, 2]
@@ -347,7 +347,7 @@ add_offset_specs suite_builder setup =
         orderColumn = ["Order", [1, 4, 2, 5, 3]]
         dataCol = ["Col", ["A", "D", "B", "E", "C"]]
         t2 = build_sorted_table [orderColumn, dataCol]
-        group_builder.specify "Negative n shifts the values down" <|
+        group_builder.specify "Negative n shifts the values downX" <|
             t2.offset ["Col"] -1 ..Nothing order_by=["Order"] . should_equal ignore_order=setup.is_database
                 Table.input [orderColumn, dataCol, ["offset([Col], -1, Fill_With.Nothing)", [Nothing, "C", "A", "D", "B"]]]
         group_builder.specify "Positive n shifts the values up" <|

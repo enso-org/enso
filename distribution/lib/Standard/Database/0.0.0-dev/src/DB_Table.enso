@@ -57,6 +57,7 @@ import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Common.Lookup_Query_Helper
+import project.Internal.Common.Offset_Helpers
 import project.Internal.Common.Row_Number_Helpers
 import project.Internal.DB_Data_Link_Helpers
 import project.Internal.Helpers
@@ -3194,9 +3195,42 @@ type DB_Table
     @default (self-> Widget_Helpers.make_fill_default_value_selector2)
     @group_by Widget_Helpers.make_column_name_multi_selector
     @order_by Widget_Helpers.make_order_by_selector
-    offset self columns:(Vector (Integer | Text | Regex | By_Type))=(Missing_Argument.throw "columns") n:Integer=-1 fill_with:Fill_With=..Nothing (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (set_mode:Set_Mode=..Add) (on_problems:Problem_Behavior=..Report_Warning) -> Table =
-        _ = [columns, n, fill_with, group_by, order_by, set_mode, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "offset")
+    offset self columns:(Vector (Integer | Text | Regex | By_Type))=(Missing_Argument.throw "columns") n:Integer=-1 fill_with:Fill_With=..Nothing (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (set_mode:Set_Mode=..Add) (on_problems:Problem_Behavior=..Report_Warning) -> DB_Table =
+        Feature.Offset.if_supported_else_throw self.connection.dialect "offset" <|
+            if columns.is_empty then self else
+                problem_builder = Problem_Builder.new error_on_missing_columns=True
+                grouping_columns = self.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
+                grouping_columns.each column->
+                    if column.value_type.is_floating_point then
+                        problem_builder.report_other_warning (Floating_Point_Equality.Error column.name)
+                ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
+                problem_builder.attach_problems_before on_problems <|
+                    order_descriptors = case ordering.is_empty of
+                        False -> ordering.map element->
+                            column = element.column
+                            associated_selector = element.associated_selector
+                            self.connection.dialect.prepare_order_descriptor column associated_selector.direction text_ordering=Nothing
+                        True -> case self.default_ordering of
+                            Nothing -> Error.throw (Illegal_Argument.Error "The table has no existing ordering (e.g. from a `sort` operation or primary key). `offset` requires an ordering in database.")
+                            descriptors -> descriptors
+                    grouping_expressions = (grouping_columns.map _.as_internal).map .expression
+                    resolved_columns = self.columns_helper.select_columns_helper columns Case_Sensitivity.Default True problem_builder
+                    new_expr = Offset_Helpers.make_offset n (resolved_columns.at 0 . as_internal) order_descriptors grouping_expressions
+
+                    type_mapping = self.connection.dialect.get_type_mapping
+                    infer_from_database_callback expression =
+                        SQL_Type_Reference.new self.connection self.context expression
+                    new_type_ref = type_mapping.infer_return_type infer_from_database_callback "OFFSET" [] new_expr
+                    
+                    name = if set_mode==Set_Mode.Add then self.column_naming_helper.function_name "offset" [resolved_columns.at 0, n, fill_with] else (resolved_columns.at 0).name
+                    new_column = Internal_Column.Value name new_type_ref new_expr
+
+                    rebuild_table columns =
+                        self.updated_columns (columns.map .as_internal)
+                    renamed_table = Add_Row_Number.rename_columns_if_needed self name on_problems rebuild_table
+
+                    updated_table = self.set (self.make_column new_column)
+                    updated_table.as_subquery
 
 ## PRIVATE
 

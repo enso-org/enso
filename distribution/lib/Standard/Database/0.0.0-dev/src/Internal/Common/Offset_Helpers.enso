@@ -1,0 +1,13 @@
+from Standard.Base import all
+
+import project.Internal.IR.Operation_Metadata
+import project.Internal.IR.Order_Descriptor.Order_Descriptor
+import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.Internal_Column.Internal_Column
+
+## PRIVATE
+make_offset (n : Integer) (colName: Internal_Column) (order_descriptors : Vector Order_Descriptor) (grouping_expressions : Vector SQL_Expression) -> SQL_Expression =
+    params = [SQL_Expression.Literal n.abs.to_text, colName.expression] + order_descriptors + grouping_expressions
+    metadata = Operation_Metadata.Row_Number_Metadata.Value grouping_expressions.length
+    lead_lag = if n<0 then "LAG" else "LEAD"
+    SQL_Expression.Operation lead_lag params metadata
