@@ -542,7 +542,7 @@ case object AliasAnalysis extends IRPass {
               alias.AliasMetadata.Occurrence(builder.toGraph(), definition.id)
             )
           )
-          .copy(
+          .copyWithAscribedType(
             ascribedType = arg.ascribedType.map(analyseExpression(_, builder))
           )
 
@@ -581,7 +581,7 @@ case object AliasAnalysis extends IRPass {
             )
         } else {
           arg
-            .copy(
+            .copyWithAscribedType(
               ascribedType = Some(Redefined.Arg(name, arg.identifiedLocation))
             )
             .updateMetadata(

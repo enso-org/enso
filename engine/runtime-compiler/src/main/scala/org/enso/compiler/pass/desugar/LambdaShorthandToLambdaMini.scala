@@ -77,15 +77,15 @@ class LambdaShorthandToLambdaMini(
         new Function.Lambda(
           List(
             new DefinitionArgument.Specified(
-              name = Name.Literal(
+              Name.Literal(
                 newName.name,
                 isMethod = false,
                 null
               ),
-              ascribedType       = None,
-              defaultValue       = None,
-              suspended          = false,
-              identifiedLocation = null
+              None,
+              None,
+              false,
+              null
             )
           ),
           newName,
@@ -160,11 +160,7 @@ class LambdaShorthandToLambdaMini(
                     updatedName.get,
                     isMethod = false,
                     fn.location.orNull
-                  ),
-                None,
-                None,
-                suspended = false,
-                null
+                  )
               )
             ),
             appResult,
@@ -196,13 +192,7 @@ class LambdaShorthandToLambdaMini(
         val locWithoutId =
           newVec.location.map(l => new IdentifiedLocation(l.location()))
         bindings.foldLeft(newVec: Expression) { (body, bindingName) =>
-          val defArg = new DefinitionArgument.Specified(
-            bindingName,
-            ascribedType       = None,
-            defaultValue       = None,
-            suspended          = false,
-            identifiedLocation = null
-          )
+          val defArg = new DefinitionArgument.Specified(bindingName)
           new Function.Lambda(List(defArg), body, locWithoutId.orNull)
         }
 

@@ -286,7 +286,7 @@ case object DemandAnalysis extends IRPass {
     arg match {
       case spec: DefinitionArgument.Specified =>
         val default = spec.defaultValue
-        spec.copy(
+        spec.copyWithDefaultValue(
           defaultValue = default.map(x =>
             analyseExpression(
               x,

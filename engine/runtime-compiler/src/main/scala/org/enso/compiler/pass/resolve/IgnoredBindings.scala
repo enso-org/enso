@@ -214,7 +214,7 @@ case object IgnoredBindings extends IRPass {
           if spec.name.isInstanceOf[Name.Self] =>
         // Note [Ignored `this` Argument]
         spec
-          .copy(defaultValue =
+          .copyWithDefaultValue(
             spec.defaultValue.map(resolveExpression(_, freshNameSupply))
           )
           .updateMetadata(new MetadataPair(this, State.Ignored))
@@ -238,9 +238,8 @@ case object IgnoredBindings extends IRPass {
         } else {
           setNotIgnored(
             spec
-              .copy(
-                defaultValue =
-                  spec.defaultValue.map(resolveExpression(_, freshNameSupply))
+              .copyWithDefaultValue(
+                spec.defaultValue.map(resolveExpression(_, freshNameSupply))
               )
           )
         }

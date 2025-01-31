@@ -205,7 +205,7 @@ case object UnusedBindings extends IRPass {
               literal.originalName.getOrElse(literal)
             case _ => name
           }
-          s.copy(
+          s.copyWithDefaultValue(
             defaultValue = default.map(runExpression(_, context))
           ).addDiagnostic(warnings.Unused.FunctionArgument(nameToReport))
         } else s

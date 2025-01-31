@@ -725,7 +725,7 @@ case object DataflowAnalysis extends IRPass {
         })
 
         spec
-          .copy(
+          .copyWithDefaultValue(
             defaultValue = defValue.map(analyseExpression(_, info))
           )
           .updateMetadata(new MetadataPair(this, info))

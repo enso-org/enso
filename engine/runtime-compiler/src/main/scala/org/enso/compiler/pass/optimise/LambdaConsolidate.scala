@@ -405,6 +405,7 @@ case object LambdaConsolidate extends IRPass {
           } else Set[UUID @Identifier]()
 
         usageIds
+      case _ => Set[UUID @Identifier]()
     }
   }
 
@@ -435,7 +436,8 @@ case object LambdaConsolidate extends IRPass {
               )
           } else oldName
 
-        spec.copy(name = newName)
+        spec.withName(newName)
+      case (arg, _) => arg
     }
   }
 
@@ -468,7 +470,8 @@ case object LambdaConsolidate extends IRPass {
 
     val processedArgList = args.zip(newDefaults).map {
       case (spec: DefinitionArgument.Specified, default) =>
-        spec.copy(defaultValue = default)
+        spec.copyWithDefaultValue(default)
+      case (arg, _) => arg
     }
 
     (processedArgList, newBody)
