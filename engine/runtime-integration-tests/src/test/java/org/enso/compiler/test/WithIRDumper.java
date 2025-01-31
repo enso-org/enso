@@ -11,9 +11,18 @@ public interface WithIRDumper {
 
   default Expression processExprWithDump(
       Expression expr, String graphName, Function<Expression, Expression> transition) {
-    dumper.dump(expr, graphName, "before");
+    return processExprWithDump(expr, graphName, "before", "after", transition);
+  }
+
+  default Expression processExprWithDump(
+      Expression expr,
+      String graphName,
+      String beforeName,
+      String afterName,
+      Function<Expression, Expression> transition) {
+    dumper.dump(expr, graphName, beforeName);
     var newIr = transition.apply(expr);
-    dumper.dump(newIr, graphName, "after");
+    dumper.dump(newIr, graphName, afterName);
     return newIr;
   }
 
