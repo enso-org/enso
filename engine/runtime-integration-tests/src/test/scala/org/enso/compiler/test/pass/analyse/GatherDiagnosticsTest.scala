@@ -38,14 +38,13 @@ class GatherDiagnosticsTest extends CompilerTest {
     )
     val lam = new Function.Lambda(
       List(
-        DefinitionArgument
-          .Specified(
-            Name.Literal("bar", isMethod = false, identifiedLocation = null),
-            None,
-            None,
-            suspended          = false,
-            identifiedLocation = null
-          )
+        new DefinitionArgument.Specified(
+          Name.Literal("bar", isMethod = false, identifiedLocation = null),
+          None,
+          None,
+          suspended          = false,
+          identifiedLocation = null
+        )
       ),
       plusApp,
       identifiedLocation = null
@@ -93,14 +92,13 @@ class GatherDiagnosticsTest extends CompilerTest {
           Definition.Type(
             typeName,
             List(
-              DefinitionArgument
-                .Specified(
-                  fooName,
-                  None,
-                  Some(error2),
-                  suspended          = false,
-                  identifiedLocation = null
-                )
+              new DefinitionArgument.Specified(
+                fooName,
+                None,
+                Some(error2),
+                suspended          = false,
+                identifiedLocation = null
+              )
             ),
             List(),
             identifiedLocation = null

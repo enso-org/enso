@@ -150,7 +150,7 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
 
         new Function.Lambda(
           List(
-            DefinitionArgument.Specified(
+            new DefinitionArgument.Specified(
               name = Name.Literal(
                 newName.name,
                 isMethod = false,
@@ -234,7 +234,7 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
         val resultExpr = if (functionIsShorthand) {
           new Function.Lambda(
             List(
-              DefinitionArgument.Specified(
+              new DefinitionArgument.Specified(
                 Name
                   .Literal(
                     updatedName.get,
@@ -277,7 +277,7 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
         val locWithoutId =
           newVec.location.map(l => new IdentifiedLocation(l.location()))
         bindings.foldLeft(newVec: Expression) { (body, bindingName) =>
-          val defArg = DefinitionArgument.Specified(
+          val defArg = new DefinitionArgument.Specified(
             bindingName,
             ascribedType       = None,
             defaultValue       = None,
@@ -418,7 +418,7 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
               diagnostics = nameBlank.diagnostics
             )
 
-        val lambdaArg = DefinitionArgument.Specified(
+        val lambdaArg = new DefinitionArgument.Specified(
           scrutineeName.copy(id = null),
           None,
           None,
