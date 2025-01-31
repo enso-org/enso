@@ -202,9 +202,9 @@ add_offset_specs suite_builder setup =
                 Table.input [colText, ["offset([Text Values], 2, Fill_With.Nothing)", ["C", Nothing, Nothing]]]
     suite_builder.group prefix+"Table.Offset with closest value fill strategy" group_builder->
         colA = ["A", [1, 2, 3]]
-        colB = ["B", [Nothing, Nothing, Nothing]]
+        colB = ["B", [Nothing, Nothing, Nothing], Value_Type.Integer]
         t1 = build_sorted_table [colA, colB]
-        group_builder.specify "Negative n shifts the values down" <|
+        group_builder.specify "Negative n shifts the values downX" <|
             t1.offset ["A"] -1 ..Closest_Value . should_equal ignore_order=setup.is_database
                 Table.input [colA, colB, ["offset([A], -1, Fill_With.Closest_Value)", [1, 1, 2]]]
         group_builder.specify "Positive n shifts the values up" <|
@@ -224,13 +224,13 @@ add_offset_specs suite_builder setup =
                 Table.input [["A", [], Value_Type.Integer], ["B", []], ["offset([A], -1, Fill_With.Closest_Value)", [], Value_Type.Integer]]
         group_builder.specify "Works with negative n and column of nothings" <|
             t1.offset ["B"] -1 ..Closest_Value . should_equal ignore_order=setup.is_database
-                Table.input [colA, colB, ["offset([B], -1, Fill_With.Closest_Value)", [Nothing, Nothing, Nothing]]]
+                Table.input [colA, colB, ["offset([B], -1, Fill_With.Closest_Value)", [Nothing, Nothing, Nothing], Value_Type.Integer]]
         group_builder.specify "Works with positive n and column of nothings" <|
             t1.offset ["B"] 1 ..Closest_Value . should_equal ignore_order=setup.is_database
-                Table.input [colA, colB, ["offset([B], 1, Fill_With.Closest_Value)", [Nothing, Nothing, Nothing]]]
+                Table.input [colA, colB, ["offset([B], 1, Fill_With.Closest_Value)", [Nothing, Nothing, Nothing], Value_Type.Integer]]
     suite_builder.group prefix+"Table.Offset with wrap around fill strategy" group_builder->
         colA = ["A", [1, 2, 3]]
-        colB = ["B", [Nothing, Nothing, Nothing]]
+        colB = ["B", [Nothing, Nothing, Nothing], Value_Type.Integer]
         t1 = build_sorted_table [colA, colB]
         group_builder.specify "Negative n shifts the values down" <|
             t1.offset ["A"] -1 ..Wrap_Around . should_equal ignore_order=setup.is_database
@@ -264,10 +264,10 @@ add_offset_specs suite_builder setup =
                 Table.input [["A", [], Value_Type.Integer], ["B", []], ["offset([A], -1, Fill_With.Wrap_Around)", [], Value_Type.Integer]]
         group_builder.specify "Works with negative n and column of nothings" <|
             t1.offset ["B"] -1 ..Wrap_Around . should_equal ignore_order=setup.is_database
-                Table.input [colA, colB, ["offset([B], -1, Fill_With.Wrap_Around)", [Nothing, Nothing, Nothing]]]
+                Table.input [colA, colB, ["offset([B], -1, Fill_With.Wrap_Around)", [Nothing, Nothing, Nothing], Value_Type.Integer]]
         group_builder.specify "Works with positive n and column of nothings" <|
             t1.offset ["B"] 1 ..Wrap_Around . should_equal ignore_order=setup.is_database
-                Table.input [colA, colB, ["offset([B], 1, Fill_With.Wrap_Around)", [Nothing, Nothing, Nothing]]]
+                Table.input [colA, colB, ["offset([B], 1, Fill_With.Wrap_Around)", [Nothing, Nothing, Nothing], Value_Type.Integer]]
     suite_builder.group prefix+"Table.Offset works with grouping - default fill strategy" group_builder->
         groupColumn = ["Group", ["A", "A", "A", "B", "B", "B", "B", "C", "C"]]
         dataCol = ["Col", [1, 2, 3, 1, 2, 3, 4, 1, 2]]
