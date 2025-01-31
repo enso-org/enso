@@ -3422,7 +3422,6 @@ lazy val `runtime-compiler-dump` =
     .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
-      javaModuleName := "org.enso.runtime.compiler.dump",
       Compile / internalModuleDependencies := {
         val transitiveDeps =
           (`runtime-parser` / Compile / internalModuleDependencies).value
