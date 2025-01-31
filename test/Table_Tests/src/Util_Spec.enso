@@ -94,7 +94,6 @@ add_specs suite_builder =
             actual_column = Column.from_vector "Col" [1.0, 2.0, Number.nan]
             actual_column.should_equal expected_column
         group_builder.specify "Two Columns Containing Nothing Are Equal" <|
-            # This is somewhat of a special case, as Nothing != Nothing but for the purposes of testing we consider them equal
             expected_column = Column.from_vector "Col" [1.0, 2.0, Nothing]
             actual_column = Column.from_vector "Col" [1.0, 2.0, Nothing]
             actual_column.should_equal expected_column
