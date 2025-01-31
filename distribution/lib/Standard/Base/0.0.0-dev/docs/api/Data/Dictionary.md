@@ -1,0 +1,32 @@
+## Enso Signatures 1.0
+## module Standard.Base.Data.Dictionary
+- type Dictionary key:Standard.Base.Any.Any value:Standard.Base.Any.Any
+    - at self key:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - contains_key self key:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - each self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - each_with_key self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - empty -> Standard.Base.Any.Any
+    - fold self init:Standard.Base.Any.Any function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - fold_with_key self init:Standard.Base.Any.Any function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - from_keys_and_values keys:Standard.Base.Data.Vector.Vector values:Standard.Base.Data.Vector.Vector error_on_duplicates:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - from_vector vec:Standard.Base.Any.Any error_on_duplicates:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - get self key:Standard.Base.Any.Any ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - get_builtin self key:Standard.Base.Any.Any ~if_missing:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - insert self key:Standard.Base.Any.Any= value:Standard.Base.Any.Any= no_warning:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - is_empty self -> Standard.Base.Any.Any
+    - keys self -> Standard.Base.Any.Any
+    - length self -> Standard.Base.Any.Any
+    - map self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - map_keys self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - map_with_key self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - not_empty self -> Standard.Base.Any.Any
+    - remove self key:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - singleton key:Standard.Base.Any.Any value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - size self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+    - to_vector self -> Standard.Base.Any.Any
+    - transform self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - values self -> Standard.Base.Any.Any
+- key_value_widget -> Standard.Base.Metadata.Widget
+- key_widget dict:Standard.Base.Data.Dictionary.Dictionary -> Standard.Base.Metadata.Widget
+- Standard.Base.Data.Dictionary.Dictionary.from that:Standard.Base.Data.Vector.Vector -> Standard.Base.Data.Dictionary.Dictionary

@@ -1,0 +1,94 @@
+## Enso Signatures 1.0
+## module Standard.Base.Data.Numbers
+- type Float
+    - % self that:Standard.Base.Data.Numbers.Number -> Standard.Base.Any.Any
+    - * self that:Standard.Base.Data.Numbers.Number -> Standard.Base.Data.Numbers.Number
+    - + self that:Standard.Base.Data.Numbers.Number -> Standard.Base.Data.Numbers.Number
+    - - self that:Standard.Base.Data.Numbers.Number -> Standard.Base.Data.Numbers.Number
+    - / self that:Standard.Base.Data.Numbers.Number -> Standard.Base.Data.Numbers.Number
+    - < self that:Standard.Base.Data.Numbers.Number -> Standard.Base.Data.Boolean.Boolean
+    - <= self that:Standard.Base.Data.Numbers.Number -> Standard.Base.Data.Boolean.Boolean
+    - > self that:Standard.Base.Data.Numbers.Number -> Standard.Base.Data.Boolean.Boolean
+    - >= self that:Standard.Base.Data.Numbers.Number -> Standard.Base.Data.Boolean.Boolean
+    - ^ self that:Standard.Base.Data.Numbers.Number -> Standard.Base.Data.Numbers.Number
+    - abs self -> Standard.Base.Data.Numbers.Float
+    - ceil self -> Standard.Base.Data.Numbers.Integer
+    - floor self -> Standard.Base.Data.Numbers.Integer
+    - max_value -> Standard.Base.Any.Any
+    - min_value -> Standard.Base.Any.Any
+    - negate self -> Standard.Base.Data.Numbers.Float
+    - parse text:Standard.Base.Data.Text.Text locale:(Standard.Base.Data.Locale.Locale|Standard.Base.Nothing.Nothing)= format:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
+    - round self decimal_places:Standard.Base.Data.Numbers.Integer= use_bankers:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - to_decimal self -> Standard.Base.Data.Decimal.Decimal
+    - to_float self -> Standard.Base.Data.Numbers.Float
+    - truncate self -> Standard.Base.Data.Numbers.Integer
+- type Integer
+    - % self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
+    - * self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Integer
+    - + self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Integer
+    - - self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Integer
+    - / self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Number
+    - < self that:Standard.Base.Data.Numbers.Number -> Standard.Base.Data.Boolean.Boolean
+    - <= self that:Standard.Base.Data.Numbers.Number -> Standard.Base.Data.Boolean.Boolean
+    - > self that:Standard.Base.Data.Numbers.Number -> Standard.Base.Data.Boolean.Boolean
+    - >= self that:Standard.Base.Data.Numbers.Number -> Standard.Base.Data.Boolean.Boolean
+    - ^ self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Number
+    - abs self -> Standard.Base.Data.Numbers.Integer
+    - bit_and self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Integer
+    - bit_not self -> Standard.Base.Data.Numbers.Integer
+    - bit_or self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Integer
+    - bit_shift self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
+    - bit_shift_l self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
+    - bit_shift_r self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
+    - bit_xor self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Integer
+    - ceil self -> Standard.Base.Data.Numbers.Integer
+    - div self that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
+    - fits_in_long self -> Standard.Base.Data.Boolean.Boolean
+    - floor self -> Standard.Base.Data.Numbers.Integer
+    - negate self -> Standard.Base.Data.Numbers.Integer
+    - parse text:Standard.Base.Data.Text.Text radix:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - round self decimal_places:Standard.Base.Data.Numbers.Integer= use_bankers:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - to_decimal self -> Standard.Base.Data.Decimal.Decimal
+    - to_float self -> Standard.Base.Data.Numbers.Float
+    - truncate self -> Standard.Base.Data.Numbers.Integer
+- type Number
+    - * self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - + self that:Standard.Base.Data.Numbers.Number -> Standard.Base.Data.Numbers.Number
+    - - self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - / self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - ^ self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - acos self -> Standard.Base.Any.Any
+    - asin self -> Standard.Base.Any.Any
+    - atan self -> Standard.Base.Any.Any
+    - atan_2 self y:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - cos self -> Standard.Base.Any.Any
+    - cosh self -> Standard.Base.Any.Any
+    - equals self that:Standard.Base.Data.Numbers.Number epsilon:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - exp self -> Standard.Base.Any.Any
+    - format self format:Standard.Base.Data.Text.Text= locale:Standard.Base.Data.Locale.Locale= -> Standard.Base.Any.Any
+    - is_finite self -> Standard.Base.Any.Any
+    - is_infinite self -> Standard.Base.Any.Any
+    - is_nan self -> Standard.Base.Any.Any
+    - ln self -> Standard.Base.Any.Any
+    - log self base:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - max self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - min self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - nan -> Standard.Base.Any.Any
+    - negative_infinity -> Standard.Base.Any.Any
+    - positive_infinity -> Standard.Base.Any.Any
+    - signum self -> Standard.Base.Any.Any
+    - sin self -> Standard.Base.Any.Any
+    - sinh self -> Standard.Base.Any.Any
+    - sqrt self -> Standard.Base.Any.Any
+    - tan self -> Standard.Base.Any.Any
+    - tanh self -> Standard.Base.Any.Any
+- Standard.Base.Data.Numbers.Integer.from that:Standard.Base.Data.Numbers.Positive_Integer -> Standard.Base.Data.Numbers.Integer
+- type Number_Parse_Error
+    - Error text:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- Standard.Base.Data.Numbers.Float.from that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Float
+- type Positive_Integer
+    - Value integer:Standard.Base.Data.Numbers.Integer
+    - new integer:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
+- Standard.Base.Data.Numbers.Positive_Integer.from that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Positive_Integer
+- Standard.Base.Data.Ordering.Comparable.from that:Standard.Base.Data.Numbers.Positive_Integer -> Standard.Base.Data.Ordering.Comparable

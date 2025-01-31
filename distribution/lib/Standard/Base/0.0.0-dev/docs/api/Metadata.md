@@ -1,0 +1,23 @@
+## Enso Signatures 1.0
+## module Standard.Base.Metadata
+- type Choice
+    - Option label:Standard.Base.Data.Text.Text value:Standard.Base.Data.Text.Text= parameters:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)= icon:Standard.Base.Data.Text.Text=
+- type Display
+    - Always
+    - Expanded_Only
+    - When_Modified
+- type File_Action
+    - Open
+    - Save
+- type Widget
+    - Boolean_Input label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display=
+    - Code_Input label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display=
+    - File_Browse existing_only:Standard.Base.Data.Boolean.Boolean= label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display= action:Standard.Base.Metadata.File_Action= file_types:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Pair.Pair)=
+    - Folder_Browse label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display=
+    - Multiple_Choice values:(Standard.Base.Data.Vector.Vector Standard.Base.Metadata.Choice) label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display= quote_values:Standard.Base.Data.Boolean.Boolean=
+    - Numeric_Input label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display= minimum:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)= maximum:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)= step:Standard.Base.Data.Numbers.Number= decimal_places:Standard.Base.Data.Numbers.Integer= allow_outside:Standard.Base.Data.Boolean.Boolean=
+    - Single_Choice values:(Standard.Base.Data.Vector.Vector Standard.Base.Metadata.Choice) label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display= allow_custom:Standard.Base.Data.Boolean.Boolean=
+    - Text_Input label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display= quote_values:Standard.Base.Data.Boolean.Boolean= suggestions:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)=
+    - Vector_Editor item_editor:Standard.Base.Metadata.Widget item_default:Standard.Base.Data.Text.Text label:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Text.Text)= display:Standard.Base.Metadata.Display=
+    - to_js_object self -> Standard.Base.Any.Any
+- make_single_choice values:Standard.Base.Data.Vector.Vector display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
