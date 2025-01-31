@@ -292,6 +292,7 @@ type SQLServer_Dialect
             Feature.Join -> True
             Feature.Union -> True
             Feature.Aggregate -> True
+            Feature.Offset -> True
             _ -> False
 
     ## PRIVATE
