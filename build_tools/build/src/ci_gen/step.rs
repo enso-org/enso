@@ -57,3 +57,11 @@ pub fn upload_artifact(step_name: impl Into<String>) -> Step {
         ..default()
     }
 }
+
+pub fn download_artifact(step_name: impl Into<String>) -> Step {
+    Step {
+        name: Some(step_name.into()),
+        uses: Some("actions/download-artifact@v4".into()),
+        ..default()
+    }
+}

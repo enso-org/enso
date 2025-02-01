@@ -265,7 +265,13 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide build --backend-source current-ci-run --gui-upload-artifact false
+      - name: Download project-manager
+        uses: actions/download-artifact@v4
+        with:
+          name: project-manager-linux
+          path: dist/backend
+      - run: ls -l dist; ls -l dist/backend
+      - run: ./run ide build --backend-source local --gui-upload-artifact false
         env:
           ENSO_IDE_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
           ENSO_IDE_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
@@ -343,7 +349,13 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide build --backend-source current-ci-run --gui-upload-artifact false
+      - name: Download project-manager
+        uses: actions/download-artifact@v4
+        with:
+          name: project-manager-windows
+          path: dist/backend
+      - run: ls -l dist; ls -l dist/backend
+      - run: ./run ide build --backend-source local --gui-upload-artifact false
         env:
           ENSO_IDE_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
           ENSO_IDE_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}

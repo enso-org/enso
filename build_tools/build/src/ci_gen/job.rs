@@ -654,10 +654,22 @@ pub struct PackageIde;
 impl JobArchetype for PackageIde {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new(
-            "ide build --backend-source current-ci-run --gui-upload-artifact false",
+            "ide build --backend-source local --gui-upload-artifact false",
         )
         .customize(move |step| {
             let mut steps = prepare_packaging_steps(target.0, step, PackagingTarget::Development);
+
+            let ls = Step {
+                run: Some("ls -l dist; ls -l dist/backend".into()),
+                ..Default::default()
+            };
+            steps.insert(0, ls);
+
+            let download_project_manager = step::download_artifact("Download project-manager")
+                .with_custom_argument("name", format!("project-manager-{}", target.0))
+                .with_custom_argument("path", "dist/backend");
+            steps.insert(0, download_project_manager);
+
             const TEST_COMMAND: &str = "corepack pnpm -r --filter enso exec playwright test";
             let test_step = match target.0 {
                 OS::Linux => shell(format!("xvfb-run {TEST_COMMAND}"))

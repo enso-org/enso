@@ -150,7 +150,13 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide build --backend-source current-ci-run --gui-upload-artifact false
+      - name: Download project-manager
+        uses: actions/download-artifact@v4
+        with:
+          name: project-manager-macos
+          path: dist/backend
+      - run: ls -l dist; ls -l dist/backend
+      - run: ./run ide build --backend-source local --gui-upload-artifact false
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
           APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
