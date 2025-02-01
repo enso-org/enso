@@ -28,7 +28,7 @@ impl ExternalSource {
 #[derive(Clone, Debug)]
 pub struct BuildSource<Target: IsTarget> {
     /// Data needed to build the target.
-    pub input:                  Target::BuildInput,
+    pub input: Target::BuildInput,
 }
 
 /// Describes how to get a target.

@@ -667,93 +667,97 @@ pub struct PackageIde;
 
 impl JobArchetype for PackageIde {
     fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new(
-            "ide build --backend-source local --gui-upload-artifact false",
-        )
-        .customize(move |step| {
-            let mut steps = vec![];
+        RunStepsBuilder::new("ide build --backend-source local --gui-upload-artifact false")
+            .customize(move |step| {
+                let mut steps = vec![];
 
-            let ls = Step {
-                run: Some("ls -l dist; ls -l dist/backend".into()),
-                ..Default::default()
-            };
-            steps.push(ls);
+                let ls = Step {
+                    run: Some("ls -l dist; ls -l dist/backend".into()),
+                    ..Default::default()
+                };
+                steps.push(ls);
 
-            let download_project_manager = step::download_artifact("Download project-manager")
-                .with_custom_argument("name", format!("project-manager-{}", target.0));
-            steps.push(download_project_manager);
+                let download_project_manager = step::download_artifact("Download project-manager")
+                    .with_custom_argument("name", format!("project-manager-{}", target.0));
+                steps.push(download_project_manager);
 
-            let unpack_project_manager = Step {
-                run: Some("
-mkdir -p dist/backend
+                let unpack_project_manager = Step {
+                    run: Some(
+                        "mkdir -p dist/backend
 tar -xvf project-manager.tar -C dist/backend
-rm project-manager.tar".into()),
-                ..Default::default()
-            };
-            steps.push(unpack_project_manager);
+rm project-manager.tar"
+                            .into(),
+                    ),
+                    ..Default::default()
+                };
+                steps.push(unpack_project_manager);
 
-            let ls1 = Step {
-                run: Some("ls -l dist; ls -l dist/backend".into()),
-                ..Default::default()
-            };
-            steps.push(ls1);
+                let ls1 = Step {
+                    run: Some("ls -l dist; ls -l dist/backend".into()),
+                    ..Default::default()
+                };
+                steps.push(ls1);
 
-            let mut packaging_steps = prepare_packaging_steps(target.0, step, PackagingTarget::Development);
-            steps.append(&mut packaging_steps);
+                let mut packaging_steps =
+                    prepare_packaging_steps(target.0, step, PackagingTarget::Development);
+                steps.append(&mut packaging_steps);
 
-            const TEST_COMMAND: &str = "corepack pnpm -r --filter enso exec playwright test";
-            let test_step = match target.0 {
-                OS::Linux => shell(format!("xvfb-run {TEST_COMMAND}"))
-                    // See https://askubuntu.com/questions/1512287/obsidian-appimage-the-suid-sandbox-helper-binary-was-found-but-is-not-configu
-                    .with_env("ENSO_TEST_APP_ARGS", "--no-sandbox"),
+                const TEST_COMMAND: &str = "corepack pnpm -r --filter enso exec playwright test";
+                let test_step = match target.0 {
+                    OS::Linux => shell(format!("xvfb-run {TEST_COMMAND}"))
+                        // See https://askubuntu.com/questions/1512287/obsidian-appimage-the-suid-sandbox-helper-binary-was-found-but-is-not-configu
+                        .with_env("ENSO_TEST_APP_ARGS", "--no-sandbox"),
 
-                OS::MacOS =>
-                // MacOS CI runners are very slow
-                    shell(format!("{TEST_COMMAND} --timeout 300000")),
-                _ => shell(TEST_COMMAND),
-            };
-            let test_step = test_step
-                .with_env("DEBUG", "pw:browser log:")
-                .with_secret_exposed_as(secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME, "ENSO_TEST_USER")
-                .with_secret_exposed_as(
-                    secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
-                    "ENSO_TEST_USER_PASSWORD",
-                );
-            steps.push(test_step);
+                    OS::MacOS =>
+                    // MacOS CI runners are very slow
+                        shell(format!("{TEST_COMMAND} --timeout 300000")),
+                    _ => shell(TEST_COMMAND),
+                };
+                let test_step = test_step
+                    .with_env("DEBUG", "pw:browser log:")
+                    .with_secret_exposed_as(
+                        secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME,
+                        "ENSO_TEST_USER",
+                    )
+                    .with_secret_exposed_as(
+                        secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
+                        "ENSO_TEST_USER_PASSWORD",
+                    );
+                steps.push(test_step);
 
-            let upload_test_traces_step = Step {
-                r#if: Some("failure()".into()),
-                name: Some("Upload Test Traces".into()),
-                uses: Some("actions/upload-artifact@v4".into()),
-                with: Some(Argument::Other(BTreeMap::from_iter([
-                    ("name".into(), format!("test-traces-{}-{}", target.0, target.1).into()),
-                    ("path".into(), "app/ide-desktop/client/test-traces".into()),
-                    ("compression-level".into(), 0.into()), // The traces are in zip already.
-                ]))),
-                ..Default::default()
-            };
-            steps.push(upload_test_traces_step);
+                let upload_test_traces_step = Step {
+                    r#if: Some("failure()".into()),
+                    name: Some("Upload Test Traces".into()),
+                    uses: Some("actions/upload-artifact@v4".into()),
+                    with: Some(Argument::Other(BTreeMap::from_iter([
+                        ("name".into(), format!("test-traces-{}-{}", target.0, target.1).into()),
+                        ("path".into(), "app/ide-desktop/client/test-traces".into()),
+                        ("compression-level".into(), 0.into()), // The traces are in zip already.
+                    ]))),
+                    ..Default::default()
+                };
+                steps.push(upload_test_traces_step);
 
-            let upload_ide = step::upload_artifact("Upload ide")
-                .with_custom_argument("name", format!("ide-{}", target.0))
-                .with_custom_argument(
-                    "path",
-                    format!("dist/ide/enso-*.{}", target.0.package_extension()),
-                );
-            steps.push(upload_ide);
+                let upload_ide = step::upload_artifact("Upload ide")
+                    .with_custom_argument("name", format!("ide-{}", target.0))
+                    .with_custom_argument(
+                        "path",
+                        format!("dist/ide/enso-*.{}", target.0.package_extension()),
+                    );
+                steps.push(upload_ide);
 
-            // After the E2E tests run, they create a credentials file in user home directory.
-            // If that file is not cleaned up, future runs of our tests may randomly get
-            // authenticated into Enso Cloud. We want to run tests as an authenticated
-            // user only when we explicitly set that up, not randomly. So we clean the credentials
-            // file.
-            let cloud_credentials_path = "$HOME/.enso/credentials";
-            let cleanup_credentials_step = shell(format!("rm {cloud_credentials_path}"));
-            steps.push(cleanup_credentials_step);
+                // After the E2E tests run, they create a credentials file in user home directory.
+                // If that file is not cleaned up, future runs of our tests may randomly get
+                // authenticated into Enso Cloud. We want to run tests as an authenticated
+                // user only when we explicitly set that up, not randomly. So we clean the
+                // credentials file.
+                let cloud_credentials_path = "$HOME/.enso/credentials";
+                let cleanup_credentials_step = shell(format!("rm {cloud_credentials_path}"));
+                steps.push(cleanup_credentials_step);
 
-            steps
-        })
-        .build_job("Package New IDE", target)
+                steps
+            })
+            .build_job("Package New IDE", target)
     }
 }
 

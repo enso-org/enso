@@ -136,9 +136,7 @@ impl Processor {
         let destination = source.output_path.output_path;
         let source = match source.source {
             arg::SourceKind::Build => T::resolve(self, source.build_args.input)
-                .map_ok(move |input| {
-                    Source::BuildLocally(BuildSource { input })
-                })
+                .map_ok(move |input| Source::BuildLocally(BuildSource { input }))
                 .boxed(),
             arg::SourceKind::Local =>
                 ok_ready_boxed(Source::External(ExternalSource::LocalFile(source.path))),
@@ -211,12 +209,7 @@ impl Processor {
         let BuildJob { input: BuildDescription { input, .. }, output_path } = job;
         let input = self.resolve_inputs::<T>(input);
         async move {
-            Ok(WithDestination::new(
-                BuildSource {
-                    input:                  input.await?,
-                },
-                output_path.output_path,
-            ))
+            Ok(WithDestination::new(BuildSource { input: input.await? }, output_path.output_path))
         }
         .boxed()
     }
