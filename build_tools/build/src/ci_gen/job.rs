@@ -672,14 +672,14 @@ impl JobArchetype for PackageIde {
                 let mut steps = vec![];
 
                 let download_project_manager = step::download_artifact("Download project-manager")
-                    .with_custom_argument("name", format!("project-manager-{}", target.0));
+                    .with_custom_argument("name", format!("project-manager-{}", target.0))
+                    .with_custom_argument("path", "dist/backend");
                 steps.push(download_project_manager);
 
                 let unpack_project_manager = Step {
                     run: Some(
-                        "mkdir -p dist/backend
-tar -xvf project-manager.tar -C dist/backend
-rm project-manager.tar"
+                        "tar -xvf dist/backend/project-manager.tar -C dist/backend
+rm dist/backend/project-manager.tar"
                             .into(),
                     ),
                     ..Default::default()

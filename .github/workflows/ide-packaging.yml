@@ -277,10 +277,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: project-manager-linux
+          path: dist/backend
       - run: |-
-          mkdir -p dist/backend
-          tar -xvf project-manager.tar -C dist/backend
-          rm project-manager.tar
+          tar -xvf dist/backend/project-manager.tar -C dist/backend
+          rm dist/backend/project-manager.tar
       - run: ls -l dist; ls -l dist/backend
       - run: ./run ide build --backend-source local --gui-upload-artifact false
         env:
@@ -364,10 +364,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: project-manager-windows
+          path: dist/backend
       - run: |-
-          mkdir -p dist/backend
-          tar -xvf project-manager.tar -C dist/backend
-          rm project-manager.tar
+          tar -xvf dist/backend/project-manager.tar -C dist/backend
+          rm dist/backend/project-manager.tar
       - run: ls -l dist; ls -l dist/backend
       - run: ./run ide build --backend-source local --gui-upload-artifact false
         env:
