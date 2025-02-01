@@ -671,12 +671,6 @@ impl JobArchetype for PackageIde {
             .customize(move |step| {
                 let mut steps = vec![];
 
-                let ls = Step {
-                    run: Some("ls -l dist; ls -l dist/backend".into()),
-                    ..Default::default()
-                };
-                steps.push(ls);
-
                 let download_project_manager = step::download_artifact("Download project-manager")
                     .with_custom_argument("name", format!("project-manager-{}", target.0));
                 steps.push(download_project_manager);

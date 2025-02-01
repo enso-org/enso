@@ -154,7 +154,6 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ls -l dist; ls -l dist/backend
       - name: Download project-manager
         uses: actions/download-artifact@v4
         with:
