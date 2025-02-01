@@ -501,10 +501,24 @@ impl JobArchetype for BuildBackend {
                     steps.push(upload_fbs_schema)
                 }
 
+                let archive_project_manager = Step {
+                    name: Some("Archive project-manager".into()),
+                    run: Some("tar -cvf project-manager.tar -C dist/backend .".into()),
+                    ..Default::default()
+                };
+                steps.push(archive_project_manager);
+
                 let upload_project_manager = step::upload_artifact("Upload project-manager")
                     .with_custom_argument("name", format!("project-manager-{}", target.0))
-                    .with_custom_argument("path", "dist/backend/");
+                    .with_custom_argument("path", "project-manager.tar");
                 steps.push(upload_project_manager);
+
+                let cleanup = Step {
+                    name: Some("Cleanup".into()),
+                    run: Some("rm project-manager.tar".into()),
+                    ..Default::default()
+                };
+                steps.push(cleanup);
 
                 steps
             })
@@ -657,18 +671,34 @@ impl JobArchetype for PackageIde {
             "ide build --backend-source local --gui-upload-artifact false",
         )
         .customize(move |step| {
-            let mut steps = prepare_packaging_steps(target.0, step, PackagingTarget::Development);
+            let mut steps = vec![];
 
             let ls = Step {
                 run: Some("ls -l dist; ls -l dist/backend".into()),
                 ..Default::default()
             };
-            steps.insert(0, ls);
+            steps.push(ls);
 
             let download_project_manager = step::download_artifact("Download project-manager")
-                .with_custom_argument("name", format!("project-manager-{}", target.0))
-                .with_custom_argument("path", "dist/backend");
-            steps.insert(0, download_project_manager);
+                .with_custom_argument("name", format!("project-manager-{}", target.0));
+            steps.push(download_project_manager);
+
+            let unpack_project_manager = Step {
+                run: Some(r#"| mkdir -p dist/backend
+| tar -xvf project-manager.tar -C dist/backend
+| rm project-manager.tar"#.into()),
+                ..Default::default()
+            };
+            steps.push(unpack_project_manager);
+
+            let ls1 = Step {
+                run: Some("ls -l dist; ls -l dist/backend".into()),
+                ..Default::default()
+            };
+            steps.push(ls1);
+
+            let mut packaging_steps = prepare_packaging_steps(target.0, step, PackagingTarget::Development);
+            steps.append(&mut packaging_steps);
 
             const TEST_COMMAND: &str = "corepack pnpm -r --filter enso exec playwright test";
             let test_step = match target.0 {

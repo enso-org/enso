@@ -51,11 +51,15 @@ jobs:
       - run: ./run backend get
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Archive project-manager
+        run: tar -cvf project-manager.tar -C dist/backend .
       - name: Upload project-manager
         uses: actions/upload-artifact@v4
         with:
           name: project-manager-macos
-          path: dist/backend/
+          path: project-manager.tar
+      - name: Cleanup
+        run: rm project-manager.tar
       - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
@@ -150,11 +154,15 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: ls -l dist; ls -l dist/backend
       - name: Download project-manager
         uses: actions/download-artifact@v4
         with:
           name: project-manager-macos
-          path: dist/backend
+      - run: |-
+          | mkdir -p dist/backend
+          | tar -xvf project-manager.tar -C dist/backend
+          | rm project-manager.tar
       - run: ls -l dist; ls -l dist/backend
       - run: ./run ide build --backend-source local --gui-upload-artifact false
         env:
