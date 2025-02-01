@@ -160,9 +160,9 @@ jobs:
         with:
           name: project-manager-macos
       - run: |-
-          | mkdir -p dist/backend
-          | tar -xvf project-manager.tar -C dist/backend
-          | rm project-manager.tar
+          |- mkdir -p dist/backend
+          |- tar -xvf project-manager.tar -C dist/backend
+          |- rm project-manager.tar
       - run: ls -l dist; ls -l dist/backend
       - run: ./run ide build --backend-source local --gui-upload-artifact false
         env:

@@ -684,9 +684,9 @@ impl JobArchetype for PackageIde {
             steps.push(download_project_manager);
 
             let unpack_project_manager = Step {
-                run: Some(r#"| mkdir -p dist/backend
-| tar -xvf project-manager.tar -C dist/backend
-| rm project-manager.tar"#.into()),
+                run: Some(r#"|- mkdir -p dist/backend
+|- tar -xvf project-manager.tar -C dist/backend
+|- rm project-manager.tar"#.into()),
                 ..Default::default()
             };
             steps.push(unpack_project_manager);
