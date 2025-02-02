@@ -246,9 +246,28 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend upload
+      - run: ./run backend get
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Edition File
+        uses: actions/upload-artifact@v4
+        with:
+          name: Edition File
+          path: distribution/editions/*.yaml
+      - name: Upload fbs-schema
+        uses: actions/upload-artifact@v4
+        with:
+          name: fbs-schema
+          path: engine/language-server/src/main/schema/
+      - name: Archive project-manager
+        run: tar -cvf project-manager.tar -C dist/backend .
+      - name: Upload project-manager
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-manager-linux
+          path: project-manager.tar
+      - name: Cleanup
+        run: rm project-manager.tar
       - if: (always())
         name: Clean after
         run: ./run git-clean
@@ -293,9 +312,18 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend upload
+      - run: ./run backend get
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Archive project-manager
+        run: tar -cvf project-manager.tar -C dist/backend .
+      - name: Upload project-manager
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-manager-macos
+          path: project-manager.tar
+      - name: Cleanup
+        run: rm project-manager.tar
       - if: (always())
         name: Clean after
         run: ./run git-clean
@@ -338,9 +366,18 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend upload
+      - run: ./run backend get
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Archive project-manager
+        run: tar -cvf project-manager.tar -C dist/backend .
+      - name: Upload project-manager
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-manager-macos
+          path: project-manager.tar
+      - name: Cleanup
+        run: rm project-manager.tar
       - if: (always())
         name: Clean after
         run: ./run git-clean
@@ -384,9 +421,18 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run backend upload
+      - run: ./run backend get
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Archive project-manager
+        run: tar -cvf project-manager.tar -C dist/backend .
+      - name: Upload project-manager
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-manager-windows
+          path: project-manager.tar
+      - name: Cleanup
+        run: rm project-manager.tar
       - if: (always())
         name: Clean after
         run: ./run git-clean
@@ -485,7 +531,15 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --sign-artifacts
+      - name: Download project-manager
+        uses: actions/download-artifact@v4
+        with:
+          name: project-manager-linux
+          path: dist/backend
+      - run: |-
+          tar -xvf dist/backend/project-manager.tar -C dist/backend
+          rm dist/backend/project-manager.tar
+      - run: ./run ide upload --backend-source local --sign-artifacts
         env:
           ENSO_IDE_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
           ENSO_IDE_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
@@ -549,7 +603,15 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --sign-artifacts
+      - name: Download project-manager
+        uses: actions/download-artifact@v4
+        with:
+          name: project-manager-macos
+          path: dist/backend
+      - run: |-
+          tar -xvf dist/backend/project-manager.tar -C dist/backend
+          rm dist/backend/project-manager.tar
+      - run: ./run ide upload --backend-source local --sign-artifacts
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
           APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
@@ -618,7 +680,15 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --sign-artifacts
+      - name: Download project-manager
+        uses: actions/download-artifact@v4
+        with:
+          name: project-manager-macos
+          path: dist/backend
+      - run: |-
+          tar -xvf dist/backend/project-manager.tar -C dist/backend
+          rm dist/backend/project-manager.tar
+      - run: ./run ide upload --backend-source local --sign-artifacts
         env:
           APPLEID: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
           APPLEIDPASS: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
@@ -688,7 +758,15 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --sign-artifacts
+      - name: Download project-manager
+        uses: actions/download-artifact@v4
+        with:
+          name: project-manager-windows
+          path: dist/backend
+      - run: |-
+          tar -xvf dist/backend/project-manager.tar -C dist/backend
+          rm dist/backend/project-manager.tar
+      - run: ./run ide upload --backend-source local --sign-artifacts
         env:
           ENSO_IDE_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
           ENSO_IDE_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}

@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 use crate::ci::input;
 use crate::ci_gen::job::plain_job;
-use crate::ci_gen::job::with_packaging_steps;
+use crate::ci_gen::job::prepare_packaging_steps;
 use crate::ci_gen::job::RunsOn;
 use crate::engine::env;
 use crate::version::promote::Designation;
@@ -440,12 +440,33 @@ pub struct UploadIde;
 
 impl JobArchetype for UploadIde {
     fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new(
-            "ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --sign-artifacts",
-        )
-        .cleaning(RELEASE_CLEANING_POLICY)
-        .customize(with_packaging_steps(target.0, job::PackagingTarget::Release))
-        .build_job("Build IDE", target)
+        RunStepsBuilder::new("ide upload --backend-source local --sign-artifacts")
+            .cleaning(RELEASE_CLEANING_POLICY)
+            .customize(move |step| {
+                let mut steps = vec![];
+
+                let download_project_manager = step::download_artifact("Download project-manager")
+                    .with_custom_argument("name", format!("project-manager-{}", target.0))
+                    .with_custom_argument("path", "dist/backend");
+                steps.push(download_project_manager);
+
+                let unpack_project_manager = Step {
+                    run: Some(
+                        "tar -xvf dist/backend/project-manager.tar -C dist/backend
+rm dist/backend/project-manager.tar"
+                            .into(),
+                    ),
+                    ..Default::default()
+                };
+                steps.push(unpack_project_manager);
+
+                let mut packaging_steps =
+                    prepare_packaging_steps(target.0, step, job::PackagingTarget::Release);
+                steps.append(&mut packaging_steps);
+
+                steps
+            })
+            .build_job("Build IDE", target)
     }
 }
 
