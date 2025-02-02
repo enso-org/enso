@@ -51,16 +51,6 @@ jobs:
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Upload Edition File
-        uses: actions/upload-artifact@v4
-        with:
-          name: Edition File
-          path: distribution/editions/*.yaml
-      - name: Upload fbs-schema
-        uses: actions/upload-artifact@v4
-        with:
-          name: fbs-schema
-          path: engine/language-server/src/main/schema/
       - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
