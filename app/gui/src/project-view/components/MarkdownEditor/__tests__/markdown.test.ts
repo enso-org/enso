@@ -282,6 +282,11 @@ const testCases: TestCase[] = [
     headerLevel: 1,
     expected: '# Don’t touch this one\n# Touch this one\n# Make this one header',
   },
+  {
+    source: '```\nSome code\n# Head|er in code block\nMore code\n```',
+    headerLevel: 2,
+    expected: '```\nSome code\n## Header in code block\nMore code\n```',
+  },
 ]
 
 test.each(testCases)('markdown headers $source', ({ source, headerLevel, expected }) => {

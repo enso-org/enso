@@ -7,8 +7,16 @@ import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { yCollab } from '@/util/codemirror/yCollab'
 import { elementHierarchy } from '@/util/dom'
 import { ToValue } from '@/util/reactivity'
-import { Compartment, EditorState, type Extension, Text } from '@codemirror/state'
+import {
+  ChangeDesc,
+  ChangeSpec,
+  Compartment,
+  EditorState,
+  type Extension,
+  Text,
+} from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
+import { Tree } from '@lezer/common'
 import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
 import {
   type ComponentInstance,
@@ -19,7 +27,7 @@ import {
   type WatchSource,
 } from 'vue'
 import { Awareness } from 'y-protocols/awareness.js'
-import { markdownParser } from 'ydoc-shared/ast/ensoMarkdown'
+import { debugTree, markdownParser } from 'ydoc-shared/ast/ensoMarkdown'
 import { assert } from 'ydoc-shared/util/assert'
 import * as Y from 'yjs'
 
@@ -110,36 +118,66 @@ export function useCodeMirror(
 
 export function toggleHeader(view: EditorView, level: number) {
   assert(level >= 1 && level <= 3, 'Invalid header level')
-  const prefix = '#'.repeat(level)
   const startLine = view.state.doc.lineAt(view.state.selection.main.from)
   const endLine = view.state.doc.lineAt(view.state.selection.main.to)
   const tree = markdownParser.parse(view.state.doc.toString())
   const addHeaders = []
   const replaceHeaders = []
   let removeHeaders = []
-  let atLeastOneAdded = false
   for (let lineIndex = startLine.number; lineIndex <= endLine.number; lineIndex++) {
     const line = view.state.doc.line(lineIndex)
     const src = view.state.doc.toString()
-    const nodeUnderCursor = tree.resolve(line.to, -1)
-    if (nodeUnderCursor.type.name.startsWith('ATXHeading')) {
-      const headerMark = nodeUnderCursor.getChild('HeaderMark')
-      if (headerMark) {
-        // Heading text is everything after the header mark
-        const headingText = src.slice(headerMark.to, line.to)
-        if (nodeUnderCursor.type.name.endsWith(level.toString())) {
-          removeHeaders.push({ from: line.from, to: line.to, insert: headingText })
-        } else {
-          replaceHeaders.push({ from: line.from, to: line.to, insert: prefix + ' ' + headingText })
-        }
-      }
-    } else {
-      atLeastOneAdded = true
-      addHeaders.push({ from: line.from, to: line.to, insert: prefix + ' ' + line.text })
-    }
+    const result = toggleHeaderInner(tree, level, line.from, line.to, src)
+    addHeaders.push(...result.add)
+    replaceHeaders.push(...result.replace)
+    removeHeaders.push(...result.remove)
   }
-  if (atLeastOneAdded) removeHeaders = []
+  if (addHeaders.length > 0) removeHeaders = []
   view.dispatch({ changes: [...addHeaders, ...removeHeaders, ...replaceHeaders] })
+}
+
+interface ToggleHeaderResult {
+  add: ChangeSpec[]
+  replace: ChangeSpec[]
+  remove: ChangeSpec[]
+}
+
+function toggleHeaderInner(
+  tree: Tree,
+  level: number,
+  lineStart: number,
+  lineEnd: number,
+  src: string,
+): ToggleHeaderResult {
+  const add = []
+  const replace = []
+  const remove = []
+  const prefix = '#'.repeat(level)
+  let nodeUnderCursor = tree.resolve(lineEnd, -1)
+  if (nodeUnderCursor.type.name === 'Document' && nodeUnderCursor.firstChild != null)
+    nodeUnderCursor = nodeUnderCursor.firstChild
+  if (nodeUnderCursor.type.name.startsWith('ATXHeading')) {
+    const headerMark = nodeUnderCursor.getChild('HeaderMark')
+    if (headerMark) {
+      // Heading text is everything after the header mark
+      const headingText = src.slice(headerMark.to, lineEnd)
+      if (nodeUnderCursor.type.name.endsWith(level.toString())) {
+        remove.push({ from: lineStart, to: lineEnd, insert: headingText })
+      } else {
+        replace.push({ from: lineStart, to: lineEnd, insert: prefix + ' ' + headingText })
+      }
+    }
+  } else if (nodeUnderCursor.type.name === 'CodeText') {
+    const codeLine = src.slice(lineStart, lineEnd)
+    const codeTree = markdownParser.parse(codeLine)
+    const result = toggleHeaderInner(codeTree, level, lineStart, lineEnd, codeLine)
+    add.push(...result.add)
+    replace.push(...result.replace)
+    remove.push(...result.remove)
+  } else {
+    add.push({ from: lineStart, to: lineEnd, insert: prefix + ' ' + src.slice(lineStart, lineEnd) })
+  }
+  return { add, replace, remove }
 }
 
 function useBindings({
