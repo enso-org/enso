@@ -1,6 +1,6 @@
 import { ensoMarkdown } from '@/components/MarkdownEditor/markdown'
 import { assert } from '@/util/assert'
-import { addHeader } from '@/util/codemirror/index'
+import { toggleHeader } from '@/util/codemirror/index'
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { EditorState } from '@codemirror/state'
 import { Decoration, EditorView } from '@codemirror/view'
@@ -267,10 +267,25 @@ const testCases: TestCase[] = [
     headerLevel: 1,
     expected: '# First line\n# Second line',
   },
+  {
+    source: '# Fir|st line\n# Second| line',
+    headerLevel: 1,
+    expected: 'First line\nSecond line',
+  },
+  {
+    source: '# |Header',
+    headerLevel: 1,
+    expected: 'Header',
+  },
+  {
+    source: '# |Don’t touch this one\n## Touch this one\nMake this one h|eader',
+    headerLevel: 1,
+    expected: '# Don’t touch this one\n# Touch this one\n# Make this one header',
+  },
 ]
 
 test.each(testCases)('markdown headers $source', ({ source, headerLevel, expected }) => {
   const view = setupEditor(source)
-  addHeader(view, headerLevel)
+  toggleHeader(view, headerLevel)
   expect(view.state.doc.toString()).toEqual(expected)
 })

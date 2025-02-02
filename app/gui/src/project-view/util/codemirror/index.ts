@@ -102,34 +102,44 @@ export function useCodeMirror(
      */
     readonly,
     putTextAt,
-    addHeader: (level: number) => addHeader(editorView, level),
+    toggleHeader: (level: number) => toggleHeader(editorView, level),
     /** The DOM element containing the editor's content. */
     contentElement: editorView.contentDOM,
   }
 }
 
-export function addHeader(view: EditorView, level: number) {
+export function toggleHeader(view: EditorView, level: number) {
   assert(level >= 1 && level <= 3, 'Invalid header level')
   const prefix = '#'.repeat(level)
   const startLine = view.state.doc.lineAt(view.state.selection.main.from)
   const endLine = view.state.doc.lineAt(view.state.selection.main.to)
   const tree = markdownParser.parse(view.state.doc.toString())
-  const changes = []
+  const addHeaders = []
+  const replaceHeaders = []
+  let removeHeaders = []
+  let atLeastOneAdded = false
   for (let lineIndex = startLine.number; lineIndex <= endLine.number; lineIndex++) {
     const line = view.state.doc.line(lineIndex)
     const src = view.state.doc.toString()
     const nodeUnderCursor = tree.resolve(line.to, -1)
-    let lineText = line.text
     if (nodeUnderCursor.type.name.startsWith('ATXHeading')) {
       const headerMark = nodeUnderCursor.getChild('HeaderMark')
       if (headerMark) {
         // Heading text is everything after the header mark
-        lineText = src.slice(headerMark.to, line.to)
+        const headingText = src.slice(headerMark.to, line.to)
+        if (nodeUnderCursor.type.name.endsWith(level.toString())) {
+          removeHeaders.push({ from: line.from, to: line.to, insert: headingText })
+        } else {
+          replaceHeaders.push({ from: line.from, to: line.to, insert: prefix + ' ' + headingText })
+        }
       }
+    } else {
+      atLeastOneAdded = true
+      addHeaders.push({ from: line.from, to: line.to, insert: prefix + ' ' + line.text })
     }
-    changes.push({ from: line.from, to: line.to, insert: prefix + ' ' + lineText })
   }
-  view.dispatch({ changes })
+  if (atLeastOneAdded) removeHeaders = []
+  view.dispatch({ changes: [...addHeaders, ...removeHeaders, ...replaceHeaders] })
 }
 
 function useBindings({
