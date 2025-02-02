@@ -281,7 +281,6 @@ jobs:
       - run: |-
           tar -xvf dist/backend/project-manager.tar -C dist/backend
           rm dist/backend/project-manager.tar
-      - run: ls -l dist; ls -l dist/backend
       - run: ./run ide build --backend-source local --gui-upload-artifact false
         env:
           ENSO_IDE_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
@@ -368,7 +367,6 @@ jobs:
       - run: |-
           tar -xvf dist/backend/project-manager.tar -C dist/backend
           rm dist/backend/project-manager.tar
-      - run: ls -l dist; ls -l dist/backend
       - run: ./run ide build --backend-source local --gui-upload-artifact false
         env:
           ENSO_IDE_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}

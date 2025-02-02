@@ -686,12 +686,6 @@ rm dist/backend/project-manager.tar"
                 };
                 steps.push(unpack_project_manager);
 
-                let ls1 = Step {
-                    run: Some("ls -l dist; ls -l dist/backend".into()),
-                    ..Default::default()
-                };
-                steps.push(ls1);
-
                 let mut packaging_steps =
                     prepare_packaging_steps(target.0, step, PackagingTarget::Development);
                 steps.append(&mut packaging_steps);
