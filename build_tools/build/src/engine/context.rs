@@ -238,15 +238,13 @@ impl RunContext {
             ide_ci::fs::remove_glob(bench_report_xml)?;
         }
 
-
-        let _test_results_guard =
-            if self.config.test_jvm || self.config.test_standard_library.is_some() {
-                // If we run tests, make sure that old and new results won't end up mixed together.
-                let test_results_dir = ENSO_TEST_JUNIT_DIR
-                    .get()
-                    .unwrap_or_else(|_| self.paths.repo_root.target.test_results.path.clone());
-                ide_ci::fs::reset_dir(&test_results_dir)?;
-            };
+        // If we run tests, make sure that old and new results won't end up mixed together.
+        if self.config.test_jvm || self.config.test_standard_library.is_some() {
+            let test_results_dir = ENSO_TEST_JUNIT_DIR
+                .get()
+                .unwrap_or_else(|_| self.paths.repo_root.target.test_results.path.clone());
+            ide_ci::fs::reset_dir(&test_results_dir)?
+        };
 
         // Workaround for incremental compilation issue, as suggested by kustosz.
         // We target files like
