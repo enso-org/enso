@@ -149,6 +149,7 @@ function toggleHeaderInner(
   lineEnd: number,
   src: string,
 ): ToggleHeaderResult {
+  console.log(debugTree(tree, src))
   const add = []
   const replace = []
   const remove = []
