@@ -1,6 +1,6 @@
 import { ensoMarkdown } from '@/components/MarkdownEditor/markdown'
 import { assert } from '@/util/assert'
-import { toggleHeader } from '@/util/codemirror/index'
+import { toggleHeader, toggleQuote } from '@/util/codemirror/index'
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { EditorState } from '@codemirror/state'
 import { Decoration, EditorView } from '@codemirror/view'
@@ -230,13 +230,13 @@ const setupEditor = (source: string) => {
   return view
 }
 
-interface TestCase {
+interface HeaderTestCase {
   source: string
   headerLevel: number
   expected: string
 }
 
-const testCases: TestCase[] = [
+const headerTestCases: HeaderTestCase[] = [
   {
     source: 'Some| text',
     headerLevel: 1,
@@ -299,8 +299,43 @@ const testCases: TestCase[] = [
   },
 ]
 
-test.each(testCases)('markdown headers $source', ({ source, headerLevel, expected }) => {
+test.each(headerTestCases)('markdown headers $source', ({ source, headerLevel, expected }) => {
   const view = setupEditor(source)
   toggleHeader(view, headerLevel)
+  expect(view.state.doc.toString()).toEqual(expected)
+})
+
+interface TestCase {
+  desc?: string
+  source: string
+  expected: string
+}
+
+const quotesTestCases: TestCase[] = [
+  {
+    desc: 'Create simple quote',
+    source: 'This| is a quote',
+    expected: '> This is a quote',
+  },
+  {
+    desc: 'Multiline quote',
+    source: 'This |is a quote\nThis is anoth|er quote',
+    expected: '> This is a quote\nThis is another quote',
+  },
+  {
+    desc: 'Disable quote',
+    source: '> This |is a quote',
+    expected: 'This is a quote',
+  },
+  {
+    desc: 'Disable multiline quote',
+    source: '> This is| a quote\nThis is |another quote\n\nThis is a new paragraph',
+    expected: 'This is a quote\nThis is another quote\n\nThis is a new paragraph',
+  },
+]
+
+test.each(quotesTestCases)('markdown quotes $desc', ({ source, expected }) => {
+  const view = setupEditor(source)
+  toggleQuote(view)
   expect(view.state.doc.toString()).toEqual(expected)
 })

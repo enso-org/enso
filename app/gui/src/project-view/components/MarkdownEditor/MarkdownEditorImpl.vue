@@ -22,7 +22,7 @@ const editing = computed(() => !readonly.value && focused.value)
 
 const vueHost = new VueHost()
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
-const { editorView, readonly, putTextAt, toggleHeader } = useCodeMirror(editorRoot, {
+const { editorView, readonly, putTextAt, toggleHeader, toggleQuote } = useCodeMirror(editorRoot, {
   content: () => content,
   extensions: [
     minimalSetup,
@@ -56,6 +56,7 @@ defineExpose({
     putTextAt(text, pos, pos)
   },
   toggleHeader,
+  toggleQuote,
 })
 </script>
 

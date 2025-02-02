@@ -32,6 +32,9 @@ defineExpose({
   toggleHeader: (level: number) => {
     inner.value?.toggleHeader(level)
   },
+  toggleQuote: () => {
+    inner.value?.toggleQuote()
+  },
 })
 </script>
 

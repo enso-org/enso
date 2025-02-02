@@ -111,6 +111,7 @@ export function useCodeMirror(
     readonly,
     putTextAt,
     toggleHeader: (level: number) => toggleHeader(editorView, level),
+    toggleQuote: () => toggleQuote(editorView),
     /** The DOM element containing the editor's content. */
     contentElement: editorView.contentDOM,
   }
@@ -179,6 +180,26 @@ function toggleHeaderInner(
     add.push({ from: lineStart, to: lineEnd, insert: prefix + ' ' + src.slice(lineStart, lineEnd) })
   }
   return { add, replace, remove }
+}
+
+export function toggleQuote(view: EditorView) {
+  const tree = markdownParser.parse(view.state.doc.toString())
+  console.log(debugTree(tree, view.state.doc.toString()))
+  const selectionPos = view.state.selection.main.from
+  let node = tree.resolve(selectionPos, -1)
+  if (node.type.name === 'Document' && node.firstChild != null) node = node.firstChild
+  const cursor = node.cursor()
+  do {
+    if (cursor.type.name === 'EnsoBlockquote') {
+      const quoteMark = cursor.node.getChild('QuoteMark')
+      if (quoteMark != null) {
+        view.dispatch({ changes: [{ from: quoteMark.from, to: quoteMark.to, insert: '' }] })
+        return
+      }
+    }
+  } while (cursor.parent())
+  const line = view.state.doc.lineAt(selectionPos)
+  view.dispatch({ changes: [{ from: line.from, to: line.from, insert: '> ' }] })
 }
 
 function useBindings({

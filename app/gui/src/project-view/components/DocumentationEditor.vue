@@ -77,6 +77,7 @@ const handler = documentationEditorBindings.handler({
         <SvgButton name="header1" @click.stop="markdownEditor?.toggleHeader(1)" />
         <SvgButton name="header2" @click.stop="markdownEditor?.toggleHeader(2)" />
         <SvgButton name="header3" @click.stop="markdownEditor?.toggleHeader(3)" />
+        <SvgButton name="quote" @click.stop="markdownEditor?.toggleQuote()" />
       </div>
       <slot name="belowToolbar" />
       <div
