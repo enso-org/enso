@@ -161,8 +161,8 @@ type Column
             Column.from_java_column java_column
 
     ## PRIVATE
-
-       A representation of a column in a Table.
+       Internal constructor that should not be used directly.
+       Please use `from_java_column` instead.
 
        Arguments:
        - internal_java_column: The internal representation of the column.

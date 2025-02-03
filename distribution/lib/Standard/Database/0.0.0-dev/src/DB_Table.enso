@@ -81,7 +81,8 @@ polyglot java import java.util.UUID
 
 ## Represents a column-oriented table data structure backed by a database.
 type DB_Table
-    ## Represents a column-oriented table data structure backed by a database.
+    ## Internal constructor that should not be used directly.
+       Please use `DB_Table.new` instead.
 
        Arguments:
        - internal_name: The name of the table.

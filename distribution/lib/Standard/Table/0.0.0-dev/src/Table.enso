@@ -239,8 +239,8 @@ type Table
         resolved_columns.if_not_error <| Table.new resolved_columns
 
     ## PRIVATE
-
-       A table.
+       Internal constructor that should not be used directly.
+       Please use `from_java_table` if needed.
 
        Arguments:
        - internal_java_table: The internal java representation of the table.
