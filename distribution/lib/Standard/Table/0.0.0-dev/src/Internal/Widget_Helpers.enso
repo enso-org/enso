@@ -182,13 +182,6 @@ make_filter_condition_selector table display:Display=..Always cache=Nothing =
     Single_Choice options display=display
 
 ## PRIVATE
-   Make a join kind selector - Needed to override display.
-make_join_kind_selector : Display -> Widget
-make_join_kind_selector display:Display=..Always =
-    options = ["Inner", "Left_Outer", "Right_Outer", "Full", "Left_Exclusive", "Right_Exclusive"].map n-> Option n ".."+n
-    Single_Choice display=display values=options
-
-## PRIVATE
    Make a join condition selector.
 make_join_condition_selector : Table -> Display -> Any -> Widget
 make_join_condition_selector table display:Display=..Always cache=Nothing =

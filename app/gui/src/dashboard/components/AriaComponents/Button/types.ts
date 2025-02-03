@@ -42,11 +42,11 @@ export interface LinkRenderProps extends aria.LinkRenderProps {
 }
 
 /** Props for a Button. */
-export type ButtonProps =
-  | (BaseButtonProps<ButtonRenderProps> &
+export type ButtonProps<IconType extends string = string> =
+  | (BaseButtonProps<IconType, ButtonRenderProps> &
       Omit<aria.ButtonProps, 'children' | 'isPending' | 'onPress'> &
       PropsWithoutHref)
-  | (BaseButtonProps<LinkRenderProps> &
+  | (BaseButtonProps<IconType, LinkRenderProps> &
       Omit<aria.LinkProps, 'children' | 'onPress'> &
       PropsWithHref)
 
@@ -61,7 +61,7 @@ interface PropsWithoutHref {
 }
 
 /** Base props for a button. */
-export interface BaseButtonProps<Render>
+export interface BaseButtonProps<IconType extends string, Render>
   extends Omit<ButtonVariants, 'iconOnly' | 'isJoined' | 'position'>,
     TestIdProps {
   /** If `true`, the loader will not be shown. */
@@ -70,7 +70,7 @@ export interface BaseButtonProps<Render>
   readonly tooltip?: ReactElement | string | false | null
   readonly tooltipPlacement?: aria.Placement
   /** The icon to display in the button */
-  readonly icon?: IconProp<Render>
+  readonly icon?: IconProp<IconType, Render>
   /** When `true`, icon will be shown only when hovered. */
   readonly showIconOnHover?: boolean
   /**
