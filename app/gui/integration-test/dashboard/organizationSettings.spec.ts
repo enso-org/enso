@@ -80,8 +80,6 @@ test('organization settings', ({ page }) =>
         {
           // Existing fields should still be present
           name: NEW_NAME,
-          // Address is always sent because it is always valid even if blank
-          address: '',
         },
       ])
     })
