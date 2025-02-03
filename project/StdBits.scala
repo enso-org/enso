@@ -21,12 +21,14 @@ object StdBits {
     *                           added by default be SBT and are not relevant in
     *                           pure-Java projects
     * @param ignoreDependency A dependency that should be ignored - not copied to the destination
+    * @param ignoreUnmanagedDependency An optional filter that tests if an unmanaged dependency should be ignored
     */
   def copyDependencies(
     destination: File,
     providedJarNames: Seq[String],
     ignoreScalaLibrary: Boolean,
-    ignoreDependency: Option[ModuleID] = None
+    ignoreDependency: Option[ModuleID]                 = None,
+    ignoreUnmanagedDependency: Option[File => Boolean] = None
   ): Def.Initialize[Task[Unit]] =
     Def.task {
       val libraryUpdates = (Compile / update).value
@@ -65,7 +67,10 @@ object StdBits {
             })
           )
       }
-      val unmanagedFiles = (Compile / unmanagedJars).value.map(_.data)
+      val unmanagedFiles0 = (Compile / unmanagedJars).value.map(_.data)
+      val unmanagedFiles = ignoreUnmanagedDependency
+        .map(fun => unmanagedFiles0.filterNot(fun))
+        .getOrElse(unmanagedFiles0)
       val relevantFiles =
         libraryUpdates
           .select(
@@ -115,15 +120,7 @@ object StdBits {
     imageNativeLibs: File,
     opencvVersion: String
   ): Def.Initialize[Task[Unit]] = Def.task {
-    // Ensure dependencies are first copied.
-    val _ = StdBits
-      .copyDependencies(
-        imagePolyglotRoot,
-        Seq("std-image.jar", "opencv.jar"),
-        ignoreScalaLibrary = true,
-        ignoreDependency   = Some("org.openpnp" % "opencv" % opencvVersion)
-      )
-      .value
+
     val extractPrefix = "nu/pattern/opencv"
 
     // Make sure that the native libs in the `lib` directory complies with
@@ -166,8 +163,59 @@ object StdBits {
     val extractedFilesDir = imageNativeLibs.toPath
     JARUtils.extractFilesFromJar(
       openCvJar.toPath,
-      extractPrefix,
-      outputJarPath,
+      Some(extractPrefix),
+      Some(outputJarPath),
+      extractedFilesDir,
+      renameFunc,
+      logger,
+      streams.value.cacheStoreFactory
+    )
+  }
+
+  /** Extract native libraries from `tableauhyperapi-<osname>.jar` and put them under
+    * `Standard/Image/polyglot/lib` directory.
+    * @param imagePolyglotRoot root dir of Std tableau polyglot dir
+    * @param imageNativeLibs root dir of Std tableau lib dir
+    * @return
+    */
+  def extractNativeLibsFromTableau(
+    imagePolyglotRoot: File,
+    imageNativeLibs: File,
+    tableauVersion: String
+  ): Def.Initialize[Task[Unit]] = Def.task {
+
+    // Make sure that the native libs in the `lib` directory complies with
+    // `org.enso.interpreter.runtime.NativeLibraryFinder`
+    def renameFunc(entryName: String): Option[String] = {
+      if (
+        !entryName.endsWith("dll") &&
+        !entryName.endsWith(".so") &&
+        !entryName.endsWith(".dylib")
+      ) {
+        None
+      } else {
+        Some(
+          entryName
+            .replace("linux-x86-64", "amd64")
+            .replace("win32-x86-64", "amd64")
+            .replace("darwin-aarch64", "aarch64")
+            .replace("darwin-x86-64", "amd64")
+        )
+      }
+    }
+
+    val osNames = List("linux", "win32", "darwin")
+    val jar = (Compile / unmanagedJars).value
+      .map(_.data)
+      .filter(f => osNames.exists(name => f.getName.contains(name)))
+      .head
+    val logger = streams.value.log
+
+    val extractedFilesDir = imageNativeLibs.toPath
+    JARUtils.extractFilesFromJar(
+      jar.toPath,
+      None,
+      None,
       extractedFilesDir,
       renameFunc,
       logger,

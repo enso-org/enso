@@ -8,6 +8,7 @@ import java.util.concurrent.ExecutionException;
 import org.enso.common.MethodNames;
 import org.enso.compiler.PackageRepository;
 import org.enso.editions.LibraryName;
+import org.enso.filesystem.FileSystem;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.builtin.Builtins;
@@ -15,6 +16,8 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.type.Types;
+import org.enso.interpreter.runtime.util.TruffleFileSystem;
+import org.enso.pkg.NativeLibraryFinder;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.scala.wrapper.ScalaConversions;
@@ -173,6 +176,20 @@ public final class TopLevelScope extends EnsoObject {
     }
 
     @CompilerDirectives.TruffleBoundary
+    private static Object findLibrary(
+            TopLevelScope scope, Object[] arguments, EnsoContext context) {
+      var libname = arguments[0].toString();
+      var pkgRepo = context.getPackageRepository();
+      for (var pkg : pkgRepo.getLoadedPackagesJava()) {
+        var libPath = NativeLibraryFinder.findNativeLibrary(libname, pkg, TruffleFileSystem.INSTANCE);
+        if (libPath != null) {
+          return libPath;
+        }
+      }
+      throw new UnsupportedOperationException("unable to find library " + libname);
+    }
+
+    @CompilerDirectives.TruffleBoundary
     private static Object unregisterModule(
         TopLevelScope scope, Object[] arguments, EnsoContext context)
         throws ArityException, UnsupportedTypeException {
@@ -238,6 +255,8 @@ public final class TopLevelScope extends EnsoObject {
           return leakContext(ctx);
         case MethodNames.TopScope.COMPILE:
           return compile(arguments, ctx);
+        case MethodNames.TopScope.FIND_LIBRARY:
+          return findLibrary(scope, arguments, ctx);
         default:
           throw UnknownIdentifierException.create(member);
       }

@@ -1,9 +1,12 @@
 package org.enso.tableau;
 
 import com.tableau.hyperapi.*;
+
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.channels.Channels;
@@ -18,6 +21,7 @@ import java.util.logging.Logger;
 import java.util.stream.IntStream;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Context;
 
 /** Class responsible for reading from Tableau Hyper files. */
 public class HyperReader {
@@ -88,7 +92,7 @@ public class HyperReader {
     if (process == null || !process.isOpen()) {
       var contextClassLoader = Thread.currentThread().getContextClassLoader();
       try {
-        Thread.currentThread().setContextClassLoader(HyperReader.class.getClassLoader());
+        Thread.currentThread().setContextClassLoader(new TableauClassLoader());
         LOGGER.log(Level.INFO, "Starting Hyper process: " + HYPER_PATH + ".");
         try {
           process = new HyperProcess(HYPER_PATH, Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU);
@@ -102,6 +106,30 @@ public class HyperReader {
     }
 
     return process;
+  }
+
+  private static final class TableauClassLoader extends ClassLoader {
+    private TableauClassLoader() {
+      super(HyperReader.class.getClassLoader());
+    }
+
+    @Override
+    public InputStream getResourceAsStream(String name) {
+      int libIdx = name.indexOf("lib");
+      int dotIdx = name.indexOf(".");
+      if (libIdx != -1 && dotIdx != -1) {
+        var libName = name.substring(libIdx + 3, dotIdx);
+        var bindings = Context.getCurrent().getBindings("enso");
+        var found = bindings.invokeMember("find_library", libName);
+          try {
+              return new FileInputStream(found.asString());
+          } catch (FileNotFoundException e) {
+              return null;
+          }
+      } else {
+        return super.getResourceAsStream(name);
+      }
+    }
   }
 
   private static void downloadHyper(String uri, String fileName, boolean setExecutable)

@@ -4686,6 +4686,8 @@ val `std-microsoft-polyglot-root` =
   stdLibComponentRoot("Microsoft") / "polyglot" / "java"
 val `std-tableau-polyglot-root` =
   stdLibComponentRoot("Tableau") / "polyglot" / "java"
+val `std-tableau-native-libs` =
+  stdLibComponentRoot("Tableau") / "polyglot" / "lib"
 
 lazy val `std-base` = project
   .in(file("std-bits") / "base")
@@ -4875,7 +4877,16 @@ lazy val `std-image` = project
     },
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
-      val _      = extractNativeLibs.value
+      // Ensure dependencies are first copied.
+      StdBits
+        .copyDependencies(
+          `image-polyglot-root`,
+          Seq("std-image.jar", "opencv.jar"),
+          ignoreScalaLibrary = true,
+          ignoreDependency   = Some("org.openpnp" % "opencv" % opencvVersion)
+        )
+        .value
+      extractNativeLibs.value
       result
     }.value
   )
@@ -5126,11 +5137,10 @@ lazy val `std-tableau` = project
         Seq[Attributed[File]]()
       }
     },
-    Compile / unmanagedClasspath := Def.task {
-      val additionalFiles: Seq[Attributed[File]] = fetchZipToUnmanaged.value
-      val result                                 = (Compile / unmanagedClasspath).value
-      result ++ additionalFiles
-    }.value,
+    Compile / unmanagedClasspath :=
+      (Compile / unmanagedClasspath)
+        .dependsOn(fetchZipToUnmanaged)
+        .value,
     Compile / unmanagedJars := (Compile / unmanagedJars)
       .dependsOn(fetchZipToUnmanaged)
       .value,
@@ -5140,15 +5150,29 @@ lazy val `std-tableau` = project
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "net.java.dev.jna" % "jna-platform"            % jnaVersion
     ),
+    // Extract native libraries from tableau's jar, and put them under
+    // Standard/Tableau/polyglot/lib directory.
+    extractNativeLibs := {
+      StdBits
+        .extractNativeLibsFromTableau(
+          `std-tableau-polyglot-root`,
+          `std-tableau-native-libs`,
+          tableauVersion
+        )
+        .value
+    },
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
-      val _ = StdBits
+      StdBits
         .copyDependencies(
           `std-tableau-polyglot-root`,
           Seq("std-tableau.jar"),
-          ignoreScalaLibrary = true
+          ignoreScalaLibrary = true,
+          ignoreUnmanagedDependency =
+            Some(!_.getName.endsWith("tableauhyperapi.jar"))
         )
         .value
+      extractNativeLibs.value
       result
     }.value
   )
