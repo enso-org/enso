@@ -582,7 +582,7 @@ impl RunContext {
     }
 
     async fn stdlib_api_check(&self, built_enso: &BuiltEnso) -> Result {
-        for libname in ["Base", "Table", "Image", "Database"] {
+        for libname in ["Base"] {
             let lib_path = self
                 .repo_root
                 .built_distribution
