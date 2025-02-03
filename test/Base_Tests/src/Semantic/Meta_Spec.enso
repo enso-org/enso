@@ -541,6 +541,16 @@ add_specs suite_builder =
             typ = Meta.Type.find fqn
             typ . should_equal meta_type
 
+    suite_builder.group ".to Meta.Type" group_builder->
+        group_builder.specify "Type of Pair type" <|
+            fqn =  Pair.to Meta.Type . qualified_name
+            fqn . should_equal "Standard.Base.Data.Pair.Pair"
+
+        group_builder.specify "Type of Pair value" <|
+            p = Pair.new "A" 2
+            fqn =  p.to Meta.Type . qualified_name
+            fqn . should_equal "Standard.Base.Data.Pair.Pair"
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder

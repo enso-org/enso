@@ -9,7 +9,7 @@ import { expect, userEvent, within } from '@storybook/test'
 import { Button, type BaseButtonProps } from '.'
 import { Badge } from '../../Badge'
 
-type Story = StoryObj<BaseButtonProps<aria.ButtonRenderProps>>
+type Story = StoryObj<BaseButtonProps<string, aria.ButtonRenderProps>>
 
 const variants = [
   'primary',
@@ -40,7 +40,7 @@ export default {
     addonStart: { control: false },
     addonEnd: { control: false },
   },
-} as Meta<BaseButtonProps<aria.ButtonRenderProps>>
+} satisfies Meta<BaseButtonProps<string, aria.ButtonRenderProps>>
 
 export const Variants: Story = {
   render: () => (
