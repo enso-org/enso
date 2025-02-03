@@ -66,17 +66,6 @@ export const widgetDefinition = defineWidget(
 .nodeCategoryIcon {
   position: absolute;
 }
-.LoadingSpinner {
-  border: 4px solid;
-  border-radius: 100%;
-  border-color: rgba(255, 255, 255, 90%) #0000;
-  animation: s1 0.8s infinite;
-}
-@keyframes s1 {
-  to {
-    transform: rotate(0.5turn);
-  }
-}
 .v-enter-active,
 .v-leave-active {
   transition: opacity 0.1s ease;
