@@ -82,7 +82,7 @@ test('Conditional ports: Disabled', async ({ page }) => {
 
   // When a port is disabled, it doesn't react to hovering with a disconnected edge,
   // and any attempt to connect to it should open the CB.
-  const outputPort = await outputPortCoordinates(graphNodeByBinding(page, 'final'))
+  const outputPort = await outputPortCoordinates(page, graphNodeByBinding(page, 'final'))
   await page.mouse.click(outputPort.x, outputPort.y)
   await conditionalPort.hover()
   await expect(conditionalPort).not.toHaveClass(/isTarget/)
@@ -101,7 +101,7 @@ test('Conditional ports: Enabled', async ({ page }) => {
   await page.keyboard.down(CONTROL_KEY)
 
   await expect(conditionalPort).toHaveClass(/enabled/)
-  const outputPort = await outputPortCoordinates(graphNodeByBinding(page, 'final'))
+  const outputPort = await outputPortCoordinates(page, graphNodeByBinding(page, 'final'))
   await page.mouse.click(outputPort.x, outputPort.y)
   await conditionalPort.hover()
   await expect(conditionalPort).toHaveClass(/isTarget/)
