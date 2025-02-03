@@ -3,28 +3,29 @@ import { EditorView } from '@codemirror/view'
 import { Tree } from '@lezer/common'
 import { markdownParser } from 'ydoc-shared/ast/ensoMarkdown'
 
+/** Supported header levels. */
 export type HeaderLevel = 1 | 2 | 3
 
 export function toggleHeader(view: EditorView, level: HeaderLevel) {
   const startLine = view.state.doc.lineAt(view.state.selection.main.from)
   const endLine = view.state.doc.lineAt(view.state.selection.main.to)
   const tree = markdownParser.parse(view.state.doc.toString())
-  const addHeaders = []
-  const replaceHeaders = []
-  let removeHeaders = []
+  const add = []
+  const replace = []
+  let remove = []
   for (let lineIndex = startLine.number; lineIndex <= endLine.number; lineIndex++) {
     const line = view.state.doc.line(lineIndex)
     const src = view.state.doc.toString()
     const result = toggleHeaderInner(tree, level, line.from, line.to, src, 0)
-    addHeaders.push(...result.add)
-    replaceHeaders.push(...result.replace)
-    removeHeaders.push(...result.remove)
+    add.push(...result.add)
+    replace.push(...result.replace)
+    remove.push(...result.remove)
   }
-  if (addHeaders.length > 0) removeHeaders = []
-  view.dispatch({ changes: [...addHeaders, ...removeHeaders, ...replaceHeaders] })
+  if (add.length > 0) remove = []
+  view.dispatch({ changes: [...add, ...remove, ...replace] })
 }
 
-interface ToggleHeaderResult {
+interface ToggleChangeSet {
   add: ChangeSpec[]
   replace: ChangeSpec[]
   remove: ChangeSpec[]
@@ -37,7 +38,7 @@ function toggleHeaderInner(
   lineEnd: number,
   src: string,
   offset: number,
-): ToggleHeaderResult {
+): ToggleChangeSet {
   const add = []
   const replace = []
   const remove = []
@@ -109,12 +110,6 @@ export function toggleList(view: EditorView, type: ListType) {
   view.dispatch({ changes })
 }
 
-interface ToggleUnorderedListResult {
-  add: ChangeSpec[]
-  replace: ChangeSpec[]
-  remove: ChangeSpec[]
-}
-
 function toggleListInner(
   tree: Tree,
   listIndex: number,
@@ -122,7 +117,7 @@ function toggleListInner(
   lineEnd: number,
   src: string,
   type: ListType,
-): ToggleUnorderedListResult {
+): ToggleChangeSet {
   const add = []
   const replace = []
   const remove = []
