@@ -243,7 +243,7 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
                   name,
                   ...(email !== '' ? { email: EmailAddress(email) } : {}),
                   ...(website !== '' ? { website: HttpsUrl(website) } : {}),
-                  address,
+                  ...(address !== '' ? { address } : {}),
                 },
               ])
             },
