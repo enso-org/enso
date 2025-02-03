@@ -602,7 +602,7 @@ impl RunContext {
                 .with_arg(lib_path);
             cmd.run_ok().await?;
             // Compare contents of `api_dir` and `tmp_dir_old_api`
-            let diff = ide_ci::fs::diff_dirs(&api_dir, &tmp_dir_old_api);
+            let diff = ide_ci::fs::diff_dirs(&api_dir, &tmp_dir_old_api).await;
             if diff.is_err() {
                 error!("API check failed for library {}", libname);
                 error!("If you wish to overwrite the current API in the directory {}, run the following command {}",
