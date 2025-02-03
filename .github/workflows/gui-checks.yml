@@ -19,6 +19,8 @@ jobs:
   lint:
     name: 👮 Lint GUI
     runs-on: ubuntu-latest
+    env:
+      COREPACK_DEFAULT_TO_LATEST: 0
     steps:
       - uses: actions/checkout@v4
         with:
