@@ -51,6 +51,25 @@ jobs:
       - run: ./run backend get
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Edition File
+        uses: actions/upload-artifact@v4
+        with:
+          name: Edition File
+          path: distribution/editions/*.yaml
+      - name: Upload fbs-schema
+        uses: actions/upload-artifact@v4
+        with:
+          name: fbs-schema
+          path: engine/language-server/src/main/schema/
+      - name: Archive project-manager
+        run: tar -cvf project-manager.tar -C dist/backend .
+      - name: Upload project-manager
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-manager-linux
+          path: project-manager.tar
+      - name: Cleanup
+        run: rm project-manager.tar
       - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
@@ -92,6 +111,15 @@ jobs:
       - run: ./run backend get
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Archive project-manager
+        run: tar -cvf project-manager.tar -C dist/backend .
+      - name: Upload project-manager
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-manager-windows
+          path: project-manager.tar
+      - name: Cleanup
+        run: rm project-manager.tar
       - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
@@ -146,6 +174,11 @@ jobs:
           ENSO_IDE_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
           ENSO_IDE_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload gui
+        uses: actions/upload-artifact@v4
+        with:
+          name: gui
+          path: dist/gui/
       - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
@@ -240,7 +273,15 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide build --backend-source current-ci-run --gui-upload-artifact false
+      - name: Download project-manager
+        uses: actions/download-artifact@v4
+        with:
+          name: project-manager-linux
+          path: dist/backend
+      - run: |-
+          tar -xvf dist/backend/project-manager.tar -C dist/backend
+          rm dist/backend/project-manager.tar
+      - run: ./run ide build --backend-source local --gui-upload-artifact false
         env:
           ENSO_IDE_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
           ENSO_IDE_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
@@ -270,6 +311,11 @@ jobs:
           compression-level: 0
           name: test-traces-linux-amd64
           path: app/ide-desktop/client/test-traces
+      - name: Upload ide
+        uses: actions/upload-artifact@v4
+        with:
+          name: ide-linux
+          path: dist/ide/enso-*.AppImage
       - run: rm $HOME/.enso/credentials
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -313,7 +359,15 @@ jobs:
         run: ./run git-clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ./run ide build --backend-source current-ci-run --gui-upload-artifact false
+      - name: Download project-manager
+        uses: actions/download-artifact@v4
+        with:
+          name: project-manager-windows
+          path: dist/backend
+      - run: |-
+          tar -xvf dist/backend/project-manager.tar -C dist/backend
+          rm dist/backend/project-manager.tar
+      - run: ./run ide build --backend-source local --gui-upload-artifact false
         env:
           ENSO_IDE_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
           ENSO_IDE_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
@@ -344,6 +398,11 @@ jobs:
           compression-level: 0
           name: test-traces-windows-amd64
           path: app/ide-desktop/client/test-traces
+      - name: Upload ide
+        uses: actions/upload-artifact@v4
+        with:
+          name: ide-windows
+          path: dist/ide/enso-*.exe
       - run: rm $HOME/.enso/credentials
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

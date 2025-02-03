@@ -16,6 +16,9 @@ permissions:
   statuses: write # Write access to commit statuses
 
 env:
+  # Workaround for https://github.com/nodejs/corepack/issues/612
+  # See: https://github.com/nodejs/corepack/blob/main/README.md#environment-variables
+  COREPACK_DEFAULT_TO_LATEST: 0
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
 
