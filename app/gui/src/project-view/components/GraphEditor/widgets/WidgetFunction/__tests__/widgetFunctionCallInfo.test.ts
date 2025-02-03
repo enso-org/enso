@@ -1,44 +1,52 @@
+import {
+  GET_WIDGETS_METHOD,
+  WIDGETS_ENSO_MODULE,
+  useWidgetFunctionCallInfo,
+} from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
 import { WidgetInput } from '@/providers/widgetRegistry'
 import { parseWithSpans } from '@/stores/graph/__tests__/graphDatabase.test'
-import type { NodeVisualizationConfiguration } from '@/stores/project/executionContext'
+import { type NodeVisualizationConfiguration } from '@/stores/project/executionContext'
+import { mockProjectNameStore } from '@/stores/projectNames'
 import { entryMethodPointer } from '@/stores/suggestionDatabase/entry'
 import {
   makeArgument,
   makeConstructor,
   makeMethod,
+  makeModuleMethod,
   makeStaticMethod,
 } from '@/stores/suggestionDatabase/mockSuggestion'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import { unwrap } from '@/util/data/result'
 import { expect, test } from 'vitest'
 import { ref, type Ref } from 'vue'
-import type { Opt } from 'ydoc-shared/util/data/opt'
-import {
-  GET_WIDGETS_METHOD,
-  WIDGETS_ENSO_MODULE,
-  useWidgetFunctionCallInfo,
-} from '../widgetFunctionCallInfo'
+import { type Opt } from 'ydoc-shared/util/data/opt'
 
-const moduleMethod = {
-  ...makeMethod('local.Project.module_method', 'Text'),
-  arguments: [makeArgument('arg')],
+const projectNames = mockProjectNameStore('local', 'Project')
+
+const moduleMethod = makeModuleMethod('local.Project.module_method', {
+  returnType: 'Standard.Data.Text',
+  args: [makeArgument('arg')],
   annotations: ['arg'],
-}
-const con = {
-  ...makeConstructor('local.Project.Type.Con'),
-  arguments: [makeArgument('arg')],
+  projectNames,
+})
+const con = makeConstructor('local.Project.Type.Con', {
+  args: [makeArgument('arg')],
   annotations: ['arg'],
-}
-const method = {
-  ...makeMethod('local.Project.Type.method', 'Text'),
-  arguments: [makeArgument('self'), makeArgument('arg')],
+  projectNames,
+})
+const method = makeMethod('local.Project.Type.method', {
+  returnType: 'Standard.Data.Text',
+  args: [makeArgument('self'), makeArgument('arg')],
   annotations: ['arg'],
-}
-const staticMethod = {
-  ...makeStaticMethod('local.Project.Type.static_method', 'Text'),
-  arguments: [makeArgument('arg')],
+  projectNames,
+})
+const staticMethod = makeStaticMethod('local.Project.Type.static_method', {
+  returnType: 'Standard.Data.Text',
+  args: [makeArgument('arg')],
   annotations: ['arg'],
-}
+  projectNames,
+})
 
 test.each`
   code                                       | callSuggestion  | subjectSpan            | attachedSpan            | subjectType                  | methodName
@@ -85,7 +93,8 @@ test.each`
         getExpressionInfo(astId) {
           if (subjectSpan != null && astId === id('subject')) {
             return {
-              typename: subjectType,
+              typename: unwrap(projectNames.parseProjectPath(subjectType)),
+              rawTypename: subjectType,
               methodCall: undefined,
               payload: { type: 'Value' },
               profilingInfo: [],
@@ -100,19 +109,20 @@ test.each`
           return ref(null)
         },
       },
+      projectNames,
     )
     assert(visConfig != null)
     assert(visConfig.value != null)
     if (typeof visConfig.value.expression === 'string') {
       expect(visConfig.value.expressionId).toBe(eid('entireFunction'))
       expect(visConfig.value.expression).toBe(
-        `_ -> ${WIDGETS_ENSO_MODULE}.${GET_WIDGETS_METHOD} ${callSuggestion.memberOf}`,
+        `_ -> ${WIDGETS_ENSO_MODULE}.${GET_WIDGETS_METHOD} ${projectNames.printProjectPath(callSuggestion.memberOf)}`,
       )
       expect(eid('attached')).toBeUndefined()
     } else {
       expect(visConfig.value.expressionId).toBe(eid('attached'))
     }
-    expect(visConfig.value.positionalArgumentsExpressions![0]).toBe(methodName)
-    expect(visConfig.value.positionalArgumentsExpressions![1]).toBe("['arg']")
+    expect(visConfig.value.positionalArgumentsExpressions?.[0]).toBe(methodName)
+    expect(visConfig.value.positionalArgumentsExpressions?.[1]).toBe("['arg']")
   },
 )

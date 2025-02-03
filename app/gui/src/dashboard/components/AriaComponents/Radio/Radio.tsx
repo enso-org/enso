@@ -12,6 +12,7 @@ import * as mergeRefs from '#/utilities/mergeRefs'
 import * as twv from '#/utilities/tailwindVariants'
 
 import { forwardRef } from '#/utilities/react'
+import invariant from 'tiny-invariant'
 import * as text from '../Text'
 import * as radioGroup from './RadioGroup'
 import * as radioGroupContext from './RadioGroupContext'
@@ -65,6 +66,8 @@ export const Radio = forwardRef(function Radio(
   const { setPressed, clearPressed, isSiblingPressed } = radioGroupContext.useRadioGroupContext({
     value: props.value,
   })
+
+  invariant(state, '<Radio /> must be used within a <RadioGroup />')
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const { isSelected, isDisabled, isPressed, inputProps, labelProps } = aria.useRadio(

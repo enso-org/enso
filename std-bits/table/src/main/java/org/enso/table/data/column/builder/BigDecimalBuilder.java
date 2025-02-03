@@ -4,36 +4,22 @@ import java.math.BigDecimal;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for BigDecimal columns. */
-public class BigDecimalBuilder extends TypedBuilderImpl<BigDecimal> {
-  @Override
-  protected BigDecimal[] newArray(int size) {
-    return new BigDecimal[size];
-  }
-
-  public BigDecimalBuilder(int size) {
-    super(size);
+public final class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
+  BigDecimalBuilder(int size) {
+    super(BigDecimalType.INSTANCE, new BigDecimal[size]);
   }
 
   @Override
-  public StorageType getType() {
-    return BigDecimalType.INSTANCE;
-  }
-
-  @Override
-  public void appendNoGrow(Object o) {
+  public void append(Object o) {
+    ensureSpaceToAppend();
     try {
       data[currentSize++] = (BigDecimal) o;
     } catch (ClassCastException e) {
       throw new ValueTypeMismatchException(getType(), o);
     }
-  }
-
-  public void appendRawNoGrow(BigDecimal value) {
-    data[currentSize++] = value;
   }
 
   @Override
@@ -43,6 +29,6 @@ public class BigDecimalBuilder extends TypedBuilderImpl<BigDecimal> {
 
   @Override
   protected Storage<BigDecimal> doSeal() {
-    return new BigDecimalStorage(data, currentSize);
+    return new BigDecimalStorage(data);
   }
 }

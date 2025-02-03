@@ -63,6 +63,7 @@ type Snowflake_Type_Mapping
                     True  -> SQL_Type.Value Types.BINARY "binary"
                     False -> SQL_Type.Value Types.BINARY "binary" size
             Value_Type.Mixed -> Error.throw (Unsupported_Database_Type.Error "Mixed" "Snowflake")
+            Value_Type.Null -> Error.throw (Unsupported_Database_Type.Error "Null" "Snowflake")
             Value_Type.Unsupported_Data_Type type_name underlying_type ->
                 underlying_type.if_nothing <| Error.throw <| Illegal_Argument.Error <|
                     "An unsupported SQL type ["+type_name.to_text+"] cannot be converted into an SQL type because it did not contain the SQL metadata needed to reconstruct it."
@@ -159,7 +160,7 @@ type Snowflake_Type_Mapping
 ## PRIVATE
 simple_types_map = Dictionary.from_vector <|
     floats = [[Types.DOUBLE, Value_Type.Float Bits.Bits_64], [Types.REAL, Value_Type.Float Bits.Bits_64]]
-    other = [[Types.DATE, Value_Type.Date], [Types.TIME, Value_Type.Time], [Types.BOOLEAN, Value_Type.Boolean]]
+    other = [[Types.DATE, Value_Type.Date], [Types.TIME, Value_Type.Time], [Types.BOOLEAN, Value_Type.Boolean], [Types.NULL, Value_Type.Null]]
     floats + other
 
 ## PRIVATE
@@ -210,8 +211,8 @@ time_fetcher =
         ## Read the time as a string to get the nanosecond precision.
         sf_string = rs.getString i
         if sf_string == Nothing then Nothing else Time_Of_Day.parse sf_string
-    make_builder initial_size _ =
-        java_builder = Java_Exports.make_time_of_day_builder initial_size
+    make_builder initial_size java_problem_aggregator =
+        java_builder = Java_Exports.make_builder_for_type Value_Type.Time initial_size java_problem_aggregator
         Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
 
@@ -226,8 +227,8 @@ date_time_fetcher =
             # The offset is optional - if we were fetching TIMESTAMP_NTZ it could be missing.
             # The two variants of offset are needed - to handle both `+0200` and `+02:00` formats.
             Date_Time.parse normalized "yyyy-MM-dd HH:mm:ss.f[ ZZ][ ZZZZZ]"
-    make_builder initial_size _ =
-        java_builder = Java_Exports.make_date_time_builder initial_size
+    make_builder initial_size java_problem_aggregator =
+        java_builder = Java_Exports.make_builder_for_type Value_Type.Date_Time initial_size java_problem_aggregator
         Column_Fetcher_Module.make_builder_from_java_object_builder java_builder
     Column_Fetcher.Value fetch_value make_builder
 

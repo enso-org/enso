@@ -39,8 +39,8 @@ import * as detect from 'enso-common/src/detect'
 
 import type * as loggerProvider from '#/providers/LoggerProvider'
 
-import * as dateTime from '#/utilities/dateTime'
 import type * as saveAccessToken from 'enso-common/src/accessToken'
+import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 
 import * as service from '#/authentication/service'
 

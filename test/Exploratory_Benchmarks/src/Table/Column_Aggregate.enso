@@ -64,7 +64,7 @@ type Primitive_Total_Aggregate
         storage = get_storage_for_column self.int_column
         (0.up_to n).fold 0 acc-> ix->
             if storage.isNothing ix then acc else
-                acc + storage.getItem ix
+                acc + storage.getItemAsLong ix
 
     verify_correctness self =
         Helpers.check_results [self.current_aggregate_implementation, self.java_loop, self.enso_aggregate_vector_proxy, self.enso_aggregate_storage_get_item]

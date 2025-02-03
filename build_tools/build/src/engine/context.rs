@@ -199,6 +199,21 @@ impl RunContext {
             };
             sbt.call_arg("syntax-rust-definition/Runtime/managedClasspath").await?;
         }
+        if self.config.build_native_runner {
+            env::ENSO_LAUNCHER.set(&engine::EngineLauncher::TestNative)?;
+        }
+
+        // TODO: Once the native image is production ready, we should switch to
+        // EngineLauncher::Native on release versions.
+        // See tasks in https://github.com/orgs/enso-org/discussions/10121
+        /*let version = versions_from_env()?.unwrap();
+        let is_release = version.release_mode;
+        let kind = Kind::deduce(&version)?;
+        if is_release {
+            env::ENSO_LAUNCHER.set(&engine::EngineLauncher::Native)?;
+        } else {
+            env::ENSO_LAUNCHER.set(&engine::EngineLauncher::Shell)?;
+        }*/
 
         prepare_simple_library_server.await??;
 
@@ -332,9 +347,6 @@ impl RunContext {
         let mut tasks = vec![];
         if self.config.build_engine_package() {
             tasks.push("buildEngineDistribution");
-        }
-        if self.config.build_native_runner {
-            tasks.push("engine-runner/buildNativeImage");
         }
         if self.config.build_native_ydoc {
             tasks.push("ydoc-server/buildNativeImage");
@@ -684,6 +696,24 @@ pub async fn runner_sanity_test(
             .run_ok()
             .await;
 
+        let test_table = Command::new(&enso)
+            .args(["--run", repo_root.test.join("Table_Tests").as_str()])
+            .set_env(ENSO_DATA_DIRECTORY, engine_package)?
+            .run_ok()
+            .await;
+
+        let test_aws = Command::new(&enso)
+            .args(["--run", repo_root.test.join("AWS_Tests").as_str()])
+            .set_env(ENSO_DATA_DIRECTORY, engine_package)?
+            .run_ok()
+            .await;
+
+        let test_microsoft = Command::new(&enso)
+            .args(["--run", repo_root.test.join("Microsoft_Tests").as_str()])
+            .set_env(ENSO_DATA_DIRECTORY, engine_package)?
+            .run_ok()
+            .await;
+
         let test_geo = Command::new(&enso)
             .args(["--run", repo_root.test.join("Geo_Tests").as_str()])
             .set_env(ENSO_DATA_DIRECTORY, engine_package)?
@@ -696,7 +726,13 @@ pub async fn runner_sanity_test(
             .run_ok()
             .await;
 
-        let all_cmds = test_base.and(test_internal_base).and(test_geo).and(test_image);
+        let all_cmds = test_base
+            .and(test_internal_base)
+            .and(test_table)
+            .and(test_aws)
+            .and(test_microsoft)
+            .and(test_geo)
+            .and(test_image);
 
         // The following test does not actually run anything, it just checks if the engine
         // can accept `--jvm` argument and evaluates something.

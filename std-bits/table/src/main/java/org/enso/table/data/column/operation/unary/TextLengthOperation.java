@@ -1,7 +1,7 @@
 package org.enso.table.data.column.operation.unary;
 
 import org.enso.base.Text_Utils;
-import org.enso.table.data.column.builder.LongBuilder;
+import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -17,13 +17,13 @@ public class TextLengthOperation extends AbstractUnaryLongOperation {
   }
 
   @Override
-  public boolean canApply(ColumnStorage storage) {
+  public boolean canApply(ColumnStorage<?> storage) {
     return storage.getType() instanceof TextType;
   }
 
   @Override
   protected void applyObjectRow(
-      Object value, LongBuilder builder, MapOperationProblemAggregator problemAggregator) {
+      Object value, BuilderForLong builder, MapOperationProblemAggregator problemAggregator) {
     if (value instanceof String s) {
       var longValue = Text_Utils.grapheme_length(s);
       builder.appendLong(longValue);

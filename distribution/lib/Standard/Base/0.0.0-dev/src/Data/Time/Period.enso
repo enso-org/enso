@@ -29,7 +29,7 @@ ensure_period object ~action error_msg="Cannot use Duration as a parameter" =
             Error.throw (Time_Error.Error error_msg)
         x ->
             Error.throw Illegal_Argument.Error <|
-                "Expected Period type, got: " + (Meta.get_qualified_type_name x)
+                "Expected Period type, got: " + (x.to Meta.Type . qualified_name)
 
 ## A date-based amount of time in the ISO-8601 calendar system, such as
    '2 years, 3 months and 4 days'.

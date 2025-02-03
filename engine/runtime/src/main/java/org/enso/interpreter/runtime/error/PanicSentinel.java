@@ -14,7 +14,8 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
  */
 @ExportLibrary(TypesLibrary.class)
 public final class PanicSentinel extends AbstractTruffleException {
-  final PanicException panic;
+
+  private final AbstractTruffleException panic;
 
   /**
    * Create an instance of the panic sentinel, wrapping the provided panic.
@@ -22,7 +23,7 @@ public final class PanicSentinel extends AbstractTruffleException {
    * @param panic the panic to wrap
    * @param location the location from where the sentinel was thrown
    */
-  public PanicSentinel(PanicException panic, Node location) {
+  public PanicSentinel(AbstractTruffleException panic, Node location) {
     super(location);
     this.panic = panic;
   }
@@ -32,7 +33,7 @@ public final class PanicSentinel extends AbstractTruffleException {
    *
    * @return the underlying panic object
    */
-  public PanicException getPanic() {
+  public AbstractTruffleException getPanic() {
     return panic;
   }
 

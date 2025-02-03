@@ -31,6 +31,8 @@ export project.Extensions.Table_Conversions.parse_to_table
 export project.Extensions.Table_Conversions.to_table
 export project.Extensions.Table_Conversions.write_table
 
+export project.Fill_With.Fill_With
+
 export project.Grouping_Method.Grouping_Method
 
 export project.Headers.Headers

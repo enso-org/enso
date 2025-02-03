@@ -181,11 +181,11 @@ add_specs suite_builder =
 
             meta_from.name.should_equal "from"
 
-            Meta.meta .foo . rename "from" . should_equal .from
-            Meta.meta .foo . rename "from" Foo "hello" . should_equal (Foo.Value 5)
+            Meta.meta .foo . rename "from" . value . should_equal .from
+            Meta.meta .foo . rename "from" . value Foo "hello" . should_equal (Foo.Value 5)
 
-            meta_from.rename "foo" 123 . should_equal "foo called"
-            meta_from.rename "foo" . should_equal .foo
+            meta_from.rename "foo" . value 123 . should_equal "foo called"
+            meta_from.rename "foo" . value . should_equal .foo
 
         group_builder.specify "should not allow currying" <|
             Panic.recover Any (Foo.from) . catch Any .to_display_text . should_equal "Conversion currying without `that` argument is not supported."

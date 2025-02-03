@@ -12,6 +12,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.IR.Traversal_Helpers
+import project.Internal.SQL_Part.SQL_Part
 import project.SQL.SQL_Builder
 import project.SQL_Statement.SQL_Statement
 from project.Dialect import Temp_Table_Style
@@ -193,23 +194,26 @@ type SQL_Generator
         orders = ctx.orders.map (self.generate_order dialect)
         order_part = (SQL_Builder.join ", " orders) . prefix_if_present " ORDER BY "
 
+        limit_part = case ctx.limit of
+                Nothing -> ""
+                _ : Integer -> dialect.get_limit_sql_modifier ctx.limit
+
         extensions = ctx.extensions.map extension->
             part = extension.run_generator (gen_exprs extension.expressions)
-            [extension.position, part]
+            [extension.part_name, part]
 
         parts = Vector.build builder->
-            builder.append [100, SQL_Builder.code "SELECT "]
-            builder.append [200, generated_columns]
-            builder.append [300, SQL_Builder.code " FROM " ++ from_part]
-            builder.append [400, where_part]
-            builder.append [500, group_part]
-            builder.append [600, order_part]
-            case ctx.limit of
-                Nothing -> _
-                _ : Integer -> builder.append (dialect.get_limit_sql_modifier ctx.limit)
+            builder.append [SQL_Part.Select, SQL_Builder.code "SELECT "]
+            builder.append [SQL_Part.Columns, generated_columns]
+            builder.append [SQL_Part.From, SQL_Builder.code " FROM " ++ from_part]
+            builder.append [SQL_Part.Where, where_part]
+            builder.append [SQL_Part.Group, group_part]
+            builder.append [SQL_Part.Order, order_part]
+            builder.append [SQL_Part.Limit, limit_part]
+
             extensions.each builder.append
 
-        SQL_Builder.join "" <| parts.sort on=(.first) . map .second
+        SQL_Builder.join "" <| parts.sort on=(pair->(dialect.get_part_order pair.first)) . map .second
 
     ## PRIVATE
 
@@ -287,6 +291,12 @@ type SQL_Generator
                 target ++ "." ++ id ++ "=" ++ source ++ "." ++ id
             SQL_Builder.code "DELETE FROM " ++ target ++ " WHERE EXISTS (SELECT 1 FROM " ++ source ++ " WHERE " ++ conditions ++ ")"
         _ -> Error.throw <| Unsupported_Database_Operation.Error query.to_text
+
+## PRIVATE
+    Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
+    If you add extensions using Context_Extension you have to provide an order for them here
+default_get_part_order part:SQL_Part -> Integer =
+    [SQL_Part.Select, SQL_Part.Columns, SQL_Part.From, SQL_Part.Where, SQL_Part.Group, SQL_Part.Order, SQL_Part.Limit] . index_of part
 
 ## PRIVATE
    Builds code for a whole query.

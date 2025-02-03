@@ -48,30 +48,35 @@ const COMBO_BOX_STYLES = tv({
 })
 
 /** Props for a {@link ComboBox}. */
-export interface ComboBoxProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
+export interface ComboBoxProps<Schema extends TSchema, TFieldName extends FieldPath<Schema, string>>
   extends FieldStateProps<
       Omit<
         AriaComboBoxProps<FieldValues<Schema>[TFieldName]>,
         'children' | 'className' | 'style'
       > & { value?: FieldValues<Schema>[TFieldName] },
       Schema,
-      TFieldName
+      TFieldName,
+      string
     >,
     FieldProps,
     Pick<FieldComponentProps<Schema>, 'className' | 'style'>,
     VariantProps<typeof COMBO_BOX_STYLES>,
-    Pick<InputProps<Schema, TFieldName>, 'placeholder'> {
+    Pick<InputProps<Schema, TFieldName, string>, 'placeholder'> {
   /** This may change as the user types in the input. */
   readonly items: readonly FieldValues<Schema>[TFieldName][]
   readonly children: (item: FieldValues<Schema>[TFieldName]) => string
   readonly noResetButton?: boolean
 }
 
+// This is a function, even though it does not contain function syntax.
+// eslint-disable-next-line no-restricted-syntax
+const useStringField = Form.makeUseField<string>()
+
 /** A combo box with a list of items that can be filtered. */
 export const ComboBox = forwardRef(function ComboBox<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
->(props: ComboBoxProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
+  TFieldName extends FieldPath<Schema, string>,
+>(props: ComboBoxProps<Schema, TFieldName>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     name,
     items,
@@ -92,7 +97,7 @@ export const ComboBox = forwardRef(function ComboBox<
     [items, itemsAreStrings],
   )
 
-  const { fieldState, formInstance } = Form.useField({
+  const { fieldState, formInstance } = useStringField({
     name,
     isDisabled,
     form,
@@ -189,7 +194,7 @@ function ComboBoxResetButton(props: ComboBoxResetButtonProps) {
       icon={CrossIcon}
       className={className ?? ''}
       onPress={() => {
-        state.setInputValue('')
+        state?.setInputValue('')
       }}
     />
   )

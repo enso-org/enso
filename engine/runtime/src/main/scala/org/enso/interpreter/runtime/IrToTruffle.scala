@@ -2028,9 +2028,15 @@ class IrToTruffle(
             asScope(symbol.module.unsafeAsModule())
               .getPolyglotSymbolSupplier(name)
           LazyObjectNode.build(name, s)
-        case BindingsMap.ResolvedModuleMethod(_, method) =>
-          throw new CompilerError(
-            s"Impossible here, module method ${method.name} should be caught when translating application"
+        case BindingsMap.ResolvedModuleMethod(module, method) =>
+          LazyObjectNode.build(
+            method.name,
+            () => {
+              val typ   = asAssociatedType(module.unsafeAsModule())
+              val scope = asScope(module.unsafeAsModule())
+              val fn    = scope.getMethodForType(typ, method.name)
+              fn
+            }
           )
         case BindingsMap.ResolvedExtensionMethod(_, staticMethod) =>
           throw new CompilerError(

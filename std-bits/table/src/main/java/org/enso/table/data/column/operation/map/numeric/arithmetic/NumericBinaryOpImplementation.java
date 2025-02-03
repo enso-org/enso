@@ -1,23 +1,21 @@
 package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
-import static org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter.fromAnyStorage;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigDecimalArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigIntegerArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
-import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
@@ -46,7 +44,9 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
           case BigIntegerStorage s -> runBigIntegerMap(
               BigIntegerArrayAdapter.fromStorage(s), rhs, problemAggregator);
           case BigDecimalStorage s -> runBigDecimalMap(
-              BigDecimalArrayAdapter.fromStorage(s), new BigDecimal(rhs), problemAggregator);
+              BigDecimalArrayAdapter.fromBigDecimalStorage(s),
+              new BigDecimal(rhs),
+              problemAggregator);
           case DoubleStorage s -> runDoubleMap(s, rhs.doubleValue(), problemAggregator);
           default -> throw new IllegalStateException(
               "Unsupported storage: " + storage.getClass().getCanonicalName());
@@ -60,7 +60,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
               BigInteger.valueOf(argAsLong),
               problemAggregator);
           case BigDecimalStorage s -> runBigDecimalMap(
-              BigDecimalArrayAdapter.fromStorage(s),
+              BigDecimalArrayAdapter.fromBigDecimalStorage(s),
               BigDecimal.valueOf(argAsLong),
               problemAggregator);
           case DoubleStorage s -> runDoubleMap(s, (double) argAsLong, problemAggregator);
@@ -73,9 +73,9 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
           case AbstractLongStorage s -> runDoubleMap(
               DoubleArrayAdapter.fromStorage(s), doubleArg, problemAggregator);
           case BigIntegerStorage s -> runDoubleMap(
-              DoubleArrayAdapter.fromStorage(s), doubleArg, problemAggregator);
+              DoubleArrayAdapter.fromBigIntegerStorage(s), doubleArg, problemAggregator);
           case BigDecimalStorage s -> runBigDecimalMap(
-              BigDecimalArrayAdapter.fromStorage(s),
+              BigDecimalArrayAdapter.fromBigDecimalStorage(s),
               BigDecimal.valueOf(doubleArg),
               problemAggregator);
           case DoubleStorage s -> runDoubleMap(s, doubleArg, problemAggregator);
@@ -98,10 +98,10 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       case DoubleStorage lhs -> switch (arg) {
         case BigDecimalStorage rhs -> {
           BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromStorage(lhs);
-          BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromStorage(rhs);
+          BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromBigDecimalStorage(rhs);
           yield runBigDecimalZip(left, right, problemAggregator);
         }
-        default -> runDoubleZip(lhs, fromAnyStorage(arg), problemAggregator);
+        default -> runDoubleZip(lhs, DoubleArrayAdapter.fromAnyStorage(arg), problemAggregator);
       };
 
       case AbstractLongStorage lhs -> switch (arg) {
@@ -115,7 +115,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
             DoubleArrayAdapter.fromStorage(lhs), rhs, problemAggregator);
         case BigDecimalStorage rhs -> {
           BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromStorage(lhs);
-          BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromStorage(rhs);
+          BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromBigDecimalStorage(rhs);
           yield runBigDecimalZip(left, right, problemAggregator);
         }
         default -> throw new IllegalStateException(
@@ -135,10 +135,10 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
             yield runBigIntegerZip(left, right, problemAggregator);
           }
           case DoubleStorage rhs -> runDoubleZip(
-              DoubleArrayAdapter.fromStorage(lhs), rhs, problemAggregator);
+              DoubleArrayAdapter.fromBigIntegerStorage(lhs), rhs, problemAggregator);
           case BigDecimalStorage rhs -> {
-            BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromStorage(lhs);
-            BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromStorage(rhs);
+            BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromBigIntegerStorage(lhs);
+            BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromBigDecimalStorage(rhs);
             yield runBigDecimalZip(left, right, problemAggregator);
           }
           default -> throw new IllegalStateException(
@@ -147,7 +147,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       }
 
       case BigDecimalStorage lhs -> {
-        BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromStorage(lhs);
+        BigDecimalArrayAdapter left = BigDecimalArrayAdapter.fromBigDecimalStorage(lhs);
         BigDecimalArrayAdapter right = BigDecimalArrayAdapter.fromAnyStorage(arg);
         yield runBigDecimalZip(left, right, problemAggregator);
       }
@@ -157,42 +157,40 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     };
   }
 
-  protected DoubleStorage runDoubleZip(
+  protected Storage<Double> runDoubleZip(
       DoubleArrayAdapter a, DoubleArrayAdapter b, MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    int n = a.size();
-    int m = Math.min(a.size(), b.size());
-    long[] out = new long[n];
-    BitSet isNothing = new BitSet();
-    for (int i = 0; i < m; i++) {
+    long n = a.size();
+    long m = Math.min(n, b.size());
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
+    for (long i = 0; i < m; i++) {
       if (a.isNothing(i) || b.isNothing(i)) {
-        isNothing.set(i);
+        builder.appendNulls(1);
       } else {
-        double r = doDouble(a.getItemAsDouble(i), b.getItemAsDouble(i), i, problemAggregator);
-        out[i] = Double.doubleToRawLongBits(r);
+        builder.append(doDouble(a.getItemAsDouble(i), b.getItemAsDouble(i), i, problemAggregator));
       }
 
       context.safepoint();
     }
 
     if (m < n) {
-      isNothing.set(m, n);
+      builder.appendNulls(Math.toIntExact(n - m));
     }
 
-    return new DoubleStorage(out, n, isNothing);
+    return builder.seal();
   }
 
   private static Storage<? extends Number> allNullStorageOfSameType(Storage<?> storage) {
     return switch (storage) {
-      case AbstractLongStorage s -> LongStorage.makeEmpty(storage.size(), INTEGER_RESULT_TYPE);
-      case BigIntegerStorage s -> BigIntegerStorage.makeEmpty(storage.size());
-      case DoubleStorage s -> DoubleStorage.makeEmpty(storage.size());
+      case AbstractLongStorage s -> LongStorage.makeEmpty(storage.getSize(), INTEGER_RESULT_TYPE);
+      case BigIntegerStorage s -> BigIntegerStorage.makeEmpty(storage.getSize());
+      case DoubleStorage s -> DoubleStorage.makeEmpty(storage.getSize());
       default -> throw new IllegalStateException(
           "Unsupported storage: " + storage.getClass().getCanonicalName());
     };
   }
 
-  protected DoubleStorage runDoubleMap(
+  protected Storage<Double> runDoubleMap(
       DoubleArrayAdapter a, Double b, MapOperationProblemAggregator problemAggregator) {
     if (b == null) {
       return DoubleStorage.makeEmpty(a.size());
@@ -200,162 +198,159 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
 
     double bNonNull = b;
     Context context = Context.getCurrent();
-    int n = a.size();
-    long[] out = new long[n];
-    BitSet isNothing = new BitSet();
-    for (int i = 0; i < n; i++) {
+    long n = a.size();
+    var builder = Builder.getForDouble(FloatType.FLOAT_64, n, problemAggregator);
+    for (long i = 0; i < n; i++) {
       if (a.isNothing(i)) {
-        isNothing.set(i);
+        builder.appendNulls(1);
       } else {
-        double r = doDouble(a.getItemAsDouble(i), bNonNull, i, problemAggregator);
-        out[i] = Double.doubleToRawLongBits(r);
+        builder.appendDouble(doDouble(a.getItemAsDouble(i), bNonNull, i, problemAggregator));
       }
 
       context.safepoint();
     }
 
-    return new DoubleStorage(out, n, isNothing);
+    return builder.seal();
   }
 
-  protected LongStorage runLongZip(
+  protected Storage<Long> runLongZip(
       AbstractLongStorage a,
       AbstractLongStorage b,
       MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    int n = a.size();
-    int m = Math.min(a.size(), b.size());
-    long[] out = new long[n];
-    BitSet isNothing = new BitSet();
-    for (int i = 0; i < m; i++) {
-      if (a.isNothing(i) || b.isNothing(i)) {
-        isNothing.set(i);
+    long n = a.getSize();
+    long m = Math.min(n, b.getSize());
+    var builder = Builder.getForLong(INTEGER_RESULT_TYPE, n, problemAggregator);
+    for (long i = 0; i < n; i++) {
+      if (a.isNothing(i) || i >= m || b.isNothing(i)) {
+        builder.appendNulls(1);
       } else {
-        Long r = doLong(a.getItem(i), b.getItem(i), i, problemAggregator);
+        Long r = doLong(a.getItemAsLong(i), b.getItemAsLong(i), i, problemAggregator);
         if (r == null) {
-          isNothing.set(i);
+          builder.appendNulls(1);
         } else {
-          out[i] = r;
+          builder.appendLong(r);
         }
       }
 
       context.safepoint();
     }
 
-    if (m < n) {
-      isNothing.set(m, n);
-    }
-
-    return new LongStorage(out, n, isNothing, INTEGER_RESULT_TYPE);
+    return builder.seal();
   }
 
   protected Storage<Long> runLongMap(
       AbstractLongStorage a, Long b, MapOperationProblemAggregator problemAggregator) {
     if (b == null) {
-      return LongStorage.makeEmpty(a.size(), INTEGER_RESULT_TYPE);
+      return LongStorage.makeEmpty(a.getSize(), INTEGER_RESULT_TYPE);
     }
 
     long bNonNull = b;
     Context context = Context.getCurrent();
-    int n = a.size();
-    long[] out = new long[n];
-    BitSet isNothing = new BitSet();
-    for (int i = 0; i < n; i++) {
+    long n = a.getSize();
+    var builder = Builder.getForLong(INTEGER_RESULT_TYPE, n, problemAggregator);
+    for (long i = 0; i < n; i++) {
       if (a.isNothing(i)) {
-        isNothing.set(i);
+        builder.appendNulls(1);
       } else {
-        Long r = doLong(a.getItem(i), bNonNull, i, problemAggregator);
+        Long r = doLong(a.getItemAsLong(i), bNonNull, i, problemAggregator);
         if (r == null) {
-          isNothing.set(i);
+          builder.appendNulls(1);
         } else {
-          out[i] = r;
+          builder.appendLong(r);
         }
       }
 
       context.safepoint();
     }
 
-    return new LongStorage(out, n, isNothing, INTEGER_RESULT_TYPE);
+    return builder.seal();
   }
 
-  protected BigIntegerStorage runBigIntegerZip(
+  protected Storage<BigInteger> runBigIntegerZip(
       BigIntegerArrayAdapter a,
       BigIntegerArrayAdapter b,
       MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    int n = a.size();
-    int m = Math.min(a.size(), b.size());
-    BigInteger[] out = new BigInteger[n];
-    for (int i = 0; i < m; i++) {
+    long n = a.size();
+    long m = Math.min(n, b.size());
+    var builder = Builder.getForBigInteger(n, problemAggregator);
+    for (long i = 0; i < m; i++) {
       BigInteger x = a.getItem(i);
       BigInteger y = b.getItem(i);
       if (x != null && y != null) {
-        BigInteger r = doBigInteger(x, y, i, problemAggregator);
-        out[i] = r;
+        builder.append(doBigInteger(x, y, i, problemAggregator));
+      } else {
+        builder.appendNulls(1);
       }
       context.safepoint();
     }
 
-    return new BigIntegerStorage(out, n);
+    if (m < n) {
+      builder.appendNulls(Math.toIntExact(n - m));
+    }
+
+    return builder.seal();
   }
 
-  protected BigIntegerStorage runBigIntegerMap(
+  protected Storage<BigInteger> runBigIntegerMap(
       BigIntegerArrayAdapter a, BigInteger b, MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    int n = a.size();
-    BigInteger[] out = new BigInteger[n];
-    for (int i = 0; i < n; i++) {
+    long n = a.size();
+    var builder = Builder.getForBigInteger(n, problemAggregator);
+    for (long i = 0; i < n; i++) {
       BigInteger x = a.getItem(i);
       if (x == null || b == null) {
-        out[i] = null;
+        builder.appendNulls(1);
       } else {
-        BigInteger r = doBigInteger(x, b, i, problemAggregator);
-        out[i] = r;
+        builder.append(doBigInteger(x, b, i, problemAggregator));
       }
 
       context.safepoint();
     }
 
-    return new BigIntegerStorage(out, n);
+    return builder.seal();
   }
 
-  protected BigDecimalStorage runBigDecimalZip(
+  protected Storage<BigDecimal> runBigDecimalZip(
       BigDecimalArrayAdapter a,
       BigDecimalArrayAdapter b,
       MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    int n = a.size();
-    int m = Math.min(a.size(), b.size());
-    BigDecimal[] out = new BigDecimal[n];
-    for (int i = 0; i < m; i++) {
+    long n = a.size();
+    long m = Math.min(a.size(), b.size());
+    var builder = Builder.getForBigDecimal(n);
+    for (long i = 0; i < n; i++) {
       BigDecimal x = a.getItem(i);
-      BigDecimal y = b.getItem(i);
+      BigDecimal y = i >= m ? null : b.getItem(i);
       if (x != null && y != null) {
-        BigDecimal r = doBigDecimal(x, y, i, problemAggregator);
-        out[i] = r;
+        builder.append(doBigDecimal(x, y, i, problemAggregator));
+      } else {
+        builder.appendNulls(1);
       }
       context.safepoint();
     }
 
-    return new BigDecimalStorage(out, n);
+    return builder.seal();
   }
 
-  protected SpecializedStorage<BigDecimal> runBigDecimalMap(
+  protected Storage<BigDecimal> runBigDecimalMap(
       BigDecimalArrayAdapter a, BigDecimal b, MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
-    int n = a.size();
-    BigDecimal[] out = new BigDecimal[n];
-    for (int i = 0; i < n; i++) {
+    long n = a.size();
+    var builder = Builder.getForBigDecimal(n);
+
+    for (long i = 0; i < n; i++) {
       BigDecimal x = a.getItem(i);
       if (x == null || b == null) {
-        out[i] = null;
+        builder.appendNulls(1);
       } else {
-        BigDecimal r = doBigDecimal(x, b, i, problemAggregator);
-        out[i] = r;
+        builder.append(doBigDecimal(x, b, i, problemAggregator));
       }
 
       context.safepoint();
     }
 
-    return new BigDecimalStorage(out, n);
+    return builder.seal();
   }
 }

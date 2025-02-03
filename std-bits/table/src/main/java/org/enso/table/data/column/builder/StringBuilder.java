@@ -3,31 +3,21 @@ package org.enso.table.data.column.builder;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for string columns. */
-public class StringBuilder extends TypedBuilderImpl<String> {
+public final class StringBuilder extends TypedBuilder<String> {
   private final TextType type;
 
-  @Override
-  protected String[] newArray(int size) {
-    return new String[size];
-  }
-
   public StringBuilder(int size, TextType type) {
-    super(size);
+    super(type, new String[size]);
     this.type = type;
   }
 
   @Override
-  public StorageType getType() {
-    return type;
-  }
-
-  @Override
-  public void appendNoGrow(Object o) {
+  public void append(Object o) {
+    ensureSpaceToAppend();
     try {
       String str = (String) o;
       if (type.fits(str)) {
@@ -58,8 +48,9 @@ public class StringBuilder extends TypedBuilderImpl<String> {
           // storage.T == String
           @SuppressWarnings("unchecked")
           SpecializedStorage<String> specializedStorage = (SpecializedStorage<String>) storage;
-          System.arraycopy(specializedStorage.getData(), 0, data, currentSize, storage.size());
-          currentSize += storage.size();
+          int toCopy = (int) storage.getSize();
+          System.arraycopy(specializedStorage.getData(), 0, data, currentSize, toCopy);
+          currentSize += toCopy;
           return;
         }
       }
@@ -70,6 +61,6 @@ public class StringBuilder extends TypedBuilderImpl<String> {
 
   @Override
   protected Storage<String> doSeal() {
-    return new StringStorage(data, currentSize, type);
+    return new StringStorage(data, type);
   }
 }

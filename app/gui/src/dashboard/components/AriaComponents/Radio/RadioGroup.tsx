@@ -1,8 +1,4 @@
-/**
- * @file
- *
- * A radio group component.
- */
+/** @file A radio group. */
 import * as React from 'react'
 
 import * as aria from '#/components/aria'
@@ -13,23 +9,25 @@ import * as twv from '#/utilities/tailwindVariants'
 import { omit } from '#/utilities/object'
 import { forwardRef } from '#/utilities/react'
 import type { FieldVariantProps } from '../Form'
-import * as formComponent from '../Form'
-import * as radioGroupContext from './RadioGroupContext'
+import { Form, type FieldPath, type FieldProps, type FieldStateProps, type TSchema } from '../Form'
+import { RadioGroupProvider } from './RadioGroupContext'
 
 /** Props for {@link RadioGroup}. */
 export interface RadioGroupProps<
-  Schema extends formComponent.TSchema,
-  TFieldName extends formComponent.FieldPath<Schema>,
-> extends formComponent.FieldStateProps<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema, string>,
+> extends FieldStateProps<
       Omit<aria.AriaRadioGroupProps, 'description' | 'label'>,
       Schema,
-      TFieldName
+      TFieldName,
+      string
     >,
     twv.VariantProps<typeof RADIO_GROUP_STYLES>,
-    formComponent.FieldProps,
+    FieldProps,
     FieldVariantProps {
   readonly children?: React.ReactNode
   readonly className?: string
+  readonly style?: React.CSSProperties
 }
 
 export const RADIO_GROUP_STYLES = twv.tv({
@@ -37,11 +35,14 @@ export const RADIO_GROUP_STYLES = twv.tv({
   variants: { fullWidth: { true: 'w-full' } },
 })
 
-/** A radio group component. */
+// This is a function, even though it does not contain function syntax.
+// eslint-disable-next-line no-restricted-syntax
+const useStringField = Form.makeUseField<string>()
 
+/** A radio group. */
 export const RadioGroup = forwardRef(function RadioGroup<
-  Schema extends formComponent.TSchema,
-  TFieldName extends formComponent.FieldPath<Schema>,
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema, string>,
 >(props: RadioGroupProps<Schema, TFieldName>, ref: React.ForwardedRef<HTMLDivElement>) {
   const {
     children,
@@ -61,7 +62,7 @@ export const RadioGroup = forwardRef(function RadioGroup<
     ...radioGroupProps
   } = props
 
-  const { field, fieldState, formInstance } = formComponent.Form.useField({
+  const { field, fieldState, formInstance } = useStringField({
     name,
     isDisabled,
     form,
@@ -89,8 +90,8 @@ export const RadioGroup = forwardRef(function RadioGroup<
         isInvalid: invalid,
       })}
     >
-      <radioGroupContext.RadioGroupProvider>
-        <formComponent.Form.Field
+      <RadioGroupProvider>
+        <Form.Field
           name={name}
           form={formInstance}
           label={label}
@@ -98,11 +99,11 @@ export const RadioGroup = forwardRef(function RadioGroup<
           fullWidth={fullWidth}
           isInvalid={invalid}
           variants={fieldVariants}
-          {...radioGroupProps}
+          isRequired={isRequired}
         >
           {children}
-        </formComponent.Form.Field>
-      </radioGroupContext.RadioGroupProvider>
+        </Form.Field>
+      </RadioGroupProvider>
     </aria.RadioGroup>
   )
 })

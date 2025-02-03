@@ -2,32 +2,30 @@ package org.enso.table.data.column.builder;
 
 import java.util.BitSet;
 import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.util.BitSets;
 
 /** A builder for boolean columns. */
-public class BoolBuilder extends TypedBuilder {
+public final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
   private final BitSet vals;
   private final BitSet isNothing;
   int size = 0;
 
-  public BoolBuilder() {
-    vals = new BitSet();
-    isNothing = new BitSet();
-  }
-
-  public BoolBuilder(int capacity) {
+  // ** Creates a new builder for boolean columns. Should be built via Builder.getForBoolean. */
+  BoolBuilder(int capacity) {
     vals = new BitSet(capacity);
     isNothing = new BitSet(capacity);
   }
 
   @Override
-  public void appendNoGrow(Object o) {
+  public void append(Object o) {
     if (o == null) {
-      isNothing.set(size);
+      appendNulls(1);
     } else {
       if (o instanceof Boolean b) {
         if (b) {
@@ -36,8 +34,8 @@ public class BoolBuilder extends TypedBuilder {
       } else {
         throw new ValueTypeMismatchException(getType(), o);
       }
+      size++;
     }
-    size++;
   }
 
   @Override
@@ -45,18 +43,13 @@ public class BoolBuilder extends TypedBuilder {
     return o instanceof Boolean;
   }
 
-  @Override
-  public void append(Object o) {
-    appendNoGrow(o);
-  }
-
   /**
    * Append a new boolean to this builder.
    *
-   * @param data the boolean to append
+   * @param value the boolean to append
    */
-  public void appendBoolean(boolean data) {
-    if (data) {
+  public void appendBoolean(boolean value) {
+    if (value) {
       vals.set(size);
     }
     size++;
@@ -72,15 +65,27 @@ public class BoolBuilder extends TypedBuilder {
   public void appendBulkStorage(Storage<?> storage) {
     if (storage.getType().equals(getType())) {
       if (storage instanceof BoolStorage boolStorage) {
-        BitSets.copy(boolStorage.getValues(), vals, size, boolStorage.size());
-        BitSets.copy(boolStorage.getIsNothingMap(), isNothing, size, boolStorage.size());
-        size += boolStorage.size();
+        // We know this is valid for a BoolStorage.
+        int toCopy = (int) boolStorage.getSize();
+        BitSets.copy(boolStorage.getValues(), vals, size, toCopy);
+        BitSets.copy(boolStorage.getIsNothingMap(), isNothing, size, toCopy);
+        size += toCopy;
+      } else if (storage instanceof ColumnBooleanStorage columnBooleanStorage) {
+        for (long i = 0; i < columnBooleanStorage.getSize(); i++) {
+          if (columnBooleanStorage.isNothing(i)) {
+            appendNulls(1);
+          } else {
+            appendBoolean(columnBooleanStorage.getItemAsBoolean(i));
+          }
+        }
       } else {
         throw new IllegalStateException(
             "Unexpected storage implementation for type BOOLEAN: "
                 + storage
                 + ". This is a bug in the Table library.");
       }
+    } else if (storage.getType() instanceof NullType) {
+      appendNulls(Math.toIntExact(storage.getSize()));
     } else {
       throw new StorageTypeMismatchException(getType(), storage.getType());
     }
@@ -97,7 +102,7 @@ public class BoolBuilder extends TypedBuilder {
   }
 
   @Override
-  public void retypeToMixed(Object[] items) {
+  public void copyDataTo(Object[] items) {
     for (int i = 0; i < size; i++) {
       if (isNothing.get(i)) {
         items[i] = null;
@@ -113,7 +118,7 @@ public class BoolBuilder extends TypedBuilder {
   }
 
   @Override
-  public TypedBuilder retypeTo(StorageType type) {
+  public Builder retypeTo(StorageType type) {
     throw new UnsupportedOperationException();
   }
 

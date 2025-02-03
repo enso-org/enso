@@ -1,19 +1,20 @@
+import { mockProjectNameStore } from '@/stores/projectNames'
 import { unwrap } from '@/util/data/result'
 import {
+  isQualifiedName,
   normalizeQualifiedName,
-  qnIsTopElement,
   qnJoin,
   qnLastSegment,
   qnParent,
-  qnReplaceProjectName,
   qnSplit,
-  tryIdentifier,
   tryIdentifierOrOperatorIdentifier,
   tryQualifiedName,
   type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
 import { expect, test } from 'vitest'
+
+const projectNames = mockProjectNameStore('local', 'Project')
 
 const validIdentifiers = [
   'A',
@@ -79,9 +80,8 @@ test.each([
   ['local.Project', true],
   ['local.Project.elem', true],
   ['local.Project.Module.elem', false],
-])('qnIsTopElement(%s) returns %s', (name, result) => {
-  const qn = unwrap(tryQualifiedName(name))
-  expect(qnIsTopElement(qn)).toBe(result)
+])('pathIsTopElement(%s) returns %s', (name, result) => {
+  expect(unwrap(projectNames.parseProjectPathRaw(name)).isTopElement()).toBe(result)
 })
 
 test.each([
@@ -95,14 +95,6 @@ test.each([
   expect(normalizeQualifiedName(qn)).toEqual(unwrap(tryQualifiedName(expected)))
 })
 
-test.each([
-  ['local.Project.Main', 'Project', 'NewProject', 'local.NewProject.Main'],
-  ['local.Project.Main', 'Project2', 'NewProject', 'local.Project.Main'],
-  ['local.Project', 'Project', 'NewProject', 'local.NewProject'],
-  ['Project', 'Project', 'NewProject', 'Project'],
-  ['local.Project2.Project', 'Project', 'NewProject', 'local.Project2.Project'],
-])('Replacing project name in %s from %s to %s', (qname, oldName, newName, expected) => {
-  const qn = unwrap(tryQualifiedName(qname))
-  const newIdent = unwrap(tryIdentifier(newName))
-  expect(qnReplaceProjectName(qn, oldName, newIdent)).toBe(expected)
+test('Autoscoped constructor is not a qualified name', () => {
+  expect(isQualifiedName('..Foo')).toBe(false)
 })

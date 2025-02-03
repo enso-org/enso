@@ -68,6 +68,7 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'createDirectory'
   | 'createPermission'
   | 'createProject'
+  | 'createProjectExecution'
   | 'createSecret'
   | 'createTag'
   | 'createUser'
@@ -76,6 +77,7 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'deleteAsset'
   | 'deleteDatalink'
   | 'deleteInvitation'
+  | 'deleteProjectExecution'
   | 'deleteTag'
   | 'deleteUser'
   | 'deleteUserGroup'
@@ -86,12 +88,14 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'removeUser'
   | 'resendInvitation'
   | 'restoreUser'
+  | 'syncProjectExecution'
   | 'undoDeleteAsset'
   | 'updateAsset'
   | 'updateDirectory'
   | 'updateFile'
   | 'updateOrganization'
   | 'updateProject'
+  | 'updateProjectExecution'
   | 'updateSecret'
   | 'updateUser'
   | 'uploadFileChunk'
@@ -216,6 +220,10 @@ const INVALIDATION_MAP: Partial<
   updateAsset: ['listDirectory', 'listAssetVersions'],
   openProject: ['listDirectory'],
   closeProject: ['listDirectory', 'listAssetVersions'],
+  createProjectExecution: ['listProjectExecutions'],
+  updateProjectExecution: ['listProjectExecutions'],
+  syncProjectExecution: ['listProjectExecutions'],
+  deleteProjectExecution: ['listProjectExecutions'],
 }
 
 /** The type of the corresponding mutation for the given backend method. */
