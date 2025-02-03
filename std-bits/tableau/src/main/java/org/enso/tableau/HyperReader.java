@@ -1,7 +1,6 @@
 package org.enso.tableau;
 
 import com.tableau.hyperapi.*;
-
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -121,11 +120,11 @@ public class HyperReader {
         var libName = name.substring(libIdx + 3, dotIdx);
         var bindings = Context.getCurrent().getBindings("enso");
         var found = bindings.invokeMember("find_library", libName);
-          try {
-              return new FileInputStream(found.asString());
-          } catch (FileNotFoundException e) {
-              return null;
-          }
+        try {
+          return new FileInputStream(found.asString());
+        } catch (FileNotFoundException e) {
+          return null;
+        }
       } else {
         return super.getResourceAsStream(name);
       }
