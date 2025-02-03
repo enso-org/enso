@@ -1,6 +1,6 @@
 import { ensoMarkdown } from '@/components/MarkdownEditor/markdown'
 import { assert } from '@/util/assert'
-import { toggleHeader, toggleList, toggleQuote } from '@/util/codemirror/index'
+import { HeaderLevel, toggleHeader, toggleList, toggleQuote } from '@/util/codemirror/index'
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { EditorState } from '@codemirror/state'
 import { Decoration, EditorView } from '@codemirror/view'
@@ -232,7 +232,7 @@ const setupEditor = (source: string) => {
 
 interface HeaderTestCase {
   source: string
-  headerLevel: number
+  headerLevel: HeaderLevel
   expected: string
 }
 

@@ -110,7 +110,7 @@ export function useCodeMirror(
      */
     readonly,
     putTextAt,
-    toggleHeader: (level: number) => toggleHeader(editorView, level),
+    toggleHeader: (level: HeaderLevel) => toggleHeader(editorView, level),
     toggleQuote: () => toggleQuote(editorView),
     toggleList: (type: ListType) => toggleList(editorView, type),
     /** The DOM element containing the editor's content. */
@@ -118,8 +118,9 @@ export function useCodeMirror(
   }
 }
 
-export function toggleHeader(view: EditorView, level: number) {
-  assert(level >= 1 && level <= 3, 'Invalid header level')
+export type HeaderLevel = 1 | 2 | 3
+
+export function toggleHeader(view: EditorView, level: HeaderLevel) {
   const startLine = view.state.doc.lineAt(view.state.selection.main.from)
   const endLine = view.state.doc.lineAt(view.state.selection.main.to)
   const tree = markdownParser.parse(view.state.doc.toString())
@@ -129,7 +130,7 @@ export function toggleHeader(view: EditorView, level: number) {
   for (let lineIndex = startLine.number; lineIndex <= endLine.number; lineIndex++) {
     const line = view.state.doc.line(lineIndex)
     const src = view.state.doc.toString()
-    const result = toggleHeaderInner(tree, level, line.from, line.to, src)
+    const result = toggleHeaderInner(tree, level, line.from, line.to, src, 0)
     addHeaders.push(...result.add)
     replaceHeaders.push(...result.replace)
     removeHeaders.push(...result.remove)
@@ -150,35 +151,37 @@ function toggleHeaderInner(
   lineStart: number,
   lineEnd: number,
   src: string,
+  offset: number,
 ): ToggleHeaderResult {
   console.log(debugTree(tree, src))
   const add = []
   const replace = []
   const remove = []
   const prefix = '#'.repeat(level)
-  let nodeUnderCursor = tree.resolve(lineEnd, -1)
-  if (nodeUnderCursor.type.name === 'Document' && nodeUnderCursor.firstChild != null)
-    nodeUnderCursor = nodeUnderCursor.firstChild
-  if (nodeUnderCursor.type.name.startsWith('ATXHeading')) {
-    const headerMark = nodeUnderCursor.getChild('HeaderMark')
+  let node = tree.resolve(lineEnd, -1)
+  if (node.type.name === 'Document' && node.firstChild != null) node = node.firstChild
+  if (node.type.name.startsWith('ATXHeading')) {
+    const headerMark = node.getChild('HeaderMark')
     if (headerMark) {
-      // Heading text is everything after the header mark
-      const headingText = src.slice(headerMark.to, lineEnd)
-      if (nodeUnderCursor.type.name.endsWith(level.toString())) {
-        remove.push({ from: lineStart, to: lineEnd, insert: headingText })
+      if (node.type.name.endsWith(level.toString())) {
+        remove.push({ from: headerMark.from + offset, to: headerMark.to + offset, insert: '' })
       } else {
-        replace.push({ from: lineStart, to: lineEnd, insert: prefix + ' ' + headingText })
+        replace.push({
+          from: headerMark.from + offset,
+          to: headerMark.to + offset,
+          insert: prefix + ' ',
+        })
       }
     }
-  } else if (nodeUnderCursor.type.name === 'CodeText') {
+  } else if (node.type.name === 'CodeText') {
     const codeLine = src.slice(lineStart, lineEnd)
     const codeTree = markdownParser.parse(codeLine)
-    const result = toggleHeaderInner(codeTree, level, lineStart, lineEnd, codeLine)
+    const result = toggleHeaderInner(codeTree, level, lineStart, lineEnd, codeLine, lineStart)
     add.push(...result.add)
     replace.push(...result.replace)
     remove.push(...result.remove)
   } else {
-    add.push({ from: lineStart, to: lineEnd, insert: prefix + ' ' + src.slice(lineStart, lineEnd) })
+    add.push({ from: lineStart, to: lineStart, insert: prefix + ' ' })
   }
   return { add, replace, remove }
 }

@@ -3,7 +3,7 @@ import {
   provideDocumentationImageUrlTransformer,
   type UrlTransformer,
 } from '@/components/MarkdownEditor/imageUrlTransformer'
-import { ListType } from '@/util/codemirror'
+import { HeaderLevel, ListType } from '@/util/codemirror'
 import { Vec2 } from '@/util/data/vec2'
 import { ComponentInstance, computed, defineAsyncComponent, ref, toRef } from 'vue'
 import * as Y from 'yjs'
@@ -30,7 +30,7 @@ defineExpose({
   putTextAtCoord: (text: string, coords: Vec2) => {
     inner.value?.putTextAtCoords(text, coords)
   },
-  toggleHeader: (level: number) => {
+  toggleHeader: (level: HeaderLevel) => {
     inner.value?.toggleHeader(level)
   },
   toggleQuote: () => {
