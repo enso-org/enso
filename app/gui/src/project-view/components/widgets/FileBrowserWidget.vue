@@ -20,13 +20,13 @@ import Backend, {
   assetIsFile,
 } from 'enso-common/src/services/Backend'
 import { computed, ref, toValue, watch } from 'vue'
-import { Err, Ok } from 'ydoc-shared/util/data/result'
+import { Err, Ok, Result } from 'ydoc-shared/util/data/result'
 
 const emit = defineEmits<{
   pathSelected: [path: string]
 }>()
 
-const { query, ensureQueryData } = useBackend('remote')
+const { query, fetch, ensureQueryData } = useBackend('remote')
 const { remote: backend } = injectBackend()
 
 const errorToast = useToast.error()
@@ -40,19 +40,15 @@ interface Directory {
 
 const currentUser = query('usersMe', [])
 const currentOrganization = query('getOrganization', [])
-const directoryStack = ref({
-  isLoading: true,
-  stack: [] as Directory[],
-})
-const currentDirectory = computed(
-  () => directoryStack.value.stack[directoryStack.value.stack.length - 1],
-)
+const directoryStack = ref<Directory[]>([])
+const isDirectoryStackInitializing = computed(() => directoryStack.value.length === 0)
+const currentDirectory = computed(() => directoryStack.value[directoryStack.value.length - 1])
 
 const currentPath = computed(() => {
   if (!currentUser.data.value) return
   let root = backend?.rootPath(currentUser.data.value)
   if (root && !root.endsWith('/')) root += '/'
-  return `${root}${directoryStack.value.stack
+  return `${root}${directoryStack.value
     .slice(1)
     .map((dir) => `${dir.title}/`)
     .join('')}`
@@ -77,7 +73,7 @@ function listDirectoryArgs(params: ToValue<Directory | undefined>) {
   })
 }
 
-const { isPending, isError, data, error, promise } = query(
+const { isPending, isError, data, error } = query(
   'listDirectory',
   listDirectoryArgs(currentDirectory),
 )
@@ -114,7 +110,7 @@ watch(directories, (directories) => {
 // === Interactivity ===
 
 function enterDir(dir: DirectoryAsset) {
-  directoryStack.value.stack.push(dir)
+  directoryStack.value.push(dir)
 }
 
 class DirNotFoundError {
@@ -125,19 +121,8 @@ class DirNotFoundError {
   }
 }
 
-function enterDirByName(name: string) {
-  return promise.value.then((assets) => {
-    const nextDir = assets.find(
-      (asset): asset is DirectoryAsset => assetIsDirectory(asset) && asset.title === name,
-    )
-    if (!nextDir) return Err(new DirNotFoundError(name))
-    enterDir(nextDir)
-    return Ok()
-  })
-}
-
 function popTo(index: number) {
-  directoryStack.value.stack.splice(index + 1)
+  directoryStack.value.splice(index + 1)
 }
 
 function chooseFile(file: FileAsset | DatalinkAsset) {
@@ -146,7 +131,7 @@ function chooseFile(file: FileAsset | DatalinkAsset) {
 
 const isBusy = computed(
   () =>
-    directoryStack.value.isLoading ||
+    isDirectoryStackInitializing.value ||
     isPending.value ||
     (selectedFile.value && currentUser.isPending.value),
 )
@@ -166,6 +151,20 @@ watch(selectedFilePath, (path) => {
   if (path) emit('pathSelected', path)
 })
 
+// === Initialization ===
+
+async function enterDirByName(name: string, stack: Directory[]): Promise<Result> {
+  const currentDir = stack[stack.length - 1]
+  if (currentDir == null) return Err('Stack is empty')
+  const content = await fetch('listDirectory', listDirectoryArgs(currentDir))
+  const nextDir = content.find(
+    (asset): asset is DirectoryAsset => assetIsDirectory(asset) && asset.title === name,
+  )
+  if (!nextDir) return Err(new DirNotFoundError(name))
+  stack.push(nextDir)
+  return Ok()
+}
+
 Promise.all([currentUser.promise.value, currentOrganization.promise.value]).then(
   async ([user, organization]) => {
     if (!user) {
@@ -174,13 +173,13 @@ Promise.all([currentUser.promise.value, currentOrganization.promise.value]).then
     }
     const rootDirectoryId =
       backend?.rootDirectoryId(user, organization, null) ?? user.rootDirectoryId
-    directoryStack.value.stack = [{ id: rootDirectoryId, title: 'Cloud' }]
+    const stack = [{ id: rootDirectoryId, title: 'Cloud' }]
     if (rootDirectoryId != user.rootDirectoryId) {
-      let result = await enterDirByName('Users')
-      result = result.ok ? await enterDirByName(user.name) : result
+      let result = await enterDirByName('Users', stack)
+      result = result.ok ? await enterDirByName(user.name, stack) : result
       if (!result.ok) errorToast.reportError(result.error, 'Cannot enter home directory')
     }
-    directoryStack.value.isLoading = false
+    directoryStack.value = stack
   },
 )
 </script>
@@ -189,11 +188,11 @@ Promise.all([currentUser.promise.value, currentOrganization.promise.value]).then
   <div class="FileBrowserWidget">
     <div class="directoryStack">
       <TransitionGroup>
-        <template v-for="(directory, index) in directoryStack.stack" :key="directory.id ?? 'root'">
+        <template v-for="(directory, index) in directoryStack" :key="directory.id ?? 'root'">
           <SvgIcon v-if="index > 0" name="arrow_right_head_only" />
           <div
             class="clickable"
-            :class="{ nonInteractive: index === directoryStack.stack.length - 1 }"
+            :class="{ nonInteractive: index === directoryStack.length - 1 }"
             @click.stop="popTo(index)"
             v-text="directory.title"
           ></div>

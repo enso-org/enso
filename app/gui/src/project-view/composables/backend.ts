@@ -51,6 +51,13 @@ export function useBackend(which: 'remote' | 'project') {
     return useQuery(backendQueryOptions(method, args, backend))
   }
 
+  function fetch<Method extends BackendMethods>(
+    method: Method,
+    args: ToValue<Parameters<Backend[Method]> | undefined>,
+  ): Promise<Awaited<ReturnType<Backend[Method]>>> {
+    return queryClient.fetchQuery(backendQueryOptions(method, args, backend))
+  }
+
   /** Enable prefetching of the specified query. */
   function prefetch<Method extends BackendMethods>(
     method: Method,
@@ -67,5 +74,5 @@ export function useBackend(which: 'remote' | 'project') {
     return queryClient.ensureQueryData(backendQueryOptions(method, args, backend))
   }
 
-  return { query, prefetch, ensureQueryData }
+  return { query, fetch, prefetch, ensureQueryData }
 }
