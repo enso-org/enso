@@ -655,7 +655,7 @@ pub async fn runner_sanity_test(
             .run_ok()
             .await;
 
-      let test_tableau = Command::new(&enso)
+        let test_tableau = Command::new(&enso)
             .args(["--run", repo_root.test.join("Tableau_Tests").as_str()])
             .set_env(ENSO_DATA_DIRECTORY, engine_package)?
             .run_ok()
