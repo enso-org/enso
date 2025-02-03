@@ -10,12 +10,8 @@ import org.enso.compiler.core.ir.{
 }
 import org.enso.compiler.core.ir.expression.{errors, Case}
 import org.enso.compiler.core.CompilerError
-import org.enso.compiler.pass.{
-  IRPass,
-  IRProcessingPass,
-  MiniIRPass,
-  MiniPassFactory
-}
+import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
@@ -74,7 +70,7 @@ import scala.annotation.unused
   *
   * - A [[FreshNameSupply]]
   */
-case object NestedPatternMatch extends IRPass with MiniPassFactory {
+case object NestedPatternMatch extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
@@ -92,28 +88,6 @@ case object NestedPatternMatch extends IRPass with MiniPassFactory {
     IgnoredBindings,
     TailCall.INSTANCE
   )
-
-  override def createForModuleCompilation(
-    moduleContext: ModuleContext
-  ): MiniIRPass = {
-    val freshNameSupply = moduleContext.freshNameSupply.getOrElse(
-      throw new CompilerError(
-        "A fresh name supply is required for nested case desugaring."
-      )
-    )
-    new NestedPatternMatchMini(freshNameSupply)
-  }
-
-  override def createForInlineCompilation(
-    inlineContext: InlineContext
-  ): MiniIRPass = {
-    val freshNameSupply = inlineContext.freshNameSupply.getOrElse(
-      throw new CompilerError(
-        "A fresh name supply is required for inline nested case desugaring."
-      )
-    )
-    new NestedPatternMatchMini(freshNameSupply)
-  }
 
   /** Desugars nested pattern matches in a module.
     *

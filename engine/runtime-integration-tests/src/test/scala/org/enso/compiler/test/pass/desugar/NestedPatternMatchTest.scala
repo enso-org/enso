@@ -5,24 +5,12 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.ir.expression.Case
 import org.enso.compiler.core.ir.{Expression, Literal, Module, Name, Pattern}
 import org.enso.compiler.pass.desugar.NestedPatternMatch
-import org.enso.compiler.pass.{
-  IRPass,
-  MiniPassFactory,
-  PassConfiguration,
-  PassGroup,
-  PassManager
-}
-import org.enso.compiler.test.{MiniPassTest, WithIRDumper}
+import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
+import org.enso.compiler.test.CompilerTest
 
-class NestedPatternMatchTest extends MiniPassTest with WithIRDumper {
+class NestedPatternMatchTest extends CompilerTest {
 
   // === Test Setup ===========================================================
-
-  override def testName: String = "NestedPatternMatchTest"
-
-  override def miniPassFactory: MiniPassFactory = NestedPatternMatch
-
-  override def megaPass: IRPass = NestedPatternMatch
 
   val passes = new Passes(defaultConfig)
 
@@ -32,10 +20,6 @@ class NestedPatternMatchTest extends MiniPassTest with WithIRDumper {
 
   implicit val passManager: PassManager =
     new PassManager(List(precursorPasses), passConfig)
-
-  override def megaPassManager: PassManager = {
-    passManager
-  }
 
   /** Adds an extension method to run nested pattern desugaring on an
     * [[Module]].
@@ -360,70 +344,48 @@ class NestedPatternMatchTest extends MiniPassTest with WithIRDumper {
   }
 
   "Simple nested pattern desugaring" should {
-    "Wraps Case.Expr in Expression.Block" in {
-      assertInlineCompilation(
-        """
-          |case x of
-          |    a -> a
-          |""".stripMargin,
-        () => mkInlineContext,
-        _ => (),
-        compareIR = true
-      )
-    }
+    implicit val ctx: InlineContext = mkInlineContext
 
     // IGV graph: https://github.com/user-attachments/assets/b5387e61-e577-4b03-8a4a-ca05e27f2462
     "One nested pattern" in {
-      assertInlineCompilation(
+      val ir =
         """
           |case x of
           |    Cons (Nested a) -> num
-          |""".stripMargin,
-        () => mkInlineContext,
-        compareIR = true,
-        dumpIR    = true,
-        graphName = "One nested patter",
-        testSpec = processed => {
-          val block7 = processed.asInstanceOf[Expression.Block]
-          val binding8 =
-            block7.expressions.head.asInstanceOf[Expression.Binding]
-          binding8.name.name shouldBe "<internal-0>"
-          val literal1 = binding8.expression.asInstanceOf[Name.Literal]
-          literal1.name shouldBe "x"
-          val caseExpr0 = block7.returnValue.asInstanceOf[Case.Expr]
-          val literal9  = caseExpr0.scrutinee.asInstanceOf[Name.Literal]
-          literal9.name shouldBe "<internal-0>"
-          val caseBranch10 = caseExpr0.branches.head
-          caseBranch10.terminalBranch shouldBe false
-          val patternCons11 =
-            caseBranch10.pattern.asInstanceOf[Pattern.Constructor]
-          patternCons11.constructor.name shouldBe "Cons"
-          val patternName12 =
-            patternCons11.fields.head.asInstanceOf[Pattern.Name]
-          patternName12.name.name shouldBe "<internal-1>"
+          |""".stripMargin.preprocessExpression.get
+      val processed = ir.desugar
 
-          val block13 = caseBranch10.expression.asInstanceOf[Expression.Block]
-          val binding14 =
-            block13.expressions.head.asInstanceOf[Expression.Binding]
-          binding14.name.name shouldBe "<internal-2>"
-          val literal15 = binding14.expression.asInstanceOf[Name.Literal]
-          literal15.name shouldBe "<internal-1>"
-          val caseExpr16 = block13.returnValue.asInstanceOf[Case.Expr]
-          val literal17  = caseExpr16.scrutinee.asInstanceOf[Name.Literal]
-          literal17.name shouldBe "<internal-2>"
-          val caseBranch18 = caseExpr16.branches.head
-          caseBranch18.terminalBranch shouldBe true
-          val patternCons19 =
-            caseBranch18.pattern.asInstanceOf[Pattern.Constructor]
-          patternCons19.constructor.name shouldBe "Nested"
-          val patternName20 =
-            patternCons19.fields.head.asInstanceOf[Pattern.Name]
-          patternName20.name.name shouldBe "a"
-          val literal21 = caseBranch18.expression.asInstanceOf[Name.Literal]
-          literal21.name shouldBe "num"
-        }
-      )
+      val block7   = processed.asInstanceOf[Expression.Block]
+      val binding8 = block7.expressions.head.asInstanceOf[Expression.Binding]
+      binding8.name.name shouldBe "<internal-0>"
+      val literal1 = binding8.expression.asInstanceOf[Name.Literal]
+      literal1.name shouldBe "x"
+      val caseExpr0 = block7.returnValue.asInstanceOf[Case.Expr]
+      val literal9  = caseExpr0.scrutinee.asInstanceOf[Name.Literal]
+      literal9.name shouldBe "<internal-0>"
+      val caseBranch10 = caseExpr0.branches.head
+      caseBranch10.terminalBranch shouldBe false
+      val patternCons11 = caseBranch10.pattern.asInstanceOf[Pattern.Constructor]
+      patternCons11.constructor.name shouldBe "Cons"
+      val patternName12 = patternCons11.fields.head.asInstanceOf[Pattern.Name]
+      patternName12.name.name shouldBe "<internal-1>"
+
+      val block13   = caseBranch10.expression.asInstanceOf[Expression.Block]
+      val binding14 = block13.expressions.head.asInstanceOf[Expression.Binding]
+      binding14.name.name shouldBe "<internal-2>"
+      val literal15 = binding14.expression.asInstanceOf[Name.Literal]
+      literal15.name shouldBe "<internal-1>"
+      val caseExpr16 = block13.returnValue.asInstanceOf[Case.Expr]
+      val literal17  = caseExpr16.scrutinee.asInstanceOf[Name.Literal]
+      literal17.name shouldBe "<internal-2>"
+      val caseBranch18 = caseExpr16.branches.head
+      caseBranch18.terminalBranch shouldBe true
+      val patternCons19 = caseBranch18.pattern.asInstanceOf[Pattern.Constructor]
+      patternCons19.constructor.name shouldBe "Nested"
+      val patternName20 = patternCons19.fields.head.asInstanceOf[Pattern.Name]
+      patternName20.name.name shouldBe "a"
+      val literal21 = caseBranch18.expression.asInstanceOf[Name.Literal]
+      literal21.name shouldBe "num"
     }
   }
-
 }
