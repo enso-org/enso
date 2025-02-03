@@ -17,16 +17,18 @@ import {
 } from 'enso-common/src/services/Backend'
 
 /** Extract the corresponding {@link Mutation} type from a `MutationOptions` function. */
-type MutationFromOptionsFunction<T extends (...args: never) => unknown> =
+export type MutationFromOptionsFunction<T extends (...args: never) => unknown> =
   ReturnType<T> extends (
     UseMutationOptions<infer TData, infer TError, infer TVariables, infer TContext>
   ) ?
     Mutation<TData, TError, TVariables, TContext>
   : never
 
+export const DELETE_ASSETS_MUTATION_METHOD = 'deleteAssets'
+
 /** A key for {@link deleteAssetsMutationOptions}. */
 export function deleteAssetsMutationKey(backendType: BackendType) {
-  return [backendType, 'deletAssets']
+  return [backendType, DELETE_ASSETS_MUTATION_METHOD]
 }
 
 /** Call "delete" mutations for a list of assets. */
@@ -89,9 +91,11 @@ export function useDeleteAssetsMutationState<Result>(
   })
 }
 
+export const RESTORE_ASSETS_MUTATION_METHOD = 'restoreAssets'
+
 /** A key for {@link restoreAssetsMutationOptions}. */
 export function restoreAssetsMutationKey(backendType: BackendType) {
-  return [backendType, 'restoreAssets']
+  return [backendType, RESTORE_ASSETS_MUTATION_METHOD]
 }
 
 /** Call "restore" mutations for a list of assets. */
@@ -147,9 +151,11 @@ export function useRestoreAssetsMutationState<Result>(
   })
 }
 
+export const COPY_ASSETS_MUTATION_METHOD = 'copyAssets'
+
 /** A key for {@link copyAssetsMutationOptions}. */
 export function copyAssetsMutationKey(backendType: BackendType) {
-  return [backendType, 'copyAssets']
+  return [backendType, COPY_ASSETS_MUTATION_METHOD]
 }
 
 /** Call "copy" mutations for a list of assets. */
@@ -180,18 +186,11 @@ export function copyAssetsMutationOptions(backend: Backend) {
   })
 }
 
+export const MOVE_ASSETS_MUTATION_METHOD = 'moveAssets'
+
 /** A key for {@link moveAssetsMutationOptions}. */
 export function moveAssetsMutationKey(backendType: BackendType) {
-  return [backendType, 'moveAssets']
-}
-
-export function useMoveAssetsMutationState(backendType: BackendType) {
-  return useMutationState<MutationFromOptionsFunction<typeof moveAssetsMutationOptions>>({
-    filters: {
-      mutationKey: moveAssetsMutationKey(backendType),
-      predicate: (mutation) => mutation.state.status === 'pending',
-    },
-  })
+  return [backendType, MOVE_ASSETS_MUTATION_METHOD]
 }
 
 /** Call "move" mutations for a list of assets. */

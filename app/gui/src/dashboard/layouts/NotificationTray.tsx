@@ -4,7 +4,7 @@ import { Button, Popover, Text } from '#/components/AriaComponents'
 import { Result } from '#/components/Result'
 import { DialogTrigger, GridList } from '#/components/aria'
 import { NotificationItem } from '#/layouts/NotificationTray/components/NotificationItem'
-import { useTransientNotifications } from '#/layouts/NotificationTray/transientNotificationHooks'
+import { useComputedNotifications } from '#/layouts/NotificationTray/computedNotificationHooks'
 import { useText } from '#/providers/TextProvider'
 
 const DIALOG_OFFSET = 16
@@ -39,12 +39,12 @@ function NotificationTrayDialog() {
 /** Dialog to display notifications for a {@link NotificationTray}. */
 function NotificationTrayDialogInner() {
   const { getText } = useText()
-  const transientNotifications = useTransientNotifications()
+  const computedNotifications = useComputedNotifications()
 
   return (
     <GridList
       selectionMode="none"
-      items={transientNotifications}
+      items={computedNotifications}
       renderEmptyState={() => (
         <Result centered className="min-h-10" title={getText('youAreAllCaughtUp')} />
       )}

@@ -141,6 +141,14 @@ interface PlaceholderOverrides {
   readonly xIsUsingTheProject: [userName: string]
   readonly xItemsCopied: [count: number]
   readonly xItemsCut: [count: number]
+  readonly deletingXAssetsNotification: [count: number]
+  readonly restoringXAssetsNotification: [count: number]
+  readonly copyingXAssetsNotification: [count: number]
+  readonly movingXAssetsNotification: [count: number]
+  readonly deletedXAssetsNotification: [count: number]
+  readonly restoredXAssetsNotification: [count: number]
+  readonly copiedXAssetsNotification: [count: number]
+  readonly movedXAssetsNotification: [count: number]
   readonly uploadingXFilesWithProgressNotification: [
     sentFiles: number,
     totalFiles: number,

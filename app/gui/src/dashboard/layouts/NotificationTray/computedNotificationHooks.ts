@@ -1,0 +1,205 @@
+/** @file Hooks for computing temporary notifications. */
+import {
+  COPY_ASSETS_MUTATION_METHOD,
+  DELETE_ASSETS_MUTATION_METHOD,
+  MOVE_ASSETS_MUTATION_METHOD,
+  RESTORE_ASSETS_MUTATION_METHOD,
+  type MutationFromOptionsFunction,
+  type copyAssetsMutationOptions,
+  type deleteAssetsMutationOptions,
+  type moveAssetsMutationOptions,
+  type restoreAssetsMutationOptions,
+} from '#/hooks/backendBatchedHooks'
+import { MB_BYTES, uploadingFileQueryOptions } from '#/hooks/backendUploadFilesHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useText } from '#/providers/TextProvider'
+import { useIsMutating, useQuery, useQueryClient, type MutationKey } from '@tanstack/react-query'
+import { BackendType } from 'enso-common/src/services/Backend'
+import { uniqueString } from 'enso-common/src/utilities/uniqueString'
+import { useEffect, useState } from 'react'
+import type { NotificationInfo } from './types'
+
+const MUTATION_ID_MAP = new WeakMap<object, string>()
+
+/** Get or insert a mutation id for a computed mutation. */
+function upsertMutationId(variables: object) {
+  const id = MUTATION_ID_MAP.get(variables)
+  if (id != null) {
+    return id
+  }
+  const newId = uniqueString()
+  MUTATION_ID_MAP.set(variables, newId)
+  return newId
+}
+
+/** Return the number of ongoing mutations of the given type across both backends. */
+export function useIsMutatingForBothBackends(makeKey: (backendType: BackendType) => MutationKey) {
+  return (
+    useIsMutating({ mutationKey: makeKey(BackendType.local) }) +
+      useIsMutating({ mutationKey: makeKey(BackendType.remote) }) !==
+    0
+  )
+}
+
+/** Return a list of transient notification details. */
+export function useComputedNotifications(): readonly NotificationInfo[] {
+  const queryClient = useQueryClient()
+  const { getText } = useText()
+
+  const [notificationMap, setNotificationMap] = useState<ReadonlyMap<unknown, NotificationInfo>>(
+    new Map(),
+  )
+
+  const upsertNotification = useEventCallback((key: unknown, newNotification: NotificationInfo) => {
+    setNotificationMap((map) => {
+      const newNotifications = new Map(map)
+      newNotifications.set(key, newNotification)
+      return newNotifications
+    })
+  })
+
+  useEffect(() =>
+    queryClient.getMutationCache().subscribe((update) => {
+      switch (update.type) {
+        case 'added':
+        case 'updated': {
+          const mutationRaw = update.mutation
+          const isSuccess = mutationRaw.state.status === 'success'
+          const isError = mutationRaw.state.status === 'error'
+          switch (mutationRaw.options.mutationKey?.[1]) {
+            case DELETE_ASSETS_MUTATION_METHOD: {
+              // eslint-disable-next-line no-restricted-syntax
+              const mutation = mutationRaw as MutationFromOptionsFunction<
+                typeof deleteAssetsMutationOptions
+              >
+              const variables = mutation.state.variables
+              if (!variables) {
+                break
+              }
+              upsertNotification(variables, {
+                id: upsertMutationId(variables),
+                message: getText(
+                  isSuccess ? 'deletedXAssetsNotification'
+                  : isError ? 'couldNotDeleteXAssetsNotification'
+                  : 'deletingXAssetsNotification',
+                  variables[0].length,
+                ),
+                icon: 'trash2',
+                color: 'danger',
+              })
+              break
+            }
+            case RESTORE_ASSETS_MUTATION_METHOD: {
+              // eslint-disable-next-line no-restricted-syntax
+              const mutation = mutationRaw as MutationFromOptionsFunction<
+                typeof restoreAssetsMutationOptions
+              >
+              const variables = mutation.state.variables
+              if (!variables) {
+                break
+              }
+              upsertNotification(variables, {
+                id: upsertMutationId(variables),
+                message: getText(
+                  isSuccess ? 'restoredXAssetsNotification'
+                  : isError ? 'couldNotRestoreXAssetsNotification'
+                  : 'restoringXAssetsNotification',
+                  variables.length,
+                ),
+                icon: 'restore',
+              })
+              break
+            }
+            case COPY_ASSETS_MUTATION_METHOD: {
+              // eslint-disable-next-line no-restricted-syntax
+              const mutation = mutationRaw as MutationFromOptionsFunction<
+                typeof copyAssetsMutationOptions
+              >
+              const variables = mutation.state.variables
+              if (!variables) {
+                break
+              }
+              upsertNotification(variables, {
+                id: upsertMutationId(variables),
+                message: getText(
+                  isSuccess ? 'copiedXAssetsNotification'
+                  : isError ? 'couldNotCopyXAssetsNotification'
+                  : 'copyingXAssetsNotification',
+                  variables[0].length,
+                ),
+                icon: 'copy',
+              })
+              break
+            }
+            case MOVE_ASSETS_MUTATION_METHOD: {
+              // eslint-disable-next-line no-restricted-syntax
+              const mutation = mutationRaw as MutationFromOptionsFunction<
+                typeof moveAssetsMutationOptions
+              >
+              const variables = mutation.state.variables
+              if (!variables) {
+                break
+              }
+              upsertNotification(variables, {
+                id: upsertMutationId(variables),
+                message: getText(
+                  isSuccess ? 'movedXAssetsNotification'
+                  : isError ? 'couldNotMoveXAssetsNotification'
+                  : 'movingXAssetsNotification',
+                  variables[0].length,
+                ),
+                icon: 'duplicate',
+              })
+              break
+            }
+          }
+          break
+        }
+        case 'removed':
+        case 'observerAdded':
+        case 'observerRemoved':
+        case 'observerOptionsUpdated': {
+          // Ignored.
+          break
+        }
+      }
+    }),
+  )
+
+  const { data: uploadingFiles } = useQuery(uploadingFileQueryOptions())
+
+  const uploadingFilesEntries = Object.entries(uploadingFiles)
+  if (uploadingFilesEntries[0]) {
+    const totalFiles = uploadingFilesEntries.length
+    let sentFiles = 0
+    let sentBytes = 0
+    let totalBytes = 0
+    for (const [, progress] of uploadingFilesEntries) {
+      if (progress.sentBytes === progress.totalBytes) {
+        sentFiles += 1
+      }
+      sentBytes += progress.sentBytes
+      totalBytes += progress.totalBytes
+    }
+    const sentMb = sentBytes / MB_BYTES
+    const totalMb = totalBytes / MB_BYTES
+    // Assume each file upload only participates in one notification.
+    // This assumption means that each notification can be uniquely identified by its first upload.
+    // There is guaranteed to be at least one upload by this point because of the
+    // `uploadingFilesEntries[0]` condition above.
+    upsertNotification(uploadingFilesEntries[0][0], {
+      id: 'temporary-uploading-files',
+      message: getText(
+        'uploadingXFilesWithProgressNotification',
+        sentFiles,
+        totalFiles,
+        sentMb,
+        totalMb,
+      ),
+      icon: 'data_upload',
+      progress: sentBytes / totalBytes,
+    })
+  }
+
+  return [...notificationMap.values()]
+}
