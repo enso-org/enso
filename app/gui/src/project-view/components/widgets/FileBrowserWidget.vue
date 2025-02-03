@@ -46,8 +46,8 @@ const currentDirectory = computed(() => directoryStack.value[directoryStack.valu
 
 const currentPath = computed(() => {
   if (!currentUser.data.value) return
-  let root = backend?.rootPath(currentUser.data.value)
-  if (root && !root.endsWith('/')) root += '/'
+  let root = backend?.rootPath(currentUser.data.value) ?? 'enso://'
+  if (!root.endsWith('/')) root += '/'
   return `${root}${directoryStack.value
     .slice(1)
     .map((dir) => `${dir.title}/`)
