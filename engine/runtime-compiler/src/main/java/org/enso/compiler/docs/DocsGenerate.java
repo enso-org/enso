@@ -1,5 +1,8 @@
 package org.enso.compiler.docs;
 
+import static org.enso.scala.wrapper.ScalaConversions.asJava;
+import static org.enso.scala.wrapper.ScalaConversions.asScala;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.IdentityHashMap;
@@ -10,8 +13,6 @@ import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.filesystem.FileSystem;
 import org.enso.pkg.QualifiedName;
-import scala.collection.immutable.Seq;
-import scala.jdk.CollectionConverters;
 
 /** Generator of documentation for an Enso project. */
 public final class DocsGenerate {
@@ -32,28 +33,53 @@ public final class DocsGenerate {
       DocsVisit visitor, org.enso.pkg.Package<File> pkg, Iterable<CompilerContext.Module> modules)
       throws IOException {
     var fs = pkg.fileSystem();
-    var docs = fs.getChild(pkg.root(), "docs");
-    var api = fs.getChild(docs, "api");
-    fs.createDirectories(api);
+    var apiDir = defaultOutputDir(pkg);
+    fs.createDirectories(apiDir);
 
     for (var module : modules) {
+      if (module.isSynthetic()) {
+        continue;
+      }
       var ir = module.getIr();
       assert ir != null : "need IR for " + module;
       if (ir.isPrivate()) {
         continue;
       }
       var moduleName = module.getName();
-      var dir = createPkg(fs, api, moduleName);
+      var dir = createDirs(fs, apiDir, stripNamespace(moduleName));
       var md = fs.getChild(dir, moduleName.item() + ".md");
       try (var mdWriter = fs.newBufferedWriter(md);
           var pw = new PrintWriter(mdWriter)) {
         visitModule(visitor, moduleName, ir, pw);
       }
     }
+    return apiDir;
+  }
+
+  public static <File> File defaultOutputDir(org.enso.pkg.Package<File> pkg) {
+    var fs = pkg.fileSystem();
+    var docs = fs.getChild(pkg.root(), "docs");
+    var api = fs.getChild(docs, "api");
     return api;
   }
 
-  private static <File> File createPkg(FileSystem<File> fs, File root, QualifiedName pkg)
+  /**
+   * Strips namespace part from the given qualified {@code name}.
+   *
+   * @param name
+   */
+  private static QualifiedName stripNamespace(QualifiedName name) {
+    if (!name.isSimple()) {
+      var path = name.pathAsJava();
+      assert path.size() >= 2;
+      var dropped = path.subList(2, path.size());
+      return new QualifiedName(asScala(dropped), name.item());
+    } else {
+      return name;
+    }
+  }
+
+  private static <File> File createDirs(FileSystem<File> fs, File root, QualifiedName pkg)
       throws IOException {
     var dir = root;
     for (var item : pkg.pathAsJava()) {
@@ -68,7 +94,7 @@ public final class DocsGenerate {
     var dispatch = DocsDispatch.create(visitor, w);
 
     if (dispatch.dispatchModule(moduleName, ir)) {
-      var moduleBindings = asJava(ir.bindings());
+      var moduleBindings = BindingSorter.sortedBindings(ir);
       var alreadyDispatched = new IdentityHashMap<IR, IR>();
       for (var b : moduleBindings) {
         if (alreadyDispatched.containsKey(b)) {
@@ -77,7 +103,7 @@ public final class DocsGenerate {
         switch (b) {
           case Definition.Type t -> {
             if (dispatch.dispatchType(t)) {
-              for (var d : asJava(t.members())) {
+              for (var d : BindingSorter.sortConstructors(asJava(t.members()))) {
                 if (!d.isPrivate()) {
                   dispatch.dispatchConstructor(t, d);
                 }
@@ -110,9 +136,5 @@ public final class DocsGenerate {
         }
       }
     }
-  }
-
-  private static <T> Iterable<T> asJava(Seq<T> seq) {
-    return CollectionConverters.IterableHasAsJava(seq).asJava();
   }
 }

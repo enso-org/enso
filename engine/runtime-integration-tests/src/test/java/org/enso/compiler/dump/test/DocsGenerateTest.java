@@ -1,7 +1,10 @@
 package org.enso.compiler.dump.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -9,6 +12,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Module;
@@ -16,10 +20,12 @@ import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.docs.DocsGenerate;
 import org.enso.compiler.docs.DocsVisit;
+import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.pkg.QualifiedName;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
+import org.enso.test.utils.SourceModule;
 import org.graalvm.polyglot.Context;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -226,6 +232,86 @@ public class DocsGenerateTest {
   }
 
   @Test
+  public void noSignatureIsGenerated_ForEmptyModule() throws IOException {
+    var emptyCode = "";
+    var modName = "local.Empty.Main";
+    var sig = DumpTestUtils.generateSignatures(ctx, emptyCode, modName);
+    assertTrue("Empty signature for empty module", sig.isEmpty());
+  }
+
+  @Test
+  public void noSignatureIsGenerated_ForModuleContainingOnlyImports() throws IOException {
+    var codeWithImports =
+        """
+        import Standard.Base.Any.Any
+        import Standard.Base.Data.Vector.Vector
+        """;
+    var modName = "local.Empty.Main";
+    var sig = DumpTestUtils.generateSignatures(ctx, codeWithImports, modName);
+    assertTrue("Empty signature for module with only imports", sig.isEmpty());
+  }
+
+  @Test
+  public void generatedSignature_HasCorrectMarkdownFormat() throws IOException {
+    var code =
+        """
+        from Standard.Base import all
+
+        module_method = 42
+
+        type My_Type
+            Cons x
+            instance_method self = 42
+
+        My_Type.static_method = 42
+        Any.extension_method = 42
+        My_Type.from (that: Integer) = My_Type.Cons that
+        """;
+    var modName = "local.Proj.Main";
+    var sig = DumpTestUtils.generateSignatures(ctx, code, modName);
+    sig.lines()
+        .forEach(
+            line -> {
+              assertThat(
+                  "Is heading or a list item",
+                  line,
+                  anyOf(startsWith("#"), startsWith("-"), startsWith("    -")));
+            });
+  }
+
+  @Test
+  public void generatedSignaturesForProject_HasSameDirectoryHierarchyAsSources()
+      throws IOException {
+    var projName = "Proj";
+    var modules =
+        Set.of(
+            new SourceModule(QualifiedName.fromString("Main"), "main = 42"),
+            new SourceModule(QualifiedName.fromString("Subdir.Submodule"), "submodule = 42"));
+    var projDir = TEMP.newFolder(projName);
+    ProjectUtils.createProject(projName, modules, projDir.toPath());
+    ProjectUtils.generateProjectDocs(
+        "api",
+        ContextUtils.defaultContextBuilder(),
+        projDir.toPath(),
+        ctx -> {
+          var ensoCtx = ContextUtils.leakContext(ctx);
+          var pkg =
+              ensoCtx
+                  .getPackageRepository()
+                  .getPackageForLibrary(LibraryName.apply("local", projName));
+          assertThat(pkg.isDefined(), is(true));
+          var signatureOutDir = DocsGenerate.defaultOutputDir(pkg.get());
+          assertThat(
+              "Default output dir for signatures was created", signatureOutDir.exists(), is(true));
+          var srcDir = pkg.get().sourceDir();
+          assertThat(srcDir.resolve("Main.enso").exists(), is(true));
+          assertThat(signatureOutDir.resolve("Main.md").exists(), is(true));
+          assertThat(srcDir.resolve("Subdir").resolve("Submodule.enso").exists(), is(true));
+          assertThat(signatureOutDir.resolve("Subdir").resolve("Submodule.md").exists(), is(true));
+        });
+  }
+
+  @Test
   public void vectorWithElements() throws Exception {
     var code =
         """
@@ -309,33 +395,10 @@ public class DocsGenerateTest {
         sig);
   }
 
-  private static void generateDocumentation(String name, String code, DocsVisit v)
+  private static void generateDocumentation(String projectName, String code, DocsVisit v)
       throws IOException {
-    var pathCalc = TEMP.newFolder(name);
-    ProjectUtils.createProject(name, code, pathCalc.toPath());
-    ProjectUtils.generateProjectDocs(
-        "api",
-        ContextUtils.defaultContextBuilder(),
-        pathCalc.toPath(),
-        (context) -> {
-          var enso = ContextUtils.leakContext(context);
-          var modules = enso.getTopScope().getModules();
-          var optMod =
-              modules.stream().filter(m -> m.getName().toString().contains(name)).findFirst();
-          assertTrue(
-              "Found " + name + " in " + modules.stream().map(m -> m.getName()).toList(),
-              optMod.isPresent());
-          var mod = optMod.get();
-          assertEquals("local." + name + ".Main", mod.getName().toString());
-          var ir = mod.getIr();
-          assertNotNull("Ir for " + mod + " found", ir);
-
-          try {
-            DocsGenerate.visitModule(v, mod.getName(), ir, null);
-          } catch (IOException e) {
-            throw raise(RuntimeException.class, e);
-          }
-        });
+    var pathCalc = TEMP.newFolder(projectName);
+    DumpTestUtils.generateDocumentation(pathCalc.toPath(), projectName, code, v);
   }
 
   private static final class MockVisitor implements DocsVisit {
@@ -381,11 +444,6 @@ public class DocsGenerateTest {
         throws IOException {
       visitConstructor.add(d);
     }
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <E extends Exception> E raise(Class<E> type, Exception t) throws E {
-    throw (E) t;
   }
 
   record TypeAnd<IRElement>(Definition.Type t, IRElement ir) {}

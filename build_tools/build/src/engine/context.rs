@@ -220,35 +220,6 @@ impl RunContext {
         Ok(())
     }
 
-    /// During the native-image build, the engine generates arg files. This function uploads them as
-    /// artifacts on the CI, so we can inspect them later.
-    /// Note that if something goes wrong, the native image arg files may not be present.
-    async fn upload_native_image_arg_files(&self) -> Result {
-        debug!("Uploading Native Image Arg Files");
-        let engine_runner_ni_argfile =
-            &self.repo_root.engine.runner.target.native_image_args_txt.path;
-        let launcher_ni_argfile = &self.repo_root.engine.launcher.target.native_image_args_txt.path;
-        let project_manager_ni_argfile =
-            &self.repo_root.lib.scala.project_manager.target.native_image_args_txt.path;
-        let native_image_arg_files = [
-            (engine_runner_ni_argfile, "Engine Runner native-image-args"),
-            (launcher_ni_argfile, "Launcher native-image-args"),
-            (project_manager_ni_argfile, "Project Manager native-image-args"),
-        ];
-        for (argfile, artifact_name) in native_image_arg_files {
-            if argfile.exists() {
-                ide_ci::actions::artifacts::upload_single_file(argfile, artifact_name).await?;
-            } else {
-                warn!(
-                    "Native Image Arg File for {} not found at {}",
-                    artifact_name,
-                    argfile.display()
-                );
-            }
-        }
-        Ok(())
-    }
-
     pub async fn build(&self) -> Result<BuiltArtifacts> {
         self.prepare_build_env().await?;
         if ide_ci::ci::run_in_ci() {
@@ -267,29 +238,13 @@ impl RunContext {
             ide_ci::fs::remove_glob(bench_report_xml)?;
         }
 
-
-        let _test_results_upload_guard =
-            if self.config.test_jvm || self.config.test_standard_library.is_some() {
-                // If we run tests, make sure that old and new results won't end up mixed together.
-                let test_results_dir = ENSO_TEST_JUNIT_DIR
-                    .get()
-                    .unwrap_or_else(|_| self.paths.repo_root.target.test_results.path.clone());
-                ide_ci::fs::reset_dir(&test_results_dir)?;
-
-                // If we are run in CI conditions and we prepared some test results, we want to
-                // upload them as a separate artifact to ease debugging. And we do want to do that
-                // even if the tests fail and we are leaving the scope with an error.
-                is_in_env().then(|| {
-                    scopeguard::guard(test_results_dir, |test_results_dir| {
-                        ide_ci::global::spawn(
-                            "Upload test results",
-                            upload_test_results(test_results_dir),
-                        );
-                    })
-                })
-            } else {
-                None
-            };
+        if self.config.test_jvm || self.config.test_standard_library.is_some() {
+            // If we run tests, make sure that old and new results won't end up mixed together.
+            let test_results_dir = ENSO_TEST_JUNIT_DIR
+                .get()
+                .unwrap_or_else(|_| self.paths.repo_root.target.test_results.path.clone());
+            ide_ci::fs::reset_dir(&test_results_dir)?;
+        };
 
         // Workaround for incremental compilation issue, as suggested by kustosz.
         // We target files like
@@ -460,8 +415,6 @@ impl RunContext {
         }
 
         if is_in_env() {
-            self.upload_native_image_arg_files().await?;
-
             // If we were running any benchmarks, they are complete by now. Upload the report.
             for bench in &self.config.execute_benchmarks {
                 match bench {
@@ -550,24 +503,6 @@ impl RunContext {
                         .join(self.paths.version().to_string());
                     sbt.verify_generated_package(libname, lib_path).await?;
                 }
-            }
-        }
-
-        if self.config.build_engine_package {
-            if TARGET_OS == OS::Linux && ide_ci::ci::run_in_ci() {
-                self.paths.upload_edition_file_artifact().await?;
-            }
-
-            let schema_dir = self.paths.repo_root.join_iter([
-                "engine",
-                "language-server",
-                "src",
-                "main",
-                "schema",
-            ]);
-            if is_in_env() {
-                ide_ci::actions::artifacts::upload_compressed_directory(&schema_dir, "fbs-schema")
-                    .await?;
             }
         }
 
