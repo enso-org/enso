@@ -202,6 +202,68 @@ export function toggleQuote(view: EditorView) {
   view.dispatch({ changes: [{ from: line.from, to: line.from, insert: '> ' }] })
 }
 
+export function toggleUnorderedList(view: EditorView) {
+  const tree = markdownParser.parse(view.state.doc.toString())
+  console.log(debugTree(tree, view.state.doc.toString()))
+  const startLine = view.state.doc.lineAt(view.state.selection.main.from)
+  const endLine = view.state.doc.lineAt(view.state.selection.main.to)
+  const add = []
+  const replace = []
+  const remove = []
+  for (let i = startLine.number; i <= endLine.number; i++) {
+    const line = view.state.doc.line(i)
+    const src = view.state.doc.toString()
+    const result = toggleUnorderedListInner(tree, line.from, line.to, src)
+    add.push(...result.add)
+    replace.push(...result.replace)
+    remove.push(...result.remove)
+  }
+  view.dispatch({ changes: [...add, ...replace, ...remove] })
+}
+
+interface ToggleUnorderedListResult {
+  add: ChangeSpec[]
+  replace: ChangeSpec[]
+  remove: ChangeSpec[]
+}
+
+function toggleUnorderedListInner(
+  tree: Tree,
+  lineStart: number,
+  lineEnd: number,
+  src: string,
+): ToggleUnorderedListResult {
+  const add = []
+  const replace = []
+  const remove = []
+  let node = tree.resolve(lineEnd, -1)
+  if (node.type.name === 'Document' && node.firstChild != null) node = node.firstChild
+  let listMark: false | { from: number; to: number } = false
+  let isUnorderedList = false
+  const cursor = node.cursor()
+  do {
+    if (cursor.type.name === 'ListItem') {
+      const mark = cursor.node.getChild('ListMark')
+      if (mark) {
+        console.log('list mark', src.slice(mark.from, mark.to), '###')
+        listMark = { from: mark.from, to: mark.to }
+      }
+    }
+    if (cursor.type.name === 'BulletList') {
+      isUnorderedList = true
+      break
+    }
+  } while (cursor.parent())
+  if (listMark && isUnorderedList) {
+    remove.push({ from: listMark.from, to: listMark.to, insert: '' })
+  } else if (listMark && !isUnorderedList) {
+    replace.push({ from: listMark.from, to: listMark.to, insert: '-' })
+  } else if (!listMark) {
+    add.push({ from: lineStart, to: lineStart, insert: '- ' })
+  }
+  return { add, replace, remove }
+}
+
 function useBindings({
   readonly,
   contentDOM,
