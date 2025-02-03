@@ -175,6 +175,21 @@ add_specs suite_builder =
                 r2.at "C" . to_vector . should_equal [20, 30]
                 r2.at "D" . to_vector . should_equal ['qqqq', 'zzzz']
 
+        group_builder.specify "should be able to insert and query data using raw SQL (dates and times)" <|
+            config.with_connection conn-> cleanup_tables conn ["foo"] <|
+                conn.execute "create table foo (a date, b timestamp, c time)"
+                conn.execute "insert into foo (a, b, c) values ('2025-01-01', '2025-01-01 12:34:56', '12:34:56')"
+                conn.execute "insert into foo (a, b, c) values ('2025-01-02', '2025-01-02 13:35:57', '13:35:57')"
+
+                r = conn.read (SQL_Query.Raw_SQL "select * from foo")
+                r.at 0 . to_vector . all (x-> x.is_a Date) . should_be_true
+                r.at 1 . to_vector . all (x-> x.is_a Date_Time) . should_be_true
+                r.at 2 . to_vector . all (x-> x.is_a Time_Of_Day) . should_be_true
+
+        group_builder.specify "should handle SQL errors" <|
+            config.with_connection conn->
+                conn.execute "insert into foo (a) values ('asdf')" . should_fail_with SQL_Error
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
