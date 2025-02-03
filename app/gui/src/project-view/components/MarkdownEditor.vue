@@ -3,6 +3,7 @@ import {
   provideDocumentationImageUrlTransformer,
   type UrlTransformer,
 } from '@/components/MarkdownEditor/imageUrlTransformer'
+import { ListType } from '@/util/codemirror'
 import { Vec2 } from '@/util/data/vec2'
 import { ComponentInstance, computed, defineAsyncComponent, ref, toRef } from 'vue'
 import * as Y from 'yjs'
@@ -34,6 +35,9 @@ defineExpose({
   },
   toggleQuote: () => {
     inner.value?.toggleQuote()
+  },
+  toggleList: (type: ListType) => {
+    inner.value?.toggleList(type)
   },
 })
 </script>

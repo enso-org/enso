@@ -78,6 +78,8 @@ const handler = documentationEditorBindings.handler({
         <SvgButton name="header2" @click.stop="markdownEditor?.toggleHeader(2)" />
         <SvgButton name="header3" @click.stop="markdownEditor?.toggleHeader(3)" />
         <SvgButton name="quote" @click.stop="markdownEditor?.toggleQuote()" />
+        <SvgButton name="bullet-list" @click.stop="markdownEditor?.toggleList('unordered')" />
+        <SvgButton name="numbered-list" @click.stop="markdownEditor?.toggleList('ordered')" />
       </div>
       <slot name="belowToolbar" />
       <div

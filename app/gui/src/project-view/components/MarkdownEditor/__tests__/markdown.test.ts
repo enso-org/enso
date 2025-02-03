@@ -1,6 +1,6 @@
 import { ensoMarkdown } from '@/components/MarkdownEditor/markdown'
 import { assert } from '@/util/assert'
-import { toggleHeader, toggleQuote, toggleUnorderedList } from '@/util/codemirror/index'
+import { toggleHeader, toggleList, toggleQuote } from '@/util/codemirror/index'
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { EditorState } from '@codemirror/state'
 import { Decoration, EditorView } from '@codemirror/view'
@@ -360,6 +360,30 @@ const unorderedListTestCases: TestCase[] = [
 
 test.each(unorderedListTestCases)('markdown unordered list $desc', ({ source, expected }) => {
   const view = setupEditor(source)
-  toggleUnorderedList(view)
+  toggleList(view, 'unordered')
+  expect(view.state.doc.toString()).toEqual(expected)
+})
+
+const orderedListTestCases: TestCase[] = [
+  {
+    desc: 'Create simple ordered list',
+    source: 'Li|st item\nList item\nLis|t item',
+    expected: '1. List item\n2. List item\n3. List item',
+  },
+  {
+    desc: 'Disable ordered list',
+    source: '1. Li|st item\n2. List item\n3. Lis|t item',
+    expected: 'List item\nList item\nList item',
+  },
+  {
+    desc: 'Change ordered list to unordered list',
+    source: '- List| item\n- List item\n- Lis|t item',
+    expected: '1. List item\n2. List item\n3. List item',
+  },
+]
+
+test.each(orderedListTestCases)('markdown ordered list $desc', ({ source, expected }) => {
+  const view = setupEditor(source)
+  toggleList(view, 'ordered')
   expect(view.state.doc.toString()).toEqual(expected)
 })

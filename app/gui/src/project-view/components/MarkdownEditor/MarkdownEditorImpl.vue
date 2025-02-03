@@ -22,17 +22,20 @@ const editing = computed(() => !readonly.value && focused.value)
 
 const vueHost = new VueHost()
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
-const { editorView, readonly, putTextAt, toggleHeader, toggleQuote } = useCodeMirror(editorRoot, {
-  content: () => content,
-  extensions: [
-    minimalSetup,
-    EditorView.lineWrapping,
-    highlightStyle(useCssModule()),
-    EditorView.clipboardInputFilter.of(transformPastedText),
-    ensoMarkdown(),
-  ],
-  vueHost: () => vueHost,
-})
+const { editorView, readonly, putTextAt, toggleHeader, toggleQuote, toggleList } = useCodeMirror(
+  editorRoot,
+  {
+    content: () => content,
+    extensions: [
+      minimalSetup,
+      EditorView.lineWrapping,
+      highlightStyle(useCssModule()),
+      EditorView.clipboardInputFilter.of(transformPastedText),
+      ensoMarkdown(),
+    ],
+    vueHost: () => vueHost,
+  },
+)
 
 useLinkTitles(editorView, { readonly })
 
@@ -57,6 +60,7 @@ defineExpose({
   },
   toggleHeader,
   toggleQuote,
+  toggleList,
 })
 </script>
 

@@ -112,6 +112,7 @@ export function useCodeMirror(
     putTextAt,
     toggleHeader: (level: number) => toggleHeader(editorView, level),
     toggleQuote: () => toggleQuote(editorView),
+    toggleList: (type: ListType) => toggleList(editorView, type),
     /** The DOM element containing the editor's content. */
     contentElement: editorView.contentDOM,
   }
@@ -202,23 +203,25 @@ export function toggleQuote(view: EditorView) {
   view.dispatch({ changes: [{ from: line.from, to: line.from, insert: '> ' }] })
 }
 
-export function toggleUnorderedList(view: EditorView) {
+export type ListType = 'unordered' | 'ordered'
+
+export function toggleList(view: EditorView, type: ListType) {
   const tree = markdownParser.parse(view.state.doc.toString())
   console.log(debugTree(tree, view.state.doc.toString()))
   const startLine = view.state.doc.lineAt(view.state.selection.main.from)
   const endLine = view.state.doc.lineAt(view.state.selection.main.to)
-  const add = []
-  const replace = []
-  const remove = []
+  const changes = []
+  let listIndex = 0
   for (let i = startLine.number; i <= endLine.number; i++) {
     const line = view.state.doc.line(i)
     const src = view.state.doc.toString()
-    const result = toggleUnorderedListInner(tree, line.from, line.to, src)
-    add.push(...result.add)
-    replace.push(...result.replace)
-    remove.push(...result.remove)
+    const result = toggleListInner(tree, listIndex, line.from, line.to, src, type)
+    changes.push(...result.add)
+    changes.push(...result.replace)
+    changes.push(...result.remove)
+    listIndex++
   }
-  view.dispatch({ changes: [...add, ...replace, ...remove] })
+  view.dispatch({ changes })
 }
 
 interface ToggleUnorderedListResult {
@@ -227,11 +230,13 @@ interface ToggleUnorderedListResult {
   remove: ChangeSpec[]
 }
 
-function toggleUnorderedListInner(
+function toggleListInner(
   tree: Tree,
+  listIndex: number,
   lineStart: number,
   lineEnd: number,
   src: string,
+  type: ListType,
 ): ToggleUnorderedListResult {
   const add = []
   const replace = []
@@ -239,27 +244,42 @@ function toggleUnorderedListInner(
   let node = tree.resolve(lineEnd, -1)
   if (node.type.name === 'Document' && node.firstChild != null) node = node.firstChild
   let listMark: false | { from: number; to: number } = false
-  let isUnorderedList = false
+  let listType: undefined | ListType = undefined
   const cursor = node.cursor()
   do {
     if (cursor.type.name === 'ListItem') {
       const mark = cursor.node.getChild('ListMark')
       if (mark) {
-        console.log('list mark', src.slice(mark.from, mark.to), '###')
         listMark = { from: mark.from, to: mark.to }
       }
     }
     if (cursor.type.name === 'BulletList') {
-      isUnorderedList = true
+      listType = 'unordered'
+      break
+    }
+    if (cursor.type.name === 'OrderedList') {
+      listType = 'ordered'
       break
     }
   } while (cursor.parent())
-  if (listMark && isUnorderedList) {
-    remove.push({ from: listMark.from, to: listMark.to, insert: '' })
-  } else if (listMark && !isUnorderedList) {
-    replace.push({ from: listMark.from, to: listMark.to, insert: '-' })
+  if (listMark && listType === type) {
+    remove.push({
+      from: listMark.from,
+      to: listType === 'ordered' ? listMark.to + 1 : listMark.to,
+      insert: '',
+    })
+  } else if (listMark && listType !== type) {
+    replace.push({
+      from: listMark.from,
+      to: listMark.to,
+      insert: type === 'unordered' ? '-' : `${listIndex + 1}. `,
+    })
   } else if (!listMark) {
-    add.push({ from: lineStart, to: lineStart, insert: '- ' })
+    add.push({
+      from: lineStart,
+      to: lineStart,
+      insert: type === 'unordered' ? '- ' : `${listIndex + 1}. `,
+    })
   }
   return { add, replace, remove }
 }
