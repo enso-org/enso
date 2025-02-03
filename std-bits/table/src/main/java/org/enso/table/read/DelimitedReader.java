@@ -60,7 +60,7 @@ public class DelimitedReader {
   private final CsvParser parser;
   private final DatatypeParser valueParser;
   private final TypeInferringParser cellTypeGuesser;
-  private final boolean keepInvalidRows;
+  private final InvalidRowsBehavior keepInvalidRows;
   private String newlineSetting;
   private final NoOpParseProblemAggregator noOpProblemAggregator = new NoOpParseProblemAggregator();
   private long targetTableIndex = 0;
@@ -111,7 +111,7 @@ public class DelimitedReader {
       int maxColumns,
       DatatypeParser valueParser,
       TypeInferringParser cellTypeGuesser,
-      boolean keepInvalidRows,
+      InvalidRowsBehavior keepInvalidRows,
       String newline,
       String commentCharacter,
       boolean warningsAsErrors,
@@ -266,12 +266,20 @@ public class DelimitedReader {
     assert canFitMoreRows();
 
     if (row.length != builders.size()) {
+      boolean isRowKept = switch (keepInvalidRows) {
+        case DISCARD -> false;
+        case KEEP, ADD_EXTRA_COLUMNS -> true;
+      };
       problemAggregator.reportInvalidRow(
-          currentLine, keepInvalidRows ? targetTableIndex : null, row, builders.size());
+          currentLine, isRowKept ? targetTableIndex : null, row, builders.size());
 
-      if (keepInvalidRows) {
+      if (isRowKept) {
         for (int i = 0; i < builders.size() && i < row.length; i++) {
           builders.get(i).append(row[i]);
+        }
+
+        if (keepInvalidRows == InvalidRowsBehavior.ADD_EXTRA_COLUMNS) {
+          // TODO
         }
 
         // If the current row had fewer columns than expected, nulls are inserted for the missing
@@ -509,5 +517,17 @@ public class DelimitedReader {
      * Treats the first row as data and generates header names starting with {@code COLUMN_NAME}.
      */
     GENERATE_HEADERS
+  }
+
+  /** Specifies how to handle rows with unexpected number of columns. */
+  public enum InvalidRowsBehavior {
+    /** Discards rows with unexpected number of columns. */
+    DISCARD,
+
+    /** Keeps rows with unexpected number of columns, but the additional columns are discarded. */
+    KEEP,
+
+    /** Keeps rows with unexpected number of columns, adding extra columns. */
+    ADD_EXTRA_COLUMNS
   }
 }
