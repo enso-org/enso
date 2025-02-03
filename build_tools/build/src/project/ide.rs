@@ -4,10 +4,6 @@ use crate::prelude::*;
 use crate::project::gui::ide_desktop_from_context;
 use crate::project::Context;
 
-use ide_ci::actions::artifacts::upload_compressed_directory;
-use ide_ci::actions::artifacts::upload_single_file;
-use ide_ci::actions::workflow::is_in_env;
-
 
 
 #[derive(Clone, Debug)]
@@ -45,20 +41,6 @@ impl Artifact {
             unpacked,
             unpacked_executable,
         }
-    }
-
-    pub async fn upload_as_ci_artifact(&self, prefix: impl AsRef<str>) -> Result {
-        if is_in_env() {
-            let prefix = prefix.as_ref();
-            upload_compressed_directory(&self.unpacked, format!("{prefix}-unpacked-{TARGET_OS}"))
-                .await?;
-            let packed_artifact_name = format!("{prefix}-{TARGET_OS}");
-            upload_single_file(&self.image, &packed_artifact_name).await?;
-            upload_single_file(&self.image_checksum, &packed_artifact_name).await?;
-        } else {
-            info!("Not in the CI environment, will not upload the artifacts.")
-        }
-        Ok(())
     }
 
     pub fn start_unpacked(

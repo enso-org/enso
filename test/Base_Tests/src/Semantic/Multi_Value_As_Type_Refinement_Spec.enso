@@ -47,7 +47,9 @@ add_specs suite_builder =
             ab = make_a_and_b
             a2 = id_a ab
             a2.is_a A . should_be_true
-            a2.is_a B . should_be_false
+            a2.is_a B . should_be_true # B is a hidden type
+            Test.expect_panic No_Such_Method (a2.b_method)
+
 
             # Passing a2 to a function expecting B fails because B part was hidden
             Test.expect_panic Type_Error (id_b a2)
@@ -61,7 +63,8 @@ add_specs suite_builder =
             ab = make_a_and_b
             a2 = ab:A
             a2.is_a A . should_be_true
-            a2.is_a B . should_be_false
+            a2.is_a B . should_be_true # B is hidden type
+            Test.expect_panic No_Such_Method (a2.b_method)
 
             # Passing a2 to a function expecting B fails because B part was hidden
             Test.expect_panic Type_Error (id_b a2)
@@ -75,7 +78,8 @@ add_specs suite_builder =
             b2 = id_b ab
             a2 = b2:A
             a2.is_a A . should_be_true
-            a2.is_a B . should_be_false
+            a2.is_a B . should_be_true # B is hidden type
+            Test.expect_panic No_Such_Method (a2.b_method)
 
             a2.a_method.should_equal "A method"
             Test.expect_panic No_Such_Method (a2.b_method)
@@ -84,10 +88,11 @@ add_specs suite_builder =
             ab = make_a_and_b
             a2 = id_a ab
             b2 = a2:B
-            b2.is_a A . should_be_false
-            b2.is_a B . should_be_true
 
+            b2.is_a B . should_be_true
+            b2.is_a A . should_be_true # A is hidden type
             Test.expect_panic No_Such_Method (b2.a_method)
+
             b2.b_method.should_equal "B method"
             # We can still explicitly cast back to A
             (b2:A).a_method.should_equal "A method"
@@ -98,13 +103,15 @@ add_specs suite_builder =
                 ab_as_a : A ->
                     ab_as_a.a_method . should_equal "A method"
                     ab_as_a.is_a A . should_be_true
-                    ab_as_a.is_a B . should_be_false
+                    ab_as_a.is_a B . should_be_true # B is hidden type
+                    Test.expect_panic No_Such_Method (ab_as_a.b_method)
                 _ -> Test.fail "Expected ab to go to `: A` branch"
 
             case ab of
                 ab_as_b : B ->
                     ab_as_b.b_method . should_equal "B method"
-                    ab_as_b.is_a A . should_be_false
+                    ab_as_b.is_a A . should_be_true # A is hidden type
+                    Test.expect_panic No_Such_Method (ab_as_b.a_method)
                     ab_as_b.is_a B . should_be_true
                 _ -> Test.fail "Expected ab to go to `: B` branch"
 
@@ -141,12 +148,13 @@ add_specs suite_builder =
 
             # We hide A&B parts by casting to C
             c = abc:C
-            c.is_a A . should_be_false
-            c.is_a B . should_be_false
+
+            c.is_a A . should_be_true # A is a hidden type
+            Test.expect_panic No_Such_Method (c.a_method)
+            c.is_a B . should_be_true # B is a hidden type
+            Test.expect_panic No_Such_Method (c.b_method)
             c.is_a C . should_be_true
 
-            Test.expect_panic No_Such_Method (c.a_method)
-            Test.expect_panic No_Such_Method (c.b_method)
             c.c_method . should_equal "C method"
 
             # But because the structure was not lost, only hidden, we can cast back to A/B
@@ -269,7 +277,7 @@ add_specs suite_builder =
             r.a_method . should_equal "A method"
             r.b_method . should_equal "B method"
 
-        group_builder.specify "calling `.catch` on an intersection type should not lose even the hidden refinements" pending=dispatch_pending <|
+        group_builder.specify "calling `.catch` on an intersection type should not lose even the hidden refinements" <|
             ab = make_a_and_b
             x = ab:A
             r = x.catch Any _->"catched"
@@ -283,7 +291,7 @@ add_specs suite_builder =
             y.a_method . should_equal "A method"
             y.b_method . should_equal "B method"
 
-        group_builder.specify "calling `.throw_on_warning` on an intersection type should not lose even the hidden refinements" pending=dispatch_pending <|
+        group_builder.specify "calling `.throw_on_warning` on an intersection type should not lose even the hidden refinements" <|
             ab = make_a_and_b
             x = ab:A
             r = x.throw_on_warning
@@ -306,7 +314,7 @@ add_specs suite_builder =
             y.b_method . should_equal "B method"
             Problems.expect_only_warning Illegal_State y
 
-        group_builder.specify "removing warnings from an intersection type should not lose even the hidden refinements" pending=dispatch_pending <|
+        group_builder.specify "removing warnings from an intersection type should not lose even the hidden refinements" <|
             ab = make_a_and_b
             x1 = Warning.attach (Illegal_State.Error "my warning") (ab:A)
             x2 = (Warning.attach (Illegal_State.Error "my warning") ab):A

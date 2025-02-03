@@ -44,6 +44,8 @@ polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
 polyglot java import org.enso.table.data.column.operation.CountNothing
 polyglot java import org.enso.table.data.column.operation.CountUntrimmed
+polyglot java import org.enso.table.data.column.operation.CountNonTrivialWhitespace
+polyglot java import org.enso.table.data.column.operation.SampleOperation
 polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
 polyglot java import org.enso.table.data.column.operation.unary.DateTruncateOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsEmptyOperation
@@ -2234,13 +2236,26 @@ type Column
        Used for data quality indicator in Table Viz.
     count_untrimmed : Integer -> Integer | Nothing
     count_untrimmed self sample_size:Integer=Column.default_sample_size =
-        if (self.value_type == Value_Type.Mixed || self.value_type.is_text).not then Nothing else
+        if (Column.can_contain_text self.value_type).not then Nothing else
             CountUntrimmed.apply self.java_column sample_size
+
+    ## PRIVATE
+      Counts the number of text values with non trivial whitespace.
+      Used for data quality indicator in Table Viz.
+    count_non_trivial_whitespace : Integer -> Integer | Nothing
+    count_non_trivial_whitespace self sample_size:Integer=Column.default_sample_size =
+        if (Column.can_contain_text self.value_type).not then Nothing else
+            CountNonTrivialWhitespace.apply self.java_column sample_size
+
+    ## PRIVATE
+       Determines if a value type is eligable for a text data quality count
+    private can_contain_text value_type:Value_Type -> Boolean = 
+        value_type == Value_Type.Mixed || value_type.is_text
 
     ## PRIVATE
        Default size for sampling data quality indicators.
     default_sample_size -> Integer =
-        CountUntrimmed.DEFAULT_SAMPLE_SIZE
+        SampleOperation.DEFAULT_SAMPLE_SIZE
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
