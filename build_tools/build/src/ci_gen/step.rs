@@ -49,3 +49,19 @@ pub fn extra_stdlib_test_reporter((os, arch): Target, graal_edition: graalvm::Ed
     let path = format!("{}/*/*.xml", env_expression(&paths::ENSO_TEST_JUNIT_DIR));
     test_reporter(step_name, report_name, path)
 }
+
+pub fn upload_artifact(step_name: impl Into<String>) -> Step {
+    Step {
+        name: Some(step_name.into()),
+        uses: Some("actions/upload-artifact@v4".into()),
+        ..default()
+    }
+}
+
+pub fn download_artifact(step_name: impl Into<String>) -> Step {
+    Step {
+        name: Some(step_name.into()),
+        uses: Some("actions/download-artifact@v4".into()),
+        ..default()
+    }
+}
