@@ -23,7 +23,11 @@ test('Main method documentation', async ({ page }) => {
 
   // Nested lists are rendered with hierarchical indentation
   const listItemPos = (text: string) =>
-    locate.editorRoot(rightDock).locator('span.cm-BulletList-item span').getByText(text, { exact: true }).boundingBox()
+    locate
+      .editorRoot(rightDock)
+      .locator('span.cm-BulletList-item span')
+      .getByText(text, { exact: true })
+      .boundingBox()
   const listLevel0 = await listItemPos('Outer list element')
   const listLevel1 = await listItemPos('Nested list element')
   const listLevel2 = await listItemPos('Very nested list element')
