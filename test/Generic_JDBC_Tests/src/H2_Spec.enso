@@ -11,6 +11,7 @@ import project.Generic_JDBC_Connection_Spec
 
 data_dir = enso_project.data / "transient"
 
+## PRIVATE
 type H2_JDBC_Config
     Value
 
