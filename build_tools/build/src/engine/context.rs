@@ -380,6 +380,10 @@ impl RunContext {
 
         perhaps_test_java_generated_from_rust_job.await.transpose()?;
 
+        // === Stdlib API check ===
+        debug!("Running standard libraries API check.");
+        self.stdlib_api_check(&enso).await?;
+
         // === Run benchmarks ===
         let build_benchmark_task = if self.config.build_benchmarks {
             let build_benchmark_task_names = [
@@ -572,6 +576,42 @@ impl RunContext {
             }
         };
 
+        Ok(())
+    }
+
+    async fn stdlib_api_check(&self, built_enso: &BuiltEnso) -> Result {
+        for libname in ["Base", "Table", "Image", "Database"] {
+            let lib_path = self
+                .repo_root
+                .built_distribution
+                .enso_engine_triple
+                .engine_package
+                .lib
+                .join_iter(["Standard", libname])
+                .join(self.paths.version().to_string());
+            debug!("Checking API for Standard.{}", libname);
+            let api_dir = lib_path.join("docs").join("api");
+            // Create a copy of old_api in a tmp dir
+            let tmp_dir_old_api = tempfile::tempdir()?.path().join(libname).join("old-api");
+            ide_ci::fs::copy(&api_dir, &tmp_dir_old_api)?;
+            let mut cmd = built_enso
+                .cmd()?
+                .with_arg("--docs")
+                .with_arg("api")
+                .with_arg("--in-project")
+                .with_arg(lib_path);
+            cmd.run_ok().await?;
+            // Compare contents of `api_dir` and `tmp_dir_old_api`
+            let diff = ide_ci::fs::diff_dirs(&api_dir, &tmp_dir_old_api);
+            if diff.is_err() {
+                error!("API check failed for library {}", libname);
+                error!("If you wish to overwrite the current API in the directory {}, run the following command {}",
+                  api_dir.display(),
+                  cmd.describe()
+                );
+                bail!(diff.err().unwrap());
+            }
+        }
         Ok(())
     }
 }
