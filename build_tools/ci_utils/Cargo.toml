@@ -18,7 +18,6 @@ dependency_runner = "1.1.0"
 derive-where = { workspace = true }
 derive_more = { workspace = true }
 dirs = { workspace = true }
-diff = "0.1"
 enso-build-base = { path = "../base" }
 enso-zst = { path = "../../lib/rust/zst" }
 flate2 = { workspace = true }

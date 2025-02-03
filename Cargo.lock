@@ -1110,12 +1110,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2ea6706d74fca54e15f1d40b5cf7fe7f764aaec61352a9fcec58fe27e042fc8"
 
 [[package]]
-name = "diff"
-version = "0.1.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56254986775e3233ffa9c4d7d3faaf6d36a2c09d30b20687e9f88bc8bafc16c8"
-
-[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2187,7 +2181,6 @@ dependencies = [
  "dependency_runner",
  "derive-where",
  "derive_more",
- "diff",
  "dirs",
  "enso-build-base",
  "enso-zst",
