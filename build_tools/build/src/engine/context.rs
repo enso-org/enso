@@ -585,9 +585,7 @@ impl RunContext {
         for libname in ["Base"] {
             let lib_path = self
                 .repo_root
-                .built_distribution
-                .enso_engine_triple
-                .engine_package
+                .distribution
                 .lib
                 .join_iter(["Standard", libname])
                 .join(self.paths.version().to_string());
