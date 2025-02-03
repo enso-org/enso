@@ -382,7 +382,9 @@ impl RunContext {
 
         // === Stdlib API check ===
         debug!("Running standard libraries API check.");
-        self.stdlib_api_check(&enso).await?;
+        if self.config.stdlib_api_check {
+            self.stdlib_api_check(&enso).await?;
+        }
 
         // === Run benchmarks ===
         let build_benchmark_task = if self.config.build_benchmarks {
