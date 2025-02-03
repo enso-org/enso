@@ -81,6 +81,16 @@ add_specs_for_backend config suite_builder =
                 r3.columns . map .name . map lower . should_equal ["b"]
                 r3.at 0 . to_vector . should_equal ['asdf', 'uuuu']
 
+        group_builder.specify "should be able to insert, update and query data using raw SQL (dates and times)" <|
+            with_connection conn-> cleanup_tables conn ["foo"] <|
+                conn.execute "create table foo (a date, b timestamp)"
+                conn.execute "insert into foo (a, b) values ('2025-01-01', '2025-01-01 12:34:56')"
+                conn.execute "insert into foo (a, b) values ('2025-01-02', '2025-01-02 13:35:57')"
+
+                r = conn.read (SQL_Query.Raw_SQL "select * from foo")
+                r.at 0 . to_vector . all (x-> x.is_a Date) . should_be_true
+                r.at 1 . to_vector . all (x-> x.is_a Date_Time) . should_be_true
+
         group_builder.specify "should be able to quote identifiers" <|
             with_connection conn->
                 conn.quote_identifier "foo" . should_equal '"foo"'
