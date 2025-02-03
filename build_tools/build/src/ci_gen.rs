@@ -448,7 +448,7 @@ impl JobArchetype for UploadIde {
             let mut steps = prepare_packaging_steps(target.0, step, job::PackagingTarget::Release);
 
             let upload_ide = step::upload_artifact("Upload ide")
-                .with_custom_argument("name", format!("ide-{}", target.0))
+                .with_custom_argument("name", format!("ide-{}-{}", target.0, target.1))
                 .with_custom_argument(
                 "path",
                 format!("dist/ide/enso-*.{}", target.0.package_extension()),

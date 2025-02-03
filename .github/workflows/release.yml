@@ -507,7 +507,7 @@ jobs:
       - name: Upload ide
         uses: actions/upload-artifact@v4
         with:
-          name: ide-linux
+          name: ide-linux-amd64
           path: dist/ide/enso-*.AppImage
       - if: (always())
         name: Clean after
@@ -583,7 +583,7 @@ jobs:
       - name: Upload ide
         uses: actions/upload-artifact@v4
         with:
-          name: ide-macos
+          name: ide-macos-aarch64
           path: dist/ide/enso-*.dmg
       - if: (always())
         name: Clean after
@@ -657,7 +657,7 @@ jobs:
       - name: Upload ide
         uses: actions/upload-artifact@v4
         with:
-          name: ide-macos
+          name: ide-macos-amd64
           path: dist/ide/enso-*.dmg
       - if: (always())
         name: Clean after
@@ -727,7 +727,7 @@ jobs:
       - name: Upload ide
         uses: actions/upload-artifact@v4
         with:
-          name: ide-windows
+          name: ide-windows-amd64
           path: dist/ide/enso-*.exe
       - if: (always())
         name: Clean after
