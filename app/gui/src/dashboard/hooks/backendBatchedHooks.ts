@@ -1,7 +1,12 @@
 /** @file Hooks to do batched backend operations. */
 import { backendQueryOptions, mutationOptions } from '#/hooks/backendHooks'
 import { getMessageOrToString } from '#/utilities/error'
-import { useMutationState, type Mutation, type QueryClient } from '@tanstack/react-query'
+import {
+  useMutationState,
+  type Mutation,
+  type QueryClient,
+  type UseMutationOptions,
+} from '@tanstack/react-query'
 import {
   FilterBy,
   type AssetId,
@@ -10,6 +15,14 @@ import {
   type DirectoryId,
   type LabelName,
 } from 'enso-common/src/services/Backend'
+
+/** Extract the corresponding {@link Mutation} type from a `MutationOptions` function. */
+type MutationFromOptionsFunction<T extends (...args: never) => unknown> =
+  ReturnType<T> extends (
+    UseMutationOptions<infer TData, infer TError, infer TVariables, infer TContext>
+  ) ?
+    Mutation<TData, TError, TVariables, TContext>
+  : never
 
 /** A key for {@link deleteAssetsMutationOptions}. */
 export function deleteAssetsMutationKey(backendType: BackendType) {
@@ -170,6 +183,15 @@ export function copyAssetsMutationOptions(backend: Backend) {
 /** A key for {@link moveAssetsMutationOptions}. */
 export function moveAssetsMutationKey(backendType: BackendType) {
   return [backendType, 'moveAssets']
+}
+
+export function useMoveAssetsMutationState(backendType: BackendType) {
+  return useMutationState<MutationFromOptionsFunction<typeof moveAssetsMutationOptions>>({
+    filters: {
+      mutationKey: moveAssetsMutationKey(backendType),
+      predicate: (mutation) => mutation.state.status === 'pending',
+    },
+  })
 }
 
 /** Call "move" mutations for a list of assets. */

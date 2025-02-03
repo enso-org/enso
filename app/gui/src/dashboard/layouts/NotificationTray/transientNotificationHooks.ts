@@ -10,11 +10,31 @@ import {
   moveAssetsMutationKey,
   restoreAssetsMutationKey,
 } from '#/hooks/backendBatchedHooks'
+import type { BackendMutation, BackendMutationMethod } from '#/hooks/backendHooks'
 import { MB_BYTES, uploadingFileQueryOptions } from '#/hooks/backendUploadFilesHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useText } from '#/providers/TextProvider'
-import { useIsMutating, useQuery, type MutationKey } from '@tanstack/react-query'
+import { useIsMutating, useMutationState, useQuery, type MutationKey } from '@tanstack/react-query'
 import { BackendType } from 'enso-common/src/services/Backend'
+import { useState } from 'react'
 import type { NotificationInfo } from './types'
+
+/** Return the number of ongoing mutations of the given type across both backends. */
+export function useBackendMutationState<Method extends BackendMutationMethod>(method: Method) {
+  const localMutations = useMutationState<BackendMutation<Method>['state']>({
+    filters: {
+      mutationKey: [BackendType.local, method],
+      predicate: (mutation) => mutation.state.status === 'pending',
+    },
+  })
+  const remoteMutations = useMutationState<BackendMutation<Method>['state']>({
+    filters: {
+      mutationKey: [BackendType.remote, method],
+      predicate: (mutation) => mutation.state.status === 'pending',
+    },
+  })
+  return [...localMutations, ...remoteMutations]
+}
 
 /** Return the number of ongoing mutations of the given type across both backends. */
 export function useIsMutatingForBothBackends(makeKey: (backendType: BackendType) => MutationKey) {
@@ -25,8 +45,18 @@ export function useIsMutatingForBothBackends(makeKey: (backendType: BackendType)
   )
 }
 
+function useDeletingNotification() {}
+
 /** Return a list of transient notification details. */
 export function useTransientNotifications(): readonly NotificationInfo[] {
+  const [finishedNotifications, setFinishedNotifications] = useState<readonly NotificationInfo[]>(
+    [],
+  )
+
+  const pushNotification = useEventCallback((newNotification: NotificationInfo) => {
+    setFinishedNotifications((currentNotifications) => [newNotification, ...currentNotifications])
+  })
+
   const { getText } = useText()
   const { data: uploadingFiles } = useQuery(uploadingFileQueryOptions())
 
@@ -98,5 +128,5 @@ export function useTransientNotifications(): readonly NotificationInfo[] {
     })
   }
 
-  return notifications
+  return [...notifications, ...finishedNotifications]
 }
