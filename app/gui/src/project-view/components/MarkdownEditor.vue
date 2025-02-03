@@ -3,7 +3,7 @@ import {
   provideDocumentationImageUrlTransformer,
   type UrlTransformer,
 } from '@/components/MarkdownEditor/imageUrlTransformer'
-import { HeaderLevel, ListType } from '@/util/codemirror'
+import { HeaderLevel, ListType } from '@/util/codemirror/markdownEditing'
 import { Vec2 } from '@/util/data/vec2'
 import { ComponentInstance, computed, defineAsyncComponent, ref, toRef } from 'vue'
 import * as Y from 'yjs'
