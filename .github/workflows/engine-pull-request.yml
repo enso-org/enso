@@ -1,6 +1,6 @@
 # This file is not auto-generated. Feel free to edit it.
 
-name: ✨ Engine
+name: 🚂 Engine
 
 on:
   push:
@@ -42,7 +42,7 @@ jobs:
     secrets: inherit
 
   required-checks:
-    name: Engine Required Checks
+    name: 🚂 Engine Required Checks
     runs-on: ubuntu-latest
     needs: [engine-changed-files, engine-checks, stdlib-api-changes-label]
     if: always()
