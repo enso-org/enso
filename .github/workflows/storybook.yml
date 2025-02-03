@@ -16,6 +16,7 @@ permissions:
   statuses: write # Write access to commit statuses
 
 env:
+  # COREPACK_DEFAULT_TO_LATEST: 0
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
 
@@ -44,6 +45,8 @@ jobs:
           bazelisk-cache: true
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
 
+      - name: 📦 Setup corepack
+        run: corepack enable
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v4
 
