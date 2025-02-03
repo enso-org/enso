@@ -45,4 +45,4 @@ add_specs suite_builder (prefix : Text) setup =
             t1 = setup.table_builder [["A", [23]]]
             t1.should_be_a DB_Table
             (t1:DB_Column).name.should_equal "A"
-            Test.expect_panic Type_Error (t1:Integer).to_vector
+            Test.expect_panic Type_Error (t1:Integer)
