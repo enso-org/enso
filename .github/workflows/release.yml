@@ -249,6 +249,25 @@ jobs:
       - run: ./run backend upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Edition File
+        uses: actions/upload-artifact@v4
+        with:
+          name: Edition File
+          path: distribution/editions/*.yaml
+      - name: Upload fbs-schema
+        uses: actions/upload-artifact@v4
+        with:
+          name: fbs-schema
+          path: engine/language-server/src/main/schema/
+      - name: Archive project-manager
+        run: tar -cvf project-manager.tar -C dist/backend .
+      - name: Upload project-manager
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-manager-linux
+          path: project-manager.tar
+      - name: Cleanup
+        run: rm project-manager.tar
       - if: (always())
         name: Clean after
         run: ./run git-clean
@@ -296,6 +315,15 @@ jobs:
       - run: ./run backend upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Archive project-manager
+        run: tar -cvf project-manager.tar -C dist/backend .
+      - name: Upload project-manager
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-manager-macos
+          path: project-manager.tar
+      - name: Cleanup
+        run: rm project-manager.tar
       - if: (always())
         name: Clean after
         run: ./run git-clean
@@ -341,6 +369,15 @@ jobs:
       - run: ./run backend upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Archive project-manager
+        run: tar -cvf project-manager.tar -C dist/backend .
+      - name: Upload project-manager
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-manager-macos
+          path: project-manager.tar
+      - name: Cleanup
+        run: rm project-manager.tar
       - if: (always())
         name: Clean after
         run: ./run git-clean
@@ -387,6 +424,15 @@ jobs:
       - run: ./run backend upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Archive project-manager
+        run: tar -cvf project-manager.tar -C dist/backend .
+      - name: Upload project-manager
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-manager-windows
+          path: project-manager.tar
+      - name: Cleanup
+        run: rm project-manager.tar
       - if: (always())
         name: Clean after
         run: ./run git-clean
@@ -504,6 +550,11 @@ jobs:
           ENSO_IDE_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      - name: Upload ide
+        uses: actions/upload-artifact@v4
+        with:
+          name: ide-linux
+          path: dist/ide/enso-*.AppImage
       - if: (always())
         name: Clean after
         run: ./run git-clean
@@ -575,6 +626,11 @@ jobs:
           ENSO_IDE_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      - name: Upload ide
+        uses: actions/upload-artifact@v4
+        with:
+          name: ide-macos
+          path: dist/ide/enso-*.dmg
       - if: (always())
         name: Clean after
         run: ./run git-clean
@@ -644,6 +700,11 @@ jobs:
           ENSO_IDE_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      - name: Upload ide
+        uses: actions/upload-artifact@v4
+        with:
+          name: ide-macos
+          path: dist/ide/enso-*.dmg
       - if: (always())
         name: Clean after
         run: ./run git-clean
@@ -709,6 +770,11 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD }}
           WIN_CSC_LINK: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT }}
+      - name: Upload ide
+        uses: actions/upload-artifact@v4
+        with:
+          name: ide-windows
+          path: dist/ide/enso-*.exe
       - if: (always())
         name: Clean after
         run: ./run git-clean
