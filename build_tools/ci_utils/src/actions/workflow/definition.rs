@@ -1,12 +1,11 @@
 //! Model of a workflow definition and related utilities.
 
-use serde_yaml::Value;
-
 use crate::prelude::*;
 
 use crate::convert_case::ToKebabCase;
 use crate::env::accessor::RawVariable;
 
+use serde_yaml::Value;
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::sync::atomic::AtomicU64;

@@ -6,16 +6,21 @@ import { Button, type ButtonProps } from '../Button'
 import { useDialogContext } from './DialogProvider'
 
 /** Additional props for the Cancel component. */
-interface DialogDismissBaseProps {
-  readonly variant?: ButtonProps['variant']
+interface DialogDismissBaseProps<IconType extends string> {
+  readonly variant?: ButtonProps<IconType>['variant']
 }
 
 /** Props for a {@link DialogDismiss}. */
-export type DialogDismissProps = DialogDismissBaseProps &
-  Omit<ButtonProps, 'formnovalidate' | 'href' | 'variant'>
+export type DialogDismissProps<IconType extends string> = DialogDismissBaseProps<IconType> &
+  Omit<ButtonProps<IconType>, 'formnovalidate' | 'href' | 'variant'>
 
-/** Dismiss button for dialogs. */
-export function DialogDismiss(props: DialogDismissProps): JSX.Element {
+/**
+ * Dismiss button for dialogs.
+ * @deprecated Use {@link Close} instead.
+ */
+export function DialogDismiss<IconType extends string>(
+  props: DialogDismissProps<IconType>,
+): JSX.Element {
   const { getText } = useText()
 
   const { size = 'medium', ...buttonProps } = props
