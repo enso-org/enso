@@ -1,5 +1,8 @@
 package org.enso.table.data.column.operation;
 
+import static org.enso.table.data.column.operation.SampleOperation.DEFAULT_SAMPLE_SIZE;
+import static org.enso.table.data.column.operation.SampleOperation.RANDOM_SEED;
+
 import java.util.Random;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -8,13 +11,6 @@ import org.enso.table.data.table.Column;
 import org.graalvm.polyglot.Context;
 
 public class CountUntrimmed {
-  // Default seed for random number generation (no specific reason for this value, just stability on
-  // result).
-  private static final long RANDOM_SEED = 677280131;
-
-  // Default sample size for counting untrimmed cells.
-  public static final long DEFAULT_SAMPLE_SIZE = 10000;
-
   /** Counts the number of cells in the columns with leading or trailing whitespace. */
   public static Long apply(Column column, long sampleSize) throws InterruptedException {
     var storage = column.getStorage();

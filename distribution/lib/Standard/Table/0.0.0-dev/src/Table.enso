@@ -69,6 +69,7 @@ import project.Match_Columns.Match_Columns
 import project.Position.Position
 import project.Prefix_Name.Prefix_Name
 import project.Row.Row
+import project.Row_Limit.Row_Limit
 import project.Rows_To_Read.Rows_To_Read
 import project.Set_Mode.Set_Mode
 import project.Simple_Expression.Simple_Expression
@@ -2018,7 +2019,9 @@ type Table
     @fields (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='""')
     expand_column : Text | Integer -> (Vector Text) | Nothing -> Prefix_Name -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds
     expand_column self (column : Text | Integer) (fields : (Vector Text) | Nothing = Nothing) (prefix : Prefix_Name = ..Column_Name) =
-        Expand_Objects_Helpers.expand_column self column fields prefix
+        ## If the user enters no fields then treat as not entered.
+        used_fields = if fields.is_nothing.not && fields == [] then Nothing else fields
+        Expand_Objects_Helpers.expand_column self column used_fields prefix
 
     ## GROUP Standard.Base.Calculations
        ICON split
@@ -2761,7 +2764,6 @@ type Table
          So `table.join other on=["A", "B"]` is a shorthand for:
 
              `table.join other on=[..Equals "A" "A", ..Equals "B" "B"]`
-    @join_kind Widget_Helpers.make_join_kind_selector
     @on Widget_Helpers.make_join_condition_selector
     join : Table -> Join_Kind -> Vector (Join_Condition | Text) | Text -> Text -> Problem_Behavior -> Table
     join self right:Table=(Missing_Argument.throw "right") (join_kind : Join_Kind = ..Left_Outer) on=[Join_Condition.Equals self.column_names.first] right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning = Out_Of_Memory.handle_java_exception "join" <|
@@ -2789,7 +2791,7 @@ type Table
        - right_row_limit: If the number of rows in the right table exceeds this,
          then a `Cross_Join_Row_Limit_Exceeded` problem is raised. The check
          exists to avoid exploding the size of the table by accident. This check
-         can be disabled by setting this parameter to `Nothing`.
+         can be disabled by setting this parameter to `All_Rows`.
        - right_prefix: The prefix added to right table column names in case of
          name conflict. See "Column Renaming" below for more information.
        - on_problems: Specifies how to handle problems if they occur, reporting
@@ -2814,10 +2816,13 @@ type Table
          table. This applies only if the order of the rows was specified (for
          example, by sorting the table; in-memory tables will keep the memory
          layout order while for database tables the order may be unspecified).
-    cross_join : Table -> Integer | Nothing -> Text -> Problem_Behavior -> Table
-    cross_join self right:Table right_row_limit=100 right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning = Out_Of_Memory.handle_java_exception "cross_join" <|
-        limit_problems = if right_row_limit.is_nothing || (right.row_count < right_row_limit) then [] else
-            [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
+    cross_join : Table -> Row_Limit -> Text -> Problem_Behavior -> Table
+    cross_join self right:Table=(Missing_Argument.throw "right") right_row_limit:Row_Limit=(..Limit 100) right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning = Out_Of_Memory.handle_java_exception "cross_join" <|
+        row_limit = case right_row_limit of
+            Row_Limit.No_Limit -> Nothing
+            Row_Limit.Limit limit -> limit
+        limit_problems = if row_limit.is_nothing || (right.row_count < row_limit) then [] else
+            [Cross_Join_Row_Limit_Exceeded.Error row_limit right.row_count]
         on_problems.attach_problems_before limit_problems <|
             new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
                 self.java_table.crossJoin right.java_table right_prefix java_aggregator
@@ -2880,7 +2885,11 @@ type Table
              that are not present in this table, an `Unexpected_Extra_Columns`.
     @key_columns Widget_Helpers.make_column_name_multi_selector
     merge : Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-    merge self lookup_table:Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=False allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
+    merge self lookup_table:Table=(Missing_Argument.throw "lookup_table") key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex)=[] add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
+        if lookup_table.is_error then lookup_table
+        if key_columns == [] then
+            Error.throw (Missing_Argument.throw "key_columns")
+
         lookup_columns = Lookup_Helpers.prepare_columns_for_lookup self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
 
         java_descriptions = lookup_columns.map make_java_lookup_column_description on_problems=No_Wrap.Value
@@ -3048,7 +3057,7 @@ type Table
          The ordering of rows in the resulting table is not specified.
     @keep_unmatched (make_single_choice [["True", "Boolean.True"], ["False", "Boolean.False"], ["Report", Report_Unmatched.to Meta.Type . qualified_name]])
     zip : Table -> Boolean | Report_Unmatched -> Text -> Problem_Behavior -> Table
-    zip self right:Table keep_unmatched=Report_Unmatched right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning =
+    zip self right:Table=(Missing_Argument.throw "right") keep_unmatched=Report_Unmatched right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning =
         keep_unmatched_bool = case keep_unmatched of
             Report_Unmatched -> True
             b : Boolean -> b

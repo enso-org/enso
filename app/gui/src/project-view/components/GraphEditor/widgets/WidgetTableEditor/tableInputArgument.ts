@@ -2,13 +2,13 @@ import { commonContextMenuActions, type MenuItem } from '@/components/shared/AgG
 import type { WidgetInput, WidgetUpdate } from '@/providers/widgetRegistry'
 import { type RequiredImport, requiredImportsByProjectPath } from '@/stores/graph/imports'
 import type { SuggestionDb } from '@/stores/suggestionDatabase'
-import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { findIndexOpt } from '@/util/data/array'
 import { Err, Ok, type Result, transposeResult, unwrapOrWithLog } from '@/util/data/result'
+import { arrayEquals } from '@/util/equals'
 import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
-import type { ToValue } from '@/util/reactivity'
+import { cachedGetter, type ToValue } from '@/util/reactivity'
 import type { ColDef } from 'ag-grid-enterprise'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { computed, toValue } from 'vue'
@@ -16,7 +16,7 @@ import type { ColumnSpecificParams } from './TableHeader.vue'
 
 /** Id of a fake column with "Add new column" option. */
 export const NEW_COLUMN_ID = 'NewColumn'
-const ROW_INDEX_COLUMN_ID = 'RowIndex'
+export const ROW_INDEX_COLUMN_ID = 'RowIndex'
 /** A header of Row Index Column. */
 export const ROW_INDEX_HEADER = '#'
 /** A default prefix added to the column's index in newly created columns. */
@@ -34,8 +34,6 @@ export const CELLS_LIMIT = 256
 
 export type RowData = {
   index: number
-  /* Column id to given row's cell id. */
-  cells: Record<Ast.AstId, Ast.AstId>
 }
 
 /**
@@ -43,6 +41,7 @@ export type RowData = {
  * only values actually used by the composable)
  */
 export interface ColumnDef extends ColDef<RowData> {
+  colId: string
   valueGetter: ({ data }: { data: RowData | undefined }) => any
   valueSetter?: ({ data, newValue }: { data: RowData; newValue: string }) => boolean
   mainMenuItems: (string | MenuItem<RowData>)[]
@@ -157,7 +156,14 @@ export function useTableInputArgument(
     return unwrapOrWithLog(cols, [], errorMessagePreamble)
   })
 
-  const rowCount = computed(() =>
+  // Why cachedGetter - see comment on columnDefs.
+  const columnHeaders = cachedGetter(
+    () => Array.from(columns.value, (col) => ({ id: col.id, name: col.name.rawTextContent })),
+    (a, b) => arrayEquals(a, b, (a, b) => a.id === b.id && a.name === b.name),
+  )
+
+  // Why cachedGetter - see comment on rowData.
+  const rowCount = cachedGetter(() =>
     columns.value.reduce((soFar, col) => Math.max(soFar, col.data.length), 0),
   )
 
@@ -186,10 +192,13 @@ export function useTableInputArgument(
 
   function mayAddNewColumn(
     rowCount_: number = rowCount.value,
-    colCount: number = columns.value.length,
+    colCount: number = columnHeaders.value.length,
   ): boolean {
     return rowCount_ * (colCount + 1) <= CELLS_LIMIT
   }
+
+  const mayAddNewColumnCurrently = cachedGetter(() => mayAddNewColumn())
+  const mayAddNewRowCurrently = cachedGetter(() => mayAddNewRow())
 
   function addRow(
     edit: Ast.MutableModule,
@@ -201,7 +210,7 @@ export function useTableInputArgument(
     }
     for (const [index, column] of columns.value.entries()) {
       const editedCol = edit.getVersion(column.data)
-      editedCol.push(convertWithImport(valueGetter(column.data.id, index), edit))
+      editedCol.push(convertWithImport(valueGetter(column.id, index), edit))
     }
   }
 
@@ -293,7 +302,7 @@ export function useTableInputArgument(
     headerComponentParams: {
       columnParams: {
         type: 'newColumn',
-        enabled: mayAddNewColumn(),
+        enabled: mayAddNewColumnCurrently.value,
         newColumnRequested: () => {
           const edit = graph.startEdit()
           fixColumns(edit)
@@ -324,16 +333,20 @@ export function useTableInputArgument(
       data?.index != null && data.index < rowCount.value,
   }))
 
+  // columnDefs change may cause excessive recreating components in AgGrid and stop any editing,
+  // which may ruin user experience (for example, edits are stopped in the middle of typing).
+  // Therefore we must be careful to not make unnecessary dependency to e.g. cells' values.
+  // That's why `column.value` is accessed only inside closures.
   const columnDefs = computed(() => {
     const cols: ColumnDef[] = Array.from(
-      columns.value,
-      (col) =>
+      columnHeaders.value,
+      (col, i) =>
         ({
           colId: col.id,
-          headerName: col.name.rawTextContent,
+          headerName: col.name,
           valueGetter: ({ data }: { data: RowData | undefined }) => {
             if (data == null) return undefined
-            const ast = toValue(input).value.module.tryGet(data.cells[col.data.id])
+            const ast = columns.value[i]?.data.at(data.index)
             if (ast == null) return null
             const value = cellValueConversion.astToAgGrid(ast as Ast.Expression)
             if (!value.ok) {
@@ -345,15 +358,20 @@ export function useTableInputArgument(
             return value.value
           },
           valueSetter: ({ data, newValue }: { data: RowData; newValue: any }): boolean => {
-            const astId = data?.cells[col.data.id]
+            const colData = columns.value[i]?.data
+            if (colData == null) {
+              console.error('Tried to set value in column no longer existing in code')
+              return false
+            }
+            const ast = colData.at(data.index)
             const edit = graph.startEdit()
             fixColumns(edit)
             if (data.index === rowCount.value) {
-              addRow(edit, (colId) => (colId === col.data.id ? newValue : null))
+              addRow(edit, (colId) => (colId === col.id ? newValue : null))
             } else {
               const newValueAst = convertWithImport(newValue, edit)
-              if (astId != null) edit.replaceValue(astId, newValueAst)
-              else edit.getVersion(col.data).set(data.index, newValueAst)
+              if (ast != null) edit.getVersion(ast).replace(newValueAst)
+              else edit.getVersion(colData).set(data.index, newValueAst)
             }
             onUpdate({ edit, directInteraction: true })
             return true
@@ -363,8 +381,13 @@ export function useTableInputArgument(
               type: 'astColumn',
               nameSetter: (newName: string) => {
                 const edit = graph.startEdit()
+                const column = columns.value[i]
+                if (column == null) {
+                  console.error('Tried to rename column no longer existing in code')
+                  return
+                }
                 fixColumns(edit)
-                edit.getVersion(col.name).setRawTextContent(newName)
+                edit.getVersion(column.name).setRawTextContent(newName)
                 onUpdate({ edit, directInteraction: true })
               },
             },
@@ -389,25 +412,13 @@ export function useTableInputArgument(
     return cols
   })
 
-  const rowData = computed(() => {
-    const rows: RowData[] = []
-    for (const col of columns.value) {
-      for (const [rowIndex, value] of col.data.enumerate()) {
-        const row: RowData = rows.at(rowIndex) ?? { index: rowIndex, cells: {} }
-        assert(rowIndex <= rows.length)
-        if (rowIndex === rows.length) {
-          rows.push(row)
-        }
-        if (value?.id) {
-          row.cells[col.data.id] = value?.id
-        }
-      }
-    }
-    if (mayAddNewRow()) {
-      rows.push({ index: rows.length, cells: {} })
-    }
-    return rows
-  })
+  // rowData change may cause excessive recreating components in AgGrid and stop any editing,
+  // similarly as it is with `columnDefs`. Therefore we create rowData depending only on row count.
+  const rowData = computed<RowData[]>(() =>
+    Array.from({ length: rowCount.value + (mayAddNewRowCurrently.value ? 1 : 0) }, (_, index) => ({
+      index,
+    })),
+  )
 
   const nothingImport = computed(() =>
     requiredImportsByProjectPath(suggestions, NOTHING_PATH, true),
