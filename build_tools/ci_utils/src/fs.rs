@@ -5,6 +5,8 @@ use crate::prelude::*;
 
 use fs_extra::dir::CopyOptions;
 use fs_extra::error::ErrorKind;
+use walkdir::WalkDir;
+use diff;
 
 
 // ==============
@@ -92,7 +94,7 @@ pub async fn copy_if_different(source: impl AsRef<Path>, target: impl AsRef<Path
         return copy_file_if_different(source, target);
     }
 
-    let walkdir = walkdir::WalkDir::new(&source);
+    let walkdir = WalkDir::new(&source);
     let entries: Vec<_> = walkdir.into_iter().try_collect()?;
     for entry in entries.into_iter().filter(|e| e.file_type().is_file()) {
         let entry_path = entry.path();
@@ -155,6 +157,60 @@ pub fn remove_glob(glob_pattern: &str) -> Result {
     Ok(())
 }
 
+/// (Recursive) difference between directories.
+/// Compares files by content.
+pub fn diff_dirs(old_dir: impl AsRef<Path>, new_dir: impl AsRef<Path>) -> Result {
+    for (first_dir, second_dir) in [
+        (old_dir.as_ref(), new_dir.as_ref()),
+        (new_dir.as_ref(), old_dir.as_ref()),
+    ] {
+        let res = WalkDir::new(first_dir)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().is_file())
+            .map(|e| e.path().to_path_buf())
+            .try_for_each(|first_path| {
+                let relative_path = pathdiff::diff_paths(&first_path, first_dir)
+                    .context(format!("Failed to relativize path {}.", first_path.display()))?;
+                let second_path = second_dir.join(&relative_path);
+                if !second_path.exists() {
+                    bail!("File {:?} does not exist in directory {:?}.", first_path, second_dir);
+                }
+                compare_files(&first_path, &second_path)?;
+                Ok(())
+            });
+        if res.is_err() {
+            return res;
+        }
+    }
+    Ok(())
+}
+
+
+fn compare_files(file_1: &Path, file_2: &Path) -> Result {
+    let content_1 = std::fs::read_to_string(file_1)?;
+    let content_2 = std::fs::read_to_string(file_2)?;
+    let line_diffs = diff::lines(content_1.as_str(), content_2.as_str());
+    let mut err_msgs: Vec<String> = Vec::new();
+    // Iterate over line_diffs with index
+    for (i, line_diff) in line_diffs.iter().enumerate() {
+        match line_diff {
+            diff::Result::Left(line) => {
+                err_msgs.push(format!("File {:?} and {:?} are different at line {}: {}", file_1, file_2, i, line));
+            }
+            diff::Result::Right(line) => {
+                err_msgs.push(format!("File {:?} and {:?} are different at line {}: {}", file_1, file_2, i, line));
+            }
+            diff::Result::Both(_, _) => {}
+        }
+    }
+    if !err_msgs.is_empty() {
+        bail!(err_msgs.join("\n"));
+    } else {
+        Ok(())
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
@@ -189,6 +245,102 @@ mod tests {
         write(&file1, "file1")?;
         remove_glob(temp.path().join(pattern_to_remove).as_str())?;
         assert!(!file1.exists());
+        Ok(())
+    }
+
+    #[test]
+    fn diff_same_dirs_test() -> Result {
+        let temp = tempfile::tempdir()?;
+        let old_dir = temp.path().join("old");
+        let new_dir = temp.path().join("new");
+        write(old_dir.join("file1.txt"), "file1")?;
+        write(new_dir.join("file1.txt"), "file1")?;
+        diff_dirs(old_dir, new_dir)
+    }
+
+    #[test]
+    fn diff_old_dir_has_additional_file() -> Result {
+        let temp = tempfile::tempdir()?;
+        let old_dir = temp.path().join("old");
+        let new_dir = temp.path().join("new");
+        write(old_dir.join("file1.txt"), "file1")?;
+        write(old_dir.join("file2.txt"), "file2")?;
+        write(new_dir.join("file1.txt"), "file1")?;
+        let err = diff_dirs(old_dir, new_dir).unwrap_err();
+        assert!(err.to_string().contains("file2.txt"));
+        Ok(())
+    }
+
+    #[test]
+    fn diff_new_dir_has_additional_file() -> Result {
+        let temp = tempfile::tempdir()?;
+        let old_dir = temp.path().join("old");
+        let new_dir = temp.path().join("new");
+        write(old_dir.join("file1.txt"), "file1")?;
+        write(new_dir.join("file1.txt"), "file1")?;
+        write(new_dir.join("file2.txt"), "file2")?;
+        let err = diff_dirs(old_dir, new_dir).unwrap_err();
+        assert!(err.to_string().contains("file2.txt"));
+        Ok(())
+    }
+
+    #[test]
+    fn diff_different_file() -> Result {
+        let temp = tempfile::tempdir()?;
+        let old_dir = temp.path().join("old");
+        let new_dir = temp.path().join("new");
+        write(old_dir.join("file1.txt"), "foo")?;
+        write(new_dir.join("file1.txt"), "XXX")?;
+        let err = diff_dirs(old_dir, new_dir).unwrap_err();
+        assert!(err.to_string().contains("file1.txt"));
+        Ok(())
+    }
+
+    #[test]
+    fn diff_different_file_and_same_file() -> Result {
+        let temp = tempfile::tempdir()?;
+        let old_dir = temp.path().join("old");
+        let new_dir = temp.path().join("new");
+        write(old_dir.join("file1.txt"), "foo")?;
+        write(old_dir.join("file2.txt"), "bar")?;
+        write(new_dir.join("file1.txt"), "XXX")?;
+        write(new_dir.join("file2.txt"), "bar")?;
+        let err = diff_dirs(old_dir, new_dir).unwrap_err();
+        assert!(err.to_string().contains("file1.txt"));
+        Ok(())
+    }
+
+    #[test]
+    fn diff_empty_dirs() -> Result {
+        let temp = tempfile::tempdir()?;
+        let old_dir = temp.path().join("old");
+        let new_dir = temp.path().join("new");
+        diff_dirs(old_dir, new_dir)
+    }
+
+    #[test]
+    fn diff_one_empty_dir() -> Result {
+        let temp = tempfile::tempdir()?;
+        let old_dir = temp.path().join("old");
+        write(old_dir.join("file1.txt"), "foo")?;
+        let new_dir = temp.path().join("new");
+        let err = diff_dirs(old_dir, new_dir).unwrap_err();
+        assert!(err.to_string().contains("file1.txt"));
+        Ok(())
+    }
+
+    #[test]
+    fn diff_difference_is_displayed() -> Result {
+        let temp = tempfile::tempdir()?;
+        let old_dir = temp.path().join("old");
+        let new_dir = temp.path().join("new");
+        write(old_dir.join("file1.txt"), "foo")?;
+        write(new_dir.join("file1.txt"), "XXX")?;
+        let err = diff_dirs(old_dir, new_dir).unwrap_err();
+        println!("{}", err.to_string());
+        assert!(err.to_string().contains("file1.txt"));
+        assert!(err.to_string().contains("foo"));
+        assert!(err.to_string().contains("XXX"));
         Ok(())
     }
 }
