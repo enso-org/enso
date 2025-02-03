@@ -276,7 +276,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
         return
       }
       const topLevel = edit.getVersion(moduleRoot.value)
-      const existingImports = analyzeImports(topLevel, projectNames)
+      const existingImports = [...analyzeImports(topLevel, projectNames)]
 
       const conflicts = []
       const nonConflictingImports = []
@@ -306,7 +306,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
         return
       }
       const topLevel = edit.getVersion(moduleRoot.value)
-      const existingImports_ = existingImports ?? analyzeImports(topLevel, projectNames)
+      const existingImports_ = existingImports ?? [...analyzeImports(topLevel, projectNames)]
 
       const importsToAdd = filterOutRedundantImports(existingImports_, imports)
       if (!importsToAdd.length) return
@@ -797,7 +797,6 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       visibleNodeAreas,
       visibleArea,
       unregisterNodeRect,
-      methodAst,
       getMethodAst,
       generateLocallyUniqueIdent,
       moduleRoot,
@@ -831,9 +830,12 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       addMissingImportsDisregardConflicts,
       isConnectedTarget,
       nodeCanBeEntered,
-      currentMethodPointer,
       modulePath,
       connectedEdges,
+      currentMethod: proxyRefs({
+        ast: methodAst,
+        pointer: currentMethodPointer,
+      }),
       ...unconnectedEdges,
     })
   },

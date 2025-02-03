@@ -85,9 +85,9 @@ public final class InferredBuilder implements Builder {
   @Override
   public void appendBulkStorage(Storage<?> storage) {
     if (storage.getType() instanceof NullType) {
-      appendNulls(storage.size());
+      appendNulls(Math.toIntExact(storage.getSize()));
     } else {
-      for (int i = 0; i < storage.size(); i++) {
+      for (long i = 0; i < storage.getSize(); i++) {
         append(storage.getItemBoxed(i));
       }
     }
@@ -104,23 +104,23 @@ public final class InferredBuilder implements Builder {
     } else if (NumericConverter.isFloatLike(o)) {
       newBuilder = new InferredDoubleBuilder(initialCapacity, problemAggregator);
     } else if (o instanceof String) {
-      newBuilder = Builder.getForType(TextType.VARIABLE_LENGTH, initialCapacity, problemAggregator);
+      newBuilder = Builder.getForText(TextType.VARIABLE_LENGTH, initialCapacity);
     } else if (o instanceof BigInteger) {
-      newBuilder = Builder.getForType(BigIntegerType.INSTANCE, initialCapacity, problemAggregator);
+      newBuilder = Builder.getForBigInteger(initialCapacity, problemAggregator);
     } else if (o instanceof BigDecimal) {
-      newBuilder = Builder.getForType(BigDecimalType.INSTANCE, initialCapacity, problemAggregator);
+      newBuilder = Builder.getForBigDecimal(initialCapacity);
     } else if (o instanceof LocalDate) {
       newBuilder =
           allowDateToDateTimeConversion
               ? new DateBuilder(initialCapacity, true)
-              : Builder.getForType(DateType.INSTANCE, initialCapacity, problemAggregator);
+              : Builder.getForDate(initialCapacity);
     } else if (o instanceof ZonedDateTime) {
       newBuilder =
           allowDateToDateTimeConversion
               ? new DateTimeBuilder(initialCapacity, true)
-              : Builder.getForType(DateTimeType.INSTANCE, initialCapacity, problemAggregator);
+              : Builder.getForDateTime(initialCapacity);
     } else if (o instanceof LocalTime) {
-      newBuilder = Builder.getForType(TimeOfDayType.INSTANCE, initialCapacity, problemAggregator);
+      newBuilder = Builder.getForTime(initialCapacity);
     } else {
       newBuilder = Builder.getForType(AnyObjectType.INSTANCE, initialCapacity, problemAggregator);
     }

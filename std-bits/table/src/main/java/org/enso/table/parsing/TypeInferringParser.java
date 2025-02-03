@@ -43,20 +43,22 @@ public class TypeInferringParser extends DatatypeParser {
   @Override
   public Storage<?> parseColumn(
       Storage<String> sourceStorage, CommonParseProblemAggregator problemAggregator) {
+    long size = sourceStorage.getSize();
+
     // If there are no values, the Auto parser would guess some random type (the first one that is
     // checked). Instead, we return a Null-type column.
-    boolean hasNoValues = (sourceStorage.size() == 0) || CountNothing.allNothing(sourceStorage);
+    boolean hasNoValues = (size == 0) || CountNothing.allNothing(sourceStorage);
     if (hasNoValues) {
-      return new NullStorage(sourceStorage.size());
+      return new NullStorage(size);
     }
 
     Context context = Context.getCurrent();
     parsers:
     for (IncrementalDatatypeParser parser : baseParsers) {
       CommonParseProblemAggregator innerAggregator = problemAggregator.createContextAwareChild();
-      Builder builder = parser.makeBuilderWithCapacity(sourceStorage.size(), innerAggregator);
+      Builder builder = parser.makeBuilderWithCapacity(size, innerAggregator);
 
-      for (int i = 0; i < sourceStorage.size(); ++i) {
+      for (long i = 0; i < size; ++i) {
         String cell = sourceStorage.getItemBoxed(i);
         if (cell != null) {
           Object parsed = parser.parseSingleValue(cell, innerAggregator);

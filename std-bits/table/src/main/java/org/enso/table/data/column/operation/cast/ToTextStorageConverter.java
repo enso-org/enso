@@ -7,12 +7,15 @@ import java.time.format.DateTimeFormatter;
 import java.util.function.Function;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.datetime.TimeOfDayStorage;
-import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.TextType;
@@ -33,11 +36,11 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         return adaptStringStorage(stringStorage, problemAggregator);
       }
     }
-    if (storage instanceof AbstractLongStorage longStorage) {
+    if (storage instanceof ColumnLongStorage longStorage) {
       return castLongStorage(longStorage, problemAggregator);
-    } else if (storage instanceof DoubleStorage doubleStorage) {
+    } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
       return castDoubleStorage(doubleStorage, problemAggregator);
-    } else if (storage instanceof BoolStorage boolStorage) {
+    } else if (storage instanceof ColumnBooleanStorage boolStorage) {
       return castBoolStorage(boolStorage, problemAggregator);
     } else if (storage instanceof TimeOfDayStorage timeOfDayStorage) {
       return castTemporalStorage(timeOfDayStorage, this::convertTime, problemAggregator);
@@ -55,12 +58,12 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   }
 
   private Storage<String> castFromMixed(
-      ColumnStorage mixedStorage, CastProblemAggregator problemAggregator) {
+      ColumnStorage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForText(mixedStorage.getSize(), targetType),
+        Builder.getForText(targetType, mixedStorage.getSize()),
         mixedStorage,
         (i) -> {
-          Object o = mixedStorage.getItemAsObject(i);
+          Object o = mixedStorage.getItemBoxed(i);
           return switch (o) {
             case LocalTime d -> adapt(convertTime(d), problemAggregator);
             case LocalDate d -> adapt(convertDate(d), problemAggregator);
@@ -74,10 +77,10 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   private Storage<String> castLongStorage(
       ColumnLongStorage longStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForText(longStorage.getSize(), targetType),
+        Builder.getForText(targetType, longStorage.getSize()),
         longStorage,
         (i) -> {
-          long value = longStorage.get(i);
+          long value = longStorage.getItemAsLong(i);
           return adapt(Long.toString(value), problemAggregator);
         });
   }
@@ -85,10 +88,10 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   private Storage<String> castBoolStorage(
       ColumnBooleanStorage boolStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForText(boolStorage.getSize(), targetType),
+        Builder.getForText(targetType, boolStorage.getSize()),
         boolStorage,
         (i) -> {
-          boolean value = boolStorage.get(i);
+          boolean value = boolStorage.getItemAsBoolean(i);
           return adapt(convertBoolean(value), problemAggregator);
         });
   }
@@ -96,10 +99,10 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   private Storage<String> castDoubleStorage(
       ColumnDoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForText(doubleStorage.getSize(), targetType),
+        Builder.getForText(targetType, doubleStorage.getSize()),
         doubleStorage,
         (i) -> {
-          double value = doubleStorage.get(i);
+          double value = doubleStorage.getItemAsDouble(i);
           return adapt(Double.toString(value), problemAggregator);
         });
   }
@@ -107,10 +110,10 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   private <T> Storage<String> castTemporalStorage(
       Storage<T> storage, Function<T, String> converter, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForText(storage.size(), targetType),
+        Builder.getForText(targetType, storage.getSize()),
         storage,
         (i) -> {
-          var value = storage.getItemBoxed((int) i);
+          var value = storage.getItemBoxed(i);
           return adapt(converter.apply(value), problemAggregator);
         });
   }
@@ -118,10 +121,10 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   private Storage<String> adaptStringStorage(
       StringStorage stringStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForText(stringStorage.size(), targetType),
+        Builder.getForText(targetType, stringStorage.getSize()),
         stringStorage,
         (i) -> {
-          String value = stringStorage.getItem(i);
+          String value = stringStorage.getItemBoxed(i);
           // Adapting an existing string storage into a new type is done without warnings.
           return adaptWithoutWarning(value);
         });
@@ -172,8 +175,8 @@ public class ToTextStorageConverter implements StorageConverter<String> {
 
     long maxLength = Long.MIN_VALUE;
     long minLength = Long.MAX_VALUE;
-    for (int i = 0; i < stringStorage.size(); i++) {
-      String value = stringStorage.getItem(i);
+    for (long i = 0; i < stringStorage.getSize(); i++) {
+      String value = stringStorage.getItemBoxed(i);
       if (value == null) {
         continue;
       }
@@ -202,6 +205,6 @@ public class ToTextStorageConverter implements StorageConverter<String> {
    * canAvoidCopying}.
    */
   private Storage<String> retypeStringStorage(StringStorage stringStorage) {
-    return new StringStorage(stringStorage.getData(), stringStorage.size(), targetType);
+    return new StringStorage(stringStorage.getData(), targetType);
   }
 }

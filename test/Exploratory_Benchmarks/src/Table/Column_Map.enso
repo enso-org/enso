@@ -73,13 +73,10 @@ type Primitive_Map_Test
         builder = Builder.getForLong IntegerType.INT_64 n Nothing
         storage = get_storage_for_column self.int_column
         0.up_to n . each i->
-            case storage.isNothing i of
-                True ->
-                    builder.appendNulls 1
-                False ->
-                    item = storage.getItem i
-                    x = item + shift
-                    builder.appendLong x
+            if storage.isNothing i then builder.appendNulls 1 else
+                item = storage.getItemAsLong i
+                x = item + shift
+                builder.appendLong x
         Column.from_storage "result" builder.seal
 
     verify_correctness self =

@@ -4,9 +4,9 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.List;
 import org.enso.base.polyglot.NumericConverter;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -82,7 +82,7 @@ public class Mean extends KnownTypeAggregator {
     void accumulate(
         List<Integer> indexes, Storage<?> storage, ProblemAggregator problemAggregator) {
       Context context = Context.getCurrent();
-      if (storage instanceof DoubleStorage doubleStorage) {
+      if (storage instanceof ColumnDoubleStorage doubleStorage) {
         for (int i : indexes) {
           if (!doubleStorage.isNothing(i)) {
             total += doubleStorage.getItemAsDouble(i);
@@ -90,10 +90,10 @@ public class Mean extends KnownTypeAggregator {
           }
           context.safepoint();
         }
-      } else if (storage instanceof AbstractLongStorage longStorage) {
+      } else if (storage instanceof ColumnLongStorage longStorage) {
         for (int i : indexes) {
           if (!longStorage.isNothing(i)) {
-            total += longStorage.getItem(i);
+            total += longStorage.getItemAsLong(i);
             count++;
           }
           context.safepoint();

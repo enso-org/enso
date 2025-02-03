@@ -88,9 +88,9 @@ export const ensoDevtoolsStore = zustand.createStore<EnsoDevtoolsStore>()(
     }),
     {
       name: 'ensoDevtools',
+      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+      version: 1.1,
       partialize: (state) => ({
-        showDevtools: state.showDevtools,
-        showEnsoDevtools: state.showEnsoDevtools,
         animationsDisabled: state.animationsDisabled,
       }),
     },
@@ -168,8 +168,4 @@ export function useSetShowDevtools() {
   return zustand.useStore(ensoDevtoolsStore, (state) => state.setShowDevtools, {
     unsafeEnableTransition: true,
   })
-}
-
-if (typeof window !== 'undefined') {
-  window.toggleDevtools = ensoDevtoolsStore.getState().toggleDevtools
 }

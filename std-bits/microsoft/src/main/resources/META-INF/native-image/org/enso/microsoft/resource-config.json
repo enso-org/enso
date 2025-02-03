@@ -1,0 +1,9 @@
+{
+  "resources":{
+  "includes":[{
+    "pattern":"\\QMETA-INF/java.sql.Driver\\E"
+  }]},
+  "bundles":[{
+    "name": "com.microsoft.sqlserver.jdbc.SQLServerResource"
+  }]
+}

@@ -312,7 +312,7 @@ public class ExcelReader {
             new Column[] {
               new Column(
                   CellReference.convertNumToColString(excelRange.getLeftColumn() - 1),
-                  new ObjectStorage(new Object[0], 0))
+                  ObjectStorage.EMPTY)
             });
       }
 

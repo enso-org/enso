@@ -17,7 +17,7 @@ public class TextLengthOperation extends AbstractUnaryLongOperation {
   }
 
   @Override
-  public boolean canApply(ColumnStorage storage) {
+  public boolean canApply(ColumnStorage<?> storage) {
     return storage.getType() instanceof TextType;
   }
 

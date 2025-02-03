@@ -41,7 +41,7 @@ public interface StorageConverter<T> {
   }
 
   static <T> Storage<T> innerLoop(
-      BuilderForType<T> builder, ColumnStorage storage, LongFunction<T> converter) {
+      BuilderForType<T> builder, ColumnStorage<?> storage, LongFunction<T> converter) {
     Context context = Context.getCurrent();
 
     long n = storage.getSize();

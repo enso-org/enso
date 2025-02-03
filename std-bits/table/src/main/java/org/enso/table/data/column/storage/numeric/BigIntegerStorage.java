@@ -2,6 +2,7 @@ package org.enso.table.data.column.storage.numeric;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
@@ -17,7 +18,6 @@ import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterOrEqu
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparison;
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
 import org.enso.table.data.column.operation.map.numeric.isin.BigIntegerIsInOp;
-import org.enso.table.data.column.storage.ObjectStorage;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -26,15 +26,14 @@ import org.enso.table.data.column.storage.type.StorageType;
 public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
   /**
    * @param data the underlying data
-   * @param size the number of items stored
    */
-  public BigIntegerStorage(BigInteger[] data, int size) {
-    super(data, size, makeOps());
+  public BigIntegerStorage(BigInteger[] data) {
+    super(BigIntegerType.INSTANCE, data, makeOps());
   }
 
   protected static MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> makeOps() {
     MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> ops =
-        ObjectStorage.buildObjectOps();
+        new MapOperationStorage<>();
     return ops.add(new AddOp<>())
         .add(new SubOp<>())
         .add(new MulOp<>())
@@ -51,13 +50,14 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
         .add(new BigIntegerIsInOp<>());
   }
 
-  public static BigIntegerStorage makeEmpty(int size) {
-    return new BigIntegerStorage(new BigInteger[size], size);
+  public static BigIntegerStorage makeEmpty(long size) {
+    int intSize = Builder.checkSize(size);
+    return new BigIntegerStorage(new BigInteger[intSize]);
   }
 
   @Override
-  protected SpecializedStorage<BigInteger> newInstance(BigInteger[] data, int size) {
-    return new BigIntegerStorage(data, size);
+  protected SpecializedStorage<BigInteger> newInstance(BigInteger[] data) {
+    return new BigIntegerStorage(data);
   }
 
   @Override
@@ -65,17 +65,12 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
     return new BigInteger[size];
   }
 
-  @Override
-  public StorageType getType() {
-    return BigIntegerType.INSTANCE;
-  }
-
   private long cachedMaxPrecisionStored = -1;
 
   public long getMaxPrecisionStored() {
     if (cachedMaxPrecisionStored < 0) {
       long maxPrecision = 0;
-      for (int i = 0; i < size; i++) {
+      for (int i = 0; i < getSize(); i++) {
         BigInteger value = data[i];
         if (value == null) {
           continue;
@@ -103,7 +98,7 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
       boolean allFitInLong = true;
       int visitedCount = 0;
 
-      for (int i = 0; i < size; i++) {
+      for (int i = 0; i < getSize(); i++) {
         BigInteger value = data[i];
         if (value == null) {
           continue;
@@ -142,10 +137,10 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
 
     // We create a Long storage that gets values by converting our storage.
     ComputedNullableLongStorage longAdapter =
-        new ComputedNullableLongStorage(size) {
+        new ComputedNullableLongStorage((int) getSize()) {
           @Override
           protected Long computeItem(int idx) {
-            BigInteger bigInteger = parent.getItem(idx);
+            BigInteger bigInteger = parent.getItemBoxed(idx);
             if (bigInteger == null) {
               return null;
             }

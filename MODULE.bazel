@@ -35,13 +35,7 @@ use_repo(rules_ts_ext, "npm_typescript")
 ############
 ### RUST ###
 ############
-bazel_dep(name = "rules_rust", version = "0.56.0")
-# TODO: use next released version
-git_override(
-    module_name="rules_rust",
-    remote="https://github.com/bazelbuild/rules_rust.git",
-    commit="37acfa101245e45952eb7b0fcfa8b6f229055f2c"
-)
+bazel_dep(name = "rules_rust", version = "0.57.1")
 
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
@@ -90,13 +84,7 @@ use_repo(crate, "crates")
 ####################
 ### WASM BINDGEN ###
 ####################
-bazel_dep(name = "rules_rust_wasm_bindgen", version = "0.56.0")
-git_override(
-    module_name="rules_rust_wasm_bindgen",
-    remote="https://github.com/bazelbuild/rules_rust.git",
-    commit="37acfa101245e45952eb7b0fcfa8b6f229055f2c",
-    strip_prefix="extensions/wasm_bindgen"
-)
+bazel_dep(name = "rules_rust_wasm_bindgen", version = "0.57.1")
 
 WASM_BINDGEN_VERSION = "0.2.99"
 
