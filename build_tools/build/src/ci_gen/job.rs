@@ -480,51 +480,49 @@ impl JobArchetype for WasmTest {
     }
 }
 
-fn backend_steps_builder(command: impl Into<String>, target: Target) -> RunStepsBuilder {
-    RunStepsBuilder::new(command).customize(move |step| {
-        let mut steps = vec![step];
-
-        if target.0 == OS::Linux {
-            let upload_edition_file = step::upload_artifact("Upload Edition File")
-                .with_custom_argument("name", paths::EDITION_FILE_ARTIFACT_NAME)
-                .with_custom_argument("path", "distribution/editions/*.yaml");
-            steps.push(upload_edition_file);
-
-            let upload_fbs_schema = step::upload_artifact("Upload fbs-schema")
-                .with_custom_argument("name", "fbs-schema")
-                .with_custom_argument("path", "engine/language-server/src/main/schema/");
-            steps.push(upload_fbs_schema)
-        }
-
-        let archive_project_manager = Step {
-            name: Some("Archive project-manager".into()),
-            run: Some("tar -cvf project-manager.tar -C dist/backend .".into()),
-            ..Default::default()
-        };
-        steps.push(archive_project_manager);
-
-        let upload_project_manager = step::upload_artifact("Upload project-manager")
-            .with_custom_argument("name", format!("project-manager-{}", target.0))
-            .with_custom_argument("path", "project-manager.tar");
-        steps.push(upload_project_manager);
-
-        let cleanup = Step {
-            name: Some("Cleanup".into()),
-            run: Some("rm project-manager.tar".into()),
-            ..Default::default()
-        };
-        steps.push(cleanup);
-
-        steps
-    })
-}
-
 #[derive(Clone, Copy, Debug)]
 pub struct BuildBackend;
 
 impl JobArchetype for BuildBackend {
     fn job(&self, target: Target) -> Job {
-        backend_steps_builder("backend get", target).build_job("Build Backend", target)
+        RunStepsBuilder::new("backend get")
+            .customize(move |step| {
+                let mut steps = vec![step];
+
+                if target.0 == OS::Linux {
+                    let upload_edition_file = step::upload_artifact("Upload Edition File")
+                        .with_custom_argument("name", paths::EDITION_FILE_ARTIFACT_NAME)
+                        .with_custom_argument("path", "distribution/editions/*.yaml");
+                    steps.push(upload_edition_file);
+
+                    let upload_fbs_schema = step::upload_artifact("Upload fbs-schema")
+                        .with_custom_argument("name", "fbs-schema")
+                        .with_custom_argument("path", "engine/language-server/src/main/schema/");
+                    steps.push(upload_fbs_schema)
+                }
+
+                let archive_project_manager = Step {
+                    name: Some("Archive project-manager".into()),
+                    run: Some("tar -cvf project-manager.tar -C dist/backend .".into()),
+                    ..Default::default()
+                };
+                steps.push(archive_project_manager);
+
+                let upload_project_manager = step::upload_artifact("Upload project-manager")
+                    .with_custom_argument("name", format!("project-manager-{}", target.0))
+                    .with_custom_argument("path", "project-manager.tar");
+                steps.push(upload_project_manager);
+
+                let cleanup = Step {
+                    name: Some("Cleanup".into()),
+                    run: Some("rm project-manager.tar".into()),
+                    ..Default::default()
+                };
+                steps.push(cleanup);
+
+                steps
+            })
+            .build_job("Build Backend", target)
     }
 }
 
@@ -533,7 +531,7 @@ pub struct UploadBackend;
 
 impl JobArchetype for UploadBackend {
     fn job(&self, target: Target) -> Job {
-        backend_steps_builder("backend upload", target)
+        RunStepsBuilder::new("backend upload")
             .cleaning(RELEASE_CLEANING_POLICY)
             .build_job("Upload Backend", target)
     }

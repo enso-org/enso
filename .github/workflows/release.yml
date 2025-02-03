@@ -249,25 +249,6 @@ jobs:
       - run: ./run backend upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Upload Edition File
-        uses: actions/upload-artifact@v4
-        with:
-          name: Edition File
-          path: distribution/editions/*.yaml
-      - name: Upload fbs-schema
-        uses: actions/upload-artifact@v4
-        with:
-          name: fbs-schema
-          path: engine/language-server/src/main/schema/
-      - name: Archive project-manager
-        run: tar -cvf project-manager.tar -C dist/backend .
-      - name: Upload project-manager
-        uses: actions/upload-artifact@v4
-        with:
-          name: project-manager-linux
-          path: project-manager.tar
-      - name: Cleanup
-        run: rm project-manager.tar
       - if: (always())
         name: Clean after
         run: ./run git-clean
@@ -315,15 +296,6 @@ jobs:
       - run: ./run backend upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Archive project-manager
-        run: tar -cvf project-manager.tar -C dist/backend .
-      - name: Upload project-manager
-        uses: actions/upload-artifact@v4
-        with:
-          name: project-manager-macos
-          path: project-manager.tar
-      - name: Cleanup
-        run: rm project-manager.tar
       - if: (always())
         name: Clean after
         run: ./run git-clean
@@ -369,15 +341,6 @@ jobs:
       - run: ./run backend upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Archive project-manager
-        run: tar -cvf project-manager.tar -C dist/backend .
-      - name: Upload project-manager
-        uses: actions/upload-artifact@v4
-        with:
-          name: project-manager-macos
-          path: project-manager.tar
-      - name: Cleanup
-        run: rm project-manager.tar
       - if: (always())
         name: Clean after
         run: ./run git-clean
@@ -424,15 +387,6 @@ jobs:
       - run: ./run backend upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Archive project-manager
-        run: tar -cvf project-manager.tar -C dist/backend .
-      - name: Upload project-manager
-        uses: actions/upload-artifact@v4
-        with:
-          name: project-manager-windows
-          path: project-manager.tar
-      - name: Cleanup
-        run: rm project-manager.tar
       - if: (always())
         name: Clean after
         run: ./run git-clean
