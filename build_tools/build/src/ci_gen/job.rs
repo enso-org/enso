@@ -11,6 +11,7 @@ use crate::ci_gen::RunnerType;
 use crate::ci_gen::RELEASE_CLEANING_POLICY;
 use crate::engine::env as engine_env;
 use crate::ide::web::env as ide_env;
+use crate::paths;
 
 use core::panic;
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
@@ -222,6 +223,14 @@ impl JobArchetype for JvmTests {
     fn job(&self, target: Target) -> Job {
         let graal_edition = self.graal_edition;
         let job_name = format!("JVM Tests ({graal_edition})");
+        let test_results_dir = paths::ENSO_TEST_JUNIT_DIR
+            .get()
+            .ok()
+            .and_then(|buf| buf.to_str().map(|s| s.to_owned()))
+            .unwrap_or_else(|| "target/test-results/".to_owned());
+        let _upload_artifact_job = step::upload_artifact("Upload test results")
+            .with_custom_argument("name", format!("Test_Results_{}", target.0))
+            .with_custom_argument("path", test_results_dir);
         let mut job = RunStepsBuilder::new("backend test jvm")
             .customize(move |step| vec![step, step::engine_test_reporter(target, graal_edition)])
             .build_job(job_name, target)
@@ -444,7 +453,18 @@ impl JobArchetype for GuiBuild {
     fn job(&self, target: Target) -> Job {
         let command: &str = "gui build";
         RunStepsBuilder::new(command)
-            .customize(|step| vec![expose_gui_vars(step)])
+            .customize(move |step| {
+                let mut steps = vec![expose_gui_vars(step)];
+
+                if target.0 == OS::Linux {
+                    let upload_gui = step::upload_artifact("Upload gui")
+                        .with_custom_argument("name", "gui")
+                        .with_custom_argument("path", "dist/gui/");
+                    steps.push(upload_gui);
+                }
+
+                steps
+            })
             .build_job("GUI build", target)
     }
 }
@@ -465,7 +485,44 @@ pub struct BuildBackend;
 
 impl JobArchetype for BuildBackend {
     fn job(&self, target: Target) -> Job {
-        plain_job(target, "Build Backend", "backend get")
+        RunStepsBuilder::new("backend get")
+            .customize(move |step| {
+                let mut steps = vec![step];
+
+                if target.0 == OS::Linux {
+                    let upload_edition_file = step::upload_artifact("Upload Edition File")
+                        .with_custom_argument("name", paths::EDITION_FILE_ARTIFACT_NAME)
+                        .with_custom_argument("path", "distribution/editions/*.yaml");
+                    steps.push(upload_edition_file);
+
+                    let upload_fbs_schema = step::upload_artifact("Upload fbs-schema")
+                        .with_custom_argument("name", "fbs-schema")
+                        .with_custom_argument("path", "engine/language-server/src/main/schema/");
+                    steps.push(upload_fbs_schema)
+                }
+
+                let archive_project_manager = Step {
+                    name: Some("Archive project-manager".into()),
+                    run: Some("tar -cvf project-manager.tar -C dist/backend .".into()),
+                    ..Default::default()
+                };
+                steps.push(archive_project_manager);
+
+                let upload_project_manager = step::upload_artifact("Upload project-manager")
+                    .with_custom_argument("name", format!("project-manager-{}", target.0))
+                    .with_custom_argument("path", "project-manager.tar");
+                steps.push(upload_project_manager);
+
+                let cleanup = Step {
+                    name: Some("Cleanup".into()),
+                    run: Some("rm project-manager.tar".into()),
+                    ..Default::default()
+                };
+                steps.push(cleanup);
+
+                steps
+            })
+            .build_job("Build Backend", target)
     }
 }
 
@@ -610,56 +667,85 @@ pub struct PackageIde;
 
 impl JobArchetype for PackageIde {
     fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new(
-            "ide build --backend-source current-ci-run --gui-upload-artifact false",
-        )
-        .customize(move |step| {
-            let mut steps = prepare_packaging_steps(target.0, step, PackagingTarget::Development);
-            const TEST_COMMAND: &str = "corepack pnpm -r --filter enso exec playwright test";
-            let test_step = match target.0 {
-                OS::Linux => shell(format!("xvfb-run {TEST_COMMAND}"))
-                    // See https://askubuntu.com/questions/1512287/obsidian-appimage-the-suid-sandbox-helper-binary-was-found-but-is-not-configu
-                    .with_env("ENSO_TEST_APP_ARGS", "--no-sandbox"),
+        RunStepsBuilder::new("ide build --backend-source local --gui-upload-artifact false")
+            .customize(move |step| {
+                let mut steps = vec![];
 
-                OS::MacOS =>
-                // MacOS CI runners are very slow
-                    shell(format!("{TEST_COMMAND} --timeout 300000")),
-                _ => shell(TEST_COMMAND),
-            };
-            let test_step = test_step
-                .with_env("DEBUG", "pw:browser log:")
-                .with_secret_exposed_as(secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME, "ENSO_TEST_USER")
-                .with_secret_exposed_as(
-                    secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
-                    "ENSO_TEST_USER_PASSWORD",
-                );
-            steps.push(test_step);
+                let download_project_manager = step::download_artifact("Download project-manager")
+                    .with_custom_argument("name", format!("project-manager-{}", target.0))
+                    .with_custom_argument("path", "dist/backend");
+                steps.push(download_project_manager);
 
-            let upload_test_traces_step = Step {
-                r#if: Some("failure()".into()),
-                name: Some("Upload Test Traces".into()),
-                uses: Some("actions/upload-artifact@v4".into()),
-                with: Some(Argument::Other(BTreeMap::from_iter([
-                    ("name".into(), format!("test-traces-{}-{}", target.0, target.1).into()),
-                    ("path".into(), "app/ide-desktop/client/test-traces".into()),
-                    ("compression-level".into(), 0.into()), // The traces are in zip already.
-                ]))),
-                ..Default::default()
-            };
-            steps.push(upload_test_traces_step);
+                let unpack_project_manager = Step {
+                    run: Some(
+                        "tar -xvf dist/backend/project-manager.tar -C dist/backend
+rm dist/backend/project-manager.tar"
+                            .into(),
+                    ),
+                    ..Default::default()
+                };
+                steps.push(unpack_project_manager);
 
-            // After the E2E tests run, they create a credentials file in user home directory.
-            // If that file is not cleaned up, future runs of our tests may randomly get
-            // authenticated into Enso Cloud. We want to run tests as an authenticated
-            // user only when we explicitly set that up, not randomly. So we clean the credentials
-            // file.
-            let cloud_credentials_path = "$HOME/.enso/credentials";
-            let cleanup_credentials_step = shell(format!("rm {cloud_credentials_path}"));
-            steps.push(cleanup_credentials_step);
+                let mut packaging_steps =
+                    prepare_packaging_steps(target.0, step, PackagingTarget::Development);
+                steps.append(&mut packaging_steps);
 
-            steps
-        })
-        .build_job("Package New IDE", target)
+                const TEST_COMMAND: &str = "corepack pnpm -r --filter enso exec playwright test";
+                let test_step = match target.0 {
+                    OS::Linux => shell(format!("xvfb-run {TEST_COMMAND}"))
+                        // See https://askubuntu.com/questions/1512287/obsidian-appimage-the-suid-sandbox-helper-binary-was-found-but-is-not-configu
+                        .with_env("ENSO_TEST_APP_ARGS", "--no-sandbox"),
+
+                    OS::MacOS =>
+                    // MacOS CI runners are very slow
+                        shell(format!("{TEST_COMMAND} --timeout 300000")),
+                    _ => shell(TEST_COMMAND),
+                };
+                let test_step = test_step
+                    .with_env("DEBUG", "pw:browser log:")
+                    .with_secret_exposed_as(
+                        secret::ENSO_CLOUD_TEST_ACCOUNT_USERNAME,
+                        "ENSO_TEST_USER",
+                    )
+                    .with_secret_exposed_as(
+                        secret::ENSO_CLOUD_TEST_ACCOUNT_PASSWORD,
+                        "ENSO_TEST_USER_PASSWORD",
+                    );
+                steps.push(test_step);
+
+                let upload_test_traces_step = Step {
+                    r#if: Some("failure()".into()),
+                    name: Some("Upload Test Traces".into()),
+                    uses: Some("actions/upload-artifact@v4".into()),
+                    with: Some(Argument::Other(BTreeMap::from_iter([
+                        ("name".into(), format!("test-traces-{}-{}", target.0, target.1).into()),
+                        ("path".into(), "app/ide-desktop/client/test-traces".into()),
+                        ("compression-level".into(), 0.into()), // The traces are in zip already.
+                    ]))),
+                    ..Default::default()
+                };
+                steps.push(upload_test_traces_step);
+
+                let upload_ide = step::upload_artifact("Upload ide")
+                    .with_custom_argument("name", format!("ide-{}", target.0))
+                    .with_custom_argument(
+                        "path",
+                        format!("dist/ide/enso-*.{}", target.0.package_extension()),
+                    );
+                steps.push(upload_ide);
+
+                // After the E2E tests run, they create a credentials file in user home directory.
+                // If that file is not cleaned up, future runs of our tests may randomly get
+                // authenticated into Enso Cloud. We want to run tests as an authenticated
+                // user only when we explicitly set that up, not randomly. So we clean the
+                // credentials file.
+                let cloud_credentials_path = "$HOME/.enso/credentials";
+                let cleanup_credentials_step = shell(format!("rm {cloud_credentials_path}"));
+                steps.push(cleanup_credentials_step);
+
+                steps
+            })
+            .build_job("Package New IDE", target)
     }
 }
 
