@@ -573,5 +573,6 @@ const DialogHeader = React.memo(function DialogHeader(props: DialogHeaderProps) 
 })
 
 Dialog.Close = Close
+/** @deprecated Use {@link Dialog.Close} instead. */
 Dialog.Dismiss = DialogDismiss
 Dialog.Trigger = DialogTrigger
