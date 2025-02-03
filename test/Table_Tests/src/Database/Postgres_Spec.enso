@@ -1091,6 +1091,37 @@ add_data_link_specs suite_builder =
     Audit_Spec.add_specs suite_builder prefix data_link_file.get database_pending=pending
     Save_Connection_Data_Link.add_specs suite_builder prefix connection_details pending
 
+add_generic_jdbc_specs suite_builder =
+    config = Postgres_JDBC_Config.Value get_configured_connection_details
+    Generic_JDBC_Connection_Spec.add_specs_for_backend config suite_builder
+
+    suite_builder.group "(Postgres) Generic JDBC Connection" group_builder->
+        # Cleans things up afterwards, but also before for easier debugging.
+        cleanup typ conn names ~action =
+            cleanup =
+                names.map (n-> conn.execute "drop "+typ+" if exists "+n+" cascade")
+            cleanup
+            Panic.with_finalizer cleanup action
+
+        cleanup_tables = cleanup "table"
+
+        group_builder.specify "should be able to read a table by name" <|
+            config.with_connection conn-> cleanup_tables conn ["foo", "bar"] <|
+                conn.execute "create table foo (a int, b text)"
+                conn.execute "insert into foo (a, b) values (10, 'asdf')"
+                conn.execute "insert into foo (a, b) values (20, 'zxcv')"
+                conn.execute "create table bar (c int, d text)"
+                conn.execute "insert into bar (c, d) values (20, 'qqqq')"
+                conn.execute "insert into bar (c, d) values (30, 'zzzz')"
+
+                r = conn.read (SQL_Query.Table_Name "foo")
+                r.at "a" . to_vector . should_equal [10, 20]
+                r.at "b" . to_vector . should_equal ['asdf', 'zxcv']
+
+                r2 = conn.read (SQL_Query.Table_Name "bar")
+                r2.at "c" . to_vector . should_equal [20, 30]
+                r2.at "d" . to_vector . should_equal ['qqqq', 'zzzz']
+
 ## PRIVATE
 type Postgres_JDBC_Config
     Value connection_details:Postgres
@@ -1110,10 +1141,6 @@ type Postgres_JDBC_Config
         url = 'jdbc:postgresql:' + db_name
 
         Generic_JDBC_Connection.connect url properties
-
-add_generic_jdbc_specs suite_builder =
-    config = Postgres_JDBC_Config.Value get_configured_connection_details
-    Generic_JDBC_Connection_Spec.add_specs_for_backend config suite_builder
 
 add_specs suite_builder =
     add_table_specs suite_builder
