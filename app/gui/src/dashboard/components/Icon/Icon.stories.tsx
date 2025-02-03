@@ -1,12 +1,10 @@
-import closeIcon from '#/assets/close.svg'
-import closeTabIcon from '#/assets/close_tab.svg'
-import cloudIcon from '#/assets/cloud.svg'
-import cloudToIcon from '#/assets/cloud_to.svg'
+import { iconNames } from '@/util/iconMetadata/iconName'
 import type { Meta, StoryObj } from '@storybook/react'
+import { Text } from '../AriaComponents/Text'
 import { Icon, type IconProps } from './Icon'
 
 const meta = {
-  title: 'Components/IconComponent',
+  title: 'Components/Icon',
   component: Icon,
   parameters: {
     layout: 'centered',
@@ -64,34 +62,23 @@ export const Icons: Story = {
   render: () => (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-2">
-        <div className="text-sm font-medium">Available Icons</div>
-        <div className="flex items-center gap-4">
-          <Icon>{closeIcon}</Icon>
-          <Icon>{cloudIcon}</Icon>
-          <Icon>{cloudToIcon}</Icon>
-          <Icon>{closeTabIcon}</Icon>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-2">
         <div className="text-sm font-medium">Custom Icons</div>
         <div className="flex items-center gap-4">
           {sizes.map((size) => (
-            <Icon key={size} size={size}>
-              {CustomSvgIcon}
-            </Icon>
+            <Icon key={size} size={size} icon={CustomSvgIcon} />
           ))}
           {colors.map((color) => (
-            <Icon key={color} color={color}>
-              {CustomSvgIcon}
-            </Icon>
+            <Icon key={color} color={color} icon={CustomSvgIcon} />
           ))}
-          <Icon renderProps={{ color: 'blue' }}>
-            {(props) => <RenderPropIcon color={props.color} />}
-          </Icon>
-          <Icon color="accent" renderProps={{ color: 'red' }}>
-            {(props) => <RenderPropIcon color={props.color} />}
-          </Icon>
+          <Icon
+            renderProps={{ color: 'blue' }}
+            icon={(props) => <RenderPropIcon color={props.color} />}
+          />
+          <Icon
+            color="accent"
+            renderProps={{ color: 'red' }}
+            icon={(props) => <RenderPropIcon color={props.color} />}
+          />
         </div>
       </div>
 
@@ -99,9 +86,7 @@ export const Icons: Story = {
         <div className="text-sm font-medium">Sizes</div>
         <div className="flex items-center gap-4">
           {sizes.map((size) => (
-            <Icon key={size} size={size}>
-              {closeIcon}
-            </Icon>
+            <Icon key={size} size={size} icon="close" />
           ))}
         </div>
       </div>
@@ -109,16 +94,27 @@ export const Icons: Story = {
       <div className="flex flex-col gap-2">
         <div className="text-sm font-medium">Colors</div>
         <div className="flex items-center gap-4">
-          <Icon color="primary">{closeIcon}</Icon>
-          <Icon color="danger">{closeIcon}</Icon>
-          <Icon color="success">{closeIcon}</Icon>
-          <Icon color="accent">{closeIcon}</Icon>
-          <Icon color="muted">{closeIcon}</Icon>
-          <Icon color="disabled">{closeIcon}</Icon>
-          <Icon color="invert">{closeIcon}</Icon>
-          <Icon color="inherit">{closeIcon}</Icon>
-          <Icon color="current">{closeIcon}</Icon>
+          {colors.map((color) => (
+            <Icon key={color} color={color} icon="close" />
+          ))}
         </div>
+      </div>
+    </div>
+  ),
+}
+
+export const AvailableIcons: Story = {
+  render: () => (
+    <div className="flex flex-col gap-2 pb-24">
+      <Text.Heading className="mb-3">Available Icons</Text.Heading>
+
+      <div className="grid grid-cols-9 items-center gap-4">
+        {iconNames.map((icon) => (
+          <div key={icon} className="flex flex-col items-center gap-2">
+            <Icon key={icon} icon={icon} />
+            <Text variant="caption">{icon}</Text>
+          </div>
+        ))}
       </div>
     </div>
   ),

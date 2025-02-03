@@ -5,7 +5,7 @@ import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Rounding_Helpers
-from Standard.Base.Metadata.Widget import Numeric_Input
+from Standard.Base.Metadata.Widget import Numeric_Input, Text_Input
 from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make_format_chooser, make_regex_text_widget
 
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
@@ -1643,6 +1643,7 @@ type DB_Column
 
              column.text_replace '"(.*?)"'.to_regex '($1)'
     @term make_regex_text_widget
+    @new_text (Text_Input display=..Always)
     text_replace : Text | Regex | DB_Column -> Text | DB_Column -> Case_Sensitivity -> Boolean -> DB_Column ! Unsupported_Database_Operation
     text_replace self (term : Text | Regex | DB_Column = "") new_text="" case_sensitivity:Case_Sensitivity=..Default only_first=False =
         Value_Type.expect_text self <| case_sensitivity.disallow_non_default_locale <|
