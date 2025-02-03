@@ -13,13 +13,10 @@ use crate::version::ENSO_VERSION;
 use ide_ci::actions::workflow::definition::checkout_repo_step;
 use ide_ci::actions::workflow::definition::get_input;
 use ide_ci::actions::workflow::definition::get_input_expression;
-use ide_ci::actions::workflow::definition::is_non_windows_runner;
-use ide_ci::actions::workflow::definition::is_windows_runner;
 use ide_ci::actions::workflow::definition::run;
 use ide_ci::actions::workflow::definition::setup_artifact_api;
 use ide_ci::actions::workflow::definition::setup_bazel;
 use ide_ci::actions::workflow::definition::setup_bazel_env;
-use ide_ci::actions::workflow::definition::setup_wasm_pack_step;
 use ide_ci::actions::workflow::definition::shell;
 use ide_ci::actions::workflow::definition::wrap_expression;
 use ide_ci::actions::workflow::definition::Branches;
@@ -311,7 +308,6 @@ impl RunStepsBuilder {
         let mut steps = setup_script_steps();
         steps.push(clean_before);
         steps.extend(run_steps);
-        steps.extend(list_everything_on_failure());
         steps.push(clean_after);
         steps
     }
@@ -377,13 +373,8 @@ pub fn runs_on(os: OS, runner_type: RunnerType) -> Vec<RunnerLabel> {
 
 /// Initial CI job steps: check out the source code and set up the environment.
 pub fn setup_script_steps() -> Vec<Step> {
-    let mut ret = vec![
-        setup_bazel_env(),
-        setup_bazel(),
-        setup_wasm_pack_step(),
-        setup_artifact_api(),
-        checkout_repo_step(),
-    ];
+    let mut ret =
+        vec![setup_bazel_env(), setup_bazel(), setup_artifact_api(), checkout_repo_step()];
     // We run `./run --help` so:
     // * The build-script is build in a separate step. This allows us to monitor its build-time and
     //   not affect timing of the actual build.
@@ -395,25 +386,6 @@ pub fn setup_script_steps() -> Vec<Step> {
     let command = "./run --help || (git clean -ffdx && ./run --help)";
     ret.push(shell(command).with_name("Build Script Setup"));
     ret
-}
-
-
-pub fn list_everything_on_failure() -> impl IntoIterator<Item = Step> {
-    let win = Step {
-        name: Some("List files if failed (Windows)".into()),
-        r#if: Some(format!("failure() && {}", is_windows_runner())),
-        run: Some("Get-ChildItem -Force -Recurse".into()),
-        ..default()
-    };
-
-    let non_win = Step {
-        name: Some("List files if failed (non-Windows)".into()),
-        r#if: Some(format!("failure() && {}", is_non_windows_runner())),
-        run: Some("ls -lAR".into()),
-        ..default()
-    };
-
-    [win, non_win]
 }
 
 #[derive(Clone, Copy, Debug)]

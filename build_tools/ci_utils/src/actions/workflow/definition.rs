@@ -1,12 +1,11 @@
 //! Model of a workflow definition and related utilities.
 
-use serde_yaml::Value;
-
 use crate::prelude::*;
 
 use crate::convert_case::ToKebabCase;
 use crate::env::accessor::RawVariable;
 
+use serde_yaml::Value;
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::sync::atomic::AtomicU64;
@@ -97,15 +96,18 @@ pub fn setup_bazel_env() -> Step {
 pub fn setup_bazel() -> Step {
     Step {
         name: Some("Setup bazel environment".into()),
-        uses: Some("bazel-contrib/setup-bazel@09f3a72d13a081857b0ee94e986ffa84caef7c85".into()),
+        uses: Some("bazel-contrib/setup-bazel@0.13.0".into()),
         with: Some(step::Argument::Other(BTreeMap::from([
             (
                 "output-base".to_string(),
                 Value::String(format!("${{{{ {} && 'c:/_bazel' || '' }}}}", is_windows_runner())),
             ),
-            ("bazelisk-cache".to_string(), Value::Bool(true)),
-            ("disk-cache".to_string(), Value::Bool(true)),
-            ("repository-cache".to_string(), Value::Bool(true)),
+            (
+                "bazelrc".to_string(),
+                Value::String(
+                    "build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header=\"authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}\"".to_string(),
+                ),
+            ),
         ]))),
         ..default()
     }

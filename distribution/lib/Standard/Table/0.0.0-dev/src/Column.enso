@@ -13,7 +13,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Polyglot_Helpers
 import Standard.Base.Internal.Rounding_Helpers
 from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, take_helper
-from Standard.Base.Metadata.Widget import Numeric_Input
+from Standard.Base.Metadata.Widget import Numeric_Input, Text_Input
 from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make_format_chooser, make_regex_text_widget
 
 import project.Constants.Previous_Value
@@ -23,11 +23,13 @@ import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Column_Ops
 import project.Internal.Date_Time_Helpers
 import project.Internal.Java_Problems
+import project.Internal.Offset_Helper
 import project.Internal.Parse_Values_Helper
 import project.Internal.Read_Many_Helpers
 import project.Internal.Storage
 import project.Internal.Value_Type_Helpers
 import project.Internal.Widget_Helpers
+import project.Fill_With.Fill_With
 import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 import project.Value_Type.Auto
@@ -36,11 +38,14 @@ from project.Errors import Conversion_Failure, Inexact_Type_Coercion, Invalid_Co
 from project.Internal.Column_Format import all
 from project.Internal.Java_Exports import make_string_builder
 from project.Internal.Storage import enso_to_java, java_to_enso
+from project.Internal.Type_Refinements.Single_Value_Column import refine_with_single_value
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
 polyglot java import org.enso.table.data.column.operation.CountNothing
 polyglot java import org.enso.table.data.column.operation.CountUntrimmed
+polyglot java import org.enso.table.data.column.operation.CountNonTrivialWhitespace
+polyglot java import org.enso.table.data.column.operation.SampleOperation
 polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
 polyglot java import org.enso.table.data.column.operation.unary.DateTruncateOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsEmptyOperation
@@ -85,7 +90,7 @@ type Column
              example_from_vector =
                  Column.from_vector "My Column" [1, 2, 3, 4, 5]
     from_vector : Text -> Vector -> Auto | Value_Type -> Column ! Invalid_Value_Type
-    from_vector (name : Text) (items : Vector) (value_type : Auto | Value_Type = Auto) =
+    from_vector (name : Text) (items : Vector) (value_type : Auto | Value_Type = Auto) -> Column =
         ## If the type does not accept date-time-like values, we can skip the
            additional logic for polyglot conversions that would normally be used,
            which is quite costly - so if we can guarantee it is unnecessary,
@@ -118,17 +123,26 @@ type Column
                 case needs_polyglot_conversion of
                     True -> Java_Column.fromItems name (enso_to_java_maybe items) expected_storage_type java_problem_aggregator
                     False -> Java_Column.fromItemsNoDateConversion name items expected_storage_type java_problem_aggregator
-            result = Column.Value java_column . throw_on_warning Conversion_Failure
-            result.catch Conversion_Failure error->
-                if error.example_values.is_empty then result else
-                    raise_invalid_value_type_error error.example_values.first
+            multi_result = Column.from_java_column java_column
+            result = Warning.throw_on_warning multi_result Conversion_Failure
+            if Meta.is_error result . not then result else
+                result.catch Conversion_Failure error->
+                    if error.example_values.is_empty then result else
+                        raise_invalid_value_type_error error.example_values.first
 
     ## PRIVATE
        Creates a new column given a name and an internal Java storage.
     from_storage : Text -> Java_Storage -> Column
     from_storage name storage =
         Invalid_Column_Names.handle_java_exception <|
-            Column.Value (Java_Column.new name storage)
+            java_column = Java_Column.new name storage
+            Column.from_java_column java_column
+
+    ## PRIVATE
+       Creates a new column given a Java Column object.
+    from_java_column java_column:Java_Column -> Column =
+        column = Column.Value java_column
+        column |> refine_with_single_value
 
     ## PRIVATE
        ADVANCED
@@ -143,7 +157,7 @@ type Column
         Invalid_Column_Names.handle_java_exception <| Illegal_Argument.handle_java_exception <|
             java_column = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                 Java_Column.fromRepeatedItem name item repeats java_problem_aggregator
-            Column.Value java_column
+            Column.from_java_column java_column
 
     ## PRIVATE
 
@@ -537,6 +551,7 @@ type Column
                         run_binary_op self fn other new_name
                     _ ->
                         run_vectorized_binary_op self Java_Storage.Maps.SUB other
+            Nothing -> self.const Nothing
 
     ## ALIAS multiply, product, times
        GROUP Standard.Base.Operators
@@ -828,7 +843,7 @@ type Column
                 rs = Panic.catch No_Such_Method handler=handle_no_iif <|
                     Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                         s.iif true_val false_val storage_type java_problem_aggregator
-                Column.Value (Java_Column.new new_name rs)
+                Column.from_storage new_name rs
 
     ## PRIVATE
 
@@ -1192,12 +1207,12 @@ type Column
                 storage_type = Storage.from_value_type_strict common_type
                 new_storage = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                     case default of
-                        Column.Value java_col ->
-                            other_storage = java_col.getStorage
+                        col : Column ->
+                            other_storage = col.java_column.getStorage
                             storage.fillMissingFrom other_storage storage_type java_problem_aggregator
                         _ ->
                             storage.fillMissing default storage_type java_problem_aggregator
-                Column.Value (Java_Column.new self.name new_storage)
+                Column.from_storage self.name new_storage
 
     ## ALIAS fill empty, if_empty
        GROUP Standard.Base.Values
@@ -1477,6 +1492,7 @@ type Column
 
              column.text_replace '"(.*?)"'.to_regex '($1)'
     @term make_regex_text_widget
+    @new_text (Text_Input display=..Always)
     text_replace : Text | Regex | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Column
     text_replace self (term : Text | Regex | Column = "") new_text="" case_sensitivity:Case_Sensitivity=..Sensitive only_first=False =
         Value_Type.expect_text self <|
@@ -1846,7 +1862,7 @@ type Column
                 new_storage = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                     parse_problem_aggregator = ParseProblemAggregator.make java_problem_aggregator self.name type
                     parser.parseColumn storage parse_problem_aggregator
-                Column.Value (Java_Column.new self.name new_storage)
+                Column.from_storage self.name new_storage
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -2175,7 +2191,7 @@ type Column
     rename : Text -> Column ! Illegal_Argument
     rename self name = naming_helper.ensure_name_is_valid name <|
         Illegal_Argument.handle_java_exception <|
-            Column.Value (self.java_column.rename name)
+            Column.from_java_column (self.java_column.rename name)
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -2221,13 +2237,26 @@ type Column
        Used for data quality indicator in Table Viz.
     count_untrimmed : Integer -> Integer | Nothing
     count_untrimmed self sample_size:Integer=Column.default_sample_size =
-        if (self.value_type == Value_Type.Mixed || self.value_type.is_text).not then Nothing else
+        if (Column.can_contain_text self.value_type).not then Nothing else
             CountUntrimmed.apply self.java_column sample_size
+
+    ## PRIVATE
+      Counts the number of text values with non trivial whitespace.
+      Used for data quality indicator in Table Viz.
+    count_non_trivial_whitespace : Integer -> Integer | Nothing
+    count_non_trivial_whitespace self sample_size:Integer=Column.default_sample_size =
+        if (Column.can_contain_text self.value_type).not then Nothing else
+            CountNonTrivialWhitespace.apply self.java_column sample_size
+
+    ## PRIVATE
+       Determines if a value type is eligable for a text data quality count
+    private can_contain_text value_type:Value_Type -> Boolean = 
+        value_type == Value_Type.Mixed || value_type.is_text
 
     ## PRIVATE
        Default size for sampling data quality indicators.
     default_sample_size -> Integer =
-        CountUntrimmed.DEFAULT_SAMPLE_SIZE
+        SampleOperation.DEFAULT_SAMPLE_SIZE
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -2284,8 +2313,7 @@ type Column
             valid_index = (index >= 0) && (index < self.length)
             if valid_index.not then default else
                 storage = self.java_column.getStorage
-                if storage.isNothing index then Nothing else
-                    java_to_enso <| storage.getItemBoxed index
+                java_to_enso <| storage.getItemBoxed index
 
     ## PRIVATE
        ICON data_input
@@ -2354,7 +2382,7 @@ type Column
     to_js_object self =
         name = self.java_column.getName
         storage = self.java_column.getStorage
-        storage_proxy = Array_Proxy.new storage.size i-> storage.getItemBoxed i
+        storage_proxy = Array_Proxy.new storage.getSize i-> storage.getItemBoxed i
         storage_json = Vector.from_polyglot_array storage_proxy
         JS_Object.from_pairs [["name", name], ["data", storage_json]]
 
@@ -2428,7 +2456,7 @@ type Column
             rule = OrderBuilder.OrderRule.new self.java_column order_bool missing_last
             mask = OrderBuilder.buildOrderMask [rule]
             new_col = self.java_column.applyMask mask
-            Column.Value new_col
+            Column.from_java_column new_col
         _ ->
             wrapped a b = case a of
                 Nothing -> if b.is_nothing then Ordering.Equal else if missing_last then Ordering.Greater else Ordering.Less
@@ -2493,7 +2521,7 @@ type Column
         length = self.length
         offset = (start.min length).max 0
         limit = ((end - offset).min (length - offset)).max 0
-        Column.Value (self.java_column.slice offset limit)
+        Column.from_java_column (self.java_column.slice offset limit)
 
     ## GROUP Standard.Base.Selections
        ICON parse3
@@ -2541,7 +2569,7 @@ type Column
     reverse : Column
     reverse self =
         mask = OrderMask.reverse self.length
-        Column.Value (self.java_column.applyMask mask)
+        Column.from_java_column (self.java_column.applyMask mask)
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -2555,7 +2583,8 @@ type Column
 
              example_duplicate_count = Examples.integer_column.duplicate_count
     duplicate_count : Column
-    duplicate_count self = Column.Value self.java_column.duplicateCount
+    duplicate_count self =
+        Column.from_java_column self.java_column.duplicateCount
 
     ## PRIVATE
        Provides a simplified text representation for display in the REPL and errors.
@@ -2608,6 +2637,23 @@ type Column
         data = Statistic.running self.to_vector statistic
         Column.from_vector name data
 
+    ## ALIAS shift, lead, lag, slide, displace
+       GROUP Standard.Base.Values
+       ICON column_add
+
+       Returns a new column offset by n rows, where missing values have been replaced with the provided fill_with strategy.
+
+       Arguments:
+       - n: The number of rows to offset the new column by. Negative n slides the values down in the column, adding records at the start. 
+            Positive n slides the values up in the column, adding records at the end. Defaults to -1.
+       - fill_with: The value to replace missing values with. Defaults to adding Nothing Values.
+       - - ..Nothing - Add Nothing values in the spaces created by sliding the existing values.
+       - - ..Closest_Value - If n is negative the first value gets used, if n is negative the last value gets used.
+       - - ..Wrap_Around - In this mode values that slide off the top or bottom reappear at the other end. So no values get lost they are just rotated.
+    @n (self-> Numeric_Input minimum=0-self.length maximum=self.length)
+    offset self n=-1:Integer fill_with:Fill_With=..Nothing -> Column =
+        Offset_Helper.column_offset_impl self n fill_with
+
     ## PRIVATE
     pretty : Text
     pretty self =
@@ -2647,7 +2693,7 @@ run_vectorized_many_op column name fallback_fn operands new_name=Nothing skip_nu
                         current.vectorizedOrFallbackZip name problem_builder fallback_fn operand.java_column.getStorage skip_nulls storage_type
                     _ -> Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                         current.vectorizedOrFallbackBinaryMap name problem_builder fallback_fn operand skip_nulls storage_type
-            Column.Value (Java_Column.new effective_new_name folded)
+            Column.from_storage effective_new_name folded
 
 ## PRIVATE
 
@@ -2672,17 +2718,17 @@ run_vectorized_binary_op column name operand new_name=Nothing fallback_fn=Nothin
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
         storage_type = resolve_storage_type expected_result_type
         case operand of
-            Column.Value col2 ->
+            operand_column : Column ->
                 s1 = column.java_column.getStorage
-                s2 = col2.getStorage
+                s2 = operand_column.java_column.getStorage
                 rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                     s1.vectorizedOrFallbackZip name problem_builder fallback_fn s2 skip_nulls storage_type
-                Column.Value (Java_Column.new effective_new_name rs)
+                Column.from_storage effective_new_name rs
             _ ->
                 s1 = column.java_column.getStorage
                 rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                     s1.vectorizedOrFallbackBinaryMap name problem_builder fallback_fn (enso_to_java operand) skip_nulls storage_type
-                Column.Value (Java_Column.new effective_new_name rs)
+                Column.from_storage effective_new_name rs
 
 ## PRIVATE
 
@@ -2708,7 +2754,7 @@ run_vectorized_ternary_op column name operand0 operand1 new_name=Nothing expecte
         s1 = column.java_column.getStorage
         rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
             s1.vectorizedTernaryMap name problem_builder operand0 operand1 skip_nulls storage_type
-        Column.Value (Java_Column.new effective_new_name rs)
+        Column.from_storage effective_new_name rs
 
 ## PRIVATE
    Runs a binary operation over the provided column and operand which may be
@@ -2736,7 +2782,7 @@ run_binary_op column function operand new_name skip_nulls=True expected_result_t
             _ ->
                 Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                     s.binaryMap function operand skip_nulls storage_type problem_builder
-        Column.Value (Java_Column.new new_name new_storage)
+        Column.from_storage new_name new_storage
 
 ## PRIVATE
 
@@ -2765,51 +2811,23 @@ run_vectorized_binary_op_with_fallback_problem_handling column name operand fall
             _ -> fallback_fn problem_builder
         storage_type = resolve_storage_type expected_result_type
         case operand of
-            Column.Value col2 ->
+            operand_column : Column ->
                 s1 = column.java_column.getStorage
-                s2 = col2.getStorage
+                s2 = operand_column.java_column.getStorage
                 rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                     s1.vectorizedOrFallbackZip name problem_builder applied_fn s2 skip_nulls storage_type
-                Column.Value (Java_Column.new new_name rs)
+                Column.from_storage new_name rs
             _ ->
                 s1 = column.java_column.getStorage
                 rs = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
                     s1.vectorizedOrFallbackBinaryMap name problem_builder applied_fn (enso_to_java operand) skip_nulls storage_type
-                Column.Value (Java_Column.new new_name rs)
-
-## PRIVATE
-
-   Gets a textual representation of the item at position `ix` in `column`.
-
-   Arguments:
-   - column: The column to get the item from.
-   - ix: The index in the column from which to get the item.
-get_item_as_text : Column -> Integer -> Text
-get_item_as_text column ix =
-    item = column.getItemBoxed ix
-    ## TODO This special handling of `Text` is because `"a".to_text` evaluates
-       to "'a'" and not just "a". The code can be simplified once the following
-       task is implemented:
-       https://www.pivotaltracker.com/story/show/181499256
-    case item of
-        _ : Text -> normalize_text_for_display item
-        _ -> item.pretty
-
-## PRIVATE
-   Ensures that the text can be safely displayed in a terminal.
-
-   If the string contains special characters, it will be wrapped in quotes and
-   the characters escaped. Otherwise, the string is returned as-is.
-normalize_text_for_display text =
-    prettified = text.pretty
-    just_quoted = "'" + text + "'"
-    if prettified == just_quoted then text else prettified
+                Column.from_storage new_name rs
 
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.
 slice_ranges column ranges =
     normalized = normalize_ranges ranges
-    Column.Value (column.java_column.slice normalized)
+    Column.from_java_column (column.java_column.slice normalized)
 
 ## PRIVATE
    Creates a storage builder suitable for building a column for the provided
@@ -2928,7 +2946,7 @@ apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothi
     used_name = new_name.if_nothing (naming_helper.function_name operation.getName [column])
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
         java_column = UnaryOperation.apply column.java_column operation used_name java_problem_aggregator
-        if java_column.is_nothing then if_unsupported else Column.Value java_column
+        if java_column.is_nothing then if_unsupported else Column.from_java_column java_column
 
 ## PRIVATE
    Applies a function to every row in the column.
@@ -2945,7 +2963,7 @@ apply_unary_map column:Column new_name:Text function expected_result_type:Value_
     storage_type = resolve_storage_type expected_result_type
     Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
         map_column = UnaryOperation.mapFunction column.java_column function nothing_unchanged storage_type new_name java_problem_aggregator
-        Column.Value map_column
+        Column.from_java_column map_column
 
 ## PRIVATE
 Many_Files_List.from (that : Column) =

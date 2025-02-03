@@ -35,12 +35,7 @@ test('change password form', ({ page }) =>
     .fillConfirmNewPassword(INVALID_PASSWORD)
     .save()
     .step('Invalid new password should fail', async (page) => {
-      await expect(
-        page
-          .getByRole('group', { name: /^New password/, exact: true })
-          .locator('.text-danger')
-          .last(),
-      ).toHaveText(TEXT.passwordValidationError)
+      await expect(page.getByTestId('error')).toHaveText(TEXT.passwordValidationError)
     })
     .changePasswordForm()
     .fillCurrentPassword(VALID_PASSWORD)
@@ -48,12 +43,7 @@ test('change password form', ({ page }) =>
     .fillConfirmNewPassword(VALID_PASSWORD + 'a')
     .save()
     .step('Invalid new password confirmation should fail', async (page) => {
-      await expect(
-        page
-          .getByRole('group', { name: /^Confirm new password/, exact: true })
-          .locator('.text-danger')
-          .last(),
-      ).toHaveText(TEXT.passwordMismatchError)
+      await expect(page.getByTestId('error')).toHaveText(TEXT.passwordMismatchError)
     })
     .changePasswordForm()
     .fillCurrentPassword(VALID_PASSWORD)

@@ -134,12 +134,9 @@ impl Processor {
     {
         let span = info_span!("Resolving.", ?target, ?source).entered();
         let destination = source.output_path.output_path;
-        let should_upload_artifact = source.build_args.upload_artifact;
         let source = match source.source {
             arg::SourceKind::Build => T::resolve(self, source.build_args.input)
-                .map_ok(move |input| {
-                    Source::BuildLocally(BuildSource { input, should_upload_artifact })
-                })
+                .map_ok(move |input| Source::BuildLocally(BuildSource { input }))
                 .boxed(),
             arg::SourceKind::Local =>
                 ok_ready_boxed(Source::External(ExternalSource::LocalFile(source.path))),
@@ -209,16 +206,10 @@ impl Processor {
         &self,
         job: BuildJob<T>,
     ) -> BoxFuture<'static, Result<BuildTargetJob<T>>> {
-        let BuildJob { input: BuildDescription { input, upload_artifact }, output_path } = job;
+        let BuildJob { input: BuildDescription { input, .. }, output_path } = job;
         let input = self.resolve_inputs::<T>(input);
         async move {
-            Ok(WithDestination::new(
-                BuildSource {
-                    input:                  input.await?,
-                    should_upload_artifact: upload_artifact,
-                },
-                output_path.output_path,
-            ))
+            Ok(WithDestination::new(BuildSource { input: input.await? }, output_path.output_path))
         }
         .boxed()
     }
@@ -551,16 +542,7 @@ impl Processor {
         };
 
         let target = Ide { target_os: self.triple.os, target_arch: self.triple.arch };
-        let artifact_name_prefix = input.artifact_name.clone();
-        let build_job = target.build(&self.context, input, output_path);
-        async move {
-            let artifacts = build_job.await?;
-            if is_in_env() {
-                artifacts.upload_as_ci_artifact(artifact_name_prefix).await?;
-            }
-            Ok(artifacts)
-        }
-        .boxed()
+        target.build(&self.context, input, output_path)
     }
 
     pub fn target<Target: Resolvable>(&self) -> Result<Target> {

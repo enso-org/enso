@@ -26,7 +26,17 @@ final class EnsoMultiType {
   private final Type[] types;
 
   private EnsoMultiType(Type[] types) {
+    assert checkNonNull(types);
     this.types = types;
+  }
+
+  private static boolean checkNonNull(Type[] types) {
+    for (var t : types) {
+      if (t == null) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @CompilerDirectives.TruffleBoundary

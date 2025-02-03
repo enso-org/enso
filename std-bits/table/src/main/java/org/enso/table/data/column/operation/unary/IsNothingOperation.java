@@ -18,13 +18,13 @@ public class IsNothingOperation extends AbstractUnaryBooleanOperation {
   }
 
   @Override
-  public boolean canApply(ColumnStorage storage) {
+  public boolean canApply(ColumnStorage<?> storage) {
     return true;
   }
 
   @Override
-  public ColumnStorage apply(
-      ColumnStorage storage, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<?> apply(
+      ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     if (storage instanceof ColumnStorageWithNothingMap withNothingMap) {
       return new BoolStorage(
           withNothingMap.getIsNothingMap(), new BitSet(), (int) storage.getSize(), false);

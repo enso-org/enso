@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Failed_To_Load
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import all
@@ -160,7 +161,6 @@ add_specs suite_builder =
                 '"str"'.write (base_dir / "7_js_string.json")
 
                 files = Data.list base_dir . sort on=(.name)
-                IO.println (Meta.type_of files.first)
                 r = Data.read_many files
                 r.should_be_a Table
 
@@ -168,15 +168,14 @@ add_specs suite_builder =
                     # We transform the Path to just file name
                     rows = (r.set (r.at "Path" . map .name) "Path").rows.map .to_vector
 
-                    # TODO Once 6281 is done we should replace 100 with "100" etc.
                     null = Nothing
                     r.column_names . should_equal ["Path",               "a",  "b",      "c", "Value",  "d"]
                     rows.at 0 .      should_equal ["1_js_object.json",     1,    2,     null,    null, null]
                     rows.at 1 .      should_equal ["2_js_array.json",     30,   40, "foobar",    null, null]
                     rows.at 2 .      should_equal ["2_js_array.json",     50,   60,     null,    null, null]
-                    rows.at 3 .      should_equal ["3_js_numbers.json", null, null,     null,     100, null]
-                    rows.at 4 .      should_equal ["3_js_numbers.json", null, null,     null,     200, null]
-                    rows.at 5 .      should_equal ["3_js_numbers.json", null, null,     null,     300, null]
+                    rows.at 3 .      should_equal ["3_js_numbers.json", null, null,     null,   "100", null]
+                    rows.at 4 .      should_equal ["3_js_numbers.json", null, null,     null,   "200", null]
+                    rows.at 5 .      should_equal ["3_js_numbers.json", null, null,     null,   "300", null]
                     rows.at 6 .      should_equal ["4_table.tsv",         -1, null,     null,    null,   -4]
                     rows.at 7 .      should_equal ["4_table.tsv",         -2, null,     null,    null,   -5]
                     rows.at 8 .      should_equal ["5_plain_text.txt",  null, null,     null,   "Hi!", null]
@@ -186,12 +185,8 @@ add_specs suite_builder =
                     r.at "a" . value_type     . should_equal Value_Type.Integer
                     r.at "b" . value_type     . should_equal Value_Type.Integer
                     r.at "c" . value_type     . should_equal Value_Type.Char
-                    # TODO change to Char once 6281 is done
-                    r.at "Value" . value_type . should_equal Value_Type.Mixed
+                    r.at "Value" . value_type . should_equal Value_Type.Char
                     r.at "d" . value_type     . should_equal Value_Type.Integer
-
-        # Marker to not forget
-        group_builder.specify "TODO" pending="Once 6281 is done we should update the test above and others." Nothing
 
         group_builder.specify "should warn when a file loads as empty array and not include it in the As_Merged_Table result" <|
             # But such array should not influence the columns present:
@@ -240,13 +235,9 @@ add_specs suite_builder =
 
                 r2 = Data.read_many files format=(..Delimited ',' headers=True) return=..As_Merged_Table
                 r2.should_be_a Table
-                # TODO: once 6281 is done, change expect_only_warning
-                w2 = Problems.expect_warning No_Rows r2
-                w2.to_display_text . should_contain "1_empty_table.csv"
-                w2.to_display_text . should_contain "loaded as a table with 0 rows, so it did not contribute any rows to the `As_Merged_Table` result of `read_many`."
                 within_table r2 <|
                     ## But it DOES influence the columns present.
-                       That is because the column structure is a 'structural' property, 
+                       That is because the column structure is a 'structural' property,
                        we want the structure of the result to be the same regardless if it has 0 or more rows.
                        If the workflow is run next time with this table having some rows, it is better that the structure is preserved.
                        Otherwise, a workflow that is running fine could stop working once a file is changed to contain no rows, as some column could no longer be found.
@@ -254,9 +245,12 @@ add_specs suite_builder =
                     r2.row_count . should_equal 1
                     r2.at "Path" . map .name . to_vector . should_equal ["2_table.csv"]
                     r2.at "A" . to_vector . should_equal [Nothing]
-                    # TODO: once 6281 is done, change '1' to 1
-                    r2.at "B" . to_vector . should_equal ['1']
+                    r2.at "B" . to_vector . should_equal [1]
                     r2.at "C" . to_vector . should_equal [2]
+
+                    w2 = Problems.expect_only_warning No_Rows r2
+                    w2.to_display_text . should_contain "1_empty_table.csv"
+                    w2.to_display_text . should_contain "loaded as a table with 0 rows, so it did not contribute any rows to the `As_Merged_Table` result of `read_many`."
 
         group_builder.specify "should allow to customize how the tables are merged" <|
             with_temp_dir base_dir->
@@ -325,6 +319,47 @@ add_specs suite_builder =
             t3.should_be_a Table
             t3.row_count . should_equal 0
             t3.column_names . should_equal ["Path", "Value"]
+
+        group_builder.specify "does not allow Nothing in Path column" <|
+            t = Table.new [["A", [1, 2]], ["Path", [Nothing, Nothing]]]
+            r1 = Data.read_many t return=..As_Merged_Table
+            r1.should_fail_with Illegal_Argument
+
+            r2 = Data.read_many t return=..With_New_Column
+            r2.should_fail_with Illegal_Argument
+
+            r3 = Data.read_many t return=..As_Vector
+            r3.should_fail_with Illegal_Argument
+
+            r4 = Data.read_many (t.at "Path")
+            r4.should_fail_with Illegal_Argument
+
+            r5 = Data.read_many [Nothing]
+            r5.should_fail_with Illegal_Argument
+
+        group_builder.specify "in As_Merged_Table mode, will discard rows associated with files that fail to load" <|
+            with_temp_dir base_dir->
+                'A,B\n1,2'.write (base_dir / "1_table.csv")
+
+                files = [base_dir / "1_table.csv", base_dir / "nonexistent.csv"]
+                r = Data.read_many files
+                r.should_be_a Table
+                r.row_count . should_equal 1
+                r.at "Path" . map .name . to_vector . should_equal ["1_table.csv"]
+
+                w = Problems.expect_only_warning No_Rows r
+                w.to_display_text . should_contain "nonexistent.csv"
+                w.to_display_text . should_contain "does not exist."
+
+                r2 = Data.read_many files return=..With_New_Column
+                r2.should_be_a Table
+                r2.row_count . should_equal 2
+                r2.at "Path" . map .name . to_vector . should_equal ["1_table.csv", "nonexistent.csv"]
+                r2.at "Value" . at 0 . should_be_a Table
+                r2.at "Value" . at 1 . should_equal Nothing
+
+                w2 = Problems.expect_only_warning Failed_To_Load r2
+                w2.to_display_text . should_contain "nonexistent.csv"
 
         group_builder.specify "should have sane behaviour if all files are weird" <|
             with_temp_dir base_dir->

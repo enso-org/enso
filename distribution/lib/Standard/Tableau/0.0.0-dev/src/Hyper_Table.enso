@@ -95,5 +95,5 @@ type Hyper_Table
         Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
             row_count = if max_rows == Rows_To_Read.All_Rows then Nothing else max_rows.rows
             java_columns = HyperReader.readTable self.file.file.path self.schema self.table row_count java_problem_aggregator
-            enso_columns = java_columns.map c-> Column.from_storage c.getName c.getStorage
+            enso_columns = java_columns.map Column.from_java_column
             Table.new enso_columns

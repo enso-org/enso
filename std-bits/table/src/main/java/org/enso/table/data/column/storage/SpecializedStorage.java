@@ -1,6 +1,5 @@
 package org.enso.table.data.column.storage;
 
-import java.util.AbstractList;
 import java.util.BitSet;
 import java.util.List;
 import org.enso.table.data.column.operation.CountNothing;
@@ -13,52 +12,49 @@ import org.graalvm.polyglot.Context;
 
 public abstract class SpecializedStorage<T> extends Storage<T> {
 
-  protected abstract SpecializedStorage<T> newInstance(T[] data, int size);
+  protected abstract SpecializedStorage<T> newInstance(T[] data);
 
   protected abstract T[] newUnderlyingArray(int size);
 
-  @Override
-  public abstract StorageType getType();
-
   /**
    * @param data the underlying data
-   * @param size the number of items stored
+   * @param ops the operations supported by this storage
    */
   protected SpecializedStorage(
-      T[] data, int size, MapOperationStorage<T, SpecializedStorage<T>> ops) {
+      StorageType type, T[] data, MapOperationStorage<T, SpecializedStorage<T>> ops) {
+    this.type = type;
     this.data = data;
-    this.size = size;
     this.ops = ops;
   }
 
   protected final T[] data;
-  protected final int size;
+  private final StorageType type;
   private final MapOperationStorage<T, SpecializedStorage<T>> ops;
 
-  /**
-   * @inheritDoc
-   */
   @Override
-  public int size() {
-    return size;
+  public final long getSize() {
+    return data.length;
+  }
+
+  @Override
+  public StorageType getType() {
+    return type;
   }
 
   /**
    * @param idx an index
    * @return the data item contained at the given index.
    */
-  public T getItem(long idx) {
+  public T getItemBoxed(long idx) {
+    if (idx < 0 || idx >= data.length) {
+      throw new IndexOutOfBoundsException(idx);
+    }
     return data[(int) idx];
   }
 
   @Override
-  public T getItemBoxed(int idx) {
-    return data[idx];
-  }
-
-  @Override
   public boolean isNothing(long idx) {
-    return data[(int) idx] == null;
+    return this.getItemBoxed(idx) == null;
   }
 
   @Override
@@ -97,14 +93,14 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
     Context context = Context.getCurrent();
     T[] newData = newUnderlyingArray(newLength);
     int resIx = 0;
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < data.length; i++) {
       if (filterMask.get(i)) {
         newData[resIx++] = data[i];
       }
 
       context.safepoint();
     }
-    return newInstance(newData, newLength);
+    return newInstance(newData);
   }
 
   @Override
@@ -113,10 +109,10 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
     T[] newData = newUnderlyingArray(mask.length());
     for (int i = 0; i < mask.length(); i++) {
       int position = mask.get(i);
-      newData[i] = position == Storage.NOT_FOUND_INDEX ? null : data[position];
+      newData[i] = position == OrderMask.NOT_FOUND_INDEX ? null : data[position];
       context.safepoint();
     }
-    return newInstance(newData, newData.length);
+    return newInstance(newData);
   }
 
   public T[] getData() {
@@ -125,10 +121,10 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
 
   @Override
   public SpecializedStorage<T> slice(int offset, int limit) {
-    int newSize = Math.min(size - offset, limit);
+    int newSize = Math.min(data.length - offset, limit);
     T[] newData = newUnderlyingArray(newSize);
     System.arraycopy(data, offset, newData, 0, newSize);
-    return newInstance(newData, newSize);
+    return newInstance(newData);
   }
 
   @Override
@@ -144,14 +140,14 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
       context.safepoint();
     }
 
-    return newInstance(newData, newSize);
+    return newInstance(newData);
   }
 
   @Override
   public Storage<?> appendNulls(int count) {
-    T[] newData = newUnderlyingArray(size + count);
-    System.arraycopy(data, 0, newData, 0, size);
-    return newInstance(newData, size + count);
+    T[] newData = newUnderlyingArray(data.length + count);
+    System.arraycopy(data, 0, newData, 0, data.length);
+    return newInstance(newData);
   }
 
   @Override
@@ -161,14 +157,14 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
           "Missing indicator must not contain missing values itself.");
     }
 
-    T[] newData = newUnderlyingArray(size);
+    T[] newData = newUnderlyingArray(data.length);
     T previous = null;
     boolean hasPrevious = false;
 
     Context context = Context.getCurrent();
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < data.length; i++) {
       boolean isCurrentValueMissing =
-          missingIndicator == null ? isNothing(i) : missingIndicator.getItem(i);
+          missingIndicator == null ? isNothing(i) : missingIndicator.getItemAsBoolean(i);
       if (!isCurrentValueMissing) {
         previous = data[i];
         hasPrevious = true;
@@ -178,30 +174,7 @@ public abstract class SpecializedStorage<T> extends Storage<T> {
       context.safepoint();
     }
 
-    return newInstance(newData, size);
-  }
-
-  @Override
-  public List<Object> toList() {
-    return new ReadOnlyList<>(this);
-  }
-
-  private static class ReadOnlyList<S> extends AbstractList<Object> {
-    private final SpecializedStorage<S> storage;
-
-    public ReadOnlyList(SpecializedStorage<S> storage) {
-      this.storage = storage;
-    }
-
-    @Override
-    public Object get(int index) {
-      return storage.getItemBoxed(index);
-    }
-
-    @Override
-    public int size() {
-      return storage.size();
-    }
+    return newInstance(newData);
   }
 
   /**

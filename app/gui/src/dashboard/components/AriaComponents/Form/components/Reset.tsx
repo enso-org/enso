@@ -1,14 +1,14 @@
 /** @file Reset button for forms. */
 import * as React from 'react'
 
-import * as ariaComponents from '#/components/AriaComponents'
-
 import { useText } from '#/providers/TextProvider'
+import { Button, type ButtonProps } from '../../Button'
 import * as formContext from './FormProvider'
 import type * as types from './types'
 
 /** Props for the Reset component. */
-export interface ResetProps extends Omit<ariaComponents.ButtonProps, 'loading'> {
+export interface ResetProps<IconType extends string>
+  extends Omit<ButtonProps<IconType>, 'href' | 'loading'> {
   /**
    * Connects the reset button to a form.
    * If not provided, the button will use the nearest form context.
@@ -21,7 +21,7 @@ export interface ResetProps extends Omit<ariaComponents.ButtonProps, 'loading'> 
 }
 
 /** Reset button for forms. */
-export function Reset(props: ResetProps): React.JSX.Element {
+export function Reset<IconType extends string>(props: ResetProps<IconType>): React.JSX.Element {
   const { getText } = useText()
   const {
     variant = 'outline',
@@ -29,14 +29,15 @@ export function Reset(props: ResetProps): React.JSX.Element {
     testId = 'form-reset-button',
     children = getText('reset'),
     onPress,
+    form,
     ...buttonProps
   } = props
 
-  const form = formContext.useFormContext(props.form)
-  const { formState } = form
+  const formInstance = formContext.useFormContext(form)
+  const { formState } = formInstance
 
   return (
-    <ariaComponents.Button
+    <Button
       variant={variant}
       size={size}
       isDisabled={formState.isSubmitting || !formState.isDirty}
@@ -45,10 +46,12 @@ export function Reset(props: ResetProps): React.JSX.Element {
       onPress={(event) => {
         // `type="reset"` triggers native HTML reset, which does not work here as it clears inputs
         // rather than resetting them to default values.
-        form.reset()
+        formInstance.reset()
         return onPress?.(event)
       }}
-      {...buttonProps}
+      /* This is safe because we are passing all props to the button */
+      // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-explicit-any
+      {...(buttonProps as any)}
     />
   )
 }

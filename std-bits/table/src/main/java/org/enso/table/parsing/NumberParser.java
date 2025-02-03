@@ -100,7 +100,7 @@ public class NumberParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  protected Builder makeBuilderWithCapacity(int capacity, ProblemAggregator problemAggregator) {
+  protected Builder makeBuilderWithCapacity(long capacity, ProblemAggregator problemAggregator) {
     return isInteger()
         ? Builder.getForLong(integerTargetType, capacity, problemAggregator)
         : Builder.getForDouble(FloatType.FLOAT_64, capacity, problemAggregator);
@@ -109,11 +109,11 @@ public class NumberParser extends IncrementalDatatypeParser {
   @Override
   public Storage<?> parseColumn(
       Storage<String> sourceStorage, CommonParseProblemAggregator problemAggregator) {
-    Builder builder =
-        makeBuilderWithCapacity(sourceStorage.size(), problemAggregator.createSimpleChild());
+    long size = sourceStorage.getSize();
+    Builder builder = makeBuilderWithCapacity(size, problemAggregator.createSimpleChild());
 
     var context = Context.getCurrent();
-    for (int i = 0; i < sourceStorage.size(); i++) {
+    for (long i = 0; i < size; i++) {
       var text = sourceStorage.getItemBoxed(i);
 
       // Check if in unknown state
@@ -124,8 +124,7 @@ public class NumberParser extends IncrementalDatatypeParser {
 
       // Do we need to rescan?
       if (mightBeEuropean && parser.numberWithSeparators() != NumberWithSeparators.DOT_COMMA) {
-        builder =
-            makeBuilderWithCapacity(sourceStorage.size(), problemAggregator.createSimpleChild());
+        builder = makeBuilderWithCapacity(size, problemAggregator.createSimpleChild());
         for (int j = 0; j < i; j++) {
           var subText = sourceStorage.getItemBoxed(j);
           var subResult = subText == null ? null : parseSingleValue(subText, problemAggregator);

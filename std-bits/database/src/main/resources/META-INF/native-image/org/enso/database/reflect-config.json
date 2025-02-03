@@ -1,0 +1,65 @@
+[
+  {
+    "name": "java.sql.ParameterMetaData",
+    "methods": [
+      {
+        "name": "getParameterCount",
+        "parameterTypes": []
+      }
+    ]
+  },
+      {
+        "name": "org.enso.database.DatabaseConnectionDetailsSPI"
+      },
+      {
+        "name": "org.enso.database.JDBCProxy"
+      },
+      {
+        "name": "org.enso.database.JDBCUtils"
+      },
+      {
+        "name": "org.enso.database.dryrun.HiddenTableReferenceCounter"
+      },
+      {
+        "name": "org.enso.database.dryrun.OperationSynchronizer"
+      },
+      {
+        "name": "org.sqlite.SQLiteErrorCode"
+      },
+      {
+        "name": "org.sqlite.SQLiteException"
+      },
+      {
+        "name":"java.sql.Connection"
+      },
+      {
+        "name":"java.sql.DatabaseMetaData"
+      },
+      {
+        "name":"java.sql.Date"
+      },
+      {
+        "name":"java.sql.JDBCType"
+      },
+      {
+        "name":"java.sql.PreparedStatement"
+      },
+      {
+        "name":"java.sql.ResultSet"
+      },
+      {
+        "name":"java.sql.ResultSetMetaData"
+      },
+      {
+        "name":"java.sql.SQLException"
+      },
+      {
+        "name":"java.sql.SQLTimeoutException"
+      },
+      {
+        "name":"java.sql.Timestamp"
+      },
+      {
+        "name":"java.sql.Types"
+      }
+]

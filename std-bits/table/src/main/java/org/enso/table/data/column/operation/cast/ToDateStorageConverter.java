@@ -3,10 +3,12 @@ package org.enso.table.data.column.operation.cast;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.NullType;
 
 public class ToDateStorageConverter implements StorageConverter<LocalDate> {
   @Override
@@ -15,7 +17,8 @@ public class ToDateStorageConverter implements StorageConverter<LocalDate> {
       return dateStorage;
     } else if (storage instanceof DateTimeStorage dateTimeStorage) {
       return convertDateTimeStorage(dateTimeStorage, problemAggregator);
-    } else if (storage.getType() instanceof AnyObjectType) {
+    } else if (storage.getType() instanceof AnyObjectType
+        || storage.getType() instanceof NullType) {
       return castFromMixed(storage, problemAggregator);
     } else {
       throw new IllegalStateException(
@@ -24,9 +27,9 @@ public class ToDateStorageConverter implements StorageConverter<LocalDate> {
   }
 
   private Storage<LocalDate> castFromMixed(
-      Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
+      ColumnStorage<?> mixedStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForDate(mixedStorage.size()),
+        Builder.getForDate(mixedStorage.getSize()),
         mixedStorage,
         (i) -> {
           Object o = mixedStorage.getItemBoxed(i);
@@ -42,12 +45,12 @@ public class ToDateStorageConverter implements StorageConverter<LocalDate> {
   }
 
   private Storage<LocalDate> convertDateTimeStorage(
-      DateTimeStorage dateTimeStorage, CastProblemAggregator problemAggregator) {
+      Storage<ZonedDateTime> dateTimeStorage, CastProblemAggregator problemAggregator) {
     return StorageConverter.innerLoop(
-        Builder.getForDate(dateTimeStorage.size()),
+        Builder.getForDate(dateTimeStorage.getSize()),
         dateTimeStorage,
         (i) -> {
-          ZonedDateTime dateTime = dateTimeStorage.getItem(i);
+          ZonedDateTime dateTime = dateTimeStorage.getItemBoxed(i);
           return dateTime.toLocalDate();
         });
   }

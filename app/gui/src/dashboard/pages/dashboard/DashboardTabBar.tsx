@@ -8,7 +8,6 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import TabBar, { ProjectTab, type ProjectTabProps, type TabProps } from '#/layouts/TabBar'
 
 import {
-  TabType,
   useLaunchedProjects,
   usePage,
   useSetPage,
@@ -43,7 +42,7 @@ export function DashboardTabBar(props: DashboardTabBarProps) {
   })
 
   const onCloseSettings = useEventCallback(() => {
-    setPage(TabType.drive)
+    setPage('drive')
   })
 
   const tabs: readonly (
@@ -57,7 +56,7 @@ export function DashboardTabBar(props: DashboardTabBarProps) {
       icon: DriveIcon,
       'data-testid': 'drive-tab-button',
       labelId: 'drivePageName' satisfies TextId,
-      isActive: page === TabType.drive,
+      isActive: page === 'drive',
       children: getText('drivePageName'),
     },
     ...launchedProjects.map(
@@ -84,7 +83,7 @@ export function DashboardTabBar(props: DashboardTabBarProps) {
       labelId: 'settingsPageName' satisfies TextId,
       'data-testid': 'settings-tab-button',
       isActive: true,
-      isHidden: page !== TabType.settings,
+      isHidden: page !== 'settings',
       children: getText('settingsPageName'),
       onClose: onCloseSettings,
     },

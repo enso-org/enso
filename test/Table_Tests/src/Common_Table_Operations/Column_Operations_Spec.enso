@@ -6,15 +6,15 @@ import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Meta.Type
-import Standard.Database.DB_Column.DB_Column
-import Standard.Database.Internal.Replace_Params.Replace_Params
 
 from Standard.Table import Bits, Value_Type, Column_Ref, Column
 from Standard.Table.Errors import all
 
 from Standard.Database.Errors import all
-import Standard.Database.Feature.Feature
+import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
+import Standard.Database.Feature.Feature
+import Standard.Database.Internal.Replace_Params.Replace_Params
 
 from Standard.Test import all
 
@@ -725,7 +725,7 @@ add_column_operation_specs suite_builder setup =
                             converters.map converter->
                                 const_float = 3.0
                                 constant = converter const_float
-                                Test.with_clue " constant: "+(Meta.get_simple_type_name constant) <|
+                                Test.with_clue " constant: "+(constant.to Meta.Type . name) <|
                                     (x == constant).to_vector . should_equal [False, False, False, Nothing]
                                     (x != constant).to_vector . should_equal [True, True, True, Nothing]
                                     (y == constant).to_vector . should_equal [False, True, False, Nothing]
@@ -734,7 +734,7 @@ add_column_operation_specs suite_builder setup =
                             [6.5, 1000.5].map const_float->
                                 converters.map converter->
                                     constant = converter const_float
-                                    Test.with_clue " constant: "+(Meta.get_simple_type_name constant) <|
+                                    Test.with_clue " constant: "+(constant.to Meta.Type . name) <|
                                         (x < -constant).to_vector . should_equal [False, False, False, Nothing]
                                         (x < constant).to_vector . should_equal [True, True, True, Nothing]
                                         (x <= -constant).to_vector . should_equal [False, False, False, Nothing]
@@ -902,8 +902,8 @@ add_column_operation_specs suite_builder setup =
             y = t.at "Y"
             z = t.at "Z"
 
-            (x + z) . should_fail_with Illegal_Argument
-            (x + False) . should_fail_with Illegal_Argument
+            (x + z) . should_fail_with Invalid_Value_Type
+            (x + False) . should_fail_with Invalid_Value_Type
 
             # Mixing text and integers should not be allowed
             (x + y) . should_fail_with Illegal_Argument
@@ -1903,13 +1903,17 @@ add_column_operation_specs suite_builder setup =
             c = empty.make_constant_column 42
             setup.expect_integer_type c
 
-        nulls_db_pending = if setup.is_database then "Empty NULL columns are unsupported in the database backends"
-        group_builder.specify "Should create a column of the correct type on a table with no rows" pending=nulls_db_pending <|
+        group_builder.specify "Should create a column of the correct type on a table with no rows" <|
             t = table_builder [["x", ["1", "2", "3"]]]
             empty = t.take 0
             c = empty.make_constant_column Nothing
-            c.value_type . should_equal Value_Type.Mixed
-            (empty.set c).at c.name . value_type . should_equal Value_Type.Mixed
+            should_be_supported = setup.is_database.not || c.is_error.not
+            case should_be_supported of
+                True ->
+                    c.value_type . should_equal Value_Type.Null
+                    (empty.set c).at c.name . value_type . should_equal Value_Type.Null
+                False ->
+                    c.should_fail_with Unsupported_Database_Type
 
     decimal_db_pending = if setup.is_database then "Decimals are currently not implemented for the Database backend."
     suite_builder.group prefix+"(Column_Operations_Spec) Decimal" pending=decimal_db_pending group_builder->

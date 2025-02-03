@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.callable.function;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
@@ -133,6 +134,7 @@ public final class Function extends EnsoObject {
   /**
    * @return the name of this function.
    */
+  @TruffleBoundary
   public String getName() {
     return getCallTarget().getRootNode().getName();
   }
@@ -140,6 +142,8 @@ public final class Function extends EnsoObject {
   /**
    * @return the source section this function was defined in.
    */
+  @TruffleBoundary
+  @ExportMessage(name = "getSourceLocation")
   public SourceSection getSourceSection() {
     return getCallTarget().getRootNode().getSourceSection();
   }
@@ -189,6 +193,21 @@ public final class Function extends EnsoObject {
   @ExportMessage
   boolean isExecutable() {
     return true;
+  }
+
+  @ExportMessage
+  boolean hasSourceLocation() {
+    return getSourceSection() != null;
+  }
+
+  @ExportMessage
+  boolean hasExecutableName() {
+    return this.getName() != null;
+  }
+
+  @ExportMessage
+  String getExecutableName() {
+    return this.getName();
   }
 
   /**
