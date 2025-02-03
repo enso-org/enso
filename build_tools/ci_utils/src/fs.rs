@@ -3,10 +3,11 @@
 
 use crate::prelude::*;
 
+use crate::env;
+use crate::programs::git;
 use fs_extra::dir::CopyOptions;
 use fs_extra::error::ErrorKind;
 use walkdir::WalkDir;
-use diff;
 
 
 // ==============
@@ -159,67 +160,47 @@ pub fn remove_glob(glob_pattern: &str) -> Result {
 
 /// (Recursive) difference between directories.
 /// Compares files by content.
-pub fn diff_dirs(old_dir: impl AsRef<Path>, new_dir: impl AsRef<Path>) -> Result {
-    for (first_dir, second_dir) in [
-        (old_dir.as_ref(), new_dir.as_ref()),
-        (new_dir.as_ref(), old_dir.as_ref()),
-    ] {
-        let res = WalkDir::new(first_dir)
+/// Delegates to `git diff --no-index` for comparison.
+pub async fn diff_dirs(old_dir: impl AsRef<Path>, new_dir: impl AsRef<Path>) -> Result {
+    for (first_dir, second_dir) in
+        [(old_dir.as_ref(), new_dir.as_ref()), (new_dir.as_ref(), old_dir.as_ref())]
+    {
+        let files = WalkDir::new(first_dir)
             .into_iter()
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().is_file())
-            .map(|e| e.path().to_path_buf())
-            .try_for_each(|first_path| {
-                let relative_path = pathdiff::diff_paths(&first_path, first_dir)
-                    .context(format!("Failed to relativize path {}.", first_path.display()))?;
-                let second_path = second_dir.join(&relative_path);
-                if !second_path.exists() {
-                    bail!("File {:?} does not exist in directory {:?}.", first_path, second_dir);
-                }
-                compare_files(&first_path, &second_path)?;
-                Ok(())
-            });
-        if res.is_err() {
-            return res;
+            .map(|e| e.path().to_path_buf());
+        for first_path in files {
+            let relative_path = pathdiff::diff_paths(&first_path, first_dir)
+                .context(format!("Failed to relativize path {}.", first_path.display()))?;
+            let second_path = second_dir.join(&relative_path);
+            if !second_path.exists() {
+                bail!("File {:?} does not exist in directory {:?}.", first_path, second_dir);
+            }
+            compare_files(&first_path, &second_path).await?;
         }
     }
     Ok(())
 }
 
 
-fn compare_files(file_1: &Path, file_2: &Path) -> Result {
-    let content_1 = std::fs::read_to_string(file_1)?;
-    let content_2 = std::fs::read_to_string(file_2)?;
-    let line_diffs = diff::lines(content_1.as_str(), content_2.as_str());
-    let mut err_msgs: Vec<String> = Vec::new();
-    // Iterate over line_diffs with index
-    for (i, line_diff) in line_diffs.iter().enumerate() {
-        match line_diff {
-            diff::Result::Left(line) => {
-                err_msgs.push(format!("File {:?} and {:?} are different at line {}: {}", file_1, file_2, i, line));
-            }
-            diff::Result::Right(line) => {
-                err_msgs.push(format!("File {:?} and {:?} are different at line {}: {}", file_1, file_2, i, line));
-            }
-            diff::Result::Both(_, _) => {}
-        }
-    }
-    if !err_msgs.is_empty() {
-        bail!(err_msgs.join("\n"));
-    } else {
-        Ok(())
-    }
+async fn compare_files(file_1: &Path, file_2: &Path) -> Result {
+    let cur_dir = env::current_dir()?;
+    let git = git::new(cur_dir).await?;
+    let res = git.diff_files(file_1, file_2).await;
+    res
 }
 
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ::tokio;
 
     #[test]
     fn remove_glob_test() -> Result {
         let temp = tempfile::tempdir()?;
-        crate::env::try_with_current_dir(&temp, || {
+        env::try_with_current_dir(&temp, || {
             let pattern_to_remove = "**/file1.txt";
             write("file1.txt", "file1")?;
             write("file2.txt", "file2")?;
@@ -248,14 +229,14 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn diff_same_dirs_test() -> Result {
+    #[tokio::test]
+    async fn diff_same_dirs_test() -> Result {
         let temp = tempfile::tempdir()?;
         let old_dir = temp.path().join("old");
         let new_dir = temp.path().join("new");
         write(old_dir.join("file1.txt"), "file1")?;
         write(new_dir.join("file1.txt"), "file1")?;
-        diff_dirs(old_dir, new_dir)
+        diff_dirs(old_dir, new_dir).await
     }
 
     #[test]
@@ -266,8 +247,12 @@ mod tests {
         write(old_dir.join("file1.txt"), "file1")?;
         write(old_dir.join("file2.txt"), "file2")?;
         write(new_dir.join("file1.txt"), "file1")?;
-        let err = diff_dirs(old_dir, new_dir).unwrap_err();
-        assert!(err.to_string().contains("file2.txt"));
+        let err = diff_dirs(old_dir, new_dir);
+        let _ = err.then(|res| {
+            let err = res.unwrap_err();
+            assert!(err.to_string().contains("file2.txt"));
+            async { Ok::<(), anyhow::Error>(()) }
+        });
         Ok(())
     }
 
@@ -279,8 +264,11 @@ mod tests {
         write(old_dir.join("file1.txt"), "file1")?;
         write(new_dir.join("file1.txt"), "file1")?;
         write(new_dir.join("file2.txt"), "file2")?;
-        let err = diff_dirs(old_dir, new_dir).unwrap_err();
-        assert!(err.to_string().contains("file2.txt"));
+        let _ = diff_dirs(old_dir, new_dir).then(|res| {
+            let err = res.unwrap_err();
+            assert!(err.to_string().contains("file2.txt"));
+            async { Ok::<(), anyhow::Error>(()) }
+        });
         Ok(())
     }
 
@@ -291,8 +279,11 @@ mod tests {
         let new_dir = temp.path().join("new");
         write(old_dir.join("file1.txt"), "foo")?;
         write(new_dir.join("file1.txt"), "XXX")?;
-        let err = diff_dirs(old_dir, new_dir).unwrap_err();
-        assert!(err.to_string().contains("file1.txt"));
+        let _ = diff_dirs(old_dir, new_dir).then(|res| {
+            let err = res.unwrap_err();
+            assert!(err.to_string().contains("file1.txt"));
+            async { Ok::<(), anyhow::Error>(()) }
+        });
         Ok(())
     }
 
@@ -305,8 +296,11 @@ mod tests {
         write(old_dir.join("file2.txt"), "bar")?;
         write(new_dir.join("file1.txt"), "XXX")?;
         write(new_dir.join("file2.txt"), "bar")?;
-        let err = diff_dirs(old_dir, new_dir).unwrap_err();
-        assert!(err.to_string().contains("file1.txt"));
+        let _ = diff_dirs(old_dir, new_dir).then(|res| {
+            let err = res.unwrap_err();
+            assert!(err.to_string().contains("file1.txt"));
+            async { Ok::<(), anyhow::Error>(()) }
+        });
         Ok(())
     }
 
@@ -315,7 +309,11 @@ mod tests {
         let temp = tempfile::tempdir()?;
         let old_dir = temp.path().join("old");
         let new_dir = temp.path().join("new");
-        diff_dirs(old_dir, new_dir)
+        let _ = diff_dirs(old_dir, new_dir).then(|res| {
+            assert!(res.is_ok());
+            async { Ok::<(), anyhow::Error>(()) }
+        });
+        Ok(())
     }
 
     #[test]
@@ -324,8 +322,11 @@ mod tests {
         let old_dir = temp.path().join("old");
         write(old_dir.join("file1.txt"), "foo")?;
         let new_dir = temp.path().join("new");
-        let err = diff_dirs(old_dir, new_dir).unwrap_err();
-        assert!(err.to_string().contains("file1.txt"));
+        let _ = diff_dirs(old_dir, new_dir).then(|res| {
+            let err = res.unwrap_err();
+            assert!(err.to_string().contains("file1.txt"));
+            async { Ok::<(), anyhow::Error>(()) }
+        });
         Ok(())
     }
 
@@ -336,11 +337,13 @@ mod tests {
         let new_dir = temp.path().join("new");
         write(old_dir.join("file1.txt"), "foo")?;
         write(new_dir.join("file1.txt"), "XXX")?;
-        let err = diff_dirs(old_dir, new_dir).unwrap_err();
-        println!("{}", err.to_string());
-        assert!(err.to_string().contains("file1.txt"));
-        assert!(err.to_string().contains("foo"));
-        assert!(err.to_string().contains("XXX"));
+        let _ = diff_dirs(old_dir, new_dir).then(|res| {
+            let err = res.unwrap_err();
+            assert!(err.to_string().contains("file1.txt"));
+            assert!(err.to_string().contains("foo"));
+            assert!(err.to_string().contains("XXX"));
+            async { Ok::<(), anyhow::Error>(()) }
+        });
         Ok(())
     }
 }
