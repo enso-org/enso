@@ -10,6 +10,10 @@ import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { expect, test } from 'vitest'
 
+/**
+ * Setup editor with selection ranging from the first occurence of '|' in the `source` string to the last occurence of '|'.
+ * If there is a single '|', it points at the cursor position.
+ */
 const setupEditor = (source: string) => {
   const selectionStart = source.indexOf('|')
   const selectionEnd = source.lastIndexOf('|')
@@ -168,6 +172,11 @@ test.each(quotesTestCases)('markdown quotes $desc', ({ source, expected }) => {
 
 const unorderedListTestCases: TestCase[] = [
   {
+    desc: 'Create unordered list from empty line',
+    source: '|',
+    expected: '- ',
+  },
+  {
     desc: 'Create simple unordered list',
     source: '|List item\nList item\nList |item',
     expected: '- List item\n- List item\n- List item',
@@ -178,7 +187,7 @@ const unorderedListTestCases: TestCase[] = [
     expected: 'List item\nList item\nList item',
   },
   {
-    desc: 'Change unordered list to ordered list',
+    desc: 'Change ordered list to unordered list',
     source: '1. List| item\n2. List item\n3. Lis|t item',
     expected: '- List item\n- List item\n- List item',
   },
@@ -186,6 +195,21 @@ const unorderedListTestCases: TestCase[] = [
     desc: 'Disable unordered list in code block',
     source: '```\nSome code\n- Lis|t item\nMore code\n```',
     expected: '```\nSome code\nList item\nMore code\n```',
+  },
+  {
+    desc: 'Create unordered list in code block',
+    source: '```\nSome code\nLis|t item\nAnother |list item\n```',
+    expected: '```\nSome code\n- List item\n- Another list item\n```',
+  },
+  {
+    desc: 'Change ordered list to unordered list in code block',
+    source: '```\nSome code\n1. List| item\n2. List item\n3. Lis|t item\nSome paragraph\n```',
+    expected: '```\nSome code\n- List item\n- List item\n- List item\nSome paragraph\n```',
+  },
+  {
+    desc: 'Disable unordered list in code block',
+    source: '```\nSome code\n- List| item\n- List item\n- Lis|t item\nSome paragraph\n```',
+    expected: '```\nSome code\nList item\nList item\nList item\nSome paragraph\n```',
   },
 ]
 
@@ -197,6 +221,11 @@ test.each(unorderedListTestCases)('markdown unordered list $desc', ({ source, ex
 
 const orderedListTestCases: TestCase[] = [
   {
+    desc: 'Create unordered list from empty line',
+    source: '|',
+    expected: '1. ',
+  },
+  {
     desc: 'Create simple ordered list',
     source: 'Li|st item\nList item\nLis|t item',
     expected: '1. List item\n2. List item\n3. List item',
@@ -207,9 +236,24 @@ const orderedListTestCases: TestCase[] = [
     expected: 'List item\nList item\nList item',
   },
   {
-    desc: 'Change ordered list to unordered list',
+    desc: 'Change unordered list to ordered list',
     source: '- List| item\n- List item\n- Lis|t item',
     expected: '1. List item\n2. List item\n3. List item',
+  },
+  {
+    desc: 'Create ordered list in code block',
+    source: '```\nSome code\nLis|t item\nAnother |list item\n```',
+    expected: '```\nSome code\n1. List item\n2. Another list item\n```',
+  },
+  {
+    desc: 'Change unordered list to ordered list in code block',
+    source: '```\nSome code\n- List| item\n- List item\n- Lis|t item\nSome paragraph\n```',
+    expected: '```\nSome code\n1. List item\n2. List item\n3. List item\nSome paragraph\n```',
+  },
+  {
+    desc: 'Disable ordered list in code block',
+    source: '```\nSome code\n1. List| item\n2. List item\n3. Lis|t item\nSome paragraph\n```',
+    expected: '```\nSome code\nList item\nList item\nList item\nSome paragraph\n```',
   },
 ]
 

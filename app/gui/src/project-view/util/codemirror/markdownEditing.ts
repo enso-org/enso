@@ -149,18 +149,22 @@ export function toggleList(view: EditorView, type: ListType) {
   const tree = markdownParser.parse(view.state.doc.toString())
   const startLine = view.state.doc.lineAt(view.state.selection.main.from)
   const endLine = view.state.doc.lineAt(view.state.selection.main.to)
-  const changes = []
+  const add = []
+  const replace = []
+  let remove = []
   let listIndex = 0
   for (let i = startLine.number; i <= endLine.number; i++) {
     const line = view.state.doc.line(i)
     const src = view.state.doc.toString()
-    const result = toggleListInner(tree, listIndex, line.from, line.to, src, type)
-    changes.push(...result.add)
-    if (result.replace) changes.push(...result.replace)
-    changes.push(...result.remove)
+    const result = toggleListInner(tree, listIndex, line.from, line.to, src, type, 0)
+    add.push(...result.add)
+    if (result.replace) replace.push(...result.replace)
+    remove.push(...result.remove)
     listIndex++
   }
-  view.dispatch({ changes })
+  console.log('Changes: ', add, replace, remove)
+  if (add.length > 0) remove = []
+  view.dispatch({ changes: [...add, ...replace, ...remove] })
 }
 
 function toggleListInner(
@@ -170,6 +174,7 @@ function toggleListInner(
   lineEnd: number,
   src: string,
   type: ListType,
+  offset: number,
 ): ToggleChangeSet {
   const add = []
   const replace = []
@@ -178,6 +183,26 @@ function toggleListInner(
   if (node.type.name === 'Document' && node.firstChild != null) node = node.firstChild
   let listMark: false | { from: number; to: number } = false
   let listType: undefined | ListType = undefined
+  console.log(debugTree(tree, src))
+  console.log('Line: ', src.slice(lineStart, lineEnd))
+  console.log('Node type: ', node.type.name)
+  if (node.type.name === 'CodeText') {
+    const codeText = src.slice(node.from, node.to)
+    const codeTree = markdownParser.parse(codeText)
+    const result = toggleListInner(
+      codeTree,
+      listIndex,
+      lineStart - node.from,
+      lineEnd - node.from,
+      codeText,
+      type,
+      node.from,
+    )
+    add.push(...result.add)
+    if (result.replace) replace.push(...result.replace)
+    remove.push(...result.remove)
+    return { add, replace, remove }
+  }
   const cursor = node.cursor()
   do {
     if (cursor.type.name === 'ListItem') {
@@ -197,20 +222,20 @@ function toggleListInner(
   } while (cursor.parent())
   if (listMark && listType === type) {
     remove.push({
-      from: listMark.from,
-      to: listType === 'ordered' ? listMark.to + 1 : listMark.to,
+      from: listMark.from + offset,
+      to: listType === 'ordered' ? listMark.to + 1 + offset : listMark.to + offset,
       insert: '',
     })
   } else if (listMark && listType !== type) {
     replace.push({
-      from: listMark.from,
-      to: listMark.to,
+      from: listMark.from + offset,
+      to: listMark.to + offset,
       insert: type === 'unordered' ? '-' : `${listIndex + 1}. `,
     })
   } else if (!listMark) {
     add.push({
-      from: lineStart,
-      to: lineStart,
+      from: lineStart + offset,
+      to: lineStart + offset,
       insert: type === 'unordered' ? '- ' : `${listIndex + 1}. `,
     })
   }
