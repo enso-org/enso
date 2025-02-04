@@ -11,8 +11,9 @@ make_offset (n : Integer) (colName: Internal_Column) (order_descriptors : Vector
     lead_lag = if n<0 then "LAG" else "LEAD"
     fill = case fill_with of
         Fill_With.Nothing -> ""
-        Fill_With.Closest_Value -> if n<0 then "FIRST_VALUE" else "LAST_VALUE"
+        Fill_With.Closest_Value -> if n<0 then "FIRST_VALUE" else "FIRST_VALUE"
         _ -> ""
-    params = [SQL_Expression.Literal n.abs.to_text, colName.expression, SQL_Expression.Literal fill] + order_descriptors + grouping_expressions
+    order_descriptors_for_row_number = if n<0 then order_descriptors else order_descriptors.map o->o.reverse
+    params = [SQL_Expression.Literal n.abs.to_text, colName.expression, SQL_Expression.Literal fill] + order_descriptors + order_descriptors_for_row_number + grouping_expressions
     metadata = Operation_Metadata.Row_Number_Metadata.Value grouping_expressions.length
     SQL_Expression.Operation lead_lag params metadata

@@ -295,29 +295,29 @@ add_offset_specs suite_builder setup =
                 Table.input [groupColumn, dataCol, ["offset([Col], 1024, Fill_With.Nothing)", [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing], Value_Type.Integer]]
     suite_builder.group prefix+"Table.Offset works with grouping - closest fill strategy" group_builder->
         groupColumn = ["Group", ["A", "A", "A", "B", "B", "B", "B", "C", "C"]]
-        dataCol = ["Col", [1, 2, 3, 1, 2, 3, 4, 1, 2]]
+        dataCol = ["Col", [1, 2, 3, 10, 20, 30, 40, 100, 200]]
         t2 = build_sorted_table [groupColumn, dataCol]
         group_builder.specify "Negative n shifts the values down" <|
             t2.offset ["Col"] -1 ..Closest_Value group_by=["Group"] . should_equal ignore_order=setup.is_database
-                Table.input [groupColumn, dataCol, ["offset([Col], -1, Fill_With.Closest_Value)", [1, 1, 2, 1, 1, 2, 3, 1, 1]]]
+                Table.input [groupColumn, dataCol, ["offset([Col], -1, Fill_With.Closest_Value)", [1, 1, 2, 10, 10, 20, 30, 100, 100]]]
         group_builder.specify "Positive n shifts the values up" <|
             t2.offset ["Col"] 1 ..Closest_Value group_by=["Group"] . should_equal ignore_order=setup.is_database
-                Table.input [groupColumn, dataCol, ["offset([Col], 1, Fill_With.Closest_Value)", [2, 3, 3, 2, 3, 4, 4, 2, 2]]]
-        group_builder.specify "Negative n shifts the values down (n=2)" <|
+                Table.input [groupColumn, dataCol, ["offset([Col], 1, Fill_With.Closest_Value)", [2, 3, 3, 20, 30, 40, 40, 200, 200]]]
+        group_builder.specify "WWW2" <|
             t2.offset ["Col"] -2 ..Closest_Value group_by=["Group"] . should_equal ignore_order=setup.is_database
-                Table.input [groupColumn, dataCol, ["offset([Col], -2, Fill_With.Closest_Value)", [1, 1, 1, 1, 1, 1, 2, 1, 1]]]
-        group_builder.specify "Positive n shifts the values up (n=2)" <|
+                Table.input [groupColumn, dataCol, ["offset([Col], -2, Fill_With.Closest_Value)", [1, 1, 1, 10, 10, 10, 20, 100, 100]]]
+        group_builder.specify "WWW" <|
             t2.offset ["Col"] 2 ..Closest_Value group_by=["Group"] . should_equal ignore_order=setup.is_database
-                Table.input [groupColumn, dataCol, ["offset([Col], 2, Fill_With.Closest_Value)", [3, 3, 3, 3, 4, 4, 4, 2, 2]]]
+                Table.input [groupColumn, dataCol, ["offset([Col], 2, Fill_With.Closest_Value)", [3, 3, 3, 30, 40, 40, 40, 200, 200]]]
         group_builder.specify "Zero n is a no-op" <|
             t2.offset ["Col"] 0 ..Closest_Value group_by=["Group"] . should_equal ignore_order=setup.is_database
-                Table.input [groupColumn, dataCol, ["offset([Col], 0, Fill_With.Closest_Value)", [1, 2, 3, 1, 2, 3, 4, 1, 2]]]
+                Table.input [groupColumn, dataCol, ["offset([Col], 0, Fill_With.Closest_Value)", [1, 2, 3, 10, 20, 30, 40, 100, 200]]]
         group_builder.specify "Large negative n values work" <|
             t2.offset ["Col"] -1024 ..Closest_Value group_by=["Group"] . should_equal ignore_order=setup.is_database
-                Table.input [groupColumn, dataCol, ["offset([Col], -1024, Fill_With.Closest_Value)", [1, 1, 1, 1, 1, 1, 1, 1, 1]]]
+                Table.input [groupColumn, dataCol, ["offset([Col], -1024, Fill_With.Closest_Value)", [1, 1, 1, 10, 10, 10, 10, 100, 100]]]
         group_builder.specify "Large positive n values work" <|
             t2.offset ["Col"] 1024 ..Closest_Value group_by=["Group"] . should_equal ignore_order=setup.is_database
-                Table.input [groupColumn, dataCol, ["offset([Col], 1024, Fill_With.Closest_Value)", [3, 3, 3, 4, 4, 4, 4, 2, 2]]]
+                Table.input [groupColumn, dataCol, ["offset([Col], 1024, Fill_With.Closest_Value)", [3, 3, 3, 40, 40, 40, 40, 200, 200]]]
     if setup.is_database.not then suite_builder.group prefix+"Table.Offset works with grouping - wrap around fill strategy" group_builder->
         groupColumn = ["Group", ["A", "A", "A", "B", "B", "B", "B", "C", "C"]]
         dataCol = ["Col", [1, 2, 3, 1, 2, 3, 4, 1, 2]]
