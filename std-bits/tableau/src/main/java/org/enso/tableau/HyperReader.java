@@ -119,7 +119,7 @@ public class HyperReader {
       if (libIdx != -1 && dotIdx != -1) {
         var libName = name.substring(libIdx + 3, dotIdx);
         var bindings = Context.getCurrent().getBindings("enso");
-        var found = bindings.invokeMember("find_library", libName);
+        var found = bindings.invokeMember("find_native_library", libName);
         try {
           return new FileInputStream(found.asString());
         } catch (FileNotFoundException e) {
