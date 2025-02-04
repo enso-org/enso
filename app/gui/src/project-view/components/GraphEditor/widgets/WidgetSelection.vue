@@ -32,9 +32,10 @@ import { arrayEquals } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
+import { ToValue } from '@/util/reactivity'
 import { autoUpdate, offset, shift, size, useFloating } from '@floating-ui/vue'
 import type { Ref, RendererNode, VNode } from 'vue'
-import { computed, proxyRefs, ref, shallowRef, watch } from 'vue'
+import { computed, proxyRefs, ref, shallowRef, toValue, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
@@ -51,7 +52,7 @@ const editedWidget = ref<string>()
 const editedValue = ref<Ast.Owned<Ast.MutableExpression> | string | undefined>()
 const isHovered = ref(false)
 /** See @{link Actions.setActivity} */
-const activity = shallowRef<VNode>()
+const activity = shallowRef<ToValue<VNode>>()
 
 // How much wider a dropdown can be than a port it is attached to, when a long text is present.
 // Any text beyond that limit will receive an ellipsis and sliding animation on hover.
@@ -466,7 +467,7 @@ export interface Actions {
    * For example, the {@link WidgetCloudBrowser} installs a custom entry that, when clicked,
    * opens a file browser where the dropdown was.
    */
-  setActivity: (activity: VNode) => void
+  setActivity: (activity: ToValue<VNode>) => void
   close: () => void
 }
 
@@ -514,7 +515,7 @@ declare module '@/providers/widgetRegistry' {
       >
         <SizeTransition height :duration="100">
           <div v-if="dropDownInteraction.isActive() && activity">
-            <component :is="activity" />
+            <component :is="toValue(activity)" />
           </div>
         </SizeTransition>
       </div>

@@ -4,6 +4,7 @@ import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useBackend } from '@/composables/backend'
 import { injectBackend } from '@/providers/backend'
+import { entryDisplayPath } from '@/stores/suggestionDatabase/entry'
 import type { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import type {
@@ -21,6 +22,8 @@ import Backend, {
 } from 'enso-common/src/services/Backend'
 import { computed, ref, toValue, watch } from 'vue'
 import { Err, Ok, Result } from 'ydoc-shared/util/data/result'
+
+const { writeMode = false } = defineProps<{ writeMode?: boolean }>()
 
 const emit = defineEmits<{
   pathSelected: [path: string]
@@ -212,6 +215,10 @@ Promise.all([currentUser.promise.value, currentOrganization.promise.value]).then
         </div>
       </TransitionGroup>
     </div>
+    <div v-if="writeMode" class="fileNameInput">
+      <input />
+      <SvgButton label="Ok" />
+    </div>
   </div>
 </template>
 
@@ -285,5 +292,12 @@ Promise.all([currentUser.promise.value, currentOrganization.promise.value]).then
 }
 .list-leave-active {
   position: absolute;
+}
+
+.fileNameInput {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  color: white;
 }
 </style>
