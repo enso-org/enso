@@ -8,7 +8,7 @@ import { createLeafComponent } from '@react-aria/collections'
 import { isValidElement } from 'react'
 import * as aria from 'react-aria-components'
 import { Button, Menu, Text, type Addon, type IconProp, type TestIdProps } from '../AriaComponents'
-import { Icon as IconComponent } from '../Icon'
+import { Icon as IconComponent, renderIcon } from '../Icon'
 
 export const BREADCRUMB_ITEM_STYLES = tv({
   base: 'flex items-center gap-2',
@@ -30,7 +30,7 @@ export const BREADCRUMB_ITEM_STYLES = tv({
 /**
  * Props for {@link BreadcrumbItem}
  */
-export interface BreadcrumbItemProps
+export interface BreadcrumbItemProps<IconType extends string>
   extends Omit<aria.BreadcrumbProps, 'id'>,
     Omit<aria.LinkProps, 'children' | 'className' | 'style'>,
     TestIdProps,
@@ -40,7 +40,7 @@ export interface BreadcrumbItemProps
   /** An optional suffix element to render after the breadcrumb content */
   readonly addonStart?: Addon<aria.BreadcrumbRenderProps>
   readonly addonEnd?: Addon<aria.BreadcrumbRenderProps>
-  readonly icon?: IconProp<aria.BreadcrumbRenderProps>
+  readonly icon?: IconProp<IconType, aria.BreadcrumbRenderProps>
   readonly isCurrent?: boolean
   readonly isDisabled?: boolean
 }
@@ -48,7 +48,7 @@ export interface BreadcrumbItemProps
 /**
  * A single breadcrumb item.
  */
-export function BreadcrumbItem(props: BreadcrumbItemProps) {
+export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemProps<IconType>) {
   const {
     children,
     id,
@@ -121,16 +121,7 @@ export function BreadcrumbItem(props: BreadcrumbItemProps) {
                 {typeof children === 'function' ? children(renderProps) : children}
               </span>
             </Text>
-          : <Button
-              {...linkProps}
-              {...itemProps}
-              icon={() => {
-                if (typeof icon === 'function') {
-                  return icon({ isCurrent, isDisabled })
-                }
-                return icon
-              }}
-            >
+          : <Button {...linkProps} {...itemProps} icon={renderIcon(icon, renderProps)}>
               <Text className={styles.link()} nowrap truncate="1" disableLineHeightCompensation>
                 {typeof children === 'function' ? children(renderProps) : children}
               </Text>
@@ -205,7 +196,7 @@ export const BreadcrumbCollapsedItem = createLeafComponent(
                 rel,
                 icon,
                 // eslint-disable-next-line no-restricted-syntax
-              } = breadcrumb.props as BreadcrumbItemProps
+              } = breadcrumb.props as BreadcrumbItemProps<string>
 
               if (breadcrumbChildren == null) {
                 return null

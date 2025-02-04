@@ -16,7 +16,7 @@ import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { BackendType, type DirectoryId } from '#/services/Backend'
-import { inputFiles } from '#/utilities/input'
+import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 
 /** Props for a {@link GlobalContextMenu}. */
 export interface GlobalContextMenuProps {
@@ -89,7 +89,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
         hidden={hidden}
         action="uploadFiles"
         doAction={async () => {
-          const files = await inputFiles()
+          const files = await readUserSelectedFile()
           await uploadFiles(Array.from(files))
         }}
       />

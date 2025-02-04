@@ -21,9 +21,9 @@ make_text_secret_selector display:Display=..When_Modified -> Widget =
 
 ## PRIVATE
    Creates a Regex / Text Widget for search and replace.
-make_regex_text_widget : Widget
-make_regex_text_widget =
-    make_any_selector add_text=True add_regex=True add_named_pattern=True
+make_regex_text_widget : Display -> Widget
+make_regex_text_widget display:Display=..Always =
+    make_any_selector display=display add_text=True add_regex=True add_named_pattern=True
 
 ## PRIVATE
    Creates a Single_Choice Widget for delimiters.

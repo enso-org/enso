@@ -17,8 +17,9 @@ import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
 import { tryGetIndex } from '@/util/data/array'
 import { type Opt } from '@/util/data/opt'
+import { Ok } from '@/util/data/result'
 import type { Icon as IconName } from '@/util/iconMetadata/iconName'
-import type { QualifiedName } from '@/util/qualifiedName'
+import { ProjectPath } from '@/util/projectPath'
 import { qnSegments, qnSlice } from '@/util/qualifiedName'
 import { computed, watch } from 'vue'
 
@@ -58,9 +59,9 @@ const isPlaceholder = computed(() => documentation.value.kind === 'Placeholder')
 
 const projectNames = injectProjectNames()
 
-const name = computed<Opt<QualifiedName>>(() => {
+const name = computed<Opt<ProjectPath>>(() => {
   const docs = documentation.value
-  return docs.kind === 'Placeholder' ? null : projectNames.printProjectPath(docs.name)
+  return docs.kind === 'Placeholder' ? null : docs.name
 })
 
 // === Breadcrumbs ===
@@ -98,7 +99,7 @@ watch(historyStack.current, (current) => {
 
 const breadcrumbs = computed<Breadcrumb[]>(() => {
   if (name.value) {
-    const segments = qnSegments(name.value)
+    const segments = [...qnSegments(projectNames.printProjectPath(name.value))]
     return segments.slice(1).map((s) => ({ label: s.toLowerCase() }))
   } else {
     return []
@@ -107,9 +108,10 @@ const breadcrumbs = computed<Breadcrumb[]>(() => {
 
 function handleBreadcrumbClick(index: number) {
   if (name.value) {
-    const qName = qnSlice(name.value, 0, index + 2)
-    if (qName.ok) {
-      const id = db.entries.findByProjectPath(projectNames.parseProjectPath(qName.value))
+    const pathSlice = name.value.path ? qnSlice(name.value.path, 0, index) : Ok(undefined)
+    if (pathSlice.ok) {
+      const projectPathSlice = name.value.withPath(pathSlice.value)
+      const id = db.entries.findByProjectPath(projectPathSlice)
       if (id != null) {
         historyStack.record(id)
       }

@@ -16,6 +16,9 @@ permissions:
   statuses: write # Write access to commit statuses
 
 env:
+  # Workaround for https://github.com/nodejs/corepack/issues/612
+  # See: https://github.com/nodejs/corepack/blob/main/README.md#environment-variables
+  COREPACK_DEFAULT_TO_LATEST: 0
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"
   PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
 
@@ -39,11 +42,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-tags: false
 
-      - uses: bazel-contrib/setup-bazel@0.9.0
+      - uses: bazel-contrib/setup-bazel@0.13.0
         with:
           bazelisk-cache: true
-          disk-cache: true
-          repository-cache: true
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
 
       - name: 📦 Setup pnpm
         uses: pnpm/action-setup@v4

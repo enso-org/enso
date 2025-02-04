@@ -12,8 +12,8 @@ import { useFormContext } from './FormProvider'
 import type { FormInstance } from './types'
 
 /** Additional props for the Submit component. */
-interface SubmitButtonBaseProps {
-  readonly variant?: ButtonProps['variant']
+interface SubmitButtonBaseProps<IconType extends string> {
+  readonly variant?: ButtonProps<IconType>['variant']
   /**
    * Connects the submit button to a form.
    * If not provided, the button will use the nearest form context.
@@ -27,15 +27,18 @@ interface SubmitButtonBaseProps {
 }
 
 /** Props for the Submit component. */
-export type SubmitProps = Omit<ButtonProps, 'formnovalidate' | 'href' | 'variant'> &
-  SubmitButtonBaseProps
+export type SubmitProps<IconType extends string> = Omit<
+  ButtonProps<IconType>,
+  'formnovalidate' | 'href' | 'variant'
+> &
+  SubmitButtonBaseProps<IconType>
 
 /**
  * Submit button for forms.
  *
  * Manages the form state and displays a loading spinner when the form is submitting.
  */
-export function Submit(props: SubmitProps): JSX.Element {
+export function Submit<IconType extends string>(props: SubmitProps<IconType>): JSX.Element {
   const { getText } = useText()
 
   const {

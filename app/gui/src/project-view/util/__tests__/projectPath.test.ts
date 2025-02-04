@@ -1,4 +1,5 @@
 import { mockProjectNameStore } from '@/stores/projectNames'
+import { unwrap } from '@/util/data/result'
 import { ProjectPath } from '@/util/projectPath'
 import { type QualifiedName } from '@/util/qualifiedName'
 import { expect, test } from 'vitest'
@@ -29,7 +30,7 @@ const cases = [
 const projectNames = mockProjectNameStore()
 
 test.each(cases)('Parse', ({ qn, path }) => {
-  expect(projectNames.parseProjectPath(qn).toJSON()).toStrictEqual(path.toJSON())
+  expect(unwrap(projectNames.parseProjectPath(qn)).toJSON()).toStrictEqual(path.toJSON())
 })
 
 test.each(cases)('Normalize', ({ path, normalized }) => {

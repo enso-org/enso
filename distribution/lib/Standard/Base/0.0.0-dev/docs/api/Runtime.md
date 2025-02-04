@@ -1,0 +1,29 @@
+## Enso Signatures 1.0
+## module Standard.Base.Runtime
+- type Context
+    - Dataflow_Stack_Trace
+    - Input
+    - Output
+    - if_enabled self ~action:Standard.Base.Any.Any environment:Standard.Base.Data.Text.Text= disabled_message:Standard.Base.Data.Text.Text= panic:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - is_enabled self environment:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - is_enabled_builtin self environment:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - name self -> Standard.Base.Any.Any
+    - with_disabled self ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - with_enabled self ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- type Stack_Trace_Element
+    - Value name:Standard.Base.Any.Any source_location:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- assert ~action:Standard.Base.Data.Boolean.Boolean message:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+- assertions_enabled -> Standard.Base.Any.Any
+- current_execution_environment -> Standard.Base.Any.Any
+- gc -> Standard.Base.Any.Any
+- get_stack_trace -> Standard.Base.Any.Any
+- no_inline ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- no_inline_with_arg function:Standard.Base.Any.Any arg:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- primitive_get_stack_trace -> Standard.Base.Any.Any
+- value_for_uuid id:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+- with_disabled_context context:Standard.Base.Any.Any environment:Standard.Base.Any.Any= ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- with_disabled_context_builtin context:Standard.Base.Any.Any environment:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- with_enabled_context context:Standard.Base.Any.Any environment:Standard.Base.Any.Any= ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- with_enabled_context_builtin context:Standard.Base.Any.Any environment:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- wrap_primitive_stack_trace_element el:Standard.Base.Any.Any -> Standard.Base.Any.Any
