@@ -225,8 +225,6 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
     })
 
     function useVisualizationData(configuration: WatchSource<Opt<NodeVisualizationConfiguration>>) {
-      console.log('USE VIZ DATA')
-      console.log({configuration})
       const newId = () => random.uuidv4() as Uuid
       const visId = ref(newId())
       // Regenerate the visualization ID when the preprocessor changes.
@@ -301,7 +299,6 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
             dataConnection.off(`${OutboundPayload.VISUALIZATION_UPDATE}`, dataHandler)
             executionContext.off('visualizationEvaluationFailed', errorHandler)
             const dataStr = Ok(visData.dataString())
-            console.log({dataStr})
             resolve(parseVisualizationData(dataStr))
           }
         }

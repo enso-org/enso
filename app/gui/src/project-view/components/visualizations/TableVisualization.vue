@@ -474,12 +474,6 @@ function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef 
   }
 }
 
-// /** Return a human-readable representation of an object. */
-// function toRender(content: unknown) {
-//   console.log({content})
-//   return content
-// }
-
 watchEffect(() => {
   // If the user switches from one visualization type to another, we can receive the raw object.
   const data_ =

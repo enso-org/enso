@@ -222,9 +222,8 @@ make_json_for_table dataframe max_rows all_rows_count include_index_col is_db_ta
 
 get_rows_for_table : Any -> Integer -> JS_Object
 get_rows_for_table x current_number =
-    pairs = [['_display_text_', '[Function '+x.to_text+']']]
-    value = JS_Object.from_pairs pairs
-    result = JS_Object.from_pairs [["rows", current_number], ["json", value]]
+    columns = x.columns
+    result = JS_Object.from_pairs [["rows", current_number], ["x", columns]]
     result.to_text
 
 ## PRIVATE
