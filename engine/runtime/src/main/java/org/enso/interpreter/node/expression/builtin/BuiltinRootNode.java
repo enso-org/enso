@@ -135,7 +135,7 @@ public abstract class BuiltinRootNode extends RootNode {
         if (warnings.hasWarnings(value)) {
           if (mapInsertAllNode == null) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
-            this.mapInsertAllNode = HashMapInsertAllNode.build();
+            this.mapInsertAllNode = insert(HashMapInsertAllNode.build());
           }
           if (this.mapInsertAllNode != null) {
             try {
