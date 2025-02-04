@@ -124,6 +124,7 @@ export const Form = forwardRef(function Form<
   /* eslint-disable @typescript-eslint/naming-convention */
   schema: typeof components.schema
   useForm: typeof components.useForm
+  useFormWithComponents: typeof components.useFormWithComponents
   useField: typeof components.useField
   makeUseField: typeof components.makeUseField
   Submit: typeof components.Submit
@@ -146,6 +147,7 @@ export const Form = forwardRef(function Form<
 
 Form.schema = components.schema
 Form.useForm = components.useForm
+Form.useFormWithComponents = components.useFormWithComponents
 Form.useField = components.useField
 Form.makeUseField = components.makeUseField
 Form.useFormSchema = components.useFormSchema
