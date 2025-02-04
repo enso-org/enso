@@ -18,6 +18,7 @@ interface BaseSelectionOptions<T> {
   margin?: number
   isValid?: (element: T) => boolean
   onSelected?: (element: T) => void
+  onSoleSelected?: (element: T) => void
   onDeselected?: (element: T) => void
   toSorted?: (elements: Iterable<T>) => Iterable<T>
 }
@@ -58,6 +59,7 @@ export function useSelection<T, PackedT>(
     margin: 0,
     isValid: () => true,
     onSelected: () => {},
+    onSoleSelected: () => {},
     onDeselected: () => {},
     toSorted: identity,
   }
@@ -79,7 +81,14 @@ type UseSelection<T, PackedT> = ReturnType<typeof useSelectionImpl<T, PackedT>>
 function useSelectionImpl<T, PackedT>(
   navigator: NavigatorComposable,
   elementRects: Map<T, Rect>,
-  { margin, isValid, onSelected, onDeselected, toSorted }: Required<BaseSelectionOptions<T>>,
+  {
+    margin,
+    isValid,
+    onSelected,
+    onSoleSelected,
+    onDeselected,
+    toSorted,
+  }: Required<BaseSelectionOptions<T>>,
   { pack, unpack }: SelectionPackingOptions<T, PackedT>,
 ) {
   const anchor = shallowRef<Vec2>()
@@ -118,6 +127,9 @@ function useSelectionImpl<T, PackedT>(
         rawSelected.delete(packed)
         if (id != null) onDeselected(id)
       }
+    }
+    if (newSelection.size === 1) {
+      onSoleSelected(set.first(newSelection)!)
     }
   }
 
