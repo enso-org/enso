@@ -1,6 +1,5 @@
 package org.enso.interpreter.dsl;
 
-import com.google.common.base.Strings;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
@@ -190,7 +189,9 @@ public class MethodProcessor
                 + " extends BuiltinRootNode implements InlineableNode.Root {");
       }
       out.println("  private @Child " + methodDefinition.getOriginalClassName() + " bodyNode;");
-      defineArgNodes(out, "  ", methodDefinition);
+      out.println("  private @Children ArgNode[] argNodes = new ArgNode[] {");
+      generateArguments(methodDefinition, out);
+      out.println("    };");
       out.println("  private static final class Internals {");
       out.println("    Internals(boolean s) {");
       out.println("      this.staticOrInstanceMethod = s;");
@@ -259,7 +260,9 @@ public class MethodProcessor
                 + " body = "
                 + methodDefinition.getConstructorExpression()
                 + ";");
-        defineArgNodes(out, "      ", methodDefinition);
+        out.println("      private @Children ArgNode[] argNodes = new ArgNode[] {");
+        generateArguments(methodDefinition, out);
+        out.println("      };");
         out.println("      @Override");
         out.println("      public Object call(VirtualFrame frame, Object[] args) {");
         out.println("        return handleExecute(argNodes, frame, extra, body, args);");
@@ -395,36 +398,30 @@ public class MethodProcessor
     }
   }
 
-  private void defineArgNodes(
-      final PrintWriter out, final String sep, MethodDefinition methodDefinition) {
-    out.println(sep + "private @Children ArgNode[] argNodes = new ArgNode[] {");
+  private static void generateArguments(MethodDefinition methodDefinition, final PrintWriter out) {
     for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
-      if (arg.isPositional()) {
-        var checkErrors = arg.shouldCheckErrors();
-        var checkPanicSentinel = arg.isPositional() && !arg.isSelf();
-        var checkWarnings = arg.shouldCheckWarnings();
-        out.println(
-            sep
-                + "  ArgNode.create("
-                + arg.isSelf()
-                + ", "
-                + arg.isArray()
-                + ", "
-                + arg.requiresCast()
-                + ", "
-                + checkErrors
-                + ", "
-                + checkPanicSentinel
-                + ", "
-                + checkWarnings
-                + "),");
-      }
+      var checkErrors = arg.shouldCheckErrors();
+      var checkPanicSentinel = arg.isPositional() && !arg.isSelf();
+      var checkWarnings = arg.shouldCheckWarnings();
+      out.println(
+          "        ArgNode.create("
+              + arg.isSelf()
+              + ", "
+              + arg.isArray()
+              + ", "
+              + arg.requiresCast()
+              + ", "
+              + checkErrors
+              + ", "
+              + checkPanicSentinel
+              + ", "
+              + checkWarnings
+              + "),");
     }
-    out.println(sep + "};");
   }
 
   private String wrapInTryCatch(String statement, int indent) {
-    var indentStr = Strings.repeat(" ", indent);
+    var indentStr = " ".repeat(indent);
     var sb = new StringBuilder();
     sb.append(indentStr).append("try {").append("\n");
     sb.append(indentStr).append("  ").append(statement).append("\n");
