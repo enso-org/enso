@@ -44,7 +44,7 @@ add_specs suite_builder = suite_builder.group "Missing_Argument" group_builder->
         r1.catch.function_name . should_equal "Missing_Required_Arguments_Spec.my_function"
         r1.catch.call_location.file.name . should_equal "Missing_Required_Arguments_Spec.enso"
         r1.catch.call_location.start_line . should_equal 41
-        r1.catch.to_display_text . should_equal "Missing required argument `xyz` in function `Missing_Required_Arguments_Spec.my_function`."
+        r1.catch.to_display_text . should_equal "Provide a value for the argument `xyz`."
 
         r2 = my_function_2
         r2.should_fail_with Missing_Argument
