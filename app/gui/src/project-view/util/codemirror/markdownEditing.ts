@@ -109,24 +109,16 @@ export function toggleQuote(view: EditorView) {
   const src = view.state.doc.toString()
   const tree = markdownParser.parse(src)
   const selectionPos = view.state.selection.main.from
-  let node = tree.resolve(selectionPos, -1)
-  if (node.type.name === 'Document' && node.firstChild != null) node = node.firstChild
+  const lineStart = view.state.doc.lineAt(selectionPos).from
+  const node = resolveNodeAtPos(tree, selectionPos)
   if (node.type.name === 'CodeText') {
     const codeText = src.slice(node.from, node.to)
     const codeTree = markdownParser.parse(codeText)
-    const lineStart = view.state.doc.lineAt(selectionPos).from
-    const result = toggleQuoteInner(
-      codeTree,
-      selectionPos - node.from,
-      lineStart - node.from,
-      codeText,
-      node.from,
-    )
-    changeSet.merge(result)
+    const codeChanges = new MutableChangeSet(node.from)
+    toggleQuoteInner(codeTree, selectionPos - node.from, lineStart - node.from, codeChanges)
+    changeSet.merge(codeChanges)
   } else {
-    const lineStart = view.state.doc.lineAt(selectionPos).from
-    const result = toggleQuoteInner(tree, selectionPos, lineStart, src, 0)
-    changeSet.merge(result)
+    toggleQuoteInner(tree, selectionPos, lineStart, changeSet)
   }
   changeSet.dispatch(view)
 }
@@ -135,24 +127,19 @@ function toggleQuoteInner(
   tree: Tree,
   selectionPos: number,
   lineStart: number,
-  src: string,
-  offset: number,
-): MutableChangeSet {
-  const changeSet = new MutableChangeSet(offset)
-  let node = tree.resolve(selectionPos, -1)
-  if (node.type.name === 'Document' && node.firstChild != null) node = node.firstChild
+  changeSet: MutableChangeSet,
+) {
+  const node = resolveNodeAtPos(tree, selectionPos)
   const cursor = node.cursor()
   do {
     if (cursor.type.name === 'EnsoBlockquote') {
       const quoteMark = cursor.node.getChild('QuoteMark')
-      if (quoteMark != null) {
-        changeSet.remove(quoteMark.from, quoteMark.to)
-        return changeSet
-      }
+      if (quoteMark == null) return
+      changeSet.remove(quoteMark.from, quoteMark.to)
+      return
     }
   } while (cursor.parent())
   changeSet.add(lineStart, lineStart, '> ')
-  return changeSet
 }
 
 export type ListType = 'unordered' | 'ordered'

@@ -54,6 +54,11 @@ const headerTestCases: HeaderTestCase[] = [
     expected: '# Some text',
   },
   {
+    source: '**Bold| text**',
+    headerLevel: 1,
+    expected: '# **Bold text**',
+  },
+  {
     source: '|Some| text',
     headerLevel: 1,
     expected: '# Some text',
@@ -87,6 +92,11 @@ const headerTestCases: HeaderTestCase[] = [
     source: '# |Header',
     headerLevel: 1,
     expected: 'Header',
+  },
+  {
+    source: '# **Bo|ld**',
+    headerLevel: 1,
+    expected: '**Bold**',
   },
   {
     source: '# |Don’t touch this one\n## Touch this one\nMake this one h|eader',
