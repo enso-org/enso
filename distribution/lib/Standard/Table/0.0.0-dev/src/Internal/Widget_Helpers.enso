@@ -229,17 +229,25 @@ make_rename_name_vector_selector table display:Display=..Always cache=Nothing =
 
     ## Resolved Used Names
     col_map  = cache.if_not_nothing <| cache "column_map"
-    used_names = col_map.if_not_nothing <| case col_map of
-        _ : Dictionary -> col_map.keys
-        _ : Vector -> col_map.map_with_index i-> p-> if p.is_a Text then col_names.get i else p.first
-        _ -> []
-    first_name = if used_names.is_nothing then col_names.first else col_names.find n->(used_names.contains n . not) if_missing=col_names.first
+    used_names = case col_map of
+        _ : Dictionary -> col_map
+        _ : Vector ->
+            pairs =  col_map.map_with_index i-> p-> if p.is_a Text then [col_names.get i, p] else p
+            Dictionary.from_vector pairs
+        _ -> Dictionary.empty
+    first_name = if used_names.length == 0 then col_names.first else
+        col_names.find n->(used_names.contains_key n . not) if_missing=col_names.first
+
+    new_name_i = 0.up_to used_names.length include_end=True . find i->
+        target = if i == 0 then 'New Name' else 'New Name '+i.to_text
+        used_names.values.contains target . not
+    new_name = if new_name_i == 0 then 'New Name' else 'New Name '+new_name_i.to_text
 
     names = [Option "<Regular Expression>" "(regex '^.*$')"] + (col_names.map n-> Option n n.pretty)
     fqn = Pair.to Meta.Type . qualified_name
     name = Option "Name" fqn+".Value" [["first", Single_Choice values=names display=Display.Always]]
     item_editor = Single_Choice display=Display.Always values=[name]
-    Vector_Editor item_editor=item_editor item_default="(Pair.Value "+first_name.pretty+" 'New Name')" display=display
+    Vector_Editor item_editor=item_editor item_default="(Pair.Value "+first_name.pretty+" "+new_name.pretty+")" display=display
 
 ## PRIVATE
    Selector for type argument on `Column.parse`.
