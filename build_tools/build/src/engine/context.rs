@@ -583,6 +583,8 @@ impl RunContext {
 
     async fn stdlib_api_check(&self, built_enso: &BuiltEnso) -> Result {
         for libname in ["Base"] {
+            // `lib_path` points to the lib in the `distribution` directory which
+            // is under VCS.
             let lib_path = self
                 .repo_root
                 .distribution
@@ -590,26 +592,43 @@ impl RunContext {
                 .join_iter(["Standard", libname])
                 .join(self.paths.version().to_string());
             debug!("Checking API for Standard.{}", libname);
-            let api_dir = lib_path.join("docs").join("api");
-            // Create a copy of old_api in a tmp dir
-            let tmp_dir_old_api = tempfile::tempdir()?.path().join(libname).join("old-api");
-            ide_ci::fs::copy(&api_dir, &tmp_dir_old_api)?;
+            let old_api_dir = lib_path.join("docs").join("api");
+            // `lib_path_in_built_distribution` points to the lib in the `built-distribution`
+            // directory, which is not under VCS. We will regenerate the API in this directory
+            // and compare it to the one from `lib_path`.
+            let lib_path_in_built_distribution = self
+                .repo_root
+                .built_distribution
+                .enso_engine_triple
+                .engine_package
+                .lib
+                .join_iter(["Standard", libname])
+                .join(self.paths.version().to_string());
+            let new_api_dir = lib_path_in_built_distribution.join("docs").join("api");
             let mut cmd = built_enso
                 .cmd()?
                 .with_arg("--docs")
                 .with_arg("api")
                 .with_arg("--in-project")
-                .with_arg(lib_path);
+                .with_arg(lib_path_in_built_distribution);
             cmd.run_ok().await?;
             // Compare contents of `api_dir` and `tmp_dir_old_api`
-            let diff = ide_ci::fs::diff_dirs(&api_dir, &tmp_dir_old_api).await;
+            let diff = ide_ci::fs::diff_dirs(&old_api_dir, &new_api_dir).await;
             if diff.is_err() {
-                error!("API check failed for library {}", libname);
-                error!("If you wish to overwrite the current API in the directory {}, run the following command {}",
-                  api_dir.display(),
-                  cmd.describe()
+                let suggested_cmd = built_enso
+                    .cmd()?
+                    .with_arg("--docs")
+                    .with_arg("api")
+                    .with_arg("--in-project")
+                    .with_arg(lib_path);
+                error!("API check failed for library Standard.{}", libname);
+                error!("Current API vs Old API: {}", diff.err().unwrap());
+                error!("If you wish to overwrite the current API in the directory {}, run the following command {},
+                       and commit the modified files",
+                  old_api_dir.display(),
+                  suggested_cmd.describe()
                 );
-                bail!(diff.err().unwrap());
+                bail!("API check failed for library Standard.{}", libname);
             }
         }
         Ok(())
