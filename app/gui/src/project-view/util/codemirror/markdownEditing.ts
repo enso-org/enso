@@ -1,3 +1,16 @@
+/**
+ * Editing markdown with CodeMirror.
+ * Allows creating, removing and changing headers, lists and quotes.
+ * There are a few assumptions and limitations:
+ * - All edits are done after selecting the target range (or placing the cursor on the needed line)
+ * - Headers and lists can be created by selecting a range. A header per line is created, and a list item per line.
+ * - Changing between different header levels and list types is done by selecting the existing range of headers or lists.
+ * - Editing sparse lists is not supported, in general. (e.g. when the list is separated by empty lines or non-list items)
+ * - Editing elements in code blocks is supported, but no considerations are made to the actual syntax inside the code block.
+ * - Quotes are created at the first selected line, and span multiple lines until the empty line.
+ *   User must separate quoted text from the rest of the text by empty lines, manually.
+ */
+
 import { ChangeSpec } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { Tree } from '@lezer/common'
