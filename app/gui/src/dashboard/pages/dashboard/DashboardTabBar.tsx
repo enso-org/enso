@@ -68,7 +68,6 @@ export function DashboardTabBar(props: DashboardTabBarProps) {
           'data-testid': 'editor-tab-button',
           labelId: 'editorPageName' satisfies TextId,
           // This is fine, `page` may also be a `ProjectId`.
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
           isActive: page === project.id,
           children: project.title,
           project,
