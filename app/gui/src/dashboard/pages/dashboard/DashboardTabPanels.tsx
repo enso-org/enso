@@ -45,7 +45,6 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
   const tabPanels = [
     {
       id: 'drive',
-      shouldForceMount: true,
       className: 'flex min-h-0 grow [&[data-inert]]:hidden',
       children: (
         <Drive
