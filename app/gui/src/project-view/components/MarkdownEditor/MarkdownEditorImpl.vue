@@ -3,6 +3,8 @@ import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
 import BlockTypeDropdown from '@/components/MarkdownEditor/BlockTypeDropdown.vue'
 import { ensoMarkdown } from '@/components/MarkdownEditor/markdown'
+import { useMarkdownFormatting } from '@/components/MarkdownEditor/markdown/formatting'
+import ToggleIcon from '@/components/ToggleIcon.vue'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { useCodeMirror } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
@@ -23,20 +25,19 @@ const editing = computed(() => !readonly.value && focused.value)
 
 const vueHost = new VueHostInstance()
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
-const { editorView, readonly, putTextAt, toggleHeader, toggleQuote, toggleList } = useCodeMirror(
-  editorRoot,
-  {
-    content: () => content,
-    extensions: [
-      minimalSetup,
-      EditorView.lineWrapping,
-      highlightStyle(useCssModule()),
-      EditorView.clipboardInputFilter.of(transformPastedText),
-      ensoMarkdown(),
-    ],
-    vueHost: () => vueHost,
-  },
-)
+const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
+  content: () => content,
+  extensions: [
+    minimalSetup,
+    EditorView.lineWrapping,
+    highlightStyle(useCssModule()),
+    EditorView.clipboardInputFilter.of(transformPastedText),
+    ensoMarkdown(),
+  ],
+  vueHost: () => vueHost,
+})
+const { toggleHeader, toggleQuote, toggleList, italic, bold, strikethrough } =
+  useMarkdownFormatting(editorView)
 
 useLinkTitles(editorView, { readonly })
 
@@ -64,13 +65,33 @@ defineExpose({
 
 <template>
   <div class="MarkdownEditorRoot">
-    <div class="toolbar">
+    <div class="toolbar" @pointerdown.prevent>
       <slot name="toolbarLeft" />
-      <BlockTypeDropdown
-        @toggleHeader="toggleHeader($event)"
-        @toggleQuote="toggleQuote()"
-        @toggleList="toggleList($event)"
-      />
+      <template v-if="!readonly">
+        <BlockTypeDropdown
+          @toggleHeader="toggleHeader($event)"
+          @toggleQuote="toggleQuote()"
+          @toggleList="toggleList($event)"
+        />
+        <ToggleIcon
+          icon="italic"
+          :disabled="!editing || italic.value == null"
+          :modelValue="!!italic.value"
+          @update:modelValue="italic.set"
+        />
+        <ToggleIcon
+          icon="bold"
+          :disabled="!editing || bold.value == null"
+          :modelValue="!!bold.value"
+          @update:modelValue="bold.set"
+        />
+        <ToggleIcon
+          icon="strike-through"
+          :disabled="!editing || strikethrough.value == null"
+          :modelValue="!!strikethrough.value"
+          @update:modelValue="strikethrough.set"
+        />
+      </template>
       <slot name="toolbarRight" />
     </div>
     <slot name="belowToolbar" />

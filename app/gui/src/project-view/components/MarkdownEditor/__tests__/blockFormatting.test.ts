@@ -1,35 +1,11 @@
-import { ensoMarkdown } from '@/components/MarkdownEditor/markdown'
+import { setupEditor } from '@/components/MarkdownEditor/__tests__/testInput'
 import {
-  HeaderLevel,
+  type HeaderLevel,
   toggleHeader,
   toggleList,
   toggleQuote,
-} from '@/util/codemirror/markdownEditing'
-import { EditorState } from '@codemirror/state'
-import { EditorView } from '@codemirror/view'
+} from '@/components/MarkdownEditor/markdown/blockFormatting'
 import { expect, test } from 'vitest'
-
-/**
- * Setup editor with selection ranging from the first occurence of '|' in the `source` string to the last occurence of '|'.
- * If there is a single '|', it points at the cursor position.
- */
-const setupEditor = (source: string) => {
-  const selectionStart = source.indexOf('|')
-  const selectionEnd = source.lastIndexOf('|')
-  const selection = {
-    anchor: selectionStart,
-    head: selectionEnd > 0 ? selectionEnd - 1 : selectionEnd,
-  }
-  const doc = source.replaceAll('|', '')
-  const view = new EditorView({
-    state: EditorState.create({
-      doc,
-      extensions: ensoMarkdown(),
-      selection,
-    }),
-  })
-  return view
-}
 
 interface TestCase {
   desc?: string
