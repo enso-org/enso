@@ -77,16 +77,8 @@ function toggleHeaderInner(
 ) {
   const prefix = `${'#'.repeat(level)} `
   const node = resolveNodeAtPos(tree, lineEnd)
-  if (node.type.name.startsWith('ATXHeading')) {
-    const headerMark = node.getChild('HeaderMark')
-    if (!headerMark) return
-    const isLevelMatch = node.type.name.endsWith(level.toString())
-    if (isLevelMatch) {
-      changeSet.remove(headerMark.from, headerMark.to)
-    } else {
-      changeSet.replace(headerMark.from, headerMark.to, prefix)
-    }
-  } else if (node.type.name === 'CodeText') {
+  const cursor = node.cursor()
+  if (node.type.name === 'CodeText') {
     const codeText = src.slice(node.from, node.to)
     const codeTree = markdownParser.parse(codeText)
     const codeChanges = new MutableChangeSet(node.from)
@@ -99,9 +91,22 @@ function toggleHeaderInner(
       codeChanges,
     )
     changeSet.merge(codeChanges)
-  } else {
-    changeSet.add(lineStart, lineStart, prefix)
+    return
   }
+  do {
+    if (cursor.type.name.startsWith('ATXHeading')) {
+      const headerMark = cursor.node.getChild('HeaderMark')
+      if (!headerMark) return
+      const isLevelMatch = cursor.type.name.endsWith(level.toString())
+      if (isLevelMatch) {
+        changeSet.remove(headerMark.from, headerMark.to)
+      } else {
+        changeSet.replace(headerMark.from, headerMark.to, prefix)
+      }
+      return
+    }
+  } while (cursor.parent())
+  changeSet.add(lineStart, lineStart, prefix)
 }
 
 export function toggleQuote(view: EditorView) {
