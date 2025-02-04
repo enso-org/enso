@@ -43,7 +43,7 @@ s3_backup file action = recover_errors <|
 
     revert_backup =
         if has_backup then
-            Panic.rethrow <| backup_location.copy_to file
+            Panic.rethrow <| backup_location.copy_to file replace_existing=True
             Panic.rethrow <| backup_location.delete
 
     with_failure_handler revert_backup <|
