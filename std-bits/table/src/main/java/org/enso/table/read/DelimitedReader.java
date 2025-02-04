@@ -456,7 +456,8 @@ public class DelimitedReader {
 
     effectiveColumnNames = headerNames;
     if (wereHeadersDefined) {
-      // We need a copy of the defined column names, as the effective column names may be modified later.
+      // We need a copy of the defined column names, as the effective column names may be modified
+      // later.
       definedColumnNames = new ArrayList<>(effectiveColumnNames);
     }
   }
