@@ -74,12 +74,20 @@ const handler = documentationEditorBindings.handler({
     <div class="DocumentationEditor">
       <div ref="toolbarElement" class="toolbar">
         <FullscreenButton v-model="fullscreen" />
-        <SvgButton name="header1" @click.stop="markdownEditor?.toggleHeader(1)" />
-        <SvgButton name="header2" @click.stop="markdownEditor?.toggleHeader(2)" />
-        <SvgButton name="header3" @click.stop="markdownEditor?.toggleHeader(3)" />
-        <SvgButton name="quote" @click.stop="markdownEditor?.toggleQuote()" />
-        <SvgButton name="bullet-list" @click.stop="markdownEditor?.toggleList('unordered')" />
-        <SvgButton name="numbered-list" @click.stop="markdownEditor?.toggleList('ordered')" />
+        <SvgButton name="header1" title="Header 1" @click.stop="markdownEditor?.toggleHeader(1)" />
+        <SvgButton name="header2" title="Header 2" @click.stop="markdownEditor?.toggleHeader(2)" />
+        <SvgButton name="header3" title="Header 3" @click.stop="markdownEditor?.toggleHeader(3)" />
+        <SvgButton name="quote" title="Quote" @click.stop="markdownEditor?.toggleQuote()" />
+        <SvgButton
+          name="bullet-list"
+          title="Bullet list"
+          @click.stop="markdownEditor?.toggleList('unordered')"
+        />
+        <SvgButton
+          name="numbered-list"
+          title="Numbered list"
+          @click.stop="markdownEditor?.toggleList('ordered')"
+        />
       </div>
       <slot name="belowToolbar" />
       <div
