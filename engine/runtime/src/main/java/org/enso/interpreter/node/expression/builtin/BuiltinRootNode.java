@@ -130,10 +130,10 @@ public abstract class BuiltinRootNode extends RootNode {
         return null;
       }
       if (is(CHECK_PANIC_SENTINEL) && value instanceof PanicSentinel sentinel) {
-        throw sentinel.getPanic();
+        throw sentinel;
       }
       if (warnings != null) {
-        if (value instanceof WithWarnings ww) {
+        if (value instanceof WithWarnings) {
           if (mapInsertAllNode == null) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
             this.mapInsertAllNode = insert(HashMapInsertAllNode.build());
