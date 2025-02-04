@@ -47,7 +47,7 @@ export const MENU_ITEM_STYLES = tv({
 })
 
 /** Props for {@link MenuItem} */
-export type MenuItemProps<T extends object> = MenuItemBaseProps &
+export type MenuItemProps<T extends object, IconType extends string> = MenuItemBaseProps<IconType> &
   Omit<AriaMenuItemProps<T>, 'children'> &
   TestIdProps &
   VariantProps<typeof MENU_ITEM_STYLES> &
@@ -56,9 +56,9 @@ export type MenuItemProps<T extends object> = MenuItemBaseProps &
 /**
  * Base props for the menu item.
  */
-export interface MenuItemBaseProps {
+export interface MenuItemBaseProps<IconType extends string> {
   /** Icon to display before the menu item text. Can be a string (path to SVG), ReactElement, or a render function */
-  readonly icon?: IconProp<MenuItemRenderProps>
+  readonly icon?: IconProp<IconType, MenuItemRenderProps>
   /** Keyboard shortcut text to display */
   readonly shortcut?: string
   /** Additional class name */
@@ -87,7 +87,9 @@ export interface MenuItemCustomContentProps {
 /**
  * An item within a menu that represents a single action or option.
  */
-export const MenuItem = memo(function MenuItem<T extends object>(props: MenuItemProps<T>) {
+export const MenuItem = memo(function MenuItem<T extends object, IconType extends string>(
+  props: MenuItemProps<T, IconType>,
+) {
   const {
     icon,
     shortcut,
@@ -154,14 +156,16 @@ export const MenuItem = memo(function MenuItem<T extends object>(props: MenuItem
 })
 
 /** Props for {@link MenuItemIcon} */
-interface MenuItemIconProps extends MenuItemRenderProps {
-  readonly icon: MenuItemProps<object>['icon']
+interface MenuItemIconProps<IconType extends string> extends MenuItemRenderProps {
+  readonly icon: MenuItemProps<object, IconType>['icon']
   readonly className?: string
 }
 
 /** Renders the icon for the menu item */
 // eslint-disable-next-line no-restricted-syntax
-const MenuItemIcon = memo(function MenuItemIcon(props: MenuItemIconProps) {
+const MenuItemIcon = memo(function MenuItemIcon<IconType extends string>(
+  props: MenuItemIconProps<IconType>,
+) {
   const { icon, className, ...renderProps } = props
 
   return (

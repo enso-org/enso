@@ -13,7 +13,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Internal.Polyglot_Helpers
 import Standard.Base.Internal.Rounding_Helpers
 from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, take_helper
-from Standard.Base.Metadata.Widget import Numeric_Input
+from Standard.Base.Metadata.Widget import Numeric_Input, Text_Input
 from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make_format_chooser, make_regex_text_widget
 
 import project.Constants.Previous_Value
@@ -44,6 +44,8 @@ polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
 polyglot java import org.enso.table.data.column.operation.CountNothing
 polyglot java import org.enso.table.data.column.operation.CountUntrimmed
+polyglot java import org.enso.table.data.column.operation.CountNonTrivialWhitespace
+polyglot java import org.enso.table.data.column.operation.SampleOperation
 polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
 polyglot java import org.enso.table.data.column.operation.unary.DateTruncateOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsEmptyOperation
@@ -1490,6 +1492,7 @@ type Column
 
              column.text_replace '"(.*?)"'.to_regex '($1)'
     @term make_regex_text_widget
+    @new_text (Text_Input display=..Always)
     text_replace : Text | Regex | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Column
     text_replace self (term : Text | Regex | Column = "") new_text="" case_sensitivity:Case_Sensitivity=..Sensitive only_first=False =
         Value_Type.expect_text self <|
@@ -2234,13 +2237,26 @@ type Column
        Used for data quality indicator in Table Viz.
     count_untrimmed : Integer -> Integer | Nothing
     count_untrimmed self sample_size:Integer=Column.default_sample_size =
-        if (self.value_type == Value_Type.Mixed || self.value_type.is_text).not then Nothing else
+        if (Column.can_contain_text self.value_type).not then Nothing else
             CountUntrimmed.apply self.java_column sample_size
+
+    ## PRIVATE
+      Counts the number of text values with non trivial whitespace.
+      Used for data quality indicator in Table Viz.
+    count_non_trivial_whitespace : Integer -> Integer | Nothing
+    count_non_trivial_whitespace self sample_size:Integer=Column.default_sample_size =
+        if (Column.can_contain_text self.value_type).not then Nothing else
+            CountNonTrivialWhitespace.apply self.java_column sample_size
+
+    ## PRIVATE
+       Determines if a value type is eligable for a text data quality count
+    private can_contain_text value_type:Value_Type -> Boolean = 
+        value_type == Value_Type.Mixed || value_type.is_text
 
     ## PRIVATE
        Default size for sampling data quality indicators.
     default_sample_size -> Integer =
-        CountUntrimmed.DEFAULT_SAMPLE_SIZE
+        SampleOperation.DEFAULT_SAMPLE_SIZE
 
     ## GROUP Standard.Base.Metadata
        ICON metadata

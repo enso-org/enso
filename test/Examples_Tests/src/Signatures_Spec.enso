@@ -8,7 +8,7 @@ add_specs suite_builder = suite_builder.group "Standard.Base Signature Checks" g
     setup = Api_Setup.create 'Standard' 'Base' [ "--docs=api" ]
 
     group_builder.specify "Standard.Base.Meta" <|
-        snapshot = setup.api_dir / "Standard" / "Base" / "Meta.md"
+        snapshot = setup.api_dir / "Meta.md"
 
         # Instructions to regenerate the expected snapshot can be found at
         # https://github.com/enso-org/enso/pull/12031#discussion_r1923133269

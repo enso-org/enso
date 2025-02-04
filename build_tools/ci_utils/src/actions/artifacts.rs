@@ -66,7 +66,7 @@ pub fn discover_recursive(
 }
 
 
-pub fn upload(
+fn upload(
     file_provider: impl Stream<Item = FileToUpload> + Send + 'static,
     artifact_name: impl Into<String>,
     options: UploadOptions,
