@@ -58,112 +58,114 @@ export function useComputedNotifications(): readonly NotificationInfo[] {
     })
   })
 
-  useEffect(() =>
-    queryClient.getMutationCache().subscribe((update) => {
-      switch (update.type) {
-        case 'added':
-        case 'updated': {
-          const mutationRaw = update.mutation
-          const isSuccess = mutationRaw.state.status === 'success'
-          const isError = mutationRaw.state.status === 'error'
-          switch (mutationRaw.options.mutationKey?.[1]) {
-            case DELETE_ASSETS_MUTATION_METHOD: {
-              // eslint-disable-next-line no-restricted-syntax
-              const mutation = mutationRaw as MutationFromOptionsFunction<
-                typeof deleteAssetsMutationOptions
-              >
-              const variables = mutation.state.variables
-              if (!variables) {
+  useEffect(
+    () =>
+      queryClient.getMutationCache().subscribe((update) => {
+        switch (update.type) {
+          case 'added':
+          case 'updated': {
+            const mutationRaw = update.mutation
+            const isSuccess = mutationRaw.state.status === 'success'
+            const isError = mutationRaw.state.status === 'error'
+            switch (mutationRaw.options.mutationKey?.[1]) {
+              case DELETE_ASSETS_MUTATION_METHOD: {
+                // eslint-disable-next-line no-restricted-syntax
+                const mutation = mutationRaw as MutationFromOptionsFunction<
+                  typeof deleteAssetsMutationOptions
+                >
+                const variables = mutation.state.variables
+                if (!variables) {
+                  break
+                }
+                upsertNotification(variables, {
+                  id: upsertMutationId(variables),
+                  message: getText(
+                    isSuccess ? 'deletedXAssetsNotification'
+                    : isError ? 'couldNotDeleteXAssetsNotification'
+                    : 'deletingXAssetsNotification',
+                    variables[0].length,
+                  ),
+                  icon: 'trash2',
+                  color: 'danger',
+                })
                 break
               }
-              upsertNotification(variables, {
-                id: upsertMutationId(variables),
-                message: getText(
-                  isSuccess ? 'deletedXAssetsNotification'
-                  : isError ? 'couldNotDeleteXAssetsNotification'
-                  : 'deletingXAssetsNotification',
-                  variables[0].length,
-                ),
-                icon: 'trash2',
-                color: 'danger',
-              })
-              break
-            }
-            case RESTORE_ASSETS_MUTATION_METHOD: {
-              // eslint-disable-next-line no-restricted-syntax
-              const mutation = mutationRaw as MutationFromOptionsFunction<
-                typeof restoreAssetsMutationOptions
-              >
-              const variables = mutation.state.variables
-              if (!variables) {
+              case RESTORE_ASSETS_MUTATION_METHOD: {
+                // eslint-disable-next-line no-restricted-syntax
+                const mutation = mutationRaw as MutationFromOptionsFunction<
+                  typeof restoreAssetsMutationOptions
+                >
+                const variables = mutation.state.variables
+                if (!variables) {
+                  break
+                }
+                upsertNotification(variables, {
+                  id: upsertMutationId(variables),
+                  message: getText(
+                    isSuccess ? 'restoredXAssetsNotification'
+                    : isError ? 'couldNotRestoreXAssetsNotification'
+                    : 'restoringXAssetsNotification',
+                    variables.length,
+                  ),
+                  icon: 'restore',
+                })
                 break
               }
-              upsertNotification(variables, {
-                id: upsertMutationId(variables),
-                message: getText(
-                  isSuccess ? 'restoredXAssetsNotification'
-                  : isError ? 'couldNotRestoreXAssetsNotification'
-                  : 'restoringXAssetsNotification',
-                  variables.length,
-                ),
-                icon: 'restore',
-              })
-              break
-            }
-            case COPY_ASSETS_MUTATION_METHOD: {
-              // eslint-disable-next-line no-restricted-syntax
-              const mutation = mutationRaw as MutationFromOptionsFunction<
-                typeof copyAssetsMutationOptions
-              >
-              const variables = mutation.state.variables
-              if (!variables) {
+              case COPY_ASSETS_MUTATION_METHOD: {
+                // eslint-disable-next-line no-restricted-syntax
+                const mutation = mutationRaw as MutationFromOptionsFunction<
+                  typeof copyAssetsMutationOptions
+                >
+                const variables = mutation.state.variables
+                if (!variables) {
+                  break
+                }
+                upsertNotification(variables, {
+                  id: upsertMutationId(variables),
+                  message: getText(
+                    isSuccess ? 'copiedXAssetsNotification'
+                    : isError ? 'couldNotCopyXAssetsNotification'
+                    : 'copyingXAssetsNotification',
+                    variables[0].length,
+                  ),
+                  icon: 'copy',
+                })
                 break
               }
-              upsertNotification(variables, {
-                id: upsertMutationId(variables),
-                message: getText(
-                  isSuccess ? 'copiedXAssetsNotification'
-                  : isError ? 'couldNotCopyXAssetsNotification'
-                  : 'copyingXAssetsNotification',
-                  variables[0].length,
-                ),
-                icon: 'copy',
-              })
-              break
-            }
-            case MOVE_ASSETS_MUTATION_METHOD: {
-              // eslint-disable-next-line no-restricted-syntax
-              const mutation = mutationRaw as MutationFromOptionsFunction<
-                typeof moveAssetsMutationOptions
-              >
-              const variables = mutation.state.variables
-              if (!variables) {
+              case MOVE_ASSETS_MUTATION_METHOD: {
+                // eslint-disable-next-line no-restricted-syntax
+                const mutation = mutationRaw as MutationFromOptionsFunction<
+                  typeof moveAssetsMutationOptions
+                >
+                const variables = mutation.state.variables
+                if (!variables) {
+                  break
+                }
+                upsertNotification(variables, {
+                  id: upsertMutationId(variables),
+                  message: getText(
+                    isSuccess ? 'movedXAssetsNotification'
+                    : isError ? 'couldNotMoveXAssetsNotification'
+                    : 'movingXAssetsNotification',
+                    variables[0].length,
+                  ),
+                  icon: 'duplicate',
+                })
                 break
               }
-              upsertNotification(variables, {
-                id: upsertMutationId(variables),
-                message: getText(
-                  isSuccess ? 'movedXAssetsNotification'
-                  : isError ? 'couldNotMoveXAssetsNotification'
-                  : 'movingXAssetsNotification',
-                  variables[0].length,
-                ),
-                icon: 'duplicate',
-              })
-              break
             }
+            break
           }
-          break
+          case 'removed':
+          case 'observerAdded':
+          case 'observerRemoved':
+          case 'observerOptionsUpdated': {
+            // Ignored.
+            break
+          }
         }
-        case 'removed':
-        case 'observerAdded':
-        case 'observerRemoved':
-        case 'observerOptionsUpdated': {
-          // Ignored.
-          break
-        }
-      }
-    }),
+      }),
+    [getText, queryClient, upsertNotification],
   )
 
   const { data: uploadingFiles } = useQuery(uploadingFileQueryOptions())

@@ -5,6 +5,7 @@ import { Result } from '#/components/Result'
 import { DialogTrigger, GridList } from '#/components/aria'
 import { NotificationItem } from '#/layouts/NotificationTray/components/NotificationItem'
 import { useComputedNotifications } from '#/layouts/NotificationTray/computedNotificationHooks'
+import type { NotificationInfo } from '#/layouts/NotificationTray/types'
 import { useText } from '#/providers/TextProvider'
 
 const DIALOG_OFFSET = 16
@@ -12,16 +13,24 @@ const DIALOG_CROSS_OFFSET = 16
 
 /** A button to show a list of notifications. */
 export function NotificationTray() {
+  const computedNotifications = useComputedNotifications()
+
   return (
     <DialogTrigger>
       <Button variant="icon" icon={InboxIcon} />
-      <NotificationTrayDialog />
+      <NotificationTrayDialog computedNotifications={computedNotifications} />
     </DialogTrigger>
   )
 }
 
+/** Props for a {@link NotificationTrayDialog}. */
+interface NotificationTrayDialogProps {
+  readonly computedNotifications: readonly NotificationInfo[]
+}
+
 /** Dialog to display notifications for a {@link NotificationTray}. */
-function NotificationTrayDialog() {
+function NotificationTrayDialog(props: NotificationTrayDialogProps) {
+  const { computedNotifications } = props
   const { getText } = useText()
 
   return (
@@ -30,16 +39,16 @@ function NotificationTrayDialog() {
         <Text.Heading level={3} variant="subtitle">
           {getText('notifications')}
         </Text.Heading>
-        <NotificationTrayDialogInner />
+        <NotificationTrayDialogInner computedNotifications={computedNotifications} />
       </div>
     </Popover>
   )
 }
 
 /** Dialog to display notifications for a {@link NotificationTray}. */
-function NotificationTrayDialogInner() {
+function NotificationTrayDialogInner(props: NotificationTrayDialogProps) {
+  const { computedNotifications } = props
   const { getText } = useText()
-  const computedNotifications = useComputedNotifications()
 
   return (
     <GridList
