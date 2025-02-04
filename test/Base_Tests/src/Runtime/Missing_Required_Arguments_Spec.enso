@@ -7,16 +7,16 @@ import Standard.Base.Runtime.Ref.Ref
 from Standard.Test import all
 
 
-my_function (xyz : Integer = Missing_Argument.ensure_present "xyz") (y : Integer = 100) =
+my_function (xyz : Integer = Missing_Argument.throw "xyz") (y : Integer = 100) =
     xyz + y
 
-my_function_2 (x : Integer = Missing_Argument.ensure_present "x") =
+my_function_2 (x : Integer = Missing_Argument.throw "x") =
     x * 10
 
 type Foo
-    Ctor (x : Integer = Missing_Argument.ensure_present "x") (y : Integer = 100)
+    Ctor (x : Integer = Missing_Argument.throw "x") (y : Integer = 100)
 
-    member self (txt : Text = Missing_Argument.ensure_present "txt") =
+    member self (txt : Text = Missing_Argument.throw "txt") =
         "Foo(" + self.x.to_text + ", " + self.y.to_text + "): " + txt
 
 add_specs suite_builder = suite_builder.group "Missing_Argument" group_builder->
