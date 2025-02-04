@@ -48,6 +48,11 @@ jobs:
       - run: ./run backend benchmark runtime
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results.xml
+          path: engine/runtime-benchmarks/bench-report.xml
       - if: (always())
         name: Clean after
         run: ./run git-clean

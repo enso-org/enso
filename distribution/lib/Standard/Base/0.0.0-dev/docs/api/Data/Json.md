@@ -1,0 +1,41 @@
+## Enso Signatures 1.0
+## module Standard.Base.Data.Json
+- type Invalid_JSON
+    - Error message:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type JS_Object
+    - Value object_node:Standard.Base.Any.Any ~field_array:Standard.Base.Any.Any
+    - at self key:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - contains_key self key:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - field_names self -> Standard.Base.Any.Any
+    - from_pairs pairs:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - get self key:Standard.Base.Data.Text.Text ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - into self target_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - is_empty self -> Standard.Base.Any.Any
+    - length self -> Standard.Base.Any.Any
+    - map self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - map_with_key self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - new object_node:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - not_empty self -> Standard.Base.Any.Any
+    - set_value self key:Standard.Base.Data.Text.Text value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - to_default_visualization_data self -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
+    - to_json self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+    - to_vector self -> Standard.Base.Any.Any
+- type JS_Object_Comparator
+    - compare obj1:Standard.Base.Any.Any obj2:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - hash obj:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- type Json
+    - from_pairs pairs:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - parse json:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - stringify object:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- key_value_widget -> Standard.Base.Any.Any
+- make_enso object:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_field_name_selector js_object:Standard.Base.Any.Any display:Standard.Base.Metadata.Display= -> Standard.Base.Any.Any
+- read_json_array node:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- read_json_node node:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- render object:Standard.Base.Any.Any depth:Standard.Base.Any.Any= max_depth:Standard.Base.Any.Any= max_length:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- to_json_node value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Data.Ordering.Comparable.from that:Standard.Base.Data.Json.JS_Object -> Standard.Base.Data.Ordering.Comparable

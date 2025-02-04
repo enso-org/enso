@@ -73,7 +73,6 @@ const headerIndent = foldService.of((state, start, end) => {
     node;
     node = node.parent
   ) {
-    console.log(node.from, start)
     if (node.from < start) break
     const heading = node.type.prop(headingProp)
     if (heading == null) continue

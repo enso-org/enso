@@ -35,7 +35,6 @@ const backgroundOffset = computed(() => 200 - props.file.sizePercentage)
   white-space: nowrap;
   padding: 4px 8px;
   z-index: 2;
-  outline: 0px solid transparent;
   background: linear-gradient(to right, #e0e0e0 0%, #e0e0e0 50%, #ffffff 50%, #ffffff 100%);
   background-size: 200% 100%;
 }

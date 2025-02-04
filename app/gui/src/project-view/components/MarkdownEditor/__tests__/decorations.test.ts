@@ -19,7 +19,6 @@ function decorations<T>(
       unregister: () => {},
       update: () => {},
     }),
-    teleportations: new Map(),
   }
   view.dispatch({ effects: setVueHost.of(vueHost) })
   const decorationSets = view.state.facet(EditorView.decorations)

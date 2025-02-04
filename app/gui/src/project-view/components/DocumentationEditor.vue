@@ -26,11 +26,12 @@ const markdownEditor = ref<ComponentInstance<typeof MarkdownEditor>>()
 
 const graphStore = useGraphStore()
 const projectStore = useProjectStore()
-const { transformImageUrl, tryUploadPastedImage, tryUploadDroppedImage } = useDocumentationImages(
-  () => (markdownEditor.value?.loaded ? markdownEditor.value : undefined),
-  toRef(graphStore, 'modulePath'),
-  useProjectFiles(projectStore),
-)
+const { transformImageUrl, tryUploadPastedImage, tryUploadDroppedImage, tryUploadImageFile } =
+  useDocumentationImages(
+    () => (markdownEditor.value?.loaded ? markdownEditor.value : undefined),
+    toRef(graphStore, 'modulePath'),
+    useProjectFiles(projectStore),
+  )
 
 const fullscreen = ref(false)
 const fullscreenAnimating = ref(false)
@@ -88,6 +89,7 @@ const handler = documentationEditorBindings.handler({
           title="Numbered list"
           @click.stop="markdownEditor?.toggleList('ordered')"
         />
+        <SvgButton name="image" title="Insert image" @click.stop="tryUploadImageFile()" />
       </div>
       <slot name="belowToolbar" />
       <div
