@@ -19,29 +19,43 @@ import { debugTree, markdownParser } from 'ydoc-shared/ast/ensoMarkdown'
 /** Supported header levels. */
 export type HeaderLevel = 1 | 2 | 3
 
+class MutableChangeSet {
+  private addList: ChangeSpec[] = []
+  private replaceList: ChangeSpec[] = []
+  private removeList: ChangeSpec[] = []
+  public constructor(private offset: number) {}
+  public merge(other: MutableChangeSet) {
+    this.addList.push(...other.addList)
+    this.replaceList.push(...other.replaceList)
+    this.removeList.push(...other.removeList)
+  }
+  public add(from: number, to: number, insert: string) {
+    this.addList.push({ from: from + this.offset, to: to + this.offset, insert })
+  }
+  public replace(from: number, to: number, insert: string) {
+    this.replaceList.push({ from: from + this.offset, to: to + this.offset, insert })
+  }
+  public remove(from: number, to: number) {
+    this.removeList.push({ from: from + this.offset, to: to + this.offset, insert: '' })
+  }
+  public dispatch(view: EditorView, suppressRemoveWhenAdding: boolean = false) {
+    if (this.addList.length > 0 && suppressRemoveWhenAdding) this.removeList = []
+    view.dispatch({ changes: [...this.addList, ...this.replaceList, ...this.removeList] })
+  }
+}
+
 export function toggleHeader(view: EditorView, level: HeaderLevel) {
   const startLine = view.state.doc.lineAt(view.state.selection.main.from)
   const endLine = view.state.doc.lineAt(view.state.selection.main.to)
   const tree = markdownParser.parse(view.state.doc.toString())
-  const add = []
-  const replace = []
-  let remove = []
+  const changeSet = new MutableChangeSet(0)
   for (let lineIndex = startLine.number; lineIndex <= endLine.number; lineIndex++) {
     const line = view.state.doc.line(lineIndex)
     const src = view.state.doc.toString()
     const result = toggleHeaderInner(tree, level, line.from, line.to, src, 0)
-    add.push(...result.add)
-    if (result.replace) replace.push(...result.replace)
-    remove.push(...result.remove)
+    changeSet.merge(result)
   }
-  if (add.length > 0) remove = []
-  view.dispatch({ changes: [...add, ...remove, ...replace] })
-}
-
-interface ToggleChangeSet {
-  add: ChangeSpec[]
-  replace?: ChangeSpec[]
-  remove: ChangeSpec[]
+  changeSet.dispatch(view, true)
 }
 
 function toggleHeaderInner(
@@ -51,10 +65,8 @@ function toggleHeaderInner(
   lineEnd: number,
   src: string,
   offset: number,
-): ToggleChangeSet {
-  const add = []
-  const replace = []
-  const remove = []
+): MutableChangeSet {
+  const changeSet = new MutableChangeSet(offset)
   console.log(debugTree(tree, src))
   console.log('Line: ', src.slice(lineStart, lineEnd))
   const prefix = '#'.repeat(level)
@@ -65,13 +77,9 @@ function toggleHeaderInner(
     const headerMark = node.getChild('HeaderMark')
     if (headerMark) {
       if (node.type.name.endsWith(level.toString())) {
-        remove.push({ from: headerMark.from + offset, to: headerMark.to + offset, insert: '' })
+        changeSet.remove(headerMark.from, headerMark.to)
       } else {
-        replace.push({
-          from: headerMark.from + offset,
-          to: headerMark.to + offset,
-          insert: prefix + ' ',
-        })
+        changeSet.replace(headerMark.from, headerMark.to, prefix + ' ')
       }
     }
   } else if (node.type.name === 'CodeText') {
@@ -85,19 +93,15 @@ function toggleHeaderInner(
       codeText,
       node.from,
     )
-    add.push(...result.add)
-    if (result.replace) replace.push(...result.replace)
-    remove.push(...result.remove)
+    changeSet.merge(result)
   } else {
-    add.push({ from: lineStart + offset, to: lineStart + offset, insert: prefix + ' ' })
+    changeSet.add(lineStart, lineStart, prefix + ' ')
   }
-  return { add, replace, remove }
+  return changeSet
 }
 
 export function toggleQuote(view: EditorView) {
-  const add = []
-  const replace = []
-  const remove = []
+  const changeSet = new MutableChangeSet(0)
   const src = view.state.doc.toString()
   const tree = markdownParser.parse(src)
   const selectionPos = view.state.selection.main.from
@@ -110,20 +114,17 @@ export function toggleQuote(view: EditorView) {
     const result = toggleQuoteInner(
       codeTree,
       selectionPos - node.from,
-      lineStart,
+      lineStart - node.from,
       codeText,
       node.from,
     )
-    add.push(...result.add)
-    if (result.replace) replace.push(...result.replace)
-    remove.push(...result.remove)
+    changeSet.merge(result)
   } else {
     const lineStart = view.state.doc.lineAt(selectionPos).from
     const result = toggleQuoteInner(tree, selectionPos, lineStart, src, 0)
-    add.push(...result.add)
-    remove.push(...result.remove)
+    changeSet.merge(result)
   }
-  view.dispatch({ changes: [...add, ...replace, ...remove] })
+  changeSet.dispatch(view)
 }
 
 function toggleQuoteInner(
@@ -132,9 +133,8 @@ function toggleQuoteInner(
   lineStart: number,
   src: string,
   offset: number,
-): ToggleChangeSet {
-  const add = []
-  const remove = []
+): MutableChangeSet {
+  const changeSet = new MutableChangeSet(offset)
   console.log(debugTree(tree, src))
   let node = tree.resolve(selectionPos, -1)
   if (node.type.name === 'Document' && node.firstChild != null) node = node.firstChild
@@ -145,15 +145,13 @@ function toggleQuoteInner(
     if (cursor.type.name === 'EnsoBlockquote') {
       const quoteMark = cursor.node.getChild('QuoteMark')
       if (quoteMark != null) {
-        remove.push({ from: quoteMark.from + offset, to: quoteMark.to + offset, insert: '' })
-        break
+        changeSet.remove(quoteMark.from, quoteMark.to)
+        return changeSet
       }
     }
   } while (cursor.parent())
-  if (remove.length === 0) {
-    add.push({ from: lineStart, to: lineStart, insert: '> ' })
-  }
-  return { add, remove }
+  changeSet.add(lineStart, lineStart, '> ')
+  return changeSet
 }
 
 export type ListType = 'unordered' | 'ordered'
@@ -162,22 +160,16 @@ export function toggleList(view: EditorView, type: ListType) {
   const tree = markdownParser.parse(view.state.doc.toString())
   const startLine = view.state.doc.lineAt(view.state.selection.main.from)
   const endLine = view.state.doc.lineAt(view.state.selection.main.to)
-  const add = []
-  const replace = []
-  let remove = []
+  const changeSet = new MutableChangeSet(0)
   let listIndex = 0
   for (let i = startLine.number; i <= endLine.number; i++) {
     const line = view.state.doc.line(i)
     const src = view.state.doc.toString()
     const result = toggleListInner(tree, listIndex, line.from, line.to, src, type, 0)
-    add.push(...result.add)
-    if (result.replace) replace.push(...result.replace)
-    remove.push(...result.remove)
+    changeSet.merge(result)
     listIndex++
   }
-  console.log('Changes: ', add, replace, remove)
-  if (add.length > 0) remove = []
-  view.dispatch({ changes: [...add, ...replace, ...remove] })
+  changeSet.dispatch(view, true)
 }
 
 function toggleListInner(
@@ -188,10 +180,8 @@ function toggleListInner(
   src: string,
   type: ListType,
   offset: number,
-): ToggleChangeSet {
-  const add = []
-  const replace = []
-  const remove = []
+): MutableChangeSet {
+  const changeSet = new MutableChangeSet(offset)
   let node = tree.resolve(lineEnd, -1)
   if (node.type.name === 'Document' && node.firstChild != null) node = node.firstChild
   let listMark: false | { from: number; to: number } = false
@@ -211,10 +201,8 @@ function toggleListInner(
       type,
       node.from,
     )
-    add.push(...result.add)
-    if (result.replace) replace.push(...result.replace)
-    remove.push(...result.remove)
-    return { add, replace, remove }
+    changeSet.merge(result)
+    return changeSet
   }
   const cursor = node.cursor()
   do {
@@ -234,23 +222,11 @@ function toggleListInner(
     }
   } while (cursor.parent())
   if (listMark && listType === type) {
-    remove.push({
-      from: listMark.from + offset,
-      to: listType === 'ordered' ? listMark.to + 1 + offset : listMark.to + offset,
-      insert: '',
-    })
+    changeSet.remove(listMark.from, listType === 'ordered' ? listMark.to + 1 : listMark.to)
   } else if (listMark && listType !== type) {
-    replace.push({
-      from: listMark.from + offset,
-      to: listMark.to + offset,
-      insert: type === 'unordered' ? '-' : `${listIndex + 1}. `,
-    })
+    changeSet.replace(listMark.from, listMark.to, type === 'unordered' ? '-' : `${listIndex + 1}. `)
   } else if (!listMark) {
-    add.push({
-      from: lineStart + offset,
-      to: lineStart + offset,
-      insert: type === 'unordered' ? '- ' : `${listIndex + 1}. `,
-    })
+    changeSet.add(lineStart, lineStart, type === 'unordered' ? '- ' : `${listIndex + 1}. `)
   }
-  return { add, replace, remove }
+  return changeSet
 }
