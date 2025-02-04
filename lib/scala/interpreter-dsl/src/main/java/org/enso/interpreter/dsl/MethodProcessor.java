@@ -400,6 +400,9 @@ public class MethodProcessor
 
   private static void generateArguments(MethodDefinition methodDefinition, final PrintWriter out) {
     for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
+      if (!arg.isPositional()) {
+        continue;
+      }
       var checkErrors = arg.shouldCheckErrors();
       var checkPanicSentinel = arg.isPositional() && !arg.isSelf();
       var checkWarnings = arg.shouldCheckWarnings();
