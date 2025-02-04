@@ -3,10 +3,9 @@
 import { expect, takeSnapshot } from '@chromatic-com/playwright'
 import fs from 'node:fs/promises'
 import pathModule from 'node:path'
-import { CONTROL_KEY, electronTest, loginAsTestUser } from './electronTest'
+import { CONTROL_KEY, loginAsTestUser, test } from './electronTest'
 
-electronTest('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
-  const PROJECT_PATH = pathModule.join(projectsDir, 'NewProject1')
+test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   const OUTPUT_FILE = 'output.txt'
   const TEXT_TO_WRITE = 'Some text'
 
@@ -15,12 +14,16 @@ electronTest('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   await page.getByRole('button', { name: 'New Project', exact: true }).click()
   await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
 
+  const projectName = (await page.getByTitle('Project Name').textContent()) ?? ''
+  await expect(projectName).toBeTruthy()
+  const PROJECT_PATH = pathModule.join(projectsDir, projectName.replaceAll(' ', ''))
+
   // We see the node type and visualization, so the engine is running the program
   await expect(page.locator('.node-type')).toHaveText('Table', { timeout: 30000 })
   await expect(page.locator('.TableVisualization')).toBeVisible({ timeout: 30000 })
   await expect(page.locator('.TableVisualization')).toContainText('Welcome To Enso!')
 
-  takeSnapshot(page, testInfo)
+  await takeSnapshot(page, testInfo)
 
   // Create node connected to the first node by picking suggestion.
   await page.locator('.GraphNode').click()
@@ -47,7 +50,7 @@ electronTest('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   await page.keyboard.press('Enter')
   await expect(page.locator('.GraphNode'), {}).toHaveCount(3)
 
-  takeSnapshot(page, testInfo)
+  await takeSnapshot(page, testInfo)
 
   // Create write node
   await page.keyboard.press('Enter')
@@ -111,7 +114,7 @@ electronTest('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   const images = await fs.readdir(pathModule.join(PROJECT_PATH, 'images'))
   expect(images).toContain('image.png')
 
-  takeSnapshot(page, testInfo)
+  await takeSnapshot(page, testInfo)
 })
 
 async function readFile(projectDir: string, fileName: string): Promise<string> {
