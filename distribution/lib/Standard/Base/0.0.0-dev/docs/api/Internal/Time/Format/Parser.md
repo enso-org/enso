@@ -1,0 +1,52 @@
+## Enso Signatures 1.0
+## module Standard.Base.Internal.Time.Format.Parser
+- type Common_Nodes
+    - Literal text:Standard.Base.Data.Text.Text
+    - Optional_Section inner_nodes:Standard.Base.Data.Vector.Vector
+- type ISO_Week_Year_Patterns
+    - Day_Of_Week representation:(Standard.Base.Internal.Time.Format.Parser.Numeric_Representation|Standard.Base.Internal.Time.Format.Parser.Text_Representation)
+    - Week_Based_Year representation:(Standard.Base.Internal.Time.Format.Parser.Numeric_Representation|Standard.Base.Internal.Time.Format.Parser.Two_Digit_Year_Representation)
+    - Week_Of_Year representation:Standard.Base.Internal.Time.Format.Parser.Numeric_Representation
+- type Numeric_Representation
+    - Value digits:Standard.Base.Data.Numbers.Integer
+- type Parser
+    - Instance tokens:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any) position:(Standard.Base.Runtime.Ref.Ref Standard.Base.Data.Numbers.Integer) mode:Standard.Base.Internal.Time.Format.Parser.Parser_Mode
+    - consume_curly_parameter_if_exists self -> Standard.Base.Any.Any
+    - consume_token self -> Standard.Base.Any.Any
+    - fail_invalid_pattern self character:Standard.Base.Any.Any count:Standard.Base.Any.Any extra_message:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - new tokens:Standard.Base.Any.Any mode:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - parse_common_token self token:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - parse_iso_week_year_pattern self character:Standard.Base.Any.Any count:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - parse_simple_date_pattern self character:Standard.Base.Any.Any count:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - parse_time_or_timezone_pattern self character:Standard.Base.Any.Any count:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - resolve_year_representation self count:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - run self -> Standard.Base.Any.Any
+- type Parser_Mode
+    - ISO_Week_Year
+    - Simple
+    - pattern_format_name self -> Standard.Base.Any.Any
+- type Standard_Date_Patterns
+    - Day_Of_Month representation:Standard.Base.Internal.Time.Format.Parser.Numeric_Representation
+    - Day_Of_Week representation:Standard.Base.Internal.Time.Format.Parser.Text_Representation
+    - Month representation:(Standard.Base.Internal.Time.Format.Parser.Numeric_Representation|Standard.Base.Internal.Time.Format.Parser.Text_Representation)
+    - Quarter representation:Standard.Base.Internal.Time.Format.Parser.Numeric_Representation
+    - Year representation:(Standard.Base.Internal.Time.Format.Parser.Numeric_Representation|Standard.Base.Internal.Time.Format.Parser.Two_Digit_Year_Representation)
+- type Text_Representation
+    - Long_Form
+    - Short_Form
+- type Time_Patterns
+    - AM_PM
+    - Fraction_Of_Second representation:Standard.Base.Internal.Time.Format.Parser.Numeric_Representation
+    - Hour representation:Standard.Base.Internal.Time.Format.Parser.Numeric_Representation is_24h:Standard.Base.Data.Boolean.Boolean
+    - Minute representation:Standard.Base.Internal.Time.Format.Parser.Numeric_Representation
+    - Second representation:Standard.Base.Internal.Time.Format.Parser.Numeric_Representation
+- type Time_Zone_Patterns
+    - Time_Zone_ID
+    - Time_Zone_Localized_Offset representation:Standard.Base.Internal.Time.Format.Parser.Text_Representation
+    - Time_Zone_Name representation:Standard.Base.Internal.Time.Format.Parser.Text_Representation
+    - Time_Zone_Offset pattern:Standard.Base.Data.Text.Text zero:Standard.Base.Data.Text.Text
+- type Two_Digit_Year_Representation
+    - Value max_year:Standard.Base.Data.Numbers.Integer
+- default_max_year -> Standard.Base.Any.Any
+- parse_iso_week_year_pattern tokens:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- parse_simple_date_pattern tokens:Standard.Base.Any.Any -> Standard.Base.Any.Any

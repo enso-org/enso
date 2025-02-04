@@ -17,6 +17,7 @@ function decorations<T>(
   const vueHost = {
     register: () => ({
       unregister: () => {},
+      update: () => {},
     }),
   }
   view.dispatch({ effects: setVueHost.of(vueHost) })
