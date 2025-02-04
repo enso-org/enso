@@ -22,7 +22,7 @@ const item: CustomDropdownItem = {
       computed(() =>
         h(FileBrowserWidget, {
           writeMode: writeMode.value,
-          onPathSelected: (path: string) => {
+          onPathAccepted: (path: string) => {
             props.onUpdate({
               portUpdate: { value: Ast.TextLiteral.new(path), origin: props.input.portId },
               directInteraction: true,
@@ -31,6 +31,7 @@ const item: CustomDropdownItem = {
           },
         }),
       ),
+      true,
     )
   },
 }

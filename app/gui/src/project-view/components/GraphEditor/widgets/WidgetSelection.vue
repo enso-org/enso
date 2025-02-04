@@ -35,7 +35,7 @@ import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { ToValue } from '@/util/reactivity'
 import { autoUpdate, offset, shift, size, useFloating } from '@floating-ui/vue'
 import type { Ref, RendererNode, VNode } from 'vue'
-import { computed, proxyRefs, ref, shallowRef, toValue, watch } from 'vue'
+import { computed, proxyRefs, reactive, ref, shallowRef, toValue, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
@@ -53,6 +53,7 @@ const editedValue = ref<Ast.Owned<Ast.MutableExpression> | string | undefined>()
 const isHovered = ref(false)
 /** See @{link Actions.setActivity} */
 const activity = shallowRef<ToValue<VNode>>()
+const keptAliveActivities = reactive([] as string[])
 
 // How much wider a dropdown can be than a port it is attached to, when a long text is present.
 // Any text beyond that limit will receive an ellipsis and sliding animation on hover.
@@ -337,8 +338,20 @@ function toggleDropdownWidget() {
 }
 
 const dropdownActions: Actions = {
-  setActivity: (newActivity) => {
+  setActivity: (newActivity, keepAlive) => {
     activity.value = newActivity
+    if (keepAlive) {
+      const activity = toValue(newActivity)
+      if (
+        typeof activity.type === 'object' &&
+        'name' in activity.type &&
+        typeof activity.type.name === 'string'
+      ) {
+        keptAliveActivities.push(activity.type.name)
+      } else {
+        console.warn('DropDown activity wanted to be kept alive, but provides no name', activity)
+      }
+    }
   },
   close: dropDownInteraction.end.bind(dropDownInteraction),
 }
@@ -466,8 +479,11 @@ export interface Actions {
    *
    * For example, the {@link WidgetCloudBrowser} installs a custom entry that, when clicked,
    * opens a file browser where the dropdown was.
+   * @param keepAlive - when set, the `activity` instance will be kept between drop-down closing
+   *  and opening. The activity component must not change it type (when being a ref) and provide
+   * `name` option explicitly.
    */
-  setActivity: (activity: ToValue<VNode>) => void
+  setActivity: (activity: ToValue<VNode>, keepAlive: boolean) => void
   close: () => void
 }
 
@@ -514,9 +530,9 @@ declare module '@/providers/widgetRegistry' {
         :style="activityStyles"
       >
         <SizeTransition height :duration="100">
-          <div v-if="dropDownInteraction.isActive() && activity">
-            <component :is="toValue(activity)" />
-          </div>
+          <KeepAlive :include="keptAliveActivities">
+            <component :is="dropDownInteraction.isActive() && activity && toValue(activity)" />
+          </KeepAlive>
         </SizeTransition>
       </div>
     </Teleport>

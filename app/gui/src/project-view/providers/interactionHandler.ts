@@ -78,10 +78,10 @@ export class InteractionHandler {
     const handler = this.currentInteraction.value[handlerName]
     if (!handler) return false
     const handled = handler.bind(this.currentInteraction.value)(event) !== false
-    if (handled) {
-      event.stopImmediatePropagation()
-      event.preventDefault()
-    }
+    // if (handled) {
+    //   event.stopImmediatePropagation()
+    //   event.preventDefault()
+    // }
     return handled
   }
 }
