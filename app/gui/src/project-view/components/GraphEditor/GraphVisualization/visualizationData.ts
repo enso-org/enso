@@ -95,34 +95,31 @@ export function useVisualizationData({
   )
 
   const executeExpression = async (
-    graphDb: GraphDb = useGraphStore().db,
     visulizationModule: string,
     expressionString: string,
-    ...positionalArgumentsExpressions: string[]) => {
-    console.log({graphDb})
+    ...positionalArgumentsExpressions: string[]
+  ) => {
+    
     const dataSourceValue = toValue(dataSource)
     const args = positionalArgumentsExpressions
     try {
       const tempModule = Ast.MutableModule.Transient()
-      const preprocessorModule = Ast.parseExpression(
-        visulizationModule,
-        tempModule,
-      )!
+      const preprocessorModule = Ast.parseExpression(visulizationModule, tempModule)!
       const preprocessorQn = Ast.PropertyAccess.new(
         tempModule,
         preprocessorModule,
         expressionString,
       )
-    const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
-      Ast.Wildcard.new(tempModule),
-      ...args.map((arg) => Ast.Group.new(tempModule, Ast.parseExpression(arg, tempModule)!)),
-    ])
-    // const identifier = graphDb.getOutputPortIdentifier(dataSourceValue.nodeId)
-    // console.log({identifier})
-    const rhs = Ast.Ident.new(tempModule, Ast.identifier('any2')!)
-    const expression = Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
-    console.log({expression: expression.code()})
-    const result =  projectStore.executeExpression(dataSourceValue.nodeId, expression.code())
+      const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
+        Ast.Wildcard.new(tempModule),
+        ...args.map((arg) => Ast.Group.new(tempModule, Ast.parseExpression(arg, tempModule)!)),
+      ])
+      // const identifier = graphDb.getOutputPortIdentifier(dataSourceValue.nodeId)
+      // console.log({identifier})
+      const rhs = Ast.Ident.new(tempModule, Ast.identifier('any2')!)
+      const expression = Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
+      console.log({ expression: expression.code() })
+      const result = projectStore.executeExpression(dataSourceValue.nodeId, expression.code())
       return result
     } catch (e) {
       console.error(e)
@@ -298,6 +295,10 @@ export function useVisualizationData({
       (toolbarDefinition.value = definition),
     visualizationDefinedToolbar: computed(() => toValue(toolbarDefinition.value)),
     toolbarOverlay,
-    executeExpression: (visulizationModule: string, expressionString: string, ...positionalArgumentsExpressions: string[]) => executeExpression(visulizationModule, expressionString, ...positionalArgumentsExpressions)
+    executeExpression: (
+      visulizationModule: string,
+      expressionString: string,
+      ...positionalArgumentsExpressions: string[]
+    ) => executeExpression(visulizationModule, expressionString, ...positionalArgumentsExpressions),
   }
 }

@@ -227,20 +227,18 @@ function formatText(params: ICellRendererParams) {
 
 watchEffect(async () => {
   const exe = config.executeExpression
-  const xyz = await exe('Standard.Visualization.Table.Visualization',
-  'get_rows_for_table',
-  '1997')
-  console.log({xyz})
+  const xyz = await exe('Standard.Visualization.Table.Visualization', 'get_rows_for_table', '1997')
+  console.log({ xyz })
 })
 
 function createFakeServer() {
   return {
     getData: () => {
       // use executeExpression to get data
-        return {
-          success: true,
-          rows: [{}, {}, {}, {}],
-        }
+      return {
+        success: true,
+        rows: [{}, {}, {}, {}],
+      }
     },
   }
 }
