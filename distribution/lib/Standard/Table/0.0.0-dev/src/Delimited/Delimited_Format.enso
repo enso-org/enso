@@ -61,7 +61,7 @@ type Delimited_Format
     @delimiter make_file_read_delimiter_selector
     @encoding Encoding.default_widget
     @row_limit Rows_To_Read.default_widget
-    Delimited (delimiter:Text=',') (encoding:Encoding=Encoding.default) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Headers=Headers.Detect_Headers) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value) (keep_invalid_rows:Invalid_Rows=Invalid_Rows.Keep_Invalid_Rows) (line_endings:Line_Ending_Style|Infer=Infer) (comment_character:Text|Nothing=Nothing)
+    Delimited (delimiter:Text=',') (encoding:Encoding=Encoding.default) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Headers=Headers.Detect_Headers) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value) (keep_invalid_rows:Invalid_Rows=Invalid_Rows.Add_Extra_Columns) (line_endings:Line_Ending_Style|Infer=Infer) (comment_character:Text|Nothing=Nothing)
 
     ## PRIVATE
        Resolve an unresolved constructor to the actual type.
