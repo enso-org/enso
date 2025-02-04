@@ -121,7 +121,14 @@ public class HyperReader {
         var bindings = Context.getCurrent().getBindings("enso");
         var found = bindings.invokeMember("find_native_library", libName);
         try {
-          return new FileInputStream(found.asString());
+          if (found == null || found.asString() == null) {
+            LOGGER.log(
+                Level.WARNING,
+                "Failed to find library `" + libName + "`. Retrying with a fallback");
+            return super.getResourceAsStream(name);
+          } else {
+            return new FileInputStream(found.asString());
+          }
         } catch (FileNotFoundException e) {
           return null;
         }
