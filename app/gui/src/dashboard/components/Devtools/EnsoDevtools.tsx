@@ -25,15 +25,7 @@ export function EnsoDevtools() {
     }
   }, [isEnsoTeamMember])
 
-  const shouldDisplayDevtools = (() => {
-    if (showEnsoDevtools == null) {
-      return isEnsoTeamMember
-    }
-
-    return showEnsoDevtools
-  })()
-
-  if (!shouldDisplayDevtools) {
+  if (!showEnsoDevtools) {
     return null
   }
 

@@ -77,7 +77,7 @@ export const ICON_STYLES = tv({
     },
   },
   defaultVariants: {
-    color: 'primary',
+    color: 'current',
     size: 'medium',
   },
 })
