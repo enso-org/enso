@@ -48,6 +48,11 @@ jobs:
       - run: ./run backend benchmark enso-jmh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results.xml
+          path: std-bits/benchmarks/bench-report.xml
       - if: (always())
         name: Clean after
         run: ./run git-clean

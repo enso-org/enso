@@ -198,7 +198,9 @@ object StdBits {
     */
   private def arch(): String = {
     val arch = System.getProperty("os.arch").toLowerCase(Locale.ENGLISH)
-    arch.replace("amd64", "x86_64")
+    arch
+      .replace("amd64", "x86_64")
+      .replace("aarch64", "ARMv8")
   }
 
   private def updateDependency(

@@ -90,6 +90,50 @@ test.each([
       ['Paragraph', ['Emphasis', ['EmphasisMark', '*'], ['EmphasisMark', '*']]],
     ],
   },
+  {
+    source: '- List',
+    expected: ['Document', ['BulletList', ['ListItem', ['ListMark', '- '], ['Paragraph', 'List']]]],
+  },
+  {
+    source: '- List\n  - Sublist',
+    expected: [
+      'Document',
+      [
+        'BulletList',
+        [
+          'ListItem',
+          ['ListMark', '- '],
+          ['Paragraph', 'List'],
+          ['BulletList', ['ListItem', ['ListMark', '- '], ['Paragraph', 'Sublist']]],
+        ],
+      ],
+    ],
+  },
+  {
+    source: '- List\n  Non-list child',
+    expected: [
+      'Document',
+      ['BulletList', ['ListItem', ['ListMark', '- '], ['Paragraph', 'List\n  Non-list child']]],
+    ],
+  },
+  {
+    source: '- List\n  - Sublist\n  Non-list child',
+    expected: [
+      'Document',
+      [
+        'BulletList',
+        [
+          'ListItem',
+          ['ListMark', '- '],
+          ['Paragraph', 'List'],
+          [
+            'BulletList',
+            ['ListItem', ['ListMark', '- '], ['Paragraph', 'Sublist\n  Non-list child']],
+          ],
+        ],
+      ],
+    ],
+  },
 ])('Enso Markdown tree structure: $source', ({ source, expected }) => {
   expect(debugTree(markdownParser.parse(source), source)).toEqual(expected)
 })
