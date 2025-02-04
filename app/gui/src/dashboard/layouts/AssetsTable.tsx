@@ -120,6 +120,7 @@ import {
   BackendType,
   getAssetPermissionName,
   IS_OPENING_OR_OPENED,
+  isSpecialAssetId,
   Plan,
   type AnyAsset,
   type DirectoryAsset,
@@ -1211,7 +1212,10 @@ function AssetsTable(props: AssetsTableProps) {
         const index2 = newIndex
         const startIndex = Math.min(index1, index2)
         const endIndex = Math.max(index1, index2) + 1
-        return visibleItems.slice(startIndex, endIndex).map(({ item }) => item)
+        return visibleItems
+          .slice(startIndex, endIndex)
+          .map(({ item }) => item)
+          .filter((item) => !isSpecialAssetId(item.id))
       }
     }
     setSelectedAssets(calculateNewSelection(event, [asset], getRange))
