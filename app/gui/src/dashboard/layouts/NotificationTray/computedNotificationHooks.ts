@@ -53,7 +53,12 @@ export function useComputedNotifications(): readonly NotificationInfo[] {
   const upsertNotification = useEventCallback((key: unknown, newNotification: NotificationInfo) => {
     setNotificationMap((map) => {
       const newNotifications = new Map(map)
-      newNotifications.set(key, newNotification)
+      const existingNotification = map.get(key)
+      newNotifications.set(key, {
+        ...newNotification,
+        timestamp:
+          existingNotification?.timestamp ?? newNotification.timestamp ?? Number(new Date()),
+      })
       return newNotifications
     })
   })
