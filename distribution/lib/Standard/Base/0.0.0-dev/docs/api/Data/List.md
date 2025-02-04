@@ -1,0 +1,35 @@
+## Enso Signatures 1.0
+## module Standard.Base.Data.List
+- type List
+    - Cons x:Standard.Base.Any.Any xs:Standard.Base.Any.Any
+    - Nil
+    - all self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - any self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - at self index:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - contains self elem:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - drop_start self count:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - each self f:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - filter self filter:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - find self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) start:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - first self -> Standard.Base.Any.Any
+    - fold self init:Standard.Base.Any.Any f:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - get self index:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - head self -> Standard.Base.Any.Any
+    - index_of self condition:Standard.Base.Any.Any start:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - init self -> Standard.Base.Any.Any
+    - is_empty self -> Standard.Base.Any.Any
+    - last self -> Standard.Base.Any.Any
+    - last_index_of self condition:Standard.Base.Any.Any start:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - length self -> Standard.Base.Any.Any
+    - map self f:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - not_empty self -> Standard.Base.Any.Any
+    - partition self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - reduce self function:Standard.Base.Any.Any ~if_empty:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - reverse self -> Standard.Base.Any.Any
+    - second self -> Standard.Base.Any.Any
+    - tail self -> Standard.Base.Any.Any
+    - take_start self count:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+    - to_vector self -> Standard.Base.Any.Any
+- find_node_from_end list:Standard.Base.Any.Any index:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- find_node_from_start list:Standard.Base.Any.Any index:Standard.Base.Any.Any -> Standard.Base.Any.Any

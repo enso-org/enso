@@ -1,0 +1,32 @@
+## Enso Signatures 1.0
+## module Standard.Base.Random
+- type Random
+    - boolean -> Standard.Base.Any.Any
+    - date min:Standard.Base.Data.Time.Date.Date max:Standard.Base.Data.Time.Date.Date -> Standard.Base.Any.Any
+    - float min:Standard.Base.Data.Numbers.Float= max:Standard.Base.Data.Numbers.Float= -> Standard.Base.Any.Any
+    - gaussian standard_deviation:Standard.Base.Data.Numbers.Float= mean:Standard.Base.Data.Numbers.Float= -> Standard.Base.Any.Any
+    - indices n:Standard.Base.Data.Numbers.Integer count:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - integer min:Standard.Base.Data.Numbers.Integer max:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
+    - items v:(Standard.Base.Any.Any|Standard.Base.Any.Any) count:Standard.Base.Data.Numbers.Integer= with_replacement:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - new_generator seed:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
+    - permute v:Standard.Base.Data.Vector.Vector -> Standard.Base.Any.Any
+    - set_seed seed:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
+    - time min:Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day= max:Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day= -> Standard.Base.Any.Any
+    - uuid -> Standard.Base.Any.Any
+- type Random_Generator
+    - Value random_instance_holder:Standard.Base.Random.RandomInstanceHolder
+    - boolean self -> Standard.Base.Any.Any
+    - date self start_date:Standard.Base.Data.Time.Date.Date end_date:Standard.Base.Data.Time.Date.Date -> Standard.Base.Any.Any
+    - float self min:Standard.Base.Data.Numbers.Float= max:Standard.Base.Data.Numbers.Float= -> Standard.Base.Any.Any
+    - gaussian self standard_deviation:Standard.Base.Data.Numbers.Float= mean:Standard.Base.Data.Numbers.Float= -> Standard.Base.Any.Any
+    - global_random_generator -> Standard.Base.Any.Any
+    - indices self n:Standard.Base.Data.Numbers.Integer count:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - integer self min:Standard.Base.Data.Numbers.Integer max:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
+    - items self v:(Standard.Base.Any.Any|Standard.Base.Any.Any) count:Standard.Base.Data.Numbers.Integer= with_replacement:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - java_random self -> Standard.Base.Any.Any
+    - new seed:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing) -> Standard.Base.Any.Any
+    - permute self v:Standard.Base.Data.Vector.Vector -> Standard.Base.Any.Any
+    - set_seed self seed:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - time self start_time:Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day= end_time:Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day= -> Standard.Base.Any.Any
+    - uuid self -> Standard.Base.Any.Any
+- get_default_seed -> Standard.Base.Any.Any

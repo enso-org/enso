@@ -28,7 +28,7 @@ function suggestionDbWithNothing() {
 }
 
 function generateTableOfOnes(rows: number, cols: number) {
-  const code = `Table.input [${[...Array(cols).keys()].map((i) => `['Column #${i}', [${Array(rows).fill("'1'").join(',')}]]`).join(',')}]`
+  const code = `Table.input [${[...Array(cols).keys()].map((i) => `['${DEFAULT_COLUMN_PREFIX}${i}', [${Array(rows).fill("'1'").join(',')}]]`).join(',')}]`
   const ast = Ast.parseExpression(code)
   assertDefined(ast)
   return ast
@@ -597,7 +597,8 @@ test('Pasted data which would exceed cells limit is truncated', () => {
     let cellCount = 0
     inputAst.visitRecursive((ast: Ast.Ast | Ast.Token) => {
       if (ast instanceof Ast.Token) return
-      if (ast instanceof Ast.TextLiteral && ast.code().startsWith("'Column #")) return
+      if (ast instanceof Ast.TextLiteral && ast.code().startsWith(`'${DEFAULT_COLUMN_PREFIX}`))
+        return
       if (ast instanceof Ast.TextLiteral || ast.code() === 'Nothing') cellCount++
     })
     expect(cellCount).toBe(CELLS_LIMIT)

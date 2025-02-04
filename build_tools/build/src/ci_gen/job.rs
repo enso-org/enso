@@ -652,16 +652,6 @@ pub fn prepare_packaging_steps(os: OS, step: Step, packaging_target: PackagingTa
     vec![step]
 }
 
-/// Convenience for [`prepare_packaging_steps`].
-///
-/// This function is useful when you want to use [`prepare_packaging_steps`] as a closure.
-pub fn with_packaging_steps(
-    os: OS,
-    packaging_target: PackagingTarget,
-) -> impl FnOnce(Step) -> Vec<Step> {
-    move |step| prepare_packaging_steps(os, step, packaging_target)
-}
-
 #[derive(Clone, Copy, Debug)]
 pub struct PackageIde;
 
