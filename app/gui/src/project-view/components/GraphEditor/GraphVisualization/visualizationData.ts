@@ -117,7 +117,7 @@ export function useVisualizationData({
         Ast.Wildcard.new(tempModule),
         ...args.map((arg) => Ast.Group.new(tempModule, Ast.parseExpression(arg, tempModule)!)),
       ])
-      const rhs = Ast.Ident.new(tempModule, Ast.identifier('node1')!)
+      const rhs = Ast.Ident.new(tempModule, Ast.identifier(identifier)!)
       const expression = Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
       console.log({ expression: expression.code() })
       const result = projectStore.executeExpression(dataSourceValue.nodeId, expression.code())
