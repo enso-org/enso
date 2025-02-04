@@ -17,6 +17,8 @@
   keys jumps to next cell/ next row respectively.][12129]
 - [Fixed bugs occurring after renaming project from within graph editor][12106].
 - [Added support for rendering numbered and nested lists][12190].
+- [Added buttons for editing top-level markdown elements in the documentation
+  panel][12217].
 - [Removed `#` from default colum name][12222]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
@@ -31,6 +33,7 @@
 [12106]: https://github.com/enso-org/enso/pull/12106
 [12190]: https://github.com/enso-org/enso/pull/12190
 [12222]: https://github.com/enso-org/enso/pull/12222
+[12217]: https://github.com/enso-org/enso/pull/12217
 
 #### Enso Standard Library
 
