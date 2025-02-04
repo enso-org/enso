@@ -44,16 +44,25 @@ class MutableChangeSet {
   }
 }
 
+/** Resolve node at position, descending into the document if needed. */
+function resolveNodeAtPos(tree: Tree, pos: number) {
+  let node = tree.resolve(pos, -1)
+  if (node.type.name === 'Document' && node.firstChild != null) node = node.firstChild
+  return node
+}
+
 export function toggleHeader(view: EditorView, level: HeaderLevel) {
-  const startLine = view.state.doc.lineAt(view.state.selection.main.from)
-  const endLine = view.state.doc.lineAt(view.state.selection.main.to)
-  const tree = markdownParser.parse(view.state.doc.toString())
+  const selection = view.state.selection.main
+  const startLine = view.state.doc.lineAt(selection.from)
+  const endLine = view.state.doc.lineAt(selection.to)
+  const src = view.state.doc.toString()
+  const tree = markdownParser.parse(src)
   const changeSet = new MutableChangeSet(0)
   for (let lineIndex = startLine.number; lineIndex <= endLine.number; lineIndex++) {
     const line = view.state.doc.line(lineIndex)
-    const src = view.state.doc.toString()
-    const result = toggleHeaderInner(tree, level, line.from, line.to, src, 0)
-    changeSet.merge(result)
+    const lineChanges = new MutableChangeSet(0)
+    toggleHeaderInner(tree, level, line.from, line.to, src, lineChanges)
+    changeSet.merge(lineChanges)
   }
   changeSet.dispatch(view, true)
 }
@@ -64,40 +73,35 @@ function toggleHeaderInner(
   lineStart: number,
   lineEnd: number,
   src: string,
-  offset: number,
-): MutableChangeSet {
-  const changeSet = new MutableChangeSet(offset)
-  console.log(debugTree(tree, src))
-  console.log('Line: ', src.slice(lineStart, lineEnd))
-  const prefix = '#'.repeat(level)
-  let node = tree.resolve(lineEnd, -1)
-  if (node.type.name === 'Document' && node.firstChild != null) node = node.firstChild
-  console.log('Node type: ', node.type.name)
+  changeSet: MutableChangeSet,
+) {
+  const prefix = `${'#'.repeat(level)} `
+  const node = resolveNodeAtPos(tree, lineEnd)
   if (node.type.name.startsWith('ATXHeading')) {
     const headerMark = node.getChild('HeaderMark')
-    if (headerMark) {
-      if (node.type.name.endsWith(level.toString())) {
-        changeSet.remove(headerMark.from, headerMark.to)
-      } else {
-        changeSet.replace(headerMark.from, headerMark.to, prefix + ' ')
-      }
+    if (!headerMark) return
+    const isLevelMatch = node.type.name.endsWith(level.toString())
+    if (isLevelMatch) {
+      changeSet.remove(headerMark.from, headerMark.to)
+    } else {
+      changeSet.replace(headerMark.from, headerMark.to, prefix)
     }
   } else if (node.type.name === 'CodeText') {
     const codeText = src.slice(node.from, node.to)
     const codeTree = markdownParser.parse(codeText)
-    const result = toggleHeaderInner(
+    const codeChanges = new MutableChangeSet(node.from)
+    toggleHeaderInner(
       codeTree,
       level,
       lineStart - node.from,
       lineEnd - node.from,
       codeText,
-      node.from,
+      codeChanges,
     )
-    changeSet.merge(result)
+    changeSet.merge(codeChanges)
   } else {
-    changeSet.add(lineStart, lineStart, prefix + ' ')
+    changeSet.add(lineStart, lineStart, prefix)
   }
-  return changeSet
 }
 
 export function toggleQuote(view: EditorView) {
@@ -135,11 +139,8 @@ function toggleQuoteInner(
   offset: number,
 ): MutableChangeSet {
   const changeSet = new MutableChangeSet(offset)
-  console.log(debugTree(tree, src))
   let node = tree.resolve(selectionPos, -1)
   if (node.type.name === 'Document' && node.firstChild != null) node = node.firstChild
-  console.log('Node type: ', node.type.name)
-  console.log('Line start: ', lineStart)
   const cursor = node.cursor()
   do {
     if (cursor.type.name === 'EnsoBlockquote') {
@@ -186,9 +187,6 @@ function toggleListInner(
   if (node.type.name === 'Document' && node.firstChild != null) node = node.firstChild
   let listMark: false | { from: number; to: number } = false
   let listType: undefined | ListType = undefined
-  console.log(debugTree(tree, src))
-  console.log('Line: ', src.slice(lineStart, lineEnd))
-  console.log('Node type: ', node.type.name)
   if (node.type.name === 'CodeText') {
     const codeText = src.slice(node.from, node.to)
     const codeTree = markdownParser.parse(codeText)
