@@ -296,8 +296,9 @@
   "options": "Options",
   "googleIcon": "Google icon",
   "gitHubIcon": "GitHub icon",
-  "more": "More",
   "close": "Close",
+
+  "snowflakeCredentialType": "Snowflake",
 
   "enterSecretPath": "Enter secret path",
   "enterText": "Enter text",
