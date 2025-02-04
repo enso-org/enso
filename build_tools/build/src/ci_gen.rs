@@ -832,12 +832,7 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
 
 pub fn engine_benchmark() -> Result<Workflow> {
     let report_path = "engine/runtime-benchmarks/bench-report.xml";
-    benchmark_workflow(
-        "Benchmark Engine",
-        "backend benchmark runtime",
-        report_path,
-        Some(4 * 60),
-    )
+    benchmark_workflow("Benchmark Engine", "backend benchmark runtime", report_path, Some(4 * 60))
 }
 
 pub fn std_libs_benchmark() -> Result<Workflow> {
