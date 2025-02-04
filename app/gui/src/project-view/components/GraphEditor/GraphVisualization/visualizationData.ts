@@ -58,6 +58,7 @@ export function useVisualizationData({
 
   const projectStore = useProjectStore()
   const visualizationStore = useVisualizationStore()
+  const graph = useGraphStore()
 
   // Flag used to prevent rendering the visualization with a stale preprocessor while the new preprocessor is being
   // prepared asynchronously.
@@ -99,8 +100,10 @@ export function useVisualizationData({
     expressionString: string,
     ...positionalArgumentsExpressions: string[]
   ) => {
-    
     const dataSourceValue = toValue(dataSource)
+    const graphDb = graph.db
+    const nodeFirstOurputPort = graphDb.getNodeFirstOutputPort(dataSourceValue.nodeId)
+    const identifier = graphDb.getOutputPortIdentifier(nodeFirstOurputPort)
     const args = positionalArgumentsExpressions
     try {
       const tempModule = Ast.MutableModule.Transient()
@@ -114,9 +117,7 @@ export function useVisualizationData({
         Ast.Wildcard.new(tempModule),
         ...args.map((arg) => Ast.Group.new(tempModule, Ast.parseExpression(arg, tempModule)!)),
       ])
-      // const identifier = graphDb.getOutputPortIdentifier(dataSourceValue.nodeId)
-      // console.log({identifier})
-      const rhs = Ast.Ident.new(tempModule, Ast.identifier('any2')!)
+      const rhs = Ast.Ident.new(tempModule, Ast.identifier('node1')!)
       const expression = Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
       console.log({ expression: expression.code() })
       const result = projectStore.executeExpression(dataSourceValue.nodeId, expression.code())
