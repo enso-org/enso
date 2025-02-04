@@ -3791,6 +3791,9 @@ lazy val `engine-runner` = project
         `std-aws-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
         `std-microsoft-polyglot-root`
           .listFiles("*.jar")
+          .map(_.getAbsolutePath()) ++
+        `std-snowflake-polyglot-root`
+          .listFiles("*.jar")
           .map(_.getAbsolutePath())
 
       core ++ stdLibsJars
@@ -3870,13 +3873,17 @@ lazy val `engine-runner` = project
             // which breaks all our class loading. We still want to run `SqliteJdbcFeature` which extracts a proper
             // native library from the jar.
             excludeConfigs = Seq(
-              s".*sqlite-jdbc-.*\\.jar,META-INF/native-image/org\\.xerial/sqlite-jdbc/native-image\\.properties"
+              s".*sqlite-jdbc-.*\\.jar,META-INF/native-image/org\\.xerial/sqlite-jdbc/native-image\\.properties",
+              s".*snowflake-jdbc-.*\\.jar,META-INF/native-image/.*"
             ),
             additionalOptions = Seq(
               "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
               "-H:IncludeResources=.*Main.enso$",
               "-H:+AddAllCharsets",
               "-H:+IncludeAllLocales",
+              // Workaround a problem with build-/runtime-initialization conflict
+              // by disabling this service provider
+              "-H:ServiceLoaderFeatureExcludeServiceProviders=net.snowflake.client.core.FileTypeDetector",
               // useful perf & debug switches:
               // "-g",
               // "-H:+SourceLevelDebug",
@@ -3887,7 +3894,9 @@ lazy val `engine-runner` = project
               // "--verbose",
               "-Dnic=nic",
               "-Dorg.enso.feature.native.lib.output=" + (engineDistributionRoot.value / "bin"),
-              "-Dorg.sqlite.lib.exportPath=" + (engineDistributionRoot.value / "bin")
+              "-Dorg.sqlite.lib.exportPath=" + (engineDistributionRoot.value / "bin"),
+              // Snowflake uses Apache Arrow (equivalent of #9664 in native-image setup)
+              "--add-opens=java.base/java.nio=ALL-UNNAMED"
             ),
             mainClass = Some("org.enso.runner.Main"),
             initializeAtRuntime = Seq(
@@ -3911,7 +3920,11 @@ lazy val `engine-runner` = project
               "org.enso.table",
               "org.enso.database",
               "org.eclipse.jgit",
-              "com.amazonaws"
+              "com.amazonaws",
+              "com.google",
+              "io.grpc",
+              "io.opencensus",
+              "net.snowflake.client"
             )
           )
       }

@@ -14,7 +14,6 @@ use crate::source::WithDestination;
 use ide_ci::actions::artifacts;
 use ide_ci::cache;
 use ide_ci::cache::Cache;
-use ide_ci::ok_ready_boxed;
 use ide_ci::programs::git;
 use octocrab::models::repos::Asset;
 
@@ -167,30 +166,14 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
         job: BuildTargetJob<Self>,
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
         let span = debug_span!("Building.", ?self, ?context, ?job).entered();
-        let upload_artifacts = job.should_upload_artifact;
         let artifact_fut = self.build_internal(context, job.map(|job| job.input));
         let this = self.clone();
         async move {
             let artifact = artifact_fut.await.context(format!("Failed to build {this:?}."))?;
-            // We upload only built artifacts. There would be no point in uploading something that
-            // we've just downloaded. That's why the uploading code is here.
-            if upload_artifacts {
-                this.perhaps_upload_artifact(&artifact).await?;
-            }
             Ok(artifact)
         }
         .instrument(span.exit())
         .boxed()
-    }
-
-    fn perhaps_upload_artifact(&self, artifact: &Self::Artifact) -> BoxFuture<'static, Result> {
-        let should_upload_artifact = ide_ci::actions::workflow::is_in_env();
-        trace!("Got target {:?}, should it be uploaded? {}", self, should_upload_artifact);
-        if should_upload_artifact {
-            self.upload_artifact(ready(Ok(artifact.clone())))
-        } else {
-            ok_ready_boxed(())
-        }
     }
 
     /// Produce an artifact from build inputs.
@@ -199,15 +182,6 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
         context: Context,
         job: WithDestination<Self::BuildInput>,
     ) -> BoxFuture<'static, Result<Self::Artifact>>;
-
-    /// Upload artifact to the current GitHub Actions run.
-    fn upload_artifact(
-        &self,
-        output: impl Future<Output = Result<Self::Artifact>> + Send + 'static,
-    ) -> BoxFuture<'static, Result> {
-        let name = self.artifact_name();
-        async move { artifacts::upload_compressed_directory(output.await?, name).await }.boxed()
-    }
 
     fn download_artifact(
         &self,

@@ -1,0 +1,56 @@
+## Enso Signatures 1.0
+## module Standard.Base.Enso_Cloud.Enso_File
+- type Enso_Asset_Type
+    - Data_Link
+    - Directory
+    - File
+    - Project
+    - Secret
+- type Enso_File
+    - / self name:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - add_label self label:Standard.Base.Data.Text.Text -> Standard.Base.Enso_Cloud.Enso_File.Enso_File
+    - asset_type self -> Standard.Base.Enso_Cloud.Enso_File.Enso_Asset_Type
+    - cloud_project_parent_directory -> Standard.Base.Any.Any
+    - copy_to self destination:Standard.Base.System.File.Generic.File_Like.File_Like replace_existing:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - create_directory self -> Standard.Base.Any.Any
+    - create_label name:Standard.Base.Data.Text.Text color:Standard.Base.Data.Color.Color -> Standard.Base.Nothing.Nothing
+    - creation_time self -> Standard.Base.Data.Time.Date_Time.Date_Time
+    - current_working_directory -> Standard.Base.Any.Any
+    - delete self recursive:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - delete_if_exists self recursive:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - description self -> Standard.Base.Data.Text.Text
+    - exists self -> Standard.Base.Any.Any
+    - extension self -> Standard.Base.Data.Text.Text
+    - home -> Standard.Base.Enso_Cloud.Enso_File.Enso_File
+    - is_data_link self -> Standard.Base.Data.Boolean.Boolean
+    - is_descendant_of self other:Standard.Base.Enso_Cloud.Enso_File.Enso_File -> Standard.Base.Data.Boolean.Boolean
+    - is_directory self -> Standard.Base.Any.Any
+    - is_regular_file self -> Standard.Base.Any.Any
+    - labels self -> (Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)
+    - last_modified_time self -> Standard.Base.Data.Time.Date_Time.Date_Time
+    - list self name_filter:Standard.Base.Data.Text.Text= recursive:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - move_to self destination:Standard.Base.System.File.Generic.File_Like.File_Like replace_existing:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - name self -> Standard.Base.Data.Text.Text
+    - new path:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - parent self -> Standard.Base.Any.Any
+    - path self -> Standard.Base.Data.Text.Text
+    - read self format:Standard.Base.Any.Any= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+    - read_bytes self -> Standard.Base.Any.Any
+    - read_text self encoding:Standard.Base.Data.Text.Encoding.Encoding= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+    - remove_label self label:Standard.Base.Data.Text.Text -> Standard.Base.Data.Boolean.Boolean
+    - resolve_single_part self part:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - root -> Standard.Base.Any.Any
+    - set_description self description:Standard.Base.Data.Text.Text -> Standard.Base.Enso_Cloud.Enso_File.Enso_File
+    - set_labels self labels:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text) -> Standard.Base.Enso_Cloud.Enso_File.Enso_File
+    - size self -> Standard.Base.Data.Numbers.Integer
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Data.Text.Text
+    - with_input_stream self open_options:Standard.Base.Data.Vector.Vector action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - with_output_stream self open_options:Standard.Base.Data.Vector.Vector action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- list_assets parent:Standard.Base.Enso_Cloud.Enso_File.Enso_File -> (Standard.Base.Data.Vector.Vector Standard.Base.Enso_Cloud.Internal.Existing_Enso_Asset.Existing_Enso_Asset)
+- Standard.Base.Enso_Cloud.Enso_File.Enso_Asset_Type.from that:Standard.Base.Data.Text.Text -> Standard.Base.Enso_Cloud.Enso_File.Enso_Asset_Type
+- Standard.Base.System.File_Format_Metadata.File_Format_Metadata.from that:Standard.Base.Enso_Cloud.Enso_File.Enso_File -> Standard.Base.System.File_Format_Metadata.File_Format_Metadata
+- Standard.Base.System.File.Generic.File_Like.File_Like.from that:Standard.Base.Enso_Cloud.Enso_File.Enso_File -> Standard.Base.System.File.Generic.File_Like.File_Like
+- Standard.Base.System.File.Generic.Writable_File.Writable_File.from that:Standard.Base.Enso_Cloud.Enso_File.Enso_File -> Standard.Base.System.File.Generic.Writable_File.Writable_File
+- Standard.Base.Enso_Cloud.Data_Link.Data_Link_From_File.from that:Standard.Base.Enso_Cloud.Enso_File.Enso_File -> Standard.Base.Enso_Cloud.Data_Link.Data_Link_From_File

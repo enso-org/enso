@@ -15,7 +15,7 @@ await fs.writeFile(
 // Please run \`bazel run //:write_all\` to regenerate this file whenever \`icons.svg\` is changed.
 
 /** All icon names present in icons.svg. */
-const iconNames = [
+export const iconNames = [
 ${iconNames?.map((name) => `  '${name}',`).join('\n')}
 ] as const
 

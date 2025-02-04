@@ -16,7 +16,10 @@ export interface SvgMaskProps extends TestIdProps {
   readonly className?: string | undefined
 }
 
-/** Use an SVG as a mask. This lets the SVG use the text color (`currentColor`). */
+/**
+ * Use an SVG as a mask. This lets the SVG use the text color (`currentColor`).
+ * @deprecated Prefer `<Icon />` or `<SvgUse />` instead.
+ */
 const SvgMask = React.forwardRef(function SvgMask(
   props: SvgMaskProps,
   ref: React.ForwardedRef<HTMLDivElement>,
@@ -59,4 +62,7 @@ const SvgMask = React.forwardRef(function SvgMask(
   )
 })
 
+/**
+ * @deprecated Prefer `<Icon />` or `<SvgUse />` instead.
+ */
 export default React.memo(SvgMask)
