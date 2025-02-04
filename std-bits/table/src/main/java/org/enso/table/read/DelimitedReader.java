@@ -267,7 +267,7 @@ public class DelimitedReader {
 
     if (row.length != builders.size()) {
       boolean isRowKept = switch (keepInvalidRows) {
-        case DISCARD -> false;
+        case DROP -> false;
         case KEEP, ADD_EXTRA_COLUMNS -> true;
       };
       problemAggregator.reportInvalidRow(
@@ -522,7 +522,7 @@ public class DelimitedReader {
   /** Specifies how to handle rows with unexpected number of columns. */
   public enum InvalidRowsBehavior {
     /** Discards rows with unexpected number of columns. */
-    DISCARD,
+    DROP,
 
     /** Keeps rows with unexpected number of columns, but the additional columns are discarded. */
     KEEP,
