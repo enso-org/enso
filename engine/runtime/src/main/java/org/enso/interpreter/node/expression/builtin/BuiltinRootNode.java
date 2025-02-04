@@ -220,19 +220,6 @@ public abstract class BuiltinRootNode extends RootNode {
       }
       return BuiltinRootNodeFactory.ArgNodeGen.create(flags);
     }
-
-    /*
-    if (!arg.requiresCast()) {
-      generateUncastedArgumentRead(out, arg, argsArray);
-    } else if (arg.isSelf()) {
-      generateUncheckedArgumentRead(out, arg, argsArray);
-    } else if (arg.isArray()) {
-      generateUncheckedArrayCast(out, arg, argsArray);
-    } else {
-      generateCheckedArgumentRead(out, arg, argsArray);
-    }
-
-      */
   }
 
   @SuppressWarnings("unchecked")
