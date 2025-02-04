@@ -539,6 +539,7 @@
   "closeWindowDialogTitle": "Close window?",
   "anUploadIsInProgress": "An upload is in progress.",
   "youAreAllCaughtUp": "You're all caught up!",
+  "clearCacheAndReload": "Clear cache and reload",
 
   "deleteLabelActionText": "delete the label '$0'",
   "deleteSelectedAssetActionText": "delete '$0'",

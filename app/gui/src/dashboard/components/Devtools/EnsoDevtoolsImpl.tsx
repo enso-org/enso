@@ -108,6 +108,18 @@ export function EnsoDevtools() {
 
           <Separator orientation="horizontal" className="my-3" />
 
+          <Button
+            variant="outline"
+            onPress={async () => {
+              await queryClient.clearWithPersister()
+              location.reload()
+            }}
+          >
+            {getText('clearCacheAndReload')}
+          </Button>
+
+          <Separator orientation="horizontal" className="my-3" />
+
           {session?.type === UserSessionType.full && (
             <>
               <Text variant="subtitle">{getText('ensoDevtoolsPlanSelectSubtitle')}</Text>
