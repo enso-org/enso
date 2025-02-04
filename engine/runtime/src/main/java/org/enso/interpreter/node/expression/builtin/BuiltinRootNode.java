@@ -148,7 +148,7 @@ public abstract class BuiltinRootNode extends RootNode {
           }
         }
       }
-      if (is(REQUIRES_CAST)) {
+      if (is(REQUIRES_CAST) && type != Object.class) {
         var ctx = EnsoContext.get(this);
         if (this.ensoType == null) {
           CompilerDirectives.transferToInterpreterAndInvalidate();
