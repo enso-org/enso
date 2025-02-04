@@ -5,7 +5,7 @@ import type { NotificationInfo } from '#/layouts/NotificationTray/types'
 
 /** An item in the notification tray. */
 export function NotificationItem(props: NotificationInfo) {
-  const { message, icon, progress, color } = props
+  const { message, icon, progress, color, timestamp } = props
 
   return (
     <GridListItem>
@@ -13,6 +13,7 @@ export function NotificationItem(props: NotificationInfo) {
         <div className="flex min-h-12 items-center gap-2 text-primary">
           <Button isDisabled isActive variant="icon" color={color} icon={icon} />
           <Text>{message}</Text>
+          {timestamp != null && <Text color="disabled">{message}</Text>}
         </div>
         {progress != null && (
           <ProgressBar value={progress} maxValue={1}>
