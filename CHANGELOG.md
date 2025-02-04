@@ -20,6 +20,8 @@
   File Browser][12208]
 - [Added support for rendering numbered and nested lists][12190].
 - [Removed `#` from default colum name][12222]
+- [Cloud File Browser will display input for file name in components writing to
+  (new) files.][12228]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -34,6 +36,7 @@
 [12208]: https://github.com/enso-org/enso/pull/12208
 [12190]: https://github.com/enso-org/enso/pull/12190
 [12222]: https://github.com/enso-org/enso/pull/12222
+[12228]: https://github.com/enso-org/enso/pull/12228
 
 #### Enso Standard Library
 
