@@ -601,7 +601,7 @@ test('Table widget', async ({ page }) => {
 
   // Create first column
   await widget.getByRole('button', { name: 'Add new column' }).click()
-  await expect(widget.locator('.ag-header-cell-text')).toHaveText(['#', 'Column #1'])
+  await expect(widget.locator('.ag-header-cell-text')).toHaveText(['#', 'Column 1'])
   await expect(widget.locator('.ag-cell')).toHaveText(['0', '', ''])
 
   // Putting first value
@@ -612,14 +612,14 @@ test('Table widget', async ({ page }) => {
   await expect(widget.locator('.ag-cell')).toHaveText(['0', 'Value', '', '1', '', ''])
 
   // Renaming column
-  await widget.locator('.ag-header-cell-text', { hasText: 'Column #1' }).first().click()
+  await widget.locator('.ag-header-cell-text', { hasText: 'Column 1' }).first().click()
   await page.keyboard.type('Header')
   await page.keyboard.press('Enter')
   await expect(widget.locator('.ag-header-cell-text')).toHaveText(['#', 'Header'])
 
   // Adding next column
   await widget.getByRole('button', { name: 'Add new column' }).click()
-  await expect(widget.locator('.ag-header-cell-text')).toHaveText(['#', 'Header', 'Column #2'])
+  await expect(widget.locator('.ag-header-cell-text')).toHaveText(['#', 'Header', 'Column 2'])
   await expect(widget.locator('.ag-cell')).toHaveText(['0', 'Value', '', '', '1', '', '', ''])
 
   // Switching edit between cells and headers - check we will never edit two things at once.

@@ -1,16 +1,23 @@
-/** @file Functions related to inputs. */
+/** @file Functions related to files. */
+
+export type FileExtension = `.${string}`
+export type MimeType = `${string}/${string}`
+
+export interface InputFilesOptions {
+  accept?: (FileExtension | MimeType)[]
+}
 
 /**
- * Trigger a file input.
+ * Open a file-selection dialog and read the file selected by the user.
  */
-export function inputFiles() {
+export function readUserSelectedFile(options: InputFilesOptions = {}) {
   return new Promise<FileList>((resolve, reject) => {
     const input = document.createElement('input')
     input.type = 'file'
     input.style.display = 'none'
+    if (options.accept) input.accept = options.accept.join(',')
     document.body.appendChild(input)
     input.addEventListener('input', () => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       resolve(input.files!)
     })
     input.addEventListener('cancel', () => {

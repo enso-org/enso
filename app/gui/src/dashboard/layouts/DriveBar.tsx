@@ -55,8 +55,8 @@ import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
-import { inputFiles } from '#/utilities/input'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 import { useFullUserSession } from '../providers/AuthProvider'
 import { AssetPanelToggle } from './AssetPanel'
 
@@ -171,7 +171,7 @@ export default function DriveBar(props: DriveBarProps) {
         void newProject([null, null])
       },
       uploadFiles: () => {
-        void inputFiles().then((files) => uploadFiles(Array.from(files)))
+        void readUserSelectedFile().then((files) => uploadFiles(Array.from(files)))
       },
     })
   }, [inputBindings, isCloud, newFolder, newProject, uploadFiles])
@@ -323,7 +323,7 @@ export default function DriveBar(props: DriveBarProps) {
                 isDisabled={shouldBeDisabled}
                 aria-label={getText('uploadFiles')}
                 onPress={async () => {
-                  const files = await inputFiles()
+                  const files = await readUserSelectedFile()
                   await uploadFiles(Array.from(files))
                 }}
               />

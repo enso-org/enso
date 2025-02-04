@@ -169,6 +169,12 @@ describe('Function documentation (Markdown)', () => {
       source: '## Table below:\n\n   | a | b |\n   |---|---|',
       markdown: 'Table below:\n\n| a | b |\n|---|---|',
     },
+    {
+      source:
+        '## - Bullet list\n     - Nested list\n       - Very nested list\n     - Nested list\n   - Bullet list',
+      markdown:
+        '- Bullet list\n  - Nested list\n    - Very nested list\n  - Nested list\n- Bullet list',
+    },
   ]
 
   test.each(cases)('Enso source comments to normalized markdown', ({ source, markdown }) => {

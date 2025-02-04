@@ -599,8 +599,6 @@ onWindowBlur(() => {
   align-items: center;
   white-space: nowrap;
   z-index: 24;
-  transition: outline 0.2s ease;
-  outline: 0px solid transparent;
 }
 
 .binding {
