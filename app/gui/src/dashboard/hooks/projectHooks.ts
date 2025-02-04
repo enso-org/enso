@@ -200,7 +200,7 @@ export function useOpenProjectMutation() {
   return reactQuery.useMutation({
     mutationKey: ['openProject'],
     networkMode: 'always',
-    mutationFn: ({
+    mutationFn: async ({
       title,
       id,
       type,
@@ -215,23 +215,32 @@ export function useOpenProjectMutation() {
       if (runCloudLocally) {
         invariant(localBackend != null, 'Local Backend is null')
 
-        remoteBackend.downloadToTemp(id).then((directoryId) => {
-          return localBackend.openProject(
-            id,
-            {
-              executeAsync: inBackground,
-              cognitoCredentials: {
-                accessToken: session.accessToken,
-                refreshToken: session.refreshToken,
-                clientId: session.clientId,
-                expireAt: session.expireAt,
-                refreshUrl: session.refreshUrl,
-              },
-              parentId: directoryId,
-            },
-            title,
-          )
+        const parentId = await remoteBackend.downloadProject(id)
+        console.log('openProjectMutation parentId:', parentId)
+        const assets = await localBackend.listDirectory({
+          parentId,
+          filterBy: null,
+          labels: null,
+          recentProjects: false,
         })
+
+        console.log('openProjectMutation assets:', assets)
+
+        return localBackend.openProject(
+          id,
+          {
+            executeAsync: inBackground,
+            cognitoCredentials: {
+              accessToken: session.accessToken,
+              refreshToken: session.refreshToken,
+              clientId: session.clientId,
+              expireAt: session.expireAt,
+              refreshUrl: session.refreshUrl,
+            },
+            parentId,
+          },
+          title,
+        )
       } else {
         return backend.openProject(
           id,

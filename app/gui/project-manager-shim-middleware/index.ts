@@ -158,11 +158,16 @@ export default function projectManagerShimMiddleware(
             .on('end', () => {
               const buffer = Buffer.concat(data)
               const readable = stream.Readable.from(buffer)
-              projectManagement.unpackBundle(readable).then((projectDirectory) => {
-                response
-                .writeHead(HTTP_STATUS_OK, COMMON_HEADERS)
-                .end({ path: projectDirectory })
-              })
+              projectManagement.unpackBundle(readable)
+                .then((projectDirectory) => {
+                  return response
+                    .writeHead(HTTP_STATUS_OK, COMMON_HEADERS)
+                    .end(projectDirectory)
+                })
+                .catch((e) => {
+                  console.error(e)
+                  response.writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS).end()
+                })
             })
         })
 

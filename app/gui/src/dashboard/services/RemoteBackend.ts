@@ -1477,22 +1477,28 @@ export default class RemoteBackend extends Backend {
 
     invariant(details.url != null, 'The download URL of the project must be present.')
 
-    const url = new URL('./api/cloud/download-project')
-    url.searchParams.set('download_url', details.url)
+    const queryString = new URLSearchParams({
+      download_url: details.url,
+    })
 
-    const response = await this.client.get<{path: string}>(url.toString())
-    const responseBody = await response.json()
+    const response = await this.client.get(`./api/cloud/download-project?${queryString}`)
+    const path = await response.text()
 
-    return responseBody.path as DirectoryId
+    invariant(response.ok, 'The download-project response must have status OK.')
+    invariant(path != null, 'The download-project response body must be present.')
+
+    return DirectoryId(`directory-${path}` as const)
   }
 
   /** Upload the project. */
   async uploadProject(id: backend.ProjectId, path: string): Promise<void> {
     const uploadPath = remoteBackendPaths.getProjectUploadPath(id)
-    const url = new URL('./api/cloud/upload-project')
-    url.searchParams.set('upload_url', `${$config.API_URL}/${uploadPath}`)
-    url.searchParams.set('directory', path)
-    await this.client.get(url.toString())
+    const queryString = new URLSearchParams({
+      upload_url: `${$config.API_URL}/${uploadPath}`,
+      directory: path,
+    })
+
+    await this.client.get(`./api/cloud/upload-project?${queryString}`)
   }
 
   /** Fetch the URL of the customer portal. */
