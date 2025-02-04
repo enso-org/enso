@@ -122,6 +122,8 @@ object StdBits {
   ): Def.Initialize[Task[Unit]] = Def.task {
 
     val extractPrefix = "nu/pattern/opencv"
+    val validOsName   = osName()
+    val validArch     = arch()
 
     // Make sure that the native libs in the `lib` directory complies with
     // `org.enso.interpreter.runtime.NativeLibraryFinder`
@@ -132,8 +134,8 @@ object StdBits {
         strippedEntryName.contains("linux/x86_32") ||
         strippedEntryName.contains("README.md")    ||
         // Remove native libs for different platforms
-        (!strippedEntryName.contains(osName())) ||
-        (!strippedEntryName.contains(arch()))
+        !strippedEntryName.contains(validOsName) ||
+        !strippedEntryName.contains(validArch)
       ) {
         None
       } else {
@@ -173,29 +175,37 @@ object StdBits {
   }
 
   /** Extract native libraries from `tableauhyperapi-<osname>.jar` and put them under
-    * `Standard/Image/polyglot/lib` directory.
-    * @param imagePolyglotRoot root dir of Std tableau polyglot dir
-    * @param imageNativeLibs root dir of Std tableau lib dir
+    * `Standard/Tableau/polyglot/lib` directory.
+    * @param tableauPolyglotRoot root dir of Std tableau polyglot dir
+    * @param tableauNativeLibs root dir of Std tableau lib dir
     * @return
     */
   def extractNativeLibsFromTableau(
-    imagePolyglotRoot: File,
-    imageNativeLibs: File,
-    tableauVersion: String
+    tableauPolyglotRoot: File,
+    tableauNativeLibs: File,
+    tableauVersion: String,
+    jnaVersion: String
   ): Def.Initialize[Task[Unit]] = Def.task {
 
+    val validOsName = osName(unixName = true)
+    val validOsExt  = osExt()
+    val validArch   = arch().replace("_", "-")
     // Make sure that the native libs in the `lib` directory complies with
     // `org.enso.interpreter.runtime.NativeLibraryFinder`
-    def renameFunc(entryName: String): Option[String] = {
+    def renameFunc(prefix: String)(entryName: String): Option[String] = {
+      val strippedEntryName =
+        if (prefix.isEmpty) entryName
+        else entryName.substring(prefix.length + 1)
       if (
-        !entryName.endsWith("dll") &&
-        !entryName.endsWith(".so") &&
-        !entryName.endsWith(".dylib")
+        !strippedEntryName.endsWith(validOsExt) ||
+        // Remove native libs for different platforms
+        !strippedEntryName.contains(validOsName) ||
+        !strippedEntryName.contains(validArch)
       ) {
         None
       } else {
         Some(
-          entryName
+          strippedEntryName
             .replace("linux-x86-64", "amd64")
             .replace("win32-x86-64", "amd64")
             .replace("darwin-aarch64", "aarch64")
@@ -204,28 +214,54 @@ object StdBits {
       }
     }
 
-    val osNames = List("linux", "win32", "darwin")
-    val jar = (Compile / unmanagedJars).value
+    // Extract native library from tableauhyperapi-$arch's jar
+    val tableauNativeLibJar = (Compile / unmanagedJars).value
       .map(_.data)
-      .filter(f => osNames.exists(name => f.getName.contains(name)))
+      .filter(f =>
+        f.getName.contains(validOsName) && f.getName.contains("tableau")
+      )
       .head
     val logger = streams.value.log
 
-    val extractedFilesDir = imageNativeLibs.toPath
+    val extractedFilesDir = tableauNativeLibs.toPath
     JARUtils.extractFilesFromJar(
-      jar.toPath,
+      tableauNativeLibJar.toPath,
       None,
       None,
       extractedFilesDir,
-      renameFunc,
+      renameFunc(""),
       logger,
       streams.value.cacheStoreFactory
+    )
+
+    // Extract native library from jna's jar
+    val jnaJar = JPMSUtils
+      .filterModulesFromUpdate(
+        update.value,
+        Seq("net.java.dev.jna" % "jna" % jnaVersion),
+        logger,
+        moduleName.value,
+        scalaBinaryVersion.value,
+        shouldContainAll = true
+      )
+      .head
+    val outputJnaJarPath = (tableauPolyglotRoot / s"jna-$jnaVersion.jar").toPath
+    val extractPrefix    = "com/sun/jna"
+    JARUtils.extractFilesFromJar(
+      jnaJar.toPath,
+      Some(extractPrefix),
+      Some(outputJnaJarPath),
+      extractedFilesDir,
+      renameFunc(extractPrefix),
+      logger,
+      streams.value.cacheStoreFactory,
+      cleanOutputDirs = false
     )
   }
 
   /** Inspired by `org.enso.pkg.NativeLibraryFinder`
     */
-  private def osName(): String = {
+  private def osName(unixName: Boolean = false): String = {
     var osName = System.getProperty("os.name").toLowerCase(Locale.ENGLISH)
     if (osName.contains(" ")) {
       // Strip version
@@ -234,9 +270,26 @@ object StdBits {
     if (osName.contains("linux")) {
       "linux"
     } else if (osName.contains("mac")) {
-      "osx"
+      if (unixName) "darwin" else "osx"
     } else if (osName.contains("windows")) {
-      "windows"
+      if (unixName) "win32" else "windows"
+    } else {
+      throw new IllegalStateException(s"Unsupported OS: $osName")
+    }
+  }
+
+  private def osExt(): String = {
+    var osName = System.getProperty("os.name").toLowerCase(Locale.ENGLISH)
+    if (osName.contains(" ")) {
+      // Strip version
+      osName = osName.substring(0, osName.indexOf(' '))
+    }
+    if (osName.contains("linux")) {
+      ".so"
+    } else if (osName.contains("mac")) {
+      ".dylib"
+    } else if (osName.contains("windows")) {
+      ".dll"
     } else {
       throw new IllegalStateException(s"Unsupported OS: $osName")
     }

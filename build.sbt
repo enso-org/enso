@@ -5170,7 +5170,8 @@ lazy val `std-tableau` = project
         .extractNativeLibsFromTableau(
           `std-tableau-polyglot-root`,
           `std-tableau-native-libs`,
-          tableauVersion
+          tableauVersion,
+          jnaVersion
         )
         .value
     },
@@ -5185,6 +5186,7 @@ lazy val `std-tableau` = project
             Some(!_.getName.endsWith("tableauhyperapi.jar"))
         )
         .value
+      extractNativeLibs.value
       result
     }.value
   )

@@ -30,7 +30,8 @@ object JARUtils {
     extractedFilesDir: Path,
     renameFunc: String => Option[String],
     logger: sbt.util.Logger,
-    cacheStoreFactory: CacheStoreFactory
+    cacheStoreFactory: CacheStoreFactory,
+    cleanOutputDirs: Boolean = true
   ): Unit = {
     val dependencyStore = cacheStoreFactory.make("extract-jar-files")
     // Make sure that the actual file extraction is done only iff some of the cached files change.
@@ -52,10 +53,12 @@ object JARUtils {
       )
     }
 
-    outputJarPath.foreach(outputJarPath =>
-      ensureDirExistsAndIsClean(outputJarPath.getParent, logger)
-    )
-    ensureDirExistsAndIsClean(extractedFilesDir, logger)
+    if (cleanOutputDirs) {
+      outputJarPath.foreach(outputJarPath =>
+        ensureDirExistsAndIsClean(outputJarPath.getParent, logger)
+      )
+      ensureDirExistsAndIsClean(extractedFilesDir, logger)
+    }
     Using(new JarFile(inputJarPath.toFile)) { inputJar =>
       outputJarPath match {
         case Some(outputJarPath) =>
@@ -82,7 +85,19 @@ object JARUtils {
                         )
                         e.printStackTrace(System.err)
                       })
-                    case None => ()
+                    case None =>
+                      if (entry.getName.endsWith(".class")) {
+                        outputJar.putNextEntry(new JarEntry(entry.getName))
+                        Using(inputJar.getInputStream(entry)) { is =>
+                          is.transferTo(outputJar)
+                        }.recover({ case e: IOException =>
+                          logger.err(
+                            s"Failed to copy $entry to output JAR: ${e.getMessage}"
+                          )
+                          e.printStackTrace(System.err)
+                        })
+                        outputJar.closeEntry()
+                      }
                   }
                 } else {
                   outputJar.putNextEntry(new JarEntry(entry.getName))
