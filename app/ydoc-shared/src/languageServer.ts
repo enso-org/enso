@@ -449,15 +449,12 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
     expressionId: ExpressionId,
     expression: string,
   ): Promise<LsRpcResult<void>> {
-    console.log('execute expression, lang server')
-    const result2 =  this.request('executionContext/executeExpression', {
+    return this.request('executionContext/executeExpression', {
       executionContextId,
       visualizationId,
       expressionId,
       expression,
     })
-    console.log({result2})
-    return result2
   }
 
   /** [Documentation](https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-language-server.md#executioncontextattachvisualization) */
