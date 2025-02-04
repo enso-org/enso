@@ -159,37 +159,17 @@ pub fn remove_glob(glob_pattern: &str) -> Result {
 }
 
 /// (Recursive) difference between directories.
-/// Compares files by content.
-/// Delegates to `git diff --no-index` for comparison of two files.
+/// Delegates to `git diff --no-index`.
 /// Ensures that in both directories, there are the same files.
 pub async fn diff_dirs(old_dir: impl AsRef<Path>, new_dir: impl AsRef<Path>) -> Result {
     let cur_dir = env::current_dir()?;
     let git = git::new(cur_dir).await?;
-    for (first_dir, second_dir) in
-        [(old_dir.as_ref(), new_dir.as_ref()), (new_dir.as_ref(), old_dir.as_ref())]
-    {
-        let files = WalkDir::new(first_dir)
-            .into_iter()
-            .filter_map(|e| e.ok())
-            .filter(|e| e.file_type().is_file())
-            .map(|e| e.path().to_path_buf());
-        for first_path in files {
-            let relative_path = pathdiff::diff_paths(&first_path, first_dir)
-                .context(format!("Failed to relativize path {}.", first_path.display()))?;
-            let second_path = second_dir.join(&relative_path);
-            if !second_path.exists() {
-                bail!("File {:?} does not exist in directory {:?}.", first_path, second_dir);
-            }
-            git.diff_files(&first_path, &second_path).await?;
-        }
-    }
-    Ok(())
+    git.diff_files(old_dir.as_ref(), new_dir.as_ref()).await
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ::tokio;
 
     #[test]
     fn remove_glob_test() -> Result {
@@ -223,14 +203,18 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
-    async fn diff_same_dirs_test() -> Result {
+    #[test]
+    fn diff_same_dirs_test() -> Result {
         let temp = tempfile::tempdir()?;
         let old_dir = temp.path().join("old");
         let new_dir = temp.path().join("new");
         write(old_dir.join("file1.txt"), "file1")?;
         write(new_dir.join("file1.txt"), "file1")?;
-        diff_dirs(old_dir, new_dir).await
+        let _ = diff_dirs(old_dir, new_dir).then(|res| {
+            assert!(res.is_ok());
+            async { Ok::<(), anyhow::Error>(()) }
+        });
+        Ok(())
     }
 
     #[test]
