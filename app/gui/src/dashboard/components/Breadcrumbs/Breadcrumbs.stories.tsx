@@ -2,7 +2,6 @@
  * @file Stories for the Breadcrumbs component.
  */
 
-import Cloud from '#/assets/cloud.svg'
 import ArrowDown from '#/assets/expand_arrow.svg'
 import Folder from '#/assets/folder.svg'
 import Add from '#/assets/plus.svg'
@@ -381,12 +380,12 @@ export const WithCustomIcon: Story = {
     <div className="space-y-4">
       {/* Simple SVG icons */}
       <Breadcrumbs>
-        <Breadcrumbs.Item icon={Cloud}>Home</Breadcrumbs.Item>
-        <Breadcrumbs.Item icon={Folder}>Projects</Breadcrumbs.Item>
-        <Breadcrumbs.Item icon={Folder}>Team</Breadcrumbs.Item>
-        <Breadcrumbs.Item icon={Folder}>Documents</Breadcrumbs.Item>
-        <Breadcrumbs.Item icon={Folder}>Reports</Breadcrumbs.Item>
-        <Breadcrumbs.Item icon={Folder} isCurrent>
+        <Breadcrumbs.Item icon="cloud">Home</Breadcrumbs.Item>
+        <Breadcrumbs.Item icon="folder">Projects</Breadcrumbs.Item>
+        <Breadcrumbs.Item icon="folder">Team</Breadcrumbs.Item>
+        <Breadcrumbs.Item icon="folder">Documents</Breadcrumbs.Item>
+        <Breadcrumbs.Item icon="folder">Reports</Breadcrumbs.Item>
+        <Breadcrumbs.Item icon="folder" isCurrent>
           March 2025
         </Breadcrumbs.Item>
       </Breadcrumbs>

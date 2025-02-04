@@ -19,7 +19,7 @@ export function* docLineToConcrete(
       yield ensureUnspaced(token, false)
     } else {
       if (prevType === TokenType.Newline) {
-        yield { whitespace: indent + extraIndent, node: token.node }
+        yield { whitespace: token.whitespace ?? indent + extraIndent, node: token.node }
       } else {
         if (prevType === undefined) {
           const leadingSpace = token.node.code_.match(/ */)
@@ -71,11 +71,23 @@ export function abstractMarkdown(elements: undefined | TextToken<ConcreteRefs>[]
   return { markdown, hash }
 }
 
+function indentLevel(whitespace: string) {
+  return whitespace.length + whitespace.split('\t').length - 1
+}
+
 function toRawMarkdown(elements: undefined | TextToken<ConcreteRefs>[]) {
   const tags: string[] = []
   let readingTags = true
+  const tokenWhitespace = ({ token: { whitespace } }: TextToken<ConcreteRefs>) => whitespace
+  let minWhitespace = Infinity
+  if (elements) {
+    for (let i = 1; i < elements.length; i++) {
+      const whitespace = tokenWhitespace(elements[i]!)
+      if (whitespace) minWhitespace = Math.min(minWhitespace, indentLevel(whitespace))
+    }
+  }
   let rawMarkdown = ''
-  ;(elements ?? []).forEach(({ token: { node } }, i) => {
+  ;(elements ?? []).forEach(({ token: { whitespace, node } }, i) => {
     if (node.tokenType_ === TokenType.Newline) {
       if (!readingTags) {
         rawMarkdown += '\n'
@@ -90,7 +102,10 @@ function toRawMarkdown(elements: undefined | TextToken<ConcreteRefs>[]) {
           readingTags = false
         }
       }
-      if (!readingTags) {
+      if (!readingTags && nodeCode) {
+        if (whitespace && indentLevel(whitespace) > minWhitespace) {
+          rawMarkdown += whitespace.replaceAll(/\t/g, '    ').slice(minWhitespace)
+        }
         rawMarkdown += nodeCode
       }
     }

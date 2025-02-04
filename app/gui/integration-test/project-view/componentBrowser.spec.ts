@@ -59,7 +59,10 @@ test('Different ways of opening Component Browser', async ({ page }) => {
   await locate.graphEditor(page).press('Enter')
   await expectAndCancelBrowser(page, '', 'selected')
   // Dragging out an edge
-  let outputPort = await locate.outputPortCoordinates(locate.graphNodeByBinding(page, 'selected'))
+  let outputPort = await locate.outputPortCoordinates(
+    page,
+    locate.graphNodeByBinding(page, 'selected'),
+  )
   await page.mouse.click(outputPort.x, outputPort.y)
   await locate.graphEditor(page).click({ position: { x: 100, y: 500 } })
   await expectAndCancelBrowser(page, '', 'selected')
@@ -67,7 +70,7 @@ test('Different ways of opening Component Browser', async ({ page }) => {
   // TODO[ao] Without timeout, even the first click would be treated as double due to previous
   // event. Probably we need a better way to simulate double clicks.
   await page.waitForTimeout(600)
-  outputPort = await locate.outputPortCoordinates(locate.graphNodeByBinding(page, 'selected'))
+  outputPort = await locate.outputPortCoordinates(page, locate.graphNodeByBinding(page, 'selected'))
   await page.mouse.click(outputPort.x, outputPort.y)
   await page.mouse.click(outputPort.x, outputPort.y)
   await expectAndCancelBrowser(page, '', 'selected')
@@ -79,15 +82,16 @@ test('Opening Component Browser from output port buttons', async ({ page }) => {
   // Small (+) button shown when node is hovered
   const node = locate.graphNodeByBinding(page, 'selected')
   await locate.graphNodeIcon(node).hover()
-  await expect(locate.createNodeFromPort(node)).toBeVisible()
-  await locate.createNodeFromPort(node).click({ force: true })
+  const createNodeFromPortButton = await locate.createNodeFromPortButton(page, node)
+  await expect(createNodeFromPortButton).toBeVisible()
+  await createNodeFromPortButton.click({ force: true })
   await expectAndCancelBrowser(page, '', 'selected')
 
   // Small (+) button shown when node is selected
   await page.keyboard.press('Escape')
   await node.click()
-  await expect(locate.createNodeFromPort(node)).toBeVisible()
-  await locate.createNodeFromPort(node).click({ force: true })
+  await expect(createNodeFromPortButton).toBeVisible()
+  await createNodeFromPortButton.click({ force: true })
   await expectAndCancelBrowser(page, '', 'selected')
 })
 
@@ -111,7 +115,10 @@ test('Graph Editor pans to Component Browser', async ({ page }) => {
   await page.mouse.move(100, 280)
   await page.mouse.up({ button: 'middle' })
   await expect(locate.graphNodeByBinding(page, 'five')).toBeInViewport()
-  const outputPort = await locate.outputPortCoordinates(locate.graphNodeByBinding(page, 'final'))
+  const outputPort = await locate.outputPortCoordinates(
+    page,
+    locate.graphNodeByBinding(page, 'final'),
+  )
   await page.mouse.click(outputPort.x, outputPort.y)
   await locate.graphEditor(page).click({ position: { x: 100, y: 1700 } })
   await expect(locate.graphNodeByBinding(page, 'five')).not.toBeInViewport()
