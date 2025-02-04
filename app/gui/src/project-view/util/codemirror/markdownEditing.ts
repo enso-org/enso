@@ -13,7 +13,7 @@
 
 import { ChangeSpec } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
-import { Tree } from '@lezer/common'
+import { SyntaxNode, Tree } from '@lezer/common'
 import { debugTree, markdownParser } from 'ydoc-shared/ast/ensoMarkdown'
 
 /** Supported header levels. */
@@ -158,8 +158,9 @@ export function toggleList(view: EditorView, type: ListType) {
   for (let i = startLine.number; i <= endLine.number; i++) {
     const line = view.state.doc.line(i)
     const src = view.state.doc.toString()
-    const result = toggleListInner(tree, listIndex, line.from, line.to, src, type, 0)
-    changeSet.merge(result)
+    const lineChanges = new MutableChangeSet(0)
+    toggleListInner(tree, listIndex, line.from, line.to, src, type, lineChanges)
+    changeSet.merge(lineChanges)
     listIndex++
   }
   changeSet.dispatch(view, true)
@@ -172,51 +173,56 @@ function toggleListInner(
   lineEnd: number,
   src: string,
   type: ListType,
-  offset: number,
-): MutableChangeSet {
-  const changeSet = new MutableChangeSet(offset)
-  let node = tree.resolve(lineEnd, -1)
-  if (node.type.name === 'Document' && node.firstChild != null) node = node.firstChild
-  let listMark: false | { from: number; to: number } = false
-  let listType: undefined | ListType = undefined
+  changeSet: MutableChangeSet,
+) {
+  const node = resolveNodeAtPos(tree, lineEnd)
   if (node.type.name === 'CodeText') {
     const codeText = src.slice(node.from, node.to)
     const codeTree = markdownParser.parse(codeText)
-    const result = toggleListInner(
+    const codeChanges = new MutableChangeSet(node.from)
+    toggleListInner(
       codeTree,
       listIndex,
       lineStart - node.from,
       lineEnd - node.from,
       codeText,
       type,
-      node.from,
+      codeChanges,
     )
-    changeSet.merge(result)
-    return changeSet
+    changeSet.merge(codeChanges)
+    return
   }
+  const listInfo = detectList(node)
+  if (listInfo != null && listInfo.listType === type) {
+    changeSet.remove(listInfo.listMark.from, listInfo.listMark.to)
+  } else if (listInfo != null && listInfo.listType !== type) {
+    changeSet.replace(listInfo.listMark.from, listInfo.listMark.to, listMark(type, listIndex))
+  } else if (listInfo == null) {
+    changeSet.add(lineStart, lineStart, listMark(type, listIndex))
+  }
+}
+
+function listMark(type: ListType, listIndex: number) {
+  if (type === 'unordered') return '- '
+  return `${listIndex + 1}. `
+}
+
+function detectList(
+  node: SyntaxNode,
+): { listMark: { from: number; to: number }; listType: ListType } | null {
   const cursor = node.cursor()
+  let listMark: { from: number; to: number } | null = null
   do {
     if (cursor.type.name === 'ListItem') {
       const mark = cursor.node.getChild('ListMark')
-      if (mark) {
-        listMark = { from: mark.from, to: mark.to }
-      }
+      if (mark) listMark = { from: mark.from, to: mark.to }
     }
     if (cursor.type.name === 'BulletList') {
-      listType = 'unordered'
-      break
+      return listMark != null ? { listMark, listType: 'unordered' } : null
     }
     if (cursor.type.name === 'OrderedList') {
-      listType = 'ordered'
-      break
+      return listMark != null ? { listMark, listType: 'ordered' } : null
     }
   } while (cursor.parent())
-  if (listMark && listType === type) {
-    changeSet.remove(listMark.from, listType === 'ordered' ? listMark.to + 1 : listMark.to)
-  } else if (listMark && listType !== type) {
-    changeSet.replace(listMark.from, listMark.to, type === 'unordered' ? '-' : `${listIndex + 1}. `)
-  } else if (!listMark) {
-    changeSet.add(lineStart, lineStart, type === 'unordered' ? '- ' : `${listIndex + 1}. `)
-  }
-  return changeSet
+  return null
 }
