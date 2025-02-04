@@ -86,7 +86,7 @@ export default function UserBar(props: UserBarProps) {
   const topbarLinks = TOPBAR_LINKS_SCHEMA.parse(TOPBAR_LINKS)
 
   return (
-    <div className="bg-primary/10 pt-0.5">
+    <div className="mr-1 mt-2">
       <div className="flex h-full shrink-0 cursor-default items-center gap-user-bar pl-icons-x pr-2">
         <AnimatePresence initial={false}>
           {isOffline && (
@@ -137,13 +137,13 @@ export default function UserBar(props: UserBarProps) {
           </DialogTrigger>
         )}
 
-        <NotificationTray />
-
         {shouldShowUpgradeButton && (
           <Button variant={upgradeButtonVariant} size="medium" href={SUBSCRIBE_PATH}>
             {getText('upgrade')}
           </Button>
         )}
+
+        <NotificationTray />
 
         <Popover.Trigger>
           <Button
