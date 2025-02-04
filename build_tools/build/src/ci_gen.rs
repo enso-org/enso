@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 use crate::ci::input;
 use crate::ci_gen::job::plain_job;
-use crate::ci_gen::job::with_packaging_steps;
+use crate::ci_gen::job::prepare_packaging_steps;
 use crate::ci_gen::job::RunsOn;
 use crate::engine::env;
 use crate::version::promote::Designation;
@@ -444,7 +444,19 @@ impl JobArchetype for UploadIde {
             "ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --sign-artifacts",
         )
         .cleaning(RELEASE_CLEANING_POLICY)
-        .customize(with_packaging_steps(target.0, job::PackagingTarget::Release))
+        .customize(move |step| {
+            let mut steps = prepare_packaging_steps(target.0, step, job::PackagingTarget::Release);
+
+            let upload_ide = step::upload_artifact("Upload ide")
+                .with_custom_argument("name", format!("ide-{}-{}", target.0, target.1))
+                .with_custom_argument(
+                "path",
+                format!("dist/ide/enso-*.{}", target.0.package_extension()),
+                );
+            steps.push(upload_ide);
+
+            steps
+        })
         .build_job("Build IDE", target)
     }
 }

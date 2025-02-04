@@ -1,0 +1,40 @@
+## Enso Signatures 1.0
+## module Standard.Base.Data.Locale
+- type Locale
+    - Value java_locale:Standard.Base.Any.Any
+    - bangladesh -> Standard.Base.Any.Any
+    - brazil -> Standard.Base.Any.Any
+    - canada_english -> Standard.Base.Any.Any
+    - canada_french -> Standard.Base.Any.Any
+    - china -> Standard.Base.Any.Any
+    - country self -> Standard.Base.Any.Any
+    - default -> Standard.Base.Any.Any
+    - default_widget display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
+    - display_country self -> Standard.Base.Any.Any
+    - display_language self -> Standard.Base.Any.Any
+    - display_variant self -> Standard.Base.Any.Any
+    - france -> Standard.Base.Any.Any
+    - from_java java:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - from_language_tag tag:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - germany -> Standard.Base.Any.Any
+    - india_english -> Standard.Base.Any.Any
+    - india_hindi -> Standard.Base.Any.Any
+    - indonesia -> Standard.Base.Any.Any
+    - italy -> Standard.Base.Any.Any
+    - japan -> Standard.Base.Any.Any
+    - language self -> Standard.Base.Any.Any
+    - mexico -> Standard.Base.Any.Any
+    - new language:Standard.Base.Any.Any country:Standard.Base.Any.Any= variant:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - nigeria -> Standard.Base.Any.Any
+    - pakistan_english -> Standard.Base.Any.Any
+    - pakistan_urdu -> Standard.Base.Any.Any
+    - poland -> Standard.Base.Any.Any
+    - predefined_locale_fields -> Standard.Base.Any.Any
+    - russia -> Standard.Base.Any.Any
+    - south_korea -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+    - uk -> Standard.Base.Any.Any
+    - us -> Standard.Base.Any.Any
+    - variant self -> Standard.Base.Any.Any
+    - widget_options -> Standard.Base.Any.Any

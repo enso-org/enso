@@ -72,7 +72,6 @@ const uploadingFiles = computed<[FileName, File][]>(() => {
       @setNodeColor="graphStore.overrideNodeColor(id, $event)"
       @update:edited="graphStore.setEditedNode(id, $event)"
       @update:rect="graphStore.updateNodeRect(id, $event)"
-      @update:hoverAnim="graphStore.updateNodeHoverAnim(id, $event)"
       @update:visualizationId="
         graphStore.setNodeVisualization(id, $event != null ? { identifier: $event } : {})
       "

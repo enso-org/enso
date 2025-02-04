@@ -1,0 +1,34 @@
+## Enso Signatures 1.0
+## module Standard.Base.Data.Text.Regex
+- type No_Such_Group
+    - Error id:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)
+    - to_display_text self -> Standard.Base.Any.Any
+- type Regex
+    - Value case_insensitive:Standard.Base.Data.Boolean.Boolean internal_regex_object:Standard.Base.Any.Any
+    - compile expression:(Standard.Base.Data.Text.Regex.Regex|Standard.Base.Data.Text.Text) case_insensitive:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - escape expression:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - find self input:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - find_all self input:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - group_count self -> Standard.Base.Any.Any
+    - group_nums_to_names self -> Standard.Base.Any.Any
+    - iterator self input:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - lookup_group self id:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - match self input:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - match_all self input:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - matches self input:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - named_groups self -> Standard.Base.Any.Any
+    - pattern self -> Standard.Base.Any.Any
+    - recompile self case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity -> Standard.Base.Any.Any
+    - replace self input:Standard.Base.Data.Text.Text replacement:Standard.Base.Data.Text.Text only_first:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - split self input:Standard.Base.Data.Text.Text only_first:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
+    - tokenize self input:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+- type Regex_Syntax_Error
+    - Error message:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- build_tokenization_output_from_match pattern:Standard.Base.Any.Any match:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- match_to_group_maybe match:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- polyglot_map_to_dictionary map:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- read_group_map polyglot_map:Standard.Base.Any.Any name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- regex expression:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any

@@ -2,7 +2,7 @@ import { unrefElement, useEvent } from '@/composables/events'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import type { ToValue } from '@/util/reactivity'
 import type { VueInstance } from '@vueuse/core'
-import { toValue, watchEffect, type Ref } from 'vue'
+import { onUnmounted, toValue, watchEffect, type Ref } from 'vue'
 import type { Opt } from 'ydoc-shared/util/data/opt'
 
 /**
@@ -137,4 +137,34 @@ function handleClick(
     },
   }
   return wrappedInteraction
+}
+
+const blurHandlers = new Set<() => void>()
+
+/**
+ * Register a callback to be called when the window is blurred.
+ * The callback will be called when the window is blurred, and will be removed when the component is unmounted.
+ */
+export function onWindowBlur(callback: () => void) {
+  blurHandlers.add(callback)
+  onUnmounted(() => {
+    blurHandlers.delete(callback)
+  })
+}
+
+/**
+ * This function should be called on application mount to make all {@link onWindowBlur} work
+ * properly.
+ */
+export function registerGlobalBlurHandler() {
+  useEvent(
+    window,
+    'blur',
+    () => {
+      for (const handler of blurHandlers) {
+        handler()
+      }
+    },
+    { capture: true },
+  )
 }
