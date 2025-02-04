@@ -160,8 +160,11 @@ pub fn remove_glob(glob_pattern: &str) -> Result {
 
 /// (Recursive) difference between directories.
 /// Compares files by content.
-/// Delegates to `git diff --no-index` for comparison.
+/// Delegates to `git diff --no-index` for comparison of two files.
+/// Ensures that in both directories, there are the same files.
 pub async fn diff_dirs(old_dir: impl AsRef<Path>, new_dir: impl AsRef<Path>) -> Result {
+    let cur_dir = env::current_dir()?;
+    let git = git::new(cur_dir).await?;
     for (first_dir, second_dir) in
         [(old_dir.as_ref(), new_dir.as_ref()), (new_dir.as_ref(), old_dir.as_ref())]
     {
@@ -177,20 +180,11 @@ pub async fn diff_dirs(old_dir: impl AsRef<Path>, new_dir: impl AsRef<Path>) -> 
             if !second_path.exists() {
                 bail!("File {:?} does not exist in directory {:?}.", first_path, second_dir);
             }
-            compare_files(&first_path, &second_path).await?;
+            git.diff_files(&first_path, &second_path).await?;
         }
     }
     Ok(())
 }
-
-
-async fn compare_files(file_1: &Path, file_2: &Path) -> Result {
-    let cur_dir = env::current_dir()?;
-    let git = git::new(cur_dir).await?;
-    let res = git.diff_files(file_1, file_2).await;
-    res
-}
-
 
 #[cfg(test)]
 mod tests {
