@@ -215,11 +215,10 @@ object StdBits {
     }
 
     // Extract native library from tableauhyperapi-$arch's jar
+    val tableauSuffixInJar = s"tableauhyperapi-${osName()}"
     val tableauNativeLibJar = (Compile / unmanagedJars).value
       .map(_.data)
-      .filter(f =>
-        f.getName.contains(validOsName) && f.getName.contains("tableau")
-      )
+      .filter(f => f.getName.contains(tableauSuffixInJar))
       .head
     val logger = streams.value.log
 
