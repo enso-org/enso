@@ -1,6 +1,5 @@
 package org.enso.interpreter.dsl;
 
-import com.google.common.base.Strings;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
@@ -195,7 +194,9 @@ public class MethodProcessor
                 + " extends BuiltinRootNode implements InlineableNode.Root {");
       }
       out.println("  private @Child " + methodDefinition.getOriginalClassName() + " bodyNode;");
-      defineArgNodes(out, "  ", methodDefinition);
+      out.println("  private @Children ArgNode[] argNodes = new ArgNode[] {");
+      generateArguments(methodDefinition, out);
+      out.println("    };");
       out.println("  private static final class Internals {");
       out.println("    Internals(boolean s) {");
       out.println("      this.staticOrInstanceMethod = s;");
@@ -264,7 +265,9 @@ public class MethodProcessor
                 + " body = "
                 + methodDefinition.getConstructorExpression()
                 + ";");
-        defineArgNodes(out, "      ", methodDefinition);
+        out.println("      private @Children ArgNode[] argNodes = new ArgNode[] {");
+        generateArguments(methodDefinition, out);
+        out.println("      };");
         out.println("      @Override");
         out.println("      public Object call(VirtualFrame frame, Object[] args) {");
         out.println("        return handleExecute(argNodes, frame, extra, body, args);");
@@ -328,20 +331,7 @@ public class MethodProcessor
           callArgNames.add("callerInfo");
         } else {
           callArgNames.add(mkArgumentInternalVarName(ad));
-          var argReference = "arguments[arg" + ad.getPosition() + "Idx]";
-          var varName = mkArgumentInternalVarName(ad);
-          out.println(
-              "    "
-                  + ad.getTypeName()
-                  + " "
-                  + varName
-                  + " = argNodes["
-                  + ad.getPosition()
-                  + "].processArgument(frame, "
-                  + wrapperTypeName(ad)
-                  + ".class, "
-                  + argReference
-                  + ", argCtx);");
+          generateArgumentRead(out, ad, "arguments");
         }
       }
       out.println("    if (argCtx.getReturnValue() != null) return argCtx.getReturnValue();");
@@ -396,39 +386,33 @@ public class MethodProcessor
     }
   }
 
-  private void defineArgNodes(
-      final PrintWriter out, final String sep, MethodDefinition methodDefinition) {
-    out.println(sep + "private @Children ArgNode[] argNodes = new ArgNode[] {");
+  private static void generateArguments(MethodDefinition methodDefinition, final PrintWriter out) {
     for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
-      if (arg.isPositional()) {
-        var checkErrors = arg.shouldCheckErrors();
-        var checkPanicSentinel = arg.isPositional() && !arg.isSelf();
-        var checkWarnings = arg.shouldCheckWarnings();
-        out.println(
-            sep
-                + "  ArgNode.create("
-                + arg.isSelf()
-                + ", "
-                + arg.isArray()
-                + ", "
-                + arg.requiresCast()
-                + ", "
-                + checkErrors
-                + ", "
-                + checkPanicSentinel
-                + ", "
-                + checkWarnings
-                + "),");
-      }
+      var checkErrors = arg.shouldCheckErrors();
+      var checkPanicSentinel = arg.isPositional() && !arg.isSelf();
+      var checkWarnings = arg.shouldCheckWarnings();
+      out.println(
+          "        ArgNode.create("
+              + arg.isSelf()
+              + ", "
+              + arg.isArray()
+              + ", "
+              + arg.requiresCast()
+              + ", "
+              + checkErrors
+              + ", "
+              + checkPanicSentinel
+              + ", "
+              + checkWarnings
+              + "),");
     }
-    out.println(sep + "};");
   }
 
   private String wrapInTryCatch(String statement, int indent) {
-    var indentStr = Strings.repeat(" ", indent);
+    var indentStr = " ".repeat(indent);
     var sb = new StringBuilder();
     sb.append(indentStr).append("try {").append("\n");
-    sb.append(indentStr).append("  " + statement).append("\n");
+    sb.append(indentStr).append("  ").append(statement).append("\n");
     sb.append(indentStr)
         .append("} catch (UnsupportedSpecializationException unsupSpecEx) {")
         .append("\n");
@@ -483,107 +467,22 @@ public class MethodProcessor
     }
   }
 
-  private void generateUncastedArgumentRead(
+  private void generateArgumentRead(
       PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    String varName = mkArgumentInternalVarName(arg);
+    var argReference = argsArray + "[arg" + arg.getPosition() + "Idx]";
+    var varName = mkArgumentInternalVarName(arg);
     out.println(
         "    "
             + arg.getTypeName()
             + " "
             + varName
-            + " = "
-            + argsArray
-            + "[arg"
+            + " = argNodes["
             + arg.getPosition()
-            + "Idx];");
-  }
-
-  private void generateUncheckedArgumentRead(
-      PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    String castName = "TypesGen.as" + capitalize(arg.getTypeName());
-    String varName = mkArgumentInternalVarName(arg);
-    out.println(
-        "    "
-            + arg.getTypeName()
-            + " "
-            + varName
-            + " = "
-            + castName
-            + "("
-            + argsArray
-            + "[arg"
-            + arg.getPosition()
-            + "Idx]);");
-  }
-
-  private void generateUncheckedArrayCast(
-      PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    String castName = arg.getTypeName();
-    String varName = mkArgumentInternalVarName(arg);
-    out.println(
-        "    "
-            + arg.getTypeName()
-            + " "
-            + varName
-            + " = ("
-            + castName
-            + ")"
-            + argsArray
-            + "[arg"
-            + arg.getPosition()
-            + "Idx];");
-  }
-
-  private void generateCheckedArgumentRead(
-      PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    String builtinName = capitalize(arg.getTypeName());
-    String castName = "TypesGen.expect" + builtinName;
-    String varName = mkArgumentInternalVarName(arg);
-    out.println("    " + arg.getTypeName() + " " + varName + ";");
-    out.println("    try {");
-    out.println(
-        "      "
-            + varName
-            + " = "
-            + castName
-            + "("
-            + argsArray
-            + "[arg"
-            + arg.getPosition()
-            + "Idx]);");
-    out.println("    } catch (UnexpectedResultException e) {");
-    out.println("      CompilerDirectives.transferToInterpreter();");
-    out.println("      var builtins = EnsoContext.get(bodyNode).getBuiltins();");
-    out.println(
-        "      var ensoTypeName = org.enso.interpreter.runtime.type.ConstantsGen.getEnsoTypeName(\""
-            + builtinName
-            + "\");");
-    out.println("      var error = (ensoTypeName != null)");
-    out.println(
-        "        ? builtins.error().makeTypeError(ensoTypeName, arguments[arg"
-            + arg.getPosition()
-            + "Idx], \""
-            + varName
-            + "\")");
-    out.println(
-        "        : builtins.error().makeUnsupportedArgumentsError(new Object[] { arguments[arg"
-            + arg.getPosition()
-            + "Idx] }, \"Unsupported argument for "
-            + varName
-            + " expected a '"
-            + builtinName
-            + "' but got a '\""
-            + " + arguments[arg"
-            + arg.getPosition()
-            + "Idx]"
-            + " + \"' [\""
-            + " + arguments[arg"
-            + arg.getPosition()
-            + "Idx].getClass()"
-            + " + \"]\""
-            + ");");
-    out.println("      throw new PanicException(error, bodyNode);");
-    out.println("    }");
+            + "].processArgument(frame, "
+            + wrapperTypeName(arg)
+            + ".class, "
+            + argReference
+            + ", argCtx);");
   }
 
   /**
