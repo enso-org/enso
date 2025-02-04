@@ -21,6 +21,22 @@ test('Main method documentation', async ({ page }) => {
   for (const img of await rightDock.getByAltText('Image').all())
     await expect(img).toHaveJSProperty('naturalWidth', 3)
 
+  // Nested lists are rendered with hierarchical indentation
+  const listItemPos = (text: string) =>
+    locate
+      .editorRoot(rightDock)
+      .locator('span.cm-BulletList-item span')
+      .getByText(text, { exact: true })
+      .boundingBox()
+  const listLevel0 = await listItemPos('Outer list element')
+  const listLevel1 = await listItemPos('Nested list element')
+  const listLevel2 = await listItemPos('Very nested list element')
+  expect(listLevel0).not.toBeNull()
+  expect(listLevel1).not.toBeNull()
+  expect(listLevel2).not.toBeNull()
+  expect(listLevel0!.x).toBeLessThan(listLevel1!.x)
+  expect(listLevel1!.x).toBeLessThan(listLevel2!.x)
+
   // Documentation hotkey closes right-dock.p
   await page.keyboard.press(`${CONTROL_KEY}+D`)
   await expect(locate.rightDock(page)).toBeHidden()

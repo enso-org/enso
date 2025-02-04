@@ -1,0 +1,58 @@
+## Enso Signatures 1.0
+## module Standard.Base.System.File
+- type File
+    - / self subpath:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - absolute self -> Standard.Base.Any.Any
+    - copy_to self destination:Standard.Base.System.File.Generic.File_Like.File_Like replace_existing:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - create_directory self -> Standard.Base.Any.Any
+    - create_dry_run_file self copy_original:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - create_temporary_file prefix:Standard.Base.Any.Any= suffix:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - creation_time self -> Standard.Base.Any.Any
+    - current_directory -> Standard.Base.Any.Any
+    - delete self recursive:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - delete_if_exists self recursive:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - exists self -> Standard.Base.Any.Any
+    - extension self -> Standard.Base.Any.Any
+    - home -> Standard.Base.Any.Any
+    - is_absolute self -> Standard.Base.Any.Any
+    - is_data_link self -> Standard.Base.Data.Boolean.Boolean
+    - is_descendant_of self other:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - is_directory self -> Standard.Base.Any.Any
+    - is_regular_file self -> Standard.Base.Any.Any
+    - is_writable self -> Standard.Base.Any.Any
+    - join self subpaths:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - last_modified_time self -> Standard.Base.Any.Any
+    - list self name_filter:Standard.Base.Data.Text.Text= recursive:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - list_immediate_children self -> Standard.Base.Any.Any
+    - move_to self destination:Standard.Base.System.File.Generic.File_Like.File_Like replace_existing:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - name self -> Standard.Base.Any.Any
+    - new path:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - normalize self -> Standard.Base.Any.Any
+    - parent self -> Standard.Base.Any.Any
+    - path self -> Standard.Base.Any.Any
+    - posix_permissions self -> Standard.Base.Any.Any
+    - read self format:Standard.Base.Any.Any= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+    - read_bytes self -> Standard.Base.Any.Any
+    - read_first_bytes self n:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - read_last_bytes self n:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - read_text self encoding:Standard.Base.Data.Text.Encoding.Encoding= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+    - relativize self child:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - resolve self subpath:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - resolve_single_part self part:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - size self -> Standard.Base.Any.Any
+    - starts_with self parent:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+    - with_input_stream self open_options:Standard.Base.Data.Vector.Vector action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - with_output_stream self open_options:Standard.Base.Data.Vector.Vector action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- file_as_java file:Standard.Base.System.File.File -> Standard.Base.Any.Any
+- file_types -> Standard.Base.Any.Any
+- find_extension_from_name name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- get_child_widget file:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- list_descendants file:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- resolve_local_file path:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+- Standard.Base.System.File.File.from that:Standard.Base.Data.Text.Text -> Standard.Base.System.File.File
+- Standard.Base.System.File.Generic.File_Like.File_Like.from that:Standard.Base.System.File.File -> Standard.Base.System.File.Generic.File_Like.File_Like
+- Standard.Base.System.File.Generic.Writable_File.Writable_File.from that:Standard.Base.System.File.File -> Standard.Base.System.File.Generic.Writable_File.Writable_File
+- Standard.Base.Enso_Cloud.Data_Link.Data_Link_From_File.from that:Standard.Base.System.File.File -> Standard.Base.Enso_Cloud.Data_Link.Data_Link_From_File

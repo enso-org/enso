@@ -63,6 +63,11 @@ export const commonContextMenuActions = {
  */
 import { gridBindings } from '@/bindings'
 import type { TextFormatOptions } from '@/components/visualizations/TableVisualization.vue'
+import {
+  type VueComponentHandle,
+  default as VueComponentHost,
+  VueHostInstance,
+} from '@/components/VueHostRender.vue'
 import { modKey } from '@/composables/events'
 import { useAutoBlur } from '@/util/autoBlur'
 import type {
@@ -104,7 +109,6 @@ import {
   rowsToTsv,
   tableToEnsoExpression,
 } from '../GraphEditor/widgets/WidgetTableEditor/tableParsing'
-import { VueComponentHandle, default as VueComponentHost, VueHost } from '../VueHostRender.vue'
 
 const DEFAULT_ROW_HEIGHT = 22
 
@@ -314,7 +318,7 @@ function stopIfPrevented(event: Event) {
 
 // === Wrapping and Hosting Vue Components ===
 
-const vueHost = new VueHost()
+const vueHost = new VueHostInstance()
 
 const mappedComponents = computed(() => {
   if (!props.components) return
