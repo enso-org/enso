@@ -74,6 +74,32 @@ public interface DefinitionArgument extends IR {
     }
 
     @Override
+    public String showCode(int indent) {
+      String withoutLazy;
+      if (defaultValue().isDefined() && ascribedType().isDefined()) {
+        var name = name().showCode(indent);
+        var typeExpr = ascribedType().get().showCode(indent);
+        var defaultExpr = defaultValue().get().showCode(indent);
+        withoutLazy = String.format("(%s : (%s) = (%s))", name, typeExpr, defaultExpr);
+      } else if (defaultValue().isDefined()) {
+        var name = name().showCode(indent);
+        var defaultExpr = defaultValue().get().showCode(indent);
+        withoutLazy = String.format("(%s = %s)", name, defaultExpr);
+      } else if (ascribedType().isDefined()) {
+        var name = name().showCode(indent);
+        var typeExpr = ascribedType().get().showCode(indent);
+        withoutLazy = String.format("((%s : %s))", name, typeExpr);
+      } else {
+        withoutLazy = name().showCode(indent);
+      }
+      if (suspended()) {
+        return "~" + withoutLazy;
+      } else {
+        return withoutLazy;
+      }
+    }
+
+    @Override
     public DefinitionArgument withName(Name ir) {
       return copy(
           diagnostics, passData, location, id, ir, ascribedType(), defaultValue(), suspended());
