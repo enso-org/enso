@@ -2,18 +2,31 @@
 import { Button, Text } from '#/components/AriaComponents'
 import { GridListItem, ProgressBar } from '#/components/aria'
 import type { NotificationInfo } from '#/layouts/NotificationTray/types'
+import { useText } from '#/providers/TextProvider'
 
 /** An item in the notification tray. */
 export function NotificationItem(props: NotificationInfo) {
   const { message, icon, progress, color, timestamp } = props
+  const { locale } = useText()
+  const dateTime = timestamp != null ? new Date(timestamp) : undefined
 
   return (
     <GridListItem>
-      <div className="flex flex-col p-2">
-        <div className="flex min-h-12 items-center gap-2 text-primary">
+      <div className="flex flex-col px-2">
+        <div className="flex min-h-8 items-center gap-2 text-primary">
           <Button isDisabled isActive variant="icon" color={color} icon={icon} />
           <Text>{message}</Text>
-          {timestamp != null && <Text color="disabled">{message}</Text>}
+          <div className="grow" />
+          {dateTime != null && (
+            <Text color="disabled">
+              {dateTime.toLocaleString(locale, {
+                ...(dateTime.toDateString() === new Date().toDateString() ?
+                  {}
+                : { dateStyle: 'short' }),
+                timeStyle: 'short',
+              })}
+            </Text>
+          )}
         </div>
         {progress != null && (
           <ProgressBar value={progress} maxValue={1}>

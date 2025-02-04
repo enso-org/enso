@@ -1,5 +1,6 @@
 /** @file A tray for displaying notifications. */
 import InboxIcon from '#/assets/inbox.svg'
+import InboxWithNotificationIcon from '#/assets/inbox_with_notification.svg'
 import { Button, Popover, Text } from '#/components/AriaComponents'
 import { Result } from '#/components/Result'
 import { DialogTrigger, GridList } from '#/components/aria'
@@ -7,6 +8,7 @@ import { NotificationItem } from '#/layouts/NotificationTray/components/Notifica
 import { useComputedNotifications } from '#/layouts/NotificationTray/computedNotificationHooks'
 import type { NotificationInfo } from '#/layouts/NotificationTray/types'
 import { useText } from '#/providers/TextProvider'
+import { useState } from 'react'
 
 const DIALOG_OFFSET = 16
 const DIALOG_CROSS_OFFSET = 16
@@ -14,10 +16,27 @@ const DIALOG_CROSS_OFFSET = 16
 /** A button to show a list of notifications. */
 export function NotificationTray() {
   const computedNotifications = useComputedNotifications()
+  const [lastOpenTimestamp, setLastOpenTimestamp] = useState(0)
+  const hasUnreadNotifications = computedNotifications.some(
+    (notification) => notification.timestamp != null && notification.timestamp > lastOpenTimestamp,
+  )
 
   return (
-    <DialogTrigger>
-      <Button variant="icon" icon={InboxIcon} />
+    <DialogTrigger
+      onOpenChange={(isOpen) => {
+        if (isOpen) {
+          setLastOpenTimestamp(Number(new Date()))
+        }
+      }}
+    >
+      <Button
+        variant="icon"
+        icon={
+          hasUnreadNotifications ?
+            <img src={InboxWithNotificationIcon} className="opacity-60" />
+          : InboxIcon
+        }
+      />
       <NotificationTrayDialog computedNotifications={computedNotifications} />
     </DialogTrigger>
   )

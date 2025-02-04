@@ -208,5 +208,5 @@ export function useComputedNotifications(): readonly NotificationInfo[] {
     })
   }
 
-  return [...notificationMap.values()]
+  return [...notificationMap.values()].reverse()
 }
