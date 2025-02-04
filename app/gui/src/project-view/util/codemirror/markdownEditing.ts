@@ -1,7 +1,7 @@
 import { ChangeSpec } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { Tree } from '@lezer/common'
-import { markdownParser } from 'ydoc-shared/ast/ensoMarkdown'
+import { debugTree, markdownParser } from 'ydoc-shared/ast/ensoMarkdown'
 
 /** Supported header levels. */
 export type HeaderLevel = 1 | 2 | 3
@@ -42,9 +42,12 @@ function toggleHeaderInner(
   const add = []
   const replace = []
   const remove = []
+  console.log(debugTree(tree, src))
+  console.log('Line: ', src.slice(lineStart, lineEnd))
   const prefix = '#'.repeat(level)
   let node = tree.resolve(lineEnd, -1)
   if (node.type.name === 'Document' && node.firstChild != null) node = node.firstChild
+  console.log('Node type: ', node.type.name)
   if (node.type.name.startsWith('ATXHeading')) {
     const headerMark = node.getChild('HeaderMark')
     if (headerMark) {
@@ -59,14 +62,21 @@ function toggleHeaderInner(
       }
     }
   } else if (node.type.name === 'CodeText') {
-    const codeLine = src.slice(lineStart, lineEnd)
-    const codeTree = markdownParser.parse(codeLine)
-    const result = toggleHeaderInner(codeTree, level, lineStart, lineEnd, codeLine, lineStart)
+    const codeText = src.slice(node.from, node.to)
+    const codeTree = markdownParser.parse(codeText)
+    const result = toggleHeaderInner(
+      codeTree,
+      level,
+      lineStart - node.from,
+      lineEnd - node.from,
+      codeText,
+      node.from,
+    )
     add.push(...result.add)
     replace.push(...result.replace)
     remove.push(...result.remove)
   } else {
-    add.push({ from: lineStart, to: lineStart, insert: prefix + ' ' })
+    add.push({ from: lineStart + offset, to: lineStart + offset, insert: prefix + ' ' })
   }
   return { add, replace, remove }
 }

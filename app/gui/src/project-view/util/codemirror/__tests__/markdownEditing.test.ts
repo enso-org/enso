@@ -86,9 +86,14 @@ const headerTestCases: HeaderTestCase[] = [
     expected: '# Don’t touch this one\n# Touch this one\n# Make this one header',
   },
   {
-    source: '```\nSome code\n# Head|er in code block\nMore code\n```',
+    source: '```\nSome code\nHead|er in code block\nMore code\n```',
+    headerLevel: 1,
+    expected: '```\nSome code\n# Header in code block\nMore code\n```',
+  },
+  {
+    source: 'Some paragraph\n```\nSome code\n# Head|er in code block\nMore code\n```',
     headerLevel: 2,
-    expected: '```\nSome code\n## Header in code block\nMore code\n```',
+    expected: 'Some paragraph\n```\nSome code\n## Header in code block\nMore code\n```',
   },
   {
     source: '> This is a quote\nHeader| in quote',
