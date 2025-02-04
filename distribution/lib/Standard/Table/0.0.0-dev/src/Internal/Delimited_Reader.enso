@@ -140,7 +140,11 @@ type Detected_Headers
     ## Represents the headers found in the file.
     Existing (column_names : Vector Text)
 
-    ## Indicates that the file exists but no headers have been found, so only positional column matching is possible.
+    ## Indicates that the file exists but no headers have been found,
+       so only positional column matching is possible.
+
+       Note that the file may still contain rows that have less or more columns
+       than specified here. This column count is only based on the first row.
     None (column_count : Integer)
 
 ## PRIVATE
