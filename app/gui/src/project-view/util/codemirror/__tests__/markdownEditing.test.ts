@@ -33,10 +33,14 @@ const setupEditor = (source: string) => {
   return view
 }
 
-interface HeaderTestCase {
+interface TestCase {
+  desc?: string
   source: string
-  headerLevel: HeaderLevel
   expected: string
+}
+
+interface HeaderTestCase extends TestCase {
+  headerLevel: HeaderLevel
 }
 
 const headerTestCases: HeaderTestCase[] = [
@@ -113,12 +117,6 @@ test.each(headerTestCases)('markdown headers $source', ({ source, headerLevel, e
   expect(view.state.doc.toString()).toEqual(expected)
 })
 
-interface TestCase {
-  desc?: string
-  source: string
-  expected: string
-}
-
 const quotesTestCases: TestCase[] = [
   {
     desc: 'Create simple quote',
@@ -146,9 +144,19 @@ const quotesTestCases: TestCase[] = [
     expected: '```\nSome code\n> This is a quote\nMore code\n```',
   },
   {
+    desc: 'Enable multiline quote in code block',
+    source: '```\nSome code\nThis i|s a quote\nAlso |a quote\nMore code\n```',
+    expected: '```\nSome code\n> This is a quote\nAlso a quote\nMore code\n```',
+  },
+  {
     desc: 'Disable quote in code block',
     source: '```\nSome code\n> This i|s a quote\nMore code\n```',
     expected: '```\nSome code\nThis is a quote\nMore code\n```',
+  },
+  {
+    desc: 'Disable multiline quote in code block',
+    source: '```\nSome code\n> This i|s a quote\nAlso a q|uote\n\nMore code\n```',
+    expected: '```\nSome code\nThis is a quote\nAlso a quote\n\nMore code\n```',
   },
 ]
 

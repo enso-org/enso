@@ -18,7 +18,7 @@ export function toggleHeader(view: EditorView, level: HeaderLevel) {
     const src = view.state.doc.toString()
     const result = toggleHeaderInner(tree, level, line.from, line.to, src, 0)
     add.push(...result.add)
-    replace.push(...result.replace)
+    if (result.replace) replace.push(...result.replace)
     remove.push(...result.remove)
   }
   if (add.length > 0) remove = []
@@ -27,7 +27,7 @@ export function toggleHeader(view: EditorView, level: HeaderLevel) {
 
 interface ToggleChangeSet {
   add: ChangeSpec[]
-  replace: ChangeSpec[]
+  replace?: ChangeSpec[]
   remove: ChangeSpec[]
 }
 
@@ -73,7 +73,7 @@ function toggleHeaderInner(
       node.from,
     )
     add.push(...result.add)
-    replace.push(...result.replace)
+    if (result.replace) replace.push(...result.replace)
     remove.push(...result.remove)
   } else {
     add.push({ from: lineStart + offset, to: lineStart + offset, insert: prefix + ' ' })
@@ -82,22 +82,65 @@ function toggleHeaderInner(
 }
 
 export function toggleQuote(view: EditorView) {
-  const tree = markdownParser.parse(view.state.doc.toString())
+  const add = []
+  const replace = []
+  const remove = []
+  const src = view.state.doc.toString()
+  const tree = markdownParser.parse(src)
   const selectionPos = view.state.selection.main.from
   let node = tree.resolve(selectionPos, -1)
   if (node.type.name === 'Document' && node.firstChild != null) node = node.firstChild
+  if (node.type.name === 'CodeText') {
+    const codeText = src.slice(node.from, node.to)
+    const codeTree = markdownParser.parse(codeText)
+    const lineStart = view.state.doc.lineAt(selectionPos).from
+    const result = toggleQuoteInner(
+      codeTree,
+      selectionPos - node.from,
+      lineStart,
+      codeText,
+      node.from,
+    )
+    add.push(...result.add)
+    if (result.replace) replace.push(...result.replace)
+    remove.push(...result.remove)
+  } else {
+    const lineStart = view.state.doc.lineAt(selectionPos).from
+    const result = toggleQuoteInner(tree, selectionPos, lineStart, src, 0)
+    add.push(...result.add)
+    remove.push(...result.remove)
+  }
+  view.dispatch({ changes: [...add, ...replace, ...remove] })
+}
+
+function toggleQuoteInner(
+  tree: Tree,
+  selectionPos: number,
+  lineStart: number,
+  src: string,
+  offset: number,
+): ToggleChangeSet {
+  const add = []
+  const remove = []
+  console.log(debugTree(tree, src))
+  let node = tree.resolve(selectionPos, -1)
+  if (node.type.name === 'Document' && node.firstChild != null) node = node.firstChild
+  console.log('Node type: ', node.type.name)
+  console.log('Line start: ', lineStart)
   const cursor = node.cursor()
   do {
     if (cursor.type.name === 'EnsoBlockquote') {
       const quoteMark = cursor.node.getChild('QuoteMark')
       if (quoteMark != null) {
-        view.dispatch({ changes: [{ from: quoteMark.from, to: quoteMark.to, insert: '' }] })
-        return
+        remove.push({ from: quoteMark.from + offset, to: quoteMark.to + offset, insert: '' })
+        break
       }
     }
   } while (cursor.parent())
-  const line = view.state.doc.lineAt(selectionPos)
-  view.dispatch({ changes: [{ from: line.from, to: line.from, insert: '> ' }] })
+  if (remove.length === 0) {
+    add.push({ from: lineStart, to: lineStart, insert: '> ' })
+  }
+  return { add, remove }
 }
 
 export type ListType = 'unordered' | 'ordered'
@@ -113,7 +156,7 @@ export function toggleList(view: EditorView, type: ListType) {
     const src = view.state.doc.toString()
     const result = toggleListInner(tree, listIndex, line.from, line.to, src, type)
     changes.push(...result.add)
-    changes.push(...result.replace)
+    if (result.replace) changes.push(...result.replace)
     changes.push(...result.remove)
     listIndex++
   }
