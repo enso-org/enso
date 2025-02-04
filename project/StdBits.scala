@@ -215,7 +215,7 @@ object StdBits {
     }
 
     // Extract native library from tableauhyperapi-$arch's jar
-    val tableauSuffixInJar = s"tableauhyperapi-${osName()}"
+    val tableauSuffixInJar = s"tableauhyperapi-${plainOsName()}"
     val tableauNativeLibJar = (Compile / unmanagedJars).value
       .map(_.data)
       .filter(f => f.getName.contains(tableauSuffixInJar))
@@ -272,6 +272,24 @@ object StdBits {
       if (unixName) "darwin" else "osx"
     } else if (osName.contains("windows")) {
       if (unixName) "win32" else "windows"
+    } else {
+      throw new IllegalStateException(s"Unsupported OS: $osName")
+    }
+  }
+
+  // Human-accepted name of OS. One of many at least.
+  private def plainOsName(): String = {
+    var osName = System.getProperty("os.name").toLowerCase(Locale.ENGLISH)
+    if (osName.contains(" ")) {
+      // Strip version
+      osName = osName.substring(0, osName.indexOf(' '))
+    }
+    if (osName.contains("linux")) {
+      "linux"
+    } else if (osName.contains("mac")) {
+      "macos"
+    } else if (osName.contains("windows")) {
+      "windows"
     } else {
       throw new IllegalStateException(s"Unsupported OS: $osName")
     }
