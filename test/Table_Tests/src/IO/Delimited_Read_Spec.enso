@@ -303,11 +303,11 @@ add_specs suite_builder =
             r1.at "a" . to_vector . should_equal ["1", "1", "1", Nothing, "1", "1"]
             r1.at "b" . to_vector . should_equal ["2", "2", "2", Nothing, Nothing, "2"]
             r1.at "c" . to_vector . should_equal ["3", "3", Nothing, Nothing, Nothing, "3"]
-            r1.at "Column 4" . to_vector . should_equal [Nothing, "4", Nothing, Nothing, Nothing, Nothing, "4"]
-            r1.at "Column 5" . to_vector . should_equal [Nothing, "5", Nothing, Nothing, Nothing, Nothing, "5"]
-            r1.at "Column 6" . to_vector . should_equal [Nothing, "6", Nothing, Nothing, Nothing, Nothing, "6"]
-            r1.at "Column 7" . to_vector . should_equal [Nothing, "7", Nothing, Nothing, Nothing, Nothing, "7"]
-            r1.at "Column 8" . to_vector . should_equal [Nothing, "8", Nothing, Nothing, Nothing, Nothing, "8"]
+            r1.at "Column 4" . to_vector . should_equal ["4", Nothing, Nothing, Nothing, Nothing, "4"]
+            r1.at "Column 5" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, "5"]
+            r1.at "Column 6" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, "6"]
+            r1.at "Column 7" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, "7"]
+            r1.at "Column 8" . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, "8"]
 
         group_builder.specify "should allow to explicitly choose to add extra columns on longer rows" <|
             r2 = Data.read (enso_project.data / "varying_rows2.csv") (..Delimited "," headers=..Has_Headers keep_invalid_rows=..Add_Extra_Columns value_formatter=Nothing)
