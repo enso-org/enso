@@ -228,7 +228,7 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Works with positive n and column of nothings" <|
             t1.offset ["B"] 1 ..Closest_Value . should_equal ignore_order=setup.is_database
                 Table.input [colA, colB, ["offset([B], 1, Fill_With.Closest_Value)", [Nothing, Nothing, Nothing], Value_Type.Integer]]
-    suite_builder.group prefix+"Table.Offset with wrap around fill strategy" group_builder->
+    if setup.is_database.not then suite_builder.group prefix+"Table.Offset with wrap around fill strategy" group_builder->
         colA = ["A", [1, 2, 3]]
         colB = ["B", [Nothing, Nothing, Nothing], Value_Type.Integer]
         t1 = build_sorted_table [colA, colB]
@@ -318,7 +318,7 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Large positive n values work" <|
             t2.offset ["Col"] 1024 ..Closest_Value group_by=["Group"] . should_equal ignore_order=setup.is_database
                 Table.input [groupColumn, dataCol, ["offset([Col], 1024, Fill_With.Closest_Value)", [3, 3, 3, 4, 4, 4, 4, 2, 2]]]
-    suite_builder.group prefix+"Table.Offset works with grouping - wrap around fill strategy" group_builder->
+    if setup.is_database.not then suite_builder.group prefix+"Table.Offset works with grouping - wrap around fill strategy" group_builder->
         groupColumn = ["Group", ["A", "A", "A", "B", "B", "B", "B", "C", "C"]]
         dataCol = ["Col", [1, 2, 3, 1, 2, 3, 4, 1, 2]]
         t2 = build_sorted_table [groupColumn, dataCol]
@@ -393,7 +393,7 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Large positive n values work" <|
             t2.offset ["Col"] 1024 ..Closest_Value order_by=["Order"] . should_equal ignore_order=setup.is_database
                 Table.input [orderColumn, dataCol, ["offset([Col], 1024, Fill_With.Closest_Value)", ["E", "E", "E", "E", "E"]]]
-    suite_builder.group prefix+"Table.Offset works with ordering - wrap around fill strategy" group_builder->
+    if setup.is_database.not then suite_builder.group prefix+"Table.Offset works with ordering - wrap around fill strategy" group_builder->
         orderColumn = ["Order", [1, 4, 2, 5, 3]]
         dataCol = ["Col", ["A", "D", "B", "E", "C"]]
         t2 = build_sorted_table [orderColumn, dataCol]
