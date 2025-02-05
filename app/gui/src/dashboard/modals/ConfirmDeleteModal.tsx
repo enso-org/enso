@@ -1,8 +1,7 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as z from 'zod'
 
-import { ButtonGroup, Dialog, DialogDismiss, Form, Text } from '#/components/AriaComponents'
-import { useSetModal } from '#/providers/ModalProvider'
+import { ButtonGroup, Dialog, Form, Text } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
 
 /** Props for a {@link ConfirmDeleteModal}. */
@@ -27,7 +26,6 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
     doDelete,
   } = props
 
-  const { unsetModal } = useSetModal()
   const { getText } = useText()
 
   return (
@@ -36,7 +34,7 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
       role="alertdialog"
       modalProps={defaultOpen == null ? {} : { defaultOpen }}
     >
-      <Form schema={z.object({})} method="dialog" onSubmit={doDelete} onSubmitSuccess={unsetModal}>
+      <Form schema={z.object({})} method="dialog" onSubmit={doDelete}>
         <Text className="relative">{getText('confirmPrompt', actionText)}</Text>
         {cannotUndo && (
           <Text className="relative" weight="bold">
@@ -45,11 +43,11 @@ export default function ConfirmDeleteModal(props: ConfirmDeleteModalProps) {
         )}
 
         <ButtonGroup>
-          <Form.Submit variant="delete" className="relative" autoFocus>
+          <Form.Submit autoFocus variant="delete" className="relative">
             {actionButtonLabel}
           </Form.Submit>
 
-          <DialogDismiss />
+          <Dialog.Close variant="outline">{getText('cancel')}</Dialog.Close>
         </ButtonGroup>
       </Form>
     </Dialog>

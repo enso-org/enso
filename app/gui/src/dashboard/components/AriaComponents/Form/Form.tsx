@@ -5,7 +5,6 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { forwardRef } from '#/utilities/react'
 import * as dialog from '../Dialog'
 import * as components from './components'
@@ -34,6 +33,7 @@ export const Form = forwardRef(function Form<
     formOptions,
     className,
     style,
+    onSubmit,
     onSubmitted = () => {},
     onSubmitSuccess = () => {},
     onSubmitFailed = () => {},
@@ -51,24 +51,11 @@ export const Form = forwardRef(function Form<
 
   const dialogContext = dialog.useDialogContext()
 
-  const onSubmit = useEventCallback(
-    async (fieldValues: types.FieldValues<Schema>, formInstance: types.UseFormReturn<Schema>) => {
-      // This is SAFE because we're passing the result transparently, and it's typed outside
-      // eslint-disable-next-line no-restricted-syntax
-      const result = (await props.onSubmit?.(fieldValues, formInstance)) as SubmitResult
-
-      if (method === 'dialog') {
-        dialogContext?.close()
-      }
-
-      return result
-    },
-  )
-
   const innerForm = components.useForm<Schema, SubmitResult>(
     form ?? {
       ...formOptions,
       ...(defaultValues ? { defaultValues } : {}),
+      method,
       schema,
       canSubmitOffline,
       onSubmit,

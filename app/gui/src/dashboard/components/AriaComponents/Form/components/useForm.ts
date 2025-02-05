@@ -168,10 +168,6 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
           // eslint-disable-next-line no-restricted-syntax
           const result = (await onSubmit?.(fieldValues, form)) as SubmitResult
 
-          if (method === 'dialog') {
-            closeRef.current()
-          }
-
           formInstance.reset()
 
           return result
@@ -195,7 +191,12 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
         }
       },
       onError: (error, values) => onSubmitFailed?.(error, values, form),
-      onSuccess: (data, values) => onSubmitSuccess?.(data, values, form),
+      onSuccess: async (data, values) => {
+        if (method === 'dialog') {
+          closeRef.current()
+        }
+        return await onSubmitSuccess?.(data, values, form)
+      },
       onSettled: (data, error, values) => onSubmitted?.(data, error, values, form),
     })
 
