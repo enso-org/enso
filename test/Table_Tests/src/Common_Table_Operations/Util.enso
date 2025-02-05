@@ -4,13 +4,14 @@ from Standard.Table import Column, Table, Value_Type
 import Standard.Database.DB_Table.DB_Table
 
 from Standard.Test import all
+from Standard.Test.Omitter import all
 
 from project.In_Memory.Common_Spec import in_memory_setup
 
-expect_column_names names table ignore_order=False =
+expect_column_names names table ignore_order=False omitter=Nothing = omitting omitter omitter->
     case ignore_order of
-        False -> table.columns . map .name . should_equal names frames_to_skip=2
-        True -> table.columns . map .name . sort . should_equal names.sort frames_to_skip=2
+        False -> table.columns . map .name . should_equal names omitter=omitter
+        True -> table.columns . map .name . sort . should_equal names.sort omitter=omitter
 
 ## These tests are parametrized by various backends and so they should be run in
    context of a specific backend. However, for the purpose of testing we provide
@@ -60,18 +61,17 @@ Any.should_equal_tz_agnostic self other =
    It ensures that they represent the same instant in time, but ignore the
    timezone that is attached to them. This is simply done by converting them to
    UTC.
-Vector.should_equal_tz_agnostic self other =
-    loc = Test.get_source_location 1
+Vector.should_equal_tz_agnostic self other omitter=Nothing = omitting omitter omitter->
     case other of
         _ : Vector ->
             utc = Time_Zone.utc
             normalize_date_time dt = case dt of
                 _ : Date_Time -> dt.at_zone utc
-                _ -> Test.fail "The vector should contain Date_Time objects but it contained "+dt.to_display_text+" (at "+loc+")"
+                _ -> Test.fail "The vector should contain Date_Time objects but it contained "+dt.to_display_text+" (at "+omitter.loc+")"
             self_normalized = self.map normalize_date_time
             other_normalized = other.map normalize_date_time
-            self_normalized.should_equal other_normalized frames_to_skip=2
-        _ -> Test.fail "Expected a vector but got "+other.to_display_text+" (at "+loc+")"
+            self_normalized.should_equal other_normalized omitter=omitter
+        _ -> Test.fail "Expected a vector but got "+other.to_display_text+" (at "+omitter.loc+")"
 
 ## PRIVATE
 Error.should_equal_tz_agnostic self other =

@@ -6,36 +6,35 @@ import Standard.Database.DB_Column.DB_Column
 from Standard.Table import Column, Table
 
 from Standard.Test import all
+from project.Omitter import all
 
 polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
 Table.should_equal : Any -> Integer -> Any
-Table.should_equal self expected frames_to_skip=0 =
-    loc = Test.get_source_location 1+frames_to_skip
+Table.should_equal self expected frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
     rhs_error_check expected
-    Panic.catch Test_Failure_Error (table_should_equal_impl self expected loc) error->
+    Panic.catch Test_Failure_Error (table_should_equal_impl self expected omitter.loc) error->
         Test.fail error.payload.message
 
 Column.should_equal : Any -> Integer -> Any
-Column.should_equal self expected frames_to_skip=0 =
-    loc = Test.get_source_location 1+frames_to_skip
+Column.should_equal self expected frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
     rhs_error_check expected
-    Panic.catch Test_Failure_Error (column_should_equal_impl self expected loc) error->
+    Panic.catch Test_Failure_Error (column_should_equal_impl self expected omitter.loc) error->
         Test.fail error.payload.message
 
 DB_Table.should_equal : DB_Table -> Integer -> Any
-DB_Table.should_equal self expected frames_to_skip=0 =
+DB_Table.should_equal self expected frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
     rhs_error_check expected
     t0 = self.read
     t1 = expected.read
-    t0 . should_equal t1 frames_to_skip+1
+    t0 . should_equal t1 omitter=omitter
 
 DB_Column.should_equal : DB_Column -> Integer -> Any
-DB_Column.should_equal self expected frames_to_skip=0 =
+DB_Column.should_equal self expected frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
     rhs_error_check expected
     t0 = self.read
     t1 = expected.read
-    t0 . should_equal t1 frames_to_skip+1
+    t0 . should_equal t1 omitter=omitter
 
 type Test_Failure_Error
     ## PRIVATE
@@ -110,18 +109,17 @@ set_writable file writable =
 
    For example, if `example` is `[[1, 2], [3]]`, then both `[1, 2, 3]` and
    `[2, 1, 3]` will be accepted, but `[2, 3, 1]` will be rejected.
-Any.should_have_relative_ordering self (example : Vector) =
-    loc = Test.get_source_location 1
+Any.should_have_relative_ordering self (example : Vector) omitter=Nothing = omitting omitter omitter->
     case self of
         _ : Vector ->
             example.each v-> case v of
                 _ : Vector ->
-                    if v.is_empty then Test.fail "The example vector should not contain empty vectors as they are meaningless (at "+loc+")."
-                _ -> Test.fail "Expected a vector of vectors but got a vector containing "+v.to_display_text+" (at "+loc+")."
+                    if v.is_empty then Test.fail "The example vector should not contain empty vectors as they are meaningless (at "+omitter.loc+")."
+                _ -> Test.fail "Expected a vector of vectors but got a vector containing "+v.to_display_text+" (at "+omitter.loc+")."
 
             total_length = example.fold 0 acc-> v-> acc+v.length
             if self.length != total_length then
-                Test.fail "Expected a vector of length "+total_length.to_text+" but got "+self.length.to_text+" (at "+loc+")."
+                Test.fail "Expected a vector of length "+total_length.to_text+" but got "+self.length.to_text+" (at "+omitter.loc+")."
 
             pieces = Vector.build builder->
                 example.fold 0 offset-> reference_v->
@@ -138,15 +136,14 @@ Any.should_have_relative_ordering self (example : Vector) =
                     (got_piece.sort on_problems=..Report_Error) == (expected_piece.sort on_problems=..Report_Error)
                 if are_consistent.not then
                     offset = pieces.take ix . fold 0 acc-> p-> acc+p.length
-                    Test.fail "Expected the run of vector elements starting at offset "+offset.to_text+" to be a permutation of "+expected_piece.to_display_text+" but got "+got_piece.to_display_text+" (at "+loc+")."
+                    Test.fail "Expected the run of vector elements starting at offset "+offset.to_text+" to be a permutation of "+expected_piece.to_display_text+" but got "+got_piece.to_display_text+" (at "+omitter.loc+")."
 
-        _ -> Test.fail "Expected a vector but got "+self.to_display_text+" (at "+loc+")."
+        _ -> Test.fail "Expected a vector but got "+self.to_display_text+" (at "+omitter.loc+")."
 ## PRIVATE
    See `Any.should_have_relative_ordering`.
-Error.should_have_relative_ordering self example =
-    loc = Test.get_source_location 1
+Error.should_have_relative_ordering self example omitter=Nothing = omitting omitter omitter->
     _ = example
-    Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+loc+")."
+    Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+omitter.loc+")."
 
 
 ## PRIVATE

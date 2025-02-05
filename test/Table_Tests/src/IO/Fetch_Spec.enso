@@ -17,6 +17,7 @@ import Standard.Table.Errors.Invalid_JSON_Format
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
+from Standard.Test.Omitter import all
 
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 from enso_dev.Base_Tests.Network.Http.Http_Test_Setup import base_url_with_slash, pending_has_url
@@ -135,9 +136,9 @@ add_specs suite_builder =
             after_count = get_num_response_cache_entries
             [before_count, after_count]
 
-        expect_counts expected_counts ~action =
+        expect_counts expected_counts ~action omitter=Nothing = omitting omitter omitter->
             counts = with_counts action
-            counts . should_equal expected_counts frames_to_skip=1
+            counts . should_equal expected_counts omitter=omitter
 
         get_cache_files : Vector Text
         get_cache_files -> Vector Text =
