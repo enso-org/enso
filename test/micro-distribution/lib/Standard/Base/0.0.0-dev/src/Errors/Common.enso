@@ -41,6 +41,12 @@ type Not_Invokable
     to_display_text self = "Type error: expected a function, but got "+self.target.to_display_text+"."
 
 @Builtin_Type
+type No_Such_Argument
+    Error name
+
+    to_display_text self = "The named argument `"+self.name.to_text+"` did not match any argument names. Perhaps it is misspelled?"
+
+@Builtin_Type
 type Compile_Error
     Error message
 

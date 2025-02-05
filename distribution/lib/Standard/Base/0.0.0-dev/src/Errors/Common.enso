@@ -318,6 +318,17 @@ type Not_Invokable
     to_display_text self = "Type error: expected a function, but got "+self.target.to_display_text+"."
 
 @Builtin_Type
+type No_Such_Argument
+    ## PRIVATE
+       TODO
+    Error name
+
+    ## PRIVATE
+       Convert the No_Such_Argument error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "The named argument `"+self.name.to_text+"` did not match any argument names. Perhaps it is misspelled?"
+
+@Builtin_Type
 type Private_Access
     ## PRIVATE
        An error that occurs when a private (project-private) method is called from a different

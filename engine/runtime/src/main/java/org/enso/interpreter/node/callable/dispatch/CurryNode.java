@@ -78,7 +78,8 @@ public class CurryNode extends BaseNode {
           InvokeCallableNodeGen.create(
               postApplicationSchema.getOversaturatedArguments(),
               defaultsExecutionMode,
-              argumentsExecutionMode);
+              argumentsExecutionMode,
+              true);
       oversaturatedCallableNode.setTailStatus(getTailStatus());
     }
   }
