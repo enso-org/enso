@@ -304,7 +304,7 @@ case object TailCallMegaPass extends IRPass {
         arg
           .copy(
             // Note [Call Argument Tail Position]
-            value = analyseExpression(arg.value, isInTailPosition = true)
+            analyseExpression(arg.value, isInTailPosition = true)
           )
           .updateMetadata(TAIL_META)
     }
@@ -480,9 +480,8 @@ case object TailCallMegaPass extends IRPass {
       case arg: DefinitionArgument.Specified =>
         val default = arg.defaultValue
         arg
-          .copy(
-            defaultValue =
-              default.map(x => analyseExpression(x, isInTailPosition = false))
+          .copyWithDefaultValue(
+            default.map(x => analyseExpression(x, isInTailPosition = false))
           )
     }
   }
