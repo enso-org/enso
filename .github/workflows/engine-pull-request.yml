@@ -45,6 +45,7 @@ jobs:
         uses: actions-ecosystem/action-add-labels@v1
         with:
           labels: "-libs-API-change"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
   required-checks:
     name: Engine Required Checks
