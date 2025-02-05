@@ -45,6 +45,7 @@ const animationsMap = new WeakMap<HTMLElement, Animation>()
 let leavingElement: HTMLElement | undefined = undefined
 
 function onEnter(e: Element, done: Done) {
+  console.log('onEnter', e)
   if (e instanceof HTMLElement) runAnimation(e, done, true)
 }
 

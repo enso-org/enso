@@ -11,7 +11,10 @@ enum SortDirection {
 }
 
 const props = defineProps<{ color: string; backgroundColor: string; entries: Entry[] }>()
-const emit = defineEmits<{ clickEntry: [entry: Entry, keepOpen: boolean] }>()
+const emit = defineEmits<{
+  clickEntry: [entry: Entry, keepOpen: boolean, target: HTMLElement]
+  scroll: []
+}>()
 
 const sortDirection = ref<SortDirection>(SortDirection.none)
 const graphNavigator = injectGraphNavigator(true)
@@ -63,6 +66,15 @@ const styleVars = computed(() => {
     '--extend-margin': `${0.2 / (graphNavigator?.scale ?? 1)}px`,
   }
 })
+
+function handleClick(entry: Entry, altKey: boolean, target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return
+  let targetLiElement = target
+  while (!(targetLiElement instanceof HTMLLIElement)) {
+    targetLiElement = targetLiElement.parentElement as HTMLElement
+  }
+  emit('clickEntry', entry, altKey, targetLiElement)
+}
 </script>
 
 <script lang="ts">
@@ -74,13 +86,13 @@ export interface DropdownEntry {
 
 <template>
   <div class="DropdownWidget" :style="styleVars">
-    <ul class="list scrollable" @wheel.stop.passive>
+    <ul class="list scrollable" @wheel.stop.passive @scroll="emit('scroll')">
       <li
         v-for="entry in sortedValues"
         :key="entry.value"
         :class="{ selected: entry.selected }"
         class="item clickable"
-        @click.stop="emit('clickEntry', entry, $event.altKey)"
+        @click.stop="handleClick(entry, $event.altKey, $event.target)"
       >
         <div class="itemContent" v-text="entry.value"></div>
       </li>
@@ -109,12 +121,14 @@ export interface DropdownEntry {
   position: relative;
   user-select: none;
   min-width: 100%;
-  margin-top: calc(0px - var(--dropdown-extend));
-  padding-top: var(--dropdown-extend);
   background-color: var(--dropdown-bg);
   border-radius: calc(var(--item-height) / 2 + var(--dropdown-padding));
   color: var(--dropdown-fg);
+}
 
+.TopLevelDropdown {
+  margin-top: calc(0px - var(--dropdown-extend));
+  padding-top: var(--dropdown-extend);
   &:before {
     content: '';
     display: block;
@@ -126,6 +140,7 @@ export interface DropdownEntry {
     z-index: 1;
   }
 }
+
 .list {
   overflow: auto;
   min-width: 100%;

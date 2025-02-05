@@ -572,11 +572,15 @@ export class SuggestionUpdateProcessor {
     entries: SuggestionDb,
     update: lsTypes.SuggestionsDatabaseUpdate,
   ): Result<void> {
+    // console.log('applyUpdate', update)
     switch (update.type) {
       case 'Add': {
         return withContext(
           () => `when adding new entry ${JSON.stringify(update)}`,
           () => {
+            if (update.suggestion.type === 'method' && update.suggestion.name === 'some_func') {
+              console.log('update', update)
+            }
             const newEntry = this.entryFromLs(update.suggestion)
             if (!newEntry.ok) return newEntry
             entries.set(update.id, newEntry.value)
