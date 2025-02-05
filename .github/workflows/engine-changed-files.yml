@@ -60,6 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Changed Standard libs API docs files
     outputs:
+      all_changed_files: ${{ steps.stdlib-api-changed-files.outputs.all_changed_files }}
       any_changed: ${{ steps.stdlib-api-changed-files.outputs.any_changed }}
     steps:
       - uses: actions/checkout@v4
