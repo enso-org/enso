@@ -187,19 +187,23 @@ onMounted(() => {
 
 <template>
   <div class="FileBrowserWidget">
-    <div class="directoryStack">
-      <TransitionGroup>
-        <template v-for="(directory, index) in directoryStack" :key="directory.id ?? 'root'">
-          <SvgIcon v-if="index > 0" name="arrow_right_head_only" />
-          <div
-            class="clickable"
-            :class="{ nonInteractive: index === directoryStack.length - 1 }"
-            @click.stop="popTo(index)"
-            v-text="directory.title"
-          ></div>
-        </template>
-      </TransitionGroup>
+    <div class="topBar">
+      <div class="directoryStack">
+        <TransitionGroup>
+          <template v-for="(directory, index) in directoryStack" :key="directory.id ?? 'root'">
+            <SvgIcon v-if="index > 0" name="arrow_right_head_only" />
+            <div
+              class="clickable"
+              :class="{ nonInteractive: index === directoryStack.length - 1 }"
+              @click.stop="popTo(index)"
+              v-text="directory.title"
+            ></div>
+          </template>
+        </TransitionGroup>
+      </div>
+      <SvgButton name="folder_add" title="Add New Folder" />
     </div>
+
     <div v-if="isBusy" class="centerContent contents"><LoadingSpinner /></div>
     <div v-else-if="anyError" class="centerContent contents">Error: {{ anyError }}</div>
     <div v-else-if="isEmpty" class="centerContent contents">Directory is empty</div>
@@ -251,14 +255,21 @@ onMounted(() => {
   flex-direction: column;
 }
 
+.topBar {
+  color: white;
+  background-color: var(--background-color);
+  display: flex;
+  flex-direction: row;
+}
+
 .directoryStack {
   --transition-duration: 0.1s;
   color: white;
   padding: 2px;
   gap: 2px;
-  background-color: var(--background-color);
   display: flex;
   align-items: center;
+  flex-grow: 1;
 }
 
 .contents {
