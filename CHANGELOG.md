@@ -16,6 +16,8 @@
 - [When editing cells or header names in Table Editor Widget, `tab` and `enter`
   keys jumps to next cell/ next row respectively.][12129]
 - [Fixed bugs occurring after renaming project from within graph editor][12106].
+- [Users having "Team" plan or above may now access shared directories in Cloud
+  File Browser][12208]
 - [Added support for rendering numbered and nested lists][12190].
 - [Removed `#` from default colum name][12222]
 
@@ -29,6 +31,7 @@
 [12064]: https://github.com/enso-org/enso/pull/12064
 [12129]: https://github.com/enso-org/enso/pull/12129
 [12106]: https://github.com/enso-org/enso/pull/12106
+[12208]: https://github.com/enso-org/enso/pull/12208
 [12190]: https://github.com/enso-org/enso/pull/12190
 [12222]: https://github.com/enso-org/enso/pull/12222
 

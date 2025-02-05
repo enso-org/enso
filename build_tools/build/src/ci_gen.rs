@@ -843,16 +843,28 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
 }
 
 pub fn engine_benchmark() -> Result<Workflow> {
-    benchmark_workflow("Benchmark Engine", "backend benchmark runtime", Some(4 * 60))
+    let report_path = "engine/runtime-benchmarks/bench-report.xml";
+    benchmark_workflow("Benchmark Engine", "backend benchmark runtime", report_path, Some(4 * 60))
 }
 
 pub fn std_libs_benchmark() -> Result<Workflow> {
-    benchmark_workflow("Benchmark Standard Libraries", "backend benchmark enso-jmh", Some(4 * 60))
+    let report_path = "std-bits/benchmarks/bench-report.xml";
+    benchmark_workflow(
+        "Benchmark Standard Libraries",
+        "backend benchmark enso-jmh",
+        report_path,
+        Some(4 * 60),
+    )
 }
 
+/// #parameters
+/// - `name` - name of the workflow
+/// - `command_line` - command line to run the benchmarks
+/// - `artifact_to_upload` - Path to the artifact to upload
 fn benchmark_workflow(
     name: &str,
     command_line: &str,
+    artifact_to_upload: &str,
     timeout_minutes: Option<u32>,
 ) -> Result<Workflow> {
     let just_check_input_name = "just-check";
@@ -877,7 +889,8 @@ fn benchmark_workflow(
 
     let graal_edition = graalvm::Edition::Community;
     let job_name = format!("{name} ({graal_edition})");
-    let job = benchmark_job(&job_name, command_line, timeout_minutes, graal_edition);
+    let job =
+        benchmark_job(&job_name, command_line, artifact_to_upload, timeout_minutes, graal_edition);
     workflow.add_job(job);
 
     Ok(workflow)
@@ -886,11 +899,16 @@ fn benchmark_workflow(
 fn benchmark_job(
     job_name: &str,
     command_line: &str,
+    artifact_to_upload: &str,
     timeout_minutes: Option<u32>,
     graal_edition: graalvm::Edition,
 ) -> Job {
+    let upload_artifact_step = step::upload_artifact("Upload benchmark results")
+        .with_custom_argument("name", "benchmark-results.xml")
+        .with_custom_argument("path", artifact_to_upload);
     let mut job = RunStepsBuilder::new(command_line)
         .cleaning(CleaningCondition::Always)
+        .customize(move |step| vec![step, upload_artifact_step])
         .build_job(job_name, BenchmarkRunner);
     job.timeout_minutes = timeout_minutes;
     match graal_edition {

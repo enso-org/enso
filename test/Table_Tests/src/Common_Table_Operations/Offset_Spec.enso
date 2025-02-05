@@ -464,7 +464,8 @@ add_offset_specs suite_builder setup =
         t3 = build_sorted_table [["Group", [1.1, 1.1, 1.1, 1.1]], ["Col2", [1, 2, 3, 4]]]
         group_builder.specify "Missing offset columns error" <|
             r = t2.offset
-            r.should_fail_with (Missing_Argument.Error "columns")
+            r.should_fail_with Missing_Argument
+            r.catch.argument_name . should_equal "columns"
         group_builder.specify "Empty offset columns is a no-op" <|
             r = t2.offset []
             r . at "Col1" .  to_vector . should_equal ["A", "B", "C", "D"]
