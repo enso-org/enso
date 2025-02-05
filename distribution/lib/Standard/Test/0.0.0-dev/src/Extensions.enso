@@ -73,29 +73,27 @@ Error.should_fail_with self matcher frames_to_skip=0 unwrap_errors=True =
 
          example_should_equal = Examples.add_1_to 1 . should_equal 2
 Any.should_equal : Any -> Integer -> Spec_Result
-Any.should_equal self that frames_to_skip=0 default_omitter:(Omitter|Nothing)=Nothing =
-    #omitter = make_omitter
-    omitting default_omitter omitter->
-        rhs_error_check that
-        IO.println "ERR should_equal "+omitter.loc
-        self.another_checker default_omitter=omitter
-        #loc = Test.get_source_location 1+frames_to_skip
-        case self == that of
-            True -> Spec_Result.Success
-            False ->
-                additional_comment = case self of
-                    _ : Vector -> case that of
-                        _ : Vector ->
-                            case self.length == that.length of
-                                True ->
-                                    diff = self.zip that . index_of p->
-                                        p.first != p.second
-                                    "; first difference at index " + diff.to_text + " "
-                                False -> "; lengths differ (" + self.length.to_text + " != " + that.length.to_text + ") "
-                        _ -> ""
+Any.should_equal self that frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+    rhs_error_check that
+    IO.println "ERR should_equal "+omitter.loc
+    self.another_checker default_omitter=omitter
+    #loc = Test.get_source_location 1+frames_to_skip
+    case self == that of
+        True -> Spec_Result.Success
+        False ->
+            additional_comment = case self of
+                _ : Vector -> case that of
+                    _ : Vector ->
+                        case self.length == that.length of
+                            True ->
+                                diff = self.zip that . index_of p->
+                                    p.first != p.second
+                                "; first difference at index " + diff.to_text + " "
+                            False -> "; lengths differ (" + self.length.to_text + " != " + that.length.to_text + ") "
                     _ -> ""
-                msg = self.pretty + " did not equal " + that.pretty + additional_comment + " (at " + omitter.loc + ")."
-                Test.fail msg
+                _ -> ""
+            msg = self.pretty + " did not equal " + that.pretty + additional_comment + " (at " + omitter.loc + ")."
+            Test.fail msg
 
 Any.another_checker self default_omitter:Omitter=Nothing =
     omitting default_omitter omitter->
@@ -125,14 +123,14 @@ type Omitter
         #blah
 
         stack_trace = Runtime.get_stack_trace
-        pst "full" stack_trace
+        #pst "full" stack_trace
 
         omitting_index = stack_trace.last_index_of (frame-> frame.name == "Extensions.omitting")
         real_stack_trace = stack_trace.drop (omitting_index + 2)
 
-        IO.println "OI "+omitting_index.to_text
+        #IO.println "OI "+omitting_index.to_text
         #real_stack_trace = stack_trace.drop (..While (frame-> frame.name != 'Extensions.omitting'))
-        pst "real" real_stack_trace
+        #pst "real" real_stack_trace
 
         top = real_stack_trace . at 0
         top.to_display_text
