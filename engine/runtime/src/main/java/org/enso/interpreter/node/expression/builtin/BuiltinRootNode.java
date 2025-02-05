@@ -99,7 +99,6 @@ public abstract class BuiltinRootNode extends RootNode {
 
   protected abstract static class ArgNode extends Node {
     private static final byte IS_SELF = 0x01;
-    private static final byte IS_ARRAY = 0x02;
     private static final byte REQUIRES_CAST = 0x04;
     private static final byte CHECK_ERRORS = 0x08;
     private static final byte CHECK_PANIC_SENTINEL = 0x10;
@@ -199,7 +198,6 @@ public abstract class BuiltinRootNode extends RootNode {
 
     public static ArgNode create(
         boolean isSelf,
-        boolean isArray,
         boolean requiresCast,
         boolean checkErrors,
         boolean checkPanicSentinel,
@@ -207,9 +205,6 @@ public abstract class BuiltinRootNode extends RootNode {
       byte flags = 0x00;
       if (isSelf) {
         flags |= IS_SELF;
-      }
-      if (isArray) {
-        flags |= IS_ARRAY;
       }
       if (requiresCast) {
         flags |= REQUIRES_CAST;

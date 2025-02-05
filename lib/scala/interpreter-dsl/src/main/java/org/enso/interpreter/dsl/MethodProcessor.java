@@ -406,11 +406,13 @@ public class MethodProcessor
       var checkErrors = arg.shouldCheckErrors();
       var checkPanicSentinel = arg.isPositional() && !arg.isSelf();
       var checkWarnings = arg.shouldCheckWarnings();
+      if (arg.isArray()) {
+        out.println("/* array argument is not supported for " + arg.getName() + "*/");
+        continue;
+      }
       out.println(
           "        ArgNode.create("
               + arg.isSelf()
-              + ", "
-              + arg.isArray()
               + ", "
               + arg.requiresCast()
               + ", "
