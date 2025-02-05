@@ -7,7 +7,7 @@ export interface NotificationInfo {
   readonly message: string
   readonly icon: SvgUseIcon
   /** A number from 0 (not started) to 1 (finished). */
-  readonly progress?: number
+  readonly progress?: number | 'indeterminate'
   readonly color?: ButtonProps['color']
   readonly timestamp?: number
 }

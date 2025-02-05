@@ -29,7 +29,11 @@ export function NotificationItem(props: NotificationInfo) {
           )}
         </div>
         {progress != null && (
-          <ProgressBar value={progress} maxValue={1}>
+          <ProgressBar
+            isIndeterminate={progress === 'indeterminate'}
+            value={progress === 'indeterminate' ? 0 : progress}
+            maxValue={1}
+          >
             {({ percentage }) => (
               <div className="h-2 rounded-full bg-primary/10">
                 <div

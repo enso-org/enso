@@ -72,6 +72,11 @@ export function useComputedNotifications(): readonly NotificationInfo[] {
             const mutationRaw = update.mutation
             const isSuccess = mutationRaw.state.status === 'success'
             const isError = mutationRaw.state.status === 'error'
+            const isPending = mutationRaw.state.status === 'pending'
+            const sharedProps = (
+              isPending ?
+                { progress: 'indeterminate' }
+              : {}) satisfies Partial<NotificationInfo>
             switch (mutationRaw.options.mutationKey?.[1]) {
               case DELETE_ASSETS_MUTATION_METHOD: {
                 // eslint-disable-next-line no-restricted-syntax
@@ -92,6 +97,7 @@ export function useComputedNotifications(): readonly NotificationInfo[] {
                   ),
                   icon: 'trash2',
                   color: 'danger',
+                  ...sharedProps,
                 })
                 break
               }
@@ -113,6 +119,7 @@ export function useComputedNotifications(): readonly NotificationInfo[] {
                     variables.length,
                   ),
                   icon: 'restore',
+                  ...sharedProps,
                 })
                 break
               }
@@ -134,6 +141,7 @@ export function useComputedNotifications(): readonly NotificationInfo[] {
                     variables[0].length,
                   ),
                   icon: 'copy',
+                  ...sharedProps,
                 })
                 break
               }
@@ -155,6 +163,7 @@ export function useComputedNotifications(): readonly NotificationInfo[] {
                     variables[0].length,
                   ),
                   icon: 'duplicate',
+                  ...sharedProps,
                 })
                 break
               }
