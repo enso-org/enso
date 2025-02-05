@@ -42,7 +42,7 @@ jobs:
     if: needs.engine-changed-files.outputs.stdlib_api_any_changed == 'true'
     steps:
       - name: Add label to the PR
-        uses: actions-ecosystem/action-add-label@v1
+        uses: actions-ecosystem/action-add-labels@v1
         with:
           labels: "-libs-API-change"
 
