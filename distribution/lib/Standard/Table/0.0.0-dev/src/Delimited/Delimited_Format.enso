@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.No_Such_Argument
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Network.HTTP.Response.Response
@@ -67,7 +68,8 @@ type Delimited_Format
        Resolve an unresolved constructor to the actual type.
     resolve : Function -> Delimited_Format | Nothing
     resolve constructor =
-        Panic.catch Type_Error (constructor:Delimited_Format) _->Nothing
+        _catch_compatibility_changes <|
+            Panic.catch Type_Error (constructor:Delimited_Format) _->Nothing
 
     ## PRIVATE
        ADVANCED
@@ -210,3 +212,13 @@ Delimited_Format.from (that : JS_Object) =
             Delimited_Format.Delimited delimiter=delimiter encoding=encoding headers=headers skip_rows=skip_rows row_limit=row_limit quote_style=quote_style on_invalid_rows=on_invalid_rows
         field ->
             Error.throw (Illegal_Argument.Error ("The field `" ++ field ++ "` is currently not supported when deserializing the Delimited format from JSON."))
+
+private _catch_compatibility_changes ~action =
+    on_no_such_argument caught_panic =
+        # Handling the compatibility change from https://github.com/enso-org/enso/pull/12231
+        is_keep_invalid_rows = caught_panic.payload.argument_name == "keep_invalid_rows"
+        if is_keep_invalid_rows.not then
+            Panic.throw caught_panic
+        Error.throw (Illegal_Argument.Error "The `keep_invalid_rows` argument has been renamed to `on_invalid_rows`.")
+    Panic.catch No_Such_Argument handler=on_no_such_argument <|
+        action

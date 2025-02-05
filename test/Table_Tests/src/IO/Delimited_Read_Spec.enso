@@ -392,6 +392,12 @@ add_specs suite_builder =
             r3.at 'b' . to_vector . should_equal ['2', '0', '5']
             r3.at 'c' . to_vector . should_equal ['3', Nothing, '6']
 
+        group_builder.specify "should offer a helpful error when using the old argument name" <|
+            r1 = Data.read (enso_project.data / "varying_rows.csv") (..Delimited "," headers=True keep_invalid_rows=False value_formatter=Nothing)
+            r1.should_fail_with Illegal_Argument
+            r1.to_display_text.should_contain "keep_invalid_rows"
+            r1.to_display_text.should_contain "on_invalid_rows"
+
         group_builder.specify "should aggregate invalid rows over some limit" <|
             action on_problems =
                 Data.read (enso_project.data / "many_invalid_rows.csv") (..Delimited "," headers=True on_invalid_rows=False value_formatter=Nothing) on_problems
