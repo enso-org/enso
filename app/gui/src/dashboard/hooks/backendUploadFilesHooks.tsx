@@ -354,17 +354,25 @@ export function useUploadFileWithToastMutation(
       const { sentBytes, totalBytes } = progress
       const sentMb = sentBytes / MB_BYTES
       const totalMb = totalBytes / MB_BYTES
-      toast.loading(getText('uploadLargeFileStatus', sentMb, totalMb), {
-        toastId,
-        position: 'bottom-right',
-      })
+      toast.loading(
+        getText(
+          'uploadLargeFileStatus',
+          sentMb < 1 ? sentMb.toFixed(2) : String(Math.ceil(sentMb)),
+          totalMb < 1 ? totalMb.toFixed(2) : String(Math.ceil(totalMb)),
+        ),
+        { toastId, position: 'bottom-right' },
+      )
     },
     onChunkSuccess: (progress) => {
       onChunkSuccess?.(progress)
       const { sentBytes, totalBytes } = progress
       const sentMb = sentBytes / MB_BYTES
       const totalMb = totalBytes / MB_BYTES
-      const text = getText('uploadLargeFileStatus', sentMb, totalMb)
+      const text = getText(
+        'uploadLargeFileStatus',
+        sentMb < 1 ? sentMb.toFixed(2) : String(Math.ceil(sentMb)),
+        totalMb < 1 ? totalMb.toFixed(2) : String(Math.ceil(totalMb)),
+      )
       toast.update(toastId, { render: text })
     },
     onSuccess: (progress) => {

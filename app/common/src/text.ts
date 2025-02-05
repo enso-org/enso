@@ -149,11 +149,12 @@ interface PlaceholderOverrides {
   readonly restoredXAssetsNotification: [count: number]
   readonly copiedXAssetsNotification: [count: number]
   readonly movedXAssetsNotification: [count: number]
+  readonly uploadedXFilesNotification: [count: number]
   readonly uploadingXFilesWithProgressNotification: [
     sentFiles: number,
     totalFiles: number,
-    progressMb: number,
-    totalMb: number,
+    progressMb: string,
+    totalMb: string,
   ]
   readonly dateXTimeX: [date: string, time: string]
   readonly hourlyBetweenX: [startTime: string, endTime: string]
@@ -168,7 +169,7 @@ interface PlaceholderOverrides {
 
   readonly arbitraryFieldTooLarge: [maxSize: string]
   readonly arbitraryFieldTooSmall: [minSize: string]
-  readonly uploadLargeFileStatus: [uploadedParts: number, totalParts: number]
+  readonly uploadLargeFileStatus: [uploadedMb: string, totalMb: string]
 
   readonly latestVersion: [version: string, date: string]
 }

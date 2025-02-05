@@ -168,16 +168,12 @@ export default function UserBar(props: UserBarProps) {
   )
 }
 
-/**
- * Props for a {@link UserBarHelpSection}.
- */
+/** Props for a {@link UserBarHelpSection}. */
 export interface UserBarHelpSectionProps {
   readonly items: z.infer<typeof TOPBAR_LINKS_SCHEMA>['items']
 }
 
-/**
- * A section containing help buttons.
- */
+/** A section containing help buttons. */
 export function UserBarHelpSection(props: UserBarHelpSectionProps) {
   const { items } = props
   const { getText } = useText()
@@ -191,7 +187,7 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
         if ('url' in item) {
           if ('menu' in item) {
             return (
-              <Button.GroupJoin buttonVariants={{ variant: 'icon' }}>
+              <Button.GroupJoin key={item.name} buttonVariants={{ variant: 'icon' }}>
                 <Button href={item.url} {...getSafetyProps(item.url)}>
                   {getText(item.name)}
                 </Button>
@@ -212,7 +208,7 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
           }
         } else {
           return (
-            <Menu.Trigger>
+            <Menu.Trigger key={item.name}>
               <Button icon={ArrowDownIcon}>{getText(item.name)}</Button>
 
               <Menu>
@@ -227,7 +223,7 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
         }
 
         return (
-          <Button href={item.url} {...getSafetyProps(item.url)}>
+          <Button key={item.name} href={item.url} {...getSafetyProps(item.url)}>
             {getText(item.name)}
           </Button>
         )

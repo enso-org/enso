@@ -190,22 +190,30 @@ export function useComputedNotifications(): readonly NotificationInfo[] {
     }
     const sentMb = sentBytes / MB_BYTES
     const totalMb = totalBytes / MB_BYTES
+    const existingNotification = notificationMap.get(uploadingFilesEntries[0][0])
+    const newMessage =
+      sentFiles === totalFiles ?
+        getText('uploadedXFilesNotification', totalFiles)
+      : getText(
+          'uploadingXFilesWithProgressNotification',
+          sentFiles,
+          totalFiles,
+          sentMb < 1 ? sentMb.toFixed(2) : String(Math.ceil(sentMb)),
+          totalMb < 1 ? totalMb.toFixed(2) : String(Math.ceil(totalMb)),
+        )
     // Assume each file upload only participates in one notification.
     // This assumption means that each notification can be uniquely identified by its first upload.
     // There is guaranteed to be at least one upload by this point because of the
     // `uploadingFilesEntries[0]` condition above.
-    upsertNotification(uploadingFilesEntries[0][0], {
-      id: 'temporary-uploading-files',
-      message: getText(
-        'uploadingXFilesWithProgressNotification',
-        sentFiles,
-        totalFiles,
-        sentMb,
-        totalMb,
-      ),
-      icon: 'data_upload',
-      progress: sentBytes / totalBytes,
-    })
+    // Only upsert if changed to avoid infinite loop.
+    if (existingNotification?.message !== newMessage) {
+      upsertNotification(uploadingFilesEntries[0][0], {
+        id: uploadingFilesEntries[0][0],
+        message: newMessage,
+        icon: 'data_upload',
+        ...(sentFiles !== totalFiles ? { progress: sentBytes / totalBytes } : {}),
+      })
+    }
   }
 
   return [...notificationMap.values()].reverse()
