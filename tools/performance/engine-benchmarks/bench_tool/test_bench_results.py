@@ -46,8 +46,8 @@ class TestBenchResults(unittest.IsolatedAsyncioTestCase):
         Bench run does not need remote cache - it fetches just some metadata about GH artifacts.
         :return:
         """
-        since = datetime.fromisoformat("2023-10-01")
-        until = datetime.fromisoformat("2023-10-05")
+        since = datetime.fromisoformat("2024-10-01")
+        until = datetime.fromisoformat("2024-10-05")
         bench_runs = await get_bench_runs(since, until, "develop", ENGINE_BENCH_WORKFLOW_ID)
         self.assertGreater(len(bench_runs), 0)
         bench_run = bench_runs[0]
@@ -58,9 +58,9 @@ class TestBenchResults(unittest.IsolatedAsyncioTestCase):
 
     async def test_get_bench_report(self):
         # We choose an old date on purpose, so that the remote cache must be used, and is thus
-        # transitively tested.
-        since = datetime.fromisoformat("2023-10-01")
-        until = datetime.fromisoformat("2023-10-05")
+        # transitively tested. Note that GH deletes workflow runs that are older than 2 years.
+        since = datetime.fromisoformat("2024-10-01")
+        until = datetime.fromisoformat("2024-10-05")
         bench_runs = await get_bench_runs(since, until, "develop", ENGINE_BENCH_WORKFLOW_ID)
         self.assertGreater(len(bench_runs), 0)
         bench_run = bench_runs[0]
