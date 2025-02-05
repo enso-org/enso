@@ -69,5 +69,21 @@ class TestBenchResults(unittest.IsolatedAsyncioTestCase):
             bench_report = await get_bench_report(bench_run, temp_dir, remote_cache)
             self.assertIsNotNone(bench_report)
             self.assertEqual(bench_run, bench_report.bench_run)
-            self.assertEqual(64, len(bench_report.label_score_dict))
+            self.assertEqual(70, len(bench_report.label_score_dict))
+    
+    async def test_get_new_bench_report(self):
+        # Artifact names changed on 2025-02-03 - in PR https://github.com/enso-org/enso/pull/12226
+        # This test ensures that the artifact names were correctly updated
+        since = datetime.fromisoformat("2025-02-03")
+        until = datetime.fromisoformat("2025-02-05")
+        bench_runs = await get_bench_runs(since, until, "develop", ENGINE_BENCH_WORKFLOW_ID)
+        self.assertGreater(len(bench_runs), 0)
+        bench_run = bench_runs[0]
+        remote_cache = ReadonlyRemoteCache()
+        with WithTempDir("test_get_bench_report") as temp_dir:
+            bench_report = await get_bench_report(bench_run, temp_dir, remote_cache)
+            self.assertIsNotNone(bench_report)
+            self.assertEqual(bench_run, bench_report.bench_run)
+            self.assertEqual(80, len(bench_report.label_score_dict))
+
 
