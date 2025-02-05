@@ -1,4 +1,6 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.No_Such_Argument
+import Standard.Base.Errors.Common.Not_Invokable
 
 from Standard.Test import all
 
@@ -86,8 +88,23 @@ add_specs suite_builder =
             v1.at 2 . should_equal h.y
             v1.at 3 . should_equal h.y
 
+        group_builder.specify "should return a helpful error when applying a named argument that does not match" <|
+            f a='a' b='b' c='c' =
+                [a, b, c]
+
+            r1 = Test.expect_panic No_Such_Argument (f y='Y')
+            r1.to_display_text . should_equal "The named argument `y` did not match any argument names. Perhaps it is misspelled?"
+
+            g a=1 = [a]
+            r2 = Test.expect_panic No_Such_Argument (g x=2)
+            r2.to_display_text . should_equal "The named argument `x` did not match any argument names. Perhaps it is misspelled?"
+
+        group_builder.specify "should return Not_Invokable if a non-function is called" <|
+            not_f = 42 : Any
+            Test.expect_panic Not_Invokable (not_f 1)
+            Test.expect_panic Not_Invokable (not_f x=1)
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-
