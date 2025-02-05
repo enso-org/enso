@@ -50,10 +50,9 @@ within_table table =
     Test.with_clue 'Resulting table:\n'+description+'\n\n'
 
 ## PRIVATE
-Any.should_equal_tz_agnostic self other =
-    loc = Test.get_source_location 1
+Any.should_equal_tz_agnostic self other omitter=Nothing = omitting omitter omitter->
     _ = other
-    Test.fail "Expected a vector but got "+self.to_display_text+" (at "+loc+")."
+    Test.fail "Expected a vector but got "+self.to_display_text+" (at "+omitter.loc+")."
 
 ## PRIVATE
    A helper method that compares two vectors of Date_Time values.
@@ -74,10 +73,9 @@ Vector.should_equal_tz_agnostic self other omitter=Nothing = omitting omitter om
         _ -> Test.fail "Expected a vector but got "+other.to_display_text+" (at "+omitter.loc+")"
 
 ## PRIVATE
-Error.should_equal_tz_agnostic self other =
-    loc = Test.get_source_location 1
+Error.should_equal_tz_agnostic self other omitter=Nothing = omitting omitter omitter->
     _ = other
-    Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+loc+")."
+    Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+omitter.loc+")."
 
 ## PRIVATE
    Builds a table ensuring that the rows are in the order as given.

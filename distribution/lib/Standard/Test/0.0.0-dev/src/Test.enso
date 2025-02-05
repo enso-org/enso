@@ -206,24 +206,3 @@ type Test
                     Thread.sleep milliseconds_between_attempts
                     @Tail_Call go (i+1)
         go 1
-
-
-    ## PRIVATE
-
-        Returns a Text representing the source location of a stack frame above
-        the call.
-
-        Arguments:
-        - skip_frames: how many frames on the stack to skip.
-
-        If the function is called with 0 it will return the location of that call.
-        Note that not only function calls, but also things like pattern matching add
-        frames to the stack and there is no guarantee that the amount of frames that
-        need to be skipped will not change between versions, so this method should be
-        used carefully.
-    get_source_location skip_frames:Integer -> Text =
-        stack = Standard.Base.Runtime.get_stack_trace
-        element = stack . at skip_frames+1
-        loc = element . source_location
-        IO.println "NOOOO "+loc.to_display_text
-        loc . to_display_text
