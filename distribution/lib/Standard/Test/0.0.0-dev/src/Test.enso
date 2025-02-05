@@ -43,8 +43,7 @@ type Test
              example_expect_panic_with =
                  Test.expect_panic_with Examples.throw_panic Examples.My_Error
     expect_panic_with : Any -> Any -> Integer -> Test_Result
-    expect_panic_with ~action matcher frames_to_skip=0 =
-        loc = Test.get_source_location 1+frames_to_skip
+    expect_panic_with ~action matcher frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
         handle_panic caught_panic =
             payload = caught_panic.payload
             is_internal_test_panic = payload.is_a Spec_Result
@@ -55,17 +54,17 @@ type Test
             is_panic_matching = payload.is_a matcher
             if is_panic_matching then payload else
                 stack_trace = caught_panic.convert_to_dataflow_error.get_stack_trace_text
-                Test.fail ("Expected a " + matcher.to_text + ", but " + payload.to_text + " was thrown instead (at " + loc + ").") details=stack_trace
+                Test.fail ("Expected a " + matcher.to_text + ", but " + payload.to_text + " was thrown instead (at " + omitter.loc + ").") details=stack_trace
         Panic.catch Any handler=handle_panic <|
             res = action
 
             # If the action did not panic above, we fail the test.
             case res.is_error of
                 True ->
-                    Test.fail ("Expected a Panic " + matcher.to_text + " to be thrown, but the action returned a Dataflow Error " + res.catch.to_display_text + " instead (at " + loc + ").")
+                    Test.fail ("Expected a Panic " + matcher.to_text + " to be thrown, but the action returned a Dataflow Error " + res.catch.to_display_text + " instead (at " + omitter.loc + ").")
                 False ->
                     return_suffix = if res.is_nothing then "" else " and returned ["+res.to_text+"]"
-                    Test.fail ("Expected a Panic " + matcher.to_text + " to be thrown, but the action succeeded" + return_suffix + " (at " + loc + ").")
+                    Test.fail ("Expected a Panic " + matcher.to_text + " to be thrown, but the action succeeded" + return_suffix + " (at " + omitter.loc + ").")
 
 
     ## Expect a function to fail with the provided panic.
@@ -90,20 +89,19 @@ type Test
 
                       IO.println 'this is not reached'
     expect_panic : Any -> Any -> Test_Result
-    expect_panic matcher ~action = Test.expect_panic_with action matcher frames_to_skip=1
+    expect_panic matcher ~action omitter=Nothing = omitting omitter omitter-> Test.expect_panic_with action matcher omitter=omitter
 
 
     ## Checks that the provided action returns without any errors or warnings.
 
        If you just want to check for errors, usage of the `.should_succeed`
        extension function is preferred.
-    assert_no_problems value frames_to_skip=0 =
+    assert_no_problems value frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
         value.catch Any _->
             Test.fail_match_on_unexpected_error value 2+frames_to_skip
         warnings = Warning.get_all value . map .value
         if warnings.not_empty then
-            loc = Test.get_source_location 2+frames_to_skip
-            msg = "The action returned unexpected warnings: " + warnings.to_text + " (at " + loc + ")."
+            msg = "The action returned unexpected warnings: " + warnings.to_text + " (at " + omitter.loc + ")."
             Test.fail msg
 
     ## Fail a test with the given message.
@@ -133,10 +131,9 @@ type Test
     ## PRIVATE
        Reports an unexpected dataflow error has occurred.
     fail_match_on_unexpected_error : Error -> Integer -> Nothing
-    fail_match_on_unexpected_error error frames_to_skip =
+    fail_match_on_unexpected_error error frames_to_skip omitter=nothing = omitting omitter omitter->
         payload = error.catch
-        loc = Test.get_source_location 1+frames_to_skip
-        msg = "An unexpected dataflow error (" + payload.to_text + ") has been matched (at " + loc + ")."
+        msg = "An unexpected dataflow error (" + payload.to_text + ") has been matched (at " + omitter.loc + ")."
         Test.fail msg details=error.get_stack_trace_text
 
     ## Executes the block of code passed as behavior and adds a clue modifier which
@@ -229,4 +226,5 @@ type Test
         stack = Standard.Base.Runtime.get_stack_trace
         element = stack . at skip_frames+1
         loc = element . source_location
+        IO.println "NOOOO "+omitter.loc.to_display_text
         loc . to_display_text
