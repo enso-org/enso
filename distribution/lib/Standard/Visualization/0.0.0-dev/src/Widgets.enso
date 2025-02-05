@@ -1,5 +1,5 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.Not_Invokable
+import Standard.Base.Errors.Common.No_Such_Argument
 import Standard.Base.Metadata.Widget
 from Standard.Base.Logging import all
 
@@ -28,8 +28,10 @@ get_widget_json value call_name argument_names uuids="{}" =
     read_annotation argument = Panic.catch Any handler=(log_panic argument) <|
         annotation = Warning.clear <| Meta.get_annotation value call_name argument
         return_target err = err.payload.target
-        Panic.catch Not_Invokable handler=return_target
-            annotation value cache=cache
+        Panic.catch No_Such_Argument (annotation value cache=cache) caught_panic->
+            is_missing_cache_argument = caught_panic.payload.name == "cache"
+            if is_missing_cache_argument then caught_panic.payload.target else Panic.throw caught_panic
+
 
     annotations = argument_names.map (arg -> [arg, read_annotation arg])
     annotations.to_json
