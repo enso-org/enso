@@ -14,6 +14,7 @@ import * as yaml from 'yaml'
 
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 
+import * as random from 'lib0/random.js'
 import * as projectManagement from './projectManagement'
 
 // =================
@@ -339,10 +340,30 @@ export default function projectManagerShimMiddleware(
                             projectManagement.PROJECT_METADATA_RELATIVE_PATH,
                           )
                           const packageMetadataContents = await fs.readFile(packageMetadataPath)
-                          const projectMetadataContents = await fs.readFile(projectMetadataPath)
+                          const packageMetadataYaml = yaml.parse(packageMetadataContents.toString())
+                          let projectMetadataJson
+                          try {
+                            const projectMetadataContents = await fs.readFile(projectMetadataPath)
+                            projectMetadataJson = JSON.parse(projectMetadataContents.toString())
+                          } catch (e) {
+                            if (
+                              'name' in packageMetadataYaml &&
+                              typeof packageMetadataYaml.name === 'string'
+                            ) {
+                              projectMetadataJson = {
+                                id: random.uuidv4().toString(),
+                                kind: 'UserProject',
+                                created: new Date().toISOString(),
+                                lastOpened: null,
+                              }
+                              fs.writeFile(projectMetadataPath, JSON.stringify(projectMetadataJson))
+                            } else {
+                              throw e
+                            }
+                          }
                           const metadata = extractProjectMetadata(
-                            yaml.parse(packageMetadataContents.toString()),
-                            JSON.parse(projectMetadataContents.toString()),
+                            packageMetadataYaml,
+                            projectMetadataJson,
                           )
                           if (metadata != null) {
                             // This is a project.
