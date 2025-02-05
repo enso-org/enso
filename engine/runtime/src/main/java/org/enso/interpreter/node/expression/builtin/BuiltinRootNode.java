@@ -10,6 +10,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
@@ -110,6 +111,9 @@ public abstract class BuiltinRootNode extends RootNode {
     @Child private AppendWarningNode appendWarningNode;
     @Child private HashMapInsertAllNode mapInsertAllNode;
 
+    private final BranchProfile errorsTaken = BranchProfile.create();
+    private final BranchProfile sentinelTaken = BranchProfile.create();
+
     ArgNode(byte flags) {
       this.flags = flags;
       if (is(CHECK_WARNINGS)) {
@@ -126,10 +130,12 @@ public abstract class BuiltinRootNode extends RootNode {
         VirtualFrame frame, Class<T> type, Object value, ArgContext context) {
       assert value != null;
       if (is(CHECK_ERRORS) && value instanceof DataflowError err) {
+        errorsTaken.enter();
         context.returnValue = err;
         return null;
       }
       if (is(CHECK_PANIC_SENTINEL) && value instanceof PanicSentinel sentinel) {
+        sentinelTaken.enter();
         throw sentinel;
       }
       if (warnings != null) {
