@@ -111,8 +111,6 @@ public final class EnsoContext {
   private ExecutionEnvironment globalExecutionEnvironment;
 
   private final int warningsLimit;
-  // TBD should be thread local
-  private final State currentState = emptyState();
 
   /**
    * Creates a new Enso context.
@@ -1037,7 +1035,8 @@ public final class EnsoContext {
     }
   }
 
+  /** Access to state associated with this context and current thread. */
   public State currentState() {
-    return this.currentState;
+    return language.currentState();
   }
 }
