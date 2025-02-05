@@ -214,7 +214,18 @@ public abstract class IndirectInvokeCallableNode extends Node {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail) {
-    Atom error = EnsoContext.get(this).getBuiltins().error().makeNotInvokable(callable);
-    throw new PanicException(error, this);
+    // The IndirectInvokeCallableNode is used only from IndirectCurryNode, so it is always used for
+    // oversaturated arguments as long as schema.length >= 1.
+    if (schema.length >= 1 && schema[0].isNamed()) {
+      Atom error =
+          EnsoContext.get(this)
+              .getBuiltins()
+              .error()
+              .makeNoSuchArgument(schema[0].getName(), callable);
+      throw new PanicException(error, this);
+    } else {
+      Atom error = EnsoContext.get(this).getBuiltins().error().makeNotInvokable(callable);
+      throw new PanicException(error, this);
+    }
   }
 }
