@@ -321,11 +321,11 @@ public final class Error {
   /**
    * Constructs an error that indicates that a named argument application could not find a matching parameter.
    *
-   * @param name name of the named argument being applied
+   * @param argumentName name of the named argument being applied
    * @return a not invokable error
    */
-  public Atom makeNoSuchArgument(String name) {
-    return noSuchArgument.newInstance(Text.create(name));
+  public Atom makeNoSuchArgument(String argumentName, Object callTarget) {
+    return noSuchArgument.newInstance(Text.create(argumentName), callTarget);
   }
 
   /**

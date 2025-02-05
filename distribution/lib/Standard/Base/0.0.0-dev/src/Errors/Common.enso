@@ -320,13 +320,21 @@ type Not_Invokable
 @Builtin_Type
 type No_Such_Argument
     ## PRIVATE
-       TODO
-    Error name
+       Indicates that an argument was passed by name, but the function being
+       called did not take any argument that matched that name.
+
+       Arguments:
+       - argument_name: The name of the argument that was not found.
+       - call_target: Advanced. The value that this argument was attempted to be
+         applied to. This may be an unapplied function, or a result of a
+         function/constructor call (if all other arguments have already been
+         applied). This is the same value as `target` in analogous `Not_Invokable` error.
+    Error argument_name call_target
 
     ## PRIVATE
        Convert the No_Such_Argument error to a human-readable format.
     to_display_text : Text
-    to_display_text self = "The named argument `"+self.name.to_text+"` did not match any argument names. Perhaps it is misspelled?"
+    to_display_text self = "The named argument `"+self.argument_name.to_text+"` did not match any argument names. Perhaps it is misspelled?"
 
 @Builtin_Type
 type Private_Access

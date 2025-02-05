@@ -380,7 +380,7 @@ public abstract class InvokeCallableNode extends BaseNode {
   public Object invokeGeneric(
       Object callable, VirtualFrame callerFrame, State state, Object[] arguments) {
     if (isForOversaturatedArguments && schema.length >= 1 && schema[0].isNamed()) {
-      Atom error = EnsoContext.get(this).getBuiltins().error().makeNoSuchArgument(schema[0].getName());
+      Atom error = EnsoContext.get(this).getBuiltins().error().makeNoSuchArgument(schema[0].getName(), callable);
       throw new PanicException(error, this);
     } else {
       Atom error = EnsoContext.get(this).getBuiltins().error().makeNotInvokable(callable);

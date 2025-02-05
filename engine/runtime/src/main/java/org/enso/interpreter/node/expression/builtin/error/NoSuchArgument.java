@@ -14,6 +14,6 @@ public class NoSuchArgument extends UniquelyConstructibleBuiltin {
 
   @Override
   protected List<String> getConstructorParamNames() {
-    return List.of("name");
+    return List.of("argument_name", "call_target");
   }
 }
