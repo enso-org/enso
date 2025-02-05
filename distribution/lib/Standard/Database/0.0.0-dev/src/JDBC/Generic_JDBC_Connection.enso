@@ -16,19 +16,6 @@ from project.Internal.Result_Set import read_column, result_set_to_table
 polyglot java import java.sql.DatabaseMetaData
 
 type Generic_JDBC_Connection
-    ## PRIVATE
-
-       A wrapper around a JDBC Connection. This can be used to access any
-       JDBC-compliant database backend, including ones that do not have full
-       support via `Connection`s. It provides schema information, and the
-       ability to execute SQL
-       queries and commands.
-
-       Unlike regular fully-supported `Connection`s, query results are returned
-       as in-memory `Table`s, rather than as `DB_Table`s.
-
-       The JDBC driver must be available on the JVM classpath (for example, in a
-       `polyglot/java` folder within the project).
     private Value jdbc_connection:JDBC_Connection.JDBC_Connection
 
     ## ADVANCED
@@ -37,11 +24,23 @@ type Generic_JDBC_Connection
 
        Connect to a database specified by a JDBC URL.
 
+       Generic_JDBC_Connection is a wrapper around a JDBC Connection. This can
+       be used to access any JDBC-compliant database backend, including ones
+       that do not have full support via `Connection`s. It provides schema
+       information, and the ability to execute SQL queries and commands.
+
+       Unlike regular fully-supported `Connection`s, query results are returned
+       as in-memory `Table`s, rather than as `DB_Table`s.
+
+       The JDBC driver must be available on the JVM classpath (for example, in a
+       `polyglot/java` folder within the project).
+
        Arguments:
        - url: The JDBC URL describing the database to connect to.
 
        > Example
-         Connect to an H2 database instance.
+         Connect to an H2 database instance. (This requires that you have the H2
+         JDBC driver in your classpath.)
 
              connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
     connect (url : Text = (Missing_Argument.throw "url")) -> Generic_JDBC_Connection =
