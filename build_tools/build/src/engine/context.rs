@@ -597,9 +597,9 @@ impl RunContext {
         let lib_root = self.repo_root.distribution.lib.join("Standard");
         for dir in std::fs::read_dir(lib_root)? {
             // The path to the library is of this form:
-            // distribution/lib/Standard/<lib_name>/<version>
+            // distribution/lib/Standard/<lib_name>/0.0.0-dev
             let dir = dir?;
-            let lib_dir = dir.path().join(self.paths.version().to_string());
+            let lib_dir = dir.path().join("0.0.0-dev");
             assert!(lib_dir.exists(), "Directory {} does not exist", lib_dir.display());
             let api_dir = lib_dir.join("docs").join("api");
             if api_dir.exists() {
