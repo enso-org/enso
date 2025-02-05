@@ -12,8 +12,6 @@ from project.Omitter import all
 
    Arguments:
    - matcher: The expected type of dataflow error contained in `self`.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
    - unwrap_errors: If true, remove any wrapping errors from the result before
      checking against the expected warning.
 
@@ -26,7 +24,7 @@ from project.Omitter import all
          example_should_fail_with =
             Examples.throw_error . should_fail_with Examples.My_Error
 Any.should_fail_with : Any -> Integer -> Boolean -> Spec_Result
-Any.should_fail_with self matcher frames_to_skip=0 unwrap_errors=True omitter=Nothing = omitting omitter omitter->
+Any.should_fail_with self matcher unwrap_errors=True omitter=Nothing = omitting omitter omitter->
     _ = unwrap_errors
     matcher_text = matcher . to_text
     Test.fail ("Expected an error " + matcher_text + " but no error occurred, instead got: " + self.to_text + " (at " + omitter.loc + ").")
@@ -35,8 +33,6 @@ Any.should_fail_with self matcher frames_to_skip=0 unwrap_errors=True omitter=No
 
    Arguments:
    - matcher: The expected type of dataflow error contained in `self`.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
    - unwrap_errors: If true, remove any wrapping errors from the result before
      checking against the expected warning.
 
@@ -49,7 +45,7 @@ Any.should_fail_with self matcher frames_to_skip=0 unwrap_errors=True omitter=No
          example_should_fail_with =
             Examples.throw_error . should_fail_with Examples.My_Error
 Error.should_fail_with : Any -> Integer -> Boolean -> Spec_Result
-Error.should_fail_with self matcher frames_to_skip=0 unwrap_errors=True omitter=Nothing = omitting omitter omitter->
+Error.should_fail_with self matcher unwrap_errors=True omitter=Nothing = omitting omitter omitter->
     unwrap_maybe error = if unwrap_errors then Error.unwrap error else error
     caught = unwrap_maybe self.catch
     if caught == matcher || caught.is_a matcher then Nothing else
@@ -60,8 +56,6 @@ Error.should_fail_with self matcher frames_to_skip=0 unwrap_errors=True omitter=
 
    Arguments:
    - that: The value to check `self` for equality with.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
 
    > Example
      Assert that one value should equal another,
@@ -71,7 +65,7 @@ Error.should_fail_with self matcher frames_to_skip=0 unwrap_errors=True omitter=
 
          example_should_equal = Examples.add_1_to 1 . should_equal 2
 Any.should_equal : Any -> Integer -> Spec_Result
-Any.should_equal self that frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+Any.should_equal self that omitter=Nothing = omitting omitter omitter->
     rhs_error_check that
     case self == that of
         True -> Spec_Result.Success
@@ -94,8 +88,6 @@ Any.should_equal self that frames_to_skip=0 omitter=Nothing = omitting omitter o
 
    Arguments:
    - that: The type to check `self` for equality with.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
 
    > Example
      Assert that some type is equal to another.,
@@ -105,14 +97,14 @@ Any.should_equal self that frames_to_skip=0 omitter=Nothing = omitting omitter o
 
          example_should_equal = Examples.some_type . should_equal_type Vector
 Any.should_equal_type : Any -> Integer -> Spec_Result
-Any.should_equal_type self that frames_to_skip=0 omitter=Nothing = omitting omitter omitter-> case (self.is_same_object_as that) of
+Any.should_equal_type self that omitter=Nothing = omitting omitter omitter-> case (self.is_same_object_as that) of
     True -> Spec_Result.Success
     False ->
         msg = self.to_text + " did not equal type " + that.to_text + " (at " + omitter.loc + ")."
         Test.fail msg
 
 ## Added so that dataflow errors are not silently lost.
-Error.should_equal_type self that frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+Error.should_equal_type self that omitter=Nothing = omitting omitter omitter->
     _ = [that]
     Test.fail_match_on_unexpected_error self omitter=omitter
 
@@ -120,8 +112,6 @@ Error.should_equal_type self that frames_to_skip=0 omitter=Nothing = omitting om
 
    Arguments:
    - that: The value to check `self` for equality with.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
 
    > Example
      Assert that one value should equal another,
@@ -131,7 +121,7 @@ Error.should_equal_type self that frames_to_skip=0 omitter=Nothing = omitting om
 
          example_should_not_equal = Examples.add_1_to 1 . should_not_equal 2
 Any.should_not_equal : Any -> Integer -> Spec_Result
-Any.should_not_equal self that frames_to_skip=0 omitter=Nothing = omitting omitter omitter-> if that.is_error then (Panic.throw (Illegal_Argument.Error "Expected value provided as `that` for `should_not_equal` cannot be an error, but got: "+that.to_display_text)) else
+Any.should_not_equal self that omitter=Nothing = omitting omitter omitter-> if that.is_error then (Panic.throw (Illegal_Argument.Error "Expected value provided as `that` for `should_not_equal` cannot be an error, but got: "+that.to_display_text)) else
     case self != that of
         True -> Spec_Result.Success
         False ->
@@ -139,7 +129,7 @@ Any.should_not_equal self that frames_to_skip=0 omitter=Nothing = omitting omitt
             Test.fail msg
 
 ## Added so that dataflow errors are not silently lost.
-Error.should_not_equal self that frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+Error.should_not_equal self that omitter=Nothing = omitting omitter omitter->
     _ = [that]
     Test.fail_match_on_unexpected_error self omitter=omitter
 
@@ -147,8 +137,6 @@ Error.should_not_equal self that frames_to_skip=0 omitter=Nothing = omitting omi
 
    Arguments:
    - that: The type to check `self` for equality with.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
 
    > Example
      Assert that some type is equal to another.,
@@ -158,14 +146,14 @@ Error.should_not_equal self that frames_to_skip=0 omitter=Nothing = omitting omi
 
          example_should_not_equal = Examples.some_type . should_not_equal_type Vector
 Any.should_not_equal_type : Any -> Integer -> Spec_Result
-Any.should_not_equal_type self that frames_to_skip=0 omitter=Nothing = omitting omitter omitter-> case (self.is_same_object_as that . not) of
+Any.should_not_equal_type self that omitter=Nothing = omitting omitter omitter-> case (self.is_same_object_as that . not) of
     True -> Spec_Result.Success
     False ->
         msg = self.to_text + " did equal type " + that.to_text + " (at " + omitter.loc + ")."
         Test.fail msg
 
 ## Added so that dataflow errors are not silently lost.
-Error.should_not_equal_type self that frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+Error.should_not_equal_type self that omitter=Nothing = omitting omitter omitter->
     _ = [that]
     Test.fail_match_on_unexpected_error self omitter=omitter
 
@@ -173,8 +161,6 @@ Error.should_not_equal_type self that frames_to_skip=0 omitter=Nothing = omittin
 
    Arguments:
    - that: The value to check `self` starts with.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
 
    > Example
      Assert that one value should start with another.
@@ -183,7 +169,7 @@ Error.should_not_equal_type self that frames_to_skip=0 omitter=Nothing = omittin
 
          example_should_start_with = "Hello World!" . should_start_with "Hello"
 Any.should_start_with : Text -> Integer -> Spec_Result
-Any.should_start_with self that frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+Any.should_start_with self that omitter=Nothing = omitting omitter omitter->
     rhs_error_check that
     case self of
         _ : Text -> if self.starts_with that then Spec_Result.Success else
@@ -197,8 +183,6 @@ Any.should_start_with self that frames_to_skip=0 omitter=Nothing = omitting omit
 
    Arguments:
    - that: The value to check `self` ends with.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
 
    > Example
      Assert that one value should end with another.
@@ -207,7 +191,7 @@ Any.should_start_with self that frames_to_skip=0 omitter=Nothing = omitting omit
 
          example_should_end_with = "Hello World!" . should_end_with "ld!"
 Any.should_end_with : Text -> Integer -> Spec_Result
-Any.should_end_with self that frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+Any.should_end_with self that omitter=Nothing = omitting omitter omitter->
     rhs_error_check that
     case self of
         _ : Text -> if self.ends_with that then Spec_Result.Success else
@@ -221,8 +205,6 @@ Any.should_end_with self that frames_to_skip=0 omitter=Nothing = omitting omitte
 
    Arguments:
    - that: The value to check `self` starts with.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
 
    > Example
      Assert that one value should start with another.
@@ -231,7 +213,7 @@ Any.should_end_with self that frames_to_skip=0 omitter=Nothing = omitting omitte
 
          example_should_start_with = "Hello World!" . should_start_with "Hello"
 Error.should_start_with : Any -> Integer -> Spec_Result
-Error.should_start_with self that frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+Error.should_start_with self that omitter=Nothing = omitting omitter omitter->
     _ = [that]
     Test.fail_match_on_unexpected_error self omitter=omitter
 
@@ -239,8 +221,6 @@ Error.should_start_with self that frames_to_skip=0 omitter=Nothing = omitting om
 
    Arguments:
    - that: The value to check `self` ends with.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
 
    > Example
      Assert that one value should end with another.
@@ -249,7 +229,7 @@ Error.should_start_with self that frames_to_skip=0 omitter=Nothing = omitting om
 
          example_should_end_with = "Hello World!" . should_end_with "ld!"
 Error.should_end_with : Any -> Integer -> Spec_Result
-Error.should_end_with self that frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+Error.should_end_with self that omitter=Nothing = omitting omitter omitter->
     _ = [that]
     Test.fail_match_on_unexpected_error self omitter=omitter
 
@@ -266,7 +246,7 @@ Error.should_end_with self that frames_to_skip=0 omitter=Nothing = omitting omit
 
          example_should_equal = Examples.add_1_to 1 . should_equal 2
 Error.should_equal : Any -> Integer -> Spec_Result
-Error.should_equal self that frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+Error.should_equal self that omitter=Nothing = omitting omitter omitter->
     rhs_error_check that
     Test.fail_match_on_unexpected_error self omitter=omitter
 
@@ -275,8 +255,6 @@ Error.should_equal self that frames_to_skip=0 omitter=Nothing = omitting omitter
    Arguments:
    - that: The value to compare `self` for equality with.
    - epsilon: The epsilon for comparing two float numbers.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
 
    > Example
      Compare two float values.
@@ -293,7 +271,7 @@ Error.should_equal self that frames_to_skip=0 omitter=Nothing = omitting omitter
          example_should_equal =
             1.00000001 . should_equal 1.00000002 epsilon=0.0001
 Number.should_equal : Float -> Float -> Integer -> Spec_Result
-Number.should_equal self that epsilon=0 frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+Number.should_equal self that epsilon=0 omitter=Nothing = omitting omitter omitter->
     rhs_error_check that
     matches = case that of
         n : Number -> self.equals n epsilon . catch Incomparable_Values _->
@@ -313,10 +291,8 @@ Number.should_equal self that epsilon=0 frames_to_skip=0 omitter=Nothing = omitt
    Arguments:
    - that: The value to compare `self` for equality with.
    - epsilon: The epsilon for comparing two float numbers.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
 Decimal.should_equal : Number -> Float-> Float -> Integer -> Spec_Result
-Decimal.should_equal self that epsilon=0 frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+Decimal.should_equal self that epsilon=0 omitter=Nothing = omitting omitter omitter->
     rhs_error_check that
     self.to_float . should_equal that.to_float epsilon omitter=omitter
 
@@ -324,38 +300,29 @@ Decimal.should_equal self that epsilon=0 frames_to_skip=0 omitter=Nothing = omit
 
    It returns the original value, so that it can be inspected further.
 
-   Arguments:
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
-
    > Example
      Assert that a given action did not result in errors or warnings.
 
          "foobar".write (enso_project.data / "f.txt") . should_succeed
 Any.should_succeed : Integer -> Any
-Any.should_succeed self frames_to_skip=0 =
-    _ = frames_to_skip
+Any.should_succeed self =
     self
 
 ## Asserts that `self` value is not an error.
 
    It returns the original value, so that it can be inspected further.
 
-   Arguments:
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
-
    > Example
      Assert that a given action did not result in errors or warnings.
 
          "foobar".write (enso_project.data / "f.txt") . should_succeed
 Error.should_succeed : Integer -> Any
-Error.should_succeed self frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+Error.should_succeed self omitter=Nothing = omitting omitter omitter->
     Test.fail_match_on_unexpected_error self omitter=omitter
 
 ## Handles an unexpected dataflow error.
 Error.should_be_a : Any -> Integer -> Any
-Error.should_be_a self typ frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+Error.should_be_a self typ omitter=Nothing = omitting omitter omitter->
     _ = typ
     Test.fail_match_on_unexpected_error self omitter=omitter
 
@@ -480,8 +447,6 @@ Any.should_be_a self typ omitter=Nothing = omitting omitter omitter->
 
    Arguments:
    - that: The collection to compare.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
 
    > Example
      Assert that one vector should contain the same elements as another.
@@ -491,7 +456,7 @@ Any.should_be_a self typ omitter=Nothing = omitting omitter omitter->
 
          example_should_equal = [1, 2] . should_equal_ignoring_order [2, 1]
 Any.should_equal_ignoring_order : Any -> Integer -> Spec_Result
-Any.should_equal_ignoring_order self that frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+Any.should_equal_ignoring_order self that omitter=Nothing = omitting omitter omitter->
     if that.is_a Vector . not then
         Panic.throw (Illegal_Argument.Error "Expected a Vector, but got a "+that.to_display_text+" (at "+omitter.loc+").")
     that.each element->
@@ -521,8 +486,6 @@ Any.should_equal_ignoring_order self that frames_to_skip=0 omitter=Nothing = omi
 
    Arguments:
    - _: The collection to compare.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
 
    > Example
      Assert that one vector should contain the same elements as another.
@@ -532,7 +495,7 @@ Any.should_equal_ignoring_order self that frames_to_skip=0 omitter=Nothing = omi
 
          example_should_equal = [1, 2] . should_equal_ignoring_order [2, 1]
 Error.should_equal_ignoring_order : Any -> Integer -> Spec_Result
-Error.should_equal_ignoring_order self that frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+Error.should_equal_ignoring_order self that omitter=Nothing = omitting omitter omitter->
     _ = [that]
     Test.fail_match_on_unexpected_error self omitter=omitter
 
@@ -548,8 +511,6 @@ Error.should_equal_ignoring_order self that frames_to_skip=0 omitter=Nothing = o
 
    Arguments:
    - that: The collection to compare.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
 
    > Example
      Assert that one vector should contain only elements in another.
@@ -559,7 +520,7 @@ Error.should_equal_ignoring_order self that frames_to_skip=0 omitter=Nothing = o
 
          example_should_equal = [1, 2] . should_only_contain_elements_in  [1, 2, 3, 4]
 Any.should_only_contain_elements_in : Any -> Integer -> Spec_Result
-Any.should_only_contain_elements_in self that frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+Any.should_only_contain_elements_in self that omitter=Nothing = omitting omitter omitter->
     rhs_error_check that
     self.each element->
         if that.contains element . not then
@@ -579,8 +540,6 @@ Any.should_only_contain_elements_in self that frames_to_skip=0 omitter=Nothing =
 
    Arguments:
    - that: The collection to compare.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
 
    > Example
      Assert that one vector should contain only elements in another.
@@ -590,7 +549,7 @@ Any.should_only_contain_elements_in self that frames_to_skip=0 omitter=Nothing =
 
          example_should_equal = [1, 2] . should_only_contain_elements_in  [1, 2, 3, 4]
 Error.should_only_contain_elements_in  : Any -> Integer -> Spec_Result
-Error.should_only_contain_elements_in self that frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+Error.should_only_contain_elements_in self that omitter=Nothing = omitting omitter omitter->
     _ = [that]
     Test.fail_match_on_unexpected_error self omitter=omitter
 
@@ -598,8 +557,6 @@ Error.should_only_contain_elements_in self that frames_to_skip=0 omitter=Nothing
 
    Arguments:
    - element: The element to check.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
 
    This method delegates to the `contains` method of `self` and will use the
    rules of the particular type - be it a `Vector`, `Text` or any custom type
@@ -612,7 +569,7 @@ Error.should_only_contain_elements_in self that frames_to_skip=0 omitter=Nothing
 
          example_should_equal = "foobar".should_contain "foo"
 Any.should_contain : Any -> Integer -> Spec_Result
-Any.should_contain self element frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+Any.should_contain self element omitter=Nothing = omitting omitter omitter->
     rhs_error_check element
     contains_result = Panic.catch No_Such_Method (self.contains element) caught_panic->
         if caught_panic.payload.method_name != "contains" then Panic.throw caught_panic else
@@ -626,8 +583,6 @@ Any.should_contain self element frames_to_skip=0 omitter=Nothing = omitting omit
 
    Arguments:
    - element: The element to check.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
 
    This method delegates to the `contains` method of `self` and will use the
    rules of the particular type - be it a `Vector`, `Text` or any custom type
@@ -640,7 +595,7 @@ Any.should_contain self element frames_to_skip=0 omitter=Nothing = omitting omit
 
          example_should_equal = "foobar".should_contain "foo"
 Error.should_contain : Any -> Integer -> Spec_Result
-Error.should_contain self element frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+Error.should_contain self element omitter=Nothing = omitting omitter omitter->
     _ = [element]
     Test.fail_match_on_unexpected_error self omitter=omitter
 
@@ -648,14 +603,12 @@ Error.should_contain self element frames_to_skip=0 omitter=Nothing = omitting om
 
    Arguments:
    - element: The element to check.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
 
    This method delegates to the `contains` method of `self` and will use the
    rules of the particular type - be it a `Vector`, `Text` or any custom type
    implementing a method `contains : a -> Boolean`.
 Any.should_not_contain : Any -> Integer -> Spec_Result
-Any.should_not_contain self element frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+Any.should_not_contain self element omitter=Nothing = omitting omitter omitter->
     rhs_error_check element
     contains_result = Panic.catch No_Such_Method (self.contains element) caught_panic->
         if caught_panic.payload.method_name != "contains" then Panic.throw caught_panic else
@@ -669,13 +622,11 @@ Any.should_not_contain self element frames_to_skip=0 omitter=Nothing = omitting 
 
    Arguments:
    - element: The element to check.
-   - frames_to_skip (optional, advanced): used to alter the location which is
-     displayed as the source of this error.
 
    This method delegates to the `contains` method of `self` and will use the
    rules of the particular type - be it a `Vector`, `Text` or any custom type
    implementing a method `contains : a -> Boolean`.
 Error.should_not_contain : Any -> Integer -> Spec_Result
-Error.should_not_contain self element frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+Error.should_not_contain self element omitter=Nothing = omitting omitter omitter->
     _ = [element]
     Test.fail_match_on_unexpected_error self omitter=omitter

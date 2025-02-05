@@ -60,7 +60,7 @@ test_problem_handling action expected_problems result_checker (unwrap_errors : B
      the action is correct. It does not return anything, instead it should use
      the standard testing approach, like `x.should_equal y`.
 test_advanced_problem_handling : (Problem_Behavior -> Any) -> (Any -> Nothing) -> (Vector Any -> Nothing) -> (Any -> Nothing) -> Integer -> Nothing
-test_advanced_problem_handling action error_checker warnings_checker result_checker frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+test_advanced_problem_handling action error_checker warnings_checker result_checker omitter=Nothing = omitting omitter omitter->
     # First, we check the action ignoring any warnings.
     result_ignoring = action Problem_Behavior.Ignore
     result_checker result_ignoring

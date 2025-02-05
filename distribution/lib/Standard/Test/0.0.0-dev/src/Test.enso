@@ -44,7 +44,7 @@ type Test
              example_expect_panic_with =
                  Test.expect_panic_with Examples.throw_panic Examples.My_Error
     expect_panic_with : Any -> Any -> Integer -> Test_Result
-    expect_panic_with ~action matcher frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+    expect_panic_with ~action matcher omitter=Nothing = omitting omitter omitter->
         handle_panic caught_panic =
             payload = caught_panic.payload
             is_internal_test_panic = payload.is_a Spec_Result
@@ -97,7 +97,7 @@ type Test
 
        If you just want to check for errors, usage of the `.should_succeed`
        extension function is preferred.
-    assert_no_problems value frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
+    assert_no_problems value omitter=Nothing = omitting omitter omitter->
         value.catch Any _->
             Test.fail_match_on_unexpected_error value omitter=omitter
         warnings = Warning.get_all value . map .value
@@ -132,7 +132,7 @@ type Test
     ## PRIVATE
        Reports an unexpected dataflow error has occurred.
     fail_match_on_unexpected_error : Error -> Integer -> Nothing
-    fail_match_on_unexpected_error error frames_to_skip omitter=Nothing = omitting omitter omitter->
+    fail_match_on_unexpected_error error omitter=Nothing = omitting omitter omitter->
         payload = error.catch
         msg = "An unexpected dataflow error (" + payload.to_text + ") has been matched (at " + omitter.loc + ")."
         Test.fail msg details=error.get_stack_trace_text
