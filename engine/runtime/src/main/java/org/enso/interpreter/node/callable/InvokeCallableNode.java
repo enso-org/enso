@@ -110,7 +110,8 @@ public abstract class InvokeCallableNode extends BaseNode {
   InvokeCallableNode(
       CallArgumentInfo[] schema,
       DefaultsExecutionMode defaultsExecutionMode,
-      ArgumentsExecutionMode argumentsExecutionMode, boolean isForOversaturatedArguments) {
+      ArgumentsExecutionMode argumentsExecutionMode,
+      boolean isForOversaturatedArguments) {
     this.schema = schema;
     this.isForOversaturatedArguments = isForOversaturatedArguments;
     Integer thisArg = thisArgumentPosition(schema);
@@ -170,7 +171,8 @@ public abstract class InvokeCallableNode extends BaseNode {
       CallArgumentInfo[] schema,
       DefaultsExecutionMode defaultsExecutionMode,
       ArgumentsExecutionMode argumentsExecutionMode) {
-    return InvokeCallableNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode, false);
+    return InvokeCallableNodeGen.create(
+        schema, defaultsExecutionMode, argumentsExecutionMode, false);
   }
 
   @Specialization
@@ -380,7 +382,11 @@ public abstract class InvokeCallableNode extends BaseNode {
   public Object invokeGeneric(
       Object callable, VirtualFrame callerFrame, State state, Object[] arguments) {
     if (isForOversaturatedArguments && schema.length >= 1 && schema[0].isNamed()) {
-      Atom error = EnsoContext.get(this).getBuiltins().error().makeNoSuchArgument(schema[0].getName(), callable);
+      Atom error =
+          EnsoContext.get(this)
+              .getBuiltins()
+              .error()
+              .makeNoSuchArgument(schema[0].getName(), callable);
       throw new PanicException(error, this);
     } else {
       Atom error = EnsoContext.get(this).getBuiltins().error().makeNotInvokable(callable);

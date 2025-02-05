@@ -319,7 +319,8 @@ public final class Error {
   }
 
   /**
-   * Constructs an error that indicates that a named argument application could not find a matching parameter.
+   * Constructs an error that indicates that a named argument application could not find a matching
+   * parameter.
    *
    * @param argumentName name of the named argument being applied
    * @return a not invokable error
