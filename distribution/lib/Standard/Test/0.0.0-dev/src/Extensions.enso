@@ -75,7 +75,7 @@ Error.should_fail_with self matcher frames_to_skip=0 unwrap_errors=True =
 Any.should_equal : Any -> Integer -> Spec_Result
 Any.should_equal self that frames_to_skip=0 omitter=Nothing = omitting omitter omitter->
     rhs_error_check that
-    IO.println "ERR should_equal "+omitter.loc
+    #IO.println "ERR should_equal "+omitter.loc
     self.another_checker default_omitter=omitter
     #loc = Test.get_source_location 1+frames_to_skip
     case self == that of
@@ -97,7 +97,8 @@ Any.should_equal self that frames_to_skip=0 omitter=Nothing = omitting omitter o
 
 Any.another_checker self default_omitter:Omitter=Nothing =
     omitting default_omitter omitter->
-        IO.println "ERR another_checker "+omitter.loc
+        #IO.println "ERR another_checker "+omitter.loc
+        _ = 1
 
 pst s st =
     IO.println "==== "+s
@@ -137,6 +138,7 @@ type Omitter
 
 omitting default_omitter ~action =
     omitter = default_omitter.if_nothing (Omitter.Value (Error.throw "here"))
+    IO.println "AAAAA "+omitter.loc.to_display_text
     action omitter
 
 make_omitter -> Omitter = Omitter.Value (Error.throw "here")
