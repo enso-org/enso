@@ -1,0 +1,12 @@
+private
+
+from Standard.Base import all
+
+import project.DB_Column.DB_Column
+import project.DB_Table.DB_Table
+from project.Internal.Type_Refinements.DB_Table_Refinements import is_single_column
+
+## This conversion is internal and should never be exported.
+DB_Column.from (that : DB_Table) -> DB_Column =
+    Runtime.assert (is_single_column that)
+    that.at 0
