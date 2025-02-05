@@ -33,11 +33,10 @@ final class LazyCheckRootNode extends RootNode {
 
   @Override
   public Object execute(VirtualFrame frame) {
-    var state = Function.ArgumentsHelper.getState(frame.getArguments());
     var args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
     assert args.length == 1;
     assert args[0] instanceof Function fn && fn.isThunk();
-    var raw = evalThunk.executeThunk(frame, args[0], state, BaseNode.TailStatus.NOT_TAIL);
+    var raw = evalThunk.executeThunk(frame, args[0], BaseNode.TailStatus.NOT_TAIL);
     var result = check.handleCheckOrConversion(frame, raw, null);
     return result;
   }

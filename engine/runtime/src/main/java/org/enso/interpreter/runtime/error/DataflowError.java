@@ -53,10 +53,11 @@ public final class DataflowError extends AbstractTruffleException {
    * @return a new dataflow error
    */
   public static DataflowError withDefaultTrace(
-      State state, Object payload, Node location, HasContextEnabledNode hasContextEnabledNode) {
+      Object payload, Node location, HasContextEnabledNode hasContextEnabledNode) {
     assert payload != null;
     var ensoCtx = EnsoContext.get(location);
     var dataflowStacktraceCtx = ensoCtx.getBuiltins().context().getDataflowStackTrace();
+    State state = null; // TBD
     boolean attachFullStackTrace =
         state == null
             || hasContextEnabledNode.executeHasContextEnabled(
@@ -74,7 +75,7 @@ public final class DataflowError extends AbstractTruffleException {
 
   /** Slow version of {@link #withDefaultTrace(State, Object, Node, HasContextEnabledNode)}. */
   public static DataflowError withDefaultTrace(Object payload, Node location) {
-    return withDefaultTrace(null, payload, location, HasContextEnabledNode.getUncached());
+    return withDefaultTrace(payload, location, HasContextEnabledNode.getUncached());
   }
 
   /**

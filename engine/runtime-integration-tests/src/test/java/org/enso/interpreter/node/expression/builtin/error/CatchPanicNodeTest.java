@@ -55,7 +55,7 @@ public class CatchPanicNodeTest {
           var ctx = EnsoContext.get(catchPanicNode);
           var any = ctx.getBuiltins().any();
           var nothing = ctx.getBuiltins().nothing();
-          var result = catchPanicNode.execute(null, null, any, nothing, null);
+          var result = catchPanicNode.execute(null, any, nothing, null);
           assertEquals("Nothing gets returned", nothing, result);
           return null;
         });
@@ -69,7 +69,7 @@ public class CatchPanicNodeTest {
           var ctx = EnsoContext.get(catchPanicNode);
           var any = ctx.getBuiltins().any();
           var text = Text.create("Hello");
-          var result = catchPanicNode.execute(null, null, any, text, null);
+          var result = catchPanicNode.execute(null, any, text, null);
           assertEquals("Hello gets returned", "Hello", result.toString());
           return null;
         });
@@ -85,7 +85,7 @@ public class CatchPanicNodeTest {
           var text = Text.create("Running");
           var fn = new TestRootNode((frame) -> text);
           var thunk = Function.thunk(fn.getCallTarget(), null);
-          var result = catchPanicNode.execute(null, null, any, thunk, null);
+          var result = catchPanicNode.execute(null, any, thunk, null);
           assertEquals("Thunk gets evaluated", "Running", result.toString());
           return null;
         });
@@ -122,7 +122,7 @@ public class CatchPanicNodeTest {
                   });
           var thunk = Function.thunk(fn.getCallTarget(), null);
           var handler = new Function(handlerFn.getCallTarget(), null, schema("err"));
-          var result = catchPanicNode.execute(null, null, any, thunk, handler);
+          var result = catchPanicNode.execute(null, any, thunk, handler);
           assertEquals("Thunk gets evaluated", "Catched", result.toString());
           return null;
         });
@@ -159,7 +159,7 @@ public class CatchPanicNodeTest {
                   });
           var thunk = Function.thunk(fn.getCallTarget(), null);
           var handler = new Function(handlerFn.getCallTarget(), null, schema("err"));
-          var result = catchPanicNode.execute(null, null, any, thunk, handler);
+          var result = catchPanicNode.execute(null, any, thunk, handler);
           assertEquals("Thunk gets evaluated", "Catched", result.toString());
           return null;
         });
@@ -196,7 +196,7 @@ public class CatchPanicNodeTest {
                   });
           var thunk = Function.thunk(fn.getCallTarget(), null);
           var handler = new Function(handlerFn.getCallTarget(), null, schema("err"));
-          var result = catchPanicNode.execute(null, null, textType, thunk, handler);
+          var result = catchPanicNode.execute(null, textType, thunk, handler);
           assertEquals("Thunk gets evaluated", "Catched", result.toString());
           return null;
         });
@@ -233,7 +233,7 @@ public class CatchPanicNodeTest {
                   });
           var thunk = Function.thunk(fn.getCallTarget(), null);
           var handler = new Function(handlerFn.getCallTarget(), null, schema("err"));
-          var result = catchPanicNode.execute(null, null, textType, thunk, handler);
+          var result = catchPanicNode.execute(null, textType, thunk, handler);
           assertEquals("Thunk gets evaluated", "Catched", result.toString());
           return null;
         });
@@ -271,7 +271,7 @@ public class CatchPanicNodeTest {
           var thunk = Function.thunk(fn.getCallTarget(), null);
           var handler = new Function(handlerFn.getCallTarget(), null, schema("err"));
           try {
-            var result = catchPanicNode.execute(null, null, numberType, thunk, handler);
+            var result = catchPanicNode.execute(null, numberType, thunk, handler);
             fail("Not expecting any result back: " + result);
           } catch (PanicException ex) {
             // OK
@@ -313,7 +313,7 @@ public class CatchPanicNodeTest {
           var thunk = Function.thunk(fn.getCallTarget(), null);
           var handler = new Function(handlerFn.getCallTarget(), null, schema("err"));
           try {
-            var result = catchPanicNode.execute(null, null, numberType, thunk, handler);
+            var result = catchPanicNode.execute(null, numberType, thunk, handler);
             fail("Not expecting any result back: " + result);
           } catch (PanicException ex) {
             // OK

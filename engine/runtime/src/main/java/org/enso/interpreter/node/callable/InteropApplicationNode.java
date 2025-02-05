@@ -16,7 +16,6 @@ import org.enso.interpreter.node.expression.foreign.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.state.State;
 
 /** A helper node to handle function application for the interop library. */
 @GenerateUncached
@@ -42,7 +41,7 @@ public abstract class InteropApplicationNode extends Node {
    * @param arguments the arguments for the function.
    * @return the result of calling the function.
    */
-  public abstract Object execute(Function function, State state, Object[] arguments);
+  public abstract Object execute(Function function, Object[] arguments);
 
   @CompilerDirectives.TruffleBoundary
   CallArgumentInfo[] buildSchema(int length) {
@@ -72,7 +71,6 @@ public abstract class InteropApplicationNode extends Node {
       limit = Constants.CacheSizes.FUNCTION_INTEROP_LIBRARY)
   Object callCached(
       Function function,
-      State state,
       Object[] arguments,
       @Cached("arguments.length") int cachedArgsLength,
       @Cached("buildSorter(cachedArgsLength)") InvokeFunctionNode sorterNode,
@@ -81,13 +79,12 @@ public abstract class InteropApplicationNode extends Node {
     for (int i = 0; i < cachedArgsLength; i++) {
       args[i] = hostValueToEnsoNode.execute(arguments[i]);
     }
-    return sorterNode.execute(function, null, state, args);
+    return sorterNode.execute(function, null, args);
   }
 
   @Specialization(replaces = "callCached")
   Object callUncached(
       Function function,
-      State state,
       Object[] arguments,
       @Cached IndirectInvokeFunctionNode indirectInvokeFunctionNode,
       @Shared @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode) {
@@ -98,7 +95,6 @@ public abstract class InteropApplicationNode extends Node {
     return indirectInvokeFunctionNode.execute(
         function,
         null,
-        state,
         args,
         buildSchema(arguments.length),
         InvokeCallableNode.DefaultsExecutionMode.EXECUTE,

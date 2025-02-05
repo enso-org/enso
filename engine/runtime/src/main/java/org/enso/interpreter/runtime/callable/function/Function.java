@@ -33,7 +33,6 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.Types;
 import org.slf4j.LoggerFactory;
 
@@ -226,8 +225,7 @@ public final class Function extends EnsoObject {
         @CachedLibrary("function") InteropLibrary thisLib,
         @Cached InlinedBranchProfile panicProfile) {
       try {
-        return interopApplicationNode.execute(
-            function, EnsoContext.get(thisLib).emptyState(), arguments);
+        return interopApplicationNode.execute(function, arguments);
       } catch (StackOverflowError err) {
         CompilerDirectives.transferToInterpreter();
         var asserts = false;
@@ -341,37 +339,33 @@ public final class Function extends EnsoObject {
      * how to do this, see {@link InvokeFunctionNode}.
      *
      * @param function the function to be called
-     * @param state the state to execute the function with
      * @param positionalArguments the arguments to that function, sorted into positional order
      * @return an array containing the necessary information to call an Enso function
      */
     public static Object[] buildArguments(
-        Function function, CallerInfo callerInfo, Object state, Object[] positionalArguments) {
-      return new Object[] {function.getScope(), callerInfo, state, positionalArguments};
+        Function function, CallerInfo callerInfo, Object[] positionalArguments) {
+      return new Object[] {function.getScope(), callerInfo, positionalArguments};
     }
 
     /**
      * Generates an array of arguments using the schema to be passed to a call target.
      *
      * @param frame the frame becoming the lexical scope
-     * @param state the state to execute the thunk with
      * @param positionalArguments the positional arguments to the call target
      * @return an array containing the necessary information to call an Enso function
      */
-    public static Object[] buildArguments(
-        MaterializedFrame frame, Object state, Object[] positionalArguments) {
-      return new Object[] {frame, null, state, positionalArguments};
+    public static Object[] buildArguments(MaterializedFrame frame, Object[] positionalArguments) {
+      return new Object[] {frame, null, positionalArguments};
     }
 
     /**
      * Generates an array of arguments using the schema to be passed to a call target.
      *
      * @param thunk the thunk to be called
-     * @param state the state to execute the thunk with
      * @return an array containing the necessary information to call an Enso thunk
      */
-    public static Object[] buildArguments(Function thunk, Object state) {
-      return new Object[] {thunk.getScope(), null, state, new Object[0]};
+    public static Object[] buildArguments(Function thunk) {
+      return new Object[] {thunk.getScope(), null, new Object[0]};
     }
 
     /**
@@ -382,18 +376,7 @@ public final class Function extends EnsoObject {
      * @return the positional arguments to the function
      */
     public static Object[] getPositionalArguments(Object[] arguments) {
-      return (Object[]) arguments[3];
-    }
-
-    /**
-     * Gets the state out of the array.
-     *
-     * @param arguments an array produced by {@link
-     *     ArgumentsHelper#buildArguments(Function,CallerInfo, Object, Object[])}
-     * @return the state for the function
-     */
-    public static State getState(Object[] arguments) {
-      return (State) arguments[2];
+      return (Object[]) arguments[2];
     }
 
     /**

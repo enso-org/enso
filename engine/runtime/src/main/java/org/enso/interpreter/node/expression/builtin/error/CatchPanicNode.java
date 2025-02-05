@@ -22,7 +22,6 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Panic",
@@ -49,12 +48,11 @@ public abstract class CatchPanicNode extends Node {
   }
 
   abstract Object execute(
-      VirtualFrame frame, State state, Object panicType, @Suspend Object action, Object handler);
+      VirtualFrame frame, Object panicType, @Suspend Object action, Object handler);
 
   @Specialization
   Object doExecute(
       VirtualFrame frame,
-      State state,
       Object panicType,
       Object action,
       Object handler,
@@ -63,7 +61,7 @@ public abstract class CatchPanicNode extends Node {
       @CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       // Note [Tail call]
-      var ret = thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.NOT_TAIL);
+      var ret = thunkExecutorNode.executeThunk(frame, action, BaseNode.TailStatus.NOT_TAIL);
       if (ret instanceof PanicSentinel sentinel) {
         throw sentinel.getPanic();
       }
@@ -71,16 +69,15 @@ public abstract class CatchPanicNode extends Node {
     } catch (PanicException e) {
       panicBranchProfile.enter();
       Object payload = e.getPayload();
-      return executeCallbackOrRethrow(frame, state, panicType, handler, payload, e, interop);
+      return executeCallbackOrRethrow(frame, panicType, handler, payload, e, interop);
     } catch (AbstractTruffleException e) {
       otherExceptionBranchProfile.enter();
-      return executeCallbackOrRethrow(frame, state, panicType, handler, e, e, interop);
+      return executeCallbackOrRethrow(frame, panicType, handler, e, e, interop);
     }
   }
 
   private Object executeCallbackOrRethrow(
       VirtualFrame frame,
-      State state,
       Object panicType,
       Object handler,
       Object payload,
@@ -99,7 +96,7 @@ public abstract class CatchPanicNode extends Node {
       }
       var caughtPanic =
           AtomNewInstanceNode.getUncached().newInstance(cons, payload, originalException);
-      return invokeCallableNode.execute(handler, frame, state, new Object[] {caughtPanic});
+      return invokeCallableNode.execute(handler, frame, new Object[] {caughtPanic});
     } else {
       try {
         return interopLibrary.throwException(originalException);

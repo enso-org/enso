@@ -31,12 +31,12 @@ public abstract class BooleanBranchNode extends BranchNode {
   }
 
   @Specialization
-  void doAtom(VirtualFrame frame, Object state, boolean target) {
+  void doAtom(VirtualFrame frame, boolean target) {
     if (profile.profile(matched == target)) {
-      accept(frame, state, new Object[0]);
+      accept(frame, new Object[0]);
     }
   }
 
   @Fallback
-  void doFallback(VirtualFrame frame, Object state, Object target) {}
+  void doFallback(VirtualFrame frame, Object target) {}
 }

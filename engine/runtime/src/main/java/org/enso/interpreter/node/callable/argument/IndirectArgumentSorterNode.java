@@ -13,7 +13,6 @@ import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMapping;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
-import org.enso.interpreter.runtime.state.State;
 
 /**
  * This class handles the case where a mapping for reordering arguments to a given callable has
@@ -39,13 +38,11 @@ public abstract class IndirectArgumentSorterNode extends Node {
       VirtualFrame frame,
       ArgumentMapping mapping,
       Object[] arguments,
-      State state,
       ThunkExecutorNode thunkExecutorNode) {
     for (int i = 0; i < mapping.getArgumentShouldExecute().length; i++) {
       if (mapping.getArgumentShouldExecute()[i]) {
         arguments[i] =
-            thunkExecutorNode.executeThunk(
-                frame, arguments[i], state, BaseNode.TailStatus.NOT_TAIL);
+            thunkExecutorNode.executeThunk(frame, arguments[i], BaseNode.TailStatus.NOT_TAIL);
       }
     }
   }
@@ -68,7 +65,6 @@ public abstract class IndirectArgumentSorterNode extends Node {
       ArgumentMapping mapping,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       Function function,
-      State state,
       Object[] arguments);
 
   @Specialization
@@ -78,12 +74,11 @@ public abstract class IndirectArgumentSorterNode extends Node {
       ArgumentMapping mapping,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       Function function,
-      State state,
       Object[] arguments,
       @Cached ThunkExecutorNode thunkExecutorNode) {
     FunctionSchema postApplicationSchema = mapping.getPostApplicationSchema();
     if (argumentsExecutionMode.shouldExecute()) {
-      executeArguments(frame, mapping, arguments, state, thunkExecutorNode);
+      executeArguments(frame, mapping, arguments, thunkExecutorNode);
     }
     Object[] mappedAppliedArguments =
         ArgumentSorterNode.prepareArguments(

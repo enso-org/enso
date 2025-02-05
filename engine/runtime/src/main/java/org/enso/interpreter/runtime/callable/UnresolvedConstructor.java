@@ -37,7 +37,6 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.state.State;
 
 /**
  * Value representing a by-name identified constructor of a yet unknown {@link Type}. Create new
@@ -167,7 +166,7 @@ public final class UnresolvedConstructor extends EnsoObject {
      *     UnresolvedConstructor#getName()} is found in the specified {@code expectedType}
      */
     public abstract Object execute(
-        VirtualFrame frame, State state, Type expectedType, UnresolvedConstructor unresolved);
+        VirtualFrame frame, Type expectedType, UnresolvedConstructor unresolved);
 
     @Override
     public SourceSection getSourceSection() {
@@ -221,7 +220,6 @@ public final class UnresolvedConstructor extends EnsoObject {
         limit = "10")
     Object instantiateCached(
         VirtualFrame frame,
-        State state,
         Type expectedType,
         UnresolvedConstructor unresolved,
         @Cached("expectedType") Type cachedType,
@@ -231,27 +229,26 @@ public final class UnresolvedConstructor extends EnsoObject {
       if (c == null) {
         return checkSingleton(expectedType, unresolved);
       } else {
-        return invokeConstructor(c, prototype, unresolved, state, callNode);
+        return invokeConstructor(c, prototype, unresolved, callNode);
       }
     }
 
     @Specialization(replaces = "instantiateCached")
     @CompilerDirectives.TruffleBoundary
     Object instantiateUncached(
-        MaterializedFrame frame, State state, Type expectedType, UnresolvedConstructor unresolved) {
+        MaterializedFrame frame, Type expectedType, UnresolvedConstructor unresolved) {
       var c = expectedType.getConstructors().get(unresolved.getName());
       if (c == null) {
         return checkSingleton(expectedType, unresolved);
       }
       var callNode = buildApplication(unresolved);
-      return invokeConstructor(c, unresolved.asPrototype(), unresolved, state, callNode);
+      return invokeConstructor(c, unresolved.asPrototype(), unresolved, callNode);
     }
 
     private Object invokeConstructor(
         AtomConstructor c,
         UnresolvedConstructor prototype,
         UnresolvedConstructor unresolved,
-        State state,
         DirectCallNode callNode) {
       var builtins = EnsoContext.get(callNode).getBuiltins();
       if (c == builtins.bool().getTrue()) {
@@ -264,7 +261,7 @@ public final class UnresolvedConstructor extends EnsoObject {
       var args = new Object[prototype.descs.length + 1];
       System.arraycopy(unresolved.args, 0, args, 1, prototype.descs.length);
       args[0] = fn;
-      var helper = Function.ArgumentsHelper.buildArguments(fn, null, state, args);
+      var helper = Function.ArgumentsHelper.buildArguments(fn, null, args);
       var r = callNode.call(helper);
       if (r instanceof Atom) {
         return r;

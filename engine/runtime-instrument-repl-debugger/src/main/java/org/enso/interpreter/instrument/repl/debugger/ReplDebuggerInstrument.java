@@ -196,7 +196,7 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
       try {
         CaptureResultScopeNode.WithCallerInfo payload =
             (CaptureResultScopeNode.WithCallerInfo)
-                evalNode.execute(nodeState.getLastScope(), monadicState, Text.create(expression));
+                evalNode.execute(nodeState.getLastScope(), Text.create(expression));
         CallerInfo lastScope = payload.getCallerInfo();
         Object lastReturn = payload.getResult();
         nodeState = new ReplExecutionEventNodeState(lastReturn, lastScope);
@@ -251,7 +251,7 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
         CallerInfo lastScope = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());
         Object lastReturn = EnsoContext.get(this).getNothing();
         // Note [Safe Access to State in the Debugger Instrument]
-        monadicState = Function.ArgumentsHelper.getState(frame.getArguments());
+        monadicState = null; // Function.ArgumentsHelper.getState(frame.getArguments());
         nodeState = new ReplExecutionEventNodeState(lastReturn, lastScope);
         startSessionImpl();
       }
@@ -293,7 +293,7 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
       }
       if (lastScope != null) {
         // Note [Safe Access to State in the Debugger Instrument]
-        monadicState = Function.ArgumentsHelper.getState(frame.getArguments());
+        monadicState = null; // TBD: Function.ArgumentsHelper.getState(frame.getArguments());
         nodeState = new ReplExecutionEventNodeState(toReturn, lastScope);
         startSessionImpl();
       }

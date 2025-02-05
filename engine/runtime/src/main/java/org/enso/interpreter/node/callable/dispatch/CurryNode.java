@@ -15,7 +15,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
-import org.enso.interpreter.runtime.state.State;
 
 /** Handles runtime function currying and oversaturated (eta-expanded) calls. */
 @NodeInfo(description = "Handles runtime currying and eta-expansion")
@@ -99,12 +98,11 @@ public class CurryNode extends BaseNode {
       VirtualFrame frame,
       Function function,
       CallerInfo callerInfo,
-      State state,
       Object[] arguments,
       Object[] oversaturatedArguments) {
     if (appliesFully) {
       if (!postApplicationSchema.hasOversaturatedArgs()) {
-        var value = doCall(frame, function, callerInfo, state, arguments);
+        var value = doCall(frame, function, callerInfo, arguments);
         if (defaultsExecutionMode.isExecute()
             && (value instanceof Function
                 || (value instanceof AtomConstructor cons
@@ -128,16 +126,15 @@ public class CurryNode extends BaseNode {
             }
           }
 
-          return oversaturatedCallableNode.execute(value, frame, state, new Object[0]);
+          return oversaturatedCallableNode.execute(value, frame, new Object[0]);
         } else {
           return value;
         }
       } else {
         var evaluatedVal =
-            loopingCall.executeDispatch(frame, function, callerInfo, state, arguments, null);
+            loopingCall.executeDispatch(frame, function, callerInfo, arguments, null);
 
-        return this.oversaturatedCallableNode.execute(
-            evaluatedVal, frame, state, oversaturatedArguments);
+        return this.oversaturatedCallableNode.execute(evaluatedVal, frame, oversaturatedArguments);
       }
     } else {
       return new Function(
@@ -150,15 +147,12 @@ public class CurryNode extends BaseNode {
   }
 
   private Object doCall(
-      VirtualFrame frame,
-      Function function,
-      CallerInfo callerInfo,
-      State state,
-      Object[] arguments) {
+      VirtualFrame frame, Function function, CallerInfo callerInfo, Object[] arguments) {
+
     return switch (getTailStatus()) {
-      case TAIL_DIRECT -> directCall.executeCall(frame, function, callerInfo, state, arguments);
+      case TAIL_DIRECT -> directCall.executeCall(frame, function, callerInfo, arguments);
       case TAIL_LOOP -> throw new TailCallException(function, callerInfo, arguments);
-      default -> loopingCall.executeDispatch(frame, function, callerInfo, state, arguments, null);
+      default -> loopingCall.executeDispatch(frame, function, callerInfo, arguments, null);
     };
   }
 }

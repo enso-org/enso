@@ -94,8 +94,7 @@ final class SuspendedFieldGetterNode extends UnboxingAtom.FieldGetterNode {
     java.lang.Object value = get.execute(atom);
     if (value instanceof Function fn && shallBeExtracted(fn)) {
       try {
-        var state = Function.ArgumentsHelper.getState(fn.getScope().getArguments());
-        var newValue = invoke.execute(fn, null, state, new Object[0]);
+        var newValue = invoke.execute(fn, null, new Object[0]);
         set.execute(atom, newValue);
         return newValue;
       } catch (AbstractTruffleException ex) {

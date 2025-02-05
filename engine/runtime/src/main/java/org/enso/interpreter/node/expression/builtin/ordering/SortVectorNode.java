@@ -41,7 +41,6 @@ import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
@@ -81,7 +80,6 @@ public abstract class SortVectorNode extends Node {
    */
   public abstract Object execute(
       VirtualFrame frame,
-      State state,
       @AcceptsError Object self,
       long ascending,
       Object comparators,
@@ -106,7 +104,6 @@ public abstract class SortVectorNode extends Node {
       })
   Object sortPrimitives(
       VirtualFrame frame,
-      State state,
       Object self,
       long ascending,
       Object comparators,
@@ -180,7 +177,6 @@ public abstract class SortVectorNode extends Node {
       })
   Object sortGeneric(
       MaterializedFrame frame,
-      State state,
       Object self,
       long ascending,
       Object comparatorsArray,
@@ -240,7 +236,6 @@ public abstract class SortVectorNode extends Node {
                   group.comparator,
                   callNode,
                   toTextNode,
-                  state,
                   less,
                   equal,
                   greater,
@@ -789,7 +784,6 @@ public abstract class SortVectorNode extends Node {
     private final boolean hasCustomOnFunc;
     private final Type comparator;
     private final CallOptimiserNode callNode;
-    private final State state;
     private final Atom less;
     private final Atom equal;
     private final Atom greater;
@@ -802,7 +796,6 @@ public abstract class SortVectorNode extends Node {
         Type comparator,
         CallOptimiserNode callNode,
         AnyToTextNode toTextNode,
-        State state,
         Atom less,
         Atom equal,
         Atom greater,
@@ -813,7 +806,6 @@ public abstract class SortVectorNode extends Node {
       assert compareFunc != null;
       assert comparator != null;
       this.comparator = comparator;
-      this.state = state;
       this.ascending = ascending;
       this.compareFunc = checkAndConvertByFunc(compareFunc, typesLibrary, methodResolverNode);
       if (interop.isNull(onFunc)) {
@@ -835,10 +827,8 @@ public abstract class SortVectorNode extends Node {
       Object yConverted;
       if (hasCustomOnFunc) {
         // onFunc cannot have `self` argument, we assume it has just one argument.
-        xConverted =
-            callNode.executeDispatch(null, onFunc.get(x), null, state, new Object[] {x}, null);
-        yConverted =
-            callNode.executeDispatch(null, onFunc.get(y), null, state, new Object[] {y}, null);
+        xConverted = callNode.executeDispatch(null, onFunc.get(x), null, new Object[] {x}, null);
+        yConverted = callNode.executeDispatch(null, onFunc.get(y), null, new Object[] {y}, null);
       } else {
         xConverted = x;
         yConverted = y;
@@ -849,8 +839,7 @@ public abstract class SortVectorNode extends Node {
       } else {
         args = new Object[] {xConverted, yConverted};
       }
-      Object res =
-          callNode.executeDispatch(null, compareFunc.get(xConverted), null, state, args, null);
+      Object res = callNode.executeDispatch(null, compareFunc.get(xConverted), null, args, null);
       if (res == less) {
         return ascending ? -1 : 1;
       } else if (res == equal) {

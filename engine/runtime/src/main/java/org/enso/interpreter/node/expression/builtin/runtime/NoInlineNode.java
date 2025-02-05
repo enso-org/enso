@@ -8,7 +8,6 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
-import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Runtime",
@@ -18,12 +17,12 @@ import org.enso.interpreter.runtime.state.State;
 public class NoInlineNode extends Node {
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
 
-  Object execute(VirtualFrame frame, State state, @Suspend Object action) {
-    return executeImpl(frame.materialize(), state, action);
+  Object execute(VirtualFrame frame, @Suspend Object action) {
+    return executeImpl(frame.materialize(), action);
   }
 
   @CompilerDirectives.TruffleBoundary
-  private Object executeImpl(MaterializedFrame frame, State state, @Suspend Object action) {
-    return thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.NOT_TAIL);
+  private Object executeImpl(MaterializedFrame frame, @Suspend Object action) {
+    return thunkExecutorNode.executeThunk(frame, action, BaseNode.TailStatus.NOT_TAIL);
   }
 }

@@ -30,7 +30,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.state.State;
 import org.enso.pkg.Package;
 
 /**
@@ -131,7 +130,6 @@ public abstract class InvokeFunctionNode extends BaseNode {
   Object invokeCached(
       Function function,
       VirtualFrame callerFrame,
-      State state,
       Object[] arguments,
       @Cached("function.getSchema()") FunctionSchema cachedSchema,
       @Cached("generate(cachedSchema, getSchema())")
@@ -145,20 +143,19 @@ public abstract class InvokeFunctionNode extends BaseNode {
     ensureFunctionIsAccessible(function, cachedSchema);
 
     ArgumentSorterNode.MappedArguments mappedArguments =
-        mappingNode.execute(callerFrame, function, state, arguments);
+        mappingNode.execute(callerFrame, function, arguments);
     CallerInfo callerInfo = null;
     if (cachedSchema.getCallerFrameAccess().shouldFrameBePassed()) {
       callerInfo = captureCallerInfoNode.execute(callerFrame.materialize());
     }
     var result =
         functionCallInstrumentationNode.execute(
-            callerFrame, function, state, mappedArguments.getSortedArguments());
+            callerFrame, function, mappedArguments.getSortedArguments());
     if (result instanceof FunctionCallInstrumentationNode.FunctionCall) {
       return curryNode.execute(
           callerFrame,
           function,
           callerInfo,
-          state,
           mappedArguments.getSortedArguments(),
           mappedArguments.getOversaturatedArguments());
     } else {
@@ -180,7 +177,6 @@ public abstract class InvokeFunctionNode extends BaseNode {
   Object invokeUncached(
       Function function,
       VirtualFrame callerFrame,
-      State state,
       Object[] arguments,
       @Cached IndirectArgumentSorterNode mappingNode,
       @Cached IndirectCurryNode curryNode) {
@@ -196,7 +192,6 @@ public abstract class InvokeFunctionNode extends BaseNode {
             argumentMapping,
             getArgumentsExecutionMode(),
             function,
-            state,
             arguments);
 
     CallerInfo callerInfo = null;
@@ -206,13 +201,12 @@ public abstract class InvokeFunctionNode extends BaseNode {
     }
 
     functionCallInstrumentationNode.execute(
-        callerFrame, function, state, mappedArguments.getSortedArguments());
+        callerFrame, function, mappedArguments.getSortedArguments());
 
     return curryNode.execute(
         callerFrame == null ? null : callerFrame.materialize(),
         function,
         callerInfo,
-        state,
         mappedArguments.getSortedArguments(),
         mappedArguments.getOversaturatedArguments(),
         argumentMapping.getPostApplicationSchema(),
@@ -230,8 +224,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
    * @param arguments the arguments being passed to {@code function}
    * @return the result of executing the {@code function} with reordered {@code arguments}
    */
-  public abstract Object execute(
-      Function callable, VirtualFrame callerFrame, State state, Object[] arguments);
+  public abstract Object execute(Function callable, VirtualFrame callerFrame, Object[] arguments);
 
   public CallArgumentInfo[] getSchema() {
     return schema;

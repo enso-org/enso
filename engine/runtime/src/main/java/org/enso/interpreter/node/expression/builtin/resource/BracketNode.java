@@ -11,7 +11,6 @@ import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
@@ -50,7 +49,6 @@ public abstract class BracketNode extends Node {
   }
 
   abstract Object execute(
-      State state,
       VirtualFrame frame,
       @Suspend Object constructor,
       Object destructor, // TODO: based on stdlib signature this should be suspended as well
@@ -58,22 +56,21 @@ public abstract class BracketNode extends Node {
 
   @Specialization
   Object doBracket(
-      State state,
       VirtualFrame frame,
       Object constructor,
       Object destructor,
       Object action,
       @Cached BranchProfile initializationFailedWithDataflowErrorProfile) {
     Object resource =
-        invokeConstructorNode.executeThunk(frame, constructor, state, BaseNode.TailStatus.NOT_TAIL);
+        invokeConstructorNode.executeThunk(frame, constructor, BaseNode.TailStatus.NOT_TAIL);
     if (TypesGen.isDataflowError(resource)) {
       initializationFailedWithDataflowErrorProfile.enter();
       return resource;
     }
     try {
-      return invokeActionNode.execute(action, frame, state, new Object[] {resource});
+      return invokeActionNode.execute(action, frame, new Object[] {resource});
     } finally {
-      invokeDestructorNode.execute(destructor, frame, state, new Object[] {resource});
+      invokeDestructorNode.execute(destructor, frame, new Object[] {resource});
     }
   }
 }

@@ -4,10 +4,10 @@ import com.oracle.truffle.api.object.DynamicObject;
 import com.oracle.truffle.api.object.Shape;
 import org.enso.interpreter.runtime.EnsoContext;
 
-public class State {
+public final class State {
   private final Container container;
 
-  public State(Container container) {
+  private State(Container container) {
     this.container = container;
   }
 
@@ -19,12 +19,12 @@ public class State {
     return new State(Container.create(context));
   }
 
-  public static class Container extends DynamicObject {
+  public static final class Container extends DynamicObject {
     private Container(Shape shape) {
       super(shape);
     }
 
-    public static Container create(EnsoContext context) {
+    static Container create(EnsoContext context) {
       return new Container(context.getRootStateShape());
     }
   }

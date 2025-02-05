@@ -18,7 +18,6 @@ import org.enso.interpreter.node.expression.foreign.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.state.State;
 
 /** A helper node to handle conversion application for the interop library. */
 @GenerateUncached
@@ -29,7 +28,7 @@ public abstract class InteropConversionCallNode extends Node {
     return InteropConversionCallNodeGen.create();
   }
 
-  public abstract Object execute(UnresolvedConversion conversion, Object state, Object[] arguments)
+  public abstract Object execute(UnresolvedConversion conversion, Object[] arguments)
       throws ArityException;
 
   @CompilerDirectives.TruffleBoundary
@@ -59,7 +58,6 @@ public abstract class InteropConversionCallNode extends Node {
   @ExplodeLoop
   Object callCached(
       UnresolvedConversion conversion,
-      State state,
       Object[] arguments,
       @Cached("arguments.length") int cachedArgsLength,
       @Cached("buildInvoker(cachedArgsLength)") InvokeConversionNode invokerNode,
@@ -70,13 +68,12 @@ public abstract class InteropConversionCallNode extends Node {
       args[i] = hostValueToEnsoNode.execute(arguments[i]);
     }
     if (cachedArgsLength < 2) throw ArityException.create(2, -1, cachedArgsLength);
-    return invokerNode.execute(null, state, conversion, args[0], args[1], args);
+    return invokerNode.execute(null, conversion, args[0], args[1], args);
   }
 
   @Specialization(replaces = "callCached")
   Object callUncached(
       UnresolvedConversion conversion,
-      State state,
       Object[] arguments,
       @Cached IndirectInvokeConversionNode indirectInvokeConversionNode,
       @Shared @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode)
@@ -88,7 +85,6 @@ public abstract class InteropConversionCallNode extends Node {
     if (arguments.length < 2) throw ArityException.create(2, -1, arguments.length);
     return indirectInvokeConversionNode.execute(
         null,
-        state,
         conversion,
         args[0],
         args[1],

@@ -34,12 +34,9 @@ public abstract class StringLiteralBranchNode extends BranchNode {
 
   @Specialization
   void doText(
-      VirtualFrame frame,
-      Object state,
-      Text target,
-      @Cached("build()") ToJavaStringNode toJavaStringNode) {
+      VirtualFrame frame, Text target, @Cached("build()") ToJavaStringNode toJavaStringNode) {
     if (textProfile.profile(equalStrings(literal, toJavaStringNode.execute(target)))) {
-      accept(frame, state, new Object[0]);
+      accept(frame, new Object[0]);
     }
   }
 
@@ -47,13 +44,10 @@ public abstract class StringLiteralBranchNode extends BranchNode {
       guards = {"targetInterop.isString(target)"},
       limit = "3")
   void doInteropString(
-      VirtualFrame frame,
-      Object state,
-      Object target,
-      @CachedLibrary("target") InteropLibrary targetInterop) {
+      VirtualFrame frame, Object target, @CachedLibrary("target") InteropLibrary targetInterop) {
     try {
       if (textProfile.profile(equalStrings(literal, targetInterop.asString(target)))) {
-        accept(frame, state, new Object[0]);
+        accept(frame, new Object[0]);
       }
     } catch (UnsupportedMessageException e) {
       var ctx = EnsoContext.get(this);
@@ -67,5 +61,5 @@ public abstract class StringLiteralBranchNode extends BranchNode {
   }
 
   @Fallback
-  void doOther(VirtualFrame frame, Object state, Object target) {}
+  void doOther(VirtualFrame frame, Object target) {}
 }

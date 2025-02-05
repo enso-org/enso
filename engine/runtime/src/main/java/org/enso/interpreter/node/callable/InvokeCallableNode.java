@@ -35,7 +35,6 @@ import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
@@ -170,32 +169,29 @@ public abstract class InvokeCallableNode extends BaseNode {
   }
 
   @Specialization
-  Object invokeFunction(
-      Function function, VirtualFrame callerFrame, State state, Object[] arguments) {
-    return this.invokeFunctionNode.execute(function, callerFrame, state, arguments);
+  Object invokeFunction(Function function, VirtualFrame callerFrame, Object[] arguments) {
+    return this.invokeFunctionNode.execute(function, callerFrame, arguments);
   }
 
   @Specialization
   Object invokeConstructor(
-      AtomConstructor constructor, VirtualFrame callerFrame, State state, Object[] arguments) {
-    return invokeFunction(constructor.getConstructorFunction(), callerFrame, state, arguments);
+      AtomConstructor constructor, VirtualFrame callerFrame, Object[] arguments) {
+    return invokeFunction(constructor.getConstructorFunction(), callerFrame, arguments);
   }
 
   @Specialization
-  Object invokeDataflowError(
-      DataflowError error, VirtualFrame callerFrame, State state, Object[] arguments) {
+  Object invokeDataflowError(DataflowError error, VirtualFrame callerFrame, Object[] arguments) {
     return error;
   }
 
   @Specialization
-  Object invokePanicSentinel(
-      PanicSentinel sentinel, VirtualFrame callerFrame, State state, Object[] arguments) {
+  Object invokePanicSentinel(PanicSentinel sentinel, VirtualFrame callerFrame, Object[] arguments) {
     throw sentinel;
   }
 
   @Specialization
   public Object invokeConversion(
-      UnresolvedConversion conversion, VirtualFrame callerFrame, State state, Object[] arguments) {
+      UnresolvedConversion conversion, VirtualFrame callerFrame, Object[] arguments) {
     if (canApplyThis && canApplyThat) {
       Object selfArgument = arguments[thisArgumentPosition];
       Object thatArgument = arguments[thatArgumentPosition];
@@ -224,16 +220,14 @@ public abstract class InvokeCallableNode extends BaseNode {
             lock.unlock();
           }
         }
-        selfArgument =
-            thisExecutor.executeThunk(callerFrame, selfArgument, state, TailStatus.NOT_TAIL);
-        thatArgument =
-            thatExecutor.executeThunk(callerFrame, thatArgument, state, TailStatus.NOT_TAIL);
+        selfArgument = thisExecutor.executeThunk(callerFrame, selfArgument, TailStatus.NOT_TAIL);
+        thatArgument = thatExecutor.executeThunk(callerFrame, thatArgument, TailStatus.NOT_TAIL);
 
         arguments[thisArgumentPosition] = selfArgument;
         arguments[thatArgumentPosition] = thatArgument;
       }
       return invokeConversionNode.execute(
-          callerFrame, state, conversion, selfArgument, thatArgument, arguments);
+          callerFrame, conversion, selfArgument, thatArgument, arguments);
     } else {
       CompilerDirectives.transferToInterpreter();
       var ctx = EnsoContext.get(this);
@@ -247,13 +241,13 @@ public abstract class InvokeCallableNode extends BaseNode {
 
   @Specialization
   public Object invokeDynamicConstructor(
-      UnresolvedConstructor symbol, VirtualFrame callerFrame, State state, Object[] arguments) {
+      UnresolvedConstructor symbol, VirtualFrame callerFrame, Object[] arguments) {
     return symbol.withArguments(this, invokeFunctionNode.getSchema(), arguments);
   }
 
   @Specialization
   public Object invokeDynamicSymbol(
-      UnresolvedSymbol symbol, VirtualFrame callerFrame, State state, Object[] arguments) {
+      UnresolvedSymbol symbol, VirtualFrame callerFrame, Object[] arguments) {
     if (canApplyThis) {
       Object selfArgument = arguments[thisArgumentPosition];
       if (argumentsExecutionMode.shouldExecute()) {
@@ -269,11 +263,10 @@ public abstract class InvokeCallableNode extends BaseNode {
             lock.unlock();
           }
         }
-        selfArgument =
-            thisExecutor.executeThunk(callerFrame, selfArgument, state, TailStatus.NOT_TAIL);
+        selfArgument = thisExecutor.executeThunk(callerFrame, selfArgument, TailStatus.NOT_TAIL);
         arguments[thisArgumentPosition] = selfArgument;
       }
-      return invokeMethodNode.execute(callerFrame, state, symbol, selfArgument, arguments);
+      return invokeMethodNode.execute(callerFrame, symbol, selfArgument, arguments);
     } else {
       CompilerDirectives.transferToInterpreter();
       throw new RuntimeException("Currying without `this` argument is not yet supported.");
@@ -284,7 +277,6 @@ public abstract class InvokeCallableNode extends BaseNode {
   public Object invokeWarnings(
       Object warning,
       VirtualFrame callerFrame,
-      State state,
       Object[] arguments,
       @Shared("warnings") @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @Cached AppendWarningNode appendWarningNode) {
@@ -319,7 +311,7 @@ public abstract class InvokeCallableNode extends BaseNode {
         }
       }
 
-      var result = childDispatch.execute(callable, callerFrame, state, arguments);
+      var result = childDispatch.execute(callable, callerFrame, arguments);
 
       if (result instanceof DataflowError) {
         return result;
@@ -341,7 +333,6 @@ public abstract class InvokeCallableNode extends BaseNode {
   static Object doPolyglot(
       Object self,
       VirtualFrame frame,
-      State state,
       Object[] arguments,
       @Bind("$node") Node node,
       @CachedLibrary(limit = "3") InteropLibrary iop,
@@ -352,7 +343,7 @@ public abstract class InvokeCallableNode extends BaseNode {
     var errors = EnsoContext.get(node).getBuiltins().error();
     try {
       for (int i = 0; i < arguments.length; i++) {
-        arguments[i] = thunkNode.executeThunk(frame, arguments[i], state, TailStatus.NOT_TAIL);
+        arguments[i] = thunkNode.executeThunk(frame, arguments[i], TailStatus.NOT_TAIL);
       }
       return iop.execute(self, arguments);
     } catch (UnsupportedTypeException ex) {
@@ -373,8 +364,7 @@ public abstract class InvokeCallableNode extends BaseNode {
   }
 
   @Fallback
-  public Object invokeGeneric(
-      Object callable, VirtualFrame callerFrame, State state, Object[] arguments) {
+  public Object invokeGeneric(Object callable, VirtualFrame callerFrame, Object[] arguments) {
     Atom error = EnsoContext.get(this).getBuiltins().error().makeNotInvokable(callable);
     throw new PanicException(error, this);
   }
@@ -388,8 +378,7 @@ public abstract class InvokeCallableNode extends BaseNode {
    * @param arguments the arguments to evaluate {@code callable} on
    * @return the result of executing {@code callable} on the supplied {@code arguments}
    */
-  public abstract Object execute(
-      Object callable, VirtualFrame callerFrame, State state, Object[] arguments);
+  public abstract Object execute(Object callable, VirtualFrame callerFrame, Object[] arguments);
 
   /**
    * Sets whether or not the current node is tail-recursive.

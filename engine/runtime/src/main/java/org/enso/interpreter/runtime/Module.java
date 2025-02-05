@@ -689,7 +689,6 @@ public final class Module extends EnsoObject {
           null,
           eval.getFunction(),
           callerInfo,
-          context.emptyState(),
           new Object[] {builtins.debug(), Text.create(expr)},
           null);
     }

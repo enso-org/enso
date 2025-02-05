@@ -57,7 +57,6 @@ import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
@@ -128,7 +127,7 @@ public abstract class InvokeMethodNode extends BaseNode {
   }
 
   public abstract Object execute(
-      VirtualFrame frame, State state, UnresolvedSymbol symbol, Object self, Object[] arguments);
+      VirtualFrame frame, UnresolvedSymbol symbol, Object self, Object[] arguments);
 
   @NonIdempotent
   boolean isAnyEigenType(Type type) {
@@ -147,7 +146,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       limit = "CACHE_SIZE")
   Object doFunctionalDispatchCachedSymbol(
       VirtualFrame frame,
-      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -158,7 +156,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Cached("resolveFunction(cachedSymbol, cachedSelfTpe, methodResolverNode)")
           Function function) {
     assert arguments.length == invokeFunctionNode.getSchema().length;
-    return invokeFunctionNode.execute(function, frame, state, arguments);
+    return invokeFunctionNode.execute(function, frame, arguments);
   }
 
   Function resolveFunction(
@@ -203,7 +201,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       guards = {"typesLibrary.hasType(self)", "!typesLibrary.hasSpecialDispatch(self)"})
   Object doFunctionalDispatchUncachedSymbol(
       VirtualFrame frame,
-      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -248,7 +245,7 @@ public abstract class InvokeMethodNode extends BaseNode {
         // If there is a self named argument in the method call, we fall back to the old
         // behavior - there will be no prepended Any.type self argument
         assert arguments.length == invokeFuncSchema.length;
-        return invokeFunctionNode.execute(function, frame, state, arguments);
+        return invokeFunctionNode.execute(function, frame, arguments);
       }
 
       Object[] argsWithPrependedSelf = new Object[arguments.length + 1];
@@ -276,10 +273,10 @@ public abstract class InvokeMethodNode extends BaseNode {
       }
       assert argsWithPrependedSelf.length == invokeAnyStaticFunctionNode.getSchema().length;
       assert Arrays.stream(argsWithPrependedSelf).allMatch(Objects::nonNull);
-      return invokeAnyStaticFunctionNode.execute(function, frame, state, argsWithPrependedSelf);
+      return invokeAnyStaticFunctionNode.execute(function, frame, argsWithPrependedSelf);
     }
     assert arguments.length == invokeFunctionNode.getSchema().length;
-    return invokeFunctionNode.execute(function, frame, state, arguments);
+    return invokeFunctionNode.execute(function, frame, arguments);
   }
 
   private PanicException methodNotFound(UnresolvedSymbol symbol, Object self)
@@ -292,7 +289,6 @@ public abstract class InvokeMethodNode extends BaseNode {
   @Specialization
   Object doMultiValue(
       VirtualFrame frame,
-      State state,
       UnresolvedSymbol symbol,
       EnsoMultiValue self,
       Object[] arguments,
@@ -308,7 +304,7 @@ public abstract class InvokeMethodNode extends BaseNode {
           arguments[0] = unwrapSelf;
         }
       }
-      return invokeFunctionNode.execute(fnAndType.getLeft(), frame, state, arguments);
+      return invokeFunctionNode.execute(fnAndType.getLeft(), frame, arguments);
     }
     throw methodNotFound(symbol, self);
   }
@@ -316,7 +312,6 @@ public abstract class InvokeMethodNode extends BaseNode {
   @Specialization
   Object doDataflowError(
       VirtualFrame frame,
-      State state,
       UnresolvedSymbol symbol,
       DataflowError self,
       Object[] arguments,
@@ -327,17 +322,14 @@ public abstract class InvokeMethodNode extends BaseNode {
     if (errorReceiverProfile.profile(function == null)) {
       return self;
     } else {
-      return invokeFunctionNode.execute(function, frame, state, arguments);
+      return invokeFunctionNode.execute(function, frame, arguments);
     }
   }
 
   @Specialization
   Object doPanicSentinel(
-      VirtualFrame frame,
-      State state,
-      UnresolvedSymbol symbol,
-      PanicSentinel self,
-      Object[] arguments) {
+      VirtualFrame frame, UnresolvedSymbol symbol, PanicSentinel self, Object[] arguments) {
+
     throw self;
   }
 
@@ -416,7 +408,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       })
   Object doWarningsCustom(
       VirtualFrame frame,
-      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -431,13 +422,12 @@ public abstract class InvokeMethodNode extends BaseNode {
     // Hence, the synthetic construction of a new `InvokeFunctionNode` with the updated schema
     // and call including an additional, dummy, argument.
     Object[] arguments1 = argumentsWithExplicitSelf(cachedSchema, arguments);
-    return warningFunctionNode.execute(resolvedFunction, frame, state, arguments1);
+    return warningFunctionNode.execute(resolvedFunction, frame, arguments1);
   }
 
   @Specialization(guards = "warnings.hasWarnings(self)")
   Object doWarning(
       VirtualFrame frame,
-      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -480,7 +470,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     arguments[thisArgumentPosition] = selfWithoutWarnings;
 
     try {
-      Object result = childDispatch.execute(frame, state, symbol, selfWithoutWarnings, arguments);
+      Object result = childDispatch.execute(frame, symbol, selfWithoutWarnings, arguments);
       return appendWarningNode.executeAppend(null, result, warnsMap);
     } catch (TailCallException e) {
       CompilerDirectives.transferToInterpreter();
@@ -498,7 +488,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       })
   Object doPolyglot(
       VirtualFrame frame,
-      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -520,7 +509,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     boolean anyWarnings = false;
     var accumulatedWarnings = EnsoHashMap.empty();
     for (int i = 0; i < argExecutors.length; i++) {
-      var r = argExecutors[i].executeThunk(frame, arguments[i + 1], state, TailStatus.NOT_TAIL);
+      var r = argExecutors[i].executeThunk(frame, arguments[i + 1], TailStatus.NOT_TAIL);
       if (r instanceof DataflowError) {
         profiles[i].enter();
         return r;
@@ -560,7 +549,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       })
   Object doConvertNumber(
       VirtualFrame frame,
-      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -573,7 +561,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       var big = interop.asBigInteger(self);
       var ensoBig = toEnsoNumberNode.execute(big);
       arguments[0] = ensoBig;
-      return execute(frame, state, symbol, ensoBig, arguments);
+      return execute(frame, symbol, ensoBig, arguments);
     } catch (UnsupportedMessageException e) {
       var ctx = EnsoContext.get(this);
       throw ctx.raiseAssertionPanic(this, null, e);
@@ -589,7 +577,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       })
   Object doConvertText(
       VirtualFrame frame,
-      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -604,7 +591,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       var textType = ctx.getBuiltins().text();
       var function = methodResolverNode.expectNonNull(text, textType, symbol);
       arguments[0] = text;
-      return invokeFunctionNode.execute(function, frame, state, arguments);
+      return invokeFunctionNode.execute(function, frame, arguments);
     } catch (UnsupportedMessageException e) {
       var ctx = EnsoContext.get(this);
       throw ctx.raiseAssertionPanic(this, null, e);
@@ -620,7 +607,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       })
   Object doConvertArray(
       VirtualFrame frame,
-      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -632,7 +618,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     var arrayType = ctx.getBuiltins().array();
     var function = methodResolverNode.expectNonNull(self, arrayType, symbol);
     arguments[0] = self;
-    return invokeFunctionNode.execute(function, frame, state, arguments);
+    return invokeFunctionNode.execute(function, frame, arguments);
   }
 
   @Specialization(
@@ -644,7 +630,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       })
   Object doConvertHashMap(
       VirtualFrame frame,
-      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -656,7 +641,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     var hashMapType = ctx.getBuiltins().dictionary();
     var function = methodResolverNode.expectNonNull(self, hashMapType, symbol);
     arguments[0] = self;
-    return invokeFunctionNode.execute(function, frame, state, arguments);
+    return invokeFunctionNode.execute(function, frame, arguments);
   }
 
   @Specialization(
@@ -668,7 +653,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       })
   Object doConvertDate(
       VirtualFrame frame,
-      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -683,7 +667,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Function function = methodResolverNode.expectNonNull(date, ctx.getBuiltins().date(), symbol);
 
       arguments[0] = date;
-      return invokeFunctionNode.execute(function, frame, state, arguments);
+      return invokeFunctionNode.execute(function, frame, arguments);
     } catch (UnsupportedMessageException e) {
       throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethod(self, symbol), this);
     }
@@ -698,7 +682,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       })
   Object doConvertDateTime(
       VirtualFrame frame,
-      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -715,7 +698,7 @@ public abstract class InvokeMethodNode extends BaseNode {
           methodResolverNode.expectNonNull(dateTime, ctx.getBuiltins().dateTime(), symbol);
 
       arguments[0] = dateTime;
-      return invokeFunctionNode.execute(function, frame, state, arguments);
+      return invokeFunctionNode.execute(function, frame, arguments);
     } catch (UnsupportedMessageException e) {
       throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethod(self, symbol), this);
     }
@@ -730,7 +713,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       })
   Object doConvertDuration(
       VirtualFrame frame,
-      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -745,7 +727,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Function function =
           methodResolverNode.expectNonNull(ensoDuration, ctx.getBuiltins().duration(), symbol);
       arguments[0] = ensoDuration;
-      return invokeFunctionNode.execute(function, frame, state, arguments);
+      return invokeFunctionNode.execute(function, frame, arguments);
     } catch (UnsupportedMessageException e) {
       throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethod(self, symbol), this);
     }
@@ -770,7 +752,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       })
   Object doConvertZonedDateTime(
       VirtualFrame frame,
-      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -787,7 +768,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Function function =
           methodResolverNode.expectNonNull(dateTime, ctx.getBuiltins().dateTime(), symbol);
       arguments[0] = dateTime;
-      return invokeFunctionNode.execute(function, frame, state, arguments);
+      return invokeFunctionNode.execute(function, frame, arguments);
     } catch (UnsupportedMessageException e) {
       throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethod(self, symbol), this);
     }
@@ -802,7 +783,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       })
   Object doConvertZone(
       VirtualFrame frame,
-      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -817,7 +797,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Function function =
           methodResolverNode.expectNonNull(dateTime, ctx.getBuiltins().timeZone(), symbol);
       arguments[0] = dateTime;
-      return invokeFunctionNode.execute(function, frame, state, arguments);
+      return invokeFunctionNode.execute(function, frame, arguments);
     } catch (UnsupportedMessageException e) {
       throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethod(self, symbol), this);
     }
@@ -832,7 +812,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       })
   Object doConvertTimeOfDay(
       VirtualFrame frame,
-      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -847,7 +826,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       Function function =
           methodResolverNode.expectNonNull(dateTime, ctx.getBuiltins().timeOfDay(), symbol);
       arguments[0] = dateTime;
-      return invokeFunctionNode.execute(function, frame, state, arguments);
+      return invokeFunctionNode.execute(function, frame, arguments);
     } catch (UnsupportedMessageException e) {
       throw new PanicException(ctx.getBuiltins().error().makeNoSuchMethod(self, symbol), this);
     }
@@ -862,7 +841,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       })
   Object doFallback(
       VirtualFrame frame,
-      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -872,7 +850,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Shared("methodResolverNode") @Cached MethodResolverNode resolverNode) {
     var ctx = EnsoContext.get(this);
     Function function = resolverNode.expectNonNull(self, ctx.getBuiltins().function(), symbol);
-    return invokeFunctionNode.execute(function, frame, state, arguments);
+    return invokeFunctionNode.execute(function, frame, arguments);
   }
 
   @Override

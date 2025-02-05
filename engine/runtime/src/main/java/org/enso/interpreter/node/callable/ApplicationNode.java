@@ -8,7 +8,6 @@ import java.util.UUID;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.function.Function;
 
 /**
  * This node is responsible for organising callable calls so that they are ready to be made.
@@ -91,10 +90,9 @@ public class ApplicationNode extends ExpressionNode {
    */
   @Override
   public Object executeGeneric(VirtualFrame frame) {
-    var state = Function.ArgumentsHelper.getState(frame.getArguments());
     var evaluatedArguments = evaluateArguments(frame);
     var self = this.callable.executeGeneric(frame);
-    return this.invokeCallableNode.execute(self, frame, state, evaluatedArguments);
+    return this.invokeCallableNode.execute(self, frame, evaluatedArguments);
   }
 
   /**
