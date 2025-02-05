@@ -26,7 +26,7 @@ public abstract class GetStateNode extends Node {
   abstract Object execute(Object key);
 
   final State state() {
-    return null; // TBD
+    return EnsoContext.get(this).currentState();
   }
 
   @Specialization(guards = "objects.containsKey(data, key)")

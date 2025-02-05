@@ -26,7 +26,7 @@ public abstract class PutStateNode extends Node {
   abstract Object execute(Object key, Object new_state);
 
   final State state() {
-    return null; // TBD
+    return EnsoContext.get(this).currentState();
   }
 
   @Specialization(guards = "objects.containsKey(data, key)")

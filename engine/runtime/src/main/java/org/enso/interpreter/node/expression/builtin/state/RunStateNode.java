@@ -36,7 +36,7 @@ public abstract class RunStateNode extends Node {
       VirtualFrame frame, Object key, Object local_state, @Suspend Object computation);
 
   final State state() {
-    return null; // TBD
+    return EnsoContext.get(this).currentState();
   }
 
   @Specialization(guards = "objects.containsKey(data, key)")
