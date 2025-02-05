@@ -1,13 +1,16 @@
 package org.enso.tableau;
 
 import com.tableau.hyperapi.*;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -91,9 +94,14 @@ public class HyperReader {
     if (process == null || !process.isOpen()) {
       var contextClassLoader = Thread.currentThread().getContextClassLoader();
       try {
-        Thread.currentThread().setContextClassLoader(new TableauClassLoader());
+        var classLoader = new TableauClassLoader();
+        var jnaPath = classLoader.getResource("jnidispatch");
+        Thread.currentThread().setContextClassLoader(classLoader);
         LOGGER.log(Level.INFO, "Starting Hyper process: " + HYPER_PATH + ".");
         try {
+          if (jnaPath != null) {
+            System.setProperty("jna.boot.library.path", new File(jnaPath.getFile()).getParent());
+          }
           process = new HyperProcess(HYPER_PATH, Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU);
         } catch (Throwable ioe) {
           LOGGER.log(Level.SEVERE, "Failed to start Hyper process.", ioe);
@@ -113,12 +121,42 @@ public class HyperReader {
     }
 
     @Override
+    public URL getResource(String name) {
+
+      if (name.contains("jnidispatch")) {
+        var libIdx = name.lastIndexOf("/");
+        var dotIdx = name.indexOf(".");
+        var osLibName =
+            dotIdx == -1 ? name.substring(libIdx + 1) : name.substring(libIdx + 1, dotIdx);
+        // Windows libs don't have `lib` prefix.
+        var libName = osLibName.startsWith("lib") ? osLibName.substring(3) : osLibName;
+        var bindings = Context.getCurrent().getBindings("enso");
+        var found = bindings.invokeMember("find_native_library", libName);
+        try {
+          if (found == null || found.asString() == null) {
+            LOGGER.log(
+                Level.WARNING,
+                "Failed to find library `" + libName + "`. Retrying with a fallback");
+            return super.getResource(name);
+          } else {
+            return new File(found.asString()).toURI().toURL();
+          }
+        } catch (MalformedURLException e) {
+          return null;
+        }
+      } else {
+        return super.getResource(name);
+      }
+    }
+
+    @Override
     public InputStream getResourceAsStream(String name) {
 
       if (name.endsWith(".dylib") || name.endsWith(".so") || name.endsWith(".dll")) {
         var libIdx = name.lastIndexOf("/");
         var dotIdx = name.indexOf(".");
-        var osLibName = name.substring(libIdx + 1, dotIdx);
+        var osLibName =
+            dotIdx == -1 ? name.substring(libIdx + 1) : name.substring(libIdx + 1, dotIdx);
         // Windows libs don't have `lib` prefix.
         var libName = osLibName.startsWith("lib") ? osLibName.substring(3) : osLibName;
         var bindings = Context.getCurrent().getBindings("enso");
