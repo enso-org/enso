@@ -209,7 +209,7 @@
     "vite": "^6.0.9",
     "vite-plugin-vue-devtools": "7.6.8",
     "vite-plugin-wasm": "^3.4.1",
-    "vitest": "3.0.3",
+    "vitest": "3.0.5",
     "vue-react-wrapper": "^0.3.1",
     "vue-tsc": "^2.2.0",
     "yaml": "^2.7.0",
