@@ -70,7 +70,7 @@ jobs:
         uses: tj-actions/changed-files@v45
         with:
           files: |
-            distribution/lib/Standard/**/docs/api/**/*.md
+            distribution/lib/Standard/**/docs/api/**
       - name: List all changed files
         env:
           ALL_CHANGED_FILES: ${{ steps.stdlib-api-changed-files.outputs.all_changed_files }}
