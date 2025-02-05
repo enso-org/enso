@@ -60,7 +60,12 @@ export const Form = forwardRef(function Form<
       canSubmitOffline,
       onSubmit,
       onSubmitFailed,
-      onSubmitSuccess,
+      onSubmitSuccess: async (...args) => {
+        if (method === 'dialog') {
+          dialogContext?.close()
+        }
+        await onSubmitSuccess(...args)
+      },
       onSubmitted,
       shouldFocusError: true,
       debugName: `Form ${testId} id: ${id}`,
