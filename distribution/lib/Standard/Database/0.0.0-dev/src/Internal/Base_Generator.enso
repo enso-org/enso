@@ -194,9 +194,7 @@ type SQL_Generator
         orders = ctx.orders.map (self.generate_order dialect)
         order_part = (SQL_Builder.join ", " orders) . prefix_if_present " ORDER BY "
 
-        limit_part = case ctx.limit of
-                Nothing -> "TOP 100 PERCENT "
-                _ : Integer -> dialect.get_limit_sql_modifier ctx.limit
+        limit_part = dialect.get_limit_sql_modifier ctx.limit
 
         extensions = ctx.extensions.map extension->
             part = extension.run_generator (gen_exprs extension.expressions)
