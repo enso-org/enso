@@ -31,6 +31,5 @@ get_widget_json value call_name argument_names uuids="{}" =
         Panic.catch Not_Invokable handler=return_target
             annotation value cache=cache
 
-
     annotations = argument_names.map (arg -> [arg, read_annotation arg])
     annotations.to_json
