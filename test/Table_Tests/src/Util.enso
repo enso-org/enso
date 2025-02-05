@@ -6,7 +6,7 @@ import Standard.Database.DB_Column.DB_Column
 from Standard.Table import Column, Table
 
 from Standard.Test import all
-from project.Omitter import all
+from Standard.Test.Omitter import all
 
 polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
