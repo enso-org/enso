@@ -13,7 +13,7 @@ on:
         value: ${{ jobs.engine-changed-files.outputs.any_changed }}
       stdlib_api_any_changed:
         description: "Returns `true` when any of the Standard library API filenames have changed"
-        value: ${{ jobs.stdlibs-api-changed-files.outputs.any_changed }}
+        value: ${{ jobs.stdlib-api-changed-files.outputs.any_changed }}
 
 jobs:
   engine-changed-files:
@@ -71,7 +71,7 @@ jobs:
         uses: tj-actions/changed-files@v45
         with:
           files: |
-            distribution/lib/Standard/**/docs/api/**
+            distribution/lib/Standard/**/docs/api/**.md
       - name: List all changed files
         env:
           ALL_CHANGED_FILES: ${{ steps.stdlib-api-changed-files.outputs.all_changed_files }}
