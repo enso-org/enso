@@ -3,7 +3,7 @@ private
 from Standard.Base import all
 
 import project.Column.Column
-from project.Internal.Type_Refinements.Single_Value_Column import is_single_value
+from project.Internal.Type_Refinements.Column_Refinements import is_single_value
 
 ## This conversion is internal and should never be exported.
 Integer.from (that : Column) -> Integer =

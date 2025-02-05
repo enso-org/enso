@@ -70,20 +70,20 @@ column_should_equal_impl actual expected loc='' =
                 Panic.throw (Test_Failure_Error.Error "Expected column length "+expected.length.to_text+", but got "+actual.length.to_text+(display_loc loc)+'.')
             if actual.value_type != expected.value_type then
                 Panic.throw (Test_Failure_Error.Error "Expected column type "+expected.value_type.to_text+", but got "+actual.value_type.to_text+(display_loc loc)+'.')
-            actual.zip expected a-> e->
-                if values_equal a e then
+            actual.zip expected skip_nothing=False a-> e->
+                if values_not_equal a e then
                     report_fail actual expected loc
         _ -> Panic.throw (Test_Failure_Error.Error "Got a Column, but expected a "+expected.to_display_text+(display_loc loc)+'.')
 
 ## PRIVATE
-values_equal a e =
+values_not_equal a e =
     a != e && (a.is_a Number && e.is_a Number && a.is_nan && e.is_nan).not
 
 ## PRIVATE
 report_fail actual expected loc =
-    indexed = actual.zip (0.up_to actual.length) a-> i-> Pair.new a i
-    indexed.zip expected a-> e->
-        if values_equal a.first e then
+    indexed = actual.zip (0.up_to actual.length) skip_nothing=False a-> i-> Pair.new a i
+    indexed.zip expected skip_nothing=False a-> e->
+        if values_not_equal a.first e then
             Panic.throw (Test_Failure_Error.Error "Column: "+actual.name+" differs at row "+a.second.to_text+'.\n\t  Actual  : '+a.first.to_text+'\n\t  Expected: '+e.to_text+'\n\t'+(display_loc loc)+'.')
 
 ## PRIVATE
