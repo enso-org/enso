@@ -174,7 +174,6 @@ async function enterDirByName(name: string, stack: Directory[]): Promise<Result>
 }
 
 onMounted(() => {
-  console.log('MOUNTED')
   Promise.all([currentUser.promise.value, currentOrganization.promise.value]).then(
     async ([user, organization]) => {
       if (!user) {
@@ -193,9 +192,6 @@ onMounted(() => {
     },
   )
 })
-onActivated(() => console.log('ACTIVATED'))
-onUnmounted(() => console.log('UNMOUNTED'))
-onDeactivated(() => console.log('DEACTIVATED'))
 </script>
 
 <template>

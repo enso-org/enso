@@ -342,15 +342,18 @@ const dropdownActions: Actions = {
     activity.value = newActivity
     if (keepAlive) {
       const activity = toValue(newActivity)
-      if (
-        typeof activity.type === 'object' &&
-        'name' in activity.type &&
-        typeof activity.type.name === 'string'
-      ) {
-        keptAliveActivities.push(activity.type.name)
-      } else {
+      const activityName =
+        (
+          typeof activity.type === 'object' &&
+          'name' in activity.type &&
+          typeof activity.type.name === 'string'
+        ) ?
+          activity.type.name
+        : undefined
+      if (activityName == null) {
         console.warn('DropDown activity wanted to be kept alive, but provides no name', activity)
-      }
+      } else if (!keptAliveActivities.find((x) => x === activityName))
+        keptAliveActivities.push(activityName)
     }
   },
   close: dropDownInteraction.end.bind(dropDownInteraction),
