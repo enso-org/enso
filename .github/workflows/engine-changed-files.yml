@@ -67,7 +67,7 @@ jobs:
         with:
           fetch-depth: 2
       - name: Get changed files
-        id: docs-api-changed-files
+        id: stdlib-api-changed-files
         uses: tj-actions/changed-files@v45
         with:
           files: |
