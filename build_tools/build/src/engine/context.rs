@@ -600,7 +600,7 @@ impl RunContext {
             // distribution/lib/Standard/<lib_name>/<version>
             let dir = dir?;
             let lib_dir = dir.path().join(self.paths.version().to_string());
-            assert!(lib_dir.exists());
+            assert!(lib_dir.exists(), "Directory {} does not exist", lib_dir.display());
             let api_dir = lib_dir.join("docs").join("api");
             if api_dir.exists() {
                 let libname = dir.file_name().to_string_lossy().to_string();
