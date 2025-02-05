@@ -298,6 +298,10 @@
   "gitHubIcon": "GitHub icon",
   "close": "Close",
 
+  "account": "Account",
+  "clientId": "Client ID",
+  "clientSecret": "Client Secret",
+  "role": "Role",
   "snowflakeCredentialType": "Snowflake",
 
   "enterSecretPath": "Enter secret path",
