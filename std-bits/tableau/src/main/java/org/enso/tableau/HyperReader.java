@@ -114,10 +114,13 @@ public class HyperReader {
 
     @Override
     public InputStream getResourceAsStream(String name) {
-      int libIdx = name.indexOf("lib");
-      int dotIdx = name.indexOf(".");
-      if (libIdx != -1 && dotIdx != -1) {
-        var libName = name.substring(libIdx + 3, dotIdx);
+
+      if (name.endsWith(".dylib") || name.endsWith(".so") || name.endsWith(".dll")) {
+        var libIdx = name.lastIndexOf("/");
+        var dotIdx = name.indexOf(".");
+        var osLibName = name.substring(libIdx + 1, dotIdx);
+        // Windows libs don't have `lib` prefix.
+        var libName = osLibName.startsWith("lib") ? osLibName.substring(3) : osLibName;
         var bindings = Context.getCurrent().getBindings("enso");
         var found = bindings.invokeMember("find_native_library", libName);
         try {

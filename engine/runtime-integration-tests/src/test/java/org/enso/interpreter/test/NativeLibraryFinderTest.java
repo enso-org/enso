@@ -15,6 +15,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
+import org.enso.cli.OS;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.editions.LibraryName;
@@ -75,8 +76,8 @@ public class NativeLibraryFinderTest {
       this.stdTableauPkg = stdTableau.get();
       var nativeLibs =
           NativeLibraryFinder.listAllNativeLibraries(stdTableau.get(), TruffleFileSystem.INSTANCE);
-      assertThat(
-          "There should be just single native lib in Standard.Tableau", nativeLibs.size(), is(1));
+      // Tableau has Tableau's native lib AND jni
+      assertThat("There should be two native libs for Standard.Tableau", nativeLibs.size(), is(2));
     }
   }
 
@@ -95,7 +96,8 @@ public class NativeLibraryFinderTest {
           ctx.getBindings(LanguageInfo.ID)
               .invokeMember(MethodNames.TopScope.FIND_NATIVE_LIBRARY, "tableauhyperapi");
       assertNotNull(nativeLib);
-      assertThat(nativeLib.asString(), containsString("libtableauhyperapi"));
+      var expectedLibName = OS.isWindows() ? "tableauhyperapi" : "libtableauhyperapi";
+      assertThat(nativeLib.asString(), containsString(expectedLibName));
     }
   }
 
