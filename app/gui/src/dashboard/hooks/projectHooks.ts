@@ -208,15 +208,10 @@ export function useOpenProjectMutation() {
       inBackground = false,
       runCloudLocally = false,
     }: LaunchedProject & { inBackground?: boolean; runCloudLocally?: boolean }) => {
-      const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
-
-      invariant(backend != null, 'Backend is null')
-
       if (runCloudLocally) {
         invariant(localBackend != null, 'Local Backend is null')
 
         const parentId = await remoteBackend.downloadProject(id)
-        console.log('openProjectMutation parentId:', parentId)
         const assets = await localBackend.listDirectory({
           parentId,
           filterBy: null,
@@ -224,10 +219,13 @@ export function useOpenProjectMutation() {
           recentProjects: false,
         })
 
-        console.log('openProjectMutation assets:', assets)
+        const project = assets
+          .filter((asset) => asset.type === backendModule.AssetType.project)
+          .at(0)
+        invariant(project, 'Downloaded cloud project does not exist.')
 
         return localBackend.openProject(
-          id,
+          project.id,
           {
             executeAsync: inBackground,
             cognitoCredentials: {
@@ -242,6 +240,9 @@ export function useOpenProjectMutation() {
           title,
         )
       } else {
+        const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
+        invariant(backend != null, 'Backend is null')
+
         return backend.openProject(
           id,
           {
