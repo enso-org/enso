@@ -53,12 +53,13 @@ type Test_Failure_Error
 table_should_equal_impl actual_table expected_table loc ignore_order =
     case expected_table of
         _ : Table ->
-            actual = if ignore_order then actual_table.sort else actual_table
-            expected = if ignore_order then expected_table.sort else expected_table
+            actual = if ignore_order then actual_table.sort actual_table.column_names else actual_table
+            expected = if ignore_order then expected_table.sort expected_table.column_names else expected_table
             if actual.columns.length != expected.columns.length then
-                Panic.throw (Test_Failure_Error.Error 'Tables differ at '+loc+'.\nActual:\n'+actual.display+'\nExpected:\n'+expected.display+'\nExpected '+expected.columns.length.to_text+" columns, but got "+actual.columns.length.to_text+'.')
+                Panic.throw (Test_Failure_Error.Error 'Tables differ at '+loc+'.\nActual:\n'+actual_table.display+'\nExpected:\n'+expected_table.display+'\nExpected '+expected.columns.length.to_text+" columns, but got "+actual.columns.length.to_text+'.')
             Panic.catch Test_Failure_Error (actual.columns.zip expected.columns a-> e->(column_should_equal_impl a e)) error->
-                msg = 'Tables differ at '+loc+'.\nActual:\n'+actual.display+'\nExpected:\n'+expected.display+'\n'+error.payload.message
+                msg_sorted = if ignore_order then " (sorted)" else ""
+                msg = 'Tables differ at '+loc+'.\nActual'+msg_sorted+':\n'+actual.display+'\nExpected'+msg_sorted+':\n'+expected.display+'\n'+error.payload.message
                 Panic.throw (Test_Failure_Error.Error msg)
         _ -> Panic.throw (Test_Failure_Error.Error "Got a Table, but expected a "+expected_table.to_display_text+(display_loc loc)+'.')
 
