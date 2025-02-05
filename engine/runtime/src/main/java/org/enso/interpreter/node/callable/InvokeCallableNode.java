@@ -111,6 +111,7 @@ public abstract class InvokeCallableNode extends BaseNode {
       CallArgumentInfo[] schema,
       DefaultsExecutionMode defaultsExecutionMode,
       ArgumentsExecutionMode argumentsExecutionMode, boolean isForOversaturatedArguments) {
+    this.schema = schema;
     this.isForOversaturatedArguments = isForOversaturatedArguments;
     Integer thisArg = thisArgumentPosition(schema);
     this.canApplyThis = thisArg != null;
@@ -130,7 +131,6 @@ public abstract class InvokeCallableNode extends BaseNode {
     this.invokeConversionNode =
         InvokeConversionNode.build(
             schema, defaultsExecutionMode, argumentsExecutionMode, thatArgumentPosition);
-    this.schema = schema;
   }
 
   public static Integer thisArgumentPosition(CallArgumentInfo[] schema) {
