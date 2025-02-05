@@ -72,6 +72,8 @@ jobs:
           files: |
             distribution/lib/Standard/**/docs/api/*.md
       - name: List all changed files
+        env:
+          ALL_CHANGED_FILES: ${{ steps.stdlib-api-changed-files.outputs.all_changed_files }}
         run: |
           if [[ "${{ steps.docs-api-changed-files.outputs.any_changed }}" == "true" ]]; then
             echo "API docs files changed"
