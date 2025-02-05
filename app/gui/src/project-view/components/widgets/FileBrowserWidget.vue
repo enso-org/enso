@@ -23,16 +23,7 @@ import Backend, {
   assetIsDirectory,
   assetIsFile,
 } from 'enso-common/src/services/Backend'
-import {
-  computed,
-  onActivated,
-  onDeactivated,
-  onMounted,
-  onUnmounted,
-  ref,
-  toValue,
-  watch,
-} from 'vue'
+import { computed, onMounted, ref, toValue, watch } from 'vue'
 import { Err, Ok, Result } from 'ydoc-shared/util/data/result'
 
 const { writeMode = false } = defineProps<{ writeMode?: boolean }>()

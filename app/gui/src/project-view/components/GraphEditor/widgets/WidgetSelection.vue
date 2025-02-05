@@ -338,7 +338,7 @@ function toggleDropdownWidget() {
 }
 
 const dropdownActions: Actions = {
-  setActivity: (newActivity, keepAlive) => {
+  setActivity: (newActivity, keepAlive = false) => {
     activity.value = newActivity
     if (keepAlive) {
       const activity = toValue(newActivity)
@@ -486,7 +486,7 @@ export interface Actions {
    *  and opening. The activity component must not change it type (when being a ref) and provide
    * `name` option explicitly.
    */
-  setActivity: (activity: ToValue<VNode>, keepAlive: boolean) => void
+  setActivity: (activity: ToValue<VNode>, keepAlive?: boolean) => void
   close: () => void
 }
 
