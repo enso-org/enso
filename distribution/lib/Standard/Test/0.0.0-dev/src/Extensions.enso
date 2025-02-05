@@ -2,11 +2,11 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-import Standard.Base.Runtime.Ref.Ref
 
 import project.Spec_Result.Spec_Result
 import project.Test.Test
 from project.Extensions_Helpers import rhs_error_check
+from project.Omitter import all
 
 ## Expect a function to fail with the provided dataflow error.
 
@@ -92,54 +92,6 @@ Any.should_equal self that frames_to_skip=0 omitter=Nothing = omitting omitter o
                 _ -> ""
             msg = self.pretty + " did not equal " + that.pretty + additional_comment + " (at " + omitter.loc + ")."
             Test.fail msg
-
-Any.another_checker self default_omitter:Omitter=Nothing =
-    omitting default_omitter omitter->
-        #IO.println "ERR another_checker "+omitter.loc
-        _ = 1
-
-pst s st =
-    IO.println "==== "+s
-    st . take 12 . map_with_index (i-> x-> IO.println i.to_text+": "+x.to_text)
-
-hoho x=(Ref.new 12) =
-    v = x.get
-    x.put (v + 1)
-    IO.println "hoho "+v.to_text
-
-heyho =
-    IO.println "inheyho"
-    Runtime.get_stack_trace
-
-blah x=heyho =
-    pst "heyho" x
-
-type Omitter
-    Value ~err
-
-    loc self =
-        #blah
-        #blah
-
-        stack_trace = Runtime.get_stack_trace
-        #pst "full" stack_trace
-
-        omitting_index = stack_trace.last_index_of (frame-> frame.name == "Extensions.omitting")
-        real_stack_trace = stack_trace.drop (omitting_index + 2)
-
-        #IO.println "OI "+omitting_index.to_text
-        #real_stack_trace = stack_trace.drop (..While (frame-> frame.name != 'Extensions.omitting'))
-        #pst "real" real_stack_trace
-
-        top = real_stack_trace . at 0 . source_location
-        top.to_display_text
-
-omitting default_omitter ~action =
-    omitter = default_omitter.if_nothing (Omitter.Value (Error.throw "here"))
-    IO.println "AAAAA "+omitter.loc.to_display_text
-    action omitter
-
-make_omitter -> Omitter = Omitter.Value (Error.throw "here")
 
 ## Asserts that `self` value is equal to the expected type value.
 

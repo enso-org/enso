@@ -10,6 +10,7 @@ import project.Spec_Result.Spec_Result
 import project.Suite.Suite
 import project.Suite.Suite_Builder
 import project.Test_Result.Test_Result
+from project.Omitter import all
 
 
 polyglot java import java.lang.Thread
@@ -131,7 +132,7 @@ type Test
     ## PRIVATE
        Reports an unexpected dataflow error has occurred.
     fail_match_on_unexpected_error : Error -> Integer -> Nothing
-    fail_match_on_unexpected_error error frames_to_skip omitter=nothing = omitting omitter omitter->
+    fail_match_on_unexpected_error error frames_to_skip omitter=Nothing = omitting omitter omitter->
         payload = error.catch
         msg = "An unexpected dataflow error (" + payload.to_text + ") has been matched (at " + omitter.loc + ")."
         Test.fail msg details=error.get_stack_trace_text
@@ -226,5 +227,5 @@ type Test
         stack = Standard.Base.Runtime.get_stack_trace
         element = stack . at skip_frames+1
         loc = element . source_location
-        IO.println "NOOOO "+omitter.loc.to_display_text
+        IO.println "NOOOO "+loc.to_display_text
         loc . to_display_text
