@@ -144,13 +144,11 @@ public abstract class BuiltinRootNode extends RootNode {
             CompilerDirectives.transferToInterpreterAndInvalidate();
             this.mapInsertAllNode = insert(HashMapInsertAllNode.build());
           }
-          if (this.mapInsertAllNode != null) {
-            try {
-              context.addWarnings(frame, mapInsertAllNode, warnings.getWarnings(value, false));
-              value = warnings.removeWarnings(value);
-            } catch (UnsupportedMessageException ex) {
-              throw raise(RuntimeException.class, ex);
-            }
+          try {
+            context.addWarnings(frame, mapInsertAllNode, warnings.getWarnings(value, false));
+            value = warnings.removeWarnings(value);
+          } catch (UnsupportedMessageException ex) {
+            throw raise(RuntimeException.class, ex);
           }
         }
       }
