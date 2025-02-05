@@ -293,7 +293,7 @@ public final class ReplDebuggerInstrument extends TruffleInstrument {
       }
       if (lastScope != null) {
         // Note [Safe Access to State in the Debugger Instrument]
-        monadicState = null; // TBD: Function.ArgumentsHelper.getState(frame.getArguments());
+        monadicState = EnsoContext.get(root).currentState();
         nodeState = new ReplExecutionEventNodeState(toReturn, lastScope);
         startSessionImpl();
       }

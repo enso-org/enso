@@ -201,7 +201,7 @@ public final class ExecutionService {
             service ->
                 service.bind(module, call.getFunction().getCallTarget(), callbacks, this.timer));
 
-    State state = null; // TBD: call.getState()
+    State state = context.currentState();
     DynamicObjectLibrary.getUncached().put(state.getContainer(), IdExecutionService.class, cache);
 
     Object p = context.getThreadManager().enter();
@@ -387,7 +387,7 @@ public final class ExecutionService {
     var ret = new Object[1];
     Object p = context.getThreadManager().enter();
     try {
-      State state = null; // TBD:
+      State state = context.currentState();
       if (function instanceof FunctionCallInstrumentationNode.FunctionCall fnCall) {
         // state = fnCall.getState(); // TBD
       } else {
