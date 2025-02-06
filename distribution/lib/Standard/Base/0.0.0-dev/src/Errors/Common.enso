@@ -317,10 +317,10 @@ type Not_Invokable
        Convert the Not_Invokable error to a human-readable format.
     to_display_text : Text
     to_display_text self =
-        cause_suffix = case self.cause of
-            Nothing -> ""
-            _ -> " Likely caused by: "+self.cause.to_display_text
-        "Type error: expected a function, but got "+self.target.to_display_text+"."+cause_suffix
+        case self.cause of
+            Nothing -> "Type error: expected a function, but got "+self.target.to_display_text+"."
+            _ -> "Cannot invoke "+self.target.to_display_text+". Caused by: "+self.cause.to_display_text
+
 
 @Builtin_Type
 type No_Such_Argument
