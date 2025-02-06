@@ -3303,7 +3303,7 @@ private _resolve_grouping_columns columns_helper:Table_Column_Helper group_by:Ve
             problem_builder.report_other_warning (Floating_Point_Equality.Error column.name)
     grouping_columns
 
-# PRIVATE
+## PRIVATE
 private _resolve_order_descriptors dialect ordering default_ordering =
     case ordering.is_empty of
         False -> ordering.map element->
