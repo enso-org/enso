@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Numbers.Number_Parse_Error
 import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Widget.Text_Input
 
@@ -9,6 +10,7 @@ import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.Connection.Credentials.Credentials
 import Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup
 
+import project.Connection.Key_Pair_Credentials.Key_Pair_Credentials
 import project.Snowflake_Connection.Snowflake_Connection
 
 polyglot java import net.snowflake.client.jdbc.SnowflakeDriver
@@ -24,7 +26,7 @@ type Snowflake_Details
        - warehouse: The name of the warehouse to use.
     @account (Text_Input display=..Always)
     @credentials Credentials.default_widget
-    Snowflake (account:Text=(Missing_Argument.throw "account")) (credentials:Credentials=(Missing_Argument.throw "credentials")) database:Text="SNOWFLAKE" schema:Text="PUBLIC" warehouse:Text=""
+    Snowflake (account:Text=(Missing_Argument.throw "account")) (credentials:Credentials|Key_Pair_Credentials=(Missing_Argument.throw "credentials")) database:Text="SNOWFLAKE" schema:Text="PUBLIC" warehouse:Text=""
 
     ## PRIVATE
        Attempt to resolve the constructor.
@@ -64,7 +66,21 @@ type Snowflake_Details
         ## should be prepended to properties. That would make it fallback to plain `json`.
 
         account = [Pair.new 'account' self.account]
-        credentials = [Pair.new 'user' self.credentials.username, Pair.new 'password' self.credentials.password]
+        credentials = case self.credentials of
+            Credentials.Username_And_Password username password -> [Pair.new 'user' username, Pair.new 'password' password]
+            Key_Pair_Credentials.Key_Pair username private_key passphrase ->
+                key_part = case private_key of
+                    local_file : File ->
+                        passphrase_part = if passphrase != Nothing then [Pair.new 'private_key_file_pwd' passphrase] else []
+                        [Pair.new 'private_key_file' local_file.absolute.path] + passphrase_part
+                    _ : Enso_File ->
+                        Error.throw (Illegal_Argument.Error "Currently only local files can be used as private keys. In Cloud, consider using a Secret instead of a file.")
+                    secret : Enso_Secret ->
+                        if passphrase != Nothing then
+                            Error.throw (Illegal_Argument.Error "Passphrase is not applicable when using a secret as a private key.")
+                        [Pair.new 'privateKey' secret]
+                [Pair.new 'user' username] + key_part
+
         database = [Pair.new 'db' self.database]
         schema = [Pair.new 'schema' self.schema]
         warehouse = if self.warehouse=="" then [] else [Pair.new 'warehouse' self.warehouse]
