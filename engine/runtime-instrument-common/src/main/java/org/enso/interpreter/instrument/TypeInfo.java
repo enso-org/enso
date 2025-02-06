@@ -9,9 +9,9 @@ import java.util.Arrays;
  * represents a simple type.
  *
  * @param visibleType the public type of the value visible to the user
- * @param conversionTypes the available conversions
+ * @param hiddenType the list of types the value can be converted to
  */
-public record TypeInfo(String[] visibleType, String[] conversionTypes) {
+public record TypeInfo(String[] visibleType, String[] hiddenType) {
 
   public static TypeInfo ofType(String typeName) {
     return new TypeInfo(new String[] {typeName}, new String[] {});
@@ -26,7 +26,7 @@ public record TypeInfo(String[] visibleType, String[] conversionTypes) {
     return "TypeInfo("
         + Arrays.toString(visibleType)
         + ","
-        + Arrays.toString(conversionTypes)
+        + Arrays.toString(hiddenType)
         + ")";
   }
 }

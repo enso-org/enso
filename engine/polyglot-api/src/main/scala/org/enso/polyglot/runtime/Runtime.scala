@@ -76,11 +76,11 @@ object Runtime {
     /** The type of the expression.
       *
       * @param visibleType the public type of the expression visible to the user
-      * @param conversionType the available conversions
+      * @param hiddenType the list of types this expression can be converted to
       */
     case class ExpressionType(
       visibleType: Vector[String],
-      conversionType: Vector[String]
+      hiddenType: Vector[String]
     )
 
     /** A representation of an executable position in code.

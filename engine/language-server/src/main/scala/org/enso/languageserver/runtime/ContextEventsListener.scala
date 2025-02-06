@@ -253,7 +253,7 @@ final class ContextEventsListener(
   ): ContextRegistryProtocol.ExpressionType =
     ContextRegistryProtocol.ExpressionType(
       expressionType.visibleType,
-      expressionType.conversionType
+      expressionType.hiddenType
     )
 
   /** Convert the runtime warnings to the context registry protocol

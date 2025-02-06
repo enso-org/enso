@@ -855,7 +855,7 @@ object ProgramExecutionSupport {
   private def toExpressionType(typeInfo: TypeInfo): Api.ExpressionType =
     Api.ExpressionType(
       typeInfo.visibleType().toVector,
-      typeInfo.conversionTypes().toVector
+      typeInfo.hiddenType().toVector
     )
 
   /** Find source file path by the module name.

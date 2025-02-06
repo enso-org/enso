@@ -787,21 +787,21 @@ public final class ExecutionService {
      */
     public boolean isTypeChanged() {
       String[] visibleType = null;
-      String[] hiddenTypes = null;
+      String[] hiddenType = null;
       if (typeInfo != null) {
         visibleType = typeInfo.visibleType();
-        hiddenTypes = typeInfo.conversionTypes();
+        hiddenType = typeInfo.hiddenType();
       }
 
       String[] cachedVisibleType = null;
-      String[] cachedHiddenTypes = null;
+      String[] cachedHiddenType = null;
       if (cachedTypeInfo != null) {
         cachedVisibleType = cachedTypeInfo.visibleType();
-        cachedHiddenTypes = cachedTypeInfo.conversionTypes();
+        cachedHiddenType = cachedTypeInfo.hiddenType();
       }
 
       return !Arrays.equals(visibleType, cachedVisibleType)
-          || !Arrays.equals(hiddenTypes, cachedHiddenTypes);
+          || !Arrays.equals(hiddenType, cachedHiddenType);
     }
 
     /**
