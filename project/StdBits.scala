@@ -128,7 +128,9 @@ object StdBits {
     // Make sure that the native libs in the `lib` directory complies with
     // `org.enso.interpreter.runtime.NativeLibraryFinder`
     def renameFunc(entryName: String): Option[String] = {
-      val strippedEntryName = entryName.substring(extractPrefix.length + 1)
+      val strippedEntryName = entryName
+        .substring(extractPrefix.length + 1)
+        .replace("ARMv8", "aarch64")
       if (
         strippedEntryName.contains("linux/ARM") ||
         strippedEntryName.contains("linux/x86_32") ||
@@ -144,7 +146,7 @@ object StdBits {
             .replace("linux/x86_64", "amd64")
             .replace("windows/x86_64", "amd64")
             .replace("windows/x86_32", "x86_32")
-            .replace("osx/ARMv8", "aarch64")
+            .replace("osx/aarch64", "aarch64")
             .replace("osx/x86_64", "amd64")
         )
       }
@@ -196,6 +198,9 @@ object StdBits {
       val strippedEntryName =
         (if (prefix.isEmpty) entryName
          else entryName.substring(prefix.length + 1)).replace("jnilib", "dylib")
+      if (strippedEntryName.contains(validOsExt)) {
+        println("RENAME: " + strippedEntryName)
+      }
       if (
         !strippedEntryName.endsWith(validOsExt) ||
         // Remove native libs for different platforms
@@ -204,6 +209,7 @@ object StdBits {
       ) {
         None
       } else {
+        println("INCLUDE? " + strippedEntryName)
         Some(
           strippedEntryName
             .replace("linux-x86-64", "amd64")
@@ -318,7 +324,6 @@ object StdBits {
     val arch = System.getProperty("os.arch").toLowerCase(Locale.ENGLISH)
     arch
       .replace("amd64", "x86_64")
-      .replace("aarch64", "ARMv8")
   }
 
   private def updateDependency(
