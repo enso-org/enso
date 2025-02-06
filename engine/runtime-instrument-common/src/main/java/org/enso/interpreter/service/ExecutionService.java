@@ -388,10 +388,7 @@ public final class ExecutionService {
     Object p = context.getThreadManager().enter();
     try {
       State state = context.currentState();
-      if (function instanceof FunctionCallInstrumentationNode.FunctionCall fnCall) {
-        // state = fnCall.getState(); // TBD
-      } else {
-        var fn = (Function) function;
+      if (function instanceof Function fn) {
         function = new FunctionCallInstrumentationNode.FunctionCall(fn, new Object[0]);
       }
       if (executionCache != null) {

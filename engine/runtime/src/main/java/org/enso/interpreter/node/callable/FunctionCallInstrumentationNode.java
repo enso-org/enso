@@ -98,7 +98,8 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
         System.arraycopy(
             arguments, 0, callArguments, functionCall.getArguments().length, arguments.length);
 
-        // TBD: Activate: functionCall.state
+        // Since #12233 there is no activation of former `functionCall.state`
+        // should that be a problem, revisit the decision to remove `functionCall.state`
         return interopApplicationNode.execute(functionCall.function, callArguments);
       }
     }
