@@ -7,14 +7,10 @@ pst s st =
     st . take 12 . map_with_index (i-> x-> IO.println i.to_text+": "+x.to_text)
 
 omitting ~action =
-    #IO.println "AAAAA "+omitting_get_stack_trace
+    #IO.println "AAAAA "+omit_get_stack_trace
     action
 
-omitting ~action =
-    #IO.println "AAAAA "+omitting_get_stack_trace
-    action
-
-omitting_get_stack_trace =
+omit_get_stack_trace =
     stack_trace = Runtime.get_stack_trace
     if verbose then pst "full" stack_trace
 

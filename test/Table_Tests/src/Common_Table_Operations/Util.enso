@@ -51,7 +51,7 @@ within_table table =
 ## PRIVATE
 Any.should_equal_tz_agnostic self other = omitting <|
     _ = other
-    Test.fail "Expected a vector but got "+self.to_display_text+" (at "+omitting_get_stack_trace+")."
+    Test.fail "Expected a vector but got "+self.to_display_text+" (at "+omit_get_stack_trace+")."
 
 ## PRIVATE
    A helper method that compares two vectors of Date_Time values.
@@ -65,16 +65,16 @@ Vector.should_equal_tz_agnostic self other = omitting <|
             utc = Time_Zone.utc
             normalize_date_time dt = case dt of
                 _ : Date_Time -> dt.at_zone utc
-                _ -> Test.fail "The vector should contain Date_Time objects but it contained "+dt.to_display_text+" (at "+omitting_get_stack_trace+")"
+                _ -> Test.fail "The vector should contain Date_Time objects but it contained "+dt.to_display_text+" (at "+omit_get_stack_trace+")"
             self_normalized = self.map normalize_date_time
             other_normalized = other.map normalize_date_time
             self_normalized.should_equal other_normalized
-        _ -> Test.fail "Expected a vector but got "+other.to_display_text+" (at "+omitting_get_stack_trace+")"
+        _ -> Test.fail "Expected a vector but got "+other.to_display_text+" (at "+omit_get_stack_trace+")"
 
 ## PRIVATE
 Error.should_equal_tz_agnostic self other = omitting <|
     _ = other
-    Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+omitting_get_stack_trace+")."
+    Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+omit_get_stack_trace+")."
 
 ## PRIVATE
    Builds a table ensuring that the rows are in the order as given.

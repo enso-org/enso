@@ -79,10 +79,10 @@ test_advanced_problem_handling action error_checker warnings_checker result_chec
    Checks if the provided value does not have any attached problems.
 assume_no_problems result = omitting <|
     if result.is_error then
-        Test.fail "Expected the result to not be an error, but a dataflow error has been matched: "+result.catch.to_display_text+" (at "+omitting_get_stack_trace+")." details=result.get_stack_trace_text
+        Test.fail "Expected the result to not be an error, but a dataflow error has been matched: "+result.catch.to_display_text+" (at "+omit_get_stack_trace+")." details=result.get_stack_trace_text
     warnings = get_attached_warnings result
     if warnings.not_empty then
-        Test.fail "Expected the result to not contain any warnings, but it did: "+warnings.to_text+" (at "+omitting_get_stack_trace+")."
+        Test.fail "Expected the result to not contain any warnings, but it did: "+warnings.to_text+" (at "+omit_get_stack_trace+")."
 
 ## UNSTABLE
    Checks if the provided value has a specific warning attached.
@@ -98,12 +98,12 @@ expect_warning : Any -> Any -> Boolean -> Nothing
 expect_warning expected_warning result unwrap_errors=True = omitting <|
     unwrap_maybe error = if unwrap_errors then Error.unwrap error else error
     if result.is_error then
-        Test.fail "Expected a warning "+expected_warning.to_text+", but a dataflow error has been matched: "+result.catch.to_display_text+" (at "+omitting_get_stack_trace+")."
+        Test.fail "Expected a warning "+expected_warning.to_text+", but a dataflow error has been matched: "+result.catch.to_display_text+" (at "+omit_get_stack_trace+")."
     warnings = get_attached_warnings result . map unwrap_maybe
     found = warnings.find if_missing=Nothing x->
         (x == expected_warning) || (x.is_a expected_warning)
     found.if_nothing <|
-        Test.fail "Expected the result to contain a warning: "+expected_warning.to_text+", but it did not. The warnings were "+warnings.short_display_text+' (at '+omitting_get_stack_trace+').'
+        Test.fail "Expected the result to contain a warning: "+expected_warning.to_text+", but it did not. The warnings were "+warnings.short_display_text+' (at '+omit_get_stack_trace+').'
 
 ## UNSTABLE
    Checks if the provided value has a specific warning attached and if there are
@@ -121,16 +121,16 @@ expect_only_warning : Any -> Any -> Boolean -> Any
 expect_only_warning expected_warning result unwrap_errors=True = omitting <|
     unwrap_maybe error = if unwrap_errors then Error.unwrap error else error
     if result.is_error then
-        Test.fail "Expected only warning "+expected_warning.to_text+", but a dataflow error has been matched: "+result.catch.to_display_text+" (at "+omitting_get_stack_trace+")."
+        Test.fail "Expected only warning "+expected_warning.to_text+", but a dataflow error has been matched: "+result.catch.to_display_text+" (at "+omit_get_stack_trace+")."
     warnings = get_attached_warnings result . map unwrap_maybe
     is_expected x =
         (x == expected_warning) || (x.is_a expected_warning)
     found = warnings.find if_missing=Nothing is_expected
     if found.is_nothing then
-        Test.fail "Expected the result to contain a warning: "+expected_warning.to_text+", but it did not. The warnings were "+warnings.short_display_text+' (at '+omitting_get_stack_trace+').'
+        Test.fail "Expected the result to contain a warning: "+expected_warning.to_text+", but it did not. The warnings were "+warnings.short_display_text+' (at '+omit_get_stack_trace+').'
     invalid = warnings.filter x-> is_expected x . not
     if invalid.not_empty then
-        Test.fail "Expected the result to contain only the warning: "+found.to_text+", but it also contained: "+invalid.to_text+' (at '+omitting_get_stack_trace+').'
+        Test.fail "Expected the result to contain only the warning: "+found.to_text+", but it also contained: "+invalid.to_text+' (at '+omit_get_stack_trace+').'
     found
 
 ## UNSTABLE
@@ -142,4 +142,4 @@ not_expect_warning expected_warning_type result = omitting <|
     warnings = get_attached_warnings result
     found = warnings.find if_missing=Nothing x-> x.is_a expected_warning_type
     if found.is_nothing.not then
-        Test.fail 'The result contained a warning it was not supposed to: '+found.to_text+' (at '+omitting_get_stack_trace+').'
+        Test.fail 'The result contained a warning it was not supposed to: '+found.to_text+' (at '+omit_get_stack_trace+').'

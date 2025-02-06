@@ -12,13 +12,13 @@ polyglot java import org.enso.base_test_helpers.FileSystemHelper
 Table.should_equal : Any -> Boolean -> Any
 Table.should_equal self expected ignore_order=False = omitting <|
     rhs_error_check expected
-    Panic.catch Test_Failure_Error (table_should_equal_impl self expected omitting_get_stack_trace ignore_order) error->
+    Panic.catch Test_Failure_Error (table_should_equal_impl self expected omit_get_stack_trace ignore_order) error->
         Test.fail error.payload.message
 
 Column.should_equal : Any -> Any
 Column.should_equal self expected = omitting <|
     rhs_error_check expected
-    Panic.catch Test_Failure_Error (column_should_equal_impl self expected omitting_get_stack_trace) error->
+    Panic.catch Test_Failure_Error (column_should_equal_impl self expected omit_get_stack_trace) error->
         Test.fail error.payload.message
 
 DB_Table.should_equal : DB_Table|Table -> Boolean -> Any
@@ -116,12 +116,12 @@ Any.should_have_relative_ordering self (example : Vector) = omitting <|
         _ : Vector ->
             example.each v-> case v of
                 _ : Vector ->
-                    if v.is_empty then Test.fail "The example vector should not contain empty vectors as they are meaningless (at "+omitting_get_stack_trace+")."
-                _ -> Test.fail "Expected a vector of vectors but got a vector containing "+v.to_display_text+" (at "+omitting_get_stack_trace+")."
+                    if v.is_empty then Test.fail "The example vector should not contain empty vectors as they are meaningless (at "+omit_get_stack_trace+")."
+                _ -> Test.fail "Expected a vector of vectors but got a vector containing "+v.to_display_text+" (at "+omit_get_stack_trace+")."
 
             total_length = example.fold 0 acc-> v-> acc+v.length
             if self.length != total_length then
-                Test.fail "Expected a vector of length "+total_length.to_text+" but got "+self.length.to_text+" (at "+omitting_get_stack_trace+")."
+                Test.fail "Expected a vector of length "+total_length.to_text+" but got "+self.length.to_text+" (at "+omit_get_stack_trace+")."
 
             pieces = Vector.build builder->
                 example.fold 0 offset-> reference_v->
@@ -138,14 +138,14 @@ Any.should_have_relative_ordering self (example : Vector) = omitting <|
                     (got_piece.sort on_problems=..Report_Error) == (expected_piece.sort on_problems=..Report_Error)
                 if are_consistent.not then
                     offset = pieces.take ix . fold 0 acc-> p-> acc+p.length
-                    Test.fail "Expected the run of vector elements starting at offset "+offset.to_text+" to be a permutation of "+expected_piece.to_display_text+" but got "+got_piece.to_display_text+" (at "+omitting_get_stack_trace+")."
+                    Test.fail "Expected the run of vector elements starting at offset "+offset.to_text+" to be a permutation of "+expected_piece.to_display_text+" but got "+got_piece.to_display_text+" (at "+omit_get_stack_trace+")."
 
-        _ -> Test.fail "Expected a vector but got "+self.to_display_text+" (at "+omitting_get_stack_trace+")."
+        _ -> Test.fail "Expected a vector but got "+self.to_display_text+" (at "+omit_get_stack_trace+")."
 ## PRIVATE
    See `Any.should_have_relative_ordering`.
 Error.should_have_relative_ordering self example = omitting <|
     _ = example
-    Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+omitting_get_stack_trace+")."
+    Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+omit_get_stack_trace+")."
 
 
 ## PRIVATE

@@ -27,7 +27,7 @@ Any.should_fail_with : Any -> Boolean -> Spec_Result
 Any.should_fail_with self matcher unwrap_errors=True = omitting <|
     _ = unwrap_errors
     matcher_text = matcher . to_text
-    Test.fail ("Expected an error " + matcher_text + " but no error occurred, instead got: " + self.to_text + " (at " + omitting_get_stack_trace + ").")
+    Test.fail ("Expected an error " + matcher_text + " but no error occurred, instead got: " + self.to_text + " (at " + omit_get_stack_trace + ").")
 
 ## Expect a function to fail with the provided dataflow error.
 
@@ -50,7 +50,7 @@ Error.should_fail_with self matcher unwrap_errors=True = omitting <|
     caught = unwrap_maybe self.catch
     if caught == matcher || caught.is_a matcher then Nothing else
         matcher_text = matcher . to_text
-        Test.fail ("Expected error "+matcher_text+", but error " + caught.to_text + " has been returned (at " + omitting_get_stack_trace + ").") details='The error had the following stack trace:\n'+self.get_stack_trace_text
+        Test.fail ("Expected error "+matcher_text+", but error " + caught.to_text + " has been returned (at " + omit_get_stack_trace + ").") details='The error had the following stack trace:\n'+self.get_stack_trace_text
 
 ## Asserts that `self` value is equal to the expected value.
 
@@ -81,7 +81,7 @@ Any.should_equal self that = omitting <|
                             False -> "; lengths differ (" + self.length.to_text + " != " + that.length.to_text + ") "
                     _ -> ""
                 _ -> ""
-            msg = self.pretty + " did not equal " + that.pretty + additional_comment + " (at " + omitting_get_stack_trace + ")."
+            msg = self.pretty + " did not equal " + that.pretty + additional_comment + " (at " + omit_get_stack_trace + ")."
             Test.fail msg
 
 ## Asserts that `self` value is equal to the expected type value.
@@ -100,7 +100,7 @@ Any.should_equal_type : Any -> Spec_Result
 Any.should_equal_type self that = omitting <| case (self.is_same_object_as that) of
     True -> Spec_Result.Success
     False ->
-        msg = self.to_text + " did not equal type " + that.to_text + " (at " + omitting_get_stack_trace + ")."
+        msg = self.to_text + " did not equal type " + that.to_text + " (at " + omit_get_stack_trace + ")."
         Test.fail msg
 
 ## Added so that dataflow errors are not silently lost.
@@ -125,7 +125,7 @@ Any.should_not_equal self that = omitting <| if that.is_error then (Panic.throw 
     case self != that of
         True -> Spec_Result.Success
         False ->
-            msg = self.to_text + " did equal " + that.to_text + " (at " + omitting_get_stack_trace + ")."
+            msg = self.to_text + " did equal " + that.to_text + " (at " + omit_get_stack_trace + ")."
             Test.fail msg
 
 ## Added so that dataflow errors are not silently lost.
@@ -149,7 +149,7 @@ Any.should_not_equal_type : Any -> Spec_Result
 Any.should_not_equal_type self that = omitting <| case (self.is_same_object_as that . not) of
     True -> Spec_Result.Success
     False ->
-        msg = self.to_text + " did equal type " + that.to_text + " (at " + omitting_get_stack_trace + ")."
+        msg = self.to_text + " did equal type " + that.to_text + " (at " + omit_get_stack_trace + ")."
         Test.fail msg
 
 ## Added so that dataflow errors are not silently lost.
@@ -173,10 +173,10 @@ Any.should_start_with self that = omitting <|
     rhs_error_check that
     case self of
         _ : Text -> if self.starts_with that then Spec_Result.Success else
-            msg = self.to_text + " does not start with " + that.to_text + " (at " + omitting_get_stack_trace + ")."
+            msg = self.to_text + " does not start with " + that.to_text + " (at " + omit_get_stack_trace + ")."
             Test.fail msg
         _ ->
-            msg = self.to_text + " is not a `Text` value (at " + omitting_get_stack_trace + ")."
+            msg = self.to_text + " is not a `Text` value (at " + omit_get_stack_trace + ")."
             Test.fail msg
 
 ## Asserts that `self` value is a Text value and ends with `that`.
@@ -195,10 +195,10 @@ Any.should_end_with self that = omitting <|
     rhs_error_check that
     case self of
         _ : Text -> if self.ends_with that then Spec_Result.Success else
-            msg = self.to_text + " does not end with " + that.to_text + " (at " + omitting_get_stack_trace + ")."
+            msg = self.to_text + " does not end with " + that.to_text + " (at " + omit_get_stack_trace + ")."
             Test.fail msg
         _ ->
-            msg = self.to_text + " is not a `Text` value (at " + omitting_get_stack_trace + ")."
+            msg = self.to_text + " is not a `Text` value (at " + omit_get_stack_trace + ")."
             Test.fail msg
 
 ## Asserts that `self` value is a Text value and starts with `that`.
@@ -283,7 +283,7 @@ Number.should_equal self that epsilon=0 = omitting <|
     case matches of
         True -> Spec_Result.Success
         False ->
-            msg = self.to_text + " did not equal " + that.to_text + " (at " + omitting_get_stack_trace + ")."
+            msg = self.to_text + " did not equal " + that.to_text + " (at " + omit_get_stack_trace + ")."
             Test.fail msg
 
 ## Asserts that `self` is within `epsilon` from `that`.
@@ -339,7 +339,7 @@ Boolean.should_be_true : Spec_Result
 Boolean.should_be_true self = omitting <| case self of
     True -> Spec_Result.Success
     False ->
-        Test.fail "Expected False to be True (at "+omitting_get_stack_trace+")."
+        Test.fail "Expected False to be True (at "+omit_get_stack_trace+")."
 
 ## Asserts that the given `Boolean` is `True`.
 
@@ -365,7 +365,7 @@ Error.should_be_true self = omitting <| Test.fail_match_on_unexpected_error self
 Boolean.should_be_false : Spec_Result
 Boolean.should_be_false self = omitting <| case self of
     True ->
-        Test.fail "Expected True to be False (at "+omitting_get_stack_trace+")."
+        Test.fail "Expected True to be False (at "+omit_get_stack_trace+")."
     False -> Spec_Result.Success
 
 ## Asserts that the given `Boolean` is `False`
@@ -403,19 +403,19 @@ Any.should_be_a self typ = omitting <|
                     if a.constructor == c then Spec_Result.Success else
                         expected_type = c.declaring_type.qualified_name
                         actual_type = self.to Meta.Type . qualified_name
-                        message = "Expected a value of type "+expected_type+", built with constructor "+c.name+", but got a value ["+self.to_text+"] of type "+actual_type+", built with constructor "+a.constructor.name+" instead (at "+omitting_get_stack_trace+")."
+                        message = "Expected a value of type "+expected_type+", built with constructor "+c.name+", but got a value ["+self.to_text+"] of type "+actual_type+", built with constructor "+a.constructor.name+" instead (at "+omit_get_stack_trace+")."
                         Test.fail message
                 _ ->
                     expected_type = c.declaring_type.qualified_name
                     actual_type = self.to Meta.Type . qualified_name
-                    message = "Expected a value of type "+expected_type+", built with constructor "+c.name+", but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+omitting_get_stack_trace+")."
+                    message = "Expected a value of type "+expected_type+", built with constructor "+c.name+", but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+omit_get_stack_trace+")."
                     Test.fail message
         meta_type : Meta.Type ->
             ok = self.is_a typ || self==typ
             if ok then Spec_Result.Success else
                 expected_type = meta_type.qualified_name
                 actual_type = self.to Meta.Type . qualified_name
-                message = "Expected a value of type "+expected_type+" but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+omitting_get_stack_trace+")."
+                message = "Expected a value of type "+expected_type+" but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+omit_get_stack_trace+")."
                 Test.fail message
         # Workaround for 0-argument atom constructors which 'unapplies' them.
         atom : Meta.Atom ->
@@ -426,13 +426,13 @@ Any.should_be_a self typ = omitting <|
             ok = self.is_a typ
             if ok then Spec_Result.Success else
                 actual_type = self.to Meta.Type . qualified_name
-                message = "Expected a value of Java class "+typ.to_text+" but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+omitting_get_stack_trace+")."
+                message = "Expected a value of Java class "+typ.to_text+" but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+omit_get_stack_trace+")."
                 Test.fail message
         p : Meta.Primitive ->
             ok = self == p.value
             if ok then Spec_Result.Success else
                 actual_type = self.to Meta.Type . qualified_name
-                message = "Expected a value of "+typ.to_text+" but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+omitting_get_stack_trace+")."
+                message = "Expected a value of "+typ.to_text+" but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+omit_get_stack_trace+")."
                 Test.fail message
         _ -> fail_on_wrong_arg_type
 
@@ -458,14 +458,14 @@ Any.should_be_a self typ = omitting <|
 Any.should_equal_ignoring_order : Any -> Spec_Result
 Any.should_equal_ignoring_order self that = omitting <|
     if that.is_a Vector . not then
-        Panic.throw (Illegal_Argument.Error "Expected a Vector, but got a "+that.to_display_text+" (at "+omitting_get_stack_trace+").")
+        Panic.throw (Illegal_Argument.Error "Expected a Vector, but got a "+that.to_display_text+" (at "+omit_get_stack_trace+").")
     that.each element->
         if self.contains element . not then
-            msg = "The collection (" + self.to_text + ") did not contain " + element.to_text + " (at " + omitting_get_stack_trace + ")."
+            msg = "The collection (" + self.to_text + ") did not contain " + element.to_text + " (at " + omit_get_stack_trace + ")."
             Test.fail msg
     self.each element->
         if that.contains element . not then
-            msg = "The collection contained an element (" + element.to_text + ") which was not expected (at " + omitting_get_stack_trace + ")."
+            msg = "The collection contained an element (" + element.to_text + ") which was not expected (at " + omit_get_stack_trace + ")."
             Test.fail msg
     Test.with_clue "Duplicate elements in either collection should have the same counts - checked by comparing sorted collections: " <|
         ## If the vector contains vectors or incomparable values, they may not get sorted correctly.
@@ -524,7 +524,7 @@ Any.should_only_contain_elements_in self that = omitting <|
     rhs_error_check that
     self.each element->
         if that.contains element . not then
-            msg = "The collection contained an element ("+element.to_text+") which was not expected (at " + omitting_get_stack_trace + ")."
+            msg = "The collection contained an element ("+element.to_text+") which was not expected (at " + omit_get_stack_trace + ")."
             Test.fail msg
     Spec_Result.Success
 
@@ -573,10 +573,10 @@ Any.should_contain self element = omitting <|
     rhs_error_check element
     contains_result = Panic.catch No_Such_Method (self.contains element) caught_panic->
         if caught_panic.payload.method_name != "contains" then Panic.throw caught_panic else
-            msg = "The value (" + self.to_text + ") does not support the method `contains` (at " + omitting_get_stack_trace + ")."
+            msg = "The value (" + self.to_text + ") does not support the method `contains` (at " + omit_get_stack_trace + ")."
             Test.fail msg
     if contains_result then Spec_Result.Success else
-        msg = "The value (" + self.to_text + ") did not contain the element (" + element.to_text + ") (at " + omitting_get_stack_trace + ")."
+        msg = "The value (" + self.to_text + ") did not contain the element (" + element.to_text + ") (at " + omit_get_stack_trace + ")."
         Test.fail msg
 
 ## Asserts that `self` value contains an element.
@@ -612,10 +612,10 @@ Any.should_not_contain self element = omitting <|
     rhs_error_check element
     contains_result = Panic.catch No_Such_Method (self.contains element) caught_panic->
         if caught_panic.payload.method_name != "contains" then Panic.throw caught_panic else
-            msg = "The value (" + self.to_text + ") does not support the method `contains` (at " + omitting_get_stack_trace + ")."
+            msg = "The value (" + self.to_text + ") does not support the method `contains` (at " + omit_get_stack_trace + ")."
             Test.fail msg
     if contains_result.not then Spec_Result.Success else
-        msg = "The value (" + self.to_text + ") contained the element (" + element.to_text + "), but it was expected to not contain it (at " + omitting_get_stack_trace + ")."
+        msg = "The value (" + self.to_text + ") contained the element (" + element.to_text + "), but it was expected to not contain it (at " + omit_get_stack_trace + ")."
         Test.fail msg
 
 ## Asserts that `self` value does not contain an element.

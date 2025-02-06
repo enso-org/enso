@@ -14,4 +14,4 @@ expect_test_failure ~action -> Spec_Result = omitting <|
 
     Panic.catch Spec_Result handler=handle_panic <|
         action
-        Test.fail "Expected the inner action to fail, but there was no failure (at "+omitting_get_stack_trace+")."
+        Test.fail "Expected the inner action to fail, but there was no failure (at "+omit_get_stack_trace+")."

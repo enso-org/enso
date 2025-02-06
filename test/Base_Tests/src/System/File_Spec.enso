@@ -22,7 +22,7 @@ File.should_equal self other = omitting <|
         _ : File -> self.absolute.normalize.path == other.absolute.normalize.path
         _ -> False
     if are_same then self else
-        Test.fail "Expected "+self.to_text+" to be equal to "+other.to_text+" (at "+omitting_get_stack_trace+")."
+        Test.fail "Expected "+self.to_text+" to be equal to "+other.to_text+" (at "+omit_get_stack_trace+")."
 
 
 set_writable file writable =
