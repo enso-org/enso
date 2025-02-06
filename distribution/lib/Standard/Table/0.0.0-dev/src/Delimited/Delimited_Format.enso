@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.No_Such_Argument
+import Standard.Base.Errors.Common.Not_Invokable
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Network.HTTP.Response.Response
@@ -214,11 +215,11 @@ Delimited_Format.from (that : JS_Object) =
             Error.throw (Illegal_Argument.Error ("The field `" ++ field ++ "` is currently not supported when deserializing the Delimited format from JSON."))
 
 private _catch_compatibility_changes ~action =
-    on_no_such_argument caught_panic =
+    on_not_invokable caught_panic =
         # Handling the compatibility change from https://github.com/enso-org/enso/pull/12231
-        is_keep_invalid_rows = caught_panic.payload.argument_name == "keep_invalid_rows"
+        is_keep_invalid_rows = caught_panic.payload.cause == (No_Such_Argument.Error "keep_invalid_rows")
         if is_keep_invalid_rows.not then
             Panic.throw caught_panic
         Error.throw (Illegal_Argument.Error "The `keep_invalid_rows` argument has been renamed to `on_invalid_rows`.")
-    Panic.catch No_Such_Argument handler=on_no_such_argument <|
+    Panic.catch Not_Invokable handler=on_not_invokable <|
         action

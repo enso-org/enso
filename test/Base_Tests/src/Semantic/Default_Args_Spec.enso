@@ -92,17 +92,20 @@ add_specs suite_builder =
             f a='a' b='b' c='c' =
                 [a, b, c]
 
-            r1 = Test.expect_panic No_Such_Argument (f y='Y')
-            r1.to_display_text . should_equal "The named argument `y` did not match any argument names. Perhaps it is misspelled?"
+            r1 = Test.expect_panic Not_Invokable (f y='Y')
+            r1.to_display_text . should_contain "The named argument `y` did not match any argument names. Perhaps it is misspelled?"
+            r1.cause.should_equal (No_Such_Argument.Error "y")
 
             g a=1 = [a]
-            r2 = Test.expect_panic No_Such_Argument (g x=2)
-            r2.to_display_text . should_equal "The named argument `x` did not match any argument names. Perhaps it is misspelled?"
+            r2 = Test.expect_panic Not_Invokable (g x=2)
+            r2.to_display_text . should_contain "The named argument `x` did not match any argument names. Perhaps it is misspelled?"
+            r2.cause.should_equal (No_Such_Argument.Error "x")
 
         group_builder.specify "should return Not_Invokable if a non-function is called" <|
             not_f = 42 : Any
             Test.expect_panic Not_Invokable (not_f 1)
-            Test.expect_panic Not_Invokable (not_f x=1)
+            r2 = Test.expect_panic Not_Invokable (not_f x=1)
+            r2.cause.should_equal Nothing
 
 main filter=Nothing =
     suite = Test.build suite_builder->
