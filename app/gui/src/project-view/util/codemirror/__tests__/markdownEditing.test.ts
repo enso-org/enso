@@ -16,7 +16,10 @@ import { expect, test } from 'vitest'
 const setupEditor = (source: string) => {
   const selectionStart = source.indexOf('|')
   const selectionEnd = source.lastIndexOf('|')
-  const selection = { anchor: selectionStart, head: selectionEnd }
+  const selection = {
+    anchor: selectionStart,
+    head: selectionEnd > 0 ? selectionEnd - 1 : selectionEnd,
+  }
   const doc = source.replaceAll('|', '')
   const view = new EditorView({
     state: EditorState.create({
