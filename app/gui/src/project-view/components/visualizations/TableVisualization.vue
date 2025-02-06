@@ -172,6 +172,11 @@ function formatNumber(params: ICellRendererParams) {
   return needsGrouping ? numberFormatGroupped.format(value) : numberFormat.format(value)
 }
 
+/** Return a human-readable representation of an object. */
+function toRender(content: unknown) {
+  return content
+}
+
 function formatText(params: ICellRendererParams) {
   const htmlEscaped = params.value
     .replaceAll('&', '&amp;')
@@ -228,11 +233,15 @@ watchEffect(async () => {
 
 function createFakeServer() {
   return {
-    getData: () => {
-      // use executeExpression to get data
+    getData: async () => {
+      const response = await config.executeExpression(
+        'Standard.Visualization.Table.Visualization',
+        'get_rows_for_table',
+        '0',
+      )
       return {
         success: true,
-        rows: [{}, {}, {}, {}],
+        rows: response.value.rows,
       }
     },
   }
@@ -242,10 +251,27 @@ function createServerSideDatasource(): IServerSideDatasource {
   return {
     getRows: async (params) => {
       const server = createFakeServer()
-      const response = server.getData()
+      const response = await server.getData()
+      console.log({response})
+      const rowsL = response.rows && response.rows.length > 0 ? (response.rows[0]?.length ?? 0) : 0
+      const rows = Array.from({ length: rowsL }, (_, i) => {
+        const shift = 1
+        console.log({columnDefs})
+        return Object.fromEntries(
+          columnDefs.value.map((h, j) => {
+            console.log({field:h.field})
+            console.log({val: toRender(h.field === INDEX_FIELD_NAME ? i : response.rows[j - shift]?.[i])})
+            return [
+              h.field,
+              toRender(h.field === INDEX_FIELD_NAME ? i : response.rows[j - shift]?.[i]),
+            ]
+          }),
+        )
+      })
+      console.log({rows})
       setTimeout(() => {
         if (response.success) {
-          params.success({ rowData: response.rows })
+          params.success({ rowData: rows })
         } else {
           params.fail()
         }

@@ -106,7 +106,8 @@ export function useVisualizationData({
     const nodeFirstOurputPort = graphDb.getNodeFirstOutputPort(dataSourceValue.nodeId)
     const identifier = graphDb.getOutputPortIdentifier(nodeFirstOurputPort)
     const contextId =
-    dataSourceValue.nodeId && graphDb.nodeIdToNode.get(dataSourceValue.nodeId)?.outerAst.externalId
+      dataSourceValue.nodeId &&
+      graphDb.nodeIdToNode.get(dataSourceValue.nodeId)?.outerAst.externalId
     try {
       const tempModule = Ast.MutableModule.Transient()
       const preprocessorModule = Ast.parseExpression(visulizationModule, tempModule)!
@@ -117,12 +118,13 @@ export function useVisualizationData({
       )
       const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
         Ast.Wildcard.new(tempModule),
-        ...positionalArgumentsExpressions.map((arg) => Ast.Group.new(tempModule, Ast.parseExpression(arg, tempModule)!)),
+        ...positionalArgumentsExpressions.map((arg) =>
+          Ast.Group.new(tempModule, Ast.parseExpression(arg, tempModule)!),
+        ),
       ])
       const rhs = Ast.parseExpression(identifier, tempModule)!
       const expression = Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
-      const result = projectStore.executeExpression(contextId, expression.code())
-      return result
+      return projectStore.executeExpression(contextId, expression.code())
     } catch (e) {
       console.error(e)
       throw e
