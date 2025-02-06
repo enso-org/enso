@@ -13,6 +13,6 @@ public class NotInvokable extends UniquelyConstructibleBuiltin {
 
   @Override
   protected List<String> getConstructorParamNames() {
-    return List.of("target");
+    return List.of("target", "cause");
   }
 }

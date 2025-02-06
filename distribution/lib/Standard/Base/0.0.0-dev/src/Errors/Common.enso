@@ -310,12 +310,17 @@ type Not_Invokable
 
        Arguments:
        - target: The called object.
-    Error target
+       - cause: Additional information about what may have caused the error.
+    Error target cause
 
     ## PRIVATE
        Convert the Not_Invokable error to a human-readable format.
     to_display_text : Text
-    to_display_text self = "Type error: expected a function, but got "+self.target.to_display_text+"."
+    to_display_text self =
+        cause_suffix = case self.cause of
+            Nothing -> ""
+            _ -> " Likely caused by: "+self.cause.to_display_text
+        "Type error: expected a function, but got "+self.target.to_display_text+"."+cause_suffix
 
 @Builtin_Type
 type No_Such_Argument
@@ -325,11 +330,7 @@ type No_Such_Argument
 
        Arguments:
        - argument_name: The name of the argument that was not found.
-       - call_target: Advanced. The value that this argument was attempted to be
-         applied to. This may be an unapplied function, or a result of a
-         function/constructor call (if all other arguments have already been
-         applied). This is the same value as `target` in analogous `Not_Invokable` error.
-    Error argument_name call_target
+    Error argument_name
 
     ## PRIVATE
        Convert the No_Such_Argument error to a human-readable format.

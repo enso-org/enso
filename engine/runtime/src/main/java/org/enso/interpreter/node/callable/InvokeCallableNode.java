@@ -381,17 +381,14 @@ public abstract class InvokeCallableNode extends BaseNode {
   @Fallback
   public Object invokeGeneric(
       Object callable, VirtualFrame callerFrame, State state, Object[] arguments) {
+    Atom cause = null;
     if (isForOversaturatedArguments && schema.length >= 1 && schema[0].isNamed()) {
-      Atom error =
-          EnsoContext.get(this)
-              .getBuiltins()
-              .error()
-              .makeNoSuchArgument(schema[0].getName(), callable);
-      throw new PanicException(error, this);
-    } else {
-      Atom error = EnsoContext.get(this).getBuiltins().error().makeNotInvokable(callable);
-      throw new PanicException(error, this);
+      cause = EnsoContext.get(this).getBuiltins().error().makeNoSuchArgument(schema[0].getName());
     }
+
+    Atom error =
+        EnsoContext.get(this).getBuiltins().error().makeNotInvokableWithCause(callable, cause);
+    throw new PanicException(error, this);
   }
 
   /**

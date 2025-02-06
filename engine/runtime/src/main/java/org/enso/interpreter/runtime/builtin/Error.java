@@ -315,7 +315,19 @@ public final class Error {
    * @return a not invokable error
    */
   public Atom makeNotInvokable(Object target) {
-    return notInvokable.newInstance(target);
+    return notInvokable.newInstance(target, context.getNothing());
+  }
+
+  /**
+   * @param target the target attempted to be invoked
+   * @param cause additional information on what caused the error
+   * @return a not invokable error
+   */
+  public Atom makeNotInvokableWithCause(Object target, Object cause) {
+    if (cause == null) {
+      cause = context.getNothing();
+    }
+    return notInvokable.newInstance(target, cause);
   }
 
   /**
@@ -323,10 +335,10 @@ public final class Error {
    * parameter.
    *
    * @param argumentName name of the named argument being applied
-   * @return a not invokable error
+   * @return a no such argument error
    */
-  public Atom makeNoSuchArgument(String argumentName, Object callTarget) {
-    return noSuchArgument.newInstance(Text.create(argumentName), callTarget);
+  public Atom makeNoSuchArgument(String argumentName) {
+    return noSuchArgument.newInstance(Text.create(argumentName));
   }
 
   /**
