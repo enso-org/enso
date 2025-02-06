@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import Standard.Test.Spec_Result.Spec_Result
 from Standard.Test import Test
+from Standard.Test.Omitter import all
 
 ## Expects the inner action to report a test failure exception and returns its payload.
 expect_test_failure ~action -> Spec_Result = omitting <|

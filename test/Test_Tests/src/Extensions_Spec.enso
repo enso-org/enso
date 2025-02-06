@@ -11,11 +11,6 @@ main filter=Nothing =
     suite.run_with_filter filter
 
 add_specs suite_builder =
-    suite_builder.group "should be able to get a stack trace without test helper farmes" group_builder->
-        group_builder.specify "abcd" <|
-            "ab".should_equal "ab"
-            "ab".should_equal "ac"
-
     suite_builder.group "should_equal extension method" group_builder->
         group_builder.specify "should report correct location for Text" <|
             r1 = expect_test_failure <|
@@ -89,3 +84,10 @@ add_specs suite_builder =
             r1 = expect_test_failure <|
                 "abc".should_end_with "d"
             r1.message.should_contain "Extensions_Spec.enso:85"
+
+    suite_builder.group "should be able to get a stack trace without test helper farmes" group_builder->
+        group_builder.specify "abcd" <|
+            "ab".should_equal "ab"
+            r1 = expect_test_failure <|
+                "ab".should_equal "ac"
+            r1.message.should_contain "Extensions_Spec.enso:92"
