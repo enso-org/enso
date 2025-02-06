@@ -101,6 +101,29 @@ export const SubmitOnComplete: Story = {
   },
 }
 
+export const SubmitOnClick: Story = {
+  args: {
+    name: 'otp',
+    maxLength: 6,
+    submitOnComplete: false,
+  },
+  render: (args) => (
+    <Form defaultValues={{ otp: '' }} schema={defaultFormSchema} onSubmit={SubmitOnCompleteFn}>
+      <OTPInput {...args} />
+      <Form.Submit>Submit</Form.Submit>
+      <Form.FormError />
+    </Form>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const input = canvas.getByRole('textbox')
+
+    await userEvent.type(input, '666666')
+    await userEvent.click(canvas.getByRole('button', { name: 'Submit' }))
+    await expect(SubmitOnCompleteFn).toBeCalledWith({ otp: '666666' }, expect.anything())
+  },
+}
+
 export const Disabled: Story = {
   args: {
     name: 'otp',
