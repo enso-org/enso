@@ -28,10 +28,15 @@ add_specs suite_builder setup =
 add_offset_specs suite_builder setup =
     prefix = setup.prefix
     build_sorted_table = Util.build_sorted_table setup
-    t = build_sorted_table [["A", [1, 2, 3]], ["B", [Nothing, Nothing, Nothing]], ["Text Values", ["A", "B", "C"]]]
+    t = build_sorted_table [["A", [1, 2, 3]], ["B", [Nothing, Nothing, Nothing], Value_Type.Integer], ["Text Values", ["A", "B", "C"]]]
     c = t.at 0 
     c_nothings = t.at 1
     c_zero_rows = t.take 0 . at 0
+    if setup.is_database then suite_builder.group prefix+"Column.Offset does not work in database" group_builder->
+        group_builder.specify "Gives an error message" <|
+            r = c.offset
+            ## TODO - Ideally this should have a custome error message telling users to use Table.offset
+            r.should_fail_with (Unsupported_Database_Operation.Error "offset")
     if setup.is_database.not then suite_builder.group prefix+"Column.Offset with default fill strategy" group_builder->
         group_builder.specify "Works with default values" <|
             r = c.offset
@@ -228,6 +233,13 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Works with positive n and column of nothings" <|
             t1.offset ["B"] 1 ..Closest_Value . should_equal ignore_order=setup.is_database
                 Table.input [colA, colB, ["offset([B], 1, Fill_With.Closest_Value)", [Nothing, Nothing, Nothing], Value_Type.Integer]]
+    if setup.is_database then suite_builder.group prefix+"Table.Offset with wrap around fill strategy" group_builder->
+        colA = ["A", [1, 2, 3]]
+        colB = ["B", [Nothing, Nothing, Nothing], Value_Type.Integer]
+        t1 = build_sorted_table [colA, colB]
+        group_builder.specify "Reports unsupported for in database" <|
+            r = t1.offset ["A"] -1 ..Wrap_Around
+            r.should_fail_with (Unsupported_Database_Operation.Error "offset with Fill_With.Wrap_Around")
     if setup.is_database.not then suite_builder.group prefix+"Table.Offset with wrap around fill strategy" group_builder->
         colA = ["A", [1, 2, 3]]
         colB = ["B", [Nothing, Nothing, Nothing], Value_Type.Integer]
