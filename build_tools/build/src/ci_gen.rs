@@ -268,20 +268,28 @@ pub fn cleaning_step(
 #[derive_where(Debug)]
 pub struct RunStepsBuilder {
     /// The command passed to `./run` script.
-    pub run_command: String,
+    pub run_command:             String,
     /// Condition under which the runner should be cleaned before and after the run.
-    pub cleaning:    CleaningCondition,
+    pub cleaning:                CleaningCondition,
     /// Customize the step that runs the command.
     ///
     /// Allows replacing the run step with one or more custom steps.
     #[derive_where(skip)]
-    pub customize:   Option<Box<dyn FnOnce(Step) -> Vec<Step>>>,
+    pub customize:               Option<Box<dyn FnOnce(Step) -> Vec<Step>>>,
+    custom_checkout_fetch_depth: Option<u32>,
+    custom_checkout_ref:         Option<String>,
 }
 
 impl RunStepsBuilder {
     /// Create a builder with the given command.
     pub fn new(run_command: impl Into<String>) -> Self {
-        Self { run_command: run_command.into(), cleaning: default(), customize: default() }
+        Self {
+            run_command:                 run_command.into(),
+            cleaning:                    default(),
+            customize:                   default(),
+            custom_checkout_fetch_depth: None,
+            custom_checkout_ref:         None,
+        }
     }
 
     /// Set the cleaning condition.
@@ -296,6 +304,13 @@ impl RunStepsBuilder {
         self
     }
 
+    /// Customizes the checkout action
+    pub fn customize_checkout(mut self, fetch_depth: u32, git_ref: String) -> Self {
+        self.custom_checkout_fetch_depth = Some(fetch_depth);
+        self.custom_checkout_ref = Some(git_ref);
+        self
+    }
+
     /// Build the steps.
     pub fn build(self) -> Vec<Step> {
         let clean_before = cleaning_step("Clean before", [self.cleaning]);
@@ -305,7 +320,8 @@ impl RunStepsBuilder {
             Some(customize) => customize(run_step),
             None => vec![run_step],
         };
-        let mut steps = setup_script_steps();
+        let mut steps =
+            setup_script_steps(self.custom_checkout_fetch_depth, self.custom_checkout_ref);
         steps.push(clean_before);
         steps.extend(run_steps);
         steps.push(clean_after);
@@ -372,9 +388,16 @@ pub fn runs_on(os: OS, runner_type: RunnerType) -> Vec<RunnerLabel> {
 }
 
 /// Initial CI job steps: check out the source code and set up the environment.
-pub fn setup_script_steps() -> Vec<Step> {
-    let mut ret =
-        vec![setup_bazel_env(), setup_bazel(), setup_artifact_api(), checkout_repo_step()];
+pub fn setup_script_steps(
+    checkout_fetch_depth: Option<u32>,
+    checkout_ref: Option<String>,
+) -> Vec<Step> {
+    let mut ret = vec![
+        setup_bazel_env(),
+        setup_bazel(),
+        setup_artifact_api(),
+        checkout_repo_step(checkout_fetch_depth, checkout_ref),
+    ];
     // We run `./run --help` so:
     // * The build-script is build in a separate step. This allows us to monitor its build-time and
     //   not affect timing of the actual build.
@@ -396,7 +419,7 @@ impl JobArchetype for DraftRelease {
         let name = "Create a release draft.".into();
 
         let prepare_step = run("release create-draft").with_id(Self::PREPARE_STEP_ID);
-        let mut steps = setup_script_steps();
+        let mut steps = setup_script_steps(None, None);
         steps.push(prepare_step);
 
         let mut ret = Job { name, runs_on: target.runs_on(), steps, ..default() };

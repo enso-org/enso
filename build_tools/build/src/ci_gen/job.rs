@@ -351,7 +351,11 @@ impl JobArchetype for StandardLibraryApiCheck {
     fn job(&self, target: Target) -> Job {
         let job_name = "Standard Library API check";
         let run_command = "backend stdlib-api-check";
-        let job = RunStepsBuilder::new(run_command).build_job(job_name, target);
+        // Checkout action is customized so that there is no merge with latest develop.
+        // We want to only check the stdlib API on this PR.
+        let job = RunStepsBuilder::new(run_command)
+            .customize_checkout(0, "${{ github.event.pull_request.head.sha }}".to_string())
+            .build_job(job_name, target);
         job
     }
 }
