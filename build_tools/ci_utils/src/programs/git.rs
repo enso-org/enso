@@ -377,6 +377,7 @@ impl FromStr for RemoteLsEntry {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[tokio::test]
     async fn github_wrapping_non_directory() -> Result {
@@ -425,6 +426,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn diff_same_files_test() -> Result {
         let git = Context::new_current().await?;
         let file_1 = tempfile::NamedTempFile::new()?;
@@ -439,6 +441,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn diff_different_files_test() -> Result {
         let git = Context::new_current().await?;
         let file_1 = tempfile::NamedTempFile::new()?;

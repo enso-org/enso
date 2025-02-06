@@ -65,6 +65,7 @@ zip = { version = "0.6.2", default-features = false, features = ["deflate"] }
 base64 = "0.21.0"
 
 [dev-dependencies]
+serial_test = "0.5"
 wiremock = "0.5.10"
 
 [lints]
