@@ -68,6 +68,12 @@ func2 a =
    ![Image](</images/image.png>)
 
    Here is a link: <https://example.com>
+
+   Nested lists:
+    - List element
+      - Nested list element
+        - Very nested list element
+    - Outer list element
 main =
     five = 5
     ten = 10

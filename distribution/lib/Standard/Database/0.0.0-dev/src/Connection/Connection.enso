@@ -547,8 +547,9 @@ private _make_table_for_name connection name alias internal_temporary_keep_alive
            warning. We do not want to fail, as we do want to allow the user to
            access any table already present in the database.
         DB_Table_Module.make_table connection name columns ctx on_problems=Problem_Behavior.Report_Warning
-    result.catch SQL_Error _->
+    if result.is_error then
         Error.throw (Table_Not_Found.Error name)
+    result
 
 ## PRIVATE
 private _check_statement_is_allowed connection stmt =

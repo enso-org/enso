@@ -1,0 +1,26 @@
+## Enso Signatures 1.0
+## module Standard.Base.Network.HTTP.Header
+- type Header
+    - Value name:Standard.Base.Data.Text.Text value:(Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret|Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value)
+    - accept value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - accept_all -> Standard.Base.Any.Any
+    - application_json -> Standard.Base.Any.Any
+    - application_octet_stream -> Standard.Base.Any.Any
+    - application_x_www_form_urlencoded -> Standard.Base.Any.Any
+    - authorization value:(Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret|Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value) -> Standard.Base.Any.Any
+    - authorization_basic user:(Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret|Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value) pass:(Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret|Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value) -> Standard.Base.Any.Any
+    - authorization_bearer token:(Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret|Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value) -> Standard.Base.Any.Any
+    - content_type value:Standard.Base.Data.Text.Text encoding:(Standard.Base.Data.Text.Encoding.Encoding|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
+    - content_type_header_name -> Standard.Base.Any.Any
+    - default_widget display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
+    - multipart_form_data boundary:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - new name:Standard.Base.Data.Text.Text value:(Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret|Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value) -> Standard.Base.Any.Any
+    - text_plain -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_java_pair self -> Standard.Base.Any.Any
+    - unify_vector headers:Standard.Base.Data.Vector.Vector -> Standard.Base.Any.Any
+- type Header_Comparator
+    - compare x:Standard.Base.Any.Any y:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - hash x:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- content_type_widget -> Standard.Base.Metadata.Widget
+- Standard.Base.Data.Ordering.Comparable.from that:Standard.Base.Network.HTTP.Header.Header -> Standard.Base.Data.Ordering.Comparable

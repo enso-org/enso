@@ -1,0 +1,80 @@
+## Enso Signatures 1.0
+## module Standard.Base.Data.Vector
+- type Builder
+    - add_warnings self x:Standard.Base.Any.Any -> Standard.Base.Nothing.Nothing
+    - any self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - append self item:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - append_vector_range self vector:Standard.Base.Any.Any start:Standard.Base.Data.Numbers.Integer= end:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - at self index:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
+    - first self -> Standard.Base.Any.Any
+    - is_empty self -> Standard.Base.Any.Any
+    - last self -> Standard.Base.Any.Any
+    - length self -> Standard.Base.Any.Any
+    - new capacity:Standard.Base.Data.Numbers.Integer= propagate_warnings:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Data.Vector.Builder
+    - not_empty self -> Standard.Base.Any.Any
+    - to_vector self -> Standard.Base.Data.Vector.Vector
+    - unsafe_append self item:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- type Map_Error
+    - Error index:Standard.Base.Data.Numbers.Integer inner_error:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type No_Wrap
+    - Value
+- type Vector a:Standard.Base.Any.Any
+    - + self that:(Standard.Base.Data.Vector.Vector|Standard.Base.Data.Array.Array) -> Standard.Base.Any.Any
+    - all self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - any self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - at self index:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - build function:Standard.Base.Any.Any initial_capacity:Standard.Base.Data.Numbers.Integer= propagate_warnings:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Data.Vector.Vector
+    - build_multiple count:Standard.Base.Data.Numbers.Integer function:Standard.Base.Any.Any initial_capacity:Standard.Base.Data.Numbers.Integer= propagate_warnings:Standard.Base.Data.Boolean.Boolean= -> (Standard.Base.Data.Vector.Vector Standard.Base.Data.Vector.Vector)
+    - collect seq:Standard.Base.Any.Any element:Standard.Base.Any.Any next:Standard.Base.Any.Any limit:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)= stop_at:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - contains self elem:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - distinct self on:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - drop self range:(Standard.Base.Data.Index_Sub_Range.Index_Sub_Range|Standard.Base.Data.Range.Range|Standard.Base.Data.Numbers.Integer)= -> Standard.Base.Any.Any
+    - duplicates self on:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - each self f:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - each_with_index self f:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - fill length:Standard.Base.Any.Any item:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - filter self filter:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - filter_with_index self predicate:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - find self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) start:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - first self -> Standard.Base.Any.Any
+    - flat_map self function:Standard.Base.Any.Any on_problems:(Standard.Base.Errors.Problem_Behavior.Problem_Behavior|Standard.Base.Data.Vector.No_Wrap)= -> Standard.Base.Any.Any
+    - flatten self -> Standard.Base.Any.Any
+    - fold self init:Standard.Base.Any.Any function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - fold_with_index self init:Standard.Base.Any.Any function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - from_array array:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - from_polyglot_array array:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - get self index:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - index_of self condition:Standard.Base.Any.Any start:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - insert self at:Standard.Base.Any.Any= item:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - is_empty self -> Standard.Base.Any.Any
+    - join self separator:Standard.Base.Data.Text.Text= prefix:Standard.Base.Data.Text.Text= suffix:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - last self -> Standard.Base.Any.Any
+    - last_index_of self condition:Standard.Base.Any.Any start:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - length self -> Standard.Base.Any.Any
+    - map self function:Standard.Base.Any.Any on_problems:(Standard.Base.Errors.Problem_Behavior.Problem_Behavior|Standard.Base.Data.Vector.No_Wrap)= -> Standard.Base.Any.Any
+    - map_with_index self function:Standard.Base.Any.Any on_problems:(Standard.Base.Errors.Problem_Behavior.Problem_Behavior|Standard.Base.Data.Vector.No_Wrap)= -> Standard.Base.Any.Any
+    - new length:Standard.Base.Any.Any constructor:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - not_empty self -> Standard.Base.Any.Any
+    - pad self n:Standard.Base.Any.Any elem:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - partition self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - partition_with_index self predicate:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - pretty self -> Standard.Base.Any.Any
+    - reduce self function:Standard.Base.Any.Any ~if_empty:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - remove self at:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - reverse self -> Standard.Base.Any.Any
+    - running_fold self init:Standard.Base.Any.Any function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - second self -> Standard.Base.Any.Any
+    - short_display_text self max_entries:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - slice self start:Standard.Base.Any.Any end:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - sort self order:Standard.Base.Any.Any= on:Standard.Base.Any.Any= by:Standard.Base.Any.Any= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+    - take self range:(Standard.Base.Data.Index_Sub_Range.Index_Sub_Range|Standard.Base.Data.Range.Range|Standard.Base.Data.Numbers.Integer)= -> Standard.Base.Any.Any
+    - to_array self -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_list self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+    - to_vector self -> Standard.Base.Any.Any
+    - transpose self -> Standard.Base.Any.Any
+    - unify_vector_or_element value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - zip self that:Standard.Base.Data.Vector.Vector function:Standard.Base.Any.Any= on_problems:(Standard.Base.Errors.Problem_Behavior.Problem_Behavior|Standard.Base.Data.Vector.No_Wrap)= -> Standard.Base.Any.Any
+- Standard.Base.Errors.Wrapped_Error.Wrapped_Error.from that:Standard.Base.Data.Vector.Map_Error -> Standard.Base.Errors.Wrapped_Error.Wrapped_Error

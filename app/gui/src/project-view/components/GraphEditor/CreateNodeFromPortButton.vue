@@ -1,14 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { AstId } from 'ydoc-shared/ast'
 
 const props = defineProps<{ portId: AstId }>()
-const emit = defineEmits<{ click: [] }>()
-const hovered = ref(false)
 </script>
 
 <template>
-  <g :class="{ CreateNodeFromPortButton: true, hovered }" @click="emit('click')">
+  <g class="CreateNodeFromPortButton">
     <rect :class="{ connection: true }" fill="currentColor"></rect>
     <g :class="{ plusIcon: true }">
       <mask :id="`${props.portId}_add_node_clip_path`">
@@ -18,7 +15,7 @@ const hovered = ref(false)
       </mask>
       <circle :mask="`url(#${props.portId}_add_node_clip_path)`" fill="currentColor"></circle>
     </g>
-    <rect class="hoverArea" @pointerenter="hovered = true" @pointerleave="hovered = false"></rect>
+    <rect class="hoverArea"></rect>
   </g>
 </template>
 
@@ -31,6 +28,7 @@ const hovered = ref(false)
   --topOffset: 40px;
   --color-dimmed: color-mix(in oklab, var(--color-node-primary) 60%, white 40%);
   --color: var(--color-node-primary);
+  pointer-events: all;
 }
 
 .connection {

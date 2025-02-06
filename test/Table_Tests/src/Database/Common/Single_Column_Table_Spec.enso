@@ -1,0 +1,48 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
+
+import Standard.Database.DB_Column.DB_Column
+import Standard.Database.DB_Table.DB_Table
+
+from Standard.Test import all
+
+type Lazy_Ref
+    Value ~get
+
+add_specs suite_builder (prefix : Text) setup =
+    suite_builder.group prefix+"single-column DB_Table" group_builder->
+        table_1 = Lazy_Ref.Value <| setup.table_builder [["A", [1, 2, 3]]]
+        table_2 = Lazy_Ref.Value <| setup.table_builder [["A", [1, 2, 3]], ["B", [4, 5, 6]]]
+        group_builder.specify "should be a DB_Table but also a DB_Column" <|
+            t1 = table_1.get
+            t1.should_be_a DB_Table
+            (t1:DB_Column).name.should_equal "A"
+            (t1:DB_Column).to_vector.should_equal [1, 2, 3]
+            # Still has table methods
+            t1.column_names.should_equal ["A"]
+
+        group_builder.specify "will not be a DB_Column if it has more than one column" <|
+            t1 = table_2.get
+            t1.should_be_a DB_Table
+            Test.expect_panic Type_Error (t1:DB_Column)
+
+        group_builder.specify "should allow passing the casted column to methods expecting column (with inserted cast)" <|
+            t1 = table_1.get
+            ((t1:DB_Column) + (t1:DB_Column)) . to_vector . should_equal [2, 4, 6]
+
+        group_builder.specify "should also work for DB_Tables returned from various operations" <|
+            t1 = table_2.get
+
+            t2 = t1.select_columns ["A"]
+            t2.should_be_a DB_Table
+            (t2:DB_Column).name.should_equal "A"
+
+            t3 = t1.remove_columns ["A"]
+            t3.should_be_a DB_Table
+            (t3:DB_Column).name.should_equal "B"
+
+        group_builder.specify "in database, does not act as a single value" <|
+            t1 = setup.table_builder [["A", [23]]]
+            t1.should_be_a DB_Table
+            (t1:DB_Column).name.should_equal "A"
+            Test.expect_panic Type_Error (t1:Integer)
