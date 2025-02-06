@@ -786,8 +786,22 @@ public final class ExecutionService {
      * @return {@code true} when the type differs from the cached value.
      */
     public boolean isTypeChanged() {
-      return !Arrays.equals(typeInfo.visibleType(), cachedTypeInfo.visibleType())
-          || !Arrays.equals(typeInfo.conversionTypes(), cachedTypeInfo.conversionTypes());
+      String[] visibleType = null;
+      String[] hiddenTypes = null;
+      if (typeInfo != null) {
+        visibleType = typeInfo.visibleType();
+        hiddenTypes = typeInfo.conversionTypes();
+      }
+
+      String[] cachedVisibleType = null;
+      String[] cachedHiddenTypes = null;
+      if (cachedTypeInfo != null) {
+        cachedVisibleType = cachedTypeInfo.visibleType();
+        cachedHiddenTypes = cachedTypeInfo.conversionTypes();
+      }
+
+      return !Arrays.equals(visibleType, cachedVisibleType)
+          || !Arrays.equals(hiddenTypes, cachedHiddenTypes);
     }
 
     /**
