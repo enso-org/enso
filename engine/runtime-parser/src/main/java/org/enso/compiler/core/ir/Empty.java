@@ -13,4 +13,9 @@ public final class Empty extends EmptyGen {
   public Empty(IdentifiedLocation identifiedLocation) {
     this(identifiedLocation, new MetadataStorage());
   }
+
+  @Override
+  public String showCode(int indent) {
+    return "IR.Empty";
+  }
 }

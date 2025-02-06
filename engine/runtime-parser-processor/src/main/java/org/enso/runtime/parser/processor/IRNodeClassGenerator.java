@@ -397,11 +397,6 @@ final class IRNodeClassGenerator {
         }
 
         $duplicateMethods
-
-        @Override
-        public String showCode(int indent) {
-          throw new UnsupportedOperationException("unimplemented");
-        }
         """
             .replace("$childrenMethodBody", childrenMethodBody())
             .replace("$setLocationMethod", setLocationMethodGenerator.generateMethodCode())
