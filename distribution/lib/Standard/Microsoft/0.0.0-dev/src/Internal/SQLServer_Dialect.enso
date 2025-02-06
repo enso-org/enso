@@ -27,7 +27,6 @@ import Standard.Database.Internal.IR.Context.Context_Extension
 import Standard.Database.Internal.IR.From_Spec.From_Spec
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
 import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
-import Standard.Database.Internal.IR.Operation_Metadata.Row_Number_Metadata
 import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
 import Standard.Database.Internal.IR.Query.Query
 import Standard.Database.Internal.IR.SQL_Expression.SQL_Expression
@@ -50,7 +49,6 @@ from Standard.Database.Internal.Statement_Setter import fill_hole_default
 
 import project.Internal.SQLServer_Error_Mapper.SQLServer_Error_Mapper
 import project.Internal.SQLServer_Type_Mapping.SQLServer_Type_Mapping
-
 
 polyglot java import java.sql.Types as Java_Types
 polyglot java import org.enso.database.JDBCUtils
