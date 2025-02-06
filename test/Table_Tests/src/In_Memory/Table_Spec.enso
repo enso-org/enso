@@ -148,7 +148,7 @@ add_specs suite_builder =
         group_builder.specify "should handle error scenarios gracefully" <|
             Table.new [["X", [1,2,3]], ["Y", [4]]] . should_fail_with Illegal_Argument
             Table.new [["X", [1]], ["X", [2]]] . should_fail_with Illegal_Argument
-            Table.new [["X", [1]], ["Y", [2], "Z"]] . should_fail_with Illegal_Argument
+            Table.new [["X", [1]], ["Y", [2], Value_Type.Integer, "Z"]] . should_fail_with Illegal_Argument
             Table.new [["X"]] . should_fail_with Illegal_Argument
             Table.new ["X", "Y", "Z"] . should_fail_with Illegal_Argument
             Table.new [] . should_fail_with Illegal_Argument
