@@ -200,7 +200,8 @@ final class ContextEventsListener(
     val computedExpressions = expressionUpdates.map { update =>
       ContextRegistryProtocol.ExpressionUpdate(
         update.expressionId,
-        update.expressionTypes.getOrElse(Vector()),
+        update.expressionType.map(_.visibleType).getOrElse(Vector()),
+        update.expressionType.map(toProtocolExpressionType),
         update.methodCall.map(toProtocolMethodCall),
         update.profilingInfo.map(toProtocolProfilingInfo),
         update.fromCache,
@@ -240,6 +241,20 @@ final class ContextEventsListener(
         ContextRegistryProtocol.ExpressionUpdate.Payload
           .Panic(message, trace)
     }
+
+  /** Convert the runtime expression type to the context registry protocol
+    * representation.
+    *
+    * @param expressionType the runtime expression type
+    * @return the context registry protocol expression type
+    */
+  private def toProtocolExpressionType(
+    expressionType: Api.ExpressionType
+  ): ContextRegistryProtocol.ExpressionType =
+    ContextRegistryProtocol.ExpressionType(
+      expressionType.visibleType,
+      expressionType.conversionType
+    )
 
   /** Convert the runtime warnings to the context registry protocol
     * representation

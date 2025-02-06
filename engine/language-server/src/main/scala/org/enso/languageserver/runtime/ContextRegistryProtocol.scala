@@ -173,10 +173,21 @@ object ContextRegistryProtocol {
     updates: Vector[ExpressionUpdate]
   )
 
+  /** A type of the expression
+    *
+    * @param visibleType the public type of the expression
+    * @param hiddenTypes the available conversions
+    */
+  case class ExpressionType(
+    visibleType: Vector[String],
+    hiddenTypes: Vector[String]
+  )
+
   /** An update about computed expression.
     *
     * @param expressionId the id of updated expression
     * @param type the updated type of expression
+    * @param expressionType the full expression type of the expression
     * @param methodCall the updated method call
     * @param profilingInfo profiling information about the expression
     * @param fromCache whether the expression's value came from the cache
@@ -185,6 +196,7 @@ object ContextRegistryProtocol {
   case class ExpressionUpdate(
     expressionId: UUID,
     `type`: Vector[String],
+    expressionType: Option[ExpressionType],
     methodCall: Option[MethodCall],
     profilingInfo: Vector[ProfilingInfo],
     fromCache: Boolean,

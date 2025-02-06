@@ -27,6 +27,7 @@ transport formats, please look [here](./protocol-architecture).
   - [`ProfilingInfo`](#profilinginfo)
   - [`ExecutionEnvironment`](#executionenvironment)
   - [`ExpressionConfig`](#expressionConfig)
+  - [`ExpressionType`](#expressiontype)
   - [`ExpressionUpdate`](#expressionupdate)
   - [`ExpressionUpdatePayload`](#expressionupdatepayload)
   - [`VisualizationConfiguration`](#visualizationconfiguration)
@@ -360,6 +361,24 @@ interface ExpressionConfig {
 }
 ```
 
+### `ExpressionType`
+
+A type of the expression.
+
+```typescript
+interface ExpressionType {
+  /**
+   * The public type of the expression. The array with multiple values
+   * represents intersection type.
+   */
+  visibleType: string[];
+  /**
+   * The list of types this expression can be converted to.
+   */
+  hiddenTypes: string[];
+}
+```
+
 ### `ExpressionUpdate`
 
 An update about the computed expression.
@@ -368,7 +387,7 @@ An update about the computed expression.
 interface ExpressionUpdate {
   /** The id of updated expression. */
   expressionId: ExpressionId;
-  /** The updated type of the expression.
+  /** @deprecated The updated type of the expression.
    *
    *  Possible values:
    *  - empty array indicates no type information for this expression
@@ -376,6 +395,7 @@ interface ExpressionUpdate {
    *  - array with multiple values represents an intersetion type
    */
   type: string[];
+  expressionType?: ExpressionType;
   /** The updated method call info. */
   methodCall?: MethodCall;
   /** Profiling information about the expression. */
