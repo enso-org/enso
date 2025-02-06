@@ -8,10 +8,10 @@ from Standard.Test.Omitter import all
 
 from project.In_Memory.Common_Spec import in_memory_setup
 
-expect_column_names names table ignore_order=False omitter=Nothing = omitting omitter omitter->
+expect_column_names names table ignore_order=False = omitting <|
     case ignore_order of
-        False -> table.columns . map .name . should_equal names omitter=omitter
-        True -> table.columns . map .name . sort . should_equal names.sort omitter=omitter
+        False -> table.columns . map .name . should_equal names
+        True -> table.columns . map .name . sort . should_equal names.sort
 
 ## These tests are parametrized by various backends and so they should be run in
    context of a specific backend. However, for the purpose of testing we provide
@@ -50,9 +50,9 @@ within_table table =
     Test.with_clue 'Resulting table:\n'+description+'\n\n'
 
 ## PRIVATE
-Any.should_equal_tz_agnostic self other omitter=Nothing = omitting omitter omitter->
+Any.should_equal_tz_agnostic self other = omitting <|
     _ = other
-    Test.fail "Expected a vector but got "+self.to_display_text+" (at "+omitter.loc+")."
+    Test.fail "Expected a vector but got "+self.to_display_text+" (at "+omitting_get_stack_trace+")."
 
 ## PRIVATE
    A helper method that compares two vectors of Date_Time values.
@@ -60,22 +60,22 @@ Any.should_equal_tz_agnostic self other omitter=Nothing = omitting omitter omitt
    It ensures that they represent the same instant in time, but ignore the
    timezone that is attached to them. This is simply done by converting them to
    UTC.
-Vector.should_equal_tz_agnostic self other omitter=Nothing = omitting omitter omitter->
+Vector.should_equal_tz_agnostic self other = omitting <|
     case other of
         _ : Vector ->
             utc = Time_Zone.utc
             normalize_date_time dt = case dt of
                 _ : Date_Time -> dt.at_zone utc
-                _ -> Test.fail "The vector should contain Date_Time objects but it contained "+dt.to_display_text+" (at "+omitter.loc+")"
+                _ -> Test.fail "The vector should contain Date_Time objects but it contained "+dt.to_display_text+" (at "+omitting_get_stack_trace+")"
             self_normalized = self.map normalize_date_time
             other_normalized = other.map normalize_date_time
-            self_normalized.should_equal other_normalized omitter=omitter
-        _ -> Test.fail "Expected a vector but got "+other.to_display_text+" (at "+omitter.loc+")"
+            self_normalized.should_equal other_normalized
+        _ -> Test.fail "Expected a vector but got "+other.to_display_text+" (at "+omitting_get_stack_trace+")"
 
 ## PRIVATE
-Error.should_equal_tz_agnostic self other omitter=Nothing = omitting omitter omitter->
+Error.should_equal_tz_agnostic self other = omitting <|
     _ = other
-    Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+omitter.loc+")."
+    Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+omitting_get_stack_trace+")."
 
 ## PRIVATE
    Builds a table ensuring that the rows are in the order as given.

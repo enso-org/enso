@@ -136,9 +136,9 @@ add_specs suite_builder =
             after_count = get_num_response_cache_entries
             [before_count, after_count]
 
-        expect_counts expected_counts ~action omitter=Nothing = omitting omitter omitter->
+        expect_counts expected_counts ~action = omitting <|
             counts = with_counts action
-            counts . should_equal expected_counts omitter=omitter
+            counts . should_equal expected_counts
 
         get_cache_files : Vector Text
         get_cache_files -> Vector Text =

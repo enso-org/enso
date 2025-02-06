@@ -85,10 +85,10 @@ type Test_Setup
     supports_custom_objects self = self.is_database.not
 
     ## Checks if the provided column has integer type as defined by the backend.
-    expect_integer_type self column omitter=Nothing = omitting omitter omitter->
+    expect_integer_type self column = omitting <|
         value_type = column.value_type
         if self.is_integer_type value_type then column else
-            Test.fail ("Expected column ["+column.name+"] to have integer type, but got "+value_type.to_display_text+" (at " + omitter.loc + ").")
+            Test.fail ("Expected column ["+column.name+"] to have integer type, but got "+value_type.to_display_text+" (at " + omitting_get_stack_trace + ").")
 
 type Test_Selection
     ## The configuration specifying what features are supported by a given

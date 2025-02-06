@@ -1,22 +1,22 @@
 from Standard.Base import all
 
-type Omitter
-    Value ~err
+pst s st =
+    IO.println "==== "+s
+    st . take 12 . map_with_index (i-> x-> IO.println i.to_text+": "+x.to_text)
 
-    loc self =
-        stack_trace = Runtime.get_stack_trace
-        #pst "full" stack_trace
+omitting ~action =
+    IO.println "AAAAA "+omitting_get_stack_trace.to_display_text
+    action
 
-        omitting_index = stack_trace.last_index_of (frame-> frame.name == "Omitter.omitting")
-        real_stack_trace = stack_trace.drop (omitting_index + 2)
+omitting_get_stack_trace =
+    stack_trace = Runtime.get_stack_trace
+    pst "full" stack_trace
 
-        #IO.println "OI "+omitting_index.to_text
-        #pst "real" real_stack_trace
+    omitting_index = stack_trace.last_index_of (frame-> frame.name == "Omitter.omitting")
+    real_stack_trace = stack_trace.drop (omitting_index + 2)
 
-        top = real_stack_trace . at 0 . source_location
-        top.to_display_text
+    IO.println "OI "+omitting_index.to_text
+    pst "real" real_stack_trace
 
-omitting default_omitter ~action =
-    omitter = default_omitter.if_nothing (Omitter.Value (Error.throw "here"))
-    IO.println "AAAAA "+omitter.loc.to_display_text
-    action omitter
+    top = real_stack_trace . at 0 . source_location
+    top.to_display_text

@@ -22,6 +22,6 @@ type Should_Reach
 
     ## Checks if a point was reached in execution.
     should_have_reached : Integer -> Spec_Result
-    should_have_reached self -> Spec_Result omitter=Nothing = omitting omitter omitter->
+    should_have_reached self -> Spec_Result = omitting <|
         if self.reached_ref.get then Spec_Result.Success else 
-            Test.fail ("Did not reach Should_Reach (at "+omitter.loc+").")
+            Test.fail ("Did not reach Should_Reach (at "+omitting_get_stack_trace+").")

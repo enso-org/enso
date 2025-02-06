@@ -683,8 +683,8 @@ add_specs suite_builder =
             actual.column_names . should_equal ["col0", "col_between", "col1"]
 
     suite_builder.group "Use First Row As Names" group_builder->
-        expect_column_names names table omitter=Nothing = omitting omitter omitter->
-            table.columns . map .name . should_equal names omitter=omitter
+        expect_column_names names table = omitting <|
+            table.columns . map .name . should_equal names
 
         group_builder.specify "should work happily with mixed types" <|
             c_0 = ['A', ["H", "B", "C"]]
