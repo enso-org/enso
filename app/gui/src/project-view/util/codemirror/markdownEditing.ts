@@ -174,10 +174,10 @@ export function toggleList(view: EditorView, type: ListType) {
   const startLine = view.state.doc.lineAt(view.state.selection.main.from)
   const endLine = view.state.doc.lineAt(view.state.selection.main.to)
   const changeSet = new MutableChangeSet(0)
+  const src = view.state.doc.toString()
   let listIndex = 0
   for (let i = startLine.number; i <= endLine.number; i++) {
     const line = view.state.doc.line(i)
-    const src = view.state.doc.toString()
     const context = new Context(tree, src, line)
     const lineChanges = toggleListInner(context, listIndex, type)
     changeSet.merge(lineChanges)
