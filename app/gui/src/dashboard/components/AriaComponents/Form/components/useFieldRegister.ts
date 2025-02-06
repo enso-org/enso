@@ -38,7 +38,18 @@ export function useFieldRegister<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Constraint = any,
 >(options: UseFieldRegisterOptions<BaseValueType, Schema, TFieldName, Constraint>) {
-  const { name, min, max, minLength, maxLength, isRequired, isDisabled, form, setValueAs } = options
+  const {
+    name,
+    min,
+    max,
+    minLength,
+    maxLength,
+    isRequired,
+    isDisabled,
+    form,
+    setValueAs,
+    isInvalid,
+  } = options
 
   const formInstance = useFormContext(form)
 
@@ -51,9 +62,10 @@ export function useFieldRegister<
   const fieldProps = formInstance.register(name, {
     disabled: isDisabled ?? false,
     required: isRequired ?? extractedValidationDetails?.required ?? false,
+    ...(isInvalid != null ? { invalid: isInvalid, isInvalid } : {}),
     ...(setValueAs != null ? { setValueAs } : {}),
     ...(extractedValidationDetails?.min != null ? { min: extractedValidationDetails.min } : {}),
-    ...(extractedValidationDetails?.max != null ? { min: extractedValidationDetails.max } : {}),
+    ...(extractedValidationDetails?.max != null ? { max: extractedValidationDetails.max } : {}),
     ...(min != null ? { min } : {}),
     ...(max != null ? { max } : {}),
     ...(minLength != null ? { minLength } : {}),

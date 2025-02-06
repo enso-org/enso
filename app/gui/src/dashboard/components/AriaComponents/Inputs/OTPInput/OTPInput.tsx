@@ -1,9 +1,9 @@
 /** @file */
 import { mergeProps } from '#/components/aria'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
-import { omit } from 'enso-common/src/utilities/data/object'
 import type { OTPInputProps } from 'input-otp'
 import { OTPInput as BaseOTPInput, type SlotProps as OTPInputSlotProps } from 'input-otp'
 import type { ForwardedRef, Ref } from 'react'
@@ -13,10 +13,11 @@ import type {
   FieldPath,
   FieldProps,
   FieldStateProps,
+  FieldValues,
   FieldVariantProps,
   TSchema,
 } from '../../Form'
-import { Form } from '../../Form'
+import { filterNonDOMFormProps, Form } from '../../Form'
 import { Separator } from '../../Separator'
 import { TEXT_STYLE } from '../../Text'
 import type { TestIdProps } from '../../types'
@@ -59,21 +60,11 @@ const SLOT_STYLES = tv({
     isInvalid: { true: { base: 'border-danger', char: 'text-danger' } },
   },
   slots: {
-    char: TEXT_STYLE({
-      variant: 'body',
-      weight: 'bold',
-      color: 'current',
-    }),
+    char: TEXT_STYLE({ variant: 'body', weight: 'bold', color: 'current' }),
     fakeCaret:
       'absolute pointer-events-none inset-0 flex items-center justify-center animate-caret-blink before:w-px before:h-5 before:bg-primary',
   },
-  compoundVariants: [
-    {
-      isActive: true,
-      isInvalid: true,
-      class: { base: 'outline-danger' },
-    },
-  ],
+  compoundVariants: [{ isActive: true, isInvalid: true, class: { base: 'outline-danger' } }],
 })
 
 /** Accessible one-time password component with copy paste functionality. */
@@ -90,105 +81,154 @@ export const OTPInput = forwardRef(function OTPInput<
     inputRef,
     submitOnComplete = true,
     onComplete,
-    form,
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    form: _,
     ...inputProps
   } = props
 
   const innerOtpInputRef = useRef<HTMLInputElement>(null)
   const classes = variants({ className })
 
-  const { fieldProps, formInstance } = Form.useFieldRegister({
-    ...props,
-    form,
+  const { fieldProps, formInstance } = Form.useFieldRegister(props)
+
+  const onCompleteInternal = useEventCallback(() => {
+    if (innerOtpInputRef.current?.value == null) {
+      return
+    }
+
+    onComplete?.()
+
+    if (submitOnComplete) {
+      formInstance.setValue(
+        name,
+        // eslint-disable-next-line no-restricted-syntax
+        innerOtpInputRef.current.value as FieldValues<Schema>[TFieldName],
+        { shouldValidate: true },
+      )
+      void formInstance.submit()
+    }
+  })
+
+  const onClickInternal = useEventCallback(() => {
+    if (innerOtpInputRef.current) {
+      // Check if the input is not already focused
+      if (document.activeElement !== innerOtpInputRef.current) {
+        innerOtpInputRef.current.focus()
+      }
+    }
   })
 
   return (
     <Form.Field
-      {...mergeProps<FieldComponentProps<Schema>>()(inputProps, fieldProps, {
-        isHidden: props.hidden,
+      {...mergeProps<FieldComponentProps<Schema>>()(fieldProps, inputProps, {
         fullWidth: true,
+        isHidden: props.hidden,
         variants: fieldVariants,
         form: formInstance,
       })}
       ref={ref}
-      name={props.name}
+      name={name}
     >
       <BaseOTPInput
-        {...mergeProps<OTPInputProps>()(
-          inputProps,
-          omit(fieldProps, 'isInvalid', 'isRequired', 'isDisabled', 'invalid'),
-          {
-            name,
-            maxLength,
-            noScriptCSSFallback: null,
-            containerClassName: classes.base({ className }),
-            onClick: () => {
-              if (innerOtpInputRef.current) {
-                // Check if the input is not already focused
-                if (document.activeElement !== innerOtpInputRef.current) {
-                  innerOtpInputRef.current.focus()
-                }
-              }
-            },
-            onComplete: () => {
-              onComplete?.()
-
-              if (submitOnComplete) {
-                void formInstance.trigger(name).then(() => formInstance.submit())
-              }
-            },
-          },
-        )}
+        {...filterNonDOMFormProps(mergeProps<OTPInputProps>()(fieldProps, inputProps))}
         ref={(el) => {
           mergeRefs(fieldProps.ref, inputRef, innerOtpInputRef)(el)
         }}
-        render={({ slots }) => {
-          const sections = (() => {
-            const items = []
-            const remainingSlots = slots.length % 3
-
-            const sectionsCount = Math.floor(slots.length / 3) + (remainingSlots > 0 ? 1 : 0)
-
-            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-            if (slots.length < 6) {
-              items.push(slots)
-            } else {
-              for (let i = 0; i < sectionsCount; i++) {
-                const section = slots.slice(i * 3, (i + 1) * 3)
-                items.push(section)
-              }
-            }
-
-            return items
-          })()
-
-          return (
-            <div role="presentation" className="flex w-full items-center gap-2">
-              {sections.map((section, idx) => (
-                <>
-                  <div key={idx} className={classes.slotsContainer()}>
-                    {section.map((slot, key) => (
-                      <Slot isInvalid={fieldProps.isInvalid} key={key} {...slot} />
-                    ))}
-                  </div>
-
-                  {idx < sections.length - 1 && (
-                    <Separator
-                      key={idx + 'separator'}
-                      orientation="horizontal"
-                      className="w-3"
-                      size="medium"
-                    />
-                  )}
-                </>
-              ))}
-            </div>
-          )
-        }}
+        name={name}
+        maxLength={maxLength}
+        noScriptCSSFallback={null}
+        containerClassName={classes.base({ className })}
+        onClick={onClickInternal}
+        onComplete={onCompleteInternal}
+        render={({ slots }) => (
+          <OTPInputRenderer
+            slots={slots}
+            isInvalid={fieldProps.isInvalid}
+            slotsContainerClassName={classes.slotsContainer()}
+          />
+        )}
       />
     </Form.Field>
   )
 })
+
+/** Props for an {@link OTPInputRenderer}. */
+interface OTPInputRendererProps {
+  readonly slots: OTPInputSlotProps[]
+  readonly isInvalid: boolean
+  readonly slotsContainerClassName: string
+}
+/**
+ * OTPInputRenderer is a component that renders the OTP input.
+ * @internal
+ */
+function OTPInputRenderer(props: OTPInputRendererProps) {
+  const { slots, isInvalid, slotsContainerClassName } = props
+
+  const sections = (() => {
+    const items = []
+    const remainingSlots = slots.length % 3
+
+    const sectionsCount = Math.floor(slots.length / 3) + (remainingSlots > 0 ? 1 : 0)
+
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    if (slots.length < 6) {
+      items.push(slots)
+    } else {
+      for (let i = 0; i < sectionsCount; i++) {
+        const section = slots.slice(i * 3, (i + 1) * 3)
+        items.push(section)
+      }
+    }
+
+    return items
+  })()
+
+  return (
+    <div role="presentation" className="flex w-full items-center gap-2">
+      {sections.map((section, idx) => (
+        <Section
+          key={idx}
+          slotsContainerClassName={slotsContainerClassName}
+          isInvalid={isInvalid}
+          section={section}
+          isLast={idx === sections.length - 1}
+        />
+      ))}
+    </div>
+  )
+}
+
+/**
+ * Props for a {@link Section}.
+ * @internal
+ */
+interface SectionProps {
+  readonly slotsContainerClassName: string
+  readonly isInvalid: boolean
+  readonly section: OTPInputSlotProps[]
+  readonly isLast: boolean
+}
+
+/**
+ * Section is a component that renders a section of the OTP input.
+ * @internal
+ */
+function Section(props: SectionProps) {
+  const { slotsContainerClassName, isInvalid, section, isLast } = props
+
+  return (
+    <>
+      <div className={slotsContainerClassName}>
+        {section.map((slot, key) => (
+          <Slot isInvalid={isInvalid} key={key} {...slot} />
+        ))}
+      </div>
+
+      {!isLast && <Separator orientation="horizontal" className="w-3" size="medium" />}
+    </>
+  )
+}
 
 /** Props for a single {@link Slot}. */
 interface SlotProps extends Omit<OTPInputSlotProps, 'isActive'>, VariantProps<typeof SLOT_STYLES> {}
