@@ -1,22 +1,28 @@
 from Standard.Base import all
 
+verbose = True
+
 pst s st =
     IO.println "==== "+s
     st . take 12 . map_with_index (i-> x-> IO.println i.to_text+": "+x.to_text)
 
 omitting ~action =
-    IO.println "AAAAA "+omitting_get_stack_trace
+    #IO.println "AAAAA "+omitting_get_stack_trace
+    action
+
+omitting ~action =
+    #IO.println "AAAAA "+omitting_get_stack_trace
     action
 
 omitting_get_stack_trace =
     stack_trace = Runtime.get_stack_trace
-    #pst "full" stack_trace
+    if verbose then pst "full" stack_trace
 
     omitting_index = stack_trace.last_index_of (frame-> frame.name == "Omitter.omitting")
     real_stack_trace = stack_trace.drop (omitting_index + 2)
 
-    #IO.println "OI "+omitting_index.to_text
-    #pst "real" real_stack_trace
+    if verbose then IO.println "OI "+omitting_index.to_text
+    if verbose then pst "real" real_stack_trace
 
     top = real_stack_trace . at 0 . source_location
     top.to_display_text
