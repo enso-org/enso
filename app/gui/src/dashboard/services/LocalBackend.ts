@@ -165,6 +165,14 @@ export default class LocalBackend extends Backend {
       const entries = await this.projectManager.listDirectory(parentIdRaw)
       result = entries
         .map((entry) => {
+          console.log('entry', {
+            entry,
+            parentId,
+            parentIdRaw,
+            rootDirectory: this.projectManager.rootDirectory,
+            parentsPath: entry.path.replace(this.projectManager.rootDirectory, ''),
+            virtualParentsPath: entry.path.replace(this.projectManager.rootDirectory, ''),
+          })
           switch (entry.type) {
             case projectManager.FileSystemEntryType.DirectoryEntry: {
               return {
@@ -178,8 +186,8 @@ export default class LocalBackend extends Backend {
                 extension: null,
                 labels: [],
                 description: null,
-                parentsPath: '',
-                virtualParentsPath: '',
+                parentsPath: entry.path.replace(this.projectManager.rootDirectory, ''),
+                virtualParentsPath: entry.path.replace(this.projectManager.rootDirectory, ''),
               } satisfies backend.DirectoryAsset
             }
             case projectManager.FileSystemEntryType.ProjectEntry: {

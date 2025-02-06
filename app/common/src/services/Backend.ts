@@ -18,32 +18,33 @@ export const S3_CHUNK_SIZE_BYTES = 10_000_000
 export type OrganizationId = newtype.Newtype<`organization-${string}`, 'OrganizationId'>
 export const OrganizationId = newtype.newtypeConstructor<OrganizationId>()
 /** Whether a given {@link string} is an {@link OrganizationId}. */
-export function isOrganizationId(id: string): id is OrganizationId {
-  return id.startsWith('organization-')
+export function isOrganizationId(id: unknown): id is OrganizationId {
+  return typeof id === 'string' && id.startsWith('organization-')
 }
 
 /** Unique identifier for a user in an organization. */
 export type UserId = newtype.Newtype<string, 'UserId'>
 export const UserId = newtype.newtypeConstructor<UserId>()
 /** Whether a given {@link string} is an {@link UserId}. */
-export function isUserId(id: string): id is UserId {
-  return id.startsWith('user-')
+export function isUserId(id: unknown): id is UserId {
+  return typeof id === 'string' && id.startsWith('user-')
 }
 
 /** Unique identifier for a user group. */
 export type UserGroupId = newtype.Newtype<`usergroup-${string}`, 'UserGroupId'>
 export const UserGroupId = newtype.newtypeConstructor<UserGroupId>()
 /** Whether a given {@link string} is an {@link UserGroupId}. */
-export function isUserGroupId(id: string): id is UserGroupId {
-  return id.startsWith('usergroup-')
+export function isUserGroupId(id: unknown): id is UserGroupId {
+  return typeof id === 'string' && id.startsWith('usergroup-')
 }
 
 /** Unique identifier for a directory. */
 export type DirectoryId = newtype.Newtype<`directory-${string}`, 'DirectoryId'>
 export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
-/** Whether a given {@link string} is an {@link DirectoryId}. */
-export function isDirectoryId(id: string): id is DirectoryId {
-  return id.startsWith('directory-')
+
+/** Whether a given {@link unknown} is an {@link DirectoryId}. */
+export function isDirectoryId(id: unknown): id is DirectoryId {
+  return typeof id === 'string' && id.startsWith('directory-')
 }
 
 /**
@@ -997,17 +998,13 @@ function fileExtension(fileNameOrPath: string) {
 }
 
 /** Creates a {@link FileAsset} using the given values. */
-export function createPlaceholderFileAsset(
-  title: string,
-  parentId: DirectoryId,
-  assetPermissions: readonly AssetPermission[],
-): FileAsset {
+export function createPlaceholderFileAsset(title: string, parentId: DirectoryId): FileAsset {
   return {
     type: AssetType.file,
     id: FileId(createPlaceholderId()),
     title,
     parentId,
-    permissions: assetPermissions,
+    permissions: [],
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: fileExtension(title),
@@ -1019,25 +1016,17 @@ export function createPlaceholderFileAsset(
 }
 
 /** Creates a {@link ProjectAsset} using the given values. */
-export function createPlaceholderProjectAsset(
-  title: string,
-  parentId: DirectoryId,
-  assetPermissions: readonly AssetPermission[],
-  user: User | null,
-  path: Path | null,
-): ProjectAsset {
+export function createPlaceholderProjectAsset(title: string, parentId: DirectoryId): ProjectAsset {
   return {
     type: AssetType.project,
     id: ProjectId(createPlaceholderId()),
     title,
     parentId,
-    permissions: assetPermissions,
+    permissions: [],
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: {
       type: ProjectState.new,
       volumeId: '',
-      ...(user != null ? { openedBy: user.email } : {}),
-      ...(path != null ? { path } : {}),
     },
     extension: null,
     labels: [],
@@ -1051,14 +1040,13 @@ export function createPlaceholderProjectAsset(
 export function createPlaceholderDirectoryAsset(
   title: string,
   parentId: DirectoryId,
-  assetPermissions: readonly AssetPermission[],
 ): DirectoryAsset {
   return {
     type: AssetType.directory,
     id: DirectoryId(`directory-${createPlaceholderId()}` as const),
     title,
     parentId,
-    permissions: assetPermissions,
+    permissions: [],
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
@@ -1070,17 +1058,13 @@ export function createPlaceholderDirectoryAsset(
 }
 
 /** Creates a {@link SecretAsset} using the given values. */
-export function createPlaceholderSecretAsset(
-  title: string,
-  parentId: DirectoryId,
-  assetPermissions: readonly AssetPermission[],
-): SecretAsset {
+export function createPlaceholderSecretAsset(title: string, parentId: DirectoryId): SecretAsset {
   return {
     type: AssetType.secret,
     id: SecretId(createPlaceholderId()),
     title,
     parentId,
-    permissions: assetPermissions,
+    permissions: [],
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
@@ -1095,14 +1079,13 @@ export function createPlaceholderSecretAsset(
 export function createPlaceholderDatalinkAsset(
   title: string,
   parentId: DirectoryId,
-  assetPermissions: readonly AssetPermission[],
 ): DatalinkAsset {
   return {
     type: AssetType.datalink,
     id: DatalinkId(createPlaceholderId()),
     title,
     parentId,
-    permissions: assetPermissions,
+    permissions: [],
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,

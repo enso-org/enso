@@ -14,6 +14,7 @@ import { fileExtension } from '#/utilities/fileInfo'
 import type { SortInfo } from '#/utilities/sorting'
 import { regexEscape } from '#/utilities/string'
 import { createStore, useStore } from '#/utilities/zustand.ts'
+import { useEffect } from 'react'
 import invariant from 'tiny-invariant'
 
 /** Options for {@link useAssetsTableItems}. */
@@ -225,7 +226,9 @@ export function useAssetsTableItems(options: UseAssetsTableOptions) {
     }
   })()
 
-  setAssetItems(displayItems.map((item) => item.item))
+  useEffect(() => {
+    setAssetItems(displayItems.map((item) => item.item))
+  }, [displayItems, setAssetItems])
 
   const visibleItems = displayItems.filter(
     (item) => visibilities.get(item.item.id) !== Visibility.hidden,

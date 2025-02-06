@@ -7,7 +7,11 @@ import { Path, createRootDirectoryAsset } from 'enso-common/src/services/Backend
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useBackend } from '#/providers/BackendProvider'
-import { useCurrentDirectoryId, useSetExpandedDirectoryIds } from '#/providers/DriveProvider'
+import {
+  useCurrentDirectoryId,
+  useSetCurrentDirectoryId,
+  useSetExpandedDirectoryIds,
+} from '#/providers/DriveProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 
 /** Options for {@link useDirectoryIds}. */
@@ -44,12 +48,16 @@ export function useDirectoryIds(options: UseDirectoryIdsOptions) {
 
   const rootDirectory = createRootDirectoryAsset(rootDirectoryId)
 
-  const currentDirectoryId = useCurrentDirectoryId() ?? rootDirectoryId
+  const currentDirectoryId = useCurrentDirectoryId().current ?? rootDirectoryId
+  const parentDirectoryId = useCurrentDirectoryId().parent ?? rootDirectoryId
+  const setCurrentDirectoryId = useSetCurrentDirectoryId()
 
   return {
     setExpandedDirectoryIds,
+    setCurrentDirectoryId,
     rootDirectoryId,
     rootDirectory,
     currentDirectoryId,
+    parentDirectoryId,
   } as const
 }

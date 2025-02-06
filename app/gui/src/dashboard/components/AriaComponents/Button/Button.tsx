@@ -17,7 +17,7 @@ import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { forwardRef } from '#/utilities/react'
 import { ButtonGroup, ButtonGroupJoin } from './ButtonGroup'
-import { useJoinedButtonPrivateContext, useMergedButtonStyles } from './shared'
+import { ButtonGroupProvider, useJoinedButtonPrivateContext, useMergedButtonStyles } from './shared'
 import type { ButtonProps } from './types'
 import { BUTTON_STYLES } from './variants'
 
@@ -257,15 +257,16 @@ export const Button = memo(
 ) as unknown as (<IconType extends string>(
   props: ButtonProps<IconType> & { ref?: ForwardedRef<HTMLButtonElement> },
 ) => ReactNode) & {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+  /* eslint-disable @typescript-eslint/naming-convention */
   Group: typeof ButtonGroup
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   GroupJoin: typeof ButtonGroupJoin
+  GroupProvider: typeof ButtonGroupProvider
+  /* eslint-enable @typescript-eslint/naming-convention */
 }
 
 Button.Group = ButtonGroup
 Button.GroupJoin = ButtonGroupJoin
-
+Button.GroupProvider = ButtonGroupProvider
 /**
  * Props for {@link ButtonContent}.
  */

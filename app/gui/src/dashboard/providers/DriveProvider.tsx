@@ -93,10 +93,20 @@ interface DriveStore {
 export type ProjectsContextType = StoreApi<DriveStore>
 
 const DriveContext = React.createContext<ProjectsContextType | null>(null)
-const CurrentDirectoryIdContext = React.createContext<{
-  readonly currentDirectoryId: DirectoryId | null
-  readonly setCurrentDirectoryId: (nextValue: DirectoryId | null) => void
-} | null>(null)
+
+/** The current directory ID. */
+interface CurrentDirectoryIdContextType {
+  readonly currentDirectoryId: {
+    readonly current: DirectoryId | null
+    readonly parent: DirectoryId | null
+  }
+  readonly setCurrentDirectoryId: (nextValue: {
+    readonly current: DirectoryId | null
+    readonly parent: DirectoryId | null
+  }) => void
+}
+
+const CurrentDirectoryIdContext = React.createContext<CurrentDirectoryIdContextType | null>(null)
 
 /** Props for a {@link DriveProvider}. */
 export interface ProjectsProviderProps {
@@ -116,10 +126,9 @@ export interface ProjectsProviderProps {
 export default function DriveProvider(props: ProjectsProviderProps) {
   const { children } = props
 
-  const [currentDirectoryId, setCurrentDirectoryId] = useSearchParamsState<DirectoryId | null>(
-    'currentDirectoryId',
-    null,
-  )
+  const [currentDirectoryId, setCurrentDirectoryId] = useSearchParamsState<
+    CurrentDirectoryIdContextType['currentDirectoryId']
+  >('currentDirectoryId', { current: null, parent: null })
 
   const [store] = React.useState(() =>
     createStore<DriveStore>((set, get) => ({
@@ -129,7 +138,7 @@ export default function DriveProvider(props: ProjectsProviderProps) {
           selectedKeys: EMPTY_SET,
           visuallySelectedKeys: null,
         })
-        setCurrentDirectoryId(null)
+        setCurrentDirectoryId({ current: null, parent: null })
       },
       targetDirectory: null,
       setTargetDirectory: (targetDirectory) => {
@@ -209,7 +218,6 @@ export default function DriveProvider(props: ProjectsProviderProps) {
       setNodeMap: (nodeMap) => {
         if (get().nodeMap.current !== nodeMap) {
           unsafeMutable(get().nodeMap).current = nodeMap
-          set({ nodeMap: get().nodeMap })
         }
       },
     })),

@@ -122,6 +122,9 @@ export const ANY_LOCAL_CATEGORY_SCHEMA = z.union([
 /** Any local category. */
 export type AnyLocalCategory = z.infer<typeof ANY_LOCAL_CATEGORY_SCHEMA>
 
+/** Any category. */
+export type AnyCategory = AnyCloudCategory | AnyLocalCategory
+
 /** A category of an arbitrary type. */
 export const CATEGORY_SCHEMA = z.union([ANY_CLOUD_CATEGORY_SCHEMA, ANY_LOCAL_CATEGORY_SCHEMA])
 /** A category of an arbitrary type. */

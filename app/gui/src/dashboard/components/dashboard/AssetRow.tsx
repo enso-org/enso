@@ -114,7 +114,7 @@ export interface AssetRowProps {
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
-// eslint-disable-next-line no-restricted-syntax
+
 export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const { type, columns, depth, id } = props
 
@@ -145,7 +145,7 @@ export interface AssetSpecialRowProps {
 }
 
 /** Renders a special asset row. */
-// eslint-disable-next-line no-restricted-syntax
+
 const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialRowProps) {
   const { type, columnsLength, depth } = props
 
@@ -224,7 +224,7 @@ const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialR
 type RealAssetRowProps = AssetRowProps & { readonly id: backendModule.RealAssetId }
 
 /** Renders a real asset row. */
-// eslint-disable-next-line no-restricted-syntax
+
 const RealAssetRow = React.memo(function RealAssetRow(props: RealAssetRowProps) {
   const { id } = props
 
@@ -479,7 +479,10 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
             onDoubleClick={() => {
               if (asset.type === backendModule.AssetType.directory) {
                 startTransition(() => {
-                  setCurrentDirectoryId(asset.id)
+                  setCurrentDirectoryId({
+                    current: asset.id,
+                    parent: parentId,
+                  })
                 })
               }
             }}
@@ -615,7 +618,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                   event.preventDefault()
                   event.stopPropagation()
                   toggleDirectoryExpansion(directoryId, true)
-                  void uploadFiles(Array.from(event.dataTransfer.files), directoryId, null)
+                  void uploadFiles(Array.from(event.dataTransfer.files), directoryId)
                 }
               }
             }}

@@ -119,7 +119,10 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
       // and to not invoke the Suspense boundary.
       // This makes the transition feel more responsive and natural.
       startTransition(() => {
-        setCurrentDirectoryId(null)
+        setCurrentDirectoryId({
+          current: null,
+          parent: null,
+        })
         setCategoryId(category.id)
       })
     }
@@ -229,8 +232,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
 
   const itemProps = { currentCategory: category, setCategoryId }
 
-  const { cloudCategory, recentCategory, trashCategory, userCategory, teamCategories } =
-    cloudCategories
+  const { cloudCategory, recentCategory, trashCategory, teamCategories } = cloudCategories
   const { localCategory, directories, addDirectory, removeDirectory } = localCategories
 
   return (
@@ -256,20 +258,6 @@ function CategorySwitcher(props: CategorySwitcherProps) {
             dropZoneLabel={getText('cloudCategoryDropZoneLabel')}
             badgeContent={getText('cloudCategoryBadgeContent')}
           />
-
-          {/* Self user space */}
-          {userCategory != null && (
-            <CategorySwitcherItem
-              {...itemProps}
-              isNested
-              category={userCategory}
-              icon={userCategory.icon}
-              label={userCategory.label}
-              isDisabled={isOffline}
-              buttonLabel={getText('myFilesCategoryButtonLabel')}
-              dropZoneLabel={getText('myFilesCategoryDropZoneLabel')}
-            />
-          )}
 
           {teamCategories.map((teamCategory) => (
             <CategorySwitcherItem

@@ -1,5 +1,5 @@
 /** @file Context for a button group. */
-import { createContext, useContext, type PropsWithChildren } from 'react'
+import { createContext, useContext, useMemo, type PropsWithChildren } from 'react'
 import type { ButtonGroupSharedButtonProps, PrivateJoinedButtonProps } from './types'
 import { type ButtonVariants } from './variants'
 
@@ -16,9 +16,72 @@ const ButtonGroupContext = createContext<ButtonGroupContextType>({})
  * Provider for a button group context
  */
 export function ButtonGroupProvider(props: ButtonGroupContextType & PropsWithChildren) {
-  const { children, ...rest } = props
+  const {
+    children,
+    extraClickZone,
+    fullWidth,
+    iconOnly,
+    iconPosition,
+    isActive,
+    isDisabled,
+    isFocused,
+    isJoined,
+    isLoading,
+    isPressed,
+    loaderPosition,
+    loading,
+    position,
+    rounded,
+    showIconOnHover,
+    size,
+    variant,
+    variants,
+  } = props
 
-  return <ButtonGroupContext.Provider value={rest}>{children}</ButtonGroupContext.Provider>
+  const contextValue = useMemo(
+    () => ({
+      extraClickZone,
+      fullWidth,
+      iconOnly,
+      iconPosition,
+      isActive,
+      isDisabled,
+      isFocused,
+      isJoined,
+      isLoading,
+      isPressed,
+      loaderPosition,
+      loading,
+      position,
+      rounded,
+      showIconOnHover,
+      size,
+      variant,
+      variants,
+    }),
+    [
+      extraClickZone,
+      fullWidth,
+      iconOnly,
+      iconPosition,
+      isActive,
+      isDisabled,
+      isFocused,
+      isJoined,
+      isLoading,
+      isPressed,
+      loaderPosition,
+      loading,
+      position,
+      rounded,
+      showIconOnHover,
+      size,
+      variant,
+      variants,
+    ],
+  )
+
+  return <ButtonGroupContext.Provider value={contextValue}>{children}</ButtonGroupContext.Provider>
 }
 
 const EMPTY_CONTEXT: ButtonGroupContextType = {}

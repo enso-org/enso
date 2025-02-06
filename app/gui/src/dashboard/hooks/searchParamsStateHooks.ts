@@ -13,6 +13,8 @@ import * as eventCallback from '#/hooks/eventCallbackHooks'
 import * as lazyMemo from '#/hooks/useLazyMemoHooks'
 
 import * as safeJsonParse from '#/utilities/safeJsonParse'
+import { useCallback } from 'react'
+import { useLocation, useNavigate, type NavigateOptions } from 'react-router-dom'
 
 // ===================================
 // === SearchParamsStateReturnType ===
@@ -47,15 +49,41 @@ export function useSearchParamsState<T = unknown>(
   defaultValue: T | (() => T),
   predicate: (unknown: unknown) => unknown is T = (unknown): unknown is T => true,
 ): SearchParamsStateReturnType<T> {
-  const [searchParams, setSearchParams] = reactRouterDom.useSearchParams()
+  const { search } = useLocation()
+  const navigate = useNavigate()
+
+  const searchParams = new URLSearchParams(search)
+
+  const setSearchParams = useCallback(
+    (
+      nextSearchParams:
+        | URLSearchParams
+        | ((currentSearchParams: URLSearchParams) => URLSearchParams),
+      options: NavigateOptions = {},
+    ) => {
+      const params = new URLSearchParams(window.location.search)
+
+      if (nextSearchParams instanceof Function) {
+        nextSearchParams = nextSearchParams(params)
+      }
+
+      navigate(`?${nextSearchParams.toString()}`, { replace: false, ...options })
+    },
+    [navigate],
+  )
 
   const prefixedKey = `${appUtils.SEARCH_PARAMS_PREFIX}${key}`
 
   const lazyDefaultValueInitializer = lazyMemo.useLazyMemoHooks(defaultValue, [])
 
   const clear = eventCallback.useEventCallback((replace: boolean = false) => {
-    searchParams.delete(prefixedKey)
-    setSearchParams(searchParams, { replace })
+    setSearchParams(
+      (currentSearchParams) => {
+        currentSearchParams.delete(prefixedKey)
+        return currentSearchParams
+      },
+      { replace },
+    )
   })
 
   const rawValue = (() => {
@@ -93,8 +121,13 @@ export function useSearchParamsState<T = unknown>(
       if (nextValue === lazyDefaultValueInitializer()) {
         clear()
       } else {
-        searchParams.set(prefixedKey, JSON.stringify(nextValue))
-        setSearchParams(searchParams, { replace, preventScrollReset: true })
+        setSearchParams(
+          (currentSearchParams) => {
+            currentSearchParams.set(prefixedKey, JSON.stringify(nextValue))
+            return currentSearchParams
+          },
+          { replace, preventScrollReset: true },
+        )
       }
     },
   )

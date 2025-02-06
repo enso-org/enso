@@ -1,5 +1,4 @@
 /** @file A column displaying the path of the asset. */
-import FolderIcon from '#/assets/folder.svg'
 import FolderArrowIcon from '#/assets/folder_arrow.svg'
 import { Button, Popover, Text } from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
@@ -8,7 +7,7 @@ import { useCategoriesAPI, useCloudCategoryList } from '#/layouts/Drive/Categori
 import type { AnyCloudCategory } from '#/layouts/Drive/Categories/Category'
 import { useUser } from '#/providers/AuthProvider'
 import { useSetExpandedDirectoryIds, useSetSelectedAssets } from '#/providers/DriveProvider'
-import { AssetType, DirectoryId, isDirectoryId } from '#/services/Backend'
+import { AssetType, DirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { Fragment, useTransition } from 'react'
 import invariant from 'tiny-invariant'
@@ -25,24 +24,17 @@ export default function PathColumn(props: AssetColumnProps) {
   const { setCategory } = useCategoriesAPI()
   const setSelectedAssets = useSetSelectedAssets()
   const setExpandedDirectoryIds = useSetExpandedDirectoryIds()
+  const { rootDirectoryId } = useUser()
 
   // Path navigation exist only for cloud categories.
   const { getCategoryByDirectoryId } = useCloudCategoryList()
-  const { getCategoryById } = useCategoriesAPI()
 
-  // Parents path is a string of directory ids separated by slashes.
-  const splitPath = parentsPath.split('/').filter(isDirectoryId)
-  const rootDirectoryInPath = splitPath[0]
-
-  const splitVirtualParentsPath = virtualParentsPath.split('/')
-  // Virtual parents path is a string of directory names separated by slashes.
-  // To match the ids with the names, we need to remove the first element of the split path.
-  // As the first element is the root directory, which is not a virtual parent.
-  const virtualParentsIds = splitPath.slice(1)
-
-  const { rootDirectoryId } = useUser()
-
-  const { fullPath } = parseDirectoriesPath(parentsPath, virtualParentsPath)
+  const { finalPath } = parseDirectoriesPath({
+    parentsPath,
+    virtualParentsPath,
+    rootDirectoryId,
+    getCategoryByDirectoryId,
+  })
 
   const navigateToDirectory = useEventCallback((targetDirectory: DirectoryId) => {
     const targetDirectoryIndex = finalPath.findIndex(({ id }) => id === targetDirectory)
@@ -84,55 +76,6 @@ export default function PathColumn(props: AssetColumnProps) {
     ])
   })
 
-  const finalPath = (() => {
-    const result: {
-      id: DirectoryId
-      categoryId: AnyCloudCategory['id'] | null
-      label: AnyCloudCategory['label']
-      icon: AnyCloudCategory['icon']
-    }[] = []
-
-    if (rootDirectoryInPath == null) {
-      return result
-    }
-
-    const rootCategory = getCategoryByDirectoryId(rootDirectoryInPath)
-
-    // If the root category is not found it might mean
-    // that user is no longer have access to this root directory.
-    // Usually this could happen if the user was removed from the organization
-    // or user group.
-    // This shouldn't happen though and these files should be filtered out
-    // by the backend. But we need to handle this case anyway.
-    if (rootCategory == null) {
-      return result
-    }
-
-    result.push({
-      id: rootDirectoryId,
-      categoryId: rootCategory.id,
-      label: rootCategory.label,
-      icon: rootCategory.icon,
-    })
-
-    for (const [index, id] of virtualParentsIds.entries()) {
-      const name = splitVirtualParentsPath.at(index)
-
-      if (name == null) {
-        continue
-      }
-
-      result.push({
-        id,
-        label: name,
-        icon: FolderIcon,
-        categoryId: null,
-      })
-    }
-
-    return result
-  })()
-
   if (finalPath.length === 0) {
     return <></>
   }
@@ -167,9 +110,9 @@ export default function PathColumn(props: AssetColumnProps) {
       <Popover.Trigger>
         <Button variant="ghost-fading" size="xsmall">
           <div className="flex items-center gap-2">
-            <SvgMask src={firstItemInPath.icon} className="h-3.5 w-3.5" />
-            <SvgMask src={FolderArrowIcon} className="h-3.5 w-3.5" />
-            <SvgMask src={lastItemInPath.icon} className="h-3.5 w-3.5" />
+            <SvgMask src={firstItemInPath.icon} className="h-3 w-3" />
+            <SvgMask src={FolderArrowIcon} className="h-3 w-3" />
+            <SvgMask src={lastItemInPath.icon} className="h-3 w-3" />
 
             <Text color="custom" truncate="1" className="max-w-48">
               {lastItemInPath.label}

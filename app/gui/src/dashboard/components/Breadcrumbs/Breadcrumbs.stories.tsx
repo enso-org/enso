@@ -3,23 +3,23 @@
  */
 
 import ArrowDown from '#/assets/expand_arrow.svg'
-import Folder from '#/assets/folder.svg'
+import Folder from '#/assets/folder_filled.svg'
 import Add from '#/assets/plus.svg'
 import { Button, Menu } from '#/components/AriaComponents'
 import type { Meta, StoryObj } from '@storybook/react'
-import { expect, userEvent, within } from '@storybook/test'
+import { expect, fn, userEvent, within } from '@storybook/test'
 import { useState } from 'react'
+import type { BreadcrumbsProps } from '.'
 import { Breadcrumbs } from '.'
 
 export default {
   title: 'Components/Breadcrumbs',
   component: Breadcrumbs,
-  parameters: {
-    layout: 'centered',
-  },
-} satisfies Meta<typeof Breadcrumbs>
+  parameters: { layout: 'centered' },
+  render: (args) => <Breadcrumbs {...args} />,
+} satisfies Meta<BreadcrumbsProps>
 
-type Story = StoryObj<typeof Breadcrumbs>
+type Story = StoryObj<BreadcrumbsProps>
 
 export const Default: Story = {
   render: () => (
@@ -151,17 +151,16 @@ export const Dynamic: Story = {
       const nextItem = {
         id: items.length + 1,
         name: `Item ${items.length + 1}`,
-        href: `https://google.com/${items.length + 1}`,
+        href: `https://google.com/search?q=${items.length + 1}`,
         isCurrent: true,
       }
       setItems([...items.map((item) => ({ ...item, isCurrent: false })), nextItem])
     }
 
     return (
-      <Breadcrumbs items={items}>
-        {(item) => (
+      <Breadcrumbs>
+        {items.map((item) => (
           <Breadcrumbs.Item
-            id={item.id}
             href={item.href}
             icon={Folder}
             isCurrent={item.isCurrent}
@@ -171,7 +170,7 @@ export const Dynamic: Story = {
           >
             {item.name}
           </Breadcrumbs.Item>
-        )}
+        ))}
       </Breadcrumbs>
     )
   },
@@ -553,4 +552,29 @@ export const WithCustomIcon: Story = {
       </Breadcrumbs>
     </div>
   ),
+}
+
+export const WithOnAction: Story = {
+  args: { onAction: fn() },
+  render: (args) => (
+    <Breadcrumbs {...args}>
+      <Breadcrumbs.Item id="Home">Home</Breadcrumbs.Item>
+      <Breadcrumbs.Item id="Projects">Projects</Breadcrumbs.Item>
+      <Breadcrumbs.Item id="Team">Team</Breadcrumbs.Item>
+      <Breadcrumbs.Item id="Documents">Documents</Breadcrumbs.Item>
+      <Breadcrumbs.Item id="Reports">Reports</Breadcrumbs.Item>
+      <Breadcrumbs.Item id="March 2025">March 2025</Breadcrumbs.Item>
+    </Breadcrumbs>
+  ),
+  play: async ({ canvasElement, args }) => {
+    const { onAction } = args as BreadcrumbsProps
+
+    const { getByText, getByLabelText } = within(canvasElement)
+    await userEvent.click(getByText('Reports'))
+    await expect(onAction).toHaveBeenCalledWith('Reports')
+
+    await userEvent.click(getByLabelText('More'))
+    await userEvent.click(getByText('Team'))
+    await expect(onAction).toHaveBeenCalledWith('Team')
+  },
 }

@@ -4,20 +4,17 @@
  */
 import * as React from 'react'
 
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-
 import AddDatalinkIcon from '#/assets/add_datalink.svg'
 import AddFolderIcon from '#/assets/add_folder.svg'
 import AddKeyIcon from '#/assets/add_key.svg'
 import DataDownloadIcon from '#/assets/data_download.svg'
 import DataUploadIcon from '#/assets/data_upload.svg'
 import BackIcon from '#/assets/expand_arrow_left.svg'
-import ForwardIcon from '#/assets/expand_arrow_right.svg'
 import Plus2Icon from '#/assets/plus2.svg'
+import * as aria from '#/components/aria'
 import {
   Button,
   ButtonGroup,
-  CopyButton,
   DialogTrigger,
   Text,
   useVisualTooltip,
@@ -28,11 +25,11 @@ import {
   getAllTrashedItems,
 } from '#/hooks/backendBatchedHooks'
 import {
+  listDirectoryQueryOptions,
   useNewDatalink,
   useNewFolder,
   useNewProject,
   useNewSecret,
-  useRootDirectoryId,
 } from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -57,12 +54,17 @@ import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
+import { isDirectoryId } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { Breadcrumbs } from '../components/Breadcrumbs'
 import { useFullUserSession } from '../providers/AuthProvider'
+import { parseDirectoriesPath } from '../services/utilities'
 import { AssetPanelToggle } from './AssetPanel'
+import { useCategories } from './Drive/Categories/categoriesHooks'
+import { useDirectoryIds } from './Drive/directoryIdsHooks'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarProps {
@@ -94,6 +96,41 @@ export default function DriveBar(props: DriveBarProps) {
   const { user } = useFullUserSession()
   const canDownload = useCanDownload()
 
+  const { rootDirectoryId, currentDirectoryId, parentDirectoryId, setCurrentDirectoryId } =
+    useDirectoryIds({ category })
+
+  const { data: directoryData } = useSuspenseQuery({
+    ...listDirectoryQueryOptions({
+      backend,
+      parentId: parentDirectoryId,
+      category,
+    }),
+    select: (data) => {
+      if (parentDirectoryId === currentDirectoryId) {
+        return null
+      }
+
+      const directory = data.find((item) => item.id === currentDirectoryId)
+
+      if (directory == null) {
+        return null
+      }
+
+      const virtualParentsPath = () => {
+        if (directory.virtualParentsPath.length === 0) {
+          return directory.title
+        }
+
+        return directory.virtualParentsPath + '/' + directory.title
+      }
+
+      return {
+        parentsPath: directory.parentsPath + '/' + currentDirectoryId,
+        virtualParentsPath: virtualParentsPath(),
+      }
+    },
+  })
+
   const shouldBeDisabled = (isCloud && isOffline) || !canCreateAssets || isDisabled
 
   const error =
@@ -115,70 +152,84 @@ export default function DriveBar(props: DriveBarProps) {
       pasteData
     : null
 
-  const getTargetDirectory = useEventCallback(() => driveStore.getState().targetDirectory)
-  const rootDirectoryId = useRootDirectoryId(backend, category)
-
   const downloadAssetsMutation = useMutation(downloadAssetsMutationOptions(backend))
   const deleteAssetsMutation = useMutation(deleteAssetsMutationOptions(backend))
-  const newFolderRaw = useNewFolder(backend, category)
-  const newFolder = useEventCallback(async () => {
-    const parent = getTargetDirectory()
-    return await newFolderRaw(parent?.item.parentId ?? rootDirectoryId, parent?.path)
-  })
+  const newFolder = useNewFolder(backend, category)
   const uploadFilesRaw = useUploadFiles(backend, category)
   const uploadFiles = useEventCallback(async (files: readonly File[]) => {
-    const parent = getTargetDirectory()
-    await uploadFilesRaw(files, parent?.item.parentId ?? rootDirectoryId, parent?.path)
+    await uploadFilesRaw(files, currentDirectoryId)
   })
-  const newSecretRaw = useNewSecret(backend, category)
+  const newSecretRaw = useNewSecret(backend)
   const newSecret = useEventCallback(async (name: string, value: string) => {
-    const parent = getTargetDirectory()
-    return await newSecretRaw(name, value, parent?.item.parentId ?? rootDirectoryId, parent?.path)
+    return await newSecretRaw(name, value, currentDirectoryId)
   })
-  const newDatalinkRaw = useNewDatalink(backend, category)
+  const newDatalinkRaw = useNewDatalink(backend)
   const newDatalink = useEventCallback(async (name: string, value: unknown) => {
-    const parent = getTargetDirectory()
-    return await newDatalinkRaw(name, value, parent?.item.parentId ?? rootDirectoryId, parent?.path)
+    return await newDatalinkRaw(name, value, currentDirectoryId)
   })
   const newProjectRaw = useNewProject(backend, category)
+
   const newProjectMutation = useMutation({
     mutationKey: ['newProject'],
     mutationFn: async ([templateId, templateName]: [
       templateId: string | null | undefined,
       templateName: string | null | undefined,
-    ]) => {
-      const parent = getTargetDirectory()
-      return await newProjectRaw(
-        { templateName, templateId },
-        parent?.item.parentId ?? rootDirectoryId,
-        parent?.path,
-      )
-    },
+    ]) => await newProjectRaw({ templateName, templateId }, currentDirectoryId),
   })
-  const newProject = newProjectMutation.mutateAsync
+
   const isCreatingProject = newProjectMutation.isPending
+
   const clearTrash = useEventCallback(async () => {
     const allTrashedItems = await getAllTrashedItems(queryClient, backend)
     await deleteAssetsMutation.mutateAsync([allTrashedItems.map((item) => item.id), true])
   })
 
-  React.useEffect(() => {
-    return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+  const navigateToDirectory = useEventCallback((id: React.Key) => {
+    const parentId = finalPath.findIndex((item) => item.id === id) - 1
+
+    if (!isDirectoryId(id)) {
+      return
+    }
+
+    setCurrentDirectoryId({
+      current: id,
+      // This is safe, because we know the index is present in the array.
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      parent: parentId < 0 ? null : finalPath[parentId]!.id,
+    })
+  })
+
+  const navigateToParent = useEventCallback(() => {
+    navigateToDirectory(parentDirectoryId)
+  })
+
+  const attachEventListeners = useEventCallback(() =>
+    inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
       ...(isCloud ?
         {
           newFolder: () => {
-            void newFolder()
+            void newFolder(currentDirectoryId)
           },
         }
       : {}),
       newProject: () => {
-        void newProject([null, null])
+        void newProjectMutation.mutateAsync([null, null])
       },
       uploadFiles: () => {
         void readUserSelectedFile().then((files) => uploadFiles(Array.from(files)))
       },
-    })
-  }, [inputBindings, isCloud, newFolder, newProject, uploadFiles])
+    }),
+  )
+
+  React.useEffect(() => attachEventListeners(), [attachEventListeners])
+
+  const { getCategoryByDirectoryId } = useCategories()
+  const { finalPath } = parseDirectoriesPath({
+    parentsPath: directoryData?.parentsPath ?? '',
+    virtualParentsPath: directoryData?.virtualParentsPath ?? '',
+    rootDirectoryId,
+    getCategoryByDirectoryId,
+  })
 
   const searchBar = (
     <AssetSearchBar backend={backend} isCloud={isCloud} query={query} setQuery={setQuery} />
@@ -240,30 +291,40 @@ export default function DriveBar(props: DriveBarProps) {
     case 'local-directory': {
       return (
         <div className="flex flex-col gap-2">
-          <div className="flex w-auto flex-none items-center gap-4">
-            <ButtonGroup className="w-auto flex-none">
-              <Button variant="icon" size="small" icon={BackIcon} aria-label={getText('back')} />
+          <div className="flex w-auto flex-none items-center">
+            <ButtonGroup
+              className="mr-4 w-auto flex-none"
+              buttonVariants={{ variant: 'icon', size: 'small' }}
+            >
               <Button
-                variant="icon"
-                size="small"
-                icon={ForwardIcon}
-                aria-label={getText('forward')}
+                icon={BackIcon}
+                aria-label={getText('back')}
+                isDisabled={currentDirectoryId === user.rootDirectoryId}
+                onPress={navigateToParent}
               />
             </ButtonGroup>
-            <Breadcrumbs>
-              <Breadcrumbs.Item href="/">Home</Breadcrumbs.Item>
-              <Breadcrumbs.Item>Home</Breadcrumbs.Item>
-              <Breadcrumbs.Item>Home</Breadcrumbs.Item>
-              <Breadcrumbs.Item>Home</Breadcrumbs.Item>
-              <Breadcrumbs.Item>Home</Breadcrumbs.Item>
-            </Breadcrumbs>
 
-            <CopyButton copyText="Home" tooltip="Copy as path" size="small" />
+            <Breadcrumbs className="mr-2" onAction={navigateToDirectory}>
+              {finalPath.map((pathItem) => {
+                const isCurrent = pathItem.id === currentDirectoryId
+
+                return (
+                  <Breadcrumbs.Item
+                    key={pathItem.id}
+                    id={pathItem.id}
+                    icon={pathItem.icon}
+                    isCurrent={isCurrent}
+                  >
+                    {pathItem.label}
+                  </Breadcrumbs.Item>
+                )
+              })}
+            </Breadcrumbs>
 
             <div className="ml-auto">{assetPanelToggle}</div>
           </div>
 
-          <ButtonGroup className="">
+          <ButtonGroup>
             <ButtonGroup
               ref={createAssetButtonsRef}
               className="grow-0"
@@ -282,19 +343,17 @@ export default function DriveBar(props: DriveBarProps) {
 
                 <StartModal
                   createProject={(templateId, templateName) => {
-                    void newProject([templateId, templateName])
+                    void newProjectMutation.mutateAsync([templateId, templateName])
                   }}
                 />
               </DialogTrigger>
               <Button
                 size="medium"
                 variant="outline"
-                isDisabled={shouldBeDisabled || isCreatingProject}
+                isDisabled={shouldBeDisabled}
                 icon={Plus2Icon}
                 loaderPosition="icon"
-                onPress={async () => {
-                  await newProject([null, null])
-                }}
+                onPress={() => newProjectMutation.mutateAsync([null, null])}
               >
                 {getText('newEmptyProject')}
               </Button>
@@ -305,9 +364,7 @@ export default function DriveBar(props: DriveBarProps) {
                   icon={AddFolderIcon}
                   isDisabled={shouldBeDisabled}
                   aria-label={getText('newFolder')}
-                  onPress={async () => {
-                    await newFolder()
-                  }}
+                  onPress={() => newFolder(currentDirectoryId)}
                 />
                 {isCloud && (
                   <DialogTrigger>
