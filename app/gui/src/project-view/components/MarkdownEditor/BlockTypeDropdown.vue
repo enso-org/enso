@@ -33,7 +33,7 @@ const open = ref(false)
 <template>
   <DropdownMenu v-model:open="open" title="Block type">
     <template #button>
-      <SvgIcon name="edit" />
+      <SvgIcon name="text3" />
     </template>
     <template #menu>
       <MenuPanel>
