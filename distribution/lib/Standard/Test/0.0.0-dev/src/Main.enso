@@ -28,6 +28,7 @@ export project.Extensions.should_succeed
 export project.Faker.Faker
 
 export project.Omitter.omitting
+export project.Omitter.unomitting
 export project.Omitter.omit_get_stack_trace
 
 export project.Problems

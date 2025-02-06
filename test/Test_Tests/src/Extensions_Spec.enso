@@ -85,9 +85,31 @@ add_specs suite_builder =
                 "abc".should_end_with "d"
             r1.message.should_contain "Extensions_Spec.enso:85"
 
-    suite_builder.group "should be able to get a stack trace without test helper farmes" group_builder->
-        group_builder.specify "abcd" <|
-            "ab".should_equal "ab"
+    suite_builder.group "stack trace location" group_builder->
+        group_builder.specify "should be able to get a stack trace without test helper frames" <|
             r1 = expect_test_failure <|
                 "ab".should_equal "ac"
-            r1.message.should_contain "Extensions_Spec.enso:92"
+            r1.message.should_contain "Extensions_Spec.enso:91"
+
+        group_builder.specify "should be able to get a stack trace without test helper frames (with nesting)" <|
+            should_equal_2 x y = omitting <|
+                x.should_equal y
+            should_equal_3 x y = omitting <|
+                should_equal_2 x y
+
+            r1 = expect_test_failure <|
+                should_equal_3 "ab" "ac"
+            r1.message.should_contain "Extensions_Spec.enso:101"
+
+        group_builder.specify "should be able to get a stack trace without test helper frames (with nesting and a callback)" <|
+            should_equal_2 checker x y = omitting <|
+                unomitting (checker x y)
+            should_equal_3 checker x y = omitting <|
+                should_equal_2 checker x y
+
+            my_checker x y =
+                x.should_equal y
+
+            r1 = expect_test_failure <|
+                should_equal_3 my_checker "ab" "ac"
+            r1.message.should_contain "Extensions_Spec.enso:111"
