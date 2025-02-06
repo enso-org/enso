@@ -5,7 +5,6 @@ import {
   toggleList,
   toggleQuote,
 } from '@/util/codemirror/markdownEditing'
-import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { expect, test } from 'vitest'
@@ -26,14 +25,6 @@ const setupEditor = (source: string) => {
       selection,
     }),
   })
-  const vueHost = {
-    register: () => ({
-      unregister: () => {},
-      update: () => {},
-    }),
-    teleportations: new Map(),
-  }
-  view.dispatch({ effects: setVueHost.of(vueHost) })
   return view
 }
 
