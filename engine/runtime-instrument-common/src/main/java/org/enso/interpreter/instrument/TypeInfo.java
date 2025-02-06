@@ -23,10 +23,6 @@ public record TypeInfo(String[] visibleType, String[] hiddenType) {
 
   @Override
   public String toString() {
-    return "TypeInfo("
-        + Arrays.toString(visibleType)
-        + ","
-        + Arrays.toString(hiddenType)
-        + ")";
+    return "TypeInfo(" + Arrays.toString(visibleType) + "," + Arrays.toString(hiddenType) + ")";
   }
 }
