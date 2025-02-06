@@ -4,6 +4,7 @@ import { useDocumentationImages } from '@/components/DocumentationEditor/images'
 import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
 import FullscreenButton from '@/components/FullscreenButton.vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
+import BlockTypeDropdown from '@/components/MarkdownEditor/BlockTypeDropdown.vue'
 import { htmlToMarkdown } from '@/components/MarkdownEditor/htmlToMarkdown'
 import SvgButton from '@/components/SvgButton.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
@@ -75,19 +76,10 @@ const handler = documentationEditorBindings.handler({
     <div class="DocumentationEditor">
       <div ref="toolbarElement" class="toolbar">
         <FullscreenButton v-model="fullscreen" />
-        <SvgButton name="header1" title="Header 1" @click.stop="markdownEditor?.toggleHeader(1)" />
-        <SvgButton name="header2" title="Header 2" @click.stop="markdownEditor?.toggleHeader(2)" />
-        <SvgButton name="header3" title="Header 3" @click.stop="markdownEditor?.toggleHeader(3)" />
-        <SvgButton name="quote" title="Quote" @click.stop="markdownEditor?.toggleQuote()" />
-        <SvgButton
-          name="bullet-list"
-          title="Bullet list"
-          @click.stop="markdownEditor?.toggleList('unordered')"
-        />
-        <SvgButton
-          name="numbered-list"
-          title="Numbered list"
-          @click.stop="markdownEditor?.toggleList('ordered')"
+        <BlockTypeDropdown
+          @toggleHeader="markdownEditor?.toggleHeader($event)"
+          @toggleQuote="markdownEditor?.toggleQuote()"
+          @toggleList="markdownEditor?.toggleList($event)"
         />
         <SvgButton name="image" title="Insert image" @click.stop="tryUploadImageFile()" />
       </div>
@@ -131,10 +123,10 @@ const handler = documentationEditorBindings.handler({
   height: 48px;
   padding-left: 16px;
   flex-shrink: 0;
-
   display: flex;
   align-items: center;
   flex-direction: row;
   gap: 8px;
+  z-index: 250;
 }
 </style>
