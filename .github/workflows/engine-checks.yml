@@ -230,10 +230,7 @@ jobs:
           script: "\n    core.exportVariable(\"ACTIONS_RUNTIME_TOKEN\", process.env[\"ACTIONS_RUNTIME_TOKEN\"])\n    core.exportVariable(\"ACTIONS_RUNTIME_URL\", process.env[\"ACTIONS_RUNTIME_URL\"])\n    core.exportVariable(\"GITHUB_RETENTION_DAYS\", process.env[\"GITHUB_RETENTION_DAYS\"])\n    console.log(context)\n    "
       - name: Checking out the repository
         uses: actions/checkout@v4
-        # Do not merge the latest develop - run this job directly on the PR branch
         with:
-          fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.sha }}
           clean: false
           submodules: recursive
       - name: Build Script Setup
