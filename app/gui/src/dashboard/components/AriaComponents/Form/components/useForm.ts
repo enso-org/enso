@@ -96,13 +96,16 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
                   }
                 }
               case 'too_big':
-                return {
-                  message: getText('arbitraryFieldTooLarge', issue.maximum.toString()),
-                }
+                return { message: getText('arbitraryFieldTooLarge', issue.maximum.toString()) }
               case 'invalid_type':
-                return {
-                  message: getText('arbitraryFieldInvalid'),
+                return { message: getText('arbitraryFieldInvalid') }
+              case 'invalid_string':
+                if (issue.validation === 'email') {
+                  return { message: getText('invalidEmailValidationError') }
                 }
+
+                return { message: getText('arbitraryFieldInvalid') }
+
               case 'invalid_literal':
               case 'invalid_enum_value':
               case 'invalid_union':
@@ -110,7 +113,6 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
               case 'invalid_union_discriminator':
               case 'invalid_arguments':
               case 'invalid_return_type':
-              case 'invalid_string':
               case 'not_multiple_of':
               case 'custom':
               case 'invalid_intersection_types':

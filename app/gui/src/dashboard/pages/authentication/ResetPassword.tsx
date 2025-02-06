@@ -4,12 +4,11 @@
  */
 import * as React from 'react'
 import * as router from 'react-router-dom'
-
+import { toast } from 'react-toastify'
 import isEmail from 'validator/lib/isEmail'
 import * as z from 'zod'
 
 import { LOGIN_PATH } from '#/appUtils'
-import ArrowRightIcon from '#/assets/arrow_right.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
 import { Form, Input, Password } from '#/components/AriaComponents'
@@ -55,6 +54,7 @@ export default function ResetPassword() {
   const { getText } = useText()
   const location = router.useLocation()
   const navigate = router.useNavigate()
+
   const toastAndLog = useToastAndLog()
   const localBackend = useLocalBackend()
   const supportsOffline = localBackend != null
@@ -88,6 +88,7 @@ export default function ResetPassword() {
       onSubmit={({ email, verificationCode, newPassword }) =>
         resetPassword(email, verificationCode, newPassword).then(() => {
           navigate(LOGIN_PATH)
+          toast.success(getText('resetPasswordSuccess'))
         })
       }
     >
@@ -102,6 +103,7 @@ export default function ResetPassword() {
         placeholder={getText('emailPlaceholder')}
         value={defaultEmail ?? ''}
       />
+
       <Input
         required
         readOnly
@@ -113,6 +115,7 @@ export default function ResetPassword() {
         placeholder={getText('confirmationCodePlaceholder')}
         value={defaultVerificationCode ?? ''}
       />
+
       <Password
         autoFocus
         required
@@ -124,6 +127,7 @@ export default function ResetPassword() {
         placeholder={getText('newPasswordPlaceholder')}
         description={getText('passwordValidationMessage')}
       />
+
       <Password
         required
         data-testid="confirm-new-password-input"
@@ -134,10 +138,11 @@ export default function ResetPassword() {
         placeholder={getText('confirmNewPasswordPlaceholder')}
       />
 
-      <Form.FormError />
-      <Form.Submit size="large" icon={ArrowRightIcon} className="w-full">
+      <Form.Submit size="large" icon="arrow_right" className="w-full">
         {getText('reset')}
       </Form.Submit>
+
+      <Form.FormError />
     </AuthenticationPage>
   )
 }

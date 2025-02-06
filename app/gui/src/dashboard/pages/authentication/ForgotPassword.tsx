@@ -4,9 +4,6 @@
  */
 import { useState } from 'react'
 
-import isEmail from 'validator/lib/isEmail'
-import * as z from 'zod'
-
 import { LOGIN_PATH } from '#/appUtils'
 import ArrowRightIcon from '#/assets/arrow_right.svg'
 import AtIcon from '#/assets/at.svg'
@@ -16,15 +13,9 @@ import Link from '#/components/Link'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { useSessionAPI } from '#/providers/SessionProvider'
-import { type GetText, useText } from '#/providers/TextProvider'
+import { useText } from '#/providers/TextProvider'
 import { useLocation, useNavigate } from 'react-router'
-
-/** Create the schema for this form. */
-function createForgotPasswordFormSchema(getText: GetText) {
-  return z.object({
-    email: z.string().refine(isEmail, getText('invalidEmailValidationError')),
-  })
-}
+import { toast } from 'react-toastify'
 
 // ======================
 // === ForgotPassword ===
@@ -48,7 +39,7 @@ export default function ForgotPassword() {
   return (
     <AuthenticationPage
       title={getText('forgotYourPassword')}
-      schema={createForgotPasswordFormSchema(getText)}
+      schema={(z) => z.object({ email: z.string().email() })}
       footer={
         <Link
           to={`${LOGIN_PATH}?${new URLSearchParams({ email: emailInput }).toString()}`}
@@ -57,11 +48,12 @@ export default function ForgotPassword() {
         />
       }
       supportsOffline={supportsOffline}
-      onSubmit={({ email }) => {
-        return forgotPassword(email).then(() => {
+      onSubmit={({ email }) =>
+        forgotPassword(email).then(() => {
           navigate(LOGIN_PATH)
+          toast.success(getText('forgotPasswordSuccess'))
         })
-      }}
+      }
     >
       <Input
         autoFocus
