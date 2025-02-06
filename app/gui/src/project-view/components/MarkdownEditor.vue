@@ -3,7 +3,6 @@ import {
   provideDocumentationImageUrlTransformer,
   type UrlTransformer,
 } from '@/components/MarkdownEditor/imageUrlTransformer'
-import { HeaderLevel, ListType } from '@/util/codemirror/markdownEditing'
 import { Vec2 } from '@/util/data/vec2'
 import { ComponentInstance, computed, defineAsyncComponent, ref, toRef } from 'vue'
 import * as Y from 'yjs'
@@ -11,7 +10,6 @@ import * as Y from 'yjs'
 const props = defineProps<{
   content: Y.Text | string
   transformImageUrl?: UrlTransformer
-  toolbarContainer: HTMLElement | undefined
 }>()
 
 const inner = ref<ComponentInstance<typeof LazyMarkdownEditor>>()
@@ -30,20 +28,21 @@ defineExpose({
   putTextAtCoord: (text: string, coords: Vec2) => {
     inner.value?.putTextAtCoords(text, coords)
   },
-  toggleHeader: (level: HeaderLevel) => {
-    inner.value?.toggleHeader(level)
-  },
-  toggleQuote: () => {
-    inner.value?.toggleQuote()
-  },
-  toggleList: (type: ListType) => {
-    inner.value?.toggleList(type)
-  },
 })
 </script>
 
 <template>
   <Suspense>
-    <LazyMarkdownEditor ref="inner" v-bind="props" class="MarkdownEditor" />
+    <LazyMarkdownEditor ref="inner" v-bind="props">
+      <template #toolbarLeft>
+        <slot name="toolbarLeft" />
+      </template>
+      <template #toolbarRight>
+        <slot name="toolbarRight" />
+      </template>
+      <template #belowToolbar>
+        <slot name="belowToolbar" />
+      </template>
+    </LazyMarkdownEditor>
   </Suspense>
 </template>
