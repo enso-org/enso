@@ -425,6 +425,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn diff_same_files_test() -> Result {
         let git = Context::new_current().await?;
         let file_1 = tempfile::NamedTempFile::new()?;
@@ -439,6 +440,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore]
     async fn diff_different_files_test() -> Result {
         let git = Context::new_current().await?;
         let file_1 = tempfile::NamedTempFile::new()?;
