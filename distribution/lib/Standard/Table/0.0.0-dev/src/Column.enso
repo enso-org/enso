@@ -27,6 +27,7 @@ import project.Internal.Offset_Helper
 import project.Internal.Parse_Values_Helper
 import project.Internal.Read_Many_Helpers
 import project.Internal.Storage
+import project.Internal.Type_Refinements.Column_Refinements
 import project.Internal.Value_Type_Helpers
 import project.Internal.Widget_Helpers
 import project.Fill_With.Fill_With
@@ -38,7 +39,7 @@ from project.Errors import Conversion_Failure, Inexact_Type_Coercion, Invalid_Co
 from project.Internal.Column_Format import all
 from project.Internal.Java_Exports import make_string_builder
 from project.Internal.Storage import enso_to_java, java_to_enso
-from project.Internal.Type_Refinements.Single_Value_Column import refine_with_single_value
+from project.Table import from_java_table
 
 polyglot java import org.enso.base.Time_Utils
 polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
@@ -142,7 +143,7 @@ type Column
        Creates a new column given a Java Column object.
     from_java_column java_column:Java_Column -> Column =
         column = Column.Value java_column
-        column |> refine_with_single_value
+        Column_Refinements.refine_column column
 
     ## PRIVATE
        ADVANCED
@@ -160,12 +161,16 @@ type Column
             Column.from_java_column java_column
 
     ## PRIVATE
-
-       A representation of a column in a Table.
+       Internal constructor that should not be used directly.
+       Please use `from_java_column` instead.
 
        Arguments:
-       - java_column: The internal representation of the column.
-    private Value java_column
+       - internal_java_column: The internal representation of the column.
+    private Value internal_java_column
+
+    ## PRIVATE
+       A getter that is a workaround for bug https://github.com/enso-org/enso/issues/12180
+    private java_column self = self.internal_java_column
 
     ## PRIVATE
        ADVANCED
@@ -2396,7 +2401,7 @@ type Column
 
              example_to_table = Examples.integer_column.to_table
     to_table : Table
-    to_table self = Table.Value self.java_column.toTable
+    to_table self = from_java_table self.java_column.toTable
 
     ## ALIAS column type, field info, metadata
        GROUP Standard.Base.Metadata
