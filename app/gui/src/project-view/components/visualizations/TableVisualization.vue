@@ -117,11 +117,6 @@ const VECTOR_NODE_TYPE = 'Standard.Base.Data.Vector.Vector'
 const COLUMN_NODE_TYPE = 'Standard.Table.Column.Column'
 const ROW_NODE_TYPE = 'Standard.Table.Row.Row'
 
-const rowLimit = ref(0)
-const page = ref(0)
-const pageLimit = ref(0)
-const rowCount = ref(0)
-const showRowCount = ref(true)
 const isTruncated = ref(false)
 const isCreateNodeEnabled = ref(false)
 const filterModel = ref<GridFilterModel[]>([])
@@ -227,7 +222,7 @@ function formatText(params: ICellRendererParams) {
 
 watchEffect(async () => {
   const exe = config.executeExpression
-  const xyz = await exe('Standard.Visualization.Table.Visualization', 'get_rows_for_table', '1997')
+  const xyz = await exe('Standard.Visualization.Table.Visualization', 'get_rows_for_table', '0')
   console.log({ xyz })
 })
 
