@@ -17,7 +17,6 @@ import Standard.Database.Extensions.Upload_In_Memory_Table
 from Standard.Database import Database, SQLite
 
 from Standard.Test import all
-from Standard.Test.Omitter import all
 
 from project.Util import all
 

@@ -11,7 +11,6 @@ import Standard.Database.Feature.Feature
 from Standard.Database.Errors import Unsupported_Database_Operation, Aggregagtion_Requires_Order
 
 from Standard.Test import all
-from Standard.Test.Omitter import all
 
 
 from project.Common_Table_Operations.Util import run_default_backend, within_table

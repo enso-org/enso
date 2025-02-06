@@ -4,7 +4,6 @@ from Standard.Table import Column, Table, Value_Type
 import Standard.Database.DB_Table.DB_Table
 
 from Standard.Test import all
-from Standard.Test.Omitter import all
 
 from project.In_Memory.Common_Spec import in_memory_setup
 

@@ -17,7 +17,6 @@ import Standard.Table.Errors.Invalid_JSON_Format
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
-from Standard.Test.Omitter import all
 
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 from enso_dev.Base_Tests.Network.Http.Http_Test_Setup import base_url_with_slash, pending_has_url

@@ -12,7 +12,6 @@ polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
-from Standard.Test.Omitter import all
 
 import project.Data.Data_Spec
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup

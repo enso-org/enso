@@ -12,7 +12,6 @@ import project.Suite.Suite_Builder
 import project.Test_Result.Test_Result
 from project.Omitter import all
 
-
 polyglot java import java.lang.Thread
 
 
