@@ -210,10 +210,11 @@ mod tests {
         let new_dir = temp.path().join("new");
         write(old_dir.join("file1.txt"), "file1")?;
         write(new_dir.join("file1.txt"), "file1")?;
-        let _ = diff_dirs(old_dir, new_dir).then(|res| {
+        let x = diff_dirs(old_dir, new_dir).then(|res| {
             assert!(res.is_ok());
             async { Ok::<(), anyhow::Error>(()) }
         });
+        drop(x);
         Ok(())
     }
 
@@ -226,11 +227,12 @@ mod tests {
         write(old_dir.join("file2.txt"), "file2")?;
         write(new_dir.join("file1.txt"), "file1")?;
         let err = diff_dirs(old_dir, new_dir);
-        let _ = err.then(|res| {
+        let x = err.then(|res| {
             let err = res.unwrap_err();
             assert!(err.to_string().contains("file2.txt"));
             async { Ok::<(), anyhow::Error>(()) }
         });
+        drop(x);
         Ok(())
     }
 
@@ -242,11 +244,12 @@ mod tests {
         write(old_dir.join("file1.txt"), "file1")?;
         write(new_dir.join("file1.txt"), "file1")?;
         write(new_dir.join("file2.txt"), "file2")?;
-        let _ = diff_dirs(old_dir, new_dir).then(|res| {
+        let x = diff_dirs(old_dir, new_dir).then(|res| {
             let err = res.unwrap_err();
             assert!(err.to_string().contains("file2.txt"));
             async { Ok::<(), anyhow::Error>(()) }
         });
+        drop(x);
         Ok(())
     }
 
@@ -257,11 +260,12 @@ mod tests {
         let new_dir = temp.path().join("new");
         write(old_dir.join("file1.txt"), "foo")?;
         write(new_dir.join("file1.txt"), "XXX")?;
-        let _ = diff_dirs(old_dir, new_dir).then(|res| {
+        let x = diff_dirs(old_dir, new_dir).then(|res| {
             let err = res.unwrap_err();
             assert!(err.to_string().contains("file1.txt"));
             async { Ok::<(), anyhow::Error>(()) }
         });
+        drop(x);
         Ok(())
     }
 
@@ -274,11 +278,12 @@ mod tests {
         write(old_dir.join("file2.txt"), "bar")?;
         write(new_dir.join("file1.txt"), "XXX")?;
         write(new_dir.join("file2.txt"), "bar")?;
-        let _ = diff_dirs(old_dir, new_dir).then(|res| {
+        let x = diff_dirs(old_dir, new_dir).then(|res| {
             let err = res.unwrap_err();
             assert!(err.to_string().contains("file1.txt"));
             async { Ok::<(), anyhow::Error>(()) }
         });
+        drop(x);
         Ok(())
     }
 
@@ -287,10 +292,11 @@ mod tests {
         let temp = tempfile::tempdir()?;
         let old_dir = temp.path().join("old");
         let new_dir = temp.path().join("new");
-        let _ = diff_dirs(old_dir, new_dir).then(|res| {
+        let x = diff_dirs(old_dir, new_dir).then(|res| {
             assert!(res.is_ok());
             async { Ok::<(), anyhow::Error>(()) }
         });
+        drop(x);
         Ok(())
     }
 
@@ -300,11 +306,12 @@ mod tests {
         let old_dir = temp.path().join("old");
         write(old_dir.join("file1.txt"), "foo")?;
         let new_dir = temp.path().join("new");
-        let _ = diff_dirs(old_dir, new_dir).then(|res| {
+        let x = diff_dirs(old_dir, new_dir).then(|res| {
             let err = res.unwrap_err();
             assert!(err.to_string().contains("file1.txt"));
             async { Ok::<(), anyhow::Error>(()) }
         });
+        drop(x);
         Ok(())
     }
 
@@ -315,13 +322,14 @@ mod tests {
         let new_dir = temp.path().join("new");
         write(old_dir.join("file1.txt"), "foo")?;
         write(new_dir.join("file1.txt"), "XXX")?;
-        let _ = diff_dirs(old_dir, new_dir).then(|res| {
+        let x = diff_dirs(old_dir, new_dir).then(|res| {
             let err = res.unwrap_err();
             assert!(err.to_string().contains("file1.txt"));
             assert!(err.to_string().contains("foo"));
             assert!(err.to_string().contains("XXX"));
             async { Ok::<(), anyhow::Error>(()) }
         });
+        drop(x);
         Ok(())
     }
 }
