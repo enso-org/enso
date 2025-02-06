@@ -15,5 +15,4 @@ make_offset (n : Integer) (colName: Internal_Column) (order_descriptors : Vector
         _ -> ""
     order_descriptors_for_row_number = if n<0 then order_descriptors else order_descriptors.map o->o.reverse
     params = [SQL_Expression.Literal n.abs.to_text, colName.expression, SQL_Expression.Literal fill, SQL_Expression.List grouping_expressions, SQL_Expression.List order_descriptors, SQL_Expression.List order_descriptors_for_row_number]
-    metadata = Operation_Metadata.Row_Number_Metadata.Value grouping_expressions.length
-    SQL_Expression.Operation lead_lag params metadata
+    SQL_Expression.Operation lead_lag params
