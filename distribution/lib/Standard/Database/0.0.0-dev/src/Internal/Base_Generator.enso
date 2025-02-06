@@ -100,6 +100,9 @@ type SQL_Generator
                     wrapped_binder ++ "." ++ "x"
                 False ->
                     self.generate_expression dialect standalone_expression
+        SQL_Expression.List values ->
+            parsed_values = values.map (self.generate_expression dialect)
+            SQL_Builder.join ", " parsed_values
         query : Query -> self.generate_sub_query dialect query
         descriptor : Order_Descriptor -> self.generate_order dialect descriptor
 
