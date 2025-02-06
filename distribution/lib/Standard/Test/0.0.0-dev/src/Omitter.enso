@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-verbose = True
+verbose = False
 
 pst s st =
     IO.println "==== "+s
@@ -10,14 +10,21 @@ omitting ~action =
     #IO.println "AAAAA "+omit_get_stack_trace
     action
 
+unomitting ~action =
+    #IO.println "AAAAA "+omit_get_stack_trace
+    action
+
 omit_get_stack_trace =
     stack_trace = Runtime.get_stack_trace
     if verbose then pst "full" stack_trace
 
-    omitting_index = stack_trace.last_index_of (frame-> frame.name == "Omitter.omitting")
-    real_stack_trace = stack_trace.drop (omitting_index + 2)
+    first_omitting_index = stack_trace.last_index_of (frame-> frame.name == "Omitter.omitting")
+    last_unomitting_index = stack_trace.index_of (frame-> frame.name == "Omitter.unomitting")
+    to_drop = if first_omitting_index.is_nothing then 0 else
+        if last_unomitting_index.is_nothing.not && last_unomitting_index < first_omitting_index then last_unomitting_index - 1 else first_omitting_index + 2
+    real_stack_trace = stack_trace.drop to_drop
 
-    if verbose then IO.println "OI "+omitting_index.to_text
+    if verbose then IO.println "OI "+first_omitting_index.to_text+" "+last_unomitting_index.to_text
     if verbose then pst "real" real_stack_trace
 
     top = real_stack_trace . at 0 . source_location
