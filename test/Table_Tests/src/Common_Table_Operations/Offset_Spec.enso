@@ -209,7 +209,7 @@ add_offset_specs suite_builder setup =
         colA = ["A", [1, 2, 3]]
         colB = ["B", [Nothing, Nothing, Nothing], Value_Type.Integer]
         t1 = build_sorted_table [colA, colB]
-        group_builder.specify "Negative n shifts the values downX" <|
+        group_builder.specify "Negative n shifts the values down" <|
             t1.offset ["A"] -1 ..Closest_Value . should_equal ignore_order=setup.is_database
                 Table.new [colA, colB, ["offset([A], -1, Fill_With.Closest_Value)", [1, 1, 2]]]
         group_builder.specify "Positive n shifts the values up" <|
@@ -315,10 +315,10 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Positive n shifts the values up" <|
             t2.offset ["Col"] 1 ..Closest_Value group_by=["Group"] . should_equal ignore_order=setup.is_database
                 Table.new [groupColumn, dataCol, ["offset([Col], 1, Fill_With.Closest_Value)", [2, 3, 3, 20, 30, 40, 40, 200, 200]]]
-        group_builder.specify "WWW2" <|
+        group_builder.specify "Negative n shifts the values down (n=2)" <|
             t2.offset ["Col"] -2 ..Closest_Value group_by=["Group"] . should_equal ignore_order=setup.is_database
                 Table.new [groupColumn, dataCol, ["offset([Col], -2, Fill_With.Closest_Value)", [1, 1, 1, 10, 10, 10, 20, 100, 100]]]
-        group_builder.specify "WWW" <|
+        group_builder.specify "Positive n shifts the values up (n=2)" <|
             t2.offset ["Col"] 2 ..Closest_Value group_by=["Group"] . should_equal ignore_order=setup.is_database
                 Table.new [groupColumn, dataCol, ["offset([Col], 2, Fill_With.Closest_Value)", [3, 3, 3, 30, 40, 40, 40, 200, 200]]]
         group_builder.specify "Zero n is a no-op" <|
