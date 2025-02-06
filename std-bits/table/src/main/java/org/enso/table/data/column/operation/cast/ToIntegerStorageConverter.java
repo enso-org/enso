@@ -69,14 +69,14 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     return StorageIterators.buildOverStorage(
         storage,
         Builder.getForLong(targetType, storage.getSize(), problemAggregator),
-        (builder, _, o) -> {
-          if (o instanceof Boolean b) {
+        (builder, index, value) -> {
+          if (value instanceof Boolean b) {
             builder.appendLong(booleanAsLong(b));
-          } else if (NumericConverter.isCoercibleToLong(o)) {
-            long x = NumericConverter.coerceToLong(o);
+          } else if (NumericConverter.isCoercibleToLong(value)) {
+            long x = NumericConverter.coerceToLong(value);
             builder.appendLong(x);
-          } else if (NumericConverter.isFloatLike(o)) {
-            double x = NumericConverter.coerceToDouble(o);
+          } else if (NumericConverter.isFloatLike(value)) {
+            double x = NumericConverter.coerceToDouble(value);
             if (targetType.fits(x)) {
               long converted = (long) x;
               builder.appendLong(converted);
@@ -84,14 +84,14 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
               problemAggregator.reportNumberOutOfRange(x);
               builder.appendNulls(1);
             }
-          } else if (o instanceof BigInteger bigInteger) {
+          } else if (value instanceof BigInteger bigInteger) {
             if (targetType.fits(bigInteger)) {
               builder.appendLong(bigInteger.longValue());
             } else {
               problemAggregator.reportNumberOutOfRange(bigInteger);
               builder.appendNulls(1);
             }
-          } else if (o instanceof BigDecimal bigDecimal) {
+          } else if (value instanceof BigDecimal bigDecimal) {
             BigInteger bigInteger = bigDecimal.toBigInteger();
             if (targetType.fits(bigInteger)) {
               builder.appendLong(bigInteger.longValue());
@@ -100,7 +100,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
               builder.appendNulls(1);
             }
           } else {
-            problemAggregator.reportConversionFailure(o);
+            problemAggregator.reportConversionFailure(value);
             builder.appendNulls(1);
           }
         });
@@ -111,7 +111,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     return StorageIterators.buildOverBooleanStorage(
         boolStorage,
         Builder.getForLong(targetType, boolStorage.getSize(), problemAggregator),
-        (builder, _, value, _) -> builder.appendLong(booleanAsLong(value))
+        (builder, index, value, isNothing) -> builder.appendLong(booleanAsLong(value))
     );
   }
 
@@ -120,7 +120,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     return StorageIterators.buildOverDoubleStorage(
         doubleStorage,
         Builder.getForLong(targetType, doubleStorage.getSize(), problemAggregator),
-        (builder,_, value, _) -> {
+        (builder,index, value, isNothing) -> {
           if (targetType.fits(value)) {
             long converted = (long) value;
             builder.appendLong(converted);
@@ -143,7 +143,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     return StorageIterators.buildOverLongStorage(
         longStorage,
         Builder.getForLong(targetType, longStorage.getSize(), problemAggregator),
-        (builder, _, value, _) -> builder.appendLong(value)
+        (builder, index, value, isNothing) -> builder.appendLong(value)
     );
   }
 
@@ -152,7 +152,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     return StorageIterators.buildOverStorage(
         storage,
         Builder.getForLong(targetType, storage.getSize(), problemAggregator),
-        (builder, _, value) -> {
+        (builder, index, value) -> {
           if (targetType.fits(value)) {
             builder.appendLong(value.longValue());
           } else {
@@ -167,7 +167,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     return StorageIterators.buildOverStorage(
         storage,
         Builder.getForLong(targetType, storage.getSize(), problemAggregator),
-        (builder, _, value) -> {
+        (builder, index, value) -> {
           BigInteger bigInteger = value.toBigInteger();
           if (targetType.fits(bigInteger)) {
             builder.appendLong(bigInteger.longValue());

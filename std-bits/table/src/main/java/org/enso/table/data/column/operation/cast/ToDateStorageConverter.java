@@ -37,12 +37,12 @@ public class ToDateStorageConverter implements StorageConverter<LocalDate> {
     return StorageIterators.mapOverStorage(
         storage,
         Builder.getForDate(storage.getSize()),
-        (_, o) ->
-            switch (o) {
+        (index, value) ->
+            switch (value) {
               case LocalDate d -> d;
               case ZonedDateTime d -> d.toLocalDate();
               default -> {
-                problemAggregator.reportConversionFailure(o);
+                problemAggregator.reportConversionFailure(value);
                 yield null;
               }
             });
@@ -53,6 +53,6 @@ public class ToDateStorageConverter implements StorageConverter<LocalDate> {
     return StorageIterators.mapOverStorage(
         dateTimeStorage,
         Builder.getForDate(dateTimeStorage.getSize()),
-        (_, dateTime) -> dateTime.toLocalDate());
+        (index, value) -> value.toLocalDate());
   }
 }

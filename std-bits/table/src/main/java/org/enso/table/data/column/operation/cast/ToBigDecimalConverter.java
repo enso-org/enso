@@ -55,7 +55,7 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
     return StorageIterators.mapOverDoubleStorage(
         doubleStorage,
         Builder.getForBigDecimal(doubleStorage.getSize()),
-        (_, value, _) -> BigDecimal.valueOf(value));
+        (index, value, isNothing) -> BigDecimal.valueOf(value));
   }
 
   private ColumnStorage<BigDecimal> convertLongStorage(
@@ -63,7 +63,7 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
     return StorageIterators.mapOverLongStorage(
         longStorage,
         Builder.getForBigDecimal(longStorage.getSize()),
-        (_, value, _) -> BigDecimal.valueOf(value));
+        (index, value, isNothing) -> BigDecimal.valueOf(value));
   }
 
   private ColumnStorage<BigDecimal> convertBoolStorage(
@@ -71,7 +71,7 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
     return StorageIterators.mapOverBooleanStorage(
         boolStorage,
         Builder.getForBigDecimal(boolStorage.getSize()),
-        (_, value, _) -> booleanAsBigDecimal(value));
+        (index, value, isNothing) -> booleanAsBigDecimal(value));
   }
 
   private ColumnStorage<BigDecimal> convertBigIntegerStorage(
@@ -79,7 +79,7 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
     return StorageIterators.mapOverStorage(
         bigIntegerStorage,
         Builder.getForBigDecimal(bigIntegerStorage.getSize()),
-        (_, value) -> new BigDecimal(value));
+        (index, value) -> new BigDecimal(value));
   }
 
   private ColumnStorage<BigDecimal> castFromObject(
@@ -87,15 +87,15 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
     return StorageIterators.mapOverStorage(
         storage,
         Builder.getForBigDecimal(storage.getSize()),
-        (_, o) ->
-            switch (o) {
+        (index, value) ->
+            switch (value) {
               case Boolean b -> booleanAsBigDecimal(b);
               case Long l -> BigDecimal.valueOf(l);
               case Double d -> BigDecimal.valueOf(d);
               case BigInteger bigInteger -> new BigDecimal(bigInteger);
               case BigDecimal bigDecimal -> bigDecimal;
               default -> {
-                problemAggregator.reportConversionFailure(o);
+                problemAggregator.reportConversionFailure(value);
                 yield null;
               }
             });

@@ -38,12 +38,12 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
     return StorageIterators.mapOverStorage(
         storage,
         Builder.getForDateTime(storage.getSize()),
-        (_, o) ->
-            switch (o) {
+        (index, value) ->
+            switch (value) {
               case ZonedDateTime d -> d;
               case LocalDate d -> convertDate(d);
               default -> {
-                problemAggregator.reportConversionFailure(o);
+                problemAggregator.reportConversionFailure(value);
                 yield null;
               }
             });
@@ -54,7 +54,7 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
     return StorageIterators.mapOverStorage(
         dateStorage,
         Builder.getForDateTime(dateStorage.getSize()),
-        (_, date) -> convertDate(date));
+        (index, value) -> convertDate(value));
   }
 
   private ZonedDateTime convertDate(LocalDate date) {

@@ -63,18 +63,18 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     return StorageIterators.buildOverStorage(
         storage,
         Builder.getForDouble(FloatType.FLOAT_64, storage.getSize(), problemAggregator),
-        (builder, _, o) -> {
-          if (NumericConverter.isCoercibleToLong(o)) {
-            builder.appendLong(NumericConverter.coerceToLong(o));
-          } else if (NumericConverter.isFloatLike(o)) {
-            builder.appendDouble(NumericConverter.coerceToDouble(o));
+        (builder, index, value) -> {
+          if (NumericConverter.isCoercibleToLong(value)) {
+            builder.appendLong(NumericConverter.coerceToLong(value));
+          } else if (NumericConverter.isFloatLike(value)) {
+            builder.appendDouble(NumericConverter.coerceToDouble(value));
           } else {
-            switch (o) {
+            switch (value) {
               case Boolean b -> builder.appendDouble(booleanAsDouble(b));
               case BigInteger bigInteger -> builder.append(bigInteger);
               case BigDecimal bigDecimal -> builder.append(bigDecimal);
               default -> {
-                problemAggregator.reportConversionFailure(o);
+                problemAggregator.reportConversionFailure(value);
                 builder.appendNulls(1);
               }
             }
@@ -87,7 +87,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     return StorageIterators.buildOverLongStorage(
         longStorage,
         Builder.getForDouble(FloatType.FLOAT_64, longStorage.getSize(), problemAggregator),
-        (builder, _, value, _) -> builder.appendLong(value)
+        (builder, index, value, isNothing) -> builder.appendLong(value)
     );
   }
 
@@ -96,7 +96,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     return StorageIterators.buildOverBooleanStorage(
         boolStorage,
         Builder.getForDouble(FloatType.FLOAT_64, boolStorage.getSize(), problemAggregator),
-        (builder, _, value, _) -> builder.appendDouble(booleanAsDouble(value))
+        (builder, index, value, isNothing) -> builder.appendDouble(booleanAsDouble(value))
     );
   }
 
@@ -109,7 +109,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     return StorageIterators.buildOverStorage(
         storage,
         Builder.getForDouble(FloatType.FLOAT_64, storage.getSize(), problemAggregator),
-        (builder, _, value) -> builder.append(value));
+        (builder, index, value) -> builder.append(value));
   }
 
   private ColumnStorage<Double> convertBigDecimalStorage(
@@ -117,6 +117,6 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     return StorageIterators.buildOverStorage(
         storage,
         Builder.getForDouble(FloatType.FLOAT_64, storage.getSize(), problemAggregator),
-        (builder, _, value) -> builder.append(value));
+        (builder, index, value) -> builder.append(value));
   }
 }

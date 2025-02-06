@@ -32,12 +32,12 @@ public class ToBooleanStorageConverter implements StorageConverter<Boolean> {
     return StorageIterators.mapOverStorage(
         storage,
         Builder.getForBoolean(storage.getSize()),
-        (_, o) ->
-            switch (o) {
+        (index, value) ->
+            switch (value) {
               case Boolean b -> b;
               case Number n -> n.doubleValue() != 0;
               default -> {
-                problemAggregator.reportConversionFailure(o);
+                problemAggregator.reportConversionFailure(value);
                 yield null;
               }
             });

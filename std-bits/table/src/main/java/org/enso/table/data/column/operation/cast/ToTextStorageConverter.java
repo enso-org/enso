@@ -63,13 +63,13 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     return StorageIterators.mapOverStorage(
         storage,
         Builder.getForText(targetType, storage.getSize()),
-        (_, o) ->
-            switch (o) {
+        (index, value) ->
+            switch (value) {
               case LocalTime d -> adapt(convertTime(d), problemAggregator);
               case LocalDate d -> adapt(convertDate(d), problemAggregator);
               case ZonedDateTime d -> adapt(convertDateTime(d), problemAggregator);
               case Boolean b -> adapt(convertBoolean(b), problemAggregator);
-              default -> adapt(o.toString(), problemAggregator);
+              default -> adapt(value.toString(), problemAggregator);
             });
   }
 
@@ -78,7 +78,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     return StorageIterators.mapOverLongStorage(
         longStorage,
         Builder.getForText(targetType, longStorage.getSize()),
-        (_, value, _) -> adapt(Long.toString(value), problemAggregator));
+        (index, value, isNothing) -> adapt(Long.toString(value), problemAggregator));
   }
 
   private ColumnStorage<String> castBoolStorage(
@@ -86,7 +86,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     return StorageIterators.mapOverBooleanStorage(
         boolStorage,
         Builder.getForText(targetType, boolStorage.getSize()),
-        (_, value, _) -> adapt(convertBoolean(value), problemAggregator));
+        (index, value, isNothing) -> adapt(convertBoolean(value), problemAggregator));
   }
 
   private ColumnStorage<String> castDoubleStorage(
@@ -94,7 +94,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     return StorageIterators.mapOverDoubleStorage(
         doubleStorage,
         Builder.getForText(targetType, doubleStorage.getSize()),
-        (_, value, _) -> adapt(Double.toString(value), problemAggregator));
+        (index, value, isNothing) -> adapt(Double.toString(value), problemAggregator));
   }
 
   private <T> ColumnStorage<String> castTemporalStorage(
@@ -104,7 +104,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     return StorageIterators.mapOverStorage(
         storage,
         Builder.getForText(targetType, storage.getSize()),
-        (_, value) -> adapt(converter.apply(value), problemAggregator));
+        (index, value) -> adapt(converter.apply(value), problemAggregator));
   }
 
   private ColumnStorage<String> adaptStringStorage(
@@ -113,7 +113,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     return StorageIterators.mapOverStorage(
         stringStorage,
         Builder.getForText(targetType, stringStorage.getSize()),
-        (_, value) -> adaptWithoutWarning(value));
+        (index, value) -> adaptWithoutWarning(value));
   }
 
   private final DateTimeFormatter dateFormatter = Core_Date_Utils.defaultLocalDateFormatter;

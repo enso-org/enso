@@ -37,12 +37,12 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
     return StorageIterators.mapOverStorage(
         storage,
         Builder.getForTime(storage.getSize()),
-        (_, o) ->
-            switch (o) {
+        (index, value) ->
+            switch (value) {
               case LocalTime d -> d;
               case ZonedDateTime d -> convertDateTime(d);
               default -> {
-                problemAggregator.reportConversionFailure(o);
+                problemAggregator.reportConversionFailure(value);
                 yield null;
               }
             });
@@ -53,7 +53,7 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
     return StorageIterators.mapOverStorage(
         dateTimeStorage,
         Builder.getForTime(dateTimeStorage.getSize()),
-        (_, dateTime) -> convertDateTime(dateTime));
+        (index, value) -> convertDateTime(value));
   }
 
   private LocalTime convertDateTime(ZonedDateTime dateTime) {

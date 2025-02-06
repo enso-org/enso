@@ -14,6 +14,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
+import org.enso.table.problems.ProblemAggregator;
 
 /** Perform a cast operation on a Column */
 public class CastOperation {
@@ -23,11 +24,12 @@ public class CastOperation {
   }
 
   public static Column apply(
-      Column source, StorageType targetType, CastProblemAggregator castProblemAggregator) {
+      Column source, StorageType targetType, ProblemAggregator problemAggregator) {
     if (source.getStorage().getType().equals(targetType)) {
       return source;
     }
 
+    var castProblemAggregator = new CastProblemAggregator(problemAggregator, source.getName(), targetType);
     var converter = fromStorageType(targetType);
     var newStorage = converter.cast(source.getStorage(), castProblemAggregator);
 
