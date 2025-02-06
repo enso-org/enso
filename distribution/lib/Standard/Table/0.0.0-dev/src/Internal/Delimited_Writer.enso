@@ -14,6 +14,7 @@ import project.Internal.Java_Problems
 import project.Match_Columns.Match_Columns
 import project.Table.Table
 from project.Errors import Column_Count_Mismatch, Column_Name_Mismatch
+from project.Table import from_java_table
 
 polyglot java import java.io.IOException
 polyglot java import java.io.PrintWriter
@@ -94,7 +95,7 @@ append_to_local_file table format (file : File) match_columns on_problems:Proble
                     Error.throw (Illegal_Argument.Error "Cannot append by name when headers are not present in the existing data.")
                 Match_Columns.By_Position ->
                     ColumnMapper.mapColumnsByPosition table.java_table column_count
-        reordered_table = Table.Value reordered_java_table
+        reordered_table = from_java_table reordered_java_table
         writing_new_file = preexisting_headers == Nothing
         amended_format_1 = case writing_new_file && (should_write_headers format.headers) of
             True -> format.with_headers

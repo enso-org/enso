@@ -4,7 +4,7 @@ import { ensoSyntax } from '@/components/CodeEditor/ensoSyntax'
 import { useEnsoSourceSync } from '@/components/CodeEditor/sync'
 import { ensoHoverTooltip } from '@/components/CodeEditor/tooltips'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
-import VueHostRender, { VueHost } from '@/components/VueHostRender.vue'
+import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
@@ -40,7 +40,7 @@ const autoindentOnEnter = {
   run: insertNewlineKeepIndent,
 }
 
-const vueHost = new VueHost()
+const vueHost = new VueHostInstance()
 const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
   extensions: [
     keymap.of([indentWithTab, autoindentOnEnter]),
