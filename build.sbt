@@ -4783,7 +4783,6 @@ lazy val `enso-generic-jdbc-connection-spec-dependencies` = project
     ),
     Compile / packageBin := Def.task {
       val result          = (Compile / packageBin).value
-      val primaryLocation = (Compile / packageBin / artifactPath).value
       val _ = StdBits
         .copyDependencies(
           file("test/Generic_JDBC_Tests/polyglot/java/"),
