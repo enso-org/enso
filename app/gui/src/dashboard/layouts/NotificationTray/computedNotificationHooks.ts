@@ -42,7 +42,7 @@ export function useIsMutatingForBothBackends(makeKey: (backendType: BackendType)
 }
 
 /** Return a list of transient notification details. */
-export function useComputedNotifications(): readonly NotificationInfo[] {
+export function useComputedNotifications() {
   const queryClient = useQueryClient()
   const { getText } = useText()
 
@@ -61,6 +61,10 @@ export function useComputedNotifications(): readonly NotificationInfo[] {
       })
       return newNotifications
     })
+  })
+
+  const removeComputedNotification = useEventCallback((id: string) => {
+    setNotificationMap((map) => new Map([...map.entries()].filter(([, v]) => v.id !== id)))
   })
 
   useEffect(
@@ -225,5 +229,7 @@ export function useComputedNotifications(): readonly NotificationInfo[] {
     }
   }
 
-  return [...notificationMap.values()].reverse()
+  const computedNotifications: readonly NotificationInfo[] = [...notificationMap.values()].reverse()
+
+  return { computedNotifications, removeComputedNotification }
 }

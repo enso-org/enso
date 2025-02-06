@@ -15,7 +15,7 @@ const DIALOG_CROSS_OFFSET = 16
 
 /** A button to show a list of notifications. */
 export function NotificationTray() {
-  const computedNotifications = useComputedNotifications()
+  const { computedNotifications, removeComputedNotification } = useComputedNotifications()
   const [lastOpenTimestamp, setLastOpenTimestamp] = useState(0)
   const hasUnreadNotifications = computedNotifications.some(
     (notification) => notification.timestamp != null && notification.timestamp > lastOpenTimestamp,
@@ -37,7 +37,10 @@ export function NotificationTray() {
           : InboxIcon
         }
       />
-      <NotificationTrayDialog computedNotifications={computedNotifications} />
+      <NotificationTrayDialog
+        computedNotifications={computedNotifications}
+        removeComputedNotification={removeComputedNotification}
+      />
     </DialogTrigger>
   )
 }
@@ -45,11 +48,12 @@ export function NotificationTray() {
 /** Props for a {@link NotificationTrayDialog}. */
 interface NotificationTrayDialogProps {
   readonly computedNotifications: readonly NotificationInfo[]
+  readonly removeComputedNotification: (id: string) => void
 }
 
 /** Dialog to display notifications for a {@link NotificationTray}. */
 function NotificationTrayDialog(props: NotificationTrayDialogProps) {
-  const { computedNotifications } = props
+  const { computedNotifications, removeComputedNotification } = props
   const { getText } = useText()
 
   return (
@@ -58,7 +62,10 @@ function NotificationTrayDialog(props: NotificationTrayDialogProps) {
         <Text.Heading level={3} variant="subtitle">
           {getText('notifications')}
         </Text.Heading>
-        <NotificationTrayDialogInner computedNotifications={computedNotifications} />
+        <NotificationTrayDialogInner
+          computedNotifications={computedNotifications}
+          removeComputedNotification={removeComputedNotification}
+        />
       </div>
     </Popover>
   )
@@ -66,7 +73,7 @@ function NotificationTrayDialog(props: NotificationTrayDialogProps) {
 
 /** Dialog to display notifications for a {@link NotificationTray}. */
 function NotificationTrayDialogInner(props: NotificationTrayDialogProps) {
-  const { computedNotifications } = props
+  const { computedNotifications, removeComputedNotification } = props
   const { getText } = useText()
 
   return (
@@ -77,7 +84,14 @@ function NotificationTrayDialogInner(props: NotificationTrayDialogProps) {
         <Result centered className="min-h-10" title={getText('youAreAllCaughtUp')} />
       )}
     >
-      {(info) => <NotificationItem {...info} />}
+      {(info) => (
+        <NotificationItem
+          {...info}
+          remove={() => {
+            removeComputedNotification(info.id)
+          }}
+        />
+      )}
     </GridList>
   )
 }

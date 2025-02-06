@@ -1,18 +1,24 @@
 /** @file An item in the notification tray. */
-import { Button, Text } from '#/components/AriaComponents'
+import { Button, CloseButton, Text } from '#/components/AriaComponents'
 import { GridListItem, ProgressBar } from '#/components/aria'
 import type { NotificationInfo } from '#/layouts/NotificationTray/types'
 import { useText } from '#/providers/TextProvider'
 
+/** Props for a {@link NotificationItem}. */
+export interface NotificationItemProps extends NotificationInfo {
+  readonly remove: () => Promise<void> | void
+}
+
 /** An item in the notification tray. */
-export function NotificationItem(props: NotificationInfo) {
-  const { message, icon, progress, color, timestamp } = props
+export function NotificationItem(props: NotificationItemProps) {
+  const { message, icon, progress, color, timestamp, remove } = props
   const { locale } = useText()
   const dateTime = timestamp != null ? new Date(timestamp) : undefined
 
   return (
     <GridListItem>
-      <div className="flex flex-col px-2">
+      <div className="relative flex flex-col px-2">
+        <CloseButton className="absolute right-0 top-0" onPress={remove} />
         <div className="flex min-h-8 items-center gap-2 text-primary">
           <Button isDisabled isActive variant="icon" color={color} icon={icon} />
           <Text>{message}</Text>
