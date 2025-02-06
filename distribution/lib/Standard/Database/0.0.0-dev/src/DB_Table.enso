@@ -3194,17 +3194,13 @@ type DB_Table
             problem_builder.attach_problems_before on_problems <| if columns.is_empty then self else
                 order_descriptors = _resolve_order_descriptors self.connection.dialect ordering self.default_ordering
                 grouping_expressions = (grouping_columns.map _.as_internal).map .expression
-                new_exprs = resolved_columns.map c->(Offset_Helpers.make_offset n (c.as_internal) order_descriptors grouping_expressions fill_with)
-
-                type_mapping = self.connection.dialect.get_type_mapping
-                infer_from_database_callback expression =
-                    SQL_Type_Reference.new self.connection self.context expression
-                new_type_refs = new_exprs.map expr->(type_mapping.infer_return_type infer_from_database_callback "OFFSET" [] expr)
                 
-                new_column_name c:DB_Column = 
+                offset_expr c:DB_Column -> SQL_Expression =
+                    Offset_Helpers.make_offset n (c.as_internal) order_descriptors grouping_expressions fill_with
+                new_column_name c:DB_Column -> Text = 
                     if set_mode==Set_Mode.Add then self.column_naming_helper.function_name "offset" [c, n, fill_with] else c.name
-                new_names = resolved_columns.map c->(new_column_name c)
-                new_columns = (new_names.zip new_type_refs).zip new_exprs a->b->(Internal_Column.Value a.first a.second b)
+                
+                new_columns = resolved_columns.map c->(Internal_Column.Value (new_column_name c) c.sql_type_reference (offset_expr c))
 
                 updated_table = new_columns.fold self t-> col->
                     t.set (self.make_column col)
