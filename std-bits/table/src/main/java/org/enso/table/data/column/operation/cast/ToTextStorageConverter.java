@@ -107,8 +107,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         (index, value) -> adapt(converter.apply(value), problemAggregator));
   }
 
-  private ColumnStorage<String> adaptStringStorage(
-      StringStorage stringStorage) {
+  private ColumnStorage<String> adaptStringStorage(StringStorage stringStorage) {
     // Adapting an existing string storage into a new type is done without warnings.
     return StorageIterators.mapOverStorage(
         stringStorage,

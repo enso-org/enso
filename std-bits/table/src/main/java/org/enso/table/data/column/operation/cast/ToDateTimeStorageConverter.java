@@ -49,8 +49,7 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
             });
   }
 
-  private ColumnStorage<ZonedDateTime> convertDateStorage(
-      ColumnStorage<LocalDate> dateStorage) {
+  private ColumnStorage<ZonedDateTime> convertDateStorage(ColumnStorage<LocalDate> dateStorage) {
     return StorageIterators.mapOverStorage(
         dateStorage,
         Builder.getForDateTime(dateStorage.getSize()),

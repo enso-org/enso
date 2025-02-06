@@ -87,8 +87,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     return StorageIterators.buildOverLongStorage(
         longStorage,
         Builder.getForDouble(FloatType.FLOAT_64, longStorage.getSize(), problemAggregator),
-        (builder, index, value, isNothing) -> builder.appendLong(value)
-    );
+        (builder, index, value, isNothing) -> builder.appendLong(value));
   }
 
   private ColumnStorage<Double> convertBoolStorage(
@@ -96,8 +95,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     return StorageIterators.buildOverBooleanStorage(
         boolStorage,
         Builder.getForDouble(FloatType.FLOAT_64, boolStorage.getSize(), problemAggregator),
-        (builder, index, value, isNothing) -> builder.appendDouble(booleanAsDouble(value))
-    );
+        (builder, index, value, isNothing) -> builder.appendDouble(booleanAsDouble(value)));
   }
 
   private static double booleanAsDouble(boolean value) {

@@ -29,7 +29,8 @@ public class CastOperation {
       return source;
     }
 
-    var castProblemAggregator = new CastProblemAggregator(problemAggregator, source.getName(), targetType);
+    var castProblemAggregator =
+        new CastProblemAggregator(problemAggregator, source.getName(), targetType);
     var converter = fromStorageType(targetType);
     var newStorage = converter.cast(source.getStorage(), castProblemAggregator);
 

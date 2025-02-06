@@ -39,7 +39,8 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
   }
 
   @Override
-  public ColumnStorage<Long> cast(ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
+  public ColumnStorage<Long> cast(
+      ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
     if (storage instanceof AbstractLongStorage longStorage) {
       if (longStorage.getType().equals(targetType)) {
         return longStorage;
@@ -111,8 +112,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     return StorageIterators.buildOverBooleanStorage(
         boolStorage,
         Builder.getForLong(targetType, boolStorage.getSize(), problemAggregator),
-        (builder, index, value, isNothing) -> builder.appendLong(booleanAsLong(value))
-    );
+        (builder, index, value, isNothing) -> builder.appendLong(booleanAsLong(value)));
   }
 
   private ColumnStorage<Long> convertDoubleStorage(
@@ -120,7 +120,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     return StorageIterators.buildOverDoubleStorage(
         doubleStorage,
         Builder.getForLong(targetType, doubleStorage.getSize(), problemAggregator),
-        (builder,index, value, isNothing) -> {
+        (builder, index, value, isNothing) -> {
           if (targetType.fits(value)) {
             long converted = (long) value;
             builder.appendLong(converted);
@@ -143,8 +143,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
     return StorageIterators.buildOverLongStorage(
         longStorage,
         Builder.getForLong(targetType, longStorage.getSize(), problemAggregator),
-        (builder, index, value, isNothing) -> builder.appendLong(value)
-    );
+        (builder, index, value, isNothing) -> builder.appendLong(value));
   }
 
   private ColumnStorage<Long> convertBigIntegerStorage(
@@ -175,8 +174,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
             builder.appendNulls(1);
             problemAggregator.reportNumberOutOfRange(value);
           }
-        }
-    );
+        });
   }
 
   private static long booleanAsLong(boolean value) {

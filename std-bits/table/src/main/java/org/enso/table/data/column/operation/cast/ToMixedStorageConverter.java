@@ -13,7 +13,8 @@ public class ToMixedStorageConverter implements StorageConverter<Object> {
   }
 
   @Override
-  public ColumnStorage<Object> cast(ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
+  public ColumnStorage<Object> cast(
+      ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
     if (storage instanceof ObjectStorage objectStorage) {
       return objectStorage;
     } else if (storage instanceof MixedStorageFacade facade) {

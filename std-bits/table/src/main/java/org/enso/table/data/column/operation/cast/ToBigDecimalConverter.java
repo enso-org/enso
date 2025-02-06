@@ -50,24 +50,21 @@ public class ToBigDecimalConverter implements StorageConverter<BigDecimal> {
     }
   }
 
-  private ColumnStorage<BigDecimal> convertDoubleStorage(
-      ColumnDoubleStorage doubleStorage) {
+  private ColumnStorage<BigDecimal> convertDoubleStorage(ColumnDoubleStorage doubleStorage) {
     return StorageIterators.mapOverDoubleStorage(
         doubleStorage,
         Builder.getForBigDecimal(doubleStorage.getSize()),
         (index, value, isNothing) -> BigDecimal.valueOf(value));
   }
 
-  private ColumnStorage<BigDecimal> convertLongStorage(
-      ColumnLongStorage longStorage) {
+  private ColumnStorage<BigDecimal> convertLongStorage(ColumnLongStorage longStorage) {
     return StorageIterators.mapOverLongStorage(
         longStorage,
         Builder.getForBigDecimal(longStorage.getSize()),
         (index, value, isNothing) -> BigDecimal.valueOf(value));
   }
 
-  private ColumnStorage<BigDecimal> convertBoolStorage(
-      ColumnBooleanStorage boolStorage) {
+  private ColumnStorage<BigDecimal> convertBoolStorage(ColumnBooleanStorage boolStorage) {
     return StorageIterators.mapOverBooleanStorage(
         boolStorage,
         Builder.getForBigDecimal(boolStorage.getSize()),
