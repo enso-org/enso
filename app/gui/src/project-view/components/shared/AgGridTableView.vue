@@ -125,6 +125,7 @@ const _props = defineProps<{
   textFormatOption?: TextFormatOptions
   processDataFromClipboard?: (params: ProcessDataFromClipboardParams<TData>) => string[][] | null
   datasource: any
+  rowCount: number
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -378,6 +379,7 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       :allowContextMenuWithControlKey="true"
       :rowModelType="'serverSide'"
       :serverSideDatasource="datasource"
+      :rowCount="rowCount"
       @gridReady="onGridReady"
       @firstDataRendered="updateColumnWidths"
       @rowDataUpdated="(updateColumnWidths($event), emit('rowDataUpdated', $event))"

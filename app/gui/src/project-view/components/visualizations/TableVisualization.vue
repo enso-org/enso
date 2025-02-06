@@ -225,19 +225,13 @@ function formatText(params: ICellRendererParams) {
   return `<span > ${newString} <span>`
 }
 
-watchEffect(async () => {
-  const exe = config.executeExpression
-  const xyz = await exe('Standard.Visualization.Table.Visualization', 'get_rows_for_table', '0')
-  console.log({ xyz })
-})
-
-function createFakeServer() {
+function createRowServer() {
   return {
-    getData: async () => {
+    getData: async (request: any) => {
       const response = await config.executeExpression(
         'Standard.Visualization.Table.Visualization',
         'get_rows_for_table',
-        '0',
+        `${request.startRow}`,
       )
       return {
         success: true,
@@ -250,25 +244,23 @@ function createFakeServer() {
 function createServerSideDatasource(): IServerSideDatasource {
   return {
     getRows: async (params) => {
-      const server = createFakeServer()
-      const response = await server.getData()
-      console.log({response})
+      const server = createRowServer()
+      const response = await server.getData(params.request)
       const rowsL = response.rows && response.rows.length > 0 ? (response.rows[0]?.length ?? 0) : 0
+      //to do, different obj will need different things 
+      const startIndex = params.request.startRow
+      console.log({startIndex})
       const rows = Array.from({ length: rowsL }, (_, i) => {
         const shift = 1
-        console.log({columnDefs})
         return Object.fromEntries(
           columnDefs.value.map((h, j) => {
-            console.log({field:h.field})
-            console.log({val: toRender(h.field === INDEX_FIELD_NAME ? i : response.rows[j - shift]?.[i])})
             return [
               h.field,
-              toRender(h.field === INDEX_FIELD_NAME ? i : response.rows[j - shift]?.[i]),
+              toRender(h.field === INDEX_FIELD_NAME ? i + startIndex : response.rows[j - shift]?.[i]),
             ]
           }),
         )
       })
-      console.log({rows})
       setTimeout(() => {
         if (response.success) {
           params.success({ rowData: rows })
@@ -768,6 +760,7 @@ config.setToolbar(
         :defaultColDef="defaultColDef"
         :textFormatOption="textFormatterSelected"
         :datasource="createServerSideDatasource()"
+        :rowCount="props.data.all_rows_count"
         @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
       />
     </Suspense>
