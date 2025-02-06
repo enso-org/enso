@@ -9,11 +9,11 @@ from Standard.Test import all
 
 polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
-Table.should_equal : Any -> Integer -> Any
-Table.should_equal self expected frames_to_skip=0 =
+Table.should_equal : Any -> Integer -> Boolean -> Any
+Table.should_equal self expected frames_to_skip=0 ignore_order=False =
     loc = Test.get_source_location 1+frames_to_skip
     rhs_error_check expected
-    Panic.catch Test_Failure_Error (table_should_equal_impl self expected loc) error->
+    Panic.catch Test_Failure_Error (table_should_equal_impl self expected loc ignore_order) error->
         Test.fail error.payload.message
 
 Column.should_equal : Any -> Integer -> Any
@@ -23,12 +23,12 @@ Column.should_equal self expected frames_to_skip=0 =
     Panic.catch Test_Failure_Error (column_should_equal_impl self expected loc) error->
         Test.fail error.payload.message
 
-DB_Table.should_equal : DB_Table -> Integer -> Any
-DB_Table.should_equal self expected frames_to_skip=0 =
+DB_Table.should_equal : DB_Table|Table -> Integer -> Boolean -> Any
+DB_Table.should_equal self expected frames_to_skip=0 ignore_order=False =
     rhs_error_check expected
     t0 = self.read
     t1 = expected.read
-    t0 . should_equal t1 frames_to_skip+1
+    t0 . should_equal t1 frames_to_skip+1 ignore_order
 
 DB_Column.should_equal : DB_Column -> Integer -> Any
 DB_Column.should_equal self expected frames_to_skip=0 =
@@ -50,15 +50,18 @@ type Test_Failure_Error
     to_display_text self = "Test failure error: "+self.message
 
 ## PRIVATE
-table_should_equal_impl actual expected loc =
-    case expected of
+table_should_equal_impl actual_table expected_table loc ignore_order =
+    case expected_table of
         _ : Table ->
+            actual = if ignore_order then actual_table.sort actual_table.column_names else actual_table
+            expected = if ignore_order then expected_table.sort expected_table.column_names else expected_table
             if actual.columns.length != expected.columns.length then
-                Panic.throw (Test_Failure_Error.Error 'Tables differ at '+loc+'.\nActual:\n'+actual.display+'\nExpected:\n'+expected.display+'\nExpected '+expected.columns.length.to_text+" columns, but got "+actual.columns.length.to_text+'.')
+                Panic.throw (Test_Failure_Error.Error 'Tables differ at '+loc+'.\nActual:\n'+actual_table.display+'\nExpected:\n'+expected_table.display+'\nExpected '+expected.columns.length.to_text+" columns, but got "+actual.columns.length.to_text+'.')
             Panic.catch Test_Failure_Error (actual.columns.zip expected.columns a-> e->(column_should_equal_impl a e)) error->
-                msg = 'Tables differ at '+loc+'.\nActual:\n'+actual.display+'\nExpected:\n'+expected.display+'\n'+error.payload.message
+                msg_sorted = if ignore_order then " (sorted)" else ""
+                msg = 'Tables differ at '+loc+'.\nActual'+msg_sorted+':\n'+actual.display+'\nExpected'+msg_sorted+':\n'+expected.display+'\n'+error.payload.message
                 Panic.throw (Test_Failure_Error.Error msg)
-        _ -> Panic.throw (Test_Failure_Error.Error "Got a Table, but expected a "+expected.to_display_text+(display_loc loc)+'.')
+        _ -> Panic.throw (Test_Failure_Error.Error "Got a Table, but expected a "+expected_table.to_display_text+(display_loc loc)+'.')
 
 ## PRIVATE
 column_should_equal_impl actual expected loc='' =
