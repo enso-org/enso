@@ -37,7 +37,7 @@ public class InliningBuiltinsTest {
                         return call.call(
                             frame,
                             Function.ArgumentsHelper.buildArguments(
-                                null, null, new Object[] {null, 5L, 7L}));
+                                null, new Object[] {null, 5L, 7L}));
                       });
               assertEquals(12L, res);
             } else {
@@ -70,7 +70,7 @@ public class InliningBuiltinsTest {
                       (frame) -> {
                         return call.call(
                             Function.ArgumentsHelper.buildArguments(
-                                null, null, new Object[] {null, 3L, 9L}));
+                                null, new Object[] {null, 3L, 9L}));
                       });
               assertEquals(12L, res);
             }
@@ -101,7 +101,7 @@ public class InliningBuiltinsTest {
                       (frame) -> {
                         return call.call(
                             Function.ArgumentsHelper.buildArguments(
-                                null, null, new Object[] {null, 3L, 9L}));
+                                null, new Object[] {null, 3L, 9L}));
                       });
               assertEquals(12L, res);
             }
@@ -134,7 +134,7 @@ public class InliningBuiltinsTest {
                         return call.call(
                             frame,
                             Function.ArgumentsHelper.buildArguments(
-                                null, null, new Object[] {null, 5L, 7L}));
+                                null, new Object[] {null, 5L, 7L}));
                       });
               assertEquals(12L, res);
             } else {

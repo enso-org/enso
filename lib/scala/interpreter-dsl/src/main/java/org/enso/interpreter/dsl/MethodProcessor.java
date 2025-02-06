@@ -341,11 +341,7 @@ public class MethodProcessor
           "    Object[] arguments = Function.ArgumentsHelper.getPositionalArguments(args);");
       List<String> callArgNames = new ArrayList<>();
       for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
-        if (!(arg.isImplicit()
-            || arg.isFrame()
-            || arg.isState()
-            || arg.isCallerInfo()
-            || arg.isNode())) {
+        if (!(arg.isImplicit() || arg.isFrame() || arg.isCallerInfo() || arg.isNode())) {
           out.println(
               "    int arg" + arg.getPosition() + "Idx = " + arg.getPosition() + " + prefix;");
         }
@@ -359,8 +355,6 @@ public class MethodProcessor
                 + argumentDefinition.getPosition()
                 + "  ***/");
         if (argumentDefinition.isImplicit()) {
-        } else if (argumentDefinition.isState()) {
-          callArgNames.add("/* state */");
         } else if (argumentDefinition.isFrame()) {
           callArgNames.add("frame");
         } else if (argumentDefinition.isNode()) {

@@ -279,11 +279,6 @@ public class MethodDefinition {
     boolean validate(ProcessingEnvironment processingEnvironment);
 
     /**
-     * @return whether this argument should be passed the monadic state.
-     */
-    boolean isState();
-
-    /**
      * @return whether this argument should be passed the execution frame.
      */
     boolean isFrame();
@@ -364,11 +359,6 @@ public class MethodDefinition {
     @Override
     public boolean validate(ProcessingEnvironment processingEnvironment) {
       return true;
-    }
-
-    @Override
-    public boolean isState() {
-      return false;
     }
 
     @Override
@@ -477,11 +467,9 @@ public class MethodDefinition {
     private static final String DATAFLOW_ERROR = "org.enso.interpreter.runtime.error.DataflowError";
     private static final String SELF = "self";
 
-    private static final String STATE = "org.enso.interpreter.runtime.state.State";
     private final String typeName;
     private final TypeMirror type;
     private final String name;
-    private final boolean isState;
     private final boolean isNode;
     private final boolean isFrame;
     private final boolean isCallerInfo;
@@ -503,7 +491,6 @@ public class MethodDefinition {
       String[] typeNameSegments = type.toString().split("\\.");
       typeName = typeNameSegments[typeNameSegments.length - 1];
       name = element.getSimpleName().toString();
-      isState = type.toString().equals(STATE);
       isSuspended = element.getAnnotation(Suspend.class) != null;
       acceptsError =
           (element.getAnnotation(AcceptsError.class) != null)
@@ -546,24 +533,7 @@ public class MethodDefinition {
         return false;
       }
 
-      if (isState() && !type.toString().equals(STATE)) {
-        processingEnvironment
-            .getMessager()
-            .printMessage(
-                Diagnostic.Kind.ERROR,
-                "The monadic state argument must be typed as " + STATE,
-                element);
-        return false;
-      }
-
       return true;
-    }
-
-    /**
-     * @return whether this argument should be passed the monadic state.
-     */
-    public boolean isState() {
-      return isState;
     }
 
     /**
@@ -591,7 +561,7 @@ public class MethodDefinition {
      * @return whether this argument should be passed the next positional function argument.
      */
     public boolean isPositional() {
-      return !isFrame() && !isState() && !isCallerInfo() && !isNode();
+      return !isFrame() && !isCallerInfo() && !isNode();
     }
 
     /**
