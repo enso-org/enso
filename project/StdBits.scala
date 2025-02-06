@@ -194,8 +194,8 @@ object StdBits {
     // `org.enso.interpreter.runtime.NativeLibraryFinder`
     def renameFunc(prefix: String)(entryName: String): Option[String] = {
       val strippedEntryName =
-        if (prefix.isEmpty) entryName
-        else entryName.substring(prefix.length + 1)
+        (if (prefix.isEmpty) entryName
+         else entryName.substring(prefix.length + 1)).replace("jnilib", "dylib")
       if (
         !strippedEntryName.endsWith(validOsExt) ||
         // Remove native libs for different platforms
