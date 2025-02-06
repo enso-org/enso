@@ -3,42 +3,56 @@ import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useBackend } from '@/composables/backend'
+import { injectBackend } from '@/providers/backend'
 import type { ToValue } from '@/util/reactivity'
+import { useToast } from '@/util/toast'
 import type {
+  DatalinkAsset,
+  DatalinkId,
   DirectoryAsset,
   DirectoryId,
   FileAsset,
   FileId,
 } from 'enso-common/src/services/Backend'
-import Backend, { assetIsDirectory, assetIsFile } from 'enso-common/src/services/Backend'
+import Backend, {
+  assetIsDatalink,
+  assetIsDirectory,
+  assetIsFile,
+} from 'enso-common/src/services/Backend'
 import { computed, ref, toValue, watch } from 'vue'
+import { Err, Ok, Result } from 'ydoc-shared/util/data/result'
 
 const emit = defineEmits<{
   pathSelected: [path: string]
 }>()
 
-const { query, ensureQueryData } = useBackend('remote')
+const { query, fetch, ensureQueryData } = useBackend('remote')
+const { remote: backend } = injectBackend()
+
+const errorToast = useToast.error()
 
 // === Current Directory ===
 
 interface Directory {
-  id: DirectoryId | null
+  id: DirectoryId
   title: string
 }
 
-const directoryStack = ref<Directory[]>([
-  {
-    id: null,
-    title: 'Cloud',
-  },
-])
-const currentDirectory = computed(() => directoryStack.value[directoryStack.value.length - 1]!)
 const currentUser = query('usersMe', [])
-const currentPath = computed(
-  () =>
-    currentUser.data.value &&
-    `enso://Users/${currentUser.data.value.name}${Array.from(directoryStack.value.slice(1), (frame) => '/' + frame.title).join()}`,
-)
+const currentOrganization = query('getOrganization', [])
+const directoryStack = ref<Directory[]>([])
+const isDirectoryStackInitializing = computed(() => directoryStack.value.length === 0)
+const currentDirectory = computed(() => directoryStack.value[directoryStack.value.length - 1])
+
+const currentPath = computed(() => {
+  if (!currentUser.data.value) return
+  let root = backend?.rootPath(currentUser.data.value) ?? 'enso://'
+  if (!root.endsWith('/')) root += '/'
+  return `${root}${directoryStack.value
+    .slice(1)
+    .map((dir) => `${dir.title}/`)
+    .join('')}`
+})
 
 // === Directory Contents ===
 
@@ -65,17 +79,19 @@ const { isPending, isError, data, error } = query(
 )
 const compareTitle = (a: { title: string }, b: { title: string }) => a.title.localeCompare(b.title)
 const directories = computed(
-  () => data.value && data.value.filter<DirectoryAsset>(assetIsDirectory).sort(compareTitle),
+  () => data.value && data.value.filter((asset) => assetIsDirectory(asset)).sort(compareTitle),
 )
 const files = computed(
-  () => data.value && data.value.filter<FileAsset>(assetIsFile).sort(compareTitle),
+  () =>
+    data.value &&
+    data.value.filter((asset) => assetIsFile(asset) || assetIsDatalink(asset)).sort(compareTitle),
 )
 const isEmpty = computed(() => directories.value?.length === 0 && files.value?.length === 0)
 
 // === Selected File ===
 
 interface File {
-  id: FileId
+  id: FileId | DatalinkId
   title: string
 }
 
@@ -97,16 +113,27 @@ function enterDir(dir: DirectoryAsset) {
   directoryStack.value.push(dir)
 }
 
+class DirNotFoundError {
+  constructor(public dirName: string) {}
+
+  toString() {
+    return `Directory "${this.dirName}" not found`
+  }
+}
+
 function popTo(index: number) {
   directoryStack.value.splice(index + 1)
 }
 
-function chooseFile(file: FileAsset) {
+function chooseFile(file: FileAsset | DatalinkAsset) {
   selectedFile.value = file
 }
 
 const isBusy = computed(
-  () => isPending.value || (selectedFile.value && currentUser.isPending.value),
+  () =>
+    isDirectoryStackInitializing.value ||
+    isPending.value ||
+    (selectedFile.value && currentUser.isPending.value),
 )
 
 const anyError = computed(() =>
@@ -117,12 +144,44 @@ const anyError = computed(() =>
 
 const selectedFilePath = computed(
   () =>
-    selectedFile.value && currentPath.value && `${currentPath.value}/${selectedFile.value.title}`,
+    selectedFile.value && currentPath.value && `${currentPath.value}${selectedFile.value.title}`,
 )
 
 watch(selectedFilePath, (path) => {
   if (path) emit('pathSelected', path)
 })
+
+// === Initialization ===
+
+async function enterDirByName(name: string, stack: Directory[]): Promise<Result> {
+  const currentDir = stack[stack.length - 1]
+  if (currentDir == null) return Err('Stack is empty')
+  const content = await fetch('listDirectory', listDirectoryArgs(currentDir))
+  const nextDir = content.find(
+    (asset): asset is DirectoryAsset => assetIsDirectory(asset) && asset.title === name,
+  )
+  if (!nextDir) return Err(new DirNotFoundError(name))
+  stack.push(nextDir)
+  return Ok()
+}
+
+Promise.all([currentUser.promise.value, currentOrganization.promise.value]).then(
+  async ([user, organization]) => {
+    if (!user) {
+      errorToast.show('Cannot load file list: not logged in.')
+      return
+    }
+    const rootDirectoryId =
+      backend?.rootDirectoryId(user, organization, null) ?? user.rootDirectoryId
+    const stack = [{ id: rootDirectoryId, title: 'Cloud' }]
+    if (rootDirectoryId != user.rootDirectoryId) {
+      let result = await enterDirByName('Users', stack)
+      result = result.ok ? await enterDirByName(user.name, stack) : result
+      if (!result.ok) errorToast.reportError(result.error, 'Cannot enter home directory')
+    }
+    directoryStack.value = stack
+  },
+)
 </script>
 
 <template>
@@ -143,7 +202,7 @@ watch(selectedFilePath, (path) => {
     <div v-if="isBusy" class="centerContent contents"><LoadingSpinner /></div>
     <div v-else-if="anyError" class="centerContent contents">Error: {{ anyError }}</div>
     <div v-else-if="isEmpty" class="centerContent contents">Directory is empty</div>
-    <div v-else :key="currentDirectory.id ?? 'root'" class="listing contents">
+    <div v-else :key="currentDirectory?.id ?? 'root'" class="listing contents">
       <TransitionGroup>
         <div v-for="entry in directories" :key="entry.id">
           <SvgButton :label="entry.title" name="folder" class="entry" @click="enterDir(entry)" />
