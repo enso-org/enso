@@ -4,7 +4,6 @@ import * as router from 'react-router-dom'
 import { isOnElectron } from 'enso-common/src/detect'
 
 import { DASHBOARD_PATH, FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '#/appUtils'
-import ArrowRightIcon from '#/assets/arrow_right.svg'
 import AtIcon from '#/assets/at.svg'
 import CreateAccountIcon from '#/assets/create_account.svg'
 import GithubIcon from '#/assets/github_color.svg'
@@ -161,7 +160,7 @@ export default function Login() {
                   </Form.FieldValue>
                 </div>
 
-                <Form.Submit size="large" icon={ArrowRightIcon} iconPosition="end" fullWidth>
+                <Form.Submit size="large" icon="arrow_right" iconPosition="end" fullWidth>
                   {getText('login')}
                 </Form.Submit>
 
@@ -210,7 +209,7 @@ export default function Login() {
                 maxLength={6}
               />
 
-              <Form.Submit size="large" icon={ArrowRightIcon} iconPosition="end" fullWidth>
+              <Form.Submit size="large" icon="arrow_right" iconPosition="end" fullWidth>
                 {getText('login')}
               </Form.Submit>
 

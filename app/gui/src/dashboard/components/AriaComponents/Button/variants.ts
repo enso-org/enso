@@ -316,13 +316,13 @@ export const BUTTON_STYLES = tv({
     { variant: 'icon', class: { base: 'flex-none' } },
     { variant: 'icon', isDisabled: true, class: { base: 'opacity-50 cursor-not-allowed' } },
 
+    { variant: 'link', class: 'h-auto' },
     { variant: 'link', isFocused: true, class: 'focus-visible:outline-offset-1' },
-    { variant: 'link', size: 'xxsmall', class: 'font-medium' },
-    { variant: 'link', size: 'xsmall', class: 'font-medium' },
-    { variant: 'link', size: 'small', class: 'font-medium' },
-    { variant: 'link', size: 'medium', class: 'font-medium' },
-    { variant: 'link', size: 'large', class: 'font-medium' },
-    { variant: 'link', size: 'hero', class: 'font-medium' },
+    {
+      variant: 'link',
+      size: ['xxsmall', 'xsmall', 'small', 'medium', 'large', 'hero'],
+      class: 'font-medium',
+    },
 
     { variant: 'icon', isDisabled: true, class: 'opacity-50' },
 
@@ -338,43 +338,33 @@ export const BUTTON_STYLES = tv({
       isJoined: true,
       position: ['first', 'middle'],
       variant: 'primary',
-      class: {
-        joinSeparator: 'text-background',
-      },
+      class: { joinSeparator: 'text-background' },
     },
     {
       isJoined: true,
       position: ['first', 'middle'],
       variant: 'accent',
-      class: {
-        joinSeparator: 'text-background',
-      },
+      class: { joinSeparator: 'text-background' },
     },
 
     {
       isJoined: true,
       position: ['first', 'middle'],
       variant: 'delete',
-      class: {
-        joinSeparator: 'text-background',
-      },
+      class: { joinSeparator: 'text-background' },
     },
 
     {
       isJoined: true,
       position: ['first', 'middle'],
       variant: 'ghost',
-      class: {
-        joinSeparator: 'text-primary/20',
-      },
+      class: { joinSeparator: 'text-primary/20' },
     },
     {
       isJoined: true,
       position: ['first', 'middle'],
       variant: 'ghost-fading',
-      class: {
-        joinSeparator: 'text-primary/20',
-      },
+      class: { joinSeparator: 'text-primary/20' },
     },
 
     {

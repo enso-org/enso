@@ -92,6 +92,7 @@ export interface UseFormOptions<Schema extends TSchema, SubmitResult = void>
 
   /** When set to `dialog`, form submission will close the parent dialog on successful submission. */
   readonly method?: 'dialog' | (string & {}) | undefined
+  readonly resetOnSubmit?: boolean
 }
 
 /** Register function for a form field. */

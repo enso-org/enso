@@ -71,6 +71,7 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
       onSubmitted,
       onSubmitSuccess,
       debugName,
+      resetOnSubmit = true,
       ...options
     } = optionsOrFormInstance
 
@@ -172,7 +173,9 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
             closeRef.current()
           }
 
-          formInstance.reset()
+          if (resetOnSubmit) {
+            formInstance.reset()
+          }
 
           return result
         } catch (error) {
