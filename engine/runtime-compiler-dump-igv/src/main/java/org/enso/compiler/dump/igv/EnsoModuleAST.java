@@ -39,7 +39,7 @@ final class EnsoModuleAST {
 
   private final ASTNode root;
 
-  /** Underlying source file. May be null. */
+  /** Information about underlying source. */
   private final IRSource<? extends IR> ctx;
 
   private final Map<Integer, ASTNode> nodes = new HashMap<>();
@@ -54,6 +54,7 @@ final class EnsoModuleAST {
 
   private EnsoModuleAST(IRSource<? extends IR> ctx, Map<UUID, Integer> nodeIds) {
     this.nodeIds = nodeIds;
+    assert ctx != null;
     this.ctx = ctx;
     this.root = switch (ctx.ir()) {
         case Module m -> buildTree(m);
