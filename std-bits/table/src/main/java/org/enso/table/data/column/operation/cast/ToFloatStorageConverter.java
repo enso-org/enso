@@ -9,14 +9,17 @@ import org.enso.table.data.column.builder.BuilderForDouble;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.Bits;
+import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.graalvm.polyglot.Context;
 
 public class ToFloatStorageConverter implements StorageConverter<Double> {
@@ -28,10 +31,19 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
   }
 
   @Override
-  public Storage<Double> cast(Storage<?> storage, CastProblemAggregator problemAggregator) {
-    if (storage instanceof DoubleStorage doubleStorage) {
-      return doubleStorage;
-    } else if (storage instanceof ColumnLongStorage longStorage) {
+  public boolean canApply(StorageType storageType) {
+    return storageType instanceof IntegerType
+        || storageType instanceof BigDecimalType
+        || storageType instanceof BigIntegerType
+        || storageType instanceof BooleanType
+        || storageType instanceof NullType
+        || storageType instanceof AnyObjectType;
+  }
+
+  @Override
+  public ColumnStorage<Double> cast(
+      ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
+    if (storage instanceof ColumnLongStorage longStorage) {
       return convertLongStorage(longStorage, problemAggregator);
     } else if (storage instanceof ColumnBooleanStorage boolStorage) {
       return convertBoolStorage(boolStorage, problemAggregator);
@@ -41,7 +53,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
       return convertBigDecimalStorage(bigDecimalStorage, problemAggregator);
     } else if (storage.getType() instanceof AnyObjectType
         || storage.getType() instanceof NullType) {
-      return castFromMixed(storage, problemAggregator);
+      return castFromObject(storage, problemAggregator);
     } else {
       throw new IllegalStateException(
           "No known strategy for casting storage " + storage + " to Float.");
@@ -49,7 +61,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
   }
 
   /** Specialised innerLoop so that we can avoid boxing. */
-  static Storage<Double> innerLoop(
+  static ColumnStorage<Double> innerLoop(
       BuilderForDouble builder,
       ColumnStorage<?> storage,
       ObjLongConsumer<BuilderForDouble> converter) {
@@ -69,13 +81,13 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     return builder.seal();
   }
 
-  private Storage<Double> castFromMixed(
-      ColumnStorage<?> mixedStorage, CastProblemAggregator problemAggregator) {
+  private ColumnStorage<Double> castFromObject(
+      ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
     return innerLoop(
-        Builder.getForDouble(FloatType.FLOAT_64, mixedStorage.getSize(), problemAggregator),
-        mixedStorage,
+        Builder.getForDouble(FloatType.FLOAT_64, storage.getSize(), problemAggregator),
+        storage,
         (builder, i) -> {
-          Object o = mixedStorage.getItemBoxed(i);
+          Object o = storage.getItemBoxed(i);
 
           if (NumericConverter.isCoercibleToLong(o)) {
             builder.appendLong(NumericConverter.coerceToLong(o));
@@ -95,7 +107,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
         });
   }
 
-  private Storage<Double> convertLongStorage(
+  private ColumnStorage<Double> convertLongStorage(
       ColumnLongStorage longStorage, CastProblemAggregator problemAggregator) {
     return innerLoop(
         Builder.getForDouble(FloatType.FLOAT_64, longStorage.getSize(), problemAggregator),
@@ -106,7 +118,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
         });
   }
 
-  private Storage<Double> convertBoolStorage(
+  private ColumnStorage<Double> convertBoolStorage(
       ColumnBooleanStorage boolStorage, CastProblemAggregator problemAggregator) {
     return innerLoop(
         Builder.getForDouble(FloatType.FLOAT_64, boolStorage.getSize(), problemAggregator),
@@ -121,16 +133,16 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
     return value ? 1.0 : 0.0;
   }
 
-  private Storage<Double> convertBigIntegerStorage(
-      Storage<BigInteger> storage, CastProblemAggregator problemAggregator) {
+  private ColumnStorage<Double> convertBigIntegerStorage(
+      ColumnStorage<BigInteger> storage, CastProblemAggregator problemAggregator) {
     return innerLoop(
         Builder.getForDouble(FloatType.FLOAT_64, storage.getSize(), problemAggregator),
         storage,
         (builder, i) -> builder.append(storage.getItemBoxed(i)));
   }
 
-  private Storage<Double> convertBigDecimalStorage(
-      Storage<BigDecimal> storage, CastProblemAggregator problemAggregator) {
+  private ColumnStorage<Double> convertBigDecimalStorage(
+      ColumnStorage<BigDecimal> storage, CastProblemAggregator problemAggregator) {
     return innerLoop(
         Builder.getForDouble(FloatType.FLOAT_64, storage.getSize(), problemAggregator),
         storage,
