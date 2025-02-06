@@ -42,7 +42,6 @@ from project.Internal.Storage import enso_to_java, java_to_enso
 from project.Table import from_java_table
 
 polyglot java import org.enso.base.Time_Utils
-polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
 polyglot java import org.enso.table.data.column.operation.CountNothing
 polyglot java import org.enso.table.data.column.operation.CountUntrimmed
 polyglot java import org.enso.table.data.column.operation.CountNonTrivialWhitespace

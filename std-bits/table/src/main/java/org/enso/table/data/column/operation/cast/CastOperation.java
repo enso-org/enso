@@ -18,9 +18,13 @@ import org.enso.table.problems.ProblemAggregator;
 
 /** Perform a cast operation on a Column */
 public class CastOperation {
-  public static boolean canApply(Column source, StorageType targetType) {
+  public static boolean canApply(StorageType sourceType, StorageType targetType) {
+    if (targetType instanceof NullType) {
+      return false;
+    }
+
     var converter = fromStorageType(targetType);
-    return converter.canApply(source.getStorage().getType());
+    return converter.canApply(sourceType);
   }
 
   public static Column apply(
