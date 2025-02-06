@@ -103,6 +103,8 @@ type SQL_Expression
          enclosing `Let` value.
     Let_Ref (name : Text) (binder : Text) (standalone_expression : SQL_Expression)
 
+    List value:Vector
+
     ## PRIVATE
        A bottom-up, depth-first traversal of this IR node and its children. Each
        node is passed to the provided function, and the return value of the
@@ -121,4 +123,6 @@ type SQL_Expression
                 SQL_Expression.Let name binder (rec bindee) (rec body)
             SQL_Expression.Let_Ref name binder standalone_expression ->
                 SQL_Expression.Let_Ref name binder (rec standalone_expression)
+            SQL_Expression.List value ->
+                SQL_Expression.List (value.map rec)
         f new_sql_expression
