@@ -629,7 +629,7 @@ right = Base_Generator.lift_binary_op "RIGHT" str-> n->
     SQL_Builder.code "right(" ++ str ++ ", CAST(" ++ n ++ " AS INT))"
 
 ## PRIVATE
-make_lead_lag lead_lag:Text arguments:Vector metadata:Row_Number_Metadata -> SQL_Builder = if arguments.length != 6 then Error.throw (Illegal_State.Error "Wrong amount of parameters in LEAD/LAG IR. This is a bug in the Database library.") else
+make_lead_lag lead_lag:Text arguments:Vector -> SQL_Builder = if arguments.length != 6 then Error.throw (Illegal_State.Error "Wrong amount of parameters in LEAD/LAG IR. This is a bug in the Database library.") else
     n = arguments.at 0
     colName = arguments.at 1
     fill = arguments.at 2
