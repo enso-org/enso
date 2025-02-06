@@ -76,12 +76,11 @@ public class ThrowableCatchTest {
   public void testMostErrorsCanPropagateFromBuiltinMethods() {
     var func = ThrowBuiltinMethodGen.makeFunction(EnsoLanguage.get(null));
     var funcCallTarget = func.getCallTarget();
-    var emptyState = ensoCtx.emptyState();
     for (long errorSupplierIdx = 0; errorSupplierIdx < errorSuppliers.size(); errorSupplierIdx++) {
       Object self = null;
       Object[] args =
           Function.ArgumentsHelper.buildArguments(
-              func, null, emptyState, new Object[] {self, Text.create("error"), errorSupplierIdx});
+              func, null, new Object[] {self, Text.create("error"), errorSupplierIdx});
       try {
         funcCallTarget.call(args);
       } catch (Throwable t) {
