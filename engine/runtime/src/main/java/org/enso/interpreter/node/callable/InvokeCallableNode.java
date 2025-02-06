@@ -104,7 +104,10 @@ public abstract class InvokeCallableNode extends BaseNode {
   private final int thatArgumentPosition;
 
   private final ArgumentsExecutionMode argumentsExecutionMode;
+
+  @CompilerDirectives.CompilationFinal(dimensions = 1)
   private final CallArgumentInfo[] schema;
+
   private final boolean isForOversaturatedArguments;
 
   InvokeCallableNode(
