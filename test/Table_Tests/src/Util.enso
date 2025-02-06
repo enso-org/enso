@@ -10,26 +10,26 @@ from Standard.Test.Omitter import all
 
 polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
-Table.should_equal : Any -> Integer -> Boolean -> Any
+Table.should_equal : Any -> Boolean -> Any
 Table.should_equal self expected ignore_order=False = omitting <|
     rhs_error_check expected
     Panic.catch Test_Failure_Error (table_should_equal_impl self expected omitting_get_stack_trace ignore_order) error->
         Test.fail error.payload.message
 
-Column.should_equal : Any -> Integer -> Any
+Column.should_equal : Any -> Any
 Column.should_equal self expected = omitting <|
     rhs_error_check expected
     Panic.catch Test_Failure_Error (column_should_equal_impl self expected omitting_get_stack_trace) error->
         Test.fail error.payload.message
 
-DB_Table.should_equal : DB_Table -> Integer -> Boolean -> Any
+DB_Table.should_equal : DB_Table -> Boolean -> Any
 DB_Table.should_equal self expected ignore_order=False = omitting <|
     rhs_error_check expected
     t0 = self.read
     t1 = expected.read
     t0 . should_equal t1 ignore_order=ignore_order
 
-DB_Column.should_equal : DB_Column -> Integer -> Any
+DB_Column.should_equal : DB_Column -> Any
 DB_Column.should_equal self expected = omitting <|
     rhs_error_check expected
     t0 = self.read
