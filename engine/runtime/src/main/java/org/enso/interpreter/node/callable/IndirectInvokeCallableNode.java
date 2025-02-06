@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Exclusive;
@@ -217,7 +218,9 @@ public abstract class IndirectInvokeCallableNode extends Node {
     Atom cause = null;
     // The IndirectInvokeCallableNode is used only from IndirectCurryNode, so it is always used for
     // oversaturated arguments as long as schema.length >= 1.
-    if (schema.length >= 1 && schema[0].isNamed()) {
+    boolean isMismatchedNamedArgument = schema.length >= 1 && schema[0].isNamed();
+    CompilerAsserts.partialEvaluationConstant(isMismatchedNamedArgument);
+    if (isMismatchedNamedArgument) {
       cause = EnsoContext.get(this).getBuiltins().error().makeNoSuchArgument(schema[0].getName());
     }
 

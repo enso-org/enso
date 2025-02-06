@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
@@ -385,7 +386,10 @@ public abstract class InvokeCallableNode extends BaseNode {
   public Object invokeGeneric(
       Object callable, VirtualFrame callerFrame, State state, Object[] arguments) {
     Atom cause = null;
-    if (isForOversaturatedArguments && schema.length >= 1 && schema[0].isNamed()) {
+    boolean isMismatchedNamedArgument =
+        isForOversaturatedArguments && schema.length >= 1 && schema[0].isNamed();
+    CompilerAsserts.partialEvaluationConstant(isMismatchedNamedArgument);
+    if (isMismatchedNamedArgument) {
       cause = EnsoContext.get(this).getBuiltins().error().makeNoSuchArgument(schema[0].getName());
     }
 
