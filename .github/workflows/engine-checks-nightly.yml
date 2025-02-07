@@ -19,12 +19,6 @@ jobs:
       - self-hosted
       - Linux
     steps:
-      - if: runner.os == 'macOS'
-        name: Setup nodejs version
-        uses: actions/setup-node@v4
-        with:
-          cache: pnpm
-          node-version-file: .node-version
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
@@ -43,6 +37,12 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version-file: .node-version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -69,12 +69,6 @@ jobs:
       - macOS
       - ARM64
     steps:
-      - if: runner.os == 'macOS'
-        name: Setup nodejs version
-        uses: actions/setup-node@v4
-        with:
-          cache: pnpm
-          node-version-file: .node-version
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
@@ -93,6 +87,12 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version-file: .node-version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -117,12 +117,6 @@ jobs:
     runs-on:
       - macos-13
     steps:
-      - if: runner.os == 'macOS'
-        name: Setup nodejs version
-        uses: actions/setup-node@v4
-        with:
-          cache: pnpm
-          node-version-file: .node-version
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
@@ -141,6 +135,12 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version-file: .node-version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -166,12 +166,6 @@ jobs:
       - self-hosted
       - Windows
     steps:
-      - if: runner.os == 'macOS'
-        name: Setup nodejs version
-        uses: actions/setup-node@v4
-        with:
-          cache: pnpm
-          node-version-file: .node-version
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
@@ -190,6 +184,12 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version-file: .node-version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -215,12 +215,6 @@ jobs:
       - self-hosted
       - Linux
     steps:
-      - if: runner.os == 'macOS'
-        name: Setup nodejs version
-        uses: actions/setup-node@v4
-        with:
-          cache: pnpm
-          node-version-file: .node-version
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
@@ -239,6 +233,12 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version-file: .node-version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -264,12 +264,6 @@ jobs:
       - self-hosted
       - Linux
     steps:
-      - if: runner.os == 'macOS'
-        name: Setup nodejs version
-        uses: actions/setup-node@v4
-        with:
-          cache: pnpm
-          node-version-file: .node-version
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
@@ -288,6 +282,12 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version-file: .node-version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -325,12 +325,6 @@ jobs:
       - macOS
       - ARM64
     steps:
-      - if: runner.os == 'macOS'
-        name: Setup nodejs version
-        uses: actions/setup-node@v4
-        with:
-          cache: pnpm
-          node-version-file: .node-version
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
@@ -349,6 +343,12 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version-file: .node-version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -384,12 +384,6 @@ jobs:
     runs-on:
       - macos-13
     steps:
-      - if: runner.os == 'macOS'
-        name: Setup nodejs version
-        uses: actions/setup-node@v4
-        with:
-          cache: pnpm
-          node-version-file: .node-version
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
@@ -408,6 +402,12 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version-file: .node-version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -444,12 +444,6 @@ jobs:
       - self-hosted
       - Windows
     steps:
-      - if: runner.os == 'macOS'
-        name: Setup nodejs version
-        uses: actions/setup-node@v4
-        with:
-          cache: pnpm
-          node-version-file: .node-version
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
@@ -468,6 +462,12 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version-file: .node-version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -504,12 +504,6 @@ jobs:
       - self-hosted
       - Linux
     steps:
-      - if: runner.os == 'macOS'
-        name: Setup nodejs version
-        uses: actions/setup-node@v4
-        with:
-          cache: pnpm
-          node-version-file: .node-version
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
@@ -528,6 +522,12 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version-file: .node-version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -564,12 +564,6 @@ jobs:
       - self-hosted
       - Linux
     steps:
-      - if: runner.os == 'macOS'
-        name: Setup nodejs version
-        uses: actions/setup-node@v4
-        with:
-          cache: pnpm
-          node-version-file: .node-version
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
@@ -588,6 +582,12 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version-file: .node-version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -628,12 +628,6 @@ jobs:
       - macOS
       - ARM64
     steps:
-      - if: runner.os == 'macOS'
-        name: Setup nodejs version
-        uses: actions/setup-node@v4
-        with:
-          cache: pnpm
-          node-version-file: .node-version
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
@@ -652,6 +646,12 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version-file: .node-version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -690,12 +690,6 @@ jobs:
     runs-on:
       - macos-13
     steps:
-      - if: runner.os == 'macOS'
-        name: Setup nodejs version
-        uses: actions/setup-node@v4
-        with:
-          cache: pnpm
-          node-version-file: .node-version
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
@@ -714,6 +708,12 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version-file: .node-version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -753,12 +753,6 @@ jobs:
       - self-hosted
       - Windows
     steps:
-      - if: runner.os == 'macOS'
-        name: Setup nodejs version
-        uses: actions/setup-node@v4
-        with:
-          cache: pnpm
-          node-version-file: .node-version
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
@@ -777,6 +771,12 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version-file: .node-version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -816,12 +816,6 @@ jobs:
       - self-hosted
       - Linux
     steps:
-      - if: runner.os == 'macOS'
-        name: Setup nodejs version
-        uses: actions/setup-node@v4
-        with:
-          cache: pnpm
-          node-version-file: .node-version
       - if: runner.os == 'Windows'
         name: Setup required bazel environment
         run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
@@ -840,6 +834,12 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version-file: .node-version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:

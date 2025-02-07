@@ -375,11 +375,11 @@ pub fn runs_on(os: OS, runner_type: RunnerType) -> Vec<RunnerLabel> {
 /// Initial CI job steps: check out the source code and set up the environment.
 pub fn setup_script_steps() -> Vec<Step> {
     let mut ret = vec![
-        setup_node(),
         setup_bazel_env(),
         setup_bazel(),
         setup_artifact_api(),
         checkout_repo_step(),
+        setup_node(),
     ];
     // We run `./run --help` so:
     // * The build-script is build in a separate step. This allows us to monitor its build-time and
