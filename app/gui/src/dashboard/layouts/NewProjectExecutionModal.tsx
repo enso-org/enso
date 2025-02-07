@@ -14,7 +14,6 @@ import type Backend from '#/services/Backend'
 import type {
   ProjectExecutionInfo,
   ProjectExecutionRepeatInfo,
-  ProjectExecutionRepeatType,
   ProjectId,
 } from '#/services/Backend'
 import {
@@ -63,6 +62,15 @@ const REPEAT_TIMES_COUNT = 5
 const DAYS_PER_WEEK = 7
 const HOURS_PER_DAY = 24
 const MONTHS_PER_YEAR = 12
+const INTERNAL_REPEAT_TYPES = [
+  'none',
+  'hourly',
+  'daily',
+  'weekly',
+  'monthly-date',
+  'monthly-weekday',
+  'monthly-last-weekday',
+] as const
 
 const DAYS = [...Array(DAYS_PER_WEEK).keys()] as const
 const MONTHS = [...Array(MONTHS_PER_YEAR).keys()] as const
@@ -72,7 +80,7 @@ function createUpsertExecutionSchema(timeZone: string | undefined) {
   return z
     .object({
       projectId: z.string().refine((x: unknown): x is ProjectId => true),
-      repeatType: z.enum(PROJECT_EXECUTION_REPEAT_TYPES),
+      repeatType: z.enum([...PROJECT_EXECUTION_REPEAT_TYPES, 'weekly']),
       days: z
         .number()
         .int()
@@ -140,7 +148,13 @@ function createUpsertExecutionSchema(timeZone: string | undefined) {
             }
             case 'daily': {
               return {
-                type: repeatType,
+                type: 'daily',
+                daysOfWeek: DAYS,
+              }
+            }
+            case 'weekly': {
+              return {
+                type: 'daily',
                 daysOfWeek: days,
               }
             }
@@ -248,8 +262,8 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   const daysToEndOfMonth = endOfMonth(date).day - date.day
   const validRepeatTypes =
     daysToEndOfMonth >= DAYS_PER_WEEK ?
-      PROJECT_EXECUTION_REPEAT_TYPES.filter((type) => type !== 'monthly-last-weekday')
-    : PROJECT_EXECUTION_REPEAT_TYPES
+      INTERNAL_REPEAT_TYPES.filter((type) => type !== 'monthly-last-weekday')
+    : INTERNAL_REPEAT_TYPES
 
   useEffect(() => {
     if (onChange) {
@@ -283,7 +297,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
     return dates
   })()
 
-  const repeatText = useEventCallback((otherRepeatType: ProjectExecutionRepeatType) => {
+  const repeatText = useEventCallback((otherRepeatType: typeof repeatType) => {
     // Use `en-US` locale because it matches JavaScript conventions.
     const dayOfWeekNumber = getDayOfWeek(date, 'en-US')
     const dayOfWeek = getText(DAY_TEXT_IDS[dayOfWeekNumber] ?? 'monday')
@@ -296,6 +310,9 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       }
       case 'daily': {
         return getText('daily')
+      }
+      case 'weekly': {
+        return getText('weekly')
       }
       case 'monthly-date': {
         return getText('monthlyXthDay', getOrdinal(date.day))
@@ -368,7 +385,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
           max={HOURS_PER_DAY - 1}
         />
       )}
-      {repeatType === 'daily' && (
+      {repeatType === 'weekly' && (
         <MultiSelector form={form} isRequired name="days" label={getText('daysLabel')} items={DAYS}>
           {(n) => getText(DAY_3_LETTER_TEXT_IDS[n] ?? 'monday3')}
         </MultiSelector>

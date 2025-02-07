@@ -689,6 +689,7 @@
   "doesNotRepeat": "Does not repeat",
   "hourly": "Hourly",
   "daily": "Daily",
+  "weekly": "Weekly",
   "monthlyXthDay": "Monthly ($0)",
   "monthlyXthXDay": "Monthly ($0 $1)",
   "monthlyLastXDay": "Monthly (last $0)",
