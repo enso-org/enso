@@ -12,11 +12,13 @@ import {
 } from '#/hooks/backendBatchedHooks'
 import { MB_BYTES, uploadingFileQueryOptions } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { NotificationItem } from '#/layouts/NotificationTray/components/NotificationItem'
 import { useText } from '#/providers/TextProvider'
 import { useIsMutating, useQuery, useQueryClient, type MutationKey } from '@tanstack/react-query'
 import { BackendType } from 'enso-common/src/services/Backend'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { useEffect, useState } from 'react'
+import { toast } from 'react-toastify'
 import type { NotificationInfo } from './types'
 
 const MUTATION_ID_MAP = new WeakMap<object, string>()
@@ -54,11 +56,20 @@ export function useComputedNotifications() {
     setNotificationMap((map) => {
       const newNotifications = new Map(map)
       const existingNotification = map.get(key)
-      newNotifications.set(key, {
+      const notification: NotificationInfo = {
         ...newNotification,
         timestamp:
           existingNotification?.timestamp ?? newNotification.timestamp ?? Number(new Date()),
-      })
+      }
+      newNotifications.set(key, notification)
+      if (!existingNotification) {
+        const toastFunction =
+          'progress' in notification && notification.progress !== 1 ? toast.loading : toast.success
+        toastFunction(<NotificationItem hideTime {...notification} />, {
+          position: 'bottom-right',
+          toastId: notification.id,
+        })
+      }
       return newNotifications
     })
   })
@@ -230,6 +241,16 @@ export function useComputedNotifications() {
   }
 
   const computedNotifications: readonly NotificationInfo[] = [...notificationMap.values()].reverse()
+
+  for (const notification of computedNotifications) {
+    if (notification.showToast === true) {
+      toast.update(notification.id, {
+        type: 'progress' in notification && notification.progress !== 1 ? 'default' : 'success',
+        render: () => <NotificationItem hideTime {...notification} />,
+        ...('progress' in notification ? { progress: notification.progress } : {}),
+      })
+    }
+  }
 
   return { computedNotifications, removeComputedNotification }
 }

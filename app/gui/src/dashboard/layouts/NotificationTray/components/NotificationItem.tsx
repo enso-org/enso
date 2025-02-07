@@ -19,12 +19,13 @@ const NOTIFICATION_ITEM_STYLES = tv({
 
 /** Props for a {@link NotificationItem}. */
 export interface NotificationItemProps extends NotificationInfo {
-  readonly remove?: () => Promise<void> | void
+  readonly hideTime?: boolean | undefined
+  readonly remove?: (() => Promise<void> | void) | undefined
 }
 
 /** An item in the notification tray. */
 export function NotificationItem(props: NotificationItemProps) {
-  const { message, icon, progress, color, timestamp, remove } = props
+  const { hideTime = false, message, icon, progress, color, timestamp, remove } = props
   const { locale } = useText()
   const dateTime = timestamp != null ? new Date(timestamp) : undefined
 
@@ -38,7 +39,7 @@ export function NotificationItem(props: NotificationItemProps) {
           <Icon color={color} icon={icon} />
           <Text>{message}</Text>
           <div className={styles.contentPadding()} />
-          {dateTime != null && (
+          {!hideTime && dateTime != null && (
             <Text color="disabled">
               {dateTime.toLocaleString(locale, {
                 ...(dateTime.toDateString() === new Date().toDateString() ?

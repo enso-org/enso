@@ -10,4 +10,5 @@ export interface NotificationInfo {
   readonly progress?: number | 'indeterminate'
   readonly color?: ButtonProps['color']
   readonly timestamp?: number
+  readonly showToast?: boolean
 }
