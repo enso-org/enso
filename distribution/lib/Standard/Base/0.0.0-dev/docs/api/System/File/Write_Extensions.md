@@ -1,0 +1,6 @@
+## Enso Signatures 1.0
+## module Standard.Base.System.File.Write_Extensions
+- Standard.Base.Data.Text.Text.write self path:Standard.Base.System.File.Generic.Writable_File.Writable_File encoding:Standard.Base.Data.Text.Encoding.Encoding= on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.write self path:Standard.Base.System.File.Generic.Writable_File.Writable_File encoding:Standard.Base.Data.Text.Encoding.Encoding= on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+- Standard.Base.Data.Vector.Vector.write_bytes self path:Standard.Base.System.File.Generic.Writable_File.Writable_File on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= -> Standard.Base.Any.Any
+- Standard.Base.Data.Vector.Vector.write_bytes self path:Standard.Base.System.File.Generic.Writable_File.Writable_File on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= -> Standard.Base.Any.Any

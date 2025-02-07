@@ -314,6 +314,14 @@ add_specs suite_builder =
             y.b_method . should_equal "B method"
             Problems.expect_only_warning Illegal_State y
 
+        group_builder.specify "clearing warnings on an intersection type" <|
+            b = (B.B_Ctor 24)
+            bc = b : B & C
+            bc_without_warning = Warning.clear (Warning.attach (Illegal_State.Error "my warning") bc)
+            Problems.assume_no_problems bc_without_warning
+            Problems.assume_no_problems (bc_without_warning:B)
+            Problems.assume_no_problems (bc_without_warning:C)
+
         group_builder.specify "removing warnings from an intersection type should not lose even the hidden refinements" <|
             ab = make_a_and_b
             x1 = Warning.attach (Illegal_State.Error "my warning") (ab:A)

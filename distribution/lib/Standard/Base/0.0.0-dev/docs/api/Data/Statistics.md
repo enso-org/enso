@@ -1,0 +1,56 @@
+## Enso Signatures 1.0
+## module Standard.Base.Data.Statistics
+- type Accumulator
+    - Value count:Standard.Base.Data.Numbers.Integer min_max:Standard.Base.Data.Boolean.Boolean minimum:Standard.Base.Any.Any maximum:Standard.Base.Any.Any moments:(Standard.Base.Data.Vector.Vector|Standard.Base.Nothing.Nothing) calc_product:Standard.Base.Data.Boolean.Boolean product:Standard.Base.Any.Any
+    - check_moments self statistic:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - check_product self -> Standard.Base.Any.Any
+    - compute self statistic:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - increment self value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - kurtosis self -> Standard.Base.Any.Any
+    - new min_max:Standard.Base.Any.Any= moments:Standard.Base.Any.Any= calc_product:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - perform_comparison current:Standard.Base.Any.Any value:Standard.Base.Any.Any bound:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - skew self population:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - update_moments self value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - variance self population:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- type Rank_Method
+    - Average
+    - Dense
+    - Maximum
+    - Minimum
+    - Ordinal
+    - compute self input:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- type Statistic
+    - Count
+    - Covariance series:Standard.Base.Data.Vector.Vector
+    - Kurtosis
+    - Maximum
+    - Mean
+    - Minimum
+    - Pearson series:Standard.Base.Data.Vector.Vector
+    - Product
+    - R_Squared predicted:Standard.Base.Data.Vector.Vector
+    - Skew population:Standard.Base.Data.Boolean.Boolean=
+    - Spearman series:Standard.Base.Data.Vector.Vector
+    - Standard_Deviation population:Standard.Base.Data.Boolean.Boolean=
+    - Sum
+    - Variance population:Standard.Base.Data.Boolean.Boolean=
+    - bulk_widget display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
+    - compute data:Standard.Base.Any.Any statistic:Standard.Base.Data.Statistics.Statistic= -> Standard.Base.Any.Any
+    - compute_bulk data:Standard.Base.Any.Any statistics:Standard.Base.Data.Vector.Vector= -> Standard.Base.Any.Any
+    - covariance_matrix data:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - order self -> Standard.Base.Any.Any
+    - pearson_correlation data:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - rank_data input:Standard.Base.Any.Any method:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - running data:Standard.Base.Any.Any statistic:Standard.Base.Data.Statistics.Statistic= -> Standard.Base.Any.Any
+    - running_bulk data:Standard.Base.Any.Any statistics:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - spearman_correlation data:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - to_java self -> Standard.Base.Any.Any
+- calculate_correlation_statistics x_data:Standard.Base.Any.Any y_data:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- calculate_correlation_statistics_matrix data:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- calculate_spearman_rank x_data:Standard.Base.Any.Any y_data:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- check_if_empty count:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- check_running_support statistics:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- compute_fold current:Standard.Base.Any.Any value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- empty_value statistic:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- is_valid v:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- wrap_java_call ~function:Standard.Base.Any.Any -> Standard.Base.Any.Any

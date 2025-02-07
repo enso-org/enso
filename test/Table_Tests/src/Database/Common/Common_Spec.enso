@@ -15,6 +15,7 @@ import Standard.Test.Suite.Suite_Builder
 
 import project.Database.Common.Default_Ordering_Spec
 import project.Database.Common.Names_Length_Limits_Spec
+import project.Database.Common.Single_Column_Table_Spec
 import Standard.Database.Feature.Feature
 
 import project.Util
@@ -154,6 +155,7 @@ add_commmon_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connec
 
     Default_Ordering_Spec.add_specs suite_builder prefix create_connection_fn setup
     Names_Length_Limits_Spec.add_specs suite_builder prefix create_connection_fn
+    Single_Column_Table_Spec.add_specs suite_builder prefix setup
 
     suite_builder.group (prefix + "Basic Table Access") group_builder->
         data = Basic_Data.setup default_connection.get
