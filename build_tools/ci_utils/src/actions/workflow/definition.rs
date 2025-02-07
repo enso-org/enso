@@ -128,7 +128,7 @@ pub fn setup_node() -> Step {
 
 pub fn setup_corepack() -> Step {
     Step {
-        run: Some("npm install -g --force corepack@0.31.0 && corepack enable".into()),
+        run: Some("npm install -g corepack@0.31.0 && corepack enable".into()),
         r#if: Some(is_non_linux_runner()),
         ..default()
     }
