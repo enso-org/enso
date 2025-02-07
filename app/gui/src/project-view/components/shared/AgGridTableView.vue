@@ -126,7 +126,7 @@ const props = defineProps<{
   processDataFromClipboard?: (params: ProcessDataFromClipboardParams<TData>) => string[][] | null
   datasource: any
   rowCount: number
-  rowModelType: string
+  isServerSideModel?: boolean
   statusBar: any
 }>()
 const emit = defineEmits<{
@@ -148,6 +148,8 @@ useAutoBlur(() => grid.value?.$el)
 function onGridReady(event: GridReadyEvent<TData>) {
   gridApi.value = event.api
 }
+
+const rowModelType = computed(() => props.isServerSideModel ? 'serverSide' : 'clientSide')
 
 // function getRowHeight(params: RowHeightParams): number {
 //   if (props.textFormatOption === 'off') {
@@ -384,6 +386,7 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       :rowCount="rowCount"
       :rowData="rowModelType === 'clientSide' ? rowData : null"
       :statusBar="statusBar"
+      :autoHeight="true"
       @gridReady="onGridReady"
       @firstDataRendered="updateColumnWidths"
       @rowDataUpdated="(updateColumnWidths($event), emit('rowDataUpdated', $event))"

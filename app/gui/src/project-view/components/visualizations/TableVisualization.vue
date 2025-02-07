@@ -142,7 +142,7 @@ const defaultColDef: Ref<ColDef> = ref({
   ],
 } satisfies ColDef)
 const columnDefs: Ref<ColDef[]> = ref([])
-const statusBar = ref({
+const statusBar = computed(() => props.data.all_rows_count ? ({
   statusPanels: [
     {
       statusPanel: TableVizStatusBar,
@@ -151,15 +151,13 @@ const statusBar = ref({
       },
     },
   ],
-})
+}) : null)
 
 const textFormatterSelected = ref<TextFormatOptions>('partial')
 
 const isFilterSortNodeEnabled = computed(
   () => config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE,
 )
-
-const rowModelType = computed(() => (props.data.is_ssrm ? 'serverSide' : 'clientSide'))
 
 const numberFormatGroupped = new Intl.NumberFormat(undefined, {
   style: 'decimal',
@@ -810,7 +808,7 @@ config.setToolbar(
         :datasource="createServerSideDatasource()"
         :rowData="rowData"
         :rowCount="props.data.all_rows_count"
-        :rowModelType="rowModelType"
+        :isServerSideModel="props.data.is_ssrm"
         :statusBar="statusBar"
         @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
       />
