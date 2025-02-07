@@ -14,11 +14,11 @@ import java.util.Arrays;
 public record TypeInfo(String[] visibleType, String[] hiddenType) {
 
   public static TypeInfo ofType(String typeName) {
-    return new TypeInfo(new String[] {typeName}, new String[] {});
+    return new TypeInfo(new String[] {typeName}, new String[0]);
   }
 
   public static TypeInfo ofIntersectionType(String[] intersectionType) {
-    return new TypeInfo(intersectionType, new String[] {});
+    return new TypeInfo(intersectionType, new String[0]);
   }
 
   @Override

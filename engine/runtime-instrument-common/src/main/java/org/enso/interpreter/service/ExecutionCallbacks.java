@@ -4,7 +4,6 @@ import com.oracle.truffle.api.CompilerDirectives;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
 import org.enso.interpreter.instrument.ExpressionExecutionState;
@@ -228,23 +227,20 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
       if (publicTypes != null) {
         final Type[] allTypes = typeOfNode.findAllTypesOrNull(value, true);
-        // Relies on the fact that allTypes appends extra types to the end of publicTypes.
-        assert (publicTypes.length == 0
-            || Objects.equals(
-                publicTypes[publicTypes.length - 1], allTypes[publicTypes.length - 1]));
-        final Type[] conversionTypes =
+        assert Arrays.equals(publicTypes, Arrays.copyOfRange(allTypes, 0, publicTypes.length));
+        final Type[] hiddenTypes =
             Arrays.copyOfRange(allTypes, publicTypes.length, allTypes.length);
 
         final String[] publicTypeNames = new String[publicTypes.length];
         for (var i = 0; i < publicTypes.length; i++) {
           publicTypeNames[i] = getTypeQualifiedName(publicTypes[i]);
         }
-        final String[] conversionTypeNames = new String[conversionTypes.length];
-        for (var i = 0; i < conversionTypeNames.length; i++) {
-          conversionTypeNames[i] = getTypeQualifiedName(conversionTypes[i]);
+        final String[] hiddenTypeNames = new String[hiddenTypes.length];
+        for (var i = 0; i < hiddenTypeNames.length; i++) {
+          hiddenTypeNames[i] = getTypeQualifiedName(hiddenTypes[i]);
         }
 
-        return new TypeInfo(publicTypeNames, conversionTypeNames);
+        return new TypeInfo(publicTypeNames, hiddenTypeNames);
       }
     }
 

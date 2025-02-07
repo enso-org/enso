@@ -380,7 +380,6 @@ interface ExpressionUpdate {
    * The list of types this expression can be converted to.
    */
   hiddenType: string[];
-  expressionType?: ExpressionType;
   /** The updated method call info. */
   methodCall?: MethodCall;
   /** Profiling information about the expression. */
