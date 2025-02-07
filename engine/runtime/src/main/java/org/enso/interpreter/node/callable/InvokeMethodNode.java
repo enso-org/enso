@@ -185,7 +185,33 @@ public abstract class InvokeMethodNode extends BaseNode {
     return function;
   }
 
-  private boolean typeCanOverride(MethodRootNode node, EnsoContext ctx) {
+  /**
+   * Returns true if synthetic Self argument should be prepended to the arguments passed to the
+   * function.
+   *
+   * <p>Static method calls on Any are resolved to `Any.type.method`. Such methods take one
+   * additional self argument (with Any.type) as opposed to static method calls resolved on any
+   * other types.
+   *
+   * @param resolvedFunctionSchema Schema of the function that was resolved to be invoked.
+   * @param argumentCount Count of the arguments passed to the function.
+   * @return True if synthetic self argument should be prepended to the arguments.
+   */
+  public static boolean shouldPrependSyntheticSelfArg(
+      FunctionSchema resolvedFunctionSchema, int argumentCount) {
+    var resolvedFuncArgCount = resolvedFunctionSchema.getArgumentsCount();
+    long argsWithDefaultValCount = 0;
+    for (var argDef : resolvedFunctionSchema.getArgumentInfos()) {
+      if (argDef.hasDefaultValue()) {
+        argsWithDefaultValCount++;
+      }
+    }
+    boolean shouldPrependSyntheticSelfArg =
+        resolvedFuncArgCount - argsWithDefaultValCount == argumentCount + 1;
+    return shouldPrependSyntheticSelfArg;
+  }
+
+  private static boolean typeCanOverride(MethodRootNode node, EnsoContext ctx) {
     Type methodOwnerType = node.getType();
     Builtins builtins = ctx.getBuiltins();
     Type any = builtins.any();
@@ -220,20 +246,9 @@ public abstract class InvokeMethodNode extends BaseNode {
       }
       throw methodNotFound(symbol, self);
     }
-    var resolvedFuncArgCount = function.getSchema().getArgumentsCount();
     CallArgumentInfo[] invokeFuncSchema = invokeFunctionNode.getSchema();
-    long argsWithDefaultValCount = 0;
-    for (var argDef : function.getSchema().getArgumentInfos()) {
-      if (argDef.hasDefaultValue()) {
-        argsWithDefaultValCount++;
-      }
-    }
-    // Static method calls on Any are resolved to `Any.type.method`. Such methods take one
-    // additional
-    // self argument (with Any.type) as opposed to static method calls resolved on any other
-    // types. This case is handled in the following block.
-    boolean shouldPrependSyntheticSelfArg =
-        resolvedFuncArgCount - argsWithDefaultValCount == arguments.length + 1;
+    var shouldPrependSyntheticSelfArg =
+        shouldPrependSyntheticSelfArg(function.getSchema(), arguments.length);
     if (isAnyEigenType(selfTpe) && shouldPrependSyntheticSelfArg) {
       // function is a static method on Any, so the first two arguments in `invokeFuncSchema`
       // represent self arguments.
@@ -257,7 +272,7 @@ public abstract class InvokeMethodNode extends BaseNode {
 
       if (invokeAnyStaticFunctionNode == null) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
-        assert resolvedFuncArgCount >= 2
+        assert function.getSchema().getArgumentsCount() >= 2
             : "Resolved function should be on Any.type, therefore, should have at least two self"
                 + " arguments";
         // Prepend self=Any to the arguments and shift

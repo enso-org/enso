@@ -424,10 +424,14 @@ public final class Type extends EnsoObject {
         @Cached("findMethod(receiver, symbol, methodResolverNode)") Function func,
         @Cached("buildInvokeCallableNode(func)") InvokeCallableNode invokeCallableNode)
         throws UnsupportedMessageException, UnsupportedTypeException, ArityException {
-      var argsWithReceiver = new Object[args.length + 1];
-      argsWithReceiver[0] = receiver;
-      System.arraycopy(args, 0, argsWithReceiver, 1, args.length);
-      return invokeCallableNode.execute(func, null, null, argsWithReceiver);
+      Object[] finalArgs = args;
+      if (InvokeMethodNode.shouldPrependSyntheticSelfArg(func.getSchema(), args.length)) {
+        var argsWithReceiver = new Object[args.length + 1];
+        argsWithReceiver[0] = receiver;
+        System.arraycopy(args, 0, argsWithReceiver, 1, args.length);
+        finalArgs = argsWithReceiver;
+      }
+      return invokeCallableNode.execute(func, null, null, finalArgs);
     }
 
     @Specialization(replaces = "doCached")
