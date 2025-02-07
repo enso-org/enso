@@ -357,6 +357,7 @@
   "uploadFiles": "Import",
   "downloadFiles": "Download",
   "newDatalink": "New Datalink",
+  "newCredential": "New Credential",
   "newSecret": "New Secret",
   "newLabel": "New Label",
   "newEmptyProject": "New Project",

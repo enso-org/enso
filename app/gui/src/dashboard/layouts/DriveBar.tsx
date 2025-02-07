@@ -299,7 +299,6 @@ export default function DriveBar(props: DriveBarProps) {
                   />
                 </DialogTrigger>
               )}
-
               {isCloud && (
                 <DialogTrigger>
                   <Button
@@ -310,6 +309,22 @@ export default function DriveBar(props: DriveBarProps) {
                     aria-label={getText('newDatalink')}
                   />
                   <UpsertDatalinkModal
+                    doCreate={async (name, value) => {
+                      await newDatalink(name, value)
+                    }}
+                  />
+                </DialogTrigger>
+              )}
+              {isCloud && (
+                <DialogTrigger>
+                  <Button
+                    variant="icon"
+                    size="medium"
+                    icon={AddCredentialIcon}
+                    isDisabled={shouldBeDisabled}
+                    aria-label={getText('newCredential')}
+                  />
+                  <UpsertCredentialModal
                     doCreate={async (name, value) => {
                       await newDatalink(name, value)
                     }}
