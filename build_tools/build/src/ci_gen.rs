@@ -17,6 +17,7 @@ use ide_ci::actions::workflow::definition::run;
 use ide_ci::actions::workflow::definition::setup_artifact_api;
 use ide_ci::actions::workflow::definition::setup_bazel;
 use ide_ci::actions::workflow::definition::setup_bazel_env;
+use ide_ci::actions::workflow::definition::setup_corepack;
 use ide_ci::actions::workflow::definition::setup_node;
 use ide_ci::actions::workflow::definition::shell;
 use ide_ci::actions::workflow::definition::wrap_expression;
@@ -380,6 +381,7 @@ pub fn setup_script_steps() -> Vec<Step> {
         setup_artifact_api(),
         checkout_repo_step(),
         setup_node(),
+        setup_corepack(),
     ];
     // We run `./run --help` so:
     // * The build-script is build in a separate step. This allows us to monitor its build-time and

@@ -59,6 +59,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
+      - run: npm install -g corepack@0.31.0
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -102,6 +103,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
+      - run: npm install -g corepack@0.31.0
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -158,6 +160,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
+      - run: npm install -g corepack@0.31.0
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -214,6 +217,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
+      - run: npm install -g corepack@0.31.0
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -262,6 +266,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
+      - run: npm install -g corepack@0.31.0
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -314,6 +319,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
+      - run: npm install -g corepack@0.31.0
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -364,6 +370,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
+      - run: npm install -g corepack@0.31.0
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -415,6 +422,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
+      - run: npm install -g corepack@0.31.0
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -471,6 +479,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
+      - run: npm install -g corepack@0.31.0
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -526,6 +535,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
+      - run: npm install -g corepack@0.31.0
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -600,6 +610,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
+      - run: npm install -g corepack@0.31.0
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -679,6 +690,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
+      - run: npm install -g corepack@0.31.0
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -759,6 +771,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: .node-version
+      - run: npm install -g corepack@0.31.0
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
