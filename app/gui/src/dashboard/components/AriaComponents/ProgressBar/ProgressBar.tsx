@@ -8,7 +8,8 @@ import { tv } from '#/utilities/tailwindVariants'
 const PROGRESS_BAR_STYLES = tv({
   base: 'h-2 rounded-full bg-primary/10',
   slots: {
-    progressBar: 'h-full rounded-full bg-accent transition-width duration-1000',
+    progressBar: 'h-full overflow-clip rounded-full bg-accent transition-width duration-1000',
+    indeterminateProgressBar: 'animate-horizontal-loader-1/6 h-full w-1/6 bg-white/30',
   },
 })
 
@@ -33,7 +34,9 @@ export function ProgressBar(props: ProgressBarProps) {
     >
       {({ percentage }) => (
         <div className={styles.base()}>
-          <div className={styles.progressBar()} style={{ width: percentage + '%' }} />
+          <div className={styles.progressBar()} style={{ width: percentage + '%' }}>
+            {progress === 'indeterminate' && <div className={styles.indeterminateProgressBar()} />}
+          </div>
         </div>
       )}
     </AriaProgressBar>
