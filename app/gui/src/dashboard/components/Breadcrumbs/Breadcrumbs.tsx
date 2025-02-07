@@ -5,11 +5,11 @@
 import ArrowRight from '#/assets/expand_arrow_right.svg'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { createLeafComponent } from '@react-aria/collections'
-import { Fragment, type ForwardedRef, type ReactElement } from 'react'
+import { Fragment, type ReactElement } from 'react'
 import * as aria from 'react-aria-components'
 import flattenChildren from 'react-keyed-flatten-children'
 import { Button, type TestIdProps } from '../AriaComponents'
-import SvgMask from '../SvgMask'
+import { Icon } from '../Icon'
 import { BreadcrumbCollapsedItem, BreadcrumbItem } from './BreadcrumbItem'
 import { getItemsWithCollapsedItem, isCollapsedItem } from './utilities'
 
@@ -140,9 +140,10 @@ interface BreadcrumbSeparatorProps {
 // eslint-disable-next-line no-restricted-syntax
 const BreadcrumbSeparator = createLeafComponent(
   'BreadcrumbSeparator',
-  function BreadcrumbSeparator(props: BreadcrumbSeparatorProps, ref: ForwardedRef<HTMLDivElement>) {
+  function BreadcrumbSeparator(props: BreadcrumbSeparatorProps) {
     const { icon = ArrowRight, className } = props
-    return <SvgMask ref={ref} src={icon} className={className} />
+
+    return <Icon className={className}>{icon}</Icon>
   },
 )
 

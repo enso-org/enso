@@ -10,6 +10,7 @@ import project.Semantic.Error_Spec
 import project.Semantic.Import_Loop.Spec as Import_Loop_Spec
 import project.Semantic.Meta_Spec
 import project.Semantic.Meta_Location_Spec
+import project.Semantic.Multi_Value_As_Type_Refinement_Spec
 import project.Semantic.Multi_Value_Convert_Spec
 import project.Semantic.Multi_Value_Spec
 import project.Semantic.Names_Spec
@@ -132,6 +133,7 @@ main filter=Nothing =
         Maybe_Spec.add_specs suite_builder
         Meta_Spec.add_specs suite_builder
         Meta_Location_Spec.add_specs suite_builder
+        Multi_Value_As_Type_Refinement_Spec.add_specs suite_builder
         Multi_Value_Convert_Spec.add_specs suite_builder
         Multi_Value_Spec.add_specs suite_builder
         Names_Spec.add_specs suite_builder

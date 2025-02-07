@@ -5,6 +5,7 @@ import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
 import FullscreenButton from '@/components/FullscreenButton.vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { htmlToMarkdown } from '@/components/MarkdownEditor/htmlToMarkdown'
+import SvgButton from '@/components/SvgButton.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
@@ -25,11 +26,12 @@ const markdownEditor = ref<ComponentInstance<typeof MarkdownEditor>>()
 
 const graphStore = useGraphStore()
 const projectStore = useProjectStore()
-const { transformImageUrl, tryUploadPastedImage, tryUploadDroppedImage } = useDocumentationImages(
-  () => (markdownEditor.value?.loaded ? markdownEditor.value : undefined),
-  toRef(graphStore, 'modulePath'),
-  useProjectFiles(projectStore),
-)
+const { transformImageUrl, tryUploadPastedImage, tryUploadDroppedImage, tryUploadImageFile } =
+  useDocumentationImages(
+    () => (markdownEditor.value?.loaded ? markdownEditor.value : undefined),
+    toRef(graphStore, 'modulePath'),
+    useProjectFiles(projectStore),
+  )
 
 const fullscreen = ref(false)
 const fullscreenAnimating = ref(false)
@@ -73,6 +75,7 @@ const handler = documentationEditorBindings.handler({
     <div class="DocumentationEditor">
       <div ref="toolbarElement" class="toolbar">
         <FullscreenButton v-model="fullscreen" />
+        <SvgButton name="image" title="Insert image" @click.stop="tryUploadImageFile()" />
       </div>
       <slot name="belowToolbar" />
       <div

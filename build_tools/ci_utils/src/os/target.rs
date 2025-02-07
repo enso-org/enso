@@ -80,6 +80,14 @@ impl OS {
             OS::MacOS => "",
         }
     }
+
+    pub const fn package_extension(self) -> &'static str {
+        match self {
+            OS::Windows => "exe",
+            OS::Linux => "AppImage",
+            OS::MacOS => "dmg",
+        }
+    }
 }
 
 #[cfg(test)]

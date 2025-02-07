@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 use crate::ci::input;
 use crate::ci_gen::job::plain_job;
-use crate::ci_gen::job::with_packaging_steps;
+use crate::ci_gen::job::prepare_packaging_steps;
 use crate::ci_gen::job::RunsOn;
 use crate::engine::env;
 use crate::version::promote::Designation;
@@ -13,8 +13,6 @@ use crate::version::ENSO_VERSION;
 use ide_ci::actions::workflow::definition::checkout_repo_step;
 use ide_ci::actions::workflow::definition::get_input;
 use ide_ci::actions::workflow::definition::get_input_expression;
-use ide_ci::actions::workflow::definition::is_non_windows_runner;
-use ide_ci::actions::workflow::definition::is_windows_runner;
 use ide_ci::actions::workflow::definition::run;
 use ide_ci::actions::workflow::definition::setup_artifact_api;
 use ide_ci::actions::workflow::definition::setup_bazel;
@@ -310,7 +308,6 @@ impl RunStepsBuilder {
         let mut steps = setup_script_steps();
         steps.push(clean_before);
         steps.extend(run_steps);
-        steps.extend(list_everything_on_failure());
         steps.push(clean_after);
         steps
     }
@@ -391,25 +388,6 @@ pub fn setup_script_steps() -> Vec<Step> {
     ret
 }
 
-
-pub fn list_everything_on_failure() -> impl IntoIterator<Item = Step> {
-    let win = Step {
-        name: Some("List files if failed (Windows)".into()),
-        r#if: Some(format!("failure() && {}", is_windows_runner())),
-        run: Some("Get-ChildItem -Force -Recurse".into()),
-        ..default()
-    };
-
-    let non_win = Step {
-        name: Some("List files if failed (non-Windows)".into()),
-        r#if: Some(format!("failure() && {}", is_non_windows_runner())),
-        run: Some("ls -lAR".into()),
-        ..default()
-    };
-
-    [win, non_win]
-}
-
 #[derive(Clone, Copy, Debug)]
 pub struct DraftRelease;
 
@@ -466,7 +444,19 @@ impl JobArchetype for UploadIde {
             "ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --sign-artifacts",
         )
         .cleaning(RELEASE_CLEANING_POLICY)
-        .customize(with_packaging_steps(target.0, job::PackagingTarget::Release))
+        .customize(move |step| {
+            let mut steps = prepare_packaging_steps(target.0, step, job::PackagingTarget::Release);
+
+            let upload_ide = step::upload_artifact("Upload ide")
+                .with_custom_argument("name", format!("ide-{}-{}", target.0, target.1))
+                .with_custom_argument(
+                "path",
+                format!("dist/ide/enso-*.{}", target.0.package_extension()),
+                );
+            steps.push(upload_ide);
+
+            steps
+        })
         .build_job("Build IDE", target)
     }
 }
@@ -853,16 +843,28 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
 }
 
 pub fn engine_benchmark() -> Result<Workflow> {
-    benchmark_workflow("Benchmark Engine", "backend benchmark runtime", Some(4 * 60))
+    let report_path = "engine/runtime-benchmarks/bench-report.xml";
+    benchmark_workflow("Benchmark Engine", "backend benchmark runtime", report_path, Some(4 * 60))
 }
 
 pub fn std_libs_benchmark() -> Result<Workflow> {
-    benchmark_workflow("Benchmark Standard Libraries", "backend benchmark enso-jmh", Some(4 * 60))
+    let report_path = "std-bits/benchmarks/bench-report.xml";
+    benchmark_workflow(
+        "Benchmark Standard Libraries",
+        "backend benchmark enso-jmh",
+        report_path,
+        Some(4 * 60),
+    )
 }
 
+/// #parameters
+/// - `name` - name of the workflow
+/// - `command_line` - command line to run the benchmarks
+/// - `artifact_to_upload` - Path to the artifact to upload
 fn benchmark_workflow(
     name: &str,
     command_line: &str,
+    artifact_to_upload: &str,
     timeout_minutes: Option<u32>,
 ) -> Result<Workflow> {
     let just_check_input_name = "just-check";
@@ -887,7 +889,8 @@ fn benchmark_workflow(
 
     let graal_edition = graalvm::Edition::Community;
     let job_name = format!("{name} ({graal_edition})");
-    let job = benchmark_job(&job_name, command_line, timeout_minutes, graal_edition);
+    let job =
+        benchmark_job(&job_name, command_line, artifact_to_upload, timeout_minutes, graal_edition);
     workflow.add_job(job);
 
     Ok(workflow)
@@ -896,11 +899,16 @@ fn benchmark_workflow(
 fn benchmark_job(
     job_name: &str,
     command_line: &str,
+    artifact_to_upload: &str,
     timeout_minutes: Option<u32>,
     graal_edition: graalvm::Edition,
 ) -> Job {
+    let upload_artifact_step = step::upload_artifact("Upload benchmark results")
+        .with_custom_argument("name", "benchmark-results.xml")
+        .with_custom_argument("path", artifact_to_upload);
     let mut job = RunStepsBuilder::new(command_line)
         .cleaning(CleaningCondition::Always)
+        .customize(move |step| vec![step, upload_artifact_step])
         .build_job(job_name, BenchmarkRunner);
     job.timeout_minutes = timeout_minutes;
     match graal_edition {

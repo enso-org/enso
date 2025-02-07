@@ -94,7 +94,7 @@ test('Copy/paste from Table Visualization', async ({ page, context }) => {
   await page.mouse.down({ button: 'right' })
   await page.mouse.up({ button: 'right' })
   await page.getByText('Copy with Headers').click()
-  await expectClipboard.toMatch(/^Column #1\tColumn #2\r\n0,0\t0,1\r\n1,0\t1,1\r\n2,0\t2,1$/)
+  await expectClipboard.toMatch(/^Column 1\tColumn 2\r\n0,0\t0,1\r\n1,0\t1,1\r\n2,0\t2,1$/)
 })
 
 async function expectTableInputContent(page: Page, node: Locator) {
