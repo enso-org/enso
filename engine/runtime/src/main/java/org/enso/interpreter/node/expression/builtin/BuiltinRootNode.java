@@ -22,7 +22,6 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
-import org.enso.interpreter.runtime.warning.WithWarnings;
 import org.enso.pkg.QualifiedName;
 
 /** Root node for use by all the builtin functions. */
@@ -138,7 +137,7 @@ public abstract class BuiltinRootNode extends RootNode {
         throw sentinel;
       }
       if (warnings != null) {
-        if (value instanceof WithWarnings) {
+        if (warnings.hasWarnings(value)) {
           if (mapInsertAllNode == null) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
             this.mapInsertAllNode = insert(HashMapInsertAllNode.build());

@@ -132,8 +132,8 @@ public abstract class AppendWarningNode extends Node {
       return withWarnings;
     }
     var maxWarns = withWarnings.maxWarnings;
-    var warnsMap = withWarnings.warnings;
-    warnsMap = mapInsertAllNode.executeInsertAll(frame, warnsMap, newWarnsMap, maxWarns);
+    var warnsMap =
+        mapInsertAllNode.executeInsertAll(frame, withWarnings.warnings, newWarnsMap, maxWarns);
     var isLimitReached = mapSizeNode.execute(warnsMap) >= maxWarns;
     return new WithWarnings(withWarnings.value, withWarnings.maxWarnings, isLimitReached, warnsMap);
   }
