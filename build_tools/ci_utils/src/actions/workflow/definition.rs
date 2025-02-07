@@ -129,6 +129,7 @@ pub fn setup_node() -> Step {
 pub fn setup_corepack() -> Step {
     Step {
         run: Some("npm install -g --force corepack@0.31.0 && corepack enable".into()),
+        r#if: Some(is_non_linux_runner()),
         ..default()
     }
 }
@@ -175,6 +176,11 @@ pub fn is_windows_runner() -> String {
 /// An expression piece that evaluates to `true` if the current runner runs on macOS.
 pub fn is_macos_runner() -> String {
     "runner.os == 'macOS'".into()
+}
+/// An expression piece that evaluates to `true` if the current runner runs on non-linux operating
+/// system.
+pub fn is_non_linux_runner() -> String {
+    "runner.os != 'Linux'".into()
 }
 
 /// An expression piece that evaluates to `true` if the current runner *does not* run on Windows.
