@@ -35,7 +35,7 @@ import {
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
 import { useNewProject } from '#/hooks/backendHooks'
-import { useUploadFileWithToastMutation } from '#/hooks/backendUploadFilesHooks'
+import { useUploadFileMutation } from '#/hooks/backendUploadFilesHooks'
 import { usePasteData } from '#/providers/DriveProvider'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 import { normalizePath } from '#/utilities/fileInfo'
@@ -96,7 +96,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     : isCloud ? encodeURI(pathComputed)
     : pathComputed
   const copyMutation = copyHooks.useCopy({ copyText: path ?? '' })
-  const uploadFileToCloudMutation = useUploadFileWithToastMutation(remoteBackend)
+  const uploadFileToCloudMutation = useUploadFileMutation(remoteBackend)
   const disabledTooltip = !canOpenProjects ? getText('downloadToOpenWorkflow') : undefined
 
   const newProject = useNewProject(backend, category)

@@ -6,7 +6,7 @@ import {
   useEnsureListDirectory,
 } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useToastAndLog, useToastAndLogWithId } from '#/hooks/toastAndLogHooks'
+import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
@@ -16,10 +16,8 @@ import {
   type SelectedAssetInfo,
 } from '#/providers/DriveProvider'
 import { useSetModal } from '#/providers/ModalProvider'
-import { useText } from '#/providers/TextProvider'
 import LocalBackend from '#/services/LocalBackend'
 import { tryCreateOwnerPermission } from '#/utilities/permissions'
-import { usePreventNavigation } from '#/utilities/preventNavigation'
 import {
   queryOptions,
   useMutation,
@@ -52,8 +50,7 @@ import {
 } from 'enso-common/src/services/Backend'
 import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/object'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
-import { useId, useState } from 'react'
-import { toast } from 'react-toastify'
+import { useState } from 'react'
 
 /** The number of bytes in 1 megabyte. */
 export const MB_BYTES = 1_000_000
@@ -72,7 +69,7 @@ export function useUploadFiles(backend: Backend, category: Category) {
   const { setModal } = useSetModal()
   const { user } = useFullUserSession()
   const { data: users } = useBackendQuery(backend, 'listUsers', [])
-  const uploadFileMutation = useUploadFileWithToastMutation(backend)
+  const uploadFileMutation = useUploadFileMutation(backend)
   const setSelectedAssets = useSetSelectedAssets()
 
   return useEventCallback(
@@ -332,68 +329,6 @@ export type UploadFileMutationResult = UseMutationResult<
   [body: UploadFileRequestParams, file: File],
   unknown
 > & { readonly sentBytes: number; readonly totalBytes: number }
-
-/**
- * Call "upload file" mutations for a file.
- * Always uses multipart upload for Cloud backend.
- * Shows toasts to update progress.
- */
-export function useUploadFileWithToastMutation(
-  backend: Backend,
-  options: UploadFileMutationOptions = {},
-): UploadFileMutationResult {
-  const toastId = useId()
-  const { getText } = useText()
-  const toastAndLog = useToastAndLogWithId()
-  const { onBegin, onChunkSuccess, onSuccess, onError } = options
-
-  const mutation = useUploadFileMutation(backend, {
-    ...options,
-    onBegin: (progress) => {
-      onBegin?.(progress)
-      const { sentBytes, totalBytes } = progress
-      const sentMb = sentBytes / MB_BYTES
-      const totalMb = totalBytes / MB_BYTES
-      toast.loading(
-        getText(
-          'uploadLargeFileStatus',
-          sentMb < 1 ? sentMb.toFixed(2) : String(Math.ceil(sentMb)),
-          totalMb < 1 ? totalMb.toFixed(2) : String(Math.ceil(totalMb)),
-        ),
-        { toastId, position: 'bottom-right' },
-      )
-    },
-    onChunkSuccess: (progress) => {
-      onChunkSuccess?.(progress)
-      const { sentBytes, totalBytes } = progress
-      const sentMb = sentBytes / MB_BYTES
-      const totalMb = totalBytes / MB_BYTES
-      const text = getText(
-        'uploadLargeFileStatus',
-        sentMb < 1 ? sentMb.toFixed(2) : String(Math.ceil(sentMb)),
-        totalMb < 1 ? totalMb.toFixed(2) : String(Math.ceil(totalMb)),
-      )
-      toast.update(toastId, { render: text })
-    },
-    onSuccess: (progress) => {
-      onSuccess?.(progress)
-      toast.update(toastId, {
-        type: 'success',
-        render: getText('uploadLargeFileSuccess'),
-        isLoading: false,
-        autoClose: null,
-      })
-    },
-    onError: (error) => {
-      onError?.(error)
-      toastAndLog(toastId, 'uploadLargeFileError', error)
-    },
-  })
-
-  usePreventNavigation({ message: getText('anUploadIsInProgress'), isEnabled: mutation.isPending })
-
-  return mutation
-}
 
 /** A key for an "uploading file" computed query. */
 export function uploadingFilesQueryKey() {
