@@ -16,6 +16,7 @@ import { NotificationItem } from '#/layouts/NotificationTray/components/Notifica
 import { useText } from '#/providers/TextProvider'
 import { useIsMutating, useQuery, useQueryClient, type MutationKey } from '@tanstack/react-query'
 import { BackendType } from 'enso-common/src/services/Backend'
+import { omit } from 'enso-common/src/utilities/data/object'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
@@ -67,10 +68,11 @@ export function useComputedNotifications() {
           !('progress' in notification) ||
           (typeof notification.progress === 'number' && notification.progress >= 1)
         const toastFunction = isFinished ? toast.success : toast.loading
-        toastFunction(<NotificationItem hideTime {...notification} />, {
+        toastFunction(<NotificationItem {...omit(notification, 'timestamp', 'progress')} />, {
           position: 'bottom-right',
           toastId: notification.id,
           closeButton: true,
+          ...('progress' in notification ? { progress: notification.progress } : {}),
         })
       }
       return newNotifications
@@ -263,9 +265,9 @@ export function useComputedNotifications() {
       toast.update(notification.id, {
         type: isFinished ? 'success' : 'default',
         isLoading: !isFinished,
-        ...(isFinished ? { autoClose: null } : {}),
-        render: () => <NotificationItem hideTime {...notification} />,
-        ...('progress' in notification ? { progress: notification.progress } : {}),
+        autoClose: null,
+        render: () => <NotificationItem {...omit(notification, 'timestamp', 'progress')} />,
+        progress: notification.progress ?? null,
       })
     }
   }
