@@ -127,6 +127,7 @@ const props = defineProps<{
   datasource: any
   rowCount: number
   rowModelType: string
+  statusBar: any
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -382,6 +383,7 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       :serverSideDatasource="datasource"
       :rowCount="rowCount"
       :rowData="rowModelType === 'clientSide' ? rowData : null"
+      :statusBar="statusBar"
       @gridReady="onGridReady"
       @firstDataRendered="updateColumnWidths"
       @rowDataUpdated="(updateColumnWidths($event), emit('rowDataUpdated', $event))"

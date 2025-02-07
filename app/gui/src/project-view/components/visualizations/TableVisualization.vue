@@ -21,6 +21,7 @@ import type {
 } from 'ag-grid-enterprise'
 import { computed, ref, shallowRef, watchEffect, type Ref } from 'vue'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
+import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
 import { getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
 
 export const name = 'Table'
@@ -141,6 +142,16 @@ const defaultColDef: Ref<ColDef> = ref({
   ],
 } satisfies ColDef)
 const columnDefs: Ref<ColDef[]> = ref([])
+const statusBar = ref({
+  statusPanels: [
+    {
+      statusPanel: TableVizStatusBar,
+      statusPanelParams: {
+        total: props.data.all_rows_count,
+      },
+    },
+  ],
+})
 
 const textFormatterSelected = ref<TextFormatOptions>('partial')
 
@@ -629,7 +640,9 @@ watchEffect(() => {
         ]
       : dataHeader
 
+    console.log(props.data.is_ssrm)
     if (!props.data.is_ssrm) {
+      console.log('HELLO')
       const rows = data_.data && data_.data.length > 0 ? (data_.data[0]?.length ?? 0) : 0
       rowData.value = Array.from({ length: rows }, (_, i) => {
         const shift = data_.has_index_col ? 1 : 0
@@ -797,6 +810,7 @@ config.setToolbar(
         :rowData="rowData"
         :rowCount="props.data.all_rows_count"
         :rowModelType="rowModelType"
+        :statusBar="statusBar"
         @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
       />
     </Suspense>
