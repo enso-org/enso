@@ -151,32 +151,13 @@ function onGridReady(event: GridReadyEvent<TData>) {
 
 const rowModelType = computed(() => props.isServerSideModel ? 'serverSide' : 'clientSide')
 
-// function getRowHeight(params: RowHeightParams): number {
-//   if (props.textFormatOption === 'off') {
-//     return DEFAULT_ROW_HEIGHT
-//   }
-//   const rowData = Object.values(params.data)
-//   const textValues = rowData.filter((r): r is string => typeof r === 'string')
-
-//   if (!textValues.length) {
-//     return DEFAULT_ROW_HEIGHT
-//   }
-
-//   const returnCharsCount = iter.map(textValues, (text) =>
-//     iter.count(text.matchAll(LINE_BOUNDARIES)),
-//   )
-
-//   const maxReturnCharsCount = iter.reduce(returnCharsCount, Math.max, 0)
-//   return (maxReturnCharsCount + 1) * DEFAULT_ROW_HEIGHT
-// }
-
-// watch(
-//   () => props.textFormatOption,
-//   () => {
-//     gridApi.value?.redrawRows()
-//     gridApi.value?.resetRowHeights()
-//   },
-// )
+watch(
+  () => props.textFormatOption,
+  () => {
+    gridApi.value?.redrawRows()
+    gridApi.value?.resetRowHeights()
+  },
+)
 
 function updateColumnWidths(event: FirstDataRenderedEvent | RowDataUpdatedEvent) {
   if (event.api == null) {
@@ -386,7 +367,6 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       :rowCount="rowCount"
       :rowData="rowModelType === 'clientSide' ? rowData : null"
       :statusBar="statusBar"
-      :autoHeight="true"
       @gridReady="onGridReady"
       @firstDataRendered="updateColumnWidths"
       @rowDataUpdated="(updateColumnWidths($event), emit('rowDataUpdated', $event))"

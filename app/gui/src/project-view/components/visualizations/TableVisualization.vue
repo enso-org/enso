@@ -140,6 +140,7 @@ const defaultColDef: Ref<ColDef> = ref({
     'separator',
     'export',
   ],
+  autoHeight:true
 } satisfies ColDef)
 const columnDefs: Ref<ColDef[]> = ref([])
 const statusBar = computed(() => props.data.all_rows_count ? ({
