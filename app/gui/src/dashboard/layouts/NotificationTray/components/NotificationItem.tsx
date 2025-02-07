@@ -1,5 +1,6 @@
 /** @file An item in the notification tray. */
-import { Button, CloseButton, Text } from '#/components/AriaComponents'
+import { CloseButton, Text } from '#/components/AriaComponents'
+import { Icon } from '#/components/Icon'
 import { GridListItem, ProgressBar } from '#/components/aria'
 import type { NotificationInfo } from '#/layouts/NotificationTray/types'
 import { useText } from '#/providers/TextProvider'
@@ -34,7 +35,7 @@ export function NotificationItem(props: NotificationItemProps) {
       <div className={styles.base()}>
         {remove && <CloseButton className={styles.closeButton()} onPress={remove} />}
         <div className={styles.content()}>
-          <Button isDisabled isActive variant="icon" color={color} icon={icon} />
+          <Icon color={color} icon={icon} />
           <Text>{message}</Text>
           <div className={styles.contentPadding()} />
           {dateTime != null && (
