@@ -63,8 +63,10 @@ export function useComputedNotifications() {
       }
       newNotifications.set(key, notification)
       if (!existingNotification && notification.showToast === true) {
-        const toastFunction =
-          'progress' in notification && notification.progress !== 1 ? toast.loading : toast.success
+        const isFinished =
+          !('progress' in notification) ||
+          (typeof notification.progress === 'number' && notification.progress >= 1)
+        const toastFunction = isFinished ? toast.success : toast.loading
         toastFunction(<NotificationItem hideTime {...notification} />, {
           position: 'bottom-right',
           toastId: notification.id,
@@ -256,9 +258,8 @@ export function useComputedNotifications() {
   for (const notification of computedNotifications) {
     if (notification.showToast === true) {
       const isFinished =
-        'progress' in notification &&
-        typeof notification.progress === 'number' &&
-        notification.progress >= 1
+        !('progress' in notification) ||
+        (typeof notification.progress === 'number' && notification.progress >= 1)
       toast.update(notification.id, {
         type: isFinished ? 'success' : 'default',
         isLoading: !isFinished,
