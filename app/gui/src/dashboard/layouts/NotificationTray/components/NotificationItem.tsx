@@ -1,7 +1,7 @@
 /** @file An item in the notification tray. */
 import { CloseButton, Text } from '#/components/AriaComponents'
 import { Icon } from '#/components/Icon'
-import { GridListItem, ProgressBar } from '#/components/aria'
+import { ProgressBar } from '#/components/aria'
 import type { NotificationInfo } from '#/layouts/NotificationTray/types'
 import { useText } from '#/providers/TextProvider'
 import { tv } from '#/utilities/tailwindVariants'
@@ -32,38 +32,36 @@ export function NotificationItem(props: NotificationItemProps) {
   const styles = NOTIFICATION_ITEM_STYLES()
 
   return (
-    <GridListItem>
-      <div className={styles.base()}>
-        {remove && <CloseButton className={styles.closeButton()} onPress={remove} />}
-        <div className={styles.content()}>
-          <Icon color={color} icon={icon} />
-          <Text>{message}</Text>
-          <div className={styles.contentPadding()} />
-          {!hideTime && dateTime != null && (
-            <Text color="disabled">
-              {dateTime.toLocaleString(locale, {
-                ...(dateTime.toDateString() === new Date().toDateString() ?
-                  {}
-                : { dateStyle: 'short' }),
-                timeStyle: 'short',
-              })}
-            </Text>
-          )}
-        </div>
-        {progress != null && (
-          <ProgressBar
-            isIndeterminate={progress === 'indeterminate'}
-            value={progress === 'indeterminate' ? 0 : progress}
-            maxValue={1}
-          >
-            {({ percentage }) => (
-              <div className={styles.progressBarContainer()}>
-                <div className={styles.progressBar()} style={{ width: percentage + '%' }} />
-              </div>
-            )}
-          </ProgressBar>
+    <div className={styles.base()}>
+      {remove && <CloseButton className={styles.closeButton()} onPress={remove} />}
+      <div className={styles.content()}>
+        <Icon color={color} icon={icon} />
+        <Text>{message}</Text>
+        <div className={styles.contentPadding()} />
+        {!hideTime && dateTime != null && (
+          <Text color="disabled">
+            {dateTime.toLocaleString(locale, {
+              ...(dateTime.toDateString() === new Date().toDateString() ?
+                {}
+              : { dateStyle: 'short' }),
+              timeStyle: 'short',
+            })}
+          </Text>
         )}
       </div>
-    </GridListItem>
+      {progress != null && (
+        <ProgressBar
+          isIndeterminate={progress === 'indeterminate'}
+          value={progress === 'indeterminate' ? 0 : progress}
+          maxValue={1}
+        >
+          {({ percentage }) => (
+            <div className={styles.progressBarContainer()}>
+              <div className={styles.progressBar()} style={{ width: percentage + '%' }} />
+            </div>
+          )}
+        </ProgressBar>
+      )}
+    </div>
   )
 }

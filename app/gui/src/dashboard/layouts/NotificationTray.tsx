@@ -3,7 +3,7 @@ import InboxIcon from '#/assets/inbox.svg'
 import InboxWithNotificationIcon from '#/assets/inbox_with_notification.svg'
 import { Button, Popover, Text } from '#/components/AriaComponents'
 import { Result } from '#/components/Result'
-import { DialogTrigger, GridList } from '#/components/aria'
+import { DialogTrigger, GridList, GridListItem } from '#/components/aria'
 import { NotificationItem } from '#/layouts/NotificationTray/components/NotificationItem'
 import { useComputedNotifications } from '#/layouts/NotificationTray/computedNotificationHooks'
 import type { NotificationInfo } from '#/layouts/NotificationTray/types'
@@ -85,12 +85,14 @@ function NotificationTrayDialogInner(props: NotificationTrayDialogProps) {
       )}
     >
       {(info) => (
-        <NotificationItem
-          {...info}
-          remove={() => {
-            removeComputedNotification(info.id)
-          }}
-        />
+        <GridListItem>
+          <NotificationItem
+            {...info}
+            remove={() => {
+              removeComputedNotification(info.id)
+            }}
+          />
+        </GridListItem>
       )}
     </GridList>
   )
