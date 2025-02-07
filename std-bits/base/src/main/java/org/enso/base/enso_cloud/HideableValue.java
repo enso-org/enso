@@ -5,10 +5,7 @@ import java.util.Base64;
 
 /** Represents a value that is input of various operation that may contain a Secret. */
 public sealed interface HideableValue
-    permits HideableValue.Base64EncodeValue,
-        HideableValue.ConcatValues,
-        HideableValue.PlainValue,
-        HideableValue.SecretValue {
+    permits HideableValue.Base64EncodeValue, HideableValue.ConcatValues, InterpretAsPrivateKey, HideableValue.PlainValue, HideableValue.SecretValue {
 
   record SecretValue(String secretId) implements HideableValue {
     @Override

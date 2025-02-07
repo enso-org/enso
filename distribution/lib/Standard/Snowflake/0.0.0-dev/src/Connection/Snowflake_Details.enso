@@ -5,6 +5,7 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Widget.Text_Input
+from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 
 import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.Connection.Credentials.Credentials
@@ -14,6 +15,7 @@ import project.Connection.Key_Pair_Credentials.Key_Pair_Credentials
 import project.Connection.Widgets
 import project.Snowflake_Connection.Snowflake_Connection
 
+polyglot java import org.enso.base.enso_cloud.InterpretAsPrivateKey
 polyglot java import net.snowflake.client.jdbc.SnowflakeDriver
 
 type Snowflake_Details
@@ -79,7 +81,8 @@ type Snowflake_Details
                     secret : Enso_Secret ->
                         if passphrase != Nothing then
                             Error.throw (Illegal_Argument.Error "Passphrase is not applicable when using a secret as a private key.")
-                        [Pair.new 'privateKey' secret]
+                        secret_as_private_key = InterpretAsPrivateKey.new (as_hideable_value secret)
+                        [Pair.new 'privateKey' secret_as_private_key]
                 [Pair.new 'user' username] + key_part
 
         database = [Pair.new 'db' self.database]
