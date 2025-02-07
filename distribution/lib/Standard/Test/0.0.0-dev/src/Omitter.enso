@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 
-verbose = False
+verbose = True
 
 pst s st =
     IO.println "==== "+s
@@ -30,7 +30,7 @@ omit_get_stack_trace =
 
     if verbose then
         pst "full" stack_trace
-        IO.println "OI "+index.to_text
+        IO.println "OI "+index.to_text+" "+(stack_trace.length + 1 - index).to_text
         IO.println "OI "+nesting_levels.to_text
         IO.println "OI "+(reversed_stack_trace.at index).to_text
 

@@ -31,17 +31,17 @@ test_problem_handling : (Problem_Behavior -> Any) -> Vector Any -> (Any -> Nothi
 test_problem_handling action expected_problems result_checker (unwrap_errors : Boolean = True) (ignore_warning_cardinality : Boolean = False) = omitting <|
     unwrap_maybe error = if unwrap_errors then Error.unwrap error else error
 
-    error_checker error_result =
+    error_checker error_result = omitting <|
         first_problem = expected_problems.first
         first_problem_type = Meta.type_of first_problem
         error_result . should_fail_with first_problem_type unwrap_errors=unwrap_errors
         (unwrap_maybe error_result.catch) . should_equal first_problem
-    warnings_checker warnings =
+    warnings_checker warnings = omitting <|
         Test.with_clue "The warnings were "+warnings.to_text+'.\n' <|
             (if ignore_warning_cardinality then warnings.distinct else warnings)
                 . map unwrap_maybe
                 . should_equal_ignoring_order expected_problems
-    test_advanced_problem_handling action error_checker warnings_checker result_checker
+    test_advanced_problem_handling (unomitting action) (x-> unomitting (error_checker x)) (x-> unomitting (warnings_checker x)) (x-> unomitting (result_checker x))
 
 ## UNSTABLE
    Tests how a specific operation behaves depending on the requested
@@ -68,12 +68,12 @@ test_advanced_problem_handling action error_checker warnings_checker result_chec
 
     # Then, we check the fail-on-first-error mode.
     error_result = action Problem_Behavior.Report_Error
-    error_checker error_result
+    unomitting (error_checker error_result)
 
     # Lastly, we check the report warnings mode and ensure that both the result is correct and the warnings are as expected.
     result_warning = action Problem_Behavior.Report_Warning
     result_checker result_warning
-    warnings_checker (get_attached_warnings result_warning)
+    unomitting (warnings_checker (get_attached_warnings result_warning))
 
 ## UNSTABLE
    Checks if the provided value does not have any attached problems.
