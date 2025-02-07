@@ -21,6 +21,8 @@ import { useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
 import type { NotificationInfo } from './types'
 
+/** The default autoclose time for finished notifications. */
+const DEFAULT_AUTOCLOSE_TIME_MS = 5_000
 const MUTATION_ID_MAP = new WeakMap<object, string>()
 
 /** Get or insert a mutation id for a computed mutation. */
@@ -62,12 +64,13 @@ export function useComputedNotifications() {
           existingNotification?.timestamp ?? newNotification.timestamp ?? Number(new Date()),
       }
       newNotifications.set(key, notification)
-      if (!existingNotification) {
+      if (!existingNotification && notification.showToast === true) {
         const toastFunction =
           'progress' in notification && notification.progress !== 1 ? toast.loading : toast.success
         toastFunction(<NotificationItem hideTime {...notification} />, {
           position: 'bottom-right',
           toastId: notification.id,
+          closeButton: true,
         })
       }
       return newNotifications
@@ -236,6 +239,7 @@ export function useComputedNotifications() {
         message: newMessage,
         icon: 'data_upload',
         ...(sentFiles !== totalFiles ? { progress: sentBytes / totalBytes } : {}),
+        showToast: true,
       })
     }
   }
@@ -244,8 +248,13 @@ export function useComputedNotifications() {
 
   for (const notification of computedNotifications) {
     if (notification.showToast === true) {
+      const isFinished =
+        'progress' in notification &&
+        typeof notification.progress === 'number' &&
+        notification.progress >= 1
       toast.update(notification.id, {
-        type: 'progress' in notification && notification.progress !== 1 ? 'default' : 'success',
+        type: isFinished ? 'success' : 'default',
+        autoClose: isFinished ? DEFAULT_AUTOCLOSE_TIME_MS : false,
         render: () => <NotificationItem hideTime {...notification} />,
         ...('progress' in notification ? { progress: notification.progress } : {}),
       })
