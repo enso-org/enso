@@ -8,7 +8,6 @@ import {
   startOfMonth,
   toCalendarDate,
   today,
-  toZoned,
 } from '@internationalized/date'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
@@ -179,7 +178,11 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
                 {(date) => {
                   const isToday = date.compare(todayDate) === 0
                   return (
-                    <CalendarCell date={date} className={styles.calendarGridCell()}>
+                    <CalendarCell
+                      key={date.toString()}
+                      date={date}
+                      className={styles.calendarGridCell()}
+                    >
                       <div className="flex flex-col items-center">
                         <Text
                           weight={isToday ? 'bold' : 'medium'}
@@ -201,11 +204,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
       />
       <DialogTrigger>
         <Button variant="outline">{getText('newProjectExecution')}</Button>
-        <NewProjectExecutionModal
-          backend={backend}
-          item={item}
-          defaultDate={toZoned(selectedDate, timeZone)}
-        />
+        <NewProjectExecutionModal backend={backend} item={item} defaultDate={selectedDate} />
       </DialogTrigger>
       <>
         <Text>

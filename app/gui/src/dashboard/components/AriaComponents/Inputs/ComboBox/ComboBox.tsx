@@ -34,8 +34,18 @@ const POPOVER_CROSS_OFFSET_PX = -32
 
 const COMBO_BOX_STYLES = tv({
   base: 'w-full',
+  variants: {
+    size: {
+      small: {
+        inputContainer: 'h-6 px-2',
+      },
+      medium: {
+        inputContainer: 'h-8 px-4',
+      },
+    },
+  },
   slots: {
-    inputContainer: 'flex items-center gap-2 px-1.5',
+    inputContainer: 'flex items-center gap-2 px-1.5 rounded-full border-0.5 border-primary/20',
     input: 'grow',
     resetButton: '',
     popover: 'py-2',

@@ -2,11 +2,12 @@
 import * as z from 'zod'
 
 import {
-  CalendarDate,
   endOfMonth,
   getDayOfWeek,
   getLocalTimeZone,
-  today,
+  now,
+  ZonedDateTime,
+  type CalendarDate,
 } from '@internationalized/date'
 import { useMutation } from '@tanstack/react-query'
 
@@ -37,6 +38,7 @@ import {
   MultiSelector,
   Selector,
   Text,
+  TimeField,
 } from '#/components/AriaComponents'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -109,7 +111,7 @@ const UPSERT_EXECUTION_SCHEMA = z
       .int()
       .min(0)
       .max(HOURS_PER_DAY - 1),
-    startDate: z.instanceof(CalendarDate).or(z.null()).optional(),
+    startDate: z.instanceof(ZonedDateTime).or(z.null()).optional(),
     timeZone: z.string(),
     maxDurationMinutes: z
       .number()
@@ -131,8 +133,8 @@ const UPSERT_EXECUTION_SCHEMA = z
       endHour,
       timeZone,
     }): ProjectExecutionInfo => {
-      startDate ??= today(timeZone)
-      const startDateTime = toRfc3339(startDate.toDate(timeZone))
+      startDate ??= now(timeZone)
+      const startDateTime = toRfc3339(startDate.toDate())
       const repeat = ((): ProjectExecutionRepeatInfo => {
         switch (repeatType) {
           case 'none': {
@@ -232,7 +234,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   )
   const valueJson = useRef('')
 
-  const minFirstOccurrence = today(timeZone)
+  const minFirstOccurrence = now(timeZone)
   const form = Form.useForm({
     method: 'dialog',
     schema: UPSERT_EXECUTION_SCHEMA,
@@ -288,7 +290,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
     if (!projectExecution) {
       return []
     }
-    let nextDate = firstProjectExecutionOnOrAfter(projectExecution, date.toDate(timeZone))
+    let nextDate = firstProjectExecutionOnOrAfter(projectExecution, date.toDate())
     const dates = [nextDate]
     while (dates.length < REPEAT_TIMES_COUNT) {
       nextDate = nextProjectExecutionDate(projectExecution, nextDate)
@@ -342,7 +344,19 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
           label={getText('firstOccurrenceLabel')}
           minValue={minFirstOccurrence}
         />
-        <ComboBox form={form} name="timeZone" items={Intl.supportedValuesOf('timeZone')}>
+        <TimeField
+          form={form}
+          isRequired
+          name="startDate"
+          label={getText('firstOccurrenceTimeLabel')}
+        />
+        <ComboBox
+          form={form}
+          isRequired
+          name="timeZone"
+          label={getText('timeZoneLabel')}
+          items={Intl.supportedValuesOf('timeZone')}
+        >
           {(otherTimeZone) => otherTimeZone}
         </ComboBox>
         <Text>
