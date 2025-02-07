@@ -385,17 +385,23 @@ public abstract class InvokeCallableNode extends BaseNode {
   @Fallback
   public Object invokeGeneric(
       Object callable, VirtualFrame callerFrame, State state, Object[] arguments) {
-    Atom cause = null;
+    throw buildNotInvokablePanicWithCause(this, callable, isForOversaturatedArguments, schema);
+  }
+
+  static PanicException buildNotInvokablePanicWithCause(
+      Node node,
+      Object notCallableTarget,
+      boolean isForOversaturatedArguments,
+      CallArgumentInfo[] schema) {
     boolean isMismatchedNamedArgument =
         isForOversaturatedArguments && schema.length >= 1 && schema[0].isNamed();
     CompilerAsserts.partialEvaluationConstant(isMismatchedNamedArgument);
+    var errors = EnsoContext.get(node).getBuiltins().error();
+    Atom cause = null;
     if (isMismatchedNamedArgument) {
-      cause = EnsoContext.get(this).getBuiltins().error().makeNoSuchArgument(schema[0].getName());
+      cause = errors.makeNoSuchArgument(schema[0].getName());
     }
-
-    Atom error =
-        EnsoContext.get(this).getBuiltins().error().makeNotInvokableWithCause(callable, cause);
-    throw new PanicException(error, this);
+    return new PanicException(errors.makeNotInvokableWithCause(notCallableTarget, cause), node);
   }
 
   /**
