@@ -7,7 +7,8 @@ import * as formContext from './FormProvider'
 import type * as types from './types'
 
 /** Props for the Reset component. */
-export interface ResetProps extends Omit<ButtonProps, 'href' | 'loading'> {
+export interface ResetProps<IconType extends string>
+  extends Omit<ButtonProps<IconType>, 'href' | 'loading'> {
   /**
    * Connects the reset button to a form.
    * If not provided, the button will use the nearest form context.
@@ -20,7 +21,7 @@ export interface ResetProps extends Omit<ButtonProps, 'href' | 'loading'> {
 }
 
 /** Reset button for forms. */
-export function Reset(props: ResetProps): React.JSX.Element {
+export function Reset<IconType extends string>(props: ResetProps<IconType>): React.JSX.Element {
   const { getText } = useText()
   const {
     variant = 'outline',
