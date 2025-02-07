@@ -909,7 +909,7 @@ type DB_Table
             grouping_columns = _resolve_grouping_columns self.columns_helper group_by problem_builder
             ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
             problem_builder.attach_problems_before on_problems <|
-                order_descriptors = _resolve_order_descriptors self.connection.dialect ordering self.default_ordering
+                order_descriptors = _resolve_order_descriptors self.connection.dialect ordering self.default_ordering "add_row_number"
                 grouping_expressions = (grouping_columns.map _.as_internal).map .expression
 
                 new_expr = Row_Number_Helpers.make_row_number from step order_descriptors grouping_expressions
@@ -3192,7 +3192,7 @@ type DB_Table
             ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
             resolved_columns = self.columns_helper.select_columns_helper columns Case_Sensitivity.Default True problem_builder
             problem_builder.attach_problems_before on_problems <| if columns.is_empty then self else
-                order_descriptors = _resolve_order_descriptors self.connection.dialect ordering self.default_ordering
+                order_descriptors = _resolve_order_descriptors self.connection.dialect ordering self.default_ordering "offset"
                 grouping_expressions = (grouping_columns.map _.as_internal).map .expression
                 
                 offset_expr c:DB_Column -> SQL_Expression =
@@ -3304,14 +3304,14 @@ private _resolve_grouping_columns columns_helper:Table_Column_Helper group_by:Ve
     grouping_columns
 
 ## PRIVATE
-private _resolve_order_descriptors dialect ordering default_ordering =
+private _resolve_order_descriptors dialect ordering default_ordering operation_name:Text =
     case ordering.is_empty of
         False -> ordering.map element->
             column = element.column
             associated_selector = element.associated_selector
             dialect.prepare_order_descriptor column associated_selector.direction text_ordering=Nothing
         True -> case default_ordering of
-            Nothing -> Error.throw (Illegal_Argument.Error "The table has no existing ordering (e.g. from a `sort` operation or primary key). `offset` requires an ordering in database.")
+            Nothing -> Error.throw (Illegal_Argument.Error "The table has no existing ordering (e.g. from a `sort` operation or primary key). `"+operation_name+"` requires an ordering in database.")
             descriptors -> descriptors
 
 ## PRIVATE

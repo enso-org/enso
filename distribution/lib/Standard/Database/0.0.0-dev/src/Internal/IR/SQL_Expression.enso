@@ -107,8 +107,10 @@ type SQL_Expression
        The internal representation of an  list of SQL expressions which will be
        separated by commas in a list in the final SQL query.
 
+       NOTE - Only valid in certain locations so should be used carefully
+
        Arguments:
-       - value: the values thatt should be built into a comma separated list.
+       - value: the values that should be built into a comma separated list.
     List values:Vector
 
     ## PRIVATE
