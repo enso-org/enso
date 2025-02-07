@@ -4782,7 +4782,7 @@ lazy val `enso-generic-jdbc-connection-spec-dependencies` = project
       "com.h2database"       % "h2"       % h2Version
     ),
     Compile / packageBin := Def.task {
-      val result          = (Compile / packageBin).value
+      val result = (Compile / packageBin).value
       val _ = StdBits
         .copyDependencies(
           file("test/Generic_JDBC_Tests/polyglot/java/"),
