@@ -2,11 +2,11 @@
 import * as z from 'zod'
 
 import {
-  ZonedDateTime,
+  CalendarDate,
   endOfMonth,
   getDayOfWeek,
   getLocalTimeZone,
-  now,
+  today,
 } from '@internationalized/date'
 import { useMutation } from '@tanstack/react-query'
 
@@ -27,6 +27,7 @@ import {
 import {
   Button,
   ButtonGroup,
+  ComboBox,
   DatePicker,
   Dialog,
   DialogDismiss,
@@ -75,131 +76,130 @@ const INTERNAL_REPEAT_TYPES = [
 const DAYS = [...Array(DAYS_PER_WEEK).keys()] as const
 const MONTHS = [...Array(MONTHS_PER_YEAR).keys()] as const
 
-/** Create the form schema for this page. */
-function createUpsertExecutionSchema(timeZone: string | undefined) {
-  return z
-    .object({
-      projectId: z.string().refine((x: unknown): x is ProjectId => true),
-      repeatType: z.enum([...PROJECT_EXECUTION_REPEAT_TYPES, 'weekly']),
-      days: z
-        .number()
-        .int()
-        .min(0)
-        .max(DAYS_PER_WEEK - 1)
-        .array()
-        .min(1)
-        .transform((arr) => arr.sort((a, b) => a - b))
-        .readonly(),
-      months: z
-        .number()
-        .int()
-        .min(0)
-        .max(MONTHS_PER_YEAR - 1)
-        .array()
-        .min(1)
-        .transform((arr) => arr.sort((a, b) => a - b))
-        .readonly(),
-      startHour: z
-        .number()
-        .int()
-        .min(0)
-        .max(HOURS_PER_DAY - 1),
-      endHour: z
-        .number()
-        .int()
-        .min(0)
-        .max(HOURS_PER_DAY - 1),
-      startDate: z.instanceof(ZonedDateTime).or(z.null()).optional(),
-      maxDurationMinutes: z
-        .number()
-        .int()
-        .min(MAX_DURATION_MINIMUM_MINUTES)
-        .max(MAX_DURATION_MAXIMUM_MINUTES),
-      parallelMode: z.enum(PROJECT_PARALLEL_MODES),
-    })
-    .transform(
-      ({
-        projectId,
-        startDate = null,
-        repeatType,
-        maxDurationMinutes,
-        parallelMode,
-        days,
-        months,
-        startHour,
-        endHour,
-      }): ProjectExecutionInfo => {
-        timeZone ??= getLocalTimeZone()
-        startDate ??= now(timeZone)
-        const startDateTime = toRfc3339(startDate.toDate())
-        const repeat = ((): ProjectExecutionRepeatInfo => {
-          switch (repeatType) {
-            case 'none': {
-              return {
-                type: repeatType,
-              }
-            }
-            case 'hourly': {
-              return {
-                type: repeatType,
-                startHour: startHour,
-                endHour: endHour,
-              }
-            }
-            case 'daily': {
-              return {
-                type: 'daily',
-                daysOfWeek: DAYS,
-              }
-            }
-            case 'weekly': {
-              return {
-                type: 'daily',
-                daysOfWeek: days,
-              }
-            }
-            case 'monthly-date': {
-              return {
-                type: repeatType,
-                date: startDate.day,
-                months,
-              }
-            }
-            case 'monthly-weekday': {
-              return {
-                type: repeatType,
-                dayOfWeek: getDayOfWeek(startDate, 'en-US'),
-                weekNumber: Math.floor(startDate.day / DAYS_PER_WEEK) + 1,
-                months,
-              }
-            }
-            case 'monthly-last-weekday': {
-              return {
-                type: repeatType,
-                dayOfWeek: getDayOfWeek(startDate, 'en-US'),
-                months,
-              }
+/** The form schema for this page. */
+const UPSERT_EXECUTION_SCHEMA = z
+  .object({
+    projectId: z.string().refine((x: unknown): x is ProjectId => true),
+    repeatType: z.enum([...PROJECT_EXECUTION_REPEAT_TYPES, 'weekly']),
+    days: z
+      .number()
+      .int()
+      .min(0)
+      .max(DAYS_PER_WEEK - 1)
+      .array()
+      .min(1)
+      .transform((arr) => arr.sort((a, b) => a - b))
+      .readonly(),
+    months: z
+      .number()
+      .int()
+      .min(0)
+      .max(MONTHS_PER_YEAR - 1)
+      .array()
+      .min(1)
+      .transform((arr) => arr.sort((a, b) => a - b))
+      .readonly(),
+    startHour: z
+      .number()
+      .int()
+      .min(0)
+      .max(HOURS_PER_DAY - 1),
+    endHour: z
+      .number()
+      .int()
+      .min(0)
+      .max(HOURS_PER_DAY - 1),
+    startDate: z.instanceof(CalendarDate).or(z.null()).optional(),
+    timeZone: z.string(),
+    maxDurationMinutes: z
+      .number()
+      .int()
+      .min(MAX_DURATION_MINIMUM_MINUTES)
+      .max(MAX_DURATION_MAXIMUM_MINUTES),
+    parallelMode: z.enum(PROJECT_PARALLEL_MODES),
+  })
+  .transform(
+    ({
+      projectId,
+      startDate = null,
+      repeatType,
+      maxDurationMinutes,
+      parallelMode,
+      days,
+      months,
+      startHour,
+      endHour,
+      timeZone,
+    }): ProjectExecutionInfo => {
+      startDate ??= today(timeZone)
+      const startDateTime = toRfc3339(startDate.toDate(timeZone))
+      const repeat = ((): ProjectExecutionRepeatInfo => {
+        switch (repeatType) {
+          case 'none': {
+            return {
+              type: repeatType,
             }
           }
-        })()
-        return {
-          projectId,
-          timeZone: timeZone,
-          repeat,
-          maxDurationMinutes,
-          parallelMode,
-          startDate: startDateTime,
+          case 'hourly': {
+            return {
+              type: repeatType,
+              startHour: startHour,
+              endHour: endHour,
+            }
+          }
+          case 'daily': {
+            return {
+              type: 'daily',
+              daysOfWeek: DAYS,
+            }
+          }
+          case 'weekly': {
+            return {
+              type: 'daily',
+              daysOfWeek: days,
+            }
+          }
+          case 'monthly-date': {
+            return {
+              type: repeatType,
+              date: startDate.day,
+              months,
+            }
+          }
+          case 'monthly-weekday': {
+            return {
+              type: repeatType,
+              dayOfWeek: getDayOfWeek(startDate, 'en-US'),
+              weekNumber: Math.floor(startDate.day / DAYS_PER_WEEK) + 1,
+              months,
+            }
+          }
+          case 'monthly-last-weekday': {
+            return {
+              type: repeatType,
+              dayOfWeek: getDayOfWeek(startDate, 'en-US'),
+              months,
+            }
+          }
         }
-      },
-    )
-}
+      })()
+      return {
+        projectId,
+        timeZone: timeZone,
+        repeat,
+        maxDurationMinutes,
+        parallelMode,
+        startDate: startDateTime,
+      }
+    },
+  )
 
 /** Props for a {@link NewProjectExecutionModal}. */
 export interface NewProjectExecutionModalProps {
   readonly backend: Backend
   readonly item: ProjectAsset
   readonly defaultOpen?: boolean
-  readonly defaultDate?: ZonedDateTime
+  readonly defaultDate?: CalendarDate
 }
 
 /** A modal for confirming the deletion of an asset. */
@@ -232,11 +232,10 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   )
   const valueJson = useRef('')
 
-  const nowZonedDateTime = now(timeZone)
-  const minFirstOccurrence = nowZonedDateTime
+  const minFirstOccurrence = today(timeZone)
   const form = Form.useForm({
     method: 'dialog',
-    schema: createUpsertExecutionSchema(preferredTimeZone),
+    schema: UPSERT_EXECUTION_SCHEMA,
     defaultValues: {
       projectId: item.id,
       repeatType: 'daily',
@@ -248,6 +247,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       months: [minFirstOccurrence.month - 1],
       startHour: 0,
       endHour: HOURS_PER_DAY - 1,
+      timeZone,
     },
     onSubmit: async (values) => {
       await createProjectExecution([values, item.title])
@@ -255,7 +255,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   })
   const repeatType = form.watch('repeatType', 'daily')
   const parallelMode = form.watch('parallelMode', 'restart')
-  const date = form.watch('startDate', nowZonedDateTime) ?? nowZonedDateTime
+  const date = form.watch('startDate', minFirstOccurrence) ?? minFirstOccurrence
   // Reactively watch for `days` and `months` so that repeat dates are kept up to date.
   form.watch('days')
   form.watch('months')
@@ -288,7 +288,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
     if (!projectExecution) {
       return []
     }
-    let nextDate = firstProjectExecutionOnOrAfter(projectExecution, date.toDate())
+    let nextDate = firstProjectExecutionOnOrAfter(projectExecution, date.toDate(timeZone))
     const dates = [nextDate]
     while (dates.length < REPEAT_TIMES_COUNT) {
       nextDate = nextProjectExecutionDate(projectExecution, nextDate)
@@ -338,10 +338,13 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
           isRequired
           noCalendarHeader
           name="startDate"
-          granularity="minute"
+          granularity="day"
           label={getText('firstOccurrenceLabel')}
           minValue={minFirstOccurrence}
         />
+        <ComboBox form={form} name="timeZone" items={Intl.supportedValuesOf('timeZone')}>
+          {(otherTimeZone) => otherTimeZone}
+        </ComboBox>
         <Text>
           {getText(
             'repeatsAtX',
