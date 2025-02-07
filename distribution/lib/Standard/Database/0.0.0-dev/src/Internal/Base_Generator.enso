@@ -469,7 +469,8 @@ base_dialect_operations =
     contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]
     types = [simple_cast]
     windows = [["ROW_NUMBER", make_row_number], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group]]
-    base_dict = Dictionary.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types + windows)
+    leadlag = [["LEAD", _make_lead_lag "LEAD"], ["LAG", _make_lead_lag "LAG"], ["LEAD_CLOSEST", _make_lead_lag_closest_value "LEAD"], ["LAG_CLOSEST", _make_lead_lag_closest_value "LAG"]]
+    base_dict = Dictionary.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types + windows + leadlag)
     Dialect_Operations.Value base_dict
 
 ## PRIVATE
@@ -739,6 +740,38 @@ default_fetch_types_query dialect expression context where_filter_always_false_l
 
 ## PRIVATE
 default_generate_collate collation_name:Text quote_char:Text='"' -> Text = ' COLLATE ' + quote_char + collation_name + quote_char
+
+_build_partition_sql grouping:SQL_Builder ordering:SQL_Builder -> SQL_Builder =
+    group_part = if grouping.is_empty then "" else
+        SQL_Builder.code "PARTITION BY " ++ grouping
+    SQL_Builder.code "OVER(" ++ group_part ++ " ORDER BY " ++ ordering ++ ")"
+
+## PRIVATE
+_build_lead_lag_sql lead_lag:Text n:SQL_Builder colName:SQL_Builder grouping:SQL_Builder ordering:SQL_Builder -> SQL_Builder =
+    partition_sql = _build_partition_sql grouping ordering
+    SQL_Builder.code "(" ++ lead_lag ++ "(" ++ colName ++ ", " ++ n ++ ", NULL) " ++ partition_sql ++ ")"
+
+## PRIVATE
+_make_lead_lag lead_lag:Text arguments:Vector -> SQL_Builder = if arguments.length != 4 then Error.throw (Illegal_State.Error "Wrong amount of parameters in LEAD/LAG IR. This is a bug in the Database library.") else
+    n = arguments.at 0
+    colName = arguments.at 1
+    grouping = arguments.at 2
+    ordering = arguments.at 3
+    _build_lead_lag_sql lead_lag n colName grouping ordering
+
+## PRIVATE
+_make_lead_lag_closest_value lead_lag:Text arguments:Vector -> SQL_Builder = if arguments.length != 5 then Error.throw (Illegal_State.Error "Wrong amount of parameters in LEAD/LAG IR. This is a bug in the Database library.") else
+    n = arguments.at 0
+    colName = arguments.at 1
+    grouping = arguments.at 2
+    ordering_for_lead_lag = arguments.at 3
+    ordering_for_row_number = arguments.at 4
+
+    lead_lag_sql = _build_lead_lag_sql lead_lag n colName grouping ordering_for_lead_lag     
+    partition_sql_for_row_number = _build_partition_sql grouping ordering_for_row_number
+    fill_sql = SQL_Builder.code "FIRST_VALUE(" ++ colName ++ ") " ++ partition_sql_for_row_number
+    SQL_Builder.code "CASE WHEN ROW_NUMBER() " ++ partition_sql_for_row_number ++ " <= " ++ n ++ " THEN " ++ fill_sql ++ " ELSE " ++ lead_lag_sql ++ " END"
+
 
 ## PRIVATE
    Helper class for shortening the binder names generated for WITH clauses.
