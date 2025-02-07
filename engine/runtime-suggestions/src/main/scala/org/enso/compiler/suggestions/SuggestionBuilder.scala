@@ -566,7 +566,8 @@ final class SuggestionBuilder[A: IndexedSource](
         (acc, targs.lastOption)
       } else {
         vargs match {
-          case (defArg: DefinitionArgument.Specified) +: vtail =>
+          case (defArg: DefinitionArgument.Specified) +: vtail
+              if defArg.name().isInstanceOf[Name.Self] =>
             if (isStatic) {
               go(vtail, targs, acc)
             } else {
