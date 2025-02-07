@@ -311,7 +311,7 @@ type Not_Invokable
        Arguments:
        - target: The called object.
        - cause: Additional information about what may have caused the error.
-    Error target cause
+    Error target cause=Nothing
 
     ## PRIVATE
        Convert the Not_Invokable error to a human-readable format.
