@@ -1,7 +1,6 @@
 /** @file An item in the notification tray. */
-import { CloseButton, Text } from '#/components/AriaComponents'
+import { CloseButton, ProgressBar, Text } from '#/components/AriaComponents'
 import { Icon } from '#/components/Icon'
-import { ProgressBar } from '#/components/aria'
 import type { NotificationInfo } from '#/layouts/NotificationTray/types'
 import { useText } from '#/providers/TextProvider'
 import { tv } from '#/utilities/tailwindVariants'
@@ -47,19 +46,7 @@ export function NotificationItem(props: NotificationItemProps) {
         )}
         <CloseButton className={remove ? '' : 'invisible'} onPress={remove} />
       </div>
-      {progress != null && (
-        <ProgressBar
-          isIndeterminate={progress === 'indeterminate'}
-          value={progress === 'indeterminate' ? 0 : progress}
-          maxValue={1}
-        >
-          {({ percentage }) => (
-            <div className={styles.progressBarContainer()}>
-              <div className={styles.progressBar()} style={{ width: percentage + '%' }} />
-            </div>
-          )}
-        </ProgressBar>
-      )}
+      {progress != null && <ProgressBar progress={progress} />}
     </div>
   )
 }
