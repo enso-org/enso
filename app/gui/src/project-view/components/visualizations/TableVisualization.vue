@@ -85,6 +85,7 @@ interface UnknownTable {
   // distinguish `Matrix` and `ObjectMatrix`.
   type: undefined
   json: unknown
+  data: unknown[][] | undefined
   all_rows_count?: number
   header: string[] | undefined
   value_type: ValueType[]
@@ -96,6 +97,7 @@ interface UnknownTable {
   child_label: string
   visualization_header: string
   data_quality_metrics?: DataQualityMetric[]
+  is_ssrm: boolean
 }
 
 type DataQualityMetric = {
@@ -145,6 +147,8 @@ const textFormatterSelected = ref<TextFormatOptions>('partial')
 const isFilterSortNodeEnabled = computed(
   () => config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE,
 )
+
+const rowModelType = computed(() => (props.data.is_ssrm ? 'serverSide' : 'clientSide'))
 
 const numberFormatGroupped = new Intl.NumberFormat(undefined, {
   style: 'decimal',
@@ -225,6 +229,8 @@ function formatText(params: ICellRendererParams) {
   return `<span > ${newString} <span>`
 }
 
+const rowData = ref<Record<string, any>[]>([])
+
 function createRowServer() {
   return {
     getData: async (request: any) => {
@@ -247,16 +253,18 @@ function createServerSideDatasource(): IServerSideDatasource {
       const server = createRowServer()
       const response = await server.getData(params.request)
       const rowsL = response.rows && response.rows.length > 0 ? (response.rows[0]?.length ?? 0) : 0
-      //to do, different obj will need different things 
+      //to do, different obj will need different things
       const startIndex = params.request.startRow
-      console.log({startIndex})
+      console.log({ startIndex })
       const rows = Array.from({ length: rowsL }, (_, i) => {
         const shift = 1
         return Object.fromEntries(
           columnDefs.value.map((h, j) => {
             return [
               h.field,
-              toRender(h.field === INDEX_FIELD_NAME ? i + startIndex : response.rows[j - shift]?.[i]),
+              toRender(
+                h.field === INDEX_FIELD_NAME ? i + startIndex : response.rows[j - shift]?.[i],
+              ),
             ]
           }),
         )
@@ -519,6 +527,8 @@ watchEffect(() => {
         cellStyle: { 'white-space': 'normal' },
       },
     ]
+    //check if SSRM
+    rowData.value = [{ Error: data_.error }]
   } else if (data_.type === 'Matrix') {
     columnDefs.value = [
       toLinkField(INDEX_FIELD_NAME, {
@@ -530,6 +540,7 @@ watchEffect(() => {
     for (let i = 0; i < data_.column_count; i++) {
       columnDefs.value.push(toField(i.toString()))
     }
+    rowData.value = addRowIndex(data_.json)
     isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Object_Matrix') {
     columnDefs.value = [
@@ -559,6 +570,7 @@ watchEffect(() => {
         getChildAction: data_.get_child_node_action,
       }),
     ]
+    rowData.value = data_.sheet_names.map((name) => ({ Value: name }))
   } else if (Array.isArray(data_.json)) {
     columnDefs.value = [
       toLinkField(INDEX_FIELD_NAME, {
@@ -568,6 +580,7 @@ watchEffect(() => {
       }),
       toField('Value'),
     ]
+    rowData.value = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
     isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
     columnDefs.value =
@@ -580,6 +593,12 @@ watchEffect(() => {
           }),
         ]
       : [toField('Value')]
+    rowData.value =
+      data_.links ?
+        data_.links.map((link) => ({
+          Value: link,
+        }))
+      : [{ Value: toRender(data_.json) }]
   } else {
     const dataHeader =
       ('header' in data_ ? data_.header : [])?.map((v, i) => {
@@ -609,6 +628,21 @@ watchEffect(() => {
           ...dataHeader,
         ]
       : dataHeader
+
+    if (!props.data.is_ssrm) {
+      const rows = data_.data && data_.data.length > 0 ? (data_.data[0]?.length ?? 0) : 0
+      rowData.value = Array.from({ length: rows }, (_, i) => {
+        const shift = data_.has_index_col ? 1 : 0
+        return Object.fromEntries(
+          columnDefs.value.map((h, j) => {
+            return [
+              h.field,
+              toRender(h.field === INDEX_FIELD_NAME ? i : data_.data?.[j - shift]?.[i]),
+            ]
+          }),
+        )
+      })
+    }
   }
 })
 
@@ -760,7 +794,9 @@ config.setToolbar(
         :defaultColDef="defaultColDef"
         :textFormatOption="textFormatterSelected"
         :datasource="createServerSideDatasource()"
+        :rowData="rowData"
         :rowCount="props.data.all_rows_count"
+        :rowModelType="rowModelType"
         @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
       />
     </Suspense>

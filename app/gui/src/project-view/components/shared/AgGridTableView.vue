@@ -112,8 +112,8 @@ import {
 
 const DEFAULT_ROW_HEIGHT = 22
 
-const _props = defineProps<{
-  rowData?: TData[]
+const props = defineProps<{
+  rowData: TData[]
   columnDefs: (ColDef<TData, TValue> | ColGroupDef<TData>)[] | null
   defaultColDef: ColDef<TData>
   getRowId?: GetRowIdFunc<TData>
@@ -126,6 +126,7 @@ const _props = defineProps<{
   processDataFromClipboard?: (params: ProcessDataFromClipboardParams<TData>) => string[][] | null
   datasource: any
   rowCount: number
+  rowModelType: string
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -148,7 +149,7 @@ function onGridReady(event: GridReadyEvent<TData>) {
 }
 
 // function getRowHeight(params: RowHeightParams): number {
-//   if (_props.textFormatOption === 'off') {
+//   if (props.textFormatOption === 'off') {
 //     return DEFAULT_ROW_HEIGHT
 //   }
 //   const rowData = Object.values(params.data)
@@ -167,7 +168,7 @@ function onGridReady(event: GridReadyEvent<TData>) {
 // }
 
 // watch(
-//   () => _props.textFormatOption,
+//   () => props.textFormatOption,
 //   () => {
 //     gridApi.value?.redrawRows()
 //     gridApi.value?.resetRowHeights()
@@ -323,9 +324,9 @@ function stopIfPrevented(event: Event) {
 const vueHost = new VueHostInstance()
 
 const mappedComponents = computed(() => {
-  if (!_props.components) return
+  if (!props.components) return
   const retval: Record<string, new () => IHeaderComp | ICellEditorComp> = {}
-  for (const [key, comp] of Object.entries(_props.components)) {
+  for (const [key, comp] of Object.entries(props.components)) {
     class ComponentWrapper implements IHeaderComp {
       private readonly container: HTMLElement = document.createElement('div')
       private handle: VueComponentHandle | undefined
@@ -377,9 +378,10 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       :suppressMoveWhenColumnDragging="suppressMoveWhenColumnDragging"
       :processDataFromClipboard="processDataFromClipboard"
       :allowContextMenuWithControlKey="true"
-      :rowModelType="'serverSide'"
+      :rowModelType="rowModelType"
       :serverSideDatasource="datasource"
       :rowCount="rowCount"
+      :rowData="rowModelType === 'clientSide' ? rowData : null"
       @gridReady="onGridReady"
       @firstDataRendered="updateColumnWidths"
       @rowDataUpdated="(updateColumnWidths($event), emit('rowDataUpdated', $event))"
