@@ -18,21 +18,23 @@ import org.enso.table.data.column.storage.type.StorageType;
 public class DoubleIsOperation implements UnaryOperation {
   public static final String FINITE_NAME = "is_finite";
   public static final UnaryOperation IS_FINITE =
-      new DoubleIsOperation(FINITE_NAME, Double::isFinite);
+      new DoubleIsOperation(FINITE_NAME, Double::isFinite, true);
 
-  public static final String INFINITE_NAME = "is_finite";
+  public static final String INFINITE_NAME = "is_infinite";
   public static final UnaryOperation IS_INFINITE =
-      new DoubleIsOperation(INFINITE_NAME, Double::isInfinite);
+      new DoubleIsOperation(INFINITE_NAME, Double::isInfinite, false);
 
   public static final String NAN_NAME = "is_nan";
-  public static final UnaryOperation IS_NAN = new DoubleIsOperation(NAN_NAME, Double::isNaN);
+  public static final UnaryOperation IS_NAN = new DoubleIsOperation(NAN_NAME, Double::isNaN, false);
 
   private final String name;
   private final DoublePredicate predicate;
+  private final boolean finiteValue;
 
-  private DoubleIsOperation(String name, DoublePredicate predicate) {
+  private DoubleIsOperation(String name, DoublePredicate predicate, boolean finiteValue) {
     this.name = name;
     this.predicate = predicate;
+    this.finiteValue = finiteValue;
   }
 
   @Override
@@ -61,11 +63,11 @@ public class DoubleIsOperation implements UnaryOperation {
     if (isAllFinite(storage.getType())) {
       if (storage instanceof ColumnStorageWithNothingMap withNothingMap) {
         return new BoolStorage(
-            new BitSet(), withNothingMap.getIsNothingMap(), (int) storage.getSize(), true);
+            new BitSet(), withNothingMap.getIsNothingMap(), (int) storage.getSize(), !finiteValue);
       }
 
       return StorageIterators.mapOverStorage(
-          storage, Builder.getForBoolean(storage.getSize()), (index, value) -> false);
+          storage, Builder.getForBoolean(storage.getSize()), (index, value) -> finiteValue);
     }
 
     // Avoid boxing here by using the specific storage types.
