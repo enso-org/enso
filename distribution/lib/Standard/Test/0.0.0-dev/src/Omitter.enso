@@ -1,10 +1,11 @@
 from Standard.Base import all
+import Standard.Base.Runtime.Ref.Ref
 
 verbose = True
 
 pst s st =
     IO.println "==== "+s
-    st . take 12 . map_with_index (i-> x-> IO.println i.to_text+": "+x.to_text)
+    st . take 20 . map_with_index (i-> x-> IO.println i.to_text+": "+x.to_text)
 
 omitting ~action =
     #IO.println "AAAAA "+omit_get_stack_trace
@@ -16,16 +17,27 @@ unomitting ~action =
 
 omit_get_stack_trace =
     stack_trace = Runtime.get_stack_trace
-    if verbose then pst "full" stack_trace
 
-    first_omitting_index = stack_trace.last_index_of (frame-> frame.name == "Omitter.omitting")
-    last_unomitting_index = stack_trace.index_of (frame-> frame.name == "Omitter.unomitting")
-    to_drop = if first_omitting_index.is_nothing then 0 else
-        if last_unomitting_index.is_nothing.not && last_unomitting_index < first_omitting_index then last_unomitting_index - 2 else first_omitting_index + 2
-    real_stack_trace = stack_trace.drop to_drop
+    ##
+    cs = Ref.new 0
+    last_zero = Ref.new 0
+    cses = (stack_trace.length - 1).down_to 0 include_end=True . map i->
+        name = stack_trace.at i . name
+        if name == "Omitter.omitting" then cs.modify (_+1) else
+            if name == "Omitter.unomitting" then cs.modify (_-1) else Nothing
+        if cs.get == 0 then last_zero.put i
+        cs.get
+    index = if cs.get == 0 then 0 else last_zero.get + 1
 
-    if verbose then IO.println "OI "+first_omitting_index.to_text+" "+last_unomitting_index.to_text
-    if verbose then pst "real" real_stack_trace
+    real_stack_trace = stack_trace.drop index
 
-    top = real_stack_trace . at 0 . source_location
+    if verbose then
+        pst "full" stack_trace
+        pst "real" real_stack_trace
+        IO.println "OI "+index.to_text
+        IO.println "OI "+cses.to_text
+        IO.println "OI "+(stack_trace.at index).to_text
+        IO.println "OI "+(real_stack_trace.at 0).to_text
+
+    top = stack_trace . at index . source_location
     top.to_display_text

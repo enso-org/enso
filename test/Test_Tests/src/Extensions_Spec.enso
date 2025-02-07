@@ -105,7 +105,7 @@ add_specs suite_builder =
             should_equal_2 checker x y = omitting <|
                 unomitting (checker x y)
             should_equal_3 checker x y = omitting <|
-                should_equal_2 checker x y
+                should_equal_2 (unomitting (checker x y))
 
             my_checker x y =
                 x.should_equal y
