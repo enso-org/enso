@@ -1478,14 +1478,14 @@ export default class RemoteBackend extends Backend {
     invariant(details.url != null, 'The download URL of the project must be present.')
 
     const queryString = new URLSearchParams({
-      download_url: details.url,
+      downloadUrl: details.url,
     })
 
     const response = await this.client.get(`./api/cloud/download-project?${queryString}`)
     const path = await response.text()
 
     invariant(response.ok, 'The download-project response must have status OK.')
-    invariant(path != null, 'The download-project response body must be present.')
+    invariant(path.length !== 0, 'The download-project response body must be present.')
 
     return DirectoryId(`directory-${path}` as const)
   }
@@ -1494,7 +1494,7 @@ export default class RemoteBackend extends Backend {
   async uploadProject(id: backend.ProjectId, path: string): Promise<void> {
     const uploadPath = remoteBackendPaths.getProjectUploadPath(id)
     const queryString = new URLSearchParams({
-      upload_url: `${$config.API_URL}/${uploadPath}`,
+      uploadUrl: `${$config.API_URL}/${uploadPath}`,
       directory: path,
     })
 

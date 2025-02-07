@@ -143,17 +143,17 @@ export default function projectManagerShimMiddleware(
     switch (requestPath) {
       case '/api/cloud/download-project': {
         const url = new URL(`https://example.com/${requestUrl}`)
-        const downloadUrl = url.searchParams.get('download_url')
+        const downloadUrl = url.searchParams.get('downloadUrl')
 
         if (downloadUrl == null) {
           response
             .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
-            .end('Request is missing search parameter `download_url`.')
+            .end('Request is missing search parameter `downloadUrl`.')
           break
         }
 
         const downloadRequest = https.request(downloadUrl, { method: 'GET' }, (actualResponse) => {
-          let data: Buffer[] = []
+          const data: Buffer[] = []
           actualResponse
             .on('data', (chunk) => data.push(Buffer.from(chunk, 'binary')))
             .on('end', () => {
@@ -177,13 +177,13 @@ export default function projectManagerShimMiddleware(
       }
       case '/api/cloud/upload-project': {
         const url = new URL(`https://example.com/${requestUrl}`)
-        const uploadUrl = url.searchParams.get('upload_url')
+        const uploadUrl = url.searchParams.get('uploadUrl')
         const projectDir = url.searchParams.get('directory')
 
         if (uploadUrl == null) {
           response
             .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
-            .end('Request is missing search parameter `upload_url`.')
+            .end('Request is missing search parameter `uploadUrl`.')
           break
         }
         if (projectDir == null) {

@@ -265,10 +265,9 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 recentProjects: false,
               })
               const project = assets
-                .filter((asset) => asset.type === backendModule.AssetType.project)
+                .filter((item) => item.type === backendModule.AssetType.project)
                 .at(0)
               invariant(project, 'Downloaded cloud project does not exist.')
-              console.log('openProjectMutation', project)
               openProjectMutation.mutate({
                 id: project.id,
                 title: project.title,
