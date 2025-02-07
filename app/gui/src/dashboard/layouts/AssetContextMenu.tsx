@@ -1,5 +1,6 @@
 /** @file The context menu for an arbitrary {@link backendModule.Asset}. */
 import * as React from 'react'
+import invariant from 'tiny-invariant'
 
 import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
@@ -254,13 +255,25 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             action="run"
             isDisabled={!canOpenProjects}
             tooltip={disabledTooltip}
-            doAction={() => {
+            doAction={async () => {
+              invariant(localBackend != null, 'Local Backend is null')
+              const parentId = await remoteBackend.downloadProject(asset.id)
+              const assets = await localBackend.listDirectory({
+                parentId,
+                filterBy: null,
+                labels: null,
+                recentProjects: false,
+              })
+              const project = assets
+                .filter((asset) => asset.type === backendModule.AssetType.project)
+                .at(0)
+              invariant(project, 'Downloaded cloud project does not exist.')
+              console.log('openProjectMutation', project)
               openProjectMutation.mutate({
-                id: asset.id,
-                title: asset.title,
-                parentId: asset.parentId,
-                type: state.backend.type,
-                runCloudLocally: true,
+                id: project.id,
+                title: project.title,
+                parentId: project.parentId,
+                type: backendModule.BackendType.local,
               })
             }}
           />

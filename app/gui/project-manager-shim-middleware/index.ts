@@ -167,7 +167,7 @@ export default function projectManagerShimMiddleware(
                 })
                 .catch((e) => {
                   console.error(e)
-                  response.writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS).end()
+                  response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COMMON_HEADERS).end()
                 })
             })
         })

@@ -200,65 +200,32 @@ export function useOpenProjectMutation() {
   return reactQuery.useMutation({
     mutationKey: ['openProject'],
     networkMode: 'always',
-    mutationFn: async ({
+    mutationFn: ({
       title,
       id,
       type,
       parentId,
       inBackground = false,
-      runCloudLocally = false,
-    }: LaunchedProject & { inBackground?: boolean; runCloudLocally?: boolean }) => {
-      if (runCloudLocally) {
-        invariant(localBackend != null, 'Local Backend is null')
+    }: LaunchedProject & { inBackground?: boolean }) => {
+      const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
-        const parentId = await remoteBackend.downloadProject(id)
-        const assets = await localBackend.listDirectory({
+      invariant(backend != null, 'Backend is null')
+
+      return backend.openProject(
+        id,
+        {
+          executeAsync: inBackground,
+          cognitoCredentials: {
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken,
+            clientId: session.clientId,
+            expireAt: session.expireAt,
+            refreshUrl: session.refreshUrl,
+          },
           parentId,
-          filterBy: null,
-          labels: null,
-          recentProjects: false,
-        })
-
-        const project = assets
-          .filter((asset) => asset.type === backendModule.AssetType.project)
-          .at(0)
-        invariant(project, 'Downloaded cloud project does not exist.')
-
-        return localBackend.openProject(
-          project.id,
-          {
-            executeAsync: inBackground,
-            cognitoCredentials: {
-              accessToken: session.accessToken,
-              refreshToken: session.refreshToken,
-              clientId: session.clientId,
-              expireAt: session.expireAt,
-              refreshUrl: session.refreshUrl,
-            },
-            parentId,
-          },
-          title,
-        )
-      } else {
-        const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
-        invariant(backend != null, 'Backend is null')
-
-        return backend.openProject(
-          id,
-          {
-            executeAsync: inBackground,
-            cognitoCredentials: {
-              accessToken: session.accessToken,
-              refreshToken: session.refreshToken,
-              clientId: session.clientId,
-              expireAt: session.expireAt,
-              refreshUrl: session.refreshUrl,
-            },
-            parentId,
-          },
-          title,
-        )
-      }
+        },
+        title,
+      )
     },
     onMutate: ({ type, id, parentId }) => {
       const queryKey = createGetProjectDetailsQuery.getQueryKey(id)
