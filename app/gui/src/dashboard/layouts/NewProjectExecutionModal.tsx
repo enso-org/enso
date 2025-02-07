@@ -298,17 +298,17 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         return getText('daily')
       }
       case 'monthly-date': {
-        return getText('xthDayOfMonth', getOrdinal(date.day))
+        return getText('monthlyXthDay', getOrdinal(date.day))
       }
       case 'monthly-weekday': {
         return getText(
-          'xthXDayOfMonth',
+          'monthlyXthXDay',
           getOrdinal(Math.floor(date.day / DAYS_PER_WEEK) + 1),
           dayOfWeek,
         )
       }
       case 'monthly-last-weekday': {
-        return getText('lastXDayOfMonth', dayOfWeek)
+        return getText('monthlyLastXDay', dayOfWeek)
       }
     }
   })
