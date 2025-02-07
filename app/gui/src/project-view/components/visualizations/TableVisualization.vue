@@ -562,6 +562,7 @@ watchEffect(() => {
       }),
     ]
     const keys = new Set<string>()
+    rowData.value = addRowIndex(data_.json)
     for (const val of data_.json) {
       if (val != null) {
         Object.keys(val).forEach((k, i) => {
