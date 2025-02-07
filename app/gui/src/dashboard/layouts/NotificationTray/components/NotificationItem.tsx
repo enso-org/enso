@@ -7,9 +7,8 @@ import { useText } from '#/providers/TextProvider'
 import { tv } from '#/utilities/tailwindVariants'
 
 const NOTIFICATION_ITEM_STYLES = tv({
-  base: 'relative flex flex-col px-2',
+  base: 'flex flex-col px-2',
   slots: {
-    closeButton: 'absolute right-0 top-0',
     content: 'flex min-h-8 items-center gap-2 text-primary',
     contentPadding: 'grow',
     progressBarContainer: 'h-2 rounded-full bg-primary/10',
@@ -32,7 +31,6 @@ export function NotificationItem(props: NotificationItemProps) {
 
   return (
     <div className={styles.base()}>
-      {remove && <CloseButton className={styles.closeButton()} onPress={remove} />}
       <div className={styles.content()}>
         <Icon color={color} icon={icon} />
         <Text>{message}</Text>
@@ -47,6 +45,7 @@ export function NotificationItem(props: NotificationItemProps) {
             })}
           </Text>
         )}
+        <CloseButton className={remove ? '' : 'invisible'} onPress={remove} />
       </div>
       {progress != null && (
         <ProgressBar
