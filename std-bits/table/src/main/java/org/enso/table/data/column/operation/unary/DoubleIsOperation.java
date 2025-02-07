@@ -63,7 +63,7 @@ public class DoubleIsOperation implements UnaryOperation {
     if (isAllFinite(storage.getType())) {
       if (storage instanceof ColumnStorageWithNothingMap withNothingMap) {
         return new BoolStorage(
-            new BitSet(), withNothingMap.getIsNothingMap(), (int) storage.getSize(), !finiteValue);
+            new BitSet(), withNothingMap.getIsNothingMap(), (int) storage.getSize(), finiteValue);
       }
 
       return StorageIterators.mapOverStorage(

@@ -4,7 +4,6 @@ import java.time.temporal.ChronoField;
 import java.time.temporal.IsoFields;
 import java.time.temporal.Temporal;
 import java.time.temporal.TemporalField;
-
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
@@ -78,12 +77,12 @@ public class DatePartOperation implements UnaryOperation {
   }
 
   @Override
-  public ColumnStorage<?> apply(ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<?> apply(
+      ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     return StorageIterators.buildOverStorage(
         storage,
         Builder.getForLong(IntegerType.INT_64, storage.getSize(), problemAggregator),
-        (builder, index, value) -> builder.appendLong(applyObjectRow(index, value))
-    );
+        (builder, index, value) -> builder.appendLong(applyObjectRow(index, value)));
   }
 
   protected long applyObjectRow(long index, Object value) {
