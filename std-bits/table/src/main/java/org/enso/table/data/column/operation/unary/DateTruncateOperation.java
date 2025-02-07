@@ -13,8 +13,7 @@ public class DateTruncateOperation implements UnaryOperation {
   public static String TRUNCATE = "truncate";
   public static final UnaryOperation TRUNCATE_INSTANCE = new DateTruncateOperation();
 
-  private DateTruncateOperation() {
-  }
+  private DateTruncateOperation() {}
 
   @Override
   public String getName() {
@@ -27,16 +26,13 @@ public class DateTruncateOperation implements UnaryOperation {
   }
 
   @Override
-  public ColumnStorage<?> apply(ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<?> apply(
+      ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     return StorageIterators.mapOverStorage(
-        storage,
-        Builder.getForDate(storage.getSize()),
-        this::applyObjectRow
-    );
+        storage, Builder.getForDate(storage.getSize()), this::applyObjectRow);
   }
 
-  protected LocalDate applyObjectRow(
-      long index, Object value) {
+  protected LocalDate applyObjectRow(long index, Object value) {
     if (value instanceof ZonedDateTime zonedDateTime) {
       return zonedDateTime.toLocalDate();
     } else {

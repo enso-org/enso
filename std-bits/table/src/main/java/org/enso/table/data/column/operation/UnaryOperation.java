@@ -1,8 +1,6 @@
 package org.enso.table.data.column.operation;
 
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.LongConsumer;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
@@ -11,7 +9,6 @@ import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A UnaryOperation is an operation that can be applied to a single ColumnStorage. */
@@ -68,16 +65,19 @@ public interface UnaryOperation {
       MapOperationProblemAggregator problemAggregator) {
     Builder storageBuilder =
         Builder.getForType(expectedResultType, column.getSize(), problemAggregator);
-    applyStorageInner(
-        column.getStorage(),
-        nothingUnchanged,
-        storageBuilder,
-        i -> {
-          Value result = function.apply(column.getStorage().getItemBoxed(i));
-          Object converted = Polyglot_Utils.convertPolyglotValue(result);
-          storageBuilder.append(converted);
-        });
-    return new Column(newColumnName, storageBuilder.seal());
+
+    var storage =
+        StorageIterators.buildObjectOverStorage(
+            column.getStorage(),
+            nothingUnchanged,
+            storageBuilder,
+            (builder, index, value) -> {
+              Value result = function.apply(value);
+              Object converted = Polyglot_Utils.convertPolyglotValue(result);
+              builder.append(converted);
+            });
+
+    return new Column(newColumnName, (Storage<?>) storage);
   }
 
   /** Gets the name of the Operation. */
@@ -88,34 +88,4 @@ public interface UnaryOperation {
 
   /** Applies the operation to the given Storage. */
   ColumnStorage<?> apply(ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator);
-
-  private static void applyStorageInner(
-      ColumnStorage<?> columnStorage,
-      boolean nothingUnchanged,
-      Builder builder,
-      LongConsumer callback) {
-    Context context = Context.getCurrent();
-    long size = columnStorage.getSize();
-    for (long i = 0; i < size; i++) {
-      if (nothingUnchanged && columnStorage.isNothing(i)) {
-        builder.appendNulls(1);
-      } else {
-        callback.accept(i);
-      }
-      context.safepoint();
-    }
-  }
-
-  /** Applies the operation to the given Storage. */
-  static void applyOverObjectStorage(
-      ColumnStorage<?> objectStorage,
-      boolean nothingUnchanged,
-      Builder builder,
-      Consumer<Object> function) {
-    applyStorageInner(
-        objectStorage,
-        nothingUnchanged,
-        builder,
-        i -> function.accept(objectStorage.getItemBoxed(i)));
-  }
 }

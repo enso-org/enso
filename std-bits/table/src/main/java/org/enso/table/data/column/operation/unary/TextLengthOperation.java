@@ -13,8 +13,7 @@ public class TextLengthOperation implements UnaryOperation {
   public static final String NAME = "text_length";
   public static final UnaryOperation INSTANCE = new TextLengthOperation();
 
-  private TextLengthOperation() {
-  }
+  private TextLengthOperation() {}
 
   @Override
   public String getName() {

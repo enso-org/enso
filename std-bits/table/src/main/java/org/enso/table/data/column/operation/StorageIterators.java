@@ -1,5 +1,6 @@
 package org.enso.table.data.column.operation;
 
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
@@ -9,6 +10,54 @@ import org.graalvm.polyglot.Context;
 
 /** Set of typed storage iterators for operations. * */
 public class StorageIterators {
+  @FunctionalInterface
+  public interface BuildObjectOperation<S> {
+    void apply(Builder builder, long index, S value);
+  }
+
+  @FunctionalInterface
+  public interface DoubleBuildObjectOperation {
+    void apply(Builder builder, long index, double value, boolean isNothing);
+  }
+
+  /** Generally best to use a typed builder, but if not possible fall back to this. */
+  public static <S> ColumnStorage<?> buildObjectOverStorage(
+      ColumnStorage<S> source,
+      boolean preserveNothing,
+      Builder builder,
+      BuildObjectOperation<S> operation) {
+    long size = source.getSize();
+    Context context = Context.getCurrent();
+    for (long index = 0; index < size; index++) {
+      if (preserveNothing && source.isNothing(index)) {
+        builder.appendNulls(1);
+      } else {
+        operation.apply(builder, index, source.getItemBoxed(index));
+      }
+      context.safepoint();
+    }
+    return builder.seal();
+  }
+
+  /** Generally best to use a typed builder, but if not possible fall back to this. */
+  public static ColumnStorage<?> buildObjectOverDoubleStorage(
+      ColumnDoubleStorage source,
+      boolean preserveNothing,
+      Builder builder,
+      DoubleBuildObjectOperation operation) {
+    long size = source.getSize();
+    Context context = Context.getCurrent();
+    for (long index = 0; index < size; index++) {
+      if (preserveNothing && source.isNothing(index)) {
+        builder.appendNulls(1);
+      } else {
+        operation.apply(builder, index, source.getItemAsDouble(index), source.isNothing(index));
+      }
+      context.safepoint();
+    }
+    return builder.seal();
+  }
+
   @FunctionalInterface
   public interface BuildOperation<B extends BuilderForType<?>, S> {
     void apply(B builder, long index, S value);
