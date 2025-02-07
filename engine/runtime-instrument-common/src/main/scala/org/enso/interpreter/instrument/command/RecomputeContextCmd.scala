@@ -215,7 +215,7 @@ object RecomputeContextCmd {
             Vector.empty,
             true,
             false,
-            Api.ExpressionUpdate.Payload.Pending(None, None)
+            Api.ExpressionUpdate.Payload.Pending(None, Some(0.15))
           )
       }
       ctx.endpoint.sendToClient(

@@ -406,7 +406,11 @@ object ProgramExecutionSupport {
       ))
     ) {
       val payload =
-        Api.ExpressionUpdate.Payload.Pending(None, None, wasInterrupted = true)
+        Api.ExpressionUpdate.Payload.Pending(
+          None,
+          Some(0.05),
+          wasInterrupted = true
+        )
       ctx.endpoint.sendToClient(
         Api.Response(
           Api.ExpressionUpdates(
