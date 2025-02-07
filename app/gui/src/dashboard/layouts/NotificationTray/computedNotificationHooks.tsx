@@ -21,8 +21,6 @@ import { useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
 import type { NotificationInfo } from './types'
 
-/** The default autoclose time for finished notifications. */
-const DEFAULT_AUTOCLOSE_TIME_MS = 5_000
 const MUTATION_ID_MAP = new WeakMap<object, string>()
 
 /** Get or insert a mutation id for a computed mutation. */
@@ -105,14 +103,23 @@ export function useComputedNotifications() {
                 if (!variables) {
                   break
                 }
+                const [ids, force] = variables
                 upsertNotification(variables, {
                   id: upsertMutationId(variables),
-                  message: getText(
-                    isSuccess ? 'deletedXAssetsNotification'
-                    : isError ? 'couldNotDeleteXAssetsNotification'
-                    : 'deletingXAssetsNotification',
-                    variables[0].length,
-                  ),
+                  message:
+                    force ?
+                      getText(
+                        isSuccess ? 'permanentlyDeletedXAssetsNotification'
+                        : isError ? 'couldNotPermanentlyDeleteXAssetsNotification'
+                        : 'permanentlyDeletingXAssetsNotification',
+                        ids.length,
+                      )
+                    : getText(
+                        isSuccess ? 'deletedXAssetsNotification'
+                        : isError ? 'couldNotDeleteXAssetsNotification'
+                        : 'deletingXAssetsNotification',
+                        ids.length,
+                      ),
                   icon: 'trash2',
                   color: 'danger',
                   ...sharedProps,
@@ -254,7 +261,8 @@ export function useComputedNotifications() {
         notification.progress >= 1
       toast.update(notification.id, {
         type: isFinished ? 'success' : 'default',
-        autoClose: isFinished ? DEFAULT_AUTOCLOSE_TIME_MS : false,
+        isLoading: !isFinished,
+        ...(isFinished ? { autoClose: null } : {}),
         render: () => <NotificationItem hideTime {...notification} />,
         ...('progress' in notification ? { progress: notification.progress } : {}),
       })
