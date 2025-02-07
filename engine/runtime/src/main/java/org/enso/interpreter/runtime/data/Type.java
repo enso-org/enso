@@ -26,6 +26,7 @@ import org.enso.interpreter.node.ConstantNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
+import org.enso.interpreter.node.callable.InvokeMethodNode;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -457,7 +458,7 @@ public final class Type extends EnsoObject {
 
     static Function findMethod(
         Type receiver, UnresolvedSymbol symbol, MethodResolverNode methodResolverNode) {
-      return methodResolverNode.executeResolution(receiver, symbol);
+      return InvokeMethodNode.resolveFunction(symbol, receiver, methodResolverNode);
     }
 
     static InvokeCallableNode buildInvokeCallableNode(Function func) {
