@@ -127,7 +127,10 @@ pub fn setup_node() -> Step {
 }
 
 pub fn setup_corepack() -> Step {
-    Step { run: Some("npm install -g corepack@0.31.0".into()), ..default() }
+    Step {
+        run: Some("npm install -g --force corepack@0.31.0 && corepack enable".into()),
+        ..default()
+    }
 }
 
 pub fn setup_wasm_pack_step() -> Step {
