@@ -43,7 +43,6 @@ jobs:
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
-          cache: pnpm
           node-version-file: .node-version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -109,7 +108,6 @@ jobs:
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
-          cache: pnpm
           node-version-file: .node-version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -165,7 +163,6 @@ jobs:
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
-          cache: pnpm
           node-version-file: .node-version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -230,7 +227,6 @@ jobs:
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
-          cache: pnpm
           node-version-file: .node-version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -292,7 +288,6 @@ jobs:
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
-          cache: pnpm
           node-version-file: .node-version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
@@ -384,7 +379,6 @@ jobs:
         name: Setup nodejs version
         uses: actions/setup-node@v4
         with:
-          cache: pnpm
           node-version-file: .node-version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)

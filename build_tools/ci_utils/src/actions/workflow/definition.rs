@@ -117,10 +117,10 @@ pub fn setup_node() -> Step {
     Step {
         name: Some("Setup nodejs version".into()),
         uses: Some("actions/setup-node@v4".into()),
-        with: Some(step::Argument::Other(BTreeMap::from([
-            ("node-version-file".to_string(), Value::String(".node-version".to_string())),
-            ("cache".to_string(), Value::String("pnpm".to_string())),
-        ]))),
+        with: Some(step::Argument::Other(BTreeMap::from([(
+            "node-version-file".to_string(),
+            Value::String(".node-version".to_string()),
+        )]))),
         r#if: Some(is_macos_runner()),
         ..default()
     }
