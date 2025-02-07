@@ -113,6 +113,18 @@ pub fn setup_bazel() -> Step {
     }
 }
 
+pub fn setup_node() -> Step {
+    Step {
+        name: Some("Setup nodejs version".into()),
+        uses: Some("actions/setup-node@v4".into()),
+        with: Some(step::Argument::Other(BTreeMap::from([
+            ("node-version-file".to_string(), Value::String(".node-version".to_string())),
+            ("cache".to_string(), Value::String("pnpm".to_string())),
+        ]))),
+        r#if: Some(is_macos_runner()),
+        ..default()
+    }
+}
 
 pub fn setup_wasm_pack_step() -> Step {
     Step {
@@ -151,6 +163,11 @@ pub fn setup_artifact_api() -> Step {
 /// An expression piece that evaluates to `true` if the current runner runs on Windows.
 pub fn is_windows_runner() -> String {
     "runner.os == 'Windows'".into()
+}
+
+/// An expression piece that evaluates to `true` if the current runner runs on macOS.
+pub fn is_macos_runner() -> String {
+    "runner.os == 'macOS'".into()
 }
 
 /// An expression piece that evaluates to `true` if the current runner *does not* run on Windows.
