@@ -2,7 +2,7 @@
 import { type Component, reactive } from 'vue'
 
 const _props = defineProps<{
-  host: VueHost
+  host: VueHostInstance
 }>()
 </script>
 
@@ -14,16 +14,33 @@ let nextId = 0
  *
  * This enables creating Vue Components from code run outside any Vue context by APIs that render custom HTML content
  * but aren't Vue-aware.
- *
- * To render registered components, the VueHost object should be passed to VueHostRender component.
  */
-export class VueHost {
-  readonly teleportations = reactive(new Map<number | string | symbol, [Component, HTMLElement]>())
-
+export interface VueHost {
   /**
    * Request the given component to begin being rendered as a child of the specified HTML element. The returned
    * handle allows updating and unregistering the component.
    */
+  register(
+    component: Component,
+    element: HTMLElement,
+    customKey?: string | symbol,
+  ): VueComponentHandle
+}
+
+export interface VueComponentHandle {
+  unregister: () => void
+  update: (component: Component, element: HTMLElement) => void
+}
+
+/**
+ * Implements the {@link VueHost} API supporting registration of components to be rendered with Vue.
+ *
+ * To render registered components, the VueHostInstance object should be passed to VueHostRender component.
+ */
+export class VueHostInstance implements VueHost {
+  readonly teleportations = reactive(new Map<number | string | symbol, [Component, HTMLElement]>())
+
+  /* eslint-disable-next-line jsdoc/require-jsdoc */
   register(
     component: Component,
     element: HTMLElement,
@@ -37,11 +54,6 @@ export class VueHost {
         this.teleportations.set(key, [component, element]),
     }
   }
-}
-
-export interface VueComponentHandle {
-  unregister: () => void
-  update: (component: Component, element: HTMLElement) => void
 }
 </script>
 

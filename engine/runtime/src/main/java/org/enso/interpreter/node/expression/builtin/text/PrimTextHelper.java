@@ -4,4 +4,8 @@ import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.Builtin;
 
 @BuiltinType
-public class PrimTextHelper extends Builtin {}
+public class PrimTextHelper extends Builtin {
+  public PrimTextHelper() {
+    super(Object.class);
+  }
+}

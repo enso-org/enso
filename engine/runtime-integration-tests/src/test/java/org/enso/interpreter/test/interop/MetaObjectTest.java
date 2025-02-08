@@ -333,6 +333,9 @@ main = Nothing
     }
     var meta = v.getMetaObject();
     var metaName = meta != null ? meta.getMetaSimpleName() : "null";
+    if (metaName.endsWith(".type")) {
+      metaName = metaName.substring(0, metaName.length() - 5);
+    }
     if (!simpleName.equals(metaName)) {
       if (v.isHostObject()) {
         if (v.hasArrayElements()) {
@@ -407,7 +410,7 @@ main = Nothing
       }
 
       var simpleName = sn.execute(typ).asString();
-      var metaName = typ.getMetaSimpleName() + ".type";
+      var metaName = typ.getMetaSimpleName();
       if (!simpleName.equals(metaName)) {
         sb.append("\n")
             .append("Simple names shall be the same for ")
