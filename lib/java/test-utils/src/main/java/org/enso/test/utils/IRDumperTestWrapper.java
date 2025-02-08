@@ -6,6 +6,7 @@ import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.dump.service.IRDumpFactoryService;
+import org.enso.compiler.dump.service.IRSource;
 
 /** Utility class for {@link org.enso.compiler.dump.service.IRDumper}. */
 public final class IRDumperTestWrapper implements AutoCloseable {
@@ -24,9 +25,11 @@ public final class IRDumperTestWrapper implements AutoCloseable {
       dumpers.put(moduleName, dumper);
     }
     if (ir instanceof Module modIr) {
-      dumper.dumpModule(modIr, moduleName, null, passName);
+      var src = new IRSource<Module>(modIr, moduleName, passName, null, null);
+      dumper.dumpModule(src);
     } else if (ir instanceof Expression expr) {
-      dumper.dumpExpression(expr, moduleName, passName);
+      var src = new IRSource<Expression>(expr, moduleName, passName, null, null);
+      dumper.dumpExpression(src);
     } else {
       throw new IllegalArgumentException("Unsupported IR type: " + ir.getClass());
     }

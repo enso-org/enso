@@ -6,7 +6,10 @@ import org.enso.interpreter.node.expression.builtin.Builtin;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 
 @BuiltinType(name = "Standard.Base.Errors.Problem_Behavior.Problem_Behavior")
-public class ProblemBehavior extends Builtin {
+public final class ProblemBehavior extends Builtin {
+  public ProblemBehavior() {
+    super(Object.class);
+  }
 
   @Override
   protected List<Cons> getDeclaredConstructors() {
