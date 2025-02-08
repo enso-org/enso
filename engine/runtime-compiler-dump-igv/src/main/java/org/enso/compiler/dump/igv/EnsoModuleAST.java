@@ -1,6 +1,6 @@
 package org.enso.compiler.dump.igv;
 
-import java.io.File;
+import java.net.URI;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,6 +28,7 @@ import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.core.ir.module.scope.imports.Polyglot;
+import org.enso.compiler.dump.service.IRSource;
 
 /**
  * Implemented only for dumping the AST to IGV. Heavily inspired by the internal {@code
@@ -38,10 +39,8 @@ final class EnsoModuleAST {
 
   private final ASTNode root;
 
-  /** Underlying source file. May be null. */
-  private final File srcFile;
-
-  private final String moduleName;
+  /** Information about underlying source. */
+  private final IRSource<? extends IR> ctx;
 
   private final Map<Integer, ASTNode> nodes = new HashMap<>();
 
@@ -53,19 +52,15 @@ final class EnsoModuleAST {
 
   private final Map<UUID, Integer> nodeIds;
 
-  private EnsoModuleAST(
-      Module moduleIr, File srcFile, String moduleName, Map<UUID, Integer> nodeIds) {
+  private EnsoModuleAST(IRSource<? extends IR> ctx, Map<UUID, Integer> nodeIds) {
     this.nodeIds = nodeIds;
-    this.srcFile = srcFile;
-    this.moduleName = moduleName;
-    this.root = buildTree(moduleIr);
-  }
-
-  private EnsoModuleAST(Expression expr, String moduleName, Map<UUID, Integer> nodeIds) {
-    this.nodeIds = nodeIds;
-    this.srcFile = null;
-    this.moduleName = moduleName;
-    this.root = buildTree(expr);
+    assert ctx != null;
+    this.ctx = ctx;
+    this.root = switch (ctx.ir()) {
+        case Module m -> buildTree(m);
+        case Expression e -> buildTree(e);
+        case null, default -> throw new IllegalArgumentException("ir: " + ctx.ir());
+    };
   }
 
   /**
@@ -73,22 +68,17 @@ final class EnsoModuleAST {
    * @param moduleName FQN of the module.
    * @param nodeIds Mapping of IR node UUIDs to sequential IDs expected by the IGV.
    */
-  static EnsoModuleAST fromModuleIR(
-      Module module, File srcFile, String moduleName, Map<UUID, Integer> nodeIds) {
-    return new EnsoModuleAST(module, srcFile, moduleName, nodeIds);
+  static EnsoModuleAST create(
+      IRSource<? extends IR> ctx, Map<UUID, Integer> nodeIds) {
+    return new EnsoModuleAST(ctx, nodeIds);
   }
 
-  static EnsoModuleAST fromExpressionIR(
-      Expression expr, String moduleName, Map<UUID, Integer> nodeIds) {
-    return new EnsoModuleAST(expr, moduleName, nodeIds);
-  }
-
-  public File getSrcFile() {
-    return srcFile;
+  public URI getSrcFile() {
+    return ctx.loc();
   }
 
   public String getModuleName() {
-    return moduleName;
+    return ctx.name();
   }
 
   public List<ASTNode> getNodes() {
@@ -463,7 +453,7 @@ final class EnsoModuleAST {
   }
 
   private ASTNode newNode(IR ir, Map<String, Object> props) {
-    ASTNode.Builder bldr = ASTNode.Builder.fromIr(ir, srcFile);
+    ASTNode.Builder bldr = ASTNode.Builder.fromIr(ir, ctx);
     var nodeId = nodeIds.get(ir.getId());
     if (nodeId == null) {
       var lastSeqId = nodeIds.size();

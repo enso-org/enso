@@ -283,7 +283,7 @@ public class IfThenElseTest {
     var no = check.execute(f, y, n);
 
     assertEquals("Yes", yes.asString());
-    assertWarning("GoodMaybe", yes);
+    assertWarning("MaybeGood", yes);
     assertEquals("No", no.asString());
     assertWarning("BadMaybe not", no);
   }

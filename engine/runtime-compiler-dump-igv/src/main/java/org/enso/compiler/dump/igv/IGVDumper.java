@@ -1,6 +1,5 @@
 package org.enso.compiler.dump.igv;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
@@ -16,6 +15,7 @@ import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.dump.service.IRDumper;
+import org.enso.compiler.dump.service.IRSource;
 import org.graalvm.graphio.GraphOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +50,7 @@ public final class IGVDumper implements IRDumper {
                 .blocks(EnsoModuleAST.AST_DUMP_STRUCTURE)
                 .elementsAndLocations(
                     EnsoModuleAST.AST_DUMP_STRUCTURE, EnsoModuleAST.AST_DUMP_STRUCTURE)
-                .attr("type", "Enso IR")
+                .attr("ensoIrVersion", "1.0")
                 .build(channel);
       } catch (IOException e) {
         throw new IllegalStateException(
@@ -74,26 +74,22 @@ public final class IGVDumper implements IRDumper {
   }
 
   @Override
-  public void dumpModule(Module ir, String graphName, File srcFile, String afterPass) {
-    assert graphName.equals(this.moduleName);
-    dumpTask(ir, graphName, srcFile, afterPass);
+  public void dumpModule(IRSource<Module> ctx) {
+    assert ctx.name().equals(this.moduleName);
+    dumpTask(ctx);
   }
 
   @Override
-  public void dumpExpression(Expression expr, String graphName, String afterPass) {
-    dumpTask(expr, graphName, null, afterPass);
+  public void dumpExpression(IRSource<Expression> ctx) {
+    dumpTask(ctx);
   }
 
-  private void dumpTask(IR ir, String moduleName, File srcFile, String afterPass) {
+  @SuppressWarnings("unchecked")
+  private void dumpTask(IRSource<? extends IR> ctx) {
+    var ir = ctx.ir();
+    var afterPass = ctx.afterPass();
     LOGGER.trace("[{}] Creating EnsoModuleAST after pass {}", moduleName, afterPass);
-    EnsoModuleAST moduleAst;
-    if (ir instanceof Module moduleIr) {
-      moduleAst = EnsoModuleAST.fromModuleIR(moduleIr, srcFile, moduleName, nodeIds);
-    } else if (ir instanceof Expression expr) {
-      moduleAst = EnsoModuleAST.fromExpressionIR(expr, moduleName, nodeIds);
-    } else {
-      throw new IllegalArgumentException("Unsupported IR type: " + ir.getClass());
-    }
+    var moduleAst = EnsoModuleAST.create(ctx, nodeIds);
     try {
       if (!groupCreated) {
         var groupProps = groupProps(moduleName, moduleAst);
@@ -115,7 +111,7 @@ public final class IGVDumper implements IRDumper {
     var props = new HashMap<String, Object>();
     props.put("moduleName", moduleName);
     props.put("date", LocalDateTime.now());
-    props.put("srcFile", graph.getSrcFile() == null ? null : graph.getSrcFile().getAbsolutePath());
+    props.put("srcFile", graph.getSrcFile() == null ? null : graph.getSrcFile().toString());
     return props;
   }
 

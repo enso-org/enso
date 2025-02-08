@@ -1,6 +1,5 @@
 package org.enso.interpreter.dsl;
 
-import com.google.common.base.Strings;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
@@ -11,7 +10,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import javax.annotation.processing.Filer;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
@@ -56,7 +54,7 @@ public class MethodProcessor
         if (elt.getKind() == ElementKind.CLASS) {
           try {
             var needsFrame = BuiltinsProcessor.checkNeedsFrame(elt);
-            handleTypeElement((TypeElement) elt, roundEnv, needsFrame);
+            handleTypeElement((TypeElement) elt, needsFrame);
           } catch (IOException e) {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, e.getMessage());
           }
@@ -73,8 +71,7 @@ public class MethodProcessor
     return true;
   }
 
-  private void handleTypeElement(TypeElement element, RoundEnvironment roundEnv, Boolean needsFrame)
-      throws IOException {
+  private void handleTypeElement(TypeElement element, Boolean needsFrame) throws IOException {
     ExecutableElement executeMethod =
         element.getEnclosedElements().stream()
             .filter(
@@ -161,10 +158,6 @@ public class MethodProcessor
           "org.enso.interpreter.runtime.warning.WithWarnings",
           "org.enso.interpreter.runtime.warning.AppendWarningNode");
 
-  /** List of exception types that should be caught from the builtin's execute method. */
-  private static final List<String> handleExceptionTypes =
-      List.of("UnsupportedSpecializationException");
-
   private void generateCode(MethodDefinition methodDefinition) throws IOException {
     JavaFileObject gen =
         processingEnv.getFiler().createSourceFile(methodDefinition.getQualifiedName());
@@ -196,43 +189,15 @@ public class MethodProcessor
                 + " extends BuiltinRootNode implements InlineableNode.Root {");
       }
       out.println("  private @Child " + methodDefinition.getOriginalClassName() + " bodyNode;");
-      out.println(
-          "  private @Child AppendWarningNode appendWarningNode = AppendWarningNode.build();");
-      out.println(
-          "  private @Child WarningsLibrary warnLib ="
-              + " WarningsLibrary.getFactory().createDispatched(5);");
-      out.println(
-          "  private @Child HashMapInsertAllNode mapInsertAllNode = HashMapInsertAllNode.build();");
-      out.println();
+      out.println("  private @Children ArgNode[] argNodes = new ArgNode[] {");
+      generateArguments(methodDefinition, out);
+      out.println("    };");
       out.println("  private static final class Internals {");
       out.println("    Internals(boolean s) {");
       out.println("      this.staticOrInstanceMethod = s;");
       out.println("    }");
       out.println();
       out.println("    private final boolean staticOrInstanceMethod;");
-
-      for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
-        if (arg.shouldCheckErrors()) {
-          String condName = mkArgumentInternalVarName(arg) + DATAFLOW_ERROR_PROFILE;
-          out.println(
-              "    private final CountingConditionProfile "
-                  + condName
-                  + " = CountingConditionProfile.create();");
-        }
-
-        if (arg.isPositional() && !arg.isSelf()) {
-          String branchName = mkArgumentInternalVarName(arg) + PANIC_SENTINEL_PROFILE;
-          out.println(
-              "    private final BranchProfile " + branchName + " = BranchProfile.create();");
-        }
-
-        if (arg.shouldCheckWarnings()) {
-          String warningName = mkArgumentInternalVarName(arg) + WARNING_PROFILE;
-          out.println(
-              "    private final BranchProfile " + warningName + " = BranchProfile.create();");
-        }
-      }
-      out.println("    private final BranchProfile anyWarningsProfile = BranchProfile.create();");
       out.println("  }");
       out.println("  private final Internals internals;");
 
@@ -295,21 +260,12 @@ public class MethodProcessor
                 + " body = "
                 + methodDefinition.getConstructorExpression()
                 + ";");
-        out.println(
-            "      private @Child AppendWarningNode appendWarningNode ="
-                + " AppendWarningNode.build();");
-        out.println(
-            "      private @Child WarningsLibrary warnLib ="
-                + " WarningsLibrary.getFactory().createDispatched(5);");
-        out.println(
-            "      private @Child HashMapInsertAllNode mapInsertAllNode ="
-                + " HashMapInsertAllNode.build();");
-        out.println();
+        out.println("      private @Children ArgNode[] argNodes = new ArgNode[] {");
+        generateArguments(methodDefinition, out);
+        out.println("      };");
         out.println("      @Override");
         out.println("      public Object call(VirtualFrame frame, Object[] args) {");
-        out.println(
-            "        return handleExecute(frame, extra, body, appendWarningNode, warnLib,"
-                + " mapInsertAllNode, args);");
+        out.println("        return handleExecute(argNodes, frame, extra, body, args);");
         out.println("      }");
         out.println("    }");
         out.println();
@@ -325,14 +281,14 @@ public class MethodProcessor
         out.println("    var args = frame.getArguments();");
       } else {
         out.println(
-            "    return handleExecute(frame, this.internals, bodyNode, this.appendWarningNode,"
-                + " this.warnLib, this.mapInsertAllNode, frame.getArguments());");
+            "    return handleExecute(argNodes, frame, this.internals, bodyNode,"
+                + " frame.getArguments());");
         out.println("  }");
         out.println(
-            "  private static Object handleExecute(VirtualFrame frame, Internals internals, "
+            "  private static Object handleExecute(ArgNode[] argNodes, VirtualFrame frame,"
+                + " Internals internals, "
                 + methodDefinition.getOriginalClassName()
-                + " bodyNode, AppendWarningNode appendWarningNode, WarningsLibrary warnLib,"
-                + " HashMapInsertAllNode mapInsertAllNode, Object[] args) {");
+                + " bodyNode, Object[] args) {");
       }
       out.println("    var prefix = internals.staticOrInstanceMethod ? 1 : 0;");
       out.println("    State state = Function.ArgumentsHelper.getState(args);");
@@ -352,43 +308,56 @@ public class MethodProcessor
               "    int arg" + arg.getPosition() + "Idx = " + arg.getPosition() + " + prefix;");
         }
       }
+      out.println("    var argCtx = new ArgContext();");
       boolean warningsPossible =
-          generateWarningsCheck(out, methodDefinition.getArguments(), "arguments");
-      for (MethodDefinition.ArgumentDefinition argumentDefinition :
-          methodDefinition.getArguments()) {
-        out.println(
-            "    /***  Start of processing argument "
-                + argumentDefinition.getPosition()
-                + "  ***/");
-        if (argumentDefinition.isImplicit()) {
-        } else if (argumentDefinition.isState()) {
+          methodDefinition.getArguments().stream()
+                  .filter(ArgumentDefinition::shouldCheckWarnings)
+                  .count()
+              != 0;
+      for (MethodDefinition.ArgumentDefinition ad : methodDefinition.getArguments()) {
+        if (ad.isImplicit()) {
+        } else if (ad.isState()) {
           callArgNames.add("state");
-        } else if (argumentDefinition.isFrame()) {
+        } else if (ad.isFrame()) {
           callArgNames.add("frame");
-        } else if (argumentDefinition.isNode()) {
+        } else if (ad.isNode()) {
           callArgNames.add("bodyNode");
-        } else if (argumentDefinition.isCallerInfo()) {
+        } else if (ad.isCallerInfo()) {
           callArgNames.add("callerInfo");
         } else {
-          callArgNames.add(mkArgumentInternalVarName(argumentDefinition));
-          generateArgumentRead(out, argumentDefinition, "arguments");
+          var plain = ad.getTypeName();
+          var boxed = wrapperTypeName(ad);
+          if (plain.equals(boxed)) {
+            callArgNames.add(mkArgumentInternalVarName(ad));
+          } else {
+            callArgNames.add("(" + plain + ")" + mkArgumentInternalVarName(ad));
+          }
+          var argReference = "arguments[arg" + ad.getPosition() + "Idx]";
+          var varName = mkArgumentInternalVarName(ad);
+          out.println(
+              "    var "
+                  + varName
+                  + " = argNodes["
+                  + ad.getPosition()
+                  + "].processArgument(frame, "
+                  + boxed
+                  + ".class, "
+                  + argReference
+                  + ", argCtx);");
         }
-        out.println(
-            "    /***  End of processing argument " + argumentDefinition.getPosition() + "  ***/");
       }
-      String executeCall = "bodyNode.execute(" + String.join(", ", callArgNames) + ")";
+      out.println("    if (argCtx.getReturnValue() != null) return argCtx.getReturnValue();");
+      out.println("    Object result;");
+      var executeCall = "bodyNode.execute(" + String.join(", ", callArgNames) + ")";
+      out.println(wrapInTryCatch("result = " + executeCall + ";", 4));
       if (warningsPossible) {
-        out.println("    if (anyWarnings) {");
-        out.println("      internals.anyWarningsProfile.enter();");
-        out.println("      Object result;");
-        out.println(wrapInTryCatch("result = " + executeCall + ";", 6));
-        out.println(
-            "      return appendWarningNode.executeAppend(frame, result, gatheredWarnings);");
+        out.println("    if (argCtx.hasWarnings()) {");
+        out.println("      return argNodes[0].processWarnings(frame, result, argCtx);");
         out.println("    } else {");
-        out.println(wrapInTryCatch("return " + executeCall + ";", 6));
+        out.println("      return result;");
         out.println("    }");
       } else {
-        out.println(wrapInTryCatch("return " + executeCall + ";", 6));
+        out.println("    return result;");
       }
       out.println("  }");
 
@@ -429,11 +398,38 @@ public class MethodProcessor
     }
   }
 
+  private static void generateArguments(MethodDefinition methodDefinition, final PrintWriter out) {
+    for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
+      if (!arg.isPositional()) {
+        continue;
+      }
+      var checkErrors = arg.shouldCheckErrors();
+      var checkPanicSentinel = arg.isPositional() && !arg.isSelf();
+      var checkWarnings = arg.shouldCheckWarnings();
+      if (arg.isArray()) {
+        out.println("/* array argument is not supported for " + arg.getName() + "*/");
+        continue;
+      }
+      out.println(
+          "        ArgNode.create("
+              + arg.isSelf()
+              + ", "
+              + arg.requiresCast()
+              + ", "
+              + checkErrors
+              + ", "
+              + checkPanicSentinel
+              + ", "
+              + checkWarnings
+              + "),");
+    }
+  }
+
   private String wrapInTryCatch(String statement, int indent) {
-    var indentStr = Strings.repeat(" ", indent);
+    var indentStr = " ".repeat(indent);
     var sb = new StringBuilder();
     sb.append(indentStr).append("try {").append("\n");
-    sb.append(indentStr).append("  " + statement).append("\n");
+    sb.append(indentStr).append("  ").append(statement).append("\n");
     sb.append(indentStr)
         .append("} catch (UnsupportedSpecializationException unsupSpecEx) {")
         .append("\n");
@@ -479,184 +475,12 @@ public class MethodProcessor
     return argumentDefs;
   }
 
-  private void generateArgumentRead(
-      PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    String argReference = argsArray + "[arg" + arg.getPosition() + "Idx]";
-    if (arg.shouldCheckErrors()) {
-      String condProfile = mkArgumentInternalVarName(arg) + DATAFLOW_ERROR_PROFILE;
-      out.println(
-          "    if (internals."
-              + condProfile
-              + ".profile(TypesGen.isDataflowError("
-              + argReference
-              + "))) {\n"
-              + "      return "
-              + argReference
-              + ";\n"
-              + "    }");
-    }
-    if (!arg.isSelf()) {
-      String branchProfile = mkArgumentInternalVarName(arg) + PANIC_SENTINEL_PROFILE;
-      out.println(
-          "    if (TypesGen.isPanicSentinel("
-              + argReference
-              + ")) {\n"
-              + "      internals."
-              + branchProfile
-              + ".enter();\n"
-              + "      throw TypesGen.asPanicSentinel("
-              + argReference
-              + ");\n"
-              + "    }");
-    }
-
-    if (!arg.requiresCast()) {
-      generateUncastedArgumentRead(out, arg, argsArray);
-    } else if (arg.isSelf()) {
-      generateUncheckedArgumentRead(out, arg, argsArray);
-    } else if (arg.isArray()) {
-      generateUncheckedArrayCast(out, arg, argsArray);
+  private String wrapperTypeName(MethodDefinition.ArgumentDefinition arg) {
+    var tn = capitalize(arg.getTypeName());
+    if ("Boolean".equals(tn)) {
+      return "java.lang.Boolean";
     } else {
-      generateCheckedArgumentRead(out, arg, argsArray);
-    }
-  }
-
-  private void generateUncastedArgumentRead(
-      PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    String varName = mkArgumentInternalVarName(arg);
-    out.println(
-        "    "
-            + arg.getTypeName()
-            + " "
-            + varName
-            + " = "
-            + argsArray
-            + "[arg"
-            + arg.getPosition()
-            + "Idx];");
-  }
-
-  private void generateUncheckedArgumentRead(
-      PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    String castName = "TypesGen.as" + capitalize(arg.getTypeName());
-    String varName = mkArgumentInternalVarName(arg);
-    out.println(
-        "    "
-            + arg.getTypeName()
-            + " "
-            + varName
-            + " = "
-            + castName
-            + "("
-            + argsArray
-            + "[arg"
-            + arg.getPosition()
-            + "Idx]);");
-  }
-
-  private void generateUncheckedArrayCast(
-      PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    String castName = arg.getTypeName();
-    String varName = mkArgumentInternalVarName(arg);
-    out.println(
-        "    "
-            + arg.getTypeName()
-            + " "
-            + varName
-            + " = ("
-            + castName
-            + ")"
-            + argsArray
-            + "[arg"
-            + arg.getPosition()
-            + "Idx];");
-  }
-
-  private void generateCheckedArgumentRead(
-      PrintWriter out, MethodDefinition.ArgumentDefinition arg, String argsArray) {
-    String builtinName = capitalize(arg.getTypeName());
-    String castName = "TypesGen.expect" + builtinName;
-    String varName = mkArgumentInternalVarName(arg);
-    out.println("    " + arg.getTypeName() + " " + varName + ";");
-    out.println("    try {");
-    out.println(
-        "      "
-            + varName
-            + " = "
-            + castName
-            + "("
-            + argsArray
-            + "[arg"
-            + arg.getPosition()
-            + "Idx]);");
-    out.println("    } catch (UnexpectedResultException e) {");
-    out.println("      CompilerDirectives.transferToInterpreter();");
-    out.println("      var builtins = EnsoContext.get(bodyNode).getBuiltins();");
-    out.println(
-        "      var ensoTypeName = org.enso.interpreter.runtime.type.ConstantsGen.getEnsoTypeName(\""
-            + builtinName
-            + "\");");
-    out.println("      var error = (ensoTypeName != null)");
-    out.println(
-        "        ? builtins.error().makeTypeError(ensoTypeName, arguments[arg"
-            + arg.getPosition()
-            + "Idx], \""
-            + varName
-            + "\")");
-    out.println(
-        "        : builtins.error().makeUnsupportedArgumentsError(new Object[] { arguments[arg"
-            + arg.getPosition()
-            + "Idx] }, \"Unsupported argument for "
-            + varName
-            + " expected a '"
-            + builtinName
-            + "' but got a '\""
-            + " + arguments[arg"
-            + arg.getPosition()
-            + "Idx]"
-            + " + \"' [\""
-            + " + arguments[arg"
-            + arg.getPosition()
-            + "Idx].getClass()"
-            + " + \"]\""
-            + ");");
-    out.println("      throw new PanicException(error, bodyNode);");
-    out.println("    }");
-  }
-
-  private boolean generateWarningsCheck(
-      PrintWriter out, List<MethodDefinition.ArgumentDefinition> arguments, String argumentsArray) {
-    List<MethodDefinition.ArgumentDefinition> argsToCheck =
-        arguments.stream()
-            .filter(ArgumentDefinition::shouldCheckWarnings)
-            .collect(Collectors.toList());
-    if (argsToCheck.isEmpty()) {
-      return false;
-    } else {
-      out.println("    boolean anyWarnings = false;");
-      out.println("    int maxWarnings = EnsoContext.get(bodyNode).getWarningsLimit();");
-      out.println("    EnsoHashMap gatheredWarnings = EnsoHashMap.empty();");
-      for (var arg : argsToCheck) {
-        String argCode = arrayRead(argumentsArray, arg.getPosition());
-        out.println(
-            "    if ("
-                + arrayRead(argumentsArray, arg.getPosition())
-                + " instanceof WithWarnings withWarnings) {");
-        out.println(
-            "      internals." + mkArgumentInternalVarName(arg) + WARNING_PROFILE + ".enter();");
-        out.println("      anyWarnings = true;");
-        out.println("      try {"); // begin try
-        out.println("        var warns = warnLib.getWarnings(withWarnings, false);");
-        out.println("        " + argCode + " = withWarnings.getValue();");
-        out.println(
-            "        gatheredWarnings = mapInsertAllNode.executeInsertAll(frame, gatheredWarnings,"
-                + " warns, maxWarnings);");
-        out.println("      } catch (UnsupportedMessageException e) {"); // end try
-        out.println("        throw CompilerDirectives.shouldNotReachHere(e);");
-        out.println("      }"); // end catch
-        out.println("    }"); // end hasWarnings
-      }
-      return true;
+      return tn;
     }
   }
 
@@ -664,14 +488,18 @@ public class MethodProcessor
    * Dumps the information about the collected builtin methods to {@link
    * MethodProcessor#metadataPath()} resource file.
    *
-   * <p>The format of a single row in the metadata file: <full name of the method>:<class name of
-   * the root node>
+   * <p>The format of a single row in the metadata file:
+   *
+   * <pre>
+   * "full name of the method":"class name of the root node"
+   * </pre>
    *
    * @param writer a writer to the metadata resource
    * @param pastEntries entries from the previously created metadata file, if any. Entries that
    *     should not be appended to {@code writer} should be removed
    * @throws IOException
    */
+  @Override
   protected void storeMetadata(Writer writer, Map<String, MethodMetadataEntry> pastEntries)
       throws IOException {
     for (Filer f : builtinMethods.keySet()) {
@@ -705,16 +533,8 @@ public class MethodProcessor
     builtinMethods.clear();
   }
 
-  private String warningCheck(MethodDefinition.ArgumentDefinition arg) {
-    return "(" + mkArgumentInternalVarName(arg) + " instanceof WithWarnings)";
-  }
-
   private String mkArgumentInternalVarName(MethodDefinition.ArgumentDefinition arg) {
     return "arg" + arg.getPosition();
-  }
-
-  private String arrayRead(String array, int index) {
-    return array + "[arg" + index + "Idx]";
   }
 
   private String capitalize(String name) {
@@ -751,8 +571,4 @@ public class MethodProcessor
         Boolean.parseBoolean(elements[2]),
         Boolean.parseBoolean(elements[3]));
   }
-
-  private static final String DATAFLOW_ERROR_PROFILE = "IsDataflowErrorConditionProfile";
-  private static final String PANIC_SENTINEL_PROFILE = "PanicSentinelBranchProfile";
-  private static final String WARNING_PROFILE = "WarningProfile";
 }
