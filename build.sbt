@@ -390,7 +390,6 @@ lazy val enso = (project in file("."))
     `text-buffer`,
     `version-output`,
     `ydoc-polyfill`,
-    `ydoc-server`,
     `zio-wrapper`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
