@@ -742,6 +742,7 @@
   "xAm": "$0 am",
   "xPm": "$0 pm",
   "dateXTimeX": "$0 $1",
+  "xExecutionsScheduledOnX": "$0 execution(s) scheduled on $1 (click to view)",
   "currentlyEnabledLabel": "Enabled (click to disable)",
   "currentlyDisabledLabel": "Disabled (click to enable)",
   "updateExecutionToLatestVersionLabel": "Use latest project version",

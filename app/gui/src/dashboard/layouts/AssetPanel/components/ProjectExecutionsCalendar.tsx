@@ -14,6 +14,7 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 
 import { getProjectExecutionRepetitionsForDateRange } from 'enso-common/src/services/Backend/projectExecution'
 
+import CalendarIcon from '#/assets/calendar_repeat_outline.svg'
 import ArrowIcon from '#/assets/folder_arrow.svg'
 import {
   Calendar,
@@ -178,6 +179,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
               <CalendarGridBody className={styles.calendarGridBody()}>
                 {(date) => {
                   const isToday = date.compare(todayDate) === 0
+                  const todaysExecutions = projectExecutionsByDate[date.toString()]
                   return (
                     <CalendarCell
                       key={date.toString()}
@@ -191,9 +193,21 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
                         >
                           {date.day}
                         </Text>
-                        {projectExecutionsByDate[date.toString()]?.map((data) => (
-                          <Text color="disabled">{`${data.date.getHours().toString().padStart(2, '0')}:${data.date.getMinutes().toString().padStart(2, '0')}`}</Text>
-                        ))}
+                        {todaysExecutions && (
+                          <Button
+                            slot={null}
+                            tooltip={getText(
+                              'xExecutionsScheduledOnX',
+                              todaysExecutions.length,
+                              date.toString(),
+                            )}
+                            size="xxsmall"
+                            variant="custom"
+                            icon={CalendarIcon}
+                          >
+                            {todaysExecutions.length}
+                          </Button>
+                        )}
                       </div>
                     </CalendarCell>
                   )
