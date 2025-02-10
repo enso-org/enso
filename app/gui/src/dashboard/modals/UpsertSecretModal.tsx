@@ -38,7 +38,6 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
         form.reset({ title, value })
       }}
       testId="upsert-secret-modal"
-      gap="none"
       className="w-full"
     >
       <Input
