@@ -7,7 +7,6 @@ import {
   getLocalTimeZone,
   now,
   ZonedDateTime,
-  type CalendarDate,
 } from '@internationalized/date'
 import { useMutation } from '@tanstack/react-query'
 
@@ -191,7 +190,7 @@ export interface NewProjectExecutionModalProps {
   readonly backend: Backend
   readonly item: ProjectAsset
   readonly defaultOpen?: boolean
-  readonly defaultDate?: CalendarDate
+  readonly defaultDate?: ZonedDateTime
 }
 
 /** A modal for confirming the deletion of an asset. */
@@ -325,7 +324,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
           isRequired
           noCalendarHeader
           name="startDate"
-          segments={{ hour: false, minute: false, dayPeriod: false }}
+          granularity="day"
           label={getText('firstOccurrenceLabel')}
           minValue={minFirstOccurrence}
         />

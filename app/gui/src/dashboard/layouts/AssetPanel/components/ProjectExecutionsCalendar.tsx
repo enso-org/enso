@@ -8,6 +8,7 @@ import {
   startOfMonth,
   toCalendarDate,
   today,
+  toZoned,
 } from '@internationalized/date'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
@@ -204,7 +205,11 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
       />
       <DialogTrigger>
         <Button variant="outline">{getText('newProjectExecution')}</Button>
-        <NewProjectExecutionModal backend={backend} item={item} defaultDate={selectedDate} />
+        <NewProjectExecutionModal
+          backend={backend}
+          item={item}
+          defaultDate={toZoned(selectedDate, timeZone)}
+        />
       </DialogTrigger>
       <>
         <Text>

@@ -6,7 +6,6 @@ import ArrowIcon from '#/assets/folder_arrow.svg'
 import {
   ComboBox as AriaComboBox,
   ComboBoxStateContext,
-  Label,
   ListBox,
   ListBoxItem,
   type ComboBoxProps as AriaComboBoxProps,
@@ -145,7 +144,6 @@ export const ComboBox = forwardRef(function ComboBox<
                 renderProps.field.onChange(key ?? '')
               }}
             >
-              <Label>{label}</Label>
               <div className={styles.inputContainer()}>
                 <Button variant="icon" icon={ArrowIcon} className="rotate-90" />
                 <Input
