@@ -304,9 +304,7 @@ object AutomaticParallelism extends IRPass {
           _,
           new Application.Prefix(
             Name.Special(Name.Special.NewRef, null),
-            List(),
-            false,
-            null
+            List()
           ),
           null
         )
@@ -334,9 +332,7 @@ object AutomaticParallelism extends IRPass {
                   true,
                   null
                 )
-              ),
-              false,
-              null
+              )
             )
             List(bind, refWrite)
           case other => List(other)
@@ -350,9 +346,7 @@ object AutomaticParallelism extends IRPass {
             true,
             null
           )
-        ),
-        false,
-        null
+        )
       )
       Expression
         .Binding(freshNameSupply.newName(), spawn, null)
@@ -366,9 +360,7 @@ object AutomaticParallelism extends IRPass {
         Name.Special(Name.Special.JoinThread, null),
         List(
           new CallArgument.Specified(None, bind.name.duplicate(), true, null)
-        ),
-        false,
-        null
+        )
       )
     }
 
@@ -378,9 +370,7 @@ object AutomaticParallelism extends IRPass {
           name.duplicate(),
           new Application.Prefix(
             Name.Special(Name.Special.ReadRef, null),
-            List(new CallArgument.Specified(None, ref.duplicate(), true, null)),
-            false,
-            null
+            List(new CallArgument.Specified(None, ref.duplicate(), true, null))
           ),
           null
         )

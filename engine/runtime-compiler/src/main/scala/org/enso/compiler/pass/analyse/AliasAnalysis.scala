@@ -543,7 +543,7 @@ case object AliasAnalysis extends IRPass {
             )
           )
           .copyWithAscribedType(
-            ascribedType = arg.ascribedType.map(analyseExpression(_, builder))
+            arg.ascribedType.map(analyseExpression(_, builder))
           )
 
       case arg: DefinitionArgument.Specified =>
@@ -570,8 +570,8 @@ case object AliasAnalysis extends IRPass {
 
           arg
             .copy(
-              defaultValue = newDefault,
-              ascribedType = arg.ascribedType.map(analyseExpression(_, builder))
+              newDefault,
+              arg.ascribedType.map(analyseExpression(_, builder))
             )
             .updateMetadata(
               new MetadataPair(
@@ -582,7 +582,7 @@ case object AliasAnalysis extends IRPass {
         } else {
           arg
             .copyWithAscribedType(
-              ascribedType = Some(Redefined.Arg(name, arg.identifiedLocation))
+              Some(Redefined.Arg(name, arg.identifiedLocation))
             )
             .updateMetadata(
               new MetadataPair(
@@ -613,13 +613,13 @@ case object AliasAnalysis extends IRPass {
           arguments = analyseCallArguments(app.arguments, builder)
         )
       case app: Application.Force =>
-        app.copy(target = analyseExpression(app.target, builder))
+        app.copyWithTarget(analyseExpression(app.target, builder))
       case app: Application.Sequence =>
-        app.copy(items = app.items.map(analyseExpression(_, builder)))
+        app.copyWithItems(app.items.map(analyseExpression(_, builder)))
       case tSet: Application.Typeset =>
         val newScope = builder.addChild()
         tSet
-          .copy(expression =
+          .copyWithExpression(
             tSet.expression.map(analyseExpression(_, newScope))
           )
           .updateMetadata(
@@ -655,7 +655,7 @@ case object AliasAnalysis extends IRPass {
         case _          => builder.addChild()
       }
       arg
-        .copy(value = analyseExpression(arg.value, currentScope))
+        .copy(analyseExpression(arg.value, currentScope))
         .updateMetadata(
           new MetadataPair(
             this,

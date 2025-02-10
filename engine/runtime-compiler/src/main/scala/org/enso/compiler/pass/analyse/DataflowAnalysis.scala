@@ -356,7 +356,7 @@ case object DataflowAnalysis extends IRPass {
         info.dependencies.updateAt(forceDep, Set(targetDep))
 
         force
-          .copy(target = analyseExpression(force.target, info))
+          .copyWithTarget(analyseExpression(force.target, info))
           .updateMetadata(new MetadataPair(this, info))
       case vector: Application.Sequence =>
         val vectorDep = asStatic(vector)
@@ -367,7 +367,7 @@ case object DataflowAnalysis extends IRPass {
         })
 
         vector
-          .copy(items = vector.items.map(analyseExpression(_, info)))
+          .copyWithItems(vector.items.map(analyseExpression(_, info)))
           .updateMetadata(new MetadataPair(this, info))
       case tSet: Application.Typeset =>
         val tSetDep = asStatic(tSet)
@@ -378,7 +378,7 @@ case object DataflowAnalysis extends IRPass {
         })
 
         tSet
-          .copy(expression = tSet.expression.map(analyseExpression(_, info)))
+          .copyWithExpression(tSet.expression.map(analyseExpression(_, info)))
           .updateMetadata(new MetadataPair(this, info))
       case _: Operator =>
         throw new CompilerError("Unexpected operator during Dataflow Analysis.")
@@ -726,7 +726,7 @@ case object DataflowAnalysis extends IRPass {
 
         spec
           .copyWithDefaultValue(
-            defaultValue = defValue.map(analyseExpression(_, info))
+            defValue.map(analyseExpression(_, info))
           )
           .updateMetadata(new MetadataPair(this, info))
     }
@@ -759,7 +759,7 @@ case object DataflowAnalysis extends IRPass {
 
         spec
           .copy(
-            value = analyseExpression(spec.value, info)
+            analyseExpression(spec.value, info)
           )
           .updateMetadata(new MetadataPair(this, info))
     }

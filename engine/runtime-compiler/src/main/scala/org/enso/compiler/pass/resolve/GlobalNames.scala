@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
   Expression,
+  MetadataStorage,
   Module,
   Name,
   Type
@@ -232,7 +233,8 @@ case object GlobalNames extends IRPass {
                           )
                         ),
                         hasDefaultsSuspended = false,
-                        lit.identifiedLocation
+                        lit.identifiedLocation,
+                        new MetadataStorage()
                       )
                       fun
                         .getMetadata(ExpressionAnnotations)

@@ -95,7 +95,7 @@ case object ExpressionAnnotations extends IRPass {
         } else {
           val err =
             errors.Resolution(ann, errors.Resolution.UnknownAnnotation)
-          app.copy(function = err)
+          app.copyWithFunction(err)
         }
       case ann: Name.BuiltinAnnotation =>
         if (isKnownAnnotation(ann.name)) {

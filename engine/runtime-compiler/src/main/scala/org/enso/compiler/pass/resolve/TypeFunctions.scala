@@ -144,14 +144,14 @@ case object TypeFunctions extends IRPass {
             )
         }
       case force: Application.Force =>
-        force.copy(target = resolveExpression(force.target))
+        force.copyWithTarget(resolveExpression(force.target))
       case seq: Application.Sequence =>
-        seq.copy(
-          items = seq.items.map(resolveExpression)
+        seq.copyWithItems(
+          seq.items.map(resolveExpression)
         )
       case tSet: Application.Typeset =>
-        tSet.copy(
-          expression = tSet.expression.map(resolveExpression)
+        tSet.copyWithExpression(
+          tSet.expression.map(resolveExpression)
         )
       case _: Operator =>
         throw new CompilerError(
@@ -222,7 +222,7 @@ case object TypeFunctions extends IRPass {
     arg match {
       case spec: CallArgument.Specified =>
         spec.copy(
-          value = resolveExpression(spec.value)
+          resolveExpression(spec.value)
         )
     }
   }

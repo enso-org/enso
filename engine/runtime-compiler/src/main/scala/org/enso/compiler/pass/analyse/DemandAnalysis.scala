@@ -10,6 +10,7 @@ import org.enso.compiler.core.ir.{
   Function,
   IdentifiedLocation,
   Literal,
+  MetadataStorage,
   Module,
   Name,
   Type
@@ -189,7 +190,11 @@ case object DemandAnalysis extends IRPass {
           val newNameLocation =
             name.location.map(l => new IdentifiedLocation(l.location()))
           val newName = lit.copy(location = newNameLocation)
-          new Application.Force(newName, name.identifiedLocation())
+          new Application.Force(
+            newName,
+            name.identifiedLocation(),
+            new MetadataStorage()
+          )
         case _ => name
       }
     }
@@ -228,14 +233,14 @@ case object DemandAnalysis extends IRPass {
           arguments = pref.arguments.map(analyseCallArgument)
         )
       case force: Application.Force =>
-        force.copy(target =
+        force.copyWithTarget(
           analyseExpression(
             force.target,
             isInsideCallArgument
           )
         )
       case vec: Application.Sequence =>
-        vec.copy(items =
+        vec.copyWithItems(
           vec.items.map(
             analyseExpression(
               _,
@@ -244,8 +249,8 @@ case object DemandAnalysis extends IRPass {
           )
         )
       case tSet: Application.Typeset =>
-        tSet.copy(
-          expression = tSet.expression.map(
+        tSet.copyWithExpression(
+          tSet.expression.map(
             analyseExpression(_, isInsideCallArgument = false)
           )
         )

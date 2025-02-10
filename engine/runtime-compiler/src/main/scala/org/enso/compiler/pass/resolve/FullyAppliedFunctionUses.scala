@@ -52,7 +52,7 @@ object FullyAppliedFunctionUses extends IRPass {
   private def doExpression(expr: Expression): Expression = {
     expr.transformExpressions {
       case app: Application.Prefix =>
-        app.copy(arguments = app.arguments.map(_.mapExpressions(doExpression)))
+        app.copyWithArguments(app.arguments.map(_.mapExpressions(doExpression)))
       case name: Name.Literal =>
         val meta = name.getMetadata(GlobalNames)
         meta match {
@@ -60,9 +60,7 @@ object FullyAppliedFunctionUses extends IRPass {
               if cons.allFieldsDefaulted && cons.arity > 0 =>
             new Application.Prefix(
               name,
-              List(),
-              false,
-              identifiedLocation = null
+              List()
             );
           case _ => name
         }

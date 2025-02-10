@@ -188,7 +188,7 @@ class LambdaShorthandToLambdaMini(
             name
           case it => it
         }
-        val newVec = vector.copy(newItems)
+        val newVec = vector.copyWithItems(newItems)
         val locWithoutId =
           newVec.location.map(l => new IdentifiedLocation(l.location()))
         bindings.foldLeft(newVec: Expression) { (body, bindingName) =>
