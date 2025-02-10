@@ -274,6 +274,16 @@ export function EnsoDevtools() {
                       setFeatureFlag('enableAsyncExecution', value)
                     }}
                   />
+
+                  <ariaComponents.Switch
+                    form={form}
+                    name="enableHybridExecution"
+                    label="Enable Hybrid Execution"
+                    description="Enable Hybrid Execution"
+                    onChange={(value) => {
+                      setFeatureFlag('enableHybridExecution', value)
+                    }}
+                  />
                 </>
               )}
             </ariaComponents.Form>

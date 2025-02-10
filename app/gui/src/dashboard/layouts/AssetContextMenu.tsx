@@ -38,6 +38,7 @@ import {
 import { useNewProject } from '#/hooks/backendHooks'
 import { useUploadFileWithToastMutation } from '#/hooks/backendUploadFilesHooks'
 import { usePasteData } from '#/providers/DriveProvider'
+import * as featureFlagsProvider from '#/providers/FeatureFlagsProvider'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 import { normalizePath } from '#/utilities/fileInfo'
 import { mapNonNullish } from '#/utilities/nullable'
@@ -83,7 +84,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const restoreAssetsMutation = reactQuery.useMutation(restoreAssetsMutationOptions(backend))
   const copyAssetsMutation = reactQuery.useMutation(copyAssetsMutationOptions(backend))
   const downloadAssetsMutation = reactQuery.useMutation(downloadAssetsMutationOptions(backend))
-  const openProjectMutation = projectHooks.useOpenProjectMutation()
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const isCloud = categoryModule.isCloudCategory(category)
   const pathComputed =
@@ -170,6 +170,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     asset.projectState.openedBy != null &&
     asset.projectState.openedBy !== user.email
 
+  const enableHybridExecution = featureFlagsProvider.useFeatureFlag('enableHybridExecution')
+
   const pasteMenuEntry = hasPasteData && canPaste && (
     <ContextMenuEntry
       hidden={hidden}
@@ -249,7 +251,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               }}
             />
           )}
-        {asset.type === backendModule.AssetType.project && isCloud && (
+        {asset.type === backendModule.AssetType.project && isCloud && enableHybridExecution && (
           <ContextMenuEntry
             hidden={hidden}
             action="run"
