@@ -862,6 +862,47 @@ public class DebuggingEnsoTest {
     testStepping(src, "foo", new Object[] {0}, steps, expectedLineNumbers);
   }
 
+  @Test
+  public void testEvaluateLazyField() {
+    var fooFunc =
+        createEnsoMethod(
+            """
+        from Standard.Base.Any import all
+
+        type Generator
+            Value n ~next
+
+        natural =
+            gen n = Generator.Value n (gen n+1)
+            gen 2
+
+        foo x =
+            two = natural
+            three = two.next
+            end = 0
+        """,
+            "foo");
+    try (DebuggerSession session =
+        debugger.startSession(
+            (SuspendedEvent event) -> {
+              switch (event.getSourceSection().getCharacters().toString().strip()) {
+                case "end = 0" -> {
+                  DebugScope scope = event.getTopStackFrame().getScope();
+                  var twoValue = scope.getDeclaredValue("two");
+                  assertThat(twoValue.isReadable(), is(true));
+                  var nProp = twoValue.getProperty("n");
+                  assertThat("n property should be readable", nProp.asInt(), is(2));
+                  var nextProp = twoValue.getProperty("next");
+                  assertThat("next property is readable", nextProp.isReadable(), is(true));
+                }
+              }
+              event.getSession().suspendNextExecution();
+            })) {
+      session.suspendNextExecution();
+      fooFunc.execute(0);
+    }
+  }
+
   private static final class FrameEntry {
     private final String scopeName;
     private final Map<String, String> values = new HashMap<>();
