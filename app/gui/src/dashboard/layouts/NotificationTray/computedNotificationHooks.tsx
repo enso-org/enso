@@ -13,6 +13,7 @@ import {
 import { MB_BYTES, uploadingFileQueryOptions } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { NotificationItem } from '#/layouts/NotificationTray/components/NotificationItem'
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useText } from '#/providers/TextProvider'
 import { useIsMutating, useQuery, useQueryClient, type MutationKey } from '@tanstack/react-query'
 import { BackendType } from 'enso-common/src/services/Backend'
@@ -49,6 +50,8 @@ export function useComputedNotifications() {
   const queryClient = useQueryClient()
   const { getText } = useText()
 
+  const moreComputedNotifications = useFeatureFlag('moreComputedNotifications')
+
   const [notificationMap, setNotificationMap] = useState<ReadonlyMap<unknown, NotificationInfo>>(
     new Map(),
   )
@@ -83,9 +86,9 @@ export function useComputedNotifications() {
     setNotificationMap((map) => new Map([...map.entries()].filter(([, v]) => v.id !== id)))
   })
 
-  useEffect(
-    () =>
-      queryClient.getMutationCache().subscribe((update) => {
+  useEffect(() => {
+    if (moreComputedNotifications) {
+      return queryClient.getMutationCache().subscribe((update) => {
         switch (update.type) {
           case 'added':
           case 'updated': {
@@ -207,9 +210,11 @@ export function useComputedNotifications() {
             break
           }
         }
-      }),
-    [getText, queryClient, upsertNotification],
-  )
+      })
+    } else {
+      return
+    }
+  }, [getText, moreComputedNotifications, queryClient, upsertNotification])
 
   const { data: uploadingFiles } = useQuery(uploadingFileQueryOptions())
 
