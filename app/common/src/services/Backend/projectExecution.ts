@@ -17,29 +17,7 @@ export function firstProjectExecutionOnOrAfter(
     nextDate = new Date(executionStartDate)
   }
   nextDate.setMinutes(executionStartDate.getMinutes())
-  if (repeat.type !== 'hourly') {
-    nextDate.setHours(executionStartDate.getHours())
-  }
   switch (repeat.type) {
-    case 'hourly': {
-      while (nextDate < startDate) {
-        nextDate.setHours(nextDate.getHours() + 1)
-      }
-      const currentHours = nextDate.getHours()
-      if (repeat.startHour < repeat.endHour) {
-        if (currentHours < repeat.startHour) {
-          nextDate.setHours(repeat.startHour)
-        } else if (currentHours > repeat.endHour) {
-          nextDate.setHours(repeat.startHour)
-          nextDate.setDate(nextDate.getDate() + 1)
-        }
-      } else {
-        if (currentHours > repeat.endHour && currentHours < repeat.startHour) {
-          nextDate.setHours(repeat.startHour)
-        }
-      }
-      break
-    }
     case 'daily': {
       const currentDay = nextDate.getDay()
       const day = repeat.daysOfWeek.find((day) => day >= currentDay) ?? repeat.daysOfWeek[0] ?? 0
@@ -80,7 +58,6 @@ export function firstProjectExecutionOnOrAfter(
     }
   }
   switch (repeat.type) {
-    case 'hourly':
     case 'daily': {
       break
     }
@@ -101,23 +78,6 @@ export function nextProjectExecutionDate(projectExecution: ProjectExecutionInfo,
   const nextDate = new Date(date)
   const { repeat } = projectExecution
   switch (repeat.type) {
-    case 'hourly': {
-      nextDate.setHours(nextDate.getHours() + 1)
-      const currentHours = nextDate.getHours()
-      if (repeat.startHour < repeat.endHour) {
-        if (currentHours < repeat.startHour) {
-          nextDate.setHours(repeat.startHour)
-        } else if (currentHours > repeat.endHour) {
-          nextDate.setDate(nextDate.getDate() + 1)
-          nextDate.setHours(repeat.startHour)
-        }
-      } else {
-        if (currentHours > repeat.endHour && currentHours < repeat.startHour) {
-          nextDate.setHours(repeat.startHour)
-        }
-      }
-      break
-    }
     case 'daily': {
       const currentDay = nextDate.getDay()
       const day = repeat.daysOfWeek.find((day) => day > currentDay) ?? repeat.daysOfWeek[0] ?? 0
@@ -144,7 +104,6 @@ export function nextProjectExecutionDate(projectExecution: ProjectExecutionInfo,
     }
   }
   switch (repeat.type) {
-    case 'hourly':
     case 'daily': {
       break
     }

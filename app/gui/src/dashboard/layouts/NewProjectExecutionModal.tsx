@@ -325,7 +325,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
           isRequired
           noCalendarHeader
           name="startDate"
-          granularity="day"
+          segments={{ hour: false, minute: false, dayPeriod: false }}
           label={getText('firstOccurrenceLabel')}
           minValue={minFirstOccurrence}
         />

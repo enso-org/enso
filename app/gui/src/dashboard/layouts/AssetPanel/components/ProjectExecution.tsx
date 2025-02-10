@@ -99,17 +99,6 @@ export function ProjectExecution(props: ProjectExecutionProps) {
         case 'none': {
           return getText('doesNotRepeat')
         }
-        case 'hourly': {
-          const startHour = (repeat.startHour + timeZoneOffsetHours + HOURS_PER_DAY) % HOURS_PER_DAY
-          const endHour = (repeat.endHour + timeZoneOffsetHours + HOURS_PER_DAY) % HOURS_PER_DAY
-          return getText(
-            'hourlyBetweenX',
-            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-            getText(startHour > 11 ? 'xPm' : 'xAm', `${startHour % 12 || 12}:${minuteString}`),
-            // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-            getText(endHour > 11 ? 'xPm' : 'xAm', `${endHour % 12 || 12}:${minuteString}`),
-          )
-        }
         case 'daily': {
           const dayNames =
             repeat.daysOfWeek.length === DAYS_PER_WEEK ?
