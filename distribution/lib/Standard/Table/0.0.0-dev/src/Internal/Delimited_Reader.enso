@@ -6,12 +6,14 @@ import Standard.Base.System.Input_Stream.Input_Stream
 
 import project.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
+import project.Delimited.Invalid_Rows.Invalid_Rows
 import project.Delimited.Quote_Style.Quote_Style
 import project.Headers.Headers
 import project.Internal.Java_Problems
 import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 from project.Errors import Empty_File_Error, Mismatched_Quote, Parser_Error
+from project.Table import from_java_table
 
 polyglot java import com.univocity.parsers.common.TextParsingException
 polyglot java import java.io.InputStream
@@ -24,6 +26,7 @@ polyglot java import org.enso.table.parsing.problems.MismatchedQuote
 polyglot java import org.enso.table.parsing.TypeInferringParser
 polyglot java import org.enso.table.read.DelimitedReader
 polyglot java import org.enso.table.read.DelimitedReader.HeaderBehavior
+polyglot java import org.enso.table.read.DelimitedReader.InvalidRowsBehavior
 polyglot java import org.enso.table.read.ParsingFailedException
 polyglot java import org.enso.table.read.QuoteStrippingParser
 
@@ -98,7 +101,7 @@ read_from_reader format java_reader on_problems:Problem_Behavior max_columns=409
         Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
             reader = prepare_reader format max_columns on_problems java_problem_aggregator
             java_table = reader.read java_reader
-            format.row_limit.attach_warning (Table.Value java_table)
+            format.row_limit.attach_warning (from_java_table java_table)
 
 ## PRIVATE
 prepare_reader format:Delimited_Format max_columns on_problems:Problem_Behavior java_problem_aggregator newline_override=Nothing =
@@ -123,9 +126,13 @@ prepare_reader format:Delimited_Format max_columns on_problems:Problem_Behavior 
     newline = newline_override.if_nothing <| case format.line_endings of
         Infer -> Nothing
         endings -> endings.to_text
+    on_invalid_rows_java = case format.on_invalid_rows of
+        Invalid_Rows.Keep_Invalid_Rows -> InvalidRowsBehavior.KEEP
+        Invalid_Rows.Drop_Invalid_Rows -> InvalidRowsBehavior.DROP
+        Invalid_Rows.Add_Extra_Columns -> InvalidRowsBehavior.ADD_EXTRA_COLUMNS
 
     warnings_as_errors = on_problems == Problem_Behavior.Report_Error
-    DelimitedReader.new format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows newline format.comment_character warnings_as_errors java_problem_aggregator
+    DelimitedReader.new format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser on_invalid_rows_java newline format.comment_character warnings_as_errors java_problem_aggregator
 
 ## PRIVATE
    An internal type representing columns deduced from an existing file.
@@ -133,7 +140,11 @@ type Detected_Headers
     ## Represents the headers found in the file.
     Existing (column_names : Vector Text)
 
-    ## Indicates that the file exists but no headers have been found, so only positional column matching is possible.
+    ## Indicates that the file exists but no headers have been found,
+       so only positional column matching is possible.
+
+       Note that the file may still contain rows that have less or more columns
+       than specified here. This column count is only based on the first row.
     None (column_count : Integer)
 
 ## PRIVATE

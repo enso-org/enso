@@ -111,7 +111,7 @@ prefer-local-libraries: true
 
   /**
    * Tests running the project located in the given {@code projDir}. Is equal to running {@code enso
-   * --run <projDir>}.
+   * --docs <docsFormat> --in-project <projDir>}.
    *
    * @param docsFormat format of the documentation to generate
    * @param ctxBuilder A context builder that might be initialized with some specific options.

@@ -126,7 +126,7 @@ const sourceMask = computed<NodeMask | undefined>(() => {
   if (!nodeRect) return
   const animProgress =
     startsInPort.value ?
-      ((sourceNode.value && graph.nodeHoverAnimations.get(sourceNode.value)) ?? 0)
+      ((sourceNode.value && graph.nodeOutputHoverAnimations.get(sourceNode.value)) ?? 0)
     : 0
   const padding = animProgress * VISIBLE_PORT_MASK_PADDING
   if (!maskSource && padding === 0) return
@@ -287,7 +287,7 @@ const arrowPath = [
 
 const sourceHoverAnimationStyle = computed(() => {
   if (!animateFromSourceHover || !base.value || !sourceNode.value) return {}
-  const progress = graph.nodeHoverAnimations.get(sourceNode.value) ?? 0
+  const progress = graph.nodeOutputHoverAnimations.get(sourceNode.value) ?? 0
   if (progress === 1) return {}
   const currentLength = progress * base.value.getTotalLength()
   return {

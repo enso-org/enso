@@ -1,0 +1,22 @@
+## Enso Signatures 1.0
+## module Standard.Base.System.File_By_Line
+- type File_By_Line
+    - Reader file:Standard.Base.System.File.File encoding:Standard.Base.Data.Text.Encoding.Encoding limit_lines:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing) filter_func:Standard.Base.Any.Any row_map:Standard.Base.Any.Any file_end:Standard.Base.Any.Any=
+    - charset self -> Standard.Base.Any.Any
+    - count self -> Standard.Base.Any.Any
+    - each self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - each_with_index self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - filter self predicate:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - first self -> Standard.Base.Any.Any
+    - get self line:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - java_file self -> Standard.Base.Any.Any
+    - limit self lines:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
+    - map self action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - map_with_index self action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - new file:Standard.Base.System.File.File encoding:Standard.Base.Data.Text.Encoding.Encoding= offset:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - row_positions self -> Standard.Base.Any.Any
+    - second self -> Standard.Base.Any.Any
+    - skip self lines:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
+    - to_vector self -> Standard.Base.Any.Any
+- for_each_lines file:Standard.Base.System.File_By_Line.File_By_Line start_at:Standard.Base.Data.Numbers.Integer end_at:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing) action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- read_line file:Standard.Base.System.File_By_Line.File_By_Line line:Standard.Base.Data.Numbers.Integer= ~default:Standard.Base.Any.Any= -> Standard.Base.Any.Any

@@ -199,3 +199,14 @@ declare global {
     (message: string, projectId?: string | null, metadata?: object | null): void
   }
 }
+
+// Add additional types for svg imports from `#/assets/*.svg`
+declare module 'vite/client' {
+  declare module '#/assets/*.svg' {
+    /**
+     * @deprecated Prefer defined keys over importing from `#/assets/*.svg
+     */
+    const src: string
+    export default src
+  }
+}
