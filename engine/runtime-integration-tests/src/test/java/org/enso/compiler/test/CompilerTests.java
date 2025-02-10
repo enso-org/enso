@@ -12,8 +12,11 @@ import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
+import org.enso.test.utils.IRDumperTestWrapper;
 
 public abstract class CompilerTests {
+  private static IRDumperTestWrapper irDumper = new IRDumperTestWrapper();
+
   protected static Module parse(CharSequence code) {
     Module ir = EnsoParser.compile(code);
     assertNotNull("IR was generated", ir);
@@ -52,7 +55,18 @@ public abstract class CompilerTests {
           StandardOpenOption.TRUNCATE_EXISTING,
           StandardOpenOption.CREATE,
           StandardOpenOption.WRITE);
-      fail("IRs contained in files " + file1 + " and " + file2 + " should equal: " + msg);
+      irDumper.dump(old, "CompilerTest", "old");
+      irDumper.dump(now, "CompilerTest", "now");
+      var errMsg = new StringBuilder();
+      errMsg.append("IRs differ: ").append(msg).append(System.lineSeparator());
+      errMsg
+          .append("Contained in files: ")
+          .append(file1.toAbsolutePath())
+          .append(" and ")
+          .append(file2.toAbsolutePath())
+          .append(System.lineSeparator());
+      errMsg.append("Also dumped to IGV graphs named 'CompilerTest'");
+      fail(errMsg.toString());
     }
   }
 

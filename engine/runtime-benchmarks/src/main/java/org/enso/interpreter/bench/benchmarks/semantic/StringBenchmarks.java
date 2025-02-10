@@ -35,7 +35,8 @@ public class StringBenchmarks {
         """
         from Standard.Base import all
 
-        all_length v = v.fold 0 (sum -> str -> sum + str.length)
+        all_length v = v.fold 0 sum-> str->
+            sum + str.length
 
         create rep len =
             s = "Long string".repeat rep

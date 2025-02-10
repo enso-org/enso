@@ -1,6 +1,5 @@
 package org.enso.compiler.dump.service;
 
-import java.io.File;
 import java.util.ServiceLoader;
 import org.enso.compiler.core.ir.Module;
 
@@ -29,7 +28,7 @@ final class IRDumpSingleton {
     public void shutdown() {}
 
     @Override
-    public void dumpModule(Module ir, String graphName, File srcFile, String afterPass) {}
+    public void dumpModule(IRSource<Module> ir) {}
 
     @Override
     public void close() {}
