@@ -6,9 +6,11 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
+import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "+", description = "Addition of numbers.")
@@ -55,6 +57,26 @@ public abstract class AddNode extends IntegerNode {
   @TruffleBoundary
   double doBigIntDouble(EnsoBigInteger self, double that) {
     return self.getValue().doubleValue() + that;
+  }
+
+  @Specialization(guards = "isForeignNumber(iop, self)")
+  Object doInterop(
+      TruffleObject self,
+      Object that,
+      @CachedLibrary(limit = "3") InteropLibrary iop,
+      @Cached ToEnsoNumberNode toNumber,
+      @Cached AddNode delegate) {
+    Object value;
+    try {
+      if (iop.fitsInLong(self)) {
+        value = iop.asLong(self);
+      } else {
+        value = toNumber.execute(iop.asBigInteger(self));
+      }
+    } catch (UnsupportedMessageException ex) {
+      throw throwTypeErrorIfNotInt(self, that);
+    }
+    return delegate.execute(value, that);
   }
 
   @Specialization(guards = "isForeignNumber(iop, that)")
