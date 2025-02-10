@@ -1,4 +1,4 @@
-package org.enso.interpreter.dsl;
+package org.enso.interpreter.dsl.impl;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
