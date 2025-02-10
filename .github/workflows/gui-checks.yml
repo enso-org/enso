@@ -15,6 +15,11 @@ permissions:
   statuses: write # Write access to commit statuses
   checks: write
 
+env:
+  # Workaround for https://github.com/nodejs/corepack/issues/612
+  # See: https://github.com/nodejs/corepack/blob/main/README.md#environment-variables
+  COREPACK_DEFAULT_TO_LATEST: 0
+
 jobs:
   lint:
     name: 👮 Lint GUI
@@ -117,8 +122,8 @@ jobs:
       fail-fast: false
       max-parallel: 24
       matrix:
-        shardIndex: [1, 2, 3, 4, 5, 6]
-        shardTotal: [6]
+        shardIndex: [1, 2, 3, 4]
+        shardTotal: [4]
 
     steps:
       - uses: actions/checkout@v4

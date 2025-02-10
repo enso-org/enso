@@ -57,7 +57,7 @@ add_specs suite_builder =
     suite_builder.group 'Writing' group_builder->
         group_builder.specify 'should properly serialize simple tables' <|
             varied_column = (enso_project.data / "varied_column.csv") . read
-            res = Text.from varied_column format=(..Delimited ",")
+            res = varied_column.to_delimited format=(..Delimited ",")
             exp = normalize_lines <| '''
                 Column 1,Column 2,Column 3,Column 4,Column 5,Column 6
                 2005-02-25,2005-02-25,1,1,1.0,1
@@ -81,7 +81,7 @@ add_specs suite_builder =
                 "This;Name;;Is""""Strange";20
                 Marcin,,;"hello;world"
 
-            res = Text.from t format=(..Delimited ";")
+            res = t.to_delimited format=(..Delimited ";")
             res.should_equal expected
 
         group_builder.specify 'should allow forced quoting of records' <|
@@ -95,7 +95,7 @@ add_specs suite_builder =
                 "This;Name;;Is""""Strange",20
                 "Marcin,,","hello;world"
 
-            res = Text.from t format=(Delimited_Format.Delimited "," . with_quotes always_quote=True)
+            res = t.to_delimited format=(Delimited_Format.Delimited "," . with_quotes always_quote=True)
             res.should_equal expected
 
 
@@ -149,4 +149,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

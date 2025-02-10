@@ -35,6 +35,11 @@ Run local tests with:
 python -m unittest --verbose bench_tool/test*.py
 ```
 
+Run a single test with:
+```bash
+python -m unittest --verbose bench_tool/test*.py -k <test_name>
+```
+
 ## Relation to GH Actions
 
 The `bench_download.py` script is used in

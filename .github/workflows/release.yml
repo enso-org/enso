@@ -54,6 +54,13 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -92,6 +99,13 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -143,6 +157,13 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -194,6 +215,13 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -237,6 +265,13 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -284,6 +319,13 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -329,6 +371,13 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -375,6 +424,13 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -426,6 +482,13 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -476,6 +539,13 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -504,6 +574,11 @@ jobs:
           ENSO_IDE_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      - name: Upload ide
+        uses: actions/upload-artifact@v4
+        with:
+          name: ide-linux-amd64
+          path: dist/ide/enso-*.AppImage
       - if: (always())
         name: Clean after
         run: ./run git-clean
@@ -540,6 +615,13 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -575,6 +657,11 @@ jobs:
           ENSO_IDE_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      - name: Upload ide
+        uses: actions/upload-artifact@v4
+        with:
+          name: ide-macos-aarch64
+          path: dist/ide/enso-*.dmg
       - if: (always())
         name: Clean after
         run: ./run git-clean
@@ -609,6 +696,13 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -644,6 +738,11 @@ jobs:
           ENSO_IDE_STRIPE_KEY: ${{ vars.ENSO_CLOUD_STRIPE_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      - name: Upload ide
+        uses: actions/upload-artifact@v4
+        with:
+          name: ide-macos-amd64
+          path: dist/ide/enso-*.dmg
       - if: (always())
         name: Clean after
         run: ./run git-clean
@@ -679,6 +778,13 @@ jobs:
         with:
           clean: false
           submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
@@ -709,6 +815,11 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT_PASSWORD }}
           WIN_CSC_LINK: ${{ secrets.MICROSOFT_CODE_SIGNING_CERT }}
+      - name: Upload ide
+        uses: actions/upload-artifact@v4
+        with:
+          name: ide-windows-amd64
+          path: dist/ide/enso-*.exe
       - if: (always())
         name: Clean after
         run: ./run git-clean

@@ -5,7 +5,7 @@ import ProjectView from '@/ProjectView.vue'
 import { provideAppClassSet } from '@/providers/appClass'
 import { provideGuiConfig } from '@/providers/guiConfig'
 import { provideTooltipRegistry } from '@/providers/tooltipRegistry'
-import { registerAutoBlurHandler } from '@/util/autoBlur'
+import { registerAutoBlurHandler, registerGlobalBlurHandler } from '@/util/autoBlur'
 import { baseConfig, configValue, mergeConfig, type ApplicationConfigValue } from '@/util/config'
 import { urlParams } from '@/util/urlParams'
 import { useQueryClient } from '@tanstack/vue-query'
@@ -38,6 +38,7 @@ const queryClient = useQueryClient()
 provideGuiConfig(appConfigValue)
 
 registerAutoBlurHandler()
+registerGlobalBlurHandler()
 
 onMounted(() => {
   if (appConfigValue.value.window.vibrancy) {

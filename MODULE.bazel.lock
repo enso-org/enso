@@ -348,7 +348,7 @@
     "@@rules_nodejs+//nodejs:extensions.bzl%node": {
       "general": {
         "bzlTransitiveDigest": "rphcryfYrOY/P3emfTskC/GY5YuHcwMl2B2ncjaM8lY=",
-        "usagesDigest": "btwAfGIbU0lGpYjZ3/Xl5oMnyR2AhPBYQYYvn9Y06uQ=",
+        "usagesDigest": "KII+s0/7Ylo56zOFj+fYf/2BKwnuYRqsdS7vGIE/n5o=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -362,7 +362,7 @@
               "node_urls": [
                 "https://nodejs.org/dist/v{version}/{filename}"
               ],
-              "node_version": "20.11.1",
+              "node_version": "22.11.0",
               "include_headers": false,
               "platform": "linux_amd64"
             }
@@ -376,7 +376,7 @@
               "node_urls": [
                 "https://nodejs.org/dist/v{version}/{filename}"
               ],
-              "node_version": "20.11.1",
+              "node_version": "22.11.0",
               "include_headers": false,
               "platform": "linux_arm64"
             }
@@ -390,7 +390,7 @@
               "node_urls": [
                 "https://nodejs.org/dist/v{version}/{filename}"
               ],
-              "node_version": "20.11.1",
+              "node_version": "22.11.0",
               "include_headers": false,
               "platform": "linux_s390x"
             }
@@ -404,7 +404,7 @@
               "node_urls": [
                 "https://nodejs.org/dist/v{version}/{filename}"
               ],
-              "node_version": "20.11.1",
+              "node_version": "22.11.0",
               "include_headers": false,
               "platform": "linux_ppc64le"
             }
@@ -418,7 +418,7 @@
               "node_urls": [
                 "https://nodejs.org/dist/v{version}/{filename}"
               ],
-              "node_version": "20.11.1",
+              "node_version": "22.11.0",
               "include_headers": false,
               "platform": "darwin_amd64"
             }
@@ -432,7 +432,7 @@
               "node_urls": [
                 "https://nodejs.org/dist/v{version}/{filename}"
               ],
-              "node_version": "20.11.1",
+              "node_version": "22.11.0",
               "include_headers": false,
               "platform": "darwin_arm64"
             }
@@ -446,7 +446,7 @@
               "node_urls": [
                 "https://nodejs.org/dist/v{version}/{filename}"
               ],
-              "node_version": "20.11.1",
+              "node_version": "22.11.0",
               "include_headers": false,
               "platform": "windows_amd64"
             }
@@ -625,7 +625,7 @@
           "@@//lib/rust/parser/debug/fuzz/Cargo.toml": "d93cea0a1b3a5e96ea99d0f57c7a07361b6e3b46afb95dab362e7562d86655d0",
           "@@//build_tools/macros/lib/Cargo.toml": "9cd827c2abf32278530d4312e45a9ecd15c122cc180289ed1a58a632f46d1911",
           "@@//lib/rust/parser/doc-parser/Cargo.toml": "5416f179aa138f97123f02b999ab71338f489f6b912f31a17735375c1e2e704a",
-          "@@//MODULE.bazel": "dd7abb54b8f85858bd0ccb5c8443e67e211eeef6facc59b313acbb98c8787b11",
+          "@@//MODULE.bazel": "db1bab27ac7b5124180f2a3b55fba526b152c13f71f07b0eea760ddcaeb19e91",
           "@@//build_tools/install/installer/Cargo.toml": "285f8e82a63acb798f9b19307e2f9a16ae7f1cc73bbec40804249cab86ea879e",
           "@@//lib/rust/parser/debug/Cargo.toml": "c7af0403667534b52690811421790515f98b22d95932cadcd9cc8a3ac79bb06d",
           "@@//lib/rust/parser/generate-java/Cargo.toml": "c74133c954f6c6ef3b8af72a466a313ca583f7130e7c4c5779c8c352d8d96a65",
