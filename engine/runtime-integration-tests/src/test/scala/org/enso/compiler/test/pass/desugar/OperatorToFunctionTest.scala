@@ -71,7 +71,7 @@ class OperatorToFunctionTest extends MiniPassTest {
 
     val binOp =
       Operator.Binary(leftArg, name, rightArg, loc)
-    val opFn = Application.Prefix(
+    val opFn = new Application.Prefix(
       name,
       List(leftArg, rightArg),
       hasDefaultsSuspended = false,
@@ -132,7 +132,7 @@ class OperatorToFunctionTest extends MiniPassTest {
     "be translated recursively in synthetic IR" in {
       val recursiveIR =
         Operator.Binary(oprArg, opName, rightArg, null)
-      val recursiveIRResult = Application.Prefix(
+      val recursiveIRResult = new Application.Prefix(
         opName,
         List(oprFnArg, rightArg),
         hasDefaultsSuspended = false,
@@ -180,7 +180,7 @@ class OperatorToFunctionTest extends MiniPassTest {
     "be translated recursively" in {
       val recursiveIR =
         Operator.Binary(oprArg, opName, rightArg, identifiedLocation = null)
-      val recursiveIRResult = Application.Prefix(
+      val recursiveIRResult = new Application.Prefix(
         opName,
         List(oprFnArg, rightArg),
         hasDefaultsSuspended = false,

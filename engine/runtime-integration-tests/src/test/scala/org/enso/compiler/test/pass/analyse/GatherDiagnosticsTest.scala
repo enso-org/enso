@@ -23,7 +23,7 @@ class GatherDiagnosticsTest extends CompilerTest {
   "Error Gathering" should {
     val error1 = errors.Syntax(null, errors.Syntax.UnrecognizedToken)
     val plusOp = Name.Literal("+", isMethod = true, identifiedLocation = null)
-    val plusApp = Application.Prefix(
+    val plusApp = new Application.Prefix(
       plusOp,
       List(
         new CallArgument.Specified(

@@ -221,7 +221,7 @@ case object GlobalNames extends IRPass {
                         name     = resolvedModuleMethod.method.name,
                         location = None
                       )
-                      val app = Application.Prefix(
+                      val app = new Application.Prefix(
                         fun,
                         List(
                           new CallArgument.Specified(

@@ -302,7 +302,7 @@ object AutomaticParallelism extends IRPass {
       Expression
         .Binding(
           _,
-          Application.Prefix(
+          new Application.Prefix(
             Name.Special(Name.Special.NewRef, null),
             List(),
             false,
@@ -319,7 +319,7 @@ object AutomaticParallelism extends IRPass {
       val blockBody =
         exprs.map(_.ir).flatMap {
           case bind: Expression.Binding =>
-            val refWrite = Application.Prefix(
+            val refWrite = new Application.Prefix(
               Name.Special(Name.Special.WriteRef, null),
               List(
                 new CallArgument.Specified(
@@ -341,7 +341,7 @@ object AutomaticParallelism extends IRPass {
             List(bind, refWrite)
           case other => List(other)
         }
-      val spawn = Application.Prefix(
+      val spawn = new Application.Prefix(
         Name.Special(Name.Special.RunThread, null),
         List(
           new CallArgument.Specified(
@@ -362,7 +362,7 @@ object AutomaticParallelism extends IRPass {
     }
 
     val threadJoins = threadSpawns.map { bind =>
-      Application.Prefix(
+      new Application.Prefix(
         Name.Special(Name.Special.JoinThread, null),
         List(
           new CallArgument.Specified(None, bind.name.duplicate(), true, null)
@@ -376,7 +376,7 @@ object AutomaticParallelism extends IRPass {
       Expression
         .Binding(
           name.duplicate(),
-          Application.Prefix(
+          new Application.Prefix(
             Name.Special(Name.Special.ReadRef, null),
             List(new CallArgument.Specified(None, ref.duplicate(), true, null)),
             false,

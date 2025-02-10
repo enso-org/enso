@@ -91,7 +91,7 @@ object Application {
         || id != this.id
       ) {
         val res =
-          Prefix(
+          new Prefix(
             function,
             arguments,
             hasDefaultsSuspended,
