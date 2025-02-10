@@ -21,6 +21,7 @@ import {
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
+import { extractTypeAndId, newDirectoryId } from '#/services/LocalBackend'
 
 /** Default interval for refetching project status when the project is opened. */
 const OPENED_INTERVAL_MS = 30_000
@@ -206,7 +207,7 @@ export function useOpenProjectMutation() {
       type,
       parentId,
       inBackground = false,
-    }: LaunchedProject & { inBackground?: boolean }) => {
+    }: LaunchedProject & { inBackground?: boolean; cloudProjectId?: backendModule.ProjectId }) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
@@ -258,7 +259,11 @@ export function useCloseProjectMutation() {
 
   return reactQuery.useMutation({
     mutationKey: ['closeProject'],
-    mutationFn: ({ type, id, title }: LaunchedProject) => {
+    mutationFn: ({
+      type,
+      id,
+      title,
+    }: LaunchedProject & { cloudProjectId?: backendModule.ProjectId }) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
@@ -276,12 +281,22 @@ export function useCloseProjectMutation() {
 
       void client.cancelQueries({ queryKey })
     },
-    onSuccess: async (_, { type, id, parentId }) => {
+    onSuccess: async (_, { type, id, parentId, cloudProjectId }) => {
       await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       setProjectAsset(type, id, parentId, (asset) => ({
         ...asset,
         projectState: { ...asset.projectState, type: backendModule.ProjectState.closed },
       }))
+
+      // If the project runs in hybrid execution mode
+      if (cloudProjectId) {
+        invariant(localBackend != null, 'LocalBackend is null')
+
+        const projectPath = extractTypeAndId(id).directory
+        await remoteBackend.uploadProject(cloudProjectId, newDirectoryId(projectPath))
+
+        await localBackend.deleteAsset(parentId, { force: true }, null)
+      }
     },
     onError: async (_, { type, id, parentId }) => {
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
@@ -331,40 +346,42 @@ export function useOpenProject() {
 
   const enableMultitabs = useFeatureFlag('enableMultitabs')
 
-  return eventCallbacks.useEventCallback((project: LaunchedProject) => {
-    if (!canOpenProjects) {
-      return
-    }
-
-    if (!enableMultitabs) {
-      // Since multiple tabs cannot be opened at the same time, the opened projects need to be closed first.
-      if (projectsStore.getState().launchedProjects.length > 0) {
-        closeAllProjects()
+  return eventCallbacks.useEventCallback(
+    (project: LaunchedProject & { cloudProjectId?: backendModule.ProjectId }) => {
+      if (!canOpenProjects) {
+        return
       }
-    }
 
-    const existingMutation = client.getMutationCache().find({
-      mutationKey: ['openProject'],
-      predicate: (mutation) => mutation.options.scope?.id === project.id,
-    })
-    const isOpeningTheSameProject = existingMutation?.state.status === 'pending'
+      if (!enableMultitabs) {
+        // Since multiple tabs cannot be opened at the same time, the opened projects need to be closed first.
+        if (projectsStore.getState().launchedProjects.length > 0) {
+          closeAllProjects()
+        }
+      }
 
-    if (!isOpeningTheSameProject) {
-      openProjectMutation.mutate(project)
-      const openingProjectMutation = client.getMutationCache().find({
+      const existingMutation = client.getMutationCache().find({
         mutationKey: ['openProject'],
-        // this is unsafe, but we can't do anything about it
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        predicate: (mutation) => mutation.state.variables?.id === project.id,
+        predicate: (mutation) => mutation.options.scope?.id === project.id,
       })
-      openingProjectMutation?.setOptions({
-        ...openingProjectMutation.options,
-        scope: { id: project.id },
-      })
+      const isOpeningTheSameProject = existingMutation?.state.status === 'pending'
 
-      addLaunchedProject(project)
-    }
-  })
+      if (!isOpeningTheSameProject) {
+        openProjectMutation.mutate(project)
+        const openingProjectMutation = client.getMutationCache().find({
+          mutationKey: ['openProject'],
+          // this is unsafe, but we can't do anything about it
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          predicate: (mutation) => mutation.state.variables?.id === project.id,
+        })
+        openingProjectMutation?.setOptions({
+          ...openingProjectMutation.options,
+          scope: { id: project.id },
+        })
+
+        addLaunchedProject(project)
+      }
+    },
+  )
 }
 
 /** A function to open the editor. */

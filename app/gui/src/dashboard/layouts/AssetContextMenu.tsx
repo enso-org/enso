@@ -275,6 +275,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 title: project.title,
                 parentId: project.parentId,
                 type: backendModule.BackendType.local,
+                cloudProjectId: asset.id,
               })
             }}
           />

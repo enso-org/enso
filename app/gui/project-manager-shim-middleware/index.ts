@@ -193,8 +193,6 @@ export default function projectManagerShimMiddleware(
           break
         }
 
-        const projectBundle = projectManagement.createBundle(projectDir)
-
         const uploadRequest = https.request(uploadUrl, { method: 'POST' }, (actualResponse) => {
           if (!response.writableFinished) {
             response.writeHead(
@@ -207,15 +205,24 @@ export default function projectManagerShimMiddleware(
             actualResponse.pipe(response, { end: true })
           }
         })
-        uploadRequest.write(projectBundle, (err) => {
-          if (err) {
-            response
-              .writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR)
-              .end('Failed to write project bundle.')
-          }
-        })
+        projectManagement
+          .createBundle(projectDir)
+          .then((projectBundle) => {
+            uploadRequest.write(projectBundle, (err) => {
+              if (err) {
+                console.error(err)
+                response
+                  .writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR)
+                  .end('Failed to write project bundle.')
+              }
+            })
+            request.pipe(uploadRequest, { end: true })
+          })
+          .catch((err) => {
+            console.error(err)
+            response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COMMON_HEADERS).end()
+          })
 
-        request.pipe(uploadRequest, { end: true })
         break
       }
       default: {

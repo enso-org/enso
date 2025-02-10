@@ -61,13 +61,20 @@ export async function uploadBundle(
 }
 
 /** Create a .tar.gz enso-project bundle. */
-export function createBundle(directory: string): stream.Readable {
-  return tar.c(
+export function createBundle(directory: string): Promise<Buffer> {
+  const readableStream = tar.c(
     {
       z: true,
+      C: directory,
     },
-    [directory],
+    ['.'],
   )
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = []
+    readableStream.on('data', (data) => chunks.push(data))
+    readableStream.on('end', () => resolve(Buffer.concat(chunks)))
+    readableStream.on('error', reject)
+  })
 }
 
 /** Unpack a .tar.gz enso-project bundle into a temporary directory */

@@ -1491,11 +1491,11 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Upload the project. */
-  async uploadProject(id: backend.ProjectId, path: string): Promise<void> {
+  async uploadProject(id: backend.ProjectId, directoryId: backend.DirectoryId): Promise<void> {
     const uploadPath = remoteBackendPaths.getProjectUploadPath(id)
     const queryString = new URLSearchParams({
       uploadUrl: `${$config.API_URL}/${uploadPath}`,
-      directory: path,
+      directory: extractIdFromDirectoryId(directoryId),
     })
 
     await this.client.get(`./api/cloud/upload-project?${queryString}`)
