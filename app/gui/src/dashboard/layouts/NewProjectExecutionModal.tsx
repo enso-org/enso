@@ -246,7 +246,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       maxDurationMinutes: MAX_DURATION_DEFAULT_MINUTES,
       // Use `en-US` locale because it matches JavaScript conventions.
       days: [getDayOfWeek(minFirstOccurrence, 'en-US')],
-      months: [minFirstOccurrence.month - 1],
+      months: MONTHS,
       startHour: 0,
       endHour: HOURS_PER_DAY - 1,
       timeZone,
