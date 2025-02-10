@@ -1,51 +1,37 @@
 package org.enso.compiler.dump.igv;
 
-import java.io.File;
 import java.net.URI;
+import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.IdentifiedLocation;
+import org.enso.compiler.dump.service.IRSource;
 
 final class ASTLocation {
-  private final int lineNum;
-  // May be null
-  private final URI locationUri;
-  private final int offsetStart;
-  private final int offsetEnd;
+  private final IRSource<? extends IR> ctx;
+  private final IdentifiedLocation loc;
 
-  private ASTLocation(int lineNum, URI locationUri, int offsetStart, int offsetEnd) {
-    this.lineNum = lineNum;
-    this.locationUri = locationUri;
-    this.offsetStart = offsetStart;
-    this.offsetEnd = offsetEnd;
+  private ASTLocation(IRSource<? extends IR> ctx, IdentifiedLocation loc) {
+    this.ctx = ctx;
+    this.loc = loc;
   }
 
-  public static ASTLocation fromIdentifiedLocation(IdentifiedLocation loc, File srcFile) {
-    int offStart = -1;
-    int offEnd = -1;
-    int lineNum = 1;
-    URI uri = null;
-    if (loc != null) {
-      offStart = loc.start();
-      offEnd = loc.end();
-    }
-    if (srcFile != null) {
-      uri = srcFile.toURI();
-    }
-    return new ASTLocation(lineNum, uri, offStart, offEnd);
+  public static ASTLocation fromIdentifiedLocation(
+      IdentifiedLocation loc, IRSource<? extends IR> ctx) {
+    return new ASTLocation(ctx, loc);
   }
 
   public int getLineNum() {
-    return lineNum;
+    return loc == null ? -1 : ctx.lineMap().apply(loc);
   }
 
   public int getOffsetStart() {
-    return offsetStart;
+    return loc == null ? -1 : loc.start();
   }
 
   public int getOffsetEnd() {
-    return offsetEnd;
+    return loc == null ? -1 : loc.end();
   }
 
   public URI getLocationUri() {
-    return locationUri;
+    return ctx.loc();
   }
 }

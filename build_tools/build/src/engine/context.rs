@@ -645,6 +645,12 @@ pub async fn runner_sanity_test(
             .run_ok()
             .await;
 
+        let test_tableau = Command::new(&enso)
+            .args(["--run", repo_root.test.join("Tableau_Tests").as_str()])
+            .set_env(ENSO_DATA_DIRECTORY, engine_package)?
+            .run_ok()
+            .await;
+
         let test_geo = Command::new(&enso)
             .args(["--run", repo_root.test.join("Geo_Tests").as_str()])
             .set_env(ENSO_DATA_DIRECTORY, engine_package)?
@@ -663,6 +669,7 @@ pub async fn runner_sanity_test(
             .and(test_aws)
             .and(test_microsoft)
             .and(test_snowflake)
+            .and(test_tableau)
             .and(test_geo)
             .and(test_image);
 
