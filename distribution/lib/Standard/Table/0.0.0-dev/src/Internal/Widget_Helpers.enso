@@ -25,38 +25,38 @@ make_aggregate_column_selector table display:Display=..Always =
     col_names_selector = make_column_name_selector table display=Display.Always add_expression=True
     column_widget = ["column", col_names_selector]
 
-    count = Option "Count" "..Count"
+    count = Option "..Count" "..Count"
 
     ## Currently can't support nested vector editors so using single picker
     col_list_selector = make_column_name_multi_selector table display=Display.Always
-    count_distinct = Option "Count Distinct" "..Count_Distinct" [["columns", col_list_selector]]
+    count_distinct = Option "..Count_Distinct" "..Count_Distinct" [["columns", col_list_selector]]
 
     ## Currently can't support nested vector editors so using single order by picker
     order_by_selector = make_order_by_selector table Display.When_Modified name_only=True
-    first = Option "First" "..First" [column_widget, ["order_by" , order_by_selector]]
-    last = Option "Last" "..Last" [column_widget, ["order_by" , order_by_selector]]
+    first = Option "..First" "..First" [column_widget, ["order_by" , order_by_selector]]
+    last = Option "..Last" "..Last" [column_widget, ["order_by" , order_by_selector]]
 
-    count_not_nothing = Option "Count Not Nothing" "..Count_Not_Nothing" [column_widget]
-    count_nothing = Option "Count Nothing" "..Count_Nothing" [column_widget]
+    count_not_nothing = Option "..Count_Not_Nothing" "..Count_Not_Nothing" [column_widget]
+    count_nothing = Option "..Count_Nothing" "..Count_Nothing" [column_widget]
 
     ## Should be a list of Text columns only
-    count_not_empty = Option "Count Not Empty" "..Count_Not_Empty" [column_widget]
-    count_empty = Option "Count Empty" "..Count_Empty" [column_widget]
-    concatenate = Option "Concatenate" "..Concatenate" [column_widget]
-    shortest = Option "Shortest" "..Shortest" [column_widget]
-    longest = Option "Longest" "..Longest" [column_widget]
+    count_not_empty = Option "..Count_Not_Empty" "..Count_Not_Empty" [column_widget]
+    count_empty = Option "..Count_Empty" "..Count_Empty" [column_widget]
+    concatenate = Option "..Concatenate" "..Concatenate" [column_widget]
+    shortest = Option "..Shortest" "..Shortest" [column_widget]
+    longest = Option "..Longest" "..Longest" [column_widget]
 
     ## Should be a list of Numeric columns only
-    sum = Option "Sum" "..Sum" [column_widget]
-    average = Option "Average" "..Average" [column_widget]
-    median = Option "Median" "..Median" [column_widget]
-    percentile = Option "Percentile" "..Percentile" [column_widget]
-    mode = Option "Mode" "..Mode" [column_widget]
-    standard_deviation = Option "Standard Deviation" "..Standard_Deviation" [column_widget]
+    sum = Option "..Sum" "..Sum" [column_widget]
+    average = Option "..Average" "..Average" [column_widget]
+    median = Option "..Median" "..Median" [column_widget]
+    percentile = Option "..Percentile" "..Percentile" [column_widget]
+    mode = Option "..Mode" "..Mode" [column_widget]
+    standard_deviation = Option "..Standard_Deviation" "..Standard_Deviation" [column_widget]
 
     # Should be a list of comparable columns only
-    maximum = Option "Maximum" "..Maximum" [column_widget]
-    minimum = Option "Minimum" "..Minimum" [column_widget]
+    maximum = Option "..Maximum" "..Maximum" [column_widget]
+    minimum = Option "..Minimum" "..Minimum" [column_widget]
 
     Single_Choice display=display values=[count, sum, average, maximum, minimum, count_distinct, first, last, count_not_nothing, count_nothing, count_not_empty, count_empty, concatenate, shortest, longest, median, percentile, mode, standard_deviation]
 
@@ -229,17 +229,25 @@ make_rename_name_vector_selector table display:Display=..Always cache=Nothing =
 
     ## Resolved Used Names
     col_map  = cache.if_not_nothing <| cache "column_map"
-    used_names = col_map.if_not_nothing <| case col_map of
-        _ : Dictionary -> col_map.keys
-        _ : Vector -> col_map.map_with_index i-> p-> if p.is_a Text then col_names.get i else p.first
-        _ -> []
-    first_name = if used_names.is_nothing then col_names.first else col_names.find n->(used_names.contains n . not) if_missing=col_names.first
+    used_names = case col_map of
+        _ : Dictionary -> col_map
+        _ : Vector ->
+            pairs =  col_map.map_with_index i-> p-> if p.is_a Text then [col_names.get i, p] else p
+            Dictionary.from_vector pairs
+        _ -> Dictionary.empty
+    first_name = if used_names.length == 0 then col_names.first else
+        col_names.find n->(used_names.contains_key n . not) if_missing=col_names.first
+
+    new_name_i = 0.up_to used_names.length include_end=True . find i->
+        target = if i == 0 then 'New Name' else 'New Name '+i.to_text
+        used_names.values.contains target . not
+    new_name = if new_name_i == 0 then 'New Name' else 'New Name '+new_name_i.to_text
 
     names = [Option "<Regular Expression>" "(regex '^.*$')"] + (col_names.map n-> Option n n.pretty)
     fqn = Pair.to Meta.Type . qualified_name
     name = Option "Name" fqn+".Value" [["first", Single_Choice values=names display=Display.Always]]
     item_editor = Single_Choice display=Display.Always values=[name]
-    Vector_Editor item_editor=item_editor item_default="(Pair.Value "+first_name.pretty+" 'New Name')" display=display
+    Vector_Editor item_editor=item_editor item_default="(Pair.Value "+first_name.pretty+" "+new_name.pretty+")" display=display
 
 ## PRIVATE
    Selector for type argument on `Column.parse`.

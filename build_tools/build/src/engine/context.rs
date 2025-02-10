@@ -415,7 +415,9 @@ impl RunContext {
         }
 
         if is_in_env() {
-            // If we were running any benchmarks, they are complete by now. Upload the report.
+            // If we were running any benchmarks, they are complete by now.
+            // Just check whether the reports exist, the artifact upload is done in a
+            // separate step.
             for bench in &self.config.execute_benchmarks {
                 match bench {
                     Benchmarks::Runtime => {
@@ -425,13 +427,7 @@ impl RunContext {
                             .engine
                             .join("runtime-benchmarks")
                             .join("bench-report.xml");
-                        if runtime_bench_report.exists() {
-                            ide_ci::actions::artifacts::upload_single_file(
-                                runtime_bench_report,
-                                "Runtime Benchmark Report",
-                            )
-                            .await?;
-                        } else {
+                        if !runtime_bench_report.exists() {
                             warn!(
                                 "No Runtime Benchmark Report file found at {}, nothing to upload.",
                                 runtime_bench_report.display()
@@ -441,13 +437,7 @@ impl RunContext {
                     Benchmarks::EnsoJMH => {
                         let enso_jmh_report =
                             &self.paths.repo_root.std_bits.benchmarks.bench_report_xml;
-                        if enso_jmh_report.exists() {
-                            ide_ci::actions::artifacts::upload_single_file(
-                                enso_jmh_report,
-                                "Enso JMH Benchmark Report",
-                            )
-                            .await?;
-                        } else {
+                        if !enso_jmh_report.exists() {
                             warn!(
                                 "No Enso JMH Benchmark Report file found at {}, nothing to upload.",
                                 enso_jmh_report.display()
@@ -655,6 +645,12 @@ pub async fn runner_sanity_test(
             .run_ok()
             .await;
 
+        let test_tableau = Command::new(&enso)
+            .args(["--run", repo_root.test.join("Tableau_Tests").as_str()])
+            .set_env(ENSO_DATA_DIRECTORY, engine_package)?
+            .run_ok()
+            .await;
+
         let test_geo = Command::new(&enso)
             .args(["--run", repo_root.test.join("Geo_Tests").as_str()])
             .set_env(ENSO_DATA_DIRECTORY, engine_package)?
@@ -673,6 +669,7 @@ pub async fn runner_sanity_test(
             .and(test_aws)
             .and(test_microsoft)
             .and(test_snowflake)
+            .and(test_tableau)
             .and(test_geo)
             .and(test_image);
 

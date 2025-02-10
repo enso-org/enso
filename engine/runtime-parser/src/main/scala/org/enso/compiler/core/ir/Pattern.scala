@@ -77,6 +77,12 @@ object Pattern {
       } else this
     }
 
+    def copyWithName(
+      name: IRName
+    ) = {
+      copy(name = name)
+    }
+
     /** @inheritdoc */
     override def duplicate(
       keepLocations: Boolean   = true,
@@ -178,6 +184,12 @@ object Pattern {
         res.id          = id
         res
       } else this
+    }
+
+    def copyWithFields(
+      fields: List[Pattern]
+    ): Constructor = {
+      copy(fields = fields)
     }
 
     /** @inheritdoc */

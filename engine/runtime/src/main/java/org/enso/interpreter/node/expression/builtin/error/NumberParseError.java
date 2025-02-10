@@ -8,6 +8,10 @@ import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 
 @BuiltinType
 public final class NumberParseError extends Builtin {
+  public NumberParseError() {
+    super(Object.class);
+  }
+
   @Override
   protected final List<Cons> getDeclaredConstructors() {
     return List.of(new Cons("Error", "text"));

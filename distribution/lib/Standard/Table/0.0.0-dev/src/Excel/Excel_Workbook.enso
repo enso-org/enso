@@ -34,6 +34,7 @@ import project.Table.Table
 from project.Errors import Empty_Sheet, No_Rows
 from project.Internal.Excel_Reader import handle_invalid_location
 from project.Internal.Table_Helpers import duplicate_rows
+from project.Table import from_java_table
 
 polyglot java import java.io.File as Java_File
 polyglot java import org.apache.poi.ss.usermodel.Workbook
@@ -244,7 +245,7 @@ type Excel_Workbook
                     names = self.sheet_names
                     if (query < 1 || query >= names.length) then Error.throw (Illegal_Argument.Error "Worksheet index out of range (1 - "+names.length.to_text+").") else
                         ExcelReader.readRangeByName java_workbook (names.at (query - 1)) java_headers skip_rows java_limit java_problem_aggregator
-        limit.attach_warning (Table.Value java_table)
+        limit.attach_warning (from_java_table java_table)
 
     ## PRIVATE
        GROUP Standard.Base.Input
@@ -269,7 +270,7 @@ type Excel_Workbook
                 java_table = Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
                     self.with_java_workbook java_workbook->
                         ExcelReader.readRangeByName java_workbook sheet_name java_headers skip_rows java_limit java_problem_aggregator
-                row_limit.attach_warning (Table.Value java_table)
+                row_limit.attach_warning (from_java_table java_table)
             Excel_Section.Cell_Range address headers skip_rows row_limit ->
                 java_headers = Excel_Reader.make_java_headers headers
                 java_limit = row_limit.rows_to_read
@@ -277,7 +278,7 @@ type Excel_Workbook
                     self.with_java_workbook java_workbook-> case address of
                         _ : Excel_Range -> ExcelReader.readRange java_workbook address.java_range java_headers skip_rows java_limit java_problem_aggregator
                         _ : Text -> ExcelReader.readRangeByName java_workbook address java_headers skip_rows java_limit java_problem_aggregator
-                row_limit.attach_warning (Table.Value java_table)
+                row_limit.attach_warning (from_java_table java_table)
 
     ## PRIVATE
        GROUP Standard.Base.Input
