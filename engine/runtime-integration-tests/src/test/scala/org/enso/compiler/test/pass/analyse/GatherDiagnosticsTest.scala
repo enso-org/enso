@@ -32,9 +32,7 @@ class GatherDiagnosticsTest extends CompilerTest {
           false,
           identifiedLocation = null
         )
-      ),
-      hasDefaultsSuspended = false,
-      identifiedLocation   = null
+      )
     )
     val lam = new Function.Lambda(
       List(

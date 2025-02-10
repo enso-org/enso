@@ -156,7 +156,8 @@ class LambdaConsolidateTest extends CompilerTest {
         .name shouldEqual "x"
       ir.body
         .asInstanceOf[Application.Prefix]
-        .arguments(1)
+        .arguments()
+        .apply(1)
         .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name.Literal]
