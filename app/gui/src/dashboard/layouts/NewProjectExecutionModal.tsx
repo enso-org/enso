@@ -61,7 +61,7 @@ import { useEffect, useRef } from 'react'
 const MAX_DURATION_DEFAULT_MINUTES = 60
 const MAX_DURATION_MINIMUM_MINUTES = 1
 const MAX_DURATION_MAXIMUM_MINUTES = 180
-const REPEAT_TIMES_COUNT = 5
+const REPEAT_TIMES_COUNT = 3
 const DAYS_PER_WEEK = 7
 const HOURS_PER_DAY = 24
 const MONTHS_PER_YEAR = 12
@@ -344,15 +344,13 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         >
           {(otherTimeZone) => otherTimeZone}
         </ComboBox>
-        <Text>
-          {getText(
-            'repeatsAtX',
-            repeatTimes
-              // eslint-disable-next-line @typescript-eslint/unbound-method
-              .map(Intl.DateTimeFormat(undefined, { dateStyle: 'short' }).format)
-              .join(', '),
-          )}
-        </Text>
+        <Text>{getText('repeatsAt')}</Text>
+        {repeatTimes
+          // eslint-disable-next-line @typescript-eslint/unbound-method
+          .map(Intl.DateTimeFormat(undefined, { dateStyle: 'short' }).format)
+          .map((dateString, i) => (
+            <Text key={i}>{dateString}</Text>
+          ))}
       </div>
       <FormDropdown
         form={form}

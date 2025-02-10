@@ -139,7 +139,6 @@ interface PlaceholderOverrides {
   readonly organizationNameSettingsInputDescription: [howLong: number]
   readonly trialDescription: [days: number]
 
-  readonly repeatsAtX: [dates: string]
   readonly xMinutes: [minutes: number]
   readonly xAm: [hour: string]
   readonly xPm: [hour: string]
