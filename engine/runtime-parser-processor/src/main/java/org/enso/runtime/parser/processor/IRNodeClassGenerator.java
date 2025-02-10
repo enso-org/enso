@@ -101,6 +101,10 @@ final class IRNodeClassGenerator {
             .collect(Collectors.toUnmodifiableSet());
     var allImports = new HashSet<String>();
     allImports.addAll(defaultImportedTypes);
+    allImports.add(processedClass.getClazz().getQualifiedName().toString());
+    for (var ifaceToImplement : processedClass.getInterfaces()) {
+      allImports.add(ifaceToImplement.getQualifiedName().toString());
+    }
     allImports.addAll(importsForFields);
     return allImports.stream()
         .map(importedType -> "import " + importedType + ";")
