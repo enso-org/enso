@@ -1,0 +1,155 @@
+[
+  {
+    "name": "java.util.OptionalInt",
+    "methods": [
+      {
+        "name": "empty",
+        "parameterTypes": []
+      },
+      {
+        "name": "isEmpty",
+        "parameterTypes": []
+      },
+      {
+        "name": "isPresent",
+        "parameterTypes": []
+      },
+      {
+        "name": "getAsInt",
+        "parameterTypes": []
+      }
+    ]
+  },
+{
+  "name":"com.sun.jna.CallbackProxy",
+  "methods":[{"name":"callback","parameterTypes":["java.lang.Object[]"] }]
+},
+{
+  "name":"com.sun.jna.Pointer",
+  "fields":[{"name":"OPTIONS"}, {"name":"STRING_ENCODING"}, {"name":"STRUCTURE_ALIGNMENT"}, {"name":"TYPE_MAPPER"}]
+},
+{
+  "name":"com.sun.jna.Structure$FFIType",
+  "allDeclaredFields":true,
+  "queryAllPublicConstructors":true,
+  "fields":[{"name":"OPTIONS"}, {"name":"STRING_ENCODING"}, {"name":"STRUCTURE_ALIGNMENT"}, {"name":"TYPE_MAPPER"}],
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.sun.jna.Structure$FFIType$size_t",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.sun.jna.Union",
+  "allDeclaredFields":true
+},
+{
+  "name":"com.sun.jna.ptr.IntByReference",
+  "fields":[{"name":"OPTIONS"}, {"name":"STRING_ENCODING"}, {"name":"STRUCTURE_ALIGNMENT"}, {"name":"TYPE_MAPPER"}],
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.sun.jna.ptr.LongByReference",
+  "fields":[{"name":"OPTIONS"}, {"name":"STRING_ENCODING"}, {"name":"STRUCTURE_ALIGNMENT"}, {"name":"TYPE_MAPPER"}],
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.sun.jna.ptr.PointerByReference",
+  "fields":[{"name":"OPTIONS"}, {"name":"STRING_ENCODING"}, {"name":"STRUCTURE_ALIGNMENT"}, {"name":"TYPE_MAPPER"}],
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.tableau.hyperapi.HyperAPI",
+  "allPublicFields":true,
+  "allPublicConstructors":true,
+  "queryAllDeclaredMethods":true
+},
+{
+  "name":"com.tableau.hyperapi.HyperAPI$hyper_error_field_value",
+  "allDeclaredFields":true
+},
+{
+  "name":"com.tableau.hyperapi.HyperAPI$hyper_error_field_value$ByReference",
+  "allDeclaredFields":true
+},
+{
+  "name":"com.tableau.hyperapi.HyperAPI$hyper_error_field_value$ByValue",
+  "allDeclaredFields":true,
+  "queryAllPublicConstructors":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.tableau.hyperapi.HyperAPI$hyper_error_field_value_union",
+  "allDeclaredFields":true,
+  "queryAllPublicConstructors":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"com.tableau.hyperapi.impl.BoolByReference",
+  "fields":[{"name":"OPTIONS"}, {"name":"STRING_ENCODING"}, {"name":"STRUCTURE_ALIGNMENT"}, {"name":"TYPE_MAPPER"}],
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+  {
+    "name":"org.enso.tableau.HyperQueryError"
+  },
+  {
+    "name":"org.enso.tableau.HyperReader"
+  },
+  {
+    "name":"org.enso.tableau.HyperTableColumn"
+  },
+  {
+    "name":"org.enso.tableau.HyperTableNotFound"
+  },
+  {
+    "name": "org.enso.tableau.HyperTable",
+    "methods": [
+      {
+        "name": "schema",
+        "parameterTypes": []
+      },
+      {
+        "name": "name",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "org.enso.tableau.HyperTableColumn",
+    "methods": [
+      {
+        "name": "index",
+        "parameterTypes": []
+      },
+      {
+        "name": "name",
+        "parameterTypes": []
+      },
+      {
+        "name": "typeID",
+        "parameterTypes": []
+      },
+      {
+        "name": "nullable",
+        "parameterTypes": []
+      },
+      {
+        "name": "length",
+        "parameterTypes": []
+      },
+      {
+        "name": "precision",
+        "parameterTypes": []
+      },
+      {
+        "name": "scale",
+        "parameterTypes": []
+      },
+      {
+        "name": "fromHyperColumn",
+        "parameterTypes": ["int", "com.tableau.hyperapi.TableDefinition.Column"]
+      }
+
+    ]
+  }
+]
