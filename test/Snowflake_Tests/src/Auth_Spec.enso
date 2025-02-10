@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Database import all
 
@@ -27,6 +28,7 @@ add_specs suite_builder ~default_connection =
             # Generate the key
             generated_key = Key_Pair_Credentials.generate_key_pair location=test_root.get name="snowflake-key" if_exists=..Overwrite
             generated_key.should_succeed
+            generated_key.public_key_file.exists . should_be_true
 
             # Create a temporary user and assign it the public key
             with_temp_user user_name->
@@ -41,10 +43,35 @@ add_specs suite_builder ~default_connection =
                     new_connection.query (..Raw_SQL "SELECT 2+3") . read . at 0 . at 0 . should_equal 5
 
         group_builder.specify "correctly handle existing key files" pending=cloud_setup.real_cloud_pending <| cloud_setup.with_prepared_environment <|
-            Error.throw "TODO"
+            # Generate the first key
+            name = "snowflake-key-exist-check"
+            generated_key = Key_Pair_Credentials.generate_key_pair location=test_root.get name=name if_exists=..Error
+            generated_key.should_succeed
+
+            remembered_public_key = generated_key.public_key_file.read_text
+            remembered_public_key.should_succeed
+
+            # Second key with ..Error should fail
+            r2 = Key_Pair_Credentials.generate_key_pair location=test_root.get name=name if_exists=..Error
+            r2.should_fail_with Illegal_State
+            r2.to_display_text.should_contain "already exists"
+
+            # Second key with ..Use_Existing will just return the current key
+            r3 = Key_Pair_Credentials.generate_key_pair location=test_root.get name=name if_exists=..Use_Existing
+            r3.should_succeed
+            r3.public_key_file.read_text.should_equal remembered_public_key
+
+            # Second key with ..Overwrite will overwrite the key
+            r4 = Key_Pair_Credentials.generate_key_pair location=test_root.get name=name if_exists=..Overwrite
+            r4.should_succeed
+            r4.public_key_file.read_text.should_not_equal remembered_public_key
 
         group_builder.specify "fail if existing key is broken" pending=cloud_setup.real_cloud_pending <| cloud_setup.with_prepared_environment <|
-            Error.throw "TODO"
+            name = "snowflake-key-broken"
+            "broken".write (test_root.get / (name + ".pub")) . should_succeed
+            r1 = Key_Pair_Credentials.generate_key_pair location=test_root.get name=name if_exists=..Use_Existing
+            r1.should_fail_with Illegal_State
+
 
 with_temp_user base_connection callback =
      user_name = "temporary-test-user-" + (Date_Time.now.format "yyyy-MM-dd_HH-mm") + "-" + (Random.uuid.take 5)
