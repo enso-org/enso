@@ -1,0 +1,10 @@
+{
+    "resources": {
+        "includes": [
+            {
+                "pattern": "\\QMETA-INF/services/com.tableau.hyperapi.impl.SharedLibraryProvider\\E"
+            }
+        ]
+    },
+    "bundles": []
+}

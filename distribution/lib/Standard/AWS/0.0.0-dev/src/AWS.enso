@@ -38,6 +38,7 @@ type AWS
        - region_service: The region and service to use for signing the request.
          Defaults to the region and service parsed from the URI.
     @uri (Text_Input display=..Always)
+    @method HTTP_Method.default_fetch_widget
     @headers Header.default_widget
     @format File_Format.default_widget
     @credentials AWS_Credential.default_widget
@@ -71,6 +72,7 @@ type AWS
        - region_service: The region and service to use for signing the request.
          Defaults to the region and service parsed from the URI.
     @uri (Text_Input display=..Always)
+    @method HTTP_Method.default_post_widget
     @headers Header.default_widget
     @format File_Format.default_widget
     @credentials AWS_Credential.default_widget

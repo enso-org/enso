@@ -15,6 +15,8 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.type.Types;
+import org.enso.interpreter.runtime.util.TruffleFileSystem;
+import org.enso.pkg.NativeLibraryFinder;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.scala.wrapper.ScalaConversions;
@@ -173,6 +175,19 @@ public final class TopLevelScope extends EnsoObject {
     }
 
     @CompilerDirectives.TruffleBoundary
+    private static Object findNativeLibrary(Object[] arguments, EnsoContext context) {
+      var libname = arguments[0].toString();
+      var pkgRepo = context.getPackageRepository();
+      for (var pkg : pkgRepo.getLoadedPackagesJava()) {
+        var libPath = NativeLibraryFinder.findNativeLibrary(libname, pkg, TruffleFileSystem.INSTANCE);
+        if (libPath != null) {
+          return libPath;
+        }
+      }
+      return context.getNothing();
+    }
+
+    @CompilerDirectives.TruffleBoundary
     private static Object unregisterModule(
         TopLevelScope scope, Object[] arguments, EnsoContext context)
         throws ArityException, UnsupportedTypeException {
@@ -238,6 +253,8 @@ public final class TopLevelScope extends EnsoObject {
           return leakContext(ctx);
         case MethodNames.TopScope.COMPILE:
           return compile(arguments, ctx);
+        case MethodNames.TopScope.FIND_NATIVE_LIBRARY:
+          return findNativeLibrary(arguments, ctx);
         default:
           throw UnknownIdentifierException.create(member);
       }
@@ -257,7 +274,8 @@ public final class TopLevelScope extends EnsoObject {
         || member.equals(MethodNames.TopScope.REGISTER_MODULE)
         || member.equals(MethodNames.TopScope.UNREGISTER_MODULE)
         || member.equals(MethodNames.TopScope.LEAK_CONTEXT)
-        || member.equals(MethodNames.TopScope.COMPILE);
+        || member.equals(MethodNames.TopScope.COMPILE)
+        || member.equals(MethodNames.TopScope.FIND_NATIVE_LIBRARY);
   }
 
   /**
