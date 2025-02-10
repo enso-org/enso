@@ -391,7 +391,6 @@ lazy val enso = (project in file("."))
     `text-buffer`,
     `version-output`,
     `ydoc-polyfill`,
-    `ydoc-server`,
     `zio-wrapper`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
@@ -3427,7 +3426,6 @@ lazy val `runtime-compiler-dump` =
     .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
-      javaModuleName := "org.enso.runtime.compiler.dump",
       Compile / internalModuleDependencies := {
         val transitiveDeps =
           (`runtime-parser` / Compile / internalModuleDependencies).value
@@ -3799,6 +3797,9 @@ lazy val `engine-runner` = project
           .map(_.getAbsolutePath()) ++
         `std-snowflake-polyglot-root`
           .listFiles("*.jar")
+          .map(_.getAbsolutePath()) ++
+        `std-tableau-polyglot-root`
+          .listFiles("*.jar")
           .map(_.getAbsolutePath())
 
       core ++ stdLibsJars
@@ -3924,12 +3925,15 @@ lazy val `engine-runner` = project
               "org.enso.image",
               "org.enso.table",
               "org.enso.database",
+              "org.enso.tableau",
               "org.eclipse.jgit",
               "com.amazonaws",
               "com.google",
               "io.grpc",
               "io.opencensus",
-              "net.snowflake.client"
+              "net.snowflake.client",
+              "com.sun.jna",
+              "com.tableau.hyperapi"
             )
           )
       }
@@ -4699,6 +4703,8 @@ val `std-microsoft-polyglot-root` =
   stdLibComponentRoot("Microsoft") / "polyglot" / "java"
 val `std-tableau-polyglot-root` =
   stdLibComponentRoot("Tableau") / "polyglot" / "java"
+val `std-tableau-native-libs` =
+  stdLibComponentRoot("Tableau") / "polyglot" / "lib"
 
 lazy val `std-base` = project
   .in(file("std-bits") / "base")
@@ -4911,7 +4917,16 @@ lazy val `std-image` = project
     },
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
-      val _      = extractNativeLibs.value
+      // Ensure dependencies are first copied.
+      StdBits
+        .copyDependencies(
+          `image-polyglot-root`,
+          Seq("std-image.jar", "opencv.jar"),
+          ignoreScalaLibrary = true,
+          ignoreDependency   = Some("org.openpnp" % "opencv" % opencvVersion)
+        )
+        .value
+      extractNativeLibs.value
       result
     }.value
   )
@@ -5162,11 +5177,10 @@ lazy val `std-tableau` = project
         Seq[Attributed[File]]()
       }
     },
-    Compile / unmanagedClasspath := Def.task {
-      val additionalFiles: Seq[Attributed[File]] = fetchZipToUnmanaged.value
-      val result                                 = (Compile / unmanagedClasspath).value
-      result ++ additionalFiles
-    }.value,
+    Compile / unmanagedClasspath :=
+      (Compile / unmanagedClasspath)
+        .dependsOn(fetchZipToUnmanaged)
+        .value,
     Compile / unmanagedJars := (Compile / unmanagedJars)
       .dependsOn(fetchZipToUnmanaged)
       .value,
@@ -5176,15 +5190,30 @@ lazy val `std-tableau` = project
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "net.java.dev.jna" % "jna-platform"            % jnaVersion
     ),
+    // Extract native libraries from tableau's jar, and put them under
+    // Standard/Tableau/polyglot/lib directory.
+    extractNativeLibs := {
+      StdBits
+        .extractNativeLibsFromTableau(
+          `std-tableau-polyglot-root`,
+          `std-tableau-native-libs`,
+          tableauVersion,
+          jnaVersion
+        )
+        .value
+    },
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
-      val _ = StdBits
+      StdBits
         .copyDependencies(
           `std-tableau-polyglot-root`,
           Seq("std-tableau.jar"),
-          ignoreScalaLibrary = true
+          ignoreScalaLibrary = true,
+          ignoreUnmanagedDependency =
+            Some(!_.getName.endsWith("tableauhyperapi.jar"))
         )
         .value
+      extractNativeLibs.value
       result
     }.value
   )
