@@ -268,7 +268,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 .filter((item) => item.type === backendModule.AssetType.project)
                 .at(0)
               invariant(project, 'Downloaded cloud project does not exist.')
-              openProjectMutation.mutate({
+              openProject({
                 id: project.id,
                 title: project.title,
                 parentId: project.parentId,
