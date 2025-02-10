@@ -349,36 +349,36 @@ case object DataflowAnalysis extends IRPass {
             arguments = prefix.arguments.map(analyseCallArgument(_, info))
           )
           .updateMetadata(new MetadataPair(this, info))
-      case force @ Application.Force(target, _, _) =>
-        val targetDep = asStatic(target)
+      case force: Application.Force =>
+        val targetDep = asStatic(force.target)
         val forceDep  = asStatic(force)
         info.dependents.updateAt(targetDep, Set(forceDep))
         info.dependencies.updateAt(forceDep, Set(targetDep))
 
         force
-          .copy(target = analyseExpression(target, info))
+          .copy(target = analyseExpression(force.target, info))
           .updateMetadata(new MetadataPair(this, info))
-      case vector @ Application.Sequence(items, _, _) =>
+      case vector: Application.Sequence =>
         val vectorDep = asStatic(vector)
-        items.foreach(it => {
+        vector.items.foreach(it => {
           val itemDep = asStatic(it)
           info.dependents.updateAt(itemDep, Set(vectorDep))
           info.dependencies.updateAt(vectorDep, Set(itemDep))
         })
 
         vector
-          .copy(items = items.map(analyseExpression(_, info)))
+          .copy(items = vector.items.map(analyseExpression(_, info)))
           .updateMetadata(new MetadataPair(this, info))
-      case tSet @ Application.Typeset(expr, _, _) =>
+      case tSet: Application.Typeset =>
         val tSetDep = asStatic(tSet)
-        expr.foreach(exp => {
+        tSet.expression.foreach(exp => {
           val exprDep = asStatic(exp)
           info.dependents.updateAt(exprDep, Set(tSetDep))
           info.dependencies.updateAt(tSetDep, Set(exprDep))
         })
 
         tSet
-          .copy(expression = expr.map(analyseExpression(_, info)))
+          .copy(expression = tSet.expression.map(analyseExpression(_, info)))
           .updateMetadata(new MetadataPair(this, info))
       case _: Operator =>
         throw new CompilerError("Unexpected operator during Dataflow Analysis.")

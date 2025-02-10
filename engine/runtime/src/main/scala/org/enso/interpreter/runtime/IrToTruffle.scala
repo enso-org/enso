@@ -2348,14 +2348,18 @@ class IrToTruffle(
           run(app.function, subjectToInstrumentation)
         case app: Application.Prefix =>
           processApplicationWithArgs(app, subjectToInstrumentation)
-        case Application.Force(expr, location, _) =>
+        case force: Application.Force =>
           setLocation(
-            ForceNode.build(this.run(expr, subjectToInstrumentation)),
-            location
+            ForceNode.build(this.run(force.target, subjectToInstrumentation)),
+            force.identifiedLocation
           )
-        case Application.Sequence(items, location, _) =>
-          val itemNodes = items.map(run(_, subjectToInstrumentation)).toArray
-          setLocation(SequenceLiteralNode.build(itemNodes), location)
+        case seq: Application.Sequence =>
+          val itemNodes =
+            seq.items.map(run(_, subjectToInstrumentation)).toArray
+          setLocation(
+            SequenceLiteralNode.build(itemNodes),
+            seq.identifiedLocation
+          )
         case _: Application.Typeset =>
           setLocation(
             ErrorNode.build(

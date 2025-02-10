@@ -173,9 +173,9 @@ class LambdaShorthandToLambdaMini(
           case result               => result
         }
 
-      case vector @ Application.Sequence(items, _, _) =>
+      case vector: Application.Sequence =>
         var bindings: List[Name] = List()
-        val newItems = items.map {
+        val newItems = vector.items.map {
           case blank: Name.Blank =>
             val name = freshNameSupply
               .newName()
