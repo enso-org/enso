@@ -101,15 +101,14 @@ public class BuiltinsProcessor extends AbstractProcessor {
         processingEnv.getFiler().createSourceFile(builtinType.fullyQualifiedName());
     Optional<String> stdLibName =
         annotation.stdlibName().isEmpty() ? Optional.empty() : Optional.of(annotation.stdlibName());
-    generateBuiltinType(
-        gen, builtinType, stdLibName, elt.getSimpleName().toString(), annotation.containsValues());
+    generateBuiltinType(gen, builtinType, stdLibName, elt, annotation.containsValues());
   }
 
   private void generateBuiltinType(
       JavaFileObject gen,
       ClassName builtinType,
       Optional<String> stdLibName,
-      String underlyingTypeName,
+      TypeElement forElement,
       boolean containsValues)
       throws IOException {
     try (PrintWriter out = new PrintWriter(gen.openWriter())) {
@@ -123,10 +122,14 @@ public class BuiltinsProcessor extends AbstractProcessor {
           "@BuiltinType("
               + stdLibName.map(n -> "name = \"" + n + "\", ").orElse("")
               + "underlyingTypeName = \""
-              + underlyingTypeName
+              + forElement.getSimpleName().toString()
               + "\")";
       out.println(builtinTypeAnnotation);
-      out.println("public class " + builtinType.name() + " extends Builtin {");
+      out.println("public final class " + builtinType.name() + " extends Builtin {");
+      out.println("  public " + builtinType.name() + "() {");
+      var fqn = processingEnv.getElementUtils().getBinaryName(forElement);
+      out.println("    super(\"" + fqn + "\");");
+      out.println("  }");
       out.println("""
           @Override
           public boolean containsValues() {
