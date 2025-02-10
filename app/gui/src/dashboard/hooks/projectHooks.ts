@@ -21,7 +21,6 @@ import {
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
-import { extractTypeAndId, newDirectoryId } from '#/services/LocalBackend'
 
 /** Default interval for refetching project status when the project is opened. */
 const OPENED_INTERVAL_MS = 30_000
@@ -292,8 +291,7 @@ export function useCloseProjectMutation() {
       if (cloudProjectId) {
         invariant(localBackend != null, 'LocalBackend is null')
 
-        const projectPath = extractTypeAndId(id).directory
-        await remoteBackend.uploadProject(cloudProjectId, newDirectoryId(projectPath))
+        await remoteBackend.uploadProject(cloudProjectId, parentId)
 
         await localBackend.deleteAsset(parentId, { force: true }, null)
       }
