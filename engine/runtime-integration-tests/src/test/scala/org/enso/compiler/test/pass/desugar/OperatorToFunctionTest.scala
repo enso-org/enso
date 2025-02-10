@@ -2,13 +2,14 @@ package org.enso.compiler.test.pass.desugar
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.{
   CallArgument,
   Empty,
   Expression,
   IdentifiedLocation,
   Location,
+  MetadataStorage,
+  Module,
   Name
 }
 import org.enso.compiler.core.ir.expression.{Application, Operator}
@@ -73,7 +74,10 @@ class OperatorToFunctionTest extends MiniPassTest {
       Operator.Binary(leftArg, name, rightArg, loc)
     val opFn = new Application.Prefix(
       name,
-      List(leftArg, rightArg)
+      List(leftArg, rightArg),
+      false,
+      loc,
+      new MetadataStorage()
     )
 
     (binOp, opFn)
