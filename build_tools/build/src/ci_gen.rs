@@ -784,6 +784,7 @@ pub fn engine_checks() -> Result<Workflow> {
         ..default()
     };
     workflow.add(PRIMARY_TARGET, job::VerifyLicensePackages);
+    workflow.add(PRIMARY_TARGET, job::StandardLibraryApiCheck);
     for target in PR_REQUIRED_TARGETS {
         add_backend_checks(&mut workflow, target, graalvm::Edition::Community);
     }
