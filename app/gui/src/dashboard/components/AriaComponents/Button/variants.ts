@@ -28,16 +28,6 @@ export const BUTTON_STYLES = tv({
     'transition-[opacity,outline-offset,background,border-color] duration-150 ease-in-out',
   ],
   variants: {
-    color: {
-      custom: '',
-      primary: 'text-primary',
-      danger: 'text-danger',
-      success: 'text-accent-dark',
-      disabled: 'text-disabled',
-      invert: 'text-invert',
-      inherit: 'text-inherit',
-      current: 'text-current',
-    },
     isDisabled: {
       true: 'opacity-50 cursor-not-allowed',
     },
