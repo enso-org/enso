@@ -67,7 +67,6 @@ const HOURS_PER_DAY = 24
 const MONTHS_PER_YEAR = 12
 const INTERNAL_REPEAT_TYPES = [
   'none',
-  'hourly',
   'daily',
   'weekly',
   'monthly-date',
@@ -129,8 +128,6 @@ const UPSERT_EXECUTION_SCHEMA = z
       parallelMode,
       days,
       months,
-      startHour,
-      endHour,
       timeZone,
     }): ProjectExecutionInfo => {
       startDate ??= now(timeZone)
@@ -140,13 +137,6 @@ const UPSERT_EXECUTION_SCHEMA = z
           case 'none': {
             return {
               type: repeatType,
-            }
-          }
-          case 'hourly': {
-            return {
-              type: repeatType,
-              startHour: startHour,
-              endHour: endHour,
             }
           }
           case 'daily': {
@@ -247,8 +237,6 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       // Use `en-US` locale because it matches JavaScript conventions.
       days: [getDayOfWeek(minFirstOccurrence, 'en-US')],
       months: MONTHS,
-      startHour: 0,
-      endHour: HOURS_PER_DAY - 1,
       timeZone,
     },
     onSubmit: async (values) => {
@@ -307,9 +295,6 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       case 'none': {
         return getText('doesNotRepeat')
       }
-      case 'hourly': {
-        return getText('hourly')
-      }
       case 'daily': {
         return getText('daily')
       }
@@ -362,12 +347,10 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         <Text>
           {getText(
             'repeatsAtX',
-            (repeatType === 'hourly' ?
+            repeatTimes
               // eslint-disable-next-line @typescript-eslint/unbound-method
-              repeatTimes.map(Intl.DateTimeFormat(undefined, { timeStyle: 'short' }).format)
-              // eslint-disable-next-line @typescript-eslint/unbound-method
-            : repeatTimes.map(Intl.DateTimeFormat(undefined, { dateStyle: 'short' }).format)
-            ).join(', '),
+              .map(Intl.DateTimeFormat(undefined, { dateStyle: 'short' }).format)
+              .join(', '),
           )}
         </Text>
       </div>
@@ -380,28 +363,6 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       >
         {({ item: otherItem }) => repeatText(otherItem)}
       </FormDropdown>
-      {repeatType === 'hourly' && (
-        <Input
-          form={form}
-          isRequired
-          name="startHour"
-          label={getText('startHourLabel')}
-          type="number"
-          min={0}
-          max={HOURS_PER_DAY - 1}
-        />
-      )}
-      {repeatType === 'hourly' && (
-        <Input
-          form={form}
-          isRequired
-          name="endHour"
-          label={getText('endHourLabel')}
-          type="number"
-          min={0}
-          max={HOURS_PER_DAY - 1}
-        />
-      )}
       {repeatType === 'weekly' && (
         <MultiSelector form={form} isRequired name="days" label={getText('daysLabel')} items={DAYS}>
           {(n) => getText(DAY_3_LETTER_TEXT_IDS[n] ?? 'monday3')}
