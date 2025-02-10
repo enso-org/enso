@@ -173,7 +173,7 @@ export function syncProjectExecutionPath(executionId: backend.ProjectExecutionId
 }
 /** Relative HTTP path to the "delete project execution" endpoint of the Cloud backend API. */
 export function deleteProjectExecutionPath(executionId: backend.ProjectExecutionId) {
-  return `project-executions/${executionId}`
+  return `executions/${executionId}`
 }
 /** Relative HTTP path to the "get file details" endpoint of the Cloud backend API. */
 export function getFileDetailsPath(fileId: backend.FileId) {
