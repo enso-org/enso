@@ -29,9 +29,7 @@ add_specs suite_builder ~default_connection =
             generated_key.should_succeed
 
             # Create a temporary user and assign it the public key
-            user_name = "temporary-test-user-" + (Date_Time.now.format "yyyy-MM-dd_HH-mm") + "-" + (Random.uuid.take 5)
-            default_connection.execute_update ('CREATE USER "' + user_name + '"') . should_succeed
-            Panic.with_finalizer (default_connection.execute_update ('DROP USER "' + user_name + '"')) <|
+            with_temp_user user_name->
                 default_connection.execute_update (generated_key.alter_user_query user_name) . should_succeed
 
                 # Try logging in with the key
@@ -47,6 +45,12 @@ add_specs suite_builder ~default_connection =
 
         group_builder.specify "fail if existing key is broken" pending=cloud_setup.real_cloud_pending <| cloud_setup.with_prepared_environment <|
             Error.throw "TODO"
+
+with_temp_user base_connection callback =
+     user_name = "temporary-test-user-" + (Date_Time.now.format "yyyy-MM-dd_HH-mm") + "-" + (Random.uuid.take 5)
+     Panic.rethrow <| base_connection.execute_update ('CREATE USER "' + user_name + '"')
+     Panic.with_finalizer (base_connection.execute_update ('DROP USER "' + user_name + '"')) <|
+         callback user_name
 
 main filter=Nothing =
     suite = Test.build suite_builder->
