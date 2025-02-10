@@ -1,0 +1,54 @@
+from Standard.Base import all
+
+from Standard.Database import all
+
+from Standard.Snowflake import all
+import Standard.Snowflake.Connection.Key_Pair_Credentials.Key_Pair_Credentials
+
+from Standard.Test import all
+import Standard.Test.Test_Environment
+
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
+
+from project.Snowflake_Spec import get_configured_connection_details
+
+add_specs suite_builder ~default_connection =
+    suite_builder.group "[Snowflake] Key-pair authentication" group_builder->
+        group_builder.specify "using local private key" <|
+            Error.throw "TODO"
+        group_builder.specify "using local private key encrypted with passkey" <|
+            Error.throw "TODO"
+
+        cloud_setup = Cloud_Tests_Setup.prepare
+        test_root = Temporary_Directory.make "Snowflake-Auth"
+        group_builder.teardown test_root.cleanup
+        group_builder.specify "via the Cloud flow using secrets" pending=cloud_setup.real_cloud_pending <| cloud_setup.with_prepared_environment <|
+            # Generate the key
+            generated_key = Key_Pair_Credentials.generate_key_pair location=test_root.get name="snowflake-key" if_exists=..Overwrite
+            generated_key.should_succeed
+
+            # Create a temporary user and assign it the public key
+            user_name = "temporary-test-user-" + (Date_Time.now.format "yyyy-MM-dd_HH-mm") + "-" + (Random.uuid.take 5)
+            default_connection.execute_update ('CREATE USER "' + user_name + '"') . should_succeed
+            Panic.with_finalizer (default_connection.execute_update ('DROP USER "' + user_name + '"')) <|
+                default_connection.execute_update (generated_key.alter_user_query user_name) . should_succeed
+
+                # Try logging in with the key
+                key_credentials = Key_Pair_Credentials.Key_Pair username=user_name private_key=generated_key
+                base_details = get_configured_connection_details
+                new_details = Snowflake_Details.Snowflake base_details.account key_credentials base_details.database base_details.schema base_details.warehouse
+                new_connection = Database.connect new_details
+                Panic.with_finalizer new_connection.close <|
+                    new_connection.query (..Raw_SQL "SELECT 2+3") . read . at 0 . at 0 . should_equal 5
+
+        group_builder.specify "correctly handle existing key files" pending=cloud_setup.real_cloud_pending <| cloud_setup.with_prepared_environment <|
+            Error.throw "TODO"
+
+        group_builder.specify "fail if existing key is broken" pending=cloud_setup.real_cloud_pending <| cloud_setup.with_prepared_environment <|
+            Error.throw "TODO"
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder (Database.connect get_configured_connection_details)
+    suite.run_with_filter filter
