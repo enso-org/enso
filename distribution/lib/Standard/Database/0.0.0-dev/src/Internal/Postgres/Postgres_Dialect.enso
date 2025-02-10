@@ -163,9 +163,9 @@ type Postgres_Dialect
         target_value_type = mapping.sql_type_to_value_type target_type
         # Boolean to Numeric casts need special handling:
         transformed_expression = case source_type.is_boolean && target_value_type.is_numeric of
-            True ->
-                SQL_Expression.Operation "IIF" [column.expression, SQL_Expression.Literal "1", SQL_Expression.Literal "0"]
-            False -> column.expression
+            True -> SQL_Expression.Operation "IIF" [column.expression, SQL_Expression.Literal "1", SQL_Expression.Literal "0"]
+            False -> if target_value_type.is_boolean.not || source_type.is_numeric.not then column.expression else
+                SQL_Expression.Operation "!=" [column.expression, SQL_Expression.Literal "0"]
         target_type_sql_text = mapping.sql_type_to_text target_type
         new_expression = SQL_Expression.Operation "CAST" [transformed_expression, SQL_Expression.Literal target_type_sql_text]
         new_sql_type_reference = infer_result_type_from_database_callback new_expression

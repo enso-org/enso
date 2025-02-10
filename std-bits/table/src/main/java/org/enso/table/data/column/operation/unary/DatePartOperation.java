@@ -4,13 +4,14 @@ import java.time.temporal.ChronoField;
 import java.time.temporal.IsoFields;
 import java.time.temporal.Temporal;
 import java.time.temporal.TemporalField;
-import org.enso.table.data.column.builder.BuilderForLong;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 
-public class DatePartOperation extends AbstractUnaryLongOperation {
+public class DatePartOperation implements UnaryOperation {
   public static final String YEAR = "year";
   public static final UnaryOperation YEAR_INSTANCE =
       new DatePartOperation(YEAR, ChronoField.YEAR, false);
@@ -55,13 +56,19 @@ public class DatePartOperation extends AbstractUnaryLongOperation {
   public static final UnaryOperation MILLISECOND_INSTANCE =
       new DatePartOperation(MILLISECOND, ChronoField.MILLI_OF_SECOND, true);
 
+  protected final String name;
   protected final TemporalField field;
   protected final boolean timeField;
 
   protected DatePartOperation(String name, TemporalField field, boolean timeField) {
-    super(name, true, IntegerType.INT_64);
+    this.name = name;
     this.field = field;
     this.timeField = timeField;
+  }
+
+  @Override
+  public String getName() {
+    return name;
   }
 
   @Override
@@ -70,11 +77,17 @@ public class DatePartOperation extends AbstractUnaryLongOperation {
   }
 
   @Override
-  protected void applyObjectRow(
-      Object value, BuilderForLong builder, MapOperationProblemAggregator problemAggregator) {
+  public ColumnStorage<?> apply(
+      ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
+    return StorageIterators.buildOverStorage(
+        storage,
+        Builder.getForLong(IntegerType.INT_64, storage.getSize(), problemAggregator),
+        (builder, index, value) -> builder.appendLong(applyObjectRow(index, value)));
+  }
+
+  protected long applyObjectRow(long index, Object value) {
     if (value instanceof Temporal s) {
-      var longValue = s.getLong(field);
-      builder.appendLong(longValue);
+      return s.getLong(field);
     } else {
       throw new IllegalArgumentException(
           "Unsupported type: " + value.getClass() + " (expected date/time type).");

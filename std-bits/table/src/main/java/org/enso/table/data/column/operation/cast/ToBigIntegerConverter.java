@@ -3,22 +3,35 @@ package org.enso.table.data.column.operation.cast;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
-import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
 
 public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
   @Override
-  public Storage<BigInteger> cast(Storage<?> storage, CastProblemAggregator problemAggregator) {
-    if (storage instanceof BigIntegerStorage bigIntegerStorage) {
-      return bigIntegerStorage;
-    } else if (storage instanceof ColumnLongStorage longStorage) {
+  public boolean canApply(StorageType sourceType) {
+    return sourceType instanceof IntegerType
+        || sourceType instanceof FloatType
+        || sourceType instanceof BooleanType
+        || sourceType instanceof BigDecimalType
+        || sourceType instanceof AnyObjectType
+        || sourceType instanceof NullType;
+  }
+
+  @Override
+  public ColumnStorage<BigInteger> cast(
+      ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
+    if (storage instanceof ColumnLongStorage longStorage) {
       return convertLongStorage(longStorage, problemAggregator);
     } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
       return convertDoubleStorage(doubleStorage, problemAggregator);
@@ -26,78 +39,63 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
       return convertBoolStorage(boolStorage, problemAggregator);
     } else if (storage instanceof BigDecimalStorage bigDecimalStorage) {
       return convertBigDecimalStorage(bigDecimalStorage, problemAggregator);
-    } else if (storage.getType() instanceof AnyObjectType
-        || storage.getType() instanceof NullType) {
-      return castFromMixed(storage, problemAggregator);
+    } else if (canApply(storage.getType())) {
+      return castFromObject(storage, problemAggregator);
     } else {
       throw new IllegalStateException(
           "No known strategy for casting storage " + storage + " to BigInteger.");
     }
   }
 
-  private Storage<BigInteger> convertDoubleStorage(
+  private ColumnStorage<BigInteger> convertDoubleStorage(
       ColumnDoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
-    return StorageConverter.innerLoop(
-        Builder.getForBigInteger(doubleStorage.getSize(), problemAggregator),
+    return StorageIterators.mapOverDoubleStorage(
         doubleStorage,
-        (i) -> {
-          double x = doubleStorage.getItemAsDouble(i);
-          return BigDecimal.valueOf(x).toBigInteger();
-        });
+        Builder.getForBigInteger(doubleStorage.getSize(), problemAggregator),
+        (index, value, isNothing) -> BigDecimal.valueOf(value).toBigInteger());
   }
 
-  private Storage<BigInteger> convertLongStorage(
+  private ColumnStorage<BigInteger> convertLongStorage(
       ColumnLongStorage longStorage, CastProblemAggregator problemAggregator) {
-    return StorageConverter.innerLoop(
-        Builder.getForBigInteger(longStorage.getSize(), problemAggregator),
+    return StorageIterators.mapOverLongStorage(
         longStorage,
-        (i) -> {
-          long x = longStorage.getItemAsLong(i);
-          return BigInteger.valueOf(x);
-        });
+        Builder.getForBigInteger(longStorage.getSize(), problemAggregator),
+        (index, value, isNothing) -> BigInteger.valueOf(value));
   }
 
-  private Storage<BigInteger> convertBoolStorage(
+  private ColumnStorage<BigInteger> convertBoolStorage(
       ColumnBooleanStorage boolStorage, CastProblemAggregator problemAggregator) {
-    return StorageConverter.innerLoop(
-        Builder.getForBigInteger(boolStorage.getSize(), problemAggregator),
+    return StorageIterators.mapOverBooleanStorage(
         boolStorage,
-        (i) -> {
-          boolean x = boolStorage.getItemAsBoolean((int) i);
-          return booleanAsBigInteger(x);
-        });
+        Builder.getForBigInteger(boolStorage.getSize(), problemAggregator),
+        (index, value, isNothing) -> booleanAsBigInteger(value));
   }
 
-  private Storage<BigInteger> convertBigDecimalStorage(
-      Storage<BigDecimal> bigDecimalStorage, CastProblemAggregator problemAggregator) {
-    return StorageConverter.innerLoop(
-        Builder.getForBigInteger(bigDecimalStorage.getSize(), problemAggregator),
+  private ColumnStorage<BigInteger> convertBigDecimalStorage(
+      ColumnStorage<BigDecimal> bigDecimalStorage, CastProblemAggregator problemAggregator) {
+    return StorageIterators.mapOverStorage(
         bigDecimalStorage,
-        (i) -> {
-          BigDecimal x = bigDecimalStorage.getItemBoxed(i);
-          return x.toBigInteger();
-        });
+        Builder.getForBigInteger(bigDecimalStorage.getSize(), problemAggregator),
+        (index, value) -> value.toBigInteger());
   }
 
-  private Storage<BigInteger> castFromMixed(
+  private ColumnStorage<BigInteger> castFromObject(
       ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
-    return StorageConverter.innerLoop(
-        Builder.getForBigInteger(storage.getSize(), problemAggregator),
+    return StorageIterators.mapOverStorage(
         storage,
-        (i) -> {
-          Object o = storage.getItemBoxed(i);
-          return switch (o) {
-            case Boolean b -> booleanAsBigInteger(b);
-            case Long l -> BigInteger.valueOf(l);
-            case Double d -> BigDecimal.valueOf(d).toBigInteger();
-            case BigInteger bigInteger -> bigInteger;
-            case BigDecimal bigDecimal -> bigDecimal.toBigInteger();
-            default -> {
-              problemAggregator.reportConversionFailure(o);
-              yield null;
-            }
-          };
-        });
+        Builder.getForBigInteger(storage.getSize(), problemAggregator),
+        (index, value) ->
+            switch (value) {
+              case Boolean b -> booleanAsBigInteger(b);
+              case Long l -> BigInteger.valueOf(l);
+              case Double d -> BigDecimal.valueOf(d).toBigInteger();
+              case BigInteger bigInteger -> bigInteger;
+              case BigDecimal bigDecimal -> bigDecimal.toBigInteger();
+              default -> {
+                problemAggregator.reportConversionFailure(value);
+                yield null;
+              }
+            });
   }
 
   private static BigInteger booleanAsBigInteger(boolean value) {

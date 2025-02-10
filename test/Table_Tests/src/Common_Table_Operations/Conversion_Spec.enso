@@ -346,10 +346,16 @@ add_conversion_specs suite_builder setup =
                 expected_diff = Duration.between day1.to_date_time day2.to_date_time
                 diff . should_equal expected_diff
 
+            group_builder.specify "should allow to convert an Integer into Boolean" <|
+                t = table_builder [["X", [1, 0, -123, 1234]]]
+                c = t.at "X" . cast Value_Type.Boolean
+                c.value_type . should_equal Value_Type.Boolean
+                c.to_vector . should_equal [True, False, True, True]
+
     suite_builder.group prefix+"(Conversion_Spec) Table/Column.cast - checking invariants" group_builder->
         group_builder.specify "should report an error for unsupported conversions" <|
             t = table_builder [["X", [1, 2, 3]]]
-            r1 = t.at "X" . cast Value_Type.Boolean
+            r1 = t.at "X" . cast Value_Type.Date
             r1.should_fail_with Illegal_Argument
 
         group_builder.specify "does not allow to cast a column to Null type" <|
@@ -528,9 +534,9 @@ add_conversion_specs suite_builder setup =
 
                 c4 = t2.cast "super-mix" Value_Type.Boolean . at "super-mix"
                 c4.value_type . should_equal Value_Type.Boolean
-                c4.to_vector . should_equal ((nulls 10) + [True, Nothing, Nothing])
+                c4.to_vector . should_equal ([True, True] + (nulls 8) + [True, Nothing, Nothing])
                 w4 = Problems.expect_warning Conversion_Failure c4
-                w4.affected_rows_count . should_equal 11
+                w4.affected_rows_count . should_equal 9
 
                 c5 = t2.cast "super-mix" Value_Type.Date . at "super-mix"
                 c5.to_vector . should_equal ((nulls 6) + [Date.new 2020, Date.new 2023 12 15, Nothing] + (nulls 4))
