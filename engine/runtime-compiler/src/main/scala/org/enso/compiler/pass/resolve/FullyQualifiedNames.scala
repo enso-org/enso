@@ -260,7 +260,7 @@ case object FullyQualifiedNames extends IRPass {
         } else {
           lit
         }
-      case app @ Application.Prefix(_, List(_), _, _, _) =>
+      case app: Application.Prefix if app.arguments.nonEmpty =>
         app.function match {
           case lit: Name.Literal =>
             if (lit.isMethod)

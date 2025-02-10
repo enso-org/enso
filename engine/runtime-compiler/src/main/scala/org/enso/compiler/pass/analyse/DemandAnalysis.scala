@@ -218,35 +218,36 @@ case object DemandAnalysis extends IRPass {
     isInsideCallArgument: Boolean
   ): Application =
     application match {
-      case pref @ Application.Prefix(fn, args, _, _, _) =>
-        val newFun = fn match {
+      case pref: Application.Prefix =>
+        val newFun = pref.function match {
           case n: Name => n
           case e       => analyseExpression(e, isInsideCallArgument = false)
         }
         pref.copy(
           function  = newFun,
-          arguments = args.map(analyseCallArgument)
+          arguments = pref.arguments.map(analyseCallArgument)
         )
-      case force @ Application.Force(target, _, _) =>
+      case force: Application.Force =>
         force.copy(target =
           analyseExpression(
-            target,
+            force.target,
             isInsideCallArgument
           )
         )
-      case vec @ Application.Sequence(items, _, _) =>
+      case vec: Application.Sequence =>
         vec.copy(items =
-          items.map(
+          vec.items.map(
             analyseExpression(
               _,
               isInsideCallArgument = false
             )
           )
         )
-      case tSet @ Application.Typeset(expr, _, _) =>
+      case tSet: Application.Typeset =>
         tSet.copy(
-          expression =
-            expr.map(analyseExpression(_, isInsideCallArgument = false))
+          expression = tSet.expression.map(
+            analyseExpression(_, isInsideCallArgument = false)
+          )
         )
       case _: Operator =>
         throw new CompilerError(
@@ -267,7 +268,7 @@ case object DemandAnalysis extends IRPass {
     arg match {
       case arg: CallArgument.Specified =>
         arg.copy(
-          value = analyseExpression(
+          analyseExpression(
             arg.value,
             isInsideCallArgument = true
           )
@@ -287,7 +288,7 @@ case object DemandAnalysis extends IRPass {
       case spec: DefinitionArgument.Specified =>
         val default = spec.defaultValue
         spec.copyWithDefaultValue(
-          defaultValue = default.map(x =>
+          default.map(x =>
             analyseExpression(
               x,
               isInsideCallArgument = false

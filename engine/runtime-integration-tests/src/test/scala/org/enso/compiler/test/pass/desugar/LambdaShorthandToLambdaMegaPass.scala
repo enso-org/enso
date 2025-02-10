@@ -180,17 +180,17 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
     freshNameSupply: FreshNameSupply
   ): Expression = {
     application match {
-      case p @ Application.Prefix(fn, args, _, _, _) =>
+      case p: Application.Prefix =>
         // Determine which arguments are lambda shorthand
-        val argIsUnderscore = determineLambdaShorthand(args)
+        val argIsUnderscore = determineLambdaShorthand(p.arguments)
 
         // Generate a new name for the arg value for each shorthand arg
         val updatedArgs =
-          args
+          p.arguments
             .zip(argIsUnderscore)
             .map(updateShorthandArg(_, freshNameSupply))
             .map { case s: CallArgument.Specified =>
-              s.copy(value = desugarExpression(s.value, freshNameSupply))
+              s.copy(desugarExpression(s.value, freshNameSupply))
             }
 
         // Generate a definition arg instance for each shorthand arg
@@ -202,19 +202,19 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
         }
 
         // Determine whether or not the function itself is shorthand
-        val functionIsShorthand = fn.isInstanceOf[Name.Blank]
+        val functionIsShorthand = p.function.isInstanceOf[Name.Blank]
         val (updatedFn, updatedName) = if (functionIsShorthand) {
           val newFn = freshNameSupply
             .newName()
             .copy(
-              location    = fn.location,
-              passData    = fn.passData,
-              diagnostics = fn.diagnostics
+              location    = p.function.location,
+              passData    = p.function.passData,
+              diagnostics = p.function.diagnostics
             )
           val newName = newFn.name
           (newFn, Some(newName))
         } else {
-          val newFn = desugarExpression(fn, freshNameSupply)
+          val newFn = desugarExpression(p.function, freshNameSupply)
           (newFn, None)
         }
 
@@ -239,7 +239,7 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
                   .Literal(
                     updatedName.get,
                     isMethod = false,
-                    fn.location.orNull
+                    p.function.location.orNull
                   ),
                 None,
                 None,
@@ -256,11 +256,11 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
           case lam: Function.Lambda => lam.copy(location = p.location)
           case result               => result
         }
-      case f @ Application.Force(tgt, _, _) =>
-        f.copy(target = desugarExpression(tgt, freshNameSupply))
-      case vector @ Application.Sequence(items, _, _) =>
+      case f: Application.Force =>
+        f.copy(target = desugarExpression(f.target, freshNameSupply))
+      case vector: Application.Sequence =>
         var bindings: List[Name] = List()
-        val newItems = items.map {
+        val newItems = vector.items.map {
           case blank: Name.Blank =>
             val name = freshNameSupply
               .newName()
@@ -286,8 +286,10 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
           )
           new Function.Lambda(List(defArg), body, locWithoutId.orNull)
         }
-      case tSet @ Application.Typeset(expr, _, _) =>
-        tSet.copy(expression = expr.map(desugarExpression(_, freshNameSupply)))
+      case tSet: Application.Typeset =>
+        tSet.copy(expression =
+          tSet.expression.map(desugarExpression(_, freshNameSupply))
+        )
       case _: Operator =>
         throw new CompilerError(
           "Operators should be desugared by the point of underscore " +

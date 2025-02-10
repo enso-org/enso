@@ -32,17 +32,17 @@ class LambdaShorthandToLambdaMini(
 
   private def shouldSkipBlanks(parent: IR): Boolean = {
     parent match {
-      case Application.Prefix(fn, args, _, _, _) =>
-        val hasBlankArg = args.exists {
+      case app: Application.Prefix =>
+        val hasBlankArg = app.arguments.exists {
           case arg: CallArgument.Specified
               if arg.value.isInstanceOf[Name.Blank] =>
             true
           case _ => false
         }
-        val hasBlankFn = fn.isInstanceOf[Name.Blank]
+        val hasBlankFn = app.function.isInstanceOf[Name.Blank]
         hasBlankArg || hasBlankFn
-      case Application.Sequence(items, _, _) =>
-        val hasBlankItem = items.exists {
+      case seq: Application.Sequence =>
+        val hasBlankItem = seq.items.exists {
           case _: Name.Blank => true
           case _             => false
         }
@@ -104,13 +104,13 @@ class LambdaShorthandToLambdaMini(
     application: Application
   ): Expression = {
     application match {
-      case p @ Application.Prefix(fn, args, _, _, _) =>
+      case p: Application.Prefix =>
         // Determine which arguments are lambda shorthand
-        val argIsUnderscore = determineLambdaShorthand(args)
+        val argIsUnderscore = determineLambdaShorthand(p.arguments)
 
         // Generate a new name for the arg value for each shorthand arg
         val updatedArgs =
-          args
+          p.arguments
             .zip(argIsUnderscore)
             .map(updateShorthandArg)
 
@@ -123,19 +123,19 @@ class LambdaShorthandToLambdaMini(
         }
 
         // Determine whether or not the function itself is shorthand
-        val functionIsShorthand = fn.isInstanceOf[Name.Blank]
+        val functionIsShorthand = p.function.isInstanceOf[Name.Blank]
         val (updatedFn, updatedName) = if (functionIsShorthand) {
           val newFn = freshNameSupply
             .newName()
             .copy(
-              location    = fn.location,
-              passData    = fn.passData,
-              diagnostics = fn.diagnostics
+              location    = p.function.location,
+              passData    = p.function.passData,
+              diagnostics = p.function.diagnostics
             )
           val newName = newFn.name
           (newFn, Some(newName))
         } else {
-          (fn, None)
+          (p.function, None)
         }
 
         val processedApp = p.copy(
@@ -159,7 +159,7 @@ class LambdaShorthandToLambdaMini(
                   .Literal(
                     updatedName.get,
                     isMethod = false,
-                    fn.location.orNull
+                    p.function.location.orNull
                   )
               )
             ),

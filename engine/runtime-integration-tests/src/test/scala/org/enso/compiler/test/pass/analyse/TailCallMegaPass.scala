@@ -266,26 +266,27 @@ case object TailCallMegaPass extends IRPass {
     isInTailPosition: Boolean
   ): Application = {
     val newApp = application match {
-      case app @ Application.Prefix(fn, args, _, _, _) =>
+      case app: Application.Prefix =>
         app
           .copy(
-            function  = analyseExpression(fn, isInTailPosition = false),
-            arguments = args.map(analyseCallArg)
+            function =
+              analyseExpression(app.function, isInTailPosition = false),
+            arguments = app.arguments.map(analyseCallArg)
           )
-      case force @ Application.Force(target, _, _) =>
+      case force: Application.Force =>
         force
           .copy(
-            target = analyseExpression(target, isInTailPosition)
+            target = analyseExpression(force.target, isInTailPosition)
           )
-      case vector @ Application.Sequence(items, _, _) =>
+      case vector: Application.Sequence =>
         vector
           .copy(items =
-            items.map(analyseExpression(_, isInTailPosition = false))
+            vector.items.map(analyseExpression(_, isInTailPosition = false))
           )
-      case tSet @ Application.Typeset(expr, _, _) =>
+      case tSet: Application.Typeset =>
         tSet
           .copy(expression =
-            expr.map(analyseExpression(_, isInTailPosition = false))
+            tSet.expression.map(analyseExpression(_, isInTailPosition = false))
           )
       case _: Operator =>
         throw new CompilerError("Unexpected binary operator.")

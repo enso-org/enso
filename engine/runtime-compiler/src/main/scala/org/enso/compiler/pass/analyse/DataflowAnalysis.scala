@@ -332,12 +332,12 @@ case object DataflowAnalysis extends IRPass {
     info: DependencyInfo
   ): Application = {
     application match {
-      case prefix @ Application.Prefix(fn, args, _, _, _) =>
-        val fnDep     = asStatic(fn)
+      case prefix: Application.Prefix =>
+        val fnDep     = asStatic(prefix.function)
         val prefixDep = asStatic(prefix)
         info.dependents.updateAt(fnDep, Set(prefixDep))
         info.dependencies.updateAt(prefixDep, Set(fnDep))
-        args.foreach(arg => {
+        prefix.arguments.foreach(arg => {
           val argDep = asStatic(arg)
           info.dependents.updateAt(argDep, Set(prefixDep))
           info.dependencies.updateAt(prefixDep, Set(argDep))
@@ -345,8 +345,8 @@ case object DataflowAnalysis extends IRPass {
 
         prefix
           .copy(
-            function  = analyseExpression(fn, info),
-            arguments = args.map(analyseCallArgument(_, info))
+            function  = analyseExpression(prefix.function, info),
+            arguments = prefix.arguments.map(analyseCallArgument(_, info))
           )
           .updateMetadata(new MetadataPair(this, info))
       case force @ Application.Force(target, _, _) =>

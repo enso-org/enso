@@ -764,7 +764,9 @@ final class SuggestionBuilder[A: IndexedSource](
     */
   private def buildDefaultValue(expr: IR): String =
     expr match {
-      case Application.Prefix(name, path, _, _, _) =>
+      case app: Application.Prefix =>
+        val name = app.function
+        val path = app.arguments
         path.map(_.value.showCode()).mkString(".") + "." + name.showCode()
       case other => other.showCode()
     }
