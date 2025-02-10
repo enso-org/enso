@@ -73,9 +73,7 @@ class OperatorToFunctionTest extends MiniPassTest {
       Operator.Binary(leftArg, name, rightArg, loc)
     val opFn = new Application.Prefix(
       name,
-      List(leftArg, rightArg),
-      hasDefaultsSuspended = false,
-      loc
+      List(leftArg, rightArg)
     )
 
     (binOp, opFn)
@@ -134,9 +132,7 @@ class OperatorToFunctionTest extends MiniPassTest {
         Operator.Binary(oprArg, opName, rightArg, null)
       val recursiveIRResult = new Application.Prefix(
         opName,
-        List(oprFnArg, rightArg),
-        hasDefaultsSuspended = false,
-        null
+        List(oprFnArg, rightArg)
       )
 
       OperatorToFunctionTestPass.runExpression(
@@ -182,9 +178,7 @@ class OperatorToFunctionTest extends MiniPassTest {
         Operator.Binary(oprArg, opName, rightArg, identifiedLocation = null)
       val recursiveIRResult = new Application.Prefix(
         opName,
-        List(oprFnArg, rightArg),
-        hasDefaultsSuspended = false,
-        identifiedLocation   = null
+        List(oprFnArg, rightArg)
       )
 
       val miniPass = OperatorToFunction.createForInlineCompilation(ctx)

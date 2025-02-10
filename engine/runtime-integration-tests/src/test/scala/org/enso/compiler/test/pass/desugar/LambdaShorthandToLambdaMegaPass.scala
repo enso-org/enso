@@ -257,7 +257,7 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
           case result               => result
         }
       case f: Application.Force =>
-        f.copy(target = desugarExpression(f.target, freshNameSupply))
+        f.copyWithTarget(desugarExpression(f.target, freshNameSupply))
       case vector: Application.Sequence =>
         var bindings: List[Name] = List()
         val newItems = vector.items.map {
@@ -273,7 +273,7 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
             name
           case it => desugarExpression(it, freshNameSupply)
         }
-        val newVec = vector.copy(newItems)
+        val newVec = vector.copyWithItems(newItems)
         val locWithoutId =
           newVec.location.map(l => new IdentifiedLocation(l.location()))
         bindings.foldLeft(newVec: Expression) { (body, bindingName) =>
@@ -287,7 +287,7 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
           new Function.Lambda(List(defArg), body, locWithoutId.orNull)
         }
       case tSet: Application.Typeset =>
-        tSet.copy(expression =
+        tSet.copyWithExpression(
           tSet.expression.map(desugarExpression(_, freshNameSupply))
         )
       case _: Operator =>

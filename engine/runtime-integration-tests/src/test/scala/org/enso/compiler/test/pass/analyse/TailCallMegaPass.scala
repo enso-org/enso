@@ -275,17 +275,17 @@ case object TailCallMegaPass extends IRPass {
           )
       case force: Application.Force =>
         force
-          .copy(
-            target = analyseExpression(force.target, isInTailPosition)
+          .copyWithTarget(
+            analyseExpression(force.target, isInTailPosition)
           )
       case vector: Application.Sequence =>
         vector
-          .copy(items =
+          .copyWithItems(
             vector.items.map(analyseExpression(_, isInTailPosition = false))
           )
       case tSet: Application.Typeset =>
         tSet
-          .copy(expression =
+          .copyWithExpression(
             tSet.expression.map(analyseExpression(_, isInTailPosition = false))
           )
       case _: Operator =>
