@@ -14,11 +14,8 @@ import org.graalvm.polyglot.Context;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.experimental.theories.Theories;
-import org.junit.runner.RunWith;
 
 /** Tests Truffle nodes for integer operations. */
-@RunWith(Theories.class)
 public class IntegerTest {
 
   private static AbsNode absNode;
