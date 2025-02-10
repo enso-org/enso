@@ -121,8 +121,14 @@ final class IRNodeClassGenerator {
 
         $validateConstructor
 
+        /** Empty builder */
         public static Builder builder() {
           return new Builder();
+        }
+
+        /** Builder with initial values */
+        public static Builder builder($processedClassName obj) {
+          return new Builder(obj);
         }
 
         $copyMethod
@@ -144,6 +150,7 @@ final class IRNodeClassGenerator {
             .replace("$fields", fieldsCode())
             .replace("$defaultCtor", defaultConstructor())
             .replace("$validateConstructor", validateConstructor())
+            .replace("$processedClassName", processedClass.getClazz().getSimpleName().toString())
             .replace("$copyMethod", copyMethodGenerator.generateMethodCode())
             .replace("$userDefinedGetters", userDefinedGetters())
             .replace("$overrideIRMethods", overrideIRMethods())
