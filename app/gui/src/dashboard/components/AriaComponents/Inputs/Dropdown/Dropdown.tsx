@@ -259,7 +259,9 @@ export const Dropdown = forwardRef(function Dropdown<T>(
         <div className={styles.input()}>
           <SvgMask src={FolderArrowIcon} className="rotate-90" />
           <div className={styles.inputDisplay()}>
-            {visuallySelectedItem != null ?
+            {isMouseFocused && !multiple ?
+              null
+            : visuallySelectedItem != null ?
               <Child item={visuallySelectedItem} />
             : multiple && <props.renderMultiple items={selectedItems}>{Child}</props.renderMultiple>
             }
