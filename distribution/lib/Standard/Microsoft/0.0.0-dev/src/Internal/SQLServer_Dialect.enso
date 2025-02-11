@@ -92,7 +92,11 @@ type SQLServer_Dialect
        Generates SQL modifier for limiting the number of rows and its position in the query
     get_limit_sql_modifier : Integer -> Any
     get_limit_sql_modifier self limit =
-        SQL_Builder.code (" TOP " + limit.to_text + " ")
+        case limit of
+            Nothing -> 
+                ## SQLServer doesn't allow order by in sub queries unless we add in the below. We should consider removing order bys from subqueries in the future.
+                "TOP 100 PERCENT "
+            _ : Integer -> SQL_Builder.code (" TOP " + limit.to_text + " ")
 
     ## PRIVATE
        Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
@@ -292,6 +296,7 @@ type SQLServer_Dialect
             Feature.Join -> True
             Feature.Union -> True
             Feature.Aggregate -> True
+            Feature.Offset -> True
             _ -> False
 
     ## PRIVATE
@@ -449,6 +454,11 @@ private _generate_expression dialect base_gen expr expression_kind:Expression_Ki
             converted_expr
 
         pair final_expr null_checks_result
+    SQL_Expression.List values ->
+        parsed_args_and_null_checks = values.map (v-> _generate_expression dialect base_gen v expression_kind materialize_null_check)
+        final_expr = SQL_Builder.join ", " (parsed_args_and_null_checks.map p->p.first)
+        null_checks = parsed_args_and_null_checks.map .second  . flatten
+        pair final_expr null_checks
     query : Query -> pair (base_gen.generate_sub_query dialect query) []
     descriptor : Order_Descriptor -> pair (base_gen.generate_order dialect descriptor) []
 
@@ -503,7 +513,8 @@ make_dialect_operations =
     date_ops = [["year", Base_Generator.make_function "year"], make_datepart "quarter", ["month", Base_Generator.make_function "month"], make_datepart "week" "iso_week", ["day", Base_Generator.make_function "day"], make_datepart "hour", make_datepart "minute", make_datepart "day_of_year" "dayofyear", make_day_of_week, make_datepart "second", make_datepart "millisecond", make_extract_microsecond, ["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
     special_overrides = [is_empty, ["IIF", _make_iif]]
     other = [["RUNTIME_ERROR", make_runtime_error_op]]
-    my_mappings = text + counts + arith_extensions + bool + stats + date_ops + special_overrides + other
+    windows = [["LEAD", _make_lead_lag "LEAD"], ["LAG", _make_lead_lag "LAG"], ["LEAD_CLOSEST", _make_lead_lag_closest_value "LEAD"], ["LAG_CLOSEST", _make_lead_lag_closest_value "LAG"]]
+    my_mappings = text + counts + arith_extensions + bool + stats + date_ops + special_overrides + other + windows
     base = Base_Generator.base_dialect_operations . extend_with my_mappings
     Base_Generator.Dialect_Operations.Value (base.operations_dict.remove "IS_IN")
 
@@ -616,6 +627,37 @@ left = Base_Generator.lift_binary_op "LEFT" str-> n->
 ## PRIVATE
 right = Base_Generator.lift_binary_op "RIGHT" str-> n->
     SQL_Builder.code "right(" ++ str ++ ", CAST(" ++ n ++ " AS INT))"
+
+_build_partition_sql grouping:SQL_Builder ordering:SQL_Builder -> SQL_Builder =
+    group_part = if grouping.is_empty then "" else
+        SQL_Builder.code "PARTITION BY " ++ grouping
+    SQL_Builder.code "OVER(" ++ group_part ++ " ORDER BY " ++ ordering ++ ")"
+
+## PRIVATE
+_build_lead_lag_sql lead_lag:Text n:SQL_Builder colName:SQL_Builder grouping:SQL_Builder ordering:SQL_Builder -> SQL_Builder =
+    partition_sql = _build_partition_sql grouping ordering
+    SQL_Builder.code "(" ++ lead_lag ++ "(" ++ colName ++ ", " ++ n ++ ", NULL) " ++ partition_sql ++ ")"
+
+## PRIVATE
+_make_lead_lag lead_lag:Text arguments:Vector -> SQL_Builder = if arguments.length != 4 then Error.throw (Illegal_State.Error "Wrong amount of parameters in LEAD/LAG IR. This is a bug in the Database library.") else
+    n = arguments.at 0
+    colName = arguments.at 1
+    grouping = arguments.at 2
+    ordering = arguments.at 3
+    _build_lead_lag_sql lead_lag n colName grouping ordering
+
+## PRIVATE
+_make_lead_lag_closest_value lead_lag:Text arguments:Vector -> SQL_Builder = if arguments.length != 5 then Error.throw (Illegal_State.Error "Wrong amount of parameters in LEAD/LAG IR. This is a bug in the Database library.") else
+    n = arguments.at 0
+    colName = arguments.at 1
+    grouping = arguments.at 2
+    ordering_for_lead_lag = arguments.at 3
+    ordering_for_row_number = arguments.at 4
+
+    lead_lag_sql = _build_lead_lag_sql lead_lag n colName grouping ordering_for_lead_lag     
+    partition_sql_for_row_number = _build_partition_sql grouping ordering_for_row_number
+    fill_sql = SQL_Builder.code "FIRST_VALUE(" ++ colName ++ ") " ++ partition_sql_for_row_number
+    SQL_Builder.code "CASE WHEN ROW_NUMBER() " ++ partition_sql_for_row_number ++ " <= " ++ n ++ " THEN " ++ fill_sql ++ " ELSE " ++ lead_lag_sql ++ " END"
 
 ## PRIVATE
 make_order_descriptor internal_column sort_direction text_ordering =

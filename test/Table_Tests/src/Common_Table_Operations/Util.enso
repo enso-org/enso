@@ -83,7 +83,7 @@ Error.should_equal_tz_agnostic self other =
    Builds a table ensuring that the rows are in the order as given.
 build_sorted_table setup table_structure =
     # Workaround for https://github.com/enso-org/enso/issues/10321
-    if setup.prefix.contains "Snowflake" . not then setup.table_builder table_structure else
+    if setup.prefix.contains "Snowflake" . not && setup.prefix.contains "SQLServer" . not then setup.table_builder table_structure else
         row_count = case table_structure.first of
             def : Vector -> def.second.length
             col : Column -> col.length

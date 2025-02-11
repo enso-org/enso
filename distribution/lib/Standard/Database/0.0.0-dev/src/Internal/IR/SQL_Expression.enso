@@ -104,6 +104,16 @@ type SQL_Expression
     Let_Ref (name : Text) (binder : Text) (standalone_expression : SQL_Expression)
 
     ## PRIVATE
+       The internal representation of an  list of SQL expressions which will be
+       separated by commas in a list in the final SQL query.
+
+       NOTE - Only valid in certain locations so should be used carefully
+
+       Arguments:
+       - value: the values that should be built into a comma separated list.
+    List values:Vector
+
+    ## PRIVATE
        A bottom-up, depth-first traversal of this IR node and its children. Each
        node is passed to the provided function, and the return value of the
        function replaces this node in the tree.
@@ -121,4 +131,6 @@ type SQL_Expression
                 SQL_Expression.Let name binder (rec bindee) (rec body)
             SQL_Expression.Let_Ref name binder standalone_expression ->
                 SQL_Expression.Let_Ref name binder (rec standalone_expression)
+            SQL_Expression.List values ->
+                SQL_Expression.List (values.map rec)
         f new_sql_expression

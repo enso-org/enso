@@ -1,6 +1,7 @@
 package org.enso.table.data.column.operation.unary;
 
-import org.enso.table.data.column.builder.BuilderForBoolean;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -9,13 +10,16 @@ import org.enso.table.data.column.storage.type.TextType;
 
 /* An operation that checks if a column's row values are empty.
  * Only supported on Text values. */
-public class IsEmptyOperation extends AbstractUnaryBooleanOperation {
+public class IsEmptyOperation implements UnaryOperation {
   public static String NAME = "is_empty";
 
   public static final UnaryOperation INSTANCE = new IsEmptyOperation();
 
-  private IsEmptyOperation() {
-    super(NAME, false);
+  private IsEmptyOperation() {}
+
+  @Override
+  public String getName() {
+    return NAME;
   }
 
   @Override
@@ -26,16 +30,13 @@ public class IsEmptyOperation extends AbstractUnaryBooleanOperation {
   }
 
   @Override
-  protected void applyObjectRow(
-      Object value, BuilderForBoolean builder, MapOperationProblemAggregator problemAggregator) {
-    if (value == null) {
-      builder.appendBoolean(true);
-    } else {
-      if (value instanceof String s) {
-        builder.appendBoolean(s.isEmpty());
-      } else {
-        builder.appendBoolean(false);
-      }
-    }
+  public ColumnStorage<?> apply(
+      ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
+    return StorageIterators.buildOverStorage(
+        storage,
+        false,
+        Builder.getForBoolean(storage.getSize()),
+        (builder, index, value) ->
+            builder.appendBoolean(value == null || value instanceof String s && s.isEmpty()));
   }
 }

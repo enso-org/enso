@@ -1,20 +1,23 @@
 package org.enso.table.data.column.operation.unary;
 
 import java.util.BitSet;
-import org.enso.table.data.column.builder.BuilderForBoolean;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 
-public class IsNothingOperation extends AbstractUnaryBooleanOperation {
+public class IsNothingOperation implements UnaryOperation {
   public static final String NAME = "is_nothing";
-
   public static final UnaryOperation INSTANCE = new IsNothingOperation();
 
-  private IsNothingOperation() {
-    super(NAME, false);
+  private IsNothingOperation() {}
+
+  @Override
+  public String getName() {
+    return NAME;
   }
 
   @Override
@@ -30,16 +33,10 @@ public class IsNothingOperation extends AbstractUnaryBooleanOperation {
           withNothingMap.getIsNothingMap(), new BitSet(), (int) storage.getSize(), false);
     }
 
-    var builder = createBuilder(storage, problemAggregator);
-    for (long i = 0; i < storage.getSize(); i++) {
-      builder.appendBoolean(storage.isNothing(i));
-    }
-    return builder.seal();
-  }
-
-  @Override
-  protected void applyObjectRow(
-      Object value, BuilderForBoolean builder, MapOperationProblemAggregator problemAggregator) {
-    throw new UnsupportedOperationException();
+    return StorageIterators.buildOverStorage(
+        storage,
+        false,
+        Builder.getForBoolean(storage.getSize()),
+        (builder, index, value) -> builder.appendBoolean(value == null));
   }
 }

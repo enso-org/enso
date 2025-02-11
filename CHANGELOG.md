@@ -16,6 +16,8 @@
 - [When editing cells or header names in Table Editor Widget, `tab` and `enter`
   keys jumps to next cell/ next row respectively.][12129]
 - [Fixed bugs occurring after renaming project from within graph editor][12106].
+- [Users having "Team" plan or above may now access shared directories in Cloud
+  File Browser][12208]
 - [Added support for rendering numbered and nested lists][12190].
 - [Added buttons for editing top-level markdown elements in the documentation
   panel][12217].
@@ -31,6 +33,7 @@
 [12064]: https://github.com/enso-org/enso/pull/12064
 [12129]: https://github.com/enso-org/enso/pull/12129
 [12106]: https://github.com/enso-org/enso/pull/12106
+[12208]: https://github.com/enso-org/enso/pull/12208
 [12190]: https://github.com/enso-org/enso/pull/12190
 [12222]: https://github.com/enso-org/enso/pull/12222
 [12217]: https://github.com/enso-org/enso/pull/12217
@@ -42,11 +45,19 @@
 - [Reducing helper methods in `Standard.Base.Meta`.][12031]
 - [Added Table.Offset][12071]
 - [Added Column.Offset][12092]
+- [When reading a Delimited file, if a row with more columns than expected is
+  encountered, extra columns can be added to the result.][12231]
+  - In `Delimited` format, the `keep_invalid_rows` setting has been renamed to
+    `on_invalid_rows`. The default behaviour was also changed to add any extra
+    columns instead of discarding them.
+- [Added DB_Table.Offset for SQLServer][12206]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
 [12071]: https://github.com/enso-org/enso/pull/12071
 [12092]: https://github.com/enso-org/enso/pull/12092
+[12231]: https://github.com/enso-org/enso/pull/12231
+[12206]: https://github.com/enso-org/enso/pull/12206
 
 #### Enso Language & Runtime
 
