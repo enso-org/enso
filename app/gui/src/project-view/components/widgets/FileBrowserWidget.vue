@@ -5,11 +5,13 @@ export default {
 </script>
 
 <script setup lang="ts">
+import PointFloatingMenu from '@/components/PointFloatingMenu.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useBackend } from '@/composables/backend'
 import { injectBackend } from '@/providers/backend'
+import { assert } from '@/util/assert'
 import type { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import type {
@@ -32,11 +34,12 @@ const emit = defineEmits<{
   pathAccepted: [path: string]
 }>()
 
-const { query, fetch, ensureQueryData } = useBackend('remote')
+const { query, fetch, ensureQueryData, mutation } = useBackend('remote')
 const { remote: backend } = injectBackend()
 
 const errorToast = useToast.error()
 const fileName = ref<string>('')
+const newDirPlaceholder = Symbol()
 
 // === Current Directory ===
 
@@ -93,7 +96,9 @@ const files = computed(
     data.value &&
     data.value.filter((asset) => assetIsFile(asset) || assetIsDatalink(asset)).sort(compareTitle),
 )
-const isEmpty = computed(() => directories.value?.length === 0 && files.value?.length === 0)
+const isEmpty = computed(
+  () => directories.value?.length === 0 && files.value?.length === 0 && editedAsset.value == null,
+)
 
 // === Prefetching ===
 
@@ -150,6 +155,48 @@ const currentFilePath = computed(
   () => fileName.value && currentPath.value && `${currentPath.value}${fileName.value}`,
 )
 
+// === Creating and Renaming Directories ===
+
+const editedAsset = ref<{
+  asset: DirectoryAsset | typeof newDirPlaceholder
+  name: string
+  state: 'editing' | 'pending'
+}>()
+const createDir = mutation('createDirectory')
+const updateDir = mutation('updateDirectory')
+
+function addNewDirectory() {
+  assert(editedAsset.value == null)
+  editedAsset.value = { asset: newDirPlaceholder, name: 'New Directory', state: 'editing' }
+}
+
+function acceptName(actionDescription: string) {
+  if (editedAsset.value?.state !== 'editing') {
+    console.error('Accepting edited name without editing')
+    return
+  }
+  const edited = editedAsset.value
+  edited.state = 'pending'
+  const parentId = currentDirectory.value?.id
+  if (parentId == null) {
+    console.error('Cannot rename directory without parentId')
+    return
+  }
+  const requetsBody = { title: edited.name, parentId }
+  const action =
+    edited.asset === newDirPlaceholder ?
+      createDir.mutateAsync([requetsBody, false])
+    : updateDir.mutateAsync([edited.asset.id, requetsBody, edited.asset.title])
+  action
+    .catch((error) => {
+      errorToast.show(`Failed to ${actionDescription}: ${error}`)
+    })
+    .finally(() => {
+      assert(edited === editedAsset.value)
+      editedAsset.value = undefined
+    })
+}
+
 // === Initialization ===
 
 async function enterDirByName(name: string, stack: Directory[]): Promise<Result> {
@@ -201,7 +248,7 @@ onMounted(() => {
           </template>
         </TransitionGroup>
       </div>
-      <SvgButton name="folder_add" title="Add New Folder" />
+      <SvgButton name="folder_add" title="Add New Folder" @click.stop="addNewDirectory" />
     </div>
 
     <div v-if="isBusy" class="centerContent contents"><LoadingSpinner /></div>
@@ -209,13 +256,35 @@ onMounted(() => {
     <div v-else-if="isEmpty" class="centerContent contents">Directory is empty</div>
     <div v-else :key="currentDirectory?.id ?? 'root'" class="listing contents">
       <TransitionGroup>
+        <div v-if="editedAsset?.asset === newDirPlaceholder">
+          <SvgButton name="folder" class="entry">
+            <input
+              v-if="editedAsset.state === 'editing'"
+              v-model="editedAsset.name"
+              @blur="acceptName('create directory')"
+              @keydown.enter.stop="($event.currentTarget as HTMLInputElement)?.blur()"
+            />
+            <div v-else>{{ editedAsset.name }}</div>
+          </SvgButton>
+        </div>
         <div v-for="entry in directories" :key="entry.id">
-          <SvgButton :label="entry.title" name="folder" class="entry" @click="enterDir(entry)" />
+          <SvgButton name="folder" class="entry" @click="enterDir(entry)">
+            <input
+              v-if="editedAsset?.asset === entry && editedAsset.state === 'editing'"
+              v-model="editedAsset.name"
+              @blur="acceptName('update directory')"
+              @keydown.enter.stop="($event.currentTarget as HTMLInputElement)?.blur()"
+            />
+            <div>{{ entry.title }}</div>
+          </SvgButton>
         </div>
         <div v-for="entry in files" :key="entry.id">
-          <SvgButton :label="entry.title" name="text2" class="entry" @click="chooseFile(entry)" />
+          <SvgButton name="text2" class="entry" @click="chooseFile(entry)">
+            <div>{{ entry.title }}</div>
+          </SvgButton>
         </div>
       </TransitionGroup>
+      <PointerFloaingMenu> </PointerFloaingMenu>
     </div>
     <div v-if="writeMode" class="fileNameBar">
       <input
@@ -230,12 +299,9 @@ onMounted(() => {
         @keydown.arrow-right.stop
         @keydown.enter.stop="acceptCurrentFile()"
       />
-      <SvgButton
-        class="fileNameAcceptButton"
-        label="Ok"
-        :disabled="!fileName"
-        @click.stop="acceptCurrentFile"
-      />
+      <SvgButton class="fileNameAcceptButton" :disabled="!fileName" @click.stop="acceptCurrentFile">
+        <div>Ok</div>
+      </SvgButton>
     </div>
   </div>
 </template>
@@ -260,12 +326,12 @@ onMounted(() => {
   background-color: var(--background-color);
   display: flex;
   flex-direction: row;
+  padding: 2px 8px;
 }
 
 .directoryStack {
   --transition-duration: 0.1s;
   color: white;
-  padding: 2px;
   gap: 2px;
   display: flex;
   align-items: center;
