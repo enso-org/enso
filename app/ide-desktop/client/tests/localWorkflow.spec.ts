@@ -74,7 +74,9 @@ test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
 
   // Check that the output file is created and contains expected text.
   try {
-    await expect(writeNode.locator('.TableVisualization')).toContainText(OUTPUT_FILE)
+    await expect(writeNode.locator('.TableVisualization')).toContainText(OUTPUT_FILE, {
+      timeout: 10000,
+    })
   } catch {
     // TODO[ao]
     // The above check is flaky, because sometimes the additional engine run overrides node output back to "dry run".

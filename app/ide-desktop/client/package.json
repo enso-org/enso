@@ -33,7 +33,7 @@
     "@babel/plugin-syntax-import-attributes": "^7.26.0",
     "@chromatic-com/playwright": "^0.10.1",
     "@electron/notarize": "2.1.0",
-    "@playwright/test": "^1.49.1",
+    "@playwright/test": "^1.50.1",
     "@types/mime-types": "^2.1.4",
     "@types/node": "^22.10.4",
     "@types/opener": "^1.4.3",
@@ -52,7 +52,7 @@
     "esbuild-plugin-wasm": "^1.1.0",
     "fast-glob": "^3.3.2",
     "lib0": "^0.2.99",
-    "playwright": "^1.49.1",
+    "playwright": "^1.50.1",
     "portfinder": "^1.0.32",
     "vite": "^6.0.9",
     "vite-node": "3.0.0-beta.3"
@@ -67,6 +67,8 @@
     "build": "vite-node bundle.ts",
     "dist": "vite-node dist.ts",
     "lint": "eslint . --cache --max-warnings=0",
+    "ide-integration-test": "playwright test",
+    "upload-chromatic": "chromatic --playwright",
     "watch:windows": "cross-env ENSO_BUILD_IDE=%LOCALAPPDATA%\\Temp\\enso\\dist\\ide ENSO_BUILD_PROJECT_MANAGER=%CD%\\..\\..\\..\\dist\\backend ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH=bin\\project-manager.exe ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=0 ENSO_POLYGLOT_YDOC_SERVER=wss://localhost:8080 vite-node watch.ts",
     "watch:linux": "ENSO_BUILD_IDE=\"${ENSO_BUILD_IDE:-/tmp/enso/dist/ide}\" ENSO_BUILD_PROJECT_MANAGER=\"${ENSO_BUILD_PROJECT_MANAGER:-\"$(pwd)/../../../dist/backend\"}\" ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH=\"${ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH:-bin/project-manager}\" ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=\"${ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION:-0}\" ENSO_POLYGLOT_YDOC_SERVER=\"${ENSO_POLYGLOT_YDOC_SERVER:-wss://localhost:8080}\" vite-node watch.ts \"$@\"",
     "watch:macos": "ENSO_BUILD_IDE=\"${ENSO_BUILD_IDE:-/tmp/enso/dist/ide}\" ENSO_BUILD_PROJECT_MANAGER=\"${ENSO_BUILD_PROJECT_MANAGER:-\"$(pwd)/../../../dist/backend\"}\" ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH=\"${ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH:-bin/project-manager}\" ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION=\"${ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION:-0}\" ENSO_POLYGLOT_YDOC_SERVER=\"${ENSO_POLYGLOT_YDOC_SERVER:-wss://localhost:8080}\" vite-node watch.ts \"$@\""

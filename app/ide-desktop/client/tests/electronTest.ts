@@ -1,14 +1,31 @@
 /** @file Commonly used functions for electron tests */
+/* eslint-disable no-empty-pattern */
 
 import { test as base, expect } from '@chromatic-com/playwright'
-import { _electron, ElectronApplication, type Page } from '@playwright/test'
+import { _electron, Electron, ElectronApplication, type Page } from '@playwright/test'
 import { TEXTS } from 'enso-common/src/text'
+import fs from 'node:fs/promises'
 import os from 'node:os'
-import pathModule from 'node:path'
+import path from 'node:path'
 
 const LOADING_TIMEOUT = 10000
 const TEXT = TEXTS.english
 export const CONTROL_KEY = os.platform() === 'darwin' ? 'Meta' : 'Control'
+
+const electronExecutablePath = await (async () => {
+  const POSSIBLE_EXEC_PATHS = [
+    '../../../../dist/ide/linux-unpacked/enso',
+    '../../../../dist/ide/win-unpacked/Enso.exe',
+    '../../../../dist/ide/mac/Enso.app/Contents/MacOS/Enso',
+    '../../../../dist/ide/mac-arm64/Enso.app/Contents/MacOS/Enso',
+  ].map((p) => path.resolve(import.meta.dirname, p))
+  try {
+    const promises = POSSIBLE_EXEC_PATHS.map((p) => fs.access(p, fs.constants.X_OK).then(() => p))
+    return await Promise.any(promises)
+  } catch {
+    throw Error('Cannot find Enso package')
+  }
+})();
 
 /**
  * Tests run on electron executable.
@@ -20,15 +37,21 @@ export const test = base.extend<{
   app: ElectronApplication
   page: Page
 }>({
-  // eslint-disable-next-line no-empty-pattern
   projectsDir: async function ({}, use, testInfo) {
-    const projectsDir = pathModule.join(os.tmpdir(), 'enso-test-projects', testInfo.testId)
+    const projectsDir = path.join(os.tmpdir(), 'enso-test-projects', testInfo.testId)
     await use(projectsDir)
   },
-  app: async function ({ projectsDir }, use, testInfo) {
+
+  /**
+   * Setup for all tests: checks if and where electron exec is.
+   * @throws when no Enso package could be found.
+   */
+  app: async function ({ projectsDir, viewport }, use, testInfo) {
+    const args = process.env.ENSO_TEST_APP_ARGS?.split(',') ?? []
+    if (viewport) args.push(`--window.size=${viewport.width}x${viewport.height}`)
     const app = await _electron.launch({
-      executablePath: process.env.ENSO_TEST_EXEC_PATH ?? '',
-      args: process.env.ENSO_TEST_APP_ARGS != null ? process.env.ENSO_TEST_APP_ARGS.split(',') : [],
+      executablePath: electronExecutablePath,
+      args,
       env: { ...process.env, ENSO_TEST: 'true', ENSO_TEST_PROJECTS_DIR: projectsDir },
     })
     await app.context().tracing.start({ screenshots: true, snapshots: true, sources: true })

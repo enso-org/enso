@@ -8,7 +8,6 @@ export default defineConfig<ChromaticConfig>({
   workers: 1,
   timeout: 180000,
   reportSlowTests: { max: 5, threshold: 60000 },
-  globalSetup: './tests/setup.ts',
   expect: {
     timeout: 30000,
     toHaveScreenshot: { threshold: 0 },
