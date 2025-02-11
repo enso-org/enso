@@ -321,6 +321,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         <TimeField
           form={form}
           isRequired
+          hideTimeZone
           name="startDate"
           label={getText('firstOccurrenceTimeLabel')}
         />

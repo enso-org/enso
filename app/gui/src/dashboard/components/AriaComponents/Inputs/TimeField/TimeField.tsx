@@ -4,7 +4,6 @@ import { useContext, type ForwardedRef } from 'react'
 import type { DateSegment as DateSegmentType } from 'react-stately'
 
 import CrossIcon from '#/assets/cross.svg'
-import ArrowIcon from '#/assets/folder_arrow.svg'
 import {
   TimeField as AriaTimeField,
   DateInput,
@@ -108,6 +107,9 @@ export const TimeField = forwardRef(function TimeField<
     size,
     variants = DATE_PICKER_STYLES,
     granularity,
+    style,
+    isInvalid,
+    ...rest
   } = props
 
   const { fieldState, formInstance } = useTimeValueField({
@@ -132,7 +134,7 @@ export const TimeField = forwardRef(function TimeField<
       isInvalid={fieldState.invalid}
       aria-details={props['aria-details']}
       ref={ref}
-      style={props.style}
+      style={style}
     >
       <Form.Controller
         control={formInstance.control}
@@ -140,13 +142,14 @@ export const TimeField = forwardRef(function TimeField<
         render={(renderProps) => {
           return (
             <AriaTimeField
+              {...rest}
+              isInvalid={isInvalid ?? false}
               className={styles.base({ className })}
               {...(granularity != null ? { granularity } : {})}
               {...renderProps.field}
             >
               <Label />
               <Group className={styles.inputGroup()}>
-                <Button variant="icon" icon={ArrowIcon} className="rotate-90" />
                 <DateInput className={styles.dateInput()}>
                   {(segment) =>
                     segments[segment.type] === false ?
