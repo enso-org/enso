@@ -193,6 +193,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
                         {todaysExecutions && (
                           <Button
                             slot={null}
+                            isDisabled
                             tooltip={getText(
                               'xExecutionsScheduledOnX',
                               todaysExecutions.length,
@@ -200,6 +201,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
                             )}
                             size="xxsmall"
                             variant="custom"
+                            className="disabled:opacity-100"
                             icon={CalendarIcon}
                           >
                             {todaysExecutions.length}
