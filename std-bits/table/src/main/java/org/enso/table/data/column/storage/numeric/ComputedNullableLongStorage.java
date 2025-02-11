@@ -14,7 +14,7 @@ import org.graalvm.polyglot.Context;
  */
 public abstract class ComputedNullableLongStorage extends AbstractLongStorage
     implements ColumnStorageWithNothingMap {
-  protected abstract Long computeItem(int idx);
+  protected abstract Long computeItem(long idx);
 
   private BitSet isNothing;
 

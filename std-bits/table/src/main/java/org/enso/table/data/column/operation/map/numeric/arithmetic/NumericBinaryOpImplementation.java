@@ -9,6 +9,7 @@ import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigDecimalArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.helpers.BigIntegerArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
+import org.enso.table.data.column.storage.ColumnLongStorageWithArray;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
@@ -218,22 +219,33 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       AbstractLongStorage b,
       MapOperationProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
+
     long n = a.getSize();
     long m = Math.min(n, b.getSize());
     var builder = Builder.getForLong(INTEGER_RESULT_TYPE, n, problemAggregator);
-    for (long i = 0; i < n; i++) {
-      if (a.isNothing(i) || i >= m || b.isNothing(i)) {
-        builder.appendNulls(1);
-      } else {
-        Long r = doLong(a.getItemAsLong(i), b.getItemAsLong(i), i, problemAggregator);
-        if (r == null) {
+
+    if (a instanceof ColumnLongStorageWithArray aArray && b instanceof ColumnLongStorageWithArray bArray) {
+      long[] aData = aArray.getArray();
+      long[] bData = bArray.getArray();
+      for (int i = 0; i < m; i++) {
+        if (a.isNothing(i) || i >= m || b.isNothing(i)) {
           builder.appendNulls(1);
         } else {
-          builder.appendLong(r);
+          Long r = doLong(aData[i], bData[i], i, problemAggregator);
+          builder.append(r);
         }
+        context.safepoint();
       }
-
-      context.safepoint();
+    } else {
+      for (long i = 0; i < n; i++) {
+        if (a.isNothing(i) || i >= m || b.isNothing(i)) {
+          builder.appendNulls(1);
+        } else {
+          Long r = doLong(a.getItemAsLong(i), b.getItemAsLong(i), i, problemAggregator);
+          builder.append(r);
+        }
+        context.safepoint();
+      }
     }
 
     return builder.seal();
@@ -254,11 +266,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
         builder.appendNulls(1);
       } else {
         Long r = doLong(a.getItemAsLong(i), bNonNull, i, problemAggregator);
-        if (r == null) {
-          builder.appendNulls(1);
-        } else {
-          builder.appendLong(r);
-        }
+        builder.append(r);
       }
 
       context.safepoint();

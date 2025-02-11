@@ -397,7 +397,7 @@ public final class DoubleStorage extends Storage<Double>
     ComputedNullableLongStorage longAdapter =
         new ComputedNullableLongStorage(size) {
           @Override
-          protected Long computeItem(int idx) {
+          protected Long computeItem(long idx) {
             if (parent.isNothing(idx)) {
               return null;
             }
