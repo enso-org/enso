@@ -59,7 +59,7 @@ object Ydoc {
           runCommand(s"$corepackCommand --version", streams)
           runCommand(s"$pnpmCommand --version", streams)
 
-          val command = s"$pnpmCommand build:ydoc-server-polyglot"
+          val command  = s"$pnpmCommand build:ydoc-server-polyglot"
           val exitCode = runCommand(command, streams)
           if (exitCode != 0) {
             throw new CommandFailed(command, exitCode)
@@ -94,7 +94,7 @@ object Ydoc {
           runCommand(s"$corepackCommand --version", streams)
           runCommand(s"$pnpmCommand --version", streams)
 
-          val command = s"$pnpmCommand i --frozen-lockfile"
+          val command  = s"$pnpmCommand i --frozen-lockfile"
           val exitCode = runCommand(command, streams)
           if (exitCode != 0) {
             throw new CommandFailed(command, exitCode)
