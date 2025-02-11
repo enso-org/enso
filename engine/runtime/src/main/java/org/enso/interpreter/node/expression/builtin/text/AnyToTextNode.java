@@ -74,10 +74,15 @@ public abstract class AnyToTextNode extends Node {
     }
     for (int i = 1; i < atom.getConstructor().getArity(); i++) {
       res = Text.create(res, " ");
-      try {
-        res = Text.create(res, showObject(structs.getField(atom, i)));
-      } catch (UnsupportedMessageException e) {
-        res = Text.create(res, structs.getField(atom, i).toString());
+      var fieldDef = atom.getConstructor().getFields()[i];
+      if (fieldDef.isSuspended()) {
+        res = Text.create(res, "~" + fieldDef.getName());
+      } else {
+        try {
+          res = Text.create(res, showObject(structs.getField(atom, i)));
+        } catch (UnsupportedMessageException e) {
+          res = Text.create(res, structs.getField(atom, i).toString());
+        }
       }
     }
     res = Text.create(res, ")");
