@@ -15,6 +15,12 @@ unomitting ~action =
     #IO.println "AAAAA "+omit_get_stack_trace
     action
 
+wrap_unomitting f x =
+    unomitting (f x)
+
+wrap_unomitting_2 f x y =
+    unomitting (f x y)
+
 omit_get_stack_trace =
     stack_trace = Runtime.get_stack_trace
     reversed_stack_trace = stack_trace.reverse

@@ -29,6 +29,8 @@ export project.Faker.Faker
 
 export project.Omitter.omitting
 export project.Omitter.unomitting
+export project.Omitter.wrap_unomitting
+export project.Omitter.wrap_unomitting_2
 export project.Omitter.omit_get_stack_trace
 
 export project.Problems
