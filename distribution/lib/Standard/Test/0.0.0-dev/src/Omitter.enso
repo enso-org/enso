@@ -8,7 +8,7 @@ pst s st =
     st . map_with_index (i-> x-> IO.println i.to_text+": "+x.to_text)
 
 omitting ~action =
-    IO.println "AAAAA "+omit_get_stack_trace
+    #IO.println "AAAAA "+omit_get_stack_trace
     action
 
 unomitting ~action =
