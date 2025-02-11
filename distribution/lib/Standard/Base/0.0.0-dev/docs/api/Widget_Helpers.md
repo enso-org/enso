@@ -9,6 +9,6 @@
 - make_file_read_delimiter_selector -> Standard.Base.Any.Any
 - make_format_chooser include_number:Standard.Base.Data.Boolean.Boolean= include_date:Standard.Base.Data.Boolean.Boolean= include_date_time:Standard.Base.Data.Boolean.Boolean= include_time:Standard.Base.Data.Boolean.Boolean= include_boolean:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
 - make_number_format_selector value:Standard.Base.Data.Numbers.Number= -> Standard.Base.Any.Any
-- make_regex_text_widget -> Standard.Base.Any.Any
+- make_regex_text_widget display:Standard.Base.Metadata.Display= -> Standard.Base.Any.Any
 - make_text_secret_selector display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
 - make_time_format_selector time:Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day= -> Standard.Base.Any.Any

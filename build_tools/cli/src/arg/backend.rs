@@ -55,6 +55,8 @@ pub enum Command {
     },
     /// Perform the CI check routine for the backend.
     CiCheck {},
+    /// Perform the stdlib API checks
+    StdlibApiCheck {},
 }
 
 #[derive(Args, Clone, Debug, PartialEq)]

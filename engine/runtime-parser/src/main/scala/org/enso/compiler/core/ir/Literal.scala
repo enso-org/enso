@@ -6,7 +6,7 @@ import org.enso.compiler.core.{CompilerError, IR, Identifier}
 import java.util.UUID
 
 /** Enso literals. */
-sealed trait Literal extends Expression with IRKind.Primitive {
+trait Literal extends Expression with IRKind.Primitive {
 
   /** @inheritdoc */
   override def mapExpressions(

@@ -30,6 +30,11 @@ public interface JExpression extends IR {
         @IRField boolean suspended) {
       super(expressions, returnValue, suspended);
     }
+
+    @Override
+    public String showCode(int indent) {
+      return "";
+    }
   }
 
   @GenerateIR(interfaces = {JExpression.class})
@@ -37,6 +42,11 @@ public interface JExpression extends IR {
     @GenerateFields
     public JBinding(@IRChild Name name, @IRChild JExpression expression) {
       super(name, expression);
+    }
+
+    @Override
+    public String showCode(int indent) {
+      return "";
     }
   }
 }
