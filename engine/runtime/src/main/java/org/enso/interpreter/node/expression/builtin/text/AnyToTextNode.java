@@ -64,7 +64,6 @@ public abstract class AnyToTextNode extends Node {
 
   @CompilerDirectives.TruffleBoundary
   private Text doComplexAtom(Atom atom) {
-    var interop = InteropLibrary.getUncached();
     var structs = StructsLibrary.getUncached();
     Text res = Text.create("(", consName(atom.getConstructor()));
     res = Text.create(res, " ");
