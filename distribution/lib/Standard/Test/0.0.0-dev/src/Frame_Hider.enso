@@ -57,7 +57,7 @@ type Frame_Hider
     ## PRIVATE
 
        Unhides the stack frames of the call to the user-supplied callback
-       application, curried for one argument.
+       application, uncurried for one argument.
 
        `unhide_1 f x` is Equivalent to `unhide (f x)`.
 
@@ -73,7 +73,7 @@ type Frame_Hider
     ## PRIVATE
 
        Unhides the stack frames of the call to the user-supplied callback
-       application, curried for two arguments.
+       application, uncurried for two arguments.
 
        `unhide_1 f x y` is Equivalent to `unhide (f x y)`.
 
