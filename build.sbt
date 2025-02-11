@@ -4817,6 +4817,7 @@ lazy val `benchmark-java-helpers` = project
 lazy val `std-table` = project
   .in(file("std-bits") / "table")
   .enablePlugins(Antlr4Plugin)
+  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -4840,7 +4841,11 @@ lazy val `std-table` = project
       "org.apache.xmlbeans"      % "xmlbeans"                % xmlbeansVersion,
       "org.antlr"                % "antlr4-runtime"          % antlrVersion,
       "org.apache.logging.log4j" % "log4j"                   % "2.24.3",
-      "org.apache.logging.log4j" % "log4j-to-slf4j"          % "2.24.3" // org.apache.poi uses log4j
+      "org.apache.logging.log4j" % "log4j-to-slf4j"          % "2.24.3",
+      "junit"                    % "junit"                   % junitVersion       % Test,
+      "com.github.sbt"           % "junit-interface"         % junitIfVersion     % Test,
+      "org.mockito"              % "mockito-core"            % "5.3.1"            % Test,
+      "org.mockito"              % "mockito-junit-jupiter"   % "5.3.1"            % Test
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
