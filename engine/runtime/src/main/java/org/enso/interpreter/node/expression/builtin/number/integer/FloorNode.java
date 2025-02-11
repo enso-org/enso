@@ -6,9 +6,10 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "floor", description = "Small integer floor.")
-public abstract class FloorNode extends IntegerNode {
+public abstract class FloorNode extends IntegerNode.Unary {
 
-  public abstract Object execute(Object own);
+  @Override
+  abstract Object executeUnary(Object own);
 
   public static FloorNode build() {
     return FloorNodeGen.create();

@@ -6,9 +6,6 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
@@ -18,7 +15,7 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @ImportStatic(BigIntegerOps.class)
 @BuiltinMethod(type = "Integer", name = "bit_shift", description = "Bitwise shift.")
-public abstract class BitShiftNode extends IntegerNode {
+public abstract class BitShiftNode extends IntegerNode.Binary {
 
   private final CountingConditionProfile canShiftLeftInLongProfile =
       CountingConditionProfile.create();
@@ -27,7 +24,8 @@ public abstract class BitShiftNode extends IntegerNode {
   private final CountingConditionProfile rightShiftExceedsLongWidth =
       CountingConditionProfile.create();
 
-  abstract Object execute(Object own, Object that);
+  @Override
+  abstract Object executeBinary(Object own, Object that);
 
   @NeverDefault
   static BitShiftNode build() {
@@ -44,7 +42,7 @@ public abstract class BitShiftNode extends IntegerNode {
     if (canShiftLeftInLongProfile.profile(canShiftLeftInLong(self, that))) {
       return doLongShiftLeft(self, that);
     } else if (positiveFitsInInt.profile(BigIntegerOps.fitsInInt(that))) {
-      return toEnsoNumberNode.execute(BigIntegerOps.bitShiftLeft(self, (int) that));
+      return toEnsoNumberNode().execute(BigIntegerOps.bitShiftLeft(self, (int) that));
     } else {
       return DataflowError.withDefaultTrace(
           EnsoContext.get(this).getBuiltins().error().getShiftAmountTooLargeError(), this);
@@ -100,7 +98,7 @@ public abstract class BitShiftNode extends IntegerNode {
 
   @Specialization(guards = {"that < 0", "fitsInInt(that)"})
   Object doBigIntShiftRight(EnsoBigInteger self, long that) {
-    return toEnsoNumberNode.execute(BigIntegerOps.bitShiftRight(self.getValue(), (int) -that));
+    return toEnsoNumberNode().execute(BigIntegerOps.bitShiftRight(self.getValue(), (int) -that));
   }
 
   @Specialization(guards = "that < 0", replaces = "doBigIntShiftRight")
@@ -123,15 +121,6 @@ public abstract class BitShiftNode extends IntegerNode {
       return DataflowError.withDefaultTrace(
           EnsoContext.get(this).getBuiltins().error().getShiftAmountTooLargeError(), this);
     }
-  }
-
-  @Specialization(guards = "isForeignNumber(iop, that)")
-  Object doInterop(
-      Object self,
-      TruffleObject that,
-      @CachedLibrary(limit = "3") InteropLibrary iop,
-      @Cached BitShiftNode delegate) {
-    return super.doInterop(self, that, iop, delegate);
   }
 
   @Fallback

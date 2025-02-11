@@ -1,22 +1,17 @@
 package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.number.utils.BigIntegerOps;
-import org.enso.interpreter.node.expression.builtin.number.utils.ToEnsoNumberNode;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
 @BuiltinMethod(type = "Integer", name = "+", description = "Addition of numbers.")
-public abstract class AddNode extends IntegerNode {
+public abstract class AddNode extends IntegerNode.Binary {
 
-  public abstract Object execute(Object own, Object that);
+  @Override
+  abstract Object executeBinary(Object own, Object that);
 
   public static AddNode build() {
     return AddNodeGen.create();
@@ -29,7 +24,7 @@ public abstract class AddNode extends IntegerNode {
 
   @Specialization(replaces = "doLong")
   Object doOverflow(long self, long that) {
-    return toEnsoNumberNode.execute(BigIntegerOps.add(self, that));
+    return toEnsoNumberNode().execute(BigIntegerOps.add(self, that));
   }
 
   @Specialization
@@ -40,52 +35,23 @@ public abstract class AddNode extends IntegerNode {
   @TruffleBoundary
   @Specialization
   Object doBigIntegers(EnsoBigInteger self, EnsoBigInteger that) {
-    return toEnsoNumberNode.execute(self.asBigInteger().add(that.asBigInteger()));
+    return toEnsoNumberNode().execute(self.asBigInteger().add(that.asBigInteger()));
   }
 
   @Specialization
   Object doLongBigInteger(long self, EnsoBigInteger that) {
-    return toEnsoNumberNode.execute(BigIntegerOps.add(that.getValue(), self));
+    return toEnsoNumberNode().execute(BigIntegerOps.add(that.getValue(), self));
   }
 
   @Specialization
   Object doBigIntegerLong(EnsoBigInteger self, long that) {
-    return toEnsoNumberNode.execute(BigIntegerOps.add(self.getValue(), that));
+    return toEnsoNumberNode().execute(BigIntegerOps.add(self.getValue(), that));
   }
 
   @Specialization
   @TruffleBoundary
   double doBigIntDouble(EnsoBigInteger self, double that) {
     return self.getValue().doubleValue() + that;
-  }
-
-  @Specialization(guards = "isForeignNumber(iop, self)")
-  Object doInterop(
-      TruffleObject self,
-      Object that,
-      @CachedLibrary(limit = "3") InteropLibrary iop,
-      @Cached ToEnsoNumberNode toNumber,
-      @Cached AddNode delegate) {
-    Object value;
-    try {
-      if (iop.fitsInLong(self)) {
-        value = iop.asLong(self);
-      } else {
-        value = toNumber.execute(iop.asBigInteger(self));
-      }
-    } catch (UnsupportedMessageException ex) {
-      throw throwTypeErrorIfNotInt(self, that);
-    }
-    return delegate.execute(value, that);
-  }
-
-  @Specialization(guards = "isForeignNumber(iop, that)")
-  Object doInterop(
-      Object self,
-      TruffleObject that,
-      @CachedLibrary(limit = "3") InteropLibrary iop,
-      @Cached AddNode delegate) {
-    return super.doInterop(self, that, iop, delegate);
   }
 
   @Fallback
