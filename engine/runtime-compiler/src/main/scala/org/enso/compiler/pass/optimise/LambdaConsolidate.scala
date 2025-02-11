@@ -219,10 +219,11 @@ case object LambdaConsolidate extends IRPass {
       if (isShadowed) {
         val restArgs = args.drop(ix + 1)
         arg match {
-          case spec @ DefinitionArgument.Specified(argName, _, _, _, _, _) =>
+          case spec: DefinitionArgument.Specified =>
+            val argName = spec.name
             val mShadower = restArgs.collectFirst {
-              case s @ DefinitionArgument.Specified(sName, _, _, _, _, _)
-                  if sName.name == argName.name =>
+              case s: DefinitionArgument.Specified
+                  if s.name.name == argName.name =>
                 s
             }
 
@@ -404,6 +405,7 @@ case object LambdaConsolidate extends IRPass {
           } else Set[UUID @Identifier]()
 
         usageIds
+      case _ => Set[UUID @Identifier]()
     }
   }
 
@@ -434,7 +436,8 @@ case object LambdaConsolidate extends IRPass {
               )
           } else oldName
 
-        spec.copy(name = newName)
+        spec.withName(newName)
+      case (arg, _) => arg
     }
   }
 
@@ -467,7 +470,8 @@ case object LambdaConsolidate extends IRPass {
 
     val processedArgList = args.zip(newDefaults).map {
       case (spec: DefinitionArgument.Specified, default) =>
-        spec.copy(defaultValue = default)
+        spec.copyWithDefaultValue(default)
+      case (arg, _) => arg
     }
 
     (processedArgList, newBody)

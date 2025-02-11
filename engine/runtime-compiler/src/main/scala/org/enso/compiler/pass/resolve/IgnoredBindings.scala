@@ -210,17 +210,11 @@ case object IgnoredBindings extends IRPass {
     freshNameSupply: FreshNameSupply
   ): DefinitionArgument = {
     arg match {
-      case spec @ DefinitionArgument.Specified(
-            Name.Self(_, _, _),
-            _,
-            _,
-            _,
-            _,
-            _
-          ) =>
+      case spec: DefinitionArgument.Specified
+          if spec.name.isInstanceOf[Name.Self] =>
         // Note [Ignored `this` Argument]
         spec
-          .copy(defaultValue =
+          .copyWithDefaultValue(
             spec.defaultValue.map(resolveExpression(_, freshNameSupply))
           )
           .updateMetadata(new MetadataPair(this, State.Ignored))
@@ -244,9 +238,8 @@ case object IgnoredBindings extends IRPass {
         } else {
           setNotIgnored(
             spec
-              .copy(
-                defaultValue =
-                  spec.defaultValue.map(resolveExpression(_, freshNameSupply))
+              .copyWithDefaultValue(
+                spec.defaultValue.map(resolveExpression(_, freshNameSupply))
               )
           )
         }
@@ -260,8 +253,8 @@ case object IgnoredBindings extends IRPass {
     */
   private def isIgnoreArg(ir: DefinitionArgument): Boolean = {
     ir match {
-      case DefinitionArgument.Specified(name, _, _, _, _, _) =>
-        isIgnore(name)
+      case spec: DefinitionArgument.Specified =>
+        isIgnore(spec.name)
     }
   }
 
