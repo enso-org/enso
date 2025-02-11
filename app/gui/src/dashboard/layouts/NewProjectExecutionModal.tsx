@@ -330,6 +330,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
           name="timeZone"
           label={getText('timeZoneLabel')}
           items={Intl.supportedValuesOf('timeZone')}
+          className="w-52"
         >
           {(otherTimeZone) => otherTimeZone}
         </ComboBox>
