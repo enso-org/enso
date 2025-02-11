@@ -1,16 +1,15 @@
-package org.enso.interpreter.test;
+package org.enso.interpreter.node.expression.builtin.number.integer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.math.BigInteger;
-import org.enso.interpreter.node.expression.builtin.number.integer.AbsNode;
-import org.enso.interpreter.node.expression.builtin.number.integer.AddNode;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
+import org.enso.interpreter.test.WrappedPrimitive;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
 import org.graalvm.polyglot.Context;
