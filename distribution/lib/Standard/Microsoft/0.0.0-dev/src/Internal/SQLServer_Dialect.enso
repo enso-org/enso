@@ -296,7 +296,7 @@ type SQLServer_Dialect
             Feature.Join -> True
             Feature.Union -> True
             Feature.Aggregate -> True
-            Feature.Offset -> True
+            Feature.Column_Operations -> True
             _ -> False
 
     ## PRIVATE
@@ -421,10 +421,16 @@ private _generate_expression dialect base_gen expr expression_kind:Expression_Ki
         typed_result = _align_type wrapped_name Expression_Kind.Value expression_kind
         pair typed_result [wrapped_name]
     SQL_Expression.Constant value -> 
-        wrapped = case value of
-            Nothing -> SQL_Builder.code "NULL"
-            _ -> SQL_Builder.interpolation value
-        pair wrapped [wrapped]
+        wrapped = case expression_kind of
+            Expression_Kind.Value -> case value of
+                Nothing -> SQL_Builder.code "NULL"
+                _ -> SQL_Builder.interpolation value
+            Expression_Kind.Boolean_Condition -> case value of
+                Nothing -> SQL_Builder.code "NULL=1"
+                True -> SQL_Builder.code "1=1"
+                False -> SQL_Builder.code "1=0"
+                _ -> SQL_Builder.interpolation value
+        pair wrapped []
     SQL_Expression.Literal value ->
         modified_value = case value of
             "TRUE" -> "1"
@@ -490,14 +496,15 @@ private _op_expected_kind op arg_pos -> Expression_Kind =
     case op of
         "NOT" -> Expression_Kind.Boolean_Condition
         "IIF" -> [Expression_Kind.Boolean_Condition, Expression_Kind.Value, Expression_Kind.Value] . at arg_pos
+        "AND" -> Expression_Kind.Boolean_Condition
         _ -> Expression_Kind.Value
 
 private _op_return_kind op -> Expression_Kind = 
-    return_bool_ops = ["NOT", "BETWEEN", ">=", ">", "<=", "<", "!=", "==", "IN", "IS_NULL", "LIKE", "STARTS_WITH", "ENDS_WITH", "CONTAINS", "EQUALS_IGNORE_CASE", "IS_EMPTY"]
+    return_bool_ops = ["NOT", "BETWEEN", ">=", ">", "<=", "<", "!=", "==", "IN", "IS_NULL", "LIKE", "STARTS_WITH", "ENDS_WITH", "CONTAINS", "EQUALS_IGNORE_CASE", "IS_EMPTY", "IS_NAN", "IS_FINITE", "IS_INF"]
     if return_bool_ops.contains op then Expression_Kind.Boolean_Condition else Expression_Kind.Value
 
 private _op_needs_to_materialize_null_checks op -> Boolean =
-    ["FILL_NULL", "COALESCE", "COUNT_IS_NULL", "COUNT_EMPTY", "COUNT_NOT_EMPTY", "COUNT", "SUM", "AVG", "LONGEST", "SHORTEST", "COUNT_DISTINCT", "COUNT_DISTINCT_INCLUDE_NULL", "STDDEV_POP", "STDDEV_SAMP", "CONCAT", "CONCAT_QUOTE_IF_NEEDED", "MIN", "MAX"].contains op
+    ["FILL_NULL", "COALESCE", "COUNT_IS_NULL", "COUNT_EMPTY", "COUNT_NOT_EMPTY", "COUNT", "SUM", "AVG", "LONGEST", "SHORTEST", "COUNT_DISTINCT", "COUNT_DISTINCT_INCLUDE_NULL", "STDDEV_POP", "STDDEV_SAMP", "CONCAT", "CONCAT_QUOTE_IF_NEEDED", "MIN", "MAX", "NOT", "AND"].contains op
 
 ## PRIVATE
 make_dialect_operations =
@@ -506,14 +513,14 @@ make_dialect_operations =
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     arith_extensions = [floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
     bool = [bool_or]
-
+    logic = [_make_and]
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "STDEVP"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "STDEV"]
     stats = [stddev_pop, stddev_samp]
     date_ops = [["year", Base_Generator.make_function "year"], make_datepart "quarter", ["month", Base_Generator.make_function "month"], make_datepart "week" "iso_week", ["day", Base_Generator.make_function "day"], make_datepart "hour", make_datepart "minute", make_datepart "day_of_year" "dayofyear", make_day_of_week, make_datepart "second", make_datepart "millisecond", make_extract_microsecond, ["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
     special_overrides = [is_empty, ["IIF", _make_iif]]
     other = [["RUNTIME_ERROR", make_runtime_error_op]]
-    my_mappings = text + counts + arith_extensions + bool + stats + date_ops + special_overrides + other
+    my_mappings = text + counts + arith_extensions + bool + logic + stats + date_ops + special_overrides + other
     base = Base_Generator.base_dialect_operations . extend_with my_mappings
     Base_Generator.Dialect_Operations.Value (base.operations_dict.remove "IS_IN")
 
@@ -650,6 +657,9 @@ make_order_descriptor internal_column sort_direction text_ordering =
 ## PRIVATE
 bool_or = Base_Generator.lift_unary_op "BOOL_OR" arg->
     SQL_Builder.code "bool_or(" ++ arg ++ ")"
+
+_make_and = Base_Generator.lift_binary_op "AND" first-> second->
+    SQL_Builder.code "CASE WHEN " ++ first ++ " AND " ++ second ++ " THEN CAST(1 AS BIT) WHEN NOT " ++ first ++ " OR NOT " ++ second ++ " THEN CAST(0 AS BIT) ELSE NULL END"
 
 ## PRIVATE
 bool_not = Base_Generator.lift_unary_op "NOT" arg->

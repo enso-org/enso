@@ -951,13 +951,9 @@ type DB_Column
         new_name = self.naming_helper.function_name "round" [self]
         case use_bankers of
             True ->
-                    self.make_binary_op "ROUND_BANKERS" (SQL_Expression.Literal decimal_places.to_text) new_name
+                self.make_binary_op "ROUND_BANKERS" (SQL_Expression.Literal decimal_places.to_text) new_name
             False ->
-                case decimal_places == 0 of
-                    True ->
-                        self.make_unary_op "ROUND" new_name
-                    False ->
-                        self.make_binary_op "ROUND" (SQL_Expression.Literal decimal_places.to_text) new_name
+                self.make_binary_op "ROUND" (SQL_Expression.Literal decimal_places.to_text) new_name
 
     ## PRIVATE
        Round a float-like column.
