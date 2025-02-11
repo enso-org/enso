@@ -222,26 +222,19 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
           defaultDate={toZoned(selectedDate, timeZone)}
         />
       </DialogTrigger>
-      <>
-        <Text>
-          {getText(
-            'projectSessionsOnX',
-            Intl.DateTimeFormat().format(selectedDate.toDate(timeZone)),
-          )}
-        </Text>
-        {projectExecutionsForToday.length === 0 ?
-          <Text color="disabled">{getText('noProjectExecutions')}</Text>
-        : projectExecutionsForToday.map(({ projectExecution, date }) => (
-            <ProjectExecution
-              hideDay
-              backend={backend}
-              item={item}
-              projectExecution={projectExecution}
-              date={date}
-            />
-          ))
-        }
-      </>
+      <Text>{getText('projectSessionsOnX', selectedDate.toString())}</Text>
+      {projectExecutionsForToday.length === 0 ?
+        <Text color="disabled">{getText('noProjectExecutions')}</Text>
+      : projectExecutionsForToday.map(({ projectExecution, date }) => (
+          <ProjectExecution
+            hideDay
+            backend={backend}
+            item={item}
+            projectExecution={projectExecution}
+            date={date}
+          />
+        ))
+      }
     </Form>
   )
 }
