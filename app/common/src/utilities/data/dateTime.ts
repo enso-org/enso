@@ -111,6 +111,12 @@ export function toRfc3339(date: Date) {
   return Rfc3339DateTime(date.toISOString())
 }
 
+/** Format a {@link Date} as a human-readable ISO string (`YYYY-MM-DD HH:mm`). */
+export function toReadableIsoString(date: Date) {
+  const [, dateString, time] = date.toISOString().match(/(.+)T(\d+:\d+)/) ?? []
+  return `${dateString} ${time}`
+}
+
 /** Convert a UTC date to a local date. */
 export function localDateToUtcDate(date: Date) {
   return new Date(Number(date) + date.getTimezoneOffset() * MINUTE_MS)

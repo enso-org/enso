@@ -53,6 +53,7 @@ import {
   DAY_3_LETTER_TEXT_IDS,
   DAY_TEXT_IDS,
   MONTH_3_LETTER_TEXT_IDS,
+  toReadableIsoString,
   toRfc3339,
 } from 'enso-common/src/utilities/data/dateTime'
 import { useEffect, useRef } from 'react'
@@ -62,7 +63,6 @@ const MAX_DURATION_MINIMUM_MINUTES = 1
 const MAX_DURATION_MAXIMUM_MINUTES = 180
 const REPEAT_TIMES_COUNT = 3
 const DAYS_PER_WEEK = 7
-const HOURS_PER_DAY = 24
 const MONTHS_PER_YEAR = 12
 const INTERNAL_REPEAT_TYPES = [
   'none',
@@ -99,16 +99,6 @@ const UPSERT_EXECUTION_SCHEMA = z
       .min(1)
       .transform((arr) => arr.sort((a, b) => a - b))
       .readonly(),
-    startHour: z
-      .number()
-      .int()
-      .min(0)
-      .max(HOURS_PER_DAY - 1),
-    endHour: z
-      .number()
-      .int()
-      .min(0)
-      .max(HOURS_PER_DAY - 1),
     startDate: z.instanceof(ZonedDateTime).or(z.null()).optional(),
     timeZone: z.string(),
     maxDurationMinutes: z
@@ -370,13 +360,12 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
           {(n) => getText(MONTH_3_LETTER_TEXT_IDS[n] ?? 'january3')}
         </MultiSelector>
       )}
-      <Text>{getText('repeatsAt')}</Text>
-      {repeatTimes
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        .map(Intl.DateTimeFormat(undefined, { dateStyle: 'short' }).format)
-        .map((dateString, i) => (
-          <Text key={i}>{dateString}</Text>
+      <div>
+        <Text>{getText('repeatsAt')}</Text>
+        {repeatTimes.map((dateTime, i) => (
+          <Text key={i}>{toReadableIsoString(dateTime)}</Text>
         ))}
+      </div>
       {enableAdvancedProjectExecutionOptions && (
         <details className="w-full">
           <summary className="cursor-pointer">{getText('advancedOptions')}</summary>
