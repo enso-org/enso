@@ -462,8 +462,11 @@ final class EnsoModuleAST {
     }
     bldr.id(nodeId);
     props.forEach(bldr::property);
+    var existingNode = nodes.get(nodeId);
+    if (existingNode != null) {
+      return existingNode;
+    }
     var node = bldr.build();
-    assert !nodes.containsKey(node.getId());
     nodes.put(node.getId(), node);
     if (currentBlockBldr() != null) {
       currentBlockBldr().addNode(node);

@@ -6,8 +6,6 @@ import java.util.List;
 import java.util.function.BiFunction;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.cast.CastProblemAggregator;
-import org.enso.table.data.column.operation.cast.StorageConverter;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.numeric.LongConstantStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -410,12 +408,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
       context.safepoint();
     }
     return builder.seal();
-  }
-
-  public final Storage<?> cast(
-      StorageType targetType, CastProblemAggregator castProblemAggregator) {
-    StorageConverter<?> converter = StorageConverter.fromStorageType(targetType);
-    return converter.cast(this, castProblemAggregator);
   }
 
   /** Creates a storage containing a single repeated item. */

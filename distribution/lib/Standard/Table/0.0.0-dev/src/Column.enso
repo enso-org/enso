@@ -42,17 +42,15 @@ from project.Internal.Storage import enso_to_java, java_to_enso
 from project.Table import from_java_table
 
 polyglot java import org.enso.base.Time_Utils
-polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
 polyglot java import org.enso.table.data.column.operation.CountNothing
 polyglot java import org.enso.table.data.column.operation.CountUntrimmed
 polyglot java import org.enso.table.data.column.operation.CountNonTrivialWhitespace
 polyglot java import org.enso.table.data.column.operation.SampleOperation
+polyglot java import org.enso.table.data.column.operation.cast.CastOperation
 polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
 polyglot java import org.enso.table.data.column.operation.unary.DateTruncateOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsEmptyOperation
-polyglot java import org.enso.table.data.column.operation.unary.IsFiniteOperation
-polyglot java import org.enso.table.data.column.operation.unary.IsInfiniteOperation
-polyglot java import org.enso.table.data.column.operation.unary.IsNaNOperation
+polyglot java import org.enso.table.data.column.operation.unary.DoubleIsOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsNothingOperation
 polyglot java import org.enso.table.data.column.operation.unary.NotOperation
 polyglot java import org.enso.table.data.column.operation.unary.TextLengthOperation
@@ -1098,7 +1096,7 @@ type Column
         fallback x = case x of
             _ : Float   -> x.is_nan
             _           -> False
-        apply_unary_operation self IsNaNOperation.INSTANCE new_name if_unsupported=(apply_unary_map self new_name fallback Value_Type.Boolean)
+        apply_unary_operation self DoubleIsOperation.IS_NAN new_name if_unsupported=(apply_unary_map self new_name fallback Value_Type.Boolean)
 
     ## GROUP Standard.Base.Math
        ICON math
@@ -1111,7 +1109,7 @@ type Column
         fallback x = case x of
             _ : Float   -> x.is_infinite
             _           -> False
-        apply_unary_operation self IsInfiniteOperation.INSTANCE new_name if_unsupported=(apply_unary_map self new_name fallback Value_Type.Boolean)
+        apply_unary_operation self DoubleIsOperation.IS_INFINITE new_name if_unsupported=(apply_unary_map self new_name fallback Value_Type.Boolean)
 
     ## GROUP Standard.Base.Math
        ICON math
@@ -1124,7 +1122,7 @@ type Column
         fallback x = case x of
             _ : Float   -> x.is_finite
             _           -> True
-        apply_unary_operation self IsFiniteOperation.INSTANCE new_name if_unsupported=(apply_unary_map self new_name fallback Value_Type.Boolean)
+        apply_unary_operation self DoubleIsOperation.IS_FINITE new_name if_unsupported=(apply_unary_map self new_name fallback Value_Type.Boolean)
 
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
@@ -1531,10 +1529,10 @@ type Column
        - remove: A vector of the text cleanings to remove from the text. The text cleansings are
           applied in the order they are provided. The same text cleansing can be used multiple
           times. The text cleansings are:
-            - ..Leading_Whitespace: Removes all whitspace from the start of the string.
-            - ..Trailing_Whitespace: Removes all whitspace from the end of the string.
-            - ..Duplicate_Whitespace: Removes all duplicate whitspace from the string replacing it with the first whitespace character of the duplicated block.
-            - ..All_Whitespace: Removes all whitspace from the string.
+            - ..Leading_Whitespace: Removes all whitespace from the start of the string.
+            - ..Trailing_Whitespace: Removes all whitespace from the end of the string.
+            - ..Duplicate_Whitespace: Removes all duplicate whitespace from the string replacing it with the first whitespace character of the duplicated block.
+            - ..All_Whitespace: Removes all whitespace from the string.
             - ..Newlines: Removes all newline characters from the string. Line Feed and Carriage Return characters are considered newlines.
             - ..Leading_Numbers: Removes all numbers from the start of the string.
             - ..Trailing_Numbers: Removes all numbers from the end of the string.
@@ -2013,9 +2011,8 @@ type Column
         Cast_Helpers.check_cast_compatibility self.value_type value_type <|
             target_storage_type = Storage.from_value_type value_type on_problems
             Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-                cast_problem_builder = CastProblemAggregator.new java_problem_aggregator self.name target_storage_type
-                new_storage = self.java_column.getStorage.cast target_storage_type cast_problem_builder
-                Column.from_storage self.name new_storage
+                new_column = CastOperation.apply self.java_column target_storage_type java_problem_aggregator
+                Column.from_java_column new_column
 
     ## ALIAS auto_value_type
        GROUP Standard.Base.Conversions
