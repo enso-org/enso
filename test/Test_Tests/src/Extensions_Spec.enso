@@ -119,7 +119,7 @@ add_specs suite_builder =
             should_equal_a checker x = omitting <|
                 unomitting (checker x)
             should_equal_b checker x = omitting <|
-                should_equal_a (wrap_unomitting checker x)
+                should_equal_a (unomitting_1 checker x)
 
             my_checker x =
                 x . should_equal "ac"
@@ -132,7 +132,7 @@ add_specs suite_builder =
             should_equal_a checker x y = omitting <|
                 unomitting (checker x y)
             should_equal_b checker x y = omitting <|
-                should_equal_a (wrap_unomitting_2 checker x y)
+                should_equal_a (unomitting_2 checker x y)
 
             my_checker x y =
                 x.should_equal y
