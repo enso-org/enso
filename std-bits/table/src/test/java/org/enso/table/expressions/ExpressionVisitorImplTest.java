@@ -5,21 +5,21 @@ import static org.mockito.Mockito.*;
 import java.util.function.Function;
 
 import org.graalvm.polyglot.Value;
+import org.junit.Before;
 import org.junit.Test;
-import org.junit.jupiter.api.BeforeEach;
-
 import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 
 public class ExpressionVisitorImplTest {
-private Function<String, Value> getColumn;
+    private Function<String, Value> getColumn;
     private Function<Object, Value> makeConstantColumn;
 
-    @BeforeEach
-    void setUp() {
-        getColumn = Mockito.mock(Function.class);
-        makeConstantColumn = Mockito.mock(Function.class);
+    @SuppressWarnings("unchecked")
+    @Before
+    public void setUp() {
+        getColumn = (Function<String, Value>) mock(Function.class);
+        makeConstantColumn = (Function<Object, Value>) mock(Function.class);
     }
 
     private Value evaluate(String expr) {
@@ -30,6 +30,6 @@ private Function<String, Value> getColumn;
     @Test
     public void testAddition() {
         Value result = evaluate("1 + 2");
-        assertEquals(4, result);
+        assertEquals(3, result.asInt()); // Fix: Use .asInt() for correct comparison
     }
 }
