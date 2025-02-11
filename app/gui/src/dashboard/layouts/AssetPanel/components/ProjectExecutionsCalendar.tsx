@@ -26,6 +26,7 @@ import {
   Heading,
 } from '#/components/aria'
 import { Button, DialogTrigger, Form, Text } from '#/components/AriaComponents'
+import { listProjectExecutionsQueryOptions } from '#/hooks/backendHooks'
 import { useStore } from '#/hooks/storeHooks'
 import { assetPanelStore } from '#/layouts/AssetPanel/AssetPanelState'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
@@ -109,13 +110,9 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
     defaultValue: todayDate,
   })
 
-  const projectExecutionsQuery = useSuspenseQuery({
-    queryKey: [backend.type, 'listProjectExecutions', item.id, item.title],
-    queryFn: async () => {
-      const executions = await backend.listProjectExecutions(item.id, item.title)
-      return [...executions].reverse()
-    },
-  })
+  const projectExecutionsQuery = useSuspenseQuery(
+    listProjectExecutionsQueryOptions(backend, item.id, item.title),
+  )
   const projectExecutions = projectExecutionsQuery.data
 
   const start = startOfMonth(focusedMonth)

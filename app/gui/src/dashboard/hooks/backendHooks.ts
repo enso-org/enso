@@ -53,6 +53,8 @@ import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/object'
 import { useMemo } from 'react'
 
+const PROJECT_EXECUTIONS_STALE_TIME = 60_000
+
 /** Ensure that the given type contains only names of backend methods. */
 type DefineBackendMethods<T extends keyof Backend> = T
 
@@ -914,5 +916,18 @@ export function duplicateProjectMutationOptions(
         })
       })
     },
+  })
+}
+
+/** Build a query options object to list executions for a project. */
+export function listProjectExecutionsQueryOptions(
+  backend: Backend,
+  id: backendModule.ProjectId,
+  title: string,
+) {
+  return queryOptions({
+    ...backendQueryOptions(backend, 'listProjectExecutions', [id, title]),
+    select: (executions) => [...executions].reverse(),
+    staleTime: PROJECT_EXECUTIONS_STALE_TIME,
   })
 }
