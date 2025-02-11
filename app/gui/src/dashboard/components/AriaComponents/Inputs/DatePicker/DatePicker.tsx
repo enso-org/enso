@@ -55,8 +55,9 @@ const DATE_PICKER_STYLES = tv({
   },
   slots: {
     inputGroup: 'flex items-center gap-2 rounded-full border-0.5 border-primary/20',
-    dateInput: 'flex justify-center grow',
+    dateInput: 'flex justify-center grow order-2',
     dateSegment: 'rounded placeholder-shown:text-primary/30 focus:bg-primary/10 px-[0.5px]',
+    calendarButton: 'order-1 rotate-90',
     resetButton: '',
     calendarPopover: '',
     calendarDialog: 'text-primary text-xs mx-2',
@@ -162,7 +163,6 @@ export const DatePicker = forwardRef(function DatePicker<
           >
             <Label />
             <Group className={styles.inputGroup()}>
-              <Button variant="icon" icon={ArrowIcon} className="rotate-90" />
               {/* Use Swedish locale (`sv`) because it uses ISO dates. */}
               <I18nProvider locale="sv">
                 <DateInput className={styles.dateInput()}>
@@ -173,6 +173,7 @@ export const DatePicker = forwardRef(function DatePicker<
                   }
                 </DateInput>
               </I18nProvider>
+              <Button variant="icon" icon={ArrowIcon} className={styles.calendarButton()} />
               {!noResetButton && <DatePickerResetButton className={styles.resetButton()} />}
             </Group>
             {props.description != null && <Text slot="description" />}
