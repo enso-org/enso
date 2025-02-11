@@ -3160,7 +3160,7 @@ type Table
     union self tables:(Table | Vector) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (match_columns : Match_Columns = ..By_Name) (on_problems : Problem_Behavior = ..Report_Warning) =
         Table.from_union ([self] + Vector.unify_vector_or_element tables) columns_to_keep match_columns on_problems
 
-    ## ALIAS drop_missing_rows, dropna
+    ## ALIAS drop_empty_rows, drop_missing_rows, dropna, filter_empty_rows, remove_blank_rows, remove_empty_rows, remove_missing_rows
        GROUP Standard.Base.Selections
        ICON preparation
        Remove rows which are all blank or containing blank values.
