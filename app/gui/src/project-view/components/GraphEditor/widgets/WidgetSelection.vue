@@ -35,7 +35,7 @@ import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
 import { ToValue } from '@/util/reactivity'
 import { autoUpdate, offset, shift, size, useFloating } from '@floating-ui/vue'
 import type { Ref, RendererNode, VNode } from 'vue'
-import { computed, proxyRefs, reactive, ref, shallowRef, toValue, watch } from 'vue'
+import { computed, proxyRefs, ref, shallowRef, toValue, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
@@ -53,7 +53,7 @@ const editedValue = ref<Ast.Owned<Ast.MutableExpression> | string | undefined>()
 const isHovered = ref(false)
 /** See @{link Actions.setActivity} */
 const activity = shallowRef<ToValue<VNode>>()
-const keptAliveActivities = reactive([] as string[])
+const keepActivityAlive = ref(false)
 
 // How much wider a dropdown can be than a port it is attached to, when a long text is present.
 // Any text beyond that limit will receive an ellipsis and sliding animation on hover.
@@ -340,21 +340,7 @@ function toggleDropdownWidget() {
 const dropdownActions: Actions = {
   setActivity: (newActivity, keepAlive = false) => {
     activity.value = newActivity
-    if (keepAlive) {
-      const activity = toValue(newActivity)
-      const activityName =
-        (
-          typeof activity.type === 'object' &&
-          'name' in activity.type &&
-          typeof activity.type.name === 'string'
-        ) ?
-          activity.type.name
-        : undefined
-      if (activityName == null) {
-        console.warn('DropDown activity wanted to be kept alive, but provides no name', activity)
-      } else if (!keptAliveActivities.find((x) => x === activityName))
-        keptAliveActivities.push(activityName)
-    }
+    keepActivityAlive.value = keepAlive
   },
   close: dropDownInteraction.end.bind(dropDownInteraction),
 }
@@ -533,8 +519,14 @@ declare module '@/providers/widgetRegistry' {
         :style="activityStyles"
       >
         <SizeTransition height :duration="100">
-          <KeepAlive :include="keptAliveActivities">
-            <component :is="dropDownInteraction.isActive() && activity && toValue(activity)" />
+          <KeepAlive include="KeepAlive">
+            <KeepAlive v-if="keepActivityAlive">
+              <component :is="dropDownInteraction.isActive() && activity && toValue(activity)" />
+            </KeepAlive>
+            <comopnent
+              :is="dropDownInteraction.isActive() && activity && toValue(activity)"
+              v-else
+            />
           </KeepAlive>
         </SizeTransition>
       </div>

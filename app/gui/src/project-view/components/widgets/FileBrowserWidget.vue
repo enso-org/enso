@@ -224,7 +224,7 @@ onMounted(() => {
         @keydown.delete.stop
         @keydown.arrow-left.stop
         @keydown.arrow-right.stop
-        @keydown.enter="acceptCurrentFile() === false || $event.stopPropagation()"
+        @keydown.enter.stop="acceptCurrentFile()"
       />
       <SvgButton
         class="fileNameAcceptButton"
