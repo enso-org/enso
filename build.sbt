@@ -604,6 +604,7 @@ val googleApiClientVersion         = "2.2.0"
 val googleApiServicesSheetsVersion = "v4-rev612-1.25.0"
 val googleAnalyticsAdminVersion    = "0.62.0"
 val googleAnalyticsDataVersion     = "0.63.0"
+val grpcVersion                    = "1.67.1"
 
 // === Other ==================================================================
 
@@ -3786,6 +3787,9 @@ lazy val `engine-runner` = project
         `image-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
         `table-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
         `database-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
+        `google-api-polyglot-root`
+          .listFiles("*.jar")
+          .map(_.getAbsolutePath()) ++
         `std-aws-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
         `std-microsoft-polyglot-root`
           .listFiles("*.jar")
@@ -4688,6 +4692,8 @@ val `image-polyglot-root` = stdLibComponentRoot("Image") / "polyglot" / "java"
 val `image-native-libs`   = stdLibComponentRoot("Image") / "polyglot" / "lib"
 val `google-api-polyglot-root` =
   stdLibComponentRoot("Google_Api") / "polyglot" / "java"
+val `google-api-native-libs` =
+  stdLibComponentRoot("Google_Api") / "polyglot" / "lib"
 val `database-polyglot-root` =
   stdLibComponentRoot("Database") / "polyglot" / "java"
 val `std-aws-polyglot-root` =
@@ -4918,17 +4924,33 @@ lazy val `std-google-api` = project
       "com.google.api-client" % "google-api-client"          % googleApiClientVersion exclude ("com.google.code.findbugs", "jsr305"),
       "com.google.apis"       % "google-api-services-sheets" % googleApiServicesSheetsVersion exclude ("com.google.code.findbugs", "jsr305"),
       "com.google.analytics"  % "google-analytics-admin"     % googleAnalyticsAdminVersion exclude ("com.google.code.findbugs", "jsr305"),
-      "com.google.analytics"  % "google-analytics-data"      % googleAnalyticsDataVersion exclude ("com.google.code.findbugs", "jsr305")
+      "com.google.analytics"  % "google-analytics-data"      % googleAnalyticsDataVersion exclude ("com.google.code.findbugs", "jsr305"),
+      "io.grpc"               % "grpc-netty-shaded"          % grpcVersion
     ),
+    // Extract native libraries from grpc-netty-shaded-***.jar, and put them under
+    // Standard/Google_Api/polyglot/lib directory. The minimized jar will
+    // be put under Standard/Google_Api/polyglot/java directory.
+    extractNativeLibs := {
+      StdBits
+        .extractNativeLibsFromGrpc(
+          `google-api-polyglot-root`,
+          `google-api-native-libs`,
+          grpcVersion
+        )
+        .value
+    },
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
-      val _ = StdBits
+      StdBits
         .copyDependencies(
           `google-api-polyglot-root`,
           Seq("std-google-api.jar"),
-          ignoreScalaLibrary = true
+          ignoreScalaLibrary = true,
+          ignoreDependencyIncludeTransitive =
+            Some(s"grpc-netty-shaded-${grpcVersion}")
         )
         .value
+      extractNativeLibs.value
       result
     }.value
   )
