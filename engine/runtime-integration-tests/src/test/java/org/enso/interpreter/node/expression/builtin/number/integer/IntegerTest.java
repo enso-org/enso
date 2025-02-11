@@ -98,6 +98,16 @@ public class IntegerTest {
   }
 
   @Test
+  public void testAdd21And1Point0() {
+    ContextUtils.executeInContext(
+        ctx,
+        () -> {
+          assertEquals(23.1, ((Number) addNode.execute(22L, 1.1)).doubleValue(), 0.01);
+          return null;
+        });
+  }
+
+  @Test
   public void testAddMulti21And1() {
     ContextUtils.executeInContext(
         ctx,

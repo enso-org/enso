@@ -62,11 +62,21 @@ public class FloatTest {
   }
 
   @Test
-  public void testAdd21And1() {
+  public void testAdd21And1Point0() {
     ContextUtils.executeInContext(
         ctx,
         () -> {
           assertEquals(23.1, addNode.execute(22.0, 1.1), 0.01);
+          return null;
+        });
+  }
+
+  @Test
+  public void testAdd21And1() {
+    ContextUtils.executeInContext(
+        ctx,
+        () -> {
+          assertEquals(23.1, addNode.execute(22.1, 1L), 0.01);
           return null;
         });
   }

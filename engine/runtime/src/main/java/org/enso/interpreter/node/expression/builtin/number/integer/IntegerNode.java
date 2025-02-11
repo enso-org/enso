@@ -52,6 +52,9 @@ public sealed abstract class IntegerNode extends Node permits IntegerNode.Unary,
     if (obj instanceof EnsoBigInteger) {
       return obj;
     }
+    if (acceptDouble && obj instanceof Double) {
+      return obj;
+    }
     if (obj instanceof TruffleObject) {
       try {
         if (iop == null) {
