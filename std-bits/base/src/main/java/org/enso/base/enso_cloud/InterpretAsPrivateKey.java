@@ -16,7 +16,8 @@ public record InterpretAsPrivateKey(HideableValue value) implements HideableValu
 
   @Override
   public String safeResolve() throws EnsoSecretAccessDenied {
-    throw new IllegalArgumentException("InterpretAsPrivateKey should only be used in context of JDBC.");
+    throw new IllegalArgumentException(
+        "InterpretAsPrivateKey should only be used in context of JDBC.");
   }
 
   @Override
