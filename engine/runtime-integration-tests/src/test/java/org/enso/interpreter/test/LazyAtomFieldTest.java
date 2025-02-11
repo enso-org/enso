@@ -182,7 +182,7 @@ public class LazyAtomFieldTest {
             gen n = Generator.Value n (gen n+1)
             gen 2
 
-        main =
+        main _ =
             two = natural
             two.to_text
         """,
