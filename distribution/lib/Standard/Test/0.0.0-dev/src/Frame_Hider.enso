@@ -7,21 +7,21 @@ pst s st =
     IO.println "==== "+s
     st . map_with_index (i-> x-> IO.println i.to_text+": "+x.to_text)
 
-Frame_Hider.hide ~action =
+hide ~action =
     #IO.println "AAAAA "+Frame_Hider.get_top_stack_frame
     action
 
-Frame_Hider.unhide ~action =
+unhide ~action =
     #IO.println "AAAAA "+Frame_Hider.get_top_stack_frame
     action
 
-Frame_Hider.unhide_1 f x =
+unhide_1 f x =
     f x
 
-Frame_Hider.unhide_2 f x y =
+unhide_2 f x y =
     f x y
 
-Frame_Hider.get_top_stack_frame =
+get_top_stack_frame =
     stack_trace = Runtime.get_stack_trace
     reversed_stack_trace = stack_trace.reverse
 
