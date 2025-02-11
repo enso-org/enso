@@ -343,13 +343,6 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         >
           {(otherTimeZone) => otherTimeZone}
         </ComboBox>
-        <Text>{getText('repeatsAt')}</Text>
-        {repeatTimes
-          // eslint-disable-next-line @typescript-eslint/unbound-method
-          .map(Intl.DateTimeFormat(undefined, { dateStyle: 'short' }).format)
-          .map((dateString, i) => (
-            <Text key={i}>{dateString}</Text>
-          ))}
       </div>
       <FormDropdown
         form={form}
@@ -377,6 +370,13 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
           {(n) => getText(MONTH_3_LETTER_TEXT_IDS[n] ?? 'january3')}
         </MultiSelector>
       )}
+      <Text>{getText('repeatsAt')}</Text>
+      {repeatTimes
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        .map(Intl.DateTimeFormat(undefined, { dateStyle: 'short' }).format)
+        .map((dateString, i) => (
+          <Text key={i}>{dateString}</Text>
+        ))}
       {enableAdvancedProjectExecutionOptions && (
         <details className="w-full">
           <summary className="cursor-pointer">{getText('advancedOptions')}</summary>
