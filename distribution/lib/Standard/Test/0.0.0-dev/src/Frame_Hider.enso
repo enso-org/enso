@@ -7,38 +7,39 @@ pst s st =
     IO.println "==== "+s
     st . map_with_index (i-> x-> IO.println i.to_text+": "+x.to_text)
 
-hide ~action =
-    #IO.println "AAAAA "+Frame_Hider.get_top_stack_frame
-    action
+type Frame_Hider
+    hide ~action =
+        #IO.println "AAAAA "+Frame_Hider.get_top_stack_frame
+        action
 
-unhide ~action =
-    #IO.println "AAAAA "+Frame_Hider.get_top_stack_frame
-    action
+    unhide ~action =
+        #IO.println "AAAAA "+Frame_Hider.get_top_stack_frame
+        action
 
-unhide_1 f x =
-    f x
+    unhide_1 f x =
+        f x
 
-unhide_2 f x y =
-    f x y
+    unhide_2 f x y =
+        f x y
 
-get_top_stack_frame =
-    stack_trace = Runtime.get_stack_trace
-    reversed_stack_trace = stack_trace.reverse
+    get_top_stack_frame =
+        stack_trace = Runtime.get_stack_trace
+        reversed_stack_trace = stack_trace.reverse
 
-    delta_for_frame frame =
-        name = frame.name
-        if name.starts_with "Frame_Hider.hide" then 1 else
-            if name.starts_with "Frame_Hider.unhide" then -1 else 0
-    nesting_levels = reversed_stack_trace.map delta_for_frame . running_fold 0 (_ + _)
-    index =
-        i = nesting_levels.last_index_of 0
-        if i.is_nothing then 0 else i-1
+        delta_for_frame frame =
+            name = frame.name
+            if name.starts_with "Frame_Hider.hide" then 1 else
+                if name.starts_with "Frame_Hider.unhide" then -1 else 0
+        nesting_levels = reversed_stack_trace.map delta_for_frame . running_fold 0 (_ + _)
+        index =
+            i = nesting_levels.last_index_of 0
+            if i.is_nothing then 0 else i-1
 
-    if verbose then
-        pst "full" stack_trace
-        IO.println "OI "+index.to_text+" "+(stack_trace.length + 1 - index).to_text
-        IO.println "OI "+nesting_levels.to_text
-        IO.println "OI "+(reversed_stack_trace.at index).to_text
+        if verbose then
+            pst "full" stack_trace
+            IO.println "OI "+index.to_text+" "+(stack_trace.length + 1 - index).to_text
+            IO.println "OI "+nesting_levels.to_text
+            IO.println "OI "+(reversed_stack_trace.at index).to_text
 
-    top = reversed_stack_trace . at index . source_location
-    top.to_display_text
+        top = reversed_stack_trace . at index . source_location
+        top.to_display_text

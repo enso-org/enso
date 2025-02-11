@@ -85,7 +85,7 @@ add_specs suite_builder =
                 "abc".should_end_with "d"
             r1.message.should_contain "Extensions_Spec.enso:85"
 
-    suite_builder.group "stack trace location" group_builder->
+    suite_builder.group "stack trace location and frame hiding" group_builder->
         group_builder.specify "should be able to get a stack trace without test helper frames" <|
             r1 = expect_test_failure <|
                 "ab".should_equal "ac"
