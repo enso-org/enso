@@ -101,28 +101,42 @@ add_specs suite_builder =
                 should_equal_3 "ab" "ac"
             r1.message.should_contain "Extensions_Spec.enso:101"
 
-        group_builder.specify "should be able to get a stack trace without test helper frames (with nesting and a callback)" <|
-            should_equal_2 checker x y = omitting <|
-                unomitting (checker x y)
-            should_equal_3 checker x y = omitting <|
-                should_equal_2 (x-> y-> unomitting (checker x y)) x y
-
-            my_checker x y =
-                x.should_equal y
-
-            r1 = expect_test_failure <|
-                should_equal_3 my_checker "ab" "ac"
-            r1.message.should_contain "Extensions_Spec.enso:111"
-
         group_builder.specify "should be able to get a stack trace without test helper frames (with nesting and a no-arg callback)" <|
-            should_equal_2 checker _ _ = omitting <|
+            ## This test is here because of differences in stack traces with no-arg calls.
+            should_equal_a checker _ _ = omitting <|
                 unomitting checker
-            should_equal_3 checker x y = omitting <|
-                should_equal_2 (unomitting checker) x y
+            should_equal_b checker x y = omitting <|
+                should_equal_a (unomitting checker) x y
 
             my_checker =
                 False . should_be_true
 
             r1 = expect_test_failure <|
-                should_equal_3 my_checker "ab" "ac"
-            r1.message.should_contain "Extensions_Spec.enso:124"
+                should_equal_b my_checker "ab" "ac"
+            r1.message.should_contain "Extensions_Spec.enso:112"
+
+        group_builder.specify "should be able to get a stack trace without test helper frames (with nesting and a one-arg callback)" <|
+            should_equal_a checker x = omitting <|
+                unomitting (checker x)
+            should_equal_b checker x = omitting <|
+                should_equal_a (x-> unomitting (checker x)) x
+
+            my_checker x =
+                x . should_equal "ac"
+
+            r1 = expect_test_failure <|
+                should_equal_b my_checker "ab"
+            r1.message.should_contain "Extensions_Spec.enso:125"
+
+        group_builder.specify "should be able to get a stack trace without test helper frames (with nesting and a two-arg callback)" <|
+            should_equal_a checker x y = omitting <|
+                unomitting (checker x y)
+            should_equal_b checker x y = omitting <|
+                should_equal_a (x-> y-> unomitting (checker x y)) x y
+
+            my_checker x y =
+                x.should_equal y
+
+            r1 = expect_test_failure <|
+                should_equal_b my_checker "ab" "ac"
+            r1.message.should_contain "Extensions_Spec.enso:138"
