@@ -37,7 +37,6 @@ import {
   MultiSelector,
   Selector,
   Text,
-  TimeField,
 } from '#/components/AriaComponents'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -314,16 +313,9 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
           isRequired
           noCalendarHeader
           name="startDate"
-          granularity="day"
+          hideTimeZone
           label={getText('firstOccurrenceLabel')}
           minValue={minFirstOccurrence}
-        />
-        <TimeField
-          form={form}
-          isRequired
-          hideTimeZone
-          name="startDate"
-          label={getText('firstOccurrenceTimeLabel')}
         />
         <ComboBox
           form={form}

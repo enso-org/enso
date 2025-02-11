@@ -139,30 +139,28 @@ export const TimeField = forwardRef(function TimeField<
       <Form.Controller
         control={formInstance.control}
         name={name}
-        render={(renderProps) => {
-          return (
-            <AriaTimeField
-              {...rest}
-              isInvalid={isInvalid ?? false}
-              className={styles.base({ className })}
-              {...(granularity != null ? { granularity } : {})}
-              {...renderProps.field}
-            >
-              <Label />
-              <Group className={styles.inputGroup()}>
-                <DateInput className={styles.dateInput()}>
-                  {(segment) =>
-                    segments[segment.type] === false ?
-                      <></>
-                    : <DateSegment segment={segment} className={styles.dateSegment()} />
-                  }
-                </DateInput>
-                {!noResetButton && <TimeFieldResetButton className={styles.resetButton()} />}
-              </Group>
-              {props.description != null && <Text slot="description" />}
-            </AriaTimeField>
-          )
-        }}
+        render={(renderProps) => (
+          <AriaTimeField
+            {...rest}
+            isInvalid={isInvalid ?? false}
+            className={styles.base({ className })}
+            {...(granularity != null ? { granularity } : {})}
+            {...renderProps.field}
+          >
+            <Label />
+            <Group className={styles.inputGroup()}>
+              <DateInput className={styles.dateInput()}>
+                {(segment) =>
+                  segments[segment.type] === false ?
+                    <></>
+                  : <DateSegment segment={segment} className={styles.dateSegment()} />
+                }
+              </DateInput>
+              {!noResetButton && <TimeFieldResetButton className={styles.resetButton()} />}
+            </Group>
+            {props.description != null && <Text slot="description" />}
+          </AriaTimeField>
+        )}
       />
     </Form.Field>
   )
