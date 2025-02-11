@@ -41,7 +41,7 @@ test_problem_handling action expected_problems result_checker (unwrap_errors : B
             (if ignore_warning_cardinality then warnings.distinct else warnings)
                 . map unwrap_maybe
                 . should_equal_ignoring_order expected_problems
-    test_advanced_problem_handling (Frame_Hider.unhide action) (x-> Frame_Hider.unhide (error_checker x)) (x-> Frame_Hider.unhide (warnings_checker x)) (x-> Frame_Hider.unhide (result_checker x))
+    test_advanced_problem_handling (Frame_Hider.unhide action) (Frame_Hider.unhide_1 error_checker) (Frame_Hider.unhide_1 warnings_checker) (Frame_Hider.unhide_1 result_checker)
 
 ## UNSTABLE
    Tests how a specific operation behaves depending on the requested
@@ -62,18 +62,18 @@ test_problem_handling action expected_problems result_checker (unwrap_errors : B
 test_advanced_problem_handling : (Problem_Behavior -> Any) -> (Any -> Nothing) -> (Vector Any -> Nothing) -> (Any -> Nothing) -> Nothing
 test_advanced_problem_handling action error_checker warnings_checker result_checker = Frame_Hider.hide <|
     # First, we check the action ignoring any warnings.
-    result_ignoring = Frame_Hider.unhide (action Problem_Behavior.Ignore)
-    Frame_Hider.unhide (result_checker result_ignoring)
+    result_ignoring = Frame_Hider.unhide_1 action Problem_Behavior.Ignore
+    Frame_Hider.unhide_1 result_checker result_ignoring
     get_attached_warnings result_ignoring . should_equal []
 
     # Then, we check the fail-on-first-error mode.
-    error_result = Frame_Hider.unhide (action Problem_Behavior.Report_Error)
-    Frame_Hider.unhide (error_checker error_result)
+    error_result = Frame_Hider.unhide_1 action Problem_Behavior.Report_Error
+    Frame_Hider.unhide_1 error_checker error_result
 
     # Lastly, we check the report warnings mode and ensure that both the result is correct and the warnings are as expected.
-    result_warning = Frame_Hider.unhide (action Problem_Behavior.Report_Warning)
-    Frame_Hider.unhide (result_checker result_warning)
-    Frame_Hider.unhide (warnings_checker (get_attached_warnings result_warning))
+    result_warning = Frame_Hider.unhide_1 action Problem_Behavior.Report_Warning
+    Frame_Hider.unhide_1 result_checker result_warning
+    Frame_Hider.unhide_1 warnings_checker (get_attached_warnings result_warning)
 
 ## UNSTABLE
    Checks if the provided value does not have any attached problems.
