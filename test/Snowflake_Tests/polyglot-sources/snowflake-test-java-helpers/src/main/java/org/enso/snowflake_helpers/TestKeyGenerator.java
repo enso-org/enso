@@ -23,12 +23,13 @@ public class TestKeyGenerator {
     keyPairGenerator.initialize(2048);
     KeyPair keyPair = keyPairGenerator.generateKeyPair();
 
-    savePublicKey(keyPair.getPublic(), publicKeyFile);
     if (passphrase == null) {
       savePrivateKey(keyPair.getPrivate(), privateKeyFile);
     } else {
       savePrivateKeyEncrypted(keyPair.getPrivate(), privateKeyFile, passphrase);
     }
+
+    savePublicKey(keyPair.getPublic(), publicKeyFile);
   }
 
   private static void savePublicKey(PublicKey key, File destination) throws IOException {

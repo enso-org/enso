@@ -17,6 +17,24 @@ from project.Snowflake_Spec import get_configured_connection_details
 
 polyglot java import org.enso.snowflake_helpers.TestKeyGenerator
 
+
+with_temp_user base_connection callback =
+     user_name = "temporary-test-user-" + (Date_Time.now.format "yyyy-MM-dd_HH-mm") + "-" + (Random.uuid.take 5)
+     Panic.rethrow <| base_connection.execute_update ('CREATE USER "' + user_name + '"')
+     Panic.with_finalizer (base_connection.execute_update ('DROP USER "' + user_name + '"')) <|
+         callback user_name
+
+generate_local_key_pair passphrase:Text|Nothing =
+    public_key_file = File.create_temporary_file "snowflake-key" ".pub"
+    private_key_file = File.create_temporary_file "snowflake-key" ".p8"
+    TestKeyGenerator.generateKeyPairForTest private_key_file.path public_key_file.path passphrase
+    IO.println public_key_file.read_text
+    Pair.new private_key_file public_key_file
+
+make_connection_details_with_credentials credentials =
+    base_details = get_configured_connection_details
+    Snowflake_Details.Snowflake base_details.account credentials base_details.database base_details.schema base_details.warehouse
+
 add_specs suite_builder ~default_connection =
     suite_builder.group "[Snowflake] Key-pair authentication" group_builder->
         group_builder.specify "using local private key" <|
@@ -31,7 +49,7 @@ add_specs suite_builder ~default_connection =
                 Panic.with_finalizer new_connection.close <|
                     new_connection.query (..Raw_SQL "SELECT 2+3") . read . at 0 . at 0 . should_equal 5
 
-        group_builder.specify "using local private key encrypted with passkey" <|
+        group_builder.specify "using local private key encrypted with passphrase" <|
             passphrase = "not-a-safe-passphrase-1234"
             key_pair = generate_local_key_pair passphrase=passphrase
             private_key_file = key_pair.first
@@ -89,23 +107,6 @@ add_specs suite_builder ~default_connection =
             "broken".write (test_root.get / (name + ".pub")) . should_succeed
             r1 = Key_Pair_Credentials.generate_key_pair location=test_root.get name=name if_exists=..Use_Existing
             r1.should_fail_with Illegal_State
-
-
-with_temp_user base_connection callback =
-     user_name = "temporary-test-user-" + (Date_Time.now.format "yyyy-MM-dd_HH-mm") + "-" + (Random.uuid.take 5)
-     Panic.rethrow <| base_connection.execute_update ('CREATE USER "' + user_name + '"')
-     Panic.with_finalizer (base_connection.execute_update ('DROP USER "' + user_name + '"')) <|
-         callback user_name
-
-generate_local_key_pair passphrase:Text|Nothing =
-    public_key_file = File.create_temporary_file "snowflake-key" ".pub"
-    private_key_file = File.create_temporary_file "snowflake-key" ".p8"
-    TestKeyGenerator.generateKeyPairForTest private_key_file.path public_key_file.path passphrase
-    Pair.new private_key_file public_key_file
-
-make_connection_details_with_credentials credentials =
-    base_details = get_configured_connection_details
-    Snowflake_Details.Snowflake base_details.account credentials base_details.database base_details.schema base_details.warehouse
 
 main filter=Nothing =
     suite = Test.build suite_builder->
