@@ -38,7 +38,6 @@ type Frame_Hider
              ...
              Error.throw ("Not equal at " + Frame_Hider.get_top_stack_frame)
     hide ~action =
-        #IO.println "AAAAA "+Frame_Hider.get_top_stack_frame
         action
 
     ## PRIVATE
@@ -53,7 +52,6 @@ type Frame_Hider
              ...
              Frame_Hider.unhide (test_predicate x)
     unhide ~action =
-        #IO.println "AAAAA "+Frame_Hider.get_top_stack_frame
         action
 
     ## PRIVATE
