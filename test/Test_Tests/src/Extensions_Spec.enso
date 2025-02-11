@@ -92,9 +92,9 @@ add_specs suite_builder =
             r1.message.should_contain "Extensions_Spec.enso:91"
 
         group_builder.specify "should be able to get a stack trace without test helper frames (with nesting)" <|
-            should_equal_2 x y = omitting <|
+            should_equal_2 x y = Frame_Hider.hide <|
                 x.should_equal y
-            should_equal_3 x y = omitting <|
+            should_equal_3 x y = Frame_Hider.hide <|
                 should_equal_2 x y
 
             r1 = expect_test_failure <|
@@ -103,10 +103,10 @@ add_specs suite_builder =
 
         group_builder.specify "should be able to get a stack trace without test helper frames (with nesting and a no-arg callback)" <|
             ## This test is here because of differences in stack traces with no-arg calls.
-            should_equal_a checker _ _ = omitting <|
-                unomitting checker
-            should_equal_b checker x y = omitting <|
-                should_equal_a (unomitting checker) x y
+            should_equal_a checker _ _ = Frame_Hider.hide <|
+                Frame_Hider.unhide checker
+            should_equal_b checker x y = Frame_Hider.hide <|
+                should_equal_a (Frame_Hider.unhide checker) x y
 
             my_checker =
                 False . should_be_true
@@ -116,10 +116,10 @@ add_specs suite_builder =
             r1.message.should_contain "Extensions_Spec.enso:112"
 
         group_builder.specify "should be able to get a stack trace without test helper frames (with nesting and a one-arg callback)" <|
-            should_equal_a checker x = omitting <|
-                unomitting (checker x)
-            should_equal_b checker x = omitting <|
-                should_equal_a (unomitting_1 checker x)
+            should_equal_a checker x = Frame_Hider.hide <|
+                Frame_Hider.unhide (checker x)
+            should_equal_b checker x = Frame_Hider.hide <|
+                should_equal_a (Frame_Hider.unhide_1 checker x)
 
             my_checker x =
                 x . should_equal "ac"
@@ -129,10 +129,10 @@ add_specs suite_builder =
             r1.message.should_contain "Extensions_Spec.enso:125"
 
         group_builder.specify "should be able to get a stack trace without test helper frames (with nesting and a two-arg callback)" <|
-            should_equal_a checker x y = omitting <|
-                unomitting (checker x y)
-            should_equal_b checker x y = omitting <|
-                should_equal_a (unomitting_2 checker x y)
+            should_equal_a checker x y = Frame_Hider.hide <|
+                Frame_Hider.unhide (checker x y)
+            should_equal_b checker x y = Frame_Hider.hide <|
+                should_equal_a (Frame_Hider.unhide_2 checker x y)
 
             my_checker x y =
                 x.should_equal y

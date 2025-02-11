@@ -7,28 +7,28 @@ pst s st =
     IO.println "==== "+s
     st . map_with_index (i-> x-> IO.println i.to_text+": "+x.to_text)
 
-omitting ~action =
-    #IO.println "AAAAA "+omit_get_stack_trace
+Frame_Hider.hide ~action =
+    #IO.println "AAAAA "+Frame_Hider.get_top_stack_frame
     action
 
-unomitting ~action =
-    #IO.println "AAAAA "+omit_get_stack_trace
+Frame_Hider.unhide ~action =
+    #IO.println "AAAAA "+Frame_Hider.get_top_stack_frame
     action
 
-unomitting_1 f x =
+Frame_Hider.unhide_1 f x =
     f x
 
-unomitting_2 f x y =
+Frame_Hider.unhide_2 f x y =
     f x y
 
-omit_get_stack_trace =
+Frame_Hider.get_top_stack_frame =
     stack_trace = Runtime.get_stack_trace
     reversed_stack_trace = stack_trace.reverse
 
     delta_for_frame frame =
         name = frame.name
-        if name.starts_with "Omitter.omitting" then 1 else
-            if name.starts_with "Omitter.unomitting" then -1 else 0
+        if name.starts_with "Frame_Hider.hide" then 1 else
+            if name.starts_with "Frame_Hider.unhide" then -1 else 0
     nesting_levels = reversed_stack_trace.map delta_for_frame . running_fold 0 (_ + _)
     index =
         i = nesting_levels.last_index_of 0

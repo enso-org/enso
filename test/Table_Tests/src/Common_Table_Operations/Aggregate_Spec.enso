@@ -58,7 +58,7 @@ add_aggregate_specs suite_builder setup =
     table_builder = setup.table_builder
     data = Data.setup table_fn empty_table_fn
 
-    expect_column_names names table = omitting <|
+    expect_column_names names table = Frame_Hider.hide <|
         table.columns . map .name . should_equal names
 
     find_row key table (columns=Nothing) =
@@ -1107,7 +1107,7 @@ add_aggregate_specs suite_builder setup =
 
     suite_builder.group prefix+"Table.aggregate Count_Distinct" group_builder->
         group_builder.specify "should correctly count missing values" <|
-            get_value t = omitting <|
+            get_value t = Frame_Hider.hide <|
                 columns = materialize t . columns
                 columns.length . should_equal 1
                 columns.first.length  . should_equal 1
@@ -1254,13 +1254,13 @@ add_aggregate_specs suite_builder setup =
             m1.columns.first.at 0 . should_equal 1.1180339887499 epsilon=0.000001
             m1.columns.second.at 0 . should_equal 1.2909944487358 epsilon=0.000001
 
-    expect_null_or_nan value = omitting <|
+    expect_null_or_nan value = Frame_Hider.hide <|
         matches = case value of
             Nothing -> True
             _ : Float -> Double.isNaN value
             _       -> False
         if matches.not then
-            Test.fail "Expected a Nothing or NaN but got: "+value.to_text+" (at "+omit_get_stack_trace+")."
+            Test.fail "Expected a Nothing or NaN but got: "+value.to_text+" (at "+Frame_Hider.get_top_stack_frame+")."
 
     if setup.flagged ..Supports_Infinity then suite_builder.group prefix+"Table.aggregate should correctly handle infinities" group_builder->
         pos_inf = 1/0

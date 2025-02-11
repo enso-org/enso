@@ -10,26 +10,26 @@ from Standard.Test import all
 polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
 Table.should_equal : Any -> Boolean -> Any
-Table.should_equal self expected ignore_order=False = omitting <|
+Table.should_equal self expected ignore_order=False = Frame_Hider.hide <|
     rhs_error_check expected
-    Panic.catch Test_Failure_Error (table_should_equal_impl self expected omit_get_stack_trace ignore_order) error->
+    Panic.catch Test_Failure_Error (table_should_equal_impl self expected Frame_Hider.get_top_stack_frame ignore_order) error->
         Test.fail error.payload.message
 
 Column.should_equal : Any -> Any
-Column.should_equal self expected = omitting <|
+Column.should_equal self expected = Frame_Hider.hide <|
     rhs_error_check expected
-    Panic.catch Test_Failure_Error (column_should_equal_impl self expected omit_get_stack_trace) error->
+    Panic.catch Test_Failure_Error (column_should_equal_impl self expected Frame_Hider.get_top_stack_frame) error->
         Test.fail error.payload.message
 
 DB_Table.should_equal : DB_Table|Table -> Boolean -> Any
-DB_Table.should_equal self expected ignore_order=False = omitting <|
+DB_Table.should_equal self expected ignore_order=False = Frame_Hider.hide <|
     rhs_error_check expected
     t0 = self.read
     t1 = expected.read
     t0 . should_equal t1 ignore_order
 
 DB_Column.should_equal : DB_Column -> Any
-DB_Column.should_equal self expected = omitting <|
+DB_Column.should_equal self expected = Frame_Hider.hide <|
     rhs_error_check expected
     t0 = self.read
     t1 = expected.read
@@ -111,17 +111,17 @@ set_writable file writable =
 
    For example, if `example` is `[[1, 2], [3]]`, then both `[1, 2, 3]` and
    `[2, 1, 3]` will be accepted, but `[2, 3, 1]` will be rejected.
-Any.should_have_relative_ordering self (example : Vector) = omitting <|
+Any.should_have_relative_ordering self (example : Vector) = Frame_Hider.hide <|
     case self of
         _ : Vector ->
             example.each v-> case v of
                 _ : Vector ->
-                    if v.is_empty then Test.fail "The example vector should not contain empty vectors as they are meaningless (at "+omit_get_stack_trace+")."
-                _ -> Test.fail "Expected a vector of vectors but got a vector containing "+v.to_display_text+" (at "+omit_get_stack_trace+")."
+                    if v.is_empty then Test.fail "The example vector should not contain empty vectors as they are meaningless (at "+Frame_Hider.get_top_stack_frame+")."
+                _ -> Test.fail "Expected a vector of vectors but got a vector containing "+v.to_display_text+" (at "+Frame_Hider.get_top_stack_frame+")."
 
             total_length = example.fold 0 acc-> v-> acc+v.length
             if self.length != total_length then
-                Test.fail "Expected a vector of length "+total_length.to_text+" but got "+self.length.to_text+" (at "+omit_get_stack_trace+")."
+                Test.fail "Expected a vector of length "+total_length.to_text+" but got "+self.length.to_text+" (at "+Frame_Hider.get_top_stack_frame+")."
 
             pieces = Vector.build builder->
                 example.fold 0 offset-> reference_v->
@@ -138,14 +138,14 @@ Any.should_have_relative_ordering self (example : Vector) = omitting <|
                     (got_piece.sort on_problems=..Report_Error) == (expected_piece.sort on_problems=..Report_Error)
                 if are_consistent.not then
                     offset = pieces.take ix . fold 0 acc-> p-> acc+p.length
-                    Test.fail "Expected the run of vector elements starting at offset "+offset.to_text+" to be a permutation of "+expected_piece.to_display_text+" but got "+got_piece.to_display_text+" (at "+omit_get_stack_trace+")."
+                    Test.fail "Expected the run of vector elements starting at offset "+offset.to_text+" to be a permutation of "+expected_piece.to_display_text+" but got "+got_piece.to_display_text+" (at "+Frame_Hider.get_top_stack_frame+")."
 
-        _ -> Test.fail "Expected a vector but got "+self.to_display_text+" (at "+omit_get_stack_trace+")."
+        _ -> Test.fail "Expected a vector but got "+self.to_display_text+" (at "+Frame_Hider.get_top_stack_frame+")."
 ## PRIVATE
    See `Any.should_have_relative_ordering`.
-Error.should_have_relative_ordering self example = omitting <|
+Error.should_have_relative_ordering self example = Frame_Hider.hide <|
     _ = example
-    Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+omit_get_stack_trace+")."
+    Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+Frame_Hider.get_top_stack_frame+")."
 
 
 ## PRIVATE

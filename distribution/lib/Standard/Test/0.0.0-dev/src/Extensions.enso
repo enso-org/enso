@@ -3,10 +3,10 @@ import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
+import project.Frame_Hider
 import project.Spec_Result.Spec_Result
 import project.Test.Test
 from project.Extensions_Helpers import rhs_error_check
-from project.Omitter import all
 
 ## Expect a function to fail with the provided dataflow error.
 
@@ -24,10 +24,10 @@ from project.Omitter import all
          example_should_fail_with =
             Examples.throw_error . should_fail_with Examples.My_Error
 Any.should_fail_with : Any -> Boolean -> Spec_Result
-Any.should_fail_with self matcher unwrap_errors=True = omitting <|
+Any.should_fail_with self matcher unwrap_errors=True = Frame_Hider.hide <|
     _ = unwrap_errors
     matcher_text = matcher . to_text
-    Test.fail ("Expected an error " + matcher_text + " but no error occurred, instead got: " + self.to_text + " (at " + omit_get_stack_trace + ").")
+    Test.fail ("Expected an error " + matcher_text + " but no error occurred, instead got: " + self.to_text + " (at " + Frame_Hider.get_top_stack_frame + ").")
 
 ## Expect a function to fail with the provided dataflow error.
 
@@ -45,12 +45,12 @@ Any.should_fail_with self matcher unwrap_errors=True = omitting <|
          example_should_fail_with =
             Examples.throw_error . should_fail_with Examples.My_Error
 Error.should_fail_with : Any -> Boolean -> Spec_Result
-Error.should_fail_with self matcher unwrap_errors=True = omitting <|
+Error.should_fail_with self matcher unwrap_errors=True = Frame_Hider.hide <|
     unwrap_maybe error = if unwrap_errors then Error.unwrap error else error
     caught = unwrap_maybe self.catch
     if caught == matcher || caught.is_a matcher then Nothing else
         matcher_text = matcher . to_text
-        Test.fail ("Expected error "+matcher_text+", but error " + caught.to_text + " has been returned (at " + omit_get_stack_trace + ").") details='The error had the following stack trace:\n'+self.get_stack_trace_text
+        Test.fail ("Expected error "+matcher_text+", but error " + caught.to_text + " has been returned (at " + Frame_Hider.get_top_stack_frame + ").") details='The error had the following stack trace:\n'+self.get_stack_trace_text
 
 ## Asserts that `self` value is equal to the expected value.
 
@@ -65,7 +65,7 @@ Error.should_fail_with self matcher unwrap_errors=True = omitting <|
 
          example_should_equal = Examples.add_1_to 1 . should_equal 2
 Any.should_equal : Any -> Spec_Result
-Any.should_equal self that = omitting <|
+Any.should_equal self that = Frame_Hider.hide <|
     rhs_error_check that
     case self == that of
         True -> Spec_Result.Success
@@ -81,7 +81,7 @@ Any.should_equal self that = omitting <|
                             False -> "; lengths differ (" + self.length.to_text + " != " + that.length.to_text + ") "
                     _ -> ""
                 _ -> ""
-            msg = self.pretty + " did not equal " + that.pretty + additional_comment + " (at " + omit_get_stack_trace + ")."
+            msg = self.pretty + " did not equal " + that.pretty + additional_comment + " (at " + Frame_Hider.get_top_stack_frame + ")."
             Test.fail msg
 
 ## Asserts that `self` value is equal to the expected type value.
@@ -97,14 +97,14 @@ Any.should_equal self that = omitting <|
 
          example_should_equal = Examples.some_type . should_equal_type Vector
 Any.should_equal_type : Any -> Spec_Result
-Any.should_equal_type self that = omitting <| case (self.is_same_object_as that) of
+Any.should_equal_type self that = Frame_Hider.hide <| case (self.is_same_object_as that) of
     True -> Spec_Result.Success
     False ->
-        msg = self.to_text + " did not equal type " + that.to_text + " (at " + omit_get_stack_trace + ")."
+        msg = self.to_text + " did not equal type " + that.to_text + " (at " + Frame_Hider.get_top_stack_frame + ")."
         Test.fail msg
 
 ## Added so that dataflow errors are not silently lost.
-Error.should_equal_type self that = omitting <|
+Error.should_equal_type self that = Frame_Hider.hide <|
     _ = [that]
     Test.fail_match_on_unexpected_error self
 
@@ -121,15 +121,15 @@ Error.should_equal_type self that = omitting <|
 
          example_should_not_equal = Examples.add_1_to 1 . should_not_equal 2
 Any.should_not_equal : Any -> Spec_Result
-Any.should_not_equal self that = omitting <| if that.is_error then (Panic.throw (Illegal_Argument.Error "Expected value provided as `that` for `should_not_equal` cannot be an error, but got: "+that.to_display_text)) else
+Any.should_not_equal self that = Frame_Hider.hide <| if that.is_error then (Panic.throw (Illegal_Argument.Error "Expected value provided as `that` for `should_not_equal` cannot be an error, but got: "+that.to_display_text)) else
     case self != that of
         True -> Spec_Result.Success
         False ->
-            msg = self.to_text + " did equal " + that.to_text + " (at " + omit_get_stack_trace + ")."
+            msg = self.to_text + " did equal " + that.to_text + " (at " + Frame_Hider.get_top_stack_frame + ")."
             Test.fail msg
 
 ## Added so that dataflow errors are not silently lost.
-Error.should_not_equal self that = omitting <|
+Error.should_not_equal self that = Frame_Hider.hide <|
     _ = [that]
     Test.fail_match_on_unexpected_error self
 
@@ -146,14 +146,14 @@ Error.should_not_equal self that = omitting <|
 
          example_should_not_equal = Examples.some_type . should_not_equal_type Vector
 Any.should_not_equal_type : Any -> Spec_Result
-Any.should_not_equal_type self that = omitting <| case (self.is_same_object_as that . not) of
+Any.should_not_equal_type self that = Frame_Hider.hide <| case (self.is_same_object_as that . not) of
     True -> Spec_Result.Success
     False ->
-        msg = self.to_text + " did equal type " + that.to_text + " (at " + omit_get_stack_trace + ")."
+        msg = self.to_text + " did equal type " + that.to_text + " (at " + Frame_Hider.get_top_stack_frame + ")."
         Test.fail msg
 
 ## Added so that dataflow errors are not silently lost.
-Error.should_not_equal_type self that = omitting <|
+Error.should_not_equal_type self that = Frame_Hider.hide <|
     _ = [that]
     Test.fail_match_on_unexpected_error self
 
@@ -169,14 +169,14 @@ Error.should_not_equal_type self that = omitting <|
 
          example_should_start_with = "Hello World!" . should_start_with "Hello"
 Any.should_start_with : Text -> Spec_Result
-Any.should_start_with self that = omitting <|
+Any.should_start_with self that = Frame_Hider.hide <|
     rhs_error_check that
     case self of
         _ : Text -> if self.starts_with that then Spec_Result.Success else
-            msg = self.to_text + " does not start with " + that.to_text + " (at " + omit_get_stack_trace + ")."
+            msg = self.to_text + " does not start with " + that.to_text + " (at " + Frame_Hider.get_top_stack_frame + ")."
             Test.fail msg
         _ ->
-            msg = self.to_text + " is not a `Text` value (at " + omit_get_stack_trace + ")."
+            msg = self.to_text + " is not a `Text` value (at " + Frame_Hider.get_top_stack_frame + ")."
             Test.fail msg
 
 ## Asserts that `self` value is a Text value and ends with `that`.
@@ -191,14 +191,14 @@ Any.should_start_with self that = omitting <|
 
          example_should_end_with = "Hello World!" . should_end_with "ld!"
 Any.should_end_with : Text -> Spec_Result
-Any.should_end_with self that = omitting <|
+Any.should_end_with self that = Frame_Hider.hide <|
     rhs_error_check that
     case self of
         _ : Text -> if self.ends_with that then Spec_Result.Success else
-            msg = self.to_text + " does not end with " + that.to_text + " (at " + omit_get_stack_trace + ")."
+            msg = self.to_text + " does not end with " + that.to_text + " (at " + Frame_Hider.get_top_stack_frame + ")."
             Test.fail msg
         _ ->
-            msg = self.to_text + " is not a `Text` value (at " + omit_get_stack_trace + ")."
+            msg = self.to_text + " is not a `Text` value (at " + Frame_Hider.get_top_stack_frame + ")."
             Test.fail msg
 
 ## Asserts that `self` value is a Text value and starts with `that`.
@@ -213,7 +213,7 @@ Any.should_end_with self that = omitting <|
 
          example_should_start_with = "Hello World!" . should_start_with "Hello"
 Error.should_start_with : Any -> Spec_Result
-Error.should_start_with self that = omitting <|
+Error.should_start_with self that = Frame_Hider.hide <|
     _ = [that]
     Test.fail_match_on_unexpected_error self
 
@@ -229,7 +229,7 @@ Error.should_start_with self that = omitting <|
 
          example_should_end_with = "Hello World!" . should_end_with "ld!"
 Error.should_end_with : Any -> Spec_Result
-Error.should_end_with self that = omitting <|
+Error.should_end_with self that = Frame_Hider.hide <|
     _ = [that]
     Test.fail_match_on_unexpected_error self
 
@@ -246,7 +246,7 @@ Error.should_end_with self that = omitting <|
 
          example_should_equal = Examples.add_1_to 1 . should_equal 2
 Error.should_equal : Any -> Spec_Result
-Error.should_equal self that = omitting <|
+Error.should_equal self that = Frame_Hider.hide <|
     rhs_error_check that
     Test.fail_match_on_unexpected_error self
 
@@ -271,7 +271,7 @@ Error.should_equal self that = omitting <|
          example_should_equal =
             1.00000001 . should_equal 1.00000002 epsilon=0.0001
 Number.should_equal : Float -> Float -> Spec_Result
-Number.should_equal self that epsilon=0 = omitting <|
+Number.should_equal self that epsilon=0 = Frame_Hider.hide <|
     rhs_error_check that
     matches = case that of
         n : Number -> self.equals n epsilon . catch Incomparable_Values _->
@@ -283,7 +283,7 @@ Number.should_equal self that epsilon=0 = omitting <|
     case matches of
         True -> Spec_Result.Success
         False ->
-            msg = self.to_text + " did not equal " + that.to_text + " (at " + omit_get_stack_trace + ")."
+            msg = self.to_text + " did not equal " + that.to_text + " (at " + Frame_Hider.get_top_stack_frame + ")."
             Test.fail msg
 
 ## Asserts that `self` is within `epsilon` from `that`.
@@ -292,7 +292,7 @@ Number.should_equal self that epsilon=0 = omitting <|
    - that: The value to compare `self` for equality with.
    - epsilon: The epsilon for comparing two float numbers.
 Decimal.should_equal : Number -> Float-> Float -> Spec_Result
-Decimal.should_equal self that epsilon=0 = omitting <|
+Decimal.should_equal self that epsilon=0 = Frame_Hider.hide <|
     rhs_error_check that
     self.to_float . should_equal that.to_float epsilon
 
@@ -317,12 +317,12 @@ Any.should_succeed self =
 
          "foobar".write (enso_project.data / "f.txt") . should_succeed
 Error.should_succeed : Any
-Error.should_succeed self = omitting <|
+Error.should_succeed self = Frame_Hider.hide <|
     Test.fail_match_on_unexpected_error self
 
 ## Handles an unexpected dataflow error.
 Error.should_be_a : Any -> Any
-Error.should_be_a self typ = omitting <|
+Error.should_be_a self typ = Frame_Hider.hide <|
     _ = typ
     Test.fail_match_on_unexpected_error self
 
@@ -336,10 +336,10 @@ Error.should_be_a self typ = omitting <|
 
          example_should_be_true = Examples.get_boolean . should_be_true
 Boolean.should_be_true : Spec_Result
-Boolean.should_be_true self = omitting <| case self of
+Boolean.should_be_true self = Frame_Hider.hide <| case self of
     True -> Spec_Result.Success
     False ->
-        Test.fail "Expected False to be True (at "+omit_get_stack_trace+")."
+        Test.fail "Expected False to be True (at "+Frame_Hider.get_top_stack_frame+")."
 
 ## Asserts that the given `Boolean` is `True`.
 
@@ -351,7 +351,7 @@ Boolean.should_be_true self = omitting <| case self of
 
          example_should_be_true = Examples.get_boolean . should_be_true
 Error.should_be_true : Spec_Result
-Error.should_be_true self = omitting <| Test.fail_match_on_unexpected_error self
+Error.should_be_true self = Frame_Hider.hide <| Test.fail_match_on_unexpected_error self
 
 ## Asserts that the given `Boolean` is `False`
 
@@ -363,9 +363,9 @@ Error.should_be_true self = omitting <| Test.fail_match_on_unexpected_error self
 
          example_should_be_false = Examples.get_boolean . should_be_false
 Boolean.should_be_false : Spec_Result
-Boolean.should_be_false self = omitting <| case self of
+Boolean.should_be_false self = Frame_Hider.hide <| case self of
     True ->
-        Test.fail "Expected True to be False (at "+omit_get_stack_trace+")."
+        Test.fail "Expected True to be False (at "+Frame_Hider.get_top_stack_frame+")."
     False -> Spec_Result.Success
 
 ## Asserts that the given `Boolean` is `False`
@@ -378,7 +378,7 @@ Boolean.should_be_false self = omitting <| case self of
 
          example_should_be_false = Examples.get_boolean . should_be_false
 Error.should_be_false : Spec_Result
-Error.should_be_false self = omitting <| Test.fail_match_on_unexpected_error self
+Error.should_be_false self = Frame_Hider.hide <| Test.fail_match_on_unexpected_error self
 
 ## Asserts that a value is of a given type.
 
@@ -392,7 +392,7 @@ Error.should_be_false self = omitting <| Test.fail_match_on_unexpected_error sel
 
          example_should_be_a = 1.should_be_a Boolean
 Any.should_be_a : Any -> Spec_Result
-Any.should_be_a self typ = omitting <|
+Any.should_be_a self typ = Frame_Hider.hide <|
     rhs_error_check typ
     fail_on_wrong_arg_type =
         Panic.throw <|
@@ -403,19 +403,19 @@ Any.should_be_a self typ = omitting <|
                     if a.constructor == c then Spec_Result.Success else
                         expected_type = c.declaring_type.qualified_name
                         actual_type = self.to Meta.Type . qualified_name
-                        message = "Expected a value of type "+expected_type+", built with constructor "+c.name+", but got a value ["+self.to_text+"] of type "+actual_type+", built with constructor "+a.constructor.name+" instead (at "+omit_get_stack_trace+")."
+                        message = "Expected a value of type "+expected_type+", built with constructor "+c.name+", but got a value ["+self.to_text+"] of type "+actual_type+", built with constructor "+a.constructor.name+" instead (at "+Frame_Hider.get_top_stack_frame+")."
                         Test.fail message
                 _ ->
                     expected_type = c.declaring_type.qualified_name
                     actual_type = self.to Meta.Type . qualified_name
-                    message = "Expected a value of type "+expected_type+", built with constructor "+c.name+", but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+omit_get_stack_trace+")."
+                    message = "Expected a value of type "+expected_type+", built with constructor "+c.name+", but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+Frame_Hider.get_top_stack_frame+")."
                     Test.fail message
         meta_type : Meta.Type ->
             ok = self.is_a typ || self==typ
             if ok then Spec_Result.Success else
                 expected_type = meta_type.qualified_name
                 actual_type = self.to Meta.Type . qualified_name
-                message = "Expected a value of type "+expected_type+" but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+omit_get_stack_trace+")."
+                message = "Expected a value of type "+expected_type+" but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+Frame_Hider.get_top_stack_frame+")."
                 Test.fail message
         # Workaround for 0-argument atom constructors which 'unapplies' them.
         atom : Meta.Atom ->
@@ -426,13 +426,13 @@ Any.should_be_a self typ = omitting <|
             ok = self.is_a typ
             if ok then Spec_Result.Success else
                 actual_type = self.to Meta.Type . qualified_name
-                message = "Expected a value of Java class "+typ.to_text+" but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+omit_get_stack_trace+")."
+                message = "Expected a value of Java class "+typ.to_text+" but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+Frame_Hider.get_top_stack_frame+")."
                 Test.fail message
         p : Meta.Primitive ->
             ok = self == p.value
             if ok then Spec_Result.Success else
                 actual_type = self.to Meta.Type . qualified_name
-                message = "Expected a value of "+typ.to_text+" but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+omit_get_stack_trace+")."
+                message = "Expected a value of "+typ.to_text+" but got a value ["+self.to_text+"] of type "+actual_type+" instead (at "+Frame_Hider.get_top_stack_frame+")."
                 Test.fail message
         _ -> fail_on_wrong_arg_type
 
@@ -456,16 +456,16 @@ Any.should_be_a self typ = omitting <|
 
          example_should_equal = [1, 2] . should_equal_ignoring_order [2, 1]
 Any.should_equal_ignoring_order : Any -> Spec_Result
-Any.should_equal_ignoring_order self that = omitting <|
+Any.should_equal_ignoring_order self that = Frame_Hider.hide <|
     if that.is_a Vector . not then
-        Panic.throw (Illegal_Argument.Error "Expected a Vector, but got a "+that.to_display_text+" (at "+omit_get_stack_trace+").")
+        Panic.throw (Illegal_Argument.Error "Expected a Vector, but got a "+that.to_display_text+" (at "+Frame_Hider.get_top_stack_frame+").")
     that.each element->
         if self.contains element . not then
-            msg = "The collection (" + self.to_text + ") did not contain " + element.to_text + " (at " + omit_get_stack_trace + ")."
+            msg = "The collection (" + self.to_text + ") did not contain " + element.to_text + " (at " + Frame_Hider.get_top_stack_frame + ")."
             Test.fail msg
     self.each element->
         if that.contains element . not then
-            msg = "The collection contained an element (" + element.to_text + ") which was not expected (at " + omit_get_stack_trace + ")."
+            msg = "The collection contained an element (" + element.to_text + ") which was not expected (at " + Frame_Hider.get_top_stack_frame + ")."
             Test.fail msg
     Test.with_clue "Duplicate elements in either collection should have the same counts - checked by comparing sorted collections: " <|
         ## If the vector contains vectors or incomparable values, they may not get sorted correctly.
@@ -495,7 +495,7 @@ Any.should_equal_ignoring_order self that = omitting <|
 
          example_should_equal = [1, 2] . should_equal_ignoring_order [2, 1]
 Error.should_equal_ignoring_order : Any -> Spec_Result
-Error.should_equal_ignoring_order self that = omitting <|
+Error.should_equal_ignoring_order self that = Frame_Hider.hide <|
     _ = [that]
     Test.fail_match_on_unexpected_error self
 
@@ -520,11 +520,11 @@ Error.should_equal_ignoring_order self that = omitting <|
 
          example_should_equal = [1, 2] . should_only_contain_elements_in  [1, 2, 3, 4]
 Any.should_only_contain_elements_in : Any -> Spec_Result
-Any.should_only_contain_elements_in self that = omitting <|
+Any.should_only_contain_elements_in self that = Frame_Hider.hide <|
     rhs_error_check that
     self.each element->
         if that.contains element . not then
-            msg = "The collection contained an element ("+element.to_text+") which was not expected (at " + omit_get_stack_trace + ")."
+            msg = "The collection contained an element ("+element.to_text+") which was not expected (at " + Frame_Hider.get_top_stack_frame + ")."
             Test.fail msg
     Spec_Result.Success
 
@@ -549,7 +549,7 @@ Any.should_only_contain_elements_in self that = omitting <|
 
          example_should_equal = [1, 2] . should_only_contain_elements_in  [1, 2, 3, 4]
 Error.should_only_contain_elements_in  : Any -> Spec_Result
-Error.should_only_contain_elements_in self that = omitting <|
+Error.should_only_contain_elements_in self that = Frame_Hider.hide <|
     _ = [that]
     Test.fail_match_on_unexpected_error self
 
@@ -569,14 +569,14 @@ Error.should_only_contain_elements_in self that = omitting <|
 
          example_should_equal = "foobar".should_contain "foo"
 Any.should_contain : Any -> Spec_Result
-Any.should_contain self element = omitting <|
+Any.should_contain self element = Frame_Hider.hide <|
     rhs_error_check element
     contains_result = Panic.catch No_Such_Method (self.contains element) caught_panic->
         if caught_panic.payload.method_name != "contains" then Panic.throw caught_panic else
-            msg = "The value (" + self.to_text + ") does not support the method `contains` (at " + omit_get_stack_trace + ")."
+            msg = "The value (" + self.to_text + ") does not support the method `contains` (at " + Frame_Hider.get_top_stack_frame + ")."
             Test.fail msg
     if contains_result then Spec_Result.Success else
-        msg = "The value (" + self.to_text + ") did not contain the element (" + element.to_text + ") (at " + omit_get_stack_trace + ")."
+        msg = "The value (" + self.to_text + ") did not contain the element (" + element.to_text + ") (at " + Frame_Hider.get_top_stack_frame + ")."
         Test.fail msg
 
 ## Asserts that `self` value contains an element.
@@ -595,7 +595,7 @@ Any.should_contain self element = omitting <|
 
          example_should_equal = "foobar".should_contain "foo"
 Error.should_contain : Any -> Spec_Result
-Error.should_contain self element = omitting <|
+Error.should_contain self element = Frame_Hider.hide <|
     _ = [element]
     Test.fail_match_on_unexpected_error self
 
@@ -608,14 +608,14 @@ Error.should_contain self element = omitting <|
    rules of the particular type - be it a `Vector`, `Text` or any custom type
    implementing a method `contains : a -> Boolean`.
 Any.should_not_contain : Any -> Spec_Result
-Any.should_not_contain self element = omitting <|
+Any.should_not_contain self element = Frame_Hider.hide <|
     rhs_error_check element
     contains_result = Panic.catch No_Such_Method (self.contains element) caught_panic->
         if caught_panic.payload.method_name != "contains" then Panic.throw caught_panic else
-            msg = "The value (" + self.to_text + ") does not support the method `contains` (at " + omit_get_stack_trace + ")."
+            msg = "The value (" + self.to_text + ") does not support the method `contains` (at " + Frame_Hider.get_top_stack_frame + ")."
             Test.fail msg
     if contains_result.not then Spec_Result.Success else
-        msg = "The value (" + self.to_text + ") contained the element (" + element.to_text + "), but it was expected to not contain it (at " + omit_get_stack_trace + ")."
+        msg = "The value (" + self.to_text + ") contained the element (" + element.to_text + "), but it was expected to not contain it (at " + Frame_Hider.get_top_stack_frame + ")."
         Test.fail msg
 
 ## Asserts that `self` value does not contain an element.
@@ -627,6 +627,6 @@ Any.should_not_contain self element = omitting <|
    rules of the particular type - be it a `Vector`, `Text` or any custom type
    implementing a method `contains : a -> Boolean`.
 Error.should_not_contain : Any -> Spec_Result
-Error.should_not_contain self element = omitting <|
+Error.should_not_contain self element = Frame_Hider.hide <|
     _ = [element]
     Test.fail_match_on_unexpected_error self

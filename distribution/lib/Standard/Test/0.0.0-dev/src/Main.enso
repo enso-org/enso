@@ -27,11 +27,7 @@ export project.Extensions.should_succeed
 
 export project.Faker.Faker
 
-export project.Omitter.omitting
-export project.Omitter.unomitting
-export project.Omitter.unomitting_1
-export project.Omitter.unomitting_2
-export project.Omitter.omit_get_stack_trace
+export project.Frame_Hider
 
 export project.Problems
 
