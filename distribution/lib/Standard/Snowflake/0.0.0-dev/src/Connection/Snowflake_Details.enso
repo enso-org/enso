@@ -114,4 +114,12 @@ private _enhance_connection_errors (details:Snowflake_Details) ~action =
         is_likely_missing_public_key = is_using_key_pair_auth && message.contains "JWT token is invalid"
         if is_likely_missing_public_key then
             Error.throw (Illegal_State.Error "Authentication failed. Make sure you have associated the public key with your account and used correct username. The original error was: "+message cause=error)
+
+        is_using_cloud = case details.credentials of
+            Key_Pair_Credentials.Key_Pair _ private_key _ -> private_key.is_a Enso_Secret
+            _ -> False
+        is_invalid_private_key_format = message.contains "Private key provided is invalid or not supported"
+        if is_using_cloud.not && is_invalid_private_key_format then
+            Error.throw (Illegal_State.Error "The provided private key file is not supported by the Snowflake driver. We recommend generating the key using `generate_key_pair` method and storing it as a Secret in Enso Cloud. The original error was: "+message cause=error)
+
         result
