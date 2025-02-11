@@ -19,6 +19,7 @@ import {
   Dialog,
   Group,
   Heading,
+  I18nProvider,
   Label,
   type DatePickerProps as AriaDatePickerProps,
   type DateValue,
@@ -158,13 +159,16 @@ export const DatePicker = forwardRef(function DatePicker<
               <Label />
               <Group className={styles.inputGroup()}>
                 <Button variant="icon" icon={ArrowIcon} className="rotate-90" />
-                <DateInput className={styles.dateInput()}>
-                  {(segment) =>
-                    segments[segment.type] === false ?
-                      <></>
-                    : <DateSegment segment={segment} className={styles.dateSegment()} />
-                  }
-                </DateInput>
+                {/* Use Swedish locale (`sv`) because it uses ISO dates. */}
+                <I18nProvider locale="sv">
+                  <DateInput className={styles.dateInput()}>
+                    {(segment) =>
+                      segments[segment.type] === false ?
+                        <></>
+                      : <DateSegment segment={segment} className={styles.dateSegment()} />
+                    }
+                  </DateInput>
+                </I18nProvider>
                 {!noResetButton && <DatePickerResetButton className={styles.resetButton()} />}
               </Group>
               {props.description != null && <Text slot="description" />}
