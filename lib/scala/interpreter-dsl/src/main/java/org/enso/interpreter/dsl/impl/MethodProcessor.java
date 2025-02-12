@@ -1,4 +1,4 @@
-package org.enso.interpreter.dsl;
+package org.enso.interpreter.dsl.impl;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -18,8 +18,8 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import org.enso.interpreter.dsl.model.MethodDefinition;
@@ -71,54 +71,64 @@ public class MethodProcessor
     return true;
   }
 
-  private void handleTypeElement(TypeElement element, Boolean needsFrame) throws IOException {
-    ExecutableElement executeMethod =
-        element.getEnclosedElements().stream()
-            .filter(
-                x -> {
-                  if (!(x instanceof ExecutableElement)) return false;
-                  Name name = x.getSimpleName();
-                  return name.contentEquals("execute");
-                })
-            .map(x -> (ExecutableElement) x)
-            .findFirst()
-            .orElseGet(
-                () -> {
-                  processingEnv
-                      .getMessager()
-                      .printMessage(Diagnostic.Kind.ERROR, "No execute method found.", element);
-                  return null;
-                });
-    if (executeMethod == null) return;
-    String pkgName =
-        processingEnv.getElementUtils().getPackageOf(element).getQualifiedName().toString();
-
-    MethodDefinition def = new MethodDefinition(pkgName, element, executeMethod, needsFrame);
-    if (!def.validate(processingEnv)) {
-      return;
+  private Element findExecuteMethod(TypeElement e) {
+    for (var ee : e.getEnclosedElements()) {
+      if (ee instanceof ExecutableElement) {
+        if (ee.getSimpleName().contentEquals("execute")) {
+          return ee;
+        }
+      }
     }
-    generateCode(def);
-    String tpe = def.getType().toLowerCase();
-    if (tpe.isEmpty()) {
+    if (findExecuteMethod(e.getSuperclass()) instanceof ExecutableElement ee) {
+      return ee;
+    }
+    return null;
+  }
+
+  private Element findExecuteMethod(TypeMirror t) {
+    if (t != null && processingEnv.getTypeUtils().asElement(t) instanceof TypeElement e) {
+      return findExecuteMethod(e);
+    } else {
+      return null;
+    }
+  }
+
+  private void handleTypeElement(TypeElement element, Boolean needsFrame) throws IOException {
+    if (findExecuteMethod(element) instanceof ExecutableElement executeMethod) {
+      String pkgName =
+          processingEnv.getElementUtils().getPackageOf(element).getQualifiedName().toString();
+
+      MethodDefinition def = new MethodDefinition(pkgName, element, executeMethod, needsFrame);
+      if (!def.validate(processingEnv)) {
+        return;
+      }
+      generateCode(def);
+      String tpe = def.getType().toLowerCase();
+      if (tpe.isEmpty()) {
+        processingEnv
+            .getMessager()
+            .printMessage(
+                Diagnostic.Kind.ERROR,
+                "Type of the BuiltinMethod cannot be empty in: " + def.getClassName());
+        return;
+      }
+      String fullClassName = def.getPackageName() + "." + def.getClassName();
+      registerBuiltinMethod(
+          processingEnv.getFiler(),
+          def.getDeclaredName(),
+          fullClassName,
+          def.isStatic(),
+          def.isAutoRegister());
+      if (def.hasAliases()) {
+        for (String alias : def.aliases()) {
+          registerBuiltinMethod(
+              processingEnv.getFiler(), alias, fullClassName, def.isStatic(), def.isAutoRegister());
+        }
+      }
+    } else {
       processingEnv
           .getMessager()
-          .printMessage(
-              Diagnostic.Kind.ERROR,
-              "Type of the BuiltinMethod cannot be empty in: " + def.getClassName());
-      return;
-    }
-    String fullClassName = def.getPackageName() + "." + def.getClassName();
-    registerBuiltinMethod(
-        processingEnv.getFiler(),
-        def.getDeclaredName(),
-        fullClassName,
-        def.isStatic(),
-        def.isAutoRegister());
-    if (def.hasAliases()) {
-      for (String alias : def.aliases()) {
-        registerBuiltinMethod(
-            processingEnv.getFiler(), alias, fullClassName, def.isStatic(), def.isAutoRegister());
-      }
+          .printMessage(Diagnostic.Kind.ERROR, "No execute method found.", element);
     }
   }
 
