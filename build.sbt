@@ -616,6 +616,7 @@ val guavaVersion            = "32.0.0-jre"
 val jgitVersion             = "6.7.0.202309050840-r"
 val kindProjectorVersion    = "0.13.3"
 val mockitoScalaVersion     = "1.17.14"
+val mockitoJavaVersion      = "5.15.2"
 val newtypeVersion          = "0.4.4"
 val pprintVersion           = "0.8.1"
 val pureconfigVersion       = "0.17.4"
@@ -4844,8 +4845,8 @@ lazy val `std-table` = project
       "org.apache.logging.log4j" % "log4j-to-slf4j"          % "2.24.3", // org.apache.poi uses log4j
       "junit"                    % "junit"                   % junitVersion       % Test,
       "com.github.sbt"           % "junit-interface"         % junitIfVersion     % Test,
-      "org.mockito"              % "mockito-core"            % "5.15.2"            % Test,
-      "org.mockito"              % "mockito-junit-jupiter"   % "5.15.2"            % Test
+      "org.mockito"              % "mockito-core"            % mockitoJavaVersion           % Test,
+      "org.mockito"              % "mockito-junit-jupiter"   % mockitoJavaVersion           % Test
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
