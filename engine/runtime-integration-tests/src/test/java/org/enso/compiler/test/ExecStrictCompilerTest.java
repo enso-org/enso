@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.logging.Level;
 import org.enso.common.RuntimeOptions;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
@@ -127,5 +128,24 @@ public class ExecStrictCompilerTest {
       var firstLine = ex.getMessage().split("\n")[0];
       assertEquals("extension:1:1: error: The name `Unknown_Type` could not be found.", firstLine);
     }
+  }
+
+  @Test
+  public void fqnAreAllowedInTypeSignatures() {
+    var code =
+        """
+        from Standard.Base import all
+
+        foo : Standard.Base.Data.Numbers.Integer
+        foo = 1
+
+        bar (x : Standard.Base.Data.Numbers.Integer) = 10+x
+
+        main =
+            bar foo
+        """;
+    var res = ContextUtils.evalModule(ctx, code);
+    assertTrue("Compiles and returns result", res.isNumber());
+    assertEquals("Returns correct result", 11, res.asInt());
   }
 }
