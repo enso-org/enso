@@ -6,6 +6,7 @@ import {
   getDayOfWeek,
   getLocalTimeZone,
   now,
+  parseZonedDateTime,
   ZonedDateTime,
 } from '@internationalized/date'
 import { useMutation } from '@tanstack/react-query'
@@ -52,9 +53,8 @@ import {
   DAY_3_LETTER_TEXT_IDS,
   DAY_TEXT_IDS,
   MONTH_3_LETTER_TEXT_IDS,
-  nativeDateToTimeZoneDate,
-  toReadableIsoString,
   toRfc3339,
+  zonedDateTimeToReadableIsoString,
 } from 'enso-common/src/utilities/data/dateTime'
 import { useEffect, useRef } from 'react'
 
@@ -120,7 +120,9 @@ const UPSERT_EXECUTION_SCHEMA = z
       timeZone,
     }): ProjectExecutionInfo => {
       startDate ??= now(timeZone)
-      const startDateTime = toRfc3339(nativeDateToTimeZoneDate(startDate.toDate(), timeZone))
+      const startDateTime = toRfc3339(
+        parseZonedDateTime(startDate.toAbsoluteString().replace(/Z$/, `[${timeZone}]`)).toDate(),
+      )
       const repeat = ((): ProjectExecutionRepeatInfo => {
         switch (repeatType) {
           case 'none': {
@@ -268,10 +270,10 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
     if (!projectExecution) {
       return []
     }
-    let nextDate = firstProjectExecutionOnOrAfter(projectExecution, date.toDate(), 'UTC')
+    let nextDate = firstProjectExecutionOnOrAfter(projectExecution, date)
     const dates = [nextDate]
     while (dates.length < REPEAT_TIMES_COUNT) {
-      nextDate = nextProjectExecutionDate(projectExecution, nextDate, 'UTC')
+      nextDate = nextProjectExecutionDate(projectExecution, nextDate)
       dates.push(nextDate)
     }
     return dates
@@ -359,7 +361,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       <div>
         <Text>{getText('repeatsAt')}</Text>
         {repeatTimes.map((dateTime, i) => (
-          <Text key={i}>{toReadableIsoString(dateTime, 'UTC')}</Text>
+          <Text key={i}>{zonedDateTimeToReadableIsoString(dateTime)}</Text>
         ))}
       </div>
       {enableAdvancedProjectExecutionOptions && (

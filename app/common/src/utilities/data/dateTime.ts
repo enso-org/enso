@@ -1,16 +1,13 @@
 /** @file Utilities for manipulating and displaying dates and times. */
+import { ZonedDateTime } from '@internationalized/date'
 import type { TextId } from '../../text'
 import { type Newtype, newtypeConstructor } from './newtype'
 
 const ISO_FORMAT = Intl.DateTimeFormat('sv', { dateStyle: 'short', timeStyle: 'short' })
 /** The number of hours in half a day. This is used to get the number of hours for AM/PM time. */
 export const HALF_DAY_HOURS = 12
-/** The number of milliseconds in one minute. */
-export const MINUTE_MS = 60_000
 export const MAX_DAYS_PER_MONTH = 31
 export const DAYS_PER_WEEK = 7
-export const HOURS_PER_DAY = 24
-export const HOUR_MINUTE = 60
 
 /** A mapping from the month index returned by {@link Date.getMonth} to its full name. */
 export const MONTH_NAMES = [
@@ -119,4 +116,11 @@ export function toReadableIsoString(date: Date, timeZone?: string) {
       Intl.DateTimeFormat('sv', { dateStyle: 'short', timeStyle: 'short', timeZone })
     )
   return formatter.format(date)
+}
+
+/** Format a {@link ZonedDateTime} as a {@link Rfc3339DateTime}. */
+export function zonedDateTimeToReadableIsoString(date: ZonedDateTime) {
+  const isoString = date.toString()
+  const [, dateString, hour, minute] = isoString.match(/(.+)T(\d+):(\d+)/) ?? []
+  return `${dateString} ${hour}:${minute}`
 }

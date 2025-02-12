@@ -5,9 +5,6 @@ import {
   DAY_3_LETTER_TEXT_IDS,
   DAY_TEXT_IDS,
   DAYS_PER_WEEK,
-  HOUR_MINUTE,
-  HOURS_PER_DAY,
-  MINUTE_MS,
   MONTH_3_LETTER_TEXT_IDS,
 } from 'enso-common/src/utilities/data/dateTime'
 
@@ -23,7 +20,7 @@ import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
-import { getLocalTimeZone, now } from '@internationalized/date'
+import { getLocalTimeZone, parseAbsolute, type ZonedDateTime } from '@internationalized/date'
 
 const MONTHS_IN_YEAR = 12
 
@@ -52,7 +49,7 @@ export interface ProjectExecutionProps {
   readonly item: backendModule.ProjectAsset
   readonly projectExecution: backendModule.ProjectExecution
   /** Defaults to the first date of `projectExecution` if not given. */
-  readonly date?: Date
+  readonly date?: ZonedDateTime
 }
 
 /** Displays information describing a specific version of an asset. */
@@ -60,41 +57,23 @@ export function ProjectExecution(props: ProjectExecutionProps) {
   const { backend, item, projectExecution, date } = props
   const { getText } = useText()
   const getOrdinal = useGetOrdinal()
-  const [timeZone] = useLocalStorageState('preferredTimeZone')
+  const [timeZone = getLocalTimeZone()] = useLocalStorageState('preferredTimeZone')
   const { repeat } = projectExecution
-
-  const timeZoneOffsetMs =
-    now(timeZone ?? getLocalTimeZone()).offset - now(projectExecution.timeZone).offset
-  const timeZoneOffsetMinutesTotal = Math.trunc(timeZoneOffsetMs / MINUTE_MS)
-  let timeZoneOffsetHours = Math.floor(timeZoneOffsetMinutesTotal / HOUR_MINUTE)
-  const timeZoneOffsetMinutes = timeZoneOffsetMinutesTotal - timeZoneOffsetHours * HOUR_MINUTE
-
-  const startDate = new Date(projectExecution.startDate)
-  let minute = startDate.getMinutes()
-  minute += timeZoneOffsetMinutes
-  while (minute < 0) {
-    minute += HOUR_MINUTE
-    timeZoneOffsetHours += 1
-  }
-  while (minute > HOUR_MINUTE) {
-    minute -= HOUR_MINUTE
-    timeZoneOffsetHours -= 1
-  }
-  const minuteString = String(minute).padStart(2, '0')
-  const startDateHour = (startDate.getHours() + timeZoneOffsetHours + HOURS_PER_DAY) % HOURS_PER_DAY
-  const startDateDailyRepeat = getText(
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    startDateHour > 11 ? 'xPm' : 'xAm',
-    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    `${startDateHour % 12 || 12}:${minuteString}`,
-  )
 
   const repeatString = (() => {
     if (date) {
-      const hour = (date.getHours() + timeZoneOffsetHours + HOURS_PER_DAY) % HOURS_PER_DAY
+      const minuteString = String(date.minute).padStart(2, '0')
       // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-      return getText(hour > 11 ? 'xPm' : 'xAm', `${hour % 12 || 12}:${minuteString}`)
+      return getText(date.hour > 11 ? 'xPm' : 'xAm', `${date.hour % 12 || 12}:${minuteString}`)
     } else {
+      const zonedStartDate = parseAbsolute(projectExecution.startDate, timeZone)
+      const minuteString = String(zonedStartDate.minute).padStart(2, '0')
+      const startDateDailyRepeat = getText(
+        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+        zonedStartDate.hour > 11 ? 'xPm' : 'xAm',
+        // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+        `${zonedStartDate.hour % 12 || 12}:${minuteString}`,
+      )
       switch (repeat.type) {
         case 'none': {
           return getText('doesNotRepeat')

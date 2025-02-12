@@ -4,11 +4,11 @@ import { useState } from 'react'
 import {
   CalendarDate,
   getLocalTimeZone,
-  parseAbsolute,
   startOfMonth,
   toCalendarDate,
   today,
   toZoned,
+  type ZonedDateTime,
 } from '@internationalized/date'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
@@ -116,21 +116,20 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
   const projectExecutions = projectExecutionsQuery.data
 
   const start = startOfMonth(focusedMonth)
-  const startDate = start.toDate(timeZone)
+  const startDate = toZoned(start, timeZone)
   const end = startOfMonth(focusedMonth.add({ months: 1 }))
-  const endDate = end.toDate(timeZone)
+  const endDate = toZoned(end, timeZone)
   const projectExecutionsByDate: Record<
     string,
-    { readonly date: Date; readonly projectExecution: BackendProjectExecution }[]
+    { readonly date: ZonedDateTime; readonly projectExecution: BackendProjectExecution }[]
   > = {}
   for (const projectExecution of projectExecutions) {
     for (const date of getProjectExecutionRepetitionsForDateRange(
       projectExecution,
       startDate,
       endDate,
-      timeZone,
     )) {
-      const dateString = toCalendarDate(parseAbsolute(date.toISOString(), timeZone)).toString()
+      const dateString = toCalendarDate(toZoned(date, timeZone)).toString()
       ;(projectExecutionsByDate[dateString] ??= []).push({ date, projectExecution })
     }
   }
@@ -142,9 +141,8 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
     .flatMap((projectExecution) =>
       getProjectExecutionRepetitionsForDateRange(
         projectExecution,
-        selectedDate.toDate(timeZone),
-        selectedDate.add({ days: 1 }).toDate(timeZone),
-        timeZone,
+        toZoned(selectedDate, timeZone),
+        toZoned(selectedDate.add({ days: 1 }), timeZone),
       ).flatMap((date) => ({ date, projectExecution })),
     )
     .sort((a, b) => Number(a.date) - Number(b.date))
