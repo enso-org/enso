@@ -48,7 +48,7 @@ type Frame_Hider
        > Example
          Wrap a callback invocation to unhide its stack frames.
 
-         my_test_utility test_predicate x =
+         test_utility test_predicate x =
              ...
              Frame_Hider.unhide (test_predicate x)
     unhide ~action =
@@ -64,7 +64,7 @@ type Frame_Hider
        > Example
          Wrap a callback invocation to unhide its stack frames.
 
-         my_test_utility test_predicate x =
+         test_utility test_predicate x =
              ...
              Frame_Hider.unhide_1 test_predicate x
     unhide_1 f x =
@@ -80,7 +80,7 @@ type Frame_Hider
        > Example
          Wrap a callback invocation to unhide its stack frames.
 
-         my_test_utility test_predicate x y =
+         test_utility test_predicate x y =
              ...
              Frame_Hider.unhide_2 test_predicate x y
     unhide_2 f x y =
@@ -103,8 +103,7 @@ type Frame_Hider
            call, and the one that triggered the test assertion failure.
 
            If we cannot find such a frame, we simply return the top of the
-           stack. (In this case, some test code is missing a call to `hide` or
-           `unhide*`.)
+           stack. (In this case, some test code is missing a call to `unhide*`.)
         delta_for_frame frame =
             name = frame.name
             if name.starts_with "Frame_Hider.hide" then 1 else
@@ -112,7 +111,7 @@ type Frame_Hider
         nesting_levels = reversed_stack_trace.map delta_for_frame . running_fold 0 (_ + _)
         index =
             i = nesting_levels.last_index_of 0
-            if i.is_nothing then 0 else i-1
+            if i.is_nothing || i == 0 then 0 else i-1
 
         top = reversed_stack_trace . at index . source_location
         top.to_display_text
