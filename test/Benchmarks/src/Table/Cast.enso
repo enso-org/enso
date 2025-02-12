@@ -37,23 +37,31 @@ collect_benches = Bench.build builder->
 
     builder.group ("Column_Cast_" + num_rows.to_text) options group_builder->
         group_builder.specify "Integer_To_Float" <|
-            data.table.at "X" . cast Value_Type.Float
+            r = data.table.at "X" . cast Value_Type.Float
+            Runtime.assert (Warning.get_all r == [])
+            r
 
         group_builder.specify "Integer_To_Boolean" <|
             data.table.at "Y" . cast Value_Type.Boolean
 
         group_builder.specify "Integer_To_Smaller_Integer_Fitting" <|
-            data.table.at "Y" . cast (Value_Type.Integer ..Bits_16)
+            r = data.table.at "Y" . cast (Value_Type.Integer ..Bits_16)
+            Runtime.assert (Warning.get_all r == [])
+            r
 
         Runtime.assert (num_rows > 32767)
         group_builder.specify "Integer_To_Smaller_Integer_Not_Fitting" <|
-            data.table.at "X" . cast (Value_Type.Integer ..Bits_16)
+            r = data.table.at "X" . cast (Value_Type.Integer ..Bits_16)
+            Runtime.assert (Warning.get_all r != [])
+            r
 
         group_builder.specify "Integer_To_Text" <|
             data.table.at "X" . cast Value_Type.Char
 
         group_builder.specify "Float_To_Integer" <|
-            data.table.at "floats" . cast Value_Type.Integer
+            r = data.table.at "floats" . cast Value_Type.Integer
+            Runtime.assert (Warning.get_all r == [])
+            r
 
         group_builder.specify "Float_To_Decimal" <|
             data.table.at "floats" . cast Value_Type.Decimal
