@@ -16,6 +16,7 @@ import type {
   ColDef,
   ICellRendererParams,
   IServerSideDatasource,
+  IServerSideGetRowsRequest,
   ITooltipParams,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
@@ -237,7 +238,7 @@ function formatText(params: ICellRendererParams) {
 
 function createRowServer() {
   return {
-    getData: async (request: any) => {
+    getData: async (request: IServerSideGetRowsRequest) => {
       const response = await config.executeExpression(
         'Standard.Visualization.Table.Visualization',
         'get_rows_for_table',
@@ -251,13 +252,18 @@ function createRowServer() {
   }
 }
 
+interface Response {
+  data: unknown[][],
+  success: boolean
+} 
+
 function createServerSideDatasource(): IServerSideDatasource {
   return {
     getRows: async (params) => {
       const server = createRowServer()
-      const response = await server.getData(params.request)
+      const response: Response = await server.getData(params.request)
       const startIndex = params.request.startRow
-      const rows = createRowsForTable(response, startIndex)
+      const rows = createRowsForTable(response.data, startIndex)
       setTimeout(() => {
         if (response.success) {
           params.success({ rowData: rows })
@@ -513,6 +519,10 @@ watchEffect(() => {
         visualization_header: undefined,
         // eslint-disable-next-line camelcase
         link_value_type: undefined,
+        // eslint-disable-next-line camelcase
+        is_ssrm: undefined,
+        // eslint-disable-next-line camelcase
+        header: undefined,
       }
   if ('error' in data_) {
     columnDefs.value = [
@@ -625,20 +635,19 @@ watchEffect(() => {
       : dataHeader
 
     if (!props.data.is_ssrm) {
-      rowData.value = createRowsForTable(data_, 0)
+      rowData.value = createRowsForTable(data_.data, 0)
     }
   }
 })
 
-const createRowsForTable = (data: any, startIndex: number) => {
-  const rows = data.data && data.data.length > 0 ? (data.data[0]?.length ?? 0) : 0
+const createRowsForTable = (data: unknown[][], startIndex: number) => {
+  const rows = data && data.length > 0 ? (data[0]?.length ?? 0) : 0
       return Array.from({ length: rows }, (_, i) => {
-        const shift = data.has_index_col ? 1 : 0
         return Object.fromEntries(
           columnDefs.value.map((h, j) => {
             return [
               h.field,
-              toRender(h.field === INDEX_FIELD_NAME ? i + startIndex : data.data?.[j - shift]?.[i]),
+              toRender(h.field === INDEX_FIELD_NAME ? i + startIndex : data?.[j - 1]?.[i]),
             ]
           }),
         )
