@@ -16,7 +16,8 @@ import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.junit.Test;
 
-public class SymbolResolutionTest extends ContextTest {
+/** Tests symbol resolution in the interpreter. */
+public class InterpreterSymbolResolutionTest extends ContextTest {
 
   @Test
   public void resolvingLocalSymbol() throws Exception {
