@@ -45,7 +45,7 @@ public class ExpressionVisitorImplTest {
         Value mockedMethod = mock(Value.class);
         Value mockedResult = mock(Value.class);
 
-        when(getColumn.apply("Column 1")).thenReturn(mockedColumn);
+        when(getColumn.apply("Column 2")).thenReturn(mockedColumn);
         when(getMethod.apply("text_length")).thenReturn(mockedMethod);
         when(mockedMethod.canExecute()).thenReturn(true);
         when(mockedMethod.execute(mockedColumn)).thenReturn(mockedResult);
