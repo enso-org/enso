@@ -17,7 +17,7 @@ import Standard.Base.Runtime.Ref.Ref
    when test utilities invoke callbacks provided by user test code.
 
    The `hide` and `unhide*` methods are simple wrappers. `get_top_stack_frame`
-   identifies these on the stack, and uses them to removes the uninteresting
+   identifies these on the stack, and uses them to remove the uninteresting
    frames from consderation.
 
    A `hide` call should be wrapped around the body of every test utility.
