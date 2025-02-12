@@ -1,7 +1,10 @@
 package org.enso.interpreter.test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import com.oracle.truffle.api.TruffleFile;
 import java.io.IOException;
@@ -12,6 +15,9 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
+import org.enso.cli.OS;
+import org.enso.common.LanguageInfo;
+import org.enso.common.MethodNames;
 import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.pkg.NativeLibraryFinder;
@@ -27,6 +33,7 @@ public class NativeLibraryFinderTest {
 
   @Rule public final TestRule printContextRule = new PrintSystemInfoRule();
   private Package<TruffleFile> stdImgPkg;
+  private Package<TruffleFile> stdTableauPkg;
 
   @Test
   public void standardImageShouldHaveNativeLib() {
@@ -51,6 +58,67 @@ public class NativeLibraryFinderTest {
     }
   }
 
+  @Test
+  public void standardTableauShouldHaveNativeLib() {
+    try (var ctx = ContextUtils.createDefaultContext()) {
+      // Evaluate dummy sources to force loading Standard.Tableau
+      ContextUtils.evalModule(
+          ctx, """
+          from Standard.Tableau import all
+          main = 42
+          """);
+      var ensoCtx = ContextUtils.leakContext(ctx);
+      var stdTableau =
+          ensoCtx
+              .getPackageRepository()
+              .getPackageForLibraryJava(LibraryName.apply("Standard", "Tableau"));
+      assertThat(stdTableau.isPresent(), is(true));
+      this.stdTableauPkg = stdTableau.get();
+      var nativeLibs =
+          NativeLibraryFinder.listAllNativeLibraries(stdTableau.get(), TruffleFileSystem.INSTANCE);
+      // Tableau has Tableau's native lib AND jni
+      assertThat("There should be two native libs for Standard.Tableau", nativeLibs.size(), is(2));
+    }
+  }
+
+  @Test
+  public void findTableauNativeLibrary() {
+    try (var ctx = ContextUtils.createDefaultContext()) {
+      // Evaluate dummy sources to force loading Standard.Tableau
+      ContextUtils.evalModule(
+          ctx,
+          """
+          from Standard.Base import all
+          from Standard.Tableau import all
+          main = 42
+          """);
+      var nativeLib =
+          ctx.getBindings(LanguageInfo.ID)
+              .invokeMember(MethodNames.TopScope.FIND_NATIVE_LIBRARY, "tableauhyperapi");
+      assertNotNull(nativeLib);
+      var expectedLibName = OS.isWindows() ? "tableauhyperapi" : "libtableauhyperapi";
+      assertThat(nativeLib.asString(), containsString(expectedLibName));
+    }
+  }
+
+  @Test
+  public void failToFindNativeLibrary() {
+    try (var ctx = ContextUtils.createDefaultContext()) {
+      // Evaluate dummy sources to force loading of some packages
+      ContextUtils.evalModule(
+          ctx,
+          """
+          from Standard.Base import all
+          from Standard.Table import all
+          main = 42
+          """);
+      var nativeLib =
+          ctx.getBindings(LanguageInfo.ID)
+              .invokeMember(MethodNames.TopScope.FIND_NATIVE_LIBRARY, "iDontExist");
+      assertTrue(nativeLib.isNull());
+    }
+  }
+
   public final class PrintSystemInfoRule implements TestRule {
     @Override
     public Statement apply(Statement base, Description description) {
@@ -70,12 +138,24 @@ public class NativeLibraryFinderTest {
                 .append(System.lineSeparator());
             var mappedLibName = System.mapLibraryName("opencv_java470");
             sb.append("  Mapped library name: ")
-                .append(mappedLibName)
+                .append(System.lineSeparator())
+                .append("      " + System.mapLibraryName("opencv_java470"))
+                .append(System.lineSeparator())
+                .append("      " + System.mapLibraryName("tableauhyperapi"))
                 .append(System.lineSeparator());
             if (stdImgPkg != null) {
               sb.append("  Contents of Standard.Image native library dir:")
                   .append(System.lineSeparator());
               var nativeLibDir = stdImgPkg.nativeLibraryDir();
+              var nativeLibPath = Path.of(nativeLibDir.getAbsoluteFile().getPath());
+              var contents = contentsOfDir(nativeLibPath);
+              contents.forEach(
+                  path -> sb.append("    ").append(path).append(System.lineSeparator()));
+            }
+            if (stdTableauPkg != null) {
+              sb.append("  Contents of Standard.Tableau native library dir:")
+                  .append(System.lineSeparator());
+              var nativeLibDir = stdTableauPkg.nativeLibraryDir();
               var nativeLibPath = Path.of(nativeLibDir.getAbsoluteFile().getPath());
               var contents = contentsOfDir(nativeLibPath);
               contents.forEach(

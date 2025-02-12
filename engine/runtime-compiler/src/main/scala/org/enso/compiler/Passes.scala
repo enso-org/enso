@@ -56,8 +56,8 @@ class Passes(config: CompilerConfig) {
             )
           } else List())
     ++ List(
-      ShadowedPatternFields,
-      UnreachableMatchBranches,
+      ShadowedPatternFields.INSTANCE,
+      UnreachableMatchBranches.INSTANCE,
       NestedPatternMatch,
       IgnoredBindings,
       TypeFunctions,

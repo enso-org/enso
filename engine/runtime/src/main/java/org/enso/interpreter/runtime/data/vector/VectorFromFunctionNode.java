@@ -83,7 +83,8 @@ public abstract class VectorFromFunctionNode extends Node {
               valueToAdd = nothing;
             } else {
               var wrappedInWarn =
-                  Warning.attach(ctx, nothing, err.getPayload(), null, appendWarningNode);
+                  Warning.attach(
+                      ctx, frame, nothing, err.getPayload(), null, warnsLib, appendWarningNode);
               valueToAdd = wrappedInWarn;
             }
           }
@@ -100,7 +101,7 @@ public abstract class VectorFromFunctionNode extends Node {
       long additionalWarnsCnt = errorsEncountered - MAX_MAP_WARNINGS;
       var additionalWarns = additionalWarnsBuiltin.newInstance(additionalWarnsCnt);
       var vecWithAdditionalWarns =
-          Warning.attach(ctx, vector, additionalWarns, null, appendWarningNode);
+          Warning.attach(ctx, frame, vector, additionalWarns, null, warnsLib, appendWarningNode);
       return vecWithAdditionalWarns;
     } else {
       return vector;

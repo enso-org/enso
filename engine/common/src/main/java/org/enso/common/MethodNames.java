@@ -9,6 +9,7 @@ public class MethodNames {
     public static final String REGISTER_MODULE = "register_module";
     public static final String UNREGISTER_MODULE = "unregister_module";
     public static final String COMPILE = "compile";
+    public static final String FIND_NATIVE_LIBRARY = "find_native_library";
   }
 
   public static class Module {

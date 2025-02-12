@@ -525,6 +525,15 @@ public final class Builtins {
     return t;
   }
 
+  public Builtin getByRepresentationType(Class<?> clazz) {
+    for (var b : builtins.values()) {
+      if (b.isRepresentedBy(clazz)) {
+        return b;
+      }
+    }
+    return null;
+  }
+
   public Builtin getBuiltinType(String name) {
     return builtinsByName.get(name);
   }
