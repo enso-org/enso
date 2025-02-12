@@ -281,7 +281,7 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
         break
       }
       default: {
-        logger.error(`Ignoring unknown deep link '${urlString}'.`)
+        navigate(pathname.slice(1))
         break
       }
     }
