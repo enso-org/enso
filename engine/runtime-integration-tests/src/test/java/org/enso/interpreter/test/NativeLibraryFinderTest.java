@@ -98,6 +98,13 @@ public class NativeLibraryFinderTest {
       assertNotNull(nativeLib);
       var expectedLibName = OS.isWindows() ? "tableauhyperapi" : "libtableauhyperapi";
       assertThat(nativeLib.asString(), containsString(expectedLibName));
+
+      var nativeLibJni =
+          ctx.getBindings(LanguageInfo.ID)
+              .invokeMember(MethodNames.TopScope.FIND_NATIVE_LIBRARY, "jnidispatch");
+      assertNotNull(nativeLibJni);
+      var expectedJniLibName = OS.isWindows() ? "jnidispatch" : "libjnidispatch";
+      assertThat(nativeLibJni.asString(), containsString(expectedJniLibName));
     }
   }
 

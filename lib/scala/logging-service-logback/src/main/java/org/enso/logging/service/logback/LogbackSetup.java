@@ -133,7 +133,7 @@ public final class LogbackSetup extends LoggerSetup {
 
     org.enso.logging.config.SocketAppender appenderConfig = config.getSocketAppender();
 
-    SocketAppender socketAppender = new SocketAppender();
+    SocketAppender socketAppender = new DeferredProcessingSocketAppender();
     socketAppender.setName("enso-socket");
     socketAppender.setIncludeCallerData(false);
     socketAppender.setRemoteHost(hostname);
@@ -316,8 +316,13 @@ public final class LogbackSetup extends LoggerSetup {
 
   @Override
   public void teardown() {
-    // TODO: disable whatever appender is now in place and replace it with console
     context().stop();
+    var logLevelOnShutdown =
+        config
+            .getLogLevel()
+            .map(name -> Level.valueOf(name.toUpperCase()))
+            .orElseGet(() -> Level.ERROR);
+    setupConsoleAppender(logLevelOnShutdown);
   }
 
   private LoggerAndContext contextInit(

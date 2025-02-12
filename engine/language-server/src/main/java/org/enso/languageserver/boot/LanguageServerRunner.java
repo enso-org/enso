@@ -41,6 +41,17 @@ public final class LanguageServerRunner extends LanguageServerApi {
     if (rootPath == null) {
       throw new WrongOption("Root path must be provided");
     }
+    UUID projectId;
+    try {
+      var id = line.getOptionValue(LanguageServerApi.PROJECT_ID_OPTION);
+      if (id == null) {
+        projectId = UUID.fromString("00000000-0000-0000-0000-000000000000");
+      } else {
+        projectId = UUID.fromString(id);
+      }
+    } catch (IllegalArgumentException e) {
+      throw new WrongOption("Project ID must be UUID");
+    }
     var interfac = line.getOptionValue(LanguageServerApi.INTERFACE_OPTION, "127.0.0.1");
     int rpcPort;
     try {
@@ -79,6 +90,7 @@ public final class LanguageServerRunner extends LanguageServerApi {
             scala.Option.apply(secureDataPort),
             rootId,
             rootPath,
+            projectId,
             profilingConfig,
             new StartupConfig(graalVMUpdater),
             "language-server",

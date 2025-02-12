@@ -16,6 +16,7 @@ import scala.concurrent.duration.FiniteDuration
   * @param name a name of the LS
   * @param rootId a content root id
   * @param rootPath a path to the content root
+  * @param projectId an id of the project
   * @param networkConfig a network config
   * @param distributionConfiguration configuration of current distribution, used
   *                                  to find installed (or install new) engine
@@ -38,6 +39,7 @@ case class LanguageServerDescriptor(
   name: String,
   rootId: UUID,
   rootPath: String,
+  projectId: UUID,
   networkConfig: NetworkConfig,
   distributionConfiguration: DistributionConfiguration,
   engineVersion: SemVer,

@@ -186,7 +186,8 @@ object LauncherApplication {
       "runtimes without asking.",
       related = Seq("server")
     ) {
-      val rootId = Opts.parameter[UUID]("root-id", "UUID", "Content root id.")
+      val rootId    = Opts.parameter[UUID]("root-id", "UUID", "Content root id.")
+      val projectId = Opts.parameter[UUID]("project-id", "UUID", "Project id.")
       val path =
         Opts.parameter[Path]("path", "PATH", "Path to the content root.")
       val interface =
@@ -231,6 +232,7 @@ object LauncherApplication {
       val additionalArgs = Opts.additionalArguments()
       (
         rootId,
+        projectId,
         path,
         interface,
         rpcPort,
@@ -245,6 +247,7 @@ object LauncherApplication {
       ) mapN {
         (
           rootId,
+          projectId,
           path,
           interface,
           rpcPort,
@@ -260,6 +263,7 @@ object LauncherApplication {
           Launcher(config).runLanguageServer(
             options = LanguageServerOptions(
               rootId         = rootId,
+              projectId      = projectId,
               interface      = interface,
               rpcPort        = rpcPort,
               secureRpcPort  = secureRpcPort,

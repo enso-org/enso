@@ -8,6 +8,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import javax.net.ServerSocketFactory;
 import org.slf4j.Logger;
@@ -119,6 +120,16 @@ public class SocketServer extends Thread {
 
   public boolean isClosed() {
     return closed;
+  }
+
+  public void closeProject(UUID projectId) {
+    if (projectId != null) {
+      synchronized (socketNodeList) {
+        for (SocketLoggingNode sn : socketNodeList) {
+          if (sn.projectId.equals(projectId)) sn.closing();
+        }
+      }
+    }
   }
 
   public void close() {

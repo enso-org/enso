@@ -123,6 +123,8 @@ class Runner(
         "--server",
         "--root-id",
         options.rootId.toString,
+        "--project-id",
+        options.projectId.toString,
         "--path",
         projectPath,
         "--interface",

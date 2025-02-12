@@ -12,6 +12,7 @@ import akka.actor.{
 }
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.logging.utils.akka.ActorMessageLogging
+import org.enso.projectmanager.boot.Logging
 import org.enso.semver.SemVer
 import org.enso.projectmanager.boot.configuration._
 import org.enso.projectmanager.data.{LanguageServerSockets, Socket}
@@ -81,6 +82,7 @@ class LanguageServerController(
       name                           = s"language-server-${project.id}",
       rootId                         = UUID.randomUUID(),
       rootPath                       = project.path.toString,
+      projectId                      = project.id,
       networkConfig                  = networkConfig,
       distributionConfiguration      = distributionConfiguration,
       engineVersion                  = engineVersion,
@@ -214,7 +216,8 @@ class LanguageServerController(
       case Terminated(_) =>
         logger.debug("Bootloader for {} terminated", project)
 
-      case StopServer(clientId, _) =>
+      case StopServer(clientId, projectId) =>
+        Logging.tearDown(projectId)
         removeClient(
           connectionInfo,
           serverProcessManager,

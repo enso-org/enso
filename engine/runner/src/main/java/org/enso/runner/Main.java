@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -53,6 +54,7 @@ import org.graalvm.polyglot.PolyglotException.StackFrame;
 import org.graalvm.polyglot.SourceSection;
 import org.graalvm.polyglot.io.MessageTransport;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.slf4j.event.Level;
 import scala.Option$;
 import scala.concurrent.ExecutionContext;
@@ -295,6 +297,14 @@ public class Main {
             .longOpt(LanguageServerApi.ROOT_ID_OPTION)
             .desc("Content root id.")
             .build();
+    var projectIdOption =
+        cliOptionBuilder()
+            .hasArg(true)
+            .numberOfArgs(1)
+            .argName("uuid")
+            .longOpt(LanguageServerApi.PROJECT_ID_OPTION)
+            .desc("Project id.")
+            .build();
     var pathOption =
         cliOptionBuilder()
             .hasArg(true)
@@ -504,6 +514,7 @@ public class Main {
         .addOption(secureRpcPortOption)
         .addOption(secureDataPortOption)
         .addOption(uuidOption)
+        .addOption(projectIdOption)
         .addOption(pathOption)
         .addOption(inProjectOption)
         .addOption(version)
@@ -1451,6 +1462,19 @@ public class Main {
       connectionUri = null;
     }
     logMasking[0] = !line.hasOption(NO_LOG_MASKING);
+    var projectIdOptional = line.getOptionValue(LanguageServerApi.PROJECT_ID_OPTION);
+    String projectId;
+    try {
+      // sanity check
+      projectId =
+          projectIdOptional != null
+              ? UUID.fromString(projectIdOptional).toString()
+              : "00000000-0000-0000-0000-000000000000";
+    } catch (IllegalArgumentException e) {
+      projectId = "00000000-0000-0000-0000-000000000000";
+    }
+
+    MDC.put("project.id", projectId);
     RunnerLogging.setup(connectionUri, logLevel, logMasking[0]);
     return logLevel;
   }
