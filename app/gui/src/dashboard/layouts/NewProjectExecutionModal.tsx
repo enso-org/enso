@@ -52,6 +52,7 @@ import {
   DAY_3_LETTER_TEXT_IDS,
   DAY_TEXT_IDS,
   MONTH_3_LETTER_TEXT_IDS,
+  nativeDateToTimeZoneDate,
   toReadableIsoString,
   toRfc3339,
 } from 'enso-common/src/utilities/data/dateTime'
@@ -119,7 +120,7 @@ const UPSERT_EXECUTION_SCHEMA = z
       timeZone,
     }): ProjectExecutionInfo => {
       startDate ??= now(timeZone)
-      const startDateTime = toRfc3339(startDate.toDate())
+      const startDateTime = toRfc3339(nativeDateToTimeZoneDate(startDate.toDate(), timeZone))
       const repeat = ((): ProjectExecutionRepeatInfo => {
         switch (repeatType) {
           case 'none': {
@@ -213,6 +214,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   const valueJson = useRef('')
 
   const minFirstOccurrence = now(timeZone)
+  const defaultStartDate = defaultDate ?? minFirstOccurrence
   const form = Form.useForm({
     method: 'dialog',
     schema: UPSERT_EXECUTION_SCHEMA,
@@ -220,7 +222,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       projectId: item.id,
       repeatType: 'daily',
       parallelMode: 'restart',
-      startDate: defaultDate ?? minFirstOccurrence,
+      startDate: defaultStartDate,
       maxDurationMinutes: MAX_DURATION_DEFAULT_MINUTES,
       // Use `en-US` locale because it matches JavaScript conventions.
       days: [getDayOfWeek(minFirstOccurrence, 'en-US')],
@@ -233,7 +235,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   })
   const repeatType = form.watch('repeatType', 'daily')
   const parallelMode = form.watch('parallelMode', 'restart')
-  const date = form.watch('startDate', minFirstOccurrence) ?? minFirstOccurrence
+  const date = form.watch('startDate', defaultStartDate) ?? defaultStartDate
   // Reactively watch for `days` and `months` so that repeat dates are kept up to date.
   form.watch('days')
   form.watch('months')
@@ -266,10 +268,10 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
     if (!projectExecution) {
       return []
     }
-    let nextDate = firstProjectExecutionOnOrAfter(projectExecution, date.toDate(), timeZone)
+    let nextDate = firstProjectExecutionOnOrAfter(projectExecution, date.toDate(), 'UTC')
     const dates = [nextDate]
     while (dates.length < REPEAT_TIMES_COUNT) {
-      nextDate = nextProjectExecutionDate(projectExecution, nextDate)
+      nextDate = nextProjectExecutionDate(projectExecution, nextDate, 'UTC')
       dates.push(nextDate)
     }
     return dates
@@ -357,7 +359,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       <div>
         <Text>{getText('repeatsAt')}</Text>
         {repeatTimes.map((dateTime, i) => (
-          <Text key={i}>{toReadableIsoString(dateTime, timeZone)}</Text>
+          <Text key={i}>{toReadableIsoString(dateTime, 'UTC')}</Text>
         ))}
       </div>
       {enableAdvancedProjectExecutionOptions && (

@@ -83,6 +83,7 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
         {
           async: true,
           errorMap: (issue) => {
+            console.log(issue)
             switch (issue.code) {
               case 'too_small':
                 if (issue.minimum === 1 && issue.type === 'string') {

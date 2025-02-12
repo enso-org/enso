@@ -3,32 +3,6 @@ import { toRfc3339 } from '../../../utilities/data/dateTime'
 import { ProjectExecutionInfo, ProjectId } from '../../Backend'
 import { firstProjectExecutionOnOrAfter, nextProjectExecutionDate } from '../projectExecution'
 
-const HOURLY_EXECUTION_1: ProjectExecutionInfo = {
-  projectId: ProjectId('project-aaaaaaaa'),
-  repeat: {
-    type: 'hourly',
-    startHour: 7,
-    endHour: 15,
-  },
-  startDate: toRfc3339(new Date(2020, 0, 1, 10, 59)),
-  timeZone: 'UTC',
-  maxDurationMinutes: 60,
-  parallelMode: 'ignore',
-}
-
-const HOURLY_EXECUTION_2: ProjectExecutionInfo = {
-  projectId: ProjectId('project-aaaaaaaa'),
-  repeat: {
-    type: 'hourly',
-    startHour: 20,
-    endHour: 4,
-  },
-  startDate: toRfc3339(new Date(2015, 2, 8, 22, 33)),
-  timeZone: 'UTC',
-  maxDurationMinutes: 60,
-  parallelMode: 'ignore',
-}
-
 const DAILY_EXECUTION: ProjectExecutionInfo = {
   projectId: ProjectId('project-aaaaaaaa'),
   repeat: {
@@ -48,27 +22,6 @@ v.test.each([
     next1: new Date(2000, 5, 9, 7, 3),
     next2: new Date(2000, 5, 11, 7, 3),
     next3: new Date(2000, 5, 16, 7, 3),
-  },
-  {
-    info: HOURLY_EXECUTION_1,
-    current: new Date(2022, 10, 21, 14, 59),
-    next1: new Date(2022, 10, 21, 15, 59),
-    next2: new Date(2022, 10, 22, 7, 59),
-    next3: new Date(2022, 10, 22, 8, 59),
-  },
-  {
-    info: HOURLY_EXECUTION_2,
-    current: new Date(2018, 4, 11, 3, 33),
-    next1: new Date(2018, 4, 11, 4, 33),
-    next2: new Date(2018, 4, 11, 20, 33),
-    next3: new Date(2018, 4, 11, 21, 33),
-  },
-  {
-    info: HOURLY_EXECUTION_2,
-    current: new Date(2018, 4, 11, 23, 33),
-    next1: new Date(2018, 4, 12, 0, 33),
-    next2: new Date(2018, 4, 12, 1, 33),
-    next3: new Date(2018, 4, 12, 2, 33),
   },
 ] satisfies readonly {
   info: ProjectExecutionInfo

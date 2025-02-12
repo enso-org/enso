@@ -128,6 +128,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
       projectExecution,
       startDate,
       endDate,
+      timeZone,
     )) {
       const dateString = toCalendarDate(parseAbsolute(date.toISOString(), timeZone)).toString()
       ;(projectExecutionsByDate[dateString] ??= []).push({ date, projectExecution })
@@ -143,6 +144,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
         projectExecution,
         selectedDate.toDate(timeZone),
         selectedDate.add({ days: 1 }).toDate(timeZone),
+        timeZone,
       ).flatMap((date) => ({ date, projectExecution })),
     )
     .sort((a, b) => Number(a.date) - Number(b.date))
@@ -221,7 +223,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
         <NewProjectExecutionModal
           backend={backend}
           item={item}
-          defaultDate={toZoned(selectedDate, timeZone)}
+          defaultDate={toZoned(selectedDate, 'UTC')}
         />
       </DialogTrigger>
       <Text>{getText('projectSessionsOnX', selectedDate.toString())}</Text>

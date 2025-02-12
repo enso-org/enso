@@ -11,13 +11,18 @@ export function firstProjectExecutionOnOrAfter(
   startDate: Date,
   timeZone?: string,
 ): Date {
-  let nextDate = timeZoneDateToNativeDate(new Date(startDate), timeZone)
+  let nextDate = nativeDateToTimeZoneDate(new Date(startDate), timeZone)
   const { repeat } = projectExecution
-  const executionStartDate = new Date(projectExecution.startDate)
+  const executionStartDate = nativeDateToTimeZoneDate(new Date(projectExecution.startDate))
   if (nextDate < executionStartDate) {
     nextDate = new Date(executionStartDate)
   }
-  nextDate.setUTCMinutes(executionStartDate.getMinutes())
+  nextDate.setUTCHours(executionStartDate.getUTCHours())
+  nextDate.setUTCMinutes(executionStartDate.getUTCMinutes())
+  nextDate.setUTCSeconds(executionStartDate.getUTCSeconds())
+  if (nextDate < startDate) {
+    nextDate.setUTCDate(nextDate.getUTCDate() + 1)
+  }
   switch (repeat.type) {
     case 'daily': {
       const currentDay = nextDate.getUTCDay()
@@ -70,7 +75,7 @@ export function firstProjectExecutionOnOrAfter(
       nextDate.setUTCMonth(nextDate.getUTCMonth() + monthOffset)
     }
   }
-  return nativeDateToTimeZoneDate(nextDate, timeZone)
+  return timeZoneDateToNativeDate(nextDate, timeZone)
 }
 
 /** The next scheduled execution date of given {@link ProjectExecution}. */
@@ -79,7 +84,7 @@ export function nextProjectExecutionDate(
   date: Date,
   timeZone?: string,
 ): Date {
-  const nextDate = timeZoneDateToNativeDate(new Date(date), timeZone)
+  const nextDate = nativeDateToTimeZoneDate(new Date(date), timeZone)
   const { repeat } = projectExecution
   switch (repeat.type) {
     case 'daily': {
@@ -119,7 +124,7 @@ export function nextProjectExecutionDate(
       nextDate.setUTCMonth(nextDate.getUTCMonth() + monthOffset)
     }
   }
-  return nativeDateToTimeZoneDate(nextDate, timeZone)
+  return timeZoneDateToNativeDate(nextDate, timeZone)
 }
 
 /**
@@ -131,17 +136,18 @@ export function getProjectExecutionRepetitionsForDateRange(
   projectExecution: ProjectExecutionInfo,
   startDate: Date,
   endDate: Date,
+  timeZone?: string,
 ): readonly Date[] {
-  const firstDate = firstProjectExecutionOnOrAfter(projectExecution, startDate)
+  const firstDate = firstProjectExecutionOnOrAfter(projectExecution, startDate, timeZone)
   if (firstDate >= endDate) {
     return EMPTY_ARRAY
   }
   const repetitions: Date[] = [firstDate]
   let currentDate = firstDate
-  currentDate = nextProjectExecutionDate(projectExecution, currentDate)
+  currentDate = nextProjectExecutionDate(projectExecution, currentDate, timeZone)
   while (currentDate < endDate) {
     repetitions.push(currentDate)
-    currentDate = nextProjectExecutionDate(projectExecution, currentDate)
+    currentDate = nextProjectExecutionDate(projectExecution, currentDate, timeZone)
   }
   return repetitions
 }
