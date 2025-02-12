@@ -1,45 +1,36 @@
-import java.nio.file.Paths;
-
 import static org.mockito.Mockito.*;
 
 import java.util.function.Function;
-import java.util.logging.Level;
 
 import org.graalvm.polyglot.Value;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.quality.Strictness;
 
 import org.enso.table.expressions.ExpressionVisitorImpl;
 
 import static org.junit.Assert.assertEquals;
 
+@ExtendWith(MockitoExtension.class)
 public class ExpressionVisitorImplTest {
-    private Function<String, Value> getColumn;
-    private Function<Object, Value> makeConstantColumn;
-    private Function<String, Value> getMethod;
-    private Function<String, Value> makeConstructor;
 
-    @SuppressWarnings("unchecked")
-    @Before
-    public void setUp() {
-        Mockito.framework().clearInlineMocks();
-        getColumn = (Function<String, Value>) mock(Function.class);
-        makeConstantColumn = (Function<Object, Value>) mock(Function.class);
-        getMethod = (Function<String, Value>) mock(Function.class);
-        makeConstructor = (Function<String, Value>) mock(Function.class);
-    }
+    @Rule
+    public MockitoRule mockitoRule = MockitoJUnit.rule().strictness(Strictness.STRICT_STUBS);
+
+    @Mock private Function<String, Value> getColumn;
+    @Mock private Function<Object, Value> makeConstantColumn;
+    @Mock private Function<String, Value> getMethod;
+    @Mock private Function<String, Value> makeConstructor;
 
     private Value evaluate(String expr) {
         return ExpressionVisitorImpl.evaluateImpl(
             expr, getColumn, makeConstantColumn, getMethod, makeConstructor, new String[]{});
-    }
-
-    private Value mockValue(int value) {
-        Value val = mock(Value.class);
-        when(val.asInt()).thenReturn(value);
-        when(val.isNumber()).thenReturn(true);
-        return val;
     }
 
     @Test
@@ -52,7 +43,7 @@ public class ExpressionVisitorImplTest {
     public void testSimpleExpressionOnColumn() {
         Value mockedColumn = mock(Value.class);
         Value mockedMethod = mock(Value.class);
-        Value mockedResult = mockValue(5);
+        Value mockedResult = mock(Value.class);
 
         when(getColumn.apply("Column 1")).thenReturn(mockedColumn);
         when(getMethod.apply("text_length")).thenReturn(mockedMethod);
@@ -60,9 +51,7 @@ public class ExpressionVisitorImplTest {
         when(mockedMethod.execute(mockedColumn)).thenReturn(mockedResult);
         when(makeConstantColumn.apply(mockedResult)).thenReturn(mockedResult);
 
-        Value result = ExpressionVisitorImpl.evaluateImpl(
-            "text_length([Column 1])", getColumn, makeConstantColumn, getMethod, makeConstructor, new String[]{});
-
-        assertEquals(5, result.asInt());
+        Value result = evaluate("text_length([Column 1])");
+        assertEquals(mockedResult, result);
     }
 }
