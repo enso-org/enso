@@ -513,51 +513,49 @@ export function CloudBrowserDisabledLayout(props: CloudBrowserDisabledLayoutProp
 
   const normalizedRedirectPath = redirectPath.startsWith('/') ? redirectPath.slice(1) : redirectPath
 
-  const path = new URL(normalizedRedirectPath, appUtils.OPEN_IDE_DEEPLINK)
-
-  const shouldRedirect = session?.type === UserSessionType.full && !isCloudExecutionEnabled
+  const path = appUtils.OPEN_IDE_DEEPLINK + normalizedRedirectPath
 
   useTimeoutCallback({
     callback: () => {
-      unsafeWriteValue(window.location, 'href', path.toString())
+      unsafeWriteValue(window.location, 'href', path)
       setIsRedirecting(false)
     },
     ms: redirectDelayMs,
-    isDisabled: !shouldRedirect,
+    isDisabled: isCloudExecutionEnabled,
   })
 
-  if (shouldRedirect) {
-    return (
-      <Result
-        status={isRedirecting ? 'loading' : 'info'}
-        title={getText('cloudBrowserDisabledTitle')}
-        subtitle={getText('cloudBrowserDisabledSubtitle')}
-      >
-        <Button.Group align="center" verticalAlign="center">
-          <Button variant="primary" href={path.toString()}>
-            {getText('openInDesktop')}
-          </Button>
-
-          <Text>{getText('or')}</Text>
-
-          <Button
-            variant="outline"
-            onPress={async () => {
-              const downloadUrl = await getDownloadUrl()
-
-              if (downloadUrl != null) {
-                download(downloadUrl)
-              }
-            }}
-          >
-            {getText('downloadIDE')}
-          </Button>
-        </Button.Group>
-      </Result>
-    )
+  if (isCloudExecutionEnabled) {
+    return <router.Outlet context={session} />
   }
 
-  return <router.Outlet context={session} />
+  return (
+    <Result
+      status={isRedirecting ? 'loading' : 'info'}
+      title={getText('cloudBrowserDisabledTitle')}
+      subtitle={getText('cloudBrowserDisabledSubtitle')}
+    >
+      <Button.Group align="center" verticalAlign="center">
+        <Button variant="primary" href={path}>
+          {getText('openInDesktop')}
+        </Button>
+
+        <Text>{getText('or')}</Text>
+
+        <Button
+          variant="outline"
+          onPress={async () => {
+            const downloadUrl = await getDownloadUrl()
+
+            if (downloadUrl != null) {
+              download(downloadUrl)
+            }
+          }}
+        >
+          {getText('downloadIDE')}
+        </Button>
+      </Button.Group>
+    </Result>
+  )
 }
 
 // =============================
