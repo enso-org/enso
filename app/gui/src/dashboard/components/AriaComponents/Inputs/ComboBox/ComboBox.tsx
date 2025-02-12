@@ -156,7 +156,10 @@ export const ComboBox = forwardRef(function ComboBox<
                 {!noResetButton && <ComboBoxResetButton className={styles.resetButton()} />}
               </div>
               <Popover crossOffset={POPOVER_CROSS_OFFSET_PX} className={styles.popover()}>
-                <ListBox className={styles.listBox()}>
+                <ListBox
+                  aria-label={props['aria-label'] ?? 'Combo box'}
+                  className={styles.listBox()}
+                >
                   {(item) => {
                     const text = children(
                       // @ts-expect-error When items are strings, they are mapped to
@@ -165,7 +168,7 @@ export const ComboBox = forwardRef(function ComboBox<
                       (itemsAreStrings ? item.id : item) as FieldValues<Schema>[TFieldName],
                     )
                     return (
-                      <ListBoxItem id={text} className={styles.listBoxItem()}>
+                      <ListBoxItem id={text} textValue={text} className={styles.listBoxItem()}>
                         <Text truncate="1" className="w-full" tooltipPlacement="left">
                           {text}
                         </Text>
