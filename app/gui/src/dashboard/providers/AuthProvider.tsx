@@ -32,8 +32,16 @@ import type * as cognitoModule from '#/authentication/cognito'
 import { isOrganizationId } from '#/services/RemoteBackend'
 import { Suspense } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
+import { Button, Text } from '../components/AriaComponents'
 import { EnsoDevtools } from '../components/Devtools'
-import { featureFlagsForInternalTesting, useSetFeatureFlags } from './FeatureFlagsProvider'
+import { Result } from '../components/Result'
+import { download } from '../utilities/download'
+import { getDownloadUrl } from '../utilities/github'
+import {
+  featureFlagsForInternalTesting,
+  useFeatureFlag,
+  useSetFeatureFlags,
+} from './FeatureFlagsProvider'
 
 // ===================
 // === UserSession ===
@@ -479,6 +487,46 @@ export function SoftDeletedUserLayout() {
       return <router.Navigate to={appUtils.DASHBOARD_PATH} />
     }
   }
+}
+
+/**
+ * Layout that disables the dashboard if the cloud is disabled.
+ */
+export function CloudBrowserDisabledLayout() {
+  const { session } = useAuth()
+  const { getText } = textProvider.useText()
+  const isCloudExecutionEnabled = useFeatureFlag('enableCloudExecution')
+
+  if (session?.type === UserSessionType.full && !isCloudExecutionEnabled) {
+    return (
+      <Result
+        status="idle"
+        title={getText('cloudBrowserDisabledTitle')}
+        subtitle={getText('cloudBrowserDisabledSubtitle')}
+      >
+        <Button.Group align="center" verticalAlign="center">
+          <Button variant="primary" href={appUtils.OPEN_IDE_DEEPLINK}>
+            {getText('openInDesktop')}
+          </Button>
+          <Text>{getText('or')}</Text>
+          <Button
+            variant="outline"
+            onPress={async () => {
+              const downloadUrl = await getDownloadUrl()
+
+              if (downloadUrl != null) {
+                download(downloadUrl)
+              }
+            }}
+          >
+            {getText('downloadFreeEdition')}
+          </Button>
+        </Button.Group>
+      </Result>
+    )
+  }
+
+  return <router.Outlet context={session} />
 }
 
 // =============================
