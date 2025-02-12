@@ -138,21 +138,16 @@ export const ComboBox = forwardRef(function ComboBox<
             <AriaComboBox
               className={styles.base({ className })}
               // @ts-expect-error Items must not be strings; this is a limitation of `react-aria`.
-              items={effectiveItems}
+              defaultItems={effectiveItems}
               {...renderProps.field}
+              defaultInputValue={renderProps.field.value}
               onSelectionChange={(key) => {
                 renderProps.field.onChange(key ?? '')
               }}
             >
               <div className={styles.inputContainer()}>
                 <Button variant="icon" icon={ArrowIcon} className="rotate-90" />
-                <Input
-                  name={name}
-                  placeholder={placeholder}
-                  size="custom"
-                  variant="custom"
-                  value={renderProps.field.value}
-                />
+                <Input name={name} placeholder={placeholder} size="custom" variant="custom" />
                 {!noResetButton && <ComboBoxResetButton className={styles.resetButton()} />}
               </div>
               <Popover crossOffset={POPOVER_CROSS_OFFSET_PX} className={styles.popover()}>
