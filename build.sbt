@@ -4847,9 +4847,6 @@ lazy val `std-table` = project
       "org.mockito"              % "mockito-core"            % "5.3.1"            % Test,
       "org.mockito"              % "mockito-junit-jupiter"   % "5.3.1"            % Test
     ),
-    Test / internalModuleDependencies := Seq(
-        (`engine-runner-common` / Compile / exportedModule).value
-    ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
       val _ = StdBits
