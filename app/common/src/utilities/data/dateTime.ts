@@ -120,36 +120,3 @@ export function toReadableIsoString(date: Date, timeZone?: string) {
     )
   return formatter.format(date)
 }
-
-/** Convert a date in the given time zone to a normal {@link Date}. */
-export function timeZoneDateToNativeDate(date: Date, timeZone?: string) {
-  const offset = getUtcOffsetMinutes(timeZone, date)
-  return new Date(Number(date) + offset * MINUTE_MS)
-}
-
-/** Convert a normal {@link Date} to a date in the given time zone. */
-export function nativeDateToTimeZoneDate(date: Date, timeZone?: string) {
-  const offset = getUtcOffsetMinutes(timeZone, date)
-  return new Date(Number(date) - offset * MINUTE_MS)
-}
-
-/** Get UTC offset in minutes. */
-export function getUtcOffsetMinutes(timeZone?: string, date = new Date()) {
-  if (timeZone == null) {
-    return -date.getTimezoneOffset()
-  } else {
-    const parts = Intl.DateTimeFormat('en-US', {
-      timeZone,
-      timeZoneName: 'longOffset',
-    }).formatToParts()
-    const timeZoneName = parts.find((part) => part.type === 'timeZoneName')?.value
-    if (!timeZoneName) {
-      return 0
-    }
-    const [, hours, minutes] = timeZoneName.match(/^GMT([+-]\d+):(\d+)$/) ?? []
-    if (hours == null || minutes == null) {
-      return 0
-    }
-    return Number(hours) * HOUR_MINUTE + Number(minutes)
-  }
-}
