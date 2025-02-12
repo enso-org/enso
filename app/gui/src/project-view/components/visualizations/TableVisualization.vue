@@ -245,7 +245,7 @@ function createRowServer() {
       )
       return {
         success: true,
-        rows: response.value.rows,
+        data: response.value.rows,
       }
     },
   }
@@ -256,23 +256,8 @@ function createServerSideDatasource(): IServerSideDatasource {
     getRows: async (params) => {
       const server = createRowServer()
       const response = await server.getData(params.request)
-      const rowsL = response.rows && response.rows.length > 0 ? (response.rows[0]?.length ?? 0) : 0
-      //to do, different obj will need different things
       const startIndex = params.request.startRow
-      console.log({ startIndex })
-      const rows = Array.from({ length: rowsL }, (_, i) => {
-        const shift = 1
-        return Object.fromEntries(
-          columnDefs.value.map((h, j) => {
-            return [
-              h.field,
-              toRender(
-                h.field === INDEX_FIELD_NAME ? i + startIndex : response.rows[j - shift]?.[i],
-              ),
-            ]
-          }),
-        )
-      })
+      const rows = createRowsForTable(response, startIndex)
       setTimeout(() => {
         if (response.success) {
           params.success({ rowData: rows })
@@ -639,24 +624,26 @@ watchEffect(() => {
         ]
       : dataHeader
 
-    console.log(props.data.is_ssrm)
     if (!props.data.is_ssrm) {
-      console.log('HELLO')
-      const rows = data_.data && data_.data.length > 0 ? (data_.data[0]?.length ?? 0) : 0
-      rowData.value = Array.from({ length: rows }, (_, i) => {
-        const shift = data_.has_index_col ? 1 : 0
+      rowData.value = createRowsForTable(data_, 0)
+    }
+  }
+})
+
+const createRowsForTable = (data: any, startIndex: number) => {
+  const rows = data.data && data.data.length > 0 ? (data.data[0]?.length ?? 0) : 0
+      return Array.from({ length: rows }, (_, i) => {
+        const shift = data.has_index_col ? 1 : 0
         return Object.fromEntries(
           columnDefs.value.map((h, j) => {
             return [
               h.field,
-              toRender(h.field === INDEX_FIELD_NAME ? i : data_.data?.[j - shift]?.[i]),
+              toRender(h.field === INDEX_FIELD_NAME ? i + startIndex : data.data?.[j - shift]?.[i]),
             ]
           }),
         )
       })
-    }
-  }
-})
+} 
 
 const colTypeMap = computed(() => {
   const colMap: Map<string, string> = new Map()
@@ -769,14 +756,6 @@ function checkSortAndFilter(e: SortChangedEvent) {
     filterModel.value = []
   }
 }
-
-// ===============
-// === Updates ===
-// ===============
-
-// onMounted(() => {
-//   setRowLimit(1000)
-// })
 
 // ===============
 // === Toolbar ===
