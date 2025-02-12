@@ -472,7 +472,9 @@ function AppRouter(props: AppRouterProps) {
       <router.Route element={<authProvider.NotDeletedUserLayout />}>
         <router.Route element={<authProvider.ProtectedLayout />}>
           <router.Route element={<AgreementsModal />}>
-            <router.Route element={<CloudBrowserDisabledLayout />}>
+            <router.Route
+              element={<CloudBrowserDisabledLayout redirectPath={appUtils.SETUP_PATH} />}
+            >
               <router.Route element={<SetupOrganizationAfterSubscribe />}>
                 <router.Route element={<InvitedToOrganizationModal />}>
                   <router.Route element={<openAppWatcher.OpenAppWatcher />}>
@@ -512,7 +514,9 @@ function AppRouter(props: AppRouterProps) {
 
       <router.Route element={<AgreementsModal />}>
         <router.Route element={<authProvider.NotDeletedUserLayout />}>
-          <router.Route path={appUtils.SETUP_PATH} element={<setup.Setup />} />
+          <router.Route element={<CloudBrowserDisabledLayout redirectPath={appUtils.SETUP_PATH} />}>
+            <router.Route path={appUtils.SETUP_PATH} element={<setup.Setup />} />
+          </router.Route>
         </router.Route>
       </router.Route>
 

@@ -35,8 +35,10 @@ import { ErrorBoundary } from 'react-error-boundary'
 import { Button, Text } from '../components/AriaComponents'
 import { EnsoDevtools } from '../components/Devtools'
 import { Result } from '../components/Result'
+import { useTimeoutCallback } from '../hooks/timeoutHooks'
 import { download } from '../utilities/download'
 import { getDownloadUrl } from '../utilities/github'
+import { unsafeWriteValue } from '../utilities/write'
 import {
   featureFlagsForInternalTesting,
   useFeatureFlag,
@@ -489,26 +491,55 @@ export function SoftDeletedUserLayout() {
   }
 }
 
+const DEFAULT_REDIRECT_DELAY_MS = 3_000
+
+/** Props for a {@link CloudBrowserDisabledLayout}. */
+export interface CloudBrowserDisabledLayoutProps {
+  /** The delay in milliseconds before redirecting to the desktop edition. */
+  readonly redirectDelayMs?: number
+  /** The path to redirect to if the user is not a full user. */
+  readonly redirectPath?: string
+}
+
 /**
  * Layout that disables the dashboard if the cloud is disabled.
  */
-export function CloudBrowserDisabledLayout() {
+export function CloudBrowserDisabledLayout(props: CloudBrowserDisabledLayoutProps) {
+  const { redirectDelayMs = DEFAULT_REDIRECT_DELAY_MS, redirectPath = '' } = props
   const { session } = useAuth()
   const { getText } = textProvider.useText()
   const isCloudExecutionEnabled = useFeatureFlag('enableCloudExecution')
+  const [isRedirecting, setIsRedirecting] = React.useState(true)
 
-  if (session?.type === UserSessionType.full && !isCloudExecutionEnabled) {
+  const normalizedRedirectPath = redirectPath.startsWith('/') ? redirectPath.slice(1) : redirectPath
+
+  const path = new URL(normalizedRedirectPath, appUtils.OPEN_IDE_DEEPLINK)
+
+  const shouldRedirect = session?.type === UserSessionType.full && !isCloudExecutionEnabled
+
+  useTimeoutCallback({
+    callback: () => {
+      unsafeWriteValue(window.location, 'href', path.toString())
+      setIsRedirecting(false)
+    },
+    ms: redirectDelayMs,
+    isDisabled: !shouldRedirect,
+  })
+
+  if (shouldRedirect) {
     return (
       <Result
-        status="idle"
+        status={isRedirecting ? 'loading' : 'info'}
         title={getText('cloudBrowserDisabledTitle')}
         subtitle={getText('cloudBrowserDisabledSubtitle')}
       >
         <Button.Group align="center" verticalAlign="center">
-          <Button variant="primary" href={appUtils.OPEN_IDE_DEEPLINK}>
+          <Button variant="primary" href={path.toString()}>
             {getText('openInDesktop')}
           </Button>
+
           <Text>{getText('or')}</Text>
+
           <Button
             variant="outline"
             onPress={async () => {
@@ -519,7 +550,7 @@ export function CloudBrowserDisabledLayout() {
               }
             }}
           >
-            {getText('downloadFreeEdition')}
+            {getText('downloadIDE')}
           </Button>
         </Button.Group>
       </Result>
