@@ -1,9 +1,7 @@
 from Standard.Base import all
-import Standard.Google_Api
+from Standard.Google_Api import all
 
 from Standard.Test import all
-
-
 
 main filter=Nothing =
     suite = Test.build suite_builder->
@@ -12,11 +10,10 @@ main filter=Nothing =
 
 
 add_specs suite_builder =
-    secret = enso_project.data / 'secret.json'
-    api = Google_Api.initialize secret
-
     suite_builder.group "Google Spreadsheets" group_builder->
         group_builder.specify "should allow downloading a spreadsheet" <|
+            secret = enso_project.data / 'secret.json'
+            api = Google_Sheets.initialize secret
             sheet_id = '1WjVQhYdc04RwdWB22RNLgfQiLeWYhxiij1_xj22RDq0'
             sheet_range = 'Sheet1!A1:B6'
             table = api.spreadsheets.get_table sheet_id sheet_range
@@ -24,3 +21,8 @@ add_specs suite_builder =
             table.at 'Foo' . to_vector . should_equal [1,2,3,4,5]
             table.at 'Bar' . to_vector . should_equal ["hello", "world", "foo", "bar", "baz"]
 
+    suite_builder.group "Google Analytics" group_builder->
+        group_builder.specify "should allow downloading a spreadsheet" <|
+            secret = enso_project.data / 'secret.json'
+            accounts = Google_Analytics.list_accounts secret
+            accounts.length . should_equal 1

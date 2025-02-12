@@ -57,6 +57,7 @@ import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Common.Lookup_Query_Helper
+import project.Internal.Common.Offset_Helpers
 import project.Internal.Common.Row_Number_Helpers
 import project.Internal.DB_Data_Link_Helpers
 import project.Internal.Helpers
@@ -905,20 +906,10 @@ type DB_Table
     add_row_number self (name:Text="Row") (from:Integer=0) (step:Integer=1) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
         Feature.Add_Row_Number.if_supported_else_throw self.connection.dialect "add_row_number" <|
             problem_builder = Problem_Builder.new error_on_missing_columns=True
-            grouping_columns = self.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
-            grouping_columns.each column->
-                if column.value_type.is_floating_point then
-                    problem_builder.report_other_warning (Floating_Point_Equality.Error column.name)
+            grouping_columns = _resolve_grouping_columns self.columns_helper group_by problem_builder
             ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
             problem_builder.attach_problems_before on_problems <|
-                order_descriptors = case ordering.is_empty of
-                    False -> ordering.map element->
-                        column = element.column
-                        associated_selector = element.associated_selector
-                        self.connection.dialect.prepare_order_descriptor column associated_selector.direction text_ordering=Nothing
-                    True -> case self.default_ordering of
-                        Nothing -> Error.throw (Illegal_Argument.Error "The table has no existing ordering (e.g. from a `sort` operation or primary key). `add_row_number` requires an ordering in database.")
-                        descriptors -> descriptors
+                order_descriptors = _resolve_order_descriptors self.connection.dialect ordering self.default_ordering "add_row_number"
                 grouping_expressions = (grouping_columns.map _.as_internal).map .expression
 
                 new_expr = Row_Number_Helpers.make_row_number from step order_descriptors grouping_expressions
@@ -3194,9 +3185,26 @@ type DB_Table
     @default (self-> Widget_Helpers.make_fill_default_value_selector2)
     @group_by Widget_Helpers.make_column_name_multi_selector
     @order_by Widget_Helpers.make_order_by_selector
-    offset self columns:(Vector (Integer | Text | Regex | By_Type))=(Missing_Argument.throw "columns") n:Integer=-1 fill_with:Fill_With=..Nothing (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (set_mode:Set_Mode=..Add) (on_problems:Problem_Behavior=..Report_Warning) -> Table =
-        _ = [columns, n, fill_with, group_by, order_by, set_mode, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "offset")
+    offset self columns:(Vector (Integer | Text | Regex | By_Type))=(Missing_Argument.throw "columns") n:Integer=-1 fill_with:Fill_With=..Nothing (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (set_mode:Set_Mode=..Add) (on_problems:Problem_Behavior=..Report_Warning) -> DB_Table =
+        Feature.Offset.if_supported_else_throw self.connection.dialect "offset" <|
+            problem_builder = Problem_Builder.new error_on_missing_columns=True
+            grouping_columns = _resolve_grouping_columns self.columns_helper group_by problem_builder
+            ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
+            resolved_columns = self.columns_helper.select_columns_helper columns Case_Sensitivity.Default True problem_builder
+            problem_builder.attach_problems_before on_problems <| if columns.is_empty then self else
+                order_descriptors = _resolve_order_descriptors self.connection.dialect ordering self.default_ordering "offset"
+                grouping_expressions = (grouping_columns.map _.as_internal).map .expression
+                
+                offset_expr c:DB_Column -> SQL_Expression =
+                    Offset_Helpers.make_offset n (c.as_internal) order_descriptors grouping_expressions fill_with
+                new_column_name c:DB_Column -> Text = 
+                    if set_mode==Set_Mode.Add then self.column_naming_helper.function_name "offset" [c, n, fill_with] else c.name
+                
+                new_columns = resolved_columns.map c->(Internal_Column.Value (new_column_name c) c.sql_type_reference (offset_expr c))
+
+                updated_table = new_columns.fold self t-> col->
+                    t.set (self.make_column col)
+                updated_table.as_subquery
 
 ## PRIVATE
 
@@ -3286,6 +3294,25 @@ make_literal_table connection column_vectors column_names alias =
                     connection.dialect.make_cast base_column sql_type infer_type_from_database
 
             DB_Table.new alias connection internal_columns context
+
+## PRIVATE
+private _resolve_grouping_columns columns_helper:Table_Column_Helper group_by:Vector problem_builder:Problem_Builder -> Vector =
+    grouping_columns = columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
+    grouping_columns.each column->
+        if column.value_type.is_floating_point then
+            problem_builder.report_other_warning (Floating_Point_Equality.Error column.name)
+    grouping_columns
+
+## PRIVATE
+private _resolve_order_descriptors dialect ordering default_ordering operation_name:Text =
+    case ordering.is_empty of
+        False -> ordering.map element->
+            column = element.column
+            associated_selector = element.associated_selector
+            dialect.prepare_order_descriptor column associated_selector.direction text_ordering=Nothing
+        True -> case default_ordering of
+            Nothing -> Error.throw (Illegal_Argument.Error "The table has no existing ordering (e.g. from a `sort` operation or primary key). `"+operation_name+"` requires an ordering in database.")
+            descriptors -> descriptors
 
 ## PRIVATE
 Many_Files_List.from (that : DB_Table) =

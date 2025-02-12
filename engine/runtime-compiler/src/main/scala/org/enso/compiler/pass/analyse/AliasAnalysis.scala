@@ -500,6 +500,13 @@ case object AliasAnalysis extends IRPass {
     }
   }
 
+  private def isSyntheticSelf(name: Name): Boolean = {
+    name match {
+      case Name.Self(_, true, _) => true
+      case _                     => false
+    }
+  }
+
   /** Performs alias analysis on the argument definitions for a function.
     *
     * Care is taken during this analysis to ensure that spurious resolutions do
@@ -519,18 +526,11 @@ case object AliasAnalysis extends IRPass {
     builder: GraphBuilder
   ): List[DefinitionArgument] = {
     args.map {
-      case arg @ DefinitionArgument.Specified(
-            selfName @ Name.Self(_, true, _),
-            _,
-            _,
-            _,
-            _,
-            _
-          ) =>
+      case arg: DefinitionArgument.Specified if isSyntheticSelf(arg.name) =>
         // Synthetic `self` must not be added to the scope, but it has to be added as a
         // definition for frame index metadata
         val definition = builder.newDef(
-          selfName.name,
+          arg.name.name,
           arg.getId(),
           arg.getExternalId
         )
@@ -542,18 +542,14 @@ case object AliasAnalysis extends IRPass {
               alias.AliasMetadata.Occurrence(builder.toGraph(), definition.id)
             )
           )
-          .copy(
-            ascribedType = arg.ascribedType.map(analyseExpression(_, builder))
+          .copyWithAscribedType(
+            arg.ascribedType.map(analyseExpression(_, builder))
           )
 
-      case arg @ DefinitionArgument.Specified(
-            name,
-            _,
-            value,
-            suspended,
-            _,
-            _
-          ) =>
+      case arg: DefinitionArgument.Specified =>
+        val name      = arg.name
+        val value     = arg.defaultValue
+        val suspended = arg.suspended
         val nameOccursInScope =
           builder.findDef(
             name.name
@@ -574,8 +570,8 @@ case object AliasAnalysis extends IRPass {
 
           arg
             .copy(
-              defaultValue = newDefault,
-              ascribedType = arg.ascribedType.map(analyseExpression(_, builder))
+              newDefault,
+              arg.ascribedType.map(analyseExpression(_, builder))
             )
             .updateMetadata(
               new MetadataPair(
@@ -585,8 +581,8 @@ case object AliasAnalysis extends IRPass {
             )
         } else {
           arg
-            .copy(
-              ascribedType = Some(Redefined.Arg(name, arg.identifiedLocation))
+            .copyWithAscribedType(
+              Some(Redefined.Arg(name, arg.identifiedLocation))
             )
             .updateMetadata(
               new MetadataPair(
@@ -617,13 +613,13 @@ case object AliasAnalysis extends IRPass {
           arguments = analyseCallArguments(app.arguments, builder)
         )
       case app: Application.Force =>
-        app.copy(target = analyseExpression(app.target, builder))
+        app.copyWithTarget(analyseExpression(app.target, builder))
       case app: Application.Sequence =>
-        app.copy(items = app.items.map(analyseExpression(_, builder)))
+        app.copyWithItems(app.items.map(analyseExpression(_, builder)))
       case tSet: Application.Typeset =>
         val newScope = builder.addChild()
         tSet
-          .copy(expression =
+          .copyWithExpression(
             tSet.expression.map(analyseExpression(_, newScope))
           )
           .updateMetadata(
@@ -659,7 +655,7 @@ case object AliasAnalysis extends IRPass {
         case _          => builder.addChild()
       }
       arg
-        .copy(value = analyseExpression(arg.value, currentScope))
+        .copy(analyseExpression(arg.value, currentScope))
         .updateMetadata(
           new MetadataPair(
             this,

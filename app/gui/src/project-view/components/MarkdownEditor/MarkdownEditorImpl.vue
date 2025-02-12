@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
+import BlockTypeDropdown from '@/components/MarkdownEditor/BlockTypeDropdown.vue'
 import { ensoMarkdown } from '@/components/MarkdownEditor/markdown'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { useCodeMirror } from '@/util/codemirror'
@@ -22,17 +23,20 @@ const editing = computed(() => !readonly.value && focused.value)
 
 const vueHost = new VueHostInstance()
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
-const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
-  content: () => content,
-  extensions: [
-    minimalSetup,
-    EditorView.lineWrapping,
-    highlightStyle(useCssModule()),
-    EditorView.clipboardInputFilter.of(transformPastedText),
-    ensoMarkdown(),
-  ],
-  vueHost: () => vueHost,
-})
+const { editorView, readonly, putTextAt, toggleHeader, toggleQuote, toggleList } = useCodeMirror(
+  editorRoot,
+  {
+    content: () => content,
+    extensions: [
+      minimalSetup,
+      EditorView.lineWrapping,
+      highlightStyle(useCssModule()),
+      EditorView.clipboardInputFilter.of(transformPastedText),
+      ensoMarkdown(),
+    ],
+    vueHost: () => vueHost,
+  },
+)
 
 useLinkTitles(editorView, { readonly })
 
@@ -59,16 +63,57 @@ defineExpose({
 </script>
 
 <template>
-  <CodeMirrorRoot
-    ref="editorRoot"
-    v-bind="$attrs"
-    :class="{ editing }"
-    @focusout="focused = false"
-  />
-  <VueHostRender :host="vueHost" />
+  <div class="MarkdownEditorRoot">
+    <div class="toolbar">
+      <slot name="toolbarLeft" />
+      <BlockTypeDropdown
+        @toggleHeader="toggleHeader($event)"
+        @toggleQuote="toggleQuote()"
+        @toggleList="toggleList($event)"
+      />
+      <slot name="toolbarRight" />
+    </div>
+    <slot name="belowToolbar" />
+    <div class="scrollArea">
+      <CodeMirrorRoot
+        ref="editorRoot"
+        v-bind="$attrs"
+        :class="{ MarkdownEditor: true, editing }"
+        @focusout="focused = false"
+      />
+      <VueHostRender :host="vueHost" />
+    </div>
+  </div>
 </template>
 
 <style scoped>
+.MarkdownEditorRoot {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.toolbar {
+  height: 48px;
+  padding-left: 18px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  gap: 8px;
+  z-index: 250;
+}
+
+.scrollArea {
+  width: 100%;
+  overflow-y: auto;
+  padding-left: 10px;
+  /* Prevent touchpad back gesture, which can be triggered while panning. */
+  overscroll-behavior-x: none;
+  flex-grow: 1;
+}
+
 :deep(.cm-content) {
   /*noinspection CssUnresolvedCustomProperty,CssNoGenericFontName*/
   font-family: var(--font-sans);

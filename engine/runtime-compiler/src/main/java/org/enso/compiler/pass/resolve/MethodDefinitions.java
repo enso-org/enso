@@ -253,7 +253,7 @@ public final class MethodDefinitions implements MiniPassFactory {
         if (firstArg instanceof DefinitionArgument.Specified selfArg
             && selfArg.name() instanceof Name.Self) {
           var selfType = new Name.SelfType(selfArg.identifiedLocation(), new MetadataStorage());
-          var newSelfArg = selfArg.copyWithAscribedType(selfType);
+          var newSelfArg = selfArg.copyWithAscribedType(Option.apply(selfType));
           return lambdaWithNewSelfArg(lambda, newSelfArg);
         } else {
           throw new CompilerError(

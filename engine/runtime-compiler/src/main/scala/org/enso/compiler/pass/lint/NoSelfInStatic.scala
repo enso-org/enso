@@ -57,6 +57,13 @@ object NoSelfInStatic extends IRPass {
       )
   }
 
+  private def isSelfName(name: Name): Boolean = {
+    name match {
+      case self: Name.Self => !self.synthetic
+      case _               => false
+    }
+  }
+
   /** A method is static if it is either not defined within a type, or if it does not
     * contain a non-synthetic `self` argument.
     */
@@ -67,14 +74,7 @@ object NoSelfInStatic extends IRPass {
       arguments: List[DefinitionArgument]
     ): Option[DefinitionArgument] = {
       arguments.collectFirst {
-        case arg @ DefinitionArgument.Specified(
-              Name.Self(_, false, _),
-              _,
-              _,
-              _,
-              _,
-              _
-            ) =>
+        case arg: DefinitionArgument.Specified if isSelfName(arg.name) =>
           arg
       }
     }
