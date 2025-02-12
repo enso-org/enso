@@ -35,7 +35,7 @@ public class ExpressionVisitorImplTest {
     }
 
     @Test
-    public void testAddition() {
+    public void testIntegerConstant() {
         Value result = evaluate("1");
         assertEquals(1, result.asInt());
     }
