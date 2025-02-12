@@ -114,9 +114,11 @@ object JARUtils {
               }
           }.recover({ case e: IOException =>
             logger.err(
-              s"Failed to create output JAR at $outputJarPath: ${e.getMessage}"
+              s"Failed to create output JAR at $outputJarPath (parent dir exists: ${outputJarPath.getParent.toFile
+                .exists()}): ${e.getMessage}"
             )
             e.printStackTrace(System.err)
+            throw e;
           })
         case None =>
           inputJar.stream().forEach { entry =>
