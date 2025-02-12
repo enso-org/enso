@@ -4835,7 +4835,7 @@ lazy val `std-table` = project
     },
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot"     % "polyglot"                % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle"      % "truffle-api"             % graalMavenPackagesVersion,
+      "org.graalvm.truffle"      % "truffle-api"             % graalMavenPackagesVersion % "provided",
       "org.netbeans.api"         % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
       "com.univocity"            % "univocity-parsers"       % univocityParsersVersion,
       "org.apache.poi"           % "poi-ooxml"               % poiOoxmlVersion,
