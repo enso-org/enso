@@ -192,9 +192,9 @@ final class EnsoMultiType {
         System.arraycopy(next.types, 0, concat, self.types.length, next.types.length);
       }
       if (moveToFirst != 0) {
-        var first = concat[0];
-        concat[0] = concat[moveToFirst];
-        concat[moveToFirst] = first;
+        var toFirst = concat[moveToFirst];
+        System.arraycopy(concat, 0, concat, 1, moveToFirst);
+        concat[0] = toFirst;
       }
       return concat;
     }
