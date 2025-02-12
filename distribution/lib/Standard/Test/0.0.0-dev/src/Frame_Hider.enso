@@ -86,7 +86,7 @@ type Frame_Hider
     unhide_2 f x y =
         f x y
 
-    debug self = True
+    debug self = False
 
     ## PRIVATE
 
