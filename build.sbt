@@ -4843,10 +4843,10 @@ lazy val `std-table` = project
       "org.antlr"                % "antlr4-runtime"          % antlrVersion,
       "org.apache.logging.log4j" % "log4j"                   % "2.24.3",
       "org.apache.logging.log4j" % "log4j-to-slf4j"          % "2.24.3", // org.apache.poi uses log4j
-      "junit"                    % "junit"                   % junitVersion       % Test,
-      "com.github.sbt"           % "junit-interface"         % junitIfVersion     % Test,
-      "org.mockito"              % "mockito-core"            % mockitoJavaVersion           % Test,
-      "org.mockito"              % "mockito-junit-jupiter"   % mockitoJavaVersion           % Test
+      "junit"                    % "junit"                   % junitVersion              % Test,
+      "com.github.sbt"           % "junit-interface"         % junitIfVersion            % Test,
+      "org.mockito"              % "mockito-core"            % mockitoJavaVersion        % Test,
+      "org.mockito"              % "mockito-junit-jupiter"   % mockitoJavaVersion        % Test
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
