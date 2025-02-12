@@ -12,13 +12,13 @@ polyglot java import org.enso.base_test_helpers.FileSystemHelper
 Table.should_equal : Any -> Boolean -> Any
 Table.should_equal self expected ignore_order=False = Frame_Hider.hide <|
     rhs_error_check expected
-    Panic.catch Test_Failure_Error (table_should_equal_impl self expected Frame_Hider.get_top_stack_frame ignore_order) error->
+    Panic.catch Test_Failure_Error (table_should_equal_impl self expected ignore_order) error->
         Test.fail error.payload.message
 
 Column.should_equal : Any -> Any
 Column.should_equal self expected = Frame_Hider.hide <|
     rhs_error_check expected
-    Panic.catch Test_Failure_Error (column_should_equal_impl self expected Frame_Hider.get_top_stack_frame) error->
+    Panic.catch Test_Failure_Error (column_should_equal_impl self expected) error->
         Test.fail error.payload.message
 
 DB_Table.should_equal : DB_Table|Table -> Boolean -> Any
@@ -48,49 +48,49 @@ type Test_Failure_Error
     to_display_text self = "Test failure error: "+self.message
 
 ## PRIVATE
-table_should_equal_impl actual_table expected_table loc ignore_order =
+table_should_equal_impl actual_table expected_table ignore_order = Frame_Hider.hide <|
     case expected_table of
         _ : Table ->
             actual = if ignore_order then actual_table.sort actual_table.column_names else actual_table
             expected = if ignore_order then expected_table.sort expected_table.column_names else expected_table
             if actual.columns.length != expected.columns.length then
-                Panic.throw (Test_Failure_Error.Error 'Tables differ at '+loc+'.\nActual:\n'+actual_table.display+'\nExpected:\n'+expected_table.display+'\nExpected '+expected.columns.length.to_text+" columns, but got "+actual.columns.length.to_text+'.')
-            Panic.catch Test_Failure_Error (actual.columns.zip expected.columns a-> e->(column_should_equal_impl a e)) error->
+                Panic.throw (Test_Failure_Error.Error 'Tables differ at '+Frame_Hider.get_top_stack_frame+'.\nActual:\n'+actual_table.display+'\nExpected:\n'+expected_table.display+'\nExpected '+expected.columns.length.to_text+" columns, but got "+actual.columns.length.to_text+'.')
+            Panic.catch Test_Failure_Error (actual.columns.zip expected.columns a-> e->(column_should_equal_impl a e False)) error->
                 msg_sorted = if ignore_order then " (sorted)" else ""
-                msg = 'Tables differ at '+loc+'.\nActual'+msg_sorted+':\n'+actual.display+'\nExpected'+msg_sorted+':\n'+expected.display+'\n'+error.payload.message
+                msg = 'Tables differ at '+Frame_Hider.get_top_stack_frame+'.\nActual'+msg_sorted+':\n'+actual.display+'\nExpected'+msg_sorted+':\n'+expected.display+'\n'+error.payload.message
                 Panic.throw (Test_Failure_Error.Error msg)
-        _ -> Panic.throw (Test_Failure_Error.Error "Got a Table, but expected a "+expected_table.to_display_text+(display_loc loc)+'.')
+        _ -> Panic.throw (Test_Failure_Error.Error "Got a Table, but expected a "+expected_table.to_display_text+' (at '+Frame_Hider.get_top_stack_frame+').')
 
 ## PRIVATE
-column_should_equal_impl actual expected loc='' =
+column_should_equal_impl actual expected should_display:Boolean=True = Frame_Hider.hide <|
     case expected of
         _ : Column ->
             if actual.name != expected.name then
-                Panic.throw (Test_Failure_Error.Error "Expected column name "+expected.name+", but got "+actual.name+(display_loc loc)+'.')
+                Panic.throw (Test_Failure_Error.Error "Expected column name "+expected.name+", but got "+actual.name+(display_loc should_display)+'.')
             if actual.length != expected.length then
-                Panic.throw (Test_Failure_Error.Error "Expected column length "+expected.length.to_text+", but got "+actual.length.to_text+(display_loc loc)+'.')
+                Panic.throw (Test_Failure_Error.Error "Expected column length "+expected.length.to_text+", but got "+actual.length.to_text+(display_loc should_display)+'.')
             if actual.value_type != expected.value_type then
-                Panic.throw (Test_Failure_Error.Error "Expected column type "+expected.value_type.to_text+", but got "+actual.value_type.to_text+(display_loc loc)+'.')
+                Panic.throw (Test_Failure_Error.Error "Expected column type "+expected.value_type.to_text+", but got "+actual.value_type.to_text+(display_loc should_display)+'.')
             actual.zip expected skip_nothing=False a-> e->
                 if values_not_equal a e then
-                    report_fail actual expected loc
-        _ -> Panic.throw (Test_Failure_Error.Error "Got a Column, but expected a "+expected.to_display_text+(display_loc loc)+'.')
+                    report_fail actual expected should_display
+        _ -> Panic.throw (Test_Failure_Error.Error "Got a Column, but expected a "+expected.to_display_text+(display_loc should_display)+'.')
 
 ## PRIVATE
 values_not_equal a e =
     a != e && (a.is_a Number && e.is_a Number && a.is_nan && e.is_nan).not
 
 ## PRIVATE
-report_fail actual expected loc =
+report_fail actual expected should_display = Frame_Hider.hide <|
     indexed = actual.zip (0.up_to actual.length) skip_nothing=False a-> i-> Pair.new a i
     indexed.zip expected skip_nothing=False a-> e->
         if values_not_equal a.first e then
-            Panic.throw (Test_Failure_Error.Error "Column: "+actual.name+" differs at row "+a.second.to_text+'.\n\t  Actual  : '+a.first.to_text+'\n\t  Expected: '+e.to_text+'\n\t'+(display_loc loc)+'.')
+            Panic.throw (Test_Failure_Error.Error "Column: "+actual.name+" differs at row "+a.second.to_text+'.\n\t  Actual  : '+a.first.to_text+'\n\t  Expected: '+e.to_text+'\n\t'+(display_loc should_display)+'.')
 
 ## PRIVATE
-display_loc loc:Text =
-    if loc.is_empty then '' else
-        ' (at '+loc+')'
+display_loc should_display:Boolean =
+    if should_display.not then '' else
+        ' (at '+Frame_Hider.get_top_stack_frame+')'
 
 normalize_lines string line_separator=Line_Ending_Style.Unix.to_text newline_at_end=True =
     case newline_at_end of
