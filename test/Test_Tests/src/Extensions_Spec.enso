@@ -140,3 +140,12 @@ add_specs suite_builder =
             r1 = expect_test_failure <|
                 should_equal_b my_checker "ab" "ac"
             r1.message.should_contain "Extensions_Spec.enso:138"
+
+        location_pending = case Platform.os of
+            Platform.OS.Windows -> "This test is disabled on Windows until issue 1561 is fixed."
+            _ -> Nothing
+
+        group_builder.specify "should allow to get the source location of a frame" pending=location_pending <|
+            src = Frame_Hider.get_top_stack_frame
+            loc = "Extensions_Spec.enso:149:19-49"
+            src.take (..Last loc.length) . should_equal loc
