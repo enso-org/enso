@@ -86,6 +86,8 @@ type Frame_Hider
     unhide_2 f x y =
         f x y
 
+    debug self = True
+
     ## PRIVATE
 
        Identify the correct top stack frame by skipping over the stack frames
@@ -112,6 +114,15 @@ type Frame_Hider
         index =
             i = nesting_levels.last_index_of 0
             if i.is_nothing || i == 0 then 0 else i-1
+
+        if Frame_Hider.debug then
+            info = reversed_stack_trace.map_with_index i-> f->
+                [index == i, i, nesting_levels.at i, f.name, f.to_display_text]
+            IO.println "===="
+            info.map IO.println
+
+            top = reversed_stack_trace . at index . source_location
+            IO.println "==== "+top.to_display_text
 
         top = reversed_stack_trace . at index . source_location
         top.to_display_text

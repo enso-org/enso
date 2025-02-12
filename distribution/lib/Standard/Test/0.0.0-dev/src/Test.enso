@@ -188,7 +188,7 @@ type Test
        or fails with the last error thrown by the action after exhausting retry
        attempts.
     with_retries : Any -> Any
-    with_retries ~action = Frame_Hider.hide <|
+    with_retries ~action =
         milliseconds_between_attempts = 100
         ## We give the CI a bit more attempts, as failures are more annoying there.
            For local development, a bit less retries is enough - there it is more
@@ -196,7 +196,9 @@ type Test
            don't want to spend too much time retrying when debugging the tests locally.
         max_retries = if Environment.get "CI" . is_nothing . not then 100 else 20
 
-        go i =
+        ## The `hide` is here because if it were at the top of the function, the
+           tail call confuses the location finder.
+        go i = Frame_Hider.hide <|
             Panic.catch Any (Frame_Hider.unhide action) caught_panic->
                 # If the iterations are exhausted, we rethrow the panic.
                 if i > max_retries then Panic.throw caught_panic else
