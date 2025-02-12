@@ -10,7 +10,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
-
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -69,12 +68,20 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     final Value module = context.invokeMember("get_module", moduleName);
     final Value type = module.invokeMember("get_type", typeName);
     Function<String, Value> getMethod = name -> module.invokeMember("get_method", type, name);
-    Function<String, Value> makeConstructor = name -> module.invokeMember("eval_expression", ".." + name);
+    Function<String, Value> makeConstructor =
+        name -> module.invokeMember("eval_expression", ".." + name);
 
-    return evaluateImpl(expression, getColumn, makeConstantColumn, getMethod, makeConstructor, variableArgumentFunctions);
+    return evaluateImpl(
+        expression,
+        getColumn,
+        makeConstantColumn,
+        getMethod,
+        makeConstructor,
+        variableArgumentFunctions);
   }
 
-  public static Value evaluateImpl(String expression,
+  public static Value evaluateImpl(
+      String expression,
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
       Function<String, Value> getMethod,
@@ -88,7 +95,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     var parser = new ExpressionParser(tokens);
     parser.removeErrorListeners();
     parser.addErrorListener(ThrowOnErrorListener.INSTANCE);
-  
+
     var visitor =
         new ExpressionVisitorImpl(
             getColumn, makeConstantColumn, getMethod, makeConstructor, variableArgumentFunctions);
