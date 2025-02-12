@@ -21,6 +21,7 @@ import org.enso.interpreter.runtime.error.DataflowError;
 final class SuspendedFieldGetterNode extends UnboxingAtom.FieldGetterNode {
   @Node.Child private UnboxingAtom.FieldSetterNode set;
   @Node.Child private UnboxingAtom.FieldGetterNode get;
+  private boolean isEvaluated = false;
   private final BranchProfile exceptionalState = BranchProfile.create();
 
   @Node.Child
@@ -103,6 +104,8 @@ final class SuspendedFieldGetterNode extends UnboxingAtom.FieldGetterNode {
         var rethrow = DataflowError.withTrace(ex, ex);
         set.execute(atom, rethrow);
         throw ex;
+      } finally {
+        isEvaluated = true;
       }
     } else if (value instanceof DataflowError suspended) {
       exceptionalState.enter();
@@ -111,5 +114,9 @@ final class SuspendedFieldGetterNode extends UnboxingAtom.FieldGetterNode {
       }
     }
     return value;
+  }
+
+  boolean isEvaluated() {
+    return isEvaluated;
   }
 }

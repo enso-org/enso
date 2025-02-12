@@ -68,14 +68,14 @@ public abstract class AnyToTextNode extends Node {
     Text res = Text.create("(", consName(atom.getConstructor()));
     for (int i = 0; i < atom.getConstructor().getArity(); i++) {
       res = Text.create(res, " ");
-      if (isFieldSuspended(i, atom)) {
-        res = Text.create(res, "~" + fieldName(i, atom));
-      } else {
-        try {
+      try {
+        if (structs.isFieldEvaluated(atom, i)) {
           res = Text.create(res, showObject(structs.getField(atom, i)));
-        } catch (UnsupportedMessageException e) {
-          res = Text.create(res, structs.getField(atom, i).toString());
+        } else {
+          res = Text.create(res, "~" + fieldName(i, atom));
         }
+      } catch (UnsupportedMessageException e) {
+        res = Text.create(res, structs.getField(atom, i).toString());
       }
     }
     res = Text.create(res, ")");
