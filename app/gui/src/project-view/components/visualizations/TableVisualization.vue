@@ -31,7 +31,7 @@ export const inputType =
 export const defaultPreprocessor = [
   'Standard.Visualization.Table.Visualization',
   'prepare_visualization',
-  '100',
+  '1000',
 ] as const
 
 type Data = number | string | Error | Matrix | ObjectMatrix | UnknownTable | Excel_Workbook
@@ -86,9 +86,9 @@ interface UnknownTable {
   // distinguish `Matrix` and `ObjectMatrix`.
   type: undefined
   json: unknown
-  data: unknown[][] | undefined
   all_rows_count?: number
   header: string[] | undefined
+  data: unknown[][] | undefined
   value_type: ValueType[]
   has_index_col: boolean | undefined
   links: string[] | undefined
@@ -127,8 +127,8 @@ const sortModel = ref<SortModel[]>([])
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 const defaultColDef: Ref<ColDef> = ref({
   editable: false,
-  // sortable: true,
-  // filter: true,
+  sortable: false,
+  filter: false,
   resizable: true,
   minWidth: 25,
   cellRenderer: cellRenderer,
@@ -142,6 +142,7 @@ const defaultColDef: Ref<ColDef> = ref({
   ],
   autoHeight:true
 } satisfies ColDef)
+const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
 const statusBar = computed(() => props.data.all_rows_count ? ({
   statusPanels: [
@@ -184,11 +185,6 @@ function formatNumber(params: ICellRendererParams) {
   }
   const needsGrouping = dataGroupingMap.value?.get(params.colDef?.field || '')
   return needsGrouping ? numberFormatGroupped.format(value) : numberFormat.format(value)
-}
-
-/** Return a human-readable representation of an object. */
-function toRender(content: unknown) {
-  return content
 }
 
 function formatText(params: ICellRendererParams) {
@@ -238,8 +234,6 @@ function formatText(params: ICellRendererParams) {
   })
   return `<span > ${newString} <span>`
 }
-
-const rowData = ref<Record<string, any>[]>([])
 
 function createRowServer() {
   return {
@@ -501,6 +495,11 @@ function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef 
       : `Double click to view this ${tooltipValue ?? 'value'} in a separate component`,
     cellRenderer: (params: ICellRendererParams) => `<div class='link'> ${params.value} </div>`,
   }
+}
+
+/** Return a human-readable representation of an object. */
+function toRender(content: unknown) {
+  return content
 }
 
 watchEffect(() => {

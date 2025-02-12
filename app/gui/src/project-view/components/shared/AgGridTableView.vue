@@ -83,6 +83,7 @@ import type {
   ICellEditorComp,
   IHeaderComp,
   IHeaderParams,
+  IServerSideDatasource,
   MenuItemDef,
   ProcessDataFromClipboardParams,
   RowDataUpdatedEvent,
@@ -110,8 +111,6 @@ import {
   tableToEnsoExpression,
 } from '../GraphEditor/widgets/WidgetTableEditor/tableParsing'
 
-const DEFAULT_ROW_HEIGHT = 22
-
 const props = defineProps<{
   rowData: TData[]
   columnDefs: (ColDef<TData, TValue> | ColGroupDef<TData>)[] | null
@@ -124,10 +123,9 @@ const props = defineProps<{
   suppressMoveWhenColumnDragging?: boolean
   textFormatOption?: TextFormatOptions
   processDataFromClipboard?: (params: ProcessDataFromClipboardParams<TData>) => string[][] | null
-  datasource: any
-  rowCount: number
+  datasource?: IServerSideDatasource
+  rowCount?: number
   isServerSideModel?: boolean
-  statusBar: any
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -366,7 +364,6 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       :serverSideDatasource="datasource"
       :rowCount="rowCount"
       :rowData="rowModelType === 'clientSide' ? rowData : null"
-      :statusBar="statusBar"
       @gridReady="onGridReady"
       @firstDataRendered="updateColumnWidths"
       @rowDataUpdated="(updateColumnWidths($event), emit('rowDataUpdated', $event))"

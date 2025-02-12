@@ -219,14 +219,14 @@ make_json_for_table dataframe max_rows all_rows_count include_index_col is_db_ta
    Prepares the row data table for visualizations using the server side row model.
 
    Arguments:
-   - current_number: the number of already loaded rows
+   - start_number: the start index of the next 100 rows to get
 
 get_rows_for_table : Any -> Integer -> JS_Object
-get_rows_for_table x current_number =
+get_rows_for_table x start_number =
     max_rows=100
     all_rows_count = x.row_count
     bucket_size = if max_rows < all_rows_count then max_rows else all_rows_count
-    get_vector c         = Warning.set (Vector.new bucket_size i-> make_json_for_value (c.get (i + current_number))) []
+    get_vector c         = Warning.set (Vector.new bucket_size i-> make_json_for_value (c.get (i + start_number))) []
     columns              = x.columns
     rows = columns.map get_vector
     result = JS_Object.from_pairs [["rows", rows]]
