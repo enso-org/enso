@@ -4817,7 +4817,6 @@ lazy val `benchmark-java-helpers` = project
 lazy val `std-table` = project
   .in(file("std-bits") / "table")
   .enablePlugins(Antlr4Plugin)
-  .enablePlugins(JPMSPlugin)
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -4842,7 +4841,7 @@ lazy val `std-table` = project
       "org.apache.xmlbeans"      % "xmlbeans"                % xmlbeansVersion,
       "org.antlr"                % "antlr4-runtime"          % antlrVersion,
       "org.apache.logging.log4j" % "log4j"                   % "2.24.3",
-      "org.apache.logging.log4j" % "log4j-to-slf4j"          % "2.24.3",
+      "org.apache.logging.log4j" % "log4j-to-slf4j"          % "2.24.3", // org.apache.poi uses log4j
       "junit"                    % "junit"                   % junitVersion       % Test,
       "com.github.sbt"           % "junit-interface"         % junitIfVersion     % Test,
       "org.mockito"              % "mockito-core"            % "5.3.1"            % Test,
@@ -4864,7 +4863,6 @@ lazy val `std-table` = project
     }.value
   )
   .dependsOn(`std-base` % "provided")
-  .dependsOn(`engine-runner-common`)
 
 lazy val extractNativeLibs = taskKey[Unit](
   "Helper task to extract native libraries from OpenCV JAR"
