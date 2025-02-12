@@ -2343,18 +2343,23 @@ class IrToTruffle(
       subjectToInstrumentation: Boolean
     ): RuntimeExpression =
       application match {
-        case Application.Prefix(fn, Nil, true, _, _) =>
-          run(fn, subjectToInstrumentation)
+        case app: Application.Prefix
+            if app.arguments.isEmpty && app.hasDefaultsSuspended =>
+          run(app.function, subjectToInstrumentation)
         case app: Application.Prefix =>
           processApplicationWithArgs(app, subjectToInstrumentation)
-        case Application.Force(expr, location, _) =>
+        case force: Application.Force =>
           setLocation(
-            ForceNode.build(this.run(expr, subjectToInstrumentation)),
-            location
+            ForceNode.build(this.run(force.target, subjectToInstrumentation)),
+            force.identifiedLocation
           )
-        case Application.Sequence(items, location, _) =>
-          val itemNodes = items.map(run(_, subjectToInstrumentation)).toArray
-          setLocation(SequenceLiteralNode.build(itemNodes), location)
+        case seq: Application.Sequence =>
+          val itemNodes =
+            seq.items.map(run(_, subjectToInstrumentation)).toArray
+          setLocation(
+            SequenceLiteralNode.build(itemNodes),
+            seq.identifiedLocation
+          )
         case _: Application.Typeset =>
           setLocation(
             ErrorNode.build(
@@ -2381,12 +2386,10 @@ class IrToTruffle(
       application: Application.Prefix,
       subjectToInstrumentation: Boolean
     ): RuntimeExpression = {
-      val Application.Prefix(fn, args, hasDefaultsSuspended, loc, _) =
-        application
       val callArgFactory =
         new CallArgumentProcessor(scope, scopeName, currentVarName)
 
-      val arguments = args
+      val arguments = application.arguments
       val callArgs  = new ArrayBuffer[callable.argument.CallArgument]()
 
       for ((unprocessedArg, position) <- arguments.view.zipWithIndex) {
@@ -2395,19 +2398,19 @@ class IrToTruffle(
         callArgs.append(arg)
       }
 
-      val defaultsExecutionMode = if (hasDefaultsSuspended) {
+      val defaultsExecutionMode = if (application.hasDefaultsSuspended) {
         InvokeCallableNode.DefaultsExecutionMode.IGNORE
       } else {
         InvokeCallableNode.DefaultsExecutionMode.EXECUTE
       }
 
       val appNode = ApplicationNode.build(
-        this.run(fn, subjectToInstrumentation),
+        this.run(application.function, subjectToInstrumentation),
         callArgs.toArray,
         defaultsExecutionMode
       )
 
-      setLocation(appNode, loc)
+      setLocation(appNode, application.identifiedLocation)
     }
 
   }

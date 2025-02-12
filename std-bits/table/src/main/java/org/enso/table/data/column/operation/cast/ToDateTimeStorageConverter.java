@@ -4,56 +4,56 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
-import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
 
 public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTime> {
   @Override
-  public Storage<ZonedDateTime> cast(Storage<?> storage, CastProblemAggregator problemAggregator) {
-    if (storage instanceof DateTimeStorage dateTimeStorage) {
-      return dateTimeStorage;
-    } else if (storage instanceof DateStorage dateStorage) {
-      return convertDateStorage(dateStorage, problemAggregator);
-    } else if (storage.getType() instanceof AnyObjectType
-        || storage.getType() instanceof NullType) {
-      return castFromMixed(storage, problemAggregator);
+  public boolean canApply(StorageType sourceType) {
+    return sourceType instanceof DateType
+        || sourceType instanceof AnyObjectType
+        || sourceType instanceof NullType;
+  }
+
+  @Override
+  public ColumnStorage<ZonedDateTime> cast(
+      ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
+    if (storage instanceof DateStorage dateStorage) {
+      return convertDateStorage(dateStorage);
+    } else if (canApply(storage.getType())) {
+      return castFromObject(storage, problemAggregator);
     } else {
       throw new IllegalStateException(
           "No known strategy for casting storage " + storage + " to Date_Time.");
     }
   }
 
-  public Storage<ZonedDateTime> castFromMixed(
-      ColumnStorage<?> mixedStorage, CastProblemAggregator problemAggregator) {
-    return StorageConverter.innerLoop(
-        Builder.getForDateTime(mixedStorage.getSize()),
-        mixedStorage,
-        (i) -> {
-          Object o = mixedStorage.getItemBoxed(i);
-          return switch (o) {
-            case ZonedDateTime d -> d;
-            case LocalDate d -> convertDate(d);
-            default -> {
-              problemAggregator.reportConversionFailure(o);
-              yield null;
-            }
-          };
-        });
+  public ColumnStorage<ZonedDateTime> castFromObject(
+      ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
+    return StorageIterators.mapOverStorage(
+        storage,
+        Builder.getForDateTime(storage.getSize()),
+        (index, value) ->
+            switch (value) {
+              case ZonedDateTime d -> d;
+              case LocalDate d -> convertDate(d);
+              default -> {
+                problemAggregator.reportConversionFailure(value);
+                yield null;
+              }
+            });
   }
 
-  private Storage<ZonedDateTime> convertDateStorage(
-      Storage<LocalDate> dateStorage, CastProblemAggregator problemAggregator) {
-    return StorageConverter.innerLoop(
-        Builder.getForDateTime(dateStorage.getSize()),
+  private ColumnStorage<ZonedDateTime> convertDateStorage(ColumnStorage<LocalDate> dateStorage) {
+    return StorageIterators.mapOverStorage(
         dateStorage,
-        (i) -> {
-          LocalDate date = dateStorage.getItemBoxed(i);
-          return convertDate(date);
-        });
+        Builder.getForDateTime(dateStorage.getSize()),
+        (index, value) -> convertDate(value));
   }
 
   private ZonedDateTime convertDate(LocalDate date) {

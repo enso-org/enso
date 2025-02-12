@@ -67,15 +67,11 @@ case object ExpressionAnnotations extends IRPass {
     ir: Expression
   ): Expression =
     ir.transformExpressions {
-      case app @ Application.Prefix(
-            ann: Name.BuiltinAnnotation,
-            arguments,
-            _,
-            _,
-            _
-          ) =>
+      case app: Application.Prefix
+          if app.function.isInstanceOf[Name.BuiltinAnnotation] =>
+        val ann = app.function.asInstanceOf[Name.BuiltinAnnotation]
         if (isKnownAnnotation(ann.name)) {
-          arguments match {
+          app.arguments match {
             case List() =>
               errors.Resolution(
                 ann,
@@ -87,8 +83,8 @@ case object ExpressionAnnotations extends IRPass {
             case realFun :: args =>
               val recurFun = doExpression(realFun.value)
               val (finalFun, preArgs) = recurFun match {
-                case Application.Prefix(nextFun, moreArgs, _, _, _) =>
-                  (nextFun, moreArgs)
+                case app: Application.Prefix =>
+                  (app.function, app.arguments)
                 case _ => (recurFun, List())
               }
               val recurArgs = args.map(_.mapExpressions(doExpression))
@@ -99,7 +95,7 @@ case object ExpressionAnnotations extends IRPass {
         } else {
           val err =
             errors.Resolution(ann, errors.Resolution.UnknownAnnotation)
-          app.copy(function = err)
+          app.copyWithFunction(err)
         }
       case ann: Name.BuiltinAnnotation =>
         if (isKnownAnnotation(ann.name)) {

@@ -32,17 +32,17 @@ class LambdaShorthandToLambdaMini(
 
   private def shouldSkipBlanks(parent: IR): Boolean = {
     parent match {
-      case Application.Prefix(fn, args, _, _, _) =>
-        val hasBlankArg = args.exists {
+      case app: Application.Prefix =>
+        val hasBlankArg = app.arguments.exists {
           case arg: CallArgument.Specified
               if arg.value.isInstanceOf[Name.Blank] =>
             true
           case _ => false
         }
-        val hasBlankFn = fn.isInstanceOf[Name.Blank]
+        val hasBlankFn = app.function.isInstanceOf[Name.Blank]
         hasBlankArg || hasBlankFn
-      case Application.Sequence(items, _, _) =>
-        val hasBlankItem = items.exists {
+      case seq: Application.Sequence =>
+        val hasBlankItem = seq.items.exists {
           case _: Name.Blank => true
           case _             => false
         }
@@ -76,16 +76,16 @@ class LambdaShorthandToLambdaMini(
 
         new Function.Lambda(
           List(
-            DefinitionArgument.Specified(
-              name = Name.Literal(
+            new DefinitionArgument.Specified(
+              Name.Literal(
                 newName.name,
                 isMethod = false,
                 null
               ),
-              ascribedType       = None,
-              defaultValue       = None,
-              suspended          = false,
-              identifiedLocation = null
+              None,
+              None,
+              false,
+              null
             )
           ),
           newName,
@@ -104,13 +104,13 @@ class LambdaShorthandToLambdaMini(
     application: Application
   ): Expression = {
     application match {
-      case p @ Application.Prefix(fn, args, _, _, _) =>
+      case p: Application.Prefix =>
         // Determine which arguments are lambda shorthand
-        val argIsUnderscore = determineLambdaShorthand(args)
+        val argIsUnderscore = determineLambdaShorthand(p.arguments)
 
         // Generate a new name for the arg value for each shorthand arg
         val updatedArgs =
-          args
+          p.arguments
             .zip(argIsUnderscore)
             .map(updateShorthandArg)
 
@@ -123,19 +123,19 @@ class LambdaShorthandToLambdaMini(
         }
 
         // Determine whether or not the function itself is shorthand
-        val functionIsShorthand = fn.isInstanceOf[Name.Blank]
+        val functionIsShorthand = p.function.isInstanceOf[Name.Blank]
         val (updatedFn, updatedName) = if (functionIsShorthand) {
           val newFn = freshNameSupply
             .newName()
             .copy(
-              location    = fn.location,
-              passData    = fn.passData,
-              diagnostics = fn.diagnostics
+              location    = p.function.location,
+              passData    = p.function.passData,
+              diagnostics = p.function.diagnostics
             )
           val newName = newFn.name
           (newFn, Some(newName))
         } else {
-          (fn, None)
+          (p.function, None)
         }
 
         val processedApp = p.copy(
@@ -154,17 +154,13 @@ class LambdaShorthandToLambdaMini(
         val resultExpr = if (functionIsShorthand) {
           new Function.Lambda(
             List(
-              DefinitionArgument.Specified(
+              new DefinitionArgument.Specified(
                 Name
                   .Literal(
                     updatedName.get,
                     isMethod = false,
-                    fn.location.orNull
-                  ),
-                None,
-                None,
-                suspended = false,
-                null
+                    p.function.location.orNull
+                  )
               )
             ),
             appResult,
@@ -177,9 +173,9 @@ class LambdaShorthandToLambdaMini(
           case result               => result
         }
 
-      case vector @ Application.Sequence(items, _, _) =>
+      case vector: Application.Sequence =>
         var bindings: List[Name] = List()
-        val newItems = items.map {
+        val newItems = vector.items.map {
           case blank: Name.Blank =>
             val name = freshNameSupply
               .newName()
@@ -192,17 +188,11 @@ class LambdaShorthandToLambdaMini(
             name
           case it => it
         }
-        val newVec = vector.copy(newItems)
+        val newVec = vector.copyWithItems(newItems)
         val locWithoutId =
           newVec.location.map(l => new IdentifiedLocation(l.location()))
         bindings.foldLeft(newVec: Expression) { (body, bindingName) =>
-          val defArg = DefinitionArgument.Specified(
-            bindingName,
-            ascribedType       = None,
-            defaultValue       = None,
-            suspended          = false,
-            identifiedLocation = null
-          )
+          val defArg = new DefinitionArgument.Specified(bindingName)
           new Function.Lambda(List(defArg), body, locWithoutId.orNull)
         }
 
@@ -329,7 +319,7 @@ class LambdaShorthandToLambdaMini(
               diagnostics = nameBlank.diagnostics
             )
 
-        val lambdaArg = DefinitionArgument.Specified(
+        val lambdaArg = new DefinitionArgument.Specified(
           scrutineeName.copy(id = null),
           None,
           None,

@@ -136,7 +136,7 @@ public final class GeneratedClassContext {
     return processedClass;
   }
 
-  List<ClassField> getMetaFields() {
+  public List<ClassField> getMetaFields() {
     return metaFields;
   }
 

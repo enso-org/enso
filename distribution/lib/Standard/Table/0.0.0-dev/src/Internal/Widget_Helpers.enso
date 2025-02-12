@@ -258,7 +258,7 @@ parse_type_selector include_auto=True =
     prefix = if include_auto then ['Auto'] else []
     names = prefix + valid_parse_targets
 
-    choice = names.map n-> if n=='Auto' then (Auto.to Meta.Type . qualified_name) else '..'+n
+    choice = names.map n-> if n=='Auto' then (Auto.to Meta.Type . qualified_name) else n
 
     options = names.zip choice . map pair-> Option pair.first pair.second
     Single_Choice display=Display.Always values=options

@@ -1,6 +1,5 @@
 package org.enso.compiler.dump.igv;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -9,6 +8,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.MetadataStorage;
+import org.enso.compiler.dump.service.IRSource;
 
 final class ASTNode {
 
@@ -72,10 +72,10 @@ final class ASTNode {
     private final Map<String, Object> properties = new LinkedHashMap<>();
     private ASTLocation location;
 
-    public static Builder fromIr(IR ir, File srcFile) {
+    public static Builder fromIr(IR ir, IRSource<? extends IR> ctx) {
       var bldr = new Builder();
       var label = Utils.label(ir);
-      var location = ASTLocation.fromIdentifiedLocation(ir.identifiedLocation(), srcFile);
+      var location = ASTLocation.fromIdentifiedLocation(ir.identifiedLocation(), ctx);
       bldr.object = ir;
       bldr.location = location;
       bldr.property("label", label);

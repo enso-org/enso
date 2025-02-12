@@ -268,24 +268,21 @@ make_json_for_value val level=0 = case val of
             prepared = if row.table.column_count > 5 then truncated + ["… " + (row.table.column_count - 5).to_text+ " more"] else truncated
             "Row{" + (prepared.join ", ") + "}"
     table : Table ->
-        if level != 0 then "Table{" + table.row_count + " rows x " + table.column_count + " columns}" else
+        if level != 0 then "Table{" + table.row_count.to_text + " rows x " + table.column_count.to_text + " columns}" else
             truncated = table.columns.take 5 . map _.name
             prepared = if table.column_count > 5 then truncated + ["… " + (table.column_count - 5).to_text+ " more"] else truncated
             "Table{" + table.row_count.to_text + " rows x [" + (prepared.join ", ") + "]}"
     col : Column ->
-        if level != 0 then "Column{" +col.name + ": " + col.row_count + " rows}" else
+        if level != 0 then "Column{" +col.name + ": " + col.row_count.to_text + " rows}" else
             items = make_json_for_value col.to_vector level
             "Column{" + col.name + ": " + items + "}"
     table : DB_Table ->
-        if level != 0 then "Table{" + table.row_count + " rows x " + table.column_count + " columns}" else
+        if level != 0 then "DB_Table{" + table.column_count.to_text + " columns}" else
             truncated = table.columns.take 5 . map _.name
             prepared = if table.column_count > 5 then truncated + ["… " + (table.column_count - 5).to_text+ " more"] else truncated
-            "Table{" + table.row_count.to_text + " rows x [" + (prepared.join ", ") + "]}"
+            "DB_Table{" + table.row_count.to_text + " rows x [" + (prepared.join ", ") + "]}"
     col : DB_Column ->
-        if level != 0 then "Column{" +col.name + ": " + col.row_count + " rows}" else
-            materialise = col.read (..First 5)
-            truncated = materialise . map k-> k.to_text + ": " + (make_json_for_value (col.get k) level+1).to_text
-            prepared = if col.length > 5 then truncated + ["… " + (col.length - 5).to_text+ " items"] else truncated
-            "Column{" + col.name + ": " + prepared + "}"
+        if level != 0 then "DB_Column{"+col.name+"}" else
+            "DB_Column{" + col.name + ": " + col.length.to_text + " rows}"
     f : Function -> "[Function "+f.to_text+"]"
     _ -> val.to_display_text
