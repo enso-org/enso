@@ -8,7 +8,6 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnLongStorageWithArray;
 import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -19,7 +18,8 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A column storing 64-bit integers. */
-public final class LongStorage extends AbstractLongStorage implements ColumnStorageWithNothingMap, ColumnLongStorageWithArray {
+public final class LongStorage extends AbstractLongStorage
+    implements ColumnStorageWithNothingMap, ColumnLongStorageWithArray {
   // TODO [RW] at some point we will want to add separate storage classes for byte, short and int,
   // for more compact storage and more efficient handling of smaller integers; for now we will be
   // handling this just by checking the bounds
@@ -52,7 +52,7 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
 
   @Override
   public long getItemAsLong(long index) {
-    return data[(int)index];
+    return data[(int) index];
   }
 
   @Override
@@ -125,10 +125,6 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
     }
 
     return super.fillMissing(arg, commonType, problemAggregator);
-  }
-
-  public long[] getRawData() {
-    return data;
   }
 
   @Override

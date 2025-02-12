@@ -20,13 +20,8 @@ import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterCompa
 import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterOrEqualComparison;
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparison;
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
-import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.isin.DoubleIsInOp;
-import org.enso.table.data.column.storage.BoolStorage;
-import org.enso.table.data.column.storage.ColumnDoubleStorage;
-import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.ValueIsNothingException;
+import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -40,7 +35,7 @@ import org.graalvm.polyglot.Value;
 
 /** A column containing floating point numbers. */
 public final class DoubleStorage extends Storage<Double>
-    implements DoubleArrayAdapter, ColumnStorageWithNothingMap, ColumnDoubleStorage {
+    implements ColumnStorageWithNothingMap, ColumnDoubleStorageWithArray {
   private final double[] data;
   private final BitSet isNothing;
   private final int size;
@@ -99,21 +94,6 @@ public final class DoubleStorage extends Storage<Double>
       throw new IndexOutOfBoundsException(idx);
     }
     return isNothing.get((int) idx);
-  }
-
-  @Override
-  public long size() {
-    return getSize();
-  }
-
-  /** Used by the DoubleBuilder in appendBulkStorage. */
-  public double[] getRawData() {
-    return data;
-  }
-
-  @Override
-  public DoubleStorage intoStorage() {
-    return this;
   }
 
   @Override
@@ -411,5 +391,10 @@ public final class DoubleStorage extends Storage<Double>
 
     // And rely on its shrinking logic.
     return longAdapter.inferPreciseTypeShrunk();
+  }
+
+  @Override
+  public double[] getArray() {
+    return data;
   }
 }

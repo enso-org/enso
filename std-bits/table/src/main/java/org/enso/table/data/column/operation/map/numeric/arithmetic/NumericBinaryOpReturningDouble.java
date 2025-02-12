@@ -3,15 +3,35 @@ package org.enso.table.data.column.operation.map.numeric.arithmetic;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.StorageIterators;
+import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
-import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
+import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
+import org.enso.table.data.column.storage.numeric.DoubleStorageFacade;
+import org.enso.table.data.column.storage.type.FloatType;
 
 public abstract class NumericBinaryOpReturningDouble<T extends Number, I extends Storage<? super T>>
-    extends NumericBinaryOpImplementation<T, I> {
+    extends BinaryMapOperation<T, I> {
+
   public NumericBinaryOpReturningDouble(String name) {
     super(name);
+  }
+
+  private static ColumnDoubleStorage asDoubleStorage(Storage<?> storage) {
+    return switch (storage) {
+      case ColumnDoubleStorage s -> s;
+      case ColumnLongStorage s -> new DoubleStorageFacade<>(s, Long::doubleValue);
+      case BigDecimalStorage s -> new DoubleStorageFacade<>(s, BigDecimal::doubleValue);
+      case BigIntegerStorage s -> new DoubleStorageFacade<>(s, BigInteger::doubleValue);
+      default -> throw NumericBinaryOpImplementation.newUnsupported(storage);
+    };
   }
 
   @Override
@@ -21,42 +41,49 @@ public abstract class NumericBinaryOpReturningDouble<T extends Number, I extends
       return DoubleStorage.makeEmpty(storage.getSize());
     }
 
-    DoubleArrayAdapter lhs = DoubleArrayAdapter.fromAnyStorage(storage);
     double rhs =
         (arg instanceof BigInteger bigInteger)
             ? bigInteger.doubleValue()
             : NumericConverter.coerceToDouble(arg);
-    return runDoubleMap(lhs, rhs, problemAggregator);
+
+    ColumnStorage<Double> result;
+    if (storage instanceof ColumnLongStorage longStorage) {
+      result = StorageIterators.buildOverLongStorage(
+          longStorage,
+          Builder.getForDouble(FloatType.FLOAT_64, longStorage.getSize(), problemAggregator),
+          (builder, index, value, isNothing) ->
+              doDouble(value, rhs, index, problemAggregator)
+      );
+    } else {
+      var doubleStorage = asDoubleStorage(storage);
+      result = StorageIterators.buildOverDoubleStorage(
+          doubleStorage,
+          Builder.getForDouble(FloatType.FLOAT_64, doubleStorage.getSize(), problemAggregator),
+          (builder, index, value, isNothing) ->
+              doDouble(value, rhs, index, problemAggregator)
+      );
+    }
+
+    // ToDo: Merge Storage and ColumnStorage
+    return (Storage<Double>) result;
   }
 
   @Override
   public Storage<? extends Number> runZip(
       I storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
-    DoubleArrayAdapter lhs = DoubleArrayAdapter.fromAnyStorage(storage);
-    DoubleArrayAdapter rhs = DoubleArrayAdapter.fromAnyStorage(arg);
-    return runDoubleZip(lhs, rhs, problemAggregator);
+    var lhs = asDoubleStorage(storage);
+    var rhs = asDoubleStorage(arg);
+
+    var result = StorageIterators.zipOverDoubleStorages(
+        lhs,
+        rhs,
+        s -> Builder.getForDouble(FloatType.FLOAT_64, s, problemAggregator),
+        true,
+        (index, value1, isNothing1, value2, isNothing2) -> doDouble(value1, value2, index, problemAggregator));
+
+    // ToDo: Merge Storage and ColumnStorage
+    return (Storage<Double>) result;
   }
 
-  @Override
-  public Long doLong(long a, long b, long ix, MapOperationProblemAggregator problemAggregator) {
-    throw new IllegalStateException(
-        "Impossible: should not reach here - a NumericOpReturningDouble should always use the"
-            + " doDouble branch.");
-  }
-
-  @Override
-  public BigInteger doBigInteger(
-      BigInteger a, BigInteger b, long ix, MapOperationProblemAggregator problemAggregator) {
-    throw new IllegalStateException(
-        "Impossible: should not reach here - a NumericOpReturningDouble should always use the"
-            + " doDouble branch.");
-  }
-
-  @Override
-  public BigDecimal doBigDecimal(
-      BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator) {
-    throw new IllegalStateException(
-        "Impossible: should not reach here - a NumericOpReturningDouble should always use the"
-            + " doDouble branch.");
-  }
+  protected abstract double doDouble(double a, double b, long ix, MapOperationProblemAggregator problemAggregator);
 }
