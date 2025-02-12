@@ -266,7 +266,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
     if (!projectExecution) {
       return []
     }
-    let nextDate = firstProjectExecutionOnOrAfter(projectExecution, date.toDate())
+    let nextDate = firstProjectExecutionOnOrAfter(projectExecution, date.toDate(), timeZone)
     const dates = [nextDate]
     while (dates.length < REPEAT_TIMES_COUNT) {
       nextDate = nextProjectExecutionDate(projectExecution, nextDate)
@@ -357,7 +357,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       <div>
         <Text>{getText('repeatsAt')}</Text>
         {repeatTimes.map((dateTime, i) => (
-          <Text key={i}>{toReadableIsoString(dateTime)}</Text>
+          <Text key={i}>{toReadableIsoString(dateTime, timeZone)}</Text>
         ))}
       </div>
       {enableAdvancedProjectExecutionOptions && (

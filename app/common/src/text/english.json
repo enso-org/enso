@@ -674,7 +674,6 @@
   "repeatIntervalLabel": "Repeat",
   "monthlyRepeatTypeLabel": "Monthly repeat type",
   "firstOccurrenceLabel": "First occurrence",
-  "firstOccurrenceTimeLabel": "Time",
   "timeZoneLabel": "Time zone",
   "endAtLabel": "End at",
   "parallelModeLabel": "Parallel mode",

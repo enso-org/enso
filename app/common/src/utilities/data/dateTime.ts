@@ -2,6 +2,7 @@
 import type { TextId } from '../../text'
 import { type Newtype, newtypeConstructor } from './newtype'
 
+const ISO_FORMAT = Intl.DateTimeFormat('sv', { dateStyle: 'short', timeStyle: 'short' })
 /** The number of hours in half a day. This is used to get the number of hours for AM/PM time. */
 export const HALF_DAY_HOURS = 12
 /** The number of milliseconds in one minute. */
@@ -112,17 +113,43 @@ export function toRfc3339(date: Date) {
 }
 
 /** Format a {@link Date} as a human-readable ISO string (`YYYY-MM-DD HH:mm`). */
-export function toReadableIsoString(date: Date) {
-  const [, dateString, time] = date.toISOString().match(/(.+)T(\d+:\d+)/) ?? []
-  return `${dateString} ${time}`
+export function toReadableIsoString(date: Date, timeZone?: string) {
+  const formatter =
+    timeZone == null ? ISO_FORMAT : (
+      Intl.DateTimeFormat('sv', { dateStyle: 'short', timeStyle: 'short', timeZone })
+    )
+  return formatter.format(date)
 }
 
-/** Convert a UTC date to a local date. */
-export function localDateToUtcDate(date: Date) {
-  return new Date(Number(date) + date.getTimezoneOffset() * MINUTE_MS)
+/** Convert a date in the given time zone to a normal {@link Date}. */
+export function timeZoneDateToNativeDate(date: Date, timeZone?: string) {
+  const offset = getUtcOffsetMinutes(timeZone, date)
+  return new Date(Number(date) + offset * MINUTE_MS)
 }
 
-/** Convert a local date to a UTC date. */
-export function utcDateToLocalDate(date: Date) {
-  return new Date(Number(date) - date.getTimezoneOffset() * MINUTE_MS)
+/** Convert a normal {@link Date} to a date in the given time zone. */
+export function nativeDateToTimeZoneDate(date: Date, timeZone?: string) {
+  const offset = getUtcOffsetMinutes(timeZone, date)
+  return new Date(Number(date) - offset * MINUTE_MS)
+}
+
+/** Get UTC offset in minutes. */
+export function getUtcOffsetMinutes(timeZone?: string, date = new Date()) {
+  if (timeZone == null) {
+    return -date.getTimezoneOffset()
+  } else {
+    const parts = Intl.DateTimeFormat('en-US', {
+      timeZone,
+      timeZoneName: 'longOffset',
+    }).formatToParts()
+    const timeZoneName = parts.find((part) => part.type === 'timeZoneName')?.value
+    if (!timeZoneName) {
+      return 0
+    }
+    const [, hours, minutes] = timeZoneName.match(/^GMT([+-]\d+):(\d+)$/) ?? []
+    if (hours == null || minutes == null) {
+      return 0
+    }
+    return Number(hours) * HOUR_MINUTE + Number(minutes)
+  }
 }

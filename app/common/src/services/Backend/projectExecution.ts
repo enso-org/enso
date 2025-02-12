@@ -1,4 +1,5 @@
 import { EMPTY_ARRAY } from '../../utilities/data/array'
+import { nativeDateToTimeZoneDate, timeZoneDateToNativeDate } from '../../utilities/data/dateTime'
 import { ProjectExecutionInfo } from '../Backend'
 
 const DAYS_PER_WEEK = 7
@@ -8,50 +9,50 @@ const MONTHS_PER_YEAR = 12
 export function firstProjectExecutionOnOrAfter(
   projectExecution: ProjectExecutionInfo,
   startDate: Date,
+  timeZone?: string,
 ): Date {
-  // TODO: Account for timezone.
-  let nextDate = new Date(startDate)
+  let nextDate = timeZoneDateToNativeDate(new Date(startDate), timeZone)
   const { repeat } = projectExecution
   const executionStartDate = new Date(projectExecution.startDate)
   if (nextDate < executionStartDate) {
     nextDate = new Date(executionStartDate)
   }
-  nextDate.setMinutes(executionStartDate.getMinutes())
+  nextDate.setUTCMinutes(executionStartDate.getMinutes())
   switch (repeat.type) {
     case 'daily': {
-      const currentDay = nextDate.getDay()
+      const currentDay = nextDate.getUTCDay()
       const day = repeat.daysOfWeek.find((day) => day >= currentDay) ?? repeat.daysOfWeek[0] ?? 0
       const dayOffset = (day - currentDay + DAYS_PER_WEEK) % DAYS_PER_WEEK
-      nextDate.setDate(nextDate.getDate() + dayOffset)
+      nextDate.setUTCDate(nextDate.getUTCDate() + dayOffset)
       break
     }
     case 'monthly-weekday': {
-      const currentDate = nextDate.getDate()
-      nextDate.setDate(1)
-      nextDate.setDate(1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK)
-      const currentDay = nextDate.getDay()
+      const currentDate = nextDate.getUTCDate()
+      nextDate.setUTCDate(1)
+      nextDate.setUTCDate(1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK)
+      const currentDay = nextDate.getUTCDay()
       const dayOffset = (repeat.dayOfWeek - currentDay + 7) % 7
-      nextDate.setDate(nextDate.getDate() + dayOffset)
-      if (nextDate.getDate() < currentDate) {
-        nextDate.setDate(1)
-        nextDate.setMonth(nextDate.getMonth() + 1)
-        nextDate.setDate(1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK)
-        const currentDay = nextDate.getDay()
+      nextDate.setUTCDate(nextDate.getUTCDate() + dayOffset)
+      if (nextDate.getUTCDate() < currentDate) {
+        nextDate.setUTCDate(1)
+        nextDate.setUTCMonth(nextDate.getUTCMonth() + 1)
+        nextDate.setUTCDate(1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK)
+        const currentDay = nextDate.getUTCDay()
         const dayOffset = (repeat.dayOfWeek - currentDay + 7) % 7
-        nextDate.setDate(nextDate.getDate() + dayOffset)
+        nextDate.setUTCDate(nextDate.getUTCDate() + dayOffset)
       }
       break
     }
     case 'monthly-date': {
-      const currentDate = nextDate.getDate()
+      const currentDate = nextDate.getUTCDate()
       const date = repeat.date
       const goToNextMonth = date < currentDate
-      nextDate.setDate(date)
+      nextDate.setUTCDate(date)
       if (goToNextMonth) {
-        const startMonth = nextDate.getMonth()
-        nextDate.setMonth(startMonth + 1)
-        if ((nextDate.getMonth() + MONTHS_PER_YEAR - startMonth) % MONTHS_PER_YEAR > 1) {
-          nextDate.setDate(0)
+        const startMonth = nextDate.getUTCMonth()
+        nextDate.setUTCMonth(startMonth + 1)
+        if ((nextDate.getUTCMonth() + MONTHS_PER_YEAR - startMonth) % MONTHS_PER_YEAR > 1) {
+          nextDate.setUTCDate(0)
         }
       }
       break
@@ -63,42 +64,45 @@ export function firstProjectExecutionOnOrAfter(
     }
     case 'monthly-date':
     case 'monthly-weekday': {
-      const currentMonth = nextDate.getMonth()
+      const currentMonth = nextDate.getUTCMonth()
       const month = repeat.months.find((month) => month >= currentMonth) ?? repeat.months[0] ?? 0
       const monthOffset = (month - currentMonth + MONTHS_PER_YEAR) % MONTHS_PER_YEAR
-      nextDate.setMonth(nextDate.getMonth() + monthOffset)
+      nextDate.setUTCMonth(nextDate.getUTCMonth() + monthOffset)
     }
   }
-  return nextDate
+  return nativeDateToTimeZoneDate(nextDate, timeZone)
 }
 
 /** The next scheduled execution date of given {@link ProjectExecution}. */
-export function nextProjectExecutionDate(projectExecution: ProjectExecutionInfo, date: Date): Date {
-  // TODO: Account for timezone.
-  const nextDate = new Date(date)
+export function nextProjectExecutionDate(
+  projectExecution: ProjectExecutionInfo,
+  date: Date,
+  timeZone?: string,
+): Date {
+  const nextDate = timeZoneDateToNativeDate(new Date(date), timeZone)
   const { repeat } = projectExecution
   switch (repeat.type) {
     case 'daily': {
-      const currentDay = nextDate.getDay()
+      const currentDay = nextDate.getUTCDay()
       const day = repeat.daysOfWeek.find((day) => day > currentDay) ?? repeat.daysOfWeek[0] ?? 0
       const dayOffset = ((day - currentDay + 6) % 7) + 1
-      nextDate.setDate(nextDate.getDate() + dayOffset)
+      nextDate.setUTCDate(nextDate.getUTCDate() + dayOffset)
       break
     }
     case 'monthly-weekday': {
-      nextDate.setDate(1)
-      nextDate.setMonth(nextDate.getMonth() + 1)
-      nextDate.setDate(1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK)
-      const currentDay = nextDate.getDay()
+      nextDate.setUTCDate(1)
+      nextDate.setUTCMonth(nextDate.getUTCMonth() + 1)
+      nextDate.setUTCDate(1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK)
+      const currentDay = nextDate.getUTCDay()
       const dayOffset = ((repeat.dayOfWeek - currentDay + 6) % 7) + 1
-      nextDate.setDate(nextDate.getDate() + dayOffset)
+      nextDate.setUTCDate(nextDate.getUTCDate() + dayOffset)
       break
     }
     case 'monthly-date': {
-      const startMonth = nextDate.getMonth()
-      nextDate.setMonth(startMonth + 1)
-      if ((nextDate.getMonth() + MONTHS_PER_YEAR - startMonth) % MONTHS_PER_YEAR > 1) {
-        nextDate.setDate(0)
+      const startMonth = nextDate.getUTCMonth()
+      nextDate.setUTCMonth(startMonth + 1)
+      if ((nextDate.getUTCMonth() + MONTHS_PER_YEAR - startMonth) % MONTHS_PER_YEAR > 1) {
+        nextDate.setUTCDate(0)
       }
       break
     }
@@ -109,13 +113,13 @@ export function nextProjectExecutionDate(projectExecution: ProjectExecutionInfo,
     }
     case 'monthly-date':
     case 'monthly-weekday': {
-      const currentMonth = nextDate.getMonth()
+      const currentMonth = nextDate.getUTCMonth()
       const month = repeat.months.find((month) => month >= currentMonth) ?? repeat.months[0] ?? 0
       const monthOffset = (month - currentMonth + MONTHS_PER_YEAR) % MONTHS_PER_YEAR
-      nextDate.setMonth(nextDate.getMonth() + monthOffset)
+      nextDate.setUTCMonth(nextDate.getUTCMonth() + monthOffset)
     }
   }
-  return nextDate
+  return nativeDateToTimeZoneDate(nextDate, timeZone)
 }
 
 /**
