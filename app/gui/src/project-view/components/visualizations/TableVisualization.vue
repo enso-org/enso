@@ -145,12 +145,14 @@ const defaultColDef: Ref<ColDef> = ref({
 } satisfies ColDef)
 const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
-const statusBar = computed(() => props.data.all_rows_count ? ({
+const allRowCount = computed(() => (typeof props.data === 'object' && "all_rows_count" in props.data) ? props.data.all_rows_count : 0)
+const isSSRM = computed(() => (typeof props.data === 'object' && "is_ssrm" in props.data) ? true : false)
+const statusBar = computed(() => allRowCount.value ? ({
   statusPanels: [
     {
       statusPanel: TableVizStatusBar,
       statusPanelParams: {
-        total: props.data.all_rows_count,
+        total: allRowCount,
       },
     },
   ],
@@ -262,7 +264,7 @@ function createServerSideDatasource(): IServerSideDatasource {
     getRows: async (params) => {
       const server = createRowServer()
       const response: Response = await server.getData(params.request)
-      const startIndex = params.request.startRow
+      const startIndex = params.request.startRow ? params.request.startRow : 0
       const rows = createRowsForTable(response.data, startIndex)
       setTimeout(() => {
         if (response.success) {
@@ -633,14 +635,19 @@ watchEffect(() => {
           ...dataHeader,
         ]
       : dataHeader
-
-    if (!props.data.is_ssrm) {
+    console.log({dataHeader})
+    console.log({columnDefs: columnDefs.value})
+    if (data_.is_ssrm) {
+      console.log('getting val')
+      console.log({data_})
       rowData.value = createRowsForTable(data_.data, 0)
     }
   }
 })
 
 const createRowsForTable = (data: unknown[][], startIndex: number) => {
+  console.log({data})
+  console.log('in func')
   const rows = data && data.length > 0 ? (data[0]?.length ?? 0) : 0
       return Array.from({ length: rows }, (_, i) => {
         return Object.fromEntries(
@@ -795,8 +802,8 @@ config.setToolbar(
         :textFormatOption="textFormatterSelected"
         :datasource="createServerSideDatasource()"
         :rowData="rowData"
-        :rowCount="props.data.all_rows_count"
-        :isServerSideModel="props.data.is_ssrm"
+        :rowCount="allRowCount"
+        :isServerSideModel="isSSRM"
         :statusBar="statusBar"
         @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
       />
