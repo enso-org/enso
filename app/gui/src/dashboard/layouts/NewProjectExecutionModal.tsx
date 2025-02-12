@@ -165,7 +165,7 @@ const UPSERT_EXECUTION_SCHEMA = z
       })()
       return {
         projectId,
-        timeZone: timeZone,
+        timeZone,
         repeat,
         maxDurationMinutes,
         parallelMode,
