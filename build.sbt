@@ -4848,6 +4848,9 @@ lazy val `std-table` = project
       "org.mockito"              % "mockito-core"            % "5.3.1"            % Test,
       "org.mockito"              % "mockito-junit-jupiter"   % "5.3.1"            % Test
     ),
+    Test / internalModuleDependencies := Seq(
+        (`engine-runner-common` / Compile / exportedModule).value
+    ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
       val _ = StdBits
@@ -4861,6 +4864,7 @@ lazy val `std-table` = project
     }.value
   )
   .dependsOn(`std-base` % "provided")
+  .dependsOn(`engine-runner-common`)
 
 lazy val extractNativeLibs = taskKey[Unit](
   "Helper task to extract native libraries from OpenCV JAR"
