@@ -5,6 +5,7 @@ import invariant from 'tiny-invariant'
 import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 
+import * as backendHooks from '#/hooks/backendHooks'
 import * as copyHooks from '#/hooks/copyHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -80,6 +81,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const setAssetPanelProps = useSetAssetPanelProps()
   const openProject = projectHooks.useOpenProject()
   const closeProject = projectHooks.useCloseProject()
+  const queryClient = reactQuery.useQueryClient()
   const deleteAssetsMutation = reactQuery.useMutation(deleteAssetsMutationOptions(backend))
   const restoreAssetsMutation = reactQuery.useMutation(restoreAssetsMutationOptions(backend))
   const copyAssetsMutation = reactQuery.useMutation(copyAssetsMutationOptions(backend))
@@ -253,19 +255,24 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
           )}
         {asset.type === backendModule.AssetType.project && isCloud && enableHybridExecution && (
           <ContextMenuEntry
-            hidden={hidden}
+            hidden={hidden || localBackend == null}
             action="run"
             isDisabled={!canOpenProjects}
             tooltip={disabledTooltip}
             doAction={async () => {
               invariant(localBackend != null, 'Local Backend is null')
               const parentId = await remoteBackend.downloadProject(asset.id)
-              const assets = await localBackend.listDirectory({
-                parentId,
-                filterBy: null,
-                labels: null,
-                recentProjects: false,
-              })
+              const assets = await queryClient.ensureQueryData(
+                backendHooks.backendQueryOptions(localBackend, 'listDirectory', [
+                  {
+                    parentId: parentId,
+                    filterBy: null,
+                    labels: null,
+                    recentProjects: false,
+                  },
+                  '(unknown)',
+                ]),
+              )
               const project = assets
                 .filter((item) => item.type === backendModule.AssetType.project)
                 .at(0)
