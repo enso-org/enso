@@ -1,4 +1,4 @@
-package org.enso.interpreter.dsl.atom;
+package org.enso.interpreter.dsl.impl;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -12,6 +12,7 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
+import org.enso.interpreter.dsl.atom.LayoutSpec;
 import org.openide.util.lookup.ServiceProvider;
 
 @SupportedAnnotationTypes({"org.enso.interpreter.dsl.atom.LayoutSpec"})

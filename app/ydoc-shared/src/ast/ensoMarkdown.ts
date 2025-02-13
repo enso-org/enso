@@ -119,12 +119,13 @@ const orderedList: BlockParser = {
   parse: (cx, line) => {
     const size = isOrderedList(line, cx, false)
     if (size < 0) return false
+    const length = size + (isSpace(line.text.charCodeAt(line.pos + size)) ? 1 : 0)
     const orderedList = getType(cx, 'OrderedList')
     if (cx.block.type != orderedList)
       cx.startContext(orderedList, line.basePos, line.text.charCodeAt(line.pos + size - 1))
     const newBase = getListIndent(line, line.pos + size)
     cx.startContext(getType(cx, 'ListItem'), line.basePos, newBase - line.baseIndent)
-    cx.addNode(getType(cx, 'ListMark'), cx.lineStart + line.pos, cx.lineStart + line.pos + size)
+    cx.addNode(getType(cx, 'ListMark'), cx.lineStart + line.pos, cx.lineStart + line.pos + length)
     line.moveBaseColumn(newBase)
     return null
   },

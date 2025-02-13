@@ -76,8 +76,10 @@ type Redshift_Dialect
        Generates SQL modifier for limiting the number of rows and its position in the query
     get_limit_sql_modifier : Integer -> Any
     get_limit_sql_modifier self limit =
-        SQL_Builder.code (" LIMIT " + limit.to_text)
-
+        case limit of
+            Nothing -> ""
+            _ : Integer -> SQL_Builder.code (" LIMIT " + limit.to_text)
+        
     ## PRIVATE
        Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
        If you add extensions using Context_Extension you have to provide an order for them here

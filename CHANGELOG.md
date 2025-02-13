@@ -19,6 +19,8 @@
 - [Users having "Team" plan or above may now access shared directories in Cloud
   File Browser][12208]
 - [Added support for rendering numbered and nested lists][12190].
+- [Added buttons for editing top-level markdown elements in the documentation
+  panel][12217].
 - [Removed `#` from default colum name][12222]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
@@ -34,6 +36,7 @@
 [12208]: https://github.com/enso-org/enso/pull/12208
 [12190]: https://github.com/enso-org/enso/pull/12190
 [12222]: https://github.com/enso-org/enso/pull/12222
+[12217]: https://github.com/enso-org/enso/pull/12217
 
 #### Enso Standard Library
 
@@ -47,12 +50,16 @@
   - In `Delimited` format, the `keep_invalid_rows` setting has been renamed to
     `on_invalid_rows`. The default behaviour was also changed to add any extra
     columns instead of discarding them.
+- [Added DB_Table.Offset for SQLServer][12206]
+- [Added DB_Table.Offset for Snowflake, Postgres, SQLite][12251]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
 [12071]: https://github.com/enso-org/enso/pull/12071
 [12092]: https://github.com/enso-org/enso/pull/12092
 [12231]: https://github.com/enso-org/enso/pull/12231
+[12206]: https://github.com/enso-org/enso/pull/12206
+[12251]: https://github.com/enso-org/enso/pull/12251
 
 #### Enso Language & Runtime
 

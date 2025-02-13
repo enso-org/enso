@@ -21,6 +21,7 @@ object StdBits {
     *                           added by default be SBT and are not relevant in
     *                           pure-Java projects
     * @param ignoreDependency A dependency that should be ignored - not copied to the destination
+    * @param ignoreDependencyIncludeTransitive An optional filter to indicate that a direct dependency should be ignored except for its (transitive) dependencies
     * @param ignoreUnmanagedDependency An optional filter that tests if an unmanaged dependency should be ignored
     */
   def copyDependencies(
@@ -28,6 +29,7 @@ object StdBits {
     providedJarNames: Seq[String],
     ignoreScalaLibrary: Boolean,
     ignoreDependency: Option[ModuleID]                 = None,
+    ignoreDependencyIncludeTransitive: Option[String]  = None,
     ignoreUnmanagedDependency: Option[File => Boolean] = None
   ): Def.Initialize[Task[Unit]] =
     Def.task {
@@ -71,13 +73,17 @@ object StdBits {
       val unmanagedFiles = ignoreUnmanagedDependency
         .map(fun => unmanagedFiles0.filterNot(fun))
         .getOrElse(unmanagedFiles0)
-      val relevantFiles =
+      val relevantFiles0 =
         libraryUpdates
           .select(
             configuration = configFilter,
             module        = moduleFilter,
             artifact      = DependencyFilter.artifactFilter()
           ) ++ unmanagedFiles
+      val relevantFiles =
+        ignoreDependencyIncludeTransitive
+          .map(filter => relevantFiles0.filterNot(_.getName.contains(filter)))
+          .getOrElse(relevantFiles0)
       val dependencyStore =
         streams.value.cacheStoreFactory.make("std-bits-dependencies")
       Tracked.diffInputs(dependencyStore, FileInfo.hash)(relevantFiles.toSet) {
@@ -85,7 +91,12 @@ object StdBits {
           val expectedFileNames =
             report.checked.map(file => file.getName) ++ providedJarNames
           for (existing <- IO.listFiles(destination)) {
-            if (!expectedFileNames.contains(existing.getName)) {
+            if (
+              !expectedFileNames.contains(
+                existing.getName
+              ) && ignoreDependencyIncludeTransitive
+                .forall(filter => !existing.getName.contains(filter))
+            ) {
               log.info(
                 s"Removing outdated std-bits dependency ${existing.getName}."
               )
@@ -198,9 +209,6 @@ object StdBits {
       val strippedEntryName =
         (if (prefix.isEmpty) entryName
          else entryName.substring(prefix.length + 1)).replace("jnilib", "dylib")
-      if (strippedEntryName.contains(validOsExt)) {
-        println("RENAME: " + strippedEntryName)
-      }
       if (
         !strippedEntryName.endsWith(validOsExt) ||
         // Remove native libs for different platforms
@@ -209,7 +217,6 @@ object StdBits {
       ) {
         None
       } else {
-        println("INCLUDE? " + strippedEntryName)
         Some(
           strippedEntryName
             .replace("linux-x86-64", "amd64")
@@ -261,6 +268,65 @@ object StdBits {
       logger,
       streams.value.cacheStoreFactory,
       cleanOutputDirs = false
+    )
+  }
+
+  /** Extract native libraries from `grpc-netty-shaded-<version>.jar` and put them under
+    * `Standard/Google_Api/polyglot/lib` directory.
+    * @param grpcPolyglotRoot root dir of Std Google polyglot dir
+    * @param grpcNativeLibs root dir of Std Google lib dir
+    * @return
+    */
+  def extractNativeLibsFromGrpc(
+    grpcPolyglotRoot: File,
+    grpcNativeLibs: File,
+    grpcVersion: String
+  ): Def.Initialize[Task[Unit]] = Def.task {
+    val validOsName = osName()
+    val validOsExt  = osExt()
+    val validArch   = arch().replace("-", "_")
+    // Make sure that the native libs in the `lib` directory complies with
+    // `org.enso.interpreter.runtime.NativeLibraryFinder`
+    def renameFunc(prefix: String)(entryName: String): Option[String] = {
+      val strippedEntryName =
+        (if (prefix.isEmpty) entryName
+         else entryName.substring(prefix.length + 1)).replace("jnilib", "dylib")
+      if (
+        !strippedEntryName.endsWith(validOsExt) ||
+        // Remove native libs for different platforms
+        !(strippedEntryName.contains(validOsName) || strippedEntryName.contains(
+          "native_epoll" // native-epol does not have os info in the name
+        )) ||
+        !strippedEntryName.contains(validArch)
+      ) {
+        None
+      } else {
+        Some(strippedEntryName)
+      }
+    }
+
+    val logger = streams.value.log
+    val grpcJar = JPMSUtils
+      .filterModulesFromUpdate(
+        update.value,
+        Seq("io.grpc" % "grpc-netty-shaded" % grpcVersion),
+        logger,
+        moduleName.value,
+        scalaBinaryVersion.value,
+        shouldContainAll = true
+      )
+      .head
+    val outputGrpcNettyShaded =
+      (grpcPolyglotRoot / s"grpc-netty-shaded-thin-$grpcVersion.jar").toPath
+    val extractPrefix = "META-INF/native"
+    JARUtils.extractFilesFromJar(
+      grpcJar.toPath,
+      Some(extractPrefix),
+      Some(outputGrpcNettyShaded),
+      grpcNativeLibs.toPath,
+      renameFunc(extractPrefix),
+      logger,
+      streams.value.cacheStoreFactory
     )
   }
 

@@ -41,7 +41,7 @@
     "ci:lint": "corepack pnpm run -r --parallel lint --output-file eslint_report.json --format json --cache-strategy content",
     "ci:test": "corepack pnpm run -r --parallel test",
     "ci:unit-test": "corepack pnpm run -r --parallel test:unit",
-    "ci:typecheck": "corepack pnpm run -r typecheck",
+    "ci:typecheck": "corepack pnpm run -r --parallel typecheck",
     "git-clean": "git clean -xfd --exclude='.env*'",
     "ci:chromatic:react": "corepack pnpm run -r --filter enso-gui chromatic:react",
     "ci:chromatic:vue": "corepack pnpm run -r --filter enso-gui chromatic:vue",

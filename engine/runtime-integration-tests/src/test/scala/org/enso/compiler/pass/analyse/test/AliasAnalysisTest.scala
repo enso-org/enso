@@ -903,8 +903,8 @@ class AliasAnalysisTest extends CompilerTest {
         .id
       lambda.body shouldBe an[Application.Prefix]
       val app = lambda.body.asInstanceOf[Application.Prefix]
-      val valueUseId = app
-        .arguments(1)
+      val valueUseId = app.arguments
+        .apply(1)
         .value
         .getMetadata(AliasAnalysis)
         .get
@@ -992,8 +992,8 @@ class AliasAnalysisTest extends CompilerTest {
         .get
         .unsafeAs[AliasMetadata.ChildScope]
         .scope
-      val arg2Scope = app
-        .arguments(1)
+      val arg2Scope = app.arguments
+        .apply(1)
         .getMetadata(AliasAnalysis)
         .get
         .unsafeAs[AliasMetadata.ChildScope]
@@ -1040,8 +1040,8 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "not resolve links for unknown symbols" in {
-      val unknownHereId = app
-        .arguments(1)
+      val unknownHereId = app.arguments
+        .apply(1)
         .value
         .getMetadata(AliasAnalysis)
         .get
@@ -1196,8 +1196,8 @@ class AliasAnalysisTest extends CompilerTest {
           .unsafeAs[AliasMetadata.Occurrence]
           .id
 
-      val bUse = body
-        .arguments(1)
+      val bUse = body.arguments
+        .apply(1)
         .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name.Literal]
@@ -1232,8 +1232,8 @@ class AliasAnalysisTest extends CompilerTest {
           .unsafeAs[AliasMetadata.Occurrence]
           .id
 
-      val numUse = body
-        .arguments(0)
+      val numUse = body.arguments
+        .apply(0)
         .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name.Literal]
@@ -1244,8 +1244,8 @@ class AliasAnalysisTest extends CompilerTest {
           .unsafeAs[AliasMetadata.Occurrence]
           .id
 
-      val integerUse = body
-        .arguments(1)
+      val integerUse = body.arguments
+        .apply(1)
         .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name.Literal]

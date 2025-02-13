@@ -1,4 +1,4 @@
-package org.enso.interpreter.dsl;
+package org.enso.interpreter.dsl.impl;
 
 import com.google.common.base.CaseFormat;
 import java.io.IOException;
@@ -24,6 +24,7 @@ import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
 import javax.tools.Diagnostic.Kind;
 import javax.tools.JavaFileObject;
+import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.dsl.builtins.ClassName;
 import org.enso.interpreter.dsl.builtins.MethodNodeClassGenerator;
 import org.enso.interpreter.dsl.builtins.NoSpecializationClassGenerator;
