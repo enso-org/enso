@@ -1560,7 +1560,7 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "should warn when encountering invalid expressions, but try to perform the aggregations that are still valid" <|
             action1 = data.table.aggregate ["Index"] [Sum "Value", Sum (expr "[MISSING]*[MISSING]")] on_problems=_
-            tester1 = expect_column_names ["Index", "Sum Value"]
+            tester1 t = expect_column_names ["Index", "Sum Value"] t
             problems1 = [Invalid_Aggregate_Column.Error "[MISSING]*[MISSING]" (No_Such_Column.Error "MISSING")]
             Problems.test_problem_handling action1 problems1 tester1
 
@@ -1624,7 +1624,7 @@ add_aggregate_specs suite_builder setup =
 
             action2 = table.aggregate ["Index"] [Sum "Value", Sum 42] on_problems=_
             problems2 = [Missing_Input_Columns.Error [42]]
-            tester2 = expect_column_names ["Index", "Sum Value"]
+            tester2 t = expect_column_names ["Index", "Sum Value"] t
             Problems.test_problem_handling action2 problems2 tester2
 
             # As above, missing errors from group-by take precedence over aggregates.
@@ -1638,31 +1638,31 @@ add_aggregate_specs suite_builder setup =
         group_builder.specify "should raise a warning when a duplicate column name" <|
             action = table.aggregate ["Index", 0] [] on_problems=_
             problems = [Duplicate_Output_Column_Names.Error ["Index"]]
-            tester = expect_column_names ["Index", "Index 1"]
+            tester t = expect_column_names ["Index", "Index 1"] t
             Problems.test_problem_handling action problems tester
 
         group_builder.specify "should raise a warning when a duplicate column name and rename default names first" <|
             action = table.aggregate ["Value"] [Sum "Index" "Value"] on_problems=_
             problems = [Duplicate_Output_Column_Names.Error ["Value"]]
-            tester = expect_column_names ["Value 1", "Value"]
+            tester t = expect_column_names ["Value 1", "Value"] t
             Problems.test_problem_handling action problems tester
 
         group_builder.specify "should raise a warning when duplicate column names" <|
             action = table.aggregate columns=[Sum "Value" as="AGG1", Count as="AGG1"] on_problems=_
             problems = [Duplicate_Output_Column_Names.Error ["AGG1"]]
-            tester = expect_column_names ["AGG1", "AGG1 1"]
+            tester t = expect_column_names ["AGG1", "AGG1 1"] t
             Problems.test_problem_handling action problems tester
 
         group_builder.specify "should allow partial matches on Count_Distinct" <|
             action = table.aggregate columns=[Count_Distinct ["Missing", "Value"]] on_problems=_
             problems = [Missing_Input_Columns.Error ["Missing"]]
-            tester = expect_column_names ["Count Distinct Value"]
+            tester t = expect_column_names ["Count Distinct Value"] t
             Problems.test_problem_handling action problems tester
 
         group_builder.specify "should ignore Count_Distinct if no columns matched" <|
             action = table.aggregate columns=[Count_Distinct [-100], Count] on_problems=_
             problems = [Missing_Input_Columns.Error [-100]]
-            tester = expect_column_names ["Count"]
+            tester t = expect_column_names ["Count"] t
             Problems.test_problem_handling action problems tester
 
     suite_builder.group prefix+"Table.aggregate should report warnings and errors based on types" group_builder->
@@ -1670,7 +1670,7 @@ add_aggregate_specs suite_builder setup =
             t = table_builder [["X", [1.1, 2.2, 3.3, 2.2]]]
             action = t.aggregate ["X"] on_problems=_
             problems = [Floating_Point_Equality.Error "X"]
-            tester = expect_column_names ["X"]
+            tester t = expect_column_names ["X"] t
             Problems.test_problem_handling action problems tester
 
         case test_selection.advanced_stats of
@@ -1679,7 +1679,7 @@ add_aggregate_specs suite_builder setup =
                     t = table_builder [["X", [1.5, 2.0, 1.5, 1.0]]]
                     action = t.aggregate columns=[Mode "X"] on_problems=_
                     problems = [Floating_Point_Equality.Error "Mode X"]
-                    tester = expect_column_names ["Mode X"]
+                    tester t = expect_column_names ["Mode X"] t
                     Problems.test_problem_handling action problems tester
             False ->
                 group_builder.specify "should error if unsupported operations are selected" <|
@@ -1746,7 +1746,7 @@ add_aggregate_specs suite_builder setup =
             column = Concatenate "Text" separator=","
             action = table.aggregate columns=[column] on_problems=_
             problems = [Unquoted_Delimiter.Error "Concatenate Text" [1]]
-            tester = expect_column_names ["Concatenate Text"]
+            tester t = expect_column_names ["Concatenate Text"] t
             Problems.test_problem_handling action problems tester
 
     suite_builder.group prefix+"Table.aggregate should merge warnings when issues computing aggregation" pending=(resolve_pending test_selection.aggregation_problems) group_builder->
