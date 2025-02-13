@@ -48,20 +48,18 @@ public abstract class NumericBinaryOpReturningDouble<T extends Number, I extends
 
     ColumnStorage<Double> result;
     if (storage instanceof ColumnLongStorage longStorage) {
-      result = StorageIterators.buildOverLongStorage(
-          longStorage,
-          Builder.getForDouble(FloatType.FLOAT_64, longStorage.getSize(), problemAggregator),
-          (builder, index, value, isNothing) ->
-              doDouble(value, rhs, index, problemAggregator)
-      );
+      result =
+          StorageIterators.buildOverLongStorage(
+              longStorage,
+              Builder.getForDouble(FloatType.FLOAT_64, longStorage.getSize(), problemAggregator),
+              (builder, index, value, isNothing) -> doDouble(value, rhs, index, problemAggregator));
     } else {
       var doubleStorage = asDoubleStorage(storage);
-      result = StorageIterators.buildOverDoubleStorage(
-          doubleStorage,
-          Builder.getForDouble(FloatType.FLOAT_64, doubleStorage.getSize(), problemAggregator),
-          (builder, index, value, isNothing) ->
-              doDouble(value, rhs, index, problemAggregator)
-      );
+      result =
+          StorageIterators.buildOverDoubleStorage(
+              doubleStorage,
+              Builder.getForDouble(FloatType.FLOAT_64, doubleStorage.getSize(), problemAggregator),
+              (builder, index, value, isNothing) -> doDouble(value, rhs, index, problemAggregator));
     }
 
     // ToDo: Merge Storage and ColumnStorage
@@ -74,16 +72,19 @@ public abstract class NumericBinaryOpReturningDouble<T extends Number, I extends
     var lhs = asDoubleStorage(storage);
     var rhs = asDoubleStorage(arg);
 
-    var result = StorageIterators.zipOverDoubleStorages(
-        lhs,
-        rhs,
-        s -> Builder.getForDouble(FloatType.FLOAT_64, s, problemAggregator),
-        true,
-        (index, value1, isNothing1, value2, isNothing2) -> doDouble(value1, value2, index, problemAggregator));
+    var result =
+        StorageIterators.zipOverDoubleStorages(
+            lhs,
+            rhs,
+            s -> Builder.getForDouble(FloatType.FLOAT_64, s, problemAggregator),
+            true,
+            (index, value1, isNothing1, value2, isNothing2) ->
+                doDouble(value1, value2, index, problemAggregator));
 
     // ToDo: Merge Storage and ColumnStorage
     return (Storage<Double>) result;
   }
 
-  protected abstract double doDouble(double a, double b, long ix, MapOperationProblemAggregator problemAggregator);
+  protected abstract double doDouble(
+      double a, double b, long ix, MapOperationProblemAggregator problemAggregator);
 }

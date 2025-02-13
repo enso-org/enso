@@ -9,7 +9,6 @@ import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
-import org.enso.table.data.column.storage.type.FloatType;
 
 public abstract class NumericBinaryOpReturningBigDecimal<
         T extends Number, I extends Storage<? super T>>
@@ -37,10 +36,11 @@ public abstract class NumericBinaryOpReturningBigDecimal<
 
     var lhs = asBigDecimalStorage(storage);
     BigDecimal rhs = NumericConverter.coerceToBigDecimal(arg);
-    var result = StorageIterators.mapOverStorage(
-        lhs,
-        Builder.getForBigDecimal(lhs.getSize()),
-        (index, value) -> doBigDecimal(value, rhs, index, problemAggregator));
+    var result =
+        StorageIterators.mapOverStorage(
+            lhs,
+            Builder.getForBigDecimal(lhs.getSize()),
+            (index, value) -> doBigDecimal(value, rhs, index, problemAggregator));
     // ToDo: Merge Storage and ColumnStorage
     return (Storage<BigDecimal>) result;
   }
@@ -51,16 +51,18 @@ public abstract class NumericBinaryOpReturningBigDecimal<
     var lhs = asBigDecimalStorage(storage);
     var rhs = asBigDecimalStorage(arg);
 
-    var result = StorageIterators.zipOverStorages(
-        lhs,
-        rhs,
-        s -> Builder.getForBigDecimal(s),
-        true,
-        (index, value1, value2) -> doBigDecimal(value1, value2, index, problemAggregator));
+    var result =
+        StorageIterators.zipOverStorages(
+            lhs,
+            rhs,
+            s -> Builder.getForBigDecimal(s),
+            true,
+            (index, value1, value2) -> doBigDecimal(value1, value2, index, problemAggregator));
 
     // ToDo: Merge Storage and ColumnStorage
     return (Storage<BigDecimal>) result;
   }
 
-  public abstract BigDecimal doBigDecimal(BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator);
+  public abstract BigDecimal doBigDecimal(
+      BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator);
 }

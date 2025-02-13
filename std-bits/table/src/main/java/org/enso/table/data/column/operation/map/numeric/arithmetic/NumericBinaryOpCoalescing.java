@@ -22,7 +22,8 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
   }
 
   @Override
-  public Storage<?> runBinaryMap(I storage, Object arg, MapOperationProblemAggregator problemAggregator) {
+  public Storage<?> runBinaryMap(
+      I storage, Object arg, MapOperationProblemAggregator problemAggregator) {
     if (arg == null) {
       return storage;
     }
@@ -31,36 +32,41 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
 
   @Override
   protected Storage<Double> runDoubleZip(
-      ColumnDoubleStorage a, ColumnDoubleStorage b, MapOperationProblemAggregator problemAggregator) {
-    var result = StorageIterators.zipOverDoubleStorages(
-        a,
-        b,
-        s-> Builder.getForDouble(FloatType.FLOAT_64, s, problemAggregator),
-        false,
-        (index, value1, isNothing1, value2, isNothing2) -> {
-          if (isNothing1 && isNothing2) {
-            return null;
-          } else if (isNothing1) {
-            return value2;
-          } else if (isNothing2) {
-            return value1;
-          } else {
-            return doDouble(value1, value2, index, problemAggregator);
-          }
-        });
+      ColumnDoubleStorage a,
+      ColumnDoubleStorage b,
+      MapOperationProblemAggregator problemAggregator) {
+    var result =
+        StorageIterators.zipOverDoubleStorages(
+            a,
+            b,
+            s -> Builder.getForDouble(FloatType.FLOAT_64, s, problemAggregator),
+            false,
+            (index, value1, isNothing1, value2, isNothing2) -> {
+              if (isNothing1 && isNothing2) {
+                return null;
+              } else if (isNothing1) {
+                return value2;
+              } else if (isNothing2) {
+                return value1;
+              } else {
+                return doDouble(value1, value2, index, problemAggregator);
+              }
+            });
     // ToDo: Merge Storage and ColumnStorage
     return (Storage<Double>) result;
   }
 
   @Override
-  protected Storage<Double> runDoubleLongMap(ColumnLongStorage a, Double b, MapOperationProblemAggregator problemAggregator) {
+  protected Storage<Double> runDoubleLongMap(
+      ColumnLongStorage a, Double b, MapOperationProblemAggregator problemAggregator) {
     var result =
         StorageIterators.buildOverLongStorage(
             a,
             false,
             Builder.getForDouble(FloatType.FLOAT_64, a.getSize(), problemAggregator),
             (builder, index, value, isNothing) ->
-                builder.append(isNothing ? b : doDouble((double) value, b, index, problemAggregator)));
+                builder.append(
+                    isNothing ? b : doDouble((double) value, b, index, problemAggregator)));
     // ToDo: Merge Storage and ColumnStorage
     return (Storage<Double>) result;
   }
@@ -81,31 +87,31 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
 
   @Override
   protected Storage<Long> runLongZip(
-      ColumnLongStorage a,
-      ColumnLongStorage b,
-      MapOperationProblemAggregator problemAggregator) {
-    var result = StorageIterators.zipOverLongStorages(
-        a,
-        b,
-        s-> Builder.getForLong(INTEGER_RESULT_TYPE, s, problemAggregator),
-        false,
-        (index, value1, isNothing1, value2, isNothing2) -> {
-          if (isNothing1 && isNothing2) {
-            return null;
-          } else if (isNothing1) {
-            return value2;
-          } else if (isNothing2) {
-            return value1;
-          } else {
-            return doLong(value1, value2, index, problemAggregator);
-          }
-        });
+      ColumnLongStorage a, ColumnLongStorage b, MapOperationProblemAggregator problemAggregator) {
+    var result =
+        StorageIterators.zipOverLongStorages(
+            a,
+            b,
+            s -> Builder.getForLong(INTEGER_RESULT_TYPE, s, problemAggregator),
+            false,
+            (index, value1, isNothing1, value2, isNothing2) -> {
+              if (isNothing1 && isNothing2) {
+                return null;
+              } else if (isNothing1) {
+                return value2;
+              } else if (isNothing2) {
+                return value1;
+              } else {
+                return doLong(value1, value2, index, problemAggregator);
+              }
+            });
     // ToDo: Merge Storage and ColumnStorage
     return (Storage<Long>) result;
   }
 
   @Override
-  protected Storage<Long> runLongMap(ColumnLongStorage a, Long b, MapOperationProblemAggregator problemAggregator) {
+  protected Storage<Long> runLongMap(
+      ColumnLongStorage a, Long b, MapOperationProblemAggregator problemAggregator) {
     var result =
         StorageIterators.buildOverLongStorage(
             a,
@@ -118,7 +124,10 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
   }
 
   @Override
-  protected Storage<BigInteger> runBigIntegerZip(ColumnStorage<BigInteger> a, ColumnStorage<BigInteger> b, MapOperationProblemAggregator problemAggregator) {
+  protected Storage<BigInteger> runBigIntegerZip(
+      ColumnStorage<BigInteger> a,
+      ColumnStorage<BigInteger> b,
+      MapOperationProblemAggregator problemAggregator) {
     var result =
         StorageIterators.zipOverStorages(
             a,
@@ -141,20 +150,25 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
   }
 
   @Override
-  protected Storage<BigInteger> runBigIntegerLongMap(ColumnLongStorage a, BigInteger b, MapOperationProblemAggregator problemAggregator) {
+  protected Storage<BigInteger> runBigIntegerLongMap(
+      ColumnLongStorage a, BigInteger b, MapOperationProblemAggregator problemAggregator) {
     var result =
         StorageIterators.buildOverLongStorage(
             a,
             false,
             Builder.getForBigInteger(a.getSize(), problemAggregator),
             (builder, index, value, isNothing) ->
-                builder.append(isNothing ? b : doBigInteger(BigInteger.valueOf(value), b, index, problemAggregator)));
+                builder.append(
+                    isNothing
+                        ? b
+                        : doBigInteger(BigInteger.valueOf(value), b, index, problemAggregator)));
     // ToDo: Merge Storage and ColumnStorage
     return (Storage<BigInteger>) result;
   }
 
   @Override
-  protected Storage<BigInteger> runBigIntegerMap(ColumnStorage<BigInteger> a, BigInteger b, MapOperationProblemAggregator problemAggregator) {
+  protected Storage<BigInteger> runBigIntegerMap(
+      ColumnStorage<BigInteger> a, BigInteger b, MapOperationProblemAggregator problemAggregator) {
     var result =
         StorageIterators.mapOverStorage(
             a,
@@ -166,7 +180,10 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
   }
 
   @Override
-  protected Storage<BigDecimal> runBigDecimalZip(ColumnStorage<BigDecimal> a, ColumnStorage<BigDecimal> b, MapOperationProblemAggregator problemAggregator) {
+  protected Storage<BigDecimal> runBigDecimalZip(
+      ColumnStorage<BigDecimal> a,
+      ColumnStorage<BigDecimal> b,
+      MapOperationProblemAggregator problemAggregator) {
     var result =
         StorageIterators.zipOverStorages(
             a,
@@ -189,7 +206,8 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
   }
 
   @Override
-  protected Storage<BigDecimal> runBigDecimalMap(ColumnStorage<BigDecimal> a, BigDecimal b, MapOperationProblemAggregator problemAggregator) {
+  protected Storage<BigDecimal> runBigDecimalMap(
+      ColumnStorage<BigDecimal> a, BigDecimal b, MapOperationProblemAggregator problemAggregator) {
     var result =
         StorageIterators.mapOverStorage(
             a,

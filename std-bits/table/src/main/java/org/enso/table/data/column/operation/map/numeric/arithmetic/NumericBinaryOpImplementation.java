@@ -2,8 +2,6 @@ package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.BitSet;
-
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
@@ -23,13 +21,17 @@ import org.enso.table.error.UnexpectedTypeException;
 public abstract class NumericBinaryOpImplementation<T extends Number, I extends Storage<? super T>>
     extends BinaryMapOperation<T, I> {
 
-  protected abstract double doDouble(double a, double b, long ix, MapOperationProblemAggregator problemAggregator);
+  protected abstract double doDouble(
+      double a, double b, long ix, MapOperationProblemAggregator problemAggregator);
 
-  protected abstract Long doLong(long a, long b, long ix, MapOperationProblemAggregator problemAggregator);
+  protected abstract Long doLong(
+      long a, long b, long ix, MapOperationProblemAggregator problemAggregator);
 
-  protected abstract BigInteger doBigInteger(BigInteger a, BigInteger b, long ix, MapOperationProblemAggregator problemAggregator);
+  protected abstract BigInteger doBigInteger(
+      BigInteger a, BigInteger b, long ix, MapOperationProblemAggregator problemAggregator);
 
-  protected abstract BigDecimal doBigDecimal(BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator);
+  protected abstract BigDecimal doBigDecimal(
+      BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator);
 
   static IllegalStateException newUnsupported(Object arg) {
     return new IllegalStateException("Unsupported storage: " + arg.getClass().getCanonicalName());
@@ -60,8 +62,10 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     } else if (NumericConverter.isCoercibleToLong(arg)) {
       long argAsLong = NumericConverter.coerceToLong(arg);
       return switch (storage) {
-        case BigDecimalStorage s -> runBigDecimalMap(s, BigDecimal.valueOf(argAsLong), problemAggregator);
-        case BigIntegerStorage s -> runBigIntegerMap(s, BigInteger.valueOf(argAsLong), problemAggregator);
+        case BigDecimalStorage s -> runBigDecimalMap(
+            s, BigDecimal.valueOf(argAsLong), problemAggregator);
+        case BigIntegerStorage s -> runBigIntegerMap(
+            s, BigInteger.valueOf(argAsLong), problemAggregator);
         case ColumnDoubleStorage s -> runDoubleMap(s, (double) argAsLong, problemAggregator);
         case ColumnLongStorage s -> runLongMap(s, argAsLong, problemAggregator);
         default -> throw newUnsupported(storage);
@@ -69,9 +73,10 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     } else if (NumericConverter.isCoercibleToDouble(arg)) {
       double argAsDouble = NumericConverter.coerceToDouble(arg);
       return switch (storage) {
-        case BigDecimalStorage s -> runBigDecimalMap(s, BigDecimal.valueOf(argAsDouble), problemAggregator);
-        case BigIntegerStorage s ->
-            runDoubleMap(new DoubleStorageFacade<>(s, BigInteger::doubleValue), argAsDouble, problemAggregator);
+        case BigDecimalStorage s -> runBigDecimalMap(
+            s, BigDecimal.valueOf(argAsDouble), problemAggregator);
+        case BigIntegerStorage s -> runDoubleMap(
+            new DoubleStorageFacade<>(s, BigInteger::doubleValue), argAsDouble, problemAggregator);
         case ColumnDoubleStorage s -> runDoubleMap(s, argAsDouble, problemAggregator);
         case ColumnLongStorage s -> runDoubleLongMap(s, argAsDouble, problemAggregator);
         default -> throw newUnsupported(storage);
@@ -79,12 +84,12 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     } else if (arg instanceof BigDecimal bd) {
       return switch (storage) {
         case BigDecimalStorage s -> runBigDecimalMap(s, bd, problemAggregator);
-        case BigIntegerStorage s ->
-            runBigDecimalMap(new ColumnStorageFacade<>(s, BigDecimal::new), bd, problemAggregator);
-        case ColumnDoubleStorage s ->
-            runBigDecimalMap(new ColumnStorageFacade<>(s, BigDecimal::valueOf), bd, problemAggregator);
-        case ColumnLongStorage s ->
-            runBigDecimalMap(new ColumnStorageFacade<>(s, BigDecimal::valueOf), bd, problemAggregator);
+        case BigIntegerStorage s -> runBigDecimalMap(
+            new ColumnStorageFacade<>(s, BigDecimal::new), bd, problemAggregator);
+        case ColumnDoubleStorage s -> runBigDecimalMap(
+            new ColumnStorageFacade<>(s, BigDecimal::valueOf), bd, problemAggregator);
+        case ColumnLongStorage s -> runBigDecimalMap(
+            new ColumnStorageFacade<>(s, BigDecimal::valueOf), bd, problemAggregator);
         default -> throw newUnsupported(storage);
       };
     } else {
@@ -97,46 +102,46 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       I storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
     if (storage instanceof ColumnDoubleStorage lhs) {
       return switch (arg) {
-        case BigDecimalStorage rhs ->
-            runBigDecimalZip(new ColumnStorageFacade<>(lhs, BigDecimal::valueOf), rhs, problemAggregator);
-        case BigIntegerStorage rhs ->
-            runDoubleZip(lhs, new DoubleStorageFacade<>(rhs, BigInteger::doubleValue), problemAggregator);
+        case BigDecimalStorage rhs -> runBigDecimalZip(
+            new ColumnStorageFacade<>(lhs, BigDecimal::valueOf), rhs, problemAggregator);
+        case BigIntegerStorage rhs -> runDoubleZip(
+            lhs, new DoubleStorageFacade<>(rhs, BigInteger::doubleValue), problemAggregator);
         case ColumnDoubleStorage rhs -> runDoubleZip(lhs, rhs, problemAggregator);
-        case ColumnLongStorage rhs ->
-            runDoubleZip(lhs, new DoubleStorageFacade<>(rhs, Long::doubleValue), problemAggregator);
+        case ColumnLongStorage rhs -> runDoubleZip(
+            lhs, new DoubleStorageFacade<>(rhs, Long::doubleValue), problemAggregator);
         default -> throw newUnsupported(arg);
       };
     } else if (storage instanceof ColumnLongStorage lhs) {
       return switch (arg) {
-        case BigDecimalStorage rhs ->
-            runBigDecimalZip(new ColumnStorageFacade<>(lhs, BigDecimal::valueOf), rhs, problemAggregator);
-        case BigIntegerStorage rhs ->
-            runBigIntegerZip(new ColumnStorageFacade<>(lhs, BigInteger::valueOf), rhs, problemAggregator);
-        case ColumnDoubleStorage rhs ->
-            runDoubleZip(new DoubleStorageFacade<>(lhs, Long::doubleValue), rhs, problemAggregator);
+        case BigDecimalStorage rhs -> runBigDecimalZip(
+            new ColumnStorageFacade<>(lhs, BigDecimal::valueOf), rhs, problemAggregator);
+        case BigIntegerStorage rhs -> runBigIntegerZip(
+            new ColumnStorageFacade<>(lhs, BigInteger::valueOf), rhs, problemAggregator);
+        case ColumnDoubleStorage rhs -> runDoubleZip(
+            new DoubleStorageFacade<>(lhs, Long::doubleValue), rhs, problemAggregator);
         case ColumnLongStorage rhs -> runLongZip(lhs, rhs, problemAggregator);
         default -> throw newUnsupported(arg);
       };
     } else if (storage instanceof BigIntegerStorage lhs) {
       return switch (arg) {
-        case BigDecimalStorage rhs ->
-            runBigDecimalZip(new ColumnStorageFacade<>(lhs, BigDecimal::new), rhs, problemAggregator);
+        case BigDecimalStorage rhs -> runBigDecimalZip(
+            new ColumnStorageFacade<>(lhs, BigDecimal::new), rhs, problemAggregator);
         case BigIntegerStorage rhs -> runBigIntegerZip(lhs, rhs, problemAggregator);
-        case ColumnDoubleStorage rhs ->
-            runDoubleZip(new DoubleStorageFacade<>(lhs, BigInteger::doubleValue), rhs, problemAggregator);
-        case ColumnLongStorage rhs ->
-            runBigIntegerZip(lhs, new ColumnStorageFacade<>(rhs, BigInteger::valueOf), problemAggregator);
+        case ColumnDoubleStorage rhs -> runDoubleZip(
+            new DoubleStorageFacade<>(lhs, BigInteger::doubleValue), rhs, problemAggregator);
+        case ColumnLongStorage rhs -> runBigIntegerZip(
+            lhs, new ColumnStorageFacade<>(rhs, BigInteger::valueOf), problemAggregator);
         default -> throw newUnsupported(arg);
       };
     } else if (storage instanceof BigDecimalStorage lhs) {
       return switch (arg) {
         case BigDecimalStorage rhs -> runBigDecimalZip(lhs, rhs, problemAggregator);
-        case BigIntegerStorage rhs ->
-            runBigDecimalZip(lhs, new ColumnStorageFacade<>(rhs, BigDecimal::new), problemAggregator);
-        case ColumnDoubleStorage rhs ->
-            runBigDecimalZip(lhs, new ColumnStorageFacade<>(rhs, BigDecimal::valueOf), problemAggregator);
-        case ColumnLongStorage rhs ->
-            runBigDecimalZip(lhs, new ColumnStorageFacade<>(rhs, BigDecimal::valueOf), problemAggregator);
+        case BigIntegerStorage rhs -> runBigDecimalZip(
+            lhs, new ColumnStorageFacade<>(rhs, BigDecimal::new), problemAggregator);
+        case ColumnDoubleStorage rhs -> runBigDecimalZip(
+            lhs, new ColumnStorageFacade<>(rhs, BigDecimal::valueOf), problemAggregator);
+        case ColumnLongStorage rhs -> runBigDecimalZip(
+            lhs, new ColumnStorageFacade<>(rhs, BigDecimal::valueOf), problemAggregator);
         default -> throw newUnsupported(arg);
       };
     } else {
@@ -156,13 +161,17 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
   }
 
   protected Storage<Double> runDoubleZip(
-      ColumnDoubleStorage a, ColumnDoubleStorage b, MapOperationProblemAggregator problemAggregator) {
-    var result = StorageIterators.zipOverDoubleStorages(
-        a,
-        b,
-        s-> Builder.getForDouble(FloatType.FLOAT_64, s, problemAggregator),
-        true,
-        (index, value1, isNothing1, value2, isNothing2) -> doDouble(value1, value2, index, problemAggregator));
+      ColumnDoubleStorage a,
+      ColumnDoubleStorage b,
+      MapOperationProblemAggregator problemAggregator) {
+    var result =
+        StorageIterators.zipOverDoubleStorages(
+            a,
+            b,
+            s -> Builder.getForDouble(FloatType.FLOAT_64, s, problemAggregator),
+            true,
+            (index, value1, isNothing1, value2, isNothing2) ->
+                doDouble(value1, value2, index, problemAggregator));
     // ToDo: Merge Storage and ColumnStorage
     return (Storage<Double>) result;
   }
@@ -192,15 +201,15 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
   }
 
   protected Storage<Long> runLongZip(
-      ColumnLongStorage a,
-      ColumnLongStorage b,
-      MapOperationProblemAggregator problemAggregator) {
-    var result = StorageIterators.zipOverLongStorages(
-        a,
-        b,
-        s-> Builder.getForLong(INTEGER_RESULT_TYPE, s, problemAggregator),
-        true,
-        (index, value1, isNothing1, value2, isNothing2) -> doLong(value1, value2, index, problemAggregator));
+      ColumnLongStorage a, ColumnLongStorage b, MapOperationProblemAggregator problemAggregator) {
+    var result =
+        StorageIterators.zipOverLongStorages(
+            a,
+            b,
+            s -> Builder.getForLong(INTEGER_RESULT_TYPE, s, problemAggregator),
+            true,
+            (index, value1, isNothing1, value2, isNothing2) ->
+                doLong(value1, value2, index, problemAggregator));
     // ToDo: Merge Storage and ColumnStorage
     return (Storage<Long>) result;
   }

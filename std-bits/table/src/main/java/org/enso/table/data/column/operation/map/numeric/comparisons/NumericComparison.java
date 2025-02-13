@@ -2,7 +2,6 @@ package org.enso.table.data.column.operation.map.numeric.comparisons;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
 import org.enso.base.CompareException;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
@@ -51,7 +50,8 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
 
     if (arg instanceof BigInteger bigInteger) {
       return switch (storage) {
-        case BigDecimalStorage s -> runBigDecimalMap(s, new BigDecimal(bigInteger), problemAggregator);
+        case BigDecimalStorage s -> runBigDecimalMap(
+            s, new BigDecimal(bigInteger), problemAggregator);
         case BigIntegerStorage s -> runBigIntegerMap(s, bigInteger, problemAggregator);
         case ColumnDoubleStorage s -> runDoubleMap(s, bigInteger.doubleValue(), problemAggregator);
         case ColumnLongStorage s -> runBigIntegerLongMap(s, bigInteger, problemAggregator);
@@ -60,19 +60,21 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     } else if (arg instanceof BigDecimal bigDecimal) {
       return switch (storage) {
         case BigDecimalStorage s -> runBigDecimalMap(s, bigDecimal, problemAggregator);
-        case BigIntegerStorage s ->
-            runBigDecimalMap(new ColumnStorageFacade<>(s, BigDecimal::new), bigDecimal, problemAggregator);
-        case ColumnDoubleStorage s ->
-            runBigDecimalMap(new ColumnStorageFacade<>(s, BigDecimal::valueOf), bigDecimal, problemAggregator);
-        case ColumnLongStorage s ->
-            runBigDecimalMap(new ColumnStorageFacade<>(s, BigDecimal::valueOf), bigDecimal, problemAggregator);
+        case BigIntegerStorage s -> runBigDecimalMap(
+            new ColumnStorageFacade<>(s, BigDecimal::new), bigDecimal, problemAggregator);
+        case ColumnDoubleStorage s -> runBigDecimalMap(
+            new ColumnStorageFacade<>(s, BigDecimal::valueOf), bigDecimal, problemAggregator);
+        case ColumnLongStorage s -> runBigDecimalMap(
+            new ColumnStorageFacade<>(s, BigDecimal::valueOf), bigDecimal, problemAggregator);
         default -> throw newUnsupported(storage);
       };
     } else if (NumericConverter.isCoercibleToLong(arg)) {
       long argAsLong = NumericConverter.coerceToLong(arg);
       return switch (storage) {
-        case BigDecimalStorage s -> runBigDecimalMap(s, BigDecimal.valueOf(argAsLong), problemAggregator);
-        case BigIntegerStorage s -> runBigIntegerMap(s, BigInteger.valueOf(argAsLong), problemAggregator);
+        case BigDecimalStorage s -> runBigDecimalMap(
+            s, BigDecimal.valueOf(argAsLong), problemAggregator);
+        case BigIntegerStorage s -> runBigIntegerMap(
+            s, BigInteger.valueOf(argAsLong), problemAggregator);
         case ColumnDoubleStorage s -> runDoubleMap(s, (double) argAsLong, problemAggregator);
         case ColumnLongStorage s -> runLongMap(s, argAsLong, problemAggregator);
         default -> throw newUnsupported(storage);
@@ -80,19 +82,20 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     } else if (NumericConverter.isCoercibleToDouble(arg)) {
       double argAsDouble = NumericConverter.coerceToDouble(arg);
       return switch (storage) {
-        case BigDecimalStorage s -> runBigDecimalMap(s, BigDecimal.valueOf(argAsDouble), problemAggregator);
-        case BigIntegerStorage s ->
-            runDoubleMap(new DoubleStorageFacade<>(s, BigInteger::doubleValue), argAsDouble, problemAggregator);
+        case BigDecimalStorage s -> runBigDecimalMap(
+            s, BigDecimal.valueOf(argAsDouble), problemAggregator);
+        case BigIntegerStorage s -> runDoubleMap(
+            new DoubleStorageFacade<>(s, BigInteger::doubleValue), argAsDouble, problemAggregator);
         case ColumnDoubleStorage s -> runDoubleMap(s, argAsDouble, problemAggregator);
         case ColumnLongStorage s -> runDoubleLongMap(s, argAsDouble, problemAggregator);
         default -> throw newUnsupported(storage);
       };
     } else {
-      var result = StorageIterators.buildOverStorage(
-          (Storage<?>) storage,
-          Builder.getForBoolean(storage.getSize()),
-          (builder, index, value) -> builder.appendBoolean(onOtherType(value, arg))
-      );
+      var result =
+          StorageIterators.buildOverStorage(
+              (Storage<?>) storage,
+              Builder.getForBoolean(storage.getSize()),
+              (builder, index, value) -> builder.appendBoolean(onOtherType(value, arg)));
       return (Storage<Boolean>) result;
     }
   }
@@ -103,8 +106,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
         StorageIterators.buildOverLongStorage(
             a,
             Builder.getForBoolean(a.getSize()),
-            (builder, index, value, isNothing) ->
-                builder.appendBoolean(doLong(value, b)));
+            (builder, index, value, isNothing) -> builder.appendBoolean(doLong(value, b)));
     // ToDo: Merge Storage and ColumnStorage
     return (Storage<Boolean>) result;
   }
@@ -115,8 +117,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
         StorageIterators.buildOverLongStorage(
             a,
             Builder.getForBoolean(a.getSize()),
-            (builder, index, value, isNothing) ->
-                builder.append(doDouble((double) value, b)));
+            (builder, index, value, isNothing) -> builder.append(doDouble((double) value, b)));
     // ToDo: Merge Storage and ColumnStorage
     return (Storage<Boolean>) result;
   }
@@ -127,8 +128,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
         StorageIterators.buildOverDoubleStorage(
             a,
             Builder.getForBoolean(a.getSize()),
-            (builder, index, value, isNothing) ->
-                builder.appendBoolean(doDouble(value, b)));
+            (builder, index, value, isNothing) -> builder.appendBoolean(doDouble(value, b)));
     // ToDo: Merge Storage and ColumnStorage
     return (Storage<Boolean>) result;
   }
@@ -140,8 +140,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
             a,
             Builder.getForBoolean(a.getSize()),
             (builder, index, value, isNothing) ->
-                builder.appendBoolean(doBigInteger(BigInteger.valueOf(value), b))
-        );
+                builder.appendBoolean(doBigInteger(BigInteger.valueOf(value), b)));
     // ToDo: Merge Storage and ColumnStorage
     return (Storage<Boolean>) result;
   }
@@ -152,8 +151,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
         StorageIterators.buildOverStorage(
             a,
             Builder.getForBoolean(a.getSize()),
-            (builder, index, value) -> builder.appendBoolean(doBigInteger(value, b))
-        );
+            (builder, index, value) -> builder.appendBoolean(doBigInteger(value, b)));
     // ToDo: Merge Storage and ColumnStorage
     return (Storage<Boolean>) result;
   }
@@ -164,56 +162,56 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
         StorageIterators.buildOverStorage(
             a,
             Builder.getForBoolean(a.getSize()),
-            (builder, index, value) -> builder.appendBoolean(doBigDecimal(value, b))
-        );
+            (builder, index, value) -> builder.appendBoolean(doBigDecimal(value, b)));
     // ToDo: Merge Storage and ColumnStorage
-    return (Storage<Boolean>) result;  }
+    return (Storage<Boolean>) result;
+  }
 
   @Override
   public Storage<Boolean> runZip(
       I storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
     if (storage instanceof ColumnDoubleStorage lhs) {
       return switch (arg) {
-        case BigDecimalStorage rhs ->
-            runBigDecimalZip(new ColumnStorageFacade<>(lhs, BigDecimal::valueOf), rhs, problemAggregator);
-        case BigIntegerStorage rhs ->
-            runDoubleZip(lhs, new DoubleStorageFacade<>(rhs, BigInteger::doubleValue), problemAggregator);
+        case BigDecimalStorage rhs -> runBigDecimalZip(
+            new ColumnStorageFacade<>(lhs, BigDecimal::valueOf), rhs, problemAggregator);
+        case BigIntegerStorage rhs -> runDoubleZip(
+            lhs, new DoubleStorageFacade<>(rhs, BigInteger::doubleValue), problemAggregator);
         case ColumnDoubleStorage rhs -> runDoubleZip(lhs, rhs, problemAggregator);
-        case ColumnLongStorage rhs ->
-            runDoubleZip(lhs, new DoubleStorageFacade<>(rhs, Long::doubleValue), problemAggregator);
+        case ColumnLongStorage rhs -> runDoubleZip(
+            lhs, new DoubleStorageFacade<>(rhs, Long::doubleValue), problemAggregator);
         default -> runMixedZip(storage, arg, problemAggregator);
       };
     } else if (storage instanceof ColumnLongStorage lhs) {
       return switch (arg) {
-        case BigDecimalStorage rhs ->
-            runBigDecimalZip(new ColumnStorageFacade<>(lhs, BigDecimal::valueOf), rhs, problemAggregator);
-        case BigIntegerStorage rhs ->
-            runBigIntegerZip(new ColumnStorageFacade<>(lhs, BigInteger::valueOf), rhs, problemAggregator);
-        case ColumnDoubleStorage rhs ->
-            runDoubleZip(new DoubleStorageFacade<>(lhs, Long::doubleValue), rhs, problemAggregator);
+        case BigDecimalStorage rhs -> runBigDecimalZip(
+            new ColumnStorageFacade<>(lhs, BigDecimal::valueOf), rhs, problemAggregator);
+        case BigIntegerStorage rhs -> runBigIntegerZip(
+            new ColumnStorageFacade<>(lhs, BigInteger::valueOf), rhs, problemAggregator);
+        case ColumnDoubleStorage rhs -> runDoubleZip(
+            new DoubleStorageFacade<>(lhs, Long::doubleValue), rhs, problemAggregator);
         case ColumnLongStorage rhs -> runLongZip(lhs, rhs, problemAggregator);
         default -> runMixedZip(storage, arg, problemAggregator);
       };
     } else if (storage instanceof BigIntegerStorage lhs) {
       return switch (arg) {
-        case BigDecimalStorage rhs ->
-            runBigDecimalZip(new ColumnStorageFacade<>(lhs, BigDecimal::new), rhs, problemAggregator);
+        case BigDecimalStorage rhs -> runBigDecimalZip(
+            new ColumnStorageFacade<>(lhs, BigDecimal::new), rhs, problemAggregator);
         case BigIntegerStorage rhs -> runBigIntegerZip(lhs, rhs, problemAggregator);
-        case ColumnDoubleStorage rhs ->
-            runDoubleZip(new DoubleStorageFacade<>(lhs, BigInteger::doubleValue), rhs, problemAggregator);
-        case ColumnLongStorage rhs ->
-            runBigIntegerZip(lhs, new ColumnStorageFacade<>(rhs, BigInteger::valueOf), problemAggregator);
+        case ColumnDoubleStorage rhs -> runDoubleZip(
+            new DoubleStorageFacade<>(lhs, BigInteger::doubleValue), rhs, problemAggregator);
+        case ColumnLongStorage rhs -> runBigIntegerZip(
+            lhs, new ColumnStorageFacade<>(rhs, BigInteger::valueOf), problemAggregator);
         default -> runMixedZip(storage, arg, problemAggregator);
       };
     } else if (storage instanceof BigDecimalStorage lhs) {
       return switch (arg) {
         case BigDecimalStorage rhs -> runBigDecimalZip(lhs, rhs, problemAggregator);
-        case BigIntegerStorage rhs ->
-            runBigDecimalZip(lhs, new ColumnStorageFacade<>(rhs, BigDecimal::new), problemAggregator);
-        case ColumnDoubleStorage rhs ->
-            runBigDecimalZip(lhs, new ColumnStorageFacade<>(rhs, BigDecimal::valueOf), problemAggregator);
-        case ColumnLongStorage rhs ->
-            runBigDecimalZip(lhs, new ColumnStorageFacade<>(rhs, BigDecimal::valueOf), problemAggregator);
+        case BigIntegerStorage rhs -> runBigDecimalZip(
+            lhs, new ColumnStorageFacade<>(rhs, BigDecimal::new), problemAggregator);
+        case ColumnDoubleStorage rhs -> runBigDecimalZip(
+            lhs, new ColumnStorageFacade<>(rhs, BigDecimal::valueOf), problemAggregator);
+        case ColumnLongStorage rhs -> runBigDecimalZip(
+            lhs, new ColumnStorageFacade<>(rhs, BigDecimal::valueOf), problemAggregator);
         default -> runMixedZip(storage, arg, problemAggregator);
       };
     } else {
@@ -222,9 +220,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
   }
 
   protected Storage<Boolean> runLongZip(
-      ColumnLongStorage a,
-      ColumnLongStorage b,
-      MapOperationProblemAggregator problemAggregator) {
+      ColumnLongStorage a, ColumnLongStorage b, MapOperationProblemAggregator problemAggregator) {
     var result =
         StorageIterators.zipOverLongStorages(
             a,
@@ -257,11 +253,7 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
       MapOperationProblemAggregator problemAggregator) {
     var result =
         StorageIterators.zipOverStorages(
-            a,
-            b,
-            Builder::getForBoolean,
-            true,
-            (index, x, y) -> doBigInteger(x, y));
+            a, b, Builder::getForBoolean, true, (index, x, y) -> doBigInteger(x, y));
     // ToDo: Merge Storage and ColumnStorage
     return (Storage<Boolean>) result;
   }
@@ -272,49 +264,47 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
       MapOperationProblemAggregator problemAggregator) {
     var result =
         StorageIterators.zipOverStorages(
-            a,
-            b,
-            Builder::getForBoolean,
-            true,
-            (index, x, y) -> doBigDecimal(x, y));
+            a, b, Builder::getForBoolean, true, (index, x, y) -> doBigDecimal(x, y));
     // ToDo: Merge Storage and ColumnStorage
     return (Storage<Boolean>) result;
   }
 
   protected Storage<Boolean> runMixedZip(
       Storage<?> lhs, Storage<?> rhs, MapOperationProblemAggregator problemAggregator) {
-    var result = StorageIterators.zipOverStorages(
-        lhs,
-        rhs,
-        Builder::getForBoolean,
-        true,
-        (index, x, y) -> {
-          boolean r;
-          // Any number is coercible to double, if the value is not coercible, it is not a supported
-          // number type.
-          if (NumericConverter.isCoercibleToDouble(x) && NumericConverter.isCoercibleToDouble(y)) {
-            // If any of the values is decimal like, then decimal type is used for comparison.
-            if (NumericConverter.isFloatLike(x) || NumericConverter.isFloatLike(y)) {
-              double a = NumericConverter.coerceToDouble(x);
-              double b = NumericConverter.coerceToDouble(y);
-              r = doDouble(a, b);
-            } else {
-              if (x instanceof BigInteger || y instanceof BigInteger) {
-                BigInteger a = NumericConverter.coerceToBigInteger(x);
-                BigInteger b = NumericConverter.coerceToBigInteger(y);
-                r = doBigInteger(a, b);
+    var result =
+        StorageIterators.zipOverStorages(
+            lhs,
+            rhs,
+            Builder::getForBoolean,
+            true,
+            (index, x, y) -> {
+              boolean r;
+              // Any number is coercible to double, if the value is not coercible, it is not a
+              // supported
+              // number type.
+              if (NumericConverter.isCoercibleToDouble(x)
+                  && NumericConverter.isCoercibleToDouble(y)) {
+                // If any of the values is decimal like, then decimal type is used for comparison.
+                if (NumericConverter.isFloatLike(x) || NumericConverter.isFloatLike(y)) {
+                  double a = NumericConverter.coerceToDouble(x);
+                  double b = NumericConverter.coerceToDouble(y);
+                  r = doDouble(a, b);
+                } else {
+                  if (x instanceof BigInteger || y instanceof BigInteger) {
+                    BigInteger a = NumericConverter.coerceToBigInteger(x);
+                    BigInteger b = NumericConverter.coerceToBigInteger(y);
+                    r = doBigInteger(a, b);
+                  } else {
+                    long a = NumericConverter.coerceToLong(x);
+                    long b = NumericConverter.coerceToLong(y);
+                    r = doLong(a, b);
+                  }
+                }
               } else {
-                long a = NumericConverter.coerceToLong(x);
-                long b = NumericConverter.coerceToLong(y);
-                r = doLong(a, b);
+                r = onOtherType(x, y);
               }
-            }
-          } else {
-            r = onOtherType(x, y);
-          }
-          return r;
-        }
-    );
+              return r;
+            });
     // ToDo: Merge Storage and ColumnStorage
     return (Storage<Boolean>) result;
   }

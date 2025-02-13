@@ -18,13 +18,17 @@ public class EqualsComparison<T extends Number, I extends Storage<? super T>>
   }
 
   @Override
-  protected Storage<Boolean> runDoubleMap(ColumnDoubleStorage a, double b, MapOperationProblemAggregator problemAggregator) {
+  protected Storage<Boolean> runDoubleMap(
+      ColumnDoubleStorage a, double b, MapOperationProblemAggregator problemAggregator) {
     problemAggregator.reportFloatingPointEquality(-1);
     return super.runDoubleMap(a, b, problemAggregator);
   }
 
   @Override
-  protected Storage<Boolean> runDoubleZip(ColumnDoubleStorage a, ColumnDoubleStorage b, MapOperationProblemAggregator problemAggregator) {
+  protected Storage<Boolean> runDoubleZip(
+      ColumnDoubleStorage a,
+      ColumnDoubleStorage b,
+      MapOperationProblemAggregator problemAggregator) {
     problemAggregator.reportFloatingPointEquality(-1);
     return super.runDoubleZip(a, b, problemAggregator);
   }

@@ -600,9 +600,9 @@ public class StorageIterators {
 
   /**
    * Zips two storages together, applying an operation to each pair of values. The operation's
-   * result is appended to the builder. The builderConstructor will be passed the expected size
-   * to create a new builder. If skipNothing is true, then if either value is Nothing, the result
-   * will be Nothing and appended automatically.
+   * result is appended to the builder. The builderConstructor will be passed the expected size to
+   * create a new builder. If skipNothing is true, then if either value is Nothing, the result will
+   * be Nothing and appended automatically.
    *
    * @param source1 the first source storage to read from and iterate over.
    * @param source2 the second source storage to read from and iterate over.
@@ -647,9 +647,9 @@ public class StorageIterators {
 
   /**
    * Zips two long storages together, applying an operation to each pair of values. The operation's
-   * result is appended to the builder. The builderConstructor will be passed the expected size
-   * to create a new builder. If skipNothing is true, then if either value is Nothing, the result
-   * will be Nothing and appended automatically.
+   * result is appended to the builder. The builderConstructor will be passed the expected size to
+   * create a new builder. If skipNothing is true, then if either value is Nothing, the result will
+   * be Nothing and appended automatically.
    *
    * @param source1 the first source storage to read from and iterate over.
    * @param source2 the second source storage to read from and iterate over.
@@ -732,10 +732,10 @@ public class StorageIterators {
   }
 
   /**
-   * Zips two double storages together, applying an operation to each pair of values. The operation's
-   * result is appended to the builder. The builderConstructor will be passed the expected size
-   * to create a new builder. If skipNothing is true, then if either value is Nothing, the result
-   * will be Nothing and appended automatically.
+   * Zips two double storages together, applying an operation to each pair of values. The
+   * operation's result is appended to the builder. The builderConstructor will be passed the
+   * expected size to create a new builder. If skipNothing is true, then if either value is Nothing,
+   * the result will be Nothing and appended automatically.
    *
    * @param source1 the first source storage to read from and iterate over.
    * @param source2 the second source storage to read from and iterate over.
