@@ -228,7 +228,7 @@ impl Display for CleaningCondition {
             Self::Always => write!(f, "always()"),
             Self::OnRequest => write!(
                 f,
-                "contains(github.event.pull_request.labels.*.name, '{}') || inputs.{}",
+                "contains(github.event.pull_request.labels.*.name, '{}') || (github.ref == 'refs/heads/develop') || inputs.{}",
                 crate::ci::labels::CLEAN_BUILD_REQUIRED,
                 crate::ci::inputs::CLEAN_BUILD_REQUIRED
             ),
