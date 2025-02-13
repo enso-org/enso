@@ -22,10 +22,30 @@ import Standard.Base.Runtime.Ref.Ref
 
    A `hide` call should be wrapped around the body of every test utility.
 
-   An `unhide` call should be wrapped around any call from a test utility to a
+   An `unhide*` call should be wrapped around any call from a test utility to a
    user-supplied callback, depending on the number of arguments. If one test
    utility forwards a callback to another test utility, the callback should be
    wrapped at the forward site as well.
+
+   ! Partial Application
+
+     Partial application can prevent the `unhide*` methods from existing in the
+     stack trace, so test callbacks should have explicit parameters:
+
+         # Do not use partial application:
+         tester = expect_column_names ["A", "B"]
+         # Use explicit parameters:
+         tester t = expect_column_names ["A", "B"] t
+   ! Tail Calls
+
+     Tail calls can result in changes to the stack that prevent
+     `get_top_stack_frame` from working properly. For this reason, uses of
+     `hide` and `unhide` should be within the tail call:
+
+          go i = Frame_Hider.hide <|
+              # ...
+              @Tail_Call go (i+1)
+          go 1
 type Frame_Hider
     ## PRIVATE
 
