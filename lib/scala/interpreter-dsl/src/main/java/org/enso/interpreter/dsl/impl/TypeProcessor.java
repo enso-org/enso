@@ -1,4 +1,4 @@
-package org.enso.interpreter.dsl;
+package org.enso.interpreter.dsl.impl;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -10,6 +10,7 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
+import org.enso.interpreter.dsl.BuiltinType;
 import org.openide.util.lookup.ServiceProvider;
 
 @SupportedAnnotationTypes("org.enso.interpreter.dsl.BuiltinType")

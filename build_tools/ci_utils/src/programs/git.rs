@@ -9,6 +9,7 @@ use crate::prelude::*;
 use crate::new_command_type;
 use crate::programs::git::pretty_format::refs_from_decoration;
 use crate::RECORD_SEPARATOR;
+use std::process::Stdio;
 
 
 // ==============
@@ -155,6 +156,31 @@ impl Context {
             .lines()
             .map(|line| root.join(line.trim()).normalize())
             .collect_vec())
+    }
+
+    /// Compares two files that don't need to be in the repository root.
+    /// This method serves as a replacement for pure `diff` command.
+    pub async fn diff_files(&self, file_1: impl AsRef<Path>, file_2: impl AsRef<Path>) -> Result {
+        let file_1_abs = file_1.as_ref().absolutize()?;
+        let file_2_abs = file_2.as_ref().absolutize()?;
+        let file_1_path = file_1_abs.as_str();
+        let file_2_path = file_2_abs.as_str();
+        let proc = self
+            .cmd()?
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .arg(Command::Diff)
+            .args(["--no-index", file_1_path, file_2_path])
+            .arg("--exit-code")
+            .arg("--no-ext-diff")
+            .spawn()?;
+        let res = proc.wait_with_output().await?;
+        if res.status.success() {
+            Ok(())
+        } else {
+            let out = String::from_utf8(res.stdout)?;
+            bail!(out)
+        }
     }
 
     /// Get the repository root directory.
@@ -395,6 +421,40 @@ mod tests {
         let git = Context::new(".").await?;
         let diff = git.diff_against("origin/develop").await?;
         println!("{diff:?}");
+        Ok(())
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn diff_same_files_test() -> Result {
+        let git = Context::new_current().await?;
+        let file_1 = tempfile::NamedTempFile::new()?;
+        let file_2 = tempfile::NamedTempFile::new()?;
+        let file_1_path = file_1.path();
+        let file_2_path = file_2.path();
+        std::fs::write(file_1_path, "Foo")?;
+        std::fs::write(file_2_path, "Foo")?;
+        let result = git.diff_files(file_1_path, file_2_path).await;
+        assert!(result.is_ok());
+        Ok(())
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn diff_different_files_test() -> Result {
+        let git = Context::new_current().await?;
+        let file_1 = tempfile::NamedTempFile::new()?;
+        let file_2 = tempfile::NamedTempFile::new()?;
+        let file_1_path = file_1.path();
+        let file_2_path = file_2.path();
+        std::fs::write(file_1_path, "Foo")?;
+        std::fs::write(file_2_path, "Bar")?;
+        let result = git.diff_files(file_1_path, file_2_path).await;
+        let err = result.unwrap_err();
+        let err_msg = err.to_string();
+        assert!(err_msg.contains("diff"));
+        assert!(err_msg.contains("Foo"));
+        assert!(err_msg.contains("Bar"));
         Ok(())
     }
 }

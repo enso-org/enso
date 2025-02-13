@@ -7,29 +7,22 @@ import project.Internal.Storage
 import project.Value_Type.Value_Type
 from project.Errors import Conversion_Failure
 
+polyglot java import org.enso.table.data.column.operation.cast.CastOperation
+
 ## PRIVATE
    Checks if one type can be cast into another and returns a dataflow error
    explaining the situation if not.
 check_cast_compatibility source_type target_type ~action =
-    are_compatible = if (target_type == Value_Type.Mixed) || (source_type == Value_Type.Mixed) || (source_type == Value_Type.Null) || target_type.is_text || (source_type == target_type) then True else
-        if source_type.is_text && is_a_valid_parse_target target_type then Error.throw (Illegal_Argument.Error "To parse a text column into "+target_type.to_display_text+" type, `parse` should be used instead of `cast`.") else
-            if source_type == Value_Type.Boolean then target_type.is_numeric else
-                if source_type.is_numeric then target_type.is_numeric else
-                    case source_type of
-                        Value_Type.Date_Time _ ->
-                            (target_type == Value_Type.Date) || (target_type == Value_Type.Time)
-                        Value_Type.Date -> target_type.has_date
-                        Value_Type.Binary _ _ -> case target_type of
-                            Value_Type.Binary _ _ -> True
-                            _ -> False
-                        _ -> False
+    are_compatible =
+        if source_type.is_text && Parse_Values_Helper.is_a_valid_parse_target target_type then Error.throw (Illegal_Argument.Error "To parse a text column into "+target_type.to_display_text+" type, `parse` should be used instead of `cast`.") else
+            case source_type of
+                Value_Type.Binary _ _ -> case target_type of
+                    Value_Type.Binary _ _ -> True
+                    _ -> False
+                _ -> if source_type == target_type then True else
+                    target_storage_type = Storage.from_value_type target_type ..Ignore
+                    source_storage_type = Storage.from_value_type source_type ..Ignore
+                    CastOperation.canApply source_storage_type target_storage_type
+
     if are_compatible then action else
         Error.throw (Illegal_Argument.Error "Cannot cast "+source_type.to_display_text+" type into "+target_type.to_display_text+" type.")
-
-## PRIVATE
-   Checks if the type is a valid argument for `parse`.
-is_a_valid_parse_target target_type =
-    case Meta.meta target_type of
-        atom : Meta.Atom ->
-            Parse_Values_Helper.valid_parse_targets.contains atom.constructor.name
-        _ -> False

@@ -380,6 +380,12 @@ impl RunContext {
 
         perhaps_test_java_generated_from_rust_job.await.transpose()?;
 
+        // === Stdlib API check ===
+        debug!("Running standard libraries API check.");
+        if self.config.stdlib_api_check {
+            self.stdlib_api_check(&enso).await?;
+        }
+
         // === Run benchmarks ===
         let build_benchmark_task = if self.config.build_benchmarks {
             let build_benchmark_task_names = [
@@ -563,6 +569,99 @@ impl RunContext {
         };
 
         Ok(())
+    }
+
+    /// Checks API for all the standard libraries that have non-empty `docs/api` directory.
+    async fn stdlib_api_check(&self, built_enso: &BuiltEnso) -> Result {
+        let libs_to_check = self.stdlibs_with_api()?;
+        debug!("Checking API for standard libraries: {:?}", libs_to_check);
+        for lib in self.stdlibs_with_api()? {
+            self.lib_api_check(built_enso, &lib).await?;
+        }
+        Ok(())
+    }
+
+    /// Returns list of all the standard libraries with non-empty `docs/api` directory.
+    fn stdlibs_with_api(&self) -> Result<Vec<StdLib>> {
+        let mut stdlibs: Vec<StdLib> = vec![];
+        let lib_root = self.repo_root.distribution.lib.join("Standard");
+        for dir in std::fs::read_dir(lib_root)? {
+            // The path to the library is of this form:
+            // distribution/lib/Standard/<lib_name>/0.0.0-dev
+            let dir = dir?;
+            let lib_dir = dir.path().join("0.0.0-dev");
+            assert!(lib_dir.exists(), "Directory {} does not exist", lib_dir.display());
+            let api_dir = lib_dir.join("docs").join("api");
+            if api_dir.exists() {
+                let libname = dir.file_name().to_string_lossy().to_string();
+                stdlibs.push(StdLib { name: libname.to_string(), path: lib_dir });
+            }
+        }
+        Ok(stdlibs)
+    }
+
+    /// Checks the API for a single library
+    /// #parameters
+    /// - `lib_path` Path to the library inside the `distribution` directory. The `docs/api`
+    ///   directory inside `lib_path` is expected to exist.
+    async fn lib_api_check(&self, built_enso: &BuiltEnso, lib: &StdLib) -> Result {
+        let old_api_dir = lib.path.join("docs").join("api");
+        assert!(old_api_dir.exists());
+        debug!(
+            "Checking API for library Standard.{}, its API dir is in {:?}",
+            lib.name, old_api_dir
+        );
+        // `lib_path_in_built_distribution` points to the lib in the `built-distribution`
+        // directory, which is not under VCS. We will regenerate the API in this directory
+        // and compare it to the one from `lib_path`.
+        let lib_path_in_built_distribution = self
+            .repo_root
+            .built_distribution
+            .enso_engine_triple
+            .engine_package
+            .lib
+            .join_iter(["Standard", lib.name.as_str()])
+            .join(self.paths.version().to_string());
+        let new_api_dir = lib_path_in_built_distribution.join("docs").join("api");
+        let mut cmd = built_enso
+            .cmd()?
+            .with_arg("--docs")
+            .with_arg("api")
+            .with_arg("--in-project")
+            .with_arg(lib_path_in_built_distribution);
+        cmd.run_ok().await?;
+        let diff = ide_ci::fs::diff_dirs(&old_api_dir, &new_api_dir).await;
+        match diff {
+            Ok(_) => Ok(()),
+            Err(err) => {
+                let suggested_cmd = built_enso
+                    .cmd()?
+                    .with_arg("--docs")
+                    .with_arg("api")
+                    .with_arg("--in-project")
+                    .with_arg(lib.path.clone());
+                error!("API check failed for library Standard.{}", lib.name);
+                error!("Current API vs Old API: {}", err);
+                error!("If you wish to overwrite the current API in the directory {}, run the following command {},
+                       and commit the modified files",
+                  old_api_dir.display(),
+                  suggested_cmd.describe()
+                );
+                bail!("API check failed for library Standard.{}", lib.name);
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+struct StdLib {
+    name: String,
+    path: PathBuf,
+}
+
+impl Display for StdLib {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Standard.{}", self.name)
     }
 }
 

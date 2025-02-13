@@ -3,9 +3,7 @@ package org.enso.table.data.column.operation.unary;
 import java.time.temporal.ChronoField;
 import java.time.temporal.Temporal;
 import java.time.temporal.TemporalField;
-import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.operation.UnaryOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 
 public class TruncatedTimePartOperation extends DatePartOperation {
   public static final String MICROSECOND = "microsecond";
@@ -24,11 +22,10 @@ public class TruncatedTimePartOperation extends DatePartOperation {
   }
 
   @Override
-  protected void applyObjectRow(
-      Object value, BuilderForLong builder, MapOperationProblemAggregator problemAggregator) {
+  protected long applyObjectRow(long index, Object value) {
     if (value instanceof Temporal s) {
       var longValue = s.getLong(field);
-      builder.appendLong(longValue % truncation);
+      return longValue % truncation;
     } else {
       throw new IllegalArgumentException(
           "Unsupported type: " + value.getClass() + " (expected date/time type).");
