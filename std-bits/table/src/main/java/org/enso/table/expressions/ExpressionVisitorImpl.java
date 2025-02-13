@@ -58,25 +58,27 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   public static class Method {
     public Value ensoMethod;
-    public Boolean variableArgumentMethod;
+    public Boolean isVariableArgumentMethod;
     public Boolean isStaticMethod;
     public Value staticsType;
     Method(Value module, Value type, String name, Boolean variableArgumentMethod){
       var context = Context.getCurrent().getBindings("enso");
       final Value staticsModule = context.invokeMember("get_module", "Standard.Table.Expression_Statics");
       staticsType = staticsModule.invokeMember("get_type", "Expression_Statics");
+      // first we look in the list of static methods
       var staticMethod = staticsModule.invokeMember("get_method", staticsType, name);
       if (staticMethod.canExecute()) {
         ensoMethod = staticMethod;
         isStaticMethod = true;
       } else {
+        // if not a static we look in the list of column methods
         ensoMethod = module.invokeMember("get_method", type, name);
         if (!ensoMethod.canExecute()) {
           throw new UnsupportedOperationException(name);
         }
         isStaticMethod = false;
       }
-      this.variableArgumentMethod = variableArgumentMethod;
+      this.isVariableArgumentMethod = variableArgumentMethod;
     }
   }
 
@@ -91,7 +93,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     var context = Context.getCurrent().getBindings("enso");
     final Value module = context.invokeMember("get_module", moduleName);
     final Value type = module.invokeMember("get_type", typeName);
-    var setVariableArgumentFunctions = new HashSet<>(Arrays.asList(variableArgumentFunctions));
+    final var setVariableArgumentFunctions = new HashSet<>(Arrays.asList(variableArgumentFunctions));
     Function<String, Method> getMethod = name -> new Method(module, type, name, setVariableArgumentFunctions.contains(name));
     Function<String, Value> makeConstructor =
         name -> module.invokeMember("eval_expression", ".." + name);
@@ -175,7 +177,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
     private Object[] prepareArguments(Method method, Value[] args) {
         Object[] objects;
-        if (method.variableArgumentMethod) {
+        if (method.isVariableArgumentMethod) {
             objects = new Object[2];
             objects[0] = wrapAsColumn(args[0]);
             objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
@@ -189,7 +191,6 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
             objects = Arrays.copyOf(args, args.length, Object[].class);
             objects[0] = wrapAsColumn(args[0]);
         }   
-
         return objects;
     }
 
