@@ -1,6 +1,10 @@
 package org.enso.table.data.column.storage;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.RequiresNumberFormatting;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
@@ -10,6 +14,7 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.problems.BlackholeProblemAggregator;
 import org.graalvm.polyglot.Context;
+import org.slf4j.Logger;
 
 /**
  * A column backing Mixed storage.
@@ -19,6 +24,9 @@ import org.graalvm.polyglot.Context;
  * specific type.
  */
 public final class MixedStorage extends ObjectStorage implements ColumnStorageWithInferredStorage {
+
+  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(StringStorage.class);
+
   private StorageType inferredType;
 
   /**
@@ -35,12 +43,17 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
 
   private boolean hasSpecializedStorageBeenInferred = false;
 
+  private Future<Boolean> isNumericFormatRequired;
+
   /**
    * @param data the underlying data
    */
   public MixedStorage(Object[] data) {
     super(data);
     inferredType = null;
+
+    isNumericFormatRequired =
+        CompletableFuture.supplyAsync(() -> RequiresNumberFormatting.compute(this, null));
   }
 
   @Override
@@ -241,5 +254,25 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
   public Storage<?> tryGettingMoreSpecializedStorage() {
     var inferredStorage = getInferredStorage();
     return inferredStorage != null ? inferredStorage : this;
+  }
+
+  /**
+   * Checks if any numbers are large enough for the column to require formatin in the table viz.
+   *
+   * @return true/false if formatting is required
+   */
+  public Boolean cachedNumericFormatCheck() throws InterruptedException {
+    if (isNumericFormatRequired.isCancelled()) {
+      // Need to recompute the value, as was cancelled.
+      isNumericFormatRequired =
+          CompletableFuture.supplyAsync(() -> RequiresNumberFormatting.compute(this, null));
+    }
+
+    try {
+      return isNumericFormatRequired.get();
+    } catch (ExecutionException e) {
+      LOGGER.error("Failed to compute if numeric formatting was required", e);
+      return false;
+    }
   }
 }
