@@ -2506,7 +2506,7 @@ type Column
              import Standard.Examples
 
              example_last = Examples.integer_column.last
-    last self : Any ! Index_Out_Of_Bounds = self.at (self.length - 1)
+    last self -> Any ! Index_Out_Of_Bounds = self.at (self.length - 1)
 
     ## GROUP Standard.Base.Selections
        ICON order

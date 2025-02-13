@@ -3738,7 +3738,7 @@ type Table
     @group_by Widget_Helpers.make_column_name_multi_selector
     @order_by Widget_Helpers.make_order_by_selector
     @of Widget_Helpers.make_column_name_selector
-    running self statistic:Statistic=..Count (of: Text | Integer = 0) as:Text='' set_mode:Set_Mode=..Add (group_by: Vector (Text | Integer | Regex) | Text | Integer | Regex = []) (order_by: Vector (Text | Sort_Column) | Text = []) on_problems:Problem_Behavior=..Report_Warning -> Table =
+    running self statistic:Statistic=..Count (of : Text | Integer = 0) as:Text='' set_mode:Set_Mode=..Add (group_by : Vector (Text | Integer | Regex) | Text | Integer | Regex = []) (order_by : Vector (Text | Sort_Column) | Text = []) on_problems:Problem_Behavior=..Report_Warning -> Table =
         Incomparable_Values.handle_errors <| Add_Running.add_running self statistic of as set_mode group_by order_by on_problems
 
     ## ALIAS shift, lead, lag, slide, displace
