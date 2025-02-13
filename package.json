@@ -18,7 +18,7 @@
     "prettier": "^3.4.2",
     "prettier-plugin-organize-imports": "^4.1.0",
     "prettier-plugin-tailwindcss": "^0.5.14",
-    "vitest": "3.0.3"
+    "vitest": "3.0.5"
   },
   "dependencies": {
     "@bazel/bazelisk": "^1.22.1",
