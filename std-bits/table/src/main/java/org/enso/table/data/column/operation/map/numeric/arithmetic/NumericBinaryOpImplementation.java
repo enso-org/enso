@@ -2,16 +2,14 @@ package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.BitSet;
+
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
-import org.enso.table.data.column.storage.ColumnDoubleStorage;
-import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.ColumnStorageFacade;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
@@ -23,7 +21,15 @@ import org.enso.table.error.UnexpectedTypeException;
 
 /** An operation expecting a numeric argument and returning a numeric column. */
 public abstract class NumericBinaryOpImplementation<T extends Number, I extends Storage<? super T>>
-    extends BinaryMapOperation<T, I> implements NumericBinaryOpDefinition {
+    extends BinaryMapOperation<T, I> {
+
+  protected abstract double doDouble(double a, double b, long ix, MapOperationProblemAggregator problemAggregator);
+
+  protected abstract Long doLong(long a, long b, long ix, MapOperationProblemAggregator problemAggregator);
+
+  protected abstract BigInteger doBigInteger(BigInteger a, BigInteger b, long ix, MapOperationProblemAggregator problemAggregator);
+
+  protected abstract BigDecimal doBigDecimal(BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator);
 
   static IllegalStateException newUnsupported(Object arg) {
     return new IllegalStateException("Unsupported storage: " + arg.getClass().getCanonicalName());
@@ -63,22 +69,22 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     } else if (NumericConverter.isCoercibleToDouble(arg)) {
       double argAsDouble = NumericConverter.coerceToDouble(arg);
       return switch (storage) {
-        case ColumnDoubleStorage s -> runDoubleMap(s, argAsDouble, problemAggregator);
-        case ColumnLongStorage s -> runDoubleLongMap(s, argAsDouble, problemAggregator);
         case BigDecimalStorage s -> runBigDecimalMap(s, BigDecimal.valueOf(argAsDouble), problemAggregator);
         case BigIntegerStorage s ->
             runDoubleMap(new DoubleStorageFacade<>(s, BigInteger::doubleValue), argAsDouble, problemAggregator);
+        case ColumnDoubleStorage s -> runDoubleMap(s, argAsDouble, problemAggregator);
+        case ColumnLongStorage s -> runDoubleLongMap(s, argAsDouble, problemAggregator);
         default -> throw newUnsupported(storage);
       };
     } else if (arg instanceof BigDecimal bd) {
       return switch (storage) {
-        case ColumnLongStorage s ->
-            runBigDecimalMap(new ColumnStorageFacade<>(s, BigDecimal::valueOf), bd, problemAggregator);
-        case ColumnDoubleStorage s ->
-            runBigDecimalMap(new ColumnStorageFacade<>(s, BigDecimal::valueOf), bd, problemAggregator);
+        case BigDecimalStorage s -> runBigDecimalMap(s, bd, problemAggregator);
         case BigIntegerStorage s ->
             runBigDecimalMap(new ColumnStorageFacade<>(s, BigDecimal::new), bd, problemAggregator);
-        case BigDecimalStorage s -> runBigDecimalMap(s, bd, problemAggregator);
+        case ColumnDoubleStorage s ->
+            runBigDecimalMap(new ColumnStorageFacade<>(s, BigDecimal::valueOf), bd, problemAggregator);
+        case ColumnLongStorage s ->
+            runBigDecimalMap(new ColumnStorageFacade<>(s, BigDecimal::valueOf), bd, problemAggregator);
         default -> throw newUnsupported(storage);
       };
     } else {
