@@ -141,22 +141,30 @@ const defaultColDef: Ref<ColDef> = ref({
     'separator',
     'export',
   ],
-  autoHeight:true
+  autoHeight: true,
 } satisfies ColDef)
 const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
-const allRowCount = computed(() => (typeof props.data === 'object' && "all_rows_count" in props.data) ? props.data.all_rows_count : 0)
-const isSSRM = computed(() => (typeof props.data === 'object' && "is_ssrm" in props.data) ? true : false)
-const statusBar = computed(() => allRowCount.value ? ({
-  statusPanels: [
+const allRowCount = computed(() =>
+  typeof props.data === 'object' && 'all_rows_count' in props.data ? props.data.all_rows_count : 0,
+)
+const isSSRM = computed(() =>
+  typeof props.data === 'object' && 'is_ssrm' in props.data ? true : false,
+)
+const statusBar = computed(() =>
+  allRowCount.value ?
     {
-      statusPanel: TableVizStatusBar,
-      statusPanelParams: {
-        total: allRowCount,
-      },
-    },
-  ],
-}) : null)
+      statusPanels: [
+        {
+          statusPanel: TableVizStatusBar,
+          statusPanelParams: {
+            total: allRowCount.value,
+          },
+        },
+      ],
+    }
+  : null,
+)
 
 const textFormatterSelected = ref<TextFormatOptions>('partial')
 
@@ -238,6 +246,20 @@ function formatText(params: ICellRendererParams) {
   return `<span > ${newString} <span>`
 }
 
+const createRowsForTable = (data: unknown[][], startIndex: number, shift: number) => {
+  const rows = data && data.length > 0 ? (data[0]?.length ?? 0) : 0
+  return Array.from({ length: rows }, (_, i) => {
+    return Object.fromEntries(
+      columnDefs.value.map((h, j) => {
+        return [
+          h.field,
+          toRender(h.field === INDEX_FIELD_NAME ? i + startIndex : data?.[j - shift]?.[i]),
+        ]
+      }),
+    )
+  })
+}
+
 function createRowServer() {
   return {
     getData: async (request: IServerSideGetRowsRequest) => {
@@ -255,9 +277,9 @@ function createRowServer() {
 }
 
 interface Response {
-  data: unknown[][],
+  data: unknown[][]
   success: boolean
-} 
+}
 
 function createServerSideDatasource(): IServerSideDatasource {
   return {
@@ -265,7 +287,7 @@ function createServerSideDatasource(): IServerSideDatasource {
       const server = createRowServer()
       const response: Response = await server.getData(params.request)
       const startIndex = params.request.startRow ? params.request.startRow : 0
-      const rows = createRowsForTable(response.data, startIndex)
+      const rows = createRowsForTable(response.data, startIndex, 1)
       setTimeout(() => {
         if (response.success) {
           params.success({ rowData: rows })
@@ -635,31 +657,12 @@ watchEffect(() => {
           ...dataHeader,
         ]
       : dataHeader
-    console.log({dataHeader})
-    console.log({columnDefs: columnDefs.value})
-    if (data_.is_ssrm) {
-      console.log('getting val')
-      console.log({data_})
-      rowData.value = createRowsForTable(data_.data, 0)
+    if (!data_.is_ssrm) {
+      const shift = data_.is_ssrm ? 1 : 0 
+      rowData.value = data_.data ? createRowsForTable(data_.data, 0, shift) : []
     }
   }
 })
-
-const createRowsForTable = (data: unknown[][], startIndex: number) => {
-  console.log({data})
-  console.log('in func')
-  const rows = data && data.length > 0 ? (data[0]?.length ?? 0) : 0
-      return Array.from({ length: rows }, (_, i) => {
-        return Object.fromEntries(
-          columnDefs.value.map((h, j) => {
-            return [
-              h.field,
-              toRender(h.field === INDEX_FIELD_NAME ? i + startIndex : data?.[j - 1]?.[i]),
-            ]
-          }),
-        )
-      })
-} 
 
 const colTypeMap = computed(() => {
   const colMap: Map<string, string> = new Map()

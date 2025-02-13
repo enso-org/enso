@@ -147,7 +147,7 @@ function onGridReady(event: GridReadyEvent<TData>) {
   gridApi.value = event.api
 }
 
-const rowModelType = computed(() => props.isServerSideModel ? 'serverSide' : 'clientSide')
+const rowModelType = computed(() => (props.isServerSideModel ? 'serverSide' : 'clientSide'))
 
 watch(
   () => props.textFormatOption,
