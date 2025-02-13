@@ -96,6 +96,7 @@ interface UnknownTable {
   child_label: string
   visualization_header: string
   data_quality_metrics?: DataQualityMetric[]
+  requires_number_format: boolean[]
 }
 
 type DataQualityMetric = {
@@ -126,7 +127,6 @@ const isTruncated = ref(false)
 const isCreateNodeEnabled = ref(false)
 const filterModel = ref<GridFilterModel[]>([])
 const sortModel = ref<SortModel[]>([])
-const dataGroupingMap = shallowRef<Map<string, boolean>>()
 const defaultColDef: Ref<ColDef> = ref({
   editable: false,
   sortable: true,
@@ -189,7 +189,10 @@ function formatNumber(params: ICellRendererParams) {
   } else {
     value = params.value
   }
-  const needsGrouping = dataGroupingMap.value?.get(params.colDef?.field || '')
+  const dataHeaderIndex = props.data.header ? props.data.header.findIndex((h: string) => h === params.colDef?.field) : 0
+  console.log({dataHeaderIndex})
+  const needsGrouping = props.data.requires_number_format ? props.data.requires_number_format[dataHeaderIndex] : false
+  console.log({needsGrouping})
   return needsGrouping ? numberFormatGroupped.format(value) : numberFormat.format(value)
 }
 
@@ -495,7 +498,7 @@ watchEffect(() => {
         // eslint-disable-next-line camelcase
         visualization_header: undefined,
         // eslint-disable-next-line camelcase
-        link_value_type: undefined,
+        link_value_type: undefined
       }
   if ('error' in data_) {
     columnDefs.value = [
@@ -628,21 +631,6 @@ watchEffect(() => {
   pageLimit.value = newPageLimit
   if (page.value > newPageLimit) {
     page.value = newPageLimit
-  }
-
-  if (rowData.value[0]) {
-    const headers = Object.keys(rowData.value[0])
-    const headerGroupingMap = new Map()
-    headers.forEach((header) => {
-      const needsGrouping = rowData.value.some((row) => {
-        if (header in row && row[header] != null) {
-          const value = typeof row[header] === 'object' ? row[header].value : row[header]
-          return value > 999999 || value < -999999
-        }
-      })
-      headerGroupingMap.set(header, needsGrouping)
-    })
-    dataGroupingMap.value = headerGroupingMap
   }
 
   // If data is truncated, we cannot rely on sorting/filtering so will disable.
