@@ -288,6 +288,7 @@ export function useCloseProjectMutation() {
       }))
 
       // If the project runs in hybrid execution mode
+      // TODO: implement proper handling of upload failures
       if (cloudProjectId) {
         invariant(localBackend != null, 'LocalBackend is null')
 
