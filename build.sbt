@@ -4851,7 +4851,7 @@ lazy val `std-table` = project
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
-      val _ = StdBits
+      StdBits
         .copyDependencies(
           `table-polyglot-root`,
           Seq("std-table.jar"),
@@ -4885,26 +4885,27 @@ lazy val `std-image` = project
     // Extract native libraries from opencv.jar, and put them under
     // Standard/Image/polyglot/lib directory. The minimized opencv.jar will
     // be put under Standard/Image/polyglot/java directory.
-    extractNativeLibs := {
+    extractNativeLibs := (
       StdBits
         .extractNativeLibsFromOpenCV(
           `image-polyglot-root`,
           `image-native-libs`,
           opencvVersion
         )
-        .value
-    },
+      )
+      .dependsOn(
+        // Ensure dependencies are first copied.
+        StdBits
+          .copyDependencies(
+            `image-polyglot-root`,
+            Seq("std-image.jar", "opencv.jar"),
+            ignoreScalaLibrary = true,
+            ignoreDependency   = Some("org.openpnp" % "opencv" % opencvVersion)
+          )
+      )
+      .value,
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
-      // Ensure dependencies are first copied.
-      StdBits
-        .copyDependencies(
-          `image-polyglot-root`,
-          Seq("std-image.jar", "opencv.jar"),
-          ignoreScalaLibrary = true,
-          ignoreDependency   = Some("org.openpnp" % "opencv" % opencvVersion)
-        )
-        .value
       extractNativeLibs.value
       result
     }.value
@@ -4931,26 +4932,27 @@ lazy val `std-google-api` = project
     // Extract native libraries from grpc-netty-shaded-***.jar, and put them under
     // Standard/Google_Api/polyglot/lib directory. The minimized jar will
     // be put under Standard/Google_Api/polyglot/java directory.
-    extractNativeLibs := {
+    extractNativeLibs := (
       StdBits
         .extractNativeLibsFromGrpc(
           `google-api-polyglot-root`,
           `google-api-native-libs`,
           grpcVersion
         )
-        .value
-    },
+      )
+      .dependsOn(
+        StdBits
+          .copyDependencies(
+            `google-api-polyglot-root`,
+            Seq("std-google-api.jar"),
+            ignoreScalaLibrary = true,
+            ignoreDependencyIncludeTransitive =
+              Some(s"grpc-netty-shaded-${grpcVersion}")
+          )
+      )
+      .value,
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
-      StdBits
-        .copyDependencies(
-          `google-api-polyglot-root`,
-          Seq("std-google-api.jar"),
-          ignoreScalaLibrary = true,
-          ignoreDependencyIncludeTransitive =
-            Some(s"grpc-netty-shaded-${grpcVersion}")
-        )
-        .value
       extractNativeLibs.value
       result
     }.value
@@ -4975,7 +4977,7 @@ lazy val `std-database` = project
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
-      val _ = StdBits
+      StdBits
         .copyDependencies(
           `database-polyglot-root`,
           Seq("std-database.jar"),
@@ -5012,7 +5014,7 @@ lazy val `std-aws` = project
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
-      val _ = StdBits
+      StdBits
         .copyDependencies(
           `std-aws-polyglot-root`,
           Seq("std-aws.jar"),
@@ -5042,7 +5044,7 @@ lazy val `std-snowflake` = project
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
-      val _ = StdBits
+      StdBits
         .copyDependencies(
           `std-snowflake-polyglot-root`,
           Seq("std-snowflake.jar"),
@@ -5072,7 +5074,7 @@ lazy val `std-microsoft` = project
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
-      val _ = StdBits
+      StdBits
         .copyDependencies(
           `std-microsoft-polyglot-root`,
           Seq("std-microsoft.jar"),
@@ -5187,7 +5189,7 @@ lazy val `std-tableau` = project
     ),
     // Extract native libraries from tableau's jar, and put them under
     // Standard/Tableau/polyglot/lib directory.
-    extractNativeLibs := {
+    extractNativeLibs := (
       StdBits
         .extractNativeLibsFromTableau(
           `std-tableau-polyglot-root`,
@@ -5195,19 +5197,20 @@ lazy val `std-tableau` = project
           tableauVersion,
           jnaVersion
         )
-        .value
-    },
+      )
+      .dependsOn(
+        StdBits
+          .copyDependencies(
+            `std-tableau-polyglot-root`,
+            Seq("std-tableau.jar"),
+            ignoreScalaLibrary = true,
+            ignoreUnmanagedDependency =
+              Some(!_.getName.endsWith("tableauhyperapi.jar"))
+          )
+      )
+      .value,
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
-      StdBits
-        .copyDependencies(
-          `std-tableau-polyglot-root`,
-          Seq("std-tableau.jar"),
-          ignoreScalaLibrary = true,
-          ignoreUnmanagedDependency =
-            Some(!_.getName.endsWith("tableauhyperapi.jar"))
-        )
-        .value
       extractNativeLibs.value
       result
     }.value
