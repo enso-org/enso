@@ -184,21 +184,21 @@ export default function projectManagerShimMiddleware(
           break
         }
 
-        const uploadRequest = https.request(uploadUrl, { method: 'POST' }, (actualResponse) => {
-          if (!response.writableFinished) {
-            response.writeHead(
-              // This is SAFE. The documentation says:
-              // Only valid for response obtained from ClientRequest.
-              actualResponse.statusCode!,
-              actualResponse.statusMessage,
-              actualResponse.headers,
-            )
-            actualResponse.pipe(response, { end: true })
-          }
-        })
         projectManagement
           .createBundle(projectDir)
           .then((projectBundle) => {
+            const uploadRequest = https.request(uploadUrl, { method: 'POST' }, (actualResponse) => {
+              if (!response.writableFinished) {
+                response.writeHead(
+                  // This is SAFE. The documentation says:
+                  // Only valid for response obtained from ClientRequest.
+                  actualResponse.statusCode!,
+                  actualResponse.statusMessage,
+                  actualResponse.headers,
+                )
+                actualResponse.pipe(response, { end: true })
+              }
+            })
             uploadRequest.write(projectBundle, (err) => {
               if (err) {
                 console.error(err)
@@ -207,7 +207,7 @@ export default function projectManagerShimMiddleware(
                   .end('Failed to write project bundle.')
               }
             })
-            request.pipe(uploadRequest, { end: true })
+            uploadRequest.end()
           })
           .catch((err) => {
             console.error(err)
