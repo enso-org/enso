@@ -4,7 +4,7 @@ import java.util.function.Function;
 import org.enso.table.data.column.storage.type.StorageType;
 
 /** A facade for a column storage that converts the stored type to another type. */
-public class ColumnStorageFacade<S, T> implements ColumnStorage<T> {
+public final class ColumnStorageFacade<S, T> implements ColumnStorage<T> {
   private final ColumnStorage<S> parent;
   private final Function<S, T> converter;
 
