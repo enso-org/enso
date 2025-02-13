@@ -1485,8 +1485,9 @@ export default class RemoteBackend extends Backend {
     const response = await this.client.get(`./api/cloud/download-project?${queryString}`)
     const path = await response.text()
 
-    invariant(response.ok, 'The download-project response must have status OK.')
-    invariant(path.length !== 0, 'The download-project response body must be present.')
+    if (!response.ok) {
+      return await this.throw(response, 'resolveProjectAssetPathBackendError')
+    }
 
     return DirectoryId(`directory-${path}` as const)
   }
