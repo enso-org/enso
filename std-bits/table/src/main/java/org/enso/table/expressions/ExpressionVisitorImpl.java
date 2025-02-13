@@ -7,9 +7,9 @@ import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -56,6 +56,30 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
   }
 
+  public static class Method {
+    public Value ensoMethod;
+    public Boolean variableArgumentMethod;
+    public Boolean isStaticMethod;
+    public Value staticsType;
+    Method(Value module, Value type, String name, Boolean variableArgumentMethod){
+      var context = Context.getCurrent().getBindings("enso");
+      final Value staticsModule = context.invokeMember("get_module", "Standard.Table.Expression_Statics");
+      staticsType = staticsModule.invokeMember("get_type", "Expression_Statics");
+      var staticMethod = staticsModule.invokeMember("get_method", staticsType, name);
+      if (staticMethod.canExecute()) {
+        ensoMethod = staticMethod;
+        isStaticMethod = true;
+      } else {
+        ensoMethod = module.invokeMember("get_method", type, name);
+        if (!ensoMethod.canExecute()) {
+          throw new UnsupportedOperationException(name);
+        }
+        isStaticMethod = false;
+      }
+      this.variableArgumentMethod = variableArgumentMethod;
+    }
+  }
+
   public static Value evaluate(
       String expression,
       Function<String, Value> getColumn,
@@ -67,7 +91,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     var context = Context.getCurrent().getBindings("enso");
     final Value module = context.invokeMember("get_module", moduleName);
     final Value type = module.invokeMember("get_type", typeName);
-    Function<String, Value> getMethod = name -> module.invokeMember("get_method", type, name);
+    var setVariableArgumentFunctions = new HashSet<>(Arrays.asList(variableArgumentFunctions));
+    Function<String, Method> getMethod = name -> new Method(module, type, name, setVariableArgumentFunctions.contains(name));
     Function<String, Value> makeConstructor =
         name -> module.invokeMember("eval_expression", ".." + name);
 
@@ -76,17 +101,15 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
         getColumn,
         makeConstantColumn,
         getMethod,
-        makeConstructor,
-        variableArgumentFunctions);
+        makeConstructor);
   }
 
   public static Value evaluateImpl(
       String expression,
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
-      Function<String, Value> getMethod,
-      Function<String, Value> makeConstructor,
-      String[] variableArgumentFunctions) {
+      Function<String, Method> getMethod,
+      Function<String, Value> makeConstructor) {
     var lexer = new ExpressionLexer(CharStreams.fromString(expression));
     lexer.removeErrorListeners();
     lexer.addErrorListener(ThrowOnErrorListener.INSTANCE);
@@ -98,7 +121,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
     var visitor =
         new ExpressionVisitorImpl(
-            getColumn, makeConstantColumn, getMethod, makeConstructor, variableArgumentFunctions);
+            getColumn, makeConstantColumn, getMethod, makeConstructor);
 
     var expr = parser.prog();
     return visitor.visit(expr);
@@ -106,21 +129,18 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   private final Function<String, Value> getColumn;
   private final Function<Object, Value> makeConstantColumn;
-  private final Function<String, Value> getMethod;
+  private final Function<String, Method> getMethod;
   private final Function<String, Value> makeConstructor;
-  private final Set<String> variableArgumentFunctions;
 
   private ExpressionVisitorImpl(
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
-      Function<String, Value> getMethod,
-      Function<String, Value> makeConstructor,
-      String[] variableArgumentFunctions) {
+      Function<String, Method> getMethod,
+      Function<String, Value> makeConstructor) {
     this.getColumn = getColumn;
     this.makeConstantColumn = makeConstantColumn;
     this.getMethod = getMethod;
     this.makeConstructor = makeConstructor;
-    this.variableArgumentFunctions = new HashSet<>(Arrays.asList(variableArgumentFunctions));
   }
 
   private Value wrapAsColumn(Value value) {
@@ -137,23 +157,10 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   }
 
   private Value executeMethod(String name, Value... args) {
-    Value method = getMethod.apply(name);
-    if (!method.canExecute()) {
-      throw new UnsupportedOperationException(name);
-    }
-
-    Object[] objects;
-    if (this.variableArgumentFunctions.contains(name)) {
-      objects = new Object[2];
-      objects[0] = args[0];
-      objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
-    } else {
-      objects = Arrays.copyOf(args, args.length, Object[].class);
-    }
-    objects[0] = wrapAsColumn(args[0]);
-
+    var method = getMethod.apply(name);
+    Object[] objects = prepareArguments(method, args);
     try {
-      var result = method.execute(objects);
+      var result = method.ensoMethod.execute(objects);
       if (result.canExecute()) {
         throw new IllegalArgumentException("Insufficient arguments for method " + name + ".");
       }
@@ -165,6 +172,26 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       throw e;
     }
   }
+
+    private Object[] prepareArguments(Method method, Value[] args) {
+        Object[] objects;
+        if (method.variableArgumentMethod) {
+            objects = new Object[2];
+            objects[0] = wrapAsColumn(args[0]);
+            objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
+        } else if (method.isStaticMethod) {
+            // The static method takes the module as the synthetic 'self' argument, so we need to prepend
+            // it:
+            objects = new Object[args.length + 1];
+            objects[0] = method.staticsType;
+            System.arraycopy(args, 0, objects, 1, args.length);
+        } else {
+            objects = Arrays.copyOf(args, args.length, Object[].class);
+            objects[0] = wrapAsColumn(args[0]);
+        }   
+
+        return objects;
+    }
 
   @Override
   public Value visitProg(ExpressionParser.ProgContext ctx) {
@@ -411,7 +438,6 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     var name = ctx.IDENTIFIER().getText().toLowerCase();
     var args = ctx.expr().stream().map(this::visit).toArray(Value[]::new);
     return switch (name) {
-      case "today" -> Value.asValue(LocalDate.now());
       case "now" -> Value.asValue(LocalDateTime.now().atZone(ZoneId.systemDefault()));
       case "time" -> Value.asValue(LocalTime.now());
       default -> executeMethod(name, args);
