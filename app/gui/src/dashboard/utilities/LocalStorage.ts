@@ -155,6 +155,15 @@ export default class LocalStorage {
     return oldValue
   }
 
+  /**
+   * Read a value from the stored data, and delete it after reading.
+   */
+  consume<K extends LocalStorageKey>(key: K) {
+    const value = this.get(key)
+    this.delete(key)
+    return value
+  }
+
   /** Delete user-specific entries from the stored data, and save. */
   clearUserSpecificEntries() {
     for (const [key, metadata] of object.unsafeEntries(LocalStorage.keyMetadata)) {

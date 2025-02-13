@@ -34,6 +34,7 @@ import { Suspense } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
 import { Button, Text } from '../components/AriaComponents'
 import { EnsoDevtools } from '../components/Devtools'
+import Page from '../components/Page'
 import { Result } from '../components/Result'
 import { useTimeoutCallback } from '../hooks/timeoutHooks'
 import { download } from '../utilities/download'
@@ -382,25 +383,27 @@ export function ProtectedLayout() {
 
   if (session == null) {
     return <router.Navigate to={appUtils.LOGIN_PATH} />
-  } else if (session.type === UserSessionType.partial) {
-    return <router.Navigate to={appUtils.SETUP_PATH} />
-  } else {
-    return (
-      <>
-        {/* This div is used as a flag to indicate that the dashboard has been loaded and the user is authenticated. */}
-        {/* also it guarantees that the top-level suspense boundary is already resolved */}
-        <div data-testid="after-auth-layout" aria-hidden />
-
-        <router.Outlet context={session} />
-
-        <Suspense fallback={null}>
-          <ErrorBoundary fallbackRender={() => null}>
-            <EnsoDevtools />
-          </ErrorBoundary>
-        </Suspense>
-      </>
-    )
   }
+
+  if (session.type === UserSessionType.partial) {
+    return <router.Navigate to={appUtils.SETUP_PATH} />
+  }
+
+  return (
+    <>
+      {/* This div is used as a flag to indicate that the dashboard has been loaded and the user is authenticated. */}
+      {/* also it guarantees that the top-level suspense boundary is already resolved */}
+      <div data-testid="after-auth-layout" aria-hidden />
+
+      <router.Outlet context={session} />
+
+      <Suspense fallback={null}>
+        <ErrorBoundary fallbackRender={() => null}>
+          <EnsoDevtools />
+        </ErrorBoundary>
+      </Suspense>
+    </>
+  )
 }
 
 // ===========================
@@ -418,14 +421,20 @@ export function SemiProtectedLayout() {
   // The user is not logged in - redirect to the login page.
   if (session == null) {
     return <router.Navigate to={appUtils.LOGIN_PATH} replace />
-    // User is registered, redirect to dashboard or to the redirect path specified during the registration / login.
-  } else if (session.type === UserSessionType.full) {
-    const redirectTo = localStorage.delete('loginRedirect') ?? appUtils.DASHBOARD_PATH
-    return <router.Navigate to={redirectTo} replace />
-    // User is in the process of registration, allow them to complete the registration.
-  } else {
-    return <router.Outlet context={session} />
   }
+
+  // User is registered, redirect to dashboard or to the redirect path specified during the registration / login.
+  if (session.type === UserSessionType.full) {
+    return (
+      <router.Navigate
+        to={localStorage.consume('loginRedirect') ?? appUtils.DASHBOARD_PATH}
+        replace
+      />
+    )
+  }
+
+  // User is in the process of registration, allow them to complete the registration.
+  return <router.Outlet context={session} />
 }
 
 // ===================
@@ -529,32 +538,34 @@ export function CloudBrowserDisabledLayout(props: CloudBrowserDisabledLayoutProp
   }
 
   return (
-    <Result
-      status={isRedirecting ? 'loading' : 'info'}
-      title={getText('cloudBrowserDisabledTitle')}
-      subtitle={getText('cloudBrowserDisabledSubtitle')}
-    >
-      <Button.Group align="center" verticalAlign="center">
-        <Button variant="primary" href={path}>
-          {getText('openInDesktop')}
-        </Button>
+    <Page>
+      <Result
+        status={isRedirecting ? 'loading' : 'info'}
+        title={getText('cloudBrowserDisabledTitle')}
+        subtitle={getText('cloudBrowserDisabledSubtitle')}
+      >
+        <Button.Group align="center" verticalAlign="center">
+          <Button variant="primary" href={path}>
+            {getText('openInDesktop')}
+          </Button>
 
-        <Text>{getText('or')}</Text>
+          <Text>{getText('or')}</Text>
 
-        <Button
-          variant="outline"
-          onPress={async () => {
-            const downloadUrl = await getDownloadUrl()
+          <Button
+            variant="outline"
+            onPress={async () => {
+              const downloadUrl = await getDownloadUrl()
 
-            if (downloadUrl != null) {
-              download(downloadUrl)
-            }
-          }}
-        >
-          {getText('downloadIDE')}
-        </Button>
-      </Button.Group>
-    </Result>
+              if (downloadUrl != null) {
+                download(downloadUrl)
+              }
+            }}
+          >
+            {getText('downloadIDE')}
+          </Button>
+        </Button.Group>
+      </Result>
+    </Page>
   )
 }
 
