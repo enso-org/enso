@@ -1,6 +1,8 @@
 import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import type { ToolbarItem } from '@/components/visualizations/toolbar'
+import { useGraphStore } from '@/stores/graph'
+import { NodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import type { NodeVisualizationConfiguration } from '@/stores/project/executionContext'
 import {
@@ -56,6 +58,7 @@ export function useVisualizationData({
 
   const projectStore = useProjectStore()
   const visualizationStore = useVisualizationStore()
+  const graph = useGraphStore()
 
   // Flag used to prevent rendering the visualization with a stale preprocessor while the new preprocessor is being
   // prepared asynchronously.
@@ -91,6 +94,45 @@ export function useVisualizationData({
       }
     },
   )
+
+  const executeExpression = async (
+    visulizationModule: string,
+    expressionString: string,
+    ...positionalArgumentsExpressions: string[]
+  ) => {
+    const dataSourceValue = toValue(dataSource)
+    if (dataSourceValue?.type !== 'node') return
+    const graphDb = graph.db
+    const nodeFirstOurputPort = graphDb.getNodeFirstOutputPort(dataSourceValue.nodeId as NodeId)
+    const identifier = graphDb.getOutputPortIdentifier(nodeFirstOurputPort)
+    if(identifier === undefined) return
+    const contextId =
+      dataSourceValue.nodeId &&
+      graphDb.nodeIdToNode.get(dataSourceValue.nodeId as NodeId)?.outerAst.externalId
+    if(contextId === undefined) return
+    try {
+      const tempModule = Ast.MutableModule.Transient()
+      const preprocessorModule = Ast.parseExpression(visulizationModule, tempModule)!
+      const preprocessorQn = Ast.PropertyAccess.new(
+        tempModule,
+        preprocessorModule,
+        Ast.identifier(expressionString)!
+      )
+      const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
+        Ast.Wildcard.new(tempModule),
+        ...positionalArgumentsExpressions.map((arg) =>
+          Ast.Group.new(tempModule, Ast.parseExpression(arg, tempModule)!),
+        ),
+      ])
+      const rhs = Ast.parseExpression(identifier, tempModule)!
+      const expression = Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
+      return projectStore.executeExpression(contextId, expression.code())
+    } catch (e) {
+      console.error(e)
+      throw e
+    }
+  }
+
 
   const currentType = computed(() => {
     const selectedTypeValue = toValue(selectedVis)
@@ -260,5 +302,10 @@ export function useVisualizationData({
       (toolbarDefinition.value = definition),
     visualizationDefinedToolbar: computed(() => toValue(toolbarDefinition.value)),
     toolbarOverlay,
+    executeExpression: (
+      visulizationModule: string,
+      expressionString: string,
+      ...positionalArgumentsExpressions: string[]
+    ) => executeExpression(visulizationModule, expressionString, ...positionalArgumentsExpressions),
   }
 }

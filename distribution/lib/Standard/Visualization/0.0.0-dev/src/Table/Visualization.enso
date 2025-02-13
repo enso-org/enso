@@ -32,12 +32,12 @@ prepare_visualization y max_rows=1000 = if y.is_error then (make_json_for_error 
         v : Row -> make_json_for_row v
         t : Table ->
             all_rows_count = t.row_count
-            make_json_for_table t max_rows all_rows_count True False
+            make_json_for_table t max_rows all_rows_count False
         c : Column -> prepare_visualization c.to_table max_rows
         t : DB_Table ->
             dataframe = t.read (..First max_rows)
             all_rows_count = t.row_count
-            make_json_for_table dataframe max_rows all_rows_count True True
+            make_json_for_table dataframe max_rows all_rows_count True
         c : DB_Column -> prepare_visualization c.to_table max_rows
         f : Function ->
             pairs = [['_display_text_', '[Function '+f.to_text+']']]
@@ -191,18 +191,19 @@ make_json_for_xml_element xml_element max_items type:Text="XML_Element" =
      to display.
    - all_rows_count: the number of all rows in the underlying data, useful if
      only a fragment is displayed.
-make_json_for_table : Table -> Integer -> Integer -> Boolean -> Boolean -> JS_Object
-make_json_for_table dataframe max_rows all_rows_count include_index_col is_db_table =
+make_json_for_table : Table -> Integer -> Integer -> Boolean -> JS_Object
+make_json_for_table dataframe max_rows all_rows_count is_db_table =
     act_max = if max_rows < all_rows_count then max_rows else all_rows_count
     get_vector c         = Warning.set (Vector.new act_max i-> make_json_for_value (c.get i)) []
     columns              = dataframe.columns
     header               = ["header", columns.map .name]
     value_type           = ["value_type", columns.map .value_type]
-    data                 = ["data",   columns.map get_vector]
     all_rows             = ["all_rows_count", all_rows_count]
-    has_index_col        = ["has_index_col", include_index_col]
+    has_index_col        = ["has_index_col", True]
+    is_ssrm              = ["is_ssrm", all_rows_count > max_rows]
     links                = ["get_child_node_action", "get_row"]
     child_label          = ["child_label", "row"]
+    data                 = if all_rows_count > max_rows then Nothing else columns.map get_vector
     data_quality_metrics = if is_db_table then [] else
         number_nothing = JS_Object.from_pairs [["name", "Count nothings"], ["percentage_value", columns.map .count_nothing]]
         sampled_label = if all_rows_count > Column.default_sample_size then " (sampled)" else ""
@@ -210,8 +211,26 @@ make_json_for_table dataframe max_rows all_rows_count include_index_col is_db_ta
         number_non_triv = JS_Object.from_pairs [["name", "Count non trivial whitespace" + sampled_label], ["percentage_value", columns.map .count_non_trivial_whitespace]]
         JS_Object.from_pairs
         [number_nothing, number_untrimmed, number_non_triv]
-    pairs                = [header, value_type, data, all_rows, has_index_col, links, ["data_quality_metrics", data_quality_metrics] ,["type", "Table"], child_label]
+    pairs                = [header, value_type, ["data", data], all_rows, has_index_col, links, is_ssrm, ["data_quality_metrics", data_quality_metrics] ,["type", "Table"], child_label]
     JS_Object.from_pairs pairs
+
+## PRIVATE
+
+   Prepares the row data table for visualizations using the server side row model.
+
+   Arguments:
+   - start_number: the start index of the next 100 rows to get
+
+get_rows_for_table : Any -> Integer -> JS_Object
+get_rows_for_table x start_number =
+    max_rows=100
+    all_rows_count = x.row_count
+    bucket_size = if max_rows < all_rows_count then max_rows else all_rows_count
+    get_vector c         = Warning.set (Vector.new bucket_size i-> make_json_for_value (c.get (i + start_number))) []
+    columns              = x.columns
+    rows = columns.map get_vector
+    result = JS_Object.from_pairs [["rows", rows]]
+    result.to_text
 
 ## PRIVATE
    Create JSON serialization of values.

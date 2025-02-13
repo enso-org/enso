@@ -46,6 +46,7 @@ const emit = defineEmits<{
   'update:height': [height: number]
   'update:nodePosition': [pos: Vec2]
   createNodes: [options: NodeCreationOptions[]]
+  executeExpression: [expression: string]
 }>()
 
 // ===================================
@@ -61,6 +62,7 @@ const {
   setToolbarDefinition,
   visualizationDefinedToolbar,
   toolbarOverlay,
+  executeExpression
 } = useVisualizationData({
   selectedVis: toRef(props, 'currentType'),
   dataSource: toRef(props, 'dataSource'),
@@ -190,6 +192,7 @@ const visParams = computed(() => {
     data: effectiveVisualizationData.value,
     size: contentElementSize.value,
     nodeType: props.typename,
+    executeExpression
   }
 })
 </script>

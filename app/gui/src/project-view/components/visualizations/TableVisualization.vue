@@ -18,9 +18,10 @@ import type {
   ITooltipParams,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
-import { computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
+import { computed, ref, shallowRef, watchEffect, type Ref } from 'vue'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import { getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
+import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -96,6 +97,7 @@ interface UnknownTable {
   child_label: string
   visualization_header: string
   data_quality_metrics?: DataQualityMetric[]
+  is_ssrm: boolean
 }
 
 type DataQualityMetric = {
@@ -117,20 +119,14 @@ const VECTOR_NODE_TYPE = 'Standard.Base.Data.Vector.Vector'
 const COLUMN_NODE_TYPE = 'Standard.Table.Column.Column'
 const ROW_NODE_TYPE = 'Standard.Table.Row.Row'
 
-const rowLimit = ref(0)
-const page = ref(0)
-const pageLimit = ref(0)
-const rowCount = ref(0)
-const showRowCount = ref(true)
-const isTruncated = ref(false)
 const isCreateNodeEnabled = ref(false)
 const filterModel = ref<GridFilterModel[]>([])
 const sortModel = ref<SortModel[]>([])
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 const defaultColDef: Ref<ColDef> = ref({
   editable: false,
-  sortable: true,
-  filter: true,
+  sortable: false,
+  filter: false,
   resizable: true,
   minWidth: 25,
   cellRenderer: cellRenderer,
@@ -142,26 +138,32 @@ const defaultColDef: Ref<ColDef> = ref({
     'separator',
     'export',
   ],
+  autoHeight: true,
 } satisfies ColDef)
 const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
+const allRowCount = computed(() =>
+  typeof props.data === 'object' && 'all_rows_count' in props.data ? props.data.all_rows_count : 0,
+)
+const isSSRM = computed(() =>
+  typeof props.data === 'object' && 'is_ssrm' in props.data ? true : false,
+)
+const statusBar = computed(() =>
+  allRowCount.value ?
+    {
+      statusPanels: [
+        {
+          statusPanel: TableVizStatusBar,
+          statusPanelParams: {
+            total: allRowCount.value,
+          },
+        },
+      ],
+    }
+  : null,
+)
 
 const textFormatterSelected = ref<TextFormatOptions>('partial')
-
-const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
-
-const selectableRowLimits = computed(() => {
-  const defaults = [1000, 2500, 5000, 10000, 25000, 50000, 100000].filter(
-    (r) => r <= rowCount.value,
-  )
-  if (rowCount.value < 100000 && !defaults.includes(rowCount.value)) {
-    defaults.push(rowCount.value)
-  }
-  if (!defaults.includes(rowLimit.value)) {
-    defaults.push(rowLimit.value)
-  }
-  return defaults
-})
 
 const isFilterSortNodeEnabled = computed(
   () => config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE,
@@ -241,14 +243,54 @@ function formatText(params: ICellRendererParams) {
   return `<span > ${newString} <span>`
 }
 
-function setRowLimit(newRowLimit: number) {
-  if (newRowLimit !== rowLimit.value) {
-    rowLimit.value = newRowLimit
-    config.setPreprocessor(
-      'Standard.Visualization.Table.Visualization',
-      'prepare_visualization',
-      newRowLimit.toString(),
+const createRowsForTable = (data: unknown[][], startIndex: number, shift: number) => {
+  const rows = data && data.length > 0 ? (data[0]?.length ?? 0) : 0
+  return Array.from({ length: rows }, (_, i) => {
+    return Object.fromEntries(
+      columnDefs.value.map((h, j) => {
+        return [
+          h.field,
+          toRender(h.field === INDEX_FIELD_NAME ? i + startIndex : data?.[j - shift]?.[i]),
+        ]
+      }),
     )
+  })
+}
+
+function createRowServer() {
+  return {
+    getData: async (request: IServerSideGetRowsRequest) => {
+      const response = await config.executeExpression(
+        'Standard.Visualization.Table.Visualization',
+        'get_rows_for_table',
+        `${request.startRow}`,
+      )
+      return {
+        success: true,
+        data: response.value.rows,
+      }
+    },
+  }
+}
+interface Response {
+  data: unknown[][]
+  success: boolean
+}
+function createServerSideDatasource(): IServerSideDatasource {
+  return {
+    getRows: async (params) => {
+      const server = createRowServer()
+      const response: Response = await server.getData(params.request)
+      const startIndex = params.request.startRow ? params.request.startRow : 0
+      const rows = createRowsForTable(response.data, startIndex, 1)
+      setTimeout(() => {
+        if (response.success) {
+          params.success({ rowData: rows })
+        } else {
+          params.fail()
+        }
+      }, 500)
+    },
   }
 }
 
@@ -496,6 +538,10 @@ watchEffect(() => {
         visualization_header: undefined,
         // eslint-disable-next-line camelcase
         link_value_type: undefined,
+        // eslint-disable-next-line camelcase
+        is_ssrm: undefined,
+        // eslint-disable-next-line camelcase
+        header: undefined,
       }
   if ('error' in data_) {
     columnDefs.value = [
@@ -517,7 +563,6 @@ watchEffect(() => {
       columnDefs.value.push(toField(i.toString()))
     }
     rowData.value = addRowIndex(data_.json)
-    isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Object_Matrix') {
     columnDefs.value = [
       toLinkField(INDEX_FIELD_NAME, {
@@ -538,7 +583,6 @@ watchEffect(() => {
       }
     }
     rowData.value = addRowIndex(data_.json)
-    isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Excel_Workbook') {
     columnDefs.value = [
       toLinkField('Value', {
@@ -558,7 +602,6 @@ watchEffect(() => {
       toField('Value'),
     ]
     rowData.value = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
-    isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
     columnDefs.value =
       data_.links ?
@@ -605,49 +648,26 @@ watchEffect(() => {
           ...dataHeader,
         ]
       : dataHeader
-    const rows = data_.data && data_.data.length > 0 ? (data_.data[0]?.length ?? 0) : 0
-    rowData.value = Array.from({ length: rows }, (_, i) => {
-      const shift = data_.has_index_col ? 1 : 0
-      return Object.fromEntries(
-        columnDefs.value.map((h, j) => {
-          return [
-            h.field,
-            toRender(h.field === INDEX_FIELD_NAME ? i : data_.data?.[j - shift]?.[i]),
-          ]
-        }),
-      )
-    })
-    isTruncated.value = data_.all_rows_count !== rowData.value.length
+      if (!data_.is_ssrm) {
+      const shift = data_.is_ssrm ? 1 : 0 
+      rowData.value = data_.data ? createRowsForTable(data_.data, 0, shift) : []
+    }
   }
 
-  // Update paging
-  const newRowCount = data_.all_rows_count == null ? 1 : data_.all_rows_count
-  showRowCount.value = !(data_.all_rows_count == null)
-  rowCount.value = newRowCount
-  const newPageLimit = Math.ceil(newRowCount / rowLimit.value)
-  pageLimit.value = newPageLimit
-  if (page.value > newPageLimit) {
-    page.value = newPageLimit
-  }
-
-  if (rowData.value[0]) {
-    const headers = Object.keys(rowData.value[0])
-    const headerGroupingMap = new Map()
-    headers.forEach((header) => {
-      const needsGrouping = rowData.value.some((row) => {
-        if (header in row && row[header] != null) {
-          const value = typeof row[header] === 'object' ? row[header].value : row[header]
-          return value > 999999 || value < -999999
-        }
-      })
-      headerGroupingMap.set(header, needsGrouping)
-    })
-    dataGroupingMap.value = headerGroupingMap
-  }
-
-  // If data is truncated, we cannot rely on sorting/filtering so will disable.
-  defaultColDef.value.filter = !isTruncated.value
-  defaultColDef.value.sortable = !isTruncated.value
+  // if (rowData.value[0]) {
+  //   const headers = Object.keys(rowData.value[0])
+  //   const headerGroupingMap = new Map()
+  //   headers.forEach((header) => {
+  //     const needsGrouping = rowData.value.some((row) => {
+  //       if (header in row && row[header] != null) {
+  //         const value = typeof row[header] === 'object' ? row[header].value : row[header]
+  //         return value > 999999 || value < -999999
+  //       }
+  //     })
+  //     headerGroupingMap.set(header, needsGrouping)
+  //   })
+  //   dataGroupingMap.value = headerGroupingMap
+  // }
 })
 
 const colTypeMap = computed(() => {
@@ -763,14 +783,6 @@ function checkSortAndFilter(e: SortChangedEvent) {
 }
 
 // ===============
-// === Updates ===
-// ===============
-
-onMounted(() => {
-  setRowLimit(1000)
-})
-
-// ===============
 // === Toolbar ===
 // ===============
 
@@ -789,28 +801,6 @@ config.setToolbar(
 
 <template>
   <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
-    <div class="table-visualization-status-bar">
-      <select
-        v-if="isRowCountSelectorVisible"
-        @change="setRowLimit(Number(($event.target as HTMLOptionElement).value))"
-      >
-        <option
-          v-for="limit in selectableRowLimits"
-          :key="limit"
-          :value="limit"
-          v-text="limit"
-        ></option>
-      </select>
-      <template v-if="showRowCount">
-        <span
-          v-if="isRowCountSelectorVisible && isTruncated"
-          v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
-        ></span>
-        <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
-        <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
-        <span v-else v-text="`${rowCount} rows.`"></span>
-      </template>
-    </div>
     <!-- TODO[ao]: Suspence in theory is not needed here (the entire visualization is inside
      suspense), but for some reason it causes reactivity loop - see https://github.com/enso-org/enso/issues/10782 -->
     <Suspense>
@@ -820,6 +810,10 @@ config.setToolbar(
         :rowData="rowData"
         :defaultColDef="defaultColDef"
         :textFormatOption="textFormatterSelected"
+        :datasource="createServerSideDatasource()"
+        :rowCount="allRowCount"
+        :isServerSideModel="isSSRM"
+        :statusBar="statusBar"
         @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
       />
     </Suspense>

@@ -17,6 +17,11 @@ const props = defineProps<{
     nodeType?: string | undefined
     overflow?: boolean
     toolbarOverflow?: boolean
+    executeExpression: (
+      visulizationModule: string,
+      expressionString: string,
+      ...positionalArgumentsExpressions: string[]
+    ) => any
   }
 }>()
 
@@ -51,6 +56,8 @@ provideVisualizationConfig({
   setToolbar: (items) => emit('updateToolbar', items),
   setToolbarOverlay: (overlay) => emit('updateToolbarOverlay', overlay),
   createNodes: (...nodes) => emit('createNodes', nodes),
+  executeExpression: (visulizationModule: string, expressionString: string, args: string) =>
+  props.params.executeExpression(visulizationModule, expressionString, args),
 })
 </script>
 

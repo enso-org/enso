@@ -25,6 +25,11 @@ export interface VisualizationConfig {
    * it. By default, this is `false`.
    */
   setToolbarOverlay: (enableOverlay: boolean) => void
+  executeExpression: (
+    visulizationModule: string,
+    expressionString: string,
+    ...positionalArgumentsExpressions: string[]
+  ) => any
 }
 
 export { provideVisualizationConfig }
