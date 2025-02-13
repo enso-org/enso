@@ -525,6 +525,11 @@ public final class EnsoMultiValue extends EnsoObject {
   }
 
   @ExportMessage
+  final boolean isFieldEvaluated(int index) {
+    return true;
+  }
+
+  @ExportMessage
   final void setField(int index, Object value, @Bind("$node") Node here) {
     var ctx = EnsoContext.get(here);
     throw ctx.raiseAssertionPanic(here, "Field assignment isn't supported", null);
