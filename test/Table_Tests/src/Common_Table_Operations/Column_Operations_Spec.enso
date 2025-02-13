@@ -1647,7 +1647,7 @@ add_column_operation_specs suite_builder setup =
                 data.c.text_replace "a" "#" . should_fail_with Invalid_Value_Type
                 Test.expect_panic Type_Error (data.a.text_replace 1 "#")
                 data.a.text_replace data.c "#" . should_fail_with Invalid_Value_Type
-                data.a.text_replace "a" 1 . should_fail_with Invalid_Value_Type
+                Test.expect_panic Type_Error (data.a.text_replace "a" 1)
                 data.a.text_replace "a" data.c . should_fail_with Invalid_Value_Type
 
             group_builder.specify "should not replace if Empty term" <|
@@ -1695,7 +1695,7 @@ add_column_operation_specs suite_builder setup =
 
         group_builder.specify "should only allow trim on Text columns" <|
             data.c.trim what="a" . should_fail_with Invalid_Value_Type
-            data.a.trim what=1 . should_fail_with Invalid_Value_Type
+            Test.expect_panic Type_Error <| data.a.trim what=1
             data.a.trim what=data.c . should_fail_with Invalid_Value_Type
 
     suite_builder.group prefix+"(Column_Operations_Spec) Other Column Operations" group_builder->
@@ -1783,7 +1783,7 @@ add_column_operation_specs suite_builder setup =
             t = table_builder [["a", [1, 2, 3]]]
             c = t.at "a"
 
-            c.rename Nothing . should_fail_with Invalid_Column_Names
+            Test.expect_panic Type_Error <| c.rename Nothing
             c.rename '' . should_fail_with Invalid_Column_Names
             c.rename 'a\0b' . should_fail_with Invalid_Column_Names
             c.rename '\0' . should_fail_with Invalid_Column_Names
