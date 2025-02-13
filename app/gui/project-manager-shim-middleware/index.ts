@@ -152,26 +152,17 @@ export default function projectManagerShimMiddleware(
           break
         }
 
-        const downloadRequest = https.request(downloadUrl, { method: 'GET' }, (actualResponse) => {
-          const data: Buffer[] = []
-          actualResponse
-            .on('data', (chunk) => data.push(Buffer.from(chunk, 'binary')))
-            .on('end', () => {
-              const buffer = Buffer.concat(data)
-              const readable = stream.Readable.from(buffer)
-              projectManagement
-                .unpackBundle(readable)
-                .then((projectDirectory) => {
-                  return response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end(projectDirectory)
-                })
-                .catch((e) => {
-                  console.error(e)
-                  response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COMMON_HEADERS).end()
-                })
+        https.get(downloadUrl, (actualResponse) => {
+          projectManagement
+            .unpackBundle(actualResponse)
+            .then((projectDirectory) => {
+              return response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end(projectDirectory)
+            })
+            .catch((e) => {
+              console.error(e)
+              response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COMMON_HEADERS).end()
             })
         })
-
-        downloadRequest.end()
 
         break
       }
