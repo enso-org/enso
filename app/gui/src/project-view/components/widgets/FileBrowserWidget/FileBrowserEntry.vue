@@ -16,10 +16,17 @@ const emit = defineEmits<{
 }>()
 
 const currentTitle = ref(props.title)
+const input = ref<HTMLInputElement>()
 watch(
   () => props.title,
   (newTitle) => (currentTitle.value = newTitle),
 )
+watch(input, (newInput) => {
+  if (newInput != null) {
+    newInput.focus()
+    newInput.select()
+  }
+})
 </script>
 
 <template>
@@ -28,9 +35,10 @@ watch(
     <SvgIcon v-else :name="icon" />
     <input
       v-if="editingState === 'editing'"
+      ref="input"
       v-model="currentTitle"
       @blur="emit('nameAccepted', currentTitle)"
-      @keydown.enter.stop="($event.currentTarget as HTMLInputElement)?.blur()"
+      @keydown.enter.stop="input?.blur()"
     />
     <div v-else>{{ title }}</div>
   </div>

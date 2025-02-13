@@ -296,9 +296,12 @@ onMounted(() => {
         @keydown.arrow-right.stop
         @keydown.enter.stop="acceptCurrentFile()"
       />
-      <SvgButton class="fileNameAcceptButton" :disabled="!fileName" @click.stop="acceptCurrentFile">
-        <div>Ok</div>
-      </SvgButton>
+      <SvgButton
+        class="fileNameAcceptButton"
+        label="Ok"
+        :disabled="!fileName"
+        @click.stop="acceptCurrentFile"
+      />
     </div>
   </div>
 </template>
