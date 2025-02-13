@@ -6,11 +6,13 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.function.Consumer;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.data.BindingsMap;
+import org.enso.compiler.data.BindingsMap.ResolutionError;
+import org.enso.compiler.data.BindingsMap.ResolvedName;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
@@ -22,78 +24,71 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import scala.jdk.CollectionConverters;
+import scala.util.Either;
 
 public class BindingsMapResolutionTest {
   @ClassRule public static final TemporaryFolder TMP_DIR = new TemporaryFolder();
 
   @Test
   public void resolveSingleName_FromSingleImport() throws IOException {
-    var src = """
-        import Standard.Base.Data.Vector.Vector
-        """;
+    var projDir = createProject("import local.Proj.My_Vector.My_Vector");
     testBindingsMap(
-        src,
+        projDir,
         bindingsMap -> {
-          assertThat("Has resolved import", bindingsMap.resolvedImports().size(), is(1));
-          var resolution = bindingsMap.resolveName("Vector");
-          assertThat("Vector is resolved", resolution.isRight(), is(true));
-          var resolvedNames = resolution.toOption().get();
-          assertThat("single resolution found", resolvedNames.size(), is(1));
-          assertThat("is ResolvedType", resolvedNames.head() instanceof ResolvedType, is(true));
-        });
-  }
-
-  @Test
-  public void resolveQualifiedName_FromSingleImport() throws IOException {
-    var src = """
-        import Standard.Base.Data.Vector.Vector
-        """;
-    testBindingsMap(
-        src,
-        bindingsMap -> {
-          assertThat("Has resolved import", bindingsMap.resolvedImports().size(), is(1));
-          var resolution =
-              bindingsMap.resolveQualifiedName(
-                  toScalaList(List.of("Standard", "Base", "Data", "Vector", "Vector")));
-          assertThat("Vector is resolved", resolution.isRight(), is(true));
-          var resolvedNames = resolution.toOption().get();
-          assertThat("single resolution found", resolvedNames.size(), is(1));
-          assertThat("is ResolvedType", resolvedNames.head() instanceof ResolvedType, is(true));
+          assertSingleResolvedType(bindingsMap, "My_Vector");
         });
   }
 
   @Test
   public void resolveSingleName_FromSingleImportWithFrom() throws IOException {
-    var src = """
-        from Standard.Base.Data.Vector import Vector
-        """;
+    var projDir = createProject("from local.Proj.My_Vector import My_Vector");
     testBindingsMap(
-        src,
+        projDir,
         bindingsMap -> {
-          assertThat("Has resolved import", bindingsMap.resolvedImports().size(), is(1));
-          var resolution = bindingsMap.resolveName("Vector");
-          assertThat("Vector is resolved", resolution.isRight(), is(true));
-          var resolvedNames = resolution.toOption().get();
-          assertThat("single resolution found", resolvedNames.size(), is(1));
-          assertThat("is ResolvedType", resolvedNames.head() instanceof ResolvedType, is(true));
+          assertSingleResolvedType(bindingsMap, "My_Vector");
         });
   }
 
-  /**
-   * Compiles the given module source and gets the {@link BindingsMap} from it. Which is passed to
-   * the {@code callback}.
-   */
-  private static void testBindingsMap(String moduleSrc, Consumer<BindingsMap> callback)
-      throws IOException {
+  @Test
+  public void resolveQualifiedName_FromSingleImport() throws IOException {
+    var projDir = createProject("import local.Proj.My_Vector.My_Vector");
+    testBindingsMap(
+        projDir,
+        bindingsMap -> {
+          assertSingleResolvedType(bindingsMap, "local.Proj.My_Vector.My_Vector");
+        });
+  }
+
+  private Path createProject(String mainModuleSrc) throws IOException {
     var projDir = TMP_DIR.newFolder().toPath();
-    var mainSrcMod =
-        new SourceModule(
-            QualifiedName.fromString("Main"),
-            """
-        from Standard.Base import all
-        main = 42
-        """);
-    ProjectUtils.createProject("Proj", Set.of(mainSrcMod), projDir);
+    var modules =
+        Set.of(
+            new SourceModule(QualifiedName.fromString("Main"), mainModuleSrc),
+            new SourceModule(
+                QualifiedName.fromString("My_Vector"),
+                """
+            type My_Vector
+            """));
+    ProjectUtils.createProject("Proj", modules, projDir);
+    return projDir;
+  }
+
+  private static void assertSingleResolvedType(BindingsMap bindingsMap, String typeName) {
+    assertThat("Has resolved import", bindingsMap.resolvedImports().size(), is(1));
+    Either<ResolutionError, scala.collection.immutable.List<ResolvedName>> resolution;
+    if (typeName.contains(".")) {
+      var fqn = Arrays.stream(typeName.split("\\.")).toList();
+      resolution = bindingsMap.resolveQualifiedName(toScalaList(fqn));
+    } else {
+      resolution = bindingsMap.resolveName(typeName);
+    }
+    assertThat("Type '" + typeName + "' is resolved", resolution.isRight(), is(true));
+    var resolvedNames = resolution.toOption().get();
+    assertThat("single resolution found", resolvedNames.size(), is(1));
+    assertThat("is ResolvedType", resolvedNames.head() instanceof ResolvedType, is(true));
+  }
+
+  private static void testBindingsMap(Path projDir, Consumer<BindingsMap> callback) {
     try (var ctx = createCtx(projDir)) {
       compile(ctx);
       var bm = getBindingsMap(ctx, "local.Proj.Main");
