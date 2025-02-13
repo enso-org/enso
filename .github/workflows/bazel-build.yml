@@ -15,7 +15,7 @@ jobs:
         with:
           bazelisk-cache: true
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
-      - uses: actions/checkout@v4
+      - uses: submodules
       - name: Expose env variables
         run: |
           cat << END > app/gui/.env.production

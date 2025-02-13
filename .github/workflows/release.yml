@@ -53,7 +53,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
       - if: runner.os == 'macOS'
         name: Setup nodejs version
         uses: actions/setup-node@v4
@@ -98,7 +97,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
       - if: runner.os == 'macOS'
         name: Setup nodejs version
         uses: actions/setup-node@v4
@@ -156,7 +154,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
       - if: runner.os == 'macOS'
         name: Setup nodejs version
         uses: actions/setup-node@v4
@@ -214,7 +211,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
       - if: runner.os == 'macOS'
         name: Setup nodejs version
         uses: actions/setup-node@v4
@@ -264,7 +260,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
       - if: runner.os == 'macOS'
         name: Setup nodejs version
         uses: actions/setup-node@v4
@@ -318,7 +313,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
       - if: runner.os == 'macOS'
         name: Setup nodejs version
         uses: actions/setup-node@v4
@@ -370,7 +364,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
       - if: runner.os == 'macOS'
         name: Setup nodejs version
         uses: actions/setup-node@v4
@@ -423,7 +416,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
       - if: runner.os == 'macOS'
         name: Setup nodejs version
         uses: actions/setup-node@v4
@@ -481,7 +473,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
       - if: runner.os == 'macOS'
         name: Setup nodejs version
         uses: actions/setup-node@v4
@@ -538,7 +529,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
       - if: runner.os == 'macOS'
         name: Setup nodejs version
         uses: actions/setup-node@v4
@@ -614,7 +604,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
       - if: runner.os == 'macOS'
         name: Setup nodejs version
         uses: actions/setup-node@v4
@@ -695,7 +684,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
       - if: runner.os == 'macOS'
         name: Setup nodejs version
         uses: actions/setup-node@v4
@@ -777,7 +765,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
       - if: runner.os == 'macOS'
         name: Setup nodejs version
         uses: actions/setup-node@v4
