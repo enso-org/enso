@@ -269,6 +269,7 @@ onMounted(() => {
         </div>
         <div v-for="entry in directories" :key="entry.id">
           <SvgButton name="folder" class="entry" @click="enterDir(entry)">
+            <!-- TODO[ao]: Context menu allowing renaming dir. -->
             <input
               v-if="editedAsset?.asset === entry && editedAsset.state === 'editing'"
               v-model="editedAsset.name"
