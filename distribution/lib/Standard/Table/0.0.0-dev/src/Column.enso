@@ -241,7 +241,7 @@ type Column
 
              example_eq = Examples.integer_column == 1
     == : Column | Any -> Column
-    == self other =
+    == self other -> Column =
         new_name = naming_helper.binary_operation_name "==" self other
         fallback problem_builder a b =
             if (a.is_a Float) || (b.is_a Float) then
@@ -263,7 +263,7 @@ type Column
        `other`.
     @locale Locale.default_widget
     equals_ignore_case : Column | Any -> Locale -> Column
-    equals_ignore_case self other locale:Locale=Locale.default =
+    equals_ignore_case self other locale:Locale=Locale.default -> Column =
         ## TODO currently this always runs the fallback which is slow due to the
            cost of Java-to-Enso calls. We want to have a vectorized
            implementation, but we need to extend the architecture to allow
@@ -309,7 +309,7 @@ type Column
 
              example_neq = Examples.integer_column != 1
     != : Column | Any -> Column
-    != self other =
+    != self other -> Column =
         new_name = naming_helper.binary_operation_name "!=" self other
         (self == other).not . rename new_name
 
@@ -340,7 +340,7 @@ type Column
 
              example_geq = Examples.integer_column >= 1
     >= : Column | Any -> Column
-    >= self other = Value_Type.expect_comparable self other <|
+    >= self other -> Column = Value_Type.expect_comparable self other <|
         Incomparable_Values.handle_errors <|
             run_vectorized_binary_op self Java_Storage.Maps.GTE fallback_fn=(>=) other expected_result_type=Value_Type.Boolean
 
@@ -371,7 +371,7 @@ type Column
 
              example_leq = Examples.integer_column <= 1
     <= : Column | Any -> Column
-    <= self other = Value_Type.expect_comparable self other <|
+    <= self other -> Column = Value_Type.expect_comparable self other <|
         Incomparable_Values.handle_errors <|
             run_vectorized_binary_op self Java_Storage.Maps.LTE fallback_fn=(<=) other expected_result_type=Value_Type.Boolean
 
@@ -402,7 +402,7 @@ type Column
 
              example_gt = Examples.integer_column > 1
     > : Column | Any -> Column
-    > self other = Value_Type.expect_comparable self other <|
+    > self other -> Column = Value_Type.expect_comparable self other <|
         Incomparable_Values.handle_errors <|
             run_vectorized_binary_op self Java_Storage.Maps.GT fallback_fn=(>) other expected_result_type=Value_Type.Boolean
 
@@ -433,7 +433,7 @@ type Column
 
              example_lt = Examples.integer_column < 1
     < : Column | Any -> Column
-    < self other = Value_Type.expect_comparable self other <|
+    < self other -> Column = Value_Type.expect_comparable self other <|
         Incomparable_Values.handle_errors <|
             run_vectorized_binary_op self Java_Storage.Maps.LT fallback_fn=(<) other expected_result_type=Value_Type.Boolean
 
