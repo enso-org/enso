@@ -30,15 +30,19 @@ export default function ConfirmRegistration() {
   const { confirmSignUp } = useSessionAPI()
   const { getText } = useText()
 
-  const navigate = router.useNavigate()
   const [searchParams] = router.useSearchParams()
 
-  const verificationCode = searchParams.get('verification_code')
   const email = searchParams.get('email')
+  const redirectUrl = searchParams.get('redirect_url')
+  const verificationCode = searchParams.get('verification_code')
 
   const { startTimer } = useTimeoutAPI({ ms: REDIRECT_TIMEOUT })
 
   const url = (() => {
+    if (redirectUrl != null) {
+      return redirectUrl
+    }
+
     searchParams.delete('verification_code')
     searchParams.delete('email')
     searchParams.delete('redirect_url')
@@ -120,13 +124,7 @@ export default function ConfirmRegistration() {
           )}
 
           {confirmRegistrationMutation.isSuccess && (
-            <Button
-              onPress={() => {
-                navigate(appUtils.LOGIN_PATH)
-              }}
-            >
-              {getText('openInDesktop')}
-            </Button>
+            <Button href={url}>{getText('openInDesktop')}</Button>
           )}
         </Button.Group>
       </Result>

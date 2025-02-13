@@ -373,6 +373,19 @@ export function useAuth() {
   return context
 }
 
+/**
+ * A React Router layout route containing routes only accessible by users that are logged in.
+ */
+export function AnyLoggedInUserLayout() {
+  const { session } = useAuth()
+
+  if (session == null) {
+    return <router.Navigate to={appUtils.LOGIN_PATH} />
+  }
+
+  return <router.Outlet context={session} />
+}
+
 // =======================
 // === ProtectedLayout ===
 // =======================

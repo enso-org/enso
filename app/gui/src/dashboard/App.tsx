@@ -513,9 +513,13 @@ function AppRouter(props: AppRouterProps) {
       </router.Route>
 
       <router.Route element={<AgreementsModal />}>
-        <router.Route element={<authProvider.SemiProtectedLayout />}>
-          <router.Route element={<CloudBrowserDisabledLayout redirectPath={appUtils.SETUP_PATH} />}>
-            <router.Route path={appUtils.SETUP_PATH} element={<setup.Setup />} />
+        <router.Route element={<authProvider.AnyLoggedInUserLayout />}>
+          <router.Route element={<authProvider.NotDeletedUserLayout />}>
+            <router.Route
+              element={<CloudBrowserDisabledLayout redirectPath={appUtils.SETUP_PATH} />}
+            >
+              <router.Route path={appUtils.SETUP_PATH} element={<setup.Setup />} />
+            </router.Route>
           </router.Route>
         </router.Route>
       </router.Route>

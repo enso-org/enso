@@ -92,7 +92,7 @@
   "confirmRegistrationTitleError": "Could not confirm your email",
   "confirmRegistrationSubtitleError": "Please try again or contact the administrators.",
   "confirmRegistrationTitleSuccess": "Email confirmed!",
-  "confirmRegistrationSubtitleSuccess": "You will be redirected back to the IDE shortly. If you are not redirected, please click the button below.",
+  "confirmRegistrationSubtitleSuccess": "You will be redirected back to the IDE shortly. ",
   "confirmRegistrationTitleIdle": "Confirm your email",
   "confirmRegistrationSubtitleIdle": "Please enter the verification code we emailed you.",
   "setUsernameError": "Could not set your username.",
