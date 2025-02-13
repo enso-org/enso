@@ -1479,6 +1479,7 @@ export default class RemoteBackend extends Backend {
 
     const queryString = new URLSearchParams({
       downloadUrl: details.url,
+      projectId: id,
     })
 
     const response = await this.client.get(`./api/cloud/download-project?${queryString}`)

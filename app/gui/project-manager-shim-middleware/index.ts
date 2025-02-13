@@ -144,6 +144,7 @@ export default function projectManagerShimMiddleware(
       case '/api/cloud/download-project': {
         const url = new URL(`https://example.com/${requestUrl}`)
         const downloadUrl = url.searchParams.get('downloadUrl')
+        const projectId = url.searchParams.get('projectId')
 
         if (downloadUrl == null) {
           response
@@ -152,11 +153,21 @@ export default function projectManagerShimMiddleware(
           break
         }
 
+        if (projectId == null) {
+          response
+            .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
+            .end('Request is missing search parameter `projectId`.')
+          break
+        }
+
         https.get(downloadUrl, (actualResponse) => {
-          projectManagement
-            .unpackBundle(actualResponse)
+          const projectsDirectory = projectManagement.getProjectsDirectory()
+          const targetDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
+
+          fs.mkdir(targetDirectory, { recursive: true })
+            .then(() => projectManagement.unpackBundle(actualResponse, targetDirectory))
             .then((projectDirectory) => {
-              return response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end(projectDirectory)
+              response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end(projectDirectory)
             })
             .catch((e) => {
               console.error(e)
