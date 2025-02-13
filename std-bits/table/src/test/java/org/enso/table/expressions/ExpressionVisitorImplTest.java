@@ -1,16 +1,16 @@
 package org.enso.table.expressions;
 
-import java.util.function.Function;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.util.function.Function;
 import org.enso.table.expressions.ExpressionVisitorImpl.Method;
 import org.graalvm.polyglot.Value;
-import static org.junit.Assert.assertEquals;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -39,7 +39,7 @@ public class ExpressionVisitorImplTest {
 
   @Test
   public void testSimpleMethodOnColumn() {
- Value mockedColumn1 = mock(Value.class);
+    Value mockedColumn1 = mock(Value.class);
     Method mockedMethodTextLength = mock(Method.class);
     Value mockedResult = mock(Value.class);
     Value mockedEnsoMethod = mock(Value.class);
