@@ -1731,7 +1731,7 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.is_in [1, 2, 5]
-    is_in self (vector : Vector | Column) -> Column =
+    is_in self (vector : Vector | Column | Array) -> Column =
         result_name = naming_helper.concat [naming_helper.to_expression_text self, "in", naming_helper.to_expression_text vector]
         as_vector = case vector of
             _ : Vector -> vector
