@@ -2,19 +2,18 @@
  * @file A HTTP server middleware which handles routes normally proxied through to
  * the Project Manager.
  */
+import * as crypto from 'node:crypto'
 import * as fsSync from 'node:fs'
 import * as fs from 'node:fs/promises'
 import * as http from 'node:http'
 import * as https from 'node:https'
 import * as path from 'node:path'
-import * as stream from 'node:stream'
 
 import * as tar from 'tar'
 import * as yaml from 'yaml'
 
 import GLOBAL_CONFIG from 'enso-common/src/config.json' with { type: 'json' }
 
-import * as random from 'lib0/random.js'
 import * as projectManagement from './projectManagement'
 
 // =================
@@ -359,7 +358,7 @@ export default function projectManagerShimMiddleware(
                               typeof packageMetadataYaml.name === 'string'
                             ) {
                               projectMetadataJson = {
-                                id: random.uuidv4().toString(),
+                                id: crypto.randomUUID(),
                                 kind: 'UserProject',
                                 created: new Date().toISOString(),
                                 lastOpened: null,
