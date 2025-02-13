@@ -15,7 +15,7 @@ const _props = defineProps<{
 <template>
   <MenuButton :disabled="disabled" class="SvgButton" :title="title">
     <SvgIcon v-if="name" :name="name" />
-    <slot />
+    <div v-if="label">{{ label }}</div>
   </MenuButton>
 </template>
 

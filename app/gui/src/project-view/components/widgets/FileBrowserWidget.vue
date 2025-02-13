@@ -5,7 +5,6 @@ export default {
 </script>
 
 <script setup lang="ts">
-import PointFloatingMenu from '@/components/PointFloatingMenu.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
@@ -404,8 +403,5 @@ onMounted(() => {
   margin: 0px;
   padding: 4px 12px;
   background-color: var(--color-frame-selected-bg);
-}
-
-.MenuButton {
 }
 </style>

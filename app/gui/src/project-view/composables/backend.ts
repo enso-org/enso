@@ -1,6 +1,7 @@
 import { injectBackend } from '@/providers/backend'
 import type { ToValue } from '@/util/reactivity'
 import type {
+  UseMutationOptions,
   UseMutationReturnType,
   UseQueryOptions,
   UseQueryReturnType,
@@ -45,7 +46,11 @@ function backendQueryOptions<Method extends BackendQueryMethod>(
 function backendMutationOptions<Method extends BackendMutationMethod>(
   method: Method,
   backend: Backend | null,
-) {
+): UseMutationOptions<
+  Awaited<ReturnType<Backend[Method]>> | undefined,
+  Error,
+  Parameters<Backend[Method]>
+> {
   const invalidates =
     INVALIDATION_MAP[method]?.map((queryMethod) =>
       queryMethod === INVALIDATE_ALL_QUERIES ? [backend?.type] : [backend?.type, queryMethod],
@@ -54,10 +59,7 @@ function backendMutationOptions<Method extends BackendMutationMethod>(
   return {
     ...backendBaseOptions(backend),
     mutationKey: [backend?.type, method],
-    mutationFn: (
-      args: Parameters<Backend[Method]>,
-    ): Promise<Awaited<ReturnType<Backend[Method]>> | undefined> =>
-      backend?.[method]?.(...args) ?? Promise.resolve(undefined),
+    mutationFn: (args) => (backend ? (backend[method] as any)(...args) : undefined),
     meta: {
       invalidates,
       awaitInvalidates: true,
