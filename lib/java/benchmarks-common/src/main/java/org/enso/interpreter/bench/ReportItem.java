@@ -5,12 +5,11 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlElementWrapper;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
+import jakarta.xml.bind.annotation.XmlType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
-
-import jakarta.xml.bind.annotation.XmlType;
 import org.openjdk.jmh.util.Statistics;
 
 /** Contains historic results for a single benchmark identified by label. */
@@ -47,7 +46,8 @@ public class ReportItem {
       this.percentiles = null;
     }
 
-    public MeasurementStatistics(double stddev, double error50, double error95, Percentile[] percentiles) {
+    public MeasurementStatistics(
+        double stddev, double error50, double error95, Percentile[] percentiles) {
       this.stddev = stddev;
       this.error50 = error50;
       this.error95 = error95;
@@ -59,14 +59,13 @@ public class ReportItem {
           stats.getStandardDeviation(),
           stats.getMeanErrorAt(0.5),
           stats.getMeanErrorAt(0.95),
-          new Percentile[]{
+          new Percentile[] {
             Percentile.fromStats(10, stats),
             Percentile.fromStats(25, stats),
             Percentile.fromStats(50, stats),
             Percentile.fromStats(75, stats),
             Percentile.fromStats(90, stats)
-          }
-      );
+          });
     }
   }
 
