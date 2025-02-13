@@ -1,9 +1,12 @@
-import { ZonedDateTime, getDayOfWeek, parseAbsolute } from '@internationalized/date'
+import { ZonedDateTime, parseAbsolute } from '@internationalized/date'
 import { EMPTY_ARRAY } from '../../utilities/data/array'
+import { DAYS_PER_WEEK, MONTHS_PER_YEAR, getDay } from '../../utilities/data/dateTime'
 import { ProjectExecutionInfo } from '../Backend'
 
-const DAYS_PER_WEEK = 7
-const MONTHS_PER_YEAR = 12
+/** Positive modulo of the number with respect to the base. */
+function remainder(n: number, mod: number) {
+  return ((n % mod) + mod) % mod
+}
 
 /** The first execution date of the given {@link ProjectExecution} on or after the given date. */
 export function firstProjectExecutionOnOrAfter(
@@ -16,7 +19,7 @@ export function firstProjectExecutionOnOrAfter(
     new Date(projectExecution.startDate).toISOString(),
     startDate.timeZone,
   )
-  if (nextDate < executionStartDate) {
+  if (nextDate.compare(executionStartDate) < 0) {
     nextDate = executionStartDate
   }
   nextDate = nextDate.set({
@@ -29,23 +32,23 @@ export function firstProjectExecutionOnOrAfter(
   }
   switch (repeat.type) {
     case 'daily': {
-      const currentDay = getDayOfWeek(nextDate, 'en-US')
+      const currentDay = getDay(nextDate)
       const day = repeat.daysOfWeek.find((day) => day >= currentDay) ?? repeat.daysOfWeek[0] ?? 0
-      const dayOffset = (day - currentDay + DAYS_PER_WEEK) % DAYS_PER_WEEK
+      const dayOffset = remainder(day - currentDay, DAYS_PER_WEEK)
       nextDate = nextDate.add({ days: dayOffset })
       break
     }
     case 'monthly-weekday': {
       const currentDate = nextDate.day
       nextDate = nextDate.set({ day: 1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK })
-      const currentDay = getDayOfWeek(nextDate, 'en-US')
+      const currentDay = getDay(nextDate)
       const dayOffset = (repeat.dayOfWeek - currentDay + 7) % 7
       nextDate = nextDate.add({ days: dayOffset })
       if (nextDate.day < currentDate) {
         nextDate = nextDate.set({ day: 1 })
         nextDate = nextDate.add({ months: 1 })
         nextDate = nextDate.set({ day: 1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK })
-        const currentDay = getDayOfWeek(nextDate, 'en-US')
+        const currentDay = getDay(nextDate)
         const dayOffset = (repeat.dayOfWeek - currentDay + 7) % 7
         nextDate = nextDate.add({ days: dayOffset })
       }
@@ -59,8 +62,8 @@ export function firstProjectExecutionOnOrAfter(
       if (goToNextMonth) {
         const startMonth = nextDate.month
         nextDate = nextDate.add({ months: 1 })
-        if ((nextDate.month + MONTHS_PER_YEAR - startMonth) % MONTHS_PER_YEAR > 1) {
-          nextDate = nextDate.set({ day: 0 })
+        if (remainder(nextDate.month - startMonth, MONTHS_PER_YEAR) > 1) {
+          nextDate = nextDate.set({ day: 1 })
         }
       }
       break
@@ -74,7 +77,7 @@ export function firstProjectExecutionOnOrAfter(
     case 'monthly-weekday': {
       const currentMonth = nextDate.month
       const month = repeat.months.find((month) => month >= currentMonth) ?? repeat.months[0] ?? 0
-      const monthOffset = (month - currentMonth + MONTHS_PER_YEAR) % MONTHS_PER_YEAR
+      const monthOffset = remainder(month - currentMonth, MONTHS_PER_YEAR)
       nextDate = nextDate.add({ months: monthOffset })
     }
   }
@@ -90,7 +93,7 @@ export function nextProjectExecutionDate(
   const { repeat } = projectExecution
   switch (repeat.type) {
     case 'daily': {
-      const currentDay = getDayOfWeek(nextDate, 'en-US')
+      const currentDay = getDay(nextDate)
       const day = repeat.daysOfWeek.find((day) => day > currentDay) ?? repeat.daysOfWeek[0] ?? 0
       const dayOffset = ((day - currentDay + 6) % 7) + 1
       nextDate = nextDate.add({ days: dayOffset })
@@ -100,7 +103,7 @@ export function nextProjectExecutionDate(
       nextDate = nextDate.set({ day: 1 })
       nextDate = nextDate.add({ months: 1 })
       nextDate = nextDate.set({ day: 1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK })
-      const currentDay = getDayOfWeek(nextDate, 'en-US')
+      const currentDay = getDay(nextDate)
       const dayOffset = ((repeat.dayOfWeek - currentDay + 6) % 7) + 1
       nextDate = nextDate.add({ days: dayOffset })
       break
@@ -108,8 +111,8 @@ export function nextProjectExecutionDate(
     case 'monthly-date': {
       const startMonth = nextDate.month
       nextDate = nextDate.add({ months: 1 })
-      if ((nextDate.month + MONTHS_PER_YEAR - startMonth) % MONTHS_PER_YEAR > 1) {
-        nextDate = nextDate.set({ day: 0 })
+      if (remainder(nextDate.month - startMonth, MONTHS_PER_YEAR) > 1) {
+        nextDate = nextDate.set({ day: 1 })
       }
       break
     }
@@ -122,7 +125,7 @@ export function nextProjectExecutionDate(
     case 'monthly-weekday': {
       const currentMonth = nextDate.month
       const month = repeat.months.find((month) => month >= currentMonth) ?? repeat.months[0] ?? 0
-      const monthOffset = (month - currentMonth + MONTHS_PER_YEAR) % MONTHS_PER_YEAR
+      const monthOffset = remainder(month - currentMonth, MONTHS_PER_YEAR)
       nextDate = nextDate.add({ months: monthOffset })
     }
   }
@@ -146,7 +149,7 @@ export function getProjectExecutionRepetitionsForDateRange(
   const repetitions: ZonedDateTime[] = [firstDate]
   let currentDate = firstDate
   currentDate = nextProjectExecutionDate(projectExecution, currentDate)
-  while (currentDate < endDate) {
+  while (currentDate.compare(endDate) < 0) {
     repetitions.push(currentDate)
     currentDate = nextProjectExecutionDate(projectExecution, currentDate)
   }

@@ -1,13 +1,15 @@
 /** @file Utilities for manipulating and displaying dates and times. */
-import { ZonedDateTime } from '@internationalized/date'
+import { ZonedDateTime, getDayOfWeek } from '@internationalized/date'
 import type { TextId } from '../../text'
 import { type Newtype, newtypeConstructor } from './newtype'
 
+const DAY_OF_WEEK_LOCALE = 'en-US'
 const ISO_FORMAT = Intl.DateTimeFormat('sv', { dateStyle: 'short', timeStyle: 'short' })
 /** The number of hours in half a day. This is used to get the number of hours for AM/PM time. */
 export const HALF_DAY_HOURS = 12
 export const MAX_DAYS_PER_MONTH = 31
 export const DAYS_PER_WEEK = 7
+export const MONTHS_PER_YEAR = 12
 
 /** A mapping from the month index returned by {@link Date.getMonth} to its full name. */
 export const MONTH_NAMES = [
@@ -123,4 +125,9 @@ export function zonedDateTimeToReadableIsoString(date: ZonedDateTime) {
   const isoString = date.toString()
   const [, dateString, hour, minute] = isoString.match(/(.+)T(\d+):(\d+)/) ?? []
   return `${dateString} ${hour}:${minute}`
+}
+
+/** Get a consistent day number for the day of week no matter the locale of the local device. */
+export function getDay(date: ZonedDateTime) {
+  return getDayOfWeek(date, DAY_OF_WEEK_LOCALE)
 }

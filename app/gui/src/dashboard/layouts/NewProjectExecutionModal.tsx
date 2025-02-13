@@ -3,7 +3,6 @@ import * as z from 'zod'
 
 import {
   endOfMonth,
-  getDayOfWeek,
   getLocalTimeZone,
   now,
   parseZonedDateTime,
@@ -52,6 +51,7 @@ import {
 import {
   DAY_3_LETTER_TEXT_IDS,
   DAY_TEXT_IDS,
+  getDay,
   MONTH_3_LETTER_TEXT_IDS,
   toRfc3339,
   zonedDateTimeToReadableIsoString,
@@ -152,7 +152,7 @@ const UPSERT_EXECUTION_SCHEMA = z
           case 'monthly-weekday': {
             return {
               type: repeatType,
-              dayOfWeek: getDayOfWeek(startDate, 'en-US'),
+              dayOfWeek: getDay(startDate),
               weekNumber: Math.floor(startDate.day / DAYS_PER_WEEK) + 1,
               months,
             }
@@ -160,7 +160,7 @@ const UPSERT_EXECUTION_SCHEMA = z
           case 'monthly-last-weekday': {
             return {
               type: repeatType,
-              dayOfWeek: getDayOfWeek(startDate, 'en-US'),
+              dayOfWeek: getDay(startDate),
               months,
             }
           }
@@ -215,7 +215,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   )
   const valueJson = useRef('')
 
-  const minFirstOccurrence = now(timeZone)
+  const minFirstOccurrence = now('UTC')
   const defaultStartDate = defaultDate ?? minFirstOccurrence
   const form = Form.useForm({
     method: 'dialog',
@@ -227,7 +227,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       startDate: defaultStartDate,
       maxDurationMinutes: MAX_DURATION_DEFAULT_MINUTES,
       // Use `en-US` locale because it matches JavaScript conventions.
-      days: [getDayOfWeek(minFirstOccurrence, 'en-US')],
+      days: [getDay(minFirstOccurrence)],
       months: MONTHS,
       timeZone,
     },
@@ -281,7 +281,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
 
   const repeatText = useEventCallback((otherRepeatType: typeof repeatType) => {
     // Use `en-US` locale because it matches JavaScript conventions.
-    const dayOfWeekNumber = getDayOfWeek(date, 'en-US')
+    const dayOfWeekNumber = getDay(date)
     const dayOfWeek = getText(DAY_TEXT_IDS[dayOfWeekNumber] ?? 'monday')
     switch (otherRepeatType) {
       case 'none': {
