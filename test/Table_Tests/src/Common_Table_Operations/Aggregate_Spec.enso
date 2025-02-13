@@ -1260,7 +1260,6 @@ add_aggregate_specs suite_builder setup =
             _ : Float -> Double.isNaN value
             _       -> False
         if matches.not then
-
             Test.fail "Expected a Nothing or NaN but got: "+value.to_text+" (at "+Frame_Hider.get_top_stack_frame+")."
 
     if setup.flagged ..Supports_Infinity then suite_builder.group prefix+"Table.aggregate should correctly handle infinities" group_builder->
