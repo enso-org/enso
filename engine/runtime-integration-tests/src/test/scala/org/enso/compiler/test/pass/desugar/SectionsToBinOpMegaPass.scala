@@ -111,7 +111,7 @@ case object SectionsToBinOpMegaPass extends IRPass {
             true,
             identifiedLocation = null
           )
-        val rightDefArg = DefinitionArgument.Specified(
+        val rightDefArg = new DefinitionArgument.Specified(
           rightArgName.duplicate(),
           None,
           None,
@@ -128,7 +128,7 @@ case object SectionsToBinOpMegaPass extends IRPass {
               true,
               identifiedLocation = null
             )
-          val leftDefArg = DefinitionArgument.Specified(
+          val leftDefArg = new DefinitionArgument.Specified(
             leftArgName.duplicate(),
             None,
             None,
@@ -177,7 +177,7 @@ case object SectionsToBinOpMegaPass extends IRPass {
             true,
             identifiedLocation = null
           )
-        val leftDefArg = DefinitionArgument.Specified(
+        val leftDefArg = new DefinitionArgument.Specified(
           leftArgName.duplicate(),
           None,
           None,
@@ -193,7 +193,7 @@ case object SectionsToBinOpMegaPass extends IRPass {
             true,
             identifiedLocation = null
           )
-        val rightDefArg = DefinitionArgument.Specified(
+        val rightDefArg = new DefinitionArgument.Specified(
           rightArgName.duplicate(),
           None,
           None,
@@ -251,7 +251,7 @@ case object SectionsToBinOpMegaPass extends IRPass {
             identifiedLocation = null
           )
         val leftDefArg =
-          DefinitionArgument.Specified(
+          new DefinitionArgument.Specified(
             leftArgName.duplicate(),
             None,
             None,
@@ -269,7 +269,7 @@ case object SectionsToBinOpMegaPass extends IRPass {
               true,
               identifiedLocation = null
             )
-          val rightDefArg = DefinitionArgument.Specified(
+          val rightDefArg = new DefinitionArgument.Specified(
             rightArgName.duplicate(),
             None,
             None,

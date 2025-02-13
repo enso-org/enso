@@ -302,7 +302,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     if (fnAndType != null) {
       var ctx = EnsoContext.get(this);
       if (ctx.getBuiltins().any() != fnAndType.getRight()) {
-        var unwrapSelf = castTo.findTypeOrNull(fnAndType.getRight(), self, false, false);
+        var unwrapSelf = castTo.findTypeOrNull(fnAndType.getRight(), self, true, false);
         if (unwrapSelf != null) {
           assert arguments[0] == self;
           arguments[0] = unwrapSelf;

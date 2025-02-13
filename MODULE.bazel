@@ -11,7 +11,7 @@ bazel_dep(name = "aspect_bazel_lib", version = "2.10.0")
 
 ## Node.js
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
-node.toolchain(node_version = "20.11.1")
+node.toolchain(node_version = "22.11.0")
 
 tar_toolchain = use_extension("//toolchains:tar/extensions.bzl", "tar_toolchain")
 use_repo(tar_toolchain, "tar_toolchain")

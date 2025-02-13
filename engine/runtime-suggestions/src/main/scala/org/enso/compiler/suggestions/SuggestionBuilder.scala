@@ -423,7 +423,7 @@ final class SuggestionBuilder[A: IndexedSource](
     argument: DefinitionArgument
   ): Suggestion = {
     val getterName = argument.name.name
-    val thisArg = DefinitionArgument.Specified(
+    val thisArg = new DefinitionArgument.Specified(
       name               = Name.Self(identifiedLocation = null),
       ascribedType       = None,
       defaultValue       = None,
@@ -566,23 +566,17 @@ final class SuggestionBuilder[A: IndexedSource](
         (acc, targs.lastOption)
       } else {
         vargs match {
-          case DefinitionArgument.Specified(
-                name: Name.Self,
-                _,
-                defaultValue,
-                suspended,
-                _,
-                _
-              ) +: vtail =>
+          case (defArg: DefinitionArgument.Specified) +: vtail
+              if defArg.name().isInstanceOf[Name.Self] =>
             if (isStatic) {
               go(vtail, targs, acc)
             } else {
               val thisArg = Suggestion.Argument(
-                name         = name.name,
+                name         = defArg.name.name,
                 reprType     = selfType.toString,
-                isSuspended  = suspended,
-                hasDefault   = defaultValue.isDefined,
-                defaultValue = defaultValue.map(buildDefaultValue)
+                isSuspended  = defArg.suspended,
+                hasDefault   = defArg.defaultValue.isDefined,
+                defaultValue = defArg.defaultValue.map(buildDefaultValue)
               )
               go(vtail, targs, acc :+ thisArg)
             }
@@ -770,7 +764,9 @@ final class SuggestionBuilder[A: IndexedSource](
     */
   private def buildDefaultValue(expr: IR): String =
     expr match {
-      case Application.Prefix(name, path, _, _, _) =>
+      case app: Application.Prefix =>
+        val name = app.function
+        val path = app.arguments
         path.map(_.value.showCode()).mkString(".") + "." + name.showCode()
       case other => other.showCode()
     }

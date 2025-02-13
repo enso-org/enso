@@ -5,7 +5,7 @@ import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.pass.{IRPass, MiniIRPass, MiniPassFactory, PassManager}
 
-trait MiniPassTest extends CompilerTest {
+trait MiniPassTest extends CompilerTest with WithIRDumper {
   def testName: String
 
   /** Configuration for mini pass
@@ -59,15 +59,38 @@ trait MiniPassTest extends CompilerTest {
     code: String,
     createContext: () => InlineContext,
     testSpec: Expression => Unit,
-    compareIR: Boolean = false
+    compareIR: Boolean = false,
+    dumpIR: Boolean    = false,
+    graphName: String  = "Compiler Test"
   ): Unit = {
+    val expr = parseExpression(code)
     val megaIr = withClue("Mega pass inline compilation: ") {
       val ctx = createContext()
-      preprocessExpressionWithMegaPass(code, ctx)
+      if (dumpIR) {
+        processExprWithDump(
+          expr,
+          graphName,
+          "before mega pass",
+          "after mega pass",
+          e => preprocessExpressionWithMegaPass(e, ctx)
+        )
+      } else {
+        preprocessExpressionWithMegaPass(expr, ctx)
+      }
     }
     val miniIr = withClue("Mini pass inline compilation: ") {
       val ctx = createContext()
-      preprocessExpressionWithMiniPass(code, ctx)
+      if (dumpIR) {
+        processExprWithDump(
+          expr,
+          graphName,
+          "before mini pass",
+          "after mini pass",
+          e => preprocessExpressionWithMiniPass(e, ctx)
+        )
+      } else {
+        preprocessExpressionWithMiniPass(expr, ctx)
+      }
     }
     if (compareIR) {
       CompilerTests.assertIR("Should be the same", megaIr, miniIr)
@@ -100,23 +123,21 @@ trait MiniPassTest extends CompilerTest {
   }
 
   def preprocessExpressionWithMegaPass(
-    expression: String,
+    expression: Expression,
     inlineCtx: InlineContext
   ): Expression = {
-    val expr = parseExpression(expression)
     val preprocessedExpr =
-      megaPassManager.runPassesInline(expr, inlineCtx)
+      megaPassManager.runPassesInline(expression, inlineCtx)
     megaPass.runExpression(preprocessedExpr, inlineCtx)
   }
 
   def preprocessExpressionWithMiniPass(
-    expression: String,
+    expression: Expression,
     inlineCtx: InlineContext
   ): Expression = {
-    val expr     = parseExpression(expression)
     val miniPass = miniPassFactory.createForInlineCompilation(inlineCtx)
     val preprocessedExpr =
-      megaPassManager.runPassesInline(expr, inlineCtx)
+      megaPassManager.runPassesInline(expression, inlineCtx)
     MiniIRPass.compile(classOf[Expression], preprocessedExpr, miniPass)
   }
 
