@@ -1127,6 +1127,7 @@ pub fn checkout_repo_step() -> Step {
         with: Some(step::Argument::Checkout {
             repository: None,
             clean:      Some(false),
+            submodules: None,
         }),
         ..default()
     }
