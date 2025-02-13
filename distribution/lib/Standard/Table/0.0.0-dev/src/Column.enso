@@ -2091,8 +2091,7 @@ type Column
              import Standard.Examples
 
              example_map = Examples.integer_column.map (x -> x * x)
-    map : (Any -> Any) -> Boolean -> Value_Type | Auto -> Column ! Invalid_Value_Type
-    map self function skip_nothing=True expected_value_type=Auto =
+    map self (function : Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) -> Column ! Invalid_Value_Type =
         new_fn = if skip_nothing then (x-> if x.is_nothing then Nothing else function x) else function
         new_st = self.to_vector.map on_problems=No_Wrap.Value new_fn
         Column.from_vector self.name new_st value_type=expected_value_type
@@ -2132,8 +2131,7 @@ type Column
 
              example_zip =
                 Examples.integer_column.zip Examples.text_column_1 [_, _]
-    zip : Column -> (Any -> Any -> Any) -> Boolean -> Value_Type | Auto -> Column ! Invalid_Value_Type
-    zip self that:Column function skip_nothing=True expected_value_type=Auto =
+    zip self that:Column (function : Any -> Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) -> Column ! Invalid_Value_Type =
         new_fn = case skip_nothing of
             True ->
                 x -> y ->
@@ -2159,8 +2157,7 @@ type Column
              import Standard.Examples
 
              example_rename = Examples.integer_column.rename "My Numbers"
-    rename : Text -> Column ! Illegal_Argument
-    rename self name = naming_helper.ensure_name_is_valid name <|
+    rename self name:Text -> Column ! Illegal_Argument = naming_helper.ensure_name_is_valid name <|
         Illegal_Argument.handle_java_exception <|
             Column.from_java_column (self.java_column.rename name)
 
@@ -2174,8 +2171,7 @@ type Column
              import Standard.Examples
 
              example_name = Examples.text_column_2.name
-    name : Text
-    name self = self.java_column.getName
+    name self -> Text = self.java_column.getName
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -2187,8 +2183,7 @@ type Column
              import Standard.Examples
 
              example_length = Examples.text_column_2.length
-    length : Integer
-    length self = self.java_column . getSize
+    length self -> Integer = self.java_column . getSize
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -2200,8 +2195,7 @@ type Column
              import Standard.Examples
 
              example_count_nothing = Examples.text_column_2.count_nothing
-    count_nothing : Integer
-    count_nothing self = CountNothing.apply self.java_column
+    count_nothing self -> Integer = CountNothing.apply self.java_column
 
     ## PRIVATE
        Counts the number of text values with leading or trailing whitespace.
@@ -2239,8 +2233,7 @@ type Column
              import Standard.Examples
 
              example_count = Examples.text_column_2.count
-    count : Integer
-    count self = self.length - self.count_nothing
+    count self -> Integer = self.length - self.count_nothing
 
     ## GROUP Standard.Base.Selections
        ICON parse3
@@ -2259,8 +2252,7 @@ type Column
 
              example_at = Examples.integer_column.at 0
     @index (self-> Numeric_Input minimum=0 maximum=self.length-1)
-    at : Integer -> (Any | Nothing) ! Index_Out_Of_Bounds
-    at self index:Integer=0 =
+    at self index:Integer=0 -> Any | Nothing ! Index_Out_Of_Bounds =
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
     ## GROUP Standard.Base.Selections
@@ -2278,8 +2270,7 @@ type Column
 
              example_at = Examples.integer_column.get 0 -1
     @index (self-> Numeric_Input minimum=0 maximum=self.length-1)
-    get : Integer -> Any -> Any | Nothing
-    get self index:Integer=0 (~default=Nothing) =
+    get self index:Integer=0 (~default=Nothing) -> Any | Nothing =
         if index < 0 && index >= -self.length then self.get (self.length + index) default else
             valid_index = (index >= 0) && (index < self.length)
             if valid_index.not then default else
@@ -2293,8 +2284,7 @@ type Column
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
     @max_rows Rows_To_Read.default_widget
-    read : Rows_To_Read -> Column
-    read self (max_rows : Rows_To_Read = ..All_Rows) =
+    read self (max_rows : Rows_To_Read = ..All_Rows) -> Column =
         if max_rows.is_nothing then self else
             self.to_table.read max_rows . at 0
 
@@ -2308,8 +2298,7 @@ type Column
              import Standard.Examples
 
              example_to_vector = Examples.integer_column.to_vector
-    to_vector : Vector
-    to_vector self = Vector.from_polyglot_array self.java_column.getStorage.toList . map java_to_enso
+    to_vector self -> Vector = Vector.from_polyglot_array self.java_column.getStorage.toList . map java_to_enso
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -2317,8 +2306,7 @@ type Column
 
        The value type determines what type of values the column is storing and
        what operations are permitted.
-    value_type : Value_Type
-    value_type self =
+    value_type self -> Value_Type =
         storage_type = self.java_column.getStorage.getType
         Storage.to_value_type storage_type
 
@@ -2366,8 +2354,7 @@ type Column
              import Standard.Examples
 
              example_to_table = Examples.integer_column.to_table
-    to_table : Table
-    to_table self = from_java_table self.java_column.toTable
+    to_table self -> Table = from_java_table self.java_column.toTable
 
     ## ALIAS column type, field info, metadata
        GROUP Standard.Base.Metadata
@@ -2375,8 +2362,7 @@ type Column
        Returns a Table describing this column's contents and type.
 
        The table behaves like `Table.column_info.
-    info : Table
-    info self = self.to_table.column_info
+    info self -> Table = self.to_table.column_info
 
     ## ALIAS order_by
        GROUP Standard.Base.Selections
@@ -2419,7 +2405,7 @@ type Column
                  my_compare a b = Ordering.compare a.abs b.abs
                  Examples.decimal_column.sort by=my_compare
     sort : Sort_Direction -> Boolean -> (Any -> Any -> Ordering) | Nothing -> Column
-    sort self order:Sort_Direction=..Ascending missing_last:Boolean=True by=Nothing = case by of
+    sort self order:Sort_Direction=..Ascending missing_last:Boolean=True by=Nothing -> Column = case by of
         Nothing ->
             order_bool = case order of
                 Sort_Direction.Ascending -> True
@@ -2468,8 +2454,7 @@ type Column
              ## The take returns "Charlie"
              last_row = column.take (..Last 1)
     @range (self-> Index_Sub_Range.default_widget self.length)
-    take : (Index_Sub_Range | Range | Integer) -> Column
-    take self range:(Index_Sub_Range | Range | Integer)=..First =
+    take self range:(Index_Sub_Range | Range | Integer)=..First -> Column =
         take_helper self.length (self.at _) self.slice (slice_ranges self) range
 
     ## ALIAS remove, skip
@@ -2481,8 +2466,7 @@ type Column
        Arguments:
        - range: The selection of rows from the table to remove.
     @range (self-> Index_Sub_Range.default_widget self.length)
-    drop : (Index_Sub_Range | Range | Integer) -> Column
-    drop self range:(Index_Sub_Range | Range | Integer)=..First =
+    drop self range:(Index_Sub_Range | Range | Integer)=..First -> Column =
         drop_helper self.length (self.at _) self.slice (slice_ranges self) range
 
     ## PRIVATE
@@ -2507,8 +2491,7 @@ type Column
              import Standard.Examples
 
              example_first = Examples.integer_column.first
-    first : Any ! Index_Out_Of_Bounds
-    first self = self.at 0
+    first self -> Any ! Index_Out_Of_Bounds = self.at 0
 
     ## GROUP Standard.Base.Selections
        ICON select_row
@@ -2523,8 +2506,7 @@ type Column
              import Standard.Examples
 
              example_last = Examples.integer_column.last
-    last : Any ! Index_Out_Of_Bounds
-    last self = self.at (self.length - 1)
+    last self : Any ! Index_Out_Of_Bounds = self.at (self.length - 1)
 
     ## GROUP Standard.Base.Selections
        ICON order
@@ -2537,8 +2519,7 @@ type Column
              import Standard.Examples
 
              example_reverse = Examples.integer_column.reverse
-    reverse : Column
-    reverse self =
+    reverse self -> Column =
         mask = OrderMask.reverse self.length
         Column.from_java_column (self.java_column.applyMask mask)
 
@@ -2553,14 +2534,12 @@ type Column
              import Standard.Examples
 
              example_duplicate_count = Examples.integer_column.duplicate_count
-    duplicate_count : Column
-    duplicate_count self =
+    duplicate_count self -> Column =
         Column.from_java_column self.java_column.duplicateCount
 
     ## PRIVATE
        Provides a simplified text representation for display in the REPL and errors.
-    to_text : Text
-    to_text self = "(In-Memory Column "+self.name.to_text+")"
+    to_text self -> Text = "(In-Memory Column "+self.name.to_text+")"
 
     ## PRIVATE
        Helper for the expression to tell it which functions needs a Vector.
@@ -2579,8 +2558,7 @@ type Column
 
        Arguments:
        - statistic: Statistic to calculate.
-    compute : Statistic -> Any
-    compute self statistic:Statistic=..Count =
+    compute self statistic:Statistic=..Count -> Any =
         Statistic.compute_bulk self.to_vector [statistic] . first
 
     ## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
@@ -2589,8 +2567,7 @@ type Column
 
        Arguments:
        - statistics: Set of statistics to calculate.
-    compute_bulk : Vector Statistic -> Table
-    compute_bulk self statistics=[Statistic.Count, Statistic.Sum] =
+    compute_bulk self (statistics : Vector Statistic = [Statistic.Count, Statistic.Sum]) -> Table =
         values = Statistic.compute_bulk self.to_vector statistics
         names = statistics.map _.to_text
         Table.from_rows names [values]
@@ -2603,8 +2580,7 @@ type Column
        Arguments:
        - statistic: Statistic to calculate.
        - name: Name of the new column.
-    running : Statistic -> Text -> Column
-    running self statistic:Statistic=..Count name=statistic.to_text+" "+self.name =
+    running self statistic:Statistic=..Count (name:Text = statistic.to_text+" "+self.name) -> Column =
         data = Statistic.running self.to_vector statistic
         Column.from_vector name data
 
