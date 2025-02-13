@@ -2,7 +2,7 @@ import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorV
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import type { ToolbarItem } from '@/components/visualizations/toolbar'
 import { useGraphStore } from '@/stores/graph'
-import { GraphDb } from '@/stores/graph/graphDatabase'
+import { GraphDb, NodeId } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
 import type { NodeVisualizationConfiguration } from '@/stores/project/executionContext'
 import {
@@ -103,18 +103,20 @@ export function useVisualizationData({
     const dataSourceValue = toValue(dataSource)
     if (dataSourceValue?.type !== 'node') return
     const graphDb = graph.db
-    const nodeFirstOurputPort = graphDb.getNodeFirstOutputPort(dataSourceValue.nodeId)
+    const nodeFirstOurputPort = graphDb.getNodeFirstOutputPort(dataSourceValue.nodeId as NodeId)
     const identifier = graphDb.getOutputPortIdentifier(nodeFirstOurputPort)
+    if(identifier === undefined) return
     const contextId =
       dataSourceValue.nodeId &&
-      graphDb.nodeIdToNode.get(dataSourceValue.nodeId)?.outerAst.externalId
+      graphDb.nodeIdToNode.get(dataSourceValue.nodeId as NodeId)?.outerAst.externalId
+    if(contextId === undefined) return
     try {
       const tempModule = Ast.MutableModule.Transient()
       const preprocessorModule = Ast.parseExpression(visulizationModule, tempModule)!
       const preprocessorQn = Ast.PropertyAccess.new(
         tempModule,
         preprocessorModule,
-        expressionString,
+        Ast.identifier(expressionString)!
       )
       const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
         Ast.Wildcard.new(tempModule),
