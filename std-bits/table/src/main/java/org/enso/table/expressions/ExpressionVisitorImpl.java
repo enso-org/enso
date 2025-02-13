@@ -55,30 +55,47 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   }
 
   public static class Method {
-    public Value ensoMethod;
-    public Boolean isVariableArgumentMethod;
-    public Boolean isStaticMethod;
-    public Value staticsType;
-    Method(Value module, Value type, String name, Boolean variableArgumentMethod){
-      var context = Context.getCurrent().getBindings("enso");
-      final Value staticsModule = context.invokeMember("get_module", "Standard.Table.Expression_Statics");
-      staticsType = staticsModule.invokeMember("get_type", "Expression_Statics");
-      // first we look in the list of static methods
-      var staticMethod = staticsModule.invokeMember("get_method", staticsType, name);
-      if (staticMethod.canExecute()) {
-        ensoMethod = staticMethod;
-        isStaticMethod = true;
-      } else {
-        // if not a static we look in the list of column methods
-        ensoMethod = module.invokeMember("get_method", type, name);
-        if (!ensoMethod.canExecute()) {
-          throw new UnsupportedOperationException(name);
+    private final Value ensoMethod;
+    private final boolean isVariableArgumentMethod;
+    private final boolean isStaticMethod;
+    private final Value staticsType;
+
+    public Method(Value module, Value type, String name, boolean variableArgumentMethod) {
+        var context = Context.getCurrent().getBindings("enso");
+        final Value staticsModule = context.invokeMember("get_module", "Standard.Table.Expression_Statics");
+        this.staticsType = staticsModule.invokeMember("get_type", "Expression_Statics");
+        this.isVariableArgumentMethod = variableArgumentMethod;
+
+        var staticMethod = staticsModule.invokeMember("get_method", staticsType, name);
+        if (staticMethod.canExecute()) {
+            this.isStaticMethod = true;
+            this.ensoMethod = staticMethod;
+        } else {
+          var instanceMethod = module.invokeMember("get_method", type, name);
+          if (!instanceMethod.canExecute()) {
+              throw new UnsupportedOperationException("Method not found: " + name);
+          }
+          this.isStaticMethod = false;
+          this.ensoMethod = instanceMethod;
         }
-        isStaticMethod = false;
-      }
-      this.isVariableArgumentMethod = variableArgumentMethod;
     }
-  }
+
+    public Value getEnsoMethod() {
+        return ensoMethod;
+    }
+
+    public boolean isVariableArgumentMethod() {
+        return isVariableArgumentMethod;
+    }
+
+    public boolean isStaticMethod() {
+        return isStaticMethod;
+    }
+
+    public Value getStaticsType() {
+        return staticsType;
+    }
+}
 
   public static Value evaluate(
       String expression,
@@ -160,7 +177,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     var method = getMethod.apply(name);
     Object[] objects = prepareArguments(method, args);
     try {
-      var result = method.ensoMethod.execute(objects);
+      var result = method.getEnsoMethod().execute(objects);
       if (result.canExecute()) {
         throw new IllegalArgumentException("Insufficient arguments for method " + name + ".");
       }
@@ -175,15 +192,15 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
     private Object[] prepareArguments(Method method, Value[] args) {
         Object[] objects;
-        if (method.isVariableArgumentMethod) {
+        if (method.isVariableArgumentMethod()) {
             objects = new Object[2];
             objects[0] = wrapAsColumn(args[0]);
             objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
-        } else if (method.isStaticMethod) {
+        } else if (method.isStaticMethod()) {
             // The static method takes the module as the synthetic 'self' argument, so we need to prepend
             // it:
             objects = new Object[args.length + 1];
-            objects[0] = method.staticsType;
+            objects[0] = method.getStaticsType();
             System.arraycopy(args, 0, objects, 1, args.length);
         } else {
             objects = Arrays.copyOf(args, args.length, Object[].class);
