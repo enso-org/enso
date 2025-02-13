@@ -1,5 +1,6 @@
 package org.enso.interpreter.bench;
 
+import jakarta.xml.bind.annotation.XmlAttribute;
 import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlElementWrapper;
 import jakarta.xml.bind.annotation.XmlRootElement;
@@ -8,44 +9,64 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
+
+import jakarta.xml.bind.annotation.XmlType;
 import org.openjdk.jmh.util.Statistics;
 
 /** Contains historic results for a single benchmark identified by label. */
 @XmlRootElement
 public class ReportItem {
 
+  public static class Percentile {
+    @XmlAttribute public double value;
+    @XmlAttribute public double percentile;
+
+    public Percentile() {}
+
+    public Percentile(double value, double percentile) {
+      this.value = value;
+      this.percentile = percentile;
+    }
+
+    public static Percentile fromStats(double percentile, Statistics stats) {
+      return new Percentile(stats.getPercentile(percentile), percentile);
+    }
+  }
+
+  @XmlType
   public static class MeasurementStatistics {
-    private double error50;
-    private double error95;
+    @XmlElement public double stddev;
+    @XmlElement public double error50;
+    @XmlElement public double error95;
+    @XmlElement public Percentile[] percentiles;
 
     public MeasurementStatistics() {
+      this.stddev = Double.NaN;
       this.error50 = Double.NaN;
       this.error95 = Double.NaN;
+      this.percentiles = null;
     }
 
-    public MeasurementStatistics(double error50, double error95) {
+    public MeasurementStatistics(double stddev, double error50, double error95, Percentile[] percentiles) {
+      this.stddev = stddev;
       this.error50 = error50;
       this.error95 = error95;
-    }
-
-    public double getError50() {
-      return error50;
-    }
-
-    public double getError95() {
-      return error95;
-    }
-
-    public void setError50(double error50) {
-      this.error50 = error50;
-    }
-
-    public void setError95(double error95) {
-      this.error95 = error95;
+      this.percentiles = percentiles;
     }
 
     public static MeasurementStatistics from(Statistics stats) {
-      return new MeasurementStatistics(stats.getMeanErrorAt(0.5), stats.getMeanErrorAt(0.95));
+      return new MeasurementStatistics(
+          stats.getStandardDeviation(),
+          stats.getMeanErrorAt(0.5),
+          stats.getMeanErrorAt(0.95),
+          new Percentile[]{
+            Percentile.fromStats(10, stats),
+            Percentile.fromStats(25, stats),
+            Percentile.fromStats(50, stats),
+            Percentile.fromStats(75, stats),
+            Percentile.fromStats(90, stats)
+          }
+      );
     }
   }
 
