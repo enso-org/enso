@@ -27,6 +27,7 @@ import Backend, {
 } from 'enso-common/src/services/Backend'
 import { computed, onMounted, ref, toValue, watch } from 'vue'
 import { Err, Ok, Result } from 'ydoc-shared/util/data/result'
+import FileBrowserEntry from './FileBrowserWidget/FileBrowserEntry.vue'
 
 const { writeMode = false } = defineProps<{ writeMode?: boolean }>()
 
@@ -170,12 +171,13 @@ function addNewDirectory() {
   editedAsset.value = { asset: newDirPlaceholder, name: 'New Directory', state: 'editing' }
 }
 
-function acceptName(actionDescription: string) {
+function acceptName(name: string, actionDescription: string) {
   if (editedAsset.value?.state !== 'editing') {
     console.error('Accepting edited name without editing')
     return
   }
   const edited = editedAsset.value
+  edited.name = name
   edited.state = 'pending'
   const parentId = currentDirectory.value?.id
   if (parentId == null) {
@@ -256,35 +258,30 @@ onMounted(() => {
     <div v-else-if="isEmpty" class="centerContent contents">Directory is empty</div>
     <div v-else :key="currentDirectory?.id ?? 'root'" class="listing contents">
       <TransitionGroup>
-        <div v-if="editedAsset?.asset === newDirPlaceholder" :key="newDirPlaceholder" class="entry">
-          <LoadingSpinner v-if="editedAsset.state === 'pending'" :size="16" />
-          <SvgIcon v-else name="folder" />
-          <input
-            v-if="editedAsset.state === 'editing'"
-            v-model="editedAsset.name"
-            @blur="acceptName('create directory')"
-            @keydown.enter.stop="($event.currentTarget as HTMLInputElement)?.blur()"
-          />
-          <div v-else>{{ editedAsset.name }}</div>
-        </div>
-        <div v-for="entry in directories" :key="entry.id" class="entry" @click="enterDir(entry)">
-          <LoadingSpinner
-            v-if="editedAsset?.asset === entry && editedAsset.state === 'pending'"
-            :size="16"
-          />
-          <SvgIcon v-else name="folder" />
-          <input
-            v-if="editedAsset?.asset === entry && editedAsset.state === 'editing'"
-            v-model="editedAsset.name"
-            @blur="acceptName('update directory')"
-            @keydown.enter.stop="($event.currentTarget as HTMLInputElement)?.blur()"
-          />
-          <div v-else>{{ entry.title }}</div>
-        </div>
-        <div v-for="entry in files" :key="entry.id" class="entry" @click="chooseFile(entry)">
-          <SvgIcon name="text2" />
-          <div>{{ entry.title }}</div>
-        </div>
+        <FileBrowserEntry
+          v-if="editedAsset?.asset === newDirPlaceholder"
+          :key="newDirPlaceholder"
+          icon="folder"
+          :title="editedAsset.name"
+          :editingState="editedAsset.state"
+          @nameAccepted="acceptName($event, 'create directory')"
+        />
+        <FileBrowserEntry
+          v-for="entry in directories"
+          :key="entry.id"
+          icon="folder"
+          :title="editedAsset?.asset === entry ? editedAsset.name : entry.title"
+          :editingState="editedAsset?.asset === entry ? editedAsset.state : undefined"
+          @click="enterDir(entry)"
+          @nameAccepted="acceptName($event, 'rename directory')"
+        />
+        <FileBrowserEntry
+          v-for="entry in files"
+          :key="entry.id"
+          icon="text2"
+          :title="entry.title"
+          @click="chooseFile(entry)"
+        />
       </TransitionGroup>
     </div>
     <div v-if="writeMode" class="fileNameBar">
@@ -361,28 +358,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.entry {
-  width: 100%;
-  justify-content: start;
-  display: flex;
-  align-items: center;
-  padding: 4px;
-  border-radius: var(--radius-full);
-  border: none;
-  transition: background-color 0.3s;
-  margin: -4px;
-  gap: 4px;
-  &:hover,
-  &:focus,
-  &:active {
-    background-color: var(--color-menu-entry-hover-bg);
-  }
-
-  & .LoadingSpinner {
-    border-radius: 100%;
-  }
 }
 
 .nonInteractive {
