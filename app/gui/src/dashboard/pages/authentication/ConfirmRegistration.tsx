@@ -35,20 +35,15 @@ export default function ConfirmRegistration() {
 
   const verificationCode = searchParams.get('verification_code')
   const email = searchParams.get('email')
-  const redirectUrl = searchParams.get('redirect_url')
 
   const { startTimer } = useTimeoutAPI({ ms: REDIRECT_TIMEOUT })
 
   const url = (() => {
-    if (redirectUrl != null) {
-      return redirectUrl
-    }
-
     searchParams.delete('verification_code')
     searchParams.delete('email')
     searchParams.delete('redirect_url')
 
-    return appUtils.LOGIN_PATH + '?' + searchParams.toString()
+    return appUtils.SETUP_PATH + '?' + searchParams.toString()
   })()
 
   const confirmRegistrationMutation = useMutation({
