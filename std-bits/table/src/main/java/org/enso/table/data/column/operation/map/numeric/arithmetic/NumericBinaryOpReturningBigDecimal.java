@@ -10,6 +10,8 @@ import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 
+import static org.enso.table.data.column.operation.map.numeric.arithmetic.NumericBinaryOpImplementation.asBigDecimal;
+
 public abstract class NumericBinaryOpReturningBigDecimal<
         T extends Number, I extends Storage<? super T>>
     extends BinaryMapOperation<T, I> {
@@ -19,10 +21,10 @@ public abstract class NumericBinaryOpReturningBigDecimal<
 
   private static ColumnStorage<BigDecimal> asBigDecimalStorage(Storage<?> storage) {
     return switch (storage) {
-      case ColumnDoubleStorage s -> new ColumnStorageFacade<>(s, BigDecimal::valueOf);
-      case ColumnLongStorage s -> new ColumnStorageFacade<>(s, BigDecimal::valueOf);
+      case ColumnDoubleStorage s -> asBigDecimal(s);
+      case ColumnLongStorage s -> asBigDecimal(s);
       case BigDecimalStorage s -> s;
-      case BigIntegerStorage s -> new ColumnStorageFacade<>(s, BigDecimal::new);
+      case BigIntegerStorage s -> asBigDecimal(s);
       default -> throw NumericBinaryOpImplementation.newUnsupported(storage);
     };
   }

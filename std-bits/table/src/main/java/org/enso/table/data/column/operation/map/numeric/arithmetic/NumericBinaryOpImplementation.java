@@ -7,7 +7,11 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
-import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.ColumnStorageFacade;
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
@@ -20,6 +24,21 @@ import org.enso.table.error.UnexpectedTypeException;
 /** An operation expecting a numeric argument and returning a numeric column. */
 public abstract class NumericBinaryOpImplementation<T extends Number, I extends Storage<? super T>>
     extends BinaryMapOperation<T, I> {
+  public static ColumnStorage<BigDecimal> asBigDecimal(ColumnStorage<BigInteger> storage) {
+    return new ColumnStorageFacade<>(storage, BigDecimal::new);
+  }
+
+  public static ColumnStorage<BigDecimal> asBigDecimal(ColumnDoubleStorage storage) {
+    return new ColumnStorageFacade<>(storage, BigDecimal::valueOf);
+  }
+
+  public static ColumnStorage<BigDecimal> asBigDecimal(ColumnLongStorage storage) {
+    return new ColumnStorageFacade<>(storage, BigDecimal::valueOf);
+  }
+
+  public static ColumnStorage<BigInteger> asBigInteger(ColumnLongStorage storage) {
+    return new ColumnStorageFacade<>(storage, BigInteger::valueOf);
+  }
 
   protected abstract double doDouble(
       double a, double b, long ix, MapOperationProblemAggregator problemAggregator);
@@ -76,7 +95,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
         case BigDecimalStorage s -> runBigDecimalMap(
             s, BigDecimal.valueOf(argAsDouble), problemAggregator);
         case BigIntegerStorage s -> runDoubleMap(
-            new DoubleStorageFacade<>(s, BigInteger::doubleValue), argAsDouble, problemAggregator);
+            DoubleStorageFacade.forBigInteger(s), argAsDouble, problemAggregator);
         case ColumnDoubleStorage s -> runDoubleMap(s, argAsDouble, problemAggregator);
         case ColumnLongStorage s -> runDoubleLongMap(s, argAsDouble, problemAggregator);
         default -> throw newUnsupported(storage);
@@ -84,12 +103,9 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     } else if (arg instanceof BigDecimal bd) {
       return switch (storage) {
         case BigDecimalStorage s -> runBigDecimalMap(s, bd, problemAggregator);
-        case BigIntegerStorage s -> runBigDecimalMap(
-            new ColumnStorageFacade<>(s, BigDecimal::new), bd, problemAggregator);
-        case ColumnDoubleStorage s -> runBigDecimalMap(
-            new ColumnStorageFacade<>(s, BigDecimal::valueOf), bd, problemAggregator);
-        case ColumnLongStorage s -> runBigDecimalMap(
-            new ColumnStorageFacade<>(s, BigDecimal::valueOf), bd, problemAggregator);
+        case BigIntegerStorage s -> runBigDecimalMap(asBigDecimal(s), bd, problemAggregator);
+        case ColumnDoubleStorage s -> runBigDecimalMap(asBigDecimal(s), bd, problemAggregator);
+        case ColumnLongStorage s -> runBigDecimalMap(asBigDecimal(s), bd, problemAggregator);
         default -> throw newUnsupported(storage);
       };
     } else {
@@ -102,46 +118,38 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       I storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
     if (storage instanceof ColumnDoubleStorage lhs) {
       return switch (arg) {
-        case BigDecimalStorage rhs -> runBigDecimalZip(
-            new ColumnStorageFacade<>(lhs, BigDecimal::valueOf), rhs, problemAggregator);
+        case BigDecimalStorage rhs -> runBigDecimalZip(asBigDecimal(lhs), rhs, problemAggregator);
         case BigIntegerStorage rhs -> runDoubleZip(
-            lhs, new DoubleStorageFacade<>(rhs, BigInteger::doubleValue), problemAggregator);
+            lhs, DoubleStorageFacade.forBigInteger(rhs), problemAggregator);
         case ColumnDoubleStorage rhs -> runDoubleZip(lhs, rhs, problemAggregator);
         case ColumnLongStorage rhs -> runDoubleZip(
-            lhs, new DoubleStorageFacade<>(rhs, Long::doubleValue), problemAggregator);
+            lhs, DoubleStorageFacade.forLong(rhs), problemAggregator);
         default -> throw newUnsupported(arg);
       };
     } else if (storage instanceof ColumnLongStorage lhs) {
       return switch (arg) {
-        case BigDecimalStorage rhs -> runBigDecimalZip(
-            new ColumnStorageFacade<>(lhs, BigDecimal::valueOf), rhs, problemAggregator);
-        case BigIntegerStorage rhs -> runBigIntegerZip(
-            new ColumnStorageFacade<>(lhs, BigInteger::valueOf), rhs, problemAggregator);
+        case BigDecimalStorage rhs -> runBigDecimalZip(asBigDecimal(lhs), rhs, problemAggregator);
+        case BigIntegerStorage rhs -> runBigIntegerZip(asBigInteger(lhs), rhs, problemAggregator);
         case ColumnDoubleStorage rhs -> runDoubleZip(
-            new DoubleStorageFacade<>(lhs, Long::doubleValue), rhs, problemAggregator);
+            DoubleStorageFacade.forLong(lhs), rhs, problemAggregator);
         case ColumnLongStorage rhs -> runLongZip(lhs, rhs, problemAggregator);
         default -> throw newUnsupported(arg);
       };
     } else if (storage instanceof BigIntegerStorage lhs) {
       return switch (arg) {
-        case BigDecimalStorage rhs -> runBigDecimalZip(
-            new ColumnStorageFacade<>(lhs, BigDecimal::new), rhs, problemAggregator);
+        case BigDecimalStorage rhs -> runBigDecimalZip(asBigDecimal(lhs), rhs, problemAggregator);
         case BigIntegerStorage rhs -> runBigIntegerZip(lhs, rhs, problemAggregator);
         case ColumnDoubleStorage rhs -> runDoubleZip(
-            new DoubleStorageFacade<>(lhs, BigInteger::doubleValue), rhs, problemAggregator);
-        case ColumnLongStorage rhs -> runBigIntegerZip(
-            lhs, new ColumnStorageFacade<>(rhs, BigInteger::valueOf), problemAggregator);
+            DoubleStorageFacade.forBigInteger(lhs), rhs, problemAggregator);
+        case ColumnLongStorage rhs -> runBigIntegerZip(lhs, asBigInteger(rhs), problemAggregator);
         default -> throw newUnsupported(arg);
       };
     } else if (storage instanceof BigDecimalStorage lhs) {
       return switch (arg) {
         case BigDecimalStorage rhs -> runBigDecimalZip(lhs, rhs, problemAggregator);
-        case BigIntegerStorage rhs -> runBigDecimalZip(
-            lhs, new ColumnStorageFacade<>(rhs, BigDecimal::new), problemAggregator);
-        case ColumnDoubleStorage rhs -> runBigDecimalZip(
-            lhs, new ColumnStorageFacade<>(rhs, BigDecimal::valueOf), problemAggregator);
-        case ColumnLongStorage rhs -> runBigDecimalZip(
-            lhs, new ColumnStorageFacade<>(rhs, BigDecimal::valueOf), problemAggregator);
+        case BigIntegerStorage rhs -> runBigDecimalZip(lhs, asBigDecimal(rhs), problemAggregator);
+        case ColumnDoubleStorage rhs -> runBigDecimalZip(lhs, asBigDecimal(rhs), problemAggregator);
+        case ColumnLongStorage rhs -> runBigDecimalZip(lhs, asBigDecimal(rhs), problemAggregator);
         default -> throw newUnsupported(arg);
       };
     } else {
@@ -155,8 +163,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
       case BigIntegerStorage s -> BigIntegerStorage.makeEmpty(storage.getSize());
       case BigDecimalStorage s -> BigDecimalStorage.makeEmpty(storage.getSize());
       case ColumnDoubleStorage s -> DoubleStorage.makeEmpty(storage.getSize());
-      default -> throw new IllegalStateException(
-          "Unsupported storage: " + storage.getClass().getCanonicalName());
+      default -> throw newUnsupported(storage);
     };
   }
 

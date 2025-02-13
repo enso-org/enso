@@ -27,9 +27,9 @@ public abstract class NumericBinaryOpReturningDouble<T extends Number, I extends
   private static ColumnDoubleStorage asDoubleStorage(Storage<?> storage) {
     return switch (storage) {
       case ColumnDoubleStorage s -> s;
-      case ColumnLongStorage s -> new DoubleStorageFacade<>(s, Long::doubleValue);
-      case BigDecimalStorage s -> new DoubleStorageFacade<>(s, BigDecimal::doubleValue);
-      case BigIntegerStorage s -> new DoubleStorageFacade<>(s, BigInteger::doubleValue);
+      case ColumnLongStorage s -> DoubleStorageFacade.forLong(s);
+      case BigDecimalStorage s -> DoubleStorageFacade.forBigDecimal(s);
+      case BigIntegerStorage s -> DoubleStorageFacade.forBigInteger(s);
       default -> throw NumericBinaryOpImplementation.newUnsupported(storage);
     };
   }

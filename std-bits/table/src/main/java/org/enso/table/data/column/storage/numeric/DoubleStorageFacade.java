@@ -1,7 +1,10 @@
 package org.enso.table.data.column.storage.numeric;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.function.ToDoubleFunction;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -15,6 +18,31 @@ public class DoubleStorageFacade<T> implements ColumnDoubleStorage {
   public DoubleStorageFacade(ColumnStorage<T> parent, ToDoubleFunction<T> converter) {
     this.parent = parent;
     this.converter = converter;
+  }
+
+  public static ColumnDoubleStorage forLong(ColumnLongStorage parent) {
+    return new DoubleStorageFacade<>(parent, Long::doubleValue) {
+      @Override
+      public double getItemAsDouble(long index) throws ValueIsNothingException {
+        return (double)parent.getItemAsLong(index);
+      }
+
+      @Override
+      public Double getItemBoxed(long index) {
+        if (isNothing(index)) {
+          return null;
+        }
+        return getItemAsDouble(index);
+      }
+    };
+  }
+
+  public static ColumnDoubleStorage forBigInteger(ColumnStorage<BigInteger> parent) {
+    return new DoubleStorageFacade<>(parent, BigInteger::doubleValue);
+  }
+
+  public static ColumnDoubleStorage forBigDecimal(ColumnStorage<BigDecimal> parent) {
+    return new DoubleStorageFacade<>(parent, BigDecimal::doubleValue);
   }
 
   @Override
