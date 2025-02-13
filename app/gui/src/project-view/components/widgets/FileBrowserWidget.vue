@@ -256,36 +256,36 @@ onMounted(() => {
     <div v-else-if="isEmpty" class="centerContent contents">Directory is empty</div>
     <div v-else :key="currentDirectory?.id ?? 'root'" class="listing contents">
       <TransitionGroup>
-        <div v-if="editedAsset?.asset === newDirPlaceholder">
-          <SvgButton name="folder" class="entry">
-            <input
-              v-if="editedAsset.state === 'editing'"
-              v-model="editedAsset.name"
-              @blur="acceptName('create directory')"
-              @keydown.enter.stop="($event.currentTarget as HTMLInputElement)?.blur()"
-            />
-            <div v-else>{{ editedAsset.name }}</div>
-          </SvgButton>
+        <div v-if="editedAsset?.asset === newDirPlaceholder" :key="newDirPlaceholder" class="entry">
+          <LoadingSpinner v-if="editedAsset.state === 'pending'" :size="16" />
+          <SvgIcon v-else name="folder" />
+          <input
+            v-if="editedAsset.state === 'editing'"
+            v-model="editedAsset.name"
+            @blur="acceptName('create directory')"
+            @keydown.enter.stop="($event.currentTarget as HTMLInputElement)?.blur()"
+          />
+          <div v-else>{{ editedAsset.name }}</div>
         </div>
-        <div v-for="entry in directories" :key="entry.id">
-          <SvgButton name="folder" class="entry" @click="enterDir(entry)">
-            <!-- TODO[ao]: Context menu allowing renaming dir. -->
-            <input
-              v-if="editedAsset?.asset === entry && editedAsset.state === 'editing'"
-              v-model="editedAsset.name"
-              @blur="acceptName('update directory')"
-              @keydown.enter.stop="($event.currentTarget as HTMLInputElement)?.blur()"
-            />
-            <div>{{ entry.title }}</div>
-          </SvgButton>
+        <div v-for="entry in directories" :key="entry.id" class="entry" @click="enterDir(entry)">
+          <LoadingSpinner
+            v-if="editedAsset?.asset === entry && editedAsset.state === 'pending'"
+            :size="16"
+          />
+          <SvgIcon v-else name="folder" />
+          <input
+            v-if="editedAsset?.asset === entry && editedAsset.state === 'editing'"
+            v-model="editedAsset.name"
+            @blur="acceptName('update directory')"
+            @keydown.enter.stop="($event.currentTarget as HTMLInputElement)?.blur()"
+          />
+          <div v-else>{{ entry.title }}</div>
         </div>
-        <div v-for="entry in files" :key="entry.id">
-          <SvgButton name="text2" class="entry" @click="chooseFile(entry)">
-            <div>{{ entry.title }}</div>
-          </SvgButton>
+        <div v-for="entry in files" :key="entry.id" class="entry" @click="chooseFile(entry)">
+          <SvgIcon name="text2" />
+          <div>{{ entry.title }}</div>
         </div>
       </TransitionGroup>
-      <PointerFloaingMenu> </PointerFloaingMenu>
     </div>
     <div v-if="writeMode" class="fileNameBar">
       <input
@@ -366,6 +366,23 @@ onMounted(() => {
 .entry {
   width: 100%;
   justify-content: start;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: var(--radius-full);
+  border: none;
+  transition: background-color 0.3s;
+  margin: -4px;
+  gap: 4px;
+  &:hover,
+  &:focus,
+  &:active {
+    background-color: var(--color-menu-entry-hover-bg);
+  }
+
+  & .LoadingSpinner {
+    border-radius: 100%;
+  }
 }
 
 .nonInteractive {
@@ -412,5 +429,8 @@ onMounted(() => {
   margin: 0px;
   padding: 4px 12px;
   background-color: var(--color-frame-selected-bg);
+}
+
+.MenuButton {
 }
 </style>
