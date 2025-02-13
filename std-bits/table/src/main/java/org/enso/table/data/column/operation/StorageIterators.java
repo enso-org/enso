@@ -191,6 +191,7 @@ public class StorageIterators {
       LongBuildOperation<B> operation) {
     var data = source.getArray();
     Context context = Context.getCurrent();
+    assert source.getSize() < Integer.MAX_VALUE;
     for (int i = 0; i < source.getSize(); i++) {
       boolean isNothing = source.isNothing(i);
       if (preserveNothing && isNothing) {
@@ -264,6 +265,7 @@ public class StorageIterators {
       DoubleBuildOperation<B> operation) {
     var data = source.getArray();
     Context context = Context.getCurrent();
+    assert source.getSize() < Integer.MAX_VALUE;
     for (int i = 0; i < source.getSize(); i++) {
       boolean isNothing = source.isNothing(i);
       if (preserveNothing && isNothing) {
@@ -453,6 +455,7 @@ public class StorageIterators {
       LongMapOperation<T> operation) {
     var data = source.getArray();
     Context context = Context.getCurrent();
+    assert source.getSize() < Integer.MAX_VALUE;
     for (int index = 0; index < source.getSize(); index++) {
       if (preserveNothing && source.isNothing(index)) {
         builder.appendNulls(1);
@@ -523,6 +526,7 @@ public class StorageIterators {
       DoubleMapOperation<T> operation) {
     var data = source.getArray();
     Context context = Context.getCurrent();
+    assert source.getSize() < Integer.MAX_VALUE;
     for (int index = 0; index < source.getSize(); index++) {
       if (preserveNothing && source.isNothing(index)) {
         builder.appendNulls(1);
@@ -709,6 +713,7 @@ public class StorageIterators {
     long size2 = source2.getSize();
 
     long size = Math.max(size1, size2);
+    assert size < Integer.MAX_VALUE;
     var builder = builderConstructor.apply(size);
 
     Context context = Context.getCurrent();
@@ -795,6 +800,7 @@ public class StorageIterators {
     long size2 = source2.getSize();
 
     long size = Math.max(size1, size2);
+    assert size < Integer.MAX_VALUE;
     var builder = builderConstructor.apply(size);
 
     Context context = Context.getCurrent();
