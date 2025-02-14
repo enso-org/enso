@@ -1317,10 +1317,10 @@ add_column_operation_specs suite_builder setup =
         group_builder.specify "text_left and text_right should error on non integer parameters" <|
             t = table_builder [["numbers", [1, 2, 3]]]
             col = t.at "numbers"
-            col.text_left 3.14 . should_fail_with Invalid_Value_Type
-            col.text_right 3.14 . should_fail_with Invalid_Value_Type
-            col.text_left "7" . should_fail_with Invalid_Value_Type
-            col.text_left "7" . should_fail_with Invalid_Value_Type
+            Test.expect_panic Type_Error <| col.text_left 3.14
+            Test.expect_panic Type_Error <| col.text_right 3.14
+            Test.expect_panic Type_Error <| col.text_left "7"
+            Test.expect_panic Type_Error <| col.text_left "7"
 
         group_builder.specify "text_left and text_right should return empty on zero argument" <|
             with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
@@ -1362,10 +1362,10 @@ add_column_operation_specs suite_builder setup =
             int.ends_with str . should_fail_with Invalid_Value_Type
             int.contains str . should_fail_with Invalid_Value_Type
             int.like str . should_fail_with Invalid_Value_Type
-            str.starts_with 42 . should_fail_with Invalid_Value_Type
-            str.ends_with 42 . should_fail_with Invalid_Value_Type
-            str.contains 42 . should_fail_with Invalid_Value_Type
-            str.like 42 . should_fail_with Invalid_Value_Type
+            Test.expect_panic <| str.starts_with 42
+            Test.expect_panic <| str.ends_with 42
+            Test.expect_panic <| str.contains 42
+            Test.expect_panic <| str.like 42
 
             # Mixing text and integers should not be allowed
             (str + int) . should_fail_with Illegal_Argument
