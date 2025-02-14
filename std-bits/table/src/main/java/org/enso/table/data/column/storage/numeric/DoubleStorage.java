@@ -35,7 +35,8 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A column containing floating point numbers. */
-public final class DoubleStorage extends Storage<Double> implements ColumnDoubleStorage, ColumnStorageWithNothingMap {
+public final class DoubleStorage extends Storage<Double>
+    implements ColumnDoubleStorage, ColumnStorageWithNothingMap {
   private final double[] data;
   private final BitSet isNothing;
   private final int size;
