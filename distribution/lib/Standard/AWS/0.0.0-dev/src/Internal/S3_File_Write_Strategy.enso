@@ -45,7 +45,7 @@ s3_backup file action = recover_errors <|
         if has_backup then
             #Panic.rethrow <| backup_location.copy_to file # replace_existing=True
             backup_result = backup_location.copy_to file
-            IO.println "AAAAA revert failed with "+result.catch.to_text
+            IO.println "AAAAA revert failed with "+backup_result.catch.to_text
             Panic.rethrow backup_result
             Panic.rethrow <| backup_location.delete
 
