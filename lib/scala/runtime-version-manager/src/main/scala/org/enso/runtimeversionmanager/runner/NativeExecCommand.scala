@@ -21,6 +21,9 @@ case class NativeExecCommand(executablePath: Path) extends ExecCommand {
 }
 
 object NativeExecCommand {
+
+  private val LAUNCHER_ENV_NAME = "ENSO_LAUNCHER"
+
   def apply(
     version: String,
     engine: Engine,
@@ -31,10 +34,11 @@ object NativeExecCommand {
     val execName = OS.executableName("enso")
     val fullExecPath =
       dm.paths.engines.resolve(version).resolve("bin").resolve(execName)
+    val ensoLauncher = Option(System.getenv(LAUNCHER_ENV_NAME))
 
     if (fullExecPath.toFile.exists() && isBinary(fullExecPath, logger)) {
       Some(NativeExecCommand(fullExecPath))
-    } else {
+    } else if (ensoLauncher.map(_.equals("native")).getOrElse(false)) {
       val component =
         engine.componentDirPath.resolve("..").toAbsolutePath.normalize
       val fallbackExecPath = component.resolve("bin").resolve("enso")
@@ -43,8 +47,14 @@ object NativeExecCommand {
       ) {
         Some(NativeExecCommand(fallbackExecPath))
       } else {
+        logger.debug(
+          "Failed to find native launcher at a pre-determined location: {}",
+          fallbackExecPath
+        )
         None
       }
+    } else {
+      None
     }
   }
 
