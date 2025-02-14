@@ -15,6 +15,8 @@ import type {
   CellDoubleClickedEvent,
   ColDef,
   ICellRendererParams,
+  IServerSideDatasource,
+  IServerSideGetRowsRequest,
   ITooltipParams,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
@@ -125,7 +127,7 @@ const sortModel = ref<SortModel[]>([])
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 const defaultColDef: Ref<ColDef> = ref({
   editable: false,
-  sortable: false,
+  sortable: true,
   filter: false,
   resizable: true,
   minWidth: 25,
@@ -256,14 +258,23 @@ const createRowsForTable = (data: unknown[][], startIndex: number, shift: number
     )
   })
 }
-
+type SortDirection = 'asc' | 'desc'
+const sortDirectionMap = computed(() => ({
+    asc: '..Ascending',
+    desc: '..Descending',
+  }))
 function createRowServer() {
+  const sortColName = sortModel.value[0]?.columnName ?? null
+  const sortDirectionVal = sortModel.value[0]?.sortDirection ?? null
+  const sortDirection = sortDirectionMap.value[sortDirectionVal]
   return {
     getData: async (request: IServerSideGetRowsRequest) => {
       const response = await config.executeExpression(
         'Standard.Visualization.Table.Visualization',
         'get_rows_for_table',
         `${request.startRow}`,
+        sortColName,
+        sortDirection
       )
       return {
         success: true,
@@ -422,7 +433,7 @@ function toField(
   const styles = 'display:flex; flex-direction:row; justify-content:space-between; width:inherit;'
   const template =
     icon ?
-      `<span style='${styles}'><span data-ref="eLabel" class="ag-header-cell-label" role="presentation" style='${styles}'><span data-ref="eText" class="ag-header-cell-text"></span></span>${menu} ${filterButton} ${sort} ${getSvgTemplate(icon)} ${svgTemplateWarning}</span>`
+      `<span style='${styles}'><span data-ref="eLabel" class="ag-header-cell-label" role="presentation" style='${styles}'><span data-ref="eText" class="ag-header-cell-text"></span></span>${menu} ${sort} ${getSvgTemplate(icon)} ${svgTemplateWarning}</span>`
     : `<span style='${styles}' data-ref="eLabel"><span data-ref="eText" class="ag-header-cell-label"></span> ${menu} ${filterButton} ${sort} ${svgTemplateWarning}</span>`
 
   return {
