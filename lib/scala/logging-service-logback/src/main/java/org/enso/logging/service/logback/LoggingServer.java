@@ -4,6 +4,7 @@ import ch.qos.logback.classic.LoggerContext;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.util.UUID;
 import org.enso.logging.config.BaseConfig;
 import org.enso.logging.service.LoggingService;
 import org.slf4j.event.Level;
@@ -34,6 +35,13 @@ class LoggingServer extends LoggingService<URI> {
 
   public boolean isSetup() {
     return logServer != null;
+  }
+
+  @Override
+  public void teardown(UUID projectId) {
+    if (logServer != null) {
+      logServer.closeProject(projectId);
+    }
   }
 
   @Override
