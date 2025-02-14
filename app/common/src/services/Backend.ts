@@ -449,18 +449,21 @@ export type ProjectExecutionRepeatInfo =
 /** Metadata for a {@link ProjectExecution}. */
 export interface ProjectExecutionInfo {
   readonly projectId: ProjectId
-  readonly timeZone: string
   readonly repeat: ProjectExecutionRepeatInfo
-  readonly parallelMode: ProjectParallelMode
-  readonly maxDurationMinutes: number
   readonly startDate: dateTime.Rfc3339DateTime
+  readonly endDate: dateTime.Rfc3339DateTime | null
+  readonly timeZone: string
+  readonly maxDurationMinutes: number
+  readonly parallelMode: ProjectParallelMode
 }
 
 /** A specific execution schedule of a project. */
 export interface ProjectExecution extends ProjectExecutionInfo {
-  readonly enabled: boolean
   readonly executionId: ProjectExecutionId
+  readonly organizationId: OrganizationId
   readonly versionId: S3ObjectVersionId
+  readonly nextExecution: dateTime.Rfc3339DateTime
+  readonly projectSessions?: readonly ProjectSession[]
 }
 
 /** Metadata describing the location of an uploaded file. */
@@ -1818,6 +1821,10 @@ export default abstract class Backend {
   /** Create a project execution. */
   abstract createProjectExecution(
     body: CreateProjectExecutionRequestBody,
+    title: string,
+  ): Promise<ProjectExecution>
+  abstract getProjectExecutionDetails(
+    executionId: ProjectExecutionId,
     title: string,
   ): Promise<ProjectExecution>
   abstract updateProjectExecution(

@@ -140,6 +140,7 @@
   "closeProjectBackendError": "Could not close project '$0'",
   "listProjectSessionsBackendError": "Could not list sessions for project '$0'",
   "createProjectExecutionBackendError": "Could not create project execution for project '$0'",
+  "getProjectExecutionDetailsBackendError": "Could not update project execution for project '$0'",
   "updateProjectExecutionBackendError": "Could not update project execution for project '$0'",
   "deleteProjectExecutionBackendError": "Could not delete project execution for project '$0'",
   "listProjectExecutionsBackendError": "Could not list project executions for project '$0'",

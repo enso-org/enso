@@ -86,6 +86,7 @@ interface PlaceholderOverrides {
   readonly closeProjectBackendError: [projectTitle: string]
   readonly listProjectSessionsBackendError: [projectTitle: string]
   readonly createProjectExecutionBackendError: [projectTitle: string]
+  readonly getProjectExecutionDetailsBackendError: [projectTitle: string]
   readonly updateProjectExecutionBackendError: [projectTitle: string]
   readonly deleteProjectExecutionBackendError: [projectTitle: string]
   readonly listProjectExecutionsBackendError: [projectTitle: string]

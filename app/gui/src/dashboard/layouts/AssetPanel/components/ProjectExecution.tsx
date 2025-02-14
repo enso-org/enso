@@ -141,7 +141,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
 
   const styles = PROJECT_EXECUTION_STYLES({
     compact,
-    isEnabled: projectExecution.enabled,
+    isEnabled: true,
   })
 
   const deleteProjectExecution = useMutation(

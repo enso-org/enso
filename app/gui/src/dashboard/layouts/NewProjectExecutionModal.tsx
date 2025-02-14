@@ -174,6 +174,7 @@ const UPSERT_EXECUTION_SCHEMA = z
         maxDurationMinutes,
         parallelMode,
         startDate: startDateTime,
+        endDate: null,
       }
     },
   )
