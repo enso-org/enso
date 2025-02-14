@@ -11,7 +11,7 @@ import {
 import RepeatIcon from '#/assets/repeat.svg'
 import TimeIcon from '#/assets/time.svg'
 import { DialogTrigger } from '#/components/aria'
-import { Button, ButtonGroup, CloseButton } from '#/components/AriaComponents'
+import { Button, ButtonGroup, CloseButton, WithVisualTooltip } from '#/components/AriaComponents'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useGetOrdinal } from '#/hooks/ordinalHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
@@ -157,35 +157,48 @@ export function ProjectExecution(props: ProjectExecutionProps) {
     </div>
   )
 
+  const maxDurationLabel = getText('maxDurationLabel')
+  const maxDurationDescription = getText('xMinutes', projectExecution.maxDurationMinutes)
+  const repeatIntervalLabel = getText('repeatIntervalLabel')
+  const repeatIntervalDescription = getText(
+    backendModule.PROJECT_EXECUTION_REPEAT_TYPE_TO_TEXT_ID[projectExecution.repeat.type],
+  )
+
   return (
     <div className={styles.base()}>
-      {timeEl}
-      {
+      {compact && (
+        <WithVisualTooltip
+          tooltip={`${maxDurationLabel}: ${maxDurationDescription}\n${repeatIntervalLabel}: ${repeatIntervalDescription}`}
+          tooltipPlacement="left"
+        >
+          {timeEl}
+        </WithVisualTooltip>
+      )}
+      {!compact && timeEl}
+      {!compact && (
         <ButtonGroup className={styles.optionContainer()}>
           <Button
             size="xsmall"
             variant="outline"
             icon={TimeIcon}
-            tooltip={getText('maxDurationLabel')}
+            tooltip={maxDurationLabel}
             tooltipPlacement="left"
             className={styles.maximumDuration()}
           >
-            {getText('xMinutes', projectExecution.maxDurationMinutes)}
+            {maxDurationDescription}
           </Button>
           <Button
             size="xsmall"
             variant="outline"
             icon={RepeatIcon}
-            tooltip={getText('repeatIntervalLabel')}
+            tooltip={repeatIntervalLabel}
             tooltipPlacement="left"
             className={styles.repeatInterval()}
           >
-            {getText(
-              backendModule.PROJECT_EXECUTION_REPEAT_TYPE_TO_TEXT_ID[projectExecution.repeat.type],
-            )}
+            {repeatIntervalDescription}
           </Button>
         </ButtonGroup>
-      }
+      )}
     </div>
   )
 }

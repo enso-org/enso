@@ -11,7 +11,7 @@ import {
 
 import * as aria from '#/components/aria'
 import { useVisualTooltip } from '#/components/AriaComponents/Text'
-import { Tooltip, TooltipTrigger } from '#/components/AriaComponents/Tooltip'
+import { WithVisualTooltip } from '#/components/AriaComponents/WithVisualTooltip'
 import { Icon as IconComponent } from '#/components/Icon'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -23,8 +23,8 @@ import { BUTTON_STYLES } from './variants'
 
 const ICON_LOADER_DELAY = 150
 
-/** A button allows a user to perform an action, with mouse, touch, and keyboard interactions. */
-// Manually casting types to make TS infer the final type correctly (e.g. RenderProps in icon)
+/** Allow a user to perform an action, with mouse, touch, and keyboard interactions. */
+// Manually cast types to override the final type (e.g. for `RenderProps` in icon).
 // eslint-disable-next-line no-restricted-syntax
 export const Button = memo(
   forwardRef(function Button<IconType extends string>(
@@ -166,92 +166,85 @@ export const Button = memo(
 
     const shouldDisplayBorder = isJoined && (position === 'first' || position === 'middle')
 
-    const button = (
-      <Tag
-        // @ts-expect-error ts errors are expected here because we are merging props with different types
-        ref={ref}
-        // @ts-expect-error ts errors are expected here because we are merging props with different types
-        {...aria.mergeProps<aria.ButtonProps>()(goodDefaults, ariaProps, {
-          isPending: isLoading,
-          isDisabled,
-          // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
-          // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
-          onPressEnd: (e) => {
-            if (!isDisabled) {
-              handlePress(e)
-            }
-          },
-          // @ts-expect-error ts errors are expected here because we are merging props with different types
-          className: aria.composeRenderProps(className, (classNames, states) =>
-            styles.base({ className: classNames, ...states }),
-          ),
-        })}
+    return (
+      <WithVisualTooltip
+        tooltip={tooltip ?? ariaProps['aria-label']}
+        tooltipPlacement={tooltipPlacement}
       >
-        {(render: aria.ButtonRenderProps | aria.LinkRenderProps) => {
-          const shouldShowOverlayLoader = () => {
-            if (hideLoader) {
-              return false
+        <Tag
+          // @ts-expect-error ts errors are expected here because we are merging props with different types
+          ref={ref}
+          // @ts-expect-error ts errors are expected here because we are merging props with different types
+          {...aria.mergeProps<aria.ButtonProps>()(goodDefaults, ariaProps, {
+            isPending: isLoading,
+            isDisabled,
+            // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
+            // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
+            onPressEnd: (e) => {
+              if (!isDisabled) {
+                handlePress(e)
+              }
+            },
+            // @ts-expect-error ts errors are expected here because we are merging props with different types
+            className: aria.composeRenderProps(className, (classNames, states) =>
+              styles.base({ className: classNames, ...states }),
+            ),
+          })}
+        >
+          {(render: aria.ButtonRenderProps | aria.LinkRenderProps) => {
+            const shouldShowOverlayLoader = () => {
+              if (hideLoader) {
+                return false
+              }
+
+              return isLoading && loaderPosition === 'full'
             }
 
-            return isLoading && loaderPosition === 'full'
-          }
-
-          return (
-            <>
-              <span className={styles.wrapper()}>
-                <span
-                  ref={contentRef}
-                  className={styles.content({ className: contentClassName })}
-                  {...targetProps}
-                >
-                  <ButtonContent
-                    isIconOnly={isIconOnly}
-                    loaderPosition={loaderPosition}
-                    hideLoader={hideLoader}
-                    /* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                    isLoading={render.isPending}
-                    /* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */
-                    icon={typeof icon === 'function' ? icon(render) : icon}
-                    styles={styles}
-                    /* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */
-                    addonStart={typeof addonStart === 'function' ? addonStart(render) : addonStart}
-                    /* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */
-                    addonEnd={typeof addonEnd === 'function' ? addonEnd(render) : addonEnd}
+            return (
+              <>
+                <span className={styles.wrapper()}>
+                  <span
+                    ref={contentRef}
+                    className={styles.content({ className: contentClassName })}
+                    {...targetProps}
                   >
-                    {/* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */}
-                    {typeof children === 'function' ? children(render) : children}
-                  </ButtonContent>
+                    <ButtonContent
+                      isIconOnly={isIconOnly}
+                      loaderPosition={loaderPosition}
+                      hideLoader={hideLoader}
+                      /* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */
+                      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                      isLoading={render.isPending}
+                      /* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */
+                      icon={typeof icon === 'function' ? icon(render) : icon}
+                      styles={styles}
+                      addonStart={
+                        /* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */
+                        typeof addonStart === 'function' ? addonStart(render) : addonStart
+                      }
+                      /* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */
+                      addonEnd={typeof addonEnd === 'function' ? addonEnd(render) : addonEnd}
+                    >
+                      {/* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */}
+                      {typeof children === 'function' ? children(render) : children}
+                    </ButtonContent>
+                  </span>
+
+                  {shouldShowOverlayLoader() && (
+                    <span ref={loaderRef} className={styles.loader()}>
+                      <StatelessSpinner state="loading-medium" size={16} />
+                    </span>
+                  )}
+
+                  {shouldShowTooltip && visualTooltip}
                 </span>
 
-                {shouldShowOverlayLoader() && (
-                  <span ref={loaderRef} className={styles.loader()}>
-                    <StatelessSpinner state="loading-medium" size={16} />
-                  </span>
-                )}
-
-                {shouldShowTooltip && visualTooltip}
-              </span>
-
-              {shouldDisplayBorder && <div className={styles.joinSeparator()} />}
-            </>
-          )
-        }}
-      </Tag>
-    )
-
-    if (tooltipElement == null) {
-      return button
-    }
-
-    return (
-      <TooltipTrigger delay={0} closeDelay={0}>
-        {button}
-
-        <Tooltip {...(tooltipPlacement != null ? { placement: tooltipPlacement } : {})}>
-          {tooltipElement}
-        </Tooltip>
-      </TooltipTrigger>
+                {shouldDisplayBorder && <div className={styles.joinSeparator()} />}
+              </>
+            )
+          }}
+        </Tag>
+      </WithVisualTooltip>
     )
   }),
 ) as unknown as (<IconType extends string>(
@@ -266,9 +259,7 @@ export const Button = memo(
 Button.Group = ButtonGroup
 Button.GroupJoin = ButtonGroupJoin
 
-/**
- * Props for {@link ButtonContent}.
- */
+/** Props for {@link ButtonContent}. */
 interface ButtonContentProps {
   readonly hideLoader: boolean
   readonly isIconOnly: boolean
@@ -281,16 +272,12 @@ interface ButtonContentProps {
   readonly addonEnd?: ReactElement | string | false | null | undefined
 }
 
-/**
- * Checks if an addon is present.
- */
+/** Checks if an addon is present. */
 function hasAddon(addon: ButtonContentProps['addonEnd']): boolean {
   return addon != null && addon !== false && addon !== ''
 }
 
-/**
- * Renders the content of a button.
- */
+/** Renders the content of a button. */
 // eslint-disable-next-line no-restricted-syntax
 const ButtonContent = memo(function ButtonContent(props: ButtonContentProps) {
   const {
@@ -339,9 +326,7 @@ const ButtonContent = memo(function ButtonContent(props: ButtonContentProps) {
   )
 })
 
-/**
- * Props for {@link Icon}.
- */
+/** Props for {@link Icon}. */
 interface IconProps {
   readonly isLoading: boolean
   readonly loaderPosition: 'full' | 'icon'
@@ -350,9 +335,7 @@ interface IconProps {
   readonly hideLoader: boolean
 }
 
-/**
- * Renders an icon for a button.
- */
+/** Renders an icon for a button. */
 const Icon = memo(function Icon(props: IconProps) {
   const { isLoading, loaderPosition, icon, styles, hideLoader } = props
 
@@ -384,12 +367,6 @@ const Icon = memo(function Icon(props: IconProps) {
     return null
   }
 
-  const actualIcon = (() => {
-    return typeof icon === 'string' ?
-        <IconComponent className={styles.icon()}>{icon}</IconComponent>
-      : <span className={styles.icon()}>{icon}</span>
-  })()
-
   if (shouldShowLoader) {
     return (
       <div className={styles.icon()}>
@@ -398,5 +375,7 @@ const Icon = memo(function Icon(props: IconProps) {
     )
   }
 
-  return actualIcon
+  return typeof icon === 'string' ?
+      <IconComponent className={styles.icon()}>{icon}</IconComponent>
+    : <span className={styles.icon()}>{icon}</span>
 })
