@@ -1,5 +1,5 @@
 /** @file Displays information describing a specific version of an asset. */
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 
 import {
   DAY_3_LETTER_TEXT_IDS,
@@ -18,9 +18,13 @@ import {
   Text,
   WithVisualTooltip,
 } from '#/components/AriaComponents'
-import { backendMutationOptions } from '#/hooks/backendHooks'
+import {
+  backendMutationOptions,
+  getProjectExecutionDetailsQueryOptions,
+} from '#/hooks/backendHooks'
 import { useGetOrdinal } from '#/hooks/ordinalHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
+import ProjectLogsModal from '#/modals/ProjectLogsModal'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
@@ -29,6 +33,8 @@ import * as backendModule from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { getLocalTimeZone, parseAbsolute, type ZonedDateTime } from '@internationalized/date'
 
+/** The maximum duration, in milliseconds, between two dates to be considered the same project execution. */
+const EXECUTION_TIME_DIFFERENCE_THRESHOLD_MS = 60_000
 const MONTHS_IN_YEAR = 12
 
 const PROJECT_EXECUTION_STYLES = tv({
@@ -70,6 +76,20 @@ export function ProjectExecution(props: ProjectExecutionProps) {
     'enableAdvancedProjectExecutionOptions',
   )
   const { repeat } = projectExecution
+
+  const { data: details } = useQuery(
+    getProjectExecutionDetailsQueryOptions(backend, projectExecution.executionId, item.title),
+  )
+
+  const sessions = details?.projectSessions
+  const session =
+    date == null ? null : (
+      sessions?.find(
+        (otherSession) =>
+          Number(new Date(otherSession.createdAt)) - Number(date.toDate()) <
+          EXECUTION_TIME_DIFFERENCE_THRESHOLD_MS,
+      )
+    )
 
   const repeatString = (() => {
     if (date) {
@@ -177,6 +197,17 @@ export function ProjectExecution(props: ProjectExecutionProps) {
             {repeatEl}
           </WithVisualTooltip>
         }
+        {session && (
+          <DialogTrigger>
+            <Button variant="icon" isActive icon="log_cloud" aria-label={getText('showLogs')} />
+
+            <ProjectLogsModal
+              backend={backend}
+              projectSessionId={session.projectSessionId}
+              projectTitle={item.title}
+            />
+          </DialogTrigger>
+        )}
         <DialogTrigger>
           <CloseButton
             className={styles.timeButtons()}

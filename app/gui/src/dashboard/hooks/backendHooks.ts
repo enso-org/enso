@@ -931,3 +931,15 @@ export function listProjectExecutionsQueryOptions(
     staleTime: PROJECT_EXECUTIONS_STALE_TIME,
   })
 }
+
+/** Build a query options object to get details for a project execution. */
+export function getProjectExecutionDetailsQueryOptions(
+  backend: Backend,
+  id: backendModule.ProjectExecutionId,
+  title: string,
+) {
+  return queryOptions({
+    ...backendQueryOptions(backend, 'getProjectExecutionDetails', [id, title]),
+    staleTime: PROJECT_EXECUTIONS_STALE_TIME,
+  })
+}
