@@ -149,6 +149,7 @@ const columnDefs: Ref<ColDef[]> = ref([])
 const textFormatterSelected = ref<TextFormatOptions>('partial')
 
 const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
+const dataGroupingMap = shallowRef<Map<string, boolean>>()
 
 const selectableRowLimits = computed(() => {
   const defaults = [1000, 2500, 5000, 10000, 25000, 50000, 100000].filter(
@@ -189,10 +190,7 @@ function formatNumber(params: ICellRendererParams) {
   } else {
     value = params.value
   }
-  const dataHeaderIndex = props.data.header ? props.data.header.findIndex((h: string) => h === params.colDef?.field) : 0
-  console.log({dataHeaderIndex})
-  const needsGrouping = props.data.requires_number_format ? props.data.requires_number_format[dataHeaderIndex] : false
-  console.log({needsGrouping})
+  const needsGrouping = dataGroupingMap.value?.get(params.colDef?.field || '')
   return needsGrouping ? numberFormatGroupped.format(value) : numberFormat.format(value)
 }
 
@@ -498,7 +496,9 @@ watchEffect(() => {
         // eslint-disable-next-line camelcase
         visualization_header: undefined,
         // eslint-disable-next-line camelcase
-        link_value_type: undefined
+        link_value_type: undefined,
+        // eslint-disable-next-line camelcase
+        requires_number_format: undefined
       }
   if ('error' in data_) {
     columnDefs.value = [
@@ -621,6 +621,35 @@ watchEffect(() => {
       )
     })
     isTruncated.value = data_.all_rows_count !== rowData.value.length
+
+    if (rowData.value[0]) {
+      const headers = Object.keys(rowData.value[0])
+      const headerGroupingMap = new Map()
+      if (data_.requires_number_format) {
+        columnDefs.value.map((col) => {
+          if (col.headerName === INDEX_FIELD_NAME) {
+            headerGroupingMap.set(INDEX_FIELD_NAME, false)
+          }
+          const dataHeaderIndex = headers.findIndex((h: string) => h === col.headerName)
+          const needsGrouping =
+            data_.requires_number_format ?
+              data_.requires_number_format[dataHeaderIndex]
+            : false
+          headerGroupingMap.set(col.headerName, needsGrouping)
+        })
+      } else {
+        headers.forEach((header) => {
+        const needsGrouping = rowData.value.some((row) => {
+          if (header in row && row[header] != null) {
+            const value = typeof row[header] === 'object' ? row[header].value : row[header]
+            return value > 999999 || value < -999999
+          }
+        })
+        headerGroupingMap.set(header, needsGrouping)
+      })
+      }
+      dataGroupingMap.value = headerGroupingMap
+    }
   }
 
   // Update paging
