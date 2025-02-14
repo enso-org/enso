@@ -105,18 +105,18 @@ export function useVisualizationData({
     const graphDb = graph.db
     const nodeFirstOurputPort = graphDb.getNodeFirstOutputPort(dataSourceValue.nodeId as NodeId)
     const identifier = graphDb.getOutputPortIdentifier(nodeFirstOurputPort)
-    if(identifier === undefined) return
+    if (identifier === undefined) return
     const contextId =
       dataSourceValue.nodeId &&
       graphDb.nodeIdToNode.get(dataSourceValue.nodeId as NodeId)?.outerAst.externalId
-    if(contextId === undefined) return
+    if (contextId === undefined) return
     try {
       const tempModule = Ast.MutableModule.Transient()
       const preprocessorModule = Ast.parseExpression(visulizationModule, tempModule)!
       const preprocessorQn = Ast.PropertyAccess.new(
         tempModule,
         preprocessorModule,
-        Ast.identifier(expressionString)!
+        Ast.identifier(expressionString)!,
       )
       const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
         Ast.Wildcard.new(tempModule),
@@ -132,7 +132,6 @@ export function useVisualizationData({
       throw e
     }
   }
-
 
   const currentType = computed(() => {
     const selectedTypeValue = toValue(selectedVis)

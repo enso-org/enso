@@ -57,7 +57,7 @@ provideVisualizationConfig({
   setToolbarOverlay: (overlay) => emit('updateToolbarOverlay', overlay),
   createNodes: (...nodes) => emit('createNodes', nodes),
   executeExpression: (visulizationModule: string, expressionString: string, args: string) =>
-  props.params.executeExpression(visulizationModule, expressionString, args),
+    props.params.executeExpression(visulizationModule, expressionString, args),
 })
 </script>
 

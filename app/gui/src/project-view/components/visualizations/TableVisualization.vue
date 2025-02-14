@@ -20,8 +20,8 @@ import type {
 } from 'ag-grid-enterprise'
 import { computed, ref, shallowRef, watchEffect, type Ref } from 'vue'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
-import { getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
+import { getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -648,8 +648,8 @@ watchEffect(() => {
           ...dataHeader,
         ]
       : dataHeader
-      if (!data_.is_ssrm) {
-      const shift = data_.is_ssrm ? 1 : 0 
+    if (!data_.is_ssrm) {
+      const shift = data_.is_ssrm ? 1 : 0
       rowData.value = data_.data ? createRowsForTable(data_.data, 0, shift) : []
     }
   }
