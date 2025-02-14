@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -58,8 +59,10 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     private final boolean isVariableArgumentMethod;
     private final boolean isStaticMethod;
     private final Value staticsType;
+    private final String name;
 
     public Method(Value module, Value type, String name, boolean variableArgumentMethod) {
+      this.name = name;
       var context = Context.getCurrent().getBindings("enso");
       final Value staticsModule =
           context.invokeMember("get_module", "Standard.Table.Expression_Statics");
@@ -80,20 +83,40 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       }
     }
 
-    public Value getEnsoMethod() {
-      return ensoMethod;
+    public Value execute(Value[] args, Function<Value, Value> wrapAsColumn)
+    {
+      Object[] objects = prepareArguments(args, wrapAsColumn);
+      try {
+        var result = ensoMethod.execute(objects);
+        if (result.canExecute()) {
+          throw new IllegalArgumentException("Insufficient arguments for method " + name + ".");
+        }
+        return result;
+      } catch (PolyglotException e) {
+        if (e.getMessage().startsWith("Type error: expected a function")) {
+          throw new IllegalArgumentException("Too many arguments for method " + name + ".");
+        }
+        throw e;
+      }
     }
 
-    public boolean isVariableArgumentMethod() {
-      return isVariableArgumentMethod;
+    public Object[] prepareArguments(Value[] args, Function<Value, Value> wrapAsColumn) {
+    Object[] objects;
+    if (isVariableArgumentMethod) {
+      objects = new Object[2];
+      objects[0] = wrapAsColumn.apply(args[0]);
+      objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
+    } else if (isStaticMethod) {
+      // The static method takes the type as the synthetic 'self' argument, so we need to prepend
+      // it:
+      objects = new Object[args.length + 1];
+      objects[0] = staticsType;
+      System.arraycopy(args, 0, objects, 1, args.length);
+    } else {
+      objects = Arrays.copyOf(args, args.length, Object[].class);
+      objects[0] = wrapAsColumn.apply(args[0]);
     }
-
-    public boolean isStaticMethod() {
-      return isStaticMethod;
-    }
-
-    public Value getStaticsType() {
-      return staticsType;
+      return objects;
     }
   }
 
@@ -171,38 +194,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   private Value executeMethod(String name, Value... args) {
     var method = getMethod.apply(name);
-    Object[] objects = prepareArguments(method, args);
-    try {
-      var result = method.getEnsoMethod().execute(objects);
-      if (result.canExecute()) {
-        throw new IllegalArgumentException("Insufficient arguments for method " + name + ".");
-      }
-      return makeConstantColumn.apply(result);
-    } catch (PolyglotException e) {
-      if (e.getMessage().startsWith("Type error: expected a function")) {
-        throw new IllegalArgumentException("Too many arguments for method " + name + ".");
-      }
-      throw e;
-    }
-  }
-
-  private Object[] prepareArguments(Method method, Value[] args) {
-    Object[] objects;
-    if (method.isVariableArgumentMethod()) {
-      objects = new Object[2];
-      objects[0] = wrapAsColumn(args[0]);
-      objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
-    } else if (method.isStaticMethod()) {
-      // The static method takes the type as the synthetic 'self' argument, so we need to prepend
-      // it:
-      objects = new Object[args.length + 1];
-      objects[0] = method.getStaticsType();
-      System.arraycopy(args, 0, objects, 1, args.length);
-    } else {
-      objects = Arrays.copyOf(args, args.length, Object[].class);
-      objects[0] = wrapAsColumn(args[0]);
-    }
-    return objects;
+    Value result = method.execute(args, c->wrapAsColumn(c));
+    return makeConstantColumn.apply(result);
   }
 
   @Override
