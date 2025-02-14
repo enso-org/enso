@@ -1,0 +1,133 @@
+## Enso Signatures 1.0
+## module Standard.Table.Column
+- type Column
+    - != self other:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - % self other:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - && self other:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - * self other:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - + self other:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - - self other:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - / self other:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - < self other:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - <= self other:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - == self other:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - > self other:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - >= self other:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - ^ self other:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - at self index:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - auto_cast self shrink_types:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - auto_value_type self shrink_types:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - between self lower:Standard.Base.Any.Any upper:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - cast self value_type:Standard.Table.Value_Type.Value_Type on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+    - ceil self -> Standard.Base.Any.Any
+    - coalesce self values:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - compute self statistic:Standard.Base.Data.Statistics.Statistic= -> Standard.Base.Any.Any
+    - compute_bulk self statistics:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - const self value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - contains self other:Standard.Base.Any.Any case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+    - count self -> Standard.Base.Any.Any
+    - count_non_trivial_whitespace self sample_size:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - count_nothing self -> Standard.Base.Any.Any
+    - count_untrimmed self sample_size:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - date_add self amount:Standard.Base.Any.Any period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)= -> Standard.Base.Any.Any
+    - date_diff self end:Standard.Base.Any.Any period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)= -> Standard.Base.Any.Any
+    - date_part self period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)= -> Standard.Base.Any.Any
+    - day self -> Standard.Base.Any.Any
+    - day_of_week self -> Standard.Base.Any.Any
+    - day_of_year self -> Standard.Base.Any.Any
+    - default_sample_size -> Standard.Base.Data.Numbers.Integer
+    - display self show_rows:Standard.Base.Any.Any= format_terminal:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - drop self range:(Standard.Base.Data.Index_Sub_Range.Index_Sub_Range|Standard.Base.Data.Range.Range|Standard.Base.Data.Numbers.Integer)= -> Standard.Base.Any.Any
+    - duplicate_count self -> Standard.Base.Any.Any
+    - ends_with self other:Standard.Base.Any.Any case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+    - equals_ignore_case self other:Standard.Base.Any.Any locale:Standard.Base.Data.Locale.Locale= -> Standard.Base.Any.Any
+    - fill_empty self default:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - fill_nothing self default:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - first self -> Standard.Base.Any.Any
+    - floor self -> Standard.Base.Any.Any
+    - format self format:(Standard.Base.Data.Text.Text|Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter|Standard.Table.Column.Column)= locale:Standard.Base.Data.Locale.Locale= -> Standard.Base.Any.Any
+    - from_java_column java_column:Standard.Table.Column.Java_Column -> Standard.Table.Column.Column
+    - from_repeated_item name:Standard.Base.Any.Any item:Standard.Base.Any.Any repeats:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - from_storage name:Standard.Base.Any.Any storage:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - from_vector name:Standard.Base.Data.Text.Text items:Standard.Base.Data.Vector.Vector value_type:(Standard.Table.Value_Type.Auto|Standard.Table.Value_Type.Value_Type)= -> Standard.Table.Column.Column
+    - get self index:Standard.Base.Data.Numbers.Integer= ~default:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - hour self -> Standard.Base.Any.Any
+    - iif self when_true:Standard.Base.Any.Any when_false:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - inferred_precise_value_type self -> Standard.Base.Any.Any
+    - info self -> Standard.Base.Any.Any
+    - internal_is_empty self -> Standard.Base.Any.Any
+    - internal_is_nan self -> Standard.Base.Any.Any
+    - is_blank self treat_nans_as_blank:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - is_empty self -> Standard.Base.Any.Any
+    - is_finite self -> Standard.Base.Any.Any
+    - is_in self vector:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - is_infinite self -> Standard.Base.Any.Any
+    - is_nan self -> Standard.Base.Any.Any
+    - is_nothing self -> Standard.Base.Any.Any
+    - is_present self -> Standard.Base.Any.Any
+    - last self -> Standard.Base.Any.Any
+    - length self -> Standard.Base.Any.Any
+    - like self pattern:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - map self function:Standard.Base.Any.Any skip_nothing:Standard.Base.Any.Any= expected_value_type:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - max self values:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - min self values:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - minute self -> Standard.Base.Any.Any
+    - month self -> Standard.Base.Any.Any
+    - name self -> Standard.Base.Any.Any
+    - naming_helper self -> Standard.Base.Any.Any
+    - not self -> Standard.Base.Any.Any
+    - offset self n:Standard.Base.Any.Any= fill_with:Standard.Table.Fill_With.Fill_With= -> Standard.Table.Column.Column
+    - parse self type:(Standard.Table.Value_Type.Value_Type|Standard.Table.Value_Type.Auto)= format:(Standard.Base.Data.Text.Text|Standard.Table.Data_Formatter.Data_Formatter)= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+    - pretty self -> Standard.Base.Any.Any
+    - print self show_rows:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - read self max_rows:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Base.Any.Any
+    - rename self name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - reverse self -> Standard.Base.Any.Any
+    - round self decimal_places:Standard.Base.Data.Numbers.Integer= use_bankers:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - running self statistic:Standard.Base.Data.Statistics.Statistic= name:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - second self -> Standard.Base.Any.Any
+    - should_be_selected_by_type self value_type:Standard.Table.Value_Type.Value_Type -> Standard.Base.Data.Boolean.Boolean
+    - slice self start:Standard.Base.Any.Any end:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - sort self order:Standard.Base.Data.Sort_Direction.Sort_Direction= missing_last:Standard.Base.Data.Boolean.Boolean= by:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - starts_with self other:Standard.Base.Any.Any case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+    - take self range:(Standard.Base.Data.Index_Sub_Range.Index_Sub_Range|Standard.Base.Data.Range.Range|Standard.Base.Data.Numbers.Integer)= -> Standard.Base.Any.Any
+    - text_cleanse self remove:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - text_left self n:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - text_length self -> Standard.Base.Any.Any
+    - text_replace self term:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex|Standard.Table.Column.Column)= new_text:Standard.Base.Any.Any= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= only_first:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - text_right self n:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
+    - to_table self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+    - to_vector self -> Standard.Base.Any.Any
+    - trim self where:Standard.Base.Data.Text.Location.Location= what:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - truncate self -> Standard.Base.Any.Any
+    - value_type self -> Standard.Base.Any.Any
+    - var_args_functions -> Standard.Base.Any.Any
+    - year self -> Standard.Base.Any.Any
+    - zip self that:Standard.Table.Column.Column function:Standard.Base.Any.Any skip_nothing:Standard.Base.Any.Any= expected_value_type:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - || self other:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- apply_unary_map column:Standard.Table.Column.Column new_name:Standard.Base.Data.Text.Text function:Standard.Base.Any.Any expected_result_type:(Standard.Table.Value_Type.Value_Type|Standard.Base.Nothing.Nothing)= nothing_unchanged:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+- apply_unary_operation column:Standard.Table.Column.Column operation:Standard.Table.Column.UnaryOperation new_name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= ~if_unsupported:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- cast_if_needed column:Standard.Base.Any.Any value_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- default_date_period column:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- fill_previous column:Standard.Base.Any.Any is_missing:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_storage_builder_for_type value_type:Standard.Base.Any.Any on_problems:Standard.Base.Any.Any initial_size:Standard.Base.Any.Any java_problem_aggregator:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- naming_helper -> Standard.Base.Any.Any
+- resolve_storage_type value_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- run_binary_op column:Standard.Base.Any.Any function:Standard.Base.Any.Any operand:Standard.Base.Any.Any new_name:Standard.Base.Any.Any skip_nulls:Standard.Base.Any.Any= expected_result_type:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- run_vectorized_binary_case_text_op left:Standard.Base.Any.Any op:Standard.Base.Any.Any other:Standard.Base.Any.Any case_sensitivity:Standard.Base.Any.Any fallback:Standard.Base.Any.Any new_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- run_vectorized_binary_op column:Standard.Base.Any.Any name:Standard.Base.Any.Any operand:Standard.Base.Any.Any new_name:Standard.Base.Any.Any= fallback_fn:Standard.Base.Any.Any= expected_result_type:Standard.Base.Any.Any= skip_nulls:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- run_vectorized_binary_op_with_fallback_problem_handling column:Standard.Base.Any.Any name:Standard.Base.Any.Any operand:Standard.Base.Any.Any fallback_fn:Standard.Base.Any.Any new_name:Standard.Base.Any.Any expected_result_type:Standard.Base.Any.Any= skip_nulls:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- run_vectorized_many_op column:Standard.Base.Any.Any name:Standard.Base.Any.Any fallback_fn:Standard.Base.Any.Any operands:Standard.Base.Any.Any new_name:Standard.Base.Any.Any= skip_nulls:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- run_vectorized_ternary_op column:Standard.Base.Any.Any name:Standard.Base.Any.Any operand0:Standard.Base.Any.Any operand1:Standard.Base.Any.Any new_name:Standard.Base.Any.Any= expected_result_type:Standard.Base.Any.Any= skip_nulls:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- slice_ranges column:Standard.Base.Any.Any ranges:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- wrap_text_argument_as_value_provider val:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- wrap_text_or_regex_argument_as_value_provider val:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Table.Column.Column.from that:Standard.Base.Data.Vector.Vector name:Standard.Base.Data.Text.Text= -> Standard.Table.Column.Column
+- Standard.Base.Data.Vector.Vector.from that:Standard.Table.Column.Column -> Standard.Base.Data.Vector.Vector
+- Standard.Base.Data.Vector.Vector.from that:Standard.Table.Table.Table -> Standard.Base.Data.Vector.Vector
+- Standard.Table.Column.Column.from that:Standard.Base.Data.Range.Range name:Standard.Base.Data.Text.Text= -> Standard.Table.Column.Column
+- Standard.Table.Column.Column.from that:Standard.Base.Data.Time.Date_Range.Date_Range name:Standard.Base.Data.Text.Text= -> Standard.Table.Column.Column
+- Standard.Base.Data.Text.Text_Cleanse.Cleansable_Text.from that:Standard.Table.Column.Column -> Standard.Base.Data.Text.Text_Cleanse.Cleansable_Text
+- Standard.Base.Data.Read.Many_Files_List.Many_Files_List.from that:Standard.Table.Column.Column -> Standard.Base.Data.Read.Many_Files_List.Many_Files_List
