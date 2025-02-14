@@ -24,7 +24,7 @@ import Backend, {
   assetIsDirectory,
   assetIsFile,
 } from 'enso-common/src/services/Backend'
-import { computed, onMounted, ref, toValue, watch } from 'vue'
+import { computed, onMounted, reactive, ref, toValue, watch } from 'vue'
 import { Err, Ok, Result } from 'ydoc-shared/util/data/result'
 import FileBrowserEntry from './FileBrowserWidget/FileBrowserEntry.vue'
 
@@ -40,6 +40,15 @@ const { remote: backend } = injectBackend()
 const errorToast = useToast.error()
 const fileName = ref<string>('')
 const newDirPlaceholder = Symbol()
+let nextKeyForNewDir = 0
+/**
+ * Override for `:key` attribute in content entries.
+ *
+ * When new directory is added, it receives new entry.id, but we want animations to treat them
+ * as same element. Therefore we assign a number as a key to every new directory placeholder,
+ * and keep them once the placeholder turns into actual entry.
+ */
+const keyOverride: Map<DirectoryId | symbol, number> = reactive(new Map())
 
 // === Current Directory ===
 
@@ -162,12 +171,13 @@ const editedAsset = ref<{
   name: string
   state: 'editing' | 'pending'
 }>()
-const createDir = mutation('createDirectory')
+const createDir = mutation('createDirectory', { meta: { awaitInvalidates: false } })
 const updateDir = mutation('updateDirectory')
 
 function addNewDirectory() {
   assert(editedAsset.value == null)
-  editedAsset.value = { asset: newDirPlaceholder, name: 'New Directory', state: 'editing' }
+  keyOverride.set(newDirPlaceholder, nextKeyForNewDir++)
+  editedAsset.value = { asset: newDirPlaceholder, name: 'New Folder', state: 'editing' }
 }
 
 function acceptName(name: string, actionDescription: string) {
@@ -183,16 +193,25 @@ function acceptName(name: string, actionDescription: string) {
     console.error('Cannot rename directory without parentId')
     return
   }
-  const requetsBody = { title: edited.name, parentId }
+  const requestBody = { title: edited.name, parentId }
   const action =
     edited.asset === newDirPlaceholder ?
-      createDir.mutateAsync([requetsBody, false])
-    : updateDir.mutateAsync([edited.asset.id, requetsBody, edited.asset.title])
+      createDir.mutateAsync([requestBody, false])
+    : updateDir.mutateAsync([edited.asset.id, requestBody, edited.asset.title])
   action
+    .then((result) => {
+      if (result?.id) {
+        const key = keyOverride.get(newDirPlaceholder)
+        if (key != null) {
+          keyOverride.set(result.id, key)
+        }
+      }
+    })
     .catch((error) => {
       errorToast.show(`Failed to ${actionDescription}: ${error}`)
     })
     .finally(() => {
+      keyOverride.delete(newDirPlaceholder)
       assert(edited === editedAsset.value)
       editedAsset.value = undefined
     })
@@ -249,7 +268,12 @@ onMounted(() => {
           </template>
         </TransitionGroup>
       </div>
-      <SvgButton name="folder_add" title="Add New Folder" @click.stop="addNewDirectory" />
+      <SvgButton
+        name="folder_add"
+        title="Add New Folder"
+        :disabled="editedAsset != null"
+        @click.stop="addNewDirectory"
+      />
     </div>
 
     <div v-if="isBusy" class="centerContent contents"><LoadingSpinner /></div>
@@ -259,20 +283,20 @@ onMounted(() => {
       <TransitionGroup>
         <FileBrowserEntry
           v-if="editedAsset?.asset === newDirPlaceholder"
-          :key="newDirPlaceholder"
+          :key="keyOverride.get(newDirPlaceholder) ?? newDirPlaceholder"
           icon="folder"
           :title="editedAsset.name"
           :editingState="editedAsset.state"
-          @nameAccepted="acceptName($event, 'create directory')"
+          @nameAccepted="acceptName($event, 'create folder')"
         />
         <FileBrowserEntry
           v-for="entry in directories"
-          :key="entry.id"
+          :key="keyOverride.get(entry.id) ?? entry.id"
           icon="folder"
           :title="editedAsset?.asset === entry ? editedAsset.name : entry.title"
           :editingState="editedAsset?.asset === entry ? editedAsset.state : undefined"
           @click="enterDir(entry)"
-          @nameAccepted="acceptName($event, 'rename directory')"
+          @nameAccepted="acceptName($event, 'rename folder')"
         />
         <FileBrowserEntry
           v-for="entry in files"

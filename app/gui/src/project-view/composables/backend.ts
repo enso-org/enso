@@ -15,7 +15,7 @@ import {
   INVALIDATION_MAP,
 } from 'enso-common/src/backendQuery'
 import Backend from 'enso-common/src/services/Backend'
-import { computed, toValue } from 'vue'
+import { computed, toValue, type UnwrapRef } from 'vue'
 
 type ExtraOptions = Omit<UseQueryOptions, 'queryKey' | 'queryFn' | 'enabled' | 'networkMode'>
 
@@ -43,29 +43,50 @@ function backendQueryOptions<Method extends BackendQueryMethod>(
   }
 }
 
+type MutationOptions<Method extends BackendMutationMethod> = ToValue<
+  Omit<
+    UnwrapRef<
+      UseMutationOptions<
+        Awaited<ReturnType<Backend[Method]>> | undefined,
+        Error,
+        Parameters<Backend[Method]>
+      >
+    >,
+    'mutationFn' | 'mutationKey'
+  > & { invalidate?: boolean }
+>
+
 function backendMutationOptions<Method extends BackendMutationMethod>(
   method: Method,
   backend: Backend | null,
+  options?: MutationOptions<Method>,
 ): UseMutationOptions<
   Awaited<ReturnType<Backend[Method]>> | undefined,
   Error,
   Parameters<Backend[Method]>
 > {
-  const invalidates =
-    INVALIDATION_MAP[method]?.map((queryMethod) =>
-      queryMethod === INVALIDATE_ALL_QUERIES ? [backend?.type] : [backend?.type, queryMethod],
-    ) ?? []
-
-  return {
-    ...backendBaseOptions(backend),
-    mutationKey: [backend?.type, method],
-    mutationFn: (args) => (backend ? (backend[method] as any)(...args) : undefined),
-    meta: {
-      invalidates,
-      awaitInvalidates: true,
-      refetchType: invalidates.some((key) => key[1] === 'listDirectory') ? 'all' : 'active',
-    },
-  }
+  return computed(() => {
+    const opts = toValue(options)
+    const invalidates =
+      opts?.invalidate === false ?
+        []
+      : (INVALIDATION_MAP[method]?.map((queryMethod) =>
+          queryMethod === INVALIDATE_ALL_QUERIES ? [backend?.type] : [backend?.type, queryMethod],
+        ) ?? [])
+    const x = opts
+    return {
+      ...backendBaseOptions(backend),
+      mutationKey: [backend?.type, method],
+      mutationFn: (args) => (backend ? (backend[method] as any)(...args) : undefined),
+      ...opts,
+      meta: {
+        invalidates,
+        awaitInvalidates: true,
+        refetchType: invalidates.some((key) => key[1] === 'listDirectory') ? 'all' : 'active',
+        ...opts?.meta,
+      },
+    }
+  })
 }
 
 /**
@@ -111,13 +132,14 @@ export function useBackend(which: 'remote' | 'project') {
 
   function mutation<Method extends BackendMutationMethod>(
     method: Method,
+    options?: MutationOptions<Method>,
   ): UseMutationReturnType<
     Awaited<ReturnType<Backend[Method]>> | undefined,
     Error,
     Parameters<Backend[Method]>,
     unknown
   > {
-    return useMutation(backendMutationOptions(method, backend))
+    return useMutation(backendMutationOptions(method, backend, options))
   }
 
   return { query, fetch, prefetch, ensureQueryData, mutation }
