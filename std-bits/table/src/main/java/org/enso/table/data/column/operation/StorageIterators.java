@@ -33,9 +33,10 @@ public class StorageIterators {
       if (preserveNothing && item == null) {
         builder.appendNulls(1);
       } else {
-        operation.apply(builder, idx++, item);
+        operation.apply(builder, idx, item);
       }
       context.safepoint();
+      idx++;
     }
     return builder.seal();
   }
@@ -125,9 +126,10 @@ public class StorageIterators {
       if (preserveNothing && item == null) {
         builder.appendNulls(1);
       } else {
-        operation.apply(builder, idx++, item);
+        operation.apply(builder, idx, item);
       }
       context.safepoint();
+      idx++;
     }
     return builder.seal();
   }
