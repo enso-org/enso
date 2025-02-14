@@ -7,7 +7,7 @@ import { ref, watch } from 'vue'
 const props = defineProps<{
   title: string
   icon: Icon
-  editingState?: 'editing' | 'pending' | undefined
+  editingState?: 'editing' | 'pending' | 'just created' | undefined
 }>()
 
 const emit = defineEmits<{

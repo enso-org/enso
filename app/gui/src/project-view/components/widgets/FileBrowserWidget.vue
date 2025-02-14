@@ -167,9 +167,10 @@ const currentFilePath = computed(
 // === Creating and Renaming Directories ===
 
 const editedAsset = ref<{
-  asset: DirectoryAsset | typeof newDirPlaceholder
+  asset: Directory | typeof newDirPlaceholder
   name: string
-  state: 'editing' | 'pending'
+  state: 'editing' | 'pending' | 'just created'
+  createdId?: DirectoryId
 }>()
 const createDir = mutation('createDirectory', { meta: { awaitInvalidates: false } })
 const updateDir = mutation('updateDirectory')
@@ -200,7 +201,10 @@ function acceptName(name: string, actionDescription: string) {
     : updateDir.mutateAsync([edited.asset.id, requestBody, edited.asset.title])
   action
     .then((result) => {
+      assert(edited === editedAsset.value)
       if (result?.id) {
+        editedAsset.value.createdId = result.id
+        editedAsset.value.state = 'just created'
         const key = keyOverride.get(newDirPlaceholder)
         if (key != null) {
           keyOverride.set(result.id, key)
@@ -209,13 +213,18 @@ function acceptName(name: string, actionDescription: string) {
     })
     .catch((error) => {
       errorToast.show(`Failed to ${actionDescription}: ${error}`)
-    })
-    .finally(() => {
-      keyOverride.delete(newDirPlaceholder)
-      assert(edited === editedAsset.value)
       editedAsset.value = undefined
     })
 }
+
+watch(
+  directories,
+  (dirs) => {
+    // Remove placeholder once received an actual directory.
+    if (dirs?.find((dir) => dir.id === editedAsset.value?.createdId)) editedAsset.value = undefined
+  },
+  { flush: 'sync' },
+)
 
 // === Initialization ===
 
