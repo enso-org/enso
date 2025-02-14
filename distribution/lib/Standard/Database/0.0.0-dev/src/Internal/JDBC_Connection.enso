@@ -22,6 +22,7 @@ polyglot java import java.sql.DatabaseMetaData
 polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
+polyglot java import org.enso.base.enso_cloud.HideableValue
 polyglot java import org.enso.database.dryrun.OperationSynchronizer
 polyglot java import org.enso.database.JDBCProxy
 polyglot java import org.graalvm.collections.Pair as Java_Pair
@@ -275,7 +276,11 @@ type JDBC_Connection
 create : Text -> Vector -> JDBC_Connection
 create url properties = handle_sql_errors <|
     java_props = properties.map pair->
-        Java_Pair.create pair.first (as_hideable_value pair.second)
+        # Some parameters may be passed by the dialect as a `HideableValue` directly, so they do not need to be converted.
+        value = pair.second
+        java_value = if value.is_a HideableValue then value else
+            as_hideable_value value
+        Java_Pair.create pair.first java_value
     java_connection = JDBCProxy.getConnection url java_props
 
     resource = Managed_Resource.register java_connection close_connection

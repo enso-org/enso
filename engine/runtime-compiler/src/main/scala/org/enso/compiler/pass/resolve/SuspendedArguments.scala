@@ -283,8 +283,8 @@ case object SuspendedArguments extends IRPass {
         arg match {
           case spec: DefinitionArgument.Specified =>
             if (representsSuspended(typ) || spec.suspended) {
-              spec.copy(suspended = true)
-            } else spec.copy(suspended = false)
+              spec.copyWithSuspended(true)
+            } else spec.copyWithSuspended(false)
         }
     }
 

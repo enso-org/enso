@@ -41,6 +41,7 @@ public abstract class PrintlnNode extends Node {
       Object message,
       Object nl,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary strings) {
+
     EnsoContext ctx = EnsoContext.get(this);
     try {
       print(ctx.getOut(), strings.asString(message), strings.asString(nl));

@@ -1,0 +1,41 @@
+private
+
+from Standard.Base import all
+
+import project.Column.Column
+import project.Internal.Value_Type_Helpers
+import project.Table.Table
+import project.Value_Type.Value_Type
+from project.Internal.Type_Refinements.Single_Column_Table_Conversions import all
+from project.Internal.Type_Refinements.Column_Refinements import is_single_value
+
+refine_table (table : Table) =
+    if is_single_column table . not then table else
+        column = table.at 0
+        # This should be consistent with `Column_Refinements.refine_column` - the code needs to be copied because we need to spell out all the types.
+        if is_single_value column . not then table : Table & Column else
+            inferred_value_type = column.inferred_precise_value_type
+            case inferred_value_type of
+                Value_Type.Integer _ ->
+                    # `inferred_precise_value_type` will return Integer if the column was Float (or Mixed) but contained integral values - e.g. [2.0]
+                    # We inspect the actual value to correctly deal with both Float and Mixed base type.
+                    value = column.at 0
+                    case value of
+                        # If the value was really a float, we preserve that.
+                        _ : Float -> (table : Table & Column & Float)
+                        # Otherwise we treat it as an integer.
+                        _ -> (table : Table & Column & Integer)
+                Value_Type.Float _ -> (table : Table & Column & Float)
+                Value_Type.Char _ _ -> (table : Table & Column & Text)
+                Value_Type.Boolean -> (table : Table & Column & Boolean)
+                Value_Type.Date -> (table : Table & Column & Date)
+                Value_Type.Time -> (table : Table & Column & Time_Of_Day)
+                Value_Type.Date_Time True -> (table : Table & Column & Date_Time)
+                Value_Type.Decimal _ _ ->
+                    is_integer = Value_Type_Helpers.is_decimal_integer inferred_value_type
+                    if is_integer then (table : Table & Column & Integer) else (table : Table & Column & Decimal)
+                # Other types (e.g. Mixed) are not supported.
+                _ -> (table : Table & Column)
+
+is_single_column table:Table -> Boolean =
+    table.column_count == 1

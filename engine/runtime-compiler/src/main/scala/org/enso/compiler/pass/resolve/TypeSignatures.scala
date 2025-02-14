@@ -224,20 +224,15 @@ case object TypeSignatures extends IRPass {
     argument: DefinitionArgument
   ): DefinitionArgument =
     argument match {
-      case specified @ DefinitionArgument.Specified(
-            _,
-            Some(ascribedType),
-            _,
-            _,
-            _,
-            _
-          ) =>
-        val sig = resolveExpression(ascribedType.duplicate())
-        specified.copy(
-          name = specified.name.updateMetadata(
+      case specified: DefinitionArgument.Specified
+          if specified.ascribedType.isDefined =>
+        val ascribedType = specified.ascribedType.get
+        val sig          = resolveExpression(ascribedType.duplicate())
+        specified.copyWithNameAndAscribedType(
+          specified.name.updateMetadata(
             new MetadataPair(this, Signature(sig))
           ),
-          ascribedType = Some(
+          Some(
             ascribedType.updateMetadata(new MetadataPair(this, Signature(sig)))
           )
         )

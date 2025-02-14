@@ -52,6 +52,8 @@ public class Table {
       throw new IllegalArgumentException("Column names must be unique within a Table.");
     }
 
+    assert checkAllColumnsHaveSameSize(columns) : "All columns must have the same row count.";
+
     this.columns = columns;
   }
 
@@ -60,6 +62,17 @@ public class Table {
     for (Column column : columns) {
       boolean wasNew = names.add(column.getName());
       if (!wasNew) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private static boolean checkAllColumnsHaveSameSize(Column[] columns) {
+    int size = columns[0].getSize();
+    for (Column column : columns) {
+      if (column.getSize() != size) {
         return false;
       }
     }

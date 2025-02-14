@@ -312,3 +312,9 @@ find_common_type_for_arguments arguments =
         common_type : Value_Type -> common_type
         Nothing -> Error.throw <|
             No_Common_Type.Error types related_column_name=Nothing
+
+## PRIVATE
+   Checks if `Value_Type.Decimal` represents integers.
+private is_decimal_integer value_type = case value_type of
+    Value_Type.Decimal _ scale -> (Nothing != scale) && (scale <= 0)
+    _ -> Error.throw (Illegal_Argument.Error "Expected Value_Type.Decimal, got "+value_type.to_display_text)

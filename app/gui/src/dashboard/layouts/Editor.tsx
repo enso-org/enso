@@ -13,7 +13,8 @@ import * as reactQuery from '@tanstack/react-query'
 import * as React from 'react'
 import { useTimeoutCallback } from '../hooks/timeoutHooks'
 // eslint-disable-next-line no-restricted-syntax
-import ProjectViewTabVue from '@/ProjectViewTab.vue'
+import type ProjectViewTabVue from '@/ProjectViewTab.vue'
+import { lazy } from 'react'
 import { applyPureVueInReact } from 'veaury'
 import type { AllowedComponentProps, VNodeProps } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'
@@ -24,11 +25,13 @@ export type ProjectViewTabProps = Omit<
   keyof AllowedComponentProps | keyof VNodeProps
 >
 
-// applyPureVuewInReact returns Function, but this is not enough to satisfy TSX.
-// eslint-disable-next-line no-restricted-syntax
-const ProjectViewTab = applyPureVueInReact(ProjectViewTabVue) as (
-  props: ProjectViewTabProps,
-) => JSX.Element
+const ProjectViewTab = lazy(() =>
+  import('@/ProjectViewTab.vue').then((module) => ({
+    // applyPureVuewInReact returns Function, but this is not enough to satisfy TSX.
+    // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-member-access
+    default: applyPureVueInReact(module.default) as (props: ProjectViewTabProps) => JSX.Element,
+  })),
+)
 
 /** Props for an {@link Editor}. */
 export interface EditorProps {

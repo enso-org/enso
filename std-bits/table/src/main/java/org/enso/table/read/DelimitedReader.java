@@ -60,7 +60,7 @@ public class DelimitedReader {
   private final CsvParser parser;
   private final DatatypeParser valueParser;
   private final TypeInferringParser cellTypeGuesser;
-  private final boolean keepInvalidRows;
+  private final InvalidRowsBehavior keepInvalidRows;
   private String newlineSetting;
   private final NoOpParseProblemAggregator noOpProblemAggregator = new NoOpParseProblemAggregator();
   private long targetTableIndex = 0;
@@ -69,6 +69,7 @@ public class DelimitedReader {
   private long currentLine = 0;
 
   private List<BuilderForType<String>> builders = null;
+  private int initialColumnCount = 0;
   private final DelimitedReaderProblemAggregator problemAggregator;
 
   /**
@@ -111,7 +112,7 @@ public class DelimitedReader {
       int maxColumns,
       DatatypeParser valueParser,
       TypeInferringParser cellTypeGuesser,
-      boolean keepInvalidRows,
+      InvalidRowsBehavior keepInvalidRows,
       String newline,
       String commentCharacter,
       boolean warningsAsErrors,
@@ -266,17 +267,36 @@ public class DelimitedReader {
     assert canFitMoreRows();
 
     if (row.length != builders.size()) {
-      problemAggregator.reportInvalidRow(
-          currentLine, keepInvalidRows ? targetTableIndex : null, row, builders.size());
+      boolean isRowKept =
+          switch (keepInvalidRows) {
+            case DROP -> false;
+            case KEEP, ADD_EXTRA_COLUMNS -> true;
+          };
 
-      if (keepInvalidRows) {
+      // The error is only reported if the column count does not match the initial column count.
+      // Otherwise, a single row with more columns in ADD_EXTRA_COLUMNS mode will expand the
+      // builders and all subsequent rows (that had original column count) would turn into warnings.
+      // Such flood of warnings is not useful. Instead, we only warn on the occurrences that expand
+      // the column count, or that have fewer columns than originally expected.
+      if (row.length != initialColumnCount) {
+        problemAggregator.reportInvalidRow(
+            currentLine, isRowKept ? targetTableIndex : null, row, builders.size());
+      }
+
+      if (isRowKept) {
+        // If the current row had more columns than expected, they are either discarded or added as
+        // extra columns.
+        if (keepInvalidRows == InvalidRowsBehavior.ADD_EXTRA_COLUMNS
+            && row.length > builders.size()) {
+          addExtraColumns(row.length - builders.size());
+        }
+
         for (int i = 0; i < builders.size() && i < row.length; i++) {
           builders.get(i).append(row[i]);
         }
 
         // If the current row had fewer columns than expected, nulls are inserted for the missing
         // values.
-        // If it had more columns, the excess columns are discarded.
         for (int i = row.length; i < builders.size(); i++) {
           builders.get(i).appendNulls(1);
         }
@@ -289,6 +309,17 @@ public class DelimitedReader {
       }
 
       targetTableIndex++;
+    }
+  }
+
+  private void addExtraColumns(int count) {
+    for (int i = 0; i < count; i++) {
+      int columnIndex = builders.size() + 1;
+      effectiveColumnNames.add(COLUMN_NAME + " " + columnIndex);
+      var builder = constructBuilder(targetTableIndex);
+      // We ensure the new builder has the same length as the previous ones by padding with nulls.
+      builder.appendNulls(Math.toIntExact(targetTableIndex));
+      builders.add(builder);
     }
   }
 
@@ -324,7 +355,7 @@ public class DelimitedReader {
   }
 
   /** The column names as defined in the input (if applicable, otherwise null). */
-  private String[] definedColumnNames = null;
+  private List<String> definedColumnNames = null;
 
   /**
    * The effective column names.
@@ -332,10 +363,10 @@ public class DelimitedReader {
    * <p>If {@code GENERATE_HEADERS} is used or if {@code INFER} is used and no headers are found,
    * this will be populated with automatically generated column names.
    */
-  private String[] effectiveColumnNames;
+  private List<String> effectiveColumnNames;
 
   private int getColumnCount() {
-    return effectiveColumnNames.length;
+    return effectiveColumnNames.size();
   }
 
   /**
@@ -380,7 +411,7 @@ public class DelimitedReader {
     }
 
     if (firstRow == null) {
-      effectiveColumnNames = new String[0];
+      effectiveColumnNames = List.of();
       return;
     }
 
@@ -423,9 +454,11 @@ public class DelimitedReader {
       default -> throw new IllegalStateException("Impossible branch.");
     }
 
-    effectiveColumnNames = headerNames.toArray(new String[0]);
+    effectiveColumnNames = headerNames;
     if (wereHeadersDefined) {
-      definedColumnNames = effectiveColumnNames;
+      // We need a copy of the defined column names, as the effective column names may be modified
+      // later.
+      definedColumnNames = new ArrayList<>(effectiveColumnNames);
     }
   }
 
@@ -445,6 +478,7 @@ public class DelimitedReader {
         throw new EmptyFileException();
       }
 
+      initialColumnCount = columnCount;
       initBuilders(columnCount);
       while (canFitMoreRows()) {
         var currentRow = readNextRow();
@@ -461,7 +495,7 @@ public class DelimitedReader {
 
     Column[] columns = new Column[builders.size()];
     for (int i = 0; i < builders.size(); i++) {
-      String columnName = effectiveColumnNames[i];
+      String columnName = effectiveColumnNames.get(i);
       var stringStorage = builders.get(i).seal();
 
       // We don't expect InvalidFormat to be propagated back to Enso, there is no particular type
@@ -493,8 +527,12 @@ public class DelimitedReader {
   private void initBuilders(int count) {
     builders = new ArrayList<>(count);
     for (int i = 0; i < count; i++) {
-      builders.add(Builder.getForText(TextType.VARIABLE_LENGTH, INITIAL_ROW_CAPACITY));
+      builders.add(constructBuilder(INITIAL_ROW_CAPACITY));
     }
+  }
+
+  private BuilderForType<String> constructBuilder(long initialCapacity) {
+    return Builder.getForText(TextType.VARIABLE_LENGTH, initialCapacity);
   }
 
   /** Specifies how to set the headers for the returned table. */
@@ -509,5 +547,17 @@ public class DelimitedReader {
      * Treats the first row as data and generates header names starting with {@code COLUMN_NAME}.
      */
     GENERATE_HEADERS
+  }
+
+  /** Specifies how to handle rows with unexpected number of columns. */
+  public enum InvalidRowsBehavior {
+    /** Discards rows with unexpected number of columns. */
+    DROP,
+
+    /** Keeps rows with unexpected number of columns, but the additional columns are discarded. */
+    KEEP,
+
+    /** Keeps rows with unexpected number of columns, adding extra columns. */
+    ADD_EXTRA_COLUMNS
   }
 }

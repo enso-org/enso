@@ -11,6 +11,7 @@ from Standard.Base.System.File_Format import parse_boolean_with_infer
 from Standard.Base.Widget_Helpers import make_file_read_delimiter_selector
 
 import project.Data_Formatter.Data_Formatter
+import project.Delimited.Invalid_Rows.Invalid_Rows
 import project.Delimited.Quote_Style.Quote_Style
 import project.Headers.Headers
 import project.Internal.Delimited_Reader
@@ -45,9 +46,8 @@ type Delimited_Format
          appended to disambiguate them.
        - value_formatter: Formatter to parse text values into numbers, dates,
          times, etc. If `Nothing` values are left as Text.
-       - keep_invalid_rows: Specifies whether rows that contain less or more
-         columns than expected should be kept (setting the missing columns to
-         `Nothing` or dropping the excess columns) or dropped.
+       - on_invalid_rows: Specifies how to handle rows that have less or more
+         columns than the first row.
        - line_endings: Sets the line ending style to use. Defaults to `Infer` -
          when reading a file or appending to an existing file, the line endings
          are detected from file contents; when writing a new file in `Infer`
@@ -61,7 +61,7 @@ type Delimited_Format
     @delimiter make_file_read_delimiter_selector
     @encoding Encoding.default_widget
     @row_limit Rows_To_Read.default_widget
-    Delimited (delimiter:Text=',') (encoding:Encoding=Encoding.default) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Headers=Headers.Detect_Headers) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value) (keep_invalid_rows:Boolean=True) (line_endings:Line_Ending_Style|Infer=Infer) (comment_character:Text|Nothing=Nothing)
+    Delimited (delimiter:Text=',') (encoding:Encoding=Encoding.default) (skip_rows:Integer=0) (row_limit:Rows_To_Read=..All_Rows) (quote_style:Quote_Style=Quote_Style.With_Quotes) (headers:Headers=Headers.Detect_Headers) (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value) (on_invalid_rows:Invalid_Rows=Invalid_Rows.Add_Extra_Columns) (line_endings:Line_Ending_Style|Infer=Infer) (comment_character:Text|Nothing=Nothing)
 
     ## PRIVATE
        Resolve an unresolved constructor to the actual type.
@@ -125,8 +125,8 @@ type Delimited_Format
     ## PRIVATE
        Clone the instance with some properties overridden.
     clone : Encoding -> Quote_Style -> Headers -> (Data_Formatter|Nothing) -> Boolean -> (Text|Nothing) -> (Text|Nothing) -> Delimited_Format
-    clone self (encoding:Encoding = self.encoding) (quote_style:Quote_Style=self.quote_style) (headers:Headers=self.headers) (value_formatter=self.value_formatter) (keep_invalid_rows:Boolean=self.keep_invalid_rows) (line_endings=self.line_endings) (comment_character=self.comment_character) =
-        Delimited_Format.Delimited self.delimiter encoding self.skip_rows self.row_limit quote_style headers value_formatter keep_invalid_rows line_endings comment_character
+    clone self (encoding:Encoding = self.encoding) (quote_style:Quote_Style=self.quote_style) (headers:Headers=self.headers) (value_formatter=self.value_formatter) (on_invalid_rows:Invalid_Rows=self.on_invalid_rows) (line_endings=self.line_endings) (comment_character=self.comment_character) =
+        Delimited_Format.Delimited self.delimiter encoding self.skip_rows self.row_limit quote_style headers value_formatter on_invalid_rows line_endings comment_character
 
     ## ICON data_input
        Create a clone of this with specified quoting settings.
@@ -194,7 +194,12 @@ Delimited_Format.from (that : JS_Object) =
     headers = that.get "headers" |> parse_boolean_with_infer "headers"
     skip_rows = that.get "skip_rows" . if_nothing 0
     row_limit = that.get "row_limit"
-    keep_invalid_rows = that.get "keep_invalid_rows" . if_nothing True
+    on_invalid_rows = case that.get "on_invalid_rows" of
+        True -> Invalid_Rows.Keep_Invalid_Rows
+        False -> Invalid_Rows.Drop_Invalid_Rows
+        "add_extra_columns" -> Invalid_Rows.Add_Extra_Columns
+        Nothing -> Invalid_Rows.Add_Extra_Columns
+        other -> Error.throw (Illegal_Argument.Error "Invalid value for `on_invalid_rows`: "+other.to_display_text)
     quote_style = case that.get "quote_style" of
         Nothing -> Quote_Style.With_Quotes
         json -> Quote_Style.from json
@@ -202,6 +207,6 @@ Delimited_Format.from (that : JS_Object) =
     unsupported_fields = ["value_formatter", "line_endings", "comment_character"]
     case unsupported_fields.find that.contains_key if_missing=Nothing of
         Nothing ->
-            Delimited_Format.Delimited delimiter=delimiter encoding=encoding headers=headers skip_rows=skip_rows row_limit=row_limit quote_style=quote_style keep_invalid_rows=keep_invalid_rows
+            Delimited_Format.Delimited delimiter=delimiter encoding=encoding headers=headers skip_rows=skip_rows row_limit=row_limit quote_style=quote_style on_invalid_rows=on_invalid_rows
         field ->
             Error.throw (Illegal_Argument.Error ("The field `" ++ field ++ "` is currently not supported when deserializing the Delimited format from JSON."))

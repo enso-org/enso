@@ -2,6 +2,13 @@ import { textEditorsBindings } from '@/bindings'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { type VueHost } from '@/components/VueHostRender.vue'
 import { injectKeyboard } from '@/providers/keyboard'
+import {
+  HeaderLevel,
+  ListType,
+  toggleHeader,
+  toggleList,
+  toggleQuote,
+} from '@/util/codemirror/markdownEditing'
 import { useCompartment, useDispatch, useStateEffect } from '@/util/codemirror/reactivity'
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { yCollab } from '@/util/codemirror/yCollab'
@@ -101,6 +108,9 @@ export function useCodeMirror(
      */
     readonly,
     putTextAt,
+    toggleHeader: (level: HeaderLevel) => toggleHeader(editorView, level),
+    toggleQuote: () => toggleQuote(editorView),
+    toggleList: (type: ListType) => toggleList(editorView, type),
     /** The DOM element containing the editor's content. */
     contentElement: editorView.contentDOM,
   }

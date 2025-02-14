@@ -68,7 +68,12 @@ export class InteractionHandler {
     return hasCurrent
   }
 
-  /** TODO: Add docs */
+  /**
+   * Handle pointer event in capture. Calls `pointerdown` handler of currently active handler.
+   *
+   * Because usually the handlers check for clicks outside the active panel, even if event is handled,
+   * it is NOT stopped, and its default action is NOT prevented.
+   */
   handlePointerEvent<HandlerName extends keyof Interaction>(
     event: PointerEvent,
     handlerName: Interaction[HandlerName] extends InteractionEventHandler | undefined ? HandlerName
@@ -77,12 +82,7 @@ export class InteractionHandler {
     if (!this.currentInteraction.value) return false
     const handler = this.currentInteraction.value[handlerName]
     if (!handler) return false
-    const handled = handler.bind(this.currentInteraction.value)(event) !== false
-    if (handled) {
-      event.stopImmediatePropagation()
-      event.preventDefault()
-    }
-    return handled
+    return handler.bind(this.currentInteraction.value)(event) !== false
   }
 }
 
