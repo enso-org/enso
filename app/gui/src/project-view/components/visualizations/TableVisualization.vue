@@ -498,7 +498,7 @@ watchEffect(() => {
         // eslint-disable-next-line camelcase
         link_value_type: undefined,
         // eslint-disable-next-line camelcase
-        requires_number_format: undefined
+        requires_number_format: undefined,
       }
   if ('error' in data_) {
     columnDefs.value = [
@@ -630,23 +630,25 @@ watchEffect(() => {
           if (col.headerName === INDEX_FIELD_NAME) {
             headerGroupingMap.set(INDEX_FIELD_NAME, false)
           }
-          if(typeof props.data== 'object' && 'header' in props.data) {
-          const dataHeaderIndex = props.data.header?.findIndex((h: string) => h === col.headerName)
-          const needsGrouping = dataHeaderIndex ? data_.requires_number_format[dataHeaderIndex] : false
-          headerGroupingMap.set(col.headerName, needsGrouping)
+          if (typeof props.data == 'object' && 'header' in props.data) {
+            const dataHeaderIndex = props.data.header?.findIndex(
+              (h: string) => h === col.headerName,
+            )
+            const needsGrouping =
+              dataHeaderIndex ? data_.requires_number_format[dataHeaderIndex] : false
+            headerGroupingMap.set(col.headerName, needsGrouping)
           }
-
         })
       } else {
         headers.forEach((header) => {
-        const needsGrouping = rowData.value.some((row) => {
-          if (header in row && row[header] != null) {
-            const value = typeof row[header] === 'object' ? row[header].value : row[header]
-            return value > 999999 || value < -999999
-          }
+          const needsGrouping = rowData.value.some((row) => {
+            if (header in row && row[header] != null) {
+              const value = typeof row[header] === 'object' ? row[header].value : row[header]
+              return value > 999999 || value < -999999
+            }
+          })
+          headerGroupingMap.set(header, needsGrouping)
         })
-        headerGroupingMap.set(header, needsGrouping)
-      })
       }
       dataGroupingMap.value = headerGroupingMap
     }
