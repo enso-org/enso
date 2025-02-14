@@ -1,16 +1,16 @@
 package org.enso.table.expressions;
 
-import java.util.function.Function;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.util.function.Function;
 import org.enso.table.expressions.ExpressionVisitorImpl.Method;
 import org.graalvm.polyglot.Value;
-import static org.junit.Assert.assertEquals;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -43,10 +43,11 @@ public class ExpressionVisitorImplTest {
     Method mockedMethodTextLength = mock(Method.class);
     Value mockedResult = mock(Value.class);
     Value mockedColumnResult = mock(Value.class);
-    
+
     when(getColumn.apply("Column 1")).thenReturn(mockedColumn1);
     when(getMethod.apply("text_length")).thenReturn(mockedMethodTextLength);
-    when(mockedMethodTextLength.execute(new Value[]{mockedColumn1}, makeConstantColumn)).thenReturn(mockedResult);
+    when(mockedMethodTextLength.execute(new Value[] {mockedColumn1}, makeConstantColumn))
+        .thenReturn(mockedResult);
     when(makeConstantColumn.apply(mockedResult)).thenReturn(mockedColumnResult);
 
     Value result = evaluate("text_length([Column 1])");
@@ -60,7 +61,7 @@ public class ExpressionVisitorImplTest {
     Value mockedColumnResult = mock(Value.class);
 
     when(getMethod.apply("today")).thenReturn(mockedMethodToday);
-    when(mockedMethodToday.execute(new Value[]{}, makeConstantColumn)).thenReturn(mockedResult);
+    when(mockedMethodToday.execute(new Value[] {}, makeConstantColumn)).thenReturn(mockedResult);
     when(makeConstantColumn.apply(mockedResult)).thenReturn(mockedColumnResult);
 
     Value result = evaluate("today()");

@@ -7,7 +7,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.function.Function;
 import java.util.regex.Pattern;
-
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -54,7 +53,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
   }
 
-    private static Value wrapAsColumn(Value value, Function<Object, Value> makeConstantColumn) {
+  private static Value wrapAsColumn(Value value, Function<Object, Value> makeConstantColumn) {
     if (value.isNull()) {
       return makeConstantColumn.apply(value);
     }
@@ -96,8 +95,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       }
     }
 
-    public Value execute(Value[] args, Function<Object, Value> makeConstantColumn)
-    {
+    public Value execute(Value[] args, Function<Object, Value> makeConstantColumn) {
       Object[] objects = prepareArguments(args, makeConstantColumn);
       try {
         var result = ensoMethod.execute(objects);
@@ -114,21 +112,21 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
 
     public Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn) {
-    Object[] objects;
-    if (isVariableArgumentMethod) {
-      objects = new Object[2];
-      objects[0] = wrapAsColumn(args[0], makeConstantColumn);
-      objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
-    } else if (isStaticMethod) {
-      // The static method takes the type as the synthetic 'self' argument, so we need to prepend
-      // it:
-      objects = new Object[args.length + 1];
-      objects[0] = staticsType;
-      System.arraycopy(args, 0, objects, 1, args.length);
-    } else {
-      objects = Arrays.copyOf(args, args.length, Object[].class);
-      objects[0] = wrapAsColumn(args[0], makeConstantColumn);
-    }
+      Object[] objects;
+      if (isVariableArgumentMethod) {
+        objects = new Object[2];
+        objects[0] = wrapAsColumn(args[0], makeConstantColumn);
+        objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
+      } else if (isStaticMethod) {
+        // The static method takes the type as the synthetic 'self' argument, so we need to prepend
+        // it:
+        objects = new Object[args.length + 1];
+        objects[0] = staticsType;
+        System.arraycopy(args, 0, objects, 1, args.length);
+      } else {
+        objects = Arrays.copyOf(args, args.length, Object[].class);
+        objects[0] = wrapAsColumn(args[0], makeConstantColumn);
+      }
       return objects;
     }
   }
