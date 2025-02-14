@@ -11,10 +11,17 @@ import {
 import RepeatIcon from '#/assets/repeat.svg'
 import TimeIcon from '#/assets/time.svg'
 import { DialogTrigger } from '#/components/aria'
-import { Button, ButtonGroup, CloseButton, WithVisualTooltip } from '#/components/AriaComponents'
+import {
+  Button,
+  ButtonGroup,
+  CloseButton,
+  Text,
+  WithVisualTooltip,
+} from '#/components/AriaComponents'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useGetOrdinal } from '#/hooks/ordinalHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
+import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
@@ -59,6 +66,9 @@ export function ProjectExecution(props: ProjectExecutionProps) {
   const { getText } = useText()
   const getOrdinal = useGetOrdinal()
   const [timeZone = getLocalTimeZone()] = useLocalStorageState('preferredTimeZone')
+  const enableAdvancedProjectExecutionOptions = useFeatureFlag(
+    'enableAdvancedProjectExecutionOptions',
+  )
   const { repeat } = projectExecution
 
   const repeatString = (() => {
@@ -138,24 +148,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
     backendMutationOptions(backend, 'deleteProjectExecution'),
   )
 
-  const timeEl = (
-    <div className={styles.timeContainer()}>
-      <div className={styles.times()}>{repeatString}</div>
-      <DialogTrigger>
-        <CloseButton
-          className={styles.timeButtons()}
-          tooltip={getText('delete')}
-          tooltipPlacement="top left"
-        />
-        <ConfirmDeleteModal
-          actionText={getText('deleteThisProjectExecution')}
-          doDelete={async () => {
-            await deleteProjectExecution.mutateAsync([projectExecution.executionId, item.title])
-          }}
-        />
-      </DialogTrigger>
-    </div>
-  )
+  const repeatEl = <div>{repeatString}</div>
 
   const maxDurationLabel = getText('maxDurationLabel')
   const maxDurationDescription = getText('xMinutes', projectExecution.maxDurationMinutes)
@@ -166,27 +159,52 @@ export function ProjectExecution(props: ProjectExecutionProps) {
 
   return (
     <div className={styles.base()}>
-      {compact && (
-        <WithVisualTooltip
-          tooltip={`${maxDurationLabel}: ${maxDurationDescription}\n${repeatIntervalLabel}: ${repeatIntervalDescription}`}
-          tooltipPlacement="left"
-        >
-          {timeEl}
-        </WithVisualTooltip>
-      )}
-      {!compact && timeEl}
+      <div className={styles.timeContainer()}>
+        {!compact ?
+          repeatEl
+        : <WithVisualTooltip
+            tooltip={
+              <div>
+                {enableAdvancedProjectExecutionOptions && (
+                  <Text color="inherit">{`${maxDurationLabel}: ${maxDurationDescription}`}</Text>
+                )}
+                <Text color="inherit">{`${repeatIntervalLabel}: ${repeatIntervalDescription}`}</Text>
+              </div>
+            }
+            tooltipPlacement="left"
+            className={styles.times()}
+          >
+            {repeatEl}
+          </WithVisualTooltip>
+        }
+        <DialogTrigger>
+          <CloseButton
+            className={styles.timeButtons()}
+            tooltip={getText('delete')}
+            tooltipPlacement="top left"
+          />
+          <ConfirmDeleteModal
+            actionText={getText('deleteThisProjectExecution')}
+            doDelete={async () => {
+              await deleteProjectExecution.mutateAsync([projectExecution.executionId, item.title])
+            }}
+          />
+        </DialogTrigger>
+      </div>
       {!compact && (
         <ButtonGroup className={styles.optionContainer()}>
-          <Button
-            size="xsmall"
-            variant="outline"
-            icon={TimeIcon}
-            tooltip={maxDurationLabel}
-            tooltipPlacement="left"
-            className={styles.maximumDuration()}
-          >
-            {maxDurationDescription}
-          </Button>
+          {enableAdvancedProjectExecutionOptions && (
+            <Button
+              size="xsmall"
+              variant="outline"
+              icon={TimeIcon}
+              tooltip={maxDurationLabel}
+              tooltipPlacement="left"
+              className={styles.maximumDuration()}
+            >
+              {maxDurationDescription}
+            </Button>
+          )}
           <Button
             size="xsmall"
             variant="outline"

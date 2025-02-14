@@ -735,7 +735,7 @@
   "pluralOther": "th",
   "pleaseSelectATime": "Please select a time.",
   "repeatsAt": "Repeats at",
-  "maxDurationLabel": "Maximum duration (minutes)",
+  "maxDurationLabel": "Maximum duration",
   "maxDurationMinutesLabel": "Maximum duration (minutes)",
   "xMinutes": "$0 minute(s)",
   "xAm": "$0 am",
