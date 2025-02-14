@@ -1242,7 +1242,7 @@ type Column
              import Standard.Examples
 
              example_starts_with = Examples.text_column_1.starts_with "hell" Case_Sensitivity.Insensitive
-    starts_with self (other : Column | Text) case_sensitivity:Case_Sensitivity=..Default -> Column =
+    starts_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column =
         new_name = naming_helper.function_name "starts_with" [self, other]
         run_vectorized_binary_case_text_op self Java_Storage.Maps.STARTS_WITH other case_sensitivity (a -> b -> a.starts_with b case_sensitivity) new_name
 
@@ -1272,7 +1272,7 @@ type Column
              import Standard.Examples
 
              example_ends_with = Examples.text_column_1.ends_with "hell"
-    ends_with self (other : Column | Text) case_sensitivity:Case_Sensitivity=..Default -> Column =
+    ends_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column =
         new_name = naming_helper.function_name "ends_with" [self, other]
         run_vectorized_binary_case_text_op self Java_Storage.Maps.ENDS_WITH other case_sensitivity (a -> b -> a.ends_with b case_sensitivity) new_name
 
@@ -1360,7 +1360,7 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.contains "hell"
-    contains self (other : Column | Text) case_sensitivity:Case_Sensitivity=..Default -> Column =
+    contains self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column =
         new_name = naming_helper.function_name "contains" [self, other]
         run_vectorized_binary_case_text_op self Java_Storage.Maps.CONTAINS other case_sensitivity (a -> b -> a.contains b case_sensitivity) new_name
 
@@ -1381,7 +1381,7 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.like "F%."
-    like self (pattern : Column | Text) -> Column =
+    like self (pattern : Column | Text | Any) -> Column =
         Value_Type.expect_text self <|
             Value_Type.expect_text pattern <|
                 run_vectorized_binary_op self Java_Storage.Maps.LIKE pattern expected_result_type=Value_Type.Boolean
