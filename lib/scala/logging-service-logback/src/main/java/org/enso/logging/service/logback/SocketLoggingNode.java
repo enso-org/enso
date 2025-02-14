@@ -32,11 +32,19 @@ public class SocketLoggingNode implements Runnable {
   SocketAddress remoteSocketAddress;
 
   Logger logger;
-  // 0 - not started
-  // 1 - running
-  // 2 - closing
-  // 3 - closed
-  volatile int state = 0;
+
+  enum State {
+    NOT_STARTED,
+    RUNNING,
+    CLOSING,
+    CLOSED;
+
+    boolean isBefore(State s) {
+      return this.ordinal() < s.ordinal();
+    }
+  }
+
+  volatile State state = State.NOT_STARTED;
   SocketServer socketServer;
   UUID projectId;
 
@@ -50,21 +58,19 @@ public class SocketLoggingNode implements Runnable {
   }
 
   public void run() {
-
+    state = State.RUNNING;
     try {
       hardenedLoggingEventInputStream =
           new HardenedLoggingEventInputStream(new BufferedInputStream(socket.getInputStream()));
     } catch (Exception e) {
       logger.error("Could not open ObjectInputStream to " + socket, e);
-      state = 3;
+      state = State.CLOSED;
     }
 
     ILoggingEvent event;
     Logger remoteLogger;
-
     try {
-      state = 1;
-      while (state != 3) {
+      while (state != State.CLOSED) {
         // read an event from the wire
         // System.out.println("Reading event?");
         event = (ILoggingEvent) hardenedLoggingEventInputStream.readObject();
@@ -85,20 +91,20 @@ public class SocketLoggingNode implements Runnable {
         }
       }
     } catch (java.io.EOFException e) {
-      if (state < 2) {
+      if (state.isBefore(State.CLOSING)) {
         logger.debug("Caught java.io.EOFException closing connection.", e);
       }
     } catch (java.net.SocketException e) {
-      if (state < 2) {
+      if (state.isBefore(State.CLOSING)) {
         logger.warn("Caught java.net.SocketException closing connection.");
       }
     } catch (IOException e) {
-      if (state < 2) {
+      if (state.isBefore(State.CLOSING)) {
         logger.debug("Caught java.io.IOException: " + e);
         logger.debug("Closing connection.");
       }
     } catch (Exception e) {
-      if (state < 2) {
+      if (state.isBefore(State.CLOSING)) {
         logger.error("Unexpected exception. Closing connection.", e);
       }
     }
@@ -108,17 +114,17 @@ public class SocketLoggingNode implements Runnable {
   }
 
   void closing() {
-    if (state < 2) {
-      state = 2;
+    if (state.isBefore(State.CLOSING)) {
+      state = State.CLOSING;
     }
   }
 
   void close() {
-    if (state == 3) {
+    if (state == State.CLOSED) {
       return;
     }
     projectId = null;
-    state = 3;
+    state = State.CLOSED;
     if (hardenedLoggingEventInputStream != null) {
       try {
         hardenedLoggingEventInputStream.close();
