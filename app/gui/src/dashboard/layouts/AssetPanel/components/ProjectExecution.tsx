@@ -28,6 +28,7 @@ const PROJECT_EXECUTION_STYLES = tv({
   base: 'group flex flex-row gap-1 w-full rounded-default items-center odd:bg-primary/5 p-2',
   variants: {
     isEnabled: { false: { time: 'opacity-50', optionContainer: 'opacity-50' } },
+    compact: { true: { base: 'px-2' } },
   },
   slots: {
     timeContainer: 'flex flex-row items-center gap-2 grow px-2 py-0.5',
@@ -44,7 +45,7 @@ const PROJECT_EXECUTION_STYLES = tv({
 /** Props for a {@link ProjectExecution}. */
 export interface ProjectExecutionProps {
   /** Defaults to `false`. */
-  readonly hideDay?: boolean
+  readonly compact?: boolean
   readonly backend: Backend
   readonly item: backendModule.ProjectAsset
   readonly projectExecution: backendModule.ProjectExecution
@@ -54,7 +55,7 @@ export interface ProjectExecutionProps {
 
 /** Displays information describing a specific version of an asset. */
 export function ProjectExecution(props: ProjectExecutionProps) {
-  const { backend, item, projectExecution, date } = props
+  const { compact = false, backend, item, projectExecution, date } = props
   const { getText } = useText()
   const getOrdinal = useGetOrdinal()
   const [timeZone = getLocalTimeZone()] = useLocalStorageState('preferredTimeZone')
@@ -129,6 +130,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
   })()
 
   const styles = PROJECT_EXECUTION_STYLES({
+    compact,
     isEnabled: projectExecution.enabled,
   })
 
@@ -136,48 +138,54 @@ export function ProjectExecution(props: ProjectExecutionProps) {
     backendMutationOptions(backend, 'deleteProjectExecution'),
   )
 
+  const timeEl = (
+    <div className={styles.timeContainer()}>
+      <div className={styles.times()}>{repeatString}</div>
+      <DialogTrigger>
+        <CloseButton
+          className={styles.timeButtons()}
+          tooltip={getText('delete')}
+          tooltipPlacement="top left"
+        />
+        <ConfirmDeleteModal
+          actionText={getText('deleteThisProjectExecution')}
+          doDelete={async () => {
+            await deleteProjectExecution.mutateAsync([projectExecution.executionId, item.title])
+          }}
+        />
+      </DialogTrigger>
+    </div>
+  )
+
   return (
     <div className={styles.base()}>
-      <div className={styles.timeContainer()}>
-        <div className={styles.times()}>{repeatString}</div>
-        <DialogTrigger>
-          <CloseButton
-            className={styles.timeButtons()}
-            tooltip={getText('delete')}
-            tooltipPlacement="top left"
-          />
-          <ConfirmDeleteModal
-            actionText={getText('deleteThisProjectExecution')}
-            doDelete={async () => {
-              await deleteProjectExecution.mutateAsync([projectExecution.executionId, item.title])
-            }}
-          />
-        </DialogTrigger>
-      </div>
-      <ButtonGroup className={styles.optionContainer()}>
-        <Button
-          size="xsmall"
-          variant="outline"
-          icon={TimeIcon}
-          tooltip={getText('maxDurationLabel')}
-          tooltipPlacement="left"
-          className={styles.maximumDuration()}
-        >
-          {getText('xMinutes', projectExecution.maxDurationMinutes)}
-        </Button>
-        <Button
-          size="xsmall"
-          variant="outline"
-          icon={RepeatIcon}
-          tooltip={getText('repeatIntervalLabel')}
-          tooltipPlacement="left"
-          className={styles.repeatInterval()}
-        >
-          {getText(
-            backendModule.PROJECT_EXECUTION_REPEAT_TYPE_TO_TEXT_ID[projectExecution.repeat.type],
-          )}
-        </Button>
-      </ButtonGroup>
+      {timeEl}
+      {
+        <ButtonGroup className={styles.optionContainer()}>
+          <Button
+            size="xsmall"
+            variant="outline"
+            icon={TimeIcon}
+            tooltip={getText('maxDurationLabel')}
+            tooltipPlacement="left"
+            className={styles.maximumDuration()}
+          >
+            {getText('xMinutes', projectExecution.maxDurationMinutes)}
+          </Button>
+          <Button
+            size="xsmall"
+            variant="outline"
+            icon={RepeatIcon}
+            tooltip={getText('repeatIntervalLabel')}
+            tooltipPlacement="left"
+            className={styles.repeatInterval()}
+          >
+            {getText(
+              backendModule.PROJECT_EXECUTION_REPEAT_TYPE_TO_TEXT_ID[projectExecution.repeat.type],
+            )}
+          </Button>
+        </ButtonGroup>
+      }
     </div>
   )
 }

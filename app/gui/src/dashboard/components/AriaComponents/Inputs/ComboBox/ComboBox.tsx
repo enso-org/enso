@@ -16,6 +16,7 @@ import {
   Input,
   Popover,
   Text,
+  UncontrolledInput,
   type FieldComponentProps,
   type FieldPath,
   type FieldProps,
@@ -147,7 +148,12 @@ export const ComboBox = forwardRef(function ComboBox<
             >
               <div className={styles.inputContainer()}>
                 <Button variant="icon" icon={ArrowIcon} className="rotate-90" />
-                <Input name={name} placeholder={placeholder} size="custom" variant="custom" />
+                <UncontrolledInput
+                  name={name}
+                  placeholder={placeholder}
+                  size="custom"
+                  variant="custom"
+                />
                 {!noResetButton && <ComboBoxResetButton className={styles.resetButton()} />}
               </div>
               <Popover crossOffset={POPOVER_CROSS_OFFSET_PX} className={styles.popover()}>

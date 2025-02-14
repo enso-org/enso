@@ -229,7 +229,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
         <Text color="disabled">{getText('noProjectExecutions')}</Text>
       : projectExecutionsForToday.map(({ projectExecution, date }) => (
           <ProjectExecution
-            hideDay
+            compact
             backend={backend}
             item={item}
             projectExecution={projectExecution}
