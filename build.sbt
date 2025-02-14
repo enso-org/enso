@@ -4723,7 +4723,7 @@ lazy val `std-base` = project
       "org.netbeans.api"           % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "com.fasterxml.jackson.core" % "jackson-databind"        % jacksonVersion
     ),
-    Compile / packageBin := Def.task {
+    Compile / packageBin := {
       val result = (Compile / packageBin).value
       val _ensureCoreIsCompiled =
         (`common-polyglot-core-utils` / Compile / packageBin).value
@@ -4735,7 +4735,7 @@ lazy val `std-base` = project
         )
         .value
       result
-    }.value
+    }
   )
   .dependsOn(`common-polyglot-core-utils`)
 
@@ -4951,11 +4951,11 @@ lazy val `std-google-api` = project
           )
       )
       .value,
-    Compile / packageBin := Def.task {
+    Compile / packageBin := {
       val result = (Compile / packageBin).value
       extractNativeLibs.value
       result
-    }.value
+    }
   )
   .dependsOn(`std-table` % "provided")
 
@@ -4975,7 +4975,7 @@ lazy val `std-database` = project
       "org.xerial"           % "sqlite-jdbc"             % sqliteVersion,
       "org.postgresql"       % "postgresql"              % postgresVersion
     ),
-    Compile / packageBin := Def.task {
+    Compile / packageBin := {
       val result = (Compile / packageBin).value
       StdBits
         .copyDependencies(
@@ -4985,7 +4985,7 @@ lazy val `std-database` = project
         )
         .value
       result
-    }.value
+    }
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -5012,7 +5012,7 @@ lazy val `std-aws` = project
       "software.amazon.awssdk" % "sso"                     % awsJavaSdkV2Version,
       "software.amazon.awssdk" % "ssooidc"                 % awsJavaSdkV2Version
     ),
-    Compile / packageBin := Def.task {
+    Compile / packageBin := {
       val result = (Compile / packageBin).value
       StdBits
         .copyDependencies(
@@ -5022,7 +5022,7 @@ lazy val `std-aws` = project
         )
         .value
       result
-    }.value
+    }
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -5042,7 +5042,7 @@ lazy val `std-snowflake` = project
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "net.snowflake"    % "snowflake-jdbc"          % snowflakeJDBCVersion
     ),
-    Compile / packageBin := Def.task {
+    Compile / packageBin := {
       val result = (Compile / packageBin).value
       StdBits
         .copyDependencies(
@@ -5052,7 +5052,7 @@ lazy val `std-snowflake` = project
         )
         .value
       result
-    }.value
+    }
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -5072,7 +5072,7 @@ lazy val `std-microsoft` = project
       "org.netbeans.api"        % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "com.microsoft.sqlserver" % "mssql-jdbc"              % mssqlserverJDBCVersion
     ),
-    Compile / packageBin := Def.task {
+    Compile / packageBin := {
       val result = (Compile / packageBin).value
       StdBits
         .copyDependencies(
@@ -5082,7 +5082,7 @@ lazy val `std-microsoft` = project
         )
         .value
       result
-    }.value
+    }
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
