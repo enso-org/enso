@@ -7,7 +7,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.function.Function;
 import java.util.regex.Pattern;
-
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -194,7 +193,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       objects[0] = wrapAsColumn(args[0]);
       objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
     } else if (method.isStaticMethod()) {
-      // The static method takes the module as the synthetic 'self' argument, so we need to prepend
+      // The static method takes the type as the synthetic 'self' argument, so we need to prepend
       // it:
       objects = new Object[args.length + 1];
       objects[0] = method.getStaticsType();
