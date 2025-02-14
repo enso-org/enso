@@ -91,8 +91,6 @@ import type {
   RowEditingStoppedEvent,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
-import * as iter from 'enso-common/src/utilities/data/iter'
-import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
 import {
   Component,
   type ComponentInstance,

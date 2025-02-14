@@ -127,6 +127,7 @@ const sortModel = ref<SortModel[]>([])
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 const defaultColDef: Ref<ColDef> = ref({
   editable: false,
+  sortable: true,
   resizable: true,
   minWidth: 25,
   cellRenderer: cellRenderer,
@@ -257,20 +258,27 @@ const createRowsForTable = (data: unknown[][], startIndex: number, shift: number
   })
 }
 // type SortDirection = 'asc' | 'desc'
-// const sortDirectionMap = computed(() => ({
-//     asc: '..Ascending',
-//     desc: '..Descending',
-//   }))
+const sortDirectionMap = computed(() => ({
+    asc: '..Ascending',
+    desc: '..Descending',
+  }))
 
 function createRowServer() {
   return {
-    getData: async (request: IServerSideGetRowsRequest, sortColName: string, sortDirection: string) => {
-    console.log({request})
+    getData: async (request: IServerSideGetRowsRequest) => {
+      // {sort: 'asc', colId: 'Column 1'}
+      const sortCol = request.sortModel[0]?.colId
+      const sortDir = sortDirectionMap.value[request.sortModel[0]?.sort]
+      console.log({sortCol})
+      console.log({sortDir})
       const response = await config.executeExpression(
         'Standard.Visualization.Table.Visualization',
         'get_rows_for_table',
         `${request.startRow}`,
+        sortCol,
+        sortDir
       )
+      console.log({response})
       return {
         success: true,
         data: response.value.rows,
@@ -286,10 +294,8 @@ function createServerSideDatasource(): IServerSideDatasource {
   return {
     getRows: async (params) => {
       const server = createRowServer()
-      // const sortColName = sortModel.value[0]?.columnName ?? ''
-      // const sortDirectionVal = sortModel.value[0]?.sortDirection ?? ''
-      // const sortDirection = sortDirectionMap.value[sortDirectionVal]
-      const response: Response = await server.getData(params.request, 'sortColName', 'sortDirection')
+      console.log(params.request)
+      const response: Response = await server.getData(params.request)
       const startIndex = params.request.startRow ? params.request.startRow : 0
       const rows = createRowsForTable(response.data, startIndex, 1)
       setTimeout(() => {
@@ -431,7 +437,7 @@ function toField(
   const styles = 'display:flex; flex-direction:row; justify-content:space-between; width:inherit;'
   const template =
     icon ?
-      `<span style='${styles}'><span data-ref="eLabel" class="ag-header-cell-label" role="presentation" style='${styles}'><span data-ref="eText" class="ag-header-cell-text"></span></span>${menu} ${sort} ${getSvgTemplate(icon)} ${svgTemplateWarning}</span>`
+      `<span style='${styles}'><span data-ref="eLabel" class="ag-header-cell-label" role="presentation" style='${styles}'><span data-ref="eText" class="ag-header-cell-text"></span></span>${menu} ${filterButton} ${sort} ${getSvgTemplate(icon)} ${svgTemplateWarning}</span>`
     : `<span style='${styles}' data-ref="eLabel"><span data-ref="eText" class="ag-header-cell-label"></span> ${menu} ${filterButton} ${sort} ${svgTemplateWarning}</span>`
 
   return {
@@ -549,8 +555,6 @@ watchEffect(() => {
         link_value_type: undefined,
         // eslint-disable-next-line camelcase
         is_ssrm: undefined,
-        // eslint-disable-next-line camelcase
-        header: undefined,
       }
   if ('error' in data_) {
     columnDefs.value = [
@@ -662,21 +666,6 @@ watchEffect(() => {
       rowData.value = data_.data ? createRowsForTable(data_.data, 0, shift) : []
     }
   }
-
-  // if (rowData.value[0]) {
-  //   const headers = Object.keys(rowData.value[0])
-  //   const headerGroupingMap = new Map()
-  //   headers.forEach((header) => {
-  //     const needsGrouping = rowData.value.some((row) => {
-  //       if (header in row && row[header] != null) {
-  //         const value = typeof row[header] === 'object' ? row[header].value : row[header]
-  //         return value > 999999 || value < -999999
-  //       }
-  //     })
-  //     headerGroupingMap.set(header, needsGrouping)
-  //   })
-  //   dataGroupingMap.value = headerGroupingMap
-  // }
 })
 
 const colTypeMap = computed(() => {
