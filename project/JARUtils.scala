@@ -30,8 +30,7 @@ object JARUtils {
     extractedFilesDir: Path,
     renameFunc: String => Option[String],
     logger: sbt.util.Logger,
-    cacheStoreFactory: CacheStoreFactory,
-    cleanOutputDirs: Boolean = true
+    cacheStoreFactory: CacheStoreFactory
   ): Unit = {
     val dependencyStore = cacheStoreFactory.make("extract-jar-files")
     // Make sure that the actual file extraction is done only iff some of the cached files change.
@@ -41,7 +40,9 @@ object JARUtils {
     var shouldExtract = false
     Tracked.diffInputs(dependencyStore, FileInfo.hash)(cachedFiles) { report =>
       shouldExtract =
-        report.modified.nonEmpty || report.removed.nonEmpty || report.added.nonEmpty
+        report.modified.nonEmpty || report.removed.nonEmpty || report.added.nonEmpty || outputJarPath
+          .map(!_.toFile.exists())
+          .getOrElse(false)
     }
 
     if (!shouldExtract) {
@@ -51,13 +52,6 @@ object JARUtils {
       logger.info(
         s"Extracting files with prefix '${extractPrefix}' from $inputJarPath to $extractedFilesDir."
       )
-    }
-
-    if (cleanOutputDirs) {
-      outputJarPath.foreach(outputJarPath =>
-        ensureDirExistsAndIsClean(outputJarPath.getParent, logger)
-      )
-      ensureDirExistsAndIsClean(extractedFilesDir, logger)
     }
     Using(new JarFile(inputJarPath.toFile)) { inputJar =>
       outputJarPath match {
@@ -114,9 +108,11 @@ object JARUtils {
               }
           }.recover({ case e: IOException =>
             logger.err(
-              s"Failed to create output JAR at $outputJarPath: ${e.getMessage}"
+              s"Failed to create output JAR at $outputJarPath (parent dir exists: ${outputJarPath.getParent.toFile
+                .exists()}): ${e.getMessage}"
             )
             e.printStackTrace(System.err)
+            throw e;
           })
         case None =>
           inputJar.stream().forEach { entry =>
@@ -150,27 +146,5 @@ object JARUtils {
       )
       e.printStackTrace(System.err)
     })
-  }
-
-  private def ensureDirExistsAndIsClean(
-    path: Path,
-    logger: sbt.util.Logger
-  ): Unit = {
-    require(path != null)
-    val dir = path.toFile
-    if (dir.exists && dir.isDirectory) {
-      // Clean previous contents
-      IO.delete(IO.listFiles(dir))
-    } else {
-      try {
-        IO.createDirectory(dir)
-      } catch {
-        case e: IOException =>
-          logger.err(
-            s"Failed to create directory $path: ${e.getMessage}"
-          )
-          e.printStackTrace(System.err)
-      }
-    }
   }
 }
