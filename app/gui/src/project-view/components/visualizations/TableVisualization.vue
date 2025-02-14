@@ -630,12 +630,12 @@ watchEffect(() => {
           if (col.headerName === INDEX_FIELD_NAME) {
             headerGroupingMap.set(INDEX_FIELD_NAME, false)
           }
-          const dataHeaderIndex = headers.findIndex((h: string) => h === col.headerName)
-          const needsGrouping =
-            data_.requires_number_format ?
-              data_.requires_number_format[dataHeaderIndex]
-            : false
+          if(typeof props.data== 'object' && 'header' in props.data) {
+          const dataHeaderIndex = props.data.header?.findIndex((h: string) => h === col.headerName)
+          const needsGrouping = dataHeaderIndex ? data_.requires_number_format[dataHeaderIndex] : false
           headerGroupingMap.set(col.headerName, needsGrouping)
+          }
+
         })
       } else {
         headers.forEach((header) => {
