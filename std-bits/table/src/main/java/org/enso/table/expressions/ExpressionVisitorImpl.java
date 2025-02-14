@@ -1,15 +1,13 @@
 package org.enso.table.expressions;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -56,6 +54,50 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
   }
 
+  public static class Method {
+    private final Value ensoMethod;
+    private final boolean isVariableArgumentMethod;
+    private final boolean isStaticMethod;
+    private final Value staticsType;
+
+    public Method(Value module, Value type, String name, boolean variableArgumentMethod) {
+      var context = Context.getCurrent().getBindings("enso");
+      final Value staticsModule =
+          context.invokeMember("get_module", "Standard.Table.Expression_Statics");
+      this.staticsType = staticsModule.invokeMember("get_type", "Expression_Statics");
+      this.isVariableArgumentMethod = variableArgumentMethod;
+
+      var staticMethod = staticsModule.invokeMember("get_method", staticsType, name);
+      if (staticMethod.canExecute()) {
+        this.isStaticMethod = true;
+        this.ensoMethod = staticMethod;
+      } else {
+        var instanceMethod = module.invokeMember("get_method", type, name);
+        if (!instanceMethod.canExecute()) {
+          throw new UnsupportedOperationException("Method not found: " + name);
+        }
+        this.isStaticMethod = false;
+        this.ensoMethod = instanceMethod;
+      }
+    }
+
+    public Value getEnsoMethod() {
+      return ensoMethod;
+    }
+
+    public boolean isVariableArgumentMethod() {
+      return isVariableArgumentMethod;
+    }
+
+    public boolean isStaticMethod() {
+      return isStaticMethod;
+    }
+
+    public Value getStaticsType() {
+      return staticsType;
+    }
+  }
+
   public static Value evaluate(
       String expression,
       Function<String, Value> getColumn,
@@ -67,26 +109,22 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     var context = Context.getCurrent().getBindings("enso");
     final Value module = context.invokeMember("get_module", moduleName);
     final Value type = module.invokeMember("get_type", typeName);
-    Function<String, Value> getMethod = name -> module.invokeMember("get_method", type, name);
+    final var setVariableArgumentFunctions =
+        new HashSet<>(Arrays.asList(variableArgumentFunctions));
+    Function<String, Method> getMethod =
+        name -> new Method(module, type, name, setVariableArgumentFunctions.contains(name));
     Function<String, Value> makeConstructor =
         name -> module.invokeMember("eval_expression", ".." + name);
 
-    return evaluateImpl(
-        expression,
-        getColumn,
-        makeConstantColumn,
-        getMethod,
-        makeConstructor,
-        variableArgumentFunctions);
+    return evaluateImpl(expression, getColumn, makeConstantColumn, getMethod, makeConstructor);
   }
 
   public static Value evaluateImpl(
       String expression,
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
-      Function<String, Value> getMethod,
-      Function<String, Value> makeConstructor,
-      String[] variableArgumentFunctions) {
+      Function<String, Method> getMethod,
+      Function<String, Value> makeConstructor) {
     var lexer = new ExpressionLexer(CharStreams.fromString(expression));
     lexer.removeErrorListeners();
     lexer.addErrorListener(ThrowOnErrorListener.INSTANCE);
@@ -97,8 +135,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     parser.addErrorListener(ThrowOnErrorListener.INSTANCE);
 
     var visitor =
-        new ExpressionVisitorImpl(
-            getColumn, makeConstantColumn, getMethod, makeConstructor, variableArgumentFunctions);
+        new ExpressionVisitorImpl(getColumn, makeConstantColumn, getMethod, makeConstructor);
 
     var expr = parser.prog();
     return visitor.visit(expr);
@@ -106,21 +143,18 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   private final Function<String, Value> getColumn;
   private final Function<Object, Value> makeConstantColumn;
-  private final Function<String, Value> getMethod;
+  private final Function<String, Method> getMethod;
   private final Function<String, Value> makeConstructor;
-  private final Set<String> variableArgumentFunctions;
 
   private ExpressionVisitorImpl(
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
-      Function<String, Value> getMethod,
-      Function<String, Value> makeConstructor,
-      String[] variableArgumentFunctions) {
+      Function<String, Method> getMethod,
+      Function<String, Value> makeConstructor) {
     this.getColumn = getColumn;
     this.makeConstantColumn = makeConstantColumn;
     this.getMethod = getMethod;
     this.makeConstructor = makeConstructor;
-    this.variableArgumentFunctions = new HashSet<>(Arrays.asList(variableArgumentFunctions));
   }
 
   private Value wrapAsColumn(Value value) {
@@ -137,23 +171,10 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   }
 
   private Value executeMethod(String name, Value... args) {
-    Value method = getMethod.apply(name);
-    if (!method.canExecute()) {
-      throw new UnsupportedOperationException(name);
-    }
-
-    Object[] objects;
-    if (this.variableArgumentFunctions.contains(name)) {
-      objects = new Object[2];
-      objects[0] = args[0];
-      objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
-    } else {
-      objects = Arrays.copyOf(args, args.length, Object[].class);
-    }
-    objects[0] = wrapAsColumn(args[0]);
-
+    var method = getMethod.apply(name);
+    Object[] objects = prepareArguments(method, args);
     try {
-      var result = method.execute(objects);
+      var result = method.getEnsoMethod().execute(objects);
       if (result.canExecute()) {
         throw new IllegalArgumentException("Insufficient arguments for method " + name + ".");
       }
@@ -164,6 +185,25 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       }
       throw e;
     }
+  }
+
+  private Object[] prepareArguments(Method method, Value[] args) {
+    Object[] objects;
+    if (method.isVariableArgumentMethod()) {
+      objects = new Object[2];
+      objects[0] = wrapAsColumn(args[0]);
+      objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
+    } else if (method.isStaticMethod()) {
+      // The static method takes the module as the synthetic 'self' argument, so we need to prepend
+      // it:
+      objects = new Object[args.length + 1];
+      objects[0] = method.getStaticsType();
+      System.arraycopy(args, 0, objects, 1, args.length);
+    } else {
+      objects = Arrays.copyOf(args, args.length, Object[].class);
+      objects[0] = wrapAsColumn(args[0]);
+    }
+    return objects;
   }
 
   @Override
@@ -410,11 +450,6 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   public Value visitFunction(ExpressionParser.FunctionContext ctx) {
     var name = ctx.IDENTIFIER().getText().toLowerCase();
     var args = ctx.expr().stream().map(this::visit).toArray(Value[]::new);
-    return switch (name) {
-      case "today" -> Value.asValue(LocalDate.now());
-      case "now" -> Value.asValue(LocalDateTime.now().atZone(ZoneId.systemDefault()));
-      case "time" -> Value.asValue(LocalTime.now());
-      default -> executeMethod(name, args);
-    };
+    return executeMethod(name, args);
   }
 }
