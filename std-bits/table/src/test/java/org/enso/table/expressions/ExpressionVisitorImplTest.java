@@ -52,3 +52,17 @@ public class ExpressionVisitorImplTest {
     assertEquals(mockedResult, result);
   }
 }
+
+@Test
+public void testSimpleStaticMethod() {
+    Value mockedMethodToday = mock(Value.class);
+    Value mockedResult = mock(Value.class);
+
+    when(getMethod.apply("today")).thenReturn(mockedMethodToday);
+    when(mockedMethodToday.canExecute()).thenReturn(true);
+    when(mockedMethodToday.execute()).thenReturn(mockedResult);
+    when(makeConstantColumn.apply(mockedResult)).thenReturn(mockedResult);
+
+    Value result = evaluate("today()");
+    assertEquals(mockedResult, result);
+}
