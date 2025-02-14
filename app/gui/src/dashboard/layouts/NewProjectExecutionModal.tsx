@@ -6,6 +6,7 @@ import {
   getLocalTimeZone,
   now,
   parseZonedDateTime,
+  toZoned,
   ZonedDateTime,
 } from '@internationalized/date'
 import { useMutation } from '@tanstack/react-query'
@@ -238,6 +239,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   const repeatType = form.watch('repeatType', 'daily')
   const parallelMode = form.watch('parallelMode', 'restart')
   const date = form.watch('startDate', defaultStartDate) ?? defaultStartDate
+  const formTimeZone = form.watch('timeZone', timeZone)
   // Reactively watch for `days` and `months` so that repeat dates are kept up to date.
   form.watch('days')
   form.watch('months')
@@ -270,7 +272,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
     if (!projectExecution) {
       return []
     }
-    let nextDate = firstProjectExecutionOnOrAfter(projectExecution, date)
+    let nextDate = firstProjectExecutionOnOrAfter(projectExecution, toZoned(date, formTimeZone))
     const dates = [nextDate]
     while (dates.length < REPEAT_TIMES_COUNT) {
       nextDate = nextProjectExecutionDate(projectExecution, nextDate)
