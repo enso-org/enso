@@ -8,8 +8,6 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.Mock;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -40,32 +38,32 @@ public class ExpressionVisitorImplTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void testSimpleMethodOnColumn() {
     Value mockedColumn1 = mock(Value.class);
     Method mockedMethodTextLength = mock(Method.class);
     Value mockedResult = mock(Value.class);
+    Value mockedColumnResult = mock(Value.class);
     
     when(getColumn.apply("Column 1")).thenReturn(mockedColumn1);
     when(getMethod.apply("text_length")).thenReturn(mockedMethodTextLength);
-    when(mockedMethodTextLength.execute(eq(new Value[]{mockedColumn1}), any(Function.class))).thenReturn(mockedResult);
-    when(makeConstantColumn.apply(mockedResult)).thenReturn(mockedResult);
+    when(mockedMethodTextLength.execute(new Value[]{mockedColumn1}, makeConstantColumn)).thenReturn(mockedResult);
+    when(makeConstantColumn.apply(mockedResult)).thenReturn(mockedColumnResult);
 
     Value result = evaluate("text_length([Column 1])");
-    assertEquals(mockedResult, result);
+    assertEquals(mockedColumnResult, result);
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void testSimpleStaticMethod() {
     Method mockedMethodToday = mock(Method.class);
     Value mockedResult = mock(Value.class);
+    Value mockedColumnResult = mock(Value.class);
 
     when(getMethod.apply("today")).thenReturn(mockedMethodToday);
-    when(mockedMethodToday.execute(eq(new Value[]{}), any(Function.class))).thenReturn(mockedResult);
-    when(makeConstantColumn.apply(mockedResult)).thenReturn(mockedResult);
+    when(mockedMethodToday.execute(new Value[]{}, makeConstantColumn)).thenReturn(mockedResult);
+    when(makeConstantColumn.apply(mockedResult)).thenReturn(mockedColumnResult);
 
     Value result = evaluate("today()");
-    assertEquals(mockedResult, result);
+    assertEquals(mockedColumnResult, result);
   }
 }

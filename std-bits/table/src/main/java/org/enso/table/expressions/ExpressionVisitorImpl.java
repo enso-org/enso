@@ -54,6 +54,19 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
   }
 
+    private static Value wrapAsColumn(Value value, Function<Object, Value> makeConstantColumn) {
+    if (value.isNull()) {
+      return makeConstantColumn.apply(value);
+    }
+
+    var metaObject = value.getMetaObject();
+    return metaObject != null
+            && metaObject.isHostObject()
+            && metaObject.asHostObject() instanceof Class<?>
+        ? makeConstantColumn.apply(value)
+        : value;
+  }
+
   public static class Method {
     private final Value ensoMethod;
     private final boolean isVariableArgumentMethod;
@@ -83,9 +96,9 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       }
     }
 
-    public Value execute(Value[] args, Function<Value, Value> wrapAsColumn)
+    public Value execute(Value[] args, Function<Object, Value> makeConstantColumn)
     {
-      Object[] objects = prepareArguments(args, wrapAsColumn);
+      Object[] objects = prepareArguments(args, makeConstantColumn);
       try {
         var result = ensoMethod.execute(objects);
         if (result.canExecute()) {
@@ -100,11 +113,11 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       }
     }
 
-    public Object[] prepareArguments(Value[] args, Function<Value, Value> wrapAsColumn) {
+    public Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn) {
     Object[] objects;
     if (isVariableArgumentMethod) {
       objects = new Object[2];
-      objects[0] = wrapAsColumn.apply(args[0]);
+      objects[0] = wrapAsColumn(args[0], makeConstantColumn);
       objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
     } else if (isStaticMethod) {
       // The static method takes the type as the synthetic 'self' argument, so we need to prepend
@@ -114,7 +127,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       System.arraycopy(args, 0, objects, 1, args.length);
     } else {
       objects = Arrays.copyOf(args, args.length, Object[].class);
-      objects[0] = wrapAsColumn.apply(args[0]);
+      objects[0] = wrapAsColumn(args[0], makeConstantColumn);
     }
       return objects;
     }
@@ -179,29 +192,16 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     this.makeConstructor = makeConstructor;
   }
 
-  private Value wrapAsColumn(Value value) {
-    if (value.isNull()) {
-      return makeConstantColumn.apply(value);
-    }
-
-    var metaObject = value.getMetaObject();
-    return metaObject != null
-            && metaObject.isHostObject()
-            && metaObject.asHostObject() instanceof Class<?>
-        ? makeConstantColumn.apply(value)
-        : value;
-  }
-
   private Value executeMethod(String name, Value... args) {
     var method = getMethod.apply(name);
-    Value result = method.execute(args, c->wrapAsColumn(c));
+    Value result = method.execute(args, makeConstantColumn);
     return makeConstantColumn.apply(result);
   }
 
   @Override
   public Value visitProg(ExpressionParser.ProgContext ctx) {
     Value base = visit(ctx.expr());
-    return wrapAsColumn(base);
+    return wrapAsColumn(base, makeConstantColumn);
   }
 
   @Override
