@@ -27,6 +27,7 @@ import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 @GenerateUncached
@@ -104,7 +105,7 @@ abstract class EqualsAtomNode extends Node {
       }
       var ctx = EnsoContext.get(this);
       var args = new Object[] {cachedComparator, self, other};
-      var result = invokeNode.execute(compareFn, null, args);
+      var result = invokeNode.execute(compareFn, null, State.create(ctx), args);
       assert orderingOrNullOrError(this, ctx, result, compareFn);
       if (warnings.hasWarnings(result)) {
         warningsPresent.enter();

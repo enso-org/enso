@@ -30,18 +30,19 @@ public final class WithNode extends Node {
 
   Object execute(VirtualFrame frame, ManagedResource mr, Object action) {
     var ctx = EnsoContext.get(this);
+    var state = ctx.currentState();
     var resourceManager = ctx.getResourceManager();
     if (mr.getPhantomReference().refersTo(mr)) {
       resourceManager.park(mr);
       try {
-        return invokeCallableNode.execute(action, frame, new Object[] {mr.getResource()});
+        return invokeCallableNode.execute(action, frame, state, new Object[] {mr.getResource()});
       } finally {
         resourceManager.unpark(mr);
       }
     } else {
       var payload = ctx.getBuiltins().error().makeUninitializedStateError(mr);
       var err = DataflowError.withDefaultTrace(payload, this);
-      return invokeCallableNode.execute(action, frame, new Object[] {err});
+      return invokeCallableNode.execute(action, frame, state, new Object[] {err});
     }
   }
 }

@@ -40,7 +40,10 @@ public abstract class NumericLiteralBranchNode extends BranchNode {
 
   @Specialization(guards = "interop.isNumber(target)")
   void doObject(
-      VirtualFrame frame, Object target, @CachedLibrary(limit = "1") InteropLibrary interop) {
+      VirtualFrame frame,
+      Object state,
+      Object target,
+      @CachedLibrary(limit = "1") InteropLibrary interop) {
     var taken =
         switch (literal) {
           case Long l -> target instanceof Long t && l.longValue() == t.longValue();
@@ -48,11 +51,11 @@ public abstract class NumericLiteralBranchNode extends BranchNode {
           case BigInteger b -> target instanceof EnsoBigInteger e && compare(b, e.asBigInteger());
           default -> throw CompilerDirectives.shouldNotReachHere();
         };
-    if (numProfile.profile(taken)) accept(frame, new Object[0]);
+    if (numProfile.profile(taken)) accept(frame, state, new Object[0]);
   }
 
   @Fallback
-  void doOther(VirtualFrame frame, Object target) {}
+  void doOther(VirtualFrame frame, Object state, Object target) {}
 
   @CompilerDirectives.TruffleBoundary(allowInlining = true)
   private boolean compare(BigInteger b1, BigInteger b2) {

@@ -59,9 +59,11 @@ public abstract class CatchPanicNode extends Node {
       @Cached BranchProfile panicBranchProfile,
       @Cached BranchProfile otherExceptionBranchProfile,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
+    var ctx = EnsoContext.get(this);
+    var state = ctx.currentState();
     try {
       // Note [Tail call]
-      var ret = thunkExecutorNode.executeThunk(frame, action, BaseNode.TailStatus.NOT_TAIL);
+      var ret = thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.NOT_TAIL);
       if (ret instanceof PanicSentinel sentinel) {
         throw sentinel.getPanic();
       }
@@ -85,7 +87,9 @@ public abstract class CatchPanicNode extends Node {
       InteropLibrary interopLibrary) {
 
     if (profile.profile(isValueOfTypeNode.execute(panicType, payload, true))) {
-      var builtins = EnsoContext.get(this).getBuiltins();
+      var ctx = EnsoContext.get(this);
+      var state = ctx.currentState();
+      var builtins = ctx.getBuiltins();
       var cons = builtins.caughtPanic().getUniqueConstructor();
       if (originalException instanceof PanicException panic) {
         panic.assignCaughtLocation(this);
@@ -96,7 +100,7 @@ public abstract class CatchPanicNode extends Node {
       }
       var caughtPanic =
           AtomNewInstanceNode.getUncached().newInstance(cons, payload, originalException);
-      return invokeCallableNode.execute(handler, frame, new Object[] {caughtPanic});
+      return invokeCallableNode.execute(handler, frame, state, new Object[] {caughtPanic});
     } else {
       try {
         return interopLibrary.throwException(originalException);

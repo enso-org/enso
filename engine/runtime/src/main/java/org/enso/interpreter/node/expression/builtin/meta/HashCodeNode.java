@@ -50,6 +50,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
 
@@ -243,7 +244,7 @@ public abstract class HashCodeNode extends Node {
       @Cached(value = "createInvokeNode(compareMethod)") InvokeFunctionNode invokeFunctionNode) {
     var ctx = EnsoContext.get(this);
     var args = new Object[] {cachedComparator, atom};
-    var result = invokeFunctionNode.execute(compareMethod, null, args);
+    var result = invokeFunctionNode.execute(compareMethod, null, State.create(ctx), args);
     if (!interop.isNumber(result)) {
       throw ctx.raiseAssertionPanic(this, "Custom comparator must return a number", null);
     } else {

@@ -57,11 +57,10 @@ public final class DataflowError extends AbstractTruffleException {
     assert payload != null;
     var ensoCtx = EnsoContext.get(location);
     var dataflowStacktraceCtx = ensoCtx.getBuiltins().context().getDataflowStackTrace();
-    State state = ensoCtx.currentState();
+    var state = ensoCtx.currentState();
     boolean attachFullStackTrace =
-        state == null
-            || hasContextEnabledNode.executeHasContextEnabled(
-                ensoCtx.getExecutionEnvironment(), dataflowStacktraceCtx);
+        hasContextEnabledNode.executeHasContextEnabled(
+            ensoCtx.getExecutionEnvironment(), dataflowStacktraceCtx);
     if (attachFullStackTrace) {
       var result =
           new DataflowError(payload, AbstractTruffleException.UNLIMITED_STACK_TRACE, location);

@@ -54,8 +54,9 @@ public abstract class PrintErrNode extends Node {
       @Cached("buildSymbol()") UnresolvedSymbol symbol,
       @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode,
       @Cached ExpectStringNode expectStringNode) {
-    var str = invokeCallableNode.execute(symbol, frame, new Object[] {message});
-    EnsoContext ctx = EnsoContext.get(this);
+    var ctx = EnsoContext.get(this);
+    var state = ctx.currentState();
+    var str = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
     print(ctx.getErr(), expectStringNode.execute(str));
     return ctx.getNothing();
   }

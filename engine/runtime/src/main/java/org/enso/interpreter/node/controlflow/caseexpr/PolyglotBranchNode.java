@@ -33,19 +33,19 @@ public abstract class PolyglotBranchNode extends BranchNode {
   }
 
   @Specialization
-  void doType(VirtualFrame frame, Type target) {
+  void doType(VirtualFrame frame, Object state, Type target) {
     if (constructorProfile.profile(polyglot == target)) {
-      accept(frame, new Object[0]);
+      accept(frame, state, new Object[0]);
     }
   }
 
   @Specialization(guards = "isPolyglotObject(obj)")
-  void doLiteral(VirtualFrame frame, Object obj) {
-    accept(frame, new Object[0]);
+  void doLiteral(VirtualFrame frame, Object state, Object obj) {
+    accept(frame, state, new Object[0]);
   }
 
   @Fallback
-  void doFallback(VirtualFrame frame, Object target) {}
+  void doFallback(VirtualFrame frame, Object state, Object target) {}
 
   boolean isPolyglotObject(Object o) {
     return EnsoContext.get(this).isJavaPolyglotObject(o);

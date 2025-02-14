@@ -62,30 +62,36 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
   public Object cachedDispatch(
       Function function,
       CallerInfo callerInfo,
+      State state,
       Object[] arguments,
       EnsoHashMap warnings,
       @Shared("loopNode") @Cached(value = "createLoopNode()") LoopNode loopNode) {
-    return dispatch(function, callerInfo, arguments, loopNode);
+    return dispatch(function, callerInfo, state, arguments, loopNode);
   }
 
   @Specialization(guards = "warnings != null")
   public Object cachedDispatchWarnings(
       Function function,
       CallerInfo callerInfo,
+      State state,
       Object[] arguments,
       EnsoHashMap warnings,
       @Shared("loopNode") @Cached(value = "createLoopNode()") LoopNode loopNode,
       @Shared @Cached AppendWarningNode appendWarningNode) {
-    Object result = dispatch(function, callerInfo, arguments, loopNode);
+    Object result = dispatch(function, callerInfo, state, arguments, loopNode);
     return appendWarningNode.executeAppend(null, result, warnings);
   }
 
   private Object dispatch(
-      Function function, CallerInfo callerInfo, Object[] arguments, LoopNode loopNode) {
-
+      Function function,
+      CallerInfo callerInfo,
+      State state,
+      Object[] arguments,
+      LoopNode loopNode) {
     RepeatedCallNode repeatedCallNode = (RepeatedCallNode) loopNode.getRepeatingNode();
     VirtualFrame frame = repeatedCallNode.createFrame();
     repeatedCallNode.setNextCall(frame, function, callerInfo, arguments);
+    repeatedCallNode.setState(frame, state);
     loopNode.execute(frame);
     return repeatedCallNode.getResult(frame);
   }
@@ -96,10 +102,11 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       MaterializedFrame frame,
       Function function,
       CallerInfo callerInfo,
+      State state,
       Object[] arguments,
       EnsoHashMap warnings,
       @Shared("executeCallNode") @Cached ExecuteCallNode executeCallNode) {
-    return loopUntilCompletion(frame, function, callerInfo, arguments, executeCallNode);
+    return loopUntilCompletion(frame, function, callerInfo, state, arguments, executeCallNode);
   }
 
   @Specialization(replaces = "cachedDispatchWarnings", guards = "warnings != null")
@@ -108,11 +115,13 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       MaterializedFrame frame,
       Function function,
       CallerInfo callerInfo,
+      State state,
       Object[] arguments,
       EnsoHashMap warnings,
       @Shared("executeCallNode") @Cached ExecuteCallNode executeCallNode,
       @Shared @Cached AppendWarningNode appendWarningNode) {
-    Object result = loopUntilCompletion(frame, function, callerInfo, arguments, executeCallNode);
+    Object result =
+        loopUntilCompletion(frame, function, callerInfo, state, arguments, executeCallNode);
     return appendWarningNode.executeAppend(null, result, warnings);
   }
 
@@ -120,11 +129,12 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       MaterializedFrame frame,
       Function function,
       CallerInfo callerInfo,
+      State state,
       Object[] arguments,
       ExecuteCallNode executeCallNode) {
     while (true) {
       try {
-        return executeCallNode.executeCall(frame, function, callerInfo, arguments);
+        return executeCallNode.executeCall(frame, function, callerInfo, state, arguments);
       } catch (TailCallException e) {
         function = e.getFunction();
         callerInfo = e.getCallerInfo();
@@ -257,7 +267,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
         Object[] arguments = getNextArgs(frame);
         CallerInfo callerInfo = getCallerInfo(frame);
         frame.setObject(
-            resultSlotIdx, dispatchNode.executeCall(frame, function, callerInfo, arguments));
+            resultSlotIdx, dispatchNode.executeCall(frame, function, callerInfo, state, arguments));
         return false;
       } catch (TailCallException e) {
         setNextCall(frame, e.getFunction(), e.getCallerInfo(), e.getArguments());

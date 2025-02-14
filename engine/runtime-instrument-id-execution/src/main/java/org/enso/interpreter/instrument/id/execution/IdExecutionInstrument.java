@@ -276,9 +276,10 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       private void onTailCallReturn(Throwable exception) {
         try {
           TailCallException tailCallException = (TailCallException) exception;
+          var state = EnsoContext.get(this).currentState();
           FunctionCallInstrumentationNode.FunctionCall functionCall =
               new FunctionCallInstrumentationNode.FunctionCall(
-                  tailCallException.getFunction(), tailCallException.getArguments());
+                  tailCallException.getFunction(), state, tailCallException.getArguments());
           Object result = InteropLibrary.getFactory().getUncached().execute(functionCall);
           onReturnValue(null, result);
         } catch (InteropException e) {

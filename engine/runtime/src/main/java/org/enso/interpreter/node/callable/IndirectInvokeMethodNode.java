@@ -30,6 +30,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;
@@ -48,6 +49,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
 
   public abstract Object execute(
       MaterializedFrame frame,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -60,6 +62,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
   @Specialization(guards = {"dispatch.hasType(self)", "!dispatch.hasSpecialDispatch(self)"})
   Object doFunctionalDispatch(
       MaterializedFrame frame,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -73,12 +76,20 @@ public abstract class IndirectInvokeMethodNode extends Node {
       @Shared("indirectInvokeFunctionNode") @Cached IndirectInvokeFunctionNode invokeFunctionNode) {
     Function function = methodResolverNode.expectNonNull(self, dispatch.getType(self), symbol);
     return invokeFunctionNode.execute(
-        function, frame, arguments, schema, defaultsExecutionMode, argumentsExecutionMode, isTail);
+        function,
+        frame,
+        state,
+        arguments,
+        schema,
+        defaultsExecutionMode,
+        argumentsExecutionMode,
+        isTail);
   }
 
   @Specialization
   Object doDataflowError(
       MaterializedFrame frame,
+      State state,
       UnresolvedSymbol symbol,
       DataflowError self,
       Object[] arguments,
@@ -99,6 +110,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       return invokeFunctionNode.execute(
           function,
           frame,
+          state,
           arguments,
           schema,
           defaultsExecutionMode,
@@ -110,6 +122,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
   @Specialization
   Object doWarning(
       MaterializedFrame frame,
+      State state,
       UnresolvedSymbol symbol,
       WithWarnings self,
       Object[] arguments,
@@ -131,6 +144,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
     Object result =
         childDispatch.execute(
             frame,
+            state,
             symbol,
             self.getValue(),
             arguments,
@@ -145,6 +159,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
   @Specialization
   Object doPanicSentinel(
       MaterializedFrame frame,
+      State state,
       UnresolvedSymbol symbol,
       PanicSentinel self,
       Object[] arguments,
@@ -165,6 +180,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       })
   Object doPolyglot(
       MaterializedFrame frame,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -181,7 +197,8 @@ public abstract class IndirectInvokeMethodNode extends Node {
       @Cached HostMethodCallNode hostMethodCallNode) {
     Object[] args = new Object[arguments.length - 1];
     for (int i = 0; i < arguments.length - 1; i++) {
-      var r = argExecutor.executeThunk(frame, arguments[i + 1], BaseNode.TailStatus.NOT_TAIL);
+      var r =
+          argExecutor.executeThunk(frame, arguments[i + 1], state, BaseNode.TailStatus.NOT_TAIL);
       if (r instanceof DataflowError) {
         return r;
       }
@@ -198,6 +215,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       })
   Object doConvertNumber(
       MaterializedFrame frame,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -214,6 +232,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       var number = toEnsoNumberNode.execute(big);
       return execute(
           frame,
+          state,
           symbol,
           number,
           arguments,
@@ -236,6 +255,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       })
   Object doConvertText(
       MaterializedFrame frame,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -258,6 +278,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       return invokeFunctionNode.execute(
           function,
           frame,
+          state,
           arguments,
           schema,
           defaultsExecutionMode,
@@ -278,6 +299,7 @@ public abstract class IndirectInvokeMethodNode extends Node {
       })
   Object doFallback(
       MaterializedFrame frame,
+      State state,
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
@@ -293,6 +315,13 @@ public abstract class IndirectInvokeMethodNode extends Node {
     Function function =
         methodResolverNode.expectNonNull(self, EnsoContext.get(this).getBuiltins().any(), symbol);
     return invokeFunctionNode.execute(
-        function, frame, arguments, schema, defaultsExecutionMode, argumentsExecutionMode, isTail);
+        function,
+        frame,
+        state,
+        arguments,
+        schema,
+        defaultsExecutionMode,
+        argumentsExecutionMode,
+        isTail);
   }
 }

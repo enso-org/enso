@@ -33,7 +33,7 @@ public class CatchTypeBranchNode extends BranchNode {
     return new CatchTypeBranchNode(tpe, functionNode, terminalBranch);
   }
 
-  public void execute(VirtualFrame frame, Object value) {
+  public void execute(VirtualFrame frame, Object state, Object value) {
     if (profile.profile(isValueOfTypeNode.execute(expectedType, value, true))) {
       if (value instanceof EnsoMultiValue multi) {
         var replacement =
@@ -41,7 +41,7 @@ public class CatchTypeBranchNode extends BranchNode {
         assert replacement != null : "Must find the type, when isValueOfTypeNode is true";
         value = replacement;
       }
-      accept(frame, new Object[] {value});
+      accept(frame, state, new Object[] {value});
     }
   }
 }

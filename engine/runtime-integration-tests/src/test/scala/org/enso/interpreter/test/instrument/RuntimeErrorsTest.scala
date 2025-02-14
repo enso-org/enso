@@ -1060,7 +1060,7 @@ class RuntimeErrorsTest
             "div"
           )
         ),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       TestMessages.error(
         contextId,
@@ -1072,7 +1072,7 @@ class RuntimeErrorsTest
             "-"
           )
         ),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq())
+        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
       ),
       context.executionComplete(contextId)
     )
@@ -1304,8 +1304,6 @@ class RuntimeErrorsTest
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)
     val mainFile = context.writeMain(contents)
-
-    metadata.assertInCode(fooThrowId, code, "Error.throw MyError1")
 
     // create context
     context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))

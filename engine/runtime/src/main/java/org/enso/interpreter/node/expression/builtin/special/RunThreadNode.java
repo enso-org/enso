@@ -30,7 +30,11 @@ public abstract class RunThreadNode extends Node {
               Object p = ctx.getThreadManager().enter();
               try {
                 ThunkExecutorNodeGen.getUncached()
-                    .executeThunk(frame, self, BaseNode.TailStatus.NOT_TAIL);
+                    .executeThunk(
+                        frame,
+                        self,
+                        EnsoContext.get(this).currentState(),
+                        BaseNode.TailStatus.NOT_TAIL);
               } finally {
                 ctx.getThreadManager().leave(p);
               }

@@ -79,14 +79,16 @@ public abstract class GetAnnotationNode extends BaseNode {
     return EnsoContext.get(this).getNothing();
   }
 
-  private static Object executeAnnotation(
+  private Object executeAnnotation(
       Annotation annotation,
       VirtualFrame frame,
       ThunkExecutorNode thunkExecutorNode,
       TailStatus tail) {
     var target = annotation.getExpression().getCallTarget();
     var thunk = Function.thunk(target, frame.materialize());
-    var result = thunkExecutorNode.executeThunk(frame, thunk, tail);
+    var ctx = EnsoContext.get(this);
+    var state = ctx.currentState();
+    var result = thunkExecutorNode.executeThunk(frame, thunk, state, tail);
     return result;
   }
 

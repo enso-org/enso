@@ -23,10 +23,10 @@ public class ObjectEqualityBranchNode extends BranchNode {
   }
 
   @Override
-  public void execute(VirtualFrame frame, Object target) {
+  public void execute(VirtualFrame frame, Object state, Object target) {
     var exp = expected.executeGeneric(frame);
     if (profile.profile(isSameObject.execute(target, exp))) {
-      accept(frame, new Object[0]);
+      accept(frame, state, new Object[0]);
     }
   }
 }

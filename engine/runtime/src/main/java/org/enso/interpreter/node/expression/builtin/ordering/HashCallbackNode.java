@@ -16,6 +16,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.state.State;
 
 /**
  * Helper node for invocation of {@code Comparable.hash_callback atom}. Note that emulating the
@@ -52,7 +53,8 @@ public abstract class HashCallbackNode extends Node {
     var ctx = EnsoContext.get(this);
     var comparableType = ctx.getBuiltins().comparable().getType();
     Object res =
-        hashCallbackInvokeNode.execute(hashCallbackFunc, null, new Object[] {comparableType, atom});
+        hashCallbackInvokeNode.execute(
+            hashCallbackFunc, null, State.create(ctx), new Object[] {comparableType, atom});
     try {
       return interop.asLong(res);
     } catch (UnsupportedMessageException e) {

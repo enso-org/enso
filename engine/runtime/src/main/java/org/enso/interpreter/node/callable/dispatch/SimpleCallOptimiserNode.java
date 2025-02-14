@@ -10,6 +10,7 @@ import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
+import org.enso.interpreter.runtime.state.State;
 
 /**
  * Optimistic version of {@link CallOptimiserNode} for the non tail call recursive case. Tries to
@@ -48,10 +49,11 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
       VirtualFrame frame,
       Function function,
       CallerInfo callerInfo,
+      State state,
       Object[] arguments,
       EnsoHashMap warnings) {
     try {
-      return executeCallNode.executeCall(frame, function, callerInfo, arguments);
+      return executeCallNode.executeCall(frame, function, callerInfo, state, arguments);
     } catch (TailCallException e) {
       if (next == null) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -66,7 +68,7 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
         }
       }
       return next.executeDispatch(
-          frame, e.getFunction(), e.getCallerInfo(), e.getArguments(), e.getWarnings());
+          frame, e.getFunction(), e.getCallerInfo(), state, e.getArguments(), e.getWarnings());
     }
   }
 }

@@ -24,6 +24,7 @@ import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.state.State;
 import org.graalvm.collections.Pair;
 
 final class BinaryOperatorNode extends ExpressionNode {
@@ -237,9 +238,10 @@ final class BinaryOperatorNode extends ExpressionNode {
       var convert = UnresolvedConversion.build(thatType.getDefinitionScope());
 
       var ctx = EnsoContext.get(this);
+      var state = State.create(ctx);
       try {
-        var selfAsThat = convertNode.execute(convert, new Object[] {thatType, self});
-        var result = invokeNode.execute(symbolFn, frame, new Object[] {selfAsThat, that});
+        var selfAsThat = convertNode.execute(convert, state, new Object[] {thatType, self});
+        var result = invokeNode.execute(symbolFn, frame, state, new Object[] {selfAsThat, that});
         return result;
       } catch (ArityException ex) {
         var assertsOn = false;

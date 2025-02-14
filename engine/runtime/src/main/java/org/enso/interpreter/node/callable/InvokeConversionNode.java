@@ -28,6 +28,7 @@ import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;
@@ -79,6 +80,7 @@ public abstract class InvokeConversionNode extends BaseNode {
    */
   public abstract Object execute(
       VirtualFrame frame,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       Object that,
@@ -117,6 +119,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       })
   Object doConvertFrom(
       VirtualFrame frame,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       Object that,
@@ -129,7 +132,7 @@ public abstract class InvokeConversionNode extends BaseNode {
     } else {
       var selfType = extractType(self);
       var function = resolveNode.expectNonNull(that, selfType, thatType, conversion);
-      return invokeFunctionNode.execute(function, frame, arguments);
+      return invokeFunctionNode.execute(function, frame, state, arguments);
     }
   }
 
@@ -137,6 +140,7 @@ public abstract class InvokeConversionNode extends BaseNode {
   @Specialization
   Object doConvertDataflowError(
       VirtualFrame frame,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       DataflowError that,
@@ -147,7 +151,7 @@ public abstract class InvokeConversionNode extends BaseNode {
         conversionResolverNode.execute(
             extractType(self), EnsoContext.get(this).getBuiltins().dataflowError(), conversion);
     if (function != null) {
-      return invokeFunctionNode.execute(function, frame, arguments);
+      return invokeFunctionNode.execute(function, frame, state, arguments);
     } else {
       return that;
     }
@@ -157,6 +161,7 @@ public abstract class InvokeConversionNode extends BaseNode {
   @Specialization
   Object doDataflowErrorSentinel(
       VirtualFrame frame,
+      State state,
       UnresolvedConversion conversion,
       DataflowError self,
       Object that,
@@ -167,6 +172,7 @@ public abstract class InvokeConversionNode extends BaseNode {
   @Specialization
   Object doPanicSentinel(
       VirtualFrame frame,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       PanicSentinel that,
@@ -177,6 +183,7 @@ public abstract class InvokeConversionNode extends BaseNode {
   @Specialization
   Object doMultiValue(
       VirtualFrame frame,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       EnsoMultiValue that,
@@ -189,7 +196,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       for (var t : hasBeenCastTo) {
         var val = castTo.findTypeOrNull(t, that, false, false);
         assert val != null;
-        var result = execute(frame, conversion, self, val, arguments);
+        var result = execute(frame, state, conversion, self, val, arguments);
         if (result != null) {
           return result;
         }
@@ -203,6 +210,7 @@ public abstract class InvokeConversionNode extends BaseNode {
   @Specialization
   Object doWarning(
       VirtualFrame frame,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       WithWarnings that,
@@ -240,7 +248,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       throw CompilerDirectives.shouldNotReachHere(e);
     }
     try {
-      Object result = childDispatch.execute(frame, conversion, self, value, arguments);
+      Object result = childDispatch.execute(frame, state, conversion, self, value, arguments);
       return appendWarningNode.executeAppend(null, result, warnings);
     } catch (TailCallException e) {
       throw new TailCallException(e, warnings);
@@ -250,6 +258,7 @@ public abstract class InvokeConversionNode extends BaseNode {
   @Specialization(guards = "interop.isString(that)")
   Object doConvertText(
       VirtualFrame frame,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       Object that,
@@ -263,7 +272,7 @@ public abstract class InvokeConversionNode extends BaseNode {
           conversionResolverNode.expectNonNull(
               txt, extractType(self), EnsoContext.get(this).getBuiltins().text(), conversion);
       arguments[0] = txt;
-      return invokeFunctionNode.execute(function, frame, arguments);
+      return invokeFunctionNode.execute(function, frame, state, arguments);
     } catch (UnsupportedMessageException e) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
@@ -277,6 +286,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       })
   Object doConvertDate(
       VirtualFrame frame,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       Object that,
@@ -287,7 +297,7 @@ public abstract class InvokeConversionNode extends BaseNode {
     Function function =
         conversionResolverNode.expectNonNull(
             that, extractType(self), EnsoContext.get(this).getBuiltins().date(), conversion);
-    return invokeFunctionNode.execute(function, frame, arguments);
+    return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   @Specialization(
@@ -298,6 +308,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       })
   Object doConvertTime(
       VirtualFrame frame,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       Object that,
@@ -308,7 +319,7 @@ public abstract class InvokeConversionNode extends BaseNode {
     Function function =
         conversionResolverNode.expectNonNull(
             that, extractType(self), EnsoContext.get(this).getBuiltins().timeOfDay(), conversion);
-    return invokeFunctionNode.execute(function, frame, arguments);
+    return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   @Specialization(
@@ -319,6 +330,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       })
   Object doConvertDateTime(
       VirtualFrame frame,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       Object that,
@@ -329,7 +341,7 @@ public abstract class InvokeConversionNode extends BaseNode {
     Function function =
         conversionResolverNode.expectNonNull(
             that, extractType(self), EnsoContext.get(this).getBuiltins().dateTime(), conversion);
-    return invokeFunctionNode.execute(function, frame, arguments);
+    return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   @Specialization(
@@ -339,6 +351,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       })
   Object doConvertDuration(
       VirtualFrame frame,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       Object that,
@@ -349,7 +362,7 @@ public abstract class InvokeConversionNode extends BaseNode {
     Function function =
         conversionResolverNode.expectNonNull(
             that, extractType(self), EnsoContext.get(this).getBuiltins().duration(), conversion);
-    return invokeFunctionNode.execute(function, frame, arguments);
+    return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   @Specialization(
@@ -359,6 +372,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       })
   Object doConvertMap(
       VirtualFrame frame,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       Object thatMap,
@@ -372,12 +386,13 @@ public abstract class InvokeConversionNode extends BaseNode {
             extractType(self),
             EnsoContext.get(this).getBuiltins().dictionary(),
             conversion);
-    return invokeFunctionNode.execute(function, frame, arguments);
+    return invokeFunctionNode.execute(function, frame, state, arguments);
   }
 
   @Specialization(guards = {"!hasTypeNoMulti(methods, that)", "!interop.isString(that)"})
   Object doFallback(
       VirtualFrame frame,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       Object that,
@@ -392,7 +407,7 @@ public abstract class InvokeConversionNode extends BaseNode {
       throw new PanicException(
           ctx.getBuiltins().error().makeNoSuchConversion(self, that, conversion), this);
     } else {
-      return invokeFunctionNode.execute(function, frame, arguments);
+      return invokeFunctionNode.execute(function, frame, state, arguments);
     }
   }
 

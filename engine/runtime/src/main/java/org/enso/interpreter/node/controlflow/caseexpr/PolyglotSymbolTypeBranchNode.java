@@ -46,17 +46,20 @@ public abstract class PolyglotSymbolTypeBranchNode extends BranchNode {
 
   @Specialization
   public void doPolyglotValue(
-      VirtualFrame frame, Object target, @CachedLibrary(limit = "3") InteropLibrary interop) {
+      VirtualFrame frame,
+      Object state,
+      Object target,
+      @CachedLibrary(limit = "3") InteropLibrary interop) {
     Object tpeOfTarget = typeOfNode.findTypeOrError(target);
     boolean test = isSameObject.execute(polyglotSymbol, tpeOfTarget);
     if (profile.profile(test)) {
-      accept(frame, new Object[] {target});
+      accept(frame, state, new Object[] {target});
     } else {
       try {
         if (subtypeProfile.profile(
             interop.isMetaObject(polyglotSymbol)
                 && interop.isMetaInstance(polyglotSymbol, target))) {
-          accept(frame, new Object[] {target});
+          accept(frame, state, new Object[] {target});
         }
       } catch (UnsupportedMessageException e) {
         Atom err = reportError(polyglotSymbol, target);

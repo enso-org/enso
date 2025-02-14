@@ -38,7 +38,8 @@ public abstract class CatchErrorNode extends Node {
 
   @Specialization
   Object doDataflowError(VirtualFrame frame, DataflowError self, Object handler) {
-    return invokeCallableNode.execute(handler, frame, new Object[] {self.getPayload()});
+    return invokeCallableNode.execute(
+        handler, frame, EnsoContext.get(this).currentState(), new Object[] {self.getPayload()});
   }
 
   @Fallback

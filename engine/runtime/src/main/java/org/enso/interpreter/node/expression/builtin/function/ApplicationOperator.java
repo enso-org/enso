@@ -6,6 +6,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 
 @BuiltinMethod(
@@ -26,6 +27,7 @@ public class ApplicationOperator extends Node {
   }
 
   Object execute(VirtualFrame frame, Object self, @Suspend Object argument) {
-    return invokeCallableNode.execute(self, frame, new Object[] {argument});
+    return invokeCallableNode.execute(
+        self, frame, EnsoContext.get(this).currentState(), new Object[] {argument});
   }
 }

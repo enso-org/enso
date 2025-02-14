@@ -107,7 +107,8 @@ public final class UnresolvedConversion extends EnsoObject {
         @Cached InteropConversionCallNode interopConversionCallNode,
         @CachedLibrary("conversion") InteropLibrary thisLib)
         throws ArityException {
-      return interopConversionCallNode.execute(conversion, arguments);
+      return interopConversionCallNode.execute(
+          conversion, EnsoContext.get(thisLib).emptyState(), arguments);
     }
   }
 

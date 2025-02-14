@@ -44,6 +44,7 @@ abstract class IndirectInvokeConversionNode extends Node {
 
   abstract Object execute(
       MaterializedFrame frame,
+      Object state,
       UnresolvedConversion conversion,
       Object self,
       Object that,
@@ -61,6 +62,7 @@ abstract class IndirectInvokeConversionNode extends Node {
   @Specialization(guards = {"hasType(typeOfNode, that)"})
   Object doConvertFrom(
       MaterializedFrame frame,
+      Object state,
       UnresolvedConversion conversion,
       Object self,
       Object that,
@@ -81,12 +83,20 @@ abstract class IndirectInvokeConversionNode extends Node {
             typeOfNode.findTypeOrNull(that),
             conversion);
     return indirectInvokeFunctionNode.execute(
-        function, frame, arguments, schema, defaultsExecutionMode, argumentsExecutionMode, isTail);
+        function,
+        frame,
+        state,
+        arguments,
+        schema,
+        defaultsExecutionMode,
+        argumentsExecutionMode,
+        isTail);
   }
 
   @Specialization
   Object doDataflowError(
       MaterializedFrame frame,
+      Object state,
       UnresolvedConversion conversion,
       Object self,
       DataflowError that,
@@ -108,6 +118,7 @@ abstract class IndirectInvokeConversionNode extends Node {
       return indirectInvokeFunctionNode.execute(
           function,
           frame,
+          state,
           arguments,
           schema,
           defaultsExecutionMode,
@@ -121,6 +132,7 @@ abstract class IndirectInvokeConversionNode extends Node {
   @Specialization
   Object doPanicSentinel(
       MaterializedFrame frame,
+      Object state,
       UnresolvedConversion conversion,
       Object self,
       PanicSentinel that,
@@ -136,6 +148,7 @@ abstract class IndirectInvokeConversionNode extends Node {
   @Specialization
   Object doWarning(
       MaterializedFrame frame,
+      Object state,
       UnresolvedConversion conversion,
       Object self,
       WithWarnings that,
@@ -158,6 +171,7 @@ abstract class IndirectInvokeConversionNode extends Node {
     Object result =
         childDispatch.execute(
             frame,
+            state,
             conversion,
             self,
             that.getValue(),
@@ -173,6 +187,7 @@ abstract class IndirectInvokeConversionNode extends Node {
   @Specialization(guards = "interop.isString(that)")
   Object doConvertText(
       MaterializedFrame frame,
+      Object state,
       UnresolvedConversion conversion,
       Object self,
       Object that,
@@ -199,6 +214,7 @@ abstract class IndirectInvokeConversionNode extends Node {
       return indirectInvokeFunctionNode.execute(
           function,
           frame,
+          state,
           arguments,
           schema,
           defaultsExecutionMode,
@@ -212,6 +228,7 @@ abstract class IndirectInvokeConversionNode extends Node {
   @Specialization(guards = {"hasType(methods, that)", "!interop.isString(that)"})
   Object doFallback(
       MaterializedFrame frame,
+      Object state,
       UnresolvedConversion conversion,
       Object self,
       Object that,

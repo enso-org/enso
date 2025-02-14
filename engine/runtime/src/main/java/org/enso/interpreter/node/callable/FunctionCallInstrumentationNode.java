@@ -21,6 +21,7 @@ import java.util.UUID;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 
@@ -58,16 +59,19 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
   @ExportLibrary(InteropLibrary.class)
   public static final class FunctionCall extends EnsoObject {
     private final Function function;
+    private final State state;
     private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] arguments;
 
     /**
      * Creates an instance of this class.
      *
      * @param function the function being called.
+     * @param state the monadic state to pass to the function.
      * @param arguments the arguments passed to the function.
      */
-    public FunctionCall(Function function, Object[] arguments) {
+    public FunctionCall(Function function, State state, Object[] arguments) {
       this.function = function;
+      this.state = state;
       this.arguments = arguments;
     }
 
@@ -97,10 +101,8 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
                 functionCall.getArguments(), functionCall.getArguments().length + arguments.length);
         System.arraycopy(
             arguments, 0, callArguments, functionCall.getArguments().length, arguments.length);
-
-        // Since #12233 there is no activation of former `functionCall.state`
-        // should that be a problem, revisit the decision to remove `functionCall.state`
-        return interopApplicationNode.execute(functionCall.function, callArguments);
+        return interopApplicationNode.execute(
+            functionCall.function, functionCall.state, callArguments);
       }
     }
 
@@ -109,6 +111,13 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
      */
     public Function getFunction() {
       return function;
+    }
+
+    /**
+     * @return the state passed to the function in this call.
+     */
+    public State getState() {
+      return state;
     }
 
     /**
@@ -146,11 +155,12 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
    *
    * @param frame current execution frame.
    * @param function the function being called.
+   * @param state the monadic state passed to the function.
    * @param arguments the arguments passed to the function.
    * @return an instance of {@link FunctionCall} containing the function, state and arguments.
    */
-  public Object execute(VirtualFrame frame, Function function, Object[] arguments) {
-    return new FunctionCall(function, arguments);
+  public Object execute(VirtualFrame frame, Function function, State state, Object[] arguments) {
+    return new FunctionCall(function, state, arguments);
   }
 
   /**

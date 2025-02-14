@@ -47,9 +47,10 @@ public abstract class CustomComparatorNode extends Node {
       @Cached(value = "createConversion()", allowUncached = true) UnresolvedConversion conversion) {
     var ctx = EnsoContext.get(this);
     var comparableType = ctx.getBuiltins().comparable().getType();
+    var state = ctx.currentState();
     Object rawRes =
         convertNode.execute(
-            null, conversion, comparableType, atom, new Object[] {comparableType, atom});
+            null, state, conversion, comparableType, atom, new Object[] {comparableType, atom});
     if (rawRes instanceof Atom res
         && res.getConstructor() == ctx.getBuiltins().comparable().getBy()) {
       if (structs.getField(res, 1) instanceof Type result) {

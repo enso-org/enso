@@ -422,7 +422,7 @@ public final class Type extends EnsoObject {
       var argsWithReceiver = new Object[args.length + 1];
       argsWithReceiver[0] = receiver;
       System.arraycopy(args, 0, argsWithReceiver, 1, args.length);
-      return invokeFuncNode.execute(func, null, argsWithReceiver);
+      return invokeFuncNode.execute(func, null, null, argsWithReceiver);
     }
 
     @Specialization(replaces = "doCached")

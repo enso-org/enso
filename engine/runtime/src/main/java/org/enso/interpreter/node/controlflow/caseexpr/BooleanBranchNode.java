@@ -35,20 +35,24 @@ public abstract class BooleanBranchNode extends BranchNode {
   }
 
   @Specialization
-  void doBoolean(VirtualFrame frame, boolean target) {
+  void doBoolean(VirtualFrame frame, Object state, boolean target) {
     if (profile.profile(matched == target)) {
-      accept(frame, new Object[0]);
+      accept(frame, state, new Object[0]);
     }
   }
 
   @Specialization(
       guards = {"iop.isBoolean(target)"},
       limit = "3")
-  void doInterop(VirtualFrame frame, Object target, @CachedLibrary("target") InteropLibrary iop) {
+  void doInterop(
+      VirtualFrame frame,
+      Object state,
+      Object target,
+      @CachedLibrary("target") InteropLibrary iop) {
     try {
       var value = iop.asBoolean(target);
       if (profile.profile(matched == value)) {
-        accept(frame, new Object[0]);
+        accept(frame, state, new Object[0]);
       }
     } catch (UnsupportedMessageException ex) {
       var ctx = EnsoContext.get(this);
@@ -57,5 +61,5 @@ public abstract class BooleanBranchNode extends BranchNode {
   }
 
   @Fallback
-  void doFallback(VirtualFrame frame, Object target) {}
+  void doFallback(VirtualFrame frame, Object state, Object target) {}
 }

@@ -50,7 +50,8 @@ public abstract class RunStateNode extends Node {
     var old = objects.getOrDefault(data, key, null);
     objects.put(data, key, local);
     try {
-      return thunkExecutorNode.executeThunk(frame, computation, BaseNode.TailStatus.NOT_TAIL);
+      return thunkExecutorNode.executeThunk(
+          frame, computation, state(), BaseNode.TailStatus.NOT_TAIL);
     } finally {
       objects.put(data, key, old);
     }
@@ -66,7 +67,8 @@ public abstract class RunStateNode extends Node {
       @Shared("dynamicObjectLib") @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
     objects.put(data, key, local);
     try {
-      return thunkExecutorNode.executeThunk(frame, computation, BaseNode.TailStatus.NOT_TAIL);
+      return thunkExecutorNode.executeThunk(
+          frame, computation, state(), BaseNode.TailStatus.NOT_TAIL);
     } finally {
       objects.removeKey(data, key);
     }

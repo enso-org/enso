@@ -225,7 +225,8 @@ public final class Function extends EnsoObject {
         @CachedLibrary("function") InteropLibrary thisLib,
         @Cached InlinedBranchProfile panicProfile) {
       try {
-        return interopApplicationNode.execute(function, arguments);
+        return interopApplicationNode.execute(
+            function, EnsoContext.get(thisLib).emptyState(), arguments);
       } catch (StackOverflowError err) {
         CompilerDirectives.transferToInterpreter();
         var asserts = false;
@@ -351,10 +352,12 @@ public final class Function extends EnsoObject {
      * Generates an array of arguments using the schema to be passed to a call target.
      *
      * @param frame the frame becoming the lexical scope
+     * @param state the state to execute the thunk with
      * @param positionalArguments the positional arguments to the call target
      * @return an array containing the necessary information to call an Enso function
      */
-    public static Object[] buildArguments(MaterializedFrame frame, Object[] positionalArguments) {
+    public static Object[] buildArguments(
+        MaterializedFrame frame, Object state, Object[] positionalArguments) {
       return new Object[] {frame, null, positionalArguments};
     }
 
@@ -362,9 +365,10 @@ public final class Function extends EnsoObject {
      * Generates an array of arguments using the schema to be passed to a call target.
      *
      * @param thunk the thunk to be called
+     * @param state the state to execute the thunk with
      * @return an array containing the necessary information to call an Enso thunk
      */
-    public static Object[] buildArguments(Function thunk) {
+    public static Object[] buildArguments(Function thunk, Object state) {
       return new Object[] {thunk.getScope(), null, new Object[0]};
     }
 

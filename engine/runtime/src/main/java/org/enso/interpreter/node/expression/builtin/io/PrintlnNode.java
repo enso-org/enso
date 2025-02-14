@@ -58,12 +58,13 @@ public abstract class PrintlnNode extends Node {
       @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached("buildSymbol()") UnresolvedSymbol symbol,
       @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode) {
-    Object probablyStr = invokeCallableNode.execute(symbol, frame, new Object[] {message});
+    var ctx = EnsoContext.get(this);
+    var state = ctx.currentState();
+    var probablyStr = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
     if (warnings.hasWarnings(probablyStr)) {
       try {
         probablyStr = warnings.removeWarnings(probablyStr);
       } catch (UnsupportedMessageException e) {
-        var ctx = EnsoContext.get(this);
         throw ctx.raiseAssertionPanic(this, null, e);
       }
     }
@@ -75,12 +76,9 @@ public abstract class PrintlnNode extends Node {
       } else {
         str = fallbackToString(probablyStr);
       }
-
-      EnsoContext ctx = EnsoContext.get(this);
       print(ctx.getOut(), str, strings.asString(nl));
       return ctx.getNothing();
     } catch (UnsupportedMessageException e) {
-      var ctx = EnsoContext.get(this);
       throw ctx.raiseAssertionPanic(this, null, e);
     }
   }

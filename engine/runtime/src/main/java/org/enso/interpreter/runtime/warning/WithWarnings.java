@@ -31,6 +31,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNodeGen;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.state.State;
 
 /**
  * Represents a typical Enso <em>value with warnings</em>. As much of care as possible is taken to
@@ -195,10 +196,11 @@ public final class WithWarnings extends EnsoObject {
     var scopeOfAny = ctx.getBuiltins().any().getDefinitionScope();
     var toText = UnresolvedSymbol.build("to_text", scopeOfAny);
     var node = InteropMethodCallNode.getUncached();
+    var state = State.create(ctx);
     var text = Text.empty();
     for (var w : warns) {
       try {
-        var wText = node.execute(toText, new Object[] {w.getValue()});
+        var wText = node.execute(toText, state, new Object[] {w.getValue()});
         if (wText instanceof Text t) {
           if (prefix != null) {
             text = text.add(prefix);

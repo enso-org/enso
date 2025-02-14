@@ -133,7 +133,8 @@ public final class ExecutionService {
       throw new MethodNotFoundException(module.getName().toString(), type, methodName);
     }
     Object[] arguments = MAIN_METHOD.equals(methodName) ? new Object[] {} : new Object[] {type};
-    return new FunctionCallInstrumentationNode.FunctionCall(function, arguments);
+    return new FunctionCallInstrumentationNode.FunctionCall(
+        function, State.create(context), arguments);
   }
 
   public void initializeLanguageServerConnection(Endpoint endpoint) {
@@ -202,8 +203,8 @@ public final class ExecutionService {
             service ->
                 service.bind(module, call.getFunction().getCallTarget(), callbacks, this.timer));
 
-    State state = context.currentState();
-    DynamicObjectLibrary.getUncached().put(state.getContainer(), IdExecutionService.class, cache);
+    DynamicObjectLibrary.getUncached()
+        .put(call.getState().getContainer(), IdExecutionService.class, cache);
 
     Object p = context.getThreadManager().enter();
     try {
@@ -288,7 +289,8 @@ public final class ExecutionService {
       }
     }
 
-    return new FunctionCallInstrumentationNode.FunctionCall(functionCall.getFunction(), arguments);
+    return new FunctionCallInstrumentationNode.FunctionCall(
+        functionCall.getFunction(), functionCall.getState(), arguments);
   }
 
   /**
@@ -388,9 +390,13 @@ public final class ExecutionService {
     var ret = new Object[1];
     Object p = context.getThreadManager().enter();
     try {
-      State state = context.currentState();
-      if (function instanceof Function fn) {
-        function = new FunctionCallInstrumentationNode.FunctionCall(fn, new Object[0]);
+      State state;
+      if (function instanceof FunctionCallInstrumentationNode.FunctionCall fnCall) {
+        state = fnCall.getState();
+      } else {
+        var fn = (Function) function;
+        state = State.create(context);
+        function = new FunctionCallInstrumentationNode.FunctionCall(fn, state, new Object[0]);
       }
       if (executionCache != null) {
         DynamicObjectLibrary.getUncached()

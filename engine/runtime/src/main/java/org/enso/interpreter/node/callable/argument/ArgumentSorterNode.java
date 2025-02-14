@@ -11,6 +11,7 @@ import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMapping;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.interpreter.runtime.state.State;
 
 /**
  * This class handles the case where a mapping for reordering arguments to a given callable has
@@ -65,7 +66,7 @@ public class ArgumentSorterNode extends BaseNode {
   }
 
   @ExplodeLoop
-  private void executeArguments(VirtualFrame frame, Object[] arguments) {
+  private void executeArguments(VirtualFrame frame, Object[] arguments, State state) {
     if (executors == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       Lock lock = getLock();
@@ -80,7 +81,7 @@ public class ArgumentSorterNode extends BaseNode {
     }
     for (int i = 0; i < mapping.getArgumentShouldExecute().length; i++) {
       if (executors[i] != null) {
-        arguments[i] = executors[i].executeThunk(frame, arguments[i], TailStatus.NOT_TAIL);
+        arguments[i] = executors[i].executeThunk(frame, arguments[i], state, TailStatus.NOT_TAIL);
       }
     }
   }
@@ -89,12 +90,14 @@ public class ArgumentSorterNode extends BaseNode {
    * Reorders the provided arguments into the necessary order for the cached callable.
    *
    * @param function the function this node is reordering arguments for
+   * @param state the state to pass to the function
    * @param arguments the arguments to reorder
    * @return the provided {@code arguments} in the order expected by the cached {@link Function}
    */
-  public MappedArguments execute(VirtualFrame frame, Function function, Object[] arguments) {
+  public MappedArguments execute(
+      VirtualFrame frame, Function function, State state, Object[] arguments) {
     if (argumentsExecutionMode.shouldExecute()) {
-      executeArguments(frame, arguments);
+      executeArguments(frame, arguments, state);
     }
     Object[] mappedAppliedArguments =
         prepareArguments(

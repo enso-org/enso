@@ -14,6 +14,7 @@ import org.enso.interpreter.node.callable.argument.IndirectArgumentSorterNode;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.state.State;
 
 /**
  * Executes a function with given arguments.
@@ -29,6 +30,7 @@ public abstract class IndirectInvokeFunctionNode extends Node {
    *
    * @param callable the function to call
    * @param callerFrame the caller frame to pass to the function, may be null.
+   * @param state the state to pass to the function
    * @param arguments the arguments being passed to {@code function}
    * @param schema the names and ordering of arguments for this call site
    * @param defaultsExecutionMode whether defaults are suspended for this call.
@@ -39,6 +41,7 @@ public abstract class IndirectInvokeFunctionNode extends Node {
   public abstract Object execute(
       Function callable,
       MaterializedFrame callerFrame,
+      Object state,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -49,6 +52,7 @@ public abstract class IndirectInvokeFunctionNode extends Node {
   Object invokeUncached(
       Function function,
       MaterializedFrame callerFrame,
+      State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -67,6 +71,7 @@ public abstract class IndirectInvokeFunctionNode extends Node {
             argumentMapping,
             argumentsExecutionMode,
             function,
+            state,
             arguments);
 
     CallerInfo callerInfo = null;
@@ -79,6 +84,7 @@ public abstract class IndirectInvokeFunctionNode extends Node {
         callerFrame == null ? null : callerFrame.materialize(),
         function,
         callerInfo,
+        state,
         mappedArguments.getSortedArguments(),
         mappedArguments.getOversaturatedArguments(),
         argumentMapping.getPostApplicationSchema(),

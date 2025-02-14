@@ -29,7 +29,7 @@ final class FindAtomConstructorNode extends Node {
     }
   }
 
-  static AtomConstructor findConstructor(Object value, VirtualFrame frame) {
+  private AtomConstructor findConstructor(Object value, VirtualFrame frame) {
     for (; ; ) {
       if (value instanceof AtomConstructor atom) {
         return atom;
@@ -42,8 +42,10 @@ final class FindAtomConstructorNode extends Node {
           return atom;
         }
         if (fn.isThunk()) {
+          var ctx = EnsoContext.get(this);
+          var state = ctx.currentState();
           var thunkSolver = ThunkExecutorNode.getUncached();
-          value = thunkSolver.executeThunk(frame, value, BaseNode.TailStatus.NOT_TAIL);
+          value = thunkSolver.executeThunk(frame, value, state, BaseNode.TailStatus.NOT_TAIL);
           continue;
         }
       }

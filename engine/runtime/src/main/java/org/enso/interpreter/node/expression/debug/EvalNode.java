@@ -117,8 +117,9 @@ public abstract class EvalNode extends BaseNode {
                   + " expressionStr)")
           RootCallTarget cachedCallTarget,
       @Shared("thunkExecutorNode") @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
-    Function thunk = Function.thunk(cachedCallTarget, callerInfo.getFrame());
-    return thunkExecutorNode.executeThunk(callerInfo.getFrame(), thunk, getTailStatus());
+    var thunk = Function.thunk(cachedCallTarget, callerInfo.getFrame());
+    var state = EnsoContext.get(this).currentState();
+    return thunkExecutorNode.executeThunk(callerInfo.getFrame(), thunk, state, getTailStatus());
   }
 
   @Specialization
@@ -132,7 +133,8 @@ public abstract class EvalNode extends BaseNode {
             callerInfo.getLocalScope(),
             callerInfo.getModuleScope(),
             toJavaStringNode.execute(expression));
-    Function thunk = Function.thunk(callTarget, callerInfo.getFrame());
-    return thunkExecutorNode.executeThunk(callerInfo.getFrame(), thunk, getTailStatus());
+    var thunk = Function.thunk(callTarget, callerInfo.getFrame());
+    var state = EnsoContext.get(this).currentState();
+    return thunkExecutorNode.executeThunk(callerInfo.getFrame(), thunk, state, getTailStatus());
   }
 }

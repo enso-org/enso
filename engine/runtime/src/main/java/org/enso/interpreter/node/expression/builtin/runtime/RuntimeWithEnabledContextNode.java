@@ -22,11 +22,13 @@ public class RuntimeWithEnabledContextNode extends Node {
   private @Child ExpectStringNode expectStringNode = ExpectStringNode.build();
 
   Object execute(VirtualFrame frame, Atom context, Object env_name, @Suspend Object action) {
+    var ctx = EnsoContext.get(this);
+    var state = ctx.currentState();
     String envName = expectStringNode.execute(env_name);
     ExecutionEnvironment original =
         EnsoContext.get(this).enableExecutionEnvironment(context, envName);
     try {
-      return thunkExecutorNode.executeThunk(frame, action, BaseNode.TailStatus.NOT_TAIL);
+      return thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.NOT_TAIL);
     } finally {
       EnsoContext.get(this).setExecutionEnvironment(original);
     }

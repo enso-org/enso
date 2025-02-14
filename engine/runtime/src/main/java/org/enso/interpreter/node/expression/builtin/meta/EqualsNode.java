@@ -25,6 +25,7 @@ import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.state.State;
 
 public final class EqualsNode extends Node {
   @Child private EqualsSimpleNode node;
@@ -122,7 +123,9 @@ public final class EqualsNode extends Node {
       var node =
           InvokeFunctionNode.build(
               argSchema, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE);
-      var by = node.execute(convFn, null, new Object[] {ctx.getBuiltins().comparable(), value});
+      var state = ctx.currentState();
+      var by =
+          node.execute(convFn, null, state, new Object[] {ctx.getBuiltins().comparable(), value});
       if (by instanceof Atom atom
           && atom.getConstructor() == ctx.getBuiltins().comparable().getBy()) {
         var structs = StructsLibrary.getUncached();
@@ -235,8 +238,9 @@ public final class EqualsNode extends Node {
       var convert = UnresolvedConversion.build(selfType.getDefinitionScope());
 
       var ctx = EnsoContext.get(this);
+      var state = State.create(ctx);
       try {
-        var thatAsSelf = convertNode.execute(convert, new Object[] {selfType, that});
+        var thatAsSelf = convertNode.execute(convert, state, new Object[] {selfType, that});
         if (thatAsSelf instanceof EnsoMultiValue emv) {
           thatAsSelf =
               EnsoMultiValue.CastToNode.getUncached().findTypeOrNull(selfType, emv, false, false);

@@ -9,6 +9,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
+import org.enso.interpreter.runtime.EnsoContext;
 
 @BuiltinMethod(
     type = "Boolean",
@@ -34,6 +35,7 @@ public abstract class OrNode extends Node {
     if (conditionProfile.profile(self)) {
       return true;
     }
-    return rhsThunkExecutorNode.executeThunk(frame, that, BaseNode.TailStatus.TAIL_DIRECT);
+    return rhsThunkExecutorNode.executeThunk(
+        frame, that, EnsoContext.get(this).currentState(), BaseNode.TailStatus.TAIL_DIRECT);
   }
 }

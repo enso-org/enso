@@ -17,6 +17,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.state.State;
 
 /**
  * Handles runtime function currying and oversaturated (eta-expanded) calls.
@@ -47,6 +48,7 @@ public abstract class IndirectCurryNode extends Node {
       MaterializedFrame frame,
       Function function,
       CallerInfo callerInfo,
+      State state,
       Object[] arguments,
       Object[] oversaturatedArguments,
       FunctionSchema postApplicationSchema,
@@ -59,6 +61,7 @@ public abstract class IndirectCurryNode extends Node {
       MaterializedFrame frame,
       Function function,
       CallerInfo callerInfo,
+      State state,
       Object[] arguments,
       Object[] oversaturatedArguments,
       FunctionSchema postApplicationSchema,
@@ -71,7 +74,8 @@ public abstract class IndirectCurryNode extends Node {
     boolean appliesFully = postApplicationSchema.isFullyApplied(defaultsExecutionMode);
     if (appliesFully) {
       if (!postApplicationSchema.hasOversaturatedArgs()) {
-        var value = doCall(frame, function, callerInfo, arguments, isTail, directCall, loopingCall);
+        var value =
+            doCall(frame, function, callerInfo, state, arguments, isTail, directCall, loopingCall);
         if (defaultsExecutionMode.isExecute()
             && (value instanceof Function
                 || (value instanceof AtomConstructor cons
@@ -79,6 +83,7 @@ public abstract class IndirectCurryNode extends Node {
           return oversaturatedCallableNode.execute(
               value,
               frame,
+              state,
               new Object[0],
               new CallArgumentInfo[0],
               defaultsExecutionMode,
@@ -89,11 +94,12 @@ public abstract class IndirectCurryNode extends Node {
         }
       } else {
         var evaluatedVal =
-            loopingCall.executeDispatch(frame, function, callerInfo, arguments, null);
+            loopingCall.executeDispatch(frame, function, callerInfo, state, arguments, null);
 
         return oversaturatedCallableNode.execute(
             evaluatedVal,
             frame,
+            state,
             oversaturatedArguments,
             postApplicationSchema.getOversaturatedArguments(),
             defaultsExecutionMode,
@@ -114,17 +120,18 @@ public abstract class IndirectCurryNode extends Node {
       VirtualFrame frame,
       Function function,
       CallerInfo callerInfo,
+      State state,
       Object[] arguments,
       BaseNode.TailStatus isTail,
       ExecuteCallNode directCall,
       CallOptimiserNode loopingCall) {
     switch (isTail) {
       case TAIL_DIRECT:
-        return directCall.executeCall(frame, function, callerInfo, arguments);
+        return directCall.executeCall(frame, function, callerInfo, state, arguments);
       case TAIL_LOOP:
         throw new TailCallException(function, callerInfo, arguments);
       default:
-        return loopingCall.executeDispatch(frame, function, callerInfo, arguments, null);
+        return loopingCall.executeDispatch(frame, function, callerInfo, state, arguments, null);
     }
   }
 }

@@ -32,6 +32,7 @@ import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.state.State;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -168,6 +169,7 @@ public final class PanicException extends AbstractTruffleException {
     var text =
         payloads.execute(
             null,
+            State.create(ctx),
             toDisplayText,
             payload,
             new Object[] {payload},

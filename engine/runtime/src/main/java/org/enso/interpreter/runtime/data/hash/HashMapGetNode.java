@@ -51,7 +51,8 @@ public abstract class HashMapGetNode extends Node {
     try {
       return interop.readHashValue(self, key);
     } catch (UnknownKeyException e) {
-      return thunkExecutorNode.executeThunk(frame, defaultValue, TailStatus.NOT_TAIL);
+      return thunkExecutorNode.executeThunk(
+          frame, defaultValue, EnsoContext.get(this).currentState(), TailStatus.NOT_TAIL);
     } catch (UnsupportedMessageException e) {
       var ctx = EnsoContext.get(interop);
       throw ctx.raiseAssertionPanic(interop, null, e);
@@ -65,6 +66,7 @@ public abstract class HashMapGetNode extends Node {
       Object key,
       Object defaultValue,
       @Shared @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
-    return thunkExecutorNode.executeThunk(frame, defaultValue, TailStatus.NOT_TAIL);
+    return thunkExecutorNode.executeThunk(
+        frame, defaultValue, EnsoContext.get(this).currentState(), TailStatus.NOT_TAIL);
   }
 }

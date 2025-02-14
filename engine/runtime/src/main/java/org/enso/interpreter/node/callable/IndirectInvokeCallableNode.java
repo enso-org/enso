@@ -22,6 +22,7 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
@@ -49,6 +50,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
   public abstract Object execute(
       Object callable,
       MaterializedFrame callerFrame,
+      State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -64,6 +66,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
   Object invokeWithWarnings(
       Object warning,
       MaterializedFrame callerFrame,
+      State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -77,6 +80,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
           invokeCallableNode.execute(
               warnings.removeWarnings(warning),
               callerFrame,
+              state,
               arguments,
               schema,
               defaultsExecutionMode,
@@ -95,6 +99,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
   Object invokeFunction(
       Function function,
       MaterializedFrame callerFrame,
+      State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -104,6 +109,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
     return invokeFunctionNode.execute(
         function,
         callerFrame,
+        state,
         arguments,
         schema,
         defaultsExecutionMode,
@@ -115,6 +121,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
   Object invokeConstructor(
       AtomConstructor constructor,
       MaterializedFrame callerFrame,
+      State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -124,6 +131,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
     return invokeFunction(
         constructor.getConstructorFunction(),
         callerFrame,
+        state,
         arguments,
         schema,
         defaultsExecutionMode,
@@ -136,6 +144,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
   Object invokeDataflowError(
       DataflowError error,
       MaterializedFrame callerFrame,
+      State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -148,6 +157,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
   Object invokePanicSentinel(
       PanicSentinel sentinel,
       MaterializedFrame callerFrame,
+      State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -160,6 +170,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
   public Object invokeDynamicSymbol(
       UnresolvedSymbol symbol,
       MaterializedFrame callerFrame,
+      State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
@@ -173,11 +184,12 @@ public abstract class IndirectInvokeCallableNode extends Node {
     if (canApplyThis) {
       Object self = arguments[thisArgumentPosition];
       if (argumentsExecutionMode.shouldExecute()) {
-        self = thisExecutor.executeThunk(callerFrame, self, BaseNode.TailStatus.NOT_TAIL);
+        self = thisExecutor.executeThunk(callerFrame, self, state, BaseNode.TailStatus.NOT_TAIL);
         arguments[thisArgumentPosition] = self;
       }
       return invokeMethodNode.execute(
           callerFrame,
+          state,
           symbol,
           self,
           arguments,
@@ -196,6 +208,7 @@ public abstract class IndirectInvokeCallableNode extends Node {
   public Object invokeGeneric(
       Object callable,
       MaterializedFrame callerFrame,
+      State state,
       Object[] arguments,
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,

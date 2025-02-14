@@ -17,6 +17,7 @@ import org.enso.interpreter.node.expression.foreign.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.state.State;
 
 @GenerateUncached
 @NodeInfo(description = "Helper node to handle method application through the interop library.")
@@ -43,7 +44,8 @@ public abstract class InteropMethodCallNode extends Node {
    * @param arguments the arguments for the function.
    * @return the result of calling the function.
    */
-  public abstract Object execute(UnresolvedSymbol method, Object[] arguments) throws ArityException;
+  public abstract Object execute(UnresolvedSymbol method, Object state, Object[] arguments)
+      throws ArityException;
 
   @CompilerDirectives.TruffleBoundary
   CallArgumentInfo[] buildSchema(int length) {
@@ -75,6 +77,7 @@ public abstract class InteropMethodCallNode extends Node {
       limit = Constants.CacheSizes.FUNCTION_INTEROP_LIBRARY)
   Object callCached(
       UnresolvedSymbol method,
+      State state,
       Object[] arguments,
       @Cached("arguments.length") int cachedArgsLength,
       @Cached("buildSorter(cachedArgsLength)") InvokeMethodNode sorterNode,
@@ -85,12 +88,13 @@ public abstract class InteropMethodCallNode extends Node {
       args[i] = hostValueToEnsoNode.execute(arguments[i]);
     }
     if (arguments.length == 0) throw ArityException.create(1, -1, 0);
-    return sorterNode.execute(null, method, args[0], args);
+    return sorterNode.execute(null, state, method, args[0], args);
   }
 
   @Specialization(replaces = "callCached")
   Object callUncached(
       UnresolvedSymbol method,
+      State state,
       Object[] arguments,
       @Cached IndirectInvokeMethodNode indirectInvokeMethodNode,
       @Shared @Cached("build()") HostValueToEnsoNode hostValueToEnsoNode)
@@ -102,6 +106,7 @@ public abstract class InteropMethodCallNode extends Node {
     if (arguments.length == 0) throw ArityException.create(1, -1, 0);
     return indirectInvokeMethodNode.execute(
         null,
+        state,
         method,
         args[0],
         args,

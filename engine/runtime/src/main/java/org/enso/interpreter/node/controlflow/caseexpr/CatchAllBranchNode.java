@@ -34,7 +34,7 @@ public class CatchAllBranchNode extends BranchNode {
    * @param state current monadic state
    * @param target the object to match against
    */
-  public void execute(VirtualFrame frame, Object target) {
-    accept(frame, new Object[] {target});
+  public void execute(VirtualFrame frame, Object state, Object target) {
+    accept(frame, state, new Object[] {target});
   }
 }

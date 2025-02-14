@@ -14,6 +14,7 @@ import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.*;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.TypesGen;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
@@ -112,9 +113,10 @@ public abstract class CaseNode extends ExpressionNode {
       VirtualFrame frame,
       Object object,
       @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+    State state = EnsoContext.get(this).currentState();
     try {
       for (BranchNode branchNode : cases) {
-        branchNode.execute(frame, object);
+        branchNode.execute(frame, state, object);
       }
       if (fallthroughProfile.profile(isNested)) {
         return BranchResult.failure(this);

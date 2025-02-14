@@ -320,6 +320,8 @@ public class MethodProcessor
               != 0;
       for (MethodDefinition.ArgumentDefinition ad : methodDefinition.getArguments()) {
         if (ad.isImplicit()) {
+        } else if (ad.isState()) {
+          callArgNames.add("StateIsNoLongerPassedAsArgument");
         } else if (ad.isFrame()) {
           callArgNames.add("frame");
         } else if (ad.isNode()) {

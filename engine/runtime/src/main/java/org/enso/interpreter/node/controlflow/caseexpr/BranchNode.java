@@ -27,19 +27,22 @@ public abstract class BranchNode extends BaseNode {
    * Executes the case branch.
    *
    * @param frame the stack frame in which to execute
+   * @param state current monadic state
    * @param target the object to match against
    */
-  public abstract void execute(VirtualFrame frame, Object target);
+  public abstract void execute(VirtualFrame frame, Object state, Object target);
 
   /**
    * Accepts the case branch, continuing the execution of the case expression.
    *
    * @param frame the stack frame in which to execute
+   * @param state current monadic state
    * @param args the arguments to be passed to the branch body
    */
-  protected void accept(VirtualFrame frame, Object[] args) {
+  protected void accept(VirtualFrame frame, Object state, Object[] args) {
     // Note [Caller Info For Case Branches]
-    var result = callNode.call(Function.ArgumentsHelper.buildArguments(frame.materialize(), args));
+    var result =
+        callNode.call(Function.ArgumentsHelper.buildArguments(frame.materialize(), state, args));
 
     if (finalBranchProfiler.profile(terminalBranch)) {
       throw new BranchSelectedException(ensureWrapped(result));

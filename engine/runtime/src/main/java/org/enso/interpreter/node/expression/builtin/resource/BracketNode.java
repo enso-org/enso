@@ -10,6 +10,7 @@ import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.type.TypesGen;
 
@@ -61,16 +62,18 @@ public abstract class BracketNode extends Node {
       Object destructor,
       Object action,
       @Cached BranchProfile initializationFailedWithDataflowErrorProfile) {
+    var ctx = EnsoContext.get(this);
+    var state = ctx.currentState();
     Object resource =
-        invokeConstructorNode.executeThunk(frame, constructor, BaseNode.TailStatus.NOT_TAIL);
+        invokeConstructorNode.executeThunk(frame, constructor, state, BaseNode.TailStatus.NOT_TAIL);
     if (TypesGen.isDataflowError(resource)) {
       initializationFailedWithDataflowErrorProfile.enter();
       return resource;
     }
     try {
-      return invokeActionNode.execute(action, frame, new Object[] {resource});
+      return invokeActionNode.execute(action, frame, state, new Object[] {resource});
     } finally {
-      invokeDestructorNode.execute(destructor, frame, new Object[] {resource});
+      invokeDestructorNode.execute(destructor, frame, state, new Object[] {resource});
     }
   }
 }

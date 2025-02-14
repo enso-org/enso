@@ -8,6 +8,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
+import org.enso.interpreter.runtime.EnsoContext;
 
 @BuiltinMethod(
     type = "Runtime",
@@ -23,6 +24,8 @@ public class NoInlineNode extends Node {
 
   @CompilerDirectives.TruffleBoundary
   private Object executeImpl(MaterializedFrame frame, @Suspend Object action) {
-    return thunkExecutorNode.executeThunk(frame, action, BaseNode.TailStatus.NOT_TAIL);
+    var ctx = EnsoContext.get(this);
+    var state = ctx.currentState();
+    return thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.NOT_TAIL);
   }
 }

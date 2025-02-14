@@ -58,13 +58,14 @@ public abstract class VectorFromFunctionNode extends Node {
       @Cached HasContextEnabledNode hasContextEnabledNode,
       @Cached LoopConditionProfile loopConditionProfile) {
     var ctx = EnsoContext.get(this);
+    var state = ctx.currentState();
     var len = (int) length;
     var nothing = ctx.getNothing();
     var target = ArrayBuilder.newBuilder(len);
     var errorsEncountered = 0;
     loopConditionProfile.profileCounted(len);
     for (int i = 0; loopConditionProfile.inject(i < len); i++) {
-      var value = invokeFunctionNode.execute(func, frame, new Long[] {(long) i});
+      var value = invokeFunctionNode.execute(func, frame, state, new Long[] {(long) i});
       Object valueToAdd = value;
       if (value instanceof DataflowError err) {
         errorEncounteredProfile.enter();

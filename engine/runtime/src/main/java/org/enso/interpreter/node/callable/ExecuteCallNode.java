@@ -43,6 +43,7 @@ public abstract class ExecuteCallNode extends Node {
    * @param frame current frame
    * @param function the function to execute
    * @param callerInfo the caller info to pass to the function
+   * @param state the current state value
    * @param arguments the arguments passed to {@code function} in the expected positional order
    * @param cachedTarget the cached call target for {@code function}
    * @param callNode the cached call node for {@code cachedTarget}
@@ -55,10 +56,12 @@ public abstract class ExecuteCallNode extends Node {
       VirtualFrame frame,
       Function function,
       CallerInfo callerInfo,
+      Object state,
       Object[] arguments,
       @Cached("function.getCallTarget()") RootCallTarget cachedTarget,
       @Cached("createInlineableNode(cachedTarget)") InlineableNode callNode) {
-    var args = Function.ArgumentsHelper.buildArguments(function, callerInfo, arguments);
+    var args =
+        Function.ArgumentsHelper.buildArguments(function, callerInfo, arguments); // XXX no state
     return callNode.call(frame, args);
   }
 
@@ -84,10 +87,12 @@ public abstract class ExecuteCallNode extends Node {
   protected Object callDirect(
       Function function,
       CallerInfo callerInfo,
+      Object state,
       Object[] arguments,
       @Cached("function.getCallTarget()") RootCallTarget cachedTarget,
       @Cached("createDirectCallNode(cachedTarget)") DirectCallNode callNode) {
-    var args = Function.ArgumentsHelper.buildArguments(function, callerInfo, arguments);
+    var args =
+        Function.ArgumentsHelper.buildArguments(function, callerInfo, arguments); // XXX state
     return callNode.call(args);
   }
 
@@ -119,11 +124,12 @@ public abstract class ExecuteCallNode extends Node {
   protected Object callIndirect(
       Function function,
       CallerInfo callerInfo,
+      Object state,
       Object[] arguments,
       @Cached IndirectCallNode callNode) {
     return callNode.call(
         function.getCallTarget(),
-        Function.ArgumentsHelper.buildArguments(function, callerInfo, arguments));
+        Function.ArgumentsHelper.buildArguments(function, callerInfo, arguments)); // XXX state
   }
 
   /**
@@ -137,5 +143,9 @@ public abstract class ExecuteCallNode extends Node {
    * @return the result of executing {@code function} on {@code arguments}
    */
   public abstract Object executeCall(
-      VirtualFrame frame, Function function, CallerInfo callerInfo, Object[] arguments);
+      VirtualFrame frame,
+      Function function,
+      CallerInfo callerInfo,
+      Object state,
+      Object[] arguments);
 }

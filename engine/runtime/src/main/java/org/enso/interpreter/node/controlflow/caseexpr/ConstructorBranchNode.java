@@ -39,15 +39,16 @@ public abstract class ConstructorBranchNode extends BranchNode {
   }
 
   @Specialization
-  void doAtom(VirtualFrame frame, Atom target, @Cached FieldsAsArrayNode toArrayNode) {
+  void doAtom(
+      VirtualFrame frame, Object state, Atom target, @Cached FieldsAsArrayNode toArrayNode) {
     if (profile.profile(matcher == target.getConstructor())) {
       var arr = toArrayNode.executeFields(target);
-      accept(frame, arr);
+      accept(frame, state, arr);
     }
   }
 
   @Fallback
-  void doFallback(VirtualFrame frame, Object target) {}
+  void doFallback(VirtualFrame frame, Object state, Object target) {}
 
   abstract static class FieldsAsArrayNode extends Node {
     abstract Object[] executeFields(Atom target);
