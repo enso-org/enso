@@ -316,6 +316,7 @@ lazy val enso = (project in file("."))
     `engine-common`,
     `engine-runner`,
     `engine-runner-common`,
+    `enso-generic-jdbc-connection-spec-dependencies`,
     `enso-test-java-helpers`,
     `snowflake-test-java-helpers`,
     `exploratory-benchmark-java-helpers`,
@@ -647,6 +648,7 @@ val jnaVersion              = "5.14.0"
 val googleProtobufVersion   = "3.25.1"
 val shapelessVersion        = "2.3.10"
 val postgresVersion         = "42.4.0"
+val h2Version               = "2.3.232"
 
 // ============================================================================
 // === Utility methods =====================================================
@@ -2830,6 +2832,9 @@ lazy val runtime = (project in file("engine/runtime"))
     (Runtime / compile) := (Runtime / compile)
       .dependsOn(`std-base` / Compile / packageBin)
       .dependsOn(`enso-test-java-helpers` / Compile / packageBin)
+      .dependsOn(
+        `enso-generic-jdbc-connection-spec-dependencies` / Compile / packageBin
+      )
       .dependsOn(`snowflake-test-java-helpers` / Compile / packageBin)
       .dependsOn(`benchmark-java-helpers` / Compile / packageBin)
       .dependsOn(`exploratory-benchmark-java-helpers` / Compile / packageBin)
@@ -4784,6 +4789,29 @@ lazy val `enso-test-java-helpers` = project
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
 
+lazy val `enso-generic-jdbc-connection-spec-dependencies` = project
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    libraryDependencies ++= Seq(
+      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided",
+      "com.h2database"       % "h2"       % h2Version
+    ),
+    Compile / packageBin := Def.task {
+      val result = (Compile / packageBin).value
+      val _ = StdBits
+        .copyDependencies(
+          file("test/Generic_JDBC_Tests/polyglot/java/"),
+          Seq(),
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }.value
+  )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+
 lazy val `snowflake-test-java-helpers` = project
   .in(file("test/Snowflake_Tests/polyglot-sources/snowflake-test-java-helpers"))
   .settings(
@@ -5548,6 +5576,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-table` / Compile / packageBin).value
     case "TestHelpers" =>
       (`enso-test-java-helpers` / Compile / packageBin).value
+      (`enso-generic-jdbc-connection-spec-dependencies` / Compile / packageBin).value
       (`snowflake-test-java-helpers` / Compile / packageBin).value
       (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
       (`benchmark-java-helpers` / Compile / packageBin).value
@@ -5562,6 +5591,7 @@ pkgStdLibInternal := Def.inputTask {
     case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
+      (`enso-generic-jdbc-connection-spec-dependencies` / Compile / packageBin).value
       (`snowflake-test-java-helpers` / Compile / packageBin).value
       (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
       (`benchmark-java-helpers` / Compile / packageBin).value
