@@ -567,8 +567,8 @@ public class StorageIterators {
 
     Context context = Context.getCurrent();
     for (long idx = 0; idx < size; idx++) {
-      R value1 = iterator1.hasNext() ? iterator1.getItemBoxed() : null;
-      S value2 = iterator2.hasNext() ? iterator2.getItemBoxed() : null;
+      R value1 = iterator1.hasNext() ? iterator1.next() : null;
+      S value2 = iterator2.hasNext() ? iterator2.next() : null;
       if (skipNothing && (value1 == null || value2 == null)) {
         builder.appendNulls(1);
       } else {

@@ -51,14 +51,16 @@ public abstract class NumericBinaryOpReturningDouble<T extends Number, I extends
           StorageIterators.buildOverLongStorage(
               longStorage,
               Builder.getForDouble(FloatType.FLOAT_64, longStorage.getSize(), problemAggregator),
-              (builder, index, value, isNothing) -> doDouble(value, rhs, index, problemAggregator));
+              (builder, index, value, isNothing) ->
+                  builder.appendDouble(doDouble(value, rhs, index, problemAggregator)));
     } else {
       var doubleStorage = asDoubleStorage(storage);
       result =
           StorageIterators.buildOverDoubleStorage(
               doubleStorage,
               Builder.getForDouble(FloatType.FLOAT_64, doubleStorage.getSize(), problemAggregator),
-              (builder, index, value, isNothing) -> doDouble(value, rhs, index, problemAggregator));
+              (builder, index, value, isNothing) ->
+                  builder.appendDouble(doDouble(value, rhs, index, problemAggregator)));
     }
 
     // ToDo: Merge Storage and ColumnStorage
