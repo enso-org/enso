@@ -32,9 +32,10 @@ import { arrayEquals } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
+import { ToValue } from '@/util/reactivity'
 import { autoUpdate, offset, shift, size, useFloating } from '@floating-ui/vue'
 import type { Ref, RendererNode, VNode } from 'vue'
-import { computed, proxyRefs, ref, shallowRef, watch } from 'vue'
+import { computed, proxyRefs, ref, shallowRef, toValue, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
@@ -51,7 +52,8 @@ const editedWidget = ref<string>()
 const editedValue = ref<Ast.Owned<Ast.MutableExpression> | string | undefined>()
 const isHovered = ref(false)
 /** See @{link Actions.setActivity} */
-const activity = shallowRef<VNode>()
+const activity = shallowRef<ToValue<VNode>>()
+const keepActivityAlive = ref(false)
 
 // How much wider a dropdown can be than a port it is attached to, when a long text is present.
 // Any text beyond that limit will receive an ellipsis and sliding animation on hover.
@@ -336,8 +338,9 @@ function toggleDropdownWidget() {
 }
 
 const dropdownActions: Actions = {
-  setActivity: (newActivity) => {
+  setActivity: (newActivity, keepAlive = false) => {
     activity.value = newActivity
+    keepActivityAlive.value = keepAlive
   },
   close: dropDownInteraction.end.bind(dropDownInteraction),
 }
@@ -465,8 +468,11 @@ export interface Actions {
    *
    * For example, the {@link WidgetCloudBrowser} installs a custom entry that, when clicked,
    * opens a file browser where the dropdown was.
+   * @param keepAlive - when set, the `activity` instance will be kept between drop-down closing
+   *  and opening. The activity component must not change it type (when being a ref) and provide
+   * `name` option explicitly.
    */
-  setActivity: (activity: VNode) => void
+  setActivity: (activity: ToValue<VNode>, keepAlive?: boolean) => void
   close: () => void
 }
 
@@ -513,9 +519,15 @@ declare module '@/providers/widgetRegistry' {
         :style="activityStyles"
       >
         <SizeTransition height :duration="100">
-          <div v-if="dropDownInteraction.isActive() && activity">
-            <component :is="activity" />
-          </div>
+          <KeepAlive include="KeepAlive">
+            <KeepAlive v-if="keepActivityAlive">
+              <component :is="dropDownInteraction.isActive() && activity && toValue(activity)" />
+            </KeepAlive>
+            <comopnent
+              :is="dropDownInteraction.isActive() && activity && toValue(activity)"
+              v-else
+            />
+          </KeepAlive>
         </SizeTransition>
       </div>
     </Teleport>

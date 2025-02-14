@@ -5,6 +5,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 from Standard.Base.Data.Decimal import from_big_decimal, get_big_decimal
 
 import project.Column.Column
+import project.Internal.Value_Type_Helpers
 import project.Value_Type.Bits
 import project.Value_Type.Value_Type
 from project.Errors import Inexact_Type_Coercion
@@ -69,9 +70,8 @@ closest_storage_type value_type = case value_type of
     Value_Type.Date_Time _ -> DateTimeType.INSTANCE
     Value_Type.Time -> TimeOfDayType.INSTANCE
     Value_Type.Mixed -> AnyObjectType.INSTANCE
-    Value_Type.Decimal _ scale ->
-        is_integer = scale.is_nothing.not && scale <= 0
-        if is_integer then BigIntegerType.INSTANCE else BigDecimalType.INSTANCE
+    Value_Type.Decimal _ _ ->
+        if Value_Type_Helpers.is_decimal_integer value_type then BigIntegerType.INSTANCE else BigDecimalType.INSTANCE
     Value_Type.Null -> NullType.INSTANCE
     _ ->
         Error.throw (Illegal_Argument.Error "Columns of type "+value_type.to_display_text+" are currently not supported in the in-memory backend.")

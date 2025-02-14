@@ -59,6 +59,7 @@ import project.Internal.Split_Tokenize
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Table_Ref.Table_Ref
+import project.Internal.Type_Refinements.Table_Refinements
 import project.Internal.Union
 import project.Internal.Value_Type_Helpers
 import project.Internal.Widget_Helpers
@@ -145,12 +146,13 @@ type Table
     new : Vector (Vector | Column) -> Table
     new columns =
         invalid_input_shape =
-            Error.throw (Illegal_Argument.Error "Each column must be represented by a pair whose first element is the column name and the second element is a vector of elements that will constitute that column, or an existing column. Got: "+columns.to_text)
+            Error.throw (Illegal_Argument.Error "Each column must be represented by a vector whose first element is the column name, second element is a vector of elements that will constitute that column (or an existing column) and an optional third element that is the Value_Type for the column. Got: "+columns.to_text)
         cols = columns.map on_problems=No_Wrap.Value c->
             case c of
-                v : Vector ->
-                    if v.length != 2 then invalid_input_shape else
-                        Column.from_vector (v.at 0) (v.at 1) . java_column
+                v : Vector -> case v.length of
+                    2 -> Column.from_vector (v.at 0) (v.at 1) . java_column
+                    3 -> Column.from_vector (v.at 0) (v.at 1) (v.at 2) . java_column
+                    _ -> invalid_input_shape
                 col : Column -> col.java_column
                 _ -> invalid_input_shape
         Panic.recover Illegal_Argument <|
@@ -166,7 +168,7 @@ type Table
                 msg = "All columns must have the same row count, but the column [" + mismatched_size_column.getName + "] has " + mismatched_size_column.getSize.to_text + " rows, while the column [" + cols.first.getName + "] has " + cols.first.getSize.to_text + " rows."
                 Panic.throw (Illegal_Argument.Error msg)
 
-            Table.Value (Java_Table.new cols)
+            from_java_table (Java_Table.new cols)
 
     ## GROUP Standard.Base.Constants
        ICON data_input
@@ -238,12 +240,16 @@ type Table
         resolved_columns.if_not_error <| Table.new resolved_columns
 
     ## PRIVATE
-
-       A table.
+       Internal constructor that should not be used directly.
+       Please use `from_java_table` if needed.
 
        Arguments:
-       - java_table: The internal java representation of the table.
-    private Value java_table
+       - internal_java_table: The internal java representation of the table.
+    private Value internal_java_table
+
+    ## PRIVATE
+       A getter that is a workaround for bug https://github.com/enso-org/enso/issues/12180
+    private java_table self = self.internal_java_table
 
     ## PRIVATE
        ADVANCED
@@ -1165,7 +1171,7 @@ type Table
     aggregate : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex -> Vector Aggregate_Column -> Boolean -> Problem_Behavior -> Table ! No_Output_Columns | Invalid_Aggregate_Column | Invalid_Column_Names | Duplicate_Output_Column_Names | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings
     aggregate self group_by=[] columns=[] (error_on_missing_columns:Boolean=False) (on_problems:Problem_Behavior=..Report_Warning) =
         normalized_group_by = Vector.unify_vector_or_element group_by
-        if normalized_group_by.is_empty && columns.is_empty then Error.throw (No_Output_Columns.Error "No columns specified in aggregate.") else
+        if normalized_group_by.is_empty && columns.is_empty then Missing_Argument.throw "columns" "Provide a value for either the `group_by` or `columns` arguments." else
             validated = Aggregate_Column_Helper.prepare_aggregate_columns self.column_naming_helper normalized_group_by columns self error_on_missing_columns=error_on_missing_columns
 
             on_problems.attach_problems_before validated.problems <| Illegal_Argument.handle_java_exception <|
@@ -1174,8 +1180,8 @@ type Table
                     index = self.java_table.indexFromColumns java_key_columns java_problem_aggregator
                     new_columns = validated.valid_columns.map c->(Aggregate_Column_Helper.java_aggregator c.first c.second)
                     java_table = index.makeTable new_columns
-                    if validated.old_style.not then Table.Value java_table else
-                        Warning.attach (Deprecated.Warning "Standard.Table.Aggregate_Column.Aggregate_Column" "Group_By" "Deprecated: `Group_By` constructor has been deprecated, use the `group_by` argument instead.") (Table.Value java_table)
+                    if validated.old_style.not then from_java_table java_table else
+                        Warning.attach (Deprecated.Warning "Standard.Table.Aggregate_Column.Aggregate_Column" "Group_By" "Deprecated: `Group_By` constructor has been deprecated, use the `group_by` argument instead.") (from_java_table java_table)
 
     ## ALIAS order_by
        GROUP Standard.Base.Selections
@@ -1282,7 +1288,7 @@ type Table
 
             java_table = Illegal_Argument.handle_java_exception <| Incomparable_Values.handle_errors <|
                 self.java_table.orderBy java_columns directions comparator
-            Table.Value java_table
+            from_java_table java_table
 
     ## PRIVATE
        GROUP Standard.Base.Selections
@@ -1368,7 +1374,7 @@ type Table
         java_table = Illegal_Argument.handle_java_exception <|
             Java_Problems.with_problem_aggregator on_problems java_aggregator->
                 self.java_table.distinct java_columns text_folding_strategy java_aggregator
-        Table.Value java_table
+        from_java_table java_table
 
     ## GROUP Standard.Base.Selections
        ICON preparation
@@ -1407,7 +1413,7 @@ type Table
         java_table = Illegal_Argument.handle_java_exception <|
             Java_Problems.with_problem_aggregator on_problems java_aggregator->
                 self.java_table.duplicates java_columns text_folding_strategy java_aggregator
-        Table.Value java_table
+        from_java_table java_table
 
     ## GROUP Standard.Base.Conversions
        ICON convert
@@ -2166,7 +2172,7 @@ type Table
     filter : (Column | Expression | Text | Integer) -> (Filter_Condition | (Any -> Boolean)) -> Problem_Behavior -> Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
     filter self column=(Missing_Argument.throw "column") (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning = case column of
         _ : Column ->
-            mask filter_column = Table.Value (self.java_table.filter filter_column.java_column)
+            mask filter_column = from_java_table (self.java_table.filter filter_column.java_column)
             filter_condition = Filter_Condition.resolve_auto_scoped filter
             case filter_condition of
                 _ : Filter_Condition ->
@@ -2499,7 +2505,7 @@ type Table
 
             new_table = check_add_mode.if_not_error <|
                 if resolved.length != self.row_count then Error.throw (Row_Count_Mismatch.Error self.row_count resolved.length) else
-                    Table.Value (self.java_table.addOrReplaceColumn renamed.java_column)
+                    from_java_table (self.java_table.addOrReplaceColumn renamed.java_column)
 
             problem_builder.report_unique_name_strategy unique
             problem_builder.attach_problems_after on_problems new_table
@@ -2778,7 +2784,7 @@ type Table
         java_conditions = join_resolution.conditions
         new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
             self.java_table.join right.java_table java_conditions join_kind.to_java (columns_to_keep.at 0) (columns_to_keep.at 1) right_columns_to_drop right_prefix java_aggregator
-        Table.Value new_java_table
+        from_java_table new_java_table
 
     ## ALIAS append, cartesian
        GROUP Standard.Base.Calculations
@@ -2826,7 +2832,7 @@ type Table
         on_problems.attach_problems_before limit_problems <|
             new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
                 self.java_table.crossJoin right.java_table right_prefix java_aggregator
-            Table.Value new_java_table
+            from_java_table new_java_table
 
     ## ALIAS hlookup, join, lookup, vlookup, xlookup
        GROUP Standard.Base.Calculations
@@ -2920,7 +2926,7 @@ type Table
         handle_java_errors <|
             Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
                 java_table = LookupJoin.lookupAndReplace java_keys java_descriptions allow_unmatched_rows java_problem_aggregator
-                Table.Value java_table
+                from_java_table java_table
 
     ## ALIAS find replace
        GROUP Standard.Base.Text
@@ -3070,7 +3076,7 @@ type Table
         on_problems.attach_problems_before problems <|
             new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
                 self.java_table.zip right.java_table keep_unmatched_bool right_prefix java_aggregator
-            Table.Value new_java_table
+            from_java_table new_java_table
 
     ## ALIAS append, concat, join
        GROUP Standard.Base.Calculations
@@ -3154,7 +3160,7 @@ type Table
     union self tables:(Table | Vector) (columns_to_keep : Columns_To_Keep = ..In_Any_Warn_On_Missing) (match_columns : Match_Columns = ..By_Name) (on_problems : Problem_Behavior = ..Report_Warning) =
         Table.from_union ([self] + Vector.unify_vector_or_element tables) columns_to_keep match_columns on_problems
 
-    ## ALIAS drop_missing_rows, dropna
+    ## ALIAS drop_empty_rows, drop_missing_rows, dropna, filter_empty_rows, remove_blank_rows, remove_empty_rows, remove_missing_rows
        GROUP Standard.Base.Selections
        ICON preparation
        Remove rows which are all blank or containing blank values.
@@ -3295,7 +3301,7 @@ type Table
         unique.mark_used (id_columns.map .name)
         java_table = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
             Java_Table.transpose java_id java_data (unique.make_unique attribute_column_name) (unique.make_unique value_column_name) java_problem_aggregator
-        result = Table.Value java_table
+        result = from_java_table java_table
         problem_builder.report_unique_name_strategy unique
 
         problem_builder.attach_problems_after on_problems result
@@ -3404,7 +3410,7 @@ type Table
                         group_by = grouping.map g->(Aggregate_Column_Helper.java_aggregator g.name (Aggregate_Column.Group_By g))
                         index = self.java_table.indexFromColumns java_key_columns java_problem_aggregator
                         new_java_table = index.makeTable (group_by + data_columns)
-                        Table.Value new_java_table
+                        from_java_table new_java_table
                     False ->
                         aggregate_names = validated_values.map c->
                             if c.as != "" then c.as else (name_mapper c)
@@ -3415,7 +3421,7 @@ type Table
                         Panic.catch TooManyColumnsException handler=too_many_columns <|
                             Invalid_Column_Names.handle_java_exception <|
                                 new_java_table = self.java_table.makeCrossTabTable java_key_columns matched_name.first.java_column data_columns aggregate_names java_problem_aggregator
-                                Table.Value new_java_table
+                                from_java_table new_java_table
 
     ## PRIVATE
        Returns a table with a continuous sub-range of rows taken.
@@ -3424,7 +3430,7 @@ type Table
         length = self.row_count
         offset = (start.min length).max 0
         limit = ((end - offset).min (length - offset)).max 0
-        Table.Value (self.java_table.slice offset limit)
+        from_java_table (self.java_table.slice offset limit)
 
     ## GROUP Standard.Base.Selections
        ICON order
@@ -3440,7 +3446,7 @@ type Table
     reverse : Table
     reverse self =
         mask = OrderMask.reverse self.row_count
-        Table.Value <| self.java_table.applyMask mask
+        from_java_table <| self.java_table.applyMask mask
 
     ## ALIAS export, output, save, to_file
        GROUP Standard.Base.Output
@@ -3486,8 +3492,9 @@ type Table
          - `Bytes` and `Plain_Text`: The Table does not support these types in
            the `write` function. If passed as format, an
            `Illegal_Argument` is raised. To write out the table as plain
-           text, the user needs to call the `Text.from Table` method and then
-           use the `Text.write` function.
+           text, the user needs to convert the Table to Text
+           (e.g. using `to_delimited` method) and then use the `Text.write`
+           function.
 
        > Example
          Write a table to a CSV file, without writing the header.
@@ -3932,11 +3939,19 @@ type Table
         data = self.columns.map c->("[" + c.name.pretty + ", " + c.to_vector.pretty + "]") . join ", "
         "Table.new [" + data + "]"
 
+    ## Converts all table contents to a text value in delimited format.
+
+       Arguments:
+       - format: Allows to customize the delimiter and other settings of the
+         format. Defaults to tab-separated values.
+    to_delimited self (format:Delimited_Format = ..Delimited '\t') -> Text =
+        Delimited_Writer.write_text self format
+
 ## PRIVATE
    A helper to create a new table consisting of slices of the original table.
 slice_ranges table ranges =
     normalized = normalize_ranges ranges
-    Table.Value (table.java_table.slice normalized)
+    from_java_table (table.java_table.slice normalized)
 
 ## PRIVATE
 make_join_helpers left_table right_table =
@@ -3967,17 +3982,6 @@ Table.from (that : Text) (format = Delimited_Format.Delimited '\t') (on_problems
         case resolved_format of
             _ : Delimited_Format -> Delimited_Reader.read_text that resolved_format on_problems
             _ -> Unimplemented.throw "Table.from is currently only implemented for Delimited_Format."
-
-## PRIVATE
-   Converts a Table into a Text value.
-
-   The format of the text is determined by the `format` argument.
-
-   Arguments:
-   - that: The table to convert.
-   - format: The format of the text.
-Text.from (that : Table) (format:Delimited_Format = ..Delimited '\t') =
-    Delimited_Writer.write_text that format
 
 ## PRIVATE
    Conversion method to a Table from a Vector.
@@ -4049,7 +4053,9 @@ make_fill_nothing_default_widget table cache=Nothing =
 
 ## PRIVATE
    Helper method for internal use to make a Table from a Java Table.
-from_java_table java_table = Table.Value java_table
+from_java_table java_table -> Table =
+    Table_Refinements.refine_table <|
+        Table.Value java_table
 
 ## PRIVATE
 Many_Files_List.from (that : Table) =

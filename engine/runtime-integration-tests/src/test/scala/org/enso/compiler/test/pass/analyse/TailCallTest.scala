@@ -239,7 +239,8 @@ class TailCallTest extends MiniPassTest {
             .asInstanceOf[Expression.Block]
             .returnValue
             .asInstanceOf[Application.Prefix]
-            .arguments(2)
+            .arguments
+            .apply(2)
             .value
             .asInstanceOf[Expression.Block]
             .returnValue

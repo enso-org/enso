@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Floating_Point_Equality
+import Standard.Base.Errors.Common.Missing_Argument
 
 from Standard.Table import Table, Sort_Column, Value_Type, expr
 from Standard.Table.Aggregate_Column.Aggregate_Column import all
@@ -1585,7 +1586,7 @@ add_aggregate_specs suite_builder setup =
         group_builder.specify "should fail if there are no output columns, and promote any warnings to errors" <|
             [Problem_Behavior.Ignore, Problem_Behavior.Report_Warning, Problem_Behavior.Report_Error].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+": " <|
                 t1 = table.aggregate [] on_problems=pb
-                t1.should_fail_with No_Output_Columns
+                t1.should_fail_with Missing_Argument
 
             t2 = table.aggregate columns=[Sum "MISSING"]
             t2.should_fail_with Invalid_Aggregate_Column

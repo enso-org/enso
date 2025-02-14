@@ -96,7 +96,7 @@ type DB_Column
        Converts this column into a single-column table.
     to_table : DB_Table
     to_table self =
-        DB_Table.Value self.name self.connection [self.as_internal] self.context
+        DB_Table.new self.name self.connection [self.as_internal] self.context
 
     ## ALIAS column type, field info, metadata
        GROUP Standard.Base.Metadata

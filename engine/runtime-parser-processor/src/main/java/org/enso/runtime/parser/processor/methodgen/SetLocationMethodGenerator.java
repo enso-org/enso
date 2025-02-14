@@ -38,7 +38,7 @@ public class SetLocationMethodGenerator {
           if (location.isDefined()) {
             loc = location.get();
           }
-          return builder().location(loc).build();
+          return builder(($retType) this).location(loc).build();
         }
         """
             .replace("$retType", retType());

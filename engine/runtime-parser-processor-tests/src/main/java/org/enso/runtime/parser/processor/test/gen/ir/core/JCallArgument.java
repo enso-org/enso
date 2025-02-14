@@ -38,5 +38,10 @@ public interface JCallArgument extends IR {
         @IRField boolean isSynthetic, @IRChild Option<Name> name, @IRChild Expression value) {
       super(isSynthetic, name, value);
     }
+
+    @Override
+    public String showCode(int indent) {
+      return "";
+    }
   }
 }

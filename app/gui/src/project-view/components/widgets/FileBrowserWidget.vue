@@ -1,44 +1,65 @@
+<script lang="ts">
+export default {
+  name: 'FileBrowserWidget',
+}
+</script>
+
 <script setup lang="ts">
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useBackend } from '@/composables/backend'
+import { injectBackend } from '@/providers/backend'
 import type { ToValue } from '@/util/reactivity'
+import { useToast } from '@/util/toast'
 import type {
+  DatalinkAsset,
   DirectoryAsset,
   DirectoryId,
   FileAsset,
-  FileId,
 } from 'enso-common/src/services/Backend'
-import Backend, { assetIsDirectory, assetIsFile } from 'enso-common/src/services/Backend'
-import { computed, ref, toValue, watch } from 'vue'
+import Backend, {
+  assetIsDatalink,
+  assetIsDirectory,
+  assetIsFile,
+} from 'enso-common/src/services/Backend'
+import { computed, onMounted, ref, toValue, watch } from 'vue'
+import { Err, Ok, Result } from 'ydoc-shared/util/data/result'
+
+const { writeMode = false } = defineProps<{ writeMode?: boolean }>()
 
 const emit = defineEmits<{
-  pathSelected: [path: string]
+  pathAccepted: [path: string]
 }>()
 
-const { query, ensureQueryData } = useBackend('remote')
+const { query, fetch, ensureQueryData } = useBackend('remote')
+const { remote: backend } = injectBackend()
+
+const errorToast = useToast.error()
+const fileName = ref<string>('')
 
 // === Current Directory ===
 
 interface Directory {
-  id: DirectoryId | null
+  id: DirectoryId
   title: string
 }
 
-const directoryStack = ref<Directory[]>([
-  {
-    id: null,
-    title: 'Cloud',
-  },
-])
-const currentDirectory = computed(() => directoryStack.value[directoryStack.value.length - 1]!)
 const currentUser = query('usersMe', [])
-const currentPath = computed(
-  () =>
-    currentUser.data.value &&
-    `enso://Users/${currentUser.data.value.name}${Array.from(directoryStack.value.slice(1), (frame) => '/' + frame.title).join()}`,
-)
+const currentOrganization = query('getOrganization', [])
+const directoryStack = ref<Directory[]>([])
+const isDirectoryStackInitializing = computed(() => directoryStack.value.length === 0)
+const currentDirectory = computed(() => directoryStack.value[directoryStack.value.length - 1])
+
+const currentPath = computed(() => {
+  if (!currentUser.data.value) return
+  let root = backend?.rootPath(currentUser.data.value) ?? 'enso://'
+  if (!root.endsWith('/')) root += '/'
+  return `${root}${directoryStack.value
+    .slice(1)
+    .map((dir) => `${dir.title}/`)
+    .join('')}`
+})
 
 // === Directory Contents ===
 
@@ -65,21 +86,14 @@ const { isPending, isError, data, error } = query(
 )
 const compareTitle = (a: { title: string }, b: { title: string }) => a.title.localeCompare(b.title)
 const directories = computed(
-  () => data.value && data.value.filter<DirectoryAsset>(assetIsDirectory).sort(compareTitle),
+  () => data.value && data.value.filter((asset) => assetIsDirectory(asset)).sort(compareTitle),
 )
 const files = computed(
-  () => data.value && data.value.filter<FileAsset>(assetIsFile).sort(compareTitle),
+  () =>
+    data.value &&
+    data.value.filter((asset) => assetIsFile(asset) || assetIsDatalink(asset)).sort(compareTitle),
 )
 const isEmpty = computed(() => directories.value?.length === 0 && files.value?.length === 0)
-
-// === Selected File ===
-
-interface File {
-  id: FileId
-  title: string
-}
-
-const selectedFile = ref<File>()
 
 // === Prefetching ===
 
@@ -97,17 +111,34 @@ function enterDir(dir: DirectoryAsset) {
   directoryStack.value.push(dir)
 }
 
+class DirNotFoundError {
+  constructor(public dirName: string) {}
+
+  toString() {
+    return `Directory "${this.dirName}" not found`
+  }
+}
+
 function popTo(index: number) {
   directoryStack.value.splice(index + 1)
 }
 
-function chooseFile(file: FileAsset) {
-  selectedFile.value = file
+function chooseFile(file: FileAsset | DatalinkAsset) {
+  fileName.value = file.title
+  if (!writeMode) {
+    acceptCurrentFile()
+  }
 }
 
-const isBusy = computed(
-  () => isPending.value || (selectedFile.value && currentUser.isPending.value),
-)
+function acceptCurrentFile() {
+  if (currentFilePath.value) {
+    emit('pathAccepted', currentFilePath.value)
+  } else {
+    return false
+  }
+}
+
+const isBusy = computed(() => isDirectoryStackInitializing.value || isPending.value)
 
 const anyError = computed(() =>
   isError.value ? error
@@ -115,13 +146,42 @@ const anyError = computed(() =>
   : undefined,
 )
 
-const selectedFilePath = computed(
-  () =>
-    selectedFile.value && currentPath.value && `${currentPath.value}/${selectedFile.value.title}`,
+const currentFilePath = computed(
+  () => fileName.value && currentPath.value && `${currentPath.value}${fileName.value}`,
 )
 
-watch(selectedFilePath, (path) => {
-  if (path) emit('pathSelected', path)
+// === Initialization ===
+
+async function enterDirByName(name: string, stack: Directory[]): Promise<Result> {
+  const currentDir = stack[stack.length - 1]
+  if (currentDir == null) return Err('Stack is empty')
+  const content = await fetch('listDirectory', listDirectoryArgs(currentDir))
+  const nextDir = content.find(
+    (asset): asset is DirectoryAsset => assetIsDirectory(asset) && asset.title === name,
+  )
+  if (!nextDir) return Err(new DirNotFoundError(name))
+  stack.push(nextDir)
+  return Ok()
+}
+
+onMounted(() => {
+  Promise.all([currentUser.promise.value, currentOrganization.promise.value]).then(
+    async ([user, organization]) => {
+      if (!user) {
+        errorToast.show('Cannot load file list: not logged in.')
+        return
+      }
+      const rootDirectoryId =
+        backend?.rootDirectoryId(user, organization, null) ?? user.rootDirectoryId
+      const stack = [{ id: rootDirectoryId, title: 'Cloud' }]
+      if (rootDirectoryId != user.rootDirectoryId) {
+        let result = await enterDirByName('Users', stack)
+        result = result.ok ? await enterDirByName(user.name, stack) : result
+        if (!result.ok) errorToast.reportError(result.error, 'Cannot enter home directory')
+      }
+      directoryStack.value = stack
+    },
+  )
 })
 </script>
 
@@ -143,7 +203,7 @@ watch(selectedFilePath, (path) => {
     <div v-if="isBusy" class="centerContent contents"><LoadingSpinner /></div>
     <div v-else-if="anyError" class="centerContent contents">Error: {{ anyError }}</div>
     <div v-else-if="isEmpty" class="centerContent contents">Directory is empty</div>
-    <div v-else :key="currentDirectory.id ?? 'root'" class="listing contents">
+    <div v-else :key="currentDirectory?.id ?? 'root'" class="listing contents">
       <TransitionGroup>
         <div v-for="entry in directories" :key="entry.id">
           <SvgButton :label="entry.title" name="folder" class="entry" @click="enterDir(entry)" />
@@ -152,6 +212,26 @@ watch(selectedFilePath, (path) => {
           <SvgButton :label="entry.title" name="text2" class="entry" @click="chooseFile(entry)" />
         </div>
       </TransitionGroup>
+    </div>
+    <div v-if="writeMode" class="fileNameBar">
+      <input
+        v-model="fileName"
+        class="fileNameInput"
+        @pointerdown.stop
+        @click.stop
+        @contextmenu.stop
+        @keydown.backspace.stop
+        @keydown.delete.stop
+        @keydown.arrow-left.stop
+        @keydown.arrow-right.stop
+        @keydown.enter.stop="acceptCurrentFile()"
+      />
+      <SvgButton
+        class="fileNameAcceptButton"
+        label="Ok"
+        :disabled="!fileName"
+        @click.stop="acceptCurrentFile"
+      />
     </div>
   </div>
 </template>
@@ -226,5 +306,33 @@ watch(selectedFilePath, (path) => {
 }
 .list-leave-active {
   position: absolute;
+}
+
+.fileNameBar {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  padding: var(--border-width) 0 0 0;
+  gap: var(--border-width);
+}
+
+.fileNameInput {
+  border-radius: var(--border-radius-inner);
+  height: calc(var(--border-radius-inner) * 2);
+  padding: 0 8px;
+  background-color: var(--color-frame-selected-bg);
+  flex-grow: 1;
+  appearance: textfield;
+  -moz-appearance: textfield;
+  user-select: all;
+}
+
+.fileNameAcceptButton {
+  --color-menu-entry-hover-bg: color-mix(in oklab, var(--color-frame-selected-bg), black 10%);
+  border-radius: var(--border-radius-inner);
+  height: calc(var(--border-radius-inner) * 2);
+  margin: 0px;
+  padding: 4px 12px;
+  background-color: var(--color-frame-selected-bg);
 }
 </style>

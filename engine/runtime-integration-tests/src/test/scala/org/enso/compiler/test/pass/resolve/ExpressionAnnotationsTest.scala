@@ -115,7 +115,8 @@ class ExpressionAnnotationsTest extends CompilerTest {
 
       val correct = items.returnValue
         .asInstanceOf[Application.Prefix]
-        .arguments(0)
+        .arguments
+        .apply(0)
         .value
         .asInstanceOf[Application.Prefix]
       correct.function.asInstanceOf[Name].name shouldEqual "bar"
