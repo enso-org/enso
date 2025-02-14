@@ -78,7 +78,10 @@ export function createBundle(directory: string): Promise<Buffer> {
 }
 
 /** Unpack a .tar.gz enso-project bundle into a temporary directory */
-export async function unpackBundle(bundle: stream.Readable, targetDirectory: string): Promise<string> {
+export async function unpackBundle(
+  bundle: stream.Readable,
+  targetDirectory: string,
+): Promise<string> {
   return new Promise((resolve, reject) => {
     bundle
       .pipe(
