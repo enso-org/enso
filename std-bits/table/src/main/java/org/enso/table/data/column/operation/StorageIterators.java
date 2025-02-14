@@ -575,7 +575,6 @@ public class StorageIterators {
         var result = operation.apply(idx, value1, value2);
         builder.append(result);
       }
-
       context.safepoint();
     }
 
@@ -620,8 +619,6 @@ public class StorageIterators {
         var result = operation.apply(idx, value1, isNothing1, value2, isNothing2);
         builder.append(result);
       }
-
-      idx++;
       context.safepoint();
     }
 
@@ -666,8 +663,6 @@ public class StorageIterators {
         var result = operation.apply(idx, value1, isNothing1, value2, isNothing2);
         builder.append(result);
       }
-
-      idx++;
       context.safepoint();
     }
 
