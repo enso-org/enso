@@ -564,11 +564,9 @@ public class StorageIterators {
     var builder = builderConstructor.apply(size);
 
     Context context = Context.getCurrent();
-    long idx = 0;
-    while (iterator1.moveNext() || iterator2.moveNext()) {
-      R value1 = iterator1.getIndex() == idx ? iterator1.getItemBoxed() : null;
-      S value2 = iterator2.getIndex() == idx ? iterator2.getItemBoxed() : null;
-
+    for (long idx = 0; idx < size; idx++) {
+      R value1 = iterator1.hasNext() ? iterator1.getItemBoxed() : null;
+      S value2 = iterator2.hasNext() ? iterator2.getItemBoxed() : null;
       if (skipNothing && (value1 == null || value2 == null)) {
         builder.appendNulls(1);
       } else {
@@ -576,7 +574,6 @@ public class StorageIterators {
         builder.append(result);
       }
 
-      idx++;
       context.safepoint();
     }
 
@@ -610,10 +607,9 @@ public class StorageIterators {
     var builder = builderConstructor.apply(size);
 
     Context context = Context.getCurrent();
-    long idx = 0;
-    while (iterator1.moveNext() || iterator2.moveNext()) {
-      boolean isNothing1 = idx != iterator1.getIndex() || iterator1.isNothing();
-      boolean isNothing2 = idx != iterator2.getIndex() || iterator2.isNothing();
+    for (long idx = 0; idx < size; idx++) {
+      boolean isNothing1 = !iterator1.moveNext() || iterator1.isNothing();
+      boolean isNothing2 = !iterator2.moveNext() || iterator2.isNothing();
       if (skipNothing && (isNothing1 || isNothing2)) {
         builder.appendNulls(1);
       } else {
@@ -657,10 +653,9 @@ public class StorageIterators {
     var builder = builderConstructor.apply(size);
 
     Context context = Context.getCurrent();
-    long idx = 0;
-    while (iterator1.moveNext() || iterator2.moveNext()) {
-      boolean isNothing1 = idx != iterator1.getIndex() || iterator1.isNothing();
-      boolean isNothing2 = idx != iterator2.getIndex() || iterator2.isNothing();
+    for (long idx = 0; idx < size; idx++) {
+      boolean isNothing1 = !iterator1.moveNext() || iterator1.isNothing();
+      boolean isNothing2 = !iterator2.moveNext() || iterator2.isNothing();
       if (skipNothing && (isNothing1 || isNothing2)) {
         builder.appendNulls(1);
       } else {
