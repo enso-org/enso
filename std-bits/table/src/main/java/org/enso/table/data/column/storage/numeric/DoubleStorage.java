@@ -3,6 +3,7 @@ package org.enso.table.data.column.storage.numeric;
 import java.math.BigInteger;
 import java.util.BitSet;
 import java.util.List;
+import java.util.NoSuchElementException;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
@@ -34,8 +35,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A column containing floating point numbers. */
-public final class DoubleStorage extends Storage<Double>
-    implements ColumnStorageWithNothingMap, ColumnDoubleStorageWithArray {
+public final class DoubleStorage extends Storage<Double> implements ColumnDoubleStorage, ColumnStorageWithNothingMap {
   private final double[] data;
   private final BitSet isNothing;
   private final int size;
@@ -393,8 +393,69 @@ public final class DoubleStorage extends Storage<Double>
     return longAdapter.inferPreciseTypeShrunk();
   }
 
-  @Override
+  /** Allow access to the underlying data array for copying. */
   public double[] getArray() {
     return data;
+  }
+
+  @Override
+  public ColumnDoubleStorageIterator iterator() {
+    return new DoubleStorageIterator(data, isNothing, (int) getSize());
+  }
+
+  private static class DoubleStorageIterator implements ColumnDoubleStorageIterator {
+    private final double[] data;
+    private final BitSet isNothing;
+    private final int size;
+    private int index = -1;
+
+    public DoubleStorageIterator(double[] data, BitSet isNothing, int size) {
+      this.data = data;
+      this.isNothing = isNothing;
+      this.size = size;
+    }
+
+    @Override
+    public Double getItemBoxed() {
+      return isNothing.get(index) ? null : data[index];
+    }
+
+    @Override
+    public double getItemAsDouble() {
+      return data[index];
+    }
+
+    @Override
+    public boolean isNothing() {
+      return isNothing.get(index);
+    }
+
+    @Override
+    public boolean hasNext() {
+      return index + 1 < size;
+    }
+
+    @Override
+    public Double next() {
+      if (!hasNext()) {
+        throw new NoSuchElementException();
+      }
+      index++;
+      return getItemBoxed();
+    }
+
+    @Override
+    public long getIndex() {
+      return index;
+    }
+
+    @Override
+    public boolean moveNext() {
+      if (!hasNext()) {
+        return false;
+      }
+      index++;
+      return true;
+    }
   }
 }

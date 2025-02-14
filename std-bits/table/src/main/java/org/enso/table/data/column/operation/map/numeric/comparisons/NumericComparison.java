@@ -1,5 +1,8 @@
 package org.enso.table.data.column.operation.map.numeric.comparisons;
 
+import static org.enso.table.data.column.operation.map.numeric.arithmetic.NumericBinaryOpImplementation.asBigDecimal;
+import static org.enso.table.data.column.operation.map.numeric.arithmetic.NumericBinaryOpImplementation.asBigInteger;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.base.CompareException;
@@ -12,14 +15,10 @@ import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.ColumnStorageFacade;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
 import org.enso.table.data.column.storage.numeric.DoubleStorageFacade;
-
-import static org.enso.table.data.column.operation.map.numeric.arithmetic.NumericBinaryOpImplementation.asBigDecimal;
-import static org.enso.table.data.column.operation.map.numeric.arithmetic.NumericBinaryOpImplementation.asBigInteger;
 
 public abstract class NumericComparison<T extends Number, I extends Storage<? super T>>
     extends BinaryMapOperation<T, I> {
@@ -63,9 +62,12 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     } else if (arg instanceof BigDecimal bigDecimal) {
       return switch (storage) {
         case BigDecimalStorage s -> runBigDecimalMap(s, bigDecimal, problemAggregator);
-        case BigIntegerStorage s -> runBigDecimalMap(asBigDecimal(s), bigDecimal, problemAggregator);
-        case ColumnDoubleStorage s -> runBigDecimalMap(asBigDecimal(s), bigDecimal, problemAggregator);
-        case ColumnLongStorage s -> runBigDecimalMap(asBigDecimal(s), bigDecimal, problemAggregator);
+        case BigIntegerStorage s -> runBigDecimalMap(
+            asBigDecimal(s), bigDecimal, problemAggregator);
+        case ColumnDoubleStorage s -> runBigDecimalMap(
+            asBigDecimal(s), bigDecimal, problemAggregator);
+        case ColumnLongStorage s -> runBigDecimalMap(
+            asBigDecimal(s), bigDecimal, problemAggregator);
         default -> throw newUnsupported(storage);
       };
     } else if (NumericConverter.isCoercibleToLong(arg)) {

@@ -5,9 +5,7 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
-import org.enso.table.data.column.storage.ColumnDoubleStorageWithArray;
 import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.ColumnLongStorageWithArray;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.graalvm.polyglot.Context;
 
@@ -29,13 +27,13 @@ public class StorageIterators {
       boolean preserveNothing,
       Builder builder,
       BuildObjectOperation<S> operation) {
-    long size = source.getSize();
     Context context = Context.getCurrent();
-    for (long index = 0; index < size; index++) {
-      if (preserveNothing && source.isNothing(index)) {
+    long idx = 0;
+    for (S item : source) {
+      if (preserveNothing && item == null) {
         builder.appendNulls(1);
       } else {
-        operation.apply(builder, index, source.getItemBoxed(index));
+        operation.apply(builder, idx++, item);
       }
       context.safepoint();
     }
@@ -48,13 +46,17 @@ public class StorageIterators {
       boolean preserveNothing,
       Builder builder,
       DoubleBuildObjectOperation operation) {
-    long size = source.getSize();
     Context context = Context.getCurrent();
-    for (long index = 0; index < size; index++) {
-      if (preserveNothing && source.isNothing(index)) {
-        builder.appendNulls(1);
+    var iterator = source.iterator();
+    while (iterator.moveNext()) {
+      if (iterator.isNothing()) {
+        if (preserveNothing) {
+          builder.appendNulls(1);
+        } else {
+          operation.apply(builder, iterator.getIndex(), Double.NaN, true);
+        }
       } else {
-        operation.apply(builder, index, source.getItemAsDouble(index), source.isNothing(index));
+        operation.apply(builder, iterator.getIndex(), iterator.getItemAsDouble(), false);
       }
       context.safepoint();
     }
@@ -117,13 +119,13 @@ public class StorageIterators {
    */
   public static <B extends BuilderForType<T>, S, T> ColumnStorage<T> buildOverStorage(
       ColumnStorage<S> source, boolean preserveNothing, B builder, BuildOperation<B, S> operation) {
-    long size = source.getSize();
     Context context = Context.getCurrent();
-    for (long index = 0; index < size; index++) {
-      if (preserveNothing && source.isNothing(index)) {
+    long idx = 0;
+    for (S item : source) {
+      if (preserveNothing && item == null) {
         builder.appendNulls(1);
       } else {
-        operation.apply(builder, index, source.getItemBoxed(index));
+        operation.apply(builder, idx++, item);
       }
       context.safepoint();
     }
@@ -167,37 +169,17 @@ public class StorageIterators {
       boolean preserveNothing,
       B builder,
       LongBuildOperation<B> operation) {
-    if (source instanceof ColumnLongStorageWithArray longArrayStorage) {
-      return buildOverLongArrayStorage(longArrayStorage, preserveNothing, builder, operation);
-    }
-
-    long size = source.getSize();
     Context context = Context.getCurrent();
-    for (long index = 0; index < size; index++) {
-      if (preserveNothing && source.isNothing(index)) {
-        builder.appendNulls(1);
+    var iterator = source.iterator();
+    while (iterator.moveNext()) {
+      if (iterator.isNothing()) {
+        if (preserveNothing) {
+          builder.appendNulls(1);
+        } else {
+          operation.apply(builder, iterator.getIndex(), 0, true);
+        }
       } else {
-        operation.apply(builder, index, source.getItemAsLong(index), source.isNothing(index));
-      }
-      context.safepoint();
-    }
-    return builder.seal();
-  }
-
-  private static <B extends BuilderForType<T>, T> ColumnStorage<T> buildOverLongArrayStorage(
-      ColumnLongStorageWithArray source,
-      boolean preserveNothing,
-      B builder,
-      LongBuildOperation<B> operation) {
-    var data = source.getArray();
-    Context context = Context.getCurrent();
-    assert source.getSize() <= Integer.MAX_VALUE;
-    for (int i = 0; i < source.getSize(); i++) {
-      boolean isNothing = source.isNothing(i);
-      if (preserveNothing && isNothing) {
-        builder.appendNulls(1);
-      } else {
-        operation.apply(builder, i, data[i], isNothing);
+        operation.apply(builder, iterator.getIndex(), iterator.getItemAsLong(), false);
       }
       context.safepoint();
     }
@@ -241,37 +223,17 @@ public class StorageIterators {
       boolean preserveNothing,
       B builder,
       DoubleBuildOperation<B> operation) {
-    if (source instanceof ColumnDoubleStorageWithArray doubleArrayStorage) {
-      return buildOverDoubleArrayStorage(doubleArrayStorage, preserveNothing, builder, operation);
-    }
-
-    long size = source.getSize();
     Context context = Context.getCurrent();
-    for (long index = 0; index < size; index++) {
-      if (preserveNothing && source.isNothing(index)) {
-        builder.appendNulls(1);
+    var iterator = source.iterator();
+    while (iterator.moveNext()) {
+      if (iterator.isNothing()) {
+        if (preserveNothing) {
+          builder.appendNulls(1);
+        } else {
+          operation.apply(builder, iterator.getIndex(), Double.NaN, true);
+        }
       } else {
-        operation.apply(builder, index, source.getItemAsDouble(index), source.isNothing(index));
-      }
-      context.safepoint();
-    }
-    return builder.seal();
-  }
-
-  private static <B extends BuilderForType<T>, T> ColumnStorage<T> buildOverDoubleArrayStorage(
-      ColumnDoubleStorageWithArray source,
-      boolean preserveNothing,
-      B builder,
-      DoubleBuildOperation<B> operation) {
-    var data = source.getArray();
-    Context context = Context.getCurrent();
-    assert source.getSize() <= Integer.MAX_VALUE;
-    for (int i = 0; i < source.getSize(); i++) {
-      boolean isNothing = source.isNothing(i);
-      if (preserveNothing && isNothing) {
-        builder.appendNulls(1);
-      } else {
-        operation.apply(builder, i, data[i], isNothing);
+        operation.apply(builder, iterator.getIndex(), iterator.getItemAsDouble(), false);
       }
       context.safepoint();
     }
@@ -315,13 +277,17 @@ public class StorageIterators {
       boolean preserveNothing,
       B builder,
       BooleanBuildOperation<B> operation) {
-    long size = source.getSize();
     Context context = Context.getCurrent();
-    for (long index = 0; index < size; index++) {
-      if (preserveNothing && source.isNothing(index)) {
-        builder.appendNulls(1);
+    var iterator = source.iterator();
+    while (iterator.moveNext()) {
+      if (iterator.isNothing()) {
+        if (preserveNothing) {
+          builder.appendNulls(1);
+        } else {
+          operation.apply(builder, iterator.getIndex(), false, true);
+        }
       } else {
-        operation.apply(builder, index, source.getItemAsBoolean(index), source.isNothing(index));
+        operation.apply(builder, iterator.getIndex(), iterator.getItemAsBoolean(), false);
       }
       context.safepoint();
     }
@@ -383,15 +349,16 @@ public class StorageIterators {
       boolean preserveNothing,
       BuilderForType<T> builder,
       MapOperation<S, T> operation) {
-    long size = source.getSize();
     Context context = Context.getCurrent();
-    for (long index = 0; index < size; index++) {
-      if (preserveNothing && source.isNothing(index)) {
+    long idx = 0;
+    for (S item : source) {
+      if (preserveNothing && item == null) {
         builder.appendNulls(1);
       } else {
-        var result = operation.apply(index, source.getItemBoxed(index));
+        var result = operation.apply(idx, item);
         builder.append(result);
       }
+      idx++;
       context.safepoint();
     }
     return builder.seal();
@@ -430,37 +397,18 @@ public class StorageIterators {
       boolean preserveNothing,
       BuilderForType<T> builder,
       LongMapOperation<T> operation) {
-    if (source instanceof ColumnLongStorageWithArray longArrayStorage) {
-      return mapOverLongArrayStorage(longArrayStorage, preserveNothing, builder, operation);
-    }
-
-    long size = source.getSize();
     Context context = Context.getCurrent();
-    for (long index = 0; index < size; index++) {
-      if (preserveNothing && source.isNothing(index)) {
-        builder.appendNulls(1);
+    var iterator = source.iterator();
+    while (iterator.moveNext()) {
+      if (iterator.isNothing()) {
+        if (preserveNothing) {
+          builder.appendNulls(1);
+        } else {
+          var result = operation.apply(iterator.getIndex(), 0, true);
+          builder.append(result);
+        }
       } else {
-        var result = operation.apply(index, source.getItemAsLong(index), source.isNothing(index));
-        builder.append(result);
-      }
-      context.safepoint();
-    }
-    return builder.seal();
-  }
-
-  private static <T> ColumnStorage<T> mapOverLongArrayStorage(
-      ColumnLongStorageWithArray source,
-      boolean preserveNothing,
-      BuilderForType<T> builder,
-      LongMapOperation<T> operation) {
-    var data = source.getArray();
-    Context context = Context.getCurrent();
-    assert source.getSize() <= Integer.MAX_VALUE;
-    for (int index = 0; index < source.getSize(); index++) {
-      if (preserveNothing && source.isNothing(index)) {
-        builder.appendNulls(1);
-      } else {
-        var result = operation.apply(index, data[index], source.isNothing(index));
+        var result = operation.apply(iterator.getIndex(), iterator.getItemAsLong(), false);
         builder.append(result);
       }
       context.safepoint();
@@ -501,37 +449,18 @@ public class StorageIterators {
       boolean preserveNothing,
       BuilderForType<T> builder,
       DoubleMapOperation<T> operation) {
-    if (source instanceof ColumnDoubleStorageWithArray doubleArrayStorage) {
-      return mapOverDoubleArrayStorage(doubleArrayStorage, preserveNothing, builder, operation);
-    }
-
-    long size = source.getSize();
     Context context = Context.getCurrent();
-    for (long index = 0; index < size; index++) {
-      if (preserveNothing && source.isNothing(index)) {
-        builder.appendNulls(1);
+    var iterator = source.iterator();
+    while (iterator.moveNext()) {
+      if (iterator.isNothing()) {
+        if (preserveNothing) {
+          builder.appendNulls(1);
+        } else {
+          var result = operation.apply(iterator.getIndex(), Double.NaN, true);
+          builder.append(result);
+        }
       } else {
-        var result = operation.apply(index, source.getItemAsDouble(index), source.isNothing(index));
-        builder.append(result);
-      }
-      context.safepoint();
-    }
-    return builder.seal();
-  }
-
-  private static <T> ColumnStorage<T> mapOverDoubleArrayStorage(
-      ColumnDoubleStorageWithArray source,
-      boolean preserveNothing,
-      BuilderForType<T> builder,
-      DoubleMapOperation<T> operation) {
-    var data = source.getArray();
-    Context context = Context.getCurrent();
-    assert source.getSize() <= Integer.MAX_VALUE;
-    for (int index = 0; index < source.getSize(); index++) {
-      if (preserveNothing && source.isNothing(index)) {
-        builder.appendNulls(1);
-      } else {
-        var result = operation.apply(index, data[index], source.isNothing(index));
+        var result = operation.apply(iterator.getIndex(), iterator.getItemAsDouble(), false);
         builder.append(result);
       }
       context.safepoint();
@@ -572,14 +501,18 @@ public class StorageIterators {
       boolean preserveNothing,
       BuilderForType<T> builder,
       BooleanMapOperation<T> operation) {
-    long size = source.getSize();
     Context context = Context.getCurrent();
-    for (long index = 0; index < size; index++) {
-      if (preserveNothing && source.isNothing(index)) {
-        builder.appendNulls(1);
+    var iterator = source.iterator();
+    while (iterator.moveNext()) {
+      if (iterator.isNothing()) {
+        if (preserveNothing) {
+          builder.appendNulls(1);
+        } else {
+          var result = operation.apply(iterator.getIndex(), false, true);
+          builder.append(result);
+        }
       } else {
-        var result =
-            operation.apply(index, source.getItemAsBoolean(index), source.isNothing(index));
+        var result = operation.apply(iterator.getIndex(), iterator.getItemAsBoolean(), false);
         builder.append(result);
       }
       context.safepoint();
@@ -624,25 +557,26 @@ public class StorageIterators {
       LongFunction<BuilderForType<T>> builderConstructor,
       boolean skipNothing,
       ZipOperation<R, S, T> operation) {
-    long size1 = source1.getSize();
-    long size2 = source2.getSize();
+    var iterator1 = source1.iterator();
+    var iterator2 = source2.iterator();
 
-    long size = Math.max(size1, size2);
+    long size = Math.max(source1.getSize(), source2.getSize());
     var builder = builderConstructor.apply(size);
 
     Context context = Context.getCurrent();
-
-    for (long index = 0; index < size; index++) {
-      R value1 = index < size1 ? source1.getItemBoxed(index) : null;
-      S value2 = index < size2 ? source2.getItemBoxed(index) : null;
+    long idx = 0;
+    while (iterator1.moveNext() || iterator2.moveNext()) {
+      R value1 = iterator1.getIndex() == idx ? iterator1.getItemBoxed() : null;
+      S value2 = iterator2.getIndex() == idx ? iterator2.getItemBoxed() : null;
 
       if (skipNothing && (value1 == null || value2 == null)) {
         builder.appendNulls(1);
       } else {
-        var result = operation.apply(index, value1, value2);
+        var result = operation.apply(idx, value1, value2);
         builder.append(result);
       }
 
+      idx++;
       context.safepoint();
     }
 
@@ -669,67 +603,27 @@ public class StorageIterators {
       LongFunction<BuilderForType<T>> builderConstructor,
       boolean skipNothing,
       LongZipOperation<T> operation) {
-    if (source1 instanceof ColumnLongStorageWithArray longArrayStorage1
-        && source2 instanceof ColumnLongStorageWithArray longArrayStorage2) {
-      return zipOverLongArrayStorages(
-          longArrayStorage1, longArrayStorage2, builderConstructor, skipNothing, operation);
-    }
+    var iterator1 = source1.iterator();
+    var iterator2 = source2.iterator();
 
-    long size1 = source1.getSize();
-    long size2 = source2.getSize();
-
-    long size = Math.max(size1, size2);
+    long size = Math.max(source1.getSize(), source2.getSize());
     var builder = builderConstructor.apply(size);
 
     Context context = Context.getCurrent();
-
-    for (long index = 0; index < size; index++) {
-      boolean isNothing1 = index >= size1 || source1.isNothing(index);
-      boolean isNothing2 = index >= size2 || source2.isNothing(index);
+    long idx = 0;
+    while (iterator1.moveNext() || iterator2.moveNext()) {
+      boolean isNothing1 = idx != iterator1.getIndex() || iterator1.isNothing();
+      boolean isNothing2 = idx != iterator2.getIndex() || iterator2.isNothing();
       if (skipNothing && (isNothing1 || isNothing2)) {
         builder.appendNulls(1);
       } else {
-        long value1 = isNothing1 ? 0 : source1.getItemAsLong(index);
-        long value2 = isNothing2 ? 0 : source2.getItemAsLong(index);
-        var result = operation.apply(index, value1, isNothing1, value2, isNothing2);
+        long value1 = isNothing1 ? 0 : iterator1.getItemAsLong();
+        long value2 = isNothing2 ? 0 : iterator2.getItemAsLong();
+        var result = operation.apply(idx, value1, isNothing1, value2, isNothing2);
         builder.append(result);
       }
 
-      context.safepoint();
-    }
-
-    return builder.seal();
-  }
-
-  private static <T> ColumnStorage<T> zipOverLongArrayStorages(
-      ColumnLongStorageWithArray source1,
-      ColumnLongStorageWithArray source2,
-      LongFunction<BuilderForType<T>> builderConstructor,
-      boolean skipNothing,
-      LongZipOperation<T> operation) {
-    var data1 = source1.getArray();
-    long size1 = source1.getSize();
-    var data2 = source2.getArray();
-    long size2 = source2.getSize();
-
-    long size = Math.max(size1, size2);
-    assert size <= Integer.MAX_VALUE;
-    var builder = builderConstructor.apply(size);
-
-    Context context = Context.getCurrent();
-
-    for (int index = 0; index < size; index++) {
-      boolean isNothing1 = index >= size1 || source1.isNothing(index);
-      boolean isNothing2 = index >= size2 || source2.isNothing(index);
-      if (skipNothing && (isNothing1 || isNothing2)) {
-        builder.appendNulls(1);
-      } else {
-        long value1 = isNothing1 ? 0 : data1[index];
-        long value2 = isNothing2 ? 0 : data2[index];
-        var result = operation.apply(index, value1, isNothing1, value2, isNothing2);
-        builder.append(result);
-      }
-
+      idx++;
       context.safepoint();
     }
 
@@ -756,67 +650,27 @@ public class StorageIterators {
       LongFunction<BuilderForType<T>> builderConstructor,
       boolean skipNothing,
       DoubleZipOperation<T> operation) {
-    if (source1 instanceof ColumnDoubleStorageWithArray doubleArrayStorage1
-        && source2 instanceof ColumnDoubleStorageWithArray doubleArrayStorage2) {
-      return zipOverDoubleArrayStorages(
-          doubleArrayStorage1, doubleArrayStorage2, builderConstructor, skipNothing, operation);
-    }
+    var iterator1 = source1.iterator();
+    var iterator2 = source2.iterator();
 
-    long size1 = source1.getSize();
-    long size2 = source2.getSize();
-
-    long size = Math.max(size1, size2);
+    long size = Math.max(source1.getSize(), source2.getSize());
     var builder = builderConstructor.apply(size);
 
     Context context = Context.getCurrent();
-
-    for (long index = 0; index < size; index++) {
-      boolean isNothing1 = index >= size1 || source1.isNothing(index);
-      boolean isNothing2 = index >= size2 || source2.isNothing(index);
+    long idx = 0;
+    while (iterator1.moveNext() || iterator2.moveNext()) {
+      boolean isNothing1 = idx != iterator1.getIndex() || iterator1.isNothing();
+      boolean isNothing2 = idx != iterator2.getIndex() || iterator2.isNothing();
       if (skipNothing && (isNothing1 || isNothing2)) {
         builder.appendNulls(1);
       } else {
-        double value1 = isNothing1 ? 0 : source1.getItemAsDouble(index);
-        double value2 = isNothing2 ? 0 : source2.getItemAsDouble(index);
-        var result = operation.apply(index, value1, isNothing1, value2, isNothing2);
+        double value1 = isNothing1 ? Double.NaN : iterator1.getItemAsDouble();
+        double value2 = isNothing2 ? Double.NaN : iterator2.getItemAsDouble();
+        var result = operation.apply(idx, value1, isNothing1, value2, isNothing2);
         builder.append(result);
       }
 
-      context.safepoint();
-    }
-
-    return builder.seal();
-  }
-
-  private static <T> ColumnStorage<T> zipOverDoubleArrayStorages(
-      ColumnDoubleStorageWithArray source1,
-      ColumnDoubleStorageWithArray source2,
-      LongFunction<BuilderForType<T>> builderConstructor,
-      boolean skipNothing,
-      DoubleZipOperation<T> operation) {
-    var data1 = source1.getArray();
-    long size1 = source1.getSize();
-    var data2 = source2.getArray();
-    long size2 = source2.getSize();
-
-    long size = Math.max(size1, size2);
-    assert size <= Integer.MAX_VALUE;
-    var builder = builderConstructor.apply(size);
-
-    Context context = Context.getCurrent();
-
-    for (int index = 0; index < size; index++) {
-      boolean isNothing1 = index >= size1 || source1.isNothing(index);
-      boolean isNothing2 = index >= size2 || source2.isNothing(index);
-      if (skipNothing && (isNothing1 || isNothing2)) {
-        builder.appendNulls(1);
-      } else {
-        double value1 = isNothing1 ? 0 : data1[index];
-        double value2 = isNothing2 ? 0 : data2[index];
-        var result = operation.apply(index, value1, isNothing1, value2, isNothing2);
-        builder.append(result);
-      }
-
+      idx++;
       context.safepoint();
     }
 

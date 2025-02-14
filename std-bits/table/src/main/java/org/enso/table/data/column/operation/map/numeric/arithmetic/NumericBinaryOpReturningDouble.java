@@ -1,6 +1,5 @@
 package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;

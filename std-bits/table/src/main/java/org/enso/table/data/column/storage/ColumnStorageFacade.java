@@ -33,4 +33,9 @@ public final class ColumnStorageFacade<S, T> implements ColumnStorage<T> {
     S item = parent.getItemBoxed(index);
     return item == null ? null : converter.apply(item);
   }
+
+  @Override
+  public ColumnStorageIterator<T> iterator() {
+    return new Storage.StorageIterator<>(this);
+  }
 }

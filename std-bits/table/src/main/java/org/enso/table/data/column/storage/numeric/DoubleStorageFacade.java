@@ -3,10 +3,7 @@ package org.enso.table.data.column.storage.numeric;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.function.ToDoubleFunction;
-import org.enso.table.data.column.storage.ColumnDoubleStorage;
-import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.ValueIsNothingException;
+import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.StorageType;
 
@@ -24,7 +21,7 @@ public class DoubleStorageFacade<T> implements ColumnDoubleStorage {
     return new DoubleStorageFacade<>(parent, Long::doubleValue) {
       @Override
       public double getItemAsDouble(long index) throws ValueIsNothingException {
-        return (double)parent.getItemAsLong(index);
+        return (double) parent.getItemAsLong(index);
       }
 
       @Override
@@ -73,5 +70,23 @@ public class DoubleStorageFacade<T> implements ColumnDoubleStorage {
   public Double getItemBoxed(long index) {
     T item = parent.getItemBoxed(index);
     return item == null ? null : converter.applyAsDouble(item);
+  }
+
+  @Override
+  public ColumnDoubleStorageIterator iterator() {
+    return new BaseDoubleStorageIterator(this);
+  }
+
+  private static class BaseDoubleStorageIterator extends Storage.StorageIterator<Double>
+      implements ColumnDoubleStorageIterator {
+    public BaseDoubleStorageIterator(ColumnDoubleStorage parent) {
+      super(parent);
+    }
+
+    @Override
+    public double getItemAsDouble() {
+      Double d = getItemBoxed();
+      return d == null ? Double.NaN : d;
+    }
   }
 }

@@ -1,5 +1,7 @@
 package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
+import static org.enso.table.data.column.operation.map.numeric.arithmetic.NumericBinaryOpImplementation.asBigDecimal;
+
 import java.math.BigDecimal;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
@@ -9,8 +11,6 @@ import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
-
-import static org.enso.table.data.column.operation.map.numeric.arithmetic.NumericBinaryOpImplementation.asBigDecimal;
 
 public abstract class NumericBinaryOpReturningBigDecimal<
         T extends Number, I extends Storage<? super T>>

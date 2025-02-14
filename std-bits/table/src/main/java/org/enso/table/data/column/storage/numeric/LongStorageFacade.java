@@ -2,6 +2,7 @@ package org.enso.table.data.column.storage.numeric;
 
 import java.util.function.ToLongFunction;
 import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -45,5 +46,10 @@ public class LongStorageFacade<T> implements ColumnLongStorage {
   public Long getItemBoxed(long index) {
     T item = parent.getItemBoxed(index);
     return item == null ? null : converter.applyAsLong(item);
+  }
+
+  @Override
+  public ColumnLongStorageIterator iterator() {
+    return new AbstractLongStorage.BaseLongStorageIterator(this);
   }
 }
