@@ -127,8 +127,6 @@ const sortModel = ref<SortModel[]>([])
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 const defaultColDef: Ref<ColDef> = ref({
   editable: false,
-  sortable: true,
-  filter: false,
   resizable: true,
   minWidth: 25,
   cellRenderer: cellRenderer,
@@ -258,23 +256,20 @@ const createRowsForTable = (data: unknown[][], startIndex: number, shift: number
     )
   })
 }
-type SortDirection = 'asc' | 'desc'
-const sortDirectionMap = computed(() => ({
-    asc: '..Ascending',
-    desc: '..Descending',
-  }))
+// type SortDirection = 'asc' | 'desc'
+// const sortDirectionMap = computed(() => ({
+//     asc: '..Ascending',
+//     desc: '..Descending',
+//   }))
+
 function createRowServer() {
-  const sortColName = sortModel.value[0]?.columnName ?? null
-  const sortDirectionVal = sortModel.value[0]?.sortDirection ?? null
-  const sortDirection = sortDirectionMap.value[sortDirectionVal]
   return {
-    getData: async (request: IServerSideGetRowsRequest) => {
+    getData: async (request: IServerSideGetRowsRequest, sortColName: string, sortDirection: string) => {
+    console.log({request})
       const response = await config.executeExpression(
         'Standard.Visualization.Table.Visualization',
         'get_rows_for_table',
         `${request.startRow}`,
-        sortColName,
-        sortDirection
       )
       return {
         success: true,
@@ -291,7 +286,10 @@ function createServerSideDatasource(): IServerSideDatasource {
   return {
     getRows: async (params) => {
       const server = createRowServer()
-      const response: Response = await server.getData(params.request)
+      // const sortColName = sortModel.value[0]?.columnName ?? ''
+      // const sortDirectionVal = sortModel.value[0]?.sortDirection ?? ''
+      // const sortDirection = sortDirectionMap.value[sortDirectionVal]
+      const response: Response = await server.getData(params.request, 'sortColName', 'sortDirection')
       const startIndex = params.request.startRow ? params.request.startRow : 0
       const rows = createRowsForTable(response.data, startIndex, 1)
       setTimeout(() => {
