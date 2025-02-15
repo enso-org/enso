@@ -5,7 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.function.Function;
-import org.enso.table.expressions.ExpressionVisitorImpl.Method;
+import org.enso.table.expressions.ExpressionVisitorImpl.MethodInterface;
 import org.graalvm.polyglot.Value;
 import org.junit.Rule;
 import org.junit.Test;
@@ -23,7 +23,7 @@ public class ExpressionVisitorImplTest {
 
   @Mock private Function<String, Value> getColumn;
   @Mock private Function<Object, Value> makeConstantColumn;
-  @Mock private Function<String, Method> getMethod;
+  @Mock private Function<String, MethodInterface> getMethod;
   @Mock private Function<String, Value> makeConstructor;
 
   private Value evaluate(String expr) {
@@ -40,7 +40,7 @@ public class ExpressionVisitorImplTest {
   @Test
   public void testSimpleMethodOnColumn() {
     Value mockedColumn1 = mock(Value.class);
-    Method mockedMethodTextLength = mock(Method.class);
+    MethodInterface mockedMethodTextLength = mock(MethodInterface.class);
     Value mockedResult = mock(Value.class);
     Value mockedColumnResult = mock(Value.class);
 
@@ -56,7 +56,7 @@ public class ExpressionVisitorImplTest {
 
   @Test
   public void testSimpleStaticMethod() {
-    Method mockedMethodToday = mock(Method.class);
+    MethodInterface mockedMethodToday = mock(MethodInterface.class);
     Value mockedResult = mock(Value.class);
     Value mockedColumnResult = mock(Value.class);
 

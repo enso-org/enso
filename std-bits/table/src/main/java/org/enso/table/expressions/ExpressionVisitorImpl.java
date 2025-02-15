@@ -66,32 +66,36 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
         : value;
   }
 
-  public static class Method {
-    private final Value ensoMethod;
-    private final boolean isVariableArgumentMethod;
-    private final boolean isStaticMethod;
-    private final Value staticsType;
-    private final String name;
+  public interface MethodInterface {
+    Value execute(Value[] args, Function<Object, Value> makeConstantColumn);
 
-    public Method(Value module, Value type, String name, boolean variableArgumentMethod) {
-      this.name = name;
+    Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn);
+  }
+
+  public record Method(
+      Value ensoMethod, boolean isVariableArgumentMethod, boolean isStaticMethod, String name)
+      implements MethodInterface {
+
+    private static final Value STATICS_MODULE;
+    private static final Value STATICS_TYPE;
+
+    static {
       var context = Context.getCurrent().getBindings("enso");
-      final Value staticsModule =
-          context.invokeMember("get_module", "Standard.Table.Expression_Statics");
-      this.staticsType = staticsModule.invokeMember("get_type", "Expression_Statics");
-      this.isVariableArgumentMethod = variableArgumentMethod;
+      STATICS_MODULE = context.invokeMember("get_module", "Standard.Table.Expression_Statics");
+      STATICS_TYPE = STATICS_MODULE.invokeMember("get_type", "Expression_Statics");
+    }
 
-      var staticMethod = staticsModule.invokeMember("get_method", staticsType, name);
+    public static Method create(
+        Value module, Value type, String name, boolean variableArgumentMethod) {
+      var staticMethod = STATICS_MODULE.invokeMember("get_method", STATICS_TYPE, name);
       if (staticMethod.canExecute()) {
-        this.isStaticMethod = true;
-        this.ensoMethod = staticMethod;
+        return new Method(staticMethod, variableArgumentMethod, true, name);
       } else {
         var instanceMethod = module.invokeMember("get_method", type, name);
         if (!instanceMethod.canExecute()) {
           throw new UnsupportedOperationException("Method not found: " + name);
         }
-        this.isStaticMethod = false;
-        this.ensoMethod = instanceMethod;
+        return new Method(instanceMethod, variableArgumentMethod, false, name);
       }
     }
 
@@ -118,10 +122,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
         objects[0] = wrapAsColumn(args[0], makeConstantColumn);
         objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
       } else if (isStaticMethod) {
-        // The static method takes the type as the synthetic 'self' argument, so we need to prepend
-        // it:
         objects = new Object[args.length + 1];
-        objects[0] = staticsType;
+        objects[0] = STATICS_TYPE;
         System.arraycopy(args, 0, objects, 1, args.length);
       } else {
         objects = Arrays.copyOf(args, args.length, Object[].class);
@@ -144,8 +146,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     final Value type = module.invokeMember("get_type", typeName);
     final var setVariableArgumentFunctions =
         new HashSet<>(Arrays.asList(variableArgumentFunctions));
-    Function<String, Method> getMethod =
-        name -> new Method(module, type, name, setVariableArgumentFunctions.contains(name));
+    Function<String, MethodInterface> getMethod =
+        name -> Method.create(module, type, name, setVariableArgumentFunctions.contains(name));
     Function<String, Value> makeConstructor =
         name -> module.invokeMember("eval_expression", ".." + name);
 
@@ -156,7 +158,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       String expression,
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
-      Function<String, Method> getMethod,
+      Function<String, MethodInterface> getMethod,
       Function<String, Value> makeConstructor) {
     var lexer = new ExpressionLexer(CharStreams.fromString(expression));
     lexer.removeErrorListeners();
@@ -176,13 +178,13 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   private final Function<String, Value> getColumn;
   private final Function<Object, Value> makeConstantColumn;
-  private final Function<String, Method> getMethod;
+  private final Function<String, MethodInterface> getMethod;
   private final Function<String, Value> makeConstructor;
 
   private ExpressionVisitorImpl(
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
-      Function<String, Method> getMethod,
+      Function<String, MethodInterface> getMethod,
       Function<String, Value> makeConstructor) {
     this.getColumn = getColumn;
     this.makeConstantColumn = makeConstantColumn;
