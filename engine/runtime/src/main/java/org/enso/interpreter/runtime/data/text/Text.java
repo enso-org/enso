@@ -10,21 +10,18 @@ import com.oracle.truffle.api.strings.TruffleString;
 import com.oracle.truffle.api.strings.TruffleString.Encoding;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
 import org.enso.interpreter.runtime.builtin.BuiltinObject;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
 
-/** The main runtime type for Enso's Text. */
+/** Runtime representation of Enso's Text. */
 @ExportLibrary(InteropLibrary.class)
 public final class Text extends BuiltinObject {
-  private static final Lock LOCK = new ReentrantLock();
   private static final Text EMPTY = new Text("");
-  private volatile Object contents;
-  private volatile int length = -1;
-  private volatile FcdNormalized fcdNormalized = FcdNormalized.UNKNOWN;
+  private Object contents;
+  private int length = -1;
+  private FcdNormalized fcdNormalized = FcdNormalized.UNKNOWN;
 
   private enum FcdNormalized {
     YES,
@@ -65,10 +62,10 @@ public final class Text extends BuiltinObject {
   public long length() {
     int l = length;
     if (l == -1) {
-      l = computeLength();
-      length = l;
+      return computeAndSetLength();
+    } else {
+      return l;
     }
-    return l;
   }
 
   @Builtin.Method(
@@ -194,8 +191,10 @@ public final class Text extends BuiltinObject {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private int computeLength() {
-    return Core_Text_Utils.computeGraphemeLength(toString());
+  private int computeAndSetLength() {
+    var l = Core_Text_Utils.computeGraphemeLength(toString());
+    length = l;
+    return l;
   }
 
   @Override
@@ -213,11 +212,6 @@ public final class Text extends BuiltinObject {
     return Core_Text_Utils.prettyPrint(str);
   }
 
-  private void setContents(String contents) {
-    assert length == -1 || length == contents.length();
-    this.contents = contents;
-  }
-
   private void setFcdNormalized(boolean flag) {
     if (flag) {
       fcdNormalized = FcdNormalized.YES;
@@ -232,44 +226,34 @@ public final class Text extends BuiltinObject {
     if (c instanceof String s) {
       return s;
     } else {
-      return flattenIfNecessary(this);
+      return flattenAndSetContent(c);
     }
   }
 
   /**
    * Converts text to a Java String. For use outside of Truffle Nodes.
    *
-   * @param text the text to convert.
+   * @param c the content to flatten
    * @return the result of conversion.
    */
   @CompilerDirectives.TruffleBoundary
-  private static String flattenIfNecessary(Text text) {
-    LOCK.lock();
-    String result;
-    try {
-      Object c = text.contents;
-      if (c instanceof String s) {
-        result = s;
+  private String flattenAndSetContent(Object c) {
+    Deque<Object> workStack = new ArrayDeque<>();
+    StringBuilder bldr = new StringBuilder();
+    workStack.push(c);
+    while (!workStack.isEmpty()) {
+      Object item = workStack.pop();
+      if (item instanceof String) {
+        bldr.append((String) item);
       } else {
-        Deque<Object> workStack = new ArrayDeque<>();
-        StringBuilder bldr = new StringBuilder();
-        workStack.push(c);
-        while (!workStack.isEmpty()) {
-          Object item = workStack.pop();
-          if (item instanceof String) {
-            bldr.append((String) item);
-          } else {
-            ConcatRope rope = (ConcatRope) item;
-            workStack.push(rope.getRight());
-            workStack.push(rope.getLeft());
-          }
-        }
-        result = bldr.toString();
-        text.setContents(result);
+        ConcatRope rope = (ConcatRope) item;
+        workStack.push(rope.left());
+        workStack.push(rope.right());
       }
-    } finally {
-      LOCK.unlock();
     }
+    var result = bldr.toString();
+    assert length == -1 || length == result.length();
+    this.contents = result;
     return result;
   }
 
@@ -289,4 +273,6 @@ public final class Text extends BuiltinObject {
     }
     return false;
   }
+
+  private record ConcatRope(Object left, Object right) {}
 }
