@@ -64,6 +64,29 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       String typeName,
       String[] variableArgumentFunctions)
       throws UnsupportedOperationException, IllegalArgumentException {
+    var context = Context.getCurrent().getBindings("enso");
+    final Value module = context.invokeMember("get_module", moduleName);
+    final Value type = module.invokeMember("get_type", typeName);
+    Function<String, Value> getMethod = name -> module.invokeMember("get_method", type, name);
+    Function<String, Value> makeConstructor =
+        name -> module.invokeMember("eval_expression", ".." + name);
+
+    return evaluateImpl(
+        expression,
+        getColumn,
+        makeConstantColumn,
+        getMethod,
+        makeConstructor,
+        variableArgumentFunctions);
+  }
+
+  public static Value evaluateImpl(
+      String expression,
+      Function<String, Value> getColumn,
+      Function<Object, Value> makeConstantColumn,
+      Function<String, Value> getMethod,
+      Function<String, Value> makeConstructor,
+      String[] variableArgumentFunctions) {
     var lexer = new ExpressionLexer(CharStreams.fromString(expression));
     lexer.removeErrorListeners();
     lexer.addErrorListener(ThrowOnErrorListener.INSTANCE);
@@ -75,7 +98,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
     var visitor =
         new ExpressionVisitorImpl(
-            getColumn, makeConstantColumn, moduleName, typeName, variableArgumentFunctions);
+            getColumn, makeConstantColumn, getMethod, makeConstructor, variableArgumentFunctions);
 
     var expr = parser.prog();
     return visitor.visit(expr);
@@ -90,18 +113,13 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   private ExpressionVisitorImpl(
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
-      String moduleName,
-      String typeName,
+      Function<String, Value> getMethod,
+      Function<String, Value> makeConstructor,
       String[] variableArgumentFunctions) {
     this.getColumn = getColumn;
     this.makeConstantColumn = makeConstantColumn;
-
-    var context = Context.getCurrent().getBindings("enso");
-    final Value module = context.invokeMember("get_module", moduleName);
-    final Value type = module.invokeMember("get_type", typeName);
-    getMethod = name -> module.invokeMember("get_method", type, name);
-    makeConstructor = name -> module.invokeMember("eval_expression", ".." + name);
-
+    this.getMethod = getMethod;
+    this.makeConstructor = makeConstructor;
     this.variableArgumentFunctions = new HashSet<>(Arrays.asList(variableArgumentFunctions));
   }
 

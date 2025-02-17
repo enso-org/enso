@@ -8,6 +8,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.util.UUID;
 
 // Contributors: Moses Hohman <mmhohman@rainbow.uchicago.edu>
 
@@ -31,8 +32,21 @@ public class SocketLoggingNode implements Runnable {
   SocketAddress remoteSocketAddress;
 
   Logger logger;
-  boolean closed = false;
+
+  enum State {
+    NOT_STARTED,
+    RUNNING,
+    CLOSING,
+    CLOSED;
+
+    boolean isBefore(State s) {
+      return this.ordinal() < s.ordinal();
+    }
+  }
+
+  volatile State state = State.NOT_STARTED;
   SocketServer socketServer;
+  UUID projectId;
 
   public SocketLoggingNode(SocketServer socketServer, Socket socket, LoggerContext context) {
     this.socketServer = socketServer;
@@ -40,27 +54,33 @@ public class SocketLoggingNode implements Runnable {
     remoteSocketAddress = socket.getRemoteSocketAddress();
     this.context = context;
     logger = context.getLogger(SocketLoggingNode.class);
+    projectId = null;
   }
 
   public void run() {
-
+    state = State.RUNNING;
     try {
       hardenedLoggingEventInputStream =
           new HardenedLoggingEventInputStream(new BufferedInputStream(socket.getInputStream()));
     } catch (Exception e) {
       logger.error("Could not open ObjectInputStream to " + socket, e);
-      closed = true;
+      state = State.CLOSED;
     }
 
     ILoggingEvent event;
     Logger remoteLogger;
-
     try {
-      while (!closed) {
+      while (state != State.CLOSED) {
         // read an event from the wire
         // System.out.println("Reading event?");
         event = (ILoggingEvent) hardenedLoggingEventInputStream.readObject();
-        // System.out.println("WHAT EVENT? " + event.getMessage());
+        if (projectId == null) {
+          try {
+            projectId = UUID.fromString(event.getMDCPropertyMap().get("project.id"));
+          } catch (IllegalArgumentException e) {
+            // ignore
+          }
+        }
         // get a logger from the hierarchy. The name of the logger is taken to
         // be the name contained in the event.
         remoteLogger = context.getLogger(event.getLoggerName());
@@ -71,26 +91,40 @@ public class SocketLoggingNode implements Runnable {
         }
       }
     } catch (java.io.EOFException e) {
-      e.printStackTrace();
-      logger.debug("Caught java.io.EOFException closing connection.", e);
+      if (state.isBefore(State.CLOSING)) {
+        logger.debug("Caught java.io.EOFException closing connection.", e);
+      }
     } catch (java.net.SocketException e) {
-      logger.warn("Caught java.net.SocketException closing connection.");
+      if (state.isBefore(State.CLOSING)) {
+        logger.warn("Caught java.net.SocketException closing connection.");
+      }
     } catch (IOException e) {
-      logger.debug("Caught java.io.IOException: " + e);
-      logger.debug("Closing connection.");
+      if (state.isBefore(State.CLOSING)) {
+        logger.debug("Caught java.io.IOException: " + e);
+        logger.debug("Closing connection.");
+      }
     } catch (Exception e) {
-      logger.error("Unexpected exception. Closing connection.", e);
+      if (state.isBefore(State.CLOSING)) {
+        logger.error("Unexpected exception. Closing connection.", e);
+      }
     }
 
     socketServer.socketNodeClosing(this);
     close();
   }
 
+  void closing() {
+    if (state.isBefore(State.CLOSING)) {
+      state = State.CLOSING;
+    }
+  }
+
   void close() {
-    if (closed) {
+    if (state == State.CLOSED) {
       return;
     }
-    closed = true;
+    projectId = null;
+    state = State.CLOSED;
     if (hardenedLoggingEventInputStream != null) {
       try {
         hardenedLoggingEventInputStream.close();
