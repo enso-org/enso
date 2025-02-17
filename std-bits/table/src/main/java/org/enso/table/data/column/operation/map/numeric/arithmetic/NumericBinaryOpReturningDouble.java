@@ -72,38 +72,42 @@ public abstract class NumericBinaryOpReturningDouble<T extends Number, I extends
     ColumnStorage<Double> result;
     if (storage instanceof ColumnLongStorage lhs) {
       if (arg instanceof ColumnLongStorage rhs) {
-        result = StorageIterators.zipOverLongStorages(
-            lhs,
-            rhs,
-            s -> Builder.getForDouble(FloatType.FLOAT_64, s, problemAggregator),
-            true,
-            (index, value1, isNothing1, value2, isNothing2) ->
-                doDouble(value1, value2, index, problemAggregator));
+        result =
+            StorageIterators.zipOverLongStorages(
+                lhs,
+                rhs,
+                s -> Builder.getForDouble(FloatType.FLOAT_64, s, problemAggregator),
+                true,
+                (index, value1, isNothing1, value2, isNothing2) ->
+                    doDouble(value1, value2, index, problemAggregator));
       } else {
-        result = StorageIterators.zipOverLongDoubleStorages(
-            lhs,
-            asDoubleStorage(arg),
-            s -> Builder.getForDouble(FloatType.FLOAT_64, s, problemAggregator),
-            true,
-            (index, value1, isNothing1, value2, isNothing2) ->
-                doDouble(value1, value2, index, problemAggregator));
+        result =
+            StorageIterators.zipOverLongDoubleStorages(
+                lhs,
+                asDoubleStorage(arg),
+                s -> Builder.getForDouble(FloatType.FLOAT_64, s, problemAggregator),
+                true,
+                (index, value1, isNothing1, value2, isNothing2) ->
+                    doDouble(value1, value2, index, problemAggregator));
       }
     } else if (arg instanceof ColumnLongStorage rhs) {
-      result = StorageIterators.zipOverDoubleLongStorages(
-          asDoubleStorage(storage),
-          rhs,
-          s -> Builder.getForDouble(FloatType.FLOAT_64, s, problemAggregator),
-          true,
-          (index, value1, isNothing1, value2, isNothing2) ->
-              doDouble(value1, value2, index, problemAggregator));
+      result =
+          StorageIterators.zipOverDoubleLongStorages(
+              asDoubleStorage(storage),
+              rhs,
+              s -> Builder.getForDouble(FloatType.FLOAT_64, s, problemAggregator),
+              true,
+              (index, value1, isNothing1, value2, isNothing2) ->
+                  doDouble(value1, value2, index, problemAggregator));
     } else {
-      result = StorageIterators.zipOverDoubleStorages(
-          asDoubleStorage(storage),
-          asDoubleStorage(arg),
-          s -> Builder.getForDouble(FloatType.FLOAT_64, s, problemAggregator),
-          true,
-          (index, value1, isNothing1, value2, isNothing2) ->
-              doDouble(value1, value2, index, problemAggregator));
+      result =
+          StorageIterators.zipOverDoubleStorages(
+              asDoubleStorage(storage),
+              asDoubleStorage(arg),
+              s -> Builder.getForDouble(FloatType.FLOAT_64, s, problemAggregator),
+              true,
+              (index, value1, isNothing1, value2, isNothing2) ->
+                  doDouble(value1, value2, index, problemAggregator));
     }
 
     // ToDo: Merge Storage and ColumnStorage

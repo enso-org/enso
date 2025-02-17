@@ -269,7 +269,7 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
           context.safepoint();
         }
       } else {
-        int minSize = (int)Math.min(size, otherSize);
+        int minSize = (int) Math.min(size, otherSize);
         for (int i = 0; i < minSize; i++) {
           boolean isNothing1 = i >= size || isNothing.get(i);
           long value1 = isNothing1 ? 0 : data[i];
@@ -310,7 +310,7 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
           context.safepoint();
         }
       } else {
-        int minSize = (int)Math.min(size, otherSize);
+        int minSize = (int) Math.min(size, otherSize);
         for (int i = 0; i < minSize; i++) {
           boolean isNothing1 = i >= size || isNothing.get(i);
           long value1 = isNothing1 ? 0 : data[i];

@@ -17,9 +17,7 @@ public interface ColumnDoubleStorageIterator extends ColumnStorageIterator<Doubl
   }
 
   /** Zips this iterator with another iterator. */
-  default void zip(
-      ColumnDoubleStorage otherStorage,
-      DoubleDoubleZipper zipper) {
+  default void zip(ColumnDoubleStorage otherStorage, DoubleDoubleZipper zipper) {
     var other = otherStorage.iterator();
     Context context = Context.getCurrent();
 
@@ -37,10 +35,9 @@ public interface ColumnDoubleStorageIterator extends ColumnStorageIterator<Doubl
       hasValue2 = hasValue2 && other.moveNext();
     }
   }
+
   /** Zips this iterator with another iterator. */
-  default void zip(
-      ColumnLongStorage otherStorage,
-      DoubleLongZipper zipper) {
+  default void zip(ColumnLongStorage otherStorage, DoubleLongZipper zipper) {
     var other = otherStorage.iterator();
     Context context = Context.getCurrent();
 
@@ -58,5 +55,4 @@ public interface ColumnDoubleStorageIterator extends ColumnStorageIterator<Doubl
       hasValue2 = hasValue2 && other.moveNext();
     }
   }
-
 }

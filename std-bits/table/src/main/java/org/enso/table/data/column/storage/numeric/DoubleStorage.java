@@ -475,7 +475,7 @@ public final class DoubleStorage extends Storage<Double>
           context.safepoint();
         }
       } else {
-        int minSize = (int)Math.min(size, otherSize);
+        int minSize = (int) Math.min(size, otherSize);
         for (int i = 0; i < minSize; i++) {
           boolean isNothing1 = i >= size || isNothing.get(i);
           double value1 = isNothing1 ? 0 : data[i];
@@ -516,7 +516,7 @@ public final class DoubleStorage extends Storage<Double>
           context.safepoint();
         }
       } else {
-        int minSize = (int)Math.min(size, otherSize);
+        int minSize = (int) Math.min(size, otherSize);
         for (int i = 0; i < minSize; i++) {
           boolean isNothing1 = i >= size || isNothing.get(i);
           double value1 = isNothing1 ? 0 : data[i];
