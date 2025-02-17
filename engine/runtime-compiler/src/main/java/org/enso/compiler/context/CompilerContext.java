@@ -2,6 +2,7 @@ package org.enso.compiler.context;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URI;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
@@ -12,6 +13,7 @@ import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
 import org.enso.compiler.core.CompilerStub;
 import org.enso.compiler.core.ir.Diagnostic;
+import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
 import org.enso.compiler.data.IdMap;
@@ -138,7 +140,11 @@ public interface CompilerContext extends CompilerStub {
 
     public abstract CharSequence getCharacters() throws IOException;
 
+    public abstract int findLine(IdentifiedLocation loc);
+
     public abstract String getPath();
+
+    public abstract URI getUri();
 
     public abstract Package<? extends Object> getPackage();
 

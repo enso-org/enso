@@ -247,6 +247,7 @@ pub struct BuildConfigurationFlags {
     pub test_java_generated_from_rust: bool,
     /// Verify License Packages in Distributions.
     pub verify_packages: bool,
+    pub stdlib_api_check: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -294,6 +295,9 @@ impl BuildConfigurationResolved {
             config.generate_java_from_rust = true;
         }
 
+        if config.stdlib_api_check {
+            config.build_engine_package = true;
+        }
         Self(config)
     }
 }
@@ -352,6 +356,7 @@ impl Default for BuildConfigurationFlags {
             generate_java_from_rust: false,
             test_java_generated_from_rust: false,
             verify_packages: false,
+            stdlib_api_check: false,
         }
     }
 }

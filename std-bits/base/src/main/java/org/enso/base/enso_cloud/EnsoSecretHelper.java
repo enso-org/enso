@@ -7,6 +7,7 @@ import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
+import java.security.PrivateKey;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -29,7 +30,15 @@ public final class EnsoSecretHelper extends SecretValueResolver {
       String url, List<Pair<String, HideableValue>> properties) throws SQLException {
     var javaProperties = new Properties();
     for (var pair : properties) {
-      javaProperties.setProperty(pair.getLeft(), resolveValue(pair.getRight()));
+      HideableValue value = pair.getRight();
+      // Special handling for PrivateKey parameter.
+      if (value instanceof InterpretAsPrivateKey(HideableValue innerValue)) {
+        String rawKey = resolveValue(innerValue);
+        PrivateKey key = InterpretAsPrivateKey.decodePrivateKey(rawKey);
+        javaProperties.put(pair.getLeft(), key);
+      } else {
+        javaProperties.setProperty(pair.getLeft(), resolveValue(pair.getRight()));
+      }
     }
 
     return DriverManager.getConnection(url, javaProperties);
