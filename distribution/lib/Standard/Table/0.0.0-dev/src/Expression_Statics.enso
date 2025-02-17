@@ -1,4 +1,5 @@
 from Standard.Base import all
+import project.Column.Column
 
 type Expression_Statics
     ## Obtains the current date from the system clock in the system timezone.
@@ -12,3 +13,30 @@ type Expression_Statics
     ## Obtains the current time from the system clock in the default time-zone.
     time -> Time_Of_Day =
         Time_Of_Day.now
+
+    * a b = _check_col_and_execute .* a b
+
+    / a b = _check_col_and_execute ./ a b
+
+    + a b = _check_col_and_execute .+ a b
+
+    - a b = _check_col_and_execute .- a b
+
+    == a b = _check_col_and_execute .== a b
+
+    != a b = _check_col_and_execute .!= a b
+
+    ^ a b = _check_col_and_execute .^ a b
+
+    % a b = _check_col_and_execute .% a b
+
+    
+
+_check_col_and_execute op a b = case b of
+    _ : Column -> 
+        c = case a of 
+            _ : Column -> a
+            _ -> (b.const a)
+        op c b
+    Nothing -> Nothing
+    _ -> op a b

@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -54,16 +55,17 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   }
 
   private static Value wrapAsColumn(Value value, Function<Object, Value> makeConstantColumn) {
-    if (value.isNull()) {
-      return makeConstantColumn.apply(value);
-    }
+    return makeConstantColumn.apply(value);
+    // if (value.isNull()) {
+    //   return makeConstantColumn.apply(value);
+    // }
 
-    var metaObject = value.getMetaObject();
-    return metaObject != null
-            && metaObject.isHostObject()
-            && metaObject.asHostObject() instanceof Class<?>
-        ? makeConstantColumn.apply(value)
-        : value;
+    // var metaObject = value.getMetaObject();
+    // return metaObject != null
+    //         && metaObject.isHostObject()
+    //         && metaObject.asHostObject() instanceof Class<?>
+    //     ? makeConstantColumn.apply(value)
+    //     : value;
   }
 
   public interface MethodInterface {
@@ -99,6 +101,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       }
     }
 
+      @Override
     public Value execute(Value[] args, Function<Object, Value> makeConstantColumn) {
       Object[] objects = prepareArguments(args, makeConstantColumn);
       try {
@@ -115,11 +118,13 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       }
     }
 
+      @Override
     public Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn) {
       Object[] objects;
       if (isVariableArgumentMethod) {
         objects = new Object[2];
         objects[0] = wrapAsColumn(args[0], makeConstantColumn);
+
         objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
       } else if (isStaticMethod) {
         objects = new Object[args.length + 1];
@@ -195,13 +200,13 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   private Value executeMethod(String name, Value... args) {
     var method = getMethod.apply(name);
     Value result = method.execute(args, makeConstantColumn);
-    return makeConstantColumn.apply(result);
+    return result;
   }
 
   @Override
   public Value visitProg(ExpressionParser.ProgContext ctx) {
     Value base = visit(ctx.expr());
-    return wrapAsColumn(base, makeConstantColumn);
+    return base;
   }
 
   @Override

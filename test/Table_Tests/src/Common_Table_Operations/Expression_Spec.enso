@@ -305,6 +305,7 @@ add_expression_specs suite_builder detailed setup =
 
         specify_test "should be able to use between" group_builder expression_test->
             expression_test "1 + 1 BETWEEN 1 AND 3" True
+        specify_test "should be able to use betwXeenX" group_builder expression_test->
             expression_test "1 + 1 between 2 AND 3" True
             expression_test "1 + 1 bETWEEN 1 AND 2" True
             expression_test "[A] between 2 AND 3" [False, True, True, False, False]
