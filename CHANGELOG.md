@@ -47,6 +47,7 @@
   link.][11926]
 - [Reducing helper methods in `Standard.Base.Meta`.][12031]
 - [Added Table.Offset][12071]
+- [Implemented Generic JDBC connections.][12073]
 - [Added Column.Offset][12092]
 - [When reading a Delimited file, if a row with more columns than expected is
   encountered, extra columns can be added to the result.][12231]
@@ -60,6 +61,7 @@
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
 [12071]: https://github.com/enso-org/enso/pull/12071
+[12073]: https://github.com/enso-org/enso/pull/12073
 [12092]: https://github.com/enso-org/enso/pull/12092
 [12231]: https://github.com/enso-org/enso/pull/12231
 [12206]: https://github.com/enso-org/enso/pull/12206
