@@ -4,7 +4,8 @@ import sbt.internal.util.ManagedLogger
 import sbt.io.IO
 import sbt.librarymanagement.{ConfigurationFilter, DependencyFilter}
 
-import java.io.File
+import java.io.{File, IOException}
+import java.nio.file.Path
 import java.util.Locale
 
 object StdBits {
@@ -266,8 +267,7 @@ object StdBits {
       extractedFilesDir,
       renameFunc(extractPrefix),
       logger,
-      streams.value.cacheStoreFactory,
-      cleanOutputDirs = false
+      streams.value.cacheStoreFactory
     )
   }
 
@@ -328,6 +328,28 @@ object StdBits {
       logger,
       streams.value.cacheStoreFactory
     )
+  }
+
+  def ensureDirExistsAndIsClean(
+    path: Path,
+    logger: sbt.util.Logger
+  ): Unit = {
+    require(path != null)
+    val dir = path.toFile
+    if (dir.exists && dir.isDirectory) {
+      // Clean previous contents
+      IO.delete(IO.listFiles(dir))
+    } else {
+      try {
+        IO.createDirectory(dir)
+      } catch {
+        case e: IOException =>
+          logger.err(
+            s"Failed to create directory $path: ${e.getMessage}"
+          )
+          e.printStackTrace(System.err)
+      }
+    }
   }
 
   /** Inspired by `org.enso.pkg.NativeLibraryFinder`

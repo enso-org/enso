@@ -419,6 +419,9 @@ add_expression_specs suite_builder detailed setup =
             expression_test "cast([A], ..Char)" ["1", "2", "3", "4", "5"]
             expression_test "starts_WITH([C], 'HELLO', ..INSENSITIVE)" [True, False, True, False, Nothing]
 
+        if setup.flagged ..Date_Time then specify_test "should be able to call static expression methods" group_builder expression_test->
+            expression_test "today()" Date.today
+
     suite_builder.group prefix+"Expression Errors should be handled" group_builder->
         expect_error ctor expr =
             expr.should_fail_with Expression_Error

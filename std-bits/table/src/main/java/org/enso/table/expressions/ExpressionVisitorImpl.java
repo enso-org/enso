@@ -1,13 +1,10 @@
 package org.enso.table.expressions;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import org.antlr.v4.runtime.BaseErrorListener;
@@ -56,74 +53,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
   }
 
-  public static Value evaluate(
-      String expression,
-      Function<String, Value> getColumn,
-      Function<Object, Value> makeConstantColumn,
-      String moduleName,
-      String typeName,
-      String[] variableArgumentFunctions)
-      throws UnsupportedOperationException, IllegalArgumentException {
-    var context = Context.getCurrent().getBindings("enso");
-    final Value module = context.invokeMember("get_module", moduleName);
-    final Value type = module.invokeMember("get_type", typeName);
-    Function<String, Value> getMethod = name -> module.invokeMember("get_method", type, name);
-    Function<String, Value> makeConstructor =
-        name -> module.invokeMember("eval_expression", ".." + name);
-
-    return evaluateImpl(
-        expression,
-        getColumn,
-        makeConstantColumn,
-        getMethod,
-        makeConstructor,
-        variableArgumentFunctions);
-  }
-
-  public static Value evaluateImpl(
-      String expression,
-      Function<String, Value> getColumn,
-      Function<Object, Value> makeConstantColumn,
-      Function<String, Value> getMethod,
-      Function<String, Value> makeConstructor,
-      String[] variableArgumentFunctions) {
-    var lexer = new ExpressionLexer(CharStreams.fromString(expression));
-    lexer.removeErrorListeners();
-    lexer.addErrorListener(ThrowOnErrorListener.INSTANCE);
-
-    var tokens = new CommonTokenStream(lexer);
-    var parser = new ExpressionParser(tokens);
-    parser.removeErrorListeners();
-    parser.addErrorListener(ThrowOnErrorListener.INSTANCE);
-
-    var visitor =
-        new ExpressionVisitorImpl(
-            getColumn, makeConstantColumn, getMethod, makeConstructor, variableArgumentFunctions);
-
-    var expr = parser.prog();
-    return visitor.visit(expr);
-  }
-
-  private final Function<String, Value> getColumn;
-  private final Function<Object, Value> makeConstantColumn;
-  private final Function<String, Value> getMethod;
-  private final Function<String, Value> makeConstructor;
-  private final Set<String> variableArgumentFunctions;
-
-  private ExpressionVisitorImpl(
-      Function<String, Value> getColumn,
-      Function<Object, Value> makeConstantColumn,
-      Function<String, Value> getMethod,
-      Function<String, Value> makeConstructor,
-      String[] variableArgumentFunctions) {
-    this.getColumn = getColumn;
-    this.makeConstantColumn = makeConstantColumn;
-    this.getMethod = getMethod;
-    this.makeConstructor = makeConstructor;
-    this.variableArgumentFunctions = new HashSet<>(Arrays.asList(variableArgumentFunctions));
-  }
-
-  private Value wrapAsColumn(Value value) {
+  private static Value wrapAsColumn(Value value, Function<Object, Value> makeConstantColumn) {
     if (value.isNull()) {
       return makeConstantColumn.apply(value);
     }
@@ -136,40 +66,142 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
         : value;
   }
 
+  public interface MethodInterface {
+    Value execute(Value[] args, Function<Object, Value> makeConstantColumn);
+
+    Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn);
+  }
+
+  public record Method(
+      Value ensoMethod, boolean isVariableArgumentMethod, boolean isStaticMethod, String name)
+      implements MethodInterface {
+
+    private static final Value STATICS_MODULE;
+    private static final Value STATICS_TYPE;
+
+    static {
+      var context = Context.getCurrent().getBindings("enso");
+      STATICS_MODULE = context.invokeMember("get_module", "Standard.Table.Expression_Statics");
+      STATICS_TYPE = STATICS_MODULE.invokeMember("get_type", "Expression_Statics");
+    }
+
+    public static Method create(
+        Value module, Value type, String name, boolean variableArgumentMethod) {
+      var staticMethod = STATICS_MODULE.invokeMember("get_method", STATICS_TYPE, name);
+      if (staticMethod.canExecute()) {
+        return new Method(staticMethod, variableArgumentMethod, true, name);
+      } else {
+        var instanceMethod = module.invokeMember("get_method", type, name);
+        if (!instanceMethod.canExecute()) {
+          throw new UnsupportedOperationException("Method not found: " + name);
+        }
+        return new Method(instanceMethod, variableArgumentMethod, false, name);
+      }
+    }
+
+    public Value execute(Value[] args, Function<Object, Value> makeConstantColumn) {
+      Object[] objects = prepareArguments(args, makeConstantColumn);
+      try {
+        var result = ensoMethod.execute(objects);
+        if (result.canExecute()) {
+          throw new IllegalArgumentException("Insufficient arguments for method " + name + ".");
+        }
+        return result;
+      } catch (PolyglotException e) {
+        if (e.getMessage().startsWith("Type error: expected a function")) {
+          throw new IllegalArgumentException("Too many arguments for method " + name + ".");
+        }
+        throw e;
+      }
+    }
+
+    public Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn) {
+      Object[] objects;
+      if (isVariableArgumentMethod) {
+        objects = new Object[2];
+        objects[0] = wrapAsColumn(args[0], makeConstantColumn);
+        objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
+      } else if (isStaticMethod) {
+        objects = new Object[args.length + 1];
+        objects[0] = STATICS_TYPE;
+        System.arraycopy(args, 0, objects, 1, args.length);
+      } else {
+        objects = Arrays.copyOf(args, args.length, Object[].class);
+        objects[0] = wrapAsColumn(args[0], makeConstantColumn);
+      }
+      return objects;
+    }
+  }
+
+  public static Value evaluate(
+      String expression,
+      Function<String, Value> getColumn,
+      Function<Object, Value> makeConstantColumn,
+      String moduleName,
+      String typeName,
+      String[] variableArgumentFunctions)
+      throws UnsupportedOperationException, IllegalArgumentException {
+    var context = Context.getCurrent().getBindings("enso");
+    final Value module = context.invokeMember("get_module", moduleName);
+    final Value type = module.invokeMember("get_type", typeName);
+    final var setVariableArgumentFunctions =
+        new HashSet<>(Arrays.asList(variableArgumentFunctions));
+    Function<String, MethodInterface> getMethod =
+        name -> Method.create(module, type, name, setVariableArgumentFunctions.contains(name));
+    Function<String, Value> makeConstructor =
+        name -> module.invokeMember("eval_expression", ".." + name);
+
+    return evaluateImpl(expression, getColumn, makeConstantColumn, getMethod, makeConstructor);
+  }
+
+  public static Value evaluateImpl(
+      String expression,
+      Function<String, Value> getColumn,
+      Function<Object, Value> makeConstantColumn,
+      Function<String, MethodInterface> getMethod,
+      Function<String, Value> makeConstructor) {
+    var lexer = new ExpressionLexer(CharStreams.fromString(expression));
+    lexer.removeErrorListeners();
+    lexer.addErrorListener(ThrowOnErrorListener.INSTANCE);
+
+    var tokens = new CommonTokenStream(lexer);
+    var parser = new ExpressionParser(tokens);
+    parser.removeErrorListeners();
+    parser.addErrorListener(ThrowOnErrorListener.INSTANCE);
+
+    var visitor =
+        new ExpressionVisitorImpl(getColumn, makeConstantColumn, getMethod, makeConstructor);
+
+    var expr = parser.prog();
+    return visitor.visit(expr);
+  }
+
+  private final Function<String, Value> getColumn;
+  private final Function<Object, Value> makeConstantColumn;
+  private final Function<String, MethodInterface> getMethod;
+  private final Function<String, Value> makeConstructor;
+
+  private ExpressionVisitorImpl(
+      Function<String, Value> getColumn,
+      Function<Object, Value> makeConstantColumn,
+      Function<String, MethodInterface> getMethod,
+      Function<String, Value> makeConstructor) {
+    this.getColumn = getColumn;
+    this.makeConstantColumn = makeConstantColumn;
+    this.getMethod = getMethod;
+    this.makeConstructor = makeConstructor;
+  }
+
   private Value executeMethod(String name, Value... args) {
-    Value method = getMethod.apply(name);
-    if (!method.canExecute()) {
-      throw new UnsupportedOperationException(name);
-    }
-
-    Object[] objects;
-    if (this.variableArgumentFunctions.contains(name)) {
-      objects = new Object[2];
-      objects[0] = args[0];
-      objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
-    } else {
-      objects = Arrays.copyOf(args, args.length, Object[].class);
-    }
-    objects[0] = wrapAsColumn(args[0]);
-
-    try {
-      var result = method.execute(objects);
-      if (result.canExecute()) {
-        throw new IllegalArgumentException("Insufficient arguments for method " + name + ".");
-      }
-      return makeConstantColumn.apply(result);
-    } catch (PolyglotException e) {
-      if (e.getMessage().startsWith("Type error: expected a function")) {
-        throw new IllegalArgumentException("Too many arguments for method " + name + ".");
-      }
-      throw e;
-    }
+    var method = getMethod.apply(name);
+    Value result = method.execute(args, makeConstantColumn);
+    return makeConstantColumn.apply(result);
   }
 
   @Override
   public Value visitProg(ExpressionParser.ProgContext ctx) {
     Value base = visit(ctx.expr());
-    return wrapAsColumn(base);
+    return wrapAsColumn(base, makeConstantColumn);
   }
 
   @Override
@@ -410,11 +442,6 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   public Value visitFunction(ExpressionParser.FunctionContext ctx) {
     var name = ctx.IDENTIFIER().getText().toLowerCase();
     var args = ctx.expr().stream().map(this::visit).toArray(Value[]::new);
-    return switch (name) {
-      case "today" -> Value.asValue(LocalDate.now());
-      case "now" -> Value.asValue(LocalDateTime.now().atZone(ZoneId.systemDefault()));
-      case "time" -> Value.asValue(LocalTime.now());
-      default -> executeMethod(name, args);
-    };
+    return executeMethod(name, args);
   }
 }

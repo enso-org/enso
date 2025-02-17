@@ -10,7 +10,6 @@ import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNodeGen;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(type = "Special", name = "<run_thread>")
 public abstract class RunThreadNode extends Node {
@@ -18,11 +17,11 @@ public abstract class RunThreadNode extends Node {
     return RunThreadNodeGen.create();
   }
 
-  abstract Thread execute(VirtualFrame frame, State state, @Suspend Object self);
+  abstract Thread execute(VirtualFrame frame, @Suspend Object self);
 
   @CompilerDirectives.TruffleBoundary
   @Specialization
-  Thread doExecute(MaterializedFrame frame, State state, Object self) {
+  Thread doExecute(MaterializedFrame frame, Object self) {
     EnsoContext ctx = EnsoContext.get(this);
     Thread thread =
         ctx.createThread(
@@ -31,7 +30,11 @@ public abstract class RunThreadNode extends Node {
               Object p = ctx.getThreadManager().enter();
               try {
                 ThunkExecutorNodeGen.getUncached()
-                    .executeThunk(frame, self, state, BaseNode.TailStatus.NOT_TAIL);
+                    .executeThunk(
+                        frame,
+                        self,
+                        EnsoContext.get(this).currentState(),
+                        BaseNode.TailStatus.NOT_TAIL);
               } finally {
                 ctx.getThreadManager().leave(p);
               }
