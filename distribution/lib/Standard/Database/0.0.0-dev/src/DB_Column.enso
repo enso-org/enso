@@ -1370,7 +1370,7 @@ type DB_Column
        corresponding elements of `self` and `other`.  If the argument is a
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
-    starts_with self (other : DB_Column | Text) case_sensitivity:Case_Sensitivity=..Default -> DB_Column =
+    starts_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> DB_Column =
         new_name = self.naming_helper.function_name "starts_with" [self, other]
         make_text_case_op self "STARTS_WITH" other case_sensitivity new_name
 
@@ -1387,7 +1387,7 @@ type DB_Column
        corresponding elements of `self` and `other`.  If the argument is a
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
-    ends_with self (other : DB_Column | Text) case_sensitivity:Case_Sensitivity=..Default -> DB_Column =
+    ends_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> DB_Column =
         new_name = self.naming_helper.function_name "ends_with" [self, other]
         make_text_case_op self "ENDS_WITH" other case_sensitivity new_name
 
@@ -1463,7 +1463,7 @@ type DB_Column
        corresponding elements of `self` and `other`.  If the argument is a
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
-    contains self (other : DB_Column | Text) case_sensitivity:Case_Sensitivity=..Default -> DB_Column =
+    contains self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> DB_Column =
         new_name = self.naming_helper.function_name "contains" [self, other]
         make_text_case_op self "CONTAINS" other case_sensitivity new_name
 
@@ -1484,7 +1484,7 @@ type DB_Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.like "F%."
-    like self (pattern : DB_Column | Text) -> DB_Column =
+    like self (pattern : Column | Text | Any) -> DB_Column =
         Value_Type.expect_text self <|
             Value_Type.expect_text pattern <|
                 new_name = self.naming_helper.binary_operation_name "like" self pattern
