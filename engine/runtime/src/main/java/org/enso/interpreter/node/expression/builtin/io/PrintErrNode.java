@@ -18,7 +18,6 @@ import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 @BuiltinMethod(
@@ -31,12 +30,11 @@ public abstract class PrintErrNode extends Node {
     return PrintErrNodeGen.create();
   }
 
-  abstract Object execute(VirtualFrame frame, State state, @AcceptsError Object message);
+  abstract Object execute(VirtualFrame frame, @AcceptsError Object message);
 
   @Specialization(guards = "strings.isString(message)")
   Object doPrintText(
       VirtualFrame frame,
-      State state,
       Object message,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary strings) {
     EnsoContext ctx = EnsoContext.get(this);
@@ -51,14 +49,14 @@ public abstract class PrintErrNode extends Node {
   @Specialization(guards = "!strings.isString(message)")
   Object doPrint(
       VirtualFrame frame,
-      State state,
       Object message,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary strings,
       @Cached("buildSymbol()") UnresolvedSymbol symbol,
       @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode,
       @Cached ExpectStringNode expectStringNode) {
+    var ctx = EnsoContext.get(this);
+    var state = ctx.currentState();
     var str = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
-    EnsoContext ctx = EnsoContext.get(this);
     print(ctx.getErr(), expectStringNode.execute(str));
     return ctx.getNothing();
   }

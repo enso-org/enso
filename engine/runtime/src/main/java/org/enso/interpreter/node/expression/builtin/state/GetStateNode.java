@@ -23,19 +23,22 @@ public abstract class GetStateNode extends Node {
     return GetStateNodeGen.create();
   }
 
-  abstract Object execute(State state, Object key);
+  abstract Object execute(Object key);
+
+  final State state() {
+    return EnsoContext.get(this).currentState();
+  }
 
   @Specialization(guards = "objects.containsKey(data, key)")
   Object doRead(
-      State state,
       Object key,
-      @Bind("state.getContainer()") State.Container data,
+      @Bind("state().getContainer()") State.Container data,
       @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
     return objects.getOrDefault(data, key, null);
   }
 
   @Fallback
-  Object doMissing(State state, Object key) {
+  Object doMissing(Object key) {
     throw new PanicException(
         EnsoContext.get(this).getBuiltins().error().makeUninitializedStateError(key), this);
   }
