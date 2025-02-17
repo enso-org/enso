@@ -73,7 +73,6 @@ function backendMutationOptions<Method extends BackendMutationMethod>(
       : (INVALIDATION_MAP[method]?.map((queryMethod) =>
           queryMethod === INVALIDATE_ALL_QUERIES ? [backend?.type] : [backend?.type, queryMethod],
         ) ?? [])
-    const x = opts
     return {
       ...backendBaseOptions(backend),
       mutationKey: [backend?.type, method],
