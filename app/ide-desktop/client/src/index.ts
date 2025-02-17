@@ -99,7 +99,7 @@ class App {
         this.setChromeOptions(chromeOptions)
         security.enableAll()
 
-        this.beforeRun()
+        this.onStart()
 
         electron.app.on('before-quit', () => {
           this.isQuitting = true
@@ -153,7 +153,8 @@ class App {
     }
   }
 
-  async beforeRun() {
+  /** Background tasks scheduled on the application startup. */
+  async onStart() {
     const userData = electron.app.getPath('userData')
     const versionInfoPath = pathModule.join(userData, 'version_info.json')
     const versionInfoPathExists = await fs

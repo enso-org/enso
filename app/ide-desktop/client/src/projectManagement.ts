@@ -34,6 +34,9 @@ export const PROJECT_METADATA_RELATIVE_PATH = '.enso/project.json'
 /** The filename suffix for the project bundle, including the leading period character. */
 const BUNDLED_PROJECT_SUFFIX = '.enso-project'
 
+const SAMPLES_URL = 'https://github.com/enso-org/project-templates/archive/refs/heads/main.tar.gz'
+const SAMPLES_DIRECTORY_NAME = 'Samples'
+
 // ===================
 // === ProjectInfo ===
 // ===================
@@ -463,15 +466,12 @@ export function bumpMetadata(
 }
 
 export async function downloadSamples(): Promise<void> {
-  const SAMPLES_URL = 'https://github.com/enso-org/project-templates/archive/refs/heads/main.tar.gz'
-  const SAMPLES_DIRECTORY = 'Samples'
-  logger.log('downloadSamples')
+  logger.log('Downloading samples.')
 
-  const samplesDirectory = pathModule.join(getProjectsDirectory(), SAMPLES_DIRECTORY)
+  const samplesDirectory = pathModule.join(getProjectsDirectory(), SAMPLES_DIRECTORY_NAME)
 
   return new Promise((resolve, reject) => {
     fs.access(samplesDirectory, fs.constants.F_OK, (err) => {
-      logger.log('ACCESS', err)
       if (err == null) {
         return resolve()
       }
@@ -482,10 +482,8 @@ export async function downloadSamples(): Promise<void> {
         }
         https.get(SAMPLES_URL, (redirectResponse) => {
           const location = redirectResponse.headers.location
-          logger.log('GOT REDIRECT RESPONSE', location)
           if (location) {
             https.get(location, (response) => {
-              logger.log('GOT RESPONSE', response.headers)
               response
                 .pipe(
                   tar.x({

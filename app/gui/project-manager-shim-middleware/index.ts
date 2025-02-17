@@ -466,7 +466,3 @@ function isHidden(filePath: string): boolean {
   const dotfile = /(^|[\\/])\.[^\\/]+$/g
   return dotfile.test(filePath)
 }
-
-export async function downloadSamples() {
-  return projectManagement.downloadSamples()
-}
