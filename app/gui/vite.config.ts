@@ -126,7 +126,6 @@ export default defineConfig({
 
 async function projectManagerShim(): Promise<Plugin> {
   const module = await import('./project-manager-shim-middleware')
-  await module.downloadSamples()
   return {
     name: 'project-manager-shim',
     configureServer(server) {

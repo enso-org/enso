@@ -11,6 +11,7 @@
  */
 import * as crypto from 'node:crypto'
 import * as fs from 'node:fs'
+import * as https from 'node:https'
 import * as os from 'node:os'
 import * as pathModule from 'node:path'
 import type * as stream from 'node:stream'
@@ -459,4 +460,45 @@ export function bumpMetadata(
     lastOpened: new Date().toISOString(),
   })).id
   return { id, name, parentDirectory }
+}
+
+export async function downloadSamples(): Promise<void> {
+  const SAMPLES_URL = 'https://github.com/enso-org/project-templates/archive/refs/heads/main.tar.gz'
+  const SAMPLES_DIRECTORY = 'Samples'
+  logger.log('downloadSamples')
+
+  const samplesDirectory = pathModule.join(getProjectsDirectory(), SAMPLES_DIRECTORY)
+
+  return new Promise((resolve, reject) => {
+    fs.access(samplesDirectory, fs.constants.F_OK, (err) => {
+      logger.log('ACCESS', err)
+      if (err == null) {
+        return resolve()
+      }
+      fs.mkdir(samplesDirectory, { recursive: true }, (err) => {
+        if (err != null) {
+          logger.error(err)
+          return reject(err)
+        }
+        https.get(SAMPLES_URL, (redirectResponse) => {
+          const location = redirectResponse.headers.location
+          logger.log('GOT REDIRECT RESPONSE', location)
+          if (location) {
+            https.get(location, (response) => {
+              logger.log('GOT RESPONSE', response.headers)
+              response
+                .pipe(
+                  tar.x({
+                    C: samplesDirectory,
+                    strip: 1,
+                  }),
+                )
+                .on('end', () => resolve())
+                .on('error', reject)
+            })
+          }
+        })
+      })
+    })
+  })
 }

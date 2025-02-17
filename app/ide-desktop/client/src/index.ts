@@ -99,6 +99,8 @@ class App {
         this.setChromeOptions(chromeOptions)
         security.enableAll()
 
+        this.beforeRun()
+
         electron.app.on('before-quit', () => {
           this.isQuitting = true
         })
@@ -149,6 +151,36 @@ class App {
         electron.app.quit()
       }
     }
+  }
+
+  async beforeRun() {
+    const userData = electron.app.getPath('userData')
+    const versionInfoPath = pathModule.join(userData, 'version_info.json')
+    const versionInfoPathExists = await fs
+      .access(versionInfoPath, fs.constants.F_OK)
+      .then(() => true)
+      .catch(() => false)
+
+    if (versionInfoPathExists) {
+      const versionInfoText = await fs.readFile(versionInfoPath, 'utf8')
+      const versionInfoJson = JSON.parse(versionInfoText)
+
+      logger.log('debug.VERSION_INFO', debug.VERSION_INFO)
+      logger.log('versionInfoJson', versionInfoJson)
+      logger.log('VERSION.isDev', contentConfig.VERSION.isDev())
+
+      if (debug.VERSION_INFO.version === versionInfoJson.version && !contentConfig.VERSION.isDev())
+        return
+    }
+
+    const writeVersionInfoPromise = fs.writeFile(
+      versionInfoPath,
+      JSON.stringify(debug.VERSION_INFO),
+      'utf8',
+    )
+    const downloadSamplesPromise = projectManagement.downloadSamples()
+
+    return Promise.allSettled([writeVersionInfoPromise, downloadSamplesPromise]).then(() => {})
   }
 
   /** Process the command line arguments. */
