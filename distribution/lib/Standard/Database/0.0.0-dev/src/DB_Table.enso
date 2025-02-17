@@ -3102,7 +3102,7 @@ type DB_Table
        - on_problems: Missing columns are always an error. Other warnings like grouping on floating point numbers can be ignored or made an error with this argument.
 
        Returns:
-       - A Table of all records, with the selected columns offset by the number specifed by n.
+       - A Table of all records, with the selected columns offset by the number specified by n.
 
        ? Ordering of rows
 
