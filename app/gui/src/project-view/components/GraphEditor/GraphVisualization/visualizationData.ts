@@ -100,6 +100,7 @@ export function useVisualizationData({
     expressionString: string,
     ...positionalArgumentsExpressions: string[]
   ) => {
+    console.log({positionalArgumentsExpressions})
     const dataSourceValue = toValue(dataSource)
     if (dataSourceValue?.type !== 'node') return
     const graphDb = graph.db
@@ -126,6 +127,7 @@ export function useVisualizationData({
       ])
       const rhs = Ast.parseExpression(identifier, tempModule)!
       const expression = Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
+      console.log(expression.code())
       return projectStore.executeExpression(contextId, expression.code())
     } catch (e) {
       console.error(e)
