@@ -6,7 +6,11 @@ import org.enso.interpreter.node.expression.builtin.Builtin;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 
 @BuiltinType
-public class Context extends Builtin {
+public final class Context extends Builtin {
+  public Context() {
+    super(Object.class);
+  }
+
   @Override
   protected List<Cons> getDeclaredConstructors() {
     return List.of(

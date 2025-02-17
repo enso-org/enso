@@ -84,6 +84,7 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
       LoggingServiceManager.currentLogLevelForThisApplication()
     val options = LanguageServerOptions(
       rootId         = descriptor.rootId,
+      projectId      = descriptor.projectId,
       interface      = descriptor.networkConfig.interface,
       rpcPort        = rpcPort,
       secureRpcPort  = secureRpcPort,

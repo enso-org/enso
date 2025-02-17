@@ -12,7 +12,6 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
-import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Meta",
@@ -20,8 +19,8 @@ import org.enso.interpreter.runtime.state.State;
     description = "Checks if the argument is a constructor.",
     autoRegister = false)
 final class FindAtomConstructorNode extends Node {
-  EnsoObject execute(VirtualFrame frame, @Suspend @AcceptsError Object value, State state) {
-    var ac = findConstructor(value, frame, state);
+  EnsoObject execute(VirtualFrame frame, @Suspend @AcceptsError Object value) {
+    var ac = findConstructor(value, frame);
     if (ac != null) {
       return ac;
     } else {
@@ -30,7 +29,7 @@ final class FindAtomConstructorNode extends Node {
     }
   }
 
-  static AtomConstructor findConstructor(Object value, VirtualFrame frame, State state) {
+  private AtomConstructor findConstructor(Object value, VirtualFrame frame) {
     for (; ; ) {
       if (value instanceof AtomConstructor atom) {
         return atom;
@@ -43,6 +42,8 @@ final class FindAtomConstructorNode extends Node {
           return atom;
         }
         if (fn.isThunk()) {
+          var ctx = EnsoContext.get(this);
+          var state = ctx.currentState();
           var thunkSolver = ThunkExecutorNode.getUncached();
           value = thunkSolver.executeThunk(frame, value, state, BaseNode.TailStatus.NOT_TAIL);
           continue;

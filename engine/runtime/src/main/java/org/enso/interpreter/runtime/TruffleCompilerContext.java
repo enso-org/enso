@@ -8,6 +8,7 @@ import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -890,6 +891,21 @@ final class TruffleCompilerContext implements CompilerContext {
       sb.append("module=").append(module);
       sb.append('}');
       return sb.toString();
+    }
+
+    @Override
+    public int findLine(IdentifiedLocation loc) {
+      var ss = module.createSection(loc.start(), loc.length());
+      return ss.getStartLine();
+    }
+
+    @Override
+    public URI getUri() {
+      try {
+        return module.getSource().getURI();
+      } catch (IOException ex) {
+        return null;
+      }
     }
   }
 

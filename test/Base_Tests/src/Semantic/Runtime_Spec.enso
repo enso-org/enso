@@ -7,6 +7,8 @@ import Standard.Base.Panic.Panic
 
 from Standard.Base.Runtime.Context import Input, Output
 
+polyglot java import org.enso.base_test_helpers.CallbackHelper
+
 from Standard.Test import all
 
 
@@ -28,17 +30,36 @@ add_specs suite_builder =
         group_builder.specify "should not prevent execution in the default live environment" <|
             res = Panic.catch Any (in_fn 1) p-> p.payload.to_text
             res . should_equal 2
+
         group_builder.specify "should prevent execution with explicitly disabled context" <|
             res = Panic.catch Any (Runtime.with_disabled_context Input environment=Runtime.current_execution_environment (in_fn 1)) p-> p.payload.to_text
             res . should_equal "(Forbidden_Operation.Error 'The Input context is disabled.')"
+
         group_builder.specify "should be configurable" <|
             r1 = Runtime.with_enabled_context Input environment=Runtime.current_execution_environment <|
                 Runtime.with_enabled_context Output environment=Runtime.current_execution_environment <|
                   in_fn (out_fn 10)
             r1.should_equal 22
 
-            r2 = Panic.catch Any (Runtime.with_disabled_context Input environment=Runtime.current_execution_environment  <| in_fn (out_fn 10)) p-> p.payload.to_text
+            r2 = Panic.catch (handler=p-> p.payload.to_text) Any <|
+                Runtime.with_disabled_context Input environment=Runtime.current_execution_environment  <|
+                    in_fn (out_fn 10)
             r2 . should_equal "(Forbidden_Operation.Error 'The Input context is disabled.')"
+
+        group_builder.specify "configuration remains in Java " <|
+            check_fn ten =
+                in_fn (out_fn ten)
+
+            r1 = Runtime.with_enabled_context Input environment=Runtime.current_execution_environment <|
+                Runtime.with_enabled_context Output environment=Runtime.current_execution_environment <|
+                    CallbackHelper.runCallbackInt check_fn 10
+            r1.should_equal 22
+
+            r2 = Panic.catch (handler=p-> p.payload.to_text) Any <|
+                Runtime.with_disabled_context Input environment=Runtime.current_execution_environment  <|
+                    CallbackHelper.runCallbackInt check_fn 10
+            r2 . should_equal "(Forbidden_Operation.Error 'The Input context is disabled.')"
+
     suite_builder.group "Debug" group_builder->
         group_builder.specify "Debug.breakpoint doesn't stop indefinitly" <|
             Debug.breakpoint

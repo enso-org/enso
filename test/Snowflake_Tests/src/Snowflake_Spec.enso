@@ -35,6 +35,8 @@ from enso_dev.Table_Tests.Common_Table_Operations.Util import all
 
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
+import project.Auth_Spec
+
 type Snowflake_Info_Data
     Value ~data
 
@@ -556,6 +558,7 @@ add_snowflake_specs suite_builder create_connection_fn db_name =
     Common_Table_Operations.Main.add_specs suite_builder setup
     Upload_Spec.add_specs suite_builder setup create_connection_fn
     IR_Spec.add_specs suite_builder setup prefix default_connection.get
+    Auth_Spec.add_specs suite_builder default_connection.get
 
 ## PRIVATE
 is_snowflake_integer value_type = case value_type of

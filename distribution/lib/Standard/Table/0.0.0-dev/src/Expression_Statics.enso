@@ -1,0 +1,14 @@
+from Standard.Base import all
+
+type Expression_Statics
+    ## Obtains the current date from the system clock in the system timezone.
+    today -> Date =
+        Date.today
+    
+    ## Obtains the current date-time from the system clock in the system timezone.
+    now -> Date_Time =
+        Date_Time.now
+
+    ## Obtains the current time from the system clock in the default time-zone.
+    time -> Time_Of_Day =
+        Time_Of_Day.now

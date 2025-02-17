@@ -45,7 +45,11 @@ public class AtomBenchmarks {
       import Standard.Base.Data.Numbers
 
       main = length ->
-          generator = acc -> i -> if i == 0 then acc else @Tail_Call generator (List.Cons i acc) (i - 1)
+          generator = acc -> i ->
+              if i == 0 then acc else
+                  list = List.Cons i acc
+                  less = i - 1
+                  @Tail_Call generator list less
 
           res = generator List.Nil length
           res

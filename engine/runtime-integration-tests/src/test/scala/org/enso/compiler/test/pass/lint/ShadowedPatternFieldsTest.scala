@@ -5,7 +5,12 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.ir.{Expression, Name, Pattern}
 import org.enso.compiler.core.ir.expression.{warnings, Case}
 import org.enso.compiler.pass.lint.ShadowedPatternFields
-import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
+import org.enso.compiler.pass.{
+  MiniIRPass,
+  PassConfiguration,
+  PassGroup,
+  PassManager
+}
 import org.enso.compiler.test.CompilerTest
 
 class ShadowedPatternFieldsTest extends CompilerTest {
@@ -15,7 +20,7 @@ class ShadowedPatternFieldsTest extends CompilerTest {
   val passes = new Passes(defaultConfig)
 
   val precursorPasses: PassGroup =
-    passes.getPrecursors(ShadowedPatternFields).get
+    passes.getPrecursors(ShadowedPatternFields.INSTANCE).get
   val passConfig: PassConfiguration = PassConfiguration()
 
   implicit val passManager: PassManager =
@@ -34,7 +39,9 @@ class ShadowedPatternFieldsTest extends CompilerTest {
       * @return [[ir]], with shadowed pattern variables linted
       */
     def lint(implicit inlineContext: InlineContext): Expression = {
-      ShadowedPatternFields.runExpression(ir, inlineContext)
+      val miniPass =
+        ShadowedPatternFields.INSTANCE.createForInlineCompilation(inlineContext)
+      MiniIRPass.compile(classOf[Expression], ir, miniPass)
     }
   }
 

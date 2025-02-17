@@ -121,31 +121,46 @@ add_specs suite_builder =
         group_builder.specify "Two Tables Are Equal" <|
             expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
             actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
-            actual_table.should_equal expected_table    
+            actual_table.should_equal expected_table
+        group_builder.specify "Two Tables Are Equal Ignoring Order" <|
+            expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
+            actual_table = Table.new [Column.from_vector "Col1" ["ipsos", "custodiet", "custodes?", "Quis"], Column.from_vector "Col2" ["the" , "guards", "guards?", "Who"]]
+            actual_table.should_equal expected_table ignore_order=True
+        group_builder.specify "Two Tables Are Equal Ignoring Order 2" <|
+            expected_table = Table.new [Column.from_vector "A" ["a", "a", "b"], Column.from_vector "B" [1, 2, 3]]
+            actual_table = Table.new [Column.from_vector "A" ["a", "a", "b"], Column.from_vector "B" [2, 1, 3]]
+            actual_table.should_equal expected_table ignore_order=True
         group_builder.specify "Two Tables With Different Values" <|
             expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
             actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "teh", "guards?"]]
-            res = Panic.recover Test_Failure_Error (table_should_equal_impl actual_table expected_table "LOCATION_PATH")
+            res = Panic.recover Test_Failure_Error (table_should_equal_impl actual_table expected_table "LOCATION_PATH" False)
             res.catch.message.should_end_with 'Column: Col2 differs at row 2.\n\t  Actual  : teh\n\t  Expected: the\n\t.'
+            res.catch.message.should_start_with 'Tables differ at LOCATION_PATH.\nActual:'
+        group_builder.specify "Two Tables With Different Values Ignoring Order" <|
+            expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
+            actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "teh", "guards?"]]
+            res = Panic.recover Test_Failure_Error (table_should_equal_impl actual_table expected_table "LOCATION_PATH" True)
+            res.catch.message.should_end_with 'Column: Col2 differs at row 3.\n\t  Actual  : teh\n\t  Expected: the\n\t.'
+            res.catch.message.should_start_with 'Tables differ at LOCATION_PATH.\nActual (sorted):'
         group_builder.specify "Tables different number of columns" <|
             expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"]]
             actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
-            res = Panic.recover Test_Failure_Error (table_should_equal_impl actual_table expected_table "LOCATION_PATH")
+            res = Panic.recover Test_Failure_Error (table_should_equal_impl actual_table expected_table "LOCATION_PATH" False)
             res.catch.message.should_end_with "Expected 1 columns, but got 2."
         group_builder.specify "Tables different number of columns2" <|
             expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
             actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"]]
-            res = Panic.recover Test_Failure_Error (table_should_equal_impl actual_table expected_table "LOCATION_PATH")
+            res = Panic.recover Test_Failure_Error (table_should_equal_impl actual_table expected_table "LOCATION_PATH" False)
             res.catch.message.should_end_with "Expected 2 columns, but got 1."
         group_builder.specify "Tables With Mismatched Column names" <|
             expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
             actual_table = Table.new [Column.from_vector "Col" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
-            res = Panic.recover Test_Failure_Error (table_should_equal_impl actual_table expected_table "LOCATION_PATH")
+            res = Panic.recover Test_Failure_Error (table_should_equal_impl actual_table expected_table "LOCATION_PATH" False)
             res.catch.message.should_end_with "Expected column name Col1, but got Col."
         group_builder.specify "Comparing a Table to non Table" <|
             expected_table = 42
             actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"]]
-            res = Panic.recover Test_Failure_Error (table_should_equal_impl actual_table expected_table "LOCATION_PATH")
+            res = Panic.recover Test_Failure_Error (table_should_equal_impl actual_table expected_table "LOCATION_PATH" False)
             res.catch.message.should_equal "Got a Table, but expected a 42 (at LOCATION_PATH)."
 
 type DB_Tables
