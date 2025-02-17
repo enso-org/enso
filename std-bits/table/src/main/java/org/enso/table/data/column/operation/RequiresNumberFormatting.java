@@ -6,16 +6,16 @@ import org.enso.table.data.table.Column;
 import org.graalvm.polyglot.Context;
 
 public class RequiresNumberFormatting {
-  /** Counts the number of cells in the columns with non trivial whitespace */
+  /** Indicates whether a  column contains numbers greater than 1000000, and require formatting in viz*/
   public static boolean apply(Column column) throws InterruptedException {
     ColumnStorage storage = column.getStorage();
     return applyToStorage(storage);
   }
 
   /**
-   * Counts the number of cells in the given storage with non trivial whitespace
+   * Indicates whether a column contains numbers greater than 1000000
    *
-   * @return
+   * @return true/false if the column contains large numbers 
    */
   public static boolean applyToStorage(ColumnStorage storage) throws InterruptedException {
     return (storage instanceof MixedStorage mixedStorage)
