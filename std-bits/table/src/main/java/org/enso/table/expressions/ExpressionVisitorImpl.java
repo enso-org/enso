@@ -54,10 +54,6 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     }
   }
 
-  private static Value wrapAsColumn(Value value, Function<Object, Value> makeConstantColumn) {
-    return makeConstantColumn.apply(value);
-  }
-
   public interface MethodInterface {
     Value execute(Value[] args, Function<Object, Value> makeConstantColumn);
 
@@ -113,7 +109,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       Object[] objects;
       if (isVariableArgumentMethod) {
         objects = new Object[2];
-        objects[0] = wrapAsColumn(args[0], makeConstantColumn);
+        objects[0] = makeConstantColumn.apply(args[0]);
 
         objects[1] = Arrays.copyOfRange(args, 1, args.length, Object[].class);
       } else if (isStaticMethod) {
@@ -122,7 +118,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
         System.arraycopy(args, 0, objects, 1, args.length);
       } else {
         objects = Arrays.copyOf(args, args.length, Object[].class);
-        objects[0] = wrapAsColumn(args[0], makeConstantColumn);
+        objects[0] = makeConstantColumn.apply(args[0]);
       }
       return objects;
     }
