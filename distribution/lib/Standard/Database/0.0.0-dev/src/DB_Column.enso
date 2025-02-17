@@ -1793,7 +1793,7 @@ type DB_Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.is_in [1, 2, 5]
-    is_in self (vector : DB_Column | Vector) -> DB_Column =
+    is_in self (vector : DB_Column | Vector | Array) -> DB_Column =
         new_name = self.naming_helper.binary_operation_name "in" self vector
         case vector of
             _ : Vector ->
