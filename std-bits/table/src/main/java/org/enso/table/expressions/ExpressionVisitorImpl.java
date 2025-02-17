@@ -309,7 +309,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitNullOrNothing(ExpressionParser.NullOrNothingContext ctx) {
-    // A Nothing toekn in an expression is assumed to mean a column of Nothings (or null column) and so we convert it here.
+    // A Nothing token in an expression is assumed to mean a column of Nothings (or null column) and so we convert it here.
     return makeConstantColumn.apply(Value.asValue(null));
   }
 
