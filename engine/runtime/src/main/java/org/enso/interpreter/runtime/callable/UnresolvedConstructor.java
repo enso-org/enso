@@ -264,7 +264,7 @@ public final class UnresolvedConstructor extends EnsoObject {
       var args = new Object[prototype.descs.length + 1];
       System.arraycopy(unresolved.args, 0, args, 1, prototype.descs.length);
       args[0] = fn;
-      var helper = Function.ArgumentsHelper.buildArguments(fn, null, state, args);
+      var helper = Function.ArgumentsHelper.buildArguments(fn, null, args);
       var r = callNode.call(helper);
       if (r instanceof Atom) {
         return r;
