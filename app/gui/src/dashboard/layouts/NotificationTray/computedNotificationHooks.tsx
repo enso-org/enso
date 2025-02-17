@@ -23,6 +23,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
 import type { NotificationInfo } from './types'
 
+const COMPUTED_NOTIFICATION_STORAGE_TIME_MS = 60_000
 const MUTATION_ID_MAP = new WeakMap<object, string>()
 
 /** Get or insert a mutation id for a computed mutation. */
@@ -56,6 +57,10 @@ export function useComputedNotifications() {
     new Map(),
   )
 
+  const removeComputedNotification = useEventCallback((id: string) => {
+    setNotificationMap((map) => new Map([...map.entries()].filter(([, v]) => v.id !== id)))
+  })
+
   const upsertNotification = useEventCallback((key: unknown, newNotification: NotificationInfo) => {
     setNotificationMap((map) => {
       const newNotifications = new Map(map)
@@ -66,10 +71,10 @@ export function useComputedNotifications() {
           existingNotification?.timestamp ?? newNotification.timestamp ?? Number(new Date()),
       }
       newNotifications.set(key, notification)
+      const isFinished =
+        !('progress' in notification) ||
+        (typeof notification.progress === 'number' && notification.progress >= 1)
       if (!existingNotification && notification.showToast === true) {
-        const isFinished =
-          !('progress' in notification) ||
-          (typeof notification.progress === 'number' && notification.progress >= 1)
         const toastFunction = isFinished ? toast.success : toast.loading
         toastFunction(<NotificationItem {...omit(notification, 'timestamp', 'progress')} />, {
           position: 'bottom-right',
@@ -78,12 +83,13 @@ export function useComputedNotifications() {
           ...('progress' in notification ? { progress: notification.progress } : {}),
         })
       }
+      if (isFinished) {
+        setTimeout(() => {
+          removeComputedNotification(newNotification.id)
+        }, COMPUTED_NOTIFICATION_STORAGE_TIME_MS)
+      }
       return newNotifications
     })
-  })
-
-  const removeComputedNotification = useEventCallback((id: string) => {
-    setNotificationMap((map) => new Map([...map.entries()].filter(([, v]) => v.id !== id)))
   })
 
   useEffect(() => {
