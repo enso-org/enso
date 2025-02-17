@@ -206,7 +206,7 @@ export function useOpenProjectMutation() {
       type,
       parentId,
       inBackground = false,
-    }: LaunchedProject & { inBackground?: boolean; cloudProjectId?: backendModule.ProjectId }) => {
+    }: LaunchedProject & { inBackground?: boolean }) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
@@ -258,11 +258,7 @@ export function useCloseProjectMutation() {
 
   return reactQuery.useMutation({
     mutationKey: ['closeProject'],
-    mutationFn: ({
-      type,
-      id,
-      title,
-    }: LaunchedProject & { cloudProjectId?: backendModule.ProjectId }) => {
+    mutationFn: ({ type, id, title }: LaunchedProject) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
@@ -345,42 +341,40 @@ export function useOpenProject() {
 
   const enableMultitabs = useFeatureFlag('enableMultitabs')
 
-  return eventCallbacks.useEventCallback(
-    (project: LaunchedProject & { cloudProjectId?: backendModule.ProjectId }) => {
-      if (!canOpenProjects) {
-        return
-      }
+  return eventCallbacks.useEventCallback((project: LaunchedProject) => {
+    if (!canOpenProjects) {
+      return
+    }
 
-      if (!enableMultitabs) {
-        // Since multiple tabs cannot be opened at the same time, the opened projects need to be closed first.
-        if (projectsStore.getState().launchedProjects.length > 0) {
-          closeAllProjects()
-        }
+    if (!enableMultitabs) {
+      // Since multiple tabs cannot be opened at the same time, the opened projects need to be closed first.
+      if (projectsStore.getState().launchedProjects.length > 0) {
+        closeAllProjects()
       }
+    }
 
-      const existingMutation = client.getMutationCache().find({
+    const existingMutation = client.getMutationCache().find({
+      mutationKey: ['openProject'],
+      predicate: (mutation) => mutation.options.scope?.id === project.id,
+    })
+    const isOpeningTheSameProject = existingMutation?.state.status === 'pending'
+
+    if (!isOpeningTheSameProject) {
+      openProjectMutation.mutate(project)
+      const openingProjectMutation = client.getMutationCache().find({
         mutationKey: ['openProject'],
-        predicate: (mutation) => mutation.options.scope?.id === project.id,
+        // this is unsafe, but we can't do anything about it
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        predicate: (mutation) => mutation.state.variables?.id === project.id,
       })
-      const isOpeningTheSameProject = existingMutation?.state.status === 'pending'
+      openingProjectMutation?.setOptions({
+        ...openingProjectMutation.options,
+        scope: { id: project.id },
+      })
 
-      if (!isOpeningTheSameProject) {
-        openProjectMutation.mutate(project)
-        const openingProjectMutation = client.getMutationCache().find({
-          mutationKey: ['openProject'],
-          // this is unsafe, but we can't do anything about it
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          predicate: (mutation) => mutation.state.variables?.id === project.id,
-        })
-        openingProjectMutation?.setOptions({
-          ...openingProjectMutation.options,
-          scope: { id: project.id },
-        })
-
-        addLaunchedProject(project)
-      }
-    },
-  )
+      addLaunchedProject(project)
+    }
+  })
 }
 
 /** A function to open the editor. */
