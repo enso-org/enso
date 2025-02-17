@@ -1,0 +1,35 @@
+<script setup lang="ts">
+import SvgButton from '@/components/SvgButton.vue'
+import ToggleIcon from '@/components/ToggleIcon.vue'
+import { computed, toValue } from 'vue'
+import { Action, Actions, injectActions } from '../providers/action'
+
+const { action: actionOrName } = defineProps<{ action: Action | keyof Actions }>()
+const actions = injectActions()
+const action = computed(() =>
+  typeof actionOrName === 'string' ? actions[actionOrName] : actionOrName,
+)
+const descriptionWithShortcut = computed(() =>
+  action.value.shortcut ?
+    `${toValue(action.value.description)} (${toValue(action.value.shortcut)})`
+  : toValue(action.value.description),
+)
+</script>
+
+<template>
+  <ToggleIcon
+    v-if="action.toggled != null"
+    v-model="action.toggled.value"
+    :icon="toValue(action.icon)"
+    :disabled="toValue(action.disabled)"
+    :title="descriptionWithShortcut"
+    @click.stop="action.action"
+  />
+  <SvgButton
+    v-else
+    :name="toValue(action.icon)"
+    :disabled="toValue(action.disabled)"
+    :title="descriptionWithShortcut"
+    @click.stop="action.action"
+  />
+</template>

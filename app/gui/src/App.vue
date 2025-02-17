@@ -12,6 +12,7 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { applyPureReactInVue } from 'veaury'
 import { computed, onMounted } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
+import { provideInteractionHandler } from './providers/interactionHandler'
 import ReactRoot from './ReactRoot'
 
 const _props = defineProps<{
@@ -36,6 +37,7 @@ const ReactRootWrapper = applyPureReactInVue(ReactRoot)
 const queryClient = useQueryClient()
 
 provideGuiConfig(appConfigValue)
+provideInteractionHandler()
 
 registerAutoBlurHandler()
 registerGlobalBlurHandler()

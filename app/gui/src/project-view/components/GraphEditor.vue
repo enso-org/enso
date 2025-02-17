@@ -38,7 +38,6 @@ import { provideNodeColors } from '@/providers/graphNodeColors'
 import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
-import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideKeyboard } from '@/providers/keyboard'
 import { provideSelectionButtons } from '@/providers/selectionButtons'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
@@ -75,6 +74,8 @@ import {
   watch,
   type ComponentInstance,
 } from 'vue'
+import { provideInteractionHandler } from '../../providers/interactionHandler'
+import { registerSelectionActionHandlers } from './GraphEditor/selectionActions'
 
 const keyboard = provideKeyboard()
 const projectStore = useProjectStore()
@@ -230,7 +231,7 @@ const { copyNodesToClipboard, createNodesFromClipboard } = useGraphEditorClipboa
 
 // === Selection Buttons ===
 
-const { buttons: selectionButtons } = provideSelectionButtons(
+const selectionHandlers = registerSelectionActionHandlers(
   () =>
     iter.filterDefined(
       iter.map(
@@ -295,7 +296,7 @@ const graphBindingsHandler = graphBindings.handler({
       createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
     }
   },
-  deleteSelected: selectionButtons.deleteSelected.action!,
+  deleteSelected: selectionHandlers['components.deleteSelected'].action,
   zoomToSelected() {
     zoomToSelected()
   },
@@ -319,11 +320,11 @@ const graphBindingsHandler = graphBindings.handler({
       }
     })
   },
-  copyNode: selectionButtons.copy.action!,
+  copyNode: selectionHandlers['components.copy'].action,
   pasteNode() {
     createNodesFromClipboard()
   },
-  collapse: selectionButtons.collapse.action!,
+  collapse: selectionHandlers['components.collapse'].action,
   enterNode() {
     const selectedNode = set.first(nodeSelection.selected)
     if (selectedNode) {
@@ -334,7 +335,7 @@ const graphBindingsHandler = graphBindings.handler({
     stackNavigator.exitNode()
   },
   changeColorSelectedNodes() {
-    selectionButtons.pickColorMulti.state = true
+    selectionHandlers['components.pickColorMulti'].toggled.value = true
   },
   openDocumentation() {
     const result = tryGetSelectionDocUrl()

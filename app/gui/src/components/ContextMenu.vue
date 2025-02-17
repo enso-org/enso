@@ -1,23 +1,26 @@
 <script setup lang="ts">
-import { injectInteractionHandler } from '@/../providers/interactionHandler'
+import MenuPanel from '@/components/MenuPanel.vue'
 import { useResizeObserver } from '@/composables/events'
-import { useGraphEditorLayers } from '@/providers/graphEditorLayers'
 import { endOnClickOutside } from '@/util/autoBlur'
 import { autoUpdate, flip, shift, useFloating } from '@floating-ui/vue'
-import { computed, onMounted, useTemplateRef, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { Action, Actions } from '../providers/action'
+import { injectInteractionHandler } from '../providers/interactionHandler'
+import MenuEntry from './MenuEntry.vue'
 
-const { point } = defineProps<{
+const { actions, point } = defineProps<{
+  actions: (Action | keyof Actions)[]
   /** Location to display the menu near, in client coordinates. */
   point: { x: number; y: number }
 }>()
 const emit = defineEmits<{ close: [] }>()
 
 const interaction = injectInteractionHandler()
-const { floating: floatingLayer } = useGraphEditorLayers()
 
-const menu = useTemplateRef<HTMLElement>('menu')
+const menu = ref<HTMLElement>()
 
-function pointVirtualEl({ x, y }: { x: number; y: number }) {
+const virtualEl = computed(() => {
+  const { x, y } = point
   return {
     getBoundingClientRect() {
       return {
@@ -32,9 +35,7 @@ function pointVirtualEl({ x, y }: { x: number; y: number }) {
       }
     },
   }
-}
-
-const virtualEl = computed(() => pointVirtualEl(point))
+})
 const { floatingStyles, update } = useFloating(virtualEl, menu, {
   placement: 'bottom-start',
   middleware: [flip(), shift({ crossAxis: true })],
@@ -55,15 +56,30 @@ onMounted(() => {
 </script>
 
 <template>
-  <Teleport v-if="floatingLayer" :to="floatingLayer">
-    <div ref="menu" class="PointFloatingMenu" :style="floatingStyles">
+  <Teleport to="#contextmenu">
+    <MenuPanel
+      ref="menu"
+      class="ComponentContextMenu"
+      :style="floatingStyles"
+      @contextmenu.stop.prevent="emit('close')"
+    >
+      <MenuEntry
+        v-for="(action, index) of actions"
+        :key="index"
+        :action="action"
+        @click.stop="emit('close')"
+      />
       <slot />
-    </div>
+    </MenuPanel>
   </Teleport>
 </template>
 
-<style>
-.PointFloatingMenu {
+<style scoped>
+.MenuPanel {
+  margin-top: 2px;
+  padding: 4px;
+  background: var(--dropdown-opened-background, var(--color-app-bg));
+  backdrop-filter: var(--dropdown-opened-backdrop-filter, var(--blur-app-bg));
   position: absolute;
   top: 0;
   left: 0;

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { provideInteractionHandler } from '@/../providers/interactionHandler'
 import FullscreenButton from '@/components/FullscreenButton.vue'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import SelectionDropdownText from '@/components/SelectionDropdownText.vue'
@@ -13,7 +14,6 @@ import {
 } from '@/components/visualizations/toolbar'
 import VisualizationSelector from '@/components/VisualizationSelector.vue'
 import { useEvent } from '@/composables/events'
-import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { isQualifiedName, qnLastSegment } from '@/util/qualifiedName'
 import { computed, toValue } from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
