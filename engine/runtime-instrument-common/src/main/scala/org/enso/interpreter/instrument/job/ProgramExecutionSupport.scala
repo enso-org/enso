@@ -659,7 +659,7 @@ object ProgramExecutionSupport {
       if (runtimeCache != null) {
         def processUUID(id: UUID): Unit = {
           logger.log(
-            Level.WARNING,
+            Level.FINE,
             "Associating visualization [{0}] with additional ID [{1}]",
             Array[Object](
               visualization.id,

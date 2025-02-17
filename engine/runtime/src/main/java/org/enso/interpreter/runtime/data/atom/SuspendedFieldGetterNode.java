@@ -8,6 +8,7 @@ import java.util.List;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.typecheck.TypeCheckValueNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.atom.UnboxingAtom.FieldGetterNode;
@@ -94,7 +95,7 @@ final class SuspendedFieldGetterNode extends UnboxingAtom.FieldGetterNode {
     java.lang.Object value = get.execute(atom);
     if (value instanceof Function fn && shallBeExtracted(fn)) {
       try {
-        var state = Function.ArgumentsHelper.getState(fn.getScope().getArguments());
+        var state = EnsoContext.get(this).currentState();
         var newValue = invoke.execute(fn, null, state, new Object[0]);
         set.execute(atom, newValue);
         return newValue;

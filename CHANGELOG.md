@@ -24,6 +24,8 @@
 - [Removed `#` from default colum name][12222]
 - [Cloud File Browser will display input for file name in components writing to
   (new) files.][12228]
+- [Cloud File Browser allows adding new directory in "writing"
+  components][12275]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -40,6 +42,7 @@
 [12222]: https://github.com/enso-org/enso/pull/12222
 [12228]: https://github.com/enso-org/enso/pull/12228
 [12217]: https://github.com/enso-org/enso/pull/12217
+[12275]: https://github.com/enso-org/enso/pull/12275
 
 #### Enso Standard Library
 
@@ -47,6 +50,7 @@
   link.][11926]
 - [Reducing helper methods in `Standard.Base.Meta`.][12031]
 - [Added Table.Offset][12071]
+- [Implemented Generic JDBC connections.][12073]
 - [Added Column.Offset][12092]
 - [When reading a Delimited file, if a row with more columns than expected is
   encountered, extra columns can be added to the result.][12231]
@@ -60,6 +64,7 @@
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
 [12071]: https://github.com/enso-org/enso/pull/12071
+[12073]: https://github.com/enso-org/enso/pull/12073
 [12092]: https://github.com/enso-org/enso/pull/12092
 [12231]: https://github.com/enso-org/enso/pull/12231
 [12206]: https://github.com/enso-org/enso/pull/12206
