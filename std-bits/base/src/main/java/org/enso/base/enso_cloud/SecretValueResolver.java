@@ -20,6 +20,9 @@ sealed class SecretValueResolver permits EnsoSecretHelper, ExternalLibrarySecret
       }
       case HideableValue.Base64EncodeValue base64EncodeValue -> HideableValue.Base64EncodeValue
           .encode(resolveValue(base64EncodeValue.value()));
+      case InterpretAsPrivateKey pk -> throw new IllegalStateException(
+          "InterpretAsPrivateKey can only be used in JDBC connections. This state should never be"
+              + " reached.");
     };
   }
 }

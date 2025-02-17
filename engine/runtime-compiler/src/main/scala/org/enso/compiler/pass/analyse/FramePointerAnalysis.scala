@@ -219,18 +219,18 @@ case object FramePointerAnalysis extends IRPass {
     graph: Graph
   ): Unit = {
     application match {
-      case app @ Application.Prefix(func, arguments, _, _, _) =>
+      case app: Application.Prefix =>
         maybeAttachFramePointer(app, graph)
-        processExpression(func, graph)
-        processCallArguments(arguments, graph)
-      case Application.Force(expr, _, _) =>
-        processExpression(expr, graph)
-      case Application.Sequence(items, _, _) =>
-        items.foreach { item =>
+        processExpression(app.function, graph)
+        processCallArguments(app.arguments, graph)
+      case force: Application.Force =>
+        processExpression(force.target, graph)
+      case seq: Application.Sequence =>
+        seq.items.foreach { item =>
           processExpression(item, graph)
         }
-      case Application.Typeset(expr, _, _) =>
-        expr.foreach(processExpression(_, graph))
+      case tSet: Application.Typeset =>
+        tSet.expression.foreach(processExpression(_, graph))
       case _ =>
         throw new CompilerError(
           "Unexpected type of Application: " + application

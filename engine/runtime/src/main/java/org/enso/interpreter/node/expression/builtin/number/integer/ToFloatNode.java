@@ -10,8 +10,10 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
     type = "Integer",
     name = "to_float",
     description = "Conversion of integers to floats.")
-public abstract class ToFloatNode extends IntegerNode {
-  public abstract Object execute(Object own);
+public abstract class ToFloatNode extends IntegerNode.Unary {
+
+  @Override
+  abstract Object executeUnary(Object own);
 
   public static ToFloatNode build() {
     return ToFloatNodeGen.create();

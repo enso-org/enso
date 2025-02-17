@@ -1,0 +1,25 @@
+{
+    "resources": {
+        "includes": [
+            {
+                "pattern": "\\QMETA-INF/services/com.google.auth.http.HttpTransportFactory\\E"
+            },
+            {
+                "pattern": "\\QMETA-INF/services/io.grpc.LoadBalancerProvider\\E"
+            },
+            {
+                "pattern": "\\QMETA-INF/services/io.grpc.ManagedChannelProvider\\E"
+            },
+            {
+                "pattern": "\\QMETA-INF/services/io.grpc.NameResolverProvider\\E"
+            },
+            {
+                "pattern": "\\Qcom/google/api/client/googleapis/google-api-client.properties\\E"
+            },
+            {
+                "pattern": "\\Qcom/google/api/client/googleapis/google.p12\\E"
+            }
+        ]
+    },
+    "bundles": []
+}

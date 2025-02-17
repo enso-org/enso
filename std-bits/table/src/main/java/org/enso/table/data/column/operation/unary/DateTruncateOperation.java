@@ -1,18 +1,23 @@
 package org.enso.table.data.column.operation.unary;
 
+import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 
-public class DateTruncateOperation extends AbstractUnaryOperation {
+public class DateTruncateOperation implements UnaryOperation {
   public static String TRUNCATE = "truncate";
   public static final UnaryOperation TRUNCATE_INSTANCE = new DateTruncateOperation();
 
-  private DateTruncateOperation() {
-    super(TRUNCATE, true);
+  private DateTruncateOperation() {}
+
+  @Override
+  public String getName() {
+    return TRUNCATE;
   }
 
   @Override
@@ -21,16 +26,15 @@ public class DateTruncateOperation extends AbstractUnaryOperation {
   }
 
   @Override
-  protected Builder createBuilder(
+  public ColumnStorage<?> apply(
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
-    return Builder.getForDate(storage.getSize());
+    return StorageIterators.mapOverStorage(
+        storage, Builder.getForDate(storage.getSize()), this::applyObjectRow);
   }
 
-  @Override
-  protected void applyObjectRow(
-      Object value, Builder builder, MapOperationProblemAggregator problemAggregator) {
+  protected LocalDate applyObjectRow(long index, Object value) {
     if (value instanceof ZonedDateTime zonedDateTime) {
-      builder.append(zonedDateTime.toLocalDate());
+      return zonedDateTime.toLocalDate();
     } else {
       throw new IllegalArgumentException(
           "Unsupported type: Expected a Date_Time, got " + value.getClass());
