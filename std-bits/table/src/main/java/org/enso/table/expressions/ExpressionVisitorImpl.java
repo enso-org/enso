@@ -128,6 +128,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       String expression,
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
+      Function<Value, Boolean> isColumn,
       String moduleName,
       String typeName,
       String[] variableArgumentFunctions)
@@ -142,13 +143,14 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     Function<String, Value> makeConstructor =
         name -> module.invokeMember("eval_expression", ".." + name);
 
-    return evaluateImpl(expression, getColumn, makeConstantColumn, getMethod, makeConstructor);
+    return evaluateImpl(expression, getColumn, makeConstantColumn, isColumn, getMethod, makeConstructor);
   }
 
   public static Value evaluateImpl(
       String expression,
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
+      Function<Value, Boolean> isColumn,
       Function<String, MethodInterface> getMethod,
       Function<String, Value> makeConstructor) {
     var lexer = new ExpressionLexer(CharStreams.fromString(expression));
@@ -161,7 +163,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     parser.addErrorListener(ThrowOnErrorListener.INSTANCE);
 
     var visitor =
-        new ExpressionVisitorImpl(getColumn, makeConstantColumn, getMethod, makeConstructor);
+        new ExpressionVisitorImpl(getColumn, makeConstantColumn, isColumn, getMethod, makeConstructor);
 
     var expr = parser.prog();
     var result = visitor.visit(expr);
@@ -170,16 +172,19 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   private final Function<String, Value> getColumn;
   private final Function<Object, Value> makeConstantColumn;
+  private final Function<Value, Boolean> isColumn;
   private final Function<String, MethodInterface> getMethod;
   private final Function<String, Value> makeConstructor;
 
   private ExpressionVisitorImpl(
       Function<String, Value> getColumn,
       Function<Object, Value> makeConstantColumn,
+      Function<Value, Boolean> isColumn,
       Function<String, MethodInterface> getMethod,
       Function<String, Value> makeConstructor) {
     this.getColumn = getColumn;
     this.makeConstantColumn = makeConstantColumn;
+    this.isColumn = isColumn;
     this.getMethod = getMethod;
     this.makeConstructor = makeConstructor;
   }
@@ -188,6 +193,11 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     var method = getMethod.apply(name);
     Value result = method.execute(args, makeConstantColumn);
     return result;
+  }
+
+  private Value standardiseTypesAndExecuteMethod(String name, Value arg1, Value arg2) {
+    Value typedArg1 = isColumn.apply(arg2) ? makeConstantColumn.apply(arg1) : arg1;
+    return executeMethod(name, typedArg1, arg2);
   }
 
   @Override
@@ -204,12 +214,12 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitPower(ExpressionParser.PowerContext ctx) {
-    return executeMethod("^", visit(ctx.expr(0)), visit(ctx.expr(1)));
+    return standardiseTypesAndExecuteMethod("^", visit(ctx.expr(0)), visit(ctx.expr(1)));
   }
 
   @Override
   public Value visitMultDivMod(ExpressionParser.MultDivModContext ctx) {
-    return executeMethod(ctx.op.getText(), visit(ctx.expr(0)), visit(ctx.expr(1)));
+    return standardiseTypesAndExecuteMethod(ctx.op.getText(), visit(ctx.expr(0)), visit(ctx.expr(1)));
   }
 
   @Override
@@ -222,7 +232,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       op = "!=";
     }
 
-    return executeMethod(op, visit(ctx.expr(0)), visit(ctx.expr(1)));
+    return standardiseTypesAndExecuteMethod(op, visit(ctx.expr(0)), visit(ctx.expr(1)));
   }
 
   @Override
@@ -247,17 +257,17 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitAddSub(ExpressionParser.AddSubContext ctx) {
-    return executeMethod(ctx.op.getText(), visit(ctx.expr(0)), visit(ctx.expr(1)));
+    return standardiseTypesAndExecuteMethod(ctx.op.getText(), visit(ctx.expr(0)), visit(ctx.expr(1)));
   }
 
   @Override
   public Value visitAnd(ExpressionParser.AndContext ctx) {
-    return executeMethod("&&", visit(ctx.expr(0)), visit(ctx.expr(1)));
+    return standardiseTypesAndExecuteMethod("&&", visit(ctx.expr(0)), visit(ctx.expr(1)));
   }
 
   @Override
   public Value visitOr(ExpressionParser.OrContext ctx) {
-    return executeMethod("||", visit(ctx.expr(0)), visit(ctx.expr(1)));
+    return standardiseTypesAndExecuteMethod("||", visit(ctx.expr(0)), visit(ctx.expr(1)));
   }
 
   @Override
@@ -299,7 +309,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitNullOrNothing(ExpressionParser.NullOrNothingContext ctx) {
-    return Value.asValue(null);
+    return makeConstantColumn.apply(Value.asValue(null));
   }
 
   @Override
