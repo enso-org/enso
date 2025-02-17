@@ -18,6 +18,7 @@ from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make
 
 import project.Constants.Previous_Value
 import project.Data_Formatter.Data_Formatter
+import project.Fill_With.Fill_With
 import project.Internal.Cast_Helpers
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Column_Ops
@@ -30,7 +31,6 @@ import project.Internal.Storage
 import project.Internal.Type_Refinements.Column_Refinements
 import project.Internal.Value_Type_Helpers
 import project.Internal.Widget_Helpers
-import project.Fill_With.Fill_With
 import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 import project.Value_Type.Auto
@@ -42,15 +42,15 @@ from project.Internal.Storage import enso_to_java, java_to_enso
 from project.Table import from_java_table
 
 polyglot java import org.enso.base.Time_Utils
+polyglot java import org.enso.table.data.column.operation.cast.CastOperation
+polyglot java import org.enso.table.data.column.operation.CountNonTrivialWhitespace
 polyglot java import org.enso.table.data.column.operation.CountNothing
 polyglot java import org.enso.table.data.column.operation.CountUntrimmed
-polyglot java import org.enso.table.data.column.operation.CountNonTrivialWhitespace
 polyglot java import org.enso.table.data.column.operation.SampleOperation
-polyglot java import org.enso.table.data.column.operation.cast.CastOperation
 polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
 polyglot java import org.enso.table.data.column.operation.unary.DateTruncateOperation
-polyglot java import org.enso.table.data.column.operation.unary.IsEmptyOperation
 polyglot java import org.enso.table.data.column.operation.unary.DoubleIsOperation
+polyglot java import org.enso.table.data.column.operation.unary.IsEmptyOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsNothingOperation
 polyglot java import org.enso.table.data.column.operation.unary.NotOperation
 polyglot java import org.enso.table.data.column.operation.unary.TextLengthOperation
@@ -88,7 +88,7 @@ type Column
 
              example_from_vector =
                  Column.from_vector "My Column" [1, 2, 3, 4, 5]
-    from_vector (name : Text) (items : Vector) (value_type : Auto | Value_Type = Auto) -> Column ! Invalid_Value_Type =
+    from_vector name:Text items:Vector (value_type : Auto | Value_Type = Auto) -> Column ! Invalid_Value_Type =
         ## If the type does not accept date-time-like values, we can skip the
            additional logic for polyglot conversions that would normally be used,
            which is quite costly - so if we can guarantee it is unnecessary,
@@ -897,7 +897,7 @@ type Column
          Round a column of `Float` values`.
 
              Column.from_vector "foo" [1.2, 2.3, 3.6] . round == (Column.from_vector "foo" [1, 2, 4])
-    round self (decimal_places:Integer = 0) (use_bankers:Boolean = False) -> Column ! Illegal_Argument | Invalid_Value_Type = Value_Type.expect_numeric self <|
+    round self decimal_places:Integer=0 use_bankers:Boolean=False -> Column ! Illegal_Argument | Invalid_Value_Type = Value_Type.expect_numeric self <|
         Illegal_Argument.handle_java_exception <| Rounding_Helpers.check_decimal_places decimal_places <|
             new_name = naming_helper.function_name "round" [self]
             run_vectorized_ternary_op self Java_Storage.Maps.ROUND decimal_places use_bankers new_name=new_name
@@ -2238,7 +2238,7 @@ type Column
 
              example_at = Examples.integer_column.get 0 -1
     @index (self-> Numeric_Input minimum=0 maximum=self.length-1)
-    get self index:Integer=0 (~default=Nothing) -> Any | Nothing =
+    get self index:Integer=0 ~default=Nothing -> Any | Nothing =
         if index < 0 && index >= -self.length then self.get (self.length + index) default else
             valid_index = (index >= 0) && (index < self.length)
             if valid_index.not then default else
@@ -2372,8 +2372,7 @@ type Column
              example_sort =
                  my_compare a b = Ordering.compare a.abs b.abs
                  Examples.decimal_column.sort by=my_compare
-    sort : Sort_Direction -> Boolean -> (Any -> Any -> Ordering) | Nothing -> Column
-    sort self order:Sort_Direction=..Ascending missing_last:Boolean=True by=Nothing -> Column = case by of
+    sort self order:Sort_Direction=..Ascending missing_last:Boolean=True (by : (Any -> Any -> Ordering) | Nothing = Nothing) -> Column = case by of
         Nothing ->
             order_bool = case order of
                 Sort_Direction.Ascending -> True
@@ -2422,7 +2421,7 @@ type Column
              ## The take returns "Charlie"
              last_row = column.take (..Last 1)
     @range (self-> Index_Sub_Range.default_widget self.length)
-    take self range:(Index_Sub_Range | Range | Integer)=..First -> Column =
+    take self (range : Index_Sub_Range | Range | Integer = ..First) -> Column =
         take_helper self.length (self.at _) self.slice (slice_ranges self) range
 
     ## ALIAS remove, skip
@@ -2434,7 +2433,7 @@ type Column
        Arguments:
        - range: The selection of rows from the table to remove.
     @range (self-> Index_Sub_Range.default_widget self.length)
-    drop self range:(Index_Sub_Range | Range | Integer)=..First -> Column =
+    drop self (range : Index_Sub_Range | Range | Integer = ..First) -> Column =
         drop_helper self.length (self.at _) self.slice (slice_ranges self) range
 
     ## PRIVATE
@@ -2540,7 +2539,7 @@ type Column
         names = statistics.map _.to_text
         Table.from_rows names [values]
 
-    ## ALIAS cumulative, count, sum, total, minimum, maximum, sum, mean, product, variance, standard deviation
+    ## ALIAS count, cumulative, maximum, mean, minimum, product, standard deviation, sum, sum, total, variance
        GROUP Standard.Base.Statistics
        ICON transform4
        Compute a single running statistic on the column.
@@ -2548,11 +2547,11 @@ type Column
        Arguments:
        - statistic: Statistic to calculate.
        - name: Name of the new column.
-    running self statistic:Statistic=..Count (name:Text = statistic.to_text+" "+self.name) -> Column =
+    running self statistic:Statistic=..Count (name : Text = statistic.to_text+" "+self.name) -> Column =
         data = Statistic.running self.to_vector statistic
         Column.from_vector name data
 
-    ## ALIAS shift, lead, lag, slide, displace
+    ## ALIAS displace, lag, lead, shift, slide
        GROUP Standard.Base.Values
        ICON column_add
 
