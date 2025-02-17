@@ -56,16 +56,6 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   private static Value wrapAsColumn(Value value, Function<Object, Value> makeConstantColumn) {
     return makeConstantColumn.apply(value);
-    // if (value.isNull()) {
-    //   return makeConstantColumn.apply(value);
-    // }
-
-    // var metaObject = value.getMetaObject();
-    // return metaObject != null
-    //         && metaObject.isHostObject()
-    //         && metaObject.asHostObject() instanceof Class<?>
-    //     ? makeConstantColumn.apply(value)
-    //     : value;
   }
 
   public interface MethodInterface {
@@ -178,7 +168,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
         new ExpressionVisitorImpl(getColumn, makeConstantColumn, getMethod, makeConstructor);
 
     var expr = parser.prog();
-    return visitor.visit(expr);
+    var result = visitor.visit(expr);
+    return makeConstantColumn.apply(result);
   }
 
   private final Function<String, Value> getColumn;
