@@ -90,7 +90,11 @@ public final class Text extends BuiltinObject {
       case UNKNOWN -> {
         Normalizer2 normalizer = Normalizer2.getNFDInstance();
         boolean isNormalized = normalizer.isNormalized(toString());
-        setFcdNormalized(isNormalized);
+        if (isNormalized) {
+          fcdNormalized = FcdNormalized.YES;
+        } else {
+          fcdNormalized = FcdNormalized.NO;
+        }
         return isNormalized;
       }
     }
@@ -212,22 +216,13 @@ public final class Text extends BuiltinObject {
     return Core_Text_Utils.prettyPrint(str);
   }
 
-  private void setFcdNormalized(boolean flag) {
-    if (flag) {
-      fcdNormalized = FcdNormalized.YES;
-    } else {
-      fcdNormalized = FcdNormalized.NO;
-    }
-  }
-
   @Override
   public String toString() {
-    Object c = this.contents;
-    if (c instanceof String s) {
-      return s;
-    } else {
-      return flattenAndSetContent(c);
-    }
+    return switch (this.contents) {
+        case String s -> s;
+        case ConcatRope r -> flattenAndSetContent(r);
+        case null, default -> throw new NullPointerException();
+    };
   }
 
   /**
@@ -238,17 +233,17 @@ public final class Text extends BuiltinObject {
    */
   @CompilerDirectives.TruffleBoundary
   private String flattenAndSetContent(Object c) {
-    Deque<Object> workStack = new ArrayDeque<>();
+    var workStack = new ArrayDeque<Object>();
     StringBuilder bldr = new StringBuilder();
     workStack.push(c);
     while (!workStack.isEmpty()) {
-      Object item = workStack.pop();
-      if (item instanceof String) {
-        bldr.append((String) item);
-      } else {
-        ConcatRope rope = (ConcatRope) item;
-        workStack.push(rope.left());
-        workStack.push(rope.right());
+      switch (workStack.pop()) {
+          case String s -> bldr.append(s);
+          case ConcatRope rope -> {
+            workStack.push(rope.right());
+            workStack.push(rope.left());
+          }
+          case null, default -> throw new NullPointerException();
       }
     }
     var result = bldr.toString();
