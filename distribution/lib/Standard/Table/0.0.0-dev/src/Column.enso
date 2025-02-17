@@ -2183,7 +2183,7 @@ type Column
 
     ## PRIVATE
        Determines if a value type is eligable for a text data quality count
-    private can_contain_text value_type:Value_Type -> Boolean = 
+    private can_contain_text value_type:Value_Type -> Boolean =
         value_type == Value_Type.Mixed || value_type.is_text
 
     ## PRIVATE
