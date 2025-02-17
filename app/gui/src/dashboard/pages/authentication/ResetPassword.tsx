@@ -48,7 +48,7 @@ function createResetPasswordFormSchema(getText: GetText) {
     })
 }
 
-const REDIRECT_TIMEOUT = 1000
+const REDIRECT_TIMEOUT = 3000
 
 // =====================
 // === ResetPassword ===
