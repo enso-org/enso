@@ -8,6 +8,7 @@ import {
   MONTH_3_LETTER_TEXT_IDS,
 } from 'enso-common/src/utilities/data/dateTime'
 
+import LogsIcon from '#/assets/logs.svg'
 import RepeatIcon from '#/assets/repeat.svg'
 import TimeIcon from '#/assets/time.svg'
 import { DialogTrigger } from '#/components/aria'
@@ -199,7 +200,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
         }
         {session && (
           <DialogTrigger>
-            <Button variant="icon" isActive icon="log_cloud" aria-label={getText('showLogs')} />
+            <Button variant="icon" isActive icon={LogsIcon} aria-label={getText('showLogs')} />
 
             <ProjectLogsModal
               backend={backend}
