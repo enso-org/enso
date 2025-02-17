@@ -12,6 +12,7 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { applyPureReactInVue } from 'veaury'
 import { computed, onMounted } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
+import { initializeActions } from './providers/action'
 import { provideInteractionHandler } from './providers/interactionHandler'
 import ReactRoot from './ReactRoot'
 
@@ -38,6 +39,7 @@ const queryClient = useQueryClient()
 
 provideGuiConfig(appConfigValue)
 provideInteractionHandler()
+initializeActions()
 
 registerAutoBlurHandler()
 registerGlobalBlurHandler()
@@ -59,6 +61,7 @@ onMounted(() => {
       @authenticated="onAuthenticated ?? (() => {})"
     />
   </div>
+  <div id="floatingLayer" />
   <TooltipDisplayer :registry="appTooltips" />
 </template>
 
@@ -68,6 +71,21 @@ onMounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+#floatingLayer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* The size isn't important, except it must be non-zero for `floating-ui` to calculate the scale factor. */
+  width: 1px;
+  height: 1px;
+  contain: layout size style;
+  will-change: transform;
+  pointer-events: none;
+  > * {
+    pointer-events: auto;
+  }
 }
 
 /*

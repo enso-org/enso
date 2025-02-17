@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { graphBindings, nodeEditBindings } from '@/bindings'
-import ComponentContextMenu from '@/components/ComponentContextMenu.vue'
+import ContextMenuTrigger from '@/../components/ContextMenuTrigger.vue'
+import type { Action } from '@/../providers/action'
+import { registerHandlers } from '@/../providers/action'
+import { nodeEditBindings } from '@/bindings'
 import ComponentMenu from '@/components/ComponentMenu.vue'
 import ComponentWidgetTree, {
   GRAB_HANDLE_X_MARGIN_L,
@@ -15,12 +17,10 @@ import GraphNodeMessage, {
 } from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
-import PointFloatingMenu from '@/components/PointFloatingMenu.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useComponentColors } from '@/composables/componentColors'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
-import { provideComponentButtons } from '@/providers/componentButtons'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
@@ -419,52 +419,64 @@ const nodeClass = computed(() => {
 // === Component actions ===
 
 const { getNodeColor, getNodeColors } = injectNodeColors()
+const nodeColor = computed(() => getNodeColor(nodeId.value))
+const matchableColors = getNodeColors((node) => node !== nodeId.value)
 const { recomputeOnce, isBeingRecomputed } = useRecomputation()
 
-const { editingComment } = provideComponentButtons(
-  {
-    graphBindings: graphBindings.bindings,
-    nodeEditBindings: nodeEditBindings.bindings,
-    onBeforeAction: setSoleSelected,
-  },
-  {
-    enterNode: {
+function selectBeforeAction<Handlers extends { [K in string]?: Partial<Action> }>(
+  handlers: Handlers,
+) {
+  for (const actionName in handlers) {
+    const origAction = handlers[actionName]!.action
+    handlers[actionName]!.action = () => {
+      setSoleSelected()
+      origAction?.()
+    }
+  }
+  return handlers
+}
+
+const editingComment = ref(false)
+const colorPickerOpened = ref(false)
+
+registerHandlers(
+  selectBeforeAction({
+    'component.enterNode': {
       action: () => emit('enterNode'),
       hidden: computed(() => !graph.nodeCanBeEntered(nodeId.value)),
     },
-    startEditing: {
+    'component.startEditing': {
       action: startEditingNode,
     },
-    editingComment: {
-      state: ref(false),
+    'component.editingComment': {
+      toggled: editingComment,
     },
-    createNewNode: {
+    'component.createNewNode': {
       action: () => emit('createNodes', [{ commit: false, content: undefined }]),
     },
-    toggleDocPanel: {
+    'component.toggleDocPanel': {
       action: () => emit('toggleDocPanel'),
     },
-    toggleVisualization: {
-      state: isVisualizationEnabled,
+    'component.toggleVisualization': {
+      toggled: isVisualizationEnabled,
     },
-    pickColor: {
-      state: ref(false),
-      actionData: {
-        currentColor: computed({
-          get: () => getNodeColor(nodeId.value),
-          set: (color) => emit('setNodeColor', color),
-        }),
-        matchableColors: getNodeColors((node) => node !== nodeId.value),
-      },
+    'component.pickColor': {
+      toggled: colorPickerOpened,
+      // actionData: {
+      //   currentColor: computed({
+      get: () => getNodeColor(nodeId.value),
+      //     set: (color) => emit('setNodeColor', color),
+      //   }),
+      //   matchableColors: getNodeColors((node) => node !== nodeId.value),
+      // },
     },
-    recompute: {
+    'component.recompute': {
       action: recomputeOnce,
       disabled: isBeingRecomputed,
     },
-  },
+  }),
 )
 
-const showMenuAt = ref<{ x: number; y: number }>()
 onWindowBlur(() => {
   graph.setNodeHovered(nodeId.value, false)
   updateNodeHover(undefined)
@@ -495,6 +507,11 @@ onWindowBlur(() => {
     </button>
     <ComponentMenu
       v-if="menuVisible"
+      :colorPickerOpened="colorPickerOpened"
+      :currentNodeColor="nodeColor"
+      :matchableColors="matchableColors"
+      @setNodeColor="emit('setNodeColor', $event)"
+      @closeColorPicker="colorPickerOpened = false"
       @pointerenter="menuHovered = true"
       @pointerleave="menuHovered = false"
       @click.capture="setSoleSelected"
@@ -526,29 +543,43 @@ onWindowBlur(() => {
       @click.capture="setSoleSelected"
     />
     <GraphNodeComment
-      v-model:editing="editingComment.state"
+      v-model:editing="editingComment"
       :node="node"
       class="beforeNode"
       @click.capture="setSoleSelected"
     />
-    <div
-      ref="contentNode"
-      :class="{ content: true, dragged: isDragged }"
-      :style="contentNodeStyle"
-      v-on="dragPointer.events"
-      @click="handleNodeClick"
-      @contextmenu.stop.prevent="(ensureSelected(), (showMenuAt = $event))"
+    <ContextMenuTrigger
+      :actions="[
+        'component.toggleDocPanel',
+        'component.toggleVisualization',
+        'component.createNewNode',
+        'component.editingComment',
+        'component.recompute',
+        'component.pickColor',
+        'component.enterNode',
+        'component.startEditing',
+        'components.copy',
+        'components.deleteSelected',
+      ]"
     >
-      <ComponentWidgetTree
-        :ast="props.node.innerExpr"
-        :nodeId="nodeId"
-        :rootElement="rootNode"
-        :nodeType="props.node.type"
-        :potentialSelfArgumentId="potentialSelfArgumentId"
-        :conditionalPorts="props.node.conditionalPorts"
-        :extended="isOnlyOneSelected"
-      />
-    </div>
+      <div
+        ref="contentNode"
+        :class="{ content: true, dragged: isDragged }"
+        :style="contentNodeStyle"
+        v-on="dragPointer.events"
+        @click="handleNodeClick"
+      >
+        <ComponentWidgetTree
+          :ast="props.node.innerExpr"
+          :nodeId="nodeId"
+          :rootElement="rootNode"
+          :nodeType="props.node.type"
+          :potentialSelfArgumentId="potentialSelfArgumentId"
+          :conditionalPorts="props.node.conditionalPorts"
+          :extended="isOnlyOneSelected"
+        />
+      </div>
+    </ContextMenuTrigger>
     <div class="statuses">
       <SvgIcon
         v-if="availableMessage && !visibleMessage"
@@ -564,9 +595,6 @@ onWindowBlur(() => {
     />
     <div class="nodeBackground"></div>
   </div>
-  <PointFloatingMenu v-if="showMenuAt" :point="showMenuAt" @close="showMenuAt = undefined">
-    <ComponentContextMenu @close="showMenuAt = undefined" />
-  </PointFloatingMenu>
 </template>
 
 <style scoped>

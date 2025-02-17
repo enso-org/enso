@@ -11,7 +11,7 @@ const point = ref<{ x: number; y: number } | null>(null)
 </script>
 
 <template>
-  <slot @contextmenu="point = $event" />
+  <div style="display: contents" @contextmenu="point = $event"><slot /></div>
   <ContextMenu v-if="point != null" :actions="actions" :point="point" @close="point = null">
     <slot name="menuElements" />
   </ContextMenu>

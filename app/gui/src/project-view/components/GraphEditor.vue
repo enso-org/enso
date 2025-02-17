@@ -39,7 +39,6 @@ import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
 import { provideKeyboard } from '@/providers/keyboard'
-import { provideSelectionButtons } from '@/providers/selectionButtons'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import type { Node, NodeId } from '@/stores/graph'
 import { provideGraphStore } from '@/stores/graph'
@@ -737,20 +736,5 @@ const groupColors = computed(() => {
   touch-action: none;
   --node-color-no-type: #596b81;
   --output-node-color: #006b8a;
-}
-
-.floatingLayer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  /* The size isn't important, except it must be non-zero for `floating-ui` to calculate the scale factor. */
-  width: 1px;
-  height: 1px;
-  contain: layout size style;
-  will-change: transform;
-  pointer-events: none;
-  > * {
-    pointer-events: auto;
-  }
 }
 </style>

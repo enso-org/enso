@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import MenuPanel from '@/components/MenuPanel.vue'
 import { useResizeObserver } from '@/composables/events'
 import { endOnClickOutside } from '@/util/autoBlur'
 import { autoUpdate, flip, shift, useFloating } from '@floating-ui/vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { Action, Actions } from '../providers/action'
 import { injectInteractionHandler } from '../providers/interactionHandler'
-import MenuEntry from './MenuEntry.vue'
+import ActionMenu from './ActionMenu.vue'
 
 const { actions, point } = defineProps<{
   actions: (Action | keyof Actions)[]
@@ -56,21 +55,16 @@ onMounted(() => {
 </script>
 
 <template>
-  <Teleport to="#contextmenu">
-    <MenuPanel
+  <Teleport to="#floatingLayer">
+    <ActionMenu
       ref="menu"
-      class="ComponentContextMenu"
+      :actions="actions"
       :style="floatingStyles"
       @contextmenu.stop.prevent="emit('close')"
+      @close="emit('close')"
     >
-      <MenuEntry
-        v-for="(action, index) of actions"
-        :key="index"
-        :action="action"
-        @click.stop="emit('close')"
-      />
       <slot />
-    </MenuPanel>
+    </ActionMenu>
   </Teleport>
 </template>
 

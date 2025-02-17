@@ -21,7 +21,11 @@ const action = computed(() =>
   >
     <SvgIcon :name="toValue(action.icon)" class="rowIcon" />
     <span v-text="toValue(action.description)" />
-    <span v-if="toValue(action.shortcut)" class="shortcutHint" v-text="action.shortcut" />
+    <span
+      v-if="toValue(action.shortcut)"
+      class="shortcutHint"
+      v-text="action.shortcut?.humanReadable"
+    />
   </MenuButton>
 </template>
 

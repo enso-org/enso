@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import { injectInteractionHandler } from '@/../providers/interactionHandler'
 import {
   cssAngularColorStop,
   gradientPoints,
   rangesForInputs,
 } from '@/components/ColorRing/gradient'
-import { injectInteractionHandler } from '@/providers/interactionHandler'
 import { endOnClickOutside } from '@/util/autoBlur'
 import { cssSupported, ensoColor, formatCssColor, normalizeHue, parseCssColor } from '@/util/colors'
 import { Rect } from '@/util/data/rect'

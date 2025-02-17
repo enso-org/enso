@@ -1,9 +1,6 @@
-import { DirectoryId } from '#/services/Backend'
-import { graphBindings } from '@/bindings'
+import { graphBindings, nodeEditBindings } from '@/bindings'
 import { createContextStore } from '@/providers'
-import { NodeId } from '@/stores/graph'
 import { assert } from '@/util/assert'
-import { Button, ButtonUI } from '@/util/button'
 import { Icon } from '@/util/iconMetadata/iconName'
 import { ToValue } from '@/util/reactivity'
 import { BindingInfo } from '@/util/shortcuts'
@@ -41,6 +38,44 @@ const actions = {
     icon: 'paint_palette',
     description: 'Color Selected Components',
   } as Action,
+  'component.enterNode': {
+    icon: 'open',
+    description: 'Open Grouped Components',
+    testid: 'enter-node-button',
+  } as Action,
+  'component.startEditing': {
+    icon: 'edit',
+    description: 'Code Edit',
+    shortcut: nodeEditBindings.bindings.edit,
+    testid: 'edit-button',
+  } as Action,
+  'component.editingComment': {
+    icon: 'comment',
+    description: 'Add Comment',
+  } as Action,
+  'component.createNewNode': {
+    icon: 'add',
+    description: 'Add New Component',
+    shortcut: graphBindings.bindings.openComponentBrowser,
+  } as Action,
+  'component.toggleDocPanel': {
+    icon: 'help',
+    description: 'Help',
+  } as Action,
+  'component.toggleVisualization': {
+    icon: 'eye',
+    description: 'Show/Hide visualization',
+    shortcut: graphBindings.bindings.toggleVisualization,
+  } as Action,
+  'component.recompute': {
+    icon: 'workflow_play',
+    description: 'Write',
+    testid: 'recompute',
+  } as Action,
+  'component.pickColor': {
+    icon: 'paint_palette',
+    description: 'Color Component',
+  } as Action,
   'fileBrowser.removeDirectory': {
     icon: 'paint_palette',
     description: 'Color Selected Components',
@@ -50,11 +85,16 @@ const actions = {
 export type Actions = typeof actions
 
 const [provideActions, injectActions] = createContextStore('Actions', (a: typeof actions) => a)
-provideActions(actions)
 
-export function registerHandlers<Handlers extends { [K in keyof Actions]?: Partial<Action> }>(
-  handlers: Handlers,
-): Actions & Handlers {
+export function initializeActions() {
+  provideActions(actions)
+}
+
+export function registerHandlers<
+  Handlers extends { [K in keyof Actions]?: Partial<Action> } & {
+    [K in Exclude<string, keyof Actions>]: never
+  },
+>(handlers: Handlers): Actions & Handlers {
   const actions = injectActions()
   const newActions: Actions = { ...actions }
 
