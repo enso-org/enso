@@ -1246,7 +1246,7 @@ type Table
                 | John | 5        | 3      |
                 | Paul | 3        | 5      |
     @columns Widget_Helpers.make_order_by_selector
-    sort self (columns : Vector (Text | Sort_Column) | Text = [self.columns.first.name]) text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns =
+    sort self (columns : Vector Sort_Column | Sort_Column = [self.columns.first.name]) text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns =
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
         columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
         problem_builder.attach_problems_before on_problems <|

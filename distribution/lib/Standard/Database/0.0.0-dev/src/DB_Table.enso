@@ -708,7 +708,7 @@ type DB_Table
              people.filter "age" (age -> (age%10 == 0))
     @column (Widget_Helpers.make_column_name_selector add_expression=True)
     @filter Widget_Helpers.make_filter_condition_selector
-    filter self (column : DB_Column | Text | Integer = Missing_Argument.throw "column") (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type =
+    filter self (column : DB_Column | Expression | Text | Integer = Missing_Argument.throw "column") (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type =
         Feature.Filter.if_supported_else_throw self.connection.dialect "filter" <|
             case column of
                 _ : DB_Column ->
@@ -1347,7 +1347,7 @@ type DB_Table
 
               table.sort [(..Select_By_Name "a.*".to_regex case_sensitivity=..Insensitive)]
     @columns Widget_Helpers.make_order_by_selector
-    sort self (columns : Vector (Text | Sort_Column) | Text = [(Sort_Column.Name (self.columns.at 0 . name))]) text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns =
+    sort self (columns : Vector Sort_Column | Sort_Column = [(Sort_Column.Name (self.columns.at 0 . name))]) text_ordering:Text_Ordering=..Default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> DB_Table ! Incomparable_Values | No_Input_Columns_Selected | Missing_Input_Columns =
         Feature.Sort.if_supported_else_throw self.connection.dialect "sort" <|
             problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns types_to_always_throw=[No_Input_Columns_Selected]
             columns_for_ordering = Table_Helpers.prepare_order_by self.columns columns problem_builder
