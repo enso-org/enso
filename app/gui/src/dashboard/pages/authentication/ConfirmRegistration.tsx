@@ -33,8 +33,8 @@ export default function ConfirmRegistration() {
   const [searchParams] = router.useSearchParams()
 
   const email = searchParams.get('email')
-  const redirectUrl = searchParams.get('redirect_url')
   const verificationCode = searchParams.get('verification_code')
+  const redirectUrl = searchParams.get('redirect_url')
 
   const { startTimer } = useTimeoutAPI({ ms: REDIRECT_TIMEOUT })
 
