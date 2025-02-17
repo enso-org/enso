@@ -527,7 +527,7 @@ type SQLite_JDBC_In_Memory_Config
     name self = "SQLite In-Memory"
 
     with_connection self ~action =
-        url = "jdbc:sqlite:memory:"
+        url = "jdbc:sqlite::memory:"
         conn = Generic_JDBC_Connection.connect url
         conn.should_succeed
         cleanup =
