@@ -92,7 +92,7 @@ type DB_Column
 
     ## ICON data_input
        Converts this column into a single-column table.
-    to_table self -> DB_Table = 
+    to_table self -> DB_Table =
         DB_Table.new self.name self.connection [self.as_internal] self.context
 
     ## ALIAS column type, field info, metadata
@@ -111,7 +111,7 @@ type DB_Column
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
     @max_rows Rows_To_Read.default_widget
-    read self (max_rows : Rows_To_Read = ..First_With_Warning 1000) -> Column = 
+    read self (max_rows : Rows_To_Read = ..First_With_Warning 1000) -> Column =
         self.to_table.read max_rows . at 0
 
     ## GROUP Standard.Base.Conversions
@@ -135,7 +135,7 @@ type DB_Column
              import Standard.Examples
 
              example_at = Examples.integer_column.at 0
-    at self index:Integer=0 -> (Any | Nothing) ! Index_Out_Of_Bounds = 
+    at self index:Integer=0 -> (Any | Nothing) ! Index_Out_Of_Bounds =
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
     ## GROUP Standard.Base.Selections
@@ -152,7 +152,7 @@ type DB_Column
              import Standard.Examples
 
              example_at = Examples.integer_column.get 0 -1
-    get self index:Integer=0 ~default:Any=Nothing -> Any | Nothing = 
+    get self index:Integer=0 ~default:Any=Nothing -> Any | Nothing =
         if index < 0 then Error.throw (Unsupported_Database_Operation.Error "Reading backwards from end") else
             self.read (..First index+1) . get index default
 
@@ -177,7 +177,7 @@ type DB_Column
 
        The value type determines what type of values the column is storing and
        what operations are permitted.
-    value_type self -> Value_Type = 
+    value_type self -> Value_Type =
         mapping = self.connection.dialect.get_type_mapping
         mapping.sql_type_to_value_type self.sql_type
 
@@ -377,13 +377,13 @@ type DB_Column
     ## GROUP Standard.Base.Metadata
        ICON transform4
        Returns the number of missing items in this column.
-    count_nothing self -> Integer = 
+    count_nothing self -> Integer =
         self.to_table.filter 0 Filter_Condition.Is_Nothing . row_count
 
     ## GROUP Standard.Base.Metadata
        ICON transform4
        Returns the number of non-null items in this column.
-    count self -> Integer = 
+    count self -> Integer =
         self.to_table.filter 0 Filter_Condition.Not_Nothing . row_count
 
     ## ALIAS equals
@@ -418,7 +418,7 @@ type DB_Column
              import Standard.Examples
 
              example_eq = Examples.integer_column == 1
-    == self (other : DB_Column | Any) -> DB_Column = 
+    == self (other : DB_Column | Any) -> DB_Column =
         make_equality_check_with_floating_point_handling self other "=="
 
     ## GROUP Standard.Base.Logical
@@ -434,7 +434,7 @@ type DB_Column
        Returns a column with results of comparing this column's elements against
        `other`.
     @locale Locale.default_widget
-    equals_ignore_case self (other : DB_Column | Any) locale:Locale=Locale.default -> DB_Column = 
+    equals_ignore_case self (other : DB_Column | Any) locale:Locale=Locale.default -> DB_Column =
         Value_Type.expect_text self <|
             Value_Type.expect_text other <|
                 Helpers.assume_default_locale locale <|
@@ -473,7 +473,7 @@ type DB_Column
              import Standard.Examples
 
              example_neq = Examples.integer_column != 1
-    != self (other : DB_Column | Any) -> DB_Column = 
+    != self (other : DB_Column | Any) -> DB_Column =
         make_equality_check_with_floating_point_handling self other "!="
 
     ## ALIAS greater than or equal
@@ -546,7 +546,7 @@ type DB_Column
 
        Returns a column with boolean values indicating whether values of this
        column fit between the lower and upper bounds (both ends inclusive).
-    between self (lower : DB_Column | Any) (upper : DB_Column | Any) -> DB_Column = 
+    between self (lower : DB_Column | Any) (upper : DB_Column | Any) -> DB_Column =
         Value_Type.expect_comparable self lower <|
             Value_Type.expect_comparable self upper <|
                 new_name = self.naming_helper.concat <|
@@ -573,7 +573,7 @@ type DB_Column
          `Arithmetic_Overflow` warning. The behaviour in Database backends is
          not specified and will depend on the particular database - it may
          cause a hard error, the value may be truncated or wrap-around etc.
-    + self (other : DB_Column | Any) -> DB_Column = 
+    + self (other : DB_Column | Any) -> DB_Column =
         new_name = self.naming_helper.binary_operation_name "+" self other
         case Value_Type_Helpers.resolve_addition_kind self other of
             Value_Type_Helpers.Addition_Kind.Numeric_Add ->
@@ -603,7 +603,7 @@ type DB_Column
          `Arithmetic_Overflow` warning. The behaviour in Database backends is
          not specified and will depend on the particular database - it may
          cause a hard error, the value may be truncated or wrap-around etc.
-    - self (other : DB_Column | Any) -> DB_Column = 
+    - self (other : DB_Column | Any) -> DB_Column =
         case Value_Type_Helpers.resolve_subtraction_kind self other of
             Value_Type_Helpers.Subtraction_Kind.Numeric_Subtract ->
                 self.make_binary_op "-" other
@@ -631,7 +631,7 @@ type DB_Column
          `Arithmetic_Overflow` warning. The behaviour in Database backends is
          not specified and will depend on the particular database - it may
          cause a hard error, the value may be truncated or wrap-around etc.
-    * self (other : DB_Column | Any) -> DB_Column = 
+    * self (other : DB_Column | Any) -> DB_Column =
         Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op "*" other
 
@@ -675,7 +675,7 @@ type DB_Column
              import Standard.Examples
 
              example_div = Examples.integer_column / 10
-    / self (other : DB_Column | Any) -> DB_Column = 
+    / self (other : DB_Column | Any) -> DB_Column =
         Value_Type_Helpers.check_binary_numeric_op self other <|
             other_is_decimal = case other of
                 _ : DB_Column -> other.value_type.is_decimal
@@ -716,7 +716,7 @@ type DB_Column
              import Standard.Examples
 
              example_mod = Examples.integer_column % 3
-    % self (other : DB_Column | Any) -> DB_Column = 
+    % self (other : DB_Column | Any) -> DB_Column =
         Value_Type_Helpers.check_binary_numeric_op self other <|
             other_type = Value_Type_Helpers.find_argument_type other
             # Different implementation may be used for integer types.
@@ -759,7 +759,7 @@ type DB_Column
              import Standard.Examples
 
              example_div = Examples.decimal_column ^ Examples.integer_column
-    ^ self (other : DB_Column | Any) -> DB_Column = 
+    ^ self (other : DB_Column | Any) -> DB_Column =
         Value_Type_Helpers.check_binary_numeric_op self other <|
             self.make_binary_op '^' other
 
@@ -775,7 +775,7 @@ type DB_Column
        `other` and each element of `self`.  If `other` is a column, the
        operation is performed pairwise between corresponding elements of `self`
        and `other`.
-    && self (other : DB_Column | Any) -> DB_Column = 
+    && self (other : DB_Column | Any) -> DB_Column =
         Value_Type_Helpers.check_binary_boolean_op self other <|
             new_name = self.naming_helper.binary_operation_name "&&" self other
             self.make_binary_op "AND" other new_name
@@ -792,7 +792,7 @@ type DB_Column
        `other` and each element of `self`.  If `other` is a column, the
        operation is performed pairwise between corresponding elements of `self`
        and `other`.
-    || self (other : DB_Column | Any) -> DB_Column = 
+    || self (other : DB_Column | Any) -> DB_Column =
         Value_Type_Helpers.check_binary_boolean_op self other <|
             new_name = self.naming_helper.binary_operation_name "||" self other
             self.make_binary_op "OR" other new_name
@@ -800,7 +800,7 @@ type DB_Column
     ## GROUP Standard.Base.Logical
        ICON operators
        Boolean negation of each element in this column.
-    not self -> DB_Column = 
+    not self -> DB_Column =
         Value_Type.expect_boolean self <|
             new_name = self.naming_helper.concat ["not", self.naming_helper.to_expression_text self]
             self.make_unary_op "NOT" new_name
@@ -815,7 +815,7 @@ type DB_Column
        Arguments:
        - when_true: value or column when `self` is `True`.
        - when_false: value or column when `self` is `False`.
-    iif self when_true:Any when_false:Any -> DB_Column = 
+    iif self when_true:Any when_false:Any -> DB_Column =
         Value_Type.expect_boolean self <|
             common_type = Value_Type_Helpers.find_common_type_for_arguments [when_true, when_false]
             common_type.if_not_error <|
@@ -883,7 +883,7 @@ type DB_Column
              import Standard.Examples
 
              example_round = Examples.decimal_column.round 2
-    round self decimal_places:Integer=0 use_bankers:Boolean=False -> DB_Column | Illegal_Argument | Invalid_Value_Type = 
+    round self decimal_places:Integer=0 use_bankers:Boolean=False -> DB_Column | Illegal_Argument | Invalid_Value_Type =
         Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
             if self.should_use_builtin_round decimal_places use_bankers then self.round_builtin decimal_places use_bankers else
                 self.short_circuit_special_floating_point <|
@@ -1009,7 +1009,7 @@ type DB_Column
              import Standard.Examples
 
              example_truncate = Examples.decimal_column.truncate
-    truncate self -> DB_Column ! Invalid_Value_Type = 
+    truncate self -> DB_Column ! Invalid_Value_Type =
         new_name = self.naming_helper.function_name "truncate" [self]
         precise_value_type = self.inferred_precise_value_type
         case precise_value_type.is_numeric of
@@ -1040,7 +1040,7 @@ type DB_Column
              import Standard.Examples
 
              example_ceil = Examples.decimal_column.ceil
-    ceil self -> DB_Column ! Invalid_Value_Type = 
+    ceil self -> DB_Column ! Invalid_Value_Type =
         Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
             new_name = self.naming_helper.function_name "ceil" [self]
             self.make_unary_op "CEIL" new_name
@@ -1059,7 +1059,7 @@ type DB_Column
              import Standard.Examples
 
              example_floor = Examples.decimal_column.floor
-    floor self -> DB_Column ! Invalid_Value_Type = 
+    floor self -> DB_Column ! Invalid_Value_Type =
         Value_Type.expect_numeric self <| self.short_circuit_special_floating_point <|
             new_name = self.naming_helper.function_name "floor" [self]
             self.make_unary_op "FLOOR" new_name
@@ -1094,7 +1094,7 @@ type DB_Column
              import Standard.Examples
 
              example_coalesce = Examples.decimal_column.coalesce Examples.integer_column
-    coalesce self (values : Any | Vector Any) -> DB_Column = 
+    coalesce self (values : Any | Vector Any) -> DB_Column =
         vec = Vector.unify_vector_or_element values
         args_with_self = [self]+vec
         common_type = Value_Type_Helpers.find_common_type_for_arguments args_with_self
@@ -1117,7 +1117,7 @@ type DB_Column
              import Standard.Examples
 
              example_min = Examples.decimal_column.min Examples.integer_column
-    min self (values : Any | Vector Any) -> DB_Column = 
+    min self (values : Any | Vector Any) -> DB_Column =
         Value_Type_Helpers.check_multi_argument_comparable_op self values <|
             args = Vector.unify_vector_or_element values
             new_name = self.naming_helper.function_name "min" [self]+args
@@ -1137,7 +1137,7 @@ type DB_Column
              import Standard.Examples
 
              example_max = Examples.decimal_column.max Examples.integer_column
-    max self (values : Any | Vector Any) -> DB_Column = 
+    max self (values : Any | Vector Any) -> DB_Column =
         Value_Type_Helpers.check_multi_argument_comparable_op self values <|
             args = Vector.unify_vector_or_element values
             new_name = self.naming_helper.function_name "max" [self]+args
@@ -1147,7 +1147,7 @@ type DB_Column
        ICON preparation
        Returns a column of booleans, with `True` items at the positions where
        this column contains a `Nothing`.
-    is_nothing self -> DB_Column = 
+    is_nothing self -> DB_Column =
         new_name = self.naming_helper.concat [self.naming_helper.to_expression_text self, "is Nothing"]
         self.make_unary_op "IS_NULL" new_name
 
@@ -1196,7 +1196,7 @@ type DB_Column
              import Standard.Examples
 
              example_is_present = Examples.decimal_column.is_present
-    is_present self -> DB_Column = 
+    is_present self -> DB_Column =
         new_name = self.naming_helper.function_name "is_present" [self]
         self.is_nothing.not . rename new_name
 
@@ -1244,7 +1244,7 @@ type DB_Column
 
              example_fill_nothing = Examples.decimal_column.fill_nothing 20.5
     @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=self.value_type)
-    fill_nothing self (default : DB_Column | Previous_Value | Any) -> DB_Column = 
+    fill_nothing self (default : DB_Column | Previous_Value | Any) -> DB_Column =
         if Previous_Value == default then Error.throw (Unsupported_Database_Operation.Error "Previous_Value argument") else
             common_type = Value_Type_Helpers.find_common_type_for_arguments [self, default]
             common_type.if_not_error <|
@@ -1272,7 +1272,7 @@ type DB_Column
 
              example_fill_empty = Examples.text_column_1.fill_empty "hello"
     @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=Value_Type.Char add_nothing=True)
-    fill_empty self (default : DB_Column | Previous_Value | Any) -> DB_Column = 
+    fill_empty self (default : DB_Column | Previous_Value | Any) -> DB_Column =
         if Previous_Value == default then Error.throw (Unsupported_Database_Operation.Error "The Previous_Value argument") else
             Value_Type.expect_text self <| Value_Type.expect_text default <|
                 result = self.is_empty.iif default self
@@ -1292,7 +1292,7 @@ type DB_Column
        - - ..Closest_Value - If n is negative the first value gets used, if n is negative the last value gets used.
        - - ..Wrap_Around - In this mode values that slide off the top or bottom reappear at the other end. So no values get lost they are just rotated.
     @n (self-> Numeric_Input minimum=0-self.length maximum=self.length-1)
-    offset self n=-1:Integer fill_with:Fill_With=..Nothing -> Column = 
+    offset self n=-1:Integer fill_with:Fill_With=..Nothing -> Column =
         _ = [n, fill_with]
         Error.throw (Unsupported_Database_Operation.Error "offset")
 
@@ -1332,7 +1332,7 @@ type DB_Column
        > Example
          Sorting `column` in descending order.
              column.sort Sort_Direction.Descending
-    sort self order:Sort_Direction=..Ascending -> DB_Column = 
+    sort self order:Sort_Direction=..Ascending -> DB_Column =
         self.to_table.sort [..Index 0 order] . at 0
 
     ## ALIAS first, head, keep, last, limit, sample, slice, tail, top
@@ -1370,7 +1370,7 @@ type DB_Column
        corresponding elements of `self` and `other`.  If the argument is a
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
-    starts_with self (other : DB_Column | Text) case_sensitivity:Case_Sensitivity=..Default -> DB_Column = 
+    starts_with self (other : DB_Column | Text) case_sensitivity:Case_Sensitivity=..Default -> DB_Column =
         new_name = self.naming_helper.function_name "starts_with" [self, other]
         make_text_case_op self "STARTS_WITH" other case_sensitivity new_name
 
@@ -1387,7 +1387,7 @@ type DB_Column
        corresponding elements of `self` and `other`.  If the argument is a
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
-    ends_with self (other : DB_Column | Text) case_sensitivity:Case_Sensitivity=..Default -> DB_Column = 
+    ends_with self (other : DB_Column | Text) case_sensitivity:Case_Sensitivity=..Default -> DB_Column =
         new_name = self.naming_helper.function_name "ends_with" [self, other]
         make_text_case_op self "ENDS_WITH" other case_sensitivity new_name
 
@@ -1405,7 +1405,7 @@ type DB_Column
 
              example_text_length =
                 Examples.text_column_1.text_length
-    text_length self -> DB_Column = 
+    text_length self -> DB_Column =
         Value_Type.expect_text self <|
             new_name = self.naming_helper.function_name "text_length" [self]
             self.make_unary_op "LENGTH" new_name
@@ -1424,7 +1424,7 @@ type DB_Column
 
              example_text_length =
                 Examples.text_column_1.text_left 5
-    text_left self n:DB_Column|Integer -> DB_Column = 
+    text_left self n:DB_Column|Integer -> DB_Column =
         Value_Type.expect_text self <| Helpers.expect_dialect_specific_integer_type self n <|
             n2 = n.max 0
             new_name = self.naming_helper.function_name "text_left" [self, n]
@@ -1444,7 +1444,7 @@ type DB_Column
 
              example_text_length =
                 Examples.text_column_1.text_right 5
-    text_right self n:DB_Column|Integer -> DB_Column = 
+    text_right self n:DB_Column|Integer -> DB_Column =
         Value_Type.expect_text self <| Helpers.expect_dialect_specific_integer_type self n <|
             n2 = n.max 0
             new_name = self.naming_helper.function_name "text_right" [self, n]
@@ -1463,7 +1463,7 @@ type DB_Column
        corresponding elements of `self` and `other`.  If the argument is a
        missing value (a Nothing or a column with missing values), the behaviour
        on these missing values is vendor specific.
-    contains self (other : DB_Column | Text) case_sensitivity:Case_Sensitivity=..Default -> DB_Column = 
+    contains self (other : DB_Column | Text) case_sensitivity:Case_Sensitivity=..Default -> DB_Column =
         new_name = self.naming_helper.function_name "contains" [self, other]
         make_text_case_op self "CONTAINS" other case_sensitivity new_name
 
@@ -1484,7 +1484,7 @@ type DB_Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.like "F%."
-    like self (pattern : DB_Column | Text) -> DB_Column = 
+    like self (pattern : DB_Column | Text) -> DB_Column =
         Value_Type.expect_text self <|
             Value_Type.expect_text pattern <|
                 new_name = self.naming_helper.binary_operation_name "like" self pattern
@@ -1500,7 +1500,7 @@ type DB_Column
          function trims both ends of the input.
        - what: A `Text` (or text `DB_Column`) containing characters that should be
          removed. By default, spaces, tabs, returns and new lines are removed.
-    trim self where:Location=..Both (what : DB_Column | Text = '') -> DB_Column = 
+    trim self where:Location=..Both (what : DB_Column | Text = '') -> DB_Column =
         Value_Type.expect_text self <| Value_Type.expect_text what <|
             new_name = self.naming_helper.function_name "trim" [self]
             operator = case where of
@@ -1586,7 +1586,7 @@ type DB_Column
              column.text_replace '"(.*?)"'.to_regex '($1)'
     @term make_regex_text_widget
     @new_text (Text_Input display=..Always)
-    text_replace self (term : Text | Regex | DB_Column = "") (new_text : Text | DB_Column = "") case_sensitivity:Case_Sensitivity=..Default only_first:Boolean=False -> DB_Column ! Unsupported_Database_Operation = 
+    text_replace self (term : Text | Regex | DB_Column = "") (new_text : Text | DB_Column = "") case_sensitivity:Case_Sensitivity=..Default only_first:Boolean=False -> DB_Column ! Unsupported_Database_Operation =
         Value_Type.expect_text self <| case_sensitivity.disallow_non_default_locale <|
             input_type = Meta.type_of term
             params = Replace_Params.Value input_type case_sensitivity only_first
@@ -1624,7 +1624,7 @@ type DB_Column
 
              column.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
     @remove make_data_cleanse_vector_selector
-    text_cleanse self (remove : Vector Named_Pattern) -> DB_Column ! Unsupported_Database_Operation = 
+    text_cleanse self (remove : Vector Named_Pattern) -> DB_Column ! Unsupported_Database_Operation =
       remove.map (Text_Cleanse.Value _) . fold self (current-> tc-> tc.apply current)
 
     ## GROUP Standard.Base.DateTime
@@ -1709,7 +1709,7 @@ type DB_Column
 
        Returns a column of `Integer` type.
     @period Date_Time_Helpers.make_period_selector_for_column
-    date_part self (period : Date_Period | Time_Period) -> DB_Column ! Invalid_Value_Type | Illegal_Argument = 
+    date_part self (period : Date_Period | Time_Period) -> DB_Column ! Invalid_Value_Type | Illegal_Argument =
         Date_Time_Helpers.make_date_part_function self period (column->op_name-> column.make_unary_op op_name) self.naming_helper
 
     ## GROUP Standard.Base.DateTime
@@ -1737,7 +1737,7 @@ type DB_Column
          differences in time calculations between backends, especially around
          unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
-    date_diff self (end : DB_Column | Date | Date_Time | Time_Of_Day) (period : Date_Period | Time_Period = Date_Period.Day) -> DB_Column ! Invalid_Value_Type | Illegal_Argument = 
+    date_diff self (end : DB_Column | Date | Date_Time | Time_Of_Day) (period : Date_Period | Time_Period = Date_Period.Day) -> DB_Column ! Invalid_Value_Type | Illegal_Argument =
         Value_Type.expect_type self .is_date_or_time "date/time" <|
             my_type = self.inferred_precise_value_type
             Value_Type.expect_type end (== my_type) my_type.to_display_text <|
@@ -1767,7 +1767,7 @@ type DB_Column
          differences in time calculations between backends, especially around
          unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
-    date_add self (amount : DB_Column | Integer) (period : Date_Period | Time_Period = default_date_period self) -> DB_Column ! Invalid_Value_Type | Illegal_Argument = 
+    date_add self (amount : DB_Column | Integer) (period : Date_Period | Time_Period = default_date_period self) -> DB_Column ! Invalid_Value_Type | Illegal_Argument =
         Value_Type.expect_type self .is_date_or_time "date/time" <|
             my_type = self.inferred_precise_value_type
             Helpers.expect_dialect_specific_integer_type self amount <|
@@ -1793,7 +1793,7 @@ type DB_Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.is_in [1, 2, 5]
-    is_in self (vector : DB_Column | Vector) -> DB_Column = 
+    is_in self (vector : DB_Column | Vector) -> DB_Column =
         new_name = self.naming_helper.binary_operation_name "in" self vector
         case vector of
             _ : Vector ->
@@ -1859,7 +1859,7 @@ type DB_Column
            error is reported.
     @type (Widget_Helpers.parse_type_selector include_auto=False)
     @format (make_format_chooser include_number=False)
-    parse self (type : Value_Type | Auto) (format : Text | Data_Formatter = "") on_problems:Problem_Behavior=..Report_Warning -> DB_Column = 
+    parse self (type : Value_Type | Auto) (format : Text | Data_Formatter = "") on_problems:Problem_Behavior=..Report_Warning -> DB_Column =
         if type == Auto then Error.throw (Unsupported_Database_Operation.Error "`Auto` parse type") else
             if format != "" then Error.throw (Unsupported_Database_Operation.Error "Custom formatting") else
                 if self.value_type.is_same_type type then self else
@@ -1875,7 +1875,7 @@ type DB_Column
        Formatting values is not supported in database columns.
     @locale Locale.default_widget
     @format (self-> Widget_Helpers.make_format_chooser_for_type self.value_type)
-    format self (format : Text | Date_Time_Formatter | DB_Column = "") locale:Locale=Locale.default -> DB_Column ! Illegal_Argument = 
+    format self (format : Text | Date_Time_Formatter | DB_Column = "") locale:Locale=Locale.default -> DB_Column ! Illegal_Argument =
         _ = [format, locale]
         Error.throw <| Unsupported_Database_Operation.Error "format"
 
@@ -1927,7 +1927,7 @@ type DB_Column
          The `parse` method should be used to convert text values into other
          types. Due to this, a Mixed column containing values `[2, "3"]` will
          actually be converted into `[2, Nothing]` when casting to Integer type.
-    cast self value_type:Value_Type on_problems:Problem_Behavior=..Report_Warning -> DB_Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure = 
+    cast self value_type:Value_Type on_problems:Problem_Behavior=..Report_Warning -> DB_Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure =
         check_cast_compatibility self.value_type value_type <|
             self.internal_do_cast value_type on_problems
 
@@ -1938,7 +1938,7 @@ type DB_Column
        contents.
 
        This operation is currently not available in the Database backend.
-    auto_cast self shrink_types:Boolean=False -> DB_Column = 
+    auto_cast self shrink_types:Boolean=False -> DB_Column =
         _ = shrink_types
         Error.throw <| Unsupported_Database_Operation.Error "auto_cast"
 
@@ -1984,7 +1984,7 @@ type DB_Column
              import Standard.Examples
 
              example_map = Examples.integer_column.map (x -> x * x)
-    map self (function : Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) -> DB_Column ! Invalid_Value_Type = 
+    map self (function : Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) -> DB_Column ! Invalid_Value_Type =
         _ = [function, skip_nothing, expected_value_type]
         Error.throw <| Unsupported_Database_Operation.Error "map"
 
@@ -2023,7 +2023,7 @@ type DB_Column
 
              example_zip =
                 Examples.integer_column.zip Examples.text_column_1 [_, _]
-    zip self that:DB_Column (function : Any -> Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) -> DB_Column ! Invalid_Value_Type = 
+    zip self that:DB_Column (function : Any -> Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) -> DB_Column ! Invalid_Value_Type =
         _ = [that, function, skip_nothing, expected_value_type]
         Error.throw <| Unsupported_Database_Operation.Error "zip"
 
