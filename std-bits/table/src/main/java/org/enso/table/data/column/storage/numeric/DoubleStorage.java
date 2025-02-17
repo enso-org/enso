@@ -37,8 +37,8 @@ import org.graalvm.polyglot.Value;
 /** A column containing floating point numbers. */
 public final class DoubleStorage extends Storage<Double>
     implements ColumnDoubleStorage, ColumnStorageWithNothingMap {
-  private final double[] data;
-  private final BitSet isNothing;
+  final double[] data;
+  final BitSet isNothing;
   private final int size;
   private static final MapOperationStorage<Double, DoubleStorage> ops = buildOps();
 
@@ -457,6 +457,88 @@ public final class DoubleStorage extends Storage<Double>
       }
       index++;
       return true;
+    }
+
+    @Override
+    public void zip(ColumnDoubleStorage otherStorage, DoubleDoubleZipper zipper) {
+      Context context = Context.getCurrent();
+      var otherSize = otherStorage.getSize();
+      var toCount = Math.max(size, otherSize);
+
+      if (otherStorage instanceof DoubleStorage doubleStorage) {
+        for (int i = 0; i < toCount; i++) {
+          boolean isNothing1 = i >= size || isNothing.get(i);
+          double value1 = isNothing1 ? Double.NaN : data[i];
+          boolean isNothing2 = i >= otherSize || doubleStorage.isNothing.get(i);
+          double value2 = isNothing2 ? Double.NaN : doubleStorage.data[i];
+          zipper.accept(i, value1, isNothing1, value2, isNothing2);
+          context.safepoint();
+        }
+      } else {
+        int minSize = (int)Math.min(size, otherSize);
+        for (int i = 0; i < minSize; i++) {
+          boolean isNothing1 = i >= size || isNothing.get(i);
+          double value1 = isNothing1 ? 0 : data[i];
+          boolean isNothing2 = otherStorage.isNothing(i);
+          if (isNothing2) {
+            zipper.accept(i, value1, isNothing1, Double.NaN, true);
+          } else {
+            zipper.accept(i, value1, isNothing1, otherStorage.getItemAsDouble(i), false);
+          }
+          context.safepoint();
+        }
+
+        for (long i = minSize; i < toCount; i++) {
+          var isNothing2 = otherStorage.isNothing(i);
+          if (isNothing2) {
+            zipper.accept(i, 0, true, Double.NaN, true);
+          } else {
+            zipper.accept(i, 0, true, otherStorage.getItemAsDouble(i), false);
+          }
+          context.safepoint();
+        }
+      }
+    }
+
+    @Override
+    public void zip(ColumnLongStorage otherStorage, DoubleLongZipper zipper) {
+      Context context = Context.getCurrent();
+      var otherSize = otherStorage.getSize();
+      var toCount = Math.max(size, otherSize);
+
+      if (otherStorage instanceof LongStorage longStorage) {
+        for (int i = 0; i < toCount; i++) {
+          boolean isNothing1 = i >= size || isNothing.get(i);
+          double value1 = isNothing1 ? Double.NaN : data[i];
+          boolean isNothing2 = i >= otherSize || longStorage.isNothing.get(i);
+          long value2 = isNothing2 ? 0 : longStorage.data[i];
+          zipper.accept(i, value1, isNothing1, value2, isNothing2);
+          context.safepoint();
+        }
+      } else {
+        int minSize = (int)Math.min(size, otherSize);
+        for (int i = 0; i < minSize; i++) {
+          boolean isNothing1 = i >= size || isNothing.get(i);
+          double value1 = isNothing1 ? 0 : data[i];
+          var isNothing2 = otherStorage.isNothing(i);
+          if (isNothing2) {
+            zipper.accept(i, value1, isNothing1, 0, true);
+          } else {
+            zipper.accept(i, value1, isNothing1, otherStorage.getItemAsLong(i), false);
+          }
+          context.safepoint();
+        }
+
+        for (long i = minSize; i < toCount; i++) {
+          var isNothing2 = otherStorage.isNothing(i);
+          if (isNothing2) {
+            zipper.accept(i, 0, true, 0, true);
+          } else {
+            zipper.accept(i, 0, true, otherStorage.getItemAsLong(i), false);
+          }
+          context.safepoint();
+        }
+      }
     }
   }
 }

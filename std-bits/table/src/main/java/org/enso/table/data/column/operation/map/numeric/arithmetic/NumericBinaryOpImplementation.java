@@ -122,16 +122,14 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
         case BigIntegerStorage rhs -> runDoubleZip(
             lhs, DoubleStorageFacade.forBigInteger(rhs), problemAggregator);
         case ColumnDoubleStorage rhs -> runDoubleZip(lhs, rhs, problemAggregator);
-        case ColumnLongStorage rhs -> runDoubleZip(
-            lhs, DoubleStorageFacade.forLong(rhs), problemAggregator);
+        case ColumnLongStorage rhs -> runDoubleLongZip(lhs, rhs, problemAggregator);
         default -> throw newUnsupported(arg);
       };
     } else if (storage instanceof ColumnLongStorage lhs) {
       return switch (arg) {
         case BigDecimalStorage rhs -> runBigDecimalZip(asBigDecimal(lhs), rhs, problemAggregator);
         case BigIntegerStorage rhs -> runBigIntegerZip(asBigInteger(lhs), rhs, problemAggregator);
-        case ColumnDoubleStorage rhs -> runDoubleZip(
-            DoubleStorageFacade.forLong(lhs), rhs, problemAggregator);
+        case ColumnDoubleStorage rhs -> runLongDoubleZip(lhs, rhs, problemAggregator);
         case ColumnLongStorage rhs -> runLongZip(lhs, rhs, problemAggregator);
         default -> throw newUnsupported(arg);
       };
@@ -183,6 +181,20 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
     return (Storage<Double>) result;
   }
 
+  protected Storage<Double> runDoubleLongZip(
+      ColumnDoubleStorage a, ColumnLongStorage b, MapOperationProblemAggregator problemAggregator) {
+    var result =
+        StorageIterators.zipOverDoubleLongStorages(
+            a,
+            b,
+            s -> Builder.getForDouble(FloatType.FLOAT_64, s, problemAggregator),
+            true,
+            (index, value1, isNothing1, value2, isNothing2) ->
+                doDouble(value1, value2, index, problemAggregator));
+    // ToDo: Merge Storage and ColumnStorage
+    return (Storage<Double>) result;
+  }
+
   protected Storage<Double> runDoubleLongMap(
       ColumnLongStorage a, Double b, MapOperationProblemAggregator problemAggregator) {
     var result =
@@ -190,7 +202,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
             a,
             Builder.getForDouble(FloatType.FLOAT_64, a.getSize(), problemAggregator),
             (builder, index, value, isNothing) ->
-                builder.append(doDouble((double) value, b, index, problemAggregator)));
+                builder.appendDouble(doDouble(value, b, index, problemAggregator)));
     // ToDo: Merge Storage and ColumnStorage
     return (Storage<Double>) result;
   }
@@ -202,7 +214,7 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
             a,
             Builder.getForDouble(FloatType.FLOAT_64, a.getSize(), problemAggregator),
             (builder, index, value, isNothing) ->
-                builder.append(doDouble(value, b, index, problemAggregator)));
+                builder.appendDouble(doDouble(value, b, index, problemAggregator)));
     // ToDo: Merge Storage and ColumnStorage
     return (Storage<Double>) result;
   }
@@ -219,6 +231,20 @@ public abstract class NumericBinaryOpImplementation<T extends Number, I extends 
                 doLong(value1, value2, index, problemAggregator));
     // ToDo: Merge Storage and ColumnStorage
     return (Storage<Long>) result;
+  }
+
+  protected Storage<Double> runLongDoubleZip(
+      ColumnLongStorage a, ColumnDoubleStorage b, MapOperationProblemAggregator problemAggregator) {
+    var result =
+        StorageIterators.zipOverLongDoubleStorages(
+            a,
+            b,
+            s -> Builder.getForDouble(FloatType.FLOAT_64, s, problemAggregator),
+            true,
+            (index, value1, isNothing1, value2, isNothing2) ->
+                doDouble(value1, value2, index, problemAggregator));
+    // ToDo: Merge Storage and ColumnStorage
+    return (Storage<Double>) result;
   }
 
   protected Storage<Long> runLongMap(

@@ -178,16 +178,14 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
         case BigIntegerStorage rhs -> runDoubleZip(
             lhs, DoubleStorageFacade.forBigInteger(rhs), problemAggregator);
         case ColumnDoubleStorage rhs -> runDoubleZip(lhs, rhs, problemAggregator);
-        case ColumnLongStorage rhs -> runDoubleZip(
-            lhs, DoubleStorageFacade.forLong(rhs), problemAggregator);
+        case ColumnLongStorage rhs -> runDoubleLongZip(lhs, rhs, problemAggregator);
         default -> runMixedZip(storage, arg, problemAggregator);
       };
     } else if (storage instanceof ColumnLongStorage lhs) {
       return switch (arg) {
         case BigDecimalStorage rhs -> runBigDecimalZip(asBigDecimal(lhs), rhs, problemAggregator);
         case BigIntegerStorage rhs -> runBigIntegerZip(asBigInteger(lhs), rhs, problemAggregator);
-        case ColumnDoubleStorage rhs -> runDoubleZip(
-            DoubleStorageFacade.forLong(lhs), rhs, problemAggregator);
+        case ColumnDoubleStorage rhs -> runLongDoubleZip(lhs, rhs, problemAggregator);
         case ColumnLongStorage rhs -> runLongZip(lhs, rhs, problemAggregator);
         default -> runMixedZip(storage, arg, problemAggregator);
       };
@@ -226,12 +224,38 @@ public abstract class NumericComparison<T extends Number, I extends Storage<? su
     return (Storage<Boolean>) result;
   }
 
+  protected Storage<Boolean> runLongDoubleZip(
+      ColumnLongStorage a, ColumnDoubleStorage b, MapOperationProblemAggregator problemAggregator) {
+    var result =
+        StorageIterators.zipOverLongDoubleStorages(
+            a,
+            b,
+            Builder::getForBoolean,
+            true,
+            (index, x, xIsNothing, y, yIsNothing) -> doDouble(x, y));
+    // ToDo: Merge Storage and ColumnStorage
+    return (Storage<Boolean>) result;
+  }
+
   protected Storage<Boolean> runDoubleZip(
       ColumnDoubleStorage a,
       ColumnDoubleStorage b,
       MapOperationProblemAggregator problemAggregator) {
     var result =
         StorageIterators.zipOverDoubleStorages(
+            a,
+            b,
+            Builder::getForBoolean,
+            true,
+            (index, x, xIsNothing, y, yIsNothing) -> doDouble(x, y));
+    // ToDo: Merge Storage and ColumnStorage
+    return (Storage<Boolean>) result;
+  }
+
+  protected Storage<Boolean> runDoubleLongZip(
+      ColumnDoubleStorage a, ColumnLongStorage b, MapOperationProblemAggregator problemAggregator) {
+    var result =
+        StorageIterators.zipOverDoubleLongStorages(
             a,
             b,
             Builder::getForBoolean,

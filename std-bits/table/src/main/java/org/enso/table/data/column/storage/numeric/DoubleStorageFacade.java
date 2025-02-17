@@ -8,30 +8,13 @@ import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.StorageType;
 
 /** A facade for a column storage that converts the stored type to a double. */
-public class DoubleStorageFacade<T> implements ColumnDoubleStorage {
+public final class DoubleStorageFacade<T> implements ColumnDoubleStorage {
   private final ColumnStorage<T> parent;
   private final ToDoubleFunction<T> converter;
 
   public DoubleStorageFacade(ColumnStorage<T> parent, ToDoubleFunction<T> converter) {
     this.parent = parent;
     this.converter = converter;
-  }
-
-  public static ColumnDoubleStorage forLong(ColumnLongStorage parent) {
-    return new DoubleStorageFacade<>(parent, Long::doubleValue) {
-      @Override
-      public double getItemAsDouble(long index) throws ValueIsNothingException {
-        return (double) parent.getItemAsLong(index);
-      }
-
-      @Override
-      public Double getItemBoxed(long index) {
-        if (isNothing(index)) {
-          return null;
-        }
-        return getItemAsDouble(index);
-      }
-    };
   }
 
   public static ColumnDoubleStorage forBigInteger(ColumnStorage<BigInteger> parent) {
