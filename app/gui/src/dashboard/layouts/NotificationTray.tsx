@@ -1,8 +1,8 @@
 /** @file A tray for displaying notifications. */
 import InboxIcon from '#/assets/inbox.svg'
-import InboxWithNotificationIcon from '#/assets/inbox_with_notification.svg'
-import { Button, Popover, Text } from '#/components/AriaComponents'
+import { Button, Popover, StatusBadge, Text } from '#/components/AriaComponents'
 import { Result } from '#/components/Result'
+import SvgMask from '#/components/SvgMask'
 import { DialogTrigger, GridList, GridListItem } from '#/components/aria'
 import { NotificationItem } from '#/layouts/NotificationTray/components/NotificationItem'
 import { useComputedNotifications } from '#/layouts/NotificationTray/computedNotificationHooks'
@@ -32,9 +32,9 @@ export function NotificationTray() {
       <Button
         variant="icon"
         icon={
-          hasUnreadNotifications ?
-            <img src={InboxWithNotificationIcon} className="opacity-60" />
-          : InboxIcon
+          <StatusBadge color="danger" hidden={!hasUnreadNotifications}>
+            <SvgMask className="size-4" src={InboxIcon} />
+          </StatusBadge>
         }
       />
       <NotificationTrayDialog
