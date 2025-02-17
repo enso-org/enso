@@ -270,8 +270,6 @@ function createRowServer() {
       const sortCol = request.sortModel[0]?.colId
       const columnIndex = props.data.header.findIndex((h: string) => sortCol === h) 
       const sortDir = sortDirectionMap.value[request.sortModel[0]?.sort as SortDirection]
-      console.log({sortCol})
-      console.log({sortDir})
       const response = await config.executeExpression(
         'Standard.Visualization.Table.Visualization',
         'get_rows_for_table',
@@ -279,7 +277,6 @@ function createRowServer() {
         `${columnIndex === -1 ? 'Nothing' : columnIndex}`,
         `${sortDir ?? 'Nothing'}`
       )
-      console.log({response})
       return {
         success: true,
         data: response.value.rows,
@@ -295,7 +292,6 @@ function createServerSideDatasource(): IServerSideDatasource {
   return {
     getRows: async (params) => {
       const server = createRowServer()
-      console.log(params.request)
       const response: Response = await server.getData(params.request)
       const startIndex = params.request.startRow ? params.request.startRow : 0
       const rows = createRowsForTable(response.data, startIndex, 1)
