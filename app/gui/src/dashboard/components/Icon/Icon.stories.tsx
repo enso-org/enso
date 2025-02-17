@@ -1,3 +1,4 @@
+import { StatusBadge } from '#/components/AriaComponents'
 import { iconNames } from '@/util/iconMetadata/iconName'
 import type { Meta, StoryObj } from '@storybook/react'
 import { Text } from '../AriaComponents/Text'
@@ -112,6 +113,25 @@ export const AvailableIcons: Story = {
         {iconNames.map((icon) => (
           <div key={icon} className="flex flex-col items-center gap-2">
             <Icon key={icon} icon={icon} />
+            <Text variant="caption">{icon}</Text>
+          </div>
+        ))}
+      </div>
+    </div>
+  ),
+}
+
+export const AvailableIconsWithStatusBadge: Story = {
+  render: () => (
+    <div className="flex flex-col gap-2 pb-24">
+      <Text.Heading className="mb-3">Available Icons</Text.Heading>
+
+      <div className="grid grid-cols-9 items-center gap-4">
+        {iconNames.map((icon) => (
+          <div key={icon} className="flex flex-col items-center gap-2">
+            <StatusBadge color="danger">
+              <Icon key={icon} icon={icon} />
+            </StatusBadge>
             <Text variant="caption">{icon}</Text>
           </div>
         ))}
