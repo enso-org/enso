@@ -17,6 +17,7 @@ const DAILY_EXECUTION: ProjectExecutionInfo = {
   startDate: toRfc3339(
     new ZonedDateTime(2000, 1, 1, TIME_ZONE, TIME_ZONE_WINTER_OFFSET, 7, 3).toDate(),
   ),
+  endDate: null,
   timeZone: 'UTC',
   maxDurationMinutes: 60,
   parallelMode: 'ignore',
