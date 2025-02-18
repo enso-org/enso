@@ -358,6 +358,7 @@
   "downloadFiles": "Download",
   "newDatalink": "New Datalink",
   "newCredential": "New Credential",
+  "editCredential": "Edit Credential",
   "newSecret": "New Secret",
   "newLabel": "New Label",
   "newEmptyProject": "New Project",

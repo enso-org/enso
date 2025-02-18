@@ -42,6 +42,7 @@ import {
 } from '#/layouts/CategorySwitcher/Category'
 import StartModal from '#/layouts/StartModal'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
+import UpsertCredentialModal from '#/modals/UpsertCredentialModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import {
@@ -304,13 +305,14 @@ export default function DriveBar(props: DriveBarProps) {
                   <Button
                     variant="icon"
                     size="medium"
-                    icon={AddDatalinkIcon}
+                    icon={AddKeyIcon}
                     isDisabled={shouldBeDisabled}
-                    aria-label={getText('newDatalink')}
+                    aria-label={getText('newCredential')}
                   />
-                  <UpsertDatalinkModal
+                  <div></div>
+                  <UpsertCredentialModal
                     doCreate={async (name, value) => {
-                      await newDatalink(name, value)
+                      await newCredential(name, value)
                     }}
                   />
                 </DialogTrigger>
@@ -320,11 +322,11 @@ export default function DriveBar(props: DriveBarProps) {
                   <Button
                     variant="icon"
                     size="medium"
-                    icon={AddCredentialIcon}
+                    icon={AddDatalinkIcon}
                     isDisabled={shouldBeDisabled}
-                    aria-label={getText('newCredential')}
+                    aria-label={getText('newDatalink')}
                   />
-                  <UpsertCredentialModal
+                  <UpsertDatalinkModal
                     doCreate={async (name, value) => {
                       await newDatalink(name, value)
                     }}

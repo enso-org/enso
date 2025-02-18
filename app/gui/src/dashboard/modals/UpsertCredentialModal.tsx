@@ -1,12 +1,12 @@
-/** @file A modal for creating and editing a secret. */
+/** @file A modal for creating and editing a credential. */
 import { ButtonGroup, Dialog, DialogDismiss, Form, Input } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
-import type { SecretId } from '#/services/Backend'
+import type { CredentialId } from '#/services/Backend'
 
-/** Props for a {@link UpsertSecretModal}. */
-export interface UpsertSecretModalProps {
+/** Props for a {@link UpsertCredentialModal}. */
+export interface UpsertCredentialModalProps {
   readonly noDialog?: boolean
-  readonly id: SecretId | null
+  readonly id: CredentialId | null
   readonly name: string | null
   readonly defaultOpen?: boolean
   readonly doCreate: (name: string, value: string) => Promise<void> | void
@@ -16,13 +16,13 @@ export interface UpsertSecretModalProps {
   readonly canReset?: boolean
 }
 
-/** A modal for creating and editing a secret. */
-export default function UpsertSecretModal(props: UpsertSecretModalProps) {
+/** A modal for creating and editing a credential. */
+export default function UpsertCredentialModal(props: UpsertCredentialModalProps) {
   const { noDialog = false, id, name: nameRaw, defaultOpen, doCreate } = props
   const { canCancel = true, canReset = false } = props
   const { getText } = useText()
 
-  const isCreatingSecret = id == null
+  const isCreatingCredential = id == null
 
   const form = Form.useForm({
     method: 'dialog',
@@ -56,7 +56,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
         }
       />
       <ButtonGroup className="mt-2">
-        <Form.Submit>{isCreatingSecret ? getText('create') : getText('update')}</Form.Submit>
+        <Form.Submit>{isCreatingCredential ? getText('create') : getText('update')}</Form.Submit>
         {canCancel && <DialogDismiss />}
         {canReset && <Form.Reset>{getText('cancel')}</Form.Reset>}
       </ButtonGroup>
@@ -65,7 +65,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
 
   return noDialog ? content : (
       <Dialog
-        title={isCreatingSecret ? getText('newSecret') : getText('editSecret')}
+        title={isCreatingCredential ? getText('newCredential') : getText('editCredential')}
         modalProps={defaultOpen == null ? {} : { defaultOpen }}
         isDismissable={false}
       >
