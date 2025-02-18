@@ -108,7 +108,7 @@ public final class EnsoContext {
   private final LockManager lockManager;
   private final AtomicLong clock = new AtomicLong();
 
-  private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
+  private final Shape rootStateShape = State.newShape();
   private ExecutionEnvironment globalExecutionEnvironment;
 
   private final int warningsLimit;

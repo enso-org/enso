@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.state;
+package org.enso.interpreter.runtime.state;
 
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached.Shared;
@@ -16,7 +16,6 @@ import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "State",
@@ -26,13 +25,15 @@ import org.enso.interpreter.runtime.state.State;
     inlineable = true)
 @ReportPolymorphism
 public abstract class RunStateNode extends Node {
-  static RunStateNode build() {
+  private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
+
+  RunStateNode() {}
+
+  public static RunStateNode build() {
     return RunStateNodeGen.create();
   }
 
-  private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
-
-  abstract Object execute(
+  public abstract Object execute(
       VirtualFrame frame, Object key, Object local_state, @Suspend Object computation);
 
   final State state() {

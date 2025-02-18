@@ -15,7 +15,6 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
-import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.io.IOException;
@@ -50,6 +49,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.state.PutStateNode;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.service.error.FailedToApplyEditsException;
 import org.enso.interpreter.service.error.MethodNotFoundException;
@@ -203,8 +203,7 @@ public final class ExecutionService {
             service ->
                 service.bind(module, call.getFunction().getCallTarget(), callbacks, this.timer));
 
-    DynamicObjectLibrary.getUncached()
-        .put(call.getState().getContainer(), IdExecutionService.class, cache);
+    PutStateNode.getUncached().executePut(IdExecutionService.class, cache);
 
     Object p = context.getThreadManager().enter();
     try {
@@ -399,8 +398,7 @@ public final class ExecutionService {
         function = new FunctionCallInstrumentationNode.FunctionCall(fn, state, new Object[0]);
       }
       if (executionCache != null) {
-        DynamicObjectLibrary.getUncached()
-            .put(state.getContainer(), IdExecutionService.class, executionCache);
+        PutStateNode.getUncached().executePut(IdExecutionService.class, executionCache);
       }
 
       ret[0] = call.getCallTarget().call(function, arguments);
