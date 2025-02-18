@@ -26,7 +26,7 @@ import { toast } from 'react-toastify'
 import * as z from 'zod'
 
 import DropFilesImage from '#/assets/drop_files.svg'
-import { FileTrigger, mergeProps, usePress } from '#/components/aria'
+import { FileTrigger, mergeProps } from '#/components/aria'
 import { Button, Text } from '#/components/AriaComponents'
 import type { AssetRowInnerProps } from '#/components/dashboard/AssetRow'
 import { AssetRow } from '#/components/dashboard/AssetRow'
@@ -46,7 +46,6 @@ import Label from '#/components/dashboard/Label'
 import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { IsolateLayout } from '#/components/IsolateLayout'
 import { SelectionBrush, type OnDragParams } from '#/components/SelectionBrush'
-import { IndefiniteSpinner } from '#/components/Spinner'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
@@ -75,11 +74,7 @@ import {
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
 import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
-import {
-  canTransferBetweenCategories,
-  isLocalCategory,
-  type Category,
-} from '#/layouts/CategorySwitcher/Category'
+import { canTransferBetweenCategories, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useAssetsTableItems } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useAssetTree, type DirectoryQuery } from '#/layouts/Drive/assetTreeHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
@@ -94,14 +89,12 @@ import {
 import {
   useDriveStore,
   useNodeMap,
-  useSetCanCreateAssets,
   useSetCanDownload,
   useSetLabelsDragPayload,
   useSetNewestFolderId,
   useSetNodeMap,
   useSetPasteData,
   useSetSelectedAssets,
-  useSetTargetDirectory,
   useSetVisuallySelectedKeys,
   type SelectedAssetInfo,
 } from '#/providers/DriveProvider'
@@ -121,30 +114,27 @@ import {
   IS_OPENING_OR_OPENED,
   Plan,
   type AnyAsset,
-  type DirectoryAsset,
   type DirectoryId,
 } from '#/services/Backend'
 import type { AssetQueryKey } from '#/utilities/AssetQuery'
 import AssetQuery from '#/utilities/AssetQuery'
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import type { AnyAssetTreeNode } from '#/utilities/AssetTreeNode'
-import type { AssetRowsDragPayload } from '#/utilities/drag'
-import { ASSET_ROWS, LABELS, setDragImageToBlank } from '#/utilities/drag'
+import {
+  ASSET_ROWS,
+  LABELS,
+  setDragImageToBlank,
+  type AssetRowsDragPayload,
+} from '#/utilities/drag'
 import { fileExtension } from '#/utilities/fileInfo'
 import { noop } from '#/utilities/functions'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
-import {
-  canPermissionModifyDirectoryContents,
-  PermissionAction,
-  tryFindSelfPermission,
-} from '#/utilities/permissions'
-import { document } from '#/utilities/sanitizedEventTargets'
+import { PermissionAction } from '#/utilities/permissions'
 import { withPresence } from '#/utilities/set'
-import type { SortInfo } from '#/utilities/sorting'
-import { twJoin, twMerge } from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import invariant from 'tiny-invariant'
+import type { SortInfo } from '../utilities/sorting'
+import { twJoin, twMerge } from '../utilities/tailwindMerge'
 import {
   SUGGESTIONS_FOR_HAS,
   SUGGESTIONS_FOR_NEGATIVE_TYPE,
@@ -173,8 +163,6 @@ const MINIMUM_DROPZONE_INTERSECTION_RATIO = 0.5
  * Tailwind styling.
  */
 const ROW_HEIGHT_PX = 36
-/** The size of the loading spinner. */
-const LOADING_SPINNER_SIZE_PX = 36
 
 /** Information related to a drag selection. */
 interface DragSelectionInfo {
@@ -242,8 +230,6 @@ function AssetsTable(props: AssetsTableProps) {
   const inputBindings = useInputBindings()
   const navigator2D = useNavigator2D()
   const toastAndLog = useToastAndLog()
-  const setCanCreateAssets = useSetCanCreateAssets()
-  const setTargetDirectoryInStore = useSetTargetDirectory()
   const didLoadingProjectManagerFail = useDidLoadingProjectManagerFail()
   const reconnectToProjectManager = useReconnectToProjectManager()
   const [enabledColumns, setEnabledColumns] = useState(DEFAULT_ENABLED_COLUMNS)
@@ -281,7 +267,8 @@ function AssetsTable(props: AssetsTableProps) {
   const addAssetsLabelsMutation = useMutation(addAssetsLabelsMutationOptions(backend))
   const removeAssetsLabelsMutation = useMutation(removeAssetsLabelsMutationOptions(backend))
 
-  const { rootDirectoryId, rootDirectory, currentDirectoryId } = useDirectoryIds({ category })
+  const { rootDirectoryId, rootDirectory, currentDirectoryId, setCurrentDirectoryId } =
+    useDirectoryIds({ category })
   const { assetTree } = useAssetTree({
     category,
     rootDirectory,
@@ -294,8 +281,8 @@ function AssetsTable(props: AssetsTableProps) {
     expandedDirectoryIds: [currentDirectoryId],
   })
 
-  const isLoading = false
-  const isError = false
+  // eslint-disable-next-line no-restricted-syntax
+  const isError = false as boolean
 
   const [isDraggingFiles, setIsDraggingFiles] = useState(false)
   const [droppedFilesCount, setDroppedFilesCount] = useState(0)
@@ -319,23 +306,6 @@ function AssetsTable(props: AssetsTableProps) {
     true,
   )
 
-  const setTargetDirectory = useEventCallback(
-    (targetDirectory: AssetTreeNode<DirectoryAsset> | null) => {
-      const targetDirectorySelfPermission =
-        targetDirectory == null ? null : (
-          tryFindSelfPermission(user, targetDirectory.item.permissions)
-        )
-      const canCreateAssets =
-        targetDirectory == null ?
-          category.type !== 'cloud' || user.plan == null || user.plan === Plan.solo
-        : isLocalCategory(category) ||
-          (targetDirectorySelfPermission != null &&
-            canPermissionModifyDirectoryContents(targetDirectorySelfPermission.permission))
-      setCanCreateAssets(canCreateAssets)
-      setTargetDirectoryInStore(targetDirectory)
-    },
-  )
-
   useEffect(() => {
     setNewestFolderId(null)
   }, [category, setNewestFolderId])
@@ -344,17 +314,9 @@ function AssetsTable(props: AssetsTableProps) {
     () =>
       driveStore.subscribe(({ selectedKeys }, { selectedKeys: oldSelectedKeys }) => {
         if (selectedKeys !== oldSelectedKeys) {
-          if (selectedKeys.size === 0) {
-            setTargetDirectory(null)
-          } else if (selectedKeys.size === 1) {
+          if (selectedKeys.size === 1) {
             const [soleKey] = selectedKeys
             const item = soleKey == null ? null : nodeMapRef.current.get(soleKey)
-
-            if (item != null && item.isType(AssetType.directory)) {
-              setTargetDirectory(item)
-            } else {
-              setTargetDirectory(null)
-            }
 
             if (
               item != null &&
@@ -392,24 +354,10 @@ function AssetsTable(props: AssetsTableProps) {
                 }
               }
             }
-            const node =
-              commonDirectoryId == null ? null : nodeMapRef.current.get(commonDirectoryId)
-            if (node != null && node.isType(AssetType.directory)) {
-              setTargetDirectory(node)
-            } else {
-              setTargetDirectory(null)
-            }
           }
         }
       }),
-    [
-      backend,
-      driveStore,
-      nodeMapRef,
-      setAssetPanelProps,
-      setIsAssetPanelTemporarilyVisible,
-      setTargetDirectory,
-    ],
+    [backend, driveStore, nodeMapRef, setAssetPanelProps, setIsAssetPanelTemporarilyVisible],
   )
 
   useEffect(() => {
@@ -745,7 +693,7 @@ function AssetsTable(props: AssetsTableProps) {
               case AssetType.directory: {
                 event.preventDefault()
                 event.stopPropagation()
-                toggleDirectoryExpansion(item.item.id)
+                setCurrentDirectoryId({ current: item.item.id, parent: item.item.parentId })
                 break
               }
               case AssetType.project: {
@@ -799,38 +747,12 @@ function AssetsTable(props: AssetsTableProps) {
           }
           break
         }
-        case 'ArrowLeft': {
-          if (item.type === AssetType.directory) {
-            if (item.children != null) {
-              // The folder is expanded; collapse it.
-              event.preventDefault()
-              event.stopPropagation()
-              toggleDirectoryExpansion(item.item.id, false)
-            } else if (prevIndex != null) {
-              // Focus parent if there is one.
-              let index = prevIndex - 1
-              let possibleParent = visibleItems[index]
-              while (possibleParent != null && index >= 0) {
-                if (possibleParent.depth < item.depth) {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  setSelectedAssets([possibleParent.item])
-                  setMostRecentlySelectedIndex(index, true)
-                  break
-                }
-                index -= 1
-                possibleParent = visibleItems[index]
-              }
-            }
-          }
-          break
-        }
         case 'ArrowRight': {
           if (item.type === AssetType.directory && item.children == null) {
             // The folder is collapsed; expand it.
             event.preventDefault()
             event.stopPropagation()
-            toggleDirectoryExpansion(item.item.id, true)
+            setCurrentDirectoryId({ current: item.item.id, parent: item.item.parentId })
           }
           break
         }
@@ -970,6 +892,7 @@ function AssetsTable(props: AssetsTableProps) {
       hidden
       backend={backend}
       category={category}
+      currentDirectoryId={currentDirectoryId}
       nodeMapRef={nodeMapRef}
       rootDirectoryId={rootDirectoryId}
       event={{ pageX: 0, pageY: 0 }}
@@ -1372,48 +1295,39 @@ function AssetsTable(props: AssetsTableProps) {
     </tr>
   )
 
-  const itemRows =
-    isLoading ?
-      <tr className="h-row">
-        <td colSpan={columns.length} className="bg-transparent">
-          <div className="grid w-container justify-around">
-            <IndefiniteSpinner size={LOADING_SPINNER_SIZE_PX} />
-          </div>
-        </td>
-      </tr>
-    : displayItems.map((item) => {
-        const isOpenedByYou = openedProjects.some(({ id }) => item.item.id === id)
-        const isOpenedOnTheBackend =
-          item.item.projectState?.type != null ?
-            IS_OPENING_OR_OPENED[item.item.projectState.type]
-          : false
-        return (
-          <AssetRow
-            key={item.item.id + item.path}
-            isPlaceholder={item.isPlaceholder()}
-            onCutAndPaste={cutAndPaste}
-            isOpened={isOpenedByYou || isOpenedOnTheBackend}
-            visibility={visibilities.get(item.item.id)}
-            columns={columns}
-            id={item.item.id}
-            type={item.item.type}
-            parentId={item.item.parentId}
-            path={item.path}
-            depth={item.depth}
-            state={state}
-            hidden={visibilities.get(item.item.id) === Visibility.hidden}
-            isKeyboardSelected={
-              keyboardSelectedIndex != null && item === visibleItems[keyboardSelectedIndex]
-            }
-            grabKeyboardFocus={grabRowKeyboardFocus}
-            onClick={onRowClick}
-            select={selectRow}
-            onDragStart={onRowDragStart}
-            onDragEnd={onRowDragEnd}
-            onDrop={onRowDrop}
-          />
-        )
-      })
+  const itemRows = displayItems.map((item) => {
+    const isOpenedByYou = openedProjects.some(({ id }) => item.item.id === id)
+    const isOpenedOnTheBackend =
+      item.item.projectState?.type != null ?
+        IS_OPENING_OR_OPENED[item.item.projectState.type]
+      : false
+    return (
+      <AssetRow
+        key={item.item.id + item.path}
+        isPlaceholder={item.isPlaceholder()}
+        onCutAndPaste={cutAndPaste}
+        isOpened={isOpenedByYou || isOpenedOnTheBackend}
+        visibility={visibilities.get(item.item.id)}
+        columns={columns}
+        id={item.item.id}
+        type={item.item.type}
+        parentId={item.item.parentId}
+        path={item.path}
+        depth={item.depth}
+        state={state}
+        hidden={visibilities.get(item.item.id) === Visibility.hidden}
+        isKeyboardSelected={
+          keyboardSelectedIndex != null && item === visibleItems[keyboardSelectedIndex]
+        }
+        grabKeyboardFocus={grabRowKeyboardFocus}
+        onClick={onRowClick}
+        select={selectRow}
+        onDragStart={onRowDragStart}
+        onDragEnd={onRowDragEnd}
+        onDrop={onRowDrop}
+      />
+    )
+  })
 
   const dropzoneText =
     isDraggingFiles ?
@@ -1438,6 +1352,7 @@ function AssetsTable(props: AssetsTableProps) {
               rootDirectoryId={rootDirectoryId}
               doCopy={doCopy}
               doCut={doCut}
+              currentDirectoryId={currentDirectoryId}
               doPaste={doPaste}
             />,
           )
@@ -1485,6 +1400,7 @@ function AssetsTable(props: AssetsTableProps) {
           </tr>
         </tbody>
       </table>
+
       <AssetsTableAssetsUnselector asChild>
         <div
           data-testid="root-directory-dropzone"
@@ -1521,7 +1437,7 @@ function AssetsTable(props: AssetsTableProps) {
         >
           <FileTrigger
             onSelect={(event) => {
-              void uploadFiles(Array.from(event ?? []), rootDirectoryId, rootDirectoryId)
+              void uploadFiles(Array.from(event ?? []), rootDirectoryId)
             }}
           >
             <Button
@@ -1611,15 +1527,13 @@ function AssetsTable(props: AssetsTableProps) {
               })}
             >
               {!hidden && hiddenContextMenu}
-              {!hidden && (
-                <SelectionBrush
-                  targetRef={rootRef}
-                  onDrag={onSelectionDrag}
-                  onDragEnd={onSelectionDragEnd}
-                  onDragCancel={onSelectionDragCancel}
-                  preventDrag={preventSelection}
-                />
-              )}
+              <SelectionBrush
+                targetRef={rootRef}
+                onDrag={onSelectionDrag}
+                onDragEnd={onSelectionDragEnd}
+                onDragCancel={onSelectionDragCancel}
+                preventDrag={preventSelection}
+              />
               <div className="flex h-max min-h-full w-max min-w-full flex-col">
                 <div className="flex h-full w-min min-w-full grow flex-col px-1">
                   {table}
@@ -1630,6 +1544,7 @@ function AssetsTable(props: AssetsTableProps) {
           </IsolateLayout>
         )}
       </FocusArea>
+
       {isDraggingFiles && !isMainDropzoneVisible && (
         <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
           <div
@@ -1705,11 +1620,12 @@ export function AssetsTableAssetsUnselector(props: AssetsTableAssetsUnselectorPr
   })
   const setSelectedAssets = useSetSelectedAssets()
 
-  const { pressProps } = usePress({
-    isDisabled: !hasSelectedKeys,
-    onPress: () => {
-      setSelectedAssets([])
-    },
+  const onPointerDown = useEventCallback(() => {
+    if (!hasSelectedKeys) {
+      return
+    }
+
+    setSelectedAssets([])
   })
 
   if (asChild) {
@@ -1722,15 +1638,15 @@ export function AssetsTableAssetsUnselector(props: AssetsTableAssetsUnselectorPr
     return cloneElement(
       onlyChild,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any, no-restricted-syntax
-      mergeProps<any>()(pressProps as any, onlyChild.props as any),
+      mergeProps<any>()(onlyChild.props as any, { onPointerDown }),
     )
   }
 
   return (
     <div
-      {...pressProps}
       className={twMerge('h-full w-full flex-1', className)}
       data-testid="assets-table-assets-unselector"
+      onPointerDown={onPointerDown}
     >
       {children}
     </div>

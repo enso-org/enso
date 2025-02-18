@@ -633,9 +633,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                     backendType={backend.type}
                     item={asset}
                     depth={depth}
-                    selected={selected}
                     setSelected={setSelected}
-                    isSoleSelected={isSoleSelected}
                     state={state}
                     rowState={rowState}
                     setRowState={setRowState}
@@ -646,7 +644,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
             })}
           </tr>
 
-          {selected && allowContextMenu && (
+          {/* {selected && allowContextMenu && (
             // This is a copy of the context menu, since the context menu registers keyboard
             // shortcut handlers. This is a bit of a hack, however it is preferable to duplicating
             // the entire context menu (once for the keyboard actions, once for the JSX).
@@ -661,7 +659,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
               doCut={doCut}
               doPaste={doPaste}
             />
-          )}
+          )} */}
         </>
       )
     }

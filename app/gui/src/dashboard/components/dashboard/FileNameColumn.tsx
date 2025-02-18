@@ -31,7 +31,7 @@ export interface FileNameColumnProps extends column.AssetColumnProps {
  * This should never happen.
  */
 export default function FileNameColumn(props: FileNameColumnProps) {
-  const { item, selected, state, rowState, setRowState, isEditable, depth } = props
+  const { item, state, rowState, setRowState, isEditable, depth } = props
   const { backend, nodeMap } = state
   const isCloud = backend.type === backendModule.BackendType.remote
 
@@ -61,7 +61,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         }
       }}
       onClick={(event) => {
-        if (eventModule.isSingleClick(event) && selected) {
+        if (eventModule.isSingleClick(event)) {
           if (!isCloud) {
             setIsEditing(true)
           }

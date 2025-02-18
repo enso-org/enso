@@ -37,7 +37,7 @@ export interface SecretNameColumnProps extends column.AssetColumnProps {
  * This should never happen.
  */
 export default function SecretNameColumn(props: SecretNameColumnProps) {
-  const { item, selected, state, rowState, setRowState, isEditable, depth } = props
+  const { item, state, rowState, setRowState, isEditable, depth } = props
   const { backend, nodeMap } = state
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { getText } = useText()
@@ -68,7 +68,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         }
       }}
       onClick={(event) => {
-        if (eventModule.isSingleClick(event) && selected) {
+        if (eventModule.isSingleClick(event)) {
           setIsEditing(true)
         } else if (eventModule.isDoubleClick(event) && isEditable) {
           event.stopPropagation()

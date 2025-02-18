@@ -17,6 +17,8 @@ import {
 } from 'react'
 import { useBreadcrumbItem, type AriaBreadcrumbItemProps } from 'react-aria'
 import type * as aria from 'react-aria-components'
+import type { DragAndDropHooks } from 'react-aria-components'
+import type { DraggableCollectionState } from 'react-stately'
 import invariant from 'tiny-invariant'
 import { Button, Menu, Text, type Addon, type IconProp, type TestIdProps } from '../AriaComponents'
 import { Icon as IconComponent, renderIcon } from '../Icon'
@@ -65,6 +67,7 @@ export interface BreadcrumbItemProps<IconType extends string>
   readonly className?: string | ((renderProps: BreadcrumbItemRenderProps) => string)
   readonly style?: CSSProperties | ((renderProps: BreadcrumbItemRenderProps) => CSSProperties)
   readonly children: ReactNode | ((renderProps: BreadcrumbItemRenderProps) => ReactNode)
+  readonly isLoading?: boolean
 }
 
 /**
@@ -77,7 +80,7 @@ export interface BreadcrumbItemContextType {
    * And be able to check if `onAction` prop was specified and id is not.
    */
   readonly onActionSpecified: boolean
-  readonly onAction: (key: Key) => void
+  readonly onAction: (key: Key) => Promise<void> | void
 }
 
 /**
@@ -132,12 +135,12 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
   const ref = useRef(null)
   const { itemProps } = useBreadcrumbItem({ elementType: 'div', ...breadcrumbItemProps }, ref)
 
-  const onPress = useEventCallback(() => {
+  const onPress = useEventCallback(async () => {
     if (id == null) {
       return
     }
 
-    onAction(id)
+    await onAction(id)
   })
 
   const iconComponent = (() => {
@@ -159,15 +162,7 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
       {}
       // This is safe because we're passing link props transparently
       // eslint-disable-next-line no-restricted-syntax
-    : ({
-        href,
-        hrefLang,
-        target,
-        download,
-        rel,
-        ping,
-        referrerPolicy,
-      } as Pick<
+    : ({ href, hrefLang, target, download, rel, ping, referrerPolicy } as Pick<
         aria.LinkProps,
         'download' | 'href' | 'hrefLang' | 'ping' | 'referrerPolicy' | 'rel' | 'target'
       >)
@@ -220,6 +215,19 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
 }
 
 /**
+ *
+ */
+type DropHooks = Pick<
+  DragAndDropHooks,
+  | 'DragPreview'
+  | 'dropTargetDelegate'
+  | 'renderDropIndicator'
+  | 'useDropIndicator'
+  | 'useDroppableCollection'
+  | 'useDroppableItem'
+>
+
+/**
  * Props for {@link BreadcrumbCollapsedItem}
  */
 interface BreadcrumbCollapsedItemProps<T extends object> {
@@ -231,6 +239,8 @@ interface BreadcrumbCollapsedItemProps<T extends object> {
   readonly triggerLabel?: string
   /** The callback to call when an item is selected */
   readonly onAction?: (key: Key) => void
+  readonly dropHooks?: DropHooks | undefined
+  readonly draggableCollectionState?: DraggableCollectionState | undefined
 }
 
 /**
@@ -240,7 +250,13 @@ interface BreadcrumbCollapsedItemProps<T extends object> {
 export function BreadcrumbCollapsedItem<T extends object>(props: BreadcrumbCollapsedItemProps<T>) {
   const { getText } = useText()
 
-  const { items, children, triggerLabel = getText('more') } = props
+  const {
+    items,
+    children,
+    triggerLabel = getText('more'),
+    dropHooks,
+    draggableCollectionState,
+  } = props
 
   const { onAction } = useContext(BreadcrumbItemContext)
 

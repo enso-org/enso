@@ -36,7 +36,7 @@ export interface DirectoryNameColumnProps extends column.AssetColumnProps {
  * This should never happen.
  */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
-  const { item, depth, selected, state, rowState, setRowState, isEditable } = props
+  const { item, depth, state, rowState, setRowState, isEditable } = props
 
   const [isLoading, startTransition] = useTransition()
 
@@ -74,11 +74,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         }
       }}
       onClick={(event) => {
-        if (
-          eventModule.isSingleClick(event) &&
-          selected &&
-          driveStore.getState().selectedKeys.size === 1
-        ) {
+        if (eventModule.isSingleClick(event) && driveStore.getState().selectedKeys.size === 1) {
           event.stopPropagation()
           setIsEditing(true)
         }
@@ -95,7 +91,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         className="mx-1 transition-transform duration-arrow"
         onPress={() => {
           startTransition(() => {
-            setCurrentDirectoryId(item.id)
+            setCurrentDirectoryId({ current: item.id, parent: item.parentId })
           })
         }}
       />

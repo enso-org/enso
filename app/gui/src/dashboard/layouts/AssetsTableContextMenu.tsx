@@ -45,6 +45,7 @@ export interface AssetsTableContextMenuProps {
   readonly hidden?: boolean
   readonly backend: Backend
   readonly category: Category
+  readonly currentDirectoryId: backendModule.DirectoryId
   readonly rootDirectoryId: backendModule.DirectoryId
   readonly nodeMapRef: React.MutableRefObject<
     ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>
@@ -65,7 +66,7 @@ export interface AssetsTableContextMenuProps {
 export default function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
   // eslint-disable-next-line react-compiler/react-compiler
   'use no memo'
-  const { hidden = false, backend, category } = props
+  const { hidden = false, backend, category, currentDirectoryId } = props
   const { nodeMapRef, event, rootDirectoryId } = props
   const { doCopy, doCut, doPaste } = props
 
@@ -145,7 +146,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         if (selected?.type === backendModule.AssetType.directory) {
           doPaste(selected.id, selected.id)
         } else {
-          doPaste(rootDirectoryId, rootDirectoryId)
+          doPaste(currentDirectoryId, currentDirectoryId)
         }
       }}
     />
@@ -253,7 +254,6 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
               category={category}
               rootDirectoryId={rootDirectoryId}
               directoryId={null}
-              path={null}
               doPaste={doPaste}
               event={event}
             />

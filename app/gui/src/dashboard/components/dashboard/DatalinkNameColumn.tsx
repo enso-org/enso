@@ -27,7 +27,7 @@ export interface DatalinkNameColumnProps extends column.AssetColumnProps {
  * This should never happen.
  */
 export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
-  const { item, selected, rowState, setRowState, isEditable, depth } = props
+  const { item, rowState, setRowState, isEditable, depth } = props
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
 
   const setIsEditing = (isEditingName: boolean) => {
@@ -53,7 +53,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
         }
       }}
       onClick={(event) => {
-        if (eventModule.isSingleClick(event) && selected) {
+        if (eventModule.isSingleClick(event)) {
           setIsEditing(true)
         } else if (eventModule.isDoubleClick(event)) {
           event.stopPropagation()

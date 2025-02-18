@@ -122,6 +122,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         ]),
       )
     )
+
   const canPaste =
     !pasteData || !pasteDataParentKeys || !isCloud ?
       true
@@ -168,6 +169,15 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     backendModule.assetIsProject(asset) &&
     asset.projectState.openedBy != null &&
     asset.projectState.openedBy !== user.email
+
+  console.log('asset', {
+    canManageThisAsset,
+    canEditThisAsset,
+    canAddToThisDirectory,
+    canPaste,
+    hasPasteData,
+    isCloud,
+  })
 
   const pasteMenuEntry = hasPasteData && canPaste && (
     <ContextMenuEntry
@@ -221,11 +231,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             hidden={hidden}
             action="useInNewProject"
             doAction={() => {
-              void newProject(
-                { templateName: asset.title, datalinkId: asset.id },
-                asset.parentId,
-                path,
-              )
+              void newProject({ templateName: asset.title, datalinkId: asset.id }, asset.parentId)
             }}
           />
         )}
@@ -476,7 +482,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             category={category}
             rootDirectoryId={rootDirectoryId}
             directoryId={asset.id}
-            path={path}
             doPaste={doPaste}
             event={event}
           />

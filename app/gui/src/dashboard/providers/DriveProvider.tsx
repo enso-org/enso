@@ -6,7 +6,6 @@ import invariant from 'tiny-invariant'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import type AssetTreeNode from '#/utilities/AssetTreeNode'
 import type { AnyAssetTreeNode } from '#/utilities/AssetTreeNode'
 import type { PasteData } from '#/utilities/pasteData'
 import { EMPTY_SET } from '#/utilities/set'
@@ -14,7 +13,6 @@ import {
   type AnyAsset,
   type AssetId,
   type BackendType,
-  type DirectoryAsset,
   type DirectoryId,
   type LabelName,
 } from 'enso-common/src/services/Backend'
@@ -57,13 +55,9 @@ export interface DirectoryPath {
 
 /** The state of this zustand store. */
 interface DriveStore {
-  readonly resetAssetTableState: () => void
-  readonly targetDirectory: AssetTreeNode<DirectoryAsset> | null
-  readonly setTargetDirectory: (targetDirectory: AssetTreeNode<DirectoryAsset> | null) => void
+  readonly removeSelection: () => void
   readonly newestFolderId: DirectoryId | null
   readonly setNewestFolderId: (newestFolderId: DirectoryId | null) => void
-  readonly canCreateAssets: boolean
-  readonly setCanCreateAssets: (canCreateAssets: boolean) => void
   readonly canDownload: boolean
   readonly setCanDownload: (canDownload: boolean) => void
   readonly pasteData: PasteData<DrivePastePayload> | null
@@ -126,36 +120,19 @@ export interface ProjectsProviderProps {
 export default function DriveProvider(props: ProjectsProviderProps) {
   const { children } = props
 
-  const [currentDirectoryId, setCurrentDirectoryId] = useSearchParamsState<
+  const [currentDirectoryId, privateSetCurrentDirectoryId] = useSearchParamsState<
     CurrentDirectoryIdContextType['currentDirectoryId']
   >('currentDirectoryId', { current: null, parent: null })
 
   const [store] = React.useState(() =>
     createStore<DriveStore>((set, get) => ({
-      resetAssetTableState: () => {
-        set({
-          targetDirectory: null,
-          selectedKeys: EMPTY_SET,
-          visuallySelectedKeys: null,
-        })
-        setCurrentDirectoryId({ current: null, parent: null })
-      },
-      targetDirectory: null,
-      setTargetDirectory: (targetDirectory) => {
-        if (get().targetDirectory !== targetDirectory) {
-          set({ targetDirectory })
-        }
+      removeSelection: () => {
+        set({ selectedKeys: EMPTY_SET, visuallySelectedKeys: null })
       },
       newestFolderId: null,
       setNewestFolderId: (newestFolderId) => {
         if (get().newestFolderId !== newestFolderId) {
           set({ newestFolderId })
-        }
-      },
-      canCreateAssets: true,
-      setCanCreateAssets: (canCreateAssets) => {
-        if (get().canCreateAssets !== canCreateAssets) {
-          set({ canCreateAssets })
         }
       },
       canDownload: false,
@@ -223,7 +200,17 @@ export default function DriveProvider(props: ProjectsProviderProps) {
     })),
   )
 
-  const resetAssetTableState = useStore(store, (state) => state.resetAssetTableState)
+  const resetAssetTableState = useEventCallback(() => {
+    store.getState().removeSelection()
+    privateSetCurrentDirectoryId({ current: null, parent: null })
+  })
+
+  const setCurrentDirectoryId = useEventCallback(
+    ({ current, parent }: { current: DirectoryId | null; parent: DirectoryId | null }) => {
+      privateSetCurrentDirectoryId({ current, parent })
+      store.getState().removeSelection()
+    },
+  )
 
   return (
     <CurrentDirectoryIdContext.Provider value={{ currentDirectoryId, setCurrentDirectoryId }}>
@@ -243,18 +230,6 @@ export function useDriveStore() {
   return store
 }
 
-/** The target directory of the Asset Table selection. */
-export function useTargetDirectory() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.targetDirectory)
-}
-
-/** A function to set the target directory of the Asset Table selection. */
-export function useSetTargetDirectory() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.setTargetDirectory)
-}
-
 /** The ID of the most newly created folder. */
 export function useNewestFolderId() {
   const store = useDriveStore()
@@ -265,18 +240,6 @@ export function useNewestFolderId() {
 export function useSetNewestFolderId() {
   const store = useDriveStore()
   return useStore(store, (state) => state.setNewestFolderId)
-}
-
-/** Whether assets can be created in the current directory. */
-export function useCanCreateAssets() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.canCreateAssets)
-}
-
-/** A function to set whether assets can be created in the current directory. */
-export function useSetCanCreateAssets() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.setCanCreateAssets)
 }
 
 /** Whether the current Asset Table selection is downloadble. */

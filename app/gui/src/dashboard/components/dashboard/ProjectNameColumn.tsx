@@ -36,17 +36,8 @@ export interface ProjectNameColumnProps extends column.AssetColumnProps {
  * This should never happen.
  */
 export default function ProjectNameColumn(props: ProjectNameColumnProps) {
-  const {
-    item,
-    selected,
-    rowState,
-    setRowState,
-    state,
-    isEditable,
-    backendType,
-    isOpened,
-    isPlaceholder,
-  } = props
+  const { item, rowState, setRowState, state, isEditable, backendType, isOpened, isPlaceholder } =
+    props
   const { depth } = props
   const { backend, nodeMap } = state
 
@@ -104,7 +95,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         } else if (
           !isRunning &&
           eventModule.isSingleClick(event) &&
-          selected &&
           driveStore.getState().selectedKeys.size === 1
         ) {
           setIsEditing(true)

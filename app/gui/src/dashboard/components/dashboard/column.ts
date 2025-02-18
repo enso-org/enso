@@ -21,9 +21,7 @@ export interface AssetColumnProps {
   readonly item: AnyAsset
   readonly depth: number
   readonly backendType: BackendType
-  readonly selected: boolean
   readonly setSelected: (selected: boolean) => void
-  readonly isSoleSelected: boolean
   readonly state: AssetsTableState
   readonly rowState: AssetRowState
   readonly setRowState: Dispatch<SetStateAction<AssetRowState>>

@@ -1,7 +1,6 @@
 /**
  * @file Breadcrumbs component implementation.
  */
-
 import ArrowRight from '#/assets/expand_arrow_right.svg'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
@@ -17,7 +16,7 @@ import {
   type ReactNode,
 } from 'react'
 import flattenChildren from 'react-keyed-flatten-children'
-import { useBreadcrumbs, type AriaBreadcrumbsProps } from '../aria'
+import { useBreadcrumbs, type AriaBreadcrumbsProps, type DragAndDropHooks } from '../aria'
 import { Button, type TestIdProps } from '../AriaComponents'
 import { Icon } from '../Icon'
 import { BreadcrumbCollapsedItem, BreadcrumbItem, BreadcrumbItemProvider } from './BreadcrumbItem'
@@ -38,8 +37,9 @@ export interface BreadcrumbsProps
   /** The breadcrumb items. */
   readonly children: ReactNode
   /** Called when an item is acted upon (usually selection via press). */
-  readonly onAction?: (key: Key) => void
+  readonly onAction?: (key: Key) => Promise<void> | void
   readonly className?: string
+  readonly dragAndDropHooks?: DragAndDropHooks | undefined
 }
 
 /**
@@ -52,6 +52,7 @@ export function Breadcrumbs(props: BreadcrumbsProps) {
     variants = BREADCRUMBS_STYLES,
     testId,
     onAction = () => {},
+    dragAndDropHooks,
     ...breadcrumbsProps
   } = props
 
