@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import ActionButton from '@/components/ActionButton.vue'
+import ActionMenu from '@/components/ActionMenu.vue'
 import ColorRing from '@/components/ColorRing.vue'
 import DropdownMenu from '@/components/DropdownMenu.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { ref } from 'vue'
-import ActionButton from '../../components/ActionButton.vue'
-import ActionMenu from '../../components/ActionMenu.vue'
 
 const _props = defineProps<{
   colorPickerOpened: boolean

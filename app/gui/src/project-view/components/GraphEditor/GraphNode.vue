@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import ContextMenuTrigger from '@/../components/ContextMenuTrigger.vue'
-import type { Action } from '@/../providers/action'
-import { registerHandlers } from '@/../providers/action'
 import { nodeEditBindings } from '@/bindings'
 import ComponentMenu from '@/components/ComponentMenu.vue'
+import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
 import ComponentWidgetTree, {
   GRAB_HANDLE_X_MARGIN_L,
   GRAB_HANDLE_X_MARGIN_R,
@@ -21,6 +19,8 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import { useComponentColors } from '@/composables/componentColors'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
+import type { Action } from '@/providers/action'
+import { registerHandlers } from '@/providers/action'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'

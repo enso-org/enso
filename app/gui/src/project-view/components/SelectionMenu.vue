@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import ActionButton from '@/../components/ActionButton.vue'
+import ActionButton from '@/components/ActionButton.vue'
 import ColorPickerMenu from '@/components/ColorPickerMenu.vue'
+import { injectActions } from '@/providers/action'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import { injectActions } from '../../providers/action'
 
 const actions = injectActions()
 const { selected } = injectGraphSelection()

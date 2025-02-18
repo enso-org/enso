@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { Action } from '@/providers/action'
 import { Icon } from '@/util/iconMetadata/iconName'
 import { computed, ref, watch } from 'vue'
-import ContextMenuTrigger from '../../../../components/ContextMenuTrigger.vue'
-import { Action } from '../../../../providers/action'
 
 const props = defineProps<{
   title: string

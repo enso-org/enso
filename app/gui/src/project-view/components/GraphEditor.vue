@@ -17,6 +17,7 @@ import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { useGraphEditorClipboard } from '@/components/GraphEditor/clipboard'
 import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
+import { registerSelectionActionHandlers } from '@/components/GraphEditor/selectionActions'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { uploadedExpression, Uploader } from '@/components/GraphEditor/upload'
 import GraphMissingView from '@/components/GraphMissingView.vue'
@@ -30,7 +31,6 @@ import { useDoubleClick } from '@/composables/doubleClick'
 import { keyboardBusy, keyboardBusyExceptIn, unrefElement, useEvent } from '@/composables/events'
 import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
-import { provideGraphEditorLayers } from '@/providers/graphEditorLayers'
 import { provideGraphEditorState } from '@/providers/graphEditorState'
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -38,6 +38,7 @@ import { provideNodeColors } from '@/providers/graphNodeColors'
 import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
+import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideKeyboard } from '@/providers/keyboard'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import type { Node, NodeId } from '@/stores/graph'
@@ -73,8 +74,6 @@ import {
   watch,
   type ComponentInstance,
 } from 'vue'
-import { provideInteractionHandler } from '../../providers/interactionHandler'
-import { registerSelectionActionHandlers } from './GraphEditor/selectionActions'
 
 const keyboard = provideKeyboard()
 const projectStore = useProjectStore()
@@ -103,15 +102,6 @@ const viewportNode = ref<HTMLElement>()
 onMounted(() => viewportNode.value?.focus())
 const graphNavigator: GraphNavigator = provideGraphNavigator(viewportNode, keyboard, {
   predicate: (e) => (e instanceof KeyboardEvent ? nodeSelection.selected.size === 0 : true),
-})
-
-// === Exposed layers ===
-
-const rootNode = ref<HTMLElement>()
-const floatingLayer = ref<HTMLElement>()
-provideGraphEditorLayers({
-  fullscreen: rootNode,
-  floating: floatingLayer,
 })
 
 // === Client saved state ===
@@ -628,7 +618,7 @@ const groupColors = computed(() => {
 
 <template>
   <div
-    ref="rootNode"
+    id="graphEditorRoot"
     class="GraphEditor"
     :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     :style="groupColors"
@@ -681,11 +671,6 @@ const groupColors = computed(() => {
           :scrollableArea="Rect.Bounding(...graphStore.visibleNodeAreas)"
         />
         <GraphMouse />
-        <div
-          ref="floatingLayer"
-          class="floatingLayer"
-          :style="{ transform: graphNavigator.transform }"
-        />
       </div>
       <BottomPanel v-model:show="showCodeEditor">
         <Suspense>

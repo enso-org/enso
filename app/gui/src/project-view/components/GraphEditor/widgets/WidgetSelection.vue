@@ -296,6 +296,7 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
   cancel: onClose,
   end: onClose,
   pointerdown: (e) => {
+    console.log('>>', targetIsOutside(e, document.getElementById('#floatingLayer')))
     if (
       targetIsOutside(e, unrefElement(dropdownElement)) &&
       targetIsOutside(e, unrefElement(activityElement)) &&

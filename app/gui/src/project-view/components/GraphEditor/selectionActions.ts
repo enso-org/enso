@@ -1,9 +1,8 @@
-import { graphBindings } from '@/bindings'
+import { registerHandlers } from '@/providers/action'
 import { type Node } from '@/stores/graph'
 import { type ToValue } from '@/util/reactivity'
 import * as iter from 'enso-common/src/utilities/data/iter'
-import { computed, type ComputedRef, type Ref, ref, toValue } from 'vue'
-import { Action, registerHandlers } from '../../../providers/action'
+import { computed, type ComputedRef, ref, toValue } from 'vue'
 
 export function registerSelectionActionHandlers(
   selectedNodes: ToValue<Iterable<Node>>,

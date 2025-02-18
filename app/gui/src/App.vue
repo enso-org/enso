@@ -2,8 +2,10 @@
 import '@/assets/base.css'
 import TooltipDisplayer from '@/components/TooltipDisplayer.vue'
 import ProjectView from '@/ProjectView.vue'
+import { initializeActions } from '@/providers/action'
 import { provideAppClassSet } from '@/providers/appClass'
 import { provideGuiConfig } from '@/providers/guiConfig'
+import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideTooltipRegistry } from '@/providers/tooltipRegistry'
 import { registerAutoBlurHandler, registerGlobalBlurHandler } from '@/util/autoBlur'
 import { baseConfig, configValue, mergeConfig, type ApplicationConfigValue } from '@/util/config'
@@ -12,8 +14,6 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { applyPureReactInVue } from 'veaury'
 import { computed, onMounted } from 'vue'
 import { ComponentProps } from 'vue-component-type-helpers'
-import { initializeActions } from './providers/action'
-import { provideInteractionHandler } from './providers/interactionHandler'
 import ReactRoot from './ReactRoot'
 
 const _props = defineProps<{
@@ -75,6 +75,14 @@ onMounted(() => {
 
 #floatingLayer {
   position: absolute;
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 11.5px;
+  line-height: 20px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   top: 0;
   left: 0;
   /* The size isn't important, except it must be non-zero for `floating-ui` to calculate the scale factor. */
