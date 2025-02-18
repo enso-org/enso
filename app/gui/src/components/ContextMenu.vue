@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useResizeObserver } from '@/composables/events'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
-import { endOnClickOutside } from '@/util/autoBlur'
+import { unrefElement, useEvent, useResizeObserver } from '@/composables/events'
+import { WidgetEditHandler, WidgetEditHandlerRoot } from '@/providers/widgetRegistry/editHandler'
+import { endOnClickOutside, targetIsOutside } from '@/util/autoBlur'
 import { autoUpdate, flip, shift, useFloating } from '@floating-ui/vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { Action, Actions } from '../providers/action'
@@ -47,12 +47,23 @@ watch(menuSize, update)
 onMounted(() => {
   // The widget interactions are a special case: in some widgets (e.g. dropdowns) there are context
   // menus while widget editing is "active" (like in File Browser inside WidgetSelection)
-  if (!(interaction.getCurrent() instanceof WidgetEditHandler)) {
+  if (!(interaction.getCurrent() instanceof WidgetEditHandlerRoot)) {
     interaction.setCurrent(
       endOnClickOutside(menu, {
         cancel: () => emit('close'),
         end: () => emit('close'),
       }),
+    )
+  } else {
+    useEvent(
+      window,
+      'pointerdown',
+      (e) => {
+        if (targetIsOutside(e, unrefElement(menu))) {
+          emit('close')
+        }
+      },
+      { capture: true },
     )
   }
 })

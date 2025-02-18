@@ -16,14 +16,16 @@ defineExpose({
 </script>
 
 <template>
-  <div style="display: contents" @contextmenu="point = $event"><slot /></div>
-  <ContextMenu
-    v-if="point != null"
-    ref="menuComponent"
-    :actions="actions"
-    :point="point"
-    @close="point = null"
-  >
-    <slot name="menuElements" />
-  </ContextMenu>
+  <div style="display: contents" @contextmenu="point = $event">
+    <slot />
+    <ContextMenu
+      v-if="point != null"
+      ref="menuComponent"
+      :actions="actions"
+      :point="point"
+      @close="point = null"
+    >
+      <slot name="menuElements" />
+    </ContextMenu>
+  </div>
 </template>

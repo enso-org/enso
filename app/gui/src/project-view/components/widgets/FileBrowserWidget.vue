@@ -199,11 +199,10 @@ function acceptName(name: string, actionDescription: string) {
     console.error('Cannot rename directory without parentId')
     return
   }
-  const requestBody = { title: edited.name, parentId }
   const action =
     edited.asset === newDirPlaceholder ?
-      createDir.mutateAsync([requestBody, false])
-    : updateDir.mutateAsync([edited.asset.id, requestBody, edited.asset.title])
+      createDir.mutateAsync([{ title: edited.name, parentId }, false])
+    : updateDir.mutateAsync([edited.asset.id, { title: edited.name }, edited.asset.title])
   action
     .then((result) => {
       assert(edited === editedAsset.value)
