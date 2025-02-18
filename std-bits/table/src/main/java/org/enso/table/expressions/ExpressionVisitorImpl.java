@@ -427,7 +427,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   @Override
   public Value visitRegexLiteral(ExpressionParser.RegexLiteralContext ctx) {
     String regexPattern = ctx.REGEX_LITERAL().getText();
-    regexPattern = regexPattern.substring(2, regexPattern.length() - 1); // Remove leading 'r/' and trailing '/'
+    // Remove leading 'r/' and trailing '/'
+    regexPattern = regexPattern.substring(2, regexPattern.length() - 1);
     return executeMethod("regex", Value.asValue(regexPattern));
   }
 
