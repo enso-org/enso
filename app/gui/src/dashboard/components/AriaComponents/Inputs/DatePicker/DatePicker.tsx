@@ -187,7 +187,7 @@ export const DatePicker = forwardRef(function DatePicker<
               {!noResetButton && <DatePickerResetButton className={styles.resetButton()} />}
             </Group>
             {props.description != null && <Text slot="description" />}
-            <Popover size="auto" className={styles.calendarPopover()}>
+            <Popover size="auto" placement="bottom" className={styles.calendarPopover()}>
               <Dialog className={styles.calendarDialog()}>
                 <Calendar className={styles.calendarContainer()}>
                   <header className={styles.calendarHeader()}>
