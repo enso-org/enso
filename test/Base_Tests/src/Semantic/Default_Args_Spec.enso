@@ -101,6 +101,14 @@ add_specs suite_builder =
             r2.to_display_text . should_contain "The named argument `x` did not match any argument names. Perhaps it is misspelled?"
             r2.cause.should_equal (No_Such_Argument.Error "x")
 
+        group_builder.specify "but not return an error if the argument matches later in a function returned from the function" <|
+            f a='a' b='b' c='c' =
+                g d =
+                    [a, b, c, d]
+                g...
+            r1 = f d='X'
+            r1.should_equal ['a', 'b', 'c', 'X']
+
         group_builder.specify "should return Not_Invokable if a non-function is called" <|
             not_f = 42 : Any
             Test.expect_panic Not_Invokable (not_f 1)
