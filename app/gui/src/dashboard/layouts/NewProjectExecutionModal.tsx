@@ -321,7 +321,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         hideTimeZone
         label={getText('firstOccurrenceLabel')}
         minValue={minFirstOccurrence}
-        className="w-52"
+        className="w-60"
       />
       <ComboBox
         form={form}
@@ -329,7 +329,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         name="timeZone"
         label={getText('timeZoneLabel')}
         items={Intl.supportedValuesOf('timeZone')}
-        className="w-52"
+        className="w-60"
       >
         {(otherTimeZone) => {
           const [, sign, number] = otherTimeZone.match(/^Etc\/GMT([+-])(\d+)$/) ?? []
@@ -347,7 +347,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         label={getText('repeatIntervalLabel')}
         items={validRepeatTypes}
         size="medium"
-        className="w-52"
+        className="w-60"
       >
         {({ item: otherItem }) => repeatText(otherItem)}
       </FormDropdown>
