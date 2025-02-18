@@ -53,6 +53,8 @@ import {
   DAY_3_LETTER_TEXT_IDS,
   DAY_TEXT_IDS,
   getDay,
+  HOUR_MINUTES,
+  MINUTE_MS,
   MONTH_3_LETTER_TEXT_IDS,
   toRfc3339,
   WHITELISTED_TIME_ZONE_MAP,
@@ -333,7 +335,16 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         items={WHITELISTED_TIME_ZONES}
         className="w-60"
       >
-        {(otherTimeZone) => WHITELISTED_TIME_ZONE_MAP.get(otherTimeZone)?.timeZone ?? otherTimeZone}
+        {(otherTimeZone) => {
+          const offsetMin = toZoned(date, otherTimeZone).offset / MINUTE_MS
+          const offsetNegative = offsetMin < 0
+          const absoluteOffsetMin = Math.abs(offsetMin)
+          const offsetHours = Math.floor(absoluteOffsetMin / HOUR_MINUTES)
+          const offsetMinutes = absoluteOffsetMin % HOUR_MINUTES
+          const description =
+            WHITELISTED_TIME_ZONE_MAP.get(otherTimeZone)?.timeZone ?? otherTimeZone
+          return `(GMT${offsetNegative ? '-' : '+'}${`${offsetHours}`.padStart(2, '0')}:${`${offsetMinutes}`.padStart(2, '0')}) ${description}`
+        }}
       </ComboBox>
       <FormDropdown
         form={form}
