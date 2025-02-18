@@ -20,7 +20,10 @@ import invariant from 'tiny-invariant'
 
 import {
   backendQueryOptions as backendQueryOptionsBase,
-  type BackendMethods,
+  INVALIDATE_ALL_QUERIES,
+  INVALIDATION_MAP,
+  type BackendMutationMethod,
+  type BackendQueryMethod,
 } from 'enso-common/src/backendQuery'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -54,61 +57,6 @@ import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/ob
 import { useMemo } from 'react'
 
 const PROJECT_EXECUTIONS_STALE_TIME = 60_000
-
-/** Ensure that the given type contains only names of backend methods. */
-type DefineBackendMethods<T extends keyof Backend> = T
-
-/** Names of methods corresponding to mutations. */
-export type BackendMutationMethod = DefineBackendMethods<
-  | 'acceptInvitation'
-  | 'associateTag'
-  | 'changeUserGroup'
-  | 'closeProject'
-  | 'copyAsset'
-  | 'createCheckoutSession'
-  | 'createDatalink'
-  | 'createDirectory'
-  | 'createPermission'
-  | 'createProject'
-  | 'createProjectExecution'
-  | 'createSecret'
-  | 'createTag'
-  | 'createUser'
-  | 'createUserGroup'
-  | 'declineInvitation'
-  | 'deleteAsset'
-  | 'deleteDatalink'
-  | 'deleteInvitation'
-  | 'deleteProjectExecution'
-  | 'deleteTag'
-  | 'deleteUser'
-  | 'deleteUserGroup'
-  | 'duplicateProject'
-  | 'inviteUser'
-  | 'logEvent'
-  | 'openProject'
-  | 'removeUser'
-  | 'resendInvitation'
-  | 'restoreUser'
-  | 'syncProjectExecution'
-  | 'undoDeleteAsset'
-  | 'updateAsset'
-  | 'updateDirectory'
-  | 'updateFile'
-  | 'updateOrganization'
-  | 'updateProject'
-  | 'updateProjectExecution'
-  | 'updateSecret'
-  | 'updateUser'
-  | 'uploadFileChunk'
-  | 'uploadFileEnd'
-  | 'uploadFileStart'
-  | 'uploadOrganizationPicture'
-  | 'uploadUserPicture'
->
-
-/** Names of methods corresponding to queries. */
-export type BackendQueryMethod = Exclude<BackendMethods, BackendMutationMethod>
 
 export function backendQueryOptions<Method extends BackendQueryMethod>(
   backend: Backend,
@@ -185,47 +133,6 @@ export function useBackendQuery<Method extends BackendQueryMethod>(
     Partial<Pick<UseQueryOptions<Awaited<ReturnType<Backend[Method]>>>, 'queryKey'>>,
 ) {
   return useQuery(backendQueryOptions(backend, method, args, options))
-}
-
-const INVALIDATE_ALL_QUERIES = Symbol('invalidate all queries')
-const INVALIDATION_MAP: Partial<
-  Record<BackendMutationMethod, readonly (BackendQueryMethod | typeof INVALIDATE_ALL_QUERIES)[]>
-> = {
-  createUser: ['usersMe'],
-  updateUser: ['usersMe'],
-  deleteUser: ['usersMe'],
-  restoreUser: ['usersMe'],
-  uploadUserPicture: ['usersMe'],
-  updateOrganization: ['getOrganization'],
-  uploadOrganizationPicture: ['getOrganization'],
-  createUserGroup: ['listUserGroups'],
-  deleteUserGroup: ['listUserGroups'],
-  changeUserGroup: ['listUsers'],
-  createTag: ['listTags'],
-  deleteTag: ['listTags'],
-  associateTag: ['listDirectory'],
-  acceptInvitation: [INVALIDATE_ALL_QUERIES],
-  declineInvitation: ['usersMe'],
-  createProject: ['listDirectory'],
-  duplicateProject: ['listDirectory'],
-  createDirectory: ['listDirectory'],
-  createSecret: ['listDirectory'],
-  updateSecret: ['listDirectory'],
-  updateProject: ['listDirectory'],
-  updateFile: ['listDirectory'],
-  updateDirectory: ['listDirectory'],
-  createDatalink: ['listDirectory', 'getDatalink'],
-  uploadFileEnd: ['listDirectory'],
-  copyAsset: ['listDirectory', 'listAssetVersions'],
-  deleteAsset: ['listDirectory', 'listAssetVersions'],
-  undoDeleteAsset: ['listDirectory'],
-  updateAsset: ['listDirectory', 'listAssetVersions'],
-  openProject: ['listDirectory'],
-  closeProject: ['listDirectory', 'listAssetVersions'],
-  createProjectExecution: ['listProjectExecutions'],
-  updateProjectExecution: ['listProjectExecutions'],
-  syncProjectExecution: ['listProjectExecutions'],
-  deleteProjectExecution: ['listProjectExecutions'],
 }
 
 /** The type of the corresponding mutation for the given backend method. */

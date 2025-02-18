@@ -17,7 +17,6 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.HasContextEnabledNode;
-import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
@@ -40,15 +39,13 @@ public abstract class VectorFromFunctionNode extends Node {
    *     type.
    * @return Vector constructed from the given function.
    */
-  abstract Object execute(
-      VirtualFrame frame, State state, long length, Function func, Object onProblems);
+  abstract Object execute(VirtualFrame frame, long length, Function func, Object onProblems);
 
   @Specialization(
       guards = "getCtor(onProblemsAtom) == onProblemsAtomCtorCached",
       limit = "onProblemsCtorsCount()")
   Object doItCached(
       VirtualFrame frame,
-      State state,
       long length,
       Function func,
       Atom onProblemsAtom,
@@ -61,6 +58,7 @@ public abstract class VectorFromFunctionNode extends Node {
       @Cached HasContextEnabledNode hasContextEnabledNode,
       @Cached LoopConditionProfile loopConditionProfile) {
     var ctx = EnsoContext.get(this);
+    var state = ctx.currentState();
     var len = (int) length;
     var nothing = ctx.getNothing();
     var target = ArrayBuilder.newBuilder(len);
@@ -75,7 +73,7 @@ public abstract class VectorFromFunctionNode extends Node {
           case IGNORE -> valueToAdd = nothing;
           case REPORT_ERROR -> {
             var mapErr = ctx.getBuiltins().error().makeMapError(i, err.getPayload());
-            return DataflowError.withDefaultTrace(state, mapErr, this, hasContextEnabledNode);
+            return DataflowError.withDefaultTrace(mapErr, this, hasContextEnabledNode);
           }
           case REPORT_WARNING -> {
             errorsEncountered++;
@@ -116,8 +114,7 @@ public abstract class VectorFromFunctionNode extends Node {
    * @return Just throws Type_Error dataflow error.
    */
   @Specialization(replaces = "doItCached")
-  Object unreachable(
-      VirtualFrame frame, State state, long length, Function func, Object onProblems) {
+  Object unreachable(VirtualFrame frame, long length, Function func, Object onProblems) {
     var problemBehaviorBuiltin = EnsoContext.get(this).getBuiltins().problemBehavior();
     throw makeTypeError(problemBehaviorBuiltin.getType(), onProblems, "onProblems");
   }
