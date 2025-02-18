@@ -89,7 +89,7 @@ public class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
       if (storage instanceof DoubleStorage doubleStorage) {
         int n = (int) doubleStorage.getSize();
         ensureFreeSpaceFor(n);
-        System.arraycopy(doubleStorage.getRawData(), 0, data, currentSize, n);
+        System.arraycopy(doubleStorage.getArray(), 0, data, currentSize, n);
         BitSets.copy(doubleStorage.getIsNothingMap(), isNothing, currentSize, n);
         currentSize += n;
       } else if (storage instanceof ColumnDoubleStorage doubleStorage) {

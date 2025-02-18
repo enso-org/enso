@@ -64,19 +64,16 @@ public abstract class AnyToTextNode extends Node {
 
   @CompilerDirectives.TruffleBoundary
   private Text doComplexAtom(Atom atom) {
-    var interop = InteropLibrary.getUncached();
     var structs = StructsLibrary.getUncached();
     Text res = Text.create("(", consName(atom.getConstructor()));
-    res = Text.create(res, " ");
-    try {
-      res = Text.create(res, showObject(structs.getField(atom, 0)));
-    } catch (UnsupportedMessageException e) {
-      res = Text.create(res, structs.getField(atom, 0).toString());
-    }
-    for (int i = 1; i < atom.getConstructor().getArity(); i++) {
+    for (int i = 0; i < atom.getConstructor().getArity(); i++) {
       res = Text.create(res, " ");
       try {
-        res = Text.create(res, showObject(structs.getField(atom, i)));
+        if (structs.isFieldEvaluated(atom, i)) {
+          res = Text.create(res, showObject(structs.getField(atom, i)));
+        } else {
+          res = Text.create(res, "~" + fieldName(i, atom));
+        }
       } catch (UnsupportedMessageException e) {
         res = Text.create(res, structs.getField(atom, i).toString());
       }
@@ -98,5 +95,16 @@ public abstract class AnyToTextNode extends Node {
       var interop = InteropLibrary.getUncached();
       return interop.asString(interop.toDisplayString(child));
     }
+  }
+
+  private static boolean isFieldSuspended(int i, Atom atom) {
+    assert 0 <= i && i < atom.getConstructor().getArity();
+    var fieldDef = atom.getConstructor().getFields()[i];
+    return fieldDef.isSuspended();
+  }
+
+  private static String fieldName(int i, Atom atom) {
+    assert 0 <= i && i < atom.getConstructor().getArity();
+    return atom.getConstructor().getFields()[i].getName();
   }
 }
