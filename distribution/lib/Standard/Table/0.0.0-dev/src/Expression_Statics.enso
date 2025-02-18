@@ -13,7 +13,7 @@ type Expression_Statics
     time -> Time_Of_Day =
         Time_Of_Day.now
 
-    ## Creates a regular expression (alternatively use r/expression/
+    ## Creates a regular expression (alternatively use r/expression/)
     regex expression = Regex.compile expression
 
     ## Multiples two values.
