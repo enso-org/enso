@@ -1,5 +1,5 @@
 /** @file A combo box with a list of items that can be filtered. */
-import { useContext, useMemo, type ForwardedRef } from 'react'
+import { useContext, type ForwardedRef } from 'react'
 
 import CrossIcon from '#/assets/cross.svg'
 import ArrowIcon from '#/assets/folder_arrow.svg'
@@ -74,6 +74,7 @@ export interface ComboBoxProps<Schema extends TSchema, TFieldName extends FieldP
   /** This may change as the user types in the input. */
   readonly items: readonly FieldValues<Schema>[TFieldName][]
   readonly children: (item: FieldValues<Schema>[TFieldName]) => string
+  readonly toId?: (item: FieldValues<Schema>[TFieldName]) => string
   readonly noResetButton?: boolean
 }
 
@@ -97,14 +98,14 @@ export const ComboBox = forwardRef(function ComboBox<
     className,
     placeholder,
     children,
+    toId,
     noResetButton = false,
     variants = COMBO_BOX_STYLES,
   } = props
   const itemsAreStrings = typeof items[0] === 'string'
-  const effectiveItems = useMemo(
-    () => (itemsAreStrings ? items.map((id) => ({ id })) : items),
-    [items, itemsAreStrings],
-  )
+  const effectiveItems = itemsAreStrings ? items.map((id) => ({ id })) : items
+  const toIdOrText = toId ?? children
+  const reverseMapping = new Map(items.map((item) => [toIdOrText(item), item]))
 
   const { fieldState, formInstance } = useStringField({
     name,
@@ -143,7 +144,7 @@ export const ComboBox = forwardRef(function ComboBox<
               {...renderProps.field}
               defaultInputValue={renderProps.field.value}
               onSelectionChange={(key) => {
-                renderProps.field.onChange(key ?? '')
+                renderProps.field.onChange(typeof key === 'string' ? reverseMapping.get(key) : null)
               }}
             >
               <div className={styles.inputContainer()}>
@@ -162,14 +163,17 @@ export const ComboBox = forwardRef(function ComboBox<
                   className={styles.listBox()}
                 >
                   {(item) => {
-                    const text = children(
-                      // @ts-expect-error When items are strings, they are mapped to
-                      // `{ id: item }`.
-                      // eslint-disable-next-line no-restricted-syntax
-                      (itemsAreStrings ? item.id : item) as FieldValues<Schema>[TFieldName],
-                    )
+                    // eslint-disable-next-line no-restricted-syntax
+                    const fieldValue = (
+                      itemsAreStrings ?
+                        // @ts-expect-error When items are strings, they are mapped to
+                        // `{ id: item }`.
+                        item.id
+                      : item) as FieldValues<Schema>[TFieldName]
+                    const text = children(fieldValue)
+                    const id = toId?.(fieldValue) ?? text
                     return (
-                      <ListBoxItem id={text} textValue={text} className={styles.listBoxItem()}>
+                      <ListBoxItem id={id} textValue={text} className={styles.listBoxItem()}>
                         <Text truncate="1" className="w-full" tooltipPlacement="left">
                           {text}
                         </Text>

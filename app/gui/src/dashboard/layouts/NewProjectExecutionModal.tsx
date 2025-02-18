@@ -332,7 +332,14 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
           items={Intl.supportedValuesOf('timeZone')}
           className="w-52"
         >
-          {(otherTimeZone) => otherTimeZone}
+          {(otherTimeZone) => {
+            const [, sign, number] = otherTimeZone.match(/^Etc\/GMT([+-])(\d+)$/) ?? []
+            if (sign != null && number != null) {
+              return `GMT${sign}${number.padStart(2, '0')}:00`
+            } else {
+              return otherTimeZone
+            }
+          }}
         </ComboBox>
       </div>
       <FormDropdown
