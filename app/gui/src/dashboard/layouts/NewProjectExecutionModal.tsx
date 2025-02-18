@@ -313,35 +313,33 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
 
   return (
     <Form form={form} className="w-full">
-      <div className="flex flex-col">
-        <DatePicker
-          form={form}
-          isRequired
-          noCalendarHeader
-          name="startDate"
-          hideTimeZone
-          label={getText('firstOccurrenceLabel')}
-          minValue={minFirstOccurrence}
-          className="w-52"
-        />
-        <ComboBox
-          form={form}
-          isRequired
-          name="timeZone"
-          label={getText('timeZoneLabel')}
-          items={Intl.supportedValuesOf('timeZone')}
-          className="w-52"
-        >
-          {(otherTimeZone) => {
-            const [, sign, number] = otherTimeZone.match(/^Etc\/GMT([+-])(\d+)$/) ?? []
-            if (sign != null && number != null) {
-              return `GMT${sign}${number.padStart(2, '0')}:00`
-            } else {
-              return otherTimeZone
-            }
-          }}
-        </ComboBox>
-      </div>
+      <DatePicker
+        form={form}
+        isRequired
+        noCalendarHeader
+        name="startDate"
+        hideTimeZone
+        label={getText('firstOccurrenceLabel')}
+        minValue={minFirstOccurrence}
+        className="w-52"
+      />
+      <ComboBox
+        form={form}
+        isRequired
+        name="timeZone"
+        label={getText('timeZoneLabel')}
+        items={Intl.supportedValuesOf('timeZone')}
+        className="w-52"
+      >
+        {(otherTimeZone) => {
+          const [, sign, number] = otherTimeZone.match(/^Etc\/GMT([+-])(\d+)$/) ?? []
+          if (sign != null && number != null) {
+            return `GMT${sign}${number.padStart(2, '0')}:00`
+          } else {
+            return otherTimeZone
+          }
+        }}
+      </ComboBox>
       <FormDropdown
         form={form}
         isRequired
