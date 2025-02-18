@@ -140,19 +140,18 @@ export default class LocalStorage {
     this.save()
   }
 
-  /** Delete an entry from the stored data, and save. */
+  /**
+   * Delete an entry from the stored data, and save.
+   */
   delete<K extends LocalStorageKey>(key: K) {
     this.assertRegisteredKey(key)
 
-    const oldValue = this.values[key]
     // The key being deleted is one of a statically known set of keys.
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete this.values[key]
     this.eventTarget.dispatchEvent(new Event(key))
     this.eventTarget.dispatchEvent(new Event('_change'))
     this.save()
-
-    return oldValue
   }
 
   /**
