@@ -202,19 +202,6 @@ impl RunContext {
         if self.config.build_native_runner {
             env::ENSO_LAUNCHER.set(&engine::EngineLauncher::TestNative)?;
         }
-
-        // TODO: Once the native image is production ready, we should switch to
-        // EngineLauncher::Native on release versions.
-        // See tasks in https://github.com/orgs/enso-org/discussions/10121
-        /*let version = versions_from_env()?.unwrap();
-        let is_release = version.release_mode;
-        let kind = Kind::deduce(&version)?;
-        if is_release {
-            env::ENSO_LAUNCHER.set(&engine::EngineLauncher::Native)?;
-        } else {
-            env::ENSO_LAUNCHER.set(&engine::EngineLauncher::Shell)?;
-        }*/
-
         prepare_simple_library_server.await??;
 
         Ok(())

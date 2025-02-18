@@ -17,7 +17,6 @@ import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 @BuiltinMethod(
@@ -32,12 +31,11 @@ public abstract class PrintlnNode extends Node {
           InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
           InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
 
-  abstract Object execute(VirtualFrame frame, State state, @AcceptsError Object message, Object nl);
+  abstract Object execute(VirtualFrame frame, @AcceptsError Object message, Object nl);
 
   @Specialization(guards = "strings.isString(message)")
   Object doPrintText(
       VirtualFrame frame,
-      State state,
       Object message,
       Object nl,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary strings) {
@@ -54,19 +52,19 @@ public abstract class PrintlnNode extends Node {
   @Specialization(guards = "!strings.isString(message)")
   Object doPrint(
       VirtualFrame frame,
-      State state,
       Object message,
       Object nl,
       @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary strings,
       @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Cached("buildSymbol()") UnresolvedSymbol symbol,
       @Cached("buildInvokeCallableNode()") InvokeCallableNode invokeCallableNode) {
-    Object probablyStr = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
+    var ctx = EnsoContext.get(this);
+    var state = ctx.currentState();
+    var probablyStr = invokeCallableNode.execute(symbol, frame, state, new Object[] {message});
     if (warnings.hasWarnings(probablyStr)) {
       try {
         probablyStr = warnings.removeWarnings(probablyStr);
       } catch (UnsupportedMessageException e) {
-        var ctx = EnsoContext.get(this);
         throw ctx.raiseAssertionPanic(this, null, e);
       }
     }
@@ -78,12 +76,9 @@ public abstract class PrintlnNode extends Node {
       } else {
         str = fallbackToString(probablyStr);
       }
-
-      EnsoContext ctx = EnsoContext.get(this);
       print(ctx.getOut(), str, strings.asString(nl));
       return ctx.getNothing();
     } catch (UnsupportedMessageException e) {
-      var ctx = EnsoContext.get(this);
       throw ctx.raiseAssertionPanic(this, null, e);
     }
   }

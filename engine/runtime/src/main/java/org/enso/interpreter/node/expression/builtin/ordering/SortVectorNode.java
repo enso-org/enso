@@ -81,7 +81,6 @@ public abstract class SortVectorNode extends Node {
    */
   public abstract Object execute(
       VirtualFrame frame,
-      State state,
       @AcceptsError Object self,
       long ascending,
       Object comparators,
@@ -106,7 +105,6 @@ public abstract class SortVectorNode extends Node {
       })
   Object sortPrimitives(
       VirtualFrame frame,
-      State state,
       Object self,
       long ascending,
       Object comparators,
@@ -180,7 +178,6 @@ public abstract class SortVectorNode extends Node {
       })
   Object sortGeneric(
       MaterializedFrame frame,
-      State state,
       Object self,
       long ascending,
       Object comparatorsArray,
@@ -240,7 +237,7 @@ public abstract class SortVectorNode extends Node {
                   group.comparator,
                   callNode,
                   toTextNode,
-                  state,
+                  EnsoContext.get(this).currentState(),
                   less,
                   equal,
                   greater,

@@ -24,6 +24,8 @@
 - [Removed `#` from default colum name][12222]
 - [Cloud File Browser will display input for file name in components writing to
   (new) files.][12228]
+- [Cloud File Browser allows adding new directory in "writing"
+  components][12275]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -40,6 +42,7 @@
 [12222]: https://github.com/enso-org/enso/pull/12222
 [12228]: https://github.com/enso-org/enso/pull/12228
 [12217]: https://github.com/enso-org/enso/pull/12217
+[12275]: https://github.com/enso-org/enso/pull/12275
 
 #### Enso Standard Library
 

@@ -19,6 +19,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.io.TruffleProcessBuilder;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.object.Shape;
+import com.oracle.truffle.api.profiles.ValueProfile;
 import com.oracle.truffle.api.source.Source;
 import java.io.BufferedReader;
 import java.io.File;
@@ -111,6 +112,7 @@ public final class EnsoContext {
   private ExecutionEnvironment globalExecutionEnvironment;
 
   private final int warningsLimit;
+  private final ValueProfile singleStateProfile = ValueProfile.createIdentityProfile();
 
   /**
    * Creates a new Enso context.
@@ -1033,5 +1035,10 @@ public final class EnsoContext {
     } else {
       return options.get(key);
     }
+  }
+
+  /** Access to state associated with this context and current thread. */
+  public State currentState() {
+    return singleStateProfile.profile(language.currentState());
   }
 }
