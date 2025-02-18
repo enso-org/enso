@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
 
 import Standard.Table.Row.Row
-from Standard.Table import Column, Excel_Workbook, Table, Value_Type
+from Standard.Table import Column, Excel_Workbook, Table, Value_Type, Sort_Column
 
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
@@ -221,12 +221,15 @@ make_json_for_table dataframe max_rows all_rows_count is_db_table =
    Arguments:
    - start_number: the start index of the next 100 rows to get
 
-get_rows_for_table : Any -> Integer -> Integer -> Integer -> JS_Object
-get_rows_for_table x start_number sort_col_index=Nothing sort_direction=Nothing =
+get_rows_for_table : Any -> Integer -> List -> List -> JS_Object
+get_rows_for_table x start_number sort_col_index_list=Nothing sort_direction_list=Nothing =
     max_rows=100
     all_rows_count = x.row_count
-    sort_direcion_parsed = if sort_direction == -1 then Sort_Direction.Descending else Sort_Direction.Ascending
-    sorted_table = if sort_col_index.is_nothing then x else x.sort [..Index sort_col_index sort_direcion_parsed]
+    parse_direction d = if d == -1 then Sort_Direction.Descending else Sort_Direction.Ascending
+    get_index i = sort_col_index_list.get i
+    get_pattern i = (Sort_Column.Index (get_index i) (parse_direction (sort_direction_list.get i)))
+    sort_pattern = if sort_col_index_list.is_nothing then Nothing else ((0.up_to sort_col_index_list.length).map idx-> get_pattern idx)
+    sorted_table = if sort_col_index_list.is_nothing then x else x.sort sort_pattern
     bucket_size = if max_rows < all_rows_count then max_rows else all_rows_count
     get_vector c         = Warning.set (Vector.new bucket_size i-> make_json_for_value (c.get (i + start_number))) []
     columns              = sorted_table.columns

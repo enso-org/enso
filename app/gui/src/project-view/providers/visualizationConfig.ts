@@ -28,7 +28,7 @@ export interface VisualizationConfig {
   executeExpression: (
     visulizationModule: string,
     expressionString: string,
-    ...positionalArgumentsExpressions: string[]
+    ...positionalArgumentsExpressions: any[]
   ) => any
 }
 

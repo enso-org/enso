@@ -259,23 +259,27 @@ const createRowsForTable = (data: unknown[][], startIndex: number, shift: number
 }
 type SortDirection = 'asc' | 'desc'
 const sortDirectionMap = computed(() => ({
-    asc: '1',
-    desc: '-1',
-  }))
+  asc: '1',
+  desc: '-1',
+}))
 
 function createRowServer() {
   return {
     getData: async (request: IServerSideGetRowsRequest) => {
-      // {sort: 'asc', colId: 'Column 1'}
-      const sortCol = request.sortModel[0]?.colId
-      const columnIndex = props.data.header.findIndex((h: string) => sortCol === h) 
-      const sortDir = sortDirectionMap.value[request.sortModel[0]?.sort as SortDirection]
+      const sortColIndexesMap = request.sortModel.map((sortCol) => {
+        return `${props.data.header.findIndex((h: string) => sortCol.colId === h)}`
+      })
+      const sortColIndexes = sortColIndexesMap.length ? sortColIndexesMap : 'Nothing'
+      const sortDirectionsMap = request.sortModel.map((sortCol) => {
+        return sortDirectionMap.value[sortCol.sort as SortDirection]
+      })
+      const sortDirections = sortDirectionsMap.length ? sortDirectionsMap : 'Nothing'
       const response = await config.executeExpression(
         'Standard.Visualization.Table.Visualization',
         'get_rows_for_table',
-        `${request.startRow}`,
-        `${columnIndex === -1 ? 'Nothing' : columnIndex}`,
-        `${sortDir ?? 'Nothing'}`
+        { type: 'single', value: `${request.startRow}` },
+        { type: 'array', value: sortColIndexes },
+        { type: 'array', value: sortDirections },
       )
       return {
         success: true,

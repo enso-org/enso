@@ -95,10 +95,21 @@ export function useVisualizationData({
     },
   )
 
+  //      Ast.Vector.new(module, itemList),
+  //    const itemList = items.map((i) => valueFormatter(i, module))
+
+  const parseArgument = (arg: any, tempModule: Ast.MutableModule) => {
+    if (arg.type === 'array' && arg.value != 'Nothing') {
+      const itemList = arg.value.map((i) => Ast.parseExpression(i, tempModule))
+      return Ast.Vector.new(tempModule, itemList)
+    }
+    return Ast.parseExpression(arg.value, tempModule)!
+  }
+
   const executeExpression = async (
     visulizationModule: string,
     expressionString: string,
-    ...positionalArgumentsExpressions: string[]
+    ...positionalArgumentsExpressions: any[]
   ) => {
     const dataSourceValue = toValue(dataSource)
     if (dataSourceValue?.type !== 'node') return
@@ -120,9 +131,10 @@ export function useVisualizationData({
       )
       const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
         Ast.Wildcard.new(tempModule),
-        ...positionalArgumentsExpressions.map((arg) =>
-          Ast.Group.new(tempModule, Ast.parseExpression(arg, tempModule)!),
-        ),
+        ...positionalArgumentsExpressions.map((arg) => {
+          const parsedArg = parseArgument(arg, tempModule)
+          return Ast.Group.new(tempModule, parsedArg)
+        }),
       ])
       const rhs = Ast.parseExpression(identifier, tempModule)!
       const expression = Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)

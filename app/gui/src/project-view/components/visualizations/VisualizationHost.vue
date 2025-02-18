@@ -20,7 +20,7 @@ const props = defineProps<{
     executeExpression: (
       visulizationModule: string,
       expressionString: string,
-      ...positionalArgumentsExpressions: string[]
+      ...positionalArgumentsExpressions: any[]
     ) => any
   }
 }>()
@@ -56,7 +56,7 @@ provideVisualizationConfig({
   setToolbar: (items) => emit('updateToolbar', items),
   setToolbarOverlay: (overlay) => emit('updateToolbarOverlay', overlay),
   createNodes: (...nodes) => emit('createNodes', nodes),
-  executeExpression: (visulizationModule: string, expressionString: string, ...args: string[]) =>
+  executeExpression: (visulizationModule: string, expressionString: string, ...args: any[]) =>
     props.params.executeExpression(visulizationModule, expressionString, ...args),
 })
 </script>
