@@ -169,7 +169,13 @@ export const DatePicker = forwardRef(function DatePicker<
                   {(segment) =>
                     segments[segment.type] === false ?
                       <></>
-                    : <DateSegment segment={segment} className={styles.dateSegment()} />
+                    : <DateSegment
+                        segment={segment}
+                        className={styles.dateSegment({
+                          className:
+                            segment.type === 'literal' && segment.text === ' ' ? 'w-1.5' : '',
+                        })}
+                      />
                   }
                 </DateInput>
               </I18nProvider>
