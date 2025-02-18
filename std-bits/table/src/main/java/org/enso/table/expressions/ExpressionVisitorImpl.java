@@ -7,7 +7,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.function.Function;
 import java.util.regex.Pattern;
-
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -87,7 +86,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       }
     }
 
-      @Override
+    @Override
     public Value execute(Value[] args, Function<Object, Value> makeConstantColumn) {
       Object[] objects = prepareArguments(args, makeConstantColumn);
       try {
@@ -104,7 +103,7 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
       }
     }
 
-      @Override
+    @Override
     public Object[] prepareArguments(Value[] args, Function<Object, Value> makeConstantColumn) {
       Object[] objects;
       if (isVariableArgumentMethod) {
@@ -143,7 +142,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     Function<String, Value> makeConstructor =
         name -> module.invokeMember("eval_expression", ".." + name);
 
-    return evaluateImpl(expression, getColumn, makeConstantColumn, isColumn, getMethod, makeConstructor);
+    return evaluateImpl(
+        expression, getColumn, makeConstantColumn, isColumn, getMethod, makeConstructor);
   }
 
   public static Value evaluateImpl(
@@ -163,7 +163,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     parser.addErrorListener(ThrowOnErrorListener.INSTANCE);
 
     var visitor =
-        new ExpressionVisitorImpl(getColumn, makeConstantColumn, isColumn, getMethod, makeConstructor);
+        new ExpressionVisitorImpl(
+            getColumn, makeConstantColumn, isColumn, getMethod, makeConstructor);
 
     var expr = parser.prog();
     var result = visitor.visit(expr);
@@ -219,7 +220,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitMultDivMod(ExpressionParser.MultDivModContext ctx) {
-    return standardiseTypesAndExecuteMethod(ctx.op.getText(), visit(ctx.expr(0)), visit(ctx.expr(1)));
+    return standardiseTypesAndExecuteMethod(
+        ctx.op.getText(), visit(ctx.expr(0)), visit(ctx.expr(1)));
   }
 
   @Override
@@ -257,7 +259,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitAddSub(ExpressionParser.AddSubContext ctx) {
-    return standardiseTypesAndExecuteMethod(ctx.op.getText(), visit(ctx.expr(0)), visit(ctx.expr(1)));
+    return standardiseTypesAndExecuteMethod(
+        ctx.op.getText(), visit(ctx.expr(0)), visit(ctx.expr(1)));
   }
 
   @Override
@@ -309,7 +312,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
 
   @Override
   public Value visitNullOrNothing(ExpressionParser.NullOrNothingContext ctx) {
-    // A Nothing token in an expression is assumed to mean a column of Nothings (or null column) and so we convert it here.
+    // A Nothing token in an expression is assumed to mean a column of Nothings (or null column) and
+    // so we convert it here.
     return makeConstantColumn.apply(Value.asValue(null));
   }
 
