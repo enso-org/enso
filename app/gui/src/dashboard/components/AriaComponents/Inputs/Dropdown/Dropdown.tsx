@@ -17,7 +17,7 @@ import SvgMask from '#/components/SvgMask'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
-import { tv } from '#/utilities/tailwindVariants'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import {
   Form,
   type FieldComponentProps,
@@ -42,7 +42,7 @@ const DROPDOWN_STYLES = tv({
       },
       false: {
         container: 'overflow-hidden',
-        options: 'before:h-6 group-hover:before:bg-hover-bg',
+        options: 'before:h-full group-hover:before:bg-hover-bg',
         optionsContainer: 'grid-rows-0fr',
       },
     },
@@ -56,21 +56,36 @@ const DROPDOWN_STYLES = tv({
         optionsItem: 'hover:font-semibold',
       },
     },
+    size: {
+      medium: {
+        input: 'px-[11px] pb-[6.5px] pt-[8.5px]',
+        icon: 'size-4',
+      },
+      small: {
+        input: 'px-[11px] pb-0.5 pt-1',
+        icon: 'size-3',
+      },
+      custom: {},
+    },
   },
   slots: {
     container: 'absolute left-0 h-full w-full min-w-max',
+    icon: '',
     options:
       'relative before:absolute before:top-0 before:w-full before:rounded-input before:border-0.5 before:border-primary/20 before:transition-colors',
     optionsSpacing: 'padding relative h-6',
     optionsContainer:
-      'relative grid max-h-dropdown-items w-full overflow-auto rounded-input transition-grid-template-rows',
+      'relative grid max-h-60 w-full overflow-auto rounded-input transition-grid-template-rows',
     optionsList: 'overflow-hidden',
     optionsItem:
-      'flex h-6 items-center gap-dropdown-arrow rounded-input px-input-x transition-colors focus:cursor-default focus:bg-frame focus:font-bold focus:focus-ring not-focus:hover:bg-hover-bg not-selected:hover:bg-hover-bg',
-    input: 'relative flex h-6 items-center gap-dropdown-arrow px-input-x',
+      'flex min-h-6 items-center gap-dropdown-arrow rounded-input px-input-x transition-colors focus:cursor-default focus:bg-frame focus:font-bold focus:focus-ring not-focus:hover:bg-hover-bg not-selected:hover:bg-hover-bg',
+    input: 'relative flex items-center gap-dropdown-arrow px-input-x',
     inputDisplay: 'grow select-none',
     hiddenOptions: 'flex h-0 flex-col overflow-hidden',
     hiddenOption: 'flex gap-dropdown-arrow px-input-x font-bold',
+  },
+  defaultVariants: {
+    size: 'small',
   },
 })
 
@@ -91,7 +106,9 @@ interface InternalChildrenProps<T> {
 }
 
 /** Props for a {@link Dropdown} shared between all variants. */
-interface InternalBaseDropdownProps<T> extends InternalChildrenProps<T> {
+interface InternalBaseDropdownProps<T>
+  extends InternalChildrenProps<T>,
+    Omit<VariantProps<typeof DROPDOWN_STYLES>, 'isFocused' | 'isReadOnly' | 'multiple'> {
   readonly readOnly?: boolean
   readonly className?: string
   // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -121,7 +138,14 @@ export const Dropdown = forwardRef(function Dropdown<T>(
   props: DropdownProps<T>,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
-  const { readOnly = false, className, items, children: Child } = props
+  const {
+    readOnly = false,
+    className,
+    items,
+    size,
+    variants = DROPDOWN_STYLES,
+    children: Child,
+  } = props
   const listBoxItems = useMemo(() => items.map((item, i) => ({ item, i })), [items])
   const [tempSelectedIndex, setTempSelectedIndex] = useState<number | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -148,7 +172,7 @@ export const Dropdown = forwardRef(function Dropdown<T>(
   const visuallySelectedItem = visuallySelectedIndex == null ? null : items[visuallySelectedIndex]
 
   const isFocused = isFocusVisible ? isFocusWithin : isMouseFocused
-  const styles = DROPDOWN_STYLES({ isFocused, isReadOnly: readOnly })
+  const styles = variants({ isFocused, isReadOnly: readOnly, multiple, size })
 
   useEffect(() => {
     setTempSelectedIndex(selectedIndex)
@@ -246,7 +270,9 @@ export const Dropdown = forwardRef(function Dropdown<T>(
                   >
                     <SvgMask
                       src={CheckMarkIcon}
-                      className={selectedIndices.includes(i) ? '' : 'invisible'}
+                      className={styles.icon({
+                        className: selectedIndices.includes(i) ? '' : 'invisible',
+                      })}
                     />
                     <Child item={item} />
                   </ListBoxItem>
@@ -306,7 +332,7 @@ export function FormDropdown<
   TFieldName extends FieldPath<Schema, Constraint>,
   Constraint,
 >(props: FormDropdownProps<Schema, TFieldName, Constraint>) {
-  const { name, children, ...inputProps } = props
+  const { name, children, size, variants, ...inputProps } = props
   const { items } = inputProps
 
   const form = Form.useFormContext(props.form)
@@ -333,7 +359,13 @@ export function FormDropdown<
           const { value, onChange } = field
           return (
             <>
-              <Dropdown {...inputProps} selectedIndex={items.indexOf(value)} onChange={onChange}>
+              <Dropdown
+                {...inputProps}
+                selectedIndex={items.indexOf(value)}
+                onChange={onChange}
+                size={size}
+                variants={variants}
+              >
                 {children}
               </Dropdown>
               <FieldError>{fieldState.error?.message}</FieldError>

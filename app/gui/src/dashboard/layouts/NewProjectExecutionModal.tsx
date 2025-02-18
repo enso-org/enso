@@ -348,6 +348,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         name="repeatType"
         label={getText('repeatIntervalLabel')}
         items={validRepeatTypes}
+        size="medium"
         className="w-52"
       >
         {({ item: otherItem }) => repeatText(otherItem)}
