@@ -66,7 +66,7 @@ function animate(start: Keyframe, end: Keyframe) {
 }
 
 watch([toRef(props, 'fullscreen'), content], ([fullscreen, el]) => {
-  const fullscreenContainer = document.getElementById('#graphEditorRoot')
+  const fullscreenContainer = document.getElementById('graphEditorRoot')
   if (!el || !fullscreenContainer) return
   const container = fullscreenContainer.getBoundingClientRect()
   if (fullscreen && !savedSize.value) {
