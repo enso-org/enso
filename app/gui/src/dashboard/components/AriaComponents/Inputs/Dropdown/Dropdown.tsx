@@ -37,7 +37,7 @@ const DROPDOWN_STYLES = tv({
     isFocused: {
       true: {
         container: 'z-1',
-        options: 'before:h-full before:shadow-soft before:bg-frame before:backdrop-blur-md',
+        options: 'before:shadow-soft before:bg-frame before:backdrop-blur-md',
         optionsContainer: 'grid-rows-1fr',
         input: 'z-1',
       },
@@ -61,10 +61,14 @@ const DROPDOWN_STYLES = tv({
     size: {
       medium: {
         input: 'px-[11px] pb-[6.5px] pt-[8.5px]',
+        optionsItem: 'px-[11px]',
+        hiddenOption: 'px-[11px]',
         icon: 'size-4',
       },
       small: {
         input: 'px-[11px] pb-0.5 pt-1',
+        optionsItem: 'px-[11px]',
+        hiddenOption: 'px-[11px]',
         icon: 'size-3',
       },
       custom: {},
@@ -74,17 +78,17 @@ const DROPDOWN_STYLES = tv({
     container: 'absolute left-0 min-h-full w-full min-w-max pb-px',
     icon: '',
     options:
-      'relative before:absolute before:top-0 before:w-full before:rounded-input before:border-0.5 before:border-primary/20 before:transition-colors',
+      'relative before:absolute before:top-0 before:h-full before:w-full before:rounded-input before:border-0.5 before:border-primary/20 before:transition-colors',
     optionsSpacing: 'padding relative h-full',
     optionsContainer:
       'relative grid max-h-60 w-full overflow-auto rounded-input transition-grid-template-rows',
     optionsList: 'overflow-hidden',
     optionsItem:
-      'flex min-h-6 items-center gap-dropdown-arrow rounded-input px-input-x transition-colors focus:cursor-default focus:bg-frame focus:font-bold focus:focus-ring not-focus:hover:bg-hover-bg not-selected:hover:bg-hover-bg',
-    input: 'relative flex items-center gap-dropdown-arrow px-input-x',
+      'flex min-h-6 items-center gap-dropdown-arrow rounded-input transition-colors focus:cursor-default focus:bg-frame focus:font-bold focus:focus-ring not-focus:hover:bg-hover-bg not-selected:hover:bg-hover-bg',
+    input: 'relative flex items-center gap-dropdown-arrow',
     inputDisplay: 'grow select-none',
     hiddenOptions: 'flex h-0 flex-col overflow-hidden',
-    hiddenOption: 'flex gap-dropdown-arrow px-input-x font-bold',
+    hiddenOption: 'flex gap-dropdown-arrow font-bold',
   },
   defaultVariants: {
     rounded: 'xlarge',
@@ -296,7 +300,7 @@ export const Dropdown = forwardRef(function Dropdown<T>(
           <SvgMask src={FolderArrowIcon} className="rotate-90" />
           <div className={styles.inputDisplay()}>
             {isMouseFocused && !multiple ?
-              null
+              '\u00a0'
             : visuallySelectedItem != null ?
               <Child item={visuallySelectedItem} />
             : multiple && <props.renderMultiple items={selectedItems}>{Child}</props.renderMultiple>
