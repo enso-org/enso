@@ -420,7 +420,7 @@ type Table
        - index: The index of the row to get within the table.
        - if_missing: The value to use if the selector isn't present.
     @index (t-> Widget.Numeric_Input minimum=0 maximum=t.row_count-1)
-    get_row self index:Integer=0 ~if_missing:Any=Nothing -> Any =
+    get_row self index:Integer=0 ~if_missing:Any=Nothing -> Row | Any =
         if index < -self.row_count || index >= self.row_count then if_missing else
             Row.Value self (if index < 0 then index + self.row_count else index)
 

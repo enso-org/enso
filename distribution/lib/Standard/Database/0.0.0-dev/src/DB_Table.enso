@@ -195,7 +195,7 @@ type DB_Table
        Arguments:
        - index: The index of the row to get within the table.
        - if_missing: The value to use if the selector isn't present.
-    get_row self index:Integer=0 ~if_missing:Any=Nothing -> Any =
+    get_row self index:Integer=0 ~if_missing:Any=Nothing -> Row | Any =
         Feature.Sample.if_supported_else_throw self.connection.dialect "get_row" <|
             if index == -1 then self.last_row else
                 real_row = (if index < 0 then index + self.row_count else index)
