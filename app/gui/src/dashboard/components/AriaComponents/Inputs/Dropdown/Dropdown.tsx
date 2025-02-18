@@ -56,6 +56,16 @@ const DROPDOWN_STYLES = tv({
         optionsItem: 'hover:font-semibold',
       },
     },
+    rounded: {
+      none: { options: 'before:rounded-none' },
+      small: { options: 'before:rounded-sm' },
+      medium: { options: 'before:rounded-md' },
+      large: { options: 'before:rounded-lg' },
+      xlarge: { options: 'before:rounded-xl' },
+      xxlarge: { options: 'before:rounded-2xl' },
+      xxxlarge: { options: 'before:rounded-3xl' },
+      full: { options: 'before:rounded-full' },
+    },
     size: {
       medium: {
         input: 'px-[11px] pb-[6.5px] pt-[8.5px]',
@@ -69,11 +79,11 @@ const DROPDOWN_STYLES = tv({
     },
   },
   slots: {
-    container: 'absolute left-0 h-full w-full min-w-max',
+    container: 'absolute left-0 min-h-full w-full min-w-max pb-px',
     icon: '',
     options:
       'relative before:absolute before:top-0 before:w-full before:rounded-input before:border-0.5 before:border-primary/20 before:transition-colors',
-    optionsSpacing: 'padding relative h-6',
+    optionsSpacing: 'padding relative h-full',
     optionsContainer:
       'relative grid max-h-60 w-full overflow-auto rounded-input transition-grid-template-rows',
     optionsList: 'overflow-hidden',
@@ -85,6 +95,7 @@ const DROPDOWN_STYLES = tv({
     hiddenOption: 'flex gap-dropdown-arrow px-input-x font-bold',
   },
   defaultVariants: {
+    rounded: 'xlarge',
     size: 'small',
   },
 })
@@ -142,6 +153,7 @@ export const Dropdown = forwardRef(function Dropdown<T>(
     readOnly = false,
     className,
     items,
+    rounded,
     size,
     variants = DROPDOWN_STYLES,
     children: Child,
@@ -172,7 +184,14 @@ export const Dropdown = forwardRef(function Dropdown<T>(
   const visuallySelectedItem = visuallySelectedIndex == null ? null : items[visuallySelectedIndex]
 
   const isFocused = isFocusVisible ? isFocusWithin : isMouseFocused
-  const styles = variants({ isFocused, isReadOnly: readOnly, multiple, size })
+
+  const styles = variants({
+    isFocused,
+    isReadOnly: readOnly,
+    multiple,
+    rounded,
+    size,
+  })
 
   useEffect(() => {
     setTempSelectedIndex(selectedIndex)
@@ -228,7 +247,7 @@ export const Dropdown = forwardRef(function Dropdown<T>(
         <div className={styles.container()}>
           <div className={styles.options()}>
             {/* Spacing. */}
-            <div className={styles.optionsSpacing()} />
+            <div className={styles.input()}>&nbsp;</div>
             <div className={styles.optionsContainer()}>
               <ListBox
                 aria-label={props['aria-label'] ?? 'Dropdown'}
@@ -332,7 +351,7 @@ export function FormDropdown<
   TFieldName extends FieldPath<Schema, Constraint>,
   Constraint,
 >(props: FormDropdownProps<Schema, TFieldName, Constraint>) {
-  const { name, children, size, variants, ...inputProps } = props
+  const { name, children, rounded, size, variants, ...inputProps } = props
   const { items } = inputProps
 
   const form = Form.useFormContext(props.form)
@@ -363,6 +382,7 @@ export function FormDropdown<
                 {...inputProps}
                 selectedIndex={items.indexOf(value)}
                 onChange={onChange}
+                rounded={rounded}
                 size={size}
                 variants={variants}
               >
