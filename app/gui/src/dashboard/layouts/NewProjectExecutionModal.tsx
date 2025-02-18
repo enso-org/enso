@@ -55,6 +55,8 @@ import {
   getDay,
   MONTH_3_LETTER_TEXT_IDS,
   toRfc3339,
+  WHITELISTED_TIME_ZONE_MAP,
+  WHITELISTED_TIME_ZONES,
   zonedDateTimeToReadableIsoString,
 } from 'enso-common/src/utilities/data/dateTime'
 import { useEffect, useRef } from 'react'
@@ -328,17 +330,10 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         isRequired
         name="timeZone"
         label={getText('timeZoneLabel')}
-        items={Intl.supportedValuesOf('timeZone')}
+        items={WHITELISTED_TIME_ZONES}
         className="w-60"
       >
-        {(otherTimeZone) => {
-          const [, sign, number] = otherTimeZone.match(/^Etc\/GMT([+-])(\d+)$/) ?? []
-          if (sign != null && number != null) {
-            return `GMT${sign}${number.padStart(2, '0')}:00`
-          } else {
-            return otherTimeZone
-          }
-        }}
+        {(otherTimeZone) => WHITELISTED_TIME_ZONE_MAP.get(otherTimeZone)?.timeZone ?? otherTimeZone}
       </ComboBox>
       <FormDropdown
         form={form}
