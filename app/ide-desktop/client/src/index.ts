@@ -166,10 +166,6 @@ class App {
       const versionInfoText = await fs.readFile(versionInfoPath, 'utf8')
       const versionInfoJson = JSON.parse(versionInfoText)
 
-      logger.log('debug.VERSION_INFO', debug.VERSION_INFO)
-      logger.log('versionInfoJson', versionInfoJson)
-      logger.log('VERSION.isDev', contentConfig.VERSION.isDev())
-
       if (debug.VERSION_INFO.version === versionInfoJson.version && !contentConfig.VERSION.isDev())
         return
     }
