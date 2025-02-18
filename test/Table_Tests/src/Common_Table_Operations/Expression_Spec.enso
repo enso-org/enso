@@ -434,6 +434,11 @@ add_expression_specs suite_builder detailed setup =
         specify_test "should be able to perform comparisons to get boolean results" group_builder expression_test->
             expression_test "text_replace([C], 'o', '', ..Sensitive, 3<5)" ["Hell", "Wrld", "Hell World!", "", Nothing]
 
+        specify_test "should be able to use regex" group_builder expression_test->
+            expression_test "text_replace([C], regex('l{2}'), '')" ["Heo", "World", "Heo World!", "", Nothing]
+            expression_test "text_replace([C], regex('L{2}'), '')" ["Hello", "World", "Hello World!", "", Nothing]
+            expression_test "text_replace([C], r/l{2}/, '')" ["Heo", "World", "Heo World!", "", Nothing]
+
     suite_builder.group prefix+"Expression Errors should be handled" group_builder->
         expect_error ctor expr =
             expr.should_fail_with Expression_Error

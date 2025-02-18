@@ -19,6 +19,7 @@ expr:   expr op=POWER expr                                # Power
     |   MINUS expr                                        # UnaryMinus
     |   '..' IDENTIFIER                                   # Atom
     |   value                                             # Literal
+    |   REGEX_LITERAL                                     # RegexLiteral
     ;
 
 POWER : '^';
@@ -35,6 +36,9 @@ LESS_THAN : '<';
 GREATER_THAN : '>';
 
 WHITESPACE : [ \t\r\n]+ -> skip;
+
+REGEX_LITERAL : 'r/' REGEX_BODY '/' ;
+fragment REGEX_BODY : (~[/\r\n])+ ; // Match everything except '/' and newlines
 
 fragment A:[aA];
 fragment B:[bB];
