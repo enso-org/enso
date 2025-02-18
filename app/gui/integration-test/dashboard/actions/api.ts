@@ -168,6 +168,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     userGroups: null,
     plan: backend.Plan.solo,
     isOrganizationAdmin: true,
+    isEnsoTeamMember: true,
   }
   const defaultOrganization: backend.OrganizationInfo = {
     id: defaultOrganizationId,
@@ -177,6 +178,11 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     picture: null,
     website: null,
     subscription: {},
+  }
+  const defaultFeatureFlags: Partial<FeatureFlags> = {
+    enableCloudExecution: true,
+    enableAsyncExecution: true,
+    enableAdvancedProjectExecutionOptions: true,
   }
   const callsObjects = new Set<typeof INITIAL_CALLS_OBJECT>()
   let totalSeats = 1
@@ -650,6 +656,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       userGroups: null,
       plan: backend.Plan.enterprise,
       isOrganizationAdmin: true,
+      isEnsoTeamMember: true,
       ...rest,
     }
     users.push(user)
@@ -1235,6 +1242,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         rootDirectoryId,
         userGroups: null,
         isOrganizationAdmin: true,
+        isEnsoTeamMember: true,
       }
       return currentUser
     })
@@ -1485,7 +1493,6 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
         Object.defineProperty(window, 'overrideFeatureFlags', {
           value: { ...currentOverrideFeatureFlags, ...flags },
-          writable: false,
         })
       }, flags)
     },
@@ -1500,6 +1507,8 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
   if (setupAPI) {
     await setupAPI(api)
   }
+
+  api.setFeatureFlags(defaultFeatureFlags)
 
   return api
 }
