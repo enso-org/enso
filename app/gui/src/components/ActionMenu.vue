@@ -20,3 +20,12 @@ const emit = defineEmits<{ close: [] }>()
     <slot />
   </MenuPanel>
 </template>
+
+<style scoped>
+.MenuPanel {
+  margin-top: 2px;
+  padding: 4px;
+  background: var(--dropdown-opened-background, var(--color-app-bg));
+  backdrop-filter: var(--dropdown-opened-backdrop-filter, var(--blur-app-bg));
+}
+</style>
