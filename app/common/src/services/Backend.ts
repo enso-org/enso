@@ -1679,15 +1679,6 @@ export function extractProjectExtension(name: string) {
   return { basename: basename ?? name, extension: extension ?? '' }
 }
 
-/** Check whether a pending rename is valid. */
-export function isNewTitleValid(
-  item: AnyAsset,
-  newTitle: string,
-  siblings?: readonly AnyAsset[] | null,
-) {
-  return newTitle !== '' && newTitle !== item.title && isNewTitleUnique(item, newTitle, siblings)
-}
-
 /**
  * Check whether a new title is unique among the siblings.
  */
@@ -1792,7 +1783,10 @@ export default abstract class Backend {
     title: string,
   ): Promise<readonly AnyAsset[]>
   /** Create a directory. */
-  abstract createDirectory(body: CreateDirectoryRequestBody): Promise<CreatedDirectory>
+  abstract createDirectory(
+    body: CreateDirectoryRequestBody,
+    discardTitle?: boolean,
+  ): Promise<CreatedDirectory>
   /** Change the name of a directory. */
   abstract updateDirectory(
     directoryId: DirectoryId,

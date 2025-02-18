@@ -290,7 +290,7 @@ public class WarningsTest {
           var gatheredWarns = warnsLib.getWarnings(arrWithWarns, false);
           assertThat("Hash size should be 2", hashMapSizeNode.execute(gatheredWarns), is(2L));
           var warn1FromMap =
-              hashMapGetNode.execute(null, null, gatheredWarns, warn1.getSequenceId(), null);
+              hashMapGetNode.execute(null, gatheredWarns, warn1.getSequenceId(), null);
           assertThat(
               "Original warning and warning gathered via WarningsLibrary should be the same object",
               warn1 == warn1FromMap,

@@ -3,11 +3,10 @@ package org.enso.table.data.column.storage.numeric;
 import java.math.BigInteger;
 import java.util.BitSet;
 import java.util.List;
+import java.util.NoSuchElementException;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.ValueIsNothingException;
+import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -22,8 +21,8 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   // TODO [RW] at some point we will want to add separate storage classes for byte, short and int,
   // for more compact storage and more efficient handling of smaller integers; for now we will be
   // handling this just by checking the bounds
-  private final long[] data;
-  private final BitSet isNothing;
+  final long[] data;
+  final BitSet isNothing;
 
   /**
    * @param data the underlying data
@@ -49,15 +48,9 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
     this(data, data.length, new BitSet(), type);
   }
 
-  /**
-   * @param idx an index
-   * @return the data item contained at the given index.
-   */
-  public long getItemAsLong(long idx) {
-    if (isNothing(idx)) {
-      throw new ValueIsNothingException(idx);
-    }
-    return data[Math.toIntExact(idx)];
+  @Override
+  public long getItemAsLong(long index) {
+    return data[(int) index];
   }
 
   @Override
@@ -132,10 +125,6 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
     return super.fillMissing(arg, commonType, problemAggregator);
   }
 
-  public long[] getRawData() {
-    return data;
-  }
-
   @Override
   public LongStorage slice(int offset, int limit) {
     int size = (int) getSize();
@@ -197,5 +186,153 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   public LongStorage widen(IntegerType widerType) {
     assert widerType.fits(getType());
     return new LongStorage(data, (int) getSize(), getIsNothingMap(), widerType);
+  }
+
+  /** Allow access to the underlying data array for copying. */
+  public long[] getArray() {
+    return data;
+  }
+
+  @Override
+  public ColumnLongStorageIterator iterator() {
+    return new LongStorageIterator(data, isNothing, (int) getSize());
+  }
+
+  private static class LongStorageIterator implements ColumnLongStorageIterator {
+    private final long[] data;
+    private final BitSet isNothing;
+    private final int size;
+    private int index = -1;
+
+    public LongStorageIterator(long[] data, BitSet isNothing, int size) {
+      this.data = data;
+      this.isNothing = isNothing;
+      this.size = size;
+    }
+
+    @Override
+    public Long getItemBoxed() {
+      return isNothing.get(index) ? null : data[index];
+    }
+
+    @Override
+    public long getItemAsLong() {
+      return data[index];
+    }
+
+    @Override
+    public boolean isNothing() {
+      return isNothing.get(index);
+    }
+
+    @Override
+    public boolean hasNext() {
+      return index + 1 < size;
+    }
+
+    @Override
+    public Long next() {
+      if (!hasNext()) {
+        throw new NoSuchElementException();
+      }
+      index++;
+      return getItemBoxed();
+    }
+
+    @Override
+    public long getIndex() {
+      return index;
+    }
+
+    @Override
+    public boolean moveNext() {
+      if (!hasNext()) {
+        return false;
+      }
+      index++;
+      return true;
+    }
+
+    @Override
+    public void zip(ColumnDoubleStorage otherStorage, LongDoubleZipper zipper) {
+      Context context = Context.getCurrent();
+      var otherSize = otherStorage.getSize();
+      var toCount = Math.max(size, otherSize);
+
+      if (otherStorage instanceof DoubleStorage doubleStorage) {
+        for (int i = 0; i < toCount; i++) {
+          boolean isNothing1 = i >= size || isNothing.get(i);
+          long value1 = isNothing1 ? 0 : data[i];
+          boolean isNothing2 = i >= otherSize || doubleStorage.isNothing.get(i);
+          double value2 = isNothing2 ? Double.NaN : doubleStorage.data[i];
+          zipper.accept(i, value1, isNothing1, value2, isNothing2);
+          context.safepoint();
+        }
+      } else {
+        int minSize = (int) Math.min(size, otherSize);
+        for (int i = 0; i < minSize; i++) {
+          boolean isNothing1 = i >= size || isNothing.get(i);
+          long value1 = isNothing1 ? 0 : data[i];
+          var isNothing2 = otherStorage.isNothing(i);
+          if (isNothing2) {
+            zipper.accept(i, value1, isNothing1, Double.NaN, true);
+          } else {
+            zipper.accept(i, value1, isNothing1, otherStorage.getItemAsDouble(i), false);
+          }
+          context.safepoint();
+        }
+
+        for (long i = minSize; i < toCount; i++) {
+          var isNothing2 = otherStorage.isNothing(i);
+          if (isNothing2) {
+            zipper.accept(i, 0, true, Double.NaN, true);
+          } else {
+            zipper.accept(i, 0, true, otherStorage.getItemAsDouble(i), false);
+          }
+          context.safepoint();
+        }
+      }
+    }
+
+    @Override
+    public void zip(ColumnLongStorage otherStorage, LongLongZipper zipper) {
+      Context context = Context.getCurrent();
+      var otherSize = otherStorage.getSize();
+      var toCount = Math.max(size, otherSize);
+
+      if (otherStorage instanceof LongStorage longStorage) {
+        for (int i = 0; i < toCount; i++) {
+          boolean isNothing1 = i >= size || isNothing.get(i);
+          long value1 = isNothing1 ? 0 : data[i];
+          boolean isNothing2 = i >= otherSize || longStorage.isNothing.get(i);
+          long value2 = isNothing2 ? 0 : longStorage.data[i];
+          zipper.accept(i, value1, isNothing1, value2, isNothing2);
+          context.safepoint();
+        }
+      } else {
+        int minSize = (int) Math.min(size, otherSize);
+        for (int i = 0; i < minSize; i++) {
+          boolean isNothing1 = i >= size || isNothing.get(i);
+          long value1 = isNothing1 ? 0 : data[i];
+          var isNothing2 = otherStorage.isNothing(i);
+          if (isNothing2) {
+            zipper.accept(i, value1, isNothing1, 0, true);
+          } else {
+            zipper.accept(i, value1, isNothing1, otherStorage.getItemAsLong(i), false);
+          }
+          context.safepoint();
+        }
+
+        for (long i = minSize; i < toCount; i++) {
+          var isNothing2 = otherStorage.isNothing(i);
+          if (isNothing2) {
+            zipper.accept(i, 0, true, 0, true);
+          } else {
+            zipper.accept(i, 0, true, otherStorage.getItemAsLong(i), false);
+          }
+          context.safepoint();
+        }
+      }
+    }
   }
 }

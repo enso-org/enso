@@ -546,16 +546,6 @@ public class MethodDefinition {
         return false;
       }
 
-      if (isState() && !type.toString().equals(STATE)) {
-        processingEnvironment
-            .getMessager()
-            .printMessage(
-                Diagnostic.Kind.ERROR,
-                "The monadic state argument must be typed as " + STATE,
-                element);
-        return false;
-      }
-
       return true;
     }
 
@@ -591,7 +581,7 @@ public class MethodDefinition {
      * @return whether this argument should be passed the next positional function argument.
      */
     public boolean isPositional() {
-      return !isFrame() && !isState() && !isCallerInfo() && !isNode();
+      return !isFrame() && !isCallerInfo() && !isNode();
     }
 
     /**

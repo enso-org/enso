@@ -306,6 +306,7 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
           },
           _ => SuccessExitCode
         )
+        _ <- teardownLogging()
       } yield exitCode
     }
   }
@@ -329,6 +330,13 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         printLineError(s"Failed to setup logger: ${exception.getMessage}")
       }
       .as(level)
+  }
+
+  private def teardownLogging(): ZIO[ZAny, Throwable, Unit] = {
+    ZIO.attempt {
+      Logging.tearDown()
+      ()
+    }
   }
 
   private def displayVersion(
