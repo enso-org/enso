@@ -2,7 +2,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
 import { mockAllAndLogin } from './actions'
-import EditorPageActions from './actions/EditorPageActions'
 
 /** Find the context menu. */
 function locateContextMenu(page: Page) {
