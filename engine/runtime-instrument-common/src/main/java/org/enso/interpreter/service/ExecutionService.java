@@ -49,7 +49,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.state.PutStateNode;
+import org.enso.interpreter.runtime.state.RunStateNode;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.service.error.FailedToApplyEditsException;
 import org.enso.interpreter.service.error.MethodNotFoundException;
@@ -203,11 +203,13 @@ public final class ExecutionService {
             service ->
                 service.bind(module, call.getFunction().getCallTarget(), callbacks, this.timer));
 
-    PutStateNode.getUncached().executePut(IdExecutionService.class, cache);
-
     Object p = context.getThreadManager().enter();
     try {
-      execute.getCallTarget().call(substituteMissingArguments(call));
+      var callFn = Function.fullyApplied(execute.getCallTarget(), substituteMissingArguments(call));
+      RunStateNode.getUncached().execute(null, cacheKey(), cache, callFn);
+    } catch (Throwable t) {
+      t.printStackTrace();
+      throw t;
     } finally {
       context.getThreadManager().leave(p);
       eventNodeFactory.ifPresent(EventBinding::dispose);
@@ -397,16 +399,18 @@ public final class ExecutionService {
         state = State.create(context);
         function = new FunctionCallInstrumentationNode.FunctionCall(fn, state, new Object[0]);
       }
-      if (executionCache != null) {
-        PutStateNode.getUncached().executePut(IdExecutionService.class, executionCache);
-      }
-
-      ret[0] = call.getCallTarget().call(function, arguments);
+      var callArgs = new Object[] {function, arguments};
+      var callFn = Function.fullyApplied(call.getCallTarget(), callArgs);
+      ret[0] = RunStateNode.getUncached().execute(null, cacheKey(), executionCache, callFn);
     } finally {
       context.getThreadManager().leave(p);
       eventNodeFactory.ifPresent(EventBinding::dispose);
     }
     return ret[0];
+  }
+
+  private Type cacheKey() {
+    return context.getBuiltins().managedResource(); // XXX find a better key
   }
 
   /**
@@ -574,10 +578,11 @@ public final class ExecutionService {
     @Override
     public Object execute(VirtualFrame frame) {
       try {
-        if (frame.getArguments()[0] instanceof FunctionCallInstrumentationNode.FunctionCall call) {
+        var args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
+        if (args[0] instanceof FunctionCallInstrumentationNode.FunctionCall call) {
           return iop.execute(call);
         }
-        throw ArityException.create(1, 1, frame.getArguments().length);
+        throw ArityException.create(1, 1, args.length);
       } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException ex) {
         throw raise(RuntimeException.class, ex);
       }
@@ -594,8 +599,9 @@ public final class ExecutionService {
     @Override
     public Object execute(VirtualFrame frame) {
       try {
-        var self = frame.getArguments()[0];
-        var args = (Object[]) frame.getArguments()[1];
+        var callArgs = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
+        var self = callArgs[0];
+        var args = (Object[]) callArgs[1];
         return iop.execute(self, args);
       } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException ex) {
         throw raise(RuntimeException.class, ex);

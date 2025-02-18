@@ -1,8 +1,10 @@
 package org.enso.interpreter.runtime.state;
 
 import com.oracle.truffle.api.dsl.Bind;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -24,13 +26,16 @@ import org.enso.interpreter.runtime.error.PanicException;
     autoRegister = false,
     inlineable = true)
 @ReportPolymorphism
+@GenerateUncached
 public abstract class RunStateNode extends Node {
-  private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
-
   RunStateNode() {}
 
   public static RunStateNode build() {
     return RunStateNodeGen.create();
+  }
+
+  public static RunStateNode getUncached() {
+    return RunStateNodeGen.getUncached();
   }
 
   public abstract Object execute(
@@ -47,6 +52,7 @@ public abstract class RunStateNode extends Node {
       Object local,
       Object computation,
       @Bind("state().getContainer()") State.Container data,
+      @Shared("thunkNode") @Cached ThunkExecutorNode thunkExecutorNode,
       @Shared("dynamicObjectLib") @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
     var old = objects.getOrDefault(data, key, null);
     objects.put(data, key, local);
@@ -65,6 +71,7 @@ public abstract class RunStateNode extends Node {
       Object local,
       Object computation,
       @Bind("state().getContainer()") State.Container data,
+      @Shared("thunkNode") @Cached ThunkExecutorNode thunkExecutorNode,
       @Shared("dynamicObjectLib") @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
     objects.put(data, key, local);
     try {

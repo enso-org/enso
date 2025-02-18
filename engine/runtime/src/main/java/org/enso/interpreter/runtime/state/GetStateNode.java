@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.state;
 
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -17,6 +18,7 @@ import org.enso.interpreter.runtime.error.PanicException;
     description = "Returns the current value of monadic state.",
     autoRegister = false)
 @ReportPolymorphism
+@GenerateUncached
 public abstract class GetStateNode extends Node {
   public static GetStateNode build() {
     return GetStateNodeGen.create();

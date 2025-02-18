@@ -22,10 +22,6 @@ public abstract class PutStateNode extends Node {
     return PutStateNodeGen.create();
   }
 
-  public static PutStateNode getUncached() {
-    return PutStateNodeGen.getUncached();
-  }
-
   PutStateNode() {}
 
   final Object execute(Object key, Object newState) {
