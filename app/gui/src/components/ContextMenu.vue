@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { useResizeObserver } from '@/composables/events'
+import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { endOnClickOutside } from '@/util/autoBlur'
 import { autoUpdate, flip, shift, useFloating } from '@floating-ui/vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { Action, Actions } from '../providers/action'
-import { injectInteractionHandler } from '../providers/interactionHandler'
+import { injectInteractionHandler, Interaction } from '../providers/interactionHandler'
 import ActionMenu from './ActionMenu.vue'
 
+const menu = ref<HTMLElement>()
 const { actions, point } = defineProps<{
   actions: (Action | keyof Actions)[]
   /** Location to display the menu near, in client coordinates. */
@@ -15,8 +17,6 @@ const { actions, point } = defineProps<{
 const emit = defineEmits<{ close: [] }>()
 
 const interaction = injectInteractionHandler()
-
-const menu = ref<HTMLElement>()
 
 const virtualEl = computed(() => {
   const { x, y } = point
@@ -45,12 +45,16 @@ const menuSize = useResizeObserver(menu)
 watch(menuSize, update)
 
 onMounted(() => {
-  interaction.setCurrent(
-    endOnClickOutside(menu, {
-      cancel: () => emit('close'),
-      end: () => emit('close'),
-    }),
-  )
+  // The widget interactions are a special case: in some widgets (e.g. dropdowns) there are context
+  // menus while widget editing is "active" (like in File Browser inside WidgetSelection)
+  if (!(interaction.getCurrent() instanceof WidgetEditHandler)) {
+    interaction.setCurrent(
+      endOnClickOutside(menu, {
+        cancel: () => emit('close'),
+        end: () => emit('close'),
+      }),
+    )
+  }
 })
 </script>
 

@@ -1,5 +1,6 @@
 import { createContextStore } from '@/providers'
 import { shallowRef, watch, type WatchSource } from 'vue'
+import ContextMenu from '../components/ContextMenu.vue'
 
 export const [provideInteractionHandler, injectInteractionHandler] = createContextStore(
   'Interaction handler',
@@ -10,7 +11,7 @@ export const [provideInteractionHandler, injectInteractionHandler] = createConte
 export class InteractionHandler {
   private currentInteraction = shallowRef<Interaction>()
 
-  /** TODO: Add docs */
+  /** Check if given interaction is the current interaction. */
   isActive(interaction: Interaction | undefined): interaction is Interaction {
     return interaction != null && interaction === this.currentInteraction.value
   }
@@ -26,7 +27,7 @@ export class InteractionHandler {
     })
   }
 
-  /** TODO: Add docs */
+  /** Set current interactoin. Any existing interaction will be ended (not cancelled). */
   setCurrent(interaction: Interaction | undefined) {
     if (!this.isActive(interaction)) {
       this.currentInteraction.value?.end?.()

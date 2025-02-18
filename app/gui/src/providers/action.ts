@@ -76,10 +76,6 @@ const actions = {
     icon: 'paint_palette',
     description: 'Color Component',
   } as Action,
-  'fileBrowser.removeDirectory': {
-    icon: 'paint_palette',
-    description: 'Color Selected Components',
-  } as Action,
 }
 
 export type Actions = typeof actions

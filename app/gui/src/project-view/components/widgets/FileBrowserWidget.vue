@@ -181,6 +181,11 @@ function addNewDirectory() {
   editedAsset.value = { asset: newDirPlaceholder, name: 'New Folder', state: 'editing' }
 }
 
+function renameDirectory(dir: DirectoryAsset) {
+  assert(editedAsset.value == null)
+  editedAsset.value = { asset: dir, name: dir.title, state: 'editing' }
+}
+
 function acceptName(name: string, actionDescription: string) {
   if (editedAsset.value?.state !== 'editing') {
     console.error('Accepting edited name without editing')
@@ -296,6 +301,7 @@ onMounted(() => {
           icon="folder"
           :title="editedAsset.name"
           :editingState="editedAsset.state"
+          :renamable="false"
           @nameAccepted="acceptName($event, 'create folder')"
         />
         <FileBrowserEntry
@@ -304,14 +310,17 @@ onMounted(() => {
           icon="folder"
           :title="editedAsset?.asset === entry ? editedAsset.name : entry.title"
           :editingState="editedAsset?.asset === entry ? editedAsset.state : undefined"
+          :renamable="editedAsset == null"
           @click="enterDir(entry)"
           @nameAccepted="acceptName($event, 'rename folder')"
+          @renameRequested="renameDirectory(entry)"
         />
         <FileBrowserEntry
           v-for="entry in files"
           :key="entry.id"
           icon="text2"
           :title="entry.title"
+          :renamable="false"
           @click="chooseFile(entry)"
         />
       </TransitionGroup>

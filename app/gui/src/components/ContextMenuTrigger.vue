@@ -8,11 +8,22 @@ const { actions } = defineProps<{
 }>()
 
 const point = ref<{ x: number; y: number } | null>(null)
+const menuComponent = ref<typeof ContextMenu>()
+
+defineExpose({
+  menuComponent,
+})
 </script>
 
 <template>
   <div style="display: contents" @contextmenu="point = $event"><slot /></div>
-  <ContextMenu v-if="point != null" :actions="actions" :point="point" @close="point = null">
+  <ContextMenu
+    v-if="point != null"
+    ref="menuComponent"
+    :actions="actions"
+    :point="point"
+    @close="point = null"
+  >
     <slot name="menuElements" />
   </ContextMenu>
 </template>
