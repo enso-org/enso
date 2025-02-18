@@ -142,12 +142,21 @@ export function useTimeoutAPI(params: Pick<UseTimeoutCallbackOptions, 'ms'>) {
   const resolveRef = useRef<(() => void) | null>(null)
   const rejectRef = useRef<((reason?: unknown) => void) | null>(null)
 
+  const cleanup = useCallback(() => {
+    timeoutRef.current = null
+    resolveRef.current = null
+    rejectRef.current = null
+  }, [])
+
   /**
-   * Restarts the timer.
+   * Stops the timer.
    */
-  const restartTimer = useEventCallback(async (signal?: AbortSignal) => {
-    stopTimer()
-    return startTimer(signal)
+  const stopTimer = useEventCallback(() => {
+    if (timeoutRef.current != null) {
+      clearTimeout(timeoutRef.current)
+      rejectRef.current?.(new AbortError('Timeout aborted'))
+      cleanup()
+    }
   })
 
   /**
@@ -163,10 +172,12 @@ export function useTimeoutAPI(params: Pick<UseTimeoutCallbackOptions, 'ms'>) {
     const timeoutPromise = new Promise<void>((res, rej) => {
       resolveRef.current = () => {
         signal?.removeEventListener('abort', abortHandler)
+        cleanup()
         res()
       }
       rejectRef.current = (...args: unknown[]) => {
         signal?.removeEventListener('abort', abortHandler)
+        cleanup()
         // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
         rej(...args)
       }
@@ -182,21 +193,12 @@ export function useTimeoutAPI(params: Pick<UseTimeoutCallbackOptions, 'ms'>) {
   })
 
   /**
-   * Stops the timer.
+   * Restarts the timer.
    */
-  const stopTimer = useEventCallback(() => {
-    if (timeoutRef.current != null) {
-      clearTimeout(timeoutRef.current)
-      rejectRef.current?.(new AbortError('Timeout aborted'))
-      cleanup()
-    }
+  const restartTimer = useEventCallback(async (signal?: AbortSignal) => {
+    stopTimer()
+    return startTimer(signal)
   })
-
-  const cleanup = useCallback(() => {
-    timeoutRef.current = null
-    resolveRef.current = null
-    rejectRef.current = null
-  }, [])
 
   useUnmount(stopTimer)
 
