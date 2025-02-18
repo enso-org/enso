@@ -431,7 +431,7 @@ add_expression_specs suite_builder detailed setup =
             if setup.is_database.not then
                 expression_test "offset([A], 6 - 7)" [Nothing, 1, 2, 3, 4]
 
-        specify_test "should be able to comparisons to get boolean results" group_builder expression_test->
+        specify_test "should be able to perform comparisons to get boolean results" group_builder expression_test->
             expression_test "text_replace([C], 'o', '', ..Sensitive, 3<5)" ["Hell", "Wrld", "Hell World!", "", Nothing]
 
     suite_builder.group prefix+"Expression Errors should be handled" group_builder->
