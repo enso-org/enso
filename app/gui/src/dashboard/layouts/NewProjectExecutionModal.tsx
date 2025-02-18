@@ -322,6 +322,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
           hideTimeZone
           label={getText('firstOccurrenceLabel')}
           minValue={minFirstOccurrence}
+          className="w-52"
         />
         <ComboBox
           form={form}
@@ -340,6 +341,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         name="repeatType"
         label={getText('repeatIntervalLabel')}
         items={validRepeatTypes}
+        className="w-52"
       >
         {({ item: otherItem }) => repeatText(otherItem)}
       </FormDropdown>
