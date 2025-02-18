@@ -23,18 +23,23 @@ public class ExpressionVisitorImplTest {
 
   @Mock private Function<String, Value> getColumn;
   @Mock private Function<Object, Value> makeConstantColumn;
+  @Mock private Function<Value, Boolean> isColumn;
   @Mock private Function<String, MethodInterface> getMethod;
   @Mock private Function<String, Value> makeConstructor;
 
   private Value evaluate(String expr) {
     return ExpressionVisitorImpl.evaluateImpl(
-        expr, getColumn, makeConstantColumn, getMethod, makeConstructor);
+        expr, getColumn, makeConstantColumn, isColumn, getMethod, makeConstructor);
   }
 
   @Test
   public void testIntegerConstant() {
+    Value mockedColumnResult = mock(Value.class);
+
+    when(makeConstantColumn.apply(Value.asValue((long)1))).thenReturn(mockedColumnResult);
     Value result = evaluate("1");
-    assertEquals(1, result.asInt());
+
+    assertEquals(mockedColumnResult, result);
   }
 
   @Test
@@ -42,38 +47,45 @@ public class ExpressionVisitorImplTest {
     Value mockedColumn1 = mock(Value.class);
     MethodInterface mockedMethodTextLength = mock(MethodInterface.class);
     Value mockedResult = mock(Value.class);
+    Value mockedColumnResult = mock(Value.class);
 
     when(getColumn.apply("Column 1")).thenReturn(mockedColumn1);
     when(getMethod.apply("text_length")).thenReturn(mockedMethodTextLength);
     when(mockedMethodTextLength.execute(new Value[] {mockedColumn1}, makeConstantColumn))
         .thenReturn(mockedResult);
+    when(makeConstantColumn.apply(mockedResult)).thenReturn(mockedColumnResult);
     
     Value result = evaluate("text_length([Column 1])");
-    assertEquals(mockedResult, result);
+    assertEquals(mockedColumnResult, result);
   }
 
   @Test
   public void testSimpleStaticMethod() {
     MethodInterface mockedMethodToday = mock(MethodInterface.class);
     Value mockedResult = mock(Value.class);
+    Value mockedColumnResult = mock(Value.class);
 
     when(getMethod.apply("today")).thenReturn(mockedMethodToday);
     when(mockedMethodToday.execute(new Value[] {}, makeConstantColumn)).thenReturn(mockedResult);
+    when(makeConstantColumn.apply(mockedResult)).thenReturn(mockedColumnResult);
 
     Value result = evaluate("today()");
-    assertEquals(mockedResult, result);
+    assertEquals(mockedColumnResult, result);
   }
 
     @Test
     public void testNumericOperatorsAreExecutedOnNumbersNotColumns() {
     MethodInterface mockedMethodSubtract = mock(MethodInterface.class);
     Value mockedResult = mock(Value.class);
+    Value mockedColumnResult = mock(Value.class);
 
     when(getMethod.apply("-")).thenReturn(mockedMethodSubtract);
     when(mockedMethodSubtract.execute(new Value[] {Value.asValue((long)5), Value.asValue((long)2)}, makeConstantColumn)).thenReturn(mockedResult);
+    when(isColumn.apply(Value.asValue((long)2))).thenReturn(false);
+    when(makeConstantColumn.apply(mockedResult)).thenReturn(mockedColumnResult);
 
     Value result = evaluate("5-2");
-    assertEquals(mockedResult, result);
+    assertEquals(mockedColumnResult, result);
   }
 
   //   @Test
