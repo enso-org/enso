@@ -197,6 +197,10 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   }
 
   private Value standardiseTypesAndExecuteMethod(String name, Value arg1, Value arg2) {
+    // If we do 2 + [Column1] then we want to use Column addition for this
+    // So we convert the 2 to a column before we execute the +
+    // In the case of 2 + 5 we want to add these as integers so do not convert either
+    // to columns
     Value typedArg1 = isColumn.apply(arg2) ? makeConstantColumn.apply(arg1) : arg1;
     return executeMethod(name, typedArg1, arg2);
   }
