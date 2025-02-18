@@ -76,8 +76,14 @@ export interface ComboBoxProps<Schema extends TSchema, TFieldName extends FieldP
     Pick<InputProps<Schema, TFieldName, string>, 'placeholder'> {
   /** This may change as the user types in the input. */
   readonly items: readonly FieldValues<Schema>[TFieldName][]
+  /** A text representation of the item to be shown on each option. */
   readonly children: (item: FieldValues<Schema>[TFieldName]) => string
+  /**
+   * Convert an item to a unique text id, if the default text format returned by
+   * `children` is not guaranteed (or not supposed) to be unique.
+   */
   readonly toId?: (item: FieldValues<Schema>[TFieldName]) => string
+  /** Hide the `x` button to disable resetting the input. */
   readonly noResetButton?: boolean
 }
 
@@ -100,6 +106,7 @@ export const ComboBox = forwardRef(function ComboBox<
     isRequired,
     className,
     placeholder,
+    size,
     rounded,
     children,
     toId,
@@ -118,7 +125,7 @@ export const ComboBox = forwardRef(function ComboBox<
     defaultValue,
   })
 
-  const styles = variants({ rounded })
+  const styles = variants({ size, rounded })
 
   return (
     <Form.Field
