@@ -13,18 +13,38 @@ type Expression_Statics
     time -> Time_Of_Day =
         Time_Of_Day.now
 
-    * a b = a * b
+    ## Multiples two values.
+    * this that = this * that
 
-    / a b = a / b
+    ## Divides this by that.
+    / this that = this / that
 
-    + a b = a + b
+    ## Adds two values.
+    + this that = this + that
 
-    - a b = a - b
+    ## Subtracts that from this.
+    - this that = this - that
 
-    == a b = a == b
+    ## Compares two values for equality.
+    == this that = this == that
 
-    != a b = a != b
+    ## Compares two values for inequality.
+    != this that = this != that
 
-    ^ a b = a ^ b
+    ## Compute the result of raising this to the power that.
+    ^ this that = this ^ that
 
-    % a b = a % b
+    ## Computes the remainder when dividing this by that.
+    % this that = this % that
+
+    ## Compares if this is less than that
+    < this that = this < that
+
+    ## Compares if this is less than or equal to that
+    <= this that = this <= that
+
+    ## Compares if this is greater than that
+    > this that = this > that
+
+    ## Compares if this is greater than or equal to that
+    >= this that = this >= that

@@ -286,11 +286,6 @@ add_expression_specs suite_builder detailed setup =
             expression_test "([A] - [B]) ^ [A]" [0, 0.25, 0.125, 0, -1]
             expression_test "[A] ^ ([B] - [A])" [1, 0.707106781186547, 0.577350269189626, 1, 5]
 
-        specify_test "should be able to perform arithmetic and get integer results" group_builder expression_test->
-            # This requires column offset which is not available in databases due to ordering
-            if setup.is_database.not then
-                expression_test "offset([A], 6 - 7)" [Nothing, 1, 2, 3, 4]
-
     suite_builder.group prefix+"Expression Comparison Operators" group_builder->
         specify_test "should be able to compare equality" group_builder expression_test->
             expression_test "2 = 1 + 1" True
@@ -431,6 +426,14 @@ add_expression_specs suite_builder detailed setup =
 
         if setup.flagged ..Date_Time then specify_test "should be able to call static expression methods" group_builder expression_test->
             expression_test "today()" Date.today
+
+        specify_test "should be able to perform arithmetic and get integer results" group_builder expression_test->
+            # This requires column offset which is not available in databases due to ordering
+            if setup.is_database.not then
+                expression_test "offset([A], 6 - 7)" [Nothing, 1, 2, 3, 4]
+
+        specify_test "should be able to comparisons to get boolean results" group_builder expression_test->
+            expression_test "text_replace([C], 'o', '', ..Sensitive, 3<5)" ["Hell", "Wrld", "Hell World!", "", Nothing]
 
     suite_builder.group prefix+"Expression Errors should be handled" group_builder->
         expect_error ctor expr =
