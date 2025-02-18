@@ -916,8 +916,8 @@ public class Main {
         for (var e : parsedArgs) {
           listOfArgs = join(e, listOfArgs);
         }
-        logger.debug("Executing the main function with arguments {}", listOfArgs.mkString(", "));
         listOfArgs = listOfArgs.reverse();
+        logger.debug("Executing the main function with arguments {}", listOfArgs.mkString(", "));
         var res = main.execute(listOfArgs);
         if (!res.isNull()) {
           var textRes = res.isString() ? res.asString() : res.toString();
