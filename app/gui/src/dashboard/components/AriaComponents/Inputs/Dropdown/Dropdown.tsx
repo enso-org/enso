@@ -12,6 +12,7 @@ import {
   useFocusWithin,
   type InputProps,
 } from '#/components/aria'
+import { makeRoundedStyles } from '#/components/AriaComponents/utilities'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 import { useSyncRef } from '#/hooks/syncRefHooks'
@@ -56,16 +57,7 @@ const DROPDOWN_STYLES = tv({
         optionsItem: 'hover:font-semibold',
       },
     },
-    rounded: {
-      none: { options: 'before:rounded-none' },
-      small: { options: 'before:rounded-sm' },
-      medium: { options: 'before:rounded-md' },
-      large: { options: 'before:rounded-lg' },
-      xlarge: { options: 'before:rounded-xl' },
-      xxlarge: { options: 'before:rounded-2xl' },
-      xxxlarge: { options: 'before:rounded-3xl' },
-      full: { options: 'before:rounded-full' },
-    },
+    rounded: makeRoundedStyles('options', (classes) => `before:${classes}`),
     size: {
       medium: {
         input: 'px-[11px] pb-[6.5px] pt-[8.5px]',

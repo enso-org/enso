@@ -24,6 +24,7 @@ import {
   type InputProps,
   type TSchema,
 } from '#/components/AriaComponents'
+import { makeRoundedStyles } from '#/components/AriaComponents/utilities'
 import { useText } from '#/providers/TextProvider'
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
@@ -34,6 +35,7 @@ const POPOVER_CROSS_OFFSET_PX = -32
 const COMBO_BOX_STYLES = tv({
   base: 'w-full',
   variants: {
+    rounded: makeRoundedStyles('inputContainer'),
     size: {
       small: {
         inputContainer: 'h-6 px-2',
@@ -53,6 +55,7 @@ const COMBO_BOX_STYLES = tv({
   },
   defaultVariants: {
     size: 'medium',
+    rounded: 'xlarge',
   },
 })
 
@@ -97,6 +100,7 @@ export const ComboBox = forwardRef(function ComboBox<
     isRequired,
     className,
     placeholder,
+    rounded,
     children,
     toId,
     noResetButton = false,
@@ -114,7 +118,7 @@ export const ComboBox = forwardRef(function ComboBox<
     defaultValue,
   })
 
-  const styles = variants({})
+  const styles = variants({ rounded })
 
   return (
     <Form.Field

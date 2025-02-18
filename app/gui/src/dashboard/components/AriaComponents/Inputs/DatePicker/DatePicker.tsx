@@ -36,6 +36,7 @@ import {
   type FieldValues,
   type TSchema,
 } from '#/components/AriaComponents'
+import { makeRoundedStyles } from '#/components/AriaComponents/utilities'
 import { useText } from '#/providers/TextProvider'
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
@@ -44,17 +45,18 @@ import { tv } from '#/utilities/tailwindVariants'
 const DATE_PICKER_STYLES = tv({
   base: '',
   variants: {
+    rounded: makeRoundedStyles('inputContainer'),
     size: {
       small: {
-        inputGroup: 'h-6 px-2',
+        inputContainer: 'h-6 px-2',
       },
       medium: {
-        inputGroup: 'h-8 px-4',
+        inputContainer: 'h-8 px-4',
       },
     },
   },
   slots: {
-    inputGroup: 'flex items-center gap-2 rounded-full border-0.5 border-primary/20',
+    inputContainer: 'flex items-center gap-2 rounded-full border-0.5 border-primary/20',
     dateInput: 'flex justify-center grow order-2',
     dateSegment: 'rounded placeholder-shown:text-primary/30 focus:bg-primary/10 px-[0.5px]',
     calendarButton: 'order-1 rotate-90',
@@ -73,6 +75,7 @@ const DATE_PICKER_STYLES = tv({
   },
   defaultVariants: {
     size: 'medium',
+    rounded: 'xlarge',
   },
 })
 
@@ -123,6 +126,7 @@ export const DatePicker = forwardRef(function DatePicker<
     granularity,
     isInvalid,
     style,
+    rounded,
     ...rest
   } = props
 
@@ -133,7 +137,7 @@ export const DatePicker = forwardRef(function DatePicker<
     defaultValue,
   })
 
-  const styles = variants({ size })
+  const styles = variants({ size, rounded })
 
   return (
     <Form.Field
@@ -162,7 +166,7 @@ export const DatePicker = forwardRef(function DatePicker<
             {...renderProps.field}
           >
             <Label />
-            <Group className={styles.inputGroup()}>
+            <Group className={styles.inputContainer()}>
               {/* Use Swedish locale (`sv`) because it uses ISO dates. */}
               <I18nProvider locale="sv">
                 <DateInput className={styles.dateInput()}>
