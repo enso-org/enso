@@ -10,6 +10,7 @@ export const HALF_DAY_HOURS = 12
 export const MAX_DAYS_PER_MONTH = 31
 export const DAYS_PER_WEEK = 7
 export const MONTHS_PER_YEAR = 12
+export const MINUTE_MS = 60_000
 
 /** A mapping from the month index returned by {@link Date.getMonth} to its full name. */
 export const MONTH_NAMES = [
