@@ -344,7 +344,14 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         {({ item: otherItem }) => repeatText(otherItem)}
       </FormDropdown>
       {repeatType === 'weekly' && (
-        <MultiSelector form={form} isRequired name="days" label={getText('daysLabel')} items={DAYS}>
+        <MultiSelector
+          form={form}
+          isRequired
+          name="days"
+          label={getText('daysLabel')}
+          items={DAYS}
+          variant="separate-outline"
+        >
           {(n) => getText(DAY_3_LETTER_TEXT_IDS[n] ?? 'monday3')}
         </MultiSelector>
       )}
@@ -356,6 +363,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
           label={getText('monthsLabel')}
           items={MONTHS}
           columns={6}
+          variant="separate-outline"
         >
           {(n) => getText(MONTH_3_LETTER_TEXT_IDS[n] ?? 'january3')}
         </MultiSelector>
