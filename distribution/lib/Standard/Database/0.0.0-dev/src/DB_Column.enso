@@ -883,7 +883,7 @@ type DB_Column
              import Standard.Examples
 
              example_round = Examples.decimal_column.round 2
-    round self decimal_places:Integer=0 use_bankers:Boolean=False -> DB_Column | Illegal_Argument | Invalid_Value_Type =
+    round self decimal_places:Integer=0 use_bankers:Boolean=False -> DB_Column ! Illegal_Argument | Invalid_Value_Type =
         Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric self <|
             if self.should_use_builtin_round decimal_places use_bankers then self.round_builtin decimal_places use_bankers else
                 self.short_circuit_special_floating_point <|
