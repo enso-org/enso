@@ -153,9 +153,9 @@ export default function Registration() {
       supportsOffline={supportsOffline}
       footer={
         <Form.FieldValue form={signupForm} name="email">
-          {(value) => (
+          {(email) => (
             <Link
-              to={LOGIN_PATH + `?${new URLSearchParams({ email: value }).toString()}`}
+              to={LOGIN_PATH + `?${new URLSearchParams({ email }).toString()}`}
               icon={GoBackIcon}
               text={getText('alreadyHaveAnAccount')}
             />
