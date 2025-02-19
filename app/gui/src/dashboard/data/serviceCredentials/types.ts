@@ -5,11 +5,16 @@ import type { TextId } from 'enso-common/src/text'
 export interface CredentialsDialogProps {
   readonly value?: unknown
   readonly upsertCredential: (value: unknown) => Promise<void>
+  readonly isCreating: boolean
+  readonly canCancel: boolean
+  readonly canReset: boolean
 }
 
 /** Information to describe a credential in the list of credentials. */
 export interface CredentialInfo {
   readonly nameId: TextId & `${string}CredentialType`
+  /** The type of the credential, sent to the backend. */
+  readonly credentialType: string
   /** A SVG data url. */
   readonly icon: string | undefined
   readonly component: (props: CredentialsDialogProps) => JSX.Element

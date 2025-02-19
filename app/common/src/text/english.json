@@ -556,6 +556,7 @@
   "secretValueHidden": "●●●●●●●●",
   "secretNamePlaceholder": "Enter the name of the secret",
   "secretValuePlaceholder": "Enter the value of the secret",
+  "credentialNamePlaceholder": "Enter the name of the credential",
   "datalinkNamePlaceholder": "Enter the name of the Datalink",
   "labelNamePlaceholder": "Enter the name of the label",
   "labelSearchPlaceholder": "Type labels to search",

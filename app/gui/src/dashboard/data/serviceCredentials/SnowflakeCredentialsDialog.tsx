@@ -4,17 +4,18 @@
  * Remember to ensure this file is re-exported by `./index.ts`.
  */
 
-import { Form } from '#/components/AriaComponents'
+import { ButtonGroup, DialogDismiss, Form } from '#/components/AriaComponents'
 import { useSynchronizeCredentialsValue } from '#/data/serviceCredentials/hooks'
 import { useText } from '#/providers/TextProvider'
 import type { CredentialsDialogProps } from './types'
 
 /** Dialog for a Snowflake credential. */
 export function SnowflakeCredentialsDialog(props: CredentialsDialogProps) {
-  const { value, upsertCredential } = props
+  const { value, isCreating, canCancel, canReset, upsertCredential } = props
 
   const { getText } = useText()
   const form = Form.useFormWithComponents({
+    mode: 'onChange',
     schema: (z) =>
       z
         .object({
@@ -40,6 +41,11 @@ export function SnowflakeCredentialsDialog(props: CredentialsDialogProps) {
       <form.Input name="clientId" label={getText('clientId')} />
       <form.Input name="clientSecret" label={getText('clientSecret')} />
       <form.Input name="role" label={getText('role')} />
+      <ButtonGroup className="mt-2">
+        <Form.Submit>{isCreating ? getText('create') : getText('update')}</Form.Submit>
+        {canCancel && <DialogDismiss />}
+        {canReset && <Form.Reset>{getText('cancel')}</Form.Reset>}
+      </ButtonGroup>
     </form.Form>
   )
 }

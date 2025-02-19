@@ -128,9 +128,15 @@ export default function DriveBar(props: DriveBarProps) {
     await uploadFilesRaw(files, parent?.item.parentId ?? rootDirectoryId, parent?.path)
   })
   const newSecretRaw = useNewSecret(backend, category)
-  const newSecret = useEventCallback(async (name: string, value: string) => {
+  const newSecret = useEventCallback(async (name: string, value: string, metadata?: unknown) => {
     const parent = getTargetDirectory()
-    return await newSecretRaw(name, value, parent?.item.parentId ?? rootDirectoryId, parent?.path)
+    return await newSecretRaw(
+      name,
+      value,
+      metadata,
+      parent?.item.parentId ?? rootDirectoryId,
+      parent?.path,
+    )
   })
   const newDatalinkRaw = useNewDatalink(backend, category)
   const newDatalink = useEventCallback(async (name: string, value: unknown) => {
@@ -309,10 +315,11 @@ export default function DriveBar(props: DriveBarProps) {
                     isDisabled={shouldBeDisabled}
                     aria-label={getText('newCredential')}
                   />
-                  <div></div>
                   <UpsertCredentialModal
-                    doCreate={async (name, value) => {
-                      await newCredential(name, value)
+                    id={null}
+                    name={null}
+                    doCreate={async (name, type, value) => {
+                      await newSecret(name, '', { credential: { type, value } })
                     }}
                   />
                 </DialogTrigger>

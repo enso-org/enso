@@ -1449,6 +1449,7 @@ export interface UpdateProjectExecutionRequestBody {
 export interface CreateSecretRequestBody {
   readonly name: string
   readonly value: string
+  readonly metadata: unknown
   readonly parentDirectoryId: DirectoryId | null
 }
 

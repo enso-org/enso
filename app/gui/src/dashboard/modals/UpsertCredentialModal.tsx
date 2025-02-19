@@ -1,15 +1,17 @@
 /** @file A modal for creating and editing a credential. */
-import { ButtonGroup, Dialog, DialogDismiss, Form, Input } from '#/components/AriaComponents'
+import { Dialog, Dropdown, Form, Input } from '#/components/AriaComponents'
+import { CREDENTIAL_INFOS } from '#/data/serviceCredentials'
 import { useText } from '#/providers/TextProvider'
-import type { CredentialId } from '#/services/Backend'
+import type { SecretId } from '#/services/Backend'
+import { useState } from 'react'
 
 /** Props for a {@link UpsertCredentialModal}. */
 export interface UpsertCredentialModalProps {
   readonly noDialog?: boolean
-  readonly id: CredentialId | null
+  readonly id: SecretId | null
   readonly name: string | null
   readonly defaultOpen?: boolean
-  readonly doCreate: (name: string, value: string) => Promise<void> | void
+  readonly doCreate: (name: string, type: string, value: unknown) => Promise<void> | void
   /** Defaults to `true`. */
   readonly canCancel?: boolean
   /** Defaults to `false`. */
@@ -18,48 +20,53 @@ export interface UpsertCredentialModalProps {
 
 /** A modal for creating and editing a credential. */
 export default function UpsertCredentialModal(props: UpsertCredentialModalProps) {
-  const { noDialog = false, id, name: nameRaw, defaultOpen, doCreate } = props
-  const { canCancel = true, canReset = false } = props
+  const {
+    noDialog = false,
+    id,
+    name: nameRaw,
+    defaultOpen,
+    doCreate,
+    canCancel = true,
+    canReset = false,
+  } = props
   const { getText } = useText()
+  const [credentialInfo, setCredentialType] = useState(CREDENTIAL_INFOS[0])
 
   const isCreatingCredential = id == null
 
   const form = Form.useForm({
     method: 'dialog',
-    schema: (z) =>
-      z.object({ title: z.string().min(1, getText('emptyStringError')), value: z.string() }),
-    defaultValues: { title: nameRaw ?? '', value: '' },
-    onSubmit: async ({ title, value }) => {
-      await doCreate(title, value)
-      form.reset({ title, value })
-    },
+    schema: (z) => z.object({ title: z.string().min(1, getText('emptyStringError')) }),
+    defaultValues: { title: nameRaw ?? '' },
+    onSubmit: () => {},
   })
+  const title = form.watch('title')
 
   const content = (
-    <Form form={form} testId="upsert-secret-modal" gap="none" className="w-full">
+    <Form form={form} testId="upsert-credential-modal" gap="none" className="w-full">
       <Input
         form={form}
         name="title"
         autoFocus
         autoComplete="off"
         label={getText('name')}
-        placeholder={getText('secretNamePlaceholder')}
+        placeholder={getText('credentialNamePlaceholder')}
       />
-      <Input
-        form={form}
-        name="value"
-        type="password"
-        autoComplete="off"
-        label={getText('value')}
-        placeholder={
-          nameRaw == null ? getText('secretValuePlaceholder') : getText('secretValueHidden')
-        }
+      <Dropdown
+        items={CREDENTIAL_INFOS}
+        selectedIndex={CREDENTIAL_INFOS.indexOf(credentialInfo)}
+        onChange={setCredentialType}
+      >
+        {({ item: { nameId } }) => getText(nameId)}
+      </Dropdown>
+      <credentialInfo.component
+        isCreating={isCreatingCredential}
+        canCancel={canCancel}
+        canReset={canReset}
+        upsertCredential={async (value) => {
+          await doCreate(title, credentialInfo.credentialType, value)
+        }}
       />
-      <ButtonGroup className="mt-2">
-        <Form.Submit>{isCreatingCredential ? getText('create') : getText('update')}</Form.Submit>
-        {canCancel && <DialogDismiss />}
-        {canReset && <Form.Reset>{getText('cancel')}</Form.Reset>}
-      </ButtonGroup>
     </Form>
   )
 

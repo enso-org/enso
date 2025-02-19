@@ -771,6 +771,7 @@ export function useNewSecret(backend: Backend, category: Category) {
     async (
       name: string,
       value: string,
+      metadata: unknown,
       parentId: DirectoryId,
       parentPath: string | null | undefined,
     ) => {
@@ -791,7 +792,8 @@ export function useNewSecret(backend: Backend, category: Category) {
         {
           parentDirectoryId: placeholderItem.parentId,
           name: placeholderItem.title,
-          value: value,
+          value,
+          metadata,
         },
       ])
     },
