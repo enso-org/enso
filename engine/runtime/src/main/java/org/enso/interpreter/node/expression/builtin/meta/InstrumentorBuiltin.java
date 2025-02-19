@@ -3,8 +3,10 @@ package org.enso.interpreter.node.expression.builtin.meta;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.builtin.BuiltinObject;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
@@ -12,7 +14,6 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.GetStateNode;
-import org.enso.polyglot.debugger.IdExecutionService;
 
 @BuiltinMethod(
     type = "Meta",
@@ -24,10 +25,15 @@ public class InstrumentorBuiltin extends Node {
 
   @SuppressWarnings("unchecked")
   @CompilerDirectives.TruffleBoundary
-  private static Object findUuid(Object uuid) {
-    var obj = GetStateNode.getUncached().executeGet(IdExecutionService.class);
-    if (obj instanceof java.util.function.Function cache) {
-      return cache.apply(uuid.toString());
+  private static Object findUuid(Object uuid, EnsoContext ctx) {
+    var key = ctx.getBuiltins().instrumentor();
+    try {
+      var obj = GetStateNode.getUncached().executeGet(key);
+      if (obj instanceof java.util.function.Function cache) {
+        return cache.apply(uuid.toString());
+      }
+    } catch (PanicException ex) {
+      // ignore and return null
     }
     return null;
   }
@@ -37,7 +43,7 @@ public class InstrumentorBuiltin extends Node {
     var op = operation.toString();
     try {
       if ("uuid".equals(op)) {
-        var res = findUuid(args);
+        var res = findUuid(args, ctx);
         if (res == null) {
           return ctx.getBuiltins().nothing();
         } else {
@@ -119,6 +125,19 @@ public class InstrumentorBuiltin extends Node {
       return ctx.getResourceManager().register(builder, fn);
     } else {
       return null;
+    }
+  }
+
+  @Builtin(stdlibName = "Standard.Base.Internal.Instrumentor", name = "Instrumentor")
+  public static final class Registration extends BuiltinObject {
+    @Override
+    protected String builtinName() {
+      return "Instrumentor";
+    }
+
+    @Override
+    public Object toDisplayString(boolean allowSideEffects) {
+      return builtinName();
     }
   }
 }

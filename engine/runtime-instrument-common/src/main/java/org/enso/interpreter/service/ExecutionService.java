@@ -409,7 +409,7 @@ public final class ExecutionService {
   }
 
   private Type cacheKey() {
-    return context.getBuiltins().managedResource(); // XXX find a better key
+    return context.getBuiltins().instrumentor();
   }
 
   /**
