@@ -1,9 +1,8 @@
 /** @file A modal for creating and editing a credential. */
-import { Dialog, Dropdown, Form, Input } from '#/components/AriaComponents'
-import { CREDENTIAL_INFOS } from '#/data/serviceCredentials'
+import { Dialog, Form, FormDropdown, Input } from '#/components/AriaComponents'
+import { CREDENTIAL_INFOS, type CredentialInfo } from '#/data/serviceCredentials'
 import { useText } from '#/providers/TextProvider'
 import type { SecretId } from '#/services/Backend'
-import { useState } from 'react'
 
 /** Props for a {@link UpsertCredentialModal}. */
 export interface UpsertCredentialModalProps {
@@ -30,17 +29,21 @@ export default function UpsertCredentialModal(props: UpsertCredentialModalProps)
     canReset = false,
   } = props
   const { getText } = useText()
-  const [credentialInfo, setCredentialType] = useState(CREDENTIAL_INFOS[0])
 
   const isCreatingCredential = id == null
 
   const form = Form.useForm({
     method: 'dialog',
-    schema: (z) => z.object({ title: z.string().min(1, getText('emptyStringError')) }),
-    defaultValues: { title: nameRaw ?? '' },
+    schema: (z) =>
+      z.object({
+        title: z.string().min(1, getText('emptyStringError')),
+        credentialInfo: z.custom<CredentialInfo>(),
+      }),
+    defaultValues: { title: nameRaw ?? '', credentialInfo: CREDENTIAL_INFOS[0] },
     onSubmit: () => {},
   })
   const title = form.watch('title')
+  const credentialInfo = form.watch('credentialInfo')
 
   const content = (
     <Form form={form} testId="upsert-credential-modal" gap="none" className="w-full">
@@ -52,13 +55,15 @@ export default function UpsertCredentialModal(props: UpsertCredentialModalProps)
         label={getText('name')}
         placeholder={getText('credentialNamePlaceholder')}
       />
-      <Dropdown
+      <FormDropdown
+        form={form}
+        isRequired
+        name="credentialInfo"
+        label={getText('credentialTypeLabel')}
         items={CREDENTIAL_INFOS}
-        selectedIndex={CREDENTIAL_INFOS.indexOf(credentialInfo)}
-        onChange={setCredentialType}
       >
         {({ item: { nameId } }) => getText(nameId)}
-      </Dropdown>
+      </FormDropdown>
       <credentialInfo.component
         isCreating={isCreatingCredential}
         canCancel={canCancel}

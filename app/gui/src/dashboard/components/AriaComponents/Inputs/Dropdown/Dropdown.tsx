@@ -207,8 +207,7 @@ export const Dropdown = forwardRef(function Dropdown<T>(
             <div className={styles.optionsSpacing()} />
             <div className={styles.optionsContainer()}>
               <ListBox
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                {...(props['aria-label'] != null ? { 'aria-label': props['aria-label'] } : {})}
+                aria-label={props['aria-label'] ?? 'Dropdown'}
                 selectionMode={multiple ? 'multiple' : 'single'}
                 selectionBehavior={multiple ? 'toggle' : 'replace'}
                 items={listBoxItems}
@@ -332,7 +331,13 @@ export function FormDropdown<
           const { value, onChange } = field
           return (
             <>
-              <Dropdown {...inputProps} selectedIndex={items.indexOf(value)} onChange={onChange}>
+              <Dropdown
+                {...inputProps}
+                selectedIndex={items.findIndex(
+                  (otherItem) => JSON.stringify(value) === JSON.stringify(otherItem),
+                )}
+                onChange={onChange}
+              >
                 {children}
               </Dropdown>
               <FieldError>{fieldState.error?.message}</FieldError>

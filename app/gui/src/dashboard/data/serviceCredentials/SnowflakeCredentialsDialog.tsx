@@ -35,7 +35,7 @@ export function SnowflakeCredentialsDialog(props: CredentialsDialogProps) {
   useSynchronizeCredentialsValue(form.form, value)
 
   return (
-    <form.Form>
+    <form.Form className="w-full">
       {/* `name` field is pre-filtered to only fields with a matching type! */}
       <form.Input name="account" label={getText('account')} />
       <form.Input name="clientId" label={getText('clientId')} />
