@@ -333,7 +333,9 @@ public final class ExecutionService {
   public Object callFunction(Object fn, Object argument) {
     Object p = context.getThreadManager().enter();
     try {
-      return call.getCallTarget().call(fn, new Object[] {argument});
+      var callArgs =
+          Function.ArgumentsHelper.buildArguments(null, new Object[] {fn, new Object[] {argument}});
+      return call.getCallTarget().call(callArgs);
     } finally {
       context.getThreadManager().leave(p);
     }
@@ -597,9 +599,9 @@ public final class ExecutionService {
     public Object execute(VirtualFrame frame) {
       try {
         var callArgs = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
-        var self = callArgs[0];
+        var fn = callArgs[0];
         var args = (Object[]) callArgs[1];
-        return iop.execute(self, args);
+        return iop.execute(fn, args);
       } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException ex) {
         throw raise(RuntimeException.class, ex);
       }
