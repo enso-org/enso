@@ -161,7 +161,6 @@ public class MethodProcessor
           "org.enso.interpreter.runtime.data.text.Text",
           "org.enso.interpreter.runtime.error.DataflowError",
           "org.enso.interpreter.runtime.error.PanicException",
-          "org.enso.interpreter.runtime.state.State",
           "org.enso.interpreter.runtime.type.TypesGen",
           "org.enso.interpreter.runtime.warning.Warning",
           "org.enso.interpreter.runtime.warning.WarningsLibrary",
@@ -301,7 +300,6 @@ public class MethodProcessor
                 + " bodyNode, Object[] args) {");
       }
       out.println("    var prefix = internals.staticOrInstanceMethod ? 1 : 0;");
-      out.println("    State state = Function.ArgumentsHelper.getState(args);");
       if (methodDefinition.needsCallerInfo()) {
         out.println("    CallerInfo callerInfo = Function.ArgumentsHelper.getCallerInfo(args);");
       }
@@ -309,11 +307,7 @@ public class MethodProcessor
           "    Object[] arguments = Function.ArgumentsHelper.getPositionalArguments(args);");
       List<String> callArgNames = new ArrayList<>();
       for (MethodDefinition.ArgumentDefinition arg : methodDefinition.getArguments()) {
-        if (!(arg.isImplicit()
-            || arg.isFrame()
-            || arg.isState()
-            || arg.isCallerInfo()
-            || arg.isNode())) {
+        if (!(arg.isImplicit() || arg.isFrame() || arg.isCallerInfo() || arg.isNode())) {
           out.println(
               "    int arg" + arg.getPosition() + "Idx = " + arg.getPosition() + " + prefix;");
         }
@@ -327,7 +321,7 @@ public class MethodProcessor
       for (MethodDefinition.ArgumentDefinition ad : methodDefinition.getArguments()) {
         if (ad.isImplicit()) {
         } else if (ad.isState()) {
-          callArgNames.add("state");
+          callArgNames.add("StateIsNoLongerPassedAsArgument");
         } else if (ad.isFrame()) {
           callArgNames.add("frame");
         } else if (ad.isNode()) {

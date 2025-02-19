@@ -139,20 +139,16 @@ test("can't run a project in browser by default", ({ page }) =>
     page,
     setupAPI: async (api) => {
       api.addProject({ title: 'a' })
+      api.setFeatureFlags({ enableCloudExecution: false })
     },
-  }).driveTable.withRows(async (rows) => {
-    const row = rows.first()
-
-    const startProjectButton = row.getByTestId('open-project')
-    await expect(startProjectButton).toBeDisabled()
+  }).do(() => {
+    expect(page.getByText(TEXT.cloudBrowserDisabledTitle)).toBeVisible()
   }))
 
 test("can't start an already running by another user", ({ page }) =>
   mockAllAndLogin({
     page,
     setupAPI: async (api) => {
-      await api.setFeatureFlags({ enableCloudExecution: true })
-
       const userGroup = api.addUserGroup('Test Group')
 
       api.addUserGroupToUser(api.defaultUser.userId, userGroup.id)

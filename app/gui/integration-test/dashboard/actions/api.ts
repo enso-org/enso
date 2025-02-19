@@ -168,6 +168,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     userGroups: null,
     plan: backend.Plan.solo,
     isOrganizationAdmin: true,
+    isEnsoTeamMember: true,
   }
   const defaultOrganization: backend.OrganizationInfo = {
     id: defaultOrganizationId,
@@ -178,6 +179,14 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     website: null,
     subscription: {},
   }
+
+  let featureFlags: Partial<FeatureFlags> = {
+    enableCloudExecution: true,
+    enableAsyncExecution: true,
+    enableAdvancedProjectExecutionOptions: true,
+    enableAssetsTableBackgroundRefresh: false,
+  }
+
   const callsObjects = new Set<typeof INITIAL_CALLS_OBJECT>()
   let totalSeats = 1
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -650,6 +659,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       userGroups: null,
       plan: backend.Plan.enterprise,
       isOrganizationAdmin: true,
+      isEnsoTeamMember: true,
       ...rest,
     }
     users.push(user)
@@ -1235,6 +1245,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         rootDirectoryId,
         userGroups: null,
         isOrganizationAdmin: true,
+        isEnsoTeamMember: true,
       }
       return currentUser
     })
@@ -1477,17 +1488,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     createUserPermission,
     createUserGroupPermission,
     setFeatureFlags: (flags: Partial<FeatureFlags>) => {
-      return page.addInitScript((flags: Partial<FeatureFlags>) => {
-        const currentOverrideFeatureFlags =
-          'overrideFeatureFlags' in window && typeof window.overrideFeatureFlags === 'object' ?
-            window.overrideFeatureFlags
-          : {}
-
-        Object.defineProperty(window, 'overrideFeatureFlags', {
-          value: { ...currentOverrideFeatureFlags, ...flags },
-          writable: false,
-        })
-      }, flags)
+      featureFlags = { ...featureFlags, ...flags }
     },
     // TODO:
     // addPermission,
@@ -1500,6 +1501,17 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
   if (setupAPI) {
     await setupAPI(api)
   }
+
+  await page.addInitScript((flags) => {
+    Object.defineProperty(window, 'overrideFeatureFlags', {
+      value: flags,
+      writable: false,
+      configurable: false,
+    })
+  }, featureFlags)
+
+  // Disallow any changes to the feature flags after the mock API has been initialized.
+  featureFlags = Object.freeze({})
 
   return api
 }
