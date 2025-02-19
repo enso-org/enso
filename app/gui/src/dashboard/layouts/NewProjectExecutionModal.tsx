@@ -382,7 +382,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
           {(n) => getText(MONTH_3_LETTER_TEXT_IDS[n] ?? 'january3')}
         </MultiSelector>
       )}
-      <div>
+      <div className={repeatType === 'none' ? 'hidden' : ''}>
         <Text>{getText('repeatsAt')}</Text>
         {repeatTimes.map((dateTime, i) => (
           <Text key={i}>{zonedDateTimeToReadableIsoString(dateTime)}</Text>
