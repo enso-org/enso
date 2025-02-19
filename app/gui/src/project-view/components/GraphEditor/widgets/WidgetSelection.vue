@@ -523,7 +523,7 @@ declare module '@/providers/widgetRegistry' {
             <KeepAlive v-if="keepActivityAlive">
               <component :is="dropDownInteraction.isActive() && activity && toValue(activity)" />
             </KeepAlive>
-            <comopnent
+            <component
               :is="dropDownInteraction.isActive() && activity && toValue(activity)"
               v-else
             />

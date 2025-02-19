@@ -61,6 +61,7 @@ import org.enso.interpreter.runtime.instrument.NotificationHandler.TextMode$;
 import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.tag.Patchable;
@@ -112,6 +113,8 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
 
   private final ContextThreadLocal<ExecutionEnvironment[]> executionEnvironment =
       locals.createContextThreadLocal((ctx, thread) -> new ExecutionEnvironment[1]);
+  private final ContextThreadLocal<State> state =
+      locals.createContextThreadLocal((ctx, thread) -> State.create(ctx));
 
   public static EnsoLanguage get(Node node) {
     return REFERENCE.get(node);
@@ -475,5 +478,10 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
 
   public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
     this.executionEnvironment.get()[0] = executionEnvironment;
+  }
+
+  /** Access to state associated with current context and thread. */
+  public final State currentState() {
+    return this.state.get();
   }
 }

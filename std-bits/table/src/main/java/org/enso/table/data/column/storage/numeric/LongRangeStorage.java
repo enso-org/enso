@@ -23,7 +23,7 @@ public class LongRangeStorage extends ComputedLongStorage {
   }
 
   @Override
-  protected long computeItem(int idx) {
+  protected long computeItem(long idx) {
     return start + idx * step;
   }
 }
