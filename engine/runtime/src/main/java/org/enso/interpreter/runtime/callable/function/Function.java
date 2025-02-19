@@ -246,7 +246,7 @@ public final class Function extends EnsoObject {
         @Cached InlinedBranchProfile panicProfile) {
       try {
         return interopApplicationNode.execute(
-            function, EnsoContext.get(thisLib).emptyState(), arguments);
+            function, EnsoContext.get(thisLib).currentState(), arguments);
       } catch (StackOverflowError err) {
         CompilerDirectives.transferToInterpreter();
         var asserts = false;

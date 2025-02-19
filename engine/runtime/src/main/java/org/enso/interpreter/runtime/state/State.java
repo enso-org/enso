@@ -4,7 +4,22 @@ import com.oracle.truffle.api.object.DynamicObject;
 import com.oracle.truffle.api.object.Shape;
 import org.enso.interpreter.runtime.EnsoContext;
 
+/**
+ * Represents a <em>thread local</em> state associated with execution of the program. Use nodes:
+ *
+ * <ul>
+ *   <li>{@link RunStateNode} to state execution with some state
+ *   <li>{@link GetStateNode} to read value in a state
+ *   <li>{@link PutStateNode} to change value in a state
+ * </ul>
+ */
 public final class State {
+  private static final EnsoContext.Extra<Shape> ROOT_STATE_SHAPE =
+      new EnsoContext.Extra<>(
+          Shape.class,
+          () -> {
+            return Shape.newBuilder().layout(State.Container.class).build();
+          });
 
   private final Container container;
 
@@ -12,16 +27,18 @@ public final class State {
     this.container = container;
   }
 
-  Container getContainer() {
-    return container;
-  }
-
-  public static Shape newShape() {
-    return Shape.newBuilder().layout(State.Container.class).build();
-  }
-
+  /**
+   * Creates new, empty state for given context.
+   *
+   * @param context the context
+   * @return new instance of the state for the context
+   */
   public static State create(EnsoContext context) {
     return new State(Container.create(context));
+  }
+
+  Container getContainer() {
+    return container;
   }
 
   static final class Container extends DynamicObject {
@@ -30,7 +47,7 @@ public final class State {
     }
 
     static Container create(EnsoContext context) {
-      return new Container(context.getRootStateShape());
+      return new Container(ROOT_STATE_SHAPE.get(context));
     }
   }
 }
