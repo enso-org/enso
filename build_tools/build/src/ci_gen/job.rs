@@ -344,6 +344,18 @@ impl JobArchetype for StandardLibraryTests {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct StandardLibraryApiCheck;
+
+impl JobArchetype for StandardLibraryApiCheck {
+    fn job(&self, target: Target) -> Job {
+        let job_name = "Standard Library API check";
+        let run_command = "backend stdlib-api-check";
+        let job = RunStepsBuilder::new(run_command).build_job(job_name, target);
+        job
+    }
+}
+
 /** This is a temporary workaround.
  *
  * The Cloud tests preparation requires `aws` CLI to be installed on the machine.
@@ -650,16 +662,6 @@ pub fn prepare_packaging_steps(os: OS, step: Step, packaging_target: PackagingTa
     };
     let step = expose_os_specific_signing_secret(os, step);
     vec![step]
-}
-
-/// Convenience for [`prepare_packaging_steps`].
-///
-/// This function is useful when you want to use [`prepare_packaging_steps`] as a closure.
-pub fn with_packaging_steps(
-    os: OS,
-    packaging_target: PackagingTarget,
-) -> impl FnOnce(Step) -> Vec<Step> {
-    move |step| prepare_packaging_steps(os, step, packaging_target)
 }
 
 #[derive(Clone, Copy, Debug)]

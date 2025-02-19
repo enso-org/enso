@@ -14,6 +14,7 @@ distribution/project-manager/THIRD-PARTY
 tools
 distribution/lib/Standard/*/*/manifest.yaml
 distribution/lib/Standard/*/*/polyglot
+distribution/lib/Standard/*/*/docs/api
 distribution/lib/Standard/*/*/THIRD-PARTY
 distribution/docs-js
 

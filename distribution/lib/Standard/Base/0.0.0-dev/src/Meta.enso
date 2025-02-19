@@ -395,5 +395,5 @@ is_polyglot value -> Boolean = 3 == Meta_Helpers.get_kind_builtin value
    Arguments:
    - value: the value to get the type of
 Type.from (that:Any) =
-   typ = Meta.type_of that
+   typ = if Meta.is_type that then that else Meta.type_of that
    Type.Value typ

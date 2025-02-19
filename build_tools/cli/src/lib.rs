@@ -432,6 +432,19 @@ impl Processor {
                 .void_ok()
                 .boxed()
             }
+            arg::backend::Command::StdlibApiCheck {} => {
+                let config = enso_build::engine::BuildConfigurationFlags {
+                    stdlib_api_check: true,
+                    ..default()
+                };
+                let context = self.prepare_backend_context(config);
+                async move {
+                    let context = context.await?;
+                    context.build().await
+                }
+                .void_ok()
+                .boxed()
+            }
         }
     }
 

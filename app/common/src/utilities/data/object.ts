@@ -61,13 +61,13 @@ export function unsafeMutable<T extends object>(object: T): { -readonly [K in ke
  * Return the entries of an object. UNSAFE only when it is possible for an object to have
  * extra keys.
  */
-export function unsafeKeys<T extends object>(object: T): readonly (keyof T)[] {
+export function unsafeKeys<T extends object>(object: T): (keyof T)[] {
   // @ts-expect-error This is intentionally a wrapper function with a different type.
   return Object.keys(object)
 }
 
 /** Return the values of an object. UNSAFE only when it is possible for an object to have extra keys. */
-export function unsafeValues<const T extends object>(object: T): readonly T[keyof T][] {
+export function unsafeValues<const T extends object>(object: T): T[keyof T][] {
   return Object.values(object)
 }
 
@@ -77,7 +77,7 @@ export function unsafeValues<const T extends object>(object: T): readonly T[keyo
  */
 export function unsafeEntries<T extends object>(
   object: T,
-): readonly { [K in keyof T]: readonly [K, T[K]] }[keyof T][] {
+): readonly { [K in keyof T]: [K, T[K]] }[keyof T][] {
   // @ts-expect-error This is intentionally a wrapper function with a different type.
   return Object.entries(object)
 }
@@ -87,7 +87,7 @@ export function unsafeEntries<T extends object>(
  * extra keys.
  */
 export function unsafeFromEntries<T extends object>(
-  entries: readonly { [K in keyof T]: readonly [K, T[K]] }[keyof T][],
+  entries: readonly { [K in keyof T]: [K, T[K]] }[keyof T][],
 ): T {
   // @ts-expect-error This is intentionally a wrapper function with a different type.
   return Object.fromEntries(entries)

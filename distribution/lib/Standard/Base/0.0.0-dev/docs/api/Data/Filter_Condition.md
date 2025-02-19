@@ -1,0 +1,38 @@
+## Enso Signatures 1.0
+## module Standard.Base.Data.Filter_Condition
+- type Filter_Action
+    - Keep
+    - Remove
+- type Filter_Condition
+    - Between lower:Standard.Base.Any.Any= upper:Standard.Base.Any.Any= keep_or_remove:Standard.Base.Data.Filter_Condition.Filter_Action=
+    - Contains substring:Standard.Base.Any.Any= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= keep_or_remove:Standard.Base.Data.Filter_Condition.Filter_Action=
+    - Ends_With suffix:Standard.Base.Any.Any= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= keep_or_remove:Standard.Base.Data.Filter_Condition.Filter_Action=
+    - Equal to:Standard.Base.Any.Any=
+    - Equal_Ignore_Case to:Standard.Base.Any.Any= locale:Standard.Base.Data.Locale.Locale= keep_or_remove:Standard.Base.Data.Filter_Condition.Filter_Action=
+    - Equal_Or_Greater than:Standard.Base.Any.Any=
+    - Equal_Or_Less than:Standard.Base.Any.Any=
+    - Greater than:Standard.Base.Any.Any=
+    - Is_Empty
+    - Is_False
+    - Is_Finite
+    - Is_In values:Standard.Base.Any.Any= keep_or_remove:Standard.Base.Data.Filter_Condition.Filter_Action=
+    - Is_Infinite
+    - Is_Nan
+    - Is_Nothing
+    - Is_True
+    - Less than:Standard.Base.Any.Any=
+    - Like pattern:Standard.Base.Any.Any= keep_or_remove:Standard.Base.Data.Filter_Condition.Filter_Action=
+    - Not_Empty
+    - Not_Equal to:Standard.Base.Any.Any=
+    - Not_Nan
+    - Not_Nothing
+    - Starts_With prefix:Standard.Base.Any.Any= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= keep_or_remove:Standard.Base.Data.Filter_Condition.Filter_Action=
+    - action self -> Standard.Base.Any.Any
+    - default_widget include_comparable:Standard.Base.Data.Boolean.Boolean= include_text:Standard.Base.Data.Boolean.Boolean= include_boolean:Standard.Base.Data.Boolean.Boolean= include_nullable:Standard.Base.Data.Boolean.Boolean= include_numeric:Standard.Base.Data.Boolean.Boolean= include_date:Standard.Base.Data.Boolean.Boolean= include_time:Standard.Base.Data.Boolean.Boolean= include_date_time:Standard.Base.Data.Boolean.Boolean= display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
+    - resolve_auto_scoped filter:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_predicate self -> Standard.Base.Any.Any
+- handle_nothing f:Standard.Base.Any.Any elem:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- sql_like_to_regex sql_pattern:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+- unify_condition_or_predicate condition_or_predicate:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+- unify_condition_predicate_or_element condition:Standard.Base.Any.Any -> Standard.Base.Any.Any

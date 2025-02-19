@@ -90,6 +90,72 @@ test.each([
       ['Paragraph', ['Emphasis', ['EmphasisMark', '*'], ['EmphasisMark', '*']]],
     ],
   },
+  {
+    source: '1. List',
+    expected: [
+      'Document',
+      ['OrderedList', ['ListItem', ['ListMark', '1. '], ['Paragraph', 'List']]],
+    ],
+  },
+  {
+    source: '1. List\n   1. Sublist',
+    expected: [
+      'Document',
+      [
+        'OrderedList',
+        [
+          'ListItem',
+          ['ListMark', '1. '],
+          ['Paragraph', 'List'],
+          ['OrderedList', ['ListItem', ['ListMark', '1. '], ['Paragraph', 'Sublist']]],
+        ],
+      ],
+    ],
+  },
+  {
+    source: '- List',
+    expected: ['Document', ['BulletList', ['ListItem', ['ListMark', '- '], ['Paragraph', 'List']]]],
+  },
+  {
+    source: '- List\n  - Sublist',
+    expected: [
+      'Document',
+      [
+        'BulletList',
+        [
+          'ListItem',
+          ['ListMark', '- '],
+          ['Paragraph', 'List'],
+          ['BulletList', ['ListItem', ['ListMark', '- '], ['Paragraph', 'Sublist']]],
+        ],
+      ],
+    ],
+  },
+  {
+    source: '- List\n  Non-list child',
+    expected: [
+      'Document',
+      ['BulletList', ['ListItem', ['ListMark', '- '], ['Paragraph', 'List\n  Non-list child']]],
+    ],
+  },
+  {
+    source: '- List\n  - Sublist\n  Non-list child',
+    expected: [
+      'Document',
+      [
+        'BulletList',
+        [
+          'ListItem',
+          ['ListMark', '- '],
+          ['Paragraph', 'List'],
+          [
+            'BulletList',
+            ['ListItem', ['ListMark', '- '], ['Paragraph', 'Sublist\n  Non-list child']],
+          ],
+        ],
+      ],
+    ],
+  },
 ])('Enso Markdown tree structure: $source', ({ source, expected }) => {
   expect(debugTree(markdownParser.parse(source), source)).toEqual(expected)
 })

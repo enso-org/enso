@@ -180,6 +180,7 @@ const nodeSelection = provideGraphSelection(
   {
     isValid: (id) => graphStore.db.isNodeId(id),
     onSelected: (id) => graphStore.db.moveNodeToTop(id),
+    onSoleSelected: (id) => graphStore.db.moveNodeToTop(id),
     toSorted: (ids) => {
       const idsSet = new Set(ids)
       const inputNodes = [
@@ -644,7 +645,12 @@ const groupColors = computed(() => {
             @createNodes="createNodesFromSource"
             @toggleDocPanel="toggleRightDockHelpPanel"
           />
-          <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
+          <GraphEdges
+            :navigator="graphNavigator"
+            @createNodeFromEdge="handleEdgeDrop"
+            @createNodeFromPort="createNodesFromSource"
+            @outputPortDoubleClick="handleNodeOutputPortDoubleClick"
+          />
           <ComponentBrowser
             v-if="componentBrowserOpened"
             ref="componentBrowser"

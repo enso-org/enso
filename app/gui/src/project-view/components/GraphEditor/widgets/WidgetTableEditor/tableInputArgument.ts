@@ -20,7 +20,7 @@ export const ROW_INDEX_COLUMN_ID = 'RowIndex'
 /** A header of Row Index Column. */
 export const ROW_INDEX_HEADER = '#'
 /** A default prefix added to the column's index in newly created columns. */
-export const DEFAULT_COLUMN_PREFIX = 'Column #'
+export const DEFAULT_COLUMN_PREFIX = 'Column '
 const NOTHING_PATH = ProjectPath.create(
   'Standard.Base' as QualifiedName,
   'Nothing.Nothing' as QualifiedName,

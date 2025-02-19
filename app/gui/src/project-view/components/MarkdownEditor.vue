@@ -10,7 +10,6 @@ import * as Y from 'yjs'
 const props = defineProps<{
   content: Y.Text | string
   transformImageUrl?: UrlTransformer
-  toolbarContainer: HTMLElement | undefined
 }>()
 
 const inner = ref<ComponentInstance<typeof LazyMarkdownEditor>>()
@@ -34,6 +33,16 @@ defineExpose({
 
 <template>
   <Suspense>
-    <LazyMarkdownEditor ref="inner" v-bind="props" class="MarkdownEditor" />
+    <LazyMarkdownEditor ref="inner" v-bind="props">
+      <template #toolbarLeft>
+        <slot name="toolbarLeft" />
+      </template>
+      <template #toolbarRight>
+        <slot name="toolbarRight" />
+      </template>
+      <template #belowToolbar>
+        <slot name="belowToolbar" />
+      </template>
+    </LazyMarkdownEditor>
   </Suspense>
 </template>

@@ -119,7 +119,7 @@ abstract class EqualsSimpleNode extends Node {
     }
   }
 
-  @Specialization(guards = "isNotMulti(other)")
+  @Specialization(guards = {"isNotMulti(other)", "!isPrimitiveValue(other)"})
   EqualsAndInfo equalsLongInterop(
       long self,
       Object other,
@@ -155,7 +155,7 @@ abstract class EqualsSimpleNode extends Node {
     return EqualsAndInfo.FALSE;
   }
 
-  @Specialization(guards = "!isMulti(other)")
+  @Specialization(guards = {"!isMulti(other)", "!isPrimitiveValue(other)"})
   EqualsAndInfo equalsDoubleInterop(
       double self,
       Object other,

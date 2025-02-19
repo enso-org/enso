@@ -1,0 +1,62 @@
+## Enso Signatures 1.0
+## module Standard.Base.Data.Decimal
+- type Decimal
+    - From_Float big_decimal:Standard.Base.Data.Decimal.BigDecimal original_value:Standard.Base.Data.Numbers.Float
+    - Value big_decimal:Standard.Base.Data.Decimal.BigDecimal
+    - % self that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Data.Decimal.Decimal
+    - * self that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Any.Any
+    - + self that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Any.Any
+    - - self that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Any.Any
+    - / self that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Any.Any
+    - < self that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Data.Boolean.Boolean
+    - <= self that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Data.Boolean.Boolean
+    - > self that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Data.Boolean.Boolean
+    - >= self that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Data.Boolean.Boolean
+    - ^ self exp:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Decimal.Decimal
+    - abs self -> Standard.Base.Data.Decimal.Decimal
+    - add self that:Standard.Base.Data.Decimal.Decimal math_context:(Standard.Base.Data.Numeric.Math_Context.Math_Context|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
+    - ceil self -> Standard.Base.Data.Numbers.Integer
+    - div self that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Data.Decimal.Decimal
+    - divide self that:Standard.Base.Data.Decimal.Decimal math_context:(Standard.Base.Data.Numeric.Math_Context.Math_Context|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
+    - floor self -> Standard.Base.Data.Numbers.Integer
+    - format self format:Standard.Base.Data.Text.Text= locale:Standard.Base.Data.Locale.Locale= -> Standard.Base.Data.Text.Text
+    - from_float f:Standard.Base.Data.Numbers.Float mc:(Standard.Base.Data.Numeric.Math_Context.Math_Context|Standard.Base.Nothing.Nothing)= explicit:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - from_integer i:Standard.Base.Data.Numbers.Integer mc:(Standard.Base.Data.Numeric.Math_Context.Math_Context|Standard.Base.Nothing.Nothing)= -> Standard.Base.Data.Decimal.Decimal
+    - from_text s:Standard.Base.Data.Text.Text mc:(Standard.Base.Data.Numeric.Math_Context.Math_Context|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
+    - internal_representation self -> (Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer)
+    - max self that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Data.Decimal.Decimal
+    - min self that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Data.Decimal.Decimal
+    - multiply self that:Standard.Base.Data.Decimal.Decimal math_context:(Standard.Base.Data.Numeric.Math_Context.Math_Context|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
+    - negate self -> Standard.Base.Data.Decimal.Decimal
+    - new x:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Numbers.Float) mc:(Standard.Base.Data.Numeric.Math_Context.Math_Context|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
+    - parse text:Standard.Base.Data.Text.Text locale:Standard.Base.Data.Locale.Locale= format:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - pow self exp:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Decimal.Decimal
+    - precision self -> Standard.Base.Data.Numbers.Integer
+    - remainder self that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Data.Decimal.Decimal
+    - round self decimal_places:Standard.Base.Data.Numbers.Integer= use_bankers:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Data.Decimal.Decimal
+    - scale self -> Standard.Base.Data.Numbers.Integer
+    - set_scale self new_scale:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Decimal.Decimal
+    - signum self -> Standard.Base.Data.Numbers.Integer
+    - subtract self that:Standard.Base.Data.Decimal.Decimal math_context:(Standard.Base.Data.Numeric.Math_Context.Math_Context|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Data.Text.Text
+    - to_float self -> Standard.Base.Data.Numbers.Float
+    - to_integer self -> Standard.Base.Data.Numbers.Integer
+    - to_text self -> Standard.Base.Data.Text.Text
+    - to_text_without_scientific_notation self -> Standard.Base.Data.Text.Text
+    - truncate self -> Standard.Base.Data.Numbers.Integer
+    - unscaled_value self -> Standard.Base.Data.Numbers.Integer
+- attach_loss_of_numeric_precision orig:Standard.Base.Any.Any value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- dec x:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Numbers.Float) mc:(Standard.Base.Data.Numeric.Math_Context.Math_Context|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
+- error_if_from_float left:Standard.Base.Any.Any right:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- from_big_decimal that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- get_big_decimal that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Any.Any
+- handle_java_exception ~action:Standard.Base.Any.Any extra_message:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+- handle_number_format_exception ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- handle_precision_loss original_value:Standard.Base.Any.Any conversion_result:Standard.Base.Data.Decimal.ConversionResult -> Standard.Base.Any.Any
+- handle_unsupported_argument_types ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Data.Ordering.Comparable.from that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Data.Ordering.Comparable
+- Standard.Base.Data.Ordering.Comparable.from that:Standard.Base.Data.Numbers.Number -> Standard.Base.Data.Ordering.Comparable
+- Standard.Base.Data.Decimal.Decimal.from that:Standard.Base.Data.Text.Text -> Standard.Base.Data.Decimal.Decimal
+- Standard.Base.Data.Decimal.Decimal.from that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Decimal.Decimal
+- Standard.Base.Data.Decimal.Decimal.from that:Standard.Base.Data.Numbers.Float -> Standard.Base.Data.Decimal.Decimal
+- Standard.Base.Data.Numbers.Float.from that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Data.Numbers.Float

@@ -57,6 +57,7 @@ import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Common.Lookup_Query_Helper
+import project.Internal.Common.Offset_Helpers
 import project.Internal.Common.Row_Number_Helpers
 import project.Internal.DB_Data_Link_Helpers
 import project.Internal.Helpers
@@ -68,6 +69,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.Type_Refinements.DB_Table_Refinements
 import project.SQL_Query.SQL_Query
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
@@ -80,9 +82,8 @@ polyglot java import java.util.UUID
 
 ## Represents a column-oriented table data structure backed by a database.
 type DB_Table
-    ## PRIVATE
-
-       Represents a column-oriented table data structure backed by a database.
+    ## Internal constructor that should not be used directly.
+       Please use `DB_Table.new` instead.
 
        Arguments:
        - internal_name: The name of the table.
@@ -90,6 +91,14 @@ type DB_Table
        - internal_columns: The internal representation of the table columns.
        - context: The context associated with this table.
     private Value internal_name:Text connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context
+
+    ## The internal constructor used to construct a DB_Table instance.
+
+       It can perform some additional operations, like refining the type,
+       so it should always be preferred over calling `DB_Table.Value` directly.
+    private new (internal_name:Text) connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context -> DB_Table =
+        DB_Table_Refinements.refine_table <|
+            DB_Table.Value internal_name connection internal_columns context
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -897,20 +906,10 @@ type DB_Table
     add_row_number self (name:Text="Row") (from:Integer=0) (step:Integer=1) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
         Feature.Add_Row_Number.if_supported_else_throw self.connection.dialect "add_row_number" <|
             problem_builder = Problem_Builder.new error_on_missing_columns=True
-            grouping_columns = self.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
-            grouping_columns.each column->
-                if column.value_type.is_floating_point then
-                    problem_builder.report_other_warning (Floating_Point_Equality.Error column.name)
+            grouping_columns = _resolve_grouping_columns self.columns_helper group_by problem_builder
             ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
             problem_builder.attach_problems_before on_problems <|
-                order_descriptors = case ordering.is_empty of
-                    False -> ordering.map element->
-                        column = element.column
-                        associated_selector = element.associated_selector
-                        self.connection.dialect.prepare_order_descriptor column associated_selector.direction text_ordering=Nothing
-                    True -> case self.default_ordering of
-                        Nothing -> Error.throw (Illegal_Argument.Error "The table has no existing ordering (e.g. from a `sort` operation or primary key). `add_row_number` requires an ordering in database.")
-                        descriptors -> descriptors
+                order_descriptors = _resolve_order_descriptors self.connection.dialect ordering self.default_ordering "add_row_number"
                 grouping_expressions = (grouping_columns.map _.as_internal).map .expression
 
                 new_expr = Row_Number_Helpers.make_row_number from step order_descriptors grouping_expressions
@@ -1175,7 +1174,8 @@ type DB_Table
             make_constant_column value = case value of
                 _ : DB_Column -> value
                 _ -> self.make_constant_column value
-            new_column = Expression.evaluate expression get_column make_constant_column "Standard.Database.DB_Column" "DB_Column" DB_Column.var_args_functions
+            is_column value = value.is_a DB_Column
+            new_column = Expression.evaluate expression get_column make_constant_column is_column "Standard.Database.DB_Column" "DB_Column" DB_Column.var_args_functions
             problems = Warning.get_all new_column . map .value
             result = new_column.rename (self.connection.base_connection.column_naming_helper.sanitize_name expression.expression)
             on_problems.attach_problems_before problems <|
@@ -1648,7 +1648,7 @@ type DB_Table
             problem_builder.attach_problems_before on_problems <|
                 new_from = From_Spec.Join sql_join_kind left_setup.subquery right_setup.subquery on_expressions
                 new_ctx = Context.for_subquery new_from . set_where_filters where_expressions
-                DB_Table.Value new_table_name self.connection result_columns new_ctx
+                DB_Table.new new_table_name self.connection result_columns new_ctx
 
     ## ALIAS append, cartesian join
        GROUP Standard.Base.Calculations
@@ -2067,7 +2067,7 @@ type DB_Table
                             input_column = Internal_Column.Value name (infer_return_type expression) expression
                             dialect.adapt_unified_column input_column result_type infer_return_type
 
-                        DB_Table.Value union_alias self.connection new_columns new_ctx
+                        DB_Table.new union_alias self.connection new_columns new_ctx
 
     ## ALIAS average, count, count distinct, first, group by, last, longest, maximum, mean, median, minimum, mode, percentile, shortest, standard deviation, sum, summarize, variance
        GROUP Standard.Base.Calculations
@@ -2805,7 +2805,7 @@ type DB_Table
        Arguments:
        - columns: The columns with which to update this table.
     updated_columns : Vector Internal_Column -> DB_Table
-    updated_columns self internal_columns = DB_Table.Value self.name self.connection internal_columns self.context
+    updated_columns self internal_columns = DB_Table.new self.name self.connection internal_columns self.context
 
     ## PRIVATE
 
@@ -2814,7 +2814,7 @@ type DB_Table
        Arguments:
        - ctx: The new context for this table.
     updated_context : Context -> DB_Table
-    updated_context self ctx = DB_Table.Value self.name self.connection self.internal_columns ctx
+    updated_context self ctx = DB_Table.new self.name self.connection self.internal_columns ctx
 
     ## PRIVATE
 
@@ -2838,9 +2838,9 @@ type DB_Table
             setup = ctx.as_subquery self.name [internal_columns]
             new_ctx = Context.for_subquery setup.subquery
             new_columns = setup.new_columns.first
-            DB_Table.Value self.name self.connection new_columns new_ctx
+            DB_Table.new self.name self.connection new_columns new_ctx
         False ->
-            DB_Table.Value self.name self.connection internal_columns ctx
+            DB_Table.new self.name self.connection internal_columns ctx
 
     ## PRIVATE
        Nests a table as a subquery, using `updated_context_and_columns`, which
@@ -2926,10 +2926,11 @@ type DB_Table
 
          - `Auto_Detect`: The file format is determined by the provided file.
          - `Bytes` and `Plain_Text`: The Table does not support these types in
-            the `write` function. If passed as format, an
-            `Illegal_Argument` is raised. To write out the table as plain
-            text, the user needs to call the `Text.from Table` method and then
-            use the `Text.write` function.
+           the `write` function. If passed as format, an
+           `Illegal_Argument` is raised. To write out the table as plain
+           text, the user needs to convert the Table to Text
+           (e.g. using `to_delimited` method) and then use the `Text.write`
+           function.
 
        > Example
          Write a database table to a CSV file.
@@ -3185,9 +3186,26 @@ type DB_Table
     @default (self-> Widget_Helpers.make_fill_default_value_selector2)
     @group_by Widget_Helpers.make_column_name_multi_selector
     @order_by Widget_Helpers.make_order_by_selector
-    offset self columns:(Vector (Integer | Text | Regex | By_Type))=(Missing_Argument.throw "columns") n:Integer=-1 fill_with:Fill_With=..Nothing (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (set_mode:Set_Mode=..Add) (on_problems:Problem_Behavior=..Report_Warning) -> Table =
-        _ = [columns, n, fill_with, group_by, order_by, set_mode, on_problems]
-        Error.throw (Unsupported_Database_Operation.Error "offset")
+    offset self columns:(Vector (Integer | Text | Regex | By_Type))=(Missing_Argument.throw "columns") n:Integer=-1 fill_with:Fill_With=..Nothing (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (set_mode:Set_Mode=..Add) (on_problems:Problem_Behavior=..Report_Warning) -> DB_Table =
+        Feature.Offset.if_supported_else_throw self.connection.dialect "offset" <|
+            problem_builder = Problem_Builder.new error_on_missing_columns=True
+            grouping_columns = _resolve_grouping_columns self.columns_helper group_by problem_builder
+            ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
+            resolved_columns = self.columns_helper.select_columns_helper columns Case_Sensitivity.Default True problem_builder
+            problem_builder.attach_problems_before on_problems <| if columns.is_empty then self else
+                order_descriptors = _resolve_order_descriptors self.connection.dialect ordering self.default_ordering "offset"
+                grouping_expressions = (grouping_columns.map _.as_internal).map .expression
+                
+                offset_expr c:DB_Column -> SQL_Expression =
+                    Offset_Helpers.make_offset n (c.as_internal) order_descriptors grouping_expressions fill_with
+                new_column_name c:DB_Column -> Text = 
+                    if set_mode==Set_Mode.Add then self.column_naming_helper.function_name "offset" [c, n, fill_with] else c.name
+                
+                new_columns = resolved_columns.map c->(Internal_Column.Value (new_column_name c) c.sql_type_reference (offset_expr c))
+
+                updated_table = new_columns.fold self t-> col->
+                    t.set (self.make_column col)
+                updated_table.as_subquery
 
 ## PRIVATE
 
@@ -3216,7 +3234,7 @@ make_table connection table_name columns ctx on_problems =
         problem_builder.report_unique_name_strategy column_names_validator
         # We do not want to stop the table from being fetched, so we report the issues as warnings.
         problem_builder.attach_problems_before on_problems <|
-            DB_Table.Value table_name connection cols ctx
+            DB_Table.new table_name connection cols ctx
 
 ## PRIVATE
    By default, join on the first column, unless it's a cross join, in which
@@ -3276,7 +3294,26 @@ make_literal_table connection column_vectors column_names alias =
                 if needs_cast.not then base_column else
                     connection.dialect.make_cast base_column sql_type infer_type_from_database
 
-            DB_Table.Value alias connection internal_columns context
+            DB_Table.new alias connection internal_columns context
+
+## PRIVATE
+private _resolve_grouping_columns columns_helper:Table_Column_Helper group_by:Vector problem_builder:Problem_Builder -> Vector =
+    grouping_columns = columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
+    grouping_columns.each column->
+        if column.value_type.is_floating_point then
+            problem_builder.report_other_warning (Floating_Point_Equality.Error column.name)
+    grouping_columns
+
+## PRIVATE
+private _resolve_order_descriptors dialect ordering default_ordering operation_name:Text =
+    case ordering.is_empty of
+        False -> ordering.map element->
+            column = element.column
+            associated_selector = element.associated_selector
+            dialect.prepare_order_descriptor column associated_selector.direction text_ordering=Nothing
+        True -> case default_ordering of
+            Nothing -> Error.throw (Illegal_Argument.Error "The table has no existing ordering (e.g. from a `sort` operation or primary key). `"+operation_name+"` requires an ordering in database.")
+            descriptors -> descriptors
 
 ## PRIVATE
 Many_Files_List.from (that : DB_Table) =

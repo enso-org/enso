@@ -297,7 +297,7 @@ private _resolve_form_body (form_data:(Dictionary Text (Text | File))) (url_enco
 ## PRIVATE
 if_fetch_method : HTTP_Method -> Function -> Any -> Any ! Illegal_Argument
 if_fetch_method method:HTTP_Method ~action ~if_not=(Error.throw (Illegal_Argument.Error ("Unsupported method " + method.to_display_text))) =
-    if [HTTP_Method.Get, HTTP_Method.Head, HTTP_Method.Options].contains method then action else
+    if [HTTP_Method.Get, HTTP_Method.Head, HTTP_Method.Options, HTTP_Method.Trace].contains method then action else
         if_not
 
 ## PRIVATE

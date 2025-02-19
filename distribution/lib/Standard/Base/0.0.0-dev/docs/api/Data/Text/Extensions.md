@@ -1,0 +1,103 @@
+## Enso Signatures 1.0
+## module Standard.Base.Data.Text.Extensions
+- Standard.Base.Data.Text.Text.* self count:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.* self count:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.at self index:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.at self index:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.bytes self encoding:Standard.Base.Data.Text.Encoding.Encoding= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.bytes self encoding:Standard.Base.Data.Text.Encoding.Encoding= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.char_vector self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.char_vector self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.characters self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.characters self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.cleanse self remove:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.cleanse self remove:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.codepoints self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.codepoints self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.contains self term:Standard.Base.Data.Text.Text= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.contains self term:Standard.Base.Data.Text.Text= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.drop self range:(Standard.Base.Data.Text.Text_Sub_Range.Text_Sub_Range|Standard.Base.Data.Index_Sub_Range.Index_Sub_Range|Standard.Base.Data.Range.Range|Standard.Base.Data.Numbers.Integer)= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.drop self range:(Standard.Base.Data.Text.Text_Sub_Range.Text_Sub_Range|Standard.Base.Data.Index_Sub_Range.Index_Sub_Range|Standard.Base.Data.Range.Range|Standard.Base.Data.Numbers.Integer)= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.each self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.each self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.ends_with self suffix:Standard.Base.Data.Text.Text case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.ends_with self suffix:Standard.Base.Data.Text.Text case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.find self pattern:(Standard.Base.Data.Text.Regex.Regex|Standard.Base.Data.Text.Text)= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.find self pattern:(Standard.Base.Data.Text.Regex.Regex|Standard.Base.Data.Text.Text)= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.find_all self pattern:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex)= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.find_all self pattern:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex)= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.first self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.first self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.from_bytes bytes:Standard.Base.Any.Any encoding:Standard.Base.Data.Text.Encoding.Encoding= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.from_char_vector chars:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.from_codepoints codepoints:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.from_utf_8 bytes:Standard.Base.Any.Any on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.get self index:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.get self index:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.index_of self term:Standard.Base.Data.Text.Text= start:Standard.Base.Data.Numbers.Integer= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.index_of self term:Standard.Base.Data.Text.Text= start:Standard.Base.Data.Numbers.Integer= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.insert self index:Standard.Base.Data.Numbers.Integer that:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.insert self index:Standard.Base.Data.Numbers.Integer that:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.is_digit self index:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.is_digit self index:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.is_whitespace self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.is_whitespace self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.last self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.last self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.last_index_of self term:Standard.Base.Data.Text.Text= start:Standard.Base.Any.Any= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.last_index_of self term:Standard.Base.Data.Text.Text= start:Standard.Base.Any.Any= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.lines self keep_endings:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.lines self keep_endings:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.locate self term:Standard.Base.Data.Text.Text= mode:Standard.Base.Any.Any= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.locate self term:Standard.Base.Data.Text.Text= mode:Standard.Base.Any.Any= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.locate_all self term:Standard.Base.Data.Text.Text= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.locate_all self term:Standard.Base.Data.Text.Text= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.match self pattern:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex)= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.match self pattern:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex)= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.pad self length:Standard.Base.Data.Numbers.Integer= with_pad:Standard.Base.Data.Text.Text= at:Standard.Base.Data.Text.Location.Location= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.pad self length:Standard.Base.Data.Numbers.Integer= with_pad:Standard.Base.Data.Text.Text= at:Standard.Base.Data.Text.Location.Location= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.parse_date self format:Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.parse_date self format:Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.parse_date_time self format:Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.parse_date_time self format:Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.parse_float self locale:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.parse_float self locale:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.parse_integer self radix:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.parse_integer self radix:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.parse_json self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.parse_json self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.parse_time_of_day self format:Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.parse_time_of_day self format:Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.parse_time_zone self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.parse_time_zone self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.repeat self count:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.repeat self count:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.replace self term:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex) replacement:Standard.Base.Data.Text.Text case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= only_first:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.replace self term:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex) replacement:Standard.Base.Data.Text.Text case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= only_first:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.reverse self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.reverse self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.second self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.second self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.split self delimiter:Standard.Base.Any.Any= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= use_regex:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.split self delimiter:Standard.Base.Any.Any= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= use_regex:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.starts_with self prefix:Standard.Base.Data.Text.Text case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.starts_with self prefix:Standard.Base.Data.Text.Text case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.substring self start:Standard.Base.Data.Numbers.Integer length:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.substring self start:Standard.Base.Data.Numbers.Integer length:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.take self range:(Standard.Base.Data.Text.Text_Sub_Range.Text_Sub_Range|Standard.Base.Data.Index_Sub_Range.Index_Sub_Range|Standard.Base.Data.Range.Range|Standard.Base.Data.Numbers.Integer)= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.take self range:(Standard.Base.Data.Text.Text_Sub_Range.Text_Sub_Range|Standard.Base.Data.Index_Sub_Range.Index_Sub_Range|Standard.Base.Data.Range.Range|Standard.Base.Data.Numbers.Integer)= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.to_case self case_option:Standard.Base.Data.Text.Case.Case= locale:Standard.Base.Data.Locale.Locale= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.to_case self case_option:Standard.Base.Data.Text.Case.Case= locale:Standard.Base.Data.Locale.Locale= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.to_decimal self scale:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)= -> Standard.Base.Data.Decimal.Decimal
+- Standard.Base.Data.Text.Text.to_decimal self scale:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)= -> Standard.Base.Data.Decimal.Decimal
+- Standard.Base.Data.Text.Text.to_regex self case_insensitive:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.to_regex self case_insensitive:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.tokenize self pattern:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex)= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.tokenize self pattern:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex)= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.trim self where:Standard.Base.Data.Text.Location.Location= what:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.trim self where:Standard.Base.Data.Text.Location.Location= what:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.utf_8 self on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.utf_8 self on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.words self keep_whitespace:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.words self keep_whitespace:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text_Cleanse.Cleansable_Text.from that:Standard.Base.Data.Text.Text -> Standard.Base.Data.Text.Text_Cleanse.Cleansable_Text

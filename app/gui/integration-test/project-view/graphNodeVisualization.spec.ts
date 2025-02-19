@@ -29,7 +29,7 @@ test('Node can open and load visualization', async ({ page }) => {
 test('Previewing visualization', async ({ page }) => {
   await actions.goToGraph(page)
   const node = locate.graphNode(page).last()
-  const port = await locate.outputPortCoordinates(node)
+  const port = await locate.outputPortCoordinates(page, node)
   await page.keyboard.down('Meta')
   await page.keyboard.down('Control')
   await expect(locate.anyVisualization(page)).toBeHidden()

@@ -58,7 +58,7 @@ non-sealed abstract class SingleTypeCheckNode extends AbstractTypeCheckNode {
       UnresolvedConstructor unresolved,
       ExpressionNode ignore,
       @Cached UnresolvedConstructor.ConstructNode construct) {
-    var state = Function.ArgumentsHelper.getState(frame.getArguments());
+    var state = EnsoContext.get(this).currentState();
     return construct.execute(frame, state, expectedType, unresolved);
   }
 

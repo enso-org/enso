@@ -11,11 +11,13 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.profiles.ConditionProfile;
+import java.util.Iterator;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.BuiltinObject;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMapBuilder.Entry;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMapBuilder.StorageEntry;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 
@@ -135,13 +137,19 @@ public final class EnsoHashMap extends BuiltinObject {
   }
 
   @ExportMessage
-  Object getHashEntriesIterator(@CachedLibrary(limit = "3") InteropLibrary interop) {
+  final Object getHashEntriesIterator(@CachedLibrary(limit = "3") InteropLibrary interop) {
     try {
       return interop.getIterator(getCachedVectorRepresentation());
     } catch (UnsupportedMessageException e) {
       var ctx = EnsoContext.get(interop);
       throw ctx.raiseAssertionPanic(interop, null, e);
     }
+  }
+
+  final Iterator<Entry> getEntriesIterator(
+      VirtualFrame frame, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
+    var builder = getMapBuilder(frame, true, hashCodeNode, equalsNode);
+    return builder.getEntriesIterator(generation);
   }
 
   @ExportMessage

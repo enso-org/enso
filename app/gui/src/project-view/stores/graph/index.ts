@@ -85,7 +85,8 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
     proj.setObservedFileName('Main.enso')
 
     const nodeRects = reactive(new Map<NodeId, Rect>())
-    const nodeHoverAnimations = reactive(new Map<NodeId, number>())
+    const nodeOutputHoverAnimations = reactive(new Map<NodeId, number>())
+    const nodeHovered = reactive(new Map<NodeId, boolean>())
     const vizRects = reactive(new Map<NodeId, Rect>())
     // The currently visible nodes' areas (including visualization).
     const visibleNodeAreas = computed(() => {
@@ -331,7 +332,8 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
           const outerAst = edit.getVersion(node.outerAst)
           if (outerAst.isStatement()) Ast.deleteFromParentBlock(outerAst)
           nodeRects.delete(id)
-          nodeHoverAnimations.delete(id)
+          nodeHovered.delete(id)
+          nodeOutputHoverAnimations.delete(id)
           deletedNodes.add(id)
         }
       })
@@ -454,8 +456,12 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       }
     }
 
-    function updateNodeHoverAnim(nodeId: NodeId, progress: number) {
-      nodeHoverAnimations.set(nodeId, progress)
+    function setNodeHovered(nodeId: NodeId, hovered: boolean) {
+      nodeHovered.set(nodeId, hovered)
+    }
+
+    function updateNodeOutputHoverAnim(nodeId: NodeId, progress: number) {
+      nodeOutputHoverAnimations.set(nodeId, progress)
     }
 
     const nodesToPlace = reactive<NodeId[]>([])
@@ -792,7 +798,8 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       editedNodeInfo,
       moduleSource,
       nodeRects,
-      nodeHoverAnimations,
+      nodeHovered,
+      nodeOutputHoverAnimations,
       vizRects,
       visibleNodeAreas,
       visibleArea,
@@ -811,7 +818,8 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       setNodeVisualization,
       undoManager,
       updateNodeRect,
-      updateNodeHoverAnim,
+      setNodeHovered,
+      updateNodeOutputHoverAnim,
       updateVizRect,
       addPortInstance,
       removePortInstance,

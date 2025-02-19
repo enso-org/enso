@@ -82,6 +82,10 @@ export function useEnsoSourceSync(
         graphStore.commitEdit(editedModule, undefined, 'local:userAction:CodeEditor')
         return
       }
+      console.error(`Unable to apply source code edit.`, {
+        expected: editorView.state.doc.toString(),
+        got: editedModule.root()?.code(),
+      })
     } catch (error) {
       console.error(`Code Editor failed to modify module`, error)
     }

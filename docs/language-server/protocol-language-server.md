@@ -376,6 +376,10 @@ interface ExpressionUpdate {
    *  - array with multiple values represents an intersetion type
    */
   type: string[];
+  /**
+   * The list of types this expression can be converted to.
+   */
+  hiddenType: string[];
   /** The updated method call info. */
   methodCall?: MethodCall;
   /** Profiling information about the expression. */

@@ -8,28 +8,32 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import java.math.BigInteger;
 
+/**
+ * A {@link TruffleObject} that wraps a primitive value. Useful for testing behavior of various node
+ * specializations when they received a <em>foreign object</em>.
+ */
 @ExportLibrary(InteropLibrary.class)
-final class WrappedPrimitive implements TruffleObject {
+public final class WrappedPrimitive implements TruffleObject {
 
   private final Object value;
 
-  WrappedPrimitive(long value) {
+  public WrappedPrimitive(long value) {
     this.value = value;
   }
 
-  WrappedPrimitive(boolean value) {
+  public WrappedPrimitive(boolean value) {
     this.value = value;
   }
 
-  WrappedPrimitive(double value) {
+  public WrappedPrimitive(double value) {
     this.value = value;
   }
 
-  WrappedPrimitive(BigInteger value) {
+  public WrappedPrimitive(BigInteger value) {
     this.value = value;
   }
 
-  WrappedPrimitive(String value) {
+  public WrappedPrimitive(String value) {
     this.value = value;
   }
 
@@ -133,7 +137,7 @@ final class WrappedPrimitive implements TruffleObject {
     return toString();
   }
 
-  Object asDirect() {
+  public final Object asDirect() {
     return value;
   }
 
