@@ -35,21 +35,27 @@ export default function ReactRoot(props: ReactRootProps) {
   const { config, queryClient, onAuthenticated } = props
 
   const httpClient = new HttpClient()
+
   const supportsDeepLinks = !IS_DEV_MODE && !isOnLinux() && isOnElectron()
+
+  const appRoot = document.querySelector('#enso-app')
+  invariant(appRoot instanceof HTMLElement, 'AppRoot element not found')
+
   const portalRoot = document.querySelector('#enso-portal-root')
+  invariant(portalRoot instanceof HTMLElement, 'PortalRoot element not found')
+
   const shouldUseAuthentication = config.authentication.enabled
   const projectManagerUrl =
     (config.engine.projectManagerUrl || resolveEnvUrl($config.PROJECT_MANAGER_URL)) ?? null
   const ydocUrl = (config.engine.ydocUrl || resolveEnvUrl($config.YDOC_SERVER_URL)) ?? null
   const initialProjectName = config.startup.project || null
-  invariant(portalRoot, 'PortalRoot element not found')
   const isCloudBuild = $config.CLOUD_BUILD === 'true'
 
   return (
     <StrictMode>
       <QueryClientProvider client={queryClient}>
         <ErrorBoundary>
-          <UIProviders locale="en-US" portalRoot={portalRoot}>
+          <UIProviders locale="en-US" portalRoot={portalRoot} appRoot={appRoot}>
             <Suspense fallback={<LoadingScreen />}>
               <OfflineNotificationManager>
                 <LoggerProvider logger={console}>

@@ -7,6 +7,15 @@ import project.Data.Vector.Vector
    used in `Data.read_many`.
 type Many_Files_List
     ## PRIVATE
+       Arguments:
+       - original_value: The original value that represents a list of files.
+         Some return modes may use it as it contains more information than just
+         list of files (e.g. it can be a source table).
+       - paths_to_load: A vector of paths to load. This is the fallback that can
+         be used by any return mode if it does not recognize the original value.
+         The vector is expected to contain values that can be passed into
+         `Data.read` (so it can be Text, File, URI or any other kind of file -
+         e.g. S3_File).
     Value original_value paths_to_load:Vector
 
     ## PRIVATE

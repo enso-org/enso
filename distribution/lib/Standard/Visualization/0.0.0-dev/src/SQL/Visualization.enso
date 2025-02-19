@@ -24,7 +24,7 @@ prepare_visualization x =
     code = prepared.first
     interpolations = prepared.second
     mapped = interpolations.map value->
-        enso_type = Meta.get_qualified_type_name value
+        enso_type = value.to Meta.Type . qualified_name
         JS_Object.from_pairs [["value", value], ["enso_type", enso_type]]
     dialect = x.dialect_name
     JS_Object.from_pairs [["dialect", dialect], ["code", code], ["interpolations", mapped]] . to_text

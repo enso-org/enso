@@ -1,6 +1,8 @@
 import project.Data.Text.Case.Case
 import project.Data.Text.Text
+import project.Metadata.Widget
 from project.Data.Text.Extensions import all
+from project.Metadata import make_single_choice
 
 
 type HTTP_Method
@@ -55,6 +57,18 @@ type HTTP_Method
     to_display_text self = case self of
         HTTP_Method.Custom verb -> "Custom: "+verb.to_display_text
         _ -> self.to_http_method_name
+
+    ## PRIVATE
+       Widget for get operations
+    default_fetch_widget : Widget
+    default_fetch_widget =
+        make_single_choice ["..Get", "..Head", "..Options", "..Trace"]
+
+    ## PRIVATE
+       Widget for get operations
+    default_post_widget : Widget
+    default_post_widget =
+        make_single_choice ["..Post", "..Put", "..Patch", "..Delete"]
 
 ## PRIVATE
    Converts from Text to an HTTP_Method.

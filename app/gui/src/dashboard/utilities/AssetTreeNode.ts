@@ -176,19 +176,4 @@ export default class AssetTreeNode<Item extends backendModule.AnyAsset = backend
 
     return true
   }
-
-  /** Check whether a pending rename is valid. */
-  isNewTitleValid(newTitle: string, siblings?: readonly AssetTreeNode[] | null) {
-    siblings ??= []
-    return (
-      newTitle !== '' &&
-      newTitle !== this.item.title &&
-      siblings.every((sibling) => {
-        const isSelf = sibling.item.id === this.item.id
-        const hasSameType = sibling.item.type === this.item.type
-        const hasSameTitle = sibling.item.title === newTitle
-        return !(!isSelf && hasSameType && hasSameTitle)
-      })
-    )
-  }
 }

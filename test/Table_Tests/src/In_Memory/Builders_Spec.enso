@@ -1,7 +1,7 @@
 from Standard.Base import all
 
 from Standard.Table import Column
-from Standard.Table.Internal.Java_Exports import make_inferred_builder
+import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Java_Problems
 
 from Standard.Test import all
@@ -24,7 +24,7 @@ add_specs suite_builder = suite_builder.group "[In-Memory] Storage Builders" gro
         elem = ['X', 42, 1.5, My.Data 1 2, Date.new 2022 8 27, Time_Of_Day.new 18 00, Date_Time.new 2022 8 27 11 22 25, "a", Nothing]
         elem.each e-> Test.with_clue "{"+e.to_text+"}: " <|
             r = Java_Problems.with_problem_aggregator ..Report_Warning java_problem_aggregator->
-                builder = make_inferred_builder 1 java_problem_aggregator
+                builder = Java_Exports.make_inferred_builder 1 java_problem_aggregator
                 vector = Vector.fill 10 e + Vector.fill 1000 Nothing + Vector.fill 5 e
                 0.up_to 10 . each _->
                     builder.append e
@@ -39,7 +39,7 @@ add_specs suite_builder = suite_builder.group "[In-Memory] Storage Builders" gro
     group_builder.specify "Inferred Builder should correctly resize when retyping to a mixed column, with an underestimated initial size" <|
         mixed_values = [10, 11, 22, 23, 24, 25, '2020-02-28']
         r = Java_Problems.with_problem_aggregator ..Report_Warning java_problem_aggregator->
-            builder = make_inferred_builder 3 java_problem_aggregator
+            builder = Java_Exports.make_inferred_builder 3 java_problem_aggregator
             mixed_values.map v-> builder.append v
             storage = builder.seal
             column = Column.from_storage "X" storage

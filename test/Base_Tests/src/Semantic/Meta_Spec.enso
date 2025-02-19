@@ -47,6 +47,7 @@ test_method a b = a + b
 
 type Test_Type
     Value x
+    No_Value
 
 type Sum_Type
     Variant_A x
@@ -75,7 +76,7 @@ add_specs suite_builder =
             meta_sym.name.should_equal "does_not_exist"
             new_sym = meta_sym . rename "my_method"
             object = My_Type.Value 1 2 3
-            new_sym object . should_equal 6
+            new_sym.value object . should_equal 6
         group_builder.specify "should allow manipulating atoms" <|
             atom = My_Type.Value 1 "foo" Nothing
             meta_atom = Meta.meta atom
@@ -89,13 +90,17 @@ add_specs suite_builder =
             Meta.meta List.Nil . constructor . fields . should_equal []
             Meta.meta (List.Cons 1 List.Nil) . constructor . fields . should_equal ["x", "xs"]
         group_builder.specify "should allow creating atoms from atom constructors" <|
-            atom_1 = Meta.new_atom My_Type.Value [1,"foo", Nothing]
+            atom_1 = Meta.meta My_Type.Value . new [1,"foo", Nothing]
             (Meta.meta atom_1).constructor.value . should_equal My_Type.Value
-            atom_2 = Meta.new_atom My_Type.Value [1,"foo", Nothing].to_array
+            atom_2 = Meta.meta My_Type.Value . new [1,"foo", Nothing].to_array
             (Meta.meta atom_2).constructor.value . should_equal My_Type.Value
         group_builder.specify "should correctly return representations of different classes of objects" <|
-            Meta.meta 1 . should_equal (Meta.Primitive.Value 1)
-            Meta.meta "foo" . should_equal (Meta.Primitive.Value "foo")
+            case Meta.meta 1 of
+                p : Meta.Primitive -> p.value . should_equal 1
+                w -> Test.fail "Expecting Meta.Primitive, but was: "+w.to_text
+            case Meta.meta "foo" of
+                p : Meta.Primitive -> p.value . should_equal "foo"
+                w -> Test.fail "Expecting Meta.Primitive, but was: "+w.to_text
         group_builder.specify "should allow manipulation of error values" <|
             err = Error.throw "My Error"
             meta_err = Meta.meta err
@@ -250,7 +255,7 @@ add_specs suite_builder =
             meta_typ . should_be_a Meta.Type
             meta_typ.name . should_equal "Boolean"
             cons = case meta_typ of
-                Meta.Type.Value _ -> meta_typ.constructors
+                mt : Meta.Type -> mt.constructors
                 _ -> Test.fail "Should be a Meta.Type.Value: " + meta_typ.to_text
 
             cons.length . should_equal 2
@@ -266,7 +271,7 @@ add_specs suite_builder =
             meta_typ . should_be_a Meta.Type
             meta_typ.name . should_equal "My_Type"
             cons = case meta_typ of
-                Meta.Type.Value _ -> meta_typ.constructors
+                mt : Meta.Type -> mt.constructors
                 _ -> Test.fail "Should be a Meta.Type.Value: " + meta_typ.to_text
 
             cons.length . should_equal 1
@@ -299,6 +304,9 @@ add_specs suite_builder =
 
         group_builder.specify "methods of Any" <|
             Meta.meta Any . methods . should_contain "to_text"
+
+        group_builder.specify "name of Panic" <|
+            Meta.meta Panic . name . should_equal "Panic"
 
         group_builder.specify "should correctly handle Java values" <|
             java_meta = Meta.meta Java_Random.new
@@ -345,6 +353,30 @@ add_specs suite_builder =
             Meta.get_annotation My_Type .Value "foo" 7 8 . should_equal 15
             Meta.get_annotation My_Type .Value "bar" . should_equal Nothing
             Meta.get_annotation My_Type .Value "baz" . should_equal (My_Type.Value 1 2 3)
+
+        group_builder.specify "atom constructor with suspended evalution" <|
+            m = Meta.meta (Test_Type.No_Value...)
+            case m of
+                ac : Meta.Constructor ->
+                    ac.name . should_equal "No_Value"
+                    ac.fields.length . should_equal 0
+                    ac.declaring_type . should_equal (Meta.meta Test_Type)
+                    case ac.value... of
+                        _ : Function -> "OK"
+                        other -> Test.fail "Expecting function, but was: "+other.to_text
+                    case ac.value of
+                        v : Test_Type -> v . should_equal Test_Type.No_Value
+                        other -> Test.fail "Expecting atom, but was: "+other.to_text
+                _ ->
+                    Test.fail "Expecting Meta.Constructor, but was: "+m.to_text
+
+        group_builder.specify "atom without suspended evalution" <|
+            m = Meta.meta Test_Type.No_Value
+            case m of
+                a : Meta.Atom ->
+                    a.constructor.name . should_equal "No_Value"
+                _ ->
+                    Test.fail "Expecting Meta.Constructor, but was: "+m.to_text
 
     suite_builder.group "Check Nothing and NaN" group_builder->
         group_builder.specify "Nothing.is_a Nothing" <|
@@ -508,6 +540,16 @@ add_specs suite_builder =
             fqn.should_contain "Meta_Spec.My_Ascribed_Type"
             typ = Meta.Type.find fqn
             typ . should_equal meta_type
+
+    suite_builder.group ".to Meta.Type" group_builder->
+        group_builder.specify "Type of Pair type" <|
+            fqn =  Pair.to Meta.Type . qualified_name
+            fqn . should_equal "Standard.Base.Data.Pair.Pair"
+
+        group_builder.specify "Type of Pair value" <|
+            p = Pair.new "A" 2
+            fqn =  p.to Meta.Type . qualified_name
+            fqn . should_equal "Standard.Base.Data.Pair.Pair"
 
 main filter=Nothing =
     suite = Test.build suite_builder->

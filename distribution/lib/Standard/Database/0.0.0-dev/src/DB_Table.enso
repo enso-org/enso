@@ -42,9 +42,10 @@ import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
 import Standard.Table.Row.Row
+import Standard.Table.Row_Limit.Row_Limit
 import Standard.Table.Rows_To_Read.Rows_To_Read
 import Standard.Table.Value_Type.By_Type
-from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Report_Unmatched, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
+from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Fill_With, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Report_Unmatched, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
 from Standard.Table.Errors import all
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
 from Standard.Table.Table import make_fill_nothing_default_widget
@@ -56,6 +57,7 @@ import project.Internal.Aggregate_Helper
 import project.Internal.Base_Generator
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Common.Lookup_Query_Helper
+import project.Internal.Common.Offset_Helpers
 import project.Internal.Common.Row_Number_Helpers
 import project.Internal.DB_Data_Link_Helpers
 import project.Internal.Helpers
@@ -67,6 +69,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.Type_Refinements.DB_Table_Refinements
 import project.SQL_Query.SQL_Query
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
@@ -79,9 +82,8 @@ polyglot java import java.util.UUID
 
 ## Represents a column-oriented table data structure backed by a database.
 type DB_Table
-    ## PRIVATE
-
-       Represents a column-oriented table data structure backed by a database.
+    ## Internal constructor that should not be used directly.
+       Please use `DB_Table.new` instead.
 
        Arguments:
        - internal_name: The name of the table.
@@ -89,6 +91,14 @@ type DB_Table
        - internal_columns: The internal representation of the table columns.
        - context: The context associated with this table.
     private Value internal_name:Text connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context
+
+    ## The internal constructor used to construct a DB_Table instance.
+
+       It can perform some additional operations, like refining the type,
+       so it should always be preferred over calling `DB_Table.Value` directly.
+    private new (internal_name:Text) connection:(Connection | Any) (internal_columns:(Vector Internal_Column)) context:Context -> DB_Table =
+        DB_Table_Refinements.refine_table <|
+            DB_Table.Value internal_name connection internal_columns context
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -718,7 +728,7 @@ type DB_Table
     @column (Widget_Helpers.make_column_name_selector add_expression=True)
     @filter Widget_Helpers.make_filter_condition_selector
     filter : (DB_Column | Text | Integer) -> (Filter_Condition | (Any -> Boolean)) -> Problem_Behavior -> DB_Table ! No_Such_Column | Index_Out_Of_Bounds | Invalid_Value_Type
-    filter self column (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning = 
+    filter self column=(Missing_Argument.throw "column") (filter : Filter_Condition | (Any -> Boolean) = Filter_Condition.Equal True) on_problems:Problem_Behavior=..Report_Warning =
         Feature.Filter.if_supported_else_throw self.connection.dialect "filter" <|
             case column of
                 _ : DB_Column ->
@@ -896,20 +906,10 @@ type DB_Table
     add_row_number self (name:Text="Row") (from:Integer=0) (step:Integer=1) (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (on_problems:Problem_Behavior=..Report_Warning) =
         Feature.Add_Row_Number.if_supported_else_throw self.connection.dialect "add_row_number" <|
             problem_builder = Problem_Builder.new error_on_missing_columns=True
-            grouping_columns = self.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
-            grouping_columns.each column->
-                if column.value_type.is_floating_point then
-                    problem_builder.report_other_warning (Floating_Point_Equality.Error column.name)
+            grouping_columns = _resolve_grouping_columns self.columns_helper group_by problem_builder
             ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
             problem_builder.attach_problems_before on_problems <|
-                order_descriptors = case ordering.is_empty of
-                    False -> ordering.map element->
-                        column = element.column
-                        associated_selector = element.associated_selector
-                        self.connection.dialect.prepare_order_descriptor column associated_selector.direction text_ordering=Nothing
-                    True -> case self.default_ordering of
-                        Nothing -> Error.throw (Illegal_Argument.Error "The table has no existing ordering (e.g. from a `sort` operation or primary key). `add_row_number` requires an ordering in database.")
-                        descriptors -> descriptors
+                order_descriptors = _resolve_order_descriptors self.connection.dialect ordering self.default_ordering "add_row_number"
                 grouping_expressions = (grouping_columns.map _.as_internal).map .expression
 
                 new_expr = Row_Number_Helpers.make_row_number from step order_descriptors grouping_expressions
@@ -1174,7 +1174,8 @@ type DB_Table
             make_constant_column value = case value of
                 _ : DB_Column -> value
                 _ -> self.make_constant_column value
-            new_column = Expression.evaluate expression get_column make_constant_column "Standard.Database.DB_Column" "DB_Column" DB_Column.var_args_functions
+            is_column value = value.is_a DB_Column
+            new_column = Expression.evaluate expression get_column make_constant_column is_column "Standard.Database.DB_Column" "DB_Column" DB_Column.var_args_functions
             problems = Warning.get_all new_column . map .value
             result = new_column.rename (self.connection.base_connection.column_naming_helper.sanitize_name expression.expression)
             on_problems.attach_problems_before problems <|
@@ -1586,7 +1587,6 @@ type DB_Table
          allows to join the two tables on equality of corresponding columns with
          the same name. So `table.join other on=["A", "B"]` is a shorthand for:
              table.join other on=[Join_Condition.Equals "A" "A", Join_Condition.Equals "B" "B"]
-    @join_kind Widget_Helpers.make_join_kind_selector
     @on Widget_Helpers.make_join_condition_selector
     join : DB_Table -> Join_Kind -> Join_Condition | Text | Vector (Join_Condition | Text) -> Text -> Problem_Behavior -> DB_Table
     join self right=(Missing_Argument.throw "right") (join_kind : Join_Kind = ..Left_Outer) (on : Join_Condition | Text | Vector (Join_Condition | Text) = (default_join_condition self join_kind)) (right_prefix:Text="Right ") (on_problems:Problem_Behavior=..Report_Warning) =
@@ -1648,7 +1648,7 @@ type DB_Table
             problem_builder.attach_problems_before on_problems <|
                 new_from = From_Spec.Join sql_join_kind left_setup.subquery right_setup.subquery on_expressions
                 new_ctx = Context.for_subquery new_from . set_where_filters where_expressions
-                DB_Table.Value new_table_name self.connection result_columns new_ctx
+                DB_Table.new new_table_name self.connection result_columns new_ctx
 
     ## ALIAS append, cartesian join
        GROUP Standard.Base.Calculations
@@ -1694,13 +1694,14 @@ type DB_Table
        ? Result Ordering For Database Tables
 
          The ordering of rows in the resulting table is not specified.
-    cross_join : DB_Table -> Integer | Nothing -> Text -> Problem_Behavior -> DB_Table
-    cross_join self right:DB_Table right_row_limit=100 right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning =
+    cross_join : DB_Table -> Row_Limit -> Text -> Problem_Behavior -> DB_Table
+    cross_join self right:DB_Table=(Missing_Argument.throw "right") right_row_limit:Row_Limit=(..Limit 100) right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning =
         Feature.Cross_Join.if_supported_else_throw self.connection.dialect "cross_join" <|
-            limit_problems = case right_row_limit.is_nothing.not && (right.row_count > right_row_limit) of
-                True ->
-                    [Cross_Join_Row_Limit_Exceeded.Error right_row_limit right.row_count]
-                False -> []
+            row_limit = case right_row_limit of
+                Row_Limit.No_Limit -> Nothing
+                Row_Limit.Limit limit -> limit
+            limit_problems = if row_limit.is_nothing || (right.row_count < row_limit) then [] else
+                [Cross_Join_Row_Limit_Exceeded.Error row_limit right.row_count]
             on_problems.attach_problems_before limit_problems <|
                 self.join_or_cross_join right join_kind=Join_Kind_Cross on=[] right_prefix on_problems
 
@@ -1761,8 +1762,12 @@ type DB_Table
              that are not present in this table, an `Unexpected_Extra_Columns`.
     @key_columns Widget_Helpers.make_column_name_multi_selector
     merge : DB_Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-    merge self lookup_table:DB_Table key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean=False allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
+    merge self lookup_table:DB_Table=(Missing_Argument.throw "lookup_table") key_columns:(Vector (Integer | Text | Regex) | Text | Integer | Regex)=[] add_new_columns:Boolean=True allow_unmatched_rows:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
         Feature.Merge.if_supported_else_throw self.connection.dialect "merge" <|
+            if lookup_table.is_error then lookup_table
+            if key_columns == [] then
+                Error.throw (Missing_Argument.throw "key_columns")
+
             Helpers.ensure_same_connection "table" [self, lookup_table] <|
                 Lookup_Query_Helper.build_lookup_query self lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
 
@@ -1896,9 +1901,9 @@ type DB_Table
          defined nor any ordering was specified explicitly by the user, the
          order of columns is undefined and the operation will fail, reporting a
          `Undefined_Column_Order` problem and returning an empty table.
-    @keep_unmatched (make_single_choice [["True", "Boolean.True"], ["False", "Boolean.False"], ["Report", Meta.get_qualified_type_name Report_Unmatched]])
+    @keep_unmatched (make_single_choice [["True", "Boolean.True"], ["False", "Boolean.False"], ["Report", Report_Unmatched.to Meta.Type . qualified_name]])
     zip : DB_Table -> Boolean | Report_Unmatched -> Text -> Problem_Behavior -> DB_Table
-    zip self right keep_unmatched=Report_Unmatched right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning =
+    zip self right:DB_Table=(Missing_Argument.throw "right") keep_unmatched=Report_Unmatched right_prefix:Text="Right " on_problems:Problem_Behavior=..Report_Warning =
         _ = [right, keep_unmatched, right_prefix, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "zip")
 
@@ -2062,7 +2067,7 @@ type DB_Table
                             input_column = Internal_Column.Value name (infer_return_type expression) expression
                             dialect.adapt_unified_column input_column result_type infer_return_type
 
-                        DB_Table.Value union_alias self.connection new_columns new_ctx
+                        DB_Table.new union_alias self.connection new_columns new_ctx
 
     ## ALIAS average, count, count distinct, first, group by, last, longest, maximum, mean, median, minimum, mode, percentile, shortest, standard deviation, sum, summarize, variance
        GROUP Standard.Base.Calculations
@@ -2800,7 +2805,7 @@ type DB_Table
        Arguments:
        - columns: The columns with which to update this table.
     updated_columns : Vector Internal_Column -> DB_Table
-    updated_columns self internal_columns = DB_Table.Value self.name self.connection internal_columns self.context
+    updated_columns self internal_columns = DB_Table.new self.name self.connection internal_columns self.context
 
     ## PRIVATE
 
@@ -2809,7 +2814,7 @@ type DB_Table
        Arguments:
        - ctx: The new context for this table.
     updated_context : Context -> DB_Table
-    updated_context self ctx = DB_Table.Value self.name self.connection self.internal_columns ctx
+    updated_context self ctx = DB_Table.new self.name self.connection self.internal_columns ctx
 
     ## PRIVATE
 
@@ -2833,9 +2838,9 @@ type DB_Table
             setup = ctx.as_subquery self.name [internal_columns]
             new_ctx = Context.for_subquery setup.subquery
             new_columns = setup.new_columns.first
-            DB_Table.Value self.name self.connection new_columns new_ctx
+            DB_Table.new self.name self.connection new_columns new_ctx
         False ->
-            DB_Table.Value self.name self.connection internal_columns ctx
+            DB_Table.new self.name self.connection internal_columns ctx
 
     ## PRIVATE
        Nests a table as a subquery, using `updated_context_and_columns`, which
@@ -2921,10 +2926,11 @@ type DB_Table
 
          - `Auto_Detect`: The file format is determined by the provided file.
          - `Bytes` and `Plain_Text`: The Table does not support these types in
-            the `write` function. If passed as format, an
-            `Illegal_Argument` is raised. To write out the table as plain
-            text, the user needs to call the `Text.from Table` method and then
-            use the `Text.write` function.
+           the `write` function. If passed as format, an
+           `Illegal_Argument` is raised. To write out the table as plain
+           text, the user needs to convert the Table to Text
+           (e.g. using `to_delimited` method) and then use the `Text.write`
+           function.
 
        > Example
          Write a database table to a CSV file.
@@ -3140,6 +3146,66 @@ type DB_Table
         _ = [statistic, of, as, set_mode, group_by, order_by, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "running")
 
+    ## ALIAS shift, lead, lag, slide, displace
+       GROUP Standard.Base.Values
+       ICON column_add
+
+       Returns a table with new columns offset by n rows, where missing values have been replaced with the
+       provided fill_with strategy.
+
+       Arguments:
+       - columns: The columns to offset
+       - n: The number of rows to offset the new columns by. Negative n slides the values down in the columns' order adding records at the start. 
+            Positive n slides the values up in the columns' order adding records at the end. Defaults to -1.
+       - fill_with: The value to replace missing values with. Defaults to adding Nothing Values.
+       - - ..Nothing - Add Nothing values in the spaces created by sliding the existing values.
+       - - ..Closest_Value - If n is negative the first value gets used, if n is negative the last value gets used.
+       - - ..Wrap_Around - In this mode values that slide off the top or bottom reappear at the other end. So no values get lost they are just rotated.
+       - group_by: Applies the offset to each group as a separate batch of records.
+       - order_by: The order to slide the records through. The actual record order remains the same but the records move as per the order defined by these columns.
+       - set_mode: By default creates new columns, but choosing Update replaces the existing fields being offset.
+       - on_problems: Missing columns are always an error. Other warnings like grouping on floating point numbers can be ignored or made an error with this argument.
+
+       Returns:
+       - A Table of all records, with the selected columns offset by the number specifed by n.
+       
+       ? Ordering of rows
+
+         Note that the ordering of rows from the original table is preserved in
+         all cases. The grouping and ordering settings affect how the values move as they are offset, but the order of the rows itself is
+         not changed by this operation.
+
+       ! Error Conditions
+
+         - If the columns specified in `group_by` or `order_by` are not present
+           in the table, a `Missing_Input_Columns` error is raised.
+         - If grouping on floating point numbers, a `Floating_Point_Equality`
+           problem is reported.
+    @columns Widget_Helpers.make_column_name_multi_selector
+    @n (Widget.Numeric_Input display=..Always)
+    @default (self-> Widget_Helpers.make_fill_default_value_selector2)
+    @group_by Widget_Helpers.make_column_name_multi_selector
+    @order_by Widget_Helpers.make_order_by_selector
+    offset self columns:(Vector (Integer | Text | Regex | By_Type))=(Missing_Argument.throw "columns") n:Integer=-1 fill_with:Fill_With=..Nothing (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (set_mode:Set_Mode=..Add) (on_problems:Problem_Behavior=..Report_Warning) -> DB_Table =
+        Feature.Offset.if_supported_else_throw self.connection.dialect "offset" <|
+            problem_builder = Problem_Builder.new error_on_missing_columns=True
+            grouping_columns = _resolve_grouping_columns self.columns_helper group_by problem_builder
+            ordering = Table_Helpers.resolve_order_by self.columns order_by problem_builder
+            resolved_columns = self.columns_helper.select_columns_helper columns Case_Sensitivity.Default True problem_builder
+            problem_builder.attach_problems_before on_problems <| if columns.is_empty then self else
+                order_descriptors = _resolve_order_descriptors self.connection.dialect ordering self.default_ordering "offset"
+                grouping_expressions = (grouping_columns.map _.as_internal).map .expression
+                
+                offset_expr c:DB_Column -> SQL_Expression =
+                    Offset_Helpers.make_offset n (c.as_internal) order_descriptors grouping_expressions fill_with
+                new_column_name c:DB_Column -> Text = 
+                    if set_mode==Set_Mode.Add then self.column_naming_helper.function_name "offset" [c, n, fill_with] else c.name
+                
+                new_columns = resolved_columns.map c->(Internal_Column.Value (new_column_name c) c.sql_type_reference (offset_expr c))
+
+                updated_table = new_columns.fold self t-> col->
+                    t.set (self.make_column col)
+                updated_table.as_subquery
 
 ## PRIVATE
 
@@ -3168,7 +3234,7 @@ make_table connection table_name columns ctx on_problems =
         problem_builder.report_unique_name_strategy column_names_validator
         # We do not want to stop the table from being fetched, so we report the issues as warnings.
         problem_builder.attach_problems_before on_problems <|
-            DB_Table.Value table_name connection cols ctx
+            DB_Table.new table_name connection cols ctx
 
 ## PRIVATE
    By default, join on the first column, unless it's a cross join, in which
@@ -3228,7 +3294,26 @@ make_literal_table connection column_vectors column_names alias =
                 if needs_cast.not then base_column else
                     connection.dialect.make_cast base_column sql_type infer_type_from_database
 
-            DB_Table.Value alias connection internal_columns context
+            DB_Table.new alias connection internal_columns context
+
+## PRIVATE
+private _resolve_grouping_columns columns_helper:Table_Column_Helper group_by:Vector problem_builder:Problem_Builder -> Vector =
+    grouping_columns = columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder
+    grouping_columns.each column->
+        if column.value_type.is_floating_point then
+            problem_builder.report_other_warning (Floating_Point_Equality.Error column.name)
+    grouping_columns
+
+## PRIVATE
+private _resolve_order_descriptors dialect ordering default_ordering operation_name:Text =
+    case ordering.is_empty of
+        False -> ordering.map element->
+            column = element.column
+            associated_selector = element.associated_selector
+            dialect.prepare_order_descriptor column associated_selector.direction text_ordering=Nothing
+        True -> case default_ordering of
+            Nothing -> Error.throw (Illegal_Argument.Error "The table has no existing ordering (e.g. from a `sort` operation or primary key). `"+operation_name+"` requires an ordering in database.")
+            descriptors -> descriptors
 
 ## PRIVATE
 Many_Files_List.from (that : DB_Table) =

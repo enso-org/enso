@@ -61,7 +61,7 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
                 u.invalidateCache()
               }
             )
-            compiler.ensureParsed(current, false)
+            compiler.ensureParsed(current, false, false)
             return analyzeModule(current)
         }
       // put the list of resolved imports in the module metadata

@@ -28,9 +28,7 @@ impl ExternalSource {
 #[derive(Clone, Debug)]
 pub struct BuildSource<Target: IsTarget> {
     /// Data needed to build the target.
-    pub input:                  Target::BuildInput,
-    /// Whether to upload the resulting artifact as CI artifact.
-    pub should_upload_artifact: bool,
+    pub input: Target::BuildInput,
 }
 
 /// Describes how to get a target.

@@ -7,12 +7,9 @@ import { Suspense } from '#/components/Suspense'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProjectMutation, useRenameProjectMutation } from '#/hooks/projectHooks'
 import type { AssetManagementApi } from '#/layouts/AssetsTable'
-import Drive from '#/layouts/Drive'
-import Editor from '#/layouts/Editor'
-import Settings from '#/layouts/Settings'
-import { TabType, useLaunchedProjects, usePage } from '#/providers/ProjectsProvider'
+import { useLaunchedProjects, usePage } from '#/providers/ProjectsProvider'
 import type { ProjectId } from '#/services/Backend'
-import type { ReactNode } from 'react'
+import { lazy, type ReactNode } from 'react'
 import { Collection } from 'react-aria-components'
 
 /** The props for the {@link DashboardTabPanels} component. */
@@ -21,6 +18,10 @@ export interface DashboardTabPanelsProps {
   readonly ydocUrl: string | null
   readonly assetManagementApiRef: React.RefObject<AssetManagementApi> | null
 }
+
+const LazyDrive = lazy(() => import('#/layouts/Drive'))
+const LazyEditor = lazy(() => import('#/layouts/Editor'))
+const LazySettings = lazy(() => import('#/layouts/Settings'))
 
 /** The tab panels for the dashboard page. */
 export function DashboardTabPanels(props: DashboardTabPanelsProps) {
@@ -44,12 +45,13 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
 
   const tabPanels = [
     {
-      id: TabType.drive,
+      id: 'drive',
+      shouldForceMount: true,
       className: 'flex min-h-0 grow [&[data-inert]]:hidden',
       children: (
-        <Drive
+        <LazyDrive
           assetsManagementApiRef={assetManagementApiRef}
-          hidden={page !== TabType.drive}
+          hidden={page !== 'drive'}
           initialProjectName={initialProjectName}
         />
       ),
@@ -60,9 +62,7 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
       shouldForceMount: true,
       className: 'flex min-h-0 grow [&[data-inert]]:hidden',
       children: (
-        <Editor
-          // There is no shared enum type, but the other union member is the same type.
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
+        <LazyEditor
           hidden={page !== project.id}
           ydocUrl={ydocUrl}
           project={project}
@@ -76,9 +76,9 @@ export function DashboardTabPanels(props: DashboardTabPanelsProps) {
     })),
 
     {
-      id: TabType.settings,
+      id: 'settings',
       className: 'flex min-h-0 grow',
-      children: <Settings />,
+      children: <LazySettings />,
     },
   ]
 

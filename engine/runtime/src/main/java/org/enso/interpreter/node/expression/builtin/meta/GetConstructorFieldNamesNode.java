@@ -29,11 +29,11 @@ public abstract class GetConstructorFieldNamesNode extends Node {
     for (int i = 0; i < fields.length; i++) {
       result[i] = Text.create(fields[i].getName());
     }
-    return ArrayLikeHelpers.wrapEnsoObjects(result);
+    return ArrayLikeHelpers.asVectorEnsoObjects(result);
   }
 
   @Fallback
   final EnsoObject fieldNamesForAny(Object any) {
-    return ArrayLikeHelpers.empty();
+    return ArrayLikeHelpers.asVectorEmpty();
   }
 }

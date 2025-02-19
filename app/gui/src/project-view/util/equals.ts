@@ -1,4 +1,4 @@
-/** Same as `===` operator - used as functino parameter, */
+/** Same as `===` operator - used as function parameter. */
 export function defaultEquality(a: unknown, b: unknown): boolean {
   return a === b
 }

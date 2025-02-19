@@ -44,7 +44,7 @@ type Test
                  Test.expect_panic_with Examples.throw_panic Examples.My_Error
     expect_panic_with : Any -> Any -> Integer -> Test_Result
     expect_panic_with ~action matcher frames_to_skip=0 =
-        loc = Meta.get_source_location 1+frames_to_skip
+        loc = Test.get_source_location 1+frames_to_skip
         handle_panic caught_panic =
             payload = caught_panic.payload
             is_internal_test_panic = payload.is_a Spec_Result
@@ -102,7 +102,7 @@ type Test
             Test.fail_match_on_unexpected_error value 2+frames_to_skip
         warnings = Warning.get_all value . map .value
         if warnings.not_empty then
-            loc = Meta.get_source_location 2+frames_to_skip
+            loc = Test.get_source_location 2+frames_to_skip
             msg = "The action returned unexpected warnings: " + warnings.to_text + " (at " + loc + ")."
             Test.fail msg
 
@@ -135,7 +135,7 @@ type Test
     fail_match_on_unexpected_error : Error -> Integer -> Nothing
     fail_match_on_unexpected_error error frames_to_skip =
         payload = error.catch
-        loc = Meta.get_source_location 1+frames_to_skip
+        loc = Test.get_source_location 1+frames_to_skip
         msg = "An unexpected dataflow error (" + payload.to_text + ") has been matched (at " + loc + ")."
         Test.fail msg details=error.get_stack_trace_text
 
@@ -192,7 +192,7 @@ type Test
        attempts.
     with_retries : Any -> Any
     with_retries ~action =
-        loc = Meta.get_source_location 1
+        loc = Test.get_source_location 1
 
         milliseconds_between_attempts = 100
         ## We give the CI a bit more attempts, as failures are more annoying there.
@@ -210,3 +210,23 @@ type Test
                     Thread.sleep milliseconds_between_attempts
                     @Tail_Call go (i+1)
         go 1
+
+
+    ## PRIVATE
+
+        Returns a Text representing the source location of a stack frame above
+        the call.
+
+        Arguments:
+        - skip_frames: how many frames on the stack to skip.
+
+        If the function is called with 0 it will return the location of that call.
+        Note that not only function calls, but also things like pattern matching add
+        frames to the stack and there is no guarantee that the amount of frames that
+        need to be skipped will not change between versions, so this method should be
+        used carefully.
+    get_source_location skip_frames:Integer -> Text =
+        stack = Standard.Base.Runtime.get_stack_trace
+        element = stack . at skip_frames+1
+        loc = element . source_location
+        loc . to_display_text

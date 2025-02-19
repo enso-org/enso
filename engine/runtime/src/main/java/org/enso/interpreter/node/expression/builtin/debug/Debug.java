@@ -4,4 +4,8 @@ import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.Builtin;
 
 @BuiltinType
-public class Debug extends Builtin {}
+public class Debug extends Builtin {
+  public Debug() {
+    super(Object.class);
+  }
+}

@@ -23,6 +23,6 @@ type Should_Reach
     ## Checks if a point was reached in execution.
     should_have_reached : Integer -> Spec_Result
     should_have_reached self (frames_to_skip : Integer = 0) -> Spec_Result =
-        loc = Meta.get_source_location 1+frames_to_skip
+        loc = Test.get_source_location 1+frames_to_skip
         if self.reached_ref.get then Spec_Result.Success else 
             Test.fail ("Did not reach Should_Reach (at "+loc+").")

@@ -17,11 +17,11 @@ import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import ProjectsProvider, {
-  TabType,
   useClearLaunchedProjects,
   usePage,
   useProjectsStore,
   useSetPage,
+  type TabType,
 } from '#/providers/ProjectsProvider'
 
 import type * as assetTable from '#/layouts/AssetsTable'
@@ -167,8 +167,8 @@ function DashboardInner(props: DashboardProps) {
           updateModal((oldModal) => {
             if (oldModal == null) {
               const currentPage = projectsStore.getState().page
-              if (currentPage === TabType.settings) {
-                setPage(TabType.drive)
+              if (currentPage === 'settings') {
+                setPage('drive')
               }
             }
             return null
@@ -196,13 +196,13 @@ function DashboardInner(props: DashboardProps) {
   }, [inputBindings])
 
   const onSignOut = eventCallbacks.useEventCallback(() => {
-    setPage(TabType.drive)
+    setPage('drive')
     closeAllProjects()
     clearLaunchedProjects()
   })
 
   const goToSettings = eventCallbacks.useEventCallback(() => {
-    setPage(TabType.settings)
+    setPage('settings')
   })
 
   return (

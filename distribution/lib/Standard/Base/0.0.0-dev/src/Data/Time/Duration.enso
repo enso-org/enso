@@ -60,7 +60,7 @@ ensure_duration object ~action =
         _ : Period -> Error.throw (Time_Error.Error "Cannot use Period as a parameter")
         x ->
             Error.throw Illegal_Argument.Error <|
-                "Expected Duration type, got: " + (Meta.get_qualified_type_name x)
+                "Expected Duration type, got: " + (x.to Meta.Type . qualified_name)
 
 ## Represents the amount of time between two points in time.
 @Builtin_Type

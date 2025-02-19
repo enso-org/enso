@@ -35,4 +35,4 @@ type Columns_To_Keep
        that variant is only meant to be used as the default value.
     default_widget display:Display=..When_Modified -> Widget =
         make_single_choice display=display <|
-            ["In_Any", "In_All", "In_List"].map c-> [c, ".."+c]
+            ["..In_Any", "..In_All", "..In_List"].map c-> [c, c]

@@ -29,7 +29,7 @@ import org.enso.common.CompilationStage
 import java.nio.file.Path
 import scala.collection.immutable.ListSet
 import scala.jdk.CollectionConverters.{IterableHasAsJava, SeqHasAsJava}
-import scala.util.{Failure, Try, Using}
+import scala.util.{Failure, Success, Try, Using}
 import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.updater.EditionManager
@@ -38,6 +38,7 @@ import org.enso.interpreter.runtime.builtin.Builtins
 import org.enso.interpreter.runtime.instrument.NotificationHandler
 import org.enso.librarymanager.DefaultLibraryProvider
 import org.enso.pkg.{ComponentGroups, Package}
+import org.slf4j.LoggerFactory
 
 /** The default [[PackageRepository]] implementation.
   *
@@ -661,7 +662,27 @@ private object DefaultPackageRepository {
 
     val homeManager    = languageHome.map { home => LanguageHome(Path.of(home)) }
     val editionManager = EditionManager(distributionManager, homeManager)
-    val edition        = editionManager.resolveEdition(rawEdition).get
+    val logger         = LoggerFactory.getLogger(classOf[DefaultPackageRepository])
+    val edition = editionManager
+      .resolveEdition(rawEdition)
+      .transform(
+        e => Success(e),
+        { err =>
+          logger
+            .warn(
+              "Failed to resolve original edition. Trying fallback to the default one",
+              err
+            )
+          editionManager.resolveEdition(DefaultEdition.getDefaultEdition)
+        }
+      )
+
+    edition.failed.foreach { err =>
+      logger.error(
+        "Failed to resolve original edition. Fallback failed. Aborting",
+        err
+      )
+    }
 
     val projectRoot = projectPackage.map { pkg =>
       val root = pkg.root
@@ -675,7 +696,7 @@ private object DefaultPackageRepository {
         lockUserInterface   = notificationHandler,
         progressReporter    = notificationHandler,
         languageHome        = homeManager,
-        edition             = edition,
+        edition             = edition.get,
         preferLocalLibraries =
           projectPackage.exists(_.getConfig().preferLocalLibraries),
         projectRoot = projectRoot

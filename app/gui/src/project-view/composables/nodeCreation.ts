@@ -115,7 +115,7 @@ export function useNodeCreation(
   function createNodes(nodesOptions: Iterable<NodeCreationOptions>) {
     const placedNodes = placeNodes(nodesOptions)
     if (placedNodes.length === 0) return new Set()
-    const methodAst = graphStore.methodAst
+    const methodAst = graphStore.currentMethod.ast
     if (!methodAst.ok) {
       methodAst.error.log(`BUG: Cannot add node: No current function.`)
       return new Set()

@@ -101,17 +101,19 @@ export class LocalStorage {
 
   /** Delete an entry from the stored data, and save. */
   delete(key: string) {
-    if (!(key in this.values)) {
-      return
-    }
-    const oldValue = this.values[key]
     // The key being deleted is one of a statically known set of keys.
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete this.values[key]
     this.eventTarget.dispatchEvent(new Event(key))
     this.eventTarget.dispatchEvent(new Event('_change'))
     this.save()
-    return oldValue
+  }
+
+  /** Read a value from the stored data, and delete it after reading. */
+  consume(key: string) {
+    const value = this.get(key)
+    this.delete(key)
+    return value
   }
 
   /** Delete user-specific entries from the stored data, and save. */

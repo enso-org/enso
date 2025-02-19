@@ -174,6 +174,42 @@ impl Benchmarks {
     }
 }
 
+/// Configuration for how the binary inside the engine distribution should be built.
+#[derive(Copy, Clone, Debug, PartialEq, Default)]
+pub enum EngineLauncher {
+    /// The binary inside the engine distribution will be built as an optimized native image
+    Native,
+    /// The binary inside the engine distribution will be built as native image with assertions
+    /// enabled but no debug information
+    TestNative,
+    /// The binary inside the engine distribution will be built as native image with assertions
+    /// enabled and debug information
+    TestDebugNative,
+    /// The binary inside the engine distribution will be a shell script
+    #[default]
+    Shell,
+}
+impl FromStr for EngineLauncher {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        bail!("Parsing of ENSO_LAUNCHER isn't needed: {}", s)
+    }
+}
+
+impl Display for EngineLauncher {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        let str = match self {
+            EngineLauncher::Native => "native".to_string(),
+            EngineLauncher::TestNative => "native,test".to_string(),
+            EngineLauncher::TestDebugNative => "native,test,debug".to_string(),
+            EngineLauncher::Shell => "shell".to_string(),
+        };
+
+        write!(f, "{}", str)
+    }
+}
+
 /// Describes what should be done with the backend.
 ///
 /// Basically a recipe of what to do with `sbt` and its artifacts.
@@ -211,6 +247,7 @@ pub struct BuildConfigurationFlags {
     pub test_java_generated_from_rust: bool,
     /// Verify License Packages in Distributions.
     pub verify_packages: bool,
+    pub stdlib_api_check: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -258,6 +295,9 @@ impl BuildConfigurationResolved {
             config.generate_java_from_rust = true;
         }
 
+        if config.stdlib_api_check {
+            config.build_engine_package = true;
+        }
         Self(config)
     }
 }
@@ -316,6 +356,7 @@ impl Default for BuildConfigurationFlags {
             generate_java_from_rust: false,
             test_java_generated_from_rust: false,
             verify_packages: false,
+            stdlib_api_check: false,
         }
     }
 }

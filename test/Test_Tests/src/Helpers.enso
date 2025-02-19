@@ -5,7 +5,7 @@ from Standard.Test import Test
 
 ## Expects the inner action to report a test failure exception and returns its payload.
 expect_test_failure ~action -> Spec_Result =
-    loc = Meta.get_source_location 1
+    loc = Test.get_source_location 1
     handle_panic caught_panic =
         result = caught_panic.payload
         case result of

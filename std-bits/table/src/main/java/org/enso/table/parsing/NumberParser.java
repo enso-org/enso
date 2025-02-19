@@ -4,8 +4,8 @@ import org.enso.base.parser.FormatDetectingNumberParser;
 import org.enso.base.parser.NegativeSign;
 import org.enso.base.parser.NumberWithSeparators;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.NumericBuilder;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.parsing.problems.CommonParseProblemAggregator;
 import org.enso.table.parsing.problems.ParseProblemAggregator;
@@ -100,20 +100,20 @@ public class NumberParser extends IncrementalDatatypeParser {
   }
 
   @Override
-  protected Builder makeBuilderWithCapacity(int capacity, ProblemAggregator problemAggregator) {
+  protected Builder makeBuilderWithCapacity(long capacity, ProblemAggregator problemAggregator) {
     return isInteger()
-        ? NumericBuilder.createLongBuilder(capacity, integerTargetType, problemAggregator)
-        : NumericBuilder.createDoubleBuilder(capacity, problemAggregator);
+        ? Builder.getForLong(integerTargetType, capacity, problemAggregator)
+        : Builder.getForDouble(FloatType.FLOAT_64, capacity, problemAggregator);
   }
 
   @Override
   public Storage<?> parseColumn(
       Storage<String> sourceStorage, CommonParseProblemAggregator problemAggregator) {
-    Builder builder =
-        makeBuilderWithCapacity(sourceStorage.size(), problemAggregator.createSimpleChild());
+    long size = sourceStorage.getSize();
+    Builder builder = makeBuilderWithCapacity(size, problemAggregator.createSimpleChild());
 
     var context = Context.getCurrent();
-    for (int i = 0; i < sourceStorage.size(); i++) {
+    for (long i = 0; i < size; i++) {
       var text = sourceStorage.getItemBoxed(i);
 
       // Check if in unknown state
@@ -124,8 +124,7 @@ public class NumberParser extends IncrementalDatatypeParser {
 
       // Do we need to rescan?
       if (mightBeEuropean && parser.numberWithSeparators() != NumberWithSeparators.DOT_COMMA) {
-        builder =
-            makeBuilderWithCapacity(sourceStorage.size(), problemAggregator.createSimpleChild());
+        builder = makeBuilderWithCapacity(size, problemAggregator.createSimpleChild());
         for (int j = 0; j < i; j++) {
           var subText = sourceStorage.getItemBoxed(j);
           var subResult = subText == null ? null : parseSingleValue(subText, problemAggregator);

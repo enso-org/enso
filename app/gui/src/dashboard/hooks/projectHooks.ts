@@ -9,7 +9,6 @@ import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import {
-  TabType,
   useAddLaunchedProject,
   useProjectsStore,
   useRemoveLaunchedProject,
@@ -382,6 +381,7 @@ export function useCloseProject() {
   const closeProjectMutation = useCloseProjectMutation()
   const removeLaunchedProject = useRemoveLaunchedProject()
   const setPage = useSetPage()
+  const projectsStore = useProjectsStore()
 
   return eventCallbacks.useEventCallback((project: LaunchedProject) => {
     client
@@ -411,7 +411,9 @@ export function useCloseProject() {
 
     removeLaunchedProject(project.id)
 
-    setPage(TabType.drive)
+    if (projectsStore.getState().page === project.id) {
+      setPage('drive')
+    }
   })
 }
 

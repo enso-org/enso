@@ -7,7 +7,7 @@ import { Popover, type PopoverProps } from './Popover'
 type Story = StoryObj<PopoverProps>
 
 export default {
-  title: 'AriaComponents/Popover',
+  title: 'Components/Popover',
   component: Popover,
   args: {
     children: 'Popover content',

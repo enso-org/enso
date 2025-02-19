@@ -11,9 +11,10 @@ public class DivideOp<T extends Number, I extends Storage<? super T>>
 
   @Override
   public double doDouble(
-      double a, double b, int ix, MapOperationProblemAggregator problemAggregator) {
+      double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
     if (b == 0.0) {
-      problemAggregator.reportDivisionByZero(ix);
+      // ToDo: ProblemAggregator should accept a long instead of an int.
+      problemAggregator.reportDivisionByZero((int) ix);
     }
     return a / b;
   }

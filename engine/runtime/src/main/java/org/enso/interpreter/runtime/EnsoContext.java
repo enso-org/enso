@@ -19,6 +19,7 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.io.TruffleProcessBuilder;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.object.Shape;
+import com.oracle.truffle.api.profiles.ValueProfile;
 import com.oracle.truffle.api.source.Source;
 import java.io.BufferedReader;
 import java.io.File;
@@ -44,7 +45,6 @@ import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.data.CompilerConfig;
-import org.enso.compiler.dump.IRDumper;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.locking.LockManager;
 import org.enso.editions.LibraryName;
@@ -112,6 +112,7 @@ public final class EnsoContext {
   private ExecutionEnvironment globalExecutionEnvironment;
 
   private final int warningsLimit;
+  private final ValueProfile singleStateProfile = ValueProfile.createIdentityProfile();
 
   /**
    * Creates a new Enso context.
@@ -149,14 +150,14 @@ public final class EnsoContext {
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
-    var dumpIrs = Boolean.parseBoolean(System.getProperty(IRDumper.SYSTEM_PROP));
+    var dumpModuleIR = System.getProperty(RuntimeOptions.IR_DUMPER_SYSTEM_PROP);
     this.compilerConfig =
         new CompilerConfig(
             isParallelismEnabled,
             true,
             !isPrivateCheckDisabled,
             isStaticTypeAnalysisEnabled,
-            dumpIrs,
+            scala.Option.apply(dumpModuleIR),
             getOption(RuntimeOptions.STRICT_ERRORS_KEY),
             getOption(RuntimeOptions.DISABLE_LINTING_KEY),
             scala.Option.empty());
@@ -1034,5 +1035,10 @@ public final class EnsoContext {
     } else {
       return options.get(key);
     }
+  }
+
+  /** Access to state associated with this context and current thread. */
+  public State currentState() {
+    return singleStateProfile.profile(language.currentState());
   }
 }

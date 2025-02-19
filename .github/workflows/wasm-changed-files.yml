@@ -30,7 +30,7 @@ jobs:
           files: |
             .cargo/**
             app/rust-ffi/**
-            build/**
+            build_tools/**
             lib/rust/**
             tools/language-server/logstat/**
             tools/language-server/wstest/**

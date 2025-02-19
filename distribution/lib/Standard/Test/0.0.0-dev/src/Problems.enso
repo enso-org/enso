@@ -77,7 +77,7 @@ test_advanced_problem_handling action error_checker warnings_checker result_chec
 ## UNSTABLE
    Checks if the provided value does not have any attached problems.
 assume_no_problems result =
-    loc = Meta.get_source_location 1
+    loc = Test.get_source_location 1
     if result.is_error then
         Test.fail "Expected the result to not be an error, but a dataflow error has been matched: "+result.catch.to_display_text+" (at "+loc+")." details=result.get_stack_trace_text
     warnings = get_attached_warnings result
@@ -97,7 +97,7 @@ assume_no_problems result =
 expect_warning : Any -> Any -> Boolean -> Nothing
 expect_warning expected_warning result unwrap_errors=True =
     unwrap_maybe error = if unwrap_errors then Error.unwrap error else error
-    loc = Meta.get_source_location 1
+    loc = Test.get_source_location 1
     if result.is_error then
         Test.fail "Expected a warning "+expected_warning.to_text+", but a dataflow error has been matched: "+result.catch.to_display_text+" (at "+loc+")."
     warnings = get_attached_warnings result . map unwrap_maybe
@@ -121,7 +121,7 @@ expect_warning expected_warning result unwrap_errors=True =
 expect_only_warning : Any -> Any -> Boolean -> Any
 expect_only_warning expected_warning result unwrap_errors=True =
     unwrap_maybe error = if unwrap_errors then Error.unwrap error else error
-    loc = Meta.get_source_location 1
+    loc = Test.get_source_location 1
     if result.is_error then
         Test.fail "Expected only warning "+expected_warning.to_text+", but a dataflow error has been matched: "+result.catch.to_display_text+" (at "+loc+")."
     warnings = get_attached_warnings result . map unwrap_maybe
@@ -144,5 +144,5 @@ not_expect_warning expected_warning_type result =
     warnings = get_attached_warnings result
     found = warnings.find if_missing=Nothing x-> x.is_a expected_warning_type
     if found.is_nothing.not then
-        loc = Meta.get_source_location 3
+        loc = Test.get_source_location 3
         Test.fail 'The result contained a warning it was not supposed to: '+found.to_text+' (at '+loc+').'

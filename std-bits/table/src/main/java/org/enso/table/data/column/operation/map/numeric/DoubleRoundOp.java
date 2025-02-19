@@ -1,14 +1,12 @@
 package org.enso.table.data.column.operation.map.numeric;
 
-import java.util.BitSet;
 import org.enso.polyglot.common_utils.Core_Math_Utils;
-import org.enso.table.data.column.builder.DoubleBuilder;
-import org.enso.table.data.column.builder.NumericBuilder;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.TernaryMapOperation;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.numeric.DoubleStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.error.UnexpectedTypeException;
 import org.graalvm.polyglot.Context;
@@ -38,33 +36,35 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
 
     if (decimalPlaces <= 0) {
       // Return Long storage
-      long[] out = new long[storage.size()];
-      BitSet isNothing = new BitSet();
+      var longBuilder =
+          Builder.getForLong(IntegerType.INT_64, storage.getSize(), problemAggregator);
 
-      for (int i = 0; i < storage.size(); i++) {
+      for (long i = 0; i < storage.getSize(); i++) {
         if (!storage.isNothing(i)) {
           double item = storage.getItemAsDouble(i);
           boolean special = Double.isNaN(item) || Double.isInfinite(item);
           if (!special) {
-            out[i] = (long) Core_Math_Utils.roundDouble(item, decimalPlaces, useBankers);
+            longBuilder.appendLong(
+                (long) Core_Math_Utils.roundDouble(item, decimalPlaces, useBankers));
           } else {
             String msg = "Value is " + item;
-            problemAggregator.reportArithmeticError(msg, i);
-            isNothing.set(i);
+            // ToDo: ProblemAggregator should accept a long instead of an int.
+            problemAggregator.reportArithmeticError(msg, (int) i);
+            longBuilder.appendNulls(1);
           }
         } else {
-          isNothing.set(i);
+          longBuilder.appendNulls(1);
         }
 
         context.safepoint();
       }
-      return new LongStorage(out, storage.size(), isNothing, IntegerType.INT_64);
+      return longBuilder.seal();
     } else {
       // Return double storage.
-      DoubleBuilder doubleBuilder =
-          NumericBuilder.createDoubleBuilder(storage.size(), problemAggregator);
+      var doubleBuilder =
+          Builder.getForDouble(FloatType.FLOAT_64, storage.getSize(), problemAggregator);
 
-      for (int i = 0; i < storage.size(); i++) {
+      for (long i = 0; i < storage.getSize(); i++) {
         if (!storage.isNothing(i)) {
           double item = storage.getItemAsDouble(i);
           boolean special = Double.isNaN(item) || Double.isInfinite(item);
@@ -73,7 +73,8 @@ public class DoubleRoundOp extends TernaryMapOperation<Double, DoubleStorage> {
                 Core_Math_Utils.roundDouble(item, decimalPlaces, useBankers));
           } else {
             String msg = "Value is " + item;
-            problemAggregator.reportArithmeticError(msg, i);
+            // ToDo: ProblemAggregator should accept a long instead of an int.
+            problemAggregator.reportArithmeticError(msg, (int) i);
             doubleBuilder.appendNulls(1);
           }
         } else {

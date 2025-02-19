@@ -4,11 +4,13 @@ import { useEffect, useMemo, useRef, useState, type ForwardedRef, type ReactNode
 import CheckMarkIcon from '#/assets/check_mark.svg'
 import FolderArrowIcon from '#/assets/folder_arrow.svg'
 import {
+  FieldError,
   ListBox,
   ListBoxItem,
   mergeProps,
   useFocusVisible,
   useFocusWithin,
+  type InputProps,
 } from '#/components/aria'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
@@ -16,6 +18,17 @@ import { useSyncRef } from '#/hooks/syncRefHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import { tv } from '#/utilities/tailwindVariants'
+import {
+  Form,
+  type FieldComponentProps,
+  type FieldPath,
+  type FieldProps,
+  type FieldStateProps,
+  type FieldValues,
+  type FieldVariantProps,
+  type FormInstance,
+  type TSchema,
+} from '../../Form'
 
 const DROPDOWN_STYLES = tv({
   base: 'focus-child group relative flex w-max cursor-pointer flex-col items-start whitespace-nowrap rounded-input leading-cozy',
@@ -47,7 +60,7 @@ const DROPDOWN_STYLES = tv({
   slots: {
     container: 'absolute left-0 h-full w-full min-w-max',
     options:
-      'relative before:absolute before:top before:w-full before:rounded-input before:border-0.5 before:border-primary/20 before:transition-colors',
+      'relative before:absolute before:top-0 before:w-full before:rounded-input before:border-0.5 before:border-primary/20 before:transition-colors',
     optionsSpacing: 'padding relative h-6',
     optionsContainer:
       'relative grid max-h-dropdown-items w-full overflow-auto rounded-input transition-grid-template-rows',
@@ -82,7 +95,7 @@ interface InternalBaseDropdownProps<T> extends InternalChildrenProps<T> {
   readonly readOnly?: boolean
   readonly className?: string
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  readonly 'aria-label': string
+  readonly 'aria-label'?: string | undefined
 }
 
 /** Props for a {@link Dropdown}, when `multiple` is `false` or absent. */
@@ -194,7 +207,8 @@ export const Dropdown = forwardRef(function Dropdown<T>(
             <div className={styles.optionsSpacing()} />
             <div className={styles.optionsContainer()}>
               <ListBox
-                aria-label={props['aria-label']}
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                {...(props['aria-label'] != null ? { 'aria-label': props['aria-label'] } : {})}
                 selectionMode={multiple ? 'multiple' : 'single'}
                 selectionBehavior={multiple ? 'toggle' : 'replace'}
                 items={listBoxItems}
@@ -265,3 +279,67 @@ export const Dropdown = forwardRef(function Dropdown<T>(
     </FocusRing>
   )
 })
+
+/** Props for a {@link FormDropdown}. */
+export interface FormDropdownProps<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema, Constraint>,
+  Constraint,
+> extends FieldStateProps<
+      Omit<DropdownProps<Constraint>, 'aria-label' | 'multiple' | 'onChange'> & {
+        value: FieldValues<Schema>[TFieldName]
+      },
+      Schema,
+      TFieldName,
+      Constraint
+    >,
+    FieldProps,
+    FieldVariantProps {
+  readonly form?: FormInstance<Schema>
+  readonly name: TFieldName
+}
+
+/** A dynamic wizard for creating an arbitrary type of Datalink. */
+export function FormDropdown<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema, Constraint>,
+  Constraint,
+>(props: FormDropdownProps<Schema, TFieldName, Constraint>) {
+  const { name, children, ...inputProps } = props
+  const { items } = inputProps
+
+  const form = Form.useFormContext(props.form)
+
+  const { fieldProps, formInstance } = Form.useFieldRegister<
+    Omit<InputProps, 'children' | 'size'>,
+    Schema,
+    TFieldName,
+    Constraint
+  >({ ...props, form })
+
+  return (
+    <Form.Field
+      {...mergeProps<FieldComponentProps<Schema>>()(inputProps, fieldProps, {
+        form: formInstance,
+      })}
+      name={props.name}
+      isRequired={props.isRequired}
+    >
+      <Form.Controller
+        control={form.control}
+        name={name}
+        render={({ field, fieldState }) => {
+          const { value, onChange } = field
+          return (
+            <>
+              <Dropdown {...inputProps} selectedIndex={items.indexOf(value)} onChange={onChange}>
+                {children}
+              </Dropdown>
+              <FieldError>{fieldState.error?.message}</FieldError>
+            </>
+          )
+        }}
+      />
+    </Form.Field>
+  )
+}

@@ -1,6 +1,6 @@
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
-import { unsafeKeys } from '@/util/record'
+import { unsafeKeys } from 'enso-common/src/utilities/data/object'
 
 type Matches<T> = Record<keyof T, Ast.AstId[] | undefined>
 

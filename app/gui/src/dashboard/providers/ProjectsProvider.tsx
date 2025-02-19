@@ -5,17 +5,19 @@ import invariant from 'tiny-invariant'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
-import { EMPTY_ARRAY, includes } from '#/utilities/array'
+import { EMPTY_ARRAY } from '#/utilities/array'
 import {
-  TabType,
   useLaunchedProjectsState,
+  validatePage,
   type LaunchedProject,
   type LaunchedProjectId,
+  type TabType,
 } from './ProjectsProvider/projectsLocalStorage'
 export {
-  TabType,
+  TAB_TYPES,
   type LaunchedProject,
   type LaunchedProjectId,
+  type TabType,
 } from './ProjectsProvider/projectsLocalStorage'
 
 /** State contained in a `ProjectsContext`. */
@@ -47,10 +49,8 @@ export default function ProjectsProvider(props: ProjectsProviderProps) {
   const [launchedProjects, setLaunchedProjects] = useLaunchedProjectsState(EMPTY_ARRAY)
   const [page, setPage] = useSearchParamsState(
     'page',
-    () => TabType.drive,
-    (value: unknown): value is LaunchedProjectId | TabType => {
-      return includes(Object.values(TabType), value) || launchedProjects.some((p) => p.id === value)
-    },
+    (): LaunchedProjectId | TabType => 'drive',
+    validatePage,
   )
 
   const addLaunchedProject = useEventCallback((project: LaunchedProject) => {

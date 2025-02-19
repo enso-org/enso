@@ -2,7 +2,7 @@
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { type StoreApi, createStore } from '#/utilities/zustand'
 import type { PropsWithChildren } from 'react'
-import { createContext, useContext, useMemo, useState } from 'react'
+import { createContext, useContext, useState } from 'react'
 import type { TSchema, UseFormRegisterReturn } from '../Form'
 
 /** Context for the checkbox. */
@@ -125,12 +125,87 @@ export function CheckboxGroupProvider(props: CheckboxGroupProviderProps) {
   })
 
   return (
-    <CheckboxContext.Provider
-      value={useMemo(
-        () => ({ store, addSelected, removeSelected, toggleSelected }),
-        [addSelected, removeSelected, store, toggleSelected],
-      )}
-    >
+    <CheckboxContext.Provider value={{ store, addSelected, removeSelected, toggleSelected }}>
+      {children}
+    </CheckboxContext.Provider>
+  )
+}
+
+/** Props for {@link CheckboxStandaloneProvider}. */
+export interface CheckboxStandaloneProviderProps extends PropsWithChildren {
+  readonly name: string
+  readonly onChange: (selected: boolean) => void
+  readonly field: UseFormRegisterReturn<TSchema>
+  readonly defaultValue?: boolean | undefined
+}
+
+/**
+ * Provider for a standalone checkbox.
+ * This is used when the checkbox is not inside a group.
+ */
+export function CheckboxStandaloneProvider(props: CheckboxStandaloneProviderProps) {
+  const { children, name, field, defaultValue = false, onChange } = props
+
+  const [store] = useState(() =>
+    createStore<CheckBoxGroupPropsStateInsideGroup>(() => ({
+      name,
+      field,
+      insideGroup: true,
+      selected: defaultValue === true ? new Set([name]) : new Set(),
+    })),
+  )
+
+  const onChangeStableCallback = useEventCallback(() => {
+    onChange(store.getState().selected.size === 1)
+  })
+
+  const addSelected = useEventCallback((selected: string) => {
+    store.setState((state) => {
+      if (state.selected.has(selected)) {
+        return state
+      }
+
+      const nextSelected = new Set(state.selected)
+      nextSelected.add(selected)
+
+      onChangeStableCallback()
+
+      return { selected: nextSelected }
+    })
+  })
+
+  const removeSelected = useEventCallback((selected: string) => {
+    store.setState((state) => {
+      if (!state.selected.has(selected)) {
+        return state
+      }
+
+      const nextSelected = new Set(state.selected)
+      nextSelected.delete(selected)
+
+      onChangeStableCallback()
+
+      return { selected: nextSelected }
+    })
+  })
+
+  const toggleSelected = useEventCallback((selected: string) => {
+    store.setState((state) => {
+      const nextSelected = new Set(state.selected)
+      if (nextSelected.has(selected)) {
+        nextSelected.delete(selected)
+      } else {
+        nextSelected.add(selected)
+      }
+
+      onChangeStableCallback()
+
+      return { selected: nextSelected }
+    })
+  })
+
+  return (
+    <CheckboxContext.Provider value={{ store, addSelected, removeSelected, toggleSelected }}>
       {children}
     </CheckboxContext.Provider>
   )

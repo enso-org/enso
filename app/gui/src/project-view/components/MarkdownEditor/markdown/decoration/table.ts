@@ -1,5 +1,5 @@
 import TableEditor from '@/components/MarkdownEditor/TableEditor.vue'
-import { type VueHost } from '@/components/VueComponentHost.vue'
+import { type VueHost } from '@/components/VueHostRender.vue'
 import type { Text } from '@codemirror/state'
 import { Decoration, WidgetType } from '@codemirror/view'
 import type { SyntaxNode, SyntaxNodeRef } from '@lezer/common'

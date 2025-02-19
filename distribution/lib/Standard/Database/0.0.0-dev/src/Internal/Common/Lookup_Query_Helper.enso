@@ -57,7 +57,7 @@ build_lookup_query base_table lookup_table key_columns add_new_columns allow_unm
         new_ctx_with_invariant_check = new_ctx.add_where_filters [make_invariant_check subquery_setup.lookup_counter allow_unmatched_rows]
 
         precheck_for_duplicate_matches lookup_columns subquery_setup base_table.connection new_ctx <|
-            DB_Table.Value subquery_setup.new_table_name base_table.connection new_columns new_ctx_with_invariant_check
+            DB_Table.new subquery_setup.new_table_name base_table.connection new_columns new_ctx_with_invariant_check
 
 ## PRIVATE
    Checks if they key contains NULL values or if there would be unmatched rows
@@ -196,7 +196,7 @@ precheck_for_duplicate_matches lookup_columns subquery_setup connection new_ctx 
     key_columns_for_duplicate_check = (_.flatten) <| lookup_columns.map_with_index ix-> c-> case c of
         Lookup_Column.Key_Column _ _ -> [subquery_setup.get_self_column ix]
         _ -> []
-    table_for_duplicate_check = DB_Table.Value subquery_setup.new_table_name connection [subquery_setup.lookup_counter]+key_columns_for_duplicate_check new_ctx
+    table_for_duplicate_check = DB_Table.new subquery_setup.new_table_name connection [subquery_setup.lookup_counter]+key_columns_for_duplicate_check new_ctx
     duplicate_lookup_matches = table_for_duplicate_check.filter 0 (Filter_Condition.Greater than=1) . read (..First 1)
     case duplicate_lookup_matches.row_count > 0 of
         True ->

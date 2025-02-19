@@ -4,9 +4,10 @@ import GraphEditor from '@/components/GraphEditor.vue'
 import { provideBackend } from '@/providers/backend'
 import { provideEventLogger } from '@/providers/eventLogging'
 import { provideVisibility } from '@/providers/visibility'
-import { LsUrls, provideProjectStore } from '@/stores/project'
+import { type LsUrls, provideProjectStore } from '@/stores/project'
+import { provideProjectNames } from '@/stores/projectNames'
 import { provideSettings } from '@/stores/settings'
-import { Opt } from '@/util/data/opt'
+import { type Opt } from '@/util/data/opt'
 import { useEventListener } from '@vueuse/core'
 import { markRaw, onActivated, onDeactivated, ref, toRaw, toRef, watch } from 'vue'
 
@@ -49,7 +50,12 @@ watch(
 
 useEventListener(window, 'beforeunload', () => logger.send('ide_project_closed'))
 
-provideProjectStore(props)
+const projectNames = provideProjectNames(
+  toRef(props, 'projectNamespace'),
+  props.projectName,
+  toRef(props, 'projectDisplayedName'),
+)
+provideProjectStore(props, projectNames)
 provideSettings()
 
 const visible = ref(false)

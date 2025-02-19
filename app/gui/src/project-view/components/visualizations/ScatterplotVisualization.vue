@@ -727,11 +727,12 @@ watchPostEffect(() => {
     })
     .transition()
     .duration(animationDuration.value)
+    .attr('class', 'scatterPoint')
     .attr(
       'd',
       symbol.type(matchShape).size((d) => (d.size ?? 0.15) * SIZE_SCALE_MULTIPLER),
     )
-    .style('fill', (d) => colorScale(d))
+    .style('--color', (d) => colorScale(d))
     .attr('transform', (d) => `translate(${xScale_(Number(d.x))}, ${yScale_(d.y)})`)
   if (data.value.points.labels === VISIBLE_POINTS) {
     d3Points.value
@@ -757,14 +758,10 @@ watchPostEffect(() => {
       .range(d3.schemeCategory10)
       .domain(seriesLabels.value)
 
-    d3Legend.value.selectAll('circle').remove()
-    d3Legend.value.selectAll('text').remove()
-
     d3Legend.value
-      .selectAll('dots')
+      .selectAll('circle')
       .data(seriesLabels.value)
-      .enter()
-      .append('circle')
+      .join((enter) => enter.append('circle'))
       .attr('cx', function (d, i) {
         return 90 + i * 120
       })
@@ -773,10 +770,9 @@ watchPostEffect(() => {
       .style('fill', (d) => color(d) || DEFAULT_FILL_COLOR)
 
     d3Legend.value
-      .selectAll('labels')
+      .selectAll('text')
       .data(seriesLabels.value)
-      .enter()
-      .append('text')
+      .join((enter) => enter.append('text'))
       .attr('x', function (d, i) {
         return 100 + i * 120
       })
@@ -955,6 +951,16 @@ config.setToolbar(useScatterplotVizToolbar())
   user-select: none;
   display: flex;
   flex-direction: column;
+
+  &:deep(path.scatterPoint) {
+    fill: var(--color);
+    stroke: transparent;
+    stroke-width: 5px;
+    transition: stroke 200ms;
+    &:hover {
+      stroke: color-mix(in srgb, var(--color) 50%, transparent 50%);
+    }
+  }
 }
 
 .WarningsScatterplotVisualization {

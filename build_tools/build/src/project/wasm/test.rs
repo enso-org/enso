@@ -24,7 +24,7 @@ pub const PACKAGE_BLACKLIST: [&str; 1] = ["integration-test"];
 pub const WASM_TEST_ATTRIBUTES: [&str; 2] = ["#[wasm_bindgen_test]", "#[wasm_bindgen_test(async)]"];
 
 /// Subdirectories in the crate directory that contain sources for the crate.
-pub const SOURCE_SUBDIRECTORIES: [&str; 4] = ["src", "benches", "examples", "tests"];
+pub const SOURCE_SUBDIRECTORIES: [&str; 3] = ["src", "benches", "tests"];
 
 // ===============
 // === Browser ===

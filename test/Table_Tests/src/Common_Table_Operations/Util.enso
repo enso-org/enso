@@ -50,7 +50,7 @@ within_table table =
 
 ## PRIVATE
 Any.should_equal_tz_agnostic self other =
-    loc = Meta.get_source_location 1
+    loc = Test.get_source_location 1
     _ = other
     Test.fail "Expected a vector but got "+self.to_display_text+" (at "+loc+")."
 
@@ -61,7 +61,7 @@ Any.should_equal_tz_agnostic self other =
    timezone that is attached to them. This is simply done by converting them to
    UTC.
 Vector.should_equal_tz_agnostic self other =
-    loc = Meta.get_source_location 1
+    loc = Test.get_source_location 1
     case other of
         _ : Vector ->
             utc = Time_Zone.utc
@@ -75,15 +75,14 @@ Vector.should_equal_tz_agnostic self other =
 
 ## PRIVATE
 Error.should_equal_tz_agnostic self other =
-    loc = Meta.get_source_location 1
+    loc = Test.get_source_location 1
     _ = other
     Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+loc+")."
 
 ## PRIVATE
    Builds a table ensuring that the rows are in the order as given.
 build_sorted_table setup table_structure =
-    # Workaround for https://github.com/enso-org/enso/issues/10321
-    if setup.prefix.contains "Snowflake" . not then setup.table_builder table_structure else
+    if setup.is_database . not then setup.table_builder table_structure else
         row_count = case table_structure.first of
             def : Vector -> def.second.length
             col : Column -> col.length

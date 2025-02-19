@@ -22,7 +22,7 @@ public class StorageListView implements List<Object> {
    * @param storage the storage to wrap.
    */
   public StorageListView(Storage<?> storage) {
-    this(storage, 0, storage.size());
+    this(storage, 0, Math.toIntExact(storage.getSize()));
   }
 
   private StorageListView(Storage<?> storage, int from, int to) {

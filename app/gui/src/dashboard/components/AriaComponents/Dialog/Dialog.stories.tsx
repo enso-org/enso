@@ -9,7 +9,7 @@ import { DialogTrigger } from './DialogTrigger'
 type Story = StoryObj<DialogProps>
 
 export default {
-  title: 'AriaComponents/Dialog',
+  title: 'Components/Dialog',
   component: Dialog,
   render: (args) => (
     <DialogTrigger defaultOpen>

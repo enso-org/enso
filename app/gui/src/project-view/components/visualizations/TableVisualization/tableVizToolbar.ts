@@ -13,14 +13,46 @@ export type SortModel = {
   sortDirection: SortDirection
   sortIndex: number
 }
+type FilterType = 'number' | 'date' | 'set'
+
+/**
+ * Represents the value used for filtering.
+ *
+ * - For comparisons such as 'equals' or 'greater than,' the filter value is a single value (string).
+ * - For 'is in' filtering, the filter value is a list of strings.
+ * - For range filtering, the filter value consists of two values that define the range.
+ */
+type FilterValue = string | string[] | FilterValueRange
+
+const actionMap = {
+  equals: '..Equal',
+  notEqual: '..Not_Equal',
+  greaterThan: '..Greater',
+  greaterThanOrEqual: '..Equal_Or_Greater',
+  lessThan: '..Less',
+  lessThanOrEqual: '..Equal_Or_Less',
+  inRange: '..Between',
+  blank: '..Is_Nothing',
+  notBlank: '..Not_Nothing',
+}
+type FilterAction = keyof typeof actionMap
+export type GridFilterModel = {
+  columnName: string
+  filterType: FilterType
+  filter?: string
+  filterTo?: string
+  dateFrom?: string
+  dateTo?: string
+  values?: string[]
+  filterAction?: FilterAction
+}
+type FilterValueRange = {
+  toValue: string
+  fromValue: string
+}
 
 export interface SortFilterNodesButtonOptions {
-  filterModel: ToValue<{
-    [key: string]: {
-      values: any[]
-      filterType: string
-    }
-  }>
+  filterModel: ToValue<GridFilterModel[]>
   sortModel: ToValue<SortModel[]>
   isDisabled: ToValue<boolean>
   isFilterSortNodeEnabled: ToValue<boolean>
@@ -65,6 +97,8 @@ function useSortFilterNodesButton({
   }
 
   const filterPattern = computed(() => Pattern.parseExpression('__ (__ __)')!)
+  const filterBetweenPattern = computed(() => Pattern.parseExpression('__ (..Between __ __)')!)
+  const filterNothingPattern = computed(() => Pattern.parseExpression('__ __')!)
 
   function makeFilterPattern(module: Ast.MutableModule, columnName: string, items: string[]) {
     if (
@@ -97,6 +131,39 @@ function useSortFilterNodesButton({
     ])
   }
 
+  function makeNumericFilterPattern(
+    module: Ast.MutableModule,
+    columnName: string,
+    item: string | FilterValueRange,
+    filterAction: FilterAction,
+  ) {
+    const valueFormatter = getColumnValueToEnso(columnName)
+    if (filterAction === 'inRange' && typeof item === 'object') {
+      const filterToValue = valueFormatter(item.toValue, module)
+      const filterFromValue = valueFormatter(item.fromValue, module)
+      return filterBetweenPattern.value.instantiateCopied([
+        Ast.TextLiteral.new(columnName),
+        filterFromValue as Expression | MutableExpression,
+        filterToValue as Expression | MutableExpression,
+      ])
+    }
+    const filterValue = valueFormatter(item as string, module)
+    const action = actionMap[filterAction]
+    return filterPattern.value.instantiateCopied([
+      Ast.TextLiteral.new(columnName),
+      Ast.parseExpression(action)!,
+      filterValue as Expression | MutableExpression,
+    ])
+  }
+
+  function makeNothingFilterPattern(columnName: string, filterAction: FilterAction) {
+    const action = actionMap[filterAction]
+    return filterNothingPattern.value.instantiateCopied([
+      Ast.TextLiteral.new(columnName),
+      Ast.parseExpression(action)!,
+    ])
+  }
+
   function getAstPatternSort() {
     return Pattern.new<Ast.Expression>((ast) =>
       Ast.App.positional(
@@ -106,22 +173,72 @@ function useSortFilterNodesButton({
     )
   }
 
-  function getAstPatternFilter(columnName: string, items: string[]) {
+  function getAstPatternFilter(
+    columnName: string,
+    items: string[] | string | FilterValue,
+    filterType: FilterType,
+    filterAction?: FilterAction,
+  ) {
     return Pattern.new<Ast.Expression>((ast) =>
       Ast.App.positional(
         Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
-        makeFilterPattern(ast.module, columnName, items),
+        filterType === 'set' ?
+          makeFilterPattern(ast.module, columnName, items as string[])
+        : makeNumericFilterPattern(
+            ast.module,
+            columnName,
+            items as string | FilterValueRange,
+            filterAction!,
+          ),
       ),
     )
   }
 
-  function getAstPatternFilterAndSort(columnName: string, items: string[]) {
+  function getAstNothingPatternFilter(columnName: string, filterAction: FilterAction) {
+    return Pattern.new<Ast.Expression>((ast) =>
+      Ast.App.positional(
+        Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
+        makeNothingFilterPattern(columnName, filterAction),
+      ),
+    )
+  }
+
+  function getAstPatternFilterAndSort(
+    columnName: string,
+    items: string[] | string | FilterValueRange,
+    filterType: FilterType,
+    filterAction?: FilterAction,
+  ) {
     return Pattern.new<Ast.Expression>((ast) =>
       Ast.OprApp.new(
         ast.module,
         Ast.App.positional(
           Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
-          makeFilterPattern(ast.module, columnName, items),
+          filterType === 'set' ?
+            makeFilterPattern(ast.module, columnName, items as string[])
+          : makeNumericFilterPattern(
+              ast.module,
+              columnName,
+              items as string | FilterValueRange,
+              filterAction!,
+            ),
+        ),
+        '.',
+        Ast.App.positional(
+          Ast.Ident.new(ast.module, Ast.identifier('sort')!),
+          makeSortPattern(ast.module),
+        ),
+      ),
+    )
+  }
+
+  function getAstNothingPatternFilterAndSort(columnName: string, filterAction: FilterAction) {
+    return Pattern.new<Ast.Expression>((ast) =>
+      Ast.OprApp.new(
+        ast.module,
+        Ast.App.positional(
+          Ast.PropertyAccess.new(ast.module, ast, Ast.identifier('filter')!),
+          makeNothingFilterPattern(columnName, filterAction),
         ),
         '.',
         Ast.App.positional(
@@ -136,15 +253,44 @@ function useSortFilterNodesButton({
     const patterns = new Array<Pattern>()
     const filterModelValue = toValue(filterModel)
     const sortModelValue = toValue(sortModel)
-    if (Object.keys(filterModelValue).length) {
-      for (const [columnName, columnFilter] of Object.entries(filterModelValue)) {
-        const items = columnFilter.values
-        const filterPatterns =
-          sortModelValue.length ?
-            getAstPatternFilterAndSort(columnName, items)
-          : getAstPatternFilter(columnName, items)
-        patterns.push(filterPatterns)
-      }
+    if (filterModelValue.length) {
+      filterModelValue.map((filterModel: GridFilterModel) => {
+        const columnName = filterModel.columnName
+        const filterAction = filterModel.filterAction
+        const filterType = filterModel.filterType
+        if (filterAction === 'blank' || filterAction === 'notBlank') {
+          const filterPatterns =
+            sortModelValue.length ?
+              getAstNothingPatternFilterAndSort(columnName, filterAction)
+            : getAstNothingPatternFilter(columnName, filterAction)
+          patterns.push(filterPatterns)
+        }
+
+        let value: FilterValue
+        switch (filterType) {
+          case 'number':
+            value =
+              filterAction === 'inRange' ?
+                { toValue: filterModel.filterTo!, fromValue: filterModel.filter! }
+              : (filterModel.filter as FilterValue)
+            break
+          case 'date':
+            value =
+              filterAction === 'inRange' ?
+                { toValue: filterModel.dateTo!, fromValue: filterModel.dateFrom! }
+              : (filterModel.dateFrom as FilterValue)
+            break
+          default:
+            value = filterModel.values as FilterValue
+        }
+        if (value) {
+          const filterPatterns =
+            sortModelValue.length ?
+              getAstPatternFilterAndSort(columnName, value, filterType, filterAction)
+            : getAstPatternFilter(columnName, value, filterType, filterAction)
+          patterns.push(filterPatterns)
+        }
+      })
     } else if (sortModelValue.length) {
       patterns.push(getAstPatternSort())
     }

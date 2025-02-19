@@ -23,9 +23,10 @@ export const { use: useInputBindings, useState: useInputBindingsState } = define
 )
 
 export const { use: useLocalRootDirectory, useState: useLocalRootDirectoryState } =
-  defineLocalStorageKey('localRootDirectory', {
-    schema: (z) => z.string(),
-  })
+  defineLocalStorageKey('localRootDirectory', { schema: (z) => z.string() })
+
+export const { use: usePreferredTimeZone, useState: usePreferredTimeZoneState } =
+  defineLocalStorageKey('preferredTimeZone', { schema: (z) => z.string() })
 
 export const {
   use: useAcceptedTermsOfServiceVersion,

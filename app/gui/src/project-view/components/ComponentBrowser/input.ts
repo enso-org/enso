@@ -4,12 +4,17 @@ import { useGraphStore, type NodeId } from '@/stores/graph'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { requiredImportEquals, requiredImports, type RequiredImport } from '@/stores/graph/imports'
 import { useSuggestionDbStore, type SuggestionDb } from '@/stores/suggestionDatabase'
-import { type SuggestionEntry, type SuggestionId } from '@/stores/suggestionDatabase/entry'
+import {
+  entryIsStatic,
+  type SuggestionEntry,
+  type SuggestionId,
+} from '@/stores/suggestionDatabase/entry'
 import { isIdentifier, type AstId, type Identifier } from '@/util/ast/abstract'
 import { Err, Ok, type Result } from '@/util/data/result'
-import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
+import { type ProjectPath } from '@/util/projectPath'
+import { qnJoin, qnLastSegment } from '@/util/qualifiedName'
 import { useToast } from '@/util/toast'
-import { computed, proxyRefs, readonly, ref, type ComputedRef } from 'vue'
+import { computed, proxyRefs, readonly, ref, shallowRef, type ComputedRef } from 'vue'
 
 /** Information how the component browser is used, needed for proper input initializing. */
 export type Usage =
@@ -46,7 +51,7 @@ export function useComponentBrowserInput(
   const text = ref('')
   const cbUsage = ref<Usage>()
   const selection = ref({ start: 0, end: 0 })
-  const imports = ref<RequiredImport[]>([])
+  const imports = shallowRef<RequiredImport[]>([])
   const processingAIPrompt = ref(false)
   const toastError = useToast.error()
   const sourceNodeIdentifier = ref<Identifier>()
@@ -122,7 +127,7 @@ export function useComponentBrowserInput(
     const definition = graphDb.getIdentDefiningNode(sourceNodeIdentifier.value)
     if (definition == null) return null
     const typename = graphDb.getExpressionInfo(definition)?.typename
-    return typename != null ? { type: 'known', typename } : { type: 'unknown' }
+    return typename ? { type: 'known', typename } : { type: 'unknown' }
   })
 
   /** Apply given suggested entry to the input. */
@@ -130,11 +135,12 @@ export function useComponentBrowserInput(
     const entry = suggestionDb.get(id)
     if (!entry) return Err(`No entry with id ${id}`)
     switchedToCodeMode.value = { appliedSuggestion: id }
-    const { newText, newCursorPos, requiredImport } = inputAfterApplyingSuggestion(entry)
+    const { newText, requiredImport } = inputAfterApplyingSuggestion(entry)
+    const newCursorPos = newText.length
     text.value = newText
     selection.value = { start: newCursorPos, end: newCursorPos }
     if (requiredImport) {
-      const [importId] = suggestionDb.nameToId.lookup(requiredImport)
+      const importId = suggestionDb.findByProjectPath(requiredImport)
       if (importId) {
         const requiredEntry = suggestionDb.get(importId)
         if (requiredEntry) {
@@ -153,28 +159,28 @@ export function useComponentBrowserInput(
 
   function inputAfterApplyingSuggestion(entry: SuggestionEntry): {
     newText: string
-    newCode: string
-    newCursorPos: number
-    requiredImport: QualifiedName | null
+    requiredImport: ProjectPath | undefined
   } {
-    const newText =
-      !sourceNodeIdentifier.value && entry.memberOf ?
-        `${qnLastSegment(entry.memberOf)}.${entry.name} `
-      : `${entry.name} `
-    const newCode =
-      sourceNodeIdentifier.value ? `${sourceNodeIdentifier.value}.${entry.name} ` : `${newText} `
-    const newCursorPos = newText.length
-
-    return {
-      newText,
-      newCode,
-      newCursorPos,
-      requiredImport:
-        sourceNodeIdentifier.value ? null
-        : entry.memberOf ? entry.memberOf
-          // Perhaps we will add cases for Type/Con imports, but they are not displayed as
-          // suggestion ATM.
-        : null,
+    if (sourceNodeIdentifier.value) {
+      return {
+        newText: entry.name + ' ',
+        requiredImport: undefined,
+      }
+    } else {
+      // Perhaps we will add cases for Type/Con imports, but they are not displayed as suggestion ATM.
+      const owner = entryIsStatic(entry) ? entry.memberOf.normalized() : undefined
+      return {
+        newText:
+          (owner ?
+            qnJoin(
+              owner.path ? qnLastSegment(owner.path)
+              : owner.project ? qnLastSegment(owner.project)
+              : ('Main' as Identifier),
+              entry.name,
+            )
+          : entry.name) + ' ',
+        requiredImport: owner,
+      }
     }
   }
 
@@ -188,7 +194,9 @@ export function useComponentBrowserInput(
     for (const anImport of imports.value) {
       const alreadyAdded = finalImports.some((existing) => requiredImportEquals(existing, anImport))
       const importedIdent =
-        anImport.kind == 'Qualified' ? qnLastSegment(anImport.module) : anImport.import
+        anImport.kind == 'Qualified' ?
+          qnLastSegment(anImport.module.path ?? anImport.module.project ?? ('Main' as Identifier))
+        : anImport.import
       const noLongerNeeded = !text.value.includes(importedIdent)
       if (!noLongerNeeded && !alreadyAdded) {
         finalImports.push(anImport)
@@ -282,7 +290,7 @@ export function useComponentBrowserInput(
     selfArgument: sourceNodeIdentifier,
     /** The current selection (or cursor position if start is equal to end). */
     selection,
-    /** Flag indincating that we're waiting for AI's answer for user's prompt. */
+    /** Flag indicating that we're waiting for AI's answer for user's prompt. */
     processingAIPrompt,
     /** Re-initializes the input for given usage. */
     reset,

@@ -128,6 +128,23 @@ add_specs suite_builder =
             r_4.column_names . should_equal ["foo", "bar", "baz"]
             r_4.columns.map .value_type . should_equal [Value_Type.Date, Value_Type.Char, Value_Type.Time]
 
+            r_5 = Table.input [["foo", [Nothing], Value_Type.Integer]]
+            r_5.column_names . should_equal ["foo"]
+            r_5.columns.map .value_type . should_equal [Value_Type.Integer]
+
+        group_builder.specify "Table.new should allow inputting a table with types" <|
+            r = Table.new [["foo", [1, 2, 3], Value_Type.Float], ["bar", [False, True, False]]]
+            r.column_names . should_equal ["foo", "bar"]
+            r.columns.map .value_type . should_equal [Value_Type.Float, Value_Type.Boolean]
+
+            r_2 = Table.new [["foo", ["False", "True", "false"], Value_Type.Char]]
+            r_2.column_names . should_equal ["foo"]
+            r_2.columns.map .value_type . should_equal [Value_Type.Char]
+
+            r_3 = Table.new [["foo", [Nothing], Value_Type.Integer]]
+            r_3.column_names . should_equal ["foo"]
+            r_3.columns.map .value_type . should_equal [Value_Type.Integer]
+        
         group_builder.specify "should allow creating Enso code from a Table" <|
             r = Table.new [["foo", [1, 2, 3]], ["bar", [False, True, False]]]
             r.pretty . should_equal "Table.new [['foo', [1, 2, 3]], ['bar', [False, True, False]]]"
@@ -145,10 +162,14 @@ add_specs suite_builder =
             r4.pretty . should_equal "Table.new [['foo', [1, 2, 3]], ['bar', [False, True, False]], ['date', [Date.new 2022 8 27, Date.new 1999 1 1, Date.new 2012 1 23]], ['time', [Time_Of_Day.new 18, Time_Of_Day.new 1 2 34, Time_Of_Day.new 12]]]"
             Debug.eval r4.pretty . should_equal r4
 
+        group_builder.specify "allows setting the column type" <|
+
+
         group_builder.specify "should handle error scenarios gracefully" <|
             Table.new [["X", [1,2,3]], ["Y", [4]]] . should_fail_with Illegal_Argument
             Table.new [["X", [1]], ["X", [2]]] . should_fail_with Illegal_Argument
-            Table.new [["X", [1]], ["Y", [2], "Z"]] . should_fail_with Illegal_Argument
+            Test.expect_panic Type_Error <| Table.new [["Y", [2], "Z"]]
+            Table.new [["X", [1]], ["Y", [2], Value_Type.Integer, "Z"]] . should_fail_with Illegal_Argument
             Table.new [["X"]] . should_fail_with Illegal_Argument
             Table.new ["X", "Y", "Z"] . should_fail_with Illegal_Argument
             Table.new [] . should_fail_with Illegal_Argument
@@ -174,7 +195,7 @@ add_specs suite_builder =
             data.varied_type_table.at "datetimes" . value_type . should_equal Value_Type.Date_Time
             data.varied_type_table.at "mixed" . value_type . should_equal Value_Type.Mixed
             data.varied_type_table.at "mixed_dates" . value_type . should_equal Value_Type.Mixed
-            data.varied_type_table.at "just_nulls" . value_type . should_equal Value_Type.Mixed
+            data.varied_type_table.at "just_nulls" . value_type . should_equal Value_Type.Null
 
         pending_python_missing = if Polyglot.is_language_installed "python" . not then
             "Can't run Python tests, Python is not installed."
@@ -188,7 +209,8 @@ add_specs suite_builder =
 
             (table.at "enso_dates" == table.at "py_dates").to_vector . should_equal [True, True]
 
-        group_builder.specify "should work with polyglot values coming from JS" <|
+        pending_js_missing = if Polyglot.is_language_installed "js" then Nothing else "Can't run JavaScript tests, language `js` is not installed."
+        group_builder.specify "should work with polyglot values coming from JS" pending=pending_js_missing <|
             enso_dates = ["enso_dates", [Date.new 2022 8 27, Date.new 1999 1 1]]
             js_dates = ["js_dates", [js_make_date 2022 8 27, js_make_date 1999 1 1]]
             js_objects = ["js_objects", [js_make_object "a" "b", js_make_object "foo" "bar"]]

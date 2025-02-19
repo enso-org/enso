@@ -1,4 +1,4 @@
-import { type VueHost } from '@/components/VueComponentHost.vue'
+import { type VueHost } from '@/components/VueHostRender.vue'
 import { getVueHost } from '@/util/codemirror/vueHostExt'
 import { syntaxTree } from '@codemirror/language'
 import { type EditorState, RangeSetBuilder, type Text } from '@codemirror/state'

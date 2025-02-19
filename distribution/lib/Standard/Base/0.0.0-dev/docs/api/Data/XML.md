@@ -1,0 +1,59 @@
+## Enso Signatures 1.0
+## module Standard.Base.Data.XML
+- type XML_Document
+    - at self key:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= -> Standard.Base.Any.Any
+    - attribute self name:Standard.Base.Data.Text.Text ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - attribute_names self -> Standard.Base.Any.Any
+    - attributes self -> Standard.Base.Any.Any
+    - child_count self -> Standard.Base.Any.Any
+    - child_names self -> Standard.Base.Any.Any
+    - children self -> Standard.Base.Any.Any
+    - from_file file:Standard.Base.System.File.File -> Standard.Base.Any.Any
+    - from_stream input_stream:Standard.Base.System.Input_Stream.Input_Stream -> Standard.Base.Any.Any
+    - from_text xml_string:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - get self key:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - get_child_element self key:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= -> Standard.Base.Any.Any
+    - get_children_by_tag_name self tag_name:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - get_descendants_by_tag_name self tag_name:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - get_xpath self key:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - inner_xml self -> Standard.Base.Any.Any
+    - name self -> Standard.Base.Any.Any
+    - new doc:Standard.Base.Data.XML.Document -> Standard.Base.Any.Any
+    - outer_xml self -> Standard.Base.Any.Any
+    - root_element self -> Standard.Base.Any.Any
+    - text self -> Standard.Base.Any.Any
+    - to_default_visualization_data self -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
+    - write self path:Standard.Base.System.File.Generic.Writable_File.Writable_File encoding:Standard.Base.Data.Text.Encoding.Encoding= on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= include_xml_declaration:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+- type XML_Element
+    - at self key:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= -> Standard.Base.Any.Any
+    - attribute self name:Standard.Base.Data.Text.Text ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - attribute_names self -> Standard.Base.Any.Any
+    - attributes self -> Standard.Base.Any.Any
+    - child_count self -> Standard.Base.Any.Any
+    - child_names self -> Standard.Base.Any.Any
+    - children self -> Standard.Base.Any.Any
+    - get self key:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - get_children_by_tag_name self tag_name:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - get_descendants_by_tag_name self tag_name:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - get_xpath self key:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - inner_xml self -> Standard.Base.Any.Any
+    - name self -> Standard.Base.Any.Any
+    - new java_element:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - outer_xml self -> Standard.Base.Any.Any
+    - text self -> Standard.Base.Any.Any
+    - to_default_visualization_data self nested:Standard.Base.Data.Boolean.Boolean= as_js_object:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
+    - write self path:Standard.Base.System.File.Generic.Writable_File.Writable_File encoding:Standard.Base.Data.Text.Encoding.Encoding= on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= include_xml_declaration:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+- type XML_Error
+    - Other error:Standard.Base.Data.Text.Text
+    - Parse_Error line_number:Standard.Base.Data.Numbers.Integer column_number:Standard.Base.Data.Numbers.Integer
+    - handle_java_exceptions ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - wrap_java_exception exception:Standard.Base.Data.XML.JException -> Standard.Base.Any.Any
+- build_child_list java_element:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- child_selector node:(Standard.Base.Data.XML.XML_Element|Standard.Base.Data.XML.XML_Document) -> Standard.Base.Any.Any
+- only_wanted_nodes node_list:Standard.Base.Data.XML.NodeList -> Standard.Base.Any.Any
+- write_impl node:Standard.Base.Data.XML.Node path:Standard.Base.System.File.Generic.Writable_File.Writable_File encoding:Standard.Base.Data.Text.Encoding.Encoding= on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= include_xml_declaration:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any

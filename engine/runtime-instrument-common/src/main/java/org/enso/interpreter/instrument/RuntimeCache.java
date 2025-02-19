@@ -17,7 +17,7 @@ import org.enso.interpreter.service.ExecutionService;
 public final class RuntimeCache implements java.util.function.Function<String, Object> {
   private final Map<UUID, Reference<Object>> cache = new HashMap<>();
   private final Map<UUID, Reference<Object>> expressions = new HashMap<>();
-  private final Map<UUID, String[]> types = new HashMap<>();
+  private final Map<UUID, TypeInfo> types = new HashMap<>();
   private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
   private CachePreferences preferences = CachePreferences.empty();
   private Consumer<UUID> observer;
@@ -107,15 +107,15 @@ public final class RuntimeCache implements java.util.function.Function<String, O
    * @return the previously cached type.
    */
   @CompilerDirectives.TruffleBoundary
-  public String[] putType(UUID key, String[] typeNames) {
-    return types.put(key, typeNames);
+  public TypeInfo putType(UUID key, TypeInfo typeInfo) {
+    return types.put(key, typeInfo);
   }
 
   /**
    * @return the cached type of the expression
    */
   @CompilerDirectives.TruffleBoundary
-  public String[] getType(UUID key) {
+  public TypeInfo getType(UUID key) {
     return types.get(key);
   }
 

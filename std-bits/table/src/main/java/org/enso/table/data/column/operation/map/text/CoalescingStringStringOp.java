@@ -1,5 +1,6 @@
 package org.enso.table.data.column.operation.map.text;
 
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -14,46 +15,48 @@ public abstract class CoalescingStringStringOp extends StringStringOp {
   }
 
   @Override
-  public Storage<?> runBinaryMap(
+  public Storage<String> runBinaryMap(
       SpecializedStorage<String> storage,
       Object arg,
       MapOperationProblemAggregator problemAggregator) {
-    int size = storage.size();
     if (arg == null) {
       return storage;
     } else if (arg instanceof String argString) {
-      String[] newVals = new String[size];
+      TextType argumentType = TextType.preciseTypeForValue(argString);
+      TextType newType = computeResultType((TextType) storage.getType(), argumentType);
+
+      long size = storage.getSize();
+      var builder = Builder.getForText(newType, size);
       Context context = Context.getCurrent();
-      for (int i = 0; i < size; i++) {
+      for (long i = 0; i < size; i++) {
         if (storage.isNothing(i)) {
-          newVals[i] = argString;
+          builder.append(argString);
         } else {
-          newVals[i] = doString(storage.getItem(i), argString);
+          builder.append(doString(storage.getItemBoxed(i), argString));
         }
 
         context.safepoint();
       }
 
-      TextType argumentType = TextType.preciseTypeForValue(argString);
-      TextType newType = computeResultType((TextType) storage.getType(), argumentType);
-      return new StringStorage(newVals, size, newType);
+      return builder.seal();
     } else {
       throw new UnexpectedTypeException("a Text");
     }
   }
 
   @Override
-  public Storage<?> runZip(
+  public Storage<String> runZip(
       SpecializedStorage<String> storage,
       Storage<?> arg,
       MapOperationProblemAggregator problemAggregator) {
     if (arg instanceof StringStorage v) {
-      int size = storage.size();
-      String[] newVals = new String[size];
+      long size = storage.getSize();
+      TextType newType = computeResultType((TextType) storage.getType(), v.getType());
+      var builder = Builder.getForText(newType, size);
       Context context = Context.getCurrent();
-      for (int i = 0; i < size; i++) {
-        String a = storage.getItem(i);
-        String b = v.getItem(i);
+      for (long i = 0; i < size; i++) {
+        String a = storage.getItemBoxed(i);
+        String b = v.getItemBoxed(i);
         String r;
         if (a == null && b == null) {
           r = null;
@@ -67,13 +70,11 @@ public abstract class CoalescingStringStringOp extends StringStringOp {
           }
         }
 
-        newVals[i] = r;
-
+        builder.append(r);
         context.safepoint();
       }
 
-      TextType newType = computeResultType((TextType) storage.getType(), v.getType());
-      return new StringStorage(newVals, size, newType);
+      return builder.seal();
     } else {
       throw new UnexpectedTypeException("a Text column");
     }

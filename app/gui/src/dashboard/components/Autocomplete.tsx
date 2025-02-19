@@ -28,7 +28,7 @@ const ZWSP = '\u200b'
 interface InternalBaseAutocompleteProps<T> {
   readonly multiple?: boolean
   readonly type?: HTMLInputTypeAttribute
-  readonly inputRef?: MutableRefObject<HTMLFieldSetElement | null>
+  readonly inputRef?: MutableRefObject<HTMLDivElement | null>
   readonly placeholder?: string
   readonly values: readonly T[]
   readonly autoFocus?: boolean
@@ -58,7 +58,7 @@ interface InternalMultipleAutocompleteProps<T> extends InternalBaseAutocompleteP
    * This is `null` when multiple values are selected, causing the input to switch to a
    * {@link HTMLTextAreaElement}.
    */
-  readonly inputRef?: MutableRefObject<HTMLFieldSetElement | null>
+  readonly inputRef?: MutableRefObject<HTMLDivElement | null>
   readonly setValues: (value: readonly T[]) => void
   readonly itemsToString: (items: readonly T[]) => string
 }
@@ -97,7 +97,7 @@ export default function Autocomplete<T>(props: AutocompleteProps<T>) {
     [items, matches, text],
   )
 
-  const fallbackInputRef = useRef<HTMLFieldSetElement>(null)
+  const fallbackInputRef = useRef<HTMLDivElement>(null)
   const inputRef = rawInputRef ?? fallbackInputRef
   const containerRef = useRef<HTMLDivElement>(null)
 

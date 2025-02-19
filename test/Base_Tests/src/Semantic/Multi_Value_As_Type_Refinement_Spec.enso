@@ -1,0 +1,359 @@
+## This tests the usage of intersection types as refinement of a value's type.
+   These tests rely on a conversion A -> B that is not available in the scope,
+   so a type is A & B only if it was 'refined' somewhere else. Then we are
+   testing what happens to such instances after various casts, type checks etc.
+
+from Standard.Base import all
+from Standard.Test import all
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Common.No_Such_Conversion
+import Standard.Base.Errors.Common.No_Such_Method
+import Standard.Base.Errors.Illegal_State.Illegal_State
+
+from project.Semantic.Type_Refinement.Types import A, B, make_a_and_b
+
+id_a (x : A) -> A = x
+id_b (x : B) -> B = x
+
+type C
+    C_Ctor x
+
+    c_method self = "C method"
+
+C.from (that:B) = C.C_Ctor that
+
+add_specs suite_builder =
+    suite_builder.group "Multi Value as type refinement" group_builder->
+        group_builder.specify "conversion A -> B should not be available" <|
+            just_a = A.A_Ctor 1
+            Test.expect_panic Type_Error (just_a:B)
+            Test.expect_panic No_Such_Conversion (B.from just_a)
+            Test.expect_panic Type_Error (id_b just_a)
+
+        group_builder.specify "make_a_and_b->A&B presents as both A and B" <|
+            ab = make_a_and_b
+            ab.is_a A . should_be_true
+            ab.is_a B . should_be_true
+
+            ab.a_method . should_equal "A method"
+            ab.b_method . should_equal "B method"
+
+            (ab:A).to_text . should_equal "(A_Ctor 1)"
+            (ab:B).to_text . should_equal "(B_Ctor (A_Ctor 1))"
+            (id_a ab).to_text . should_equal "(A_Ctor 1)"
+            (id_b ab).to_text . should_equal "(B_Ctor (A_Ctor 1))"
+
+        group_builder.specify "after passing A&B value to a function expecting A argument, B becomes hidden" <|
+            ab = make_a_and_b
+            a2 = id_a ab
+            a2.is_a A . should_be_true
+            a2.is_a B . should_be_true # B is a hidden type
+            Test.expect_panic No_Such_Method (a2.b_method)
+
+
+            # Passing a2 to a function expecting B fails because B part was hidden
+            Test.expect_panic Type_Error (id_b a2)
+            Test.expect_panic No_Such_Method (a2.b_method)
+
+            # But it can be uncovered via explicit cast
+            (a2:B).b_method . should_equal "B method"
+            (id_b (a2:B)).to_text . should_equal "(B_Ctor (A_Ctor 1))"
+
+        group_builder.specify "after casting A&B to A, B part is again hidden" <|
+            ab = make_a_and_b
+            a2 = ab:A
+            a2.is_a A . should_be_true
+            a2.is_a B . should_be_true # B is hidden type
+            Test.expect_panic No_Such_Method (a2.b_method)
+
+            # Passing a2 to a function expecting B fails because B part was hidden
+            Test.expect_panic Type_Error (id_b a2)
+
+            # But it can be uncovered via explicit cast
+            (a2:B).to_text . should_equal "(B_Ctor (A_Ctor 1))"
+            (id_b (a2:B)).to_text . should_equal "(B_Ctor (A_Ctor 1))"
+
+        group_builder.specify "passing A&B to function expecting B, then re-casting to A" <|
+            ab = make_a_and_b
+            b2 = id_b ab
+            a2 = b2:A
+            a2.is_a A . should_be_true
+            a2.is_a B . should_be_true # B is hidden type
+            Test.expect_panic No_Such_Method (a2.b_method)
+
+            a2.a_method.should_equal "A method"
+            Test.expect_panic No_Such_Method (a2.b_method)
+
+        group_builder.specify "passing A&B to function expecting A, then re-casting to B" <|
+            ab = make_a_and_b
+            a2 = id_a ab
+            b2 = a2:B
+
+            b2.is_a B . should_be_true
+            b2.is_a A . should_be_true # A is hidden type
+            Test.expect_panic No_Such_Method (b2.a_method)
+
+            b2.b_method.should_equal "B method"
+            # We can still explicitly cast back to A
+            (b2:A).a_method.should_equal "A method"
+
+        group_builder.specify "unpacking an intersection type via pattern matching" <|
+            ab = make_a_and_b
+            case ab of
+                ab_as_a : A ->
+                    ab_as_a.a_method . should_equal "A method"
+                    ab_as_a.is_a A . should_be_true
+                    ab_as_a.is_a B . should_be_true # B is hidden type
+                    Test.expect_panic No_Such_Method (ab_as_a.b_method)
+                _ -> Test.fail "Expected ab to go to `: A` branch"
+
+            case ab of
+                ab_as_b : B ->
+                    ab_as_b.b_method . should_equal "B method"
+                    ab_as_b.is_a A . should_be_true # A is hidden type
+                    Test.expect_panic No_Such_Method (ab_as_b.a_method)
+                    ab_as_b.is_a B . should_be_true
+                _ -> Test.fail "Expected ab to go to `: B` branch"
+
+        group_builder.specify "pattern matching does not apply conversions" <|
+            ab = make_a_and_b
+            r = case ab of
+                _ : C -> "matched C"
+                _ -> "was not C"
+            r.should_equal "was not C"
+
+        group_builder.specify "using a conversion discards the multi-value structure and we 'start over'" <|
+            ab = make_a_and_b
+            c = ab:C
+
+            c.is_a C . should_be_true
+            c.is_a A . should_be_false
+            c.is_a B . should_be_false
+
+            # We cannot convert back to A/B as the mutli-value structure is lost
+            Test.expect_panic Type_Error (c:A)
+            Test.expect_panic Type_Error (c:B)
+
+        group_builder.specify "conversion can keep the old types if they are listed explicitly in a cast expression" <|
+            ab = make_a_and_b
+            abc = ab:(A & B & C)
+
+            abc.is_a A . should_be_true
+            abc.is_a B . should_be_true
+            abc.is_a C . should_be_true
+
+            abc.a_method . should_equal "A method"
+            abc.b_method . should_equal "B method"
+            abc.c_method . should_equal "C method"
+
+            # We hide A&B parts by casting to C
+            c = abc:C
+
+            c.is_a A . should_be_true # A is a hidden type
+            Test.expect_panic No_Such_Method (c.a_method)
+            c.is_a B . should_be_true # B is a hidden type
+            Test.expect_panic No_Such_Method (c.b_method)
+            c.is_a C . should_be_true
+
+            c.c_method . should_equal "C method"
+
+            # But because the structure was not lost, only hidden, we can cast back to A/B
+            (c:A).a_method . should_equal "A method"
+            (c:B).b_method . should_equal "B method"
+
+            (c:A&B&C).a_method . should_equal "A method"
+            (c:A&B&C).b_method . should_equal "B method"
+            (c:A&B&C).c_method . should_equal "C method"
+
+        group_builder.specify "default to_text should delegate to one of values" pending="To text doesn't dispatch properly #11827" <|
+            ab = make_a_and_b
+            ab.to_text . should_equal "(A_Ctor 1)"
+
+            abc = ab:(A & B & C)
+            abc.to_text . should_equal "(A_Ctor 1)"
+
+            c = abc:C
+            c.to_text . should_equal "(C_Ctor (B_Ctor (A_Ctor 1)))"
+
+            (c:A).to_text . should_equal "(A_Ctor 1)"
+            (c:B).to_text . should_equal "(B_Ctor (A_Ctor 1))"
+
+        group_builder.specify "structural pattern matching should be able to match the primary type" pending="Pattern matching: #12142" <|
+            ab = make_a_and_b
+            r = case ab of
+                A.A_Ctor x -> "matched: "+x.to_text
+                _ -> "structural matching of A.A_Ctor failed"
+            r.should_equal "matched: 1"
+
+        group_builder.specify "should structural matching match other types?" pending="Pattern matching: decide if we keep this test in #12142" <|
+            ab = make_a_and_b
+            r = case ab of
+                B.B_Ctor x -> "matched: "+x.to_text
+                _ -> "structural matching of B.B_Ctor failed"
+            r.should_equal "matched: (A_Ctor 1)"
+
+        group_builder.specify "calling a method on one of the types should not lose the intersection type" <|
+            ab = make_a_and_b
+
+            # Checked variant can hide the B part
+            ab.a_id . is_a A . should_be_true
+            ab.a_id . is_a B . should_be_true # B is a hidden type
+            Test.expect_panic No_Such_Method (ab.a_id.b_method)
+
+            # But it can be uncovered via explicit cast
+            a_via_id = ab.a_id
+            b = a_via_id:B
+            b.is_a A . should_be_true # A is a hidden type
+            Test.expect_panic No_Such_Method (b.a_method)
+            b.is_a B . should_be_true
+
+            new_ab = (ab.a_id):A&B
+            new_ab.is_a A . should_be_true
+            new_ab.is_a B . should_be_true
+            new_ab.a_method . should_equal "A method"
+            new_ab.b_method . should_equal "B method"
+
+            # dispatching method on self casts to Self type and always hides other types
+            ab.a_id_unchecked . is_a A . should_be_true
+            ab.a_id_unchecked . is_a B . should_be_true
+            ab.a_id_unchecked.a_method . should_equal "A method"
+            Test.expect_panic No_Such_Method (ab.a_id_unchecked.b_method)
+
+            # The same should apply to the B part
+            ab.b_id . is_a A . should_be_true # A is a hidden type
+            Test.expect_panic No_Such_Method (ab.b_id.a_method)
+            ab.b_id . is_a B . should_be_true
+            new_ab_2 = (ab.b_id):A&B
+            new_ab_2.is_a A . should_be_true
+            new_ab_2.is_a B . should_be_true
+            ab.b_id_unchecked . is_a A . should_be_true
+            ab.b_id_unchecked . is_a B . should_be_true
+            Test.expect_panic No_Such_Method (ab.b_id_unchecked.a_method)
+            ab.b_id_unchecked.b_method . should_equal "B method"
+
+        group_builder.specify "calling `.catch` on an intersection type should not lose the refinements" <|
+            ab = make_a_and_b
+            r = ab.catch Any _->"catched"
+            r.is_a A . should_be_true
+            r.is_a B . should_be_true
+            r.a_method . should_equal "A method"
+            r.b_method . should_equal "B method"
+
+        group_builder.specify "calling `.throw_on_warning` on an intersection type should not lose the refinements" <|
+            ab = make_a_and_b
+            r = ab.throw_on_warning
+            r.is_a A . should_be_true
+            r.is_a B . should_be_true
+            r.a_method . should_equal "A method"
+            r.b_method . should_equal "B method"
+
+        group_builder.specify "attaching warnings to an intersection type should not lose the refinements" <|
+            ab = make_a_and_b
+            ab_with_warning = Warning.attach (Illegal_State.Error "my warning") ab
+            ab_with_warning.is_a A . should_be_true
+            ab_with_warning.is_a B . should_be_true
+            ab_with_warning.a_method . should_equal "A method"
+            ab_with_warning.b_method . should_equal "B method"
+            Problems.expect_only_warning Illegal_State ab_with_warning
+
+        group_builder.specify "removing warnings from an intersection type should not lose the refinements" <|
+            ab = make_a_and_b
+            ab_with_warning = Warning.attach (Illegal_State.Error "my warning") ab
+
+            ab_without_warning = ab_with_warning.remove_warnings
+            Problems.assume_no_problems ab_without_warning
+            ab_without_warning.is_a A . should_be_true
+            ab_without_warning.is_a B . should_be_true
+            ab_without_warning.a_method . should_equal "A method"
+            ab_without_warning.b_method . should_equal "B method"
+
+            ab2 = ab.remove_warnings
+            ab2.is_a A . should_be_true
+            ab2.is_a B . should_be_true
+            ab2.a_method . should_equal "A method"
+            ab2.b_method . should_equal "B method"
+
+        group_builder.specify "calling both `throw_on_warning` and `catch` should not lose the refinements" <|
+            ab = make_a_and_b
+            r = ab.throw_on_warning Illegal_State . catch Any _->"catched"
+            r.is_a A . should_be_true
+            r.is_a B . should_be_true
+            r.a_method . should_equal "A method"
+            r.b_method . should_equal "B method"
+
+        group_builder.specify "calling `.catch` on an intersection type should not lose even the hidden refinements" <|
+            ab = make_a_and_b
+            x = ab:A
+            r = x.catch Any _->"catched"
+            r.a_method . should_equal "A method"
+            # After calling catch we should still be able to bring back the B part
+            (r:B).b_method . should_equal "B method"
+
+            y = r:(A & B)
+            y.is_a A . should_be_true
+            y.is_a B . should_be_true
+            y.a_method . should_equal "A method"
+            y.b_method . should_equal "B method"
+
+        group_builder.specify "calling `.throw_on_warning` on an intersection type should not lose even the hidden refinements" <|
+            ab = make_a_and_b
+            x = ab:A
+            r = x.throw_on_warning
+
+            y = r:(A & B)
+            y.is_a A . should_be_true
+            y.is_a B . should_be_true
+            y.a_method . should_equal "A method"
+            y.b_method . should_equal "B method"
+
+        group_builder.specify "attaching warnings to an intersection type should not lose even the hidden refinements" pending="Warnings not yet supported #12180" <|
+            ab = make_a_and_b
+            x = ab:A
+            x_with_warning = Warning.attach (Illegal_State.Error "my warning") x
+
+            y = x_with_warning:(A & B)
+            y.is_a A . should_be_true
+            y.is_a B . should_be_true
+            y.a_method . should_equal "A method"
+            y.b_method . should_equal "B method"
+            Problems.expect_only_warning Illegal_State y
+
+        group_builder.specify "clearing warnings on an intersection type" <|
+            b = (B.B_Ctor 24)
+            bc = b : B & C
+            bc_without_warning = Warning.clear (Warning.attach (Illegal_State.Error "my warning") bc)
+            Problems.assume_no_problems bc_without_warning
+            Problems.assume_no_problems (bc_without_warning:B)
+            Problems.assume_no_problems (bc_without_warning:C)
+
+        group_builder.specify "removing warnings from an intersection type should not lose even the hidden refinements" <|
+            ab = make_a_and_b
+            x1 = Warning.attach (Illegal_State.Error "my warning") (ab:A)
+            x2 = (Warning.attach (Illegal_State.Error "my warning") ab):A
+
+            x1_without_warning = x1.remove_warnings
+            x2_without_warning = x2.remove_warnings
+
+            r1 = x1_without_warning:(A & B)
+            r2 = x2_without_warning:(A & B)
+            Problems.assume_no_problems r1
+            r1.is_a A . should_be_true
+            r1.is_a B . should_be_true
+            r1.a_method . should_equal "A method"
+            r2.b_method . should_equal "B method"
+            Problems.assume_no_problems r2
+            r2.is_a A . should_be_true
+            r2.is_a B . should_be_true
+            r2.a_method . should_equal "A method"
+            r2.b_method . should_equal "B method"
+
+            r3 = (ab:A).remove_warnings:(A & B)
+            r3.is_a A . should_be_true
+            r3.is_a B . should_be_true
+            r3.a_method . should_equal "A method"
+            r3.b_method . should_equal "B method"
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

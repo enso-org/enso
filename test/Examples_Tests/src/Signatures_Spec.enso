@@ -1,0 +1,24 @@
+from Standard.Base import all
+
+from Standard.Test import all
+
+from project.Enso_Bin_Utils import all
+
+add_specs suite_builder = suite_builder.group "Standard.Base Signature Checks" group_builder->
+    setup = Api_Setup.create 'Standard' 'Base' [ "--docs=api" ]
+
+    group_builder.specify "Standard.Base.Meta" <|
+        snapshot = setup.api_dir / "Meta.md"
+
+        # Instructions to regenerate the expected snapshot can be found at
+        # https://github.com/enso-org/enso/pull/12031#discussion_r1923133269
+        expected = File.read_text enso_project.data/"signatures"/"Meta.md"
+
+        actual = File.read_text snapshot
+        actual . should_equal expected
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+

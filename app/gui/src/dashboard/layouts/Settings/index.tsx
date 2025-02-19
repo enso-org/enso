@@ -3,7 +3,7 @@ import { useCallback, useMemo, useState } from 'react'
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { useLocalRootDirectoryState } from '#/appLocalStorage'
+import { useLocalRootDirectoryState, usePreferredTimeZoneState } from '#/appLocalStorage'
 import BurgerMenuIcon from '#/assets/burger_menu.svg'
 import { Heading, MenuTrigger } from '#/components/aria'
 import { Button, Popover, Text } from '#/components/AriaComponents'
@@ -58,6 +58,8 @@ export default function Settings() {
   const [isSidebarPopoverOpen, setIsSidebarPopoverOpen] = useState(false)
   const { data: organization = null } = useBackendQuery(backend, 'getOrganization', [])
   const isQueryBlank = !/\S/.test(query)
+  const [preferredTimeZone, setPreferredTimeZone, deletePreferredTimeZone] =
+    usePreferredTimeZoneState()
 
   const updateUser = useMutation(backendMutationOptions(backend, 'updateUser')).mutateAsync
   const updateOrganization = useMutation(
@@ -98,6 +100,9 @@ export default function Settings() {
       queryClient,
       isMatch,
       changePassword,
+      preferredTimeZone,
+      setPreferredTimeZone,
+      deletePreferredTimeZone,
     }),
     [
       accessToken,
@@ -115,6 +120,9 @@ export default function Settings() {
       isMatch,
       changePassword,
       localRootDirectory,
+      preferredTimeZone,
+      setPreferredTimeZone,
+      deletePreferredTimeZone,
     ],
   )
 

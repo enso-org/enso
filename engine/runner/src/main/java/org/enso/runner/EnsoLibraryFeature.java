@@ -5,6 +5,7 @@ import static scala.jdk.javaapi.CollectionConverters.asJava;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashSet;
 import java.util.TreeSet;
 import org.enso.compiler.core.EnsoParser;
@@ -110,7 +111,7 @@ public final class EnsoLibraryFeature implements Feature {
                 NativeLibraryFinder.listAllNativeLibraries(pkg, FileSystem$.MODULE$.defaultFs());
             for (var nativeLib : nativeLibs) {
               var out = new File(nativeLibDir, nativeLib.getName());
-              Files.copy(nativeLib.toPath(), out.toPath());
+              Files.copy(nativeLib.toPath(), out.toPath(), StandardCopyOption.REPLACE_EXISTING);
               nativeLibPaths.add(out.getAbsolutePath());
             }
           }

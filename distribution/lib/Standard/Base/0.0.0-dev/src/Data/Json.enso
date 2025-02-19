@@ -430,7 +430,7 @@ make_enso object =
 ## PRIVATE
 key_value_widget : Widget
 key_value_widget =
-    fqn = Meta.get_qualified_type_name Pair . take (..Before_Last '.')
+    fqn = Pair.to Meta.Type . qualified_name . take (..Before_Last '.')
     default = 'pair "key" Nothing'
     pair = Option "Pair" fqn+".pair" [["first", Text_Input], ["second", make_all_selector]]
     item_editor = Single_Choice display=..Always values=[pair]

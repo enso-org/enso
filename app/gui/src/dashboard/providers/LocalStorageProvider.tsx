@@ -44,13 +44,13 @@ export function useLocalStorage() {
 }
 
 /** Options for {@link defineLocalStorageKey}. */
-export interface DefineLocalStorageKeyOptions<Schema extends z.ZodSchema>
+export interface DefineLocalStorageKeyOptions<Schema extends z.ZodSchema<T>, T = z.infer<Schema>>
   extends Omit<LocalStorageKeyMetadata, 'schema'> {
   readonly schema: (zod: typeof z) => Schema
 }
 
 /** Create a set of hooks for interacting with one specific local storage key. */
-export function defineLocalStorageKey<Schema extends z.ZodSchema>(
+export function defineLocalStorageKey<Schema extends z.ZodSchema<T>, T = z.infer<Schema>>(
   key: string,
   options: DefineLocalStorageKeyOptions<Schema>,
 ) {
@@ -58,10 +58,13 @@ export function defineLocalStorageKey<Schema extends z.ZodSchema>(
   type Value = NonFunction & z.infer<Schema>
 
   const { schema: makeSchema, ...metadata } = options
-  LocalStorage.defineKey(key, { ...metadata, schema: makeSchema(z) })
+  const schema = makeSchema(z)
+  LocalStorage.defineKey(key, { ...metadata, schema })
+
+  const validate = (value: unknown): value is T => schema.safeParse(value).success
 
   const getKey = (localStorage: LocalStorage = LocalStorage.getInstance()) => {
-    // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-return
+    // eslint-disable-next-line no-restricted-syntax
     return localStorage.get(key) as Value | undefined
   }
 
@@ -76,8 +79,6 @@ export function defineLocalStorageKey<Schema extends z.ZodSchema>(
   const use = () => {
     const { localStorage } = useLocalStorage()
 
-    // The return type is not `any`, this is a bug in ESLint.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     const getCallback = useEventCallback(() => getKey(localStorage))
     const setCallback = useEventCallback((value: Value) => {
       setKey(value, localStorage)
@@ -106,7 +107,7 @@ export function defineLocalStorageKey<Schema extends z.ZodSchema>(
     defaultValue?: Value,
   ): readonly [
     value: Value | undefined,
-    setValue: (newValue: SetStateAction<Value | undefined>) => void,
+    setValue: (newValue: SetStateAction<Value | undefined> & SetStateAction<Value>) => void,
     clearValue: () => void,
   ] {
     const { localStorage } = useLocalStorage()
@@ -143,6 +144,7 @@ export function defineLocalStorageKey<Schema extends z.ZodSchema>(
   }
   return {
     key: { get: getKey, set: setKey, delete: deleteKey },
+    validate,
     use,
     useState: useLocalStorageState,
   }

@@ -41,13 +41,13 @@ export function unsafeMutable<T extends object>(object: T): { -readonly [K in ke
  * Return the entries of an object. UNSAFE only when it is possible for an object to have
  * extra keys.
  */
-export function unsafeKeys<T extends object>(object: T): readonly (keyof T)[] {
+export function unsafeKeys<T extends object>(object: T): (keyof T)[] {
   // @ts-expect-error This is intentionally a wrapper function with a different type.
   return Object.keys(object)
 }
 
 /** Return the values of an object. UNSAFE only when it is possible for an object to have extra keys. */
-export function unsafeValues<const T extends object>(object: T): readonly T[keyof T][] {
+export function unsafeValues<const T extends object>(object: T): T[keyof T][] {
   return Object.values(object)
 }
 
@@ -57,7 +57,7 @@ export function unsafeValues<const T extends object>(object: T): readonly T[keyo
  */
 export function unsafeEntries<T extends object>(
   object: T,
-): readonly { [K in keyof T]: readonly [K, T[K]] }[keyof T][] {
+): readonly { [K in keyof T]: [K, T[K]] }[keyof T][] {
   // @ts-expect-error This is intentionally a wrapper function with a different type.
   return Object.entries(object)
 }
@@ -67,7 +67,7 @@ export function unsafeEntries<T extends object>(
  * extra keys.
  */
 export function unsafeFromEntries<T extends object>(
-  entries: readonly { [K in keyof T]: readonly [K, T[K]] }[keyof T][],
+  entries: readonly { [K in keyof T]: [K, T[K]] }[keyof T][],
 ): T {
   // @ts-expect-error This is intentionally a wrapper function with a different type.
   return Object.fromEntries(entries)
@@ -133,6 +133,11 @@ export function pick<T, Ks extends readonly [string & keyof T, ...(string & keyo
   ) as Pick<T, Ks[number]>
 }
 
+/** Create an object given its prototype. */
+export function createObject<T extends object>(parent: T): T {
+  return Object.create(parent)
+}
+
 /** Filter a type `T` to include only the properties extending the given type `U`. */
 export type ExtractKeys<T, U> = {
   [K in keyof T]: T[K] extends U ? K : never
@@ -140,28 +145,6 @@ export type ExtractKeys<T, U> = {
 
 /** An instance method of the given type. */
 export type MethodOf<T> = (this: T, ...args: never) => unknown
-
-/** Composable providing support for managing object identities. */
-export function useObjectId() {
-  let lastId = 0
-  const idNumbers = new WeakMap<object, number>()
-  /** @returns A value that can be used to compare object identity. */
-  function objectId(o: object): number {
-    const id = idNumbers.get(o)
-    if (id == null) {
-      lastId += 1
-      idNumbers.set(o, lastId)
-      return lastId
-    }
-    return id
-  }
-  return { objectId }
-}
-
-/** Create an object given its prototype. */
-export function createObject<T extends object>(parent: T): T {
-  return Object.create(parent)
-}
 
 /**
  * Returns the union of `A` and `B`, with a type-level assertion that `A` and `B` don't have any keys in common; this

@@ -4,17 +4,16 @@
  * selected tab, and other properties from outside the component.
  */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import type { AssetPropertiesSpotlight } from '#/layouts/AssetProperties'
-import type Backend from '#/services/Backend'
-import type { AnyAsset } from '#/services/Backend'
+import type { AnyAsset, default as Backend } from '#/services/Backend'
 import * as zustand from '#/utilities/zustand'
 import { startTransition } from 'react'
 import {
   storedAssetPanelTab,
   storedIsAssetPanelHidden,
-  storedIsAssetPanelOpen,
+  storedIsAssetPanelVisible,
 } from './assetPanelLocalStorage'
-import { type AssetPanelTab } from './types'
+import type { AssetPropertiesSpotlight } from './components/AssetProperties'
+import type { AssetPanelTab } from './types'
 
 /** The state of the asset panel. */
 export interface AssetPanelState {
@@ -46,7 +45,7 @@ export const assetPanelStore = zustand.createStore<AssetPanelState>((set, get) =
     setIsAssetPanelPermanentlyOpen: (isAssetPanelPermanentlyOpen) => {
       if (get().isAssetPanelPermanentlyOpen !== isAssetPanelPermanentlyOpen) {
         set({ isAssetPanelPermanentlyOpen })
-        storedIsAssetPanelOpen.set(isAssetPanelPermanentlyOpen)
+        storedIsAssetPanelVisible.set(isAssetPanelPermanentlyOpen)
       }
     },
     setIsAssetPanelOpen: (isAssetPanelExpanded) => {

@@ -17,15 +17,18 @@ import * as paywall from '#/components/Paywall'
 import SvgMask from '#/components/SvgMask'
 
 /** Props for {@link PaywallAlert}. */
-export interface PaywallAlertProps extends Omit<ariaComponents.AlertProps, 'children'> {
+export interface PaywallAlertProps<IconType extends string>
+  extends Omit<ariaComponents.AlertProps, 'children'> {
   readonly feature: billingHooks.PaywallFeatureName
   readonly label: string
   readonly showUpgradeButton?: boolean
-  readonly upgradeButtonProps?: Omit<paywall.UpgradeButtonProps, 'feature'>
+  readonly upgradeButtonProps?: Omit<paywall.UpgradeButtonProps<IconType>, 'feature'>
 }
 
 /** A paywall alert. */
-export function PaywallAlert(props: PaywallAlertProps) {
+export function PaywallAlert<IconType extends string>(
+  props: PaywallAlertProps<IconType>,
+): React.JSX.Element {
   const {
     label,
     showUpgradeButton = true,

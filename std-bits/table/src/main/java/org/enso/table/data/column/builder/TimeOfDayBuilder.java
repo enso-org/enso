@@ -3,28 +3,18 @@ package org.enso.table.data.column.builder;
 import java.time.LocalTime;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.datetime.TimeOfDayStorage;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for LocalTime columns. */
-public class TimeOfDayBuilder extends TypedBuilderImpl<LocalTime> {
-  @Override
-  protected LocalTime[] newArray(int size) {
-    return new LocalTime[size];
-  }
-
-  public TimeOfDayBuilder(int size) {
-    super(size);
+public final class TimeOfDayBuilder extends TypedBuilder<LocalTime> {
+  TimeOfDayBuilder(int size) {
+    super(TimeOfDayType.INSTANCE, new LocalTime[size]);
   }
 
   @Override
-  public StorageType getType() {
-    return TimeOfDayType.INSTANCE;
-  }
-
-  @Override
-  public void appendNoGrow(Object o) {
+  public void append(Object o) {
+    ensureSpaceToAppend();
     try {
       data[currentSize++] = (LocalTime) o;
     } catch (ClassCastException e) {
@@ -39,6 +29,6 @@ public class TimeOfDayBuilder extends TypedBuilderImpl<LocalTime> {
 
   @Override
   protected Storage<LocalTime> doSeal() {
-    return new TimeOfDayStorage(data, currentSize);
+    return new TimeOfDayStorage(data);
   }
 }

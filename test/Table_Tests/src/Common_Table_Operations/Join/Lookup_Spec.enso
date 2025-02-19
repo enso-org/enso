@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Floating_Point_Equality
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import all
@@ -42,11 +43,11 @@ add_merge_specs suite_builder setup =
             m2.at "X" . to_vector . should_equal [1, 2, 3, 2]
             m2.at "Y" . to_vector . should_equal ["A", "B", "A", "B"]
 
-        group_builder.specify "should allow to add new columns from a lookup table" <|
+        group_builder.specify "should allow to add new columns from a lookup table (add_new_columns=True (default))" <|
             lookup = table_builder [["code", ["a", "b", "c"]], ["status", ["new", "old", "changed"]]]
             my_table = table_builder [["id", [1, 2, 3, 4]], ["code", ["a", "c", "c", "b"]], ["hmm", [10, 20, 30, 40]]]
 
-            t2 = my_table.merge lookup key_columns="code"  add_new_columns=True
+            t2 = my_table.merge lookup key_columns="code"
             t2.column_names . should_equal ["id", "code", "hmm", "status"]
             m2 = t2 |> materialize |> _.sort "id"
             m2.at "id" . to_vector . should_equal [1, 2, 3, 4]
@@ -63,11 +64,11 @@ add_merge_specs suite_builder setup =
             m3.at "is_X" . to_vector . should_equal [True, True, False, True]
             m3.at "X" . to_vector . should_equal ["Yes", "Yes", "No", "Yes"]
 
-        group_builder.specify "will warn if extra columns are unexpected (add_new_columns=False) (default)" <|
+        group_builder.specify "will warn if extra columns are unexpected (add_new_columns=False)" <|
             lookup = table_builder [["code", ["a", "b", "c"]], ["status", ["new", "old", "changed"]]]
             my_table = table_builder [["id", [1, 2, 3, 4]], ["code", ["a", "c", "c", "b"]], ["hmm", [10, 20, 30, 40]]]
 
-            t2 = my_table.merge lookup key_columns="code"
+            t2 = my_table.merge lookup key_columns="code" add_new_columns=False
             t2.column_names . should_equal ["id", "code", "hmm"]
             m2 = t2 |> materialize |> _.sort "id"
             m2.at "id" . to_vector . should_equal [1, 2, 3, 4]
@@ -329,7 +330,7 @@ add_merge_specs suite_builder setup =
             my_table = table_builder [["X", [2, 1]], ["Z", [10, 20]]]
 
             r2 = my_table.merge lookup key_columns=[] add_new_columns=True
-            r2.should_fail_with Illegal_Argument
+            r2.should_fail_with Missing_Argument
 
         if setup.is_database.not then group_builder.specify "(in-memory only) will preserve the 279table_builder of rows from the original table" <|
             lookup = table_builder [["Y", [1, 0]], ["V", ["TRUE", "FALSE"]]]

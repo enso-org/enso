@@ -66,7 +66,7 @@ pub fn discover_recursive(
 }
 
 
-pub fn upload(
+fn upload(
     file_provider: impl Stream<Item = FileToUpload> + Send + 'static,
     artifact_name: impl Into<String>,
     options: UploadOptions,
@@ -84,7 +84,7 @@ pub fn upload(
     .boxed()
 }
 
-pub fn upload_single_file(
+fn upload_single_file(
     file: impl Into<PathBuf>,
     artifact_name: impl Into<String>,
 ) -> BoxFuture<'static, Result> {

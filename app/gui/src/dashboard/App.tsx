@@ -72,10 +72,9 @@ import * as subscribeSuccess from '#/pages/subscribe/SubscribeSuccess'
 import * as openAppWatcher from '#/layouts/OpenAppWatcher'
 import VersionChecker from '#/layouts/VersionChecker'
 
-import { RouterProvider } from '#/components/aria'
-import * as devtools from '#/components/Devtools'
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as suspense from '#/components/Suspense'
+import { RouterProvider } from 'react-aria-components'
 
 import AboutModal from '#/modals/AboutModal'
 import { AgreementsModal } from '#/modals/AgreementsModal'
@@ -99,6 +98,7 @@ import {
 } from '#/appLocalStorage'
 import { useInitAuthService } from '#/authentication/service'
 import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
+import { CloudBrowserDisabledLayout } from '#/providers/AuthProvider'
 import { useMutation } from '@tanstack/react-query'
 import { useOffline } from './hooks/offlineHooks'
 
@@ -436,21 +436,28 @@ function AppRouter(props: AppRouterProps) {
       <router.Route element={<authProvider.NotDeletedUserLayout />}>
         <router.Route element={<authProvider.ProtectedLayout />}>
           <router.Route element={<AgreementsModal />}>
-            <router.Route element={<SetupOrganizationAfterSubscribe />}>
-              <router.Route element={<InvitedToOrganizationModal />}>
-                <router.Route element={<openAppWatcher.OpenAppWatcher />}>
-                  <router.Route path={appUtils.DASHBOARD_PATH} element={<Dashboard {...props} />} />
+            <router.Route
+              element={<CloudBrowserDisabledLayout redirectPath={appUtils.SETUP_PATH} />}
+            >
+              <router.Route element={<SetupOrganizationAfterSubscribe />}>
+                <router.Route element={<InvitedToOrganizationModal />}>
+                  <router.Route element={<openAppWatcher.OpenAppWatcher />}>
+                    <router.Route
+                      path={appUtils.DASHBOARD_PATH}
+                      element={<Dashboard {...props} />}
+                    />
 
-                  <router.Route
-                    path={appUtils.SUBSCRIBE_PATH}
-                    element={
-                      <errorBoundary.ErrorBoundary>
-                        <suspense.Suspense>
-                          <subscribe.Subscribe />
-                        </suspense.Suspense>
-                      </errorBoundary.ErrorBoundary>
-                    }
-                  />
+                    <router.Route
+                      path={appUtils.SUBSCRIBE_PATH}
+                      element={
+                        <errorBoundary.ErrorBoundary>
+                          <suspense.Suspense>
+                            <subscribe.Subscribe />
+                          </suspense.Suspense>
+                        </errorBoundary.ErrorBoundary>
+                      }
+                    />
+                  </router.Route>
                 </router.Route>
               </router.Route>
             </router.Route>
@@ -470,8 +477,14 @@ function AppRouter(props: AppRouterProps) {
       </router.Route>
 
       <router.Route element={<AgreementsModal />}>
-        <router.Route element={<authProvider.NotDeletedUserLayout />}>
-          <router.Route path={appUtils.SETUP_PATH} element={<setup.Setup />} />
+        <router.Route element={<authProvider.AnyLoggedInUserLayout />}>
+          <router.Route element={<authProvider.NotDeletedUserLayout />}>
+            <router.Route
+              element={<CloudBrowserDisabledLayout redirectPath={appUtils.SETUP_PATH} />}
+            >
+              <router.Route path={appUtils.SETUP_PATH} element={<setup.Setup />} />
+            </router.Route>
+          </router.Route>
         </router.Route>
       </router.Route>
 
@@ -508,11 +521,6 @@ function AppRouter(props: AppRouterProps) {
               <LocalBackendPathSynchronizer />
               <VersionChecker />
               {routes}
-              <suspense.Suspense>
-                <errorBoundary.ErrorBoundary>
-                  <devtools.EnsoDevtools />
-                </errorBoundary.ErrorBoundary>
-              </suspense.Suspense>
             </InputBindingsProvider>
           </AuthProvider>
         </BackendProvider>

@@ -2,15 +2,12 @@
  * @file
  * This file provides a zustand store that contains the state of the Enso devtools.
  */
+import { PAYWALL_FEATURES, type PaywallFeatureName } from '#/hooks/billing'
+import * as zustand from '#/utilities/zustand'
+import { IS_DEV_MODE } from 'enso-common/src/detect'
+import { unsafeEntries, unsafeFromEntries } from 'enso-common/src/utilities/data/object'
 import { MotionGlobalConfig } from 'framer-motion'
 import { persist } from 'zustand/middleware'
-
-import { IS_DEV_MODE } from 'enso-common/src/detect'
-import { unsafeFromEntries } from 'enso-common/src/utilities/data/object'
-
-import { type PaywallFeatureName, PAYWALL_FEATURES } from '#/hooks/billing'
-import * as zustand from '#/utilities/zustand'
-import { unsafeEntries } from '@/util/record'
 
 /** Configuration for a paywall feature. */
 export interface PaywallDevtoolsFeatureConfiguration {
@@ -23,7 +20,9 @@ export interface PaywallDevtoolsFeatureConfiguration {
 
 /** The state of this zustand store. */
 interface EnsoDevtoolsStore {
-  readonly showDevtools: boolean
+  readonly showDevtools: boolean | null
+  readonly showEnsoDevtools: boolean | null
+  readonly toggleEnsoDevtools: () => void
   readonly setShowDevtools: (showDevtools: boolean) => void
   readonly toggleDevtools: () => void
   readonly showVersionChecker: boolean | null
@@ -37,12 +36,28 @@ interface EnsoDevtoolsStore {
 export const ensoDevtoolsStore = zustand.createStore<EnsoDevtoolsStore>()(
   persist(
     (set) => ({
-      showDevtools: IS_DEV_MODE,
+      showDevtools: IS_DEV_MODE ? true : null,
+      showEnsoDevtools: IS_DEV_MODE ? true : null,
+      toggleEnsoDevtools: () => {
+        set(({ showEnsoDevtools }) => ({ showEnsoDevtools: !(showEnsoDevtools ?? false) }))
+      },
       setShowDevtools: (showDevtools) => {
-        set({ showDevtools })
+        set({ showDevtools, showEnsoDevtools: showDevtools })
       },
       toggleDevtools: () => {
-        set(({ showDevtools }) => ({ showDevtools: !showDevtools }))
+        set(({ showDevtools, showEnsoDevtools }) => {
+          if (showEnsoDevtools === false) {
+            return {
+              showDevtools: true,
+              showEnsoDevtools: true,
+            }
+          }
+
+          return {
+            showDevtools: !(showDevtools ?? false),
+            showEnsoDevtools: !(showDevtools ?? false),
+          }
+        })
       },
       showVersionChecker: false,
       paywallFeatures: unsafeFromEntries(
@@ -73,8 +88,9 @@ export const ensoDevtoolsStore = zustand.createStore<EnsoDevtoolsStore>()(
     }),
     {
       name: 'ensoDevtools',
+      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+      version: 1.1,
       partialize: (state) => ({
-        showDevtools: state.showDevtools,
         animationsDisabled: state.animationsDisabled,
       }),
     },
@@ -121,12 +137,16 @@ export function useSetAnimationsDisabled() {
 export function usePaywallDevtools() {
   return zustand.useStore(
     ensoDevtoolsStore,
-    (state) => ({
-      features: state.paywallFeatures,
-      setFeature: state.setPaywallFeature,
-    }),
+    (state) => ({ features: state.paywallFeatures, setFeature: state.setPaywallFeature }),
     { unsafeEnableTransition: true },
   )
+}
+
+/** A hook that provides access to the show enso devtools state. */
+export function useShowEnsoDevtools() {
+  return zustand.useStore(ensoDevtoolsStore, (state) => state.showEnsoDevtools, {
+    unsafeEnableTransition: true,
+  })
 }
 
 /** A hook that provides access to the show devtools state. */
@@ -136,6 +156,16 @@ export function useShowDevtools() {
   })
 }
 
-if (typeof window !== 'undefined') {
-  window.toggleDevtools = ensoDevtoolsStore.getState().toggleDevtools
+/** A hook that provides access to the toggle enso devtools state. */
+export function useToggleEnsoDevtools() {
+  return zustand.useStore(ensoDevtoolsStore, (state) => state.toggleEnsoDevtools, {
+    unsafeEnableTransition: true,
+  })
+}
+
+/** A hook that provides access to the set show devtools state. */
+export function useSetShowDevtools() {
+  return zustand.useStore(ensoDevtoolsStore, (state) => state.setShowDevtools, {
+    unsafeEnableTransition: true,
+  })
 }

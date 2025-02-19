@@ -64,6 +64,8 @@ type Postgres_Type_Mapping
                    but we may also consider using the standard SQL `bit(n)` and `bit varying(n)` types.
                    See: https://www.postgresql.org/docs/current/datatype-bit.html
                 SQL_Type.Value Types.BINARY "bytea" precision=max_precision
+            Value_Type.Null ->
+                Error.throw (Unsupported_Database_Type.Error "Null" "Postgres")
             Value_Type.Mixed ->
                 Error.throw (Unsupported_Database_Type.Error "Mixed" "Postgres")
             Value_Type.Unsupported_Data_Type type_name underlying_type ->
@@ -146,7 +148,7 @@ type Postgres_Type_Mapping
 simple_types_map = Dictionary.from_vector <|
     ints = [[Types.SMALLINT, Value_Type.Integer Bits.Bits_16], [Types.BIGINT, Value_Type.Integer Bits.Bits_64], [Types.INTEGER, Value_Type.Integer Bits.Bits_32]]
     floats = [[Types.DOUBLE, Value_Type.Float Bits.Bits_64], [Types.REAL, Value_Type.Float Bits.Bits_32]]
-    other = [[Types.DATE, Value_Type.Date], [Types.TIME, Value_Type.Time]]
+    other = [[Types.DATE, Value_Type.Date], [Types.TIME, Value_Type.Time], [Types.NULL, Value_Type.Null]]
     ints + floats + other
 
 ## PRIVATE

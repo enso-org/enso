@@ -14,12 +14,12 @@ public class MulOp<T extends Number, I extends Storage<? super T>>
 
   @Override
   public double doDouble(
-      double a, double b, int ix, MapOperationProblemAggregator problemAggregator) {
+      double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
     return a * b;
   }
 
   @Override
-  public Long doLong(long a, long b, int ix, MapOperationProblemAggregator problemAggregator) {
+  public Long doLong(long a, long b, long ix, MapOperationProblemAggregator problemAggregator) {
     try {
       return Math.multiplyExact(a, b);
     } catch (ArithmeticException e) {
@@ -30,13 +30,13 @@ public class MulOp<T extends Number, I extends Storage<? super T>>
 
   @Override
   public BigInteger doBigInteger(
-      BigInteger a, BigInteger b, int ix, MapOperationProblemAggregator problemAggregator) {
+      BigInteger a, BigInteger b, long ix, MapOperationProblemAggregator problemAggregator) {
     return a.multiply(b);
   }
 
   @Override
   public BigDecimal doBigDecimal(
-      BigDecimal a, BigDecimal b, int ix, MapOperationProblemAggregator problemAggregator) {
+      BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator) {
     return a.multiply(b);
   }
 }

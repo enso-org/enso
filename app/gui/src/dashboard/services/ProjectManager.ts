@@ -7,9 +7,9 @@ import invariant from 'tiny-invariant'
 
 import * as backend from '#/services/Backend'
 import * as appBaseUrl from '#/utilities/appBaseUrl'
-import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
 import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
+import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 
 /** Duration before the {@link ProjectManager} tries to create a WebSocket again. */
 const RETRY_INTERVAL_MS = 1000

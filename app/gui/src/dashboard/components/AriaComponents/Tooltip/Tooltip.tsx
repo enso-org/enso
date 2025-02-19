@@ -3,6 +3,7 @@ import * as aria from '#/components/aria'
 import { useStrictPortalContext } from '#/components/Portal'
 
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import { ResetButtonGroupContext } from '../Button'
 
 import { DIALOG_BACKGROUND } from '../Dialog'
 import { TEXT_STYLE } from '../Text'
@@ -83,16 +84,18 @@ export function Tooltip(props: TooltipProps) {
   const root = useStrictPortalContext()
 
   return (
-    <aria.Tooltip
-      offset={DEFAULT_OFFSET}
-      containerPadding={containerPadding}
-      UNSTABLE_portalContainer={root}
-      className={aria.composeRenderProps(className, (classNames, values) =>
-        TOOLTIP_STYLES({ className: classNames, variant, size, rounded, ...values }),
-      )}
-      data-ignore-click-outside
-      {...ariaTooltipProps}
-    />
+    <ResetButtonGroupContext>
+      <aria.Tooltip
+        offset={DEFAULT_OFFSET}
+        containerPadding={containerPadding}
+        UNSTABLE_portalContainer={root}
+        className={aria.composeRenderProps(className, (classNames, values) =>
+          TOOLTIP_STYLES({ className: classNames, variant, size, rounded, ...values }),
+        )}
+        data-ignore-click-outside
+        {...ariaTooltipProps}
+      />
+    </ResetButtonGroupContext>
   )
 }
 

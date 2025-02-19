@@ -1,12 +1,11 @@
 //! Model of a workflow definition and related utilities.
 
-use serde_yaml::Value;
-
 use crate::prelude::*;
 
 use crate::convert_case::ToKebabCase;
 use crate::env::accessor::RawVariable;
 
+use serde_yaml::Value;
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::sync::atomic::AtomicU64;
@@ -97,20 +96,43 @@ pub fn setup_bazel_env() -> Step {
 pub fn setup_bazel() -> Step {
     Step {
         name: Some("Setup bazel environment".into()),
-        uses: Some("bazel-contrib/setup-bazel@09f3a72d13a081857b0ee94e986ffa84caef7c85".into()),
+        uses: Some("bazel-contrib/setup-bazel@0.13.0".into()),
         with: Some(step::Argument::Other(BTreeMap::from([
             (
                 "output-base".to_string(),
                 Value::String(format!("${{{{ {} && 'c:/_bazel' || '' }}}}", is_windows_runner())),
             ),
-            ("bazelisk-cache".to_string(), Value::Bool(true)),
-            ("disk-cache".to_string(), Value::Bool(true)),
-            ("repository-cache".to_string(), Value::Bool(true)),
+            (
+                "bazelrc".to_string(),
+                Value::String(
+                    "build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header=\"authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}\"".to_string(),
+                ),
+            ),
         ]))),
         ..default()
     }
 }
 
+pub fn setup_node() -> Step {
+    Step {
+        name: Some("Setup nodejs version".into()),
+        uses: Some("actions/setup-node@v4".into()),
+        with: Some(step::Argument::Other(BTreeMap::from([(
+            "node-version-file".to_string(),
+            Value::String(".node-version".to_string()),
+        )]))),
+        r#if: Some(is_macos_runner()),
+        ..default()
+    }
+}
+
+pub fn setup_corepack() -> Step {
+    Step {
+        run: Some("npm install -g corepack@0.31.0 && corepack --version".into()),
+        r#if: Some(is_non_linux_runner()),
+        ..default()
+    }
+}
 
 pub fn setup_wasm_pack_step() -> Step {
     Step {
@@ -149,6 +171,16 @@ pub fn setup_artifact_api() -> Step {
 /// An expression piece that evaluates to `true` if the current runner runs on Windows.
 pub fn is_windows_runner() -> String {
     "runner.os == 'Windows'".into()
+}
+
+/// An expression piece that evaluates to `true` if the current runner runs on macOS.
+pub fn is_macos_runner() -> String {
+    "runner.os == 'macOS'".into()
+}
+/// An expression piece that evaluates to `true` if the current runner runs on non-linux operating
+/// system.
+pub fn is_non_linux_runner() -> String {
+    "runner.os != 'Linux'".into()
 }
 
 /// An expression piece that evaluates to `true` if the current runner *does not* run on Windows.
@@ -1095,7 +1127,7 @@ pub fn checkout_repo_step() -> Step {
         with: Some(step::Argument::Checkout {
             repository: None,
             clean:      Some(false),
-            submodules: Some(CheckoutArgumentSubmodules::Recursive),
+            submodules: None,
         }),
         ..default()
     }

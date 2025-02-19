@@ -18,7 +18,7 @@
     "prettier": "^3.4.2",
     "prettier-plugin-organize-imports": "^4.1.0",
     "prettier-plugin-tailwindcss": "^0.5.14",
-    "vitest": "3.0.0-beta.3"
+    "vitest": "3.0.5"
   },
   "dependencies": {
     "@bazel/bazelisk": "^1.22.1",
@@ -38,10 +38,10 @@
     "format:workflows": "prettier --write .github/workflows",
     "ci-check": "corepack pnpm run -r compile && corepack pnpm run --aggregate-output /^ci:/",
     "ci:prettier": "prettier --check --cache .",
-    "ci:lint": "corepack pnpm run -r --parallel lint --output-file eslint_report.json --format json",
+    "ci:lint": "corepack pnpm run -r --parallel lint --output-file eslint_report.json --format json --cache-strategy content",
     "ci:test": "corepack pnpm run -r --parallel test",
     "ci:unit-test": "corepack pnpm run -r --parallel test:unit",
-    "ci:typecheck": "corepack pnpm run -r typecheck",
+    "ci:typecheck": "corepack pnpm run -r --parallel typecheck",
     "git-clean": "git clean -xfd --exclude='.env*'",
     "ci:chromatic:react": "corepack pnpm run -r --filter enso-gui chromatic:react",
     "ci:chromatic:vue": "corepack pnpm run -r --filter enso-gui chromatic:vue",
@@ -166,5 +166,5 @@
       }
     }
   },
-  "packageManager": "pnpm@10.0.0+sha512.b8fef5494bd3fe4cbd4edabd0745df2ee5be3e4b0b8b08fa643aa3e4c6702ccc0f00d68fa8a8c9858a735a0032485a44990ed2810526c875e416f001b17df12b"
+  "packageManager": "pnpm@10.2.1+sha512.398035c7bd696d0ba0b10a688ed558285329d27ea994804a52bad9167d8e3a72bcb993f9699585d3ca25779ac64949ef422757a6c31102c12ab932e5cbe5cc92"
 }

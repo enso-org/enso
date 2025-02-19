@@ -106,11 +106,15 @@ collect_benches = Bench.build builder->
             column_arithmetic_plus_overflowing data
         group_builder.specify "Plus_Nothing" <|
             column_arithmetic_plus_nothing data
+        group_builder.specify "Plus_Constant" <|
+            (data.table.at "X") + 5
 
         group_builder.specify "Multiply_Fitting" <|
             column_arithmetic_multiply_fitting data
         group_builder.specify "Multiply_Overflowing" <|
             column_arithmetic_multiply_overflowing data
+        group_builder.specify "Multiply_Constant" <|
+            (data.table.at "X") * 2
 
     builder.group ("Arrow_Arithmetic_" + num_rows.to_text) options group_builder->
         group_builder.specify "Plus_Fitting" <|

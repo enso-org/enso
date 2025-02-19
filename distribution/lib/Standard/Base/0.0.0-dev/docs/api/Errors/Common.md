@@ -1,0 +1,107 @@
+## Enso Signatures 1.0
+## module Standard.Base.Errors.Common
+- type Additional_Warnings
+    - Error count:Standard.Base.Data.Numbers.Integer
+    - to_display_text self -> Standard.Base.Any.Any
+- type Arithmetic_Error
+    - Error message:Standard.Base.Any.Any
+    - handle_java_exception -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Arity_Error
+    - Error expected_min:Standard.Base.Any.Any expected_max:Standard.Base.Any.Any actual:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Assertion_Error
+    - Error message:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Compile_Error
+    - Error message:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Dry_Run_Operation
+    - Warning message:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Failed_To_Load
+    - Warning path:Standard.Base.Any.Any cause:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Floating_Point_Equality
+    - Error location:Standard.Base.Data.Text.Text
+    - Used_As_Dictionary_Key value:Standard.Base.Data.Numbers.Float
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+- type Forbidden_Operation
+    - Error message:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Incomparable_Values
+    - Error left:Standard.Base.Any.Any right:Standard.Base.Any.Any
+    - handle_errors ~function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Index_Out_Of_Bounds
+    - Error index:Standard.Base.Any.Any length:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Inexhaustive_Pattern_Match
+    - Error scrutinee:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Invalid_Array_Index
+    - Error array:Standard.Base.Any.Any index:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Invalid_Conversion_Target
+    - Error target:Standard.Base.Any.Any
+- type Loss_Of_Numeric_Precision
+    - Warning original_value:Standard.Base.Any.Any new_value:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+- type Missing_Argument
+    - Error argument_name:Standard.Base.Data.Text.Text function_name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= call_location:(Standard.Base.Runtime.Source_Location.Source_Location|Standard.Base.Nothing.Nothing)= message:Standard.Base.Data.Text.Text=
+    - throw argument_name:Standard.Base.Data.Text.Text message_override:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Module_Does_Not_Exist
+    - Error name:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Module_Not_In_Package_Error
+    - Error
+    - to_display_text self -> Standard.Base.Any.Any
+- type No_Conversion_Currying
+    - Error has_this:Standard.Base.Any.Any has_that:Standard.Base.Any.Any conversion:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type No_Such_Conversion
+    - Error target:Standard.Base.Any.Any that:Standard.Base.Any.Any conversion:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type No_Such_Field
+    - Error value:Standard.Base.Any.Any field_name:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type No_Such_Method
+    - Error target:Standard.Base.Any.Any symbol:Standard.Base.Any.Any
+    - method_name self -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Not_Found
+- type Not_Invokable
+    - Error target:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Out_Of_Memory
+    - Error operation:Standard.Base.Any.Any
+    - handle_java_exception operation:Standard.Base.Any.Any ~function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Out_Of_Range
+    - Error value:Standard.Base.Any.Any message:Standard.Base.Any.Any=
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+- type Private_Access
+    - Error this_project_name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) target_project_name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) target_method_name:Standard.Base.Data.Text.Text
+    - to_display_text self -> Standard.Base.Any.Any
+- type Response_Too_Large
+    - Error actual_size:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing) limit:Standard.Base.Data.Numbers.Integer
+    - handle_java_exception ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+- type Syntax_Error
+    - Error message:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Type_Error
+    - Error expected:Standard.Base.Any.Any actual:Standard.Base.Any.Any comment:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+- type Uninitialized_State
+    - Error key:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+- type Unsupported_Argument_Types
+    - Error arguments:Standard.Base.Any.Any message:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any

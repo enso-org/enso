@@ -11,14 +11,21 @@ type Primitive
 
 type_of value = @Builtin_Method "Meta.type_of"
 
-is_polyglot value = @Builtin_Method "Meta.is_polyglot"
+is_polyglot value = 3 == get_kind_builtin value
+get_kind_builtin value = @Builtin_Method "Meta.get_kind_builtin"
 
 # A **very** minimal version of meta for the purpose of tests
 meta value =
-    if is_unresolved_symbol value then Unresolved_Symbol.Value value else
-        Primitive.Value value
+    kind = get_kind_builtin value
+    case kind of
+        #1 -> Constructor.Value ac
+        #2 -> Atom.Value value
+        #3 -> Polyglot.Value value
+        4 -> Unresolved_Symbol.Value value
+        #5 -> Error.Value value.catch
+        #6 -> Type.Value value
+        _ -> Primitive.Value value
 
-is_unresolved_symbol value = @Builtin_Method "Meta.is_unresolved_symbol"
 get_unresolved_symbol_name symbol = @Builtin_Method "Meta.get_unresolved_symbol_name"
 get_unresolved_symbol_scope symbol = @Builtin_Method "Meta.get_unresolved_symbol_scope"
 get_atom_constructor atom = @Builtin_Method "Meta.get_atom_constructor"

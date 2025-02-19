@@ -152,6 +152,31 @@ type Value_Type
        In-Memory and SQLite tables support this.
     Mixed
 
+    ## A special type indicating no values present.
+
+       It can be used when a column does not have any values, so no proper type 
+       could be inferred for it. Columns of this type cannot hold any values 
+       other than `Nothing`. 
+       
+       Because the column with type `Null` contains no values, it can be used in 
+       any operation.
+
+       ? Implementation Note
+
+         The `is_*` methods will return `False` for this type, as they require 
+         more precision. E.g. `Value_Type.Null.is_boolean` will return `False`. 
+         However, the sibling `expect_*` methods will accept a `Value_Type.Null` 
+         column.
+    Null
+
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
+       Checks if the `Value_Type` represents a null type.
+    is_null : Boolean
+    is_null self = case self of
+        Value_Type.Null -> True
+        _ -> False
+
     ## GROUP Standard.Base.Metadata
        ICON metadata
        Checks if the `Value_Type` represents a boolean type.
@@ -273,6 +298,7 @@ type Value_Type
         Value_Type.Date        -> True
         Value_Type.Date_Time _ -> True
         Value_Type.Time        -> True
+        Value_Type.Null        -> True
         ## Not all mixed types are ordered, but some can, so we allow ordering
            for mixed columns.
         Value_Type.Mixed -> True
@@ -287,7 +313,7 @@ type Value_Type
        integers can be widened into floats and big enough integers may not be
        able to be exactly represented in floats.
     can_be_widened_to : Value_Type -> Boolean
-    can_be_widened_to self target_type = if (self == target_type) || (target_type == Value_Type.Mixed) then True else case self of
+    can_be_widened_to self target_type = if (self == target_type) || (target_type == Value_Type.Mixed) || (self == Value_Type.Null) then True else case self of
         Value_Type.Integer self_bits -> case target_type of
             Value_Type.Integer target_bits -> target_bits >= self_bits
             Value_Type.Float _ -> True
@@ -334,16 +360,19 @@ type Value_Type
     are_comparable : Value_Type -> Value_Type -> Boolean
     are_comparable type_1 type_2 =
         find_bucket typ = typ.if_not_error <|
-            buckets = [["Integer", "Byte", "Float", "Decimal"], ["Char"], ["Date"], ["Date_Time"], ["Time"], ["Boolean"], ["Mixed"]]
+            buckets = [["Integer", "Byte", "Float", "Decimal"], ["Char"], ["Date"], ["Date_Time"], ["Time"], ["Boolean"], ["Mixed"], ["Null"]]
             ctor_name = Meta.meta typ . constructor . name
             buckets.index_of bucket->
                 bucket.contains ctor_name
 
         bucket_1 = find_bucket type_1
         bucket_2 = find_bucket type_2
-        if bucket_1.is_nothing || bucket_2.is_nothing then False else
-            if (type_1 == Value_Type.Mixed) || (type_2 == Value_Type.Mixed) then True else
-                bucket_1 == bucket_2
+        either_type_is_not_ordered = bucket_1.is_nothing || bucket_2.is_nothing
+        if either_type_is_not_ordered then False else
+            comparable_with_everything = [Value_Type.Mixed, Value_Type.Null]
+            if (comparable_with_everything.contains type_1) || (comparable_with_everything.contains type_2) then True else
+                if bucket_1.is_nothing || bucket_2.is_nothing then False else
+                    bucket_1 == bucket_2
 
 
     ## PRIVATE
@@ -418,13 +447,10 @@ type Value_Type
     ## PRIVATE
        A helper for generating the `Value_Type.expect_` checks.
     expect_type : Any -> (Value_Type -> Boolean) -> Text|Value_Type -> Any -> Any ! Invalid_Value_Type
-    expect_type value predicate type_kind ~action = case value of
-        # Special handling for `Nothing`. Likely, can be removed with #6281.
-        Nothing -> action
-        _ ->
-            typ = Value_Type_Helpers.find_argument_type value
-            if predicate typ then action else
-                Value_Type_Helpers.raise_unexpected_type type_kind value
+    expect_type value predicate type_kind ~action =
+        typ = Value_Type_Helpers.find_argument_type value
+        if (typ == Value_Type.Null) || predicate typ then action else
+            Value_Type_Helpers.raise_unexpected_type type_kind value
 
     ## PRIVATE
        Provides a text representation of the `Value_Type` meant for
@@ -459,6 +485,7 @@ type Value_Type
             Nothing  -> "Unsupported_Data_Type"
             _ : Text -> "Unsupported_Data_Type (" + type_name + ")"
         Value_Type.Mixed -> "Mixed"
+        Value_Type.Null -> "Null"
 
     ## PRIVATE
        Provides a JS object representation for use in visualizations.

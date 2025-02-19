@@ -10,8 +10,8 @@ import AssetIcon from '#/components/dashboard/AssetIcon'
 
 import type * as backend from '#/services/Backend'
 
-import * as dateTime from '#/utilities/dateTime'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 
 // ====================
 // === AssetSummary ===

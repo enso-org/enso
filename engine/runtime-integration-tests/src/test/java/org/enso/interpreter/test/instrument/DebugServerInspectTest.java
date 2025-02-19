@@ -166,12 +166,16 @@ public class DebugServerInspectTest {
     assertEquals("Two", 2, r.getArrayElement(2).asInt());
     assertEquals("No output printed", "", out.toString());
     assertThat(
+        "Stderr contains some warnings about one\n",
+        err.toString(),
+        containsString("one = 1\n ! Beware of ONE"));
+    assertThat(
+        "Stderr contains some warnings about half\n",
+        err.toString(),
+        containsString("half = 2\n ! Beware of HALF"));
+    assertThat(
         "Stderr contains some warnings",
         err.toString(),
-        AllOf.allOf(
-            containsString("half = 2\n ! Beware of HALF"),
-            containsString("one = 1\n ! Beware of ONE"),
-            containsString("two = 2\n ! Beware of TWO\n ! Beware of HALF"),
-            containsString("two = 2")));
+        containsString("two = 2\n ! Beware of HALF\n ! Beware of TWO"));
   }
 }

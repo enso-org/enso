@@ -13,7 +13,7 @@ import * as twv from '#/utilities/tailwindVariants'
 export interface SeparatorProps
   extends aria.SeparatorProps,
     twv.VariantProps<typeof SEPARATOR_STYLES> {
-  readonly className?: string
+  readonly className?: string | undefined
 }
 
 /** The styles for the {@link Separator} component. */
@@ -77,13 +77,16 @@ export const SEPARATOR_STYLES = twv.tv({
 
 /** A separator component. */
 export function Separator(props: SeparatorProps) {
-  const { orientation = 'horizontal', variant, className, size, ...rest } = props
+  const {
+    orientation = 'horizontal',
+    variant,
+    variants = SEPARATOR_STYLES,
+    className,
+    size,
+    ...rest
+  } = props
 
-  return (
-    <aria.Separator
-      orientation={orientation}
-      className={SEPARATOR_STYLES({ orientation, variant, size, className })}
-      {...rest}
-    />
-  )
+  const styles = variants({ orientation, variant, size, className })
+
+  return <aria.Separator orientation={orientation} className={styles} {...rest} />
 }

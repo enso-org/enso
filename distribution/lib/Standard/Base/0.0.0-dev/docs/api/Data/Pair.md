@@ -1,0 +1,24 @@
+## Enso Signatures 1.0
+## module Standard.Base.Data.Pair
+- type Pair
+    - Value first:Standard.Base.Any.Any second:Standard.Base.Any.Any
+    - all self predicate:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - any self predicate:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - at self index:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - contains self elem:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - each self f:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - find self predicate:Standard.Base.Any.Any start:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - fold self init:Standard.Base.Any.Any function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - get self index:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - index_of self element:Standard.Base.Any.Any start:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - last self -> Standard.Base.Any.Any
+    - last_index_of self element:Standard.Base.Any.Any start:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - length self -> Standard.Base.Any.Any
+    - map self fun:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - new first:Standard.Base.Any.Any second:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - reduce self function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - reverse self -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_vector self -> Standard.Base.Any.Any
+- check_start_valid start:Standard.Base.Any.Any function:Standard.Base.Any.Any max:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- pair first:Standard.Base.Any.Any second:Standard.Base.Any.Any -> Standard.Base.Data.Pair.Pair

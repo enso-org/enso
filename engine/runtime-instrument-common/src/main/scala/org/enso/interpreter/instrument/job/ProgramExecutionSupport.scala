@@ -5,6 +5,7 @@ import org.enso.interpreter.instrument.{
   InstrumentFrame,
   MethodCallsCache,
   RuntimeCache,
+  TypeInfo,
   UpdatesSynchronizationState,
   Visualization,
   WarningPreview
@@ -96,9 +97,9 @@ object ProgramExecutionSupport {
       if (callStack.isEmpty) {
         logger.log(Level.FINEST, s"ON_COMPUTED ${value.getExpressionId}")
 
-        if (VisualizationResult.isInterruptedException(value.getValue)) {
-          value.getValue match {
-            case e: AbstractTruffleException =>
+        value.getValue match {
+          case sentinel: PanicSentinel =>
+            if (VisualizationResult.isInterruptedException(sentinel.getPanic)) {
               sendInterruptedExpressionUpdate(
                 contextId,
                 executionFrame.syncState,
@@ -106,9 +107,9 @@ object ProgramExecutionSupport {
               )
               // Bail out early. Any references to this value that do not expect
               // Interrupted error will likely return `No_Such_Method` otherwise.
-              throw new ThreadInterruptedException(e);
-            case _ =>
-          }
+              throw new ThreadInterruptedException(sentinel.getPanic)
+            }
+          case _ =>
         }
         sendExpressionUpdate(contextId, executionFrame.syncState, value)
         sendVisualizationUpdates(
@@ -414,7 +415,7 @@ object ProgramExecutionSupport {
             Set(
               Api.ExpressionUpdate(
                 value.getExpressionId,
-                Option(value.getTypes).map(_.toVector),
+                Option(value.getType).map(toExpressionType),
                 methodCall,
                 value.getProfilingInfo.map { case e: ExecutionTime =>
                   Api.ProfilingInfo.ExecutionTime(e.getNanoTimeElapsed)
@@ -450,7 +451,7 @@ object ProgramExecutionSupport {
           expressionId
         )
       ) ||
-      Types.isPanic(value.getTypes)
+      Types.isPanic(value.getType.visibleType())
     ) {
       val payload = value.getValue match {
         case sentinel: PanicSentinel =>
@@ -562,7 +563,7 @@ object ProgramExecutionSupport {
               Set(
                 Api.ExpressionUpdate(
                   value.getExpressionId,
-                  Option(value.getTypes).map(_.toVector),
+                  Option(value.getType).map(toExpressionType),
                   methodCall,
                   value.getProfilingInfo.map { case e: ExecutionTime =>
                     Api.ProfilingInfo.ExecutionTime(e.getNanoTimeElapsed)
@@ -658,7 +659,7 @@ object ProgramExecutionSupport {
       if (runtimeCache != null) {
         def processUUID(id: UUID): Unit = {
           logger.log(
-            Level.WARNING,
+            Level.FINE,
             "Associating visualization [{0}] with additional ID [{1}]",
             Array[Object](
               visualization.id,
@@ -816,8 +817,10 @@ object ProgramExecutionSupport {
       !value.wasCached() && !value.getValue.isInstanceOf[DataflowError]
     for {
       call <-
-        if (Types.isPanic(value.getTypes) || notCachedAndNotDataflowError)
-          Option(value.getCallInfo)
+        if (
+          Types.isPanic(value.getType.visibleType()) ||
+          notCachedAndNotDataflowError
+        ) Option(value.getCallInfo)
         else Option(value.getCallInfo).orElse(Option(value.getCachedCallInfo))
       methodPointer <- toMethodPointer(call.functionPointer)
     } yield {
@@ -842,6 +845,17 @@ object ProgramExecutionSupport {
       moduleName.toString,
       typeName.toString.stripSuffix(TypeSuffix),
       functionName
+    )
+
+  /** Extract the expression type information from the provided type info.
+    *
+    * @param typeInfo the runtime type info
+    * @return the appropriate expression type
+    */
+  private def toExpressionType(typeInfo: TypeInfo): Api.ExpressionType =
+    Api.ExpressionType(
+      typeInfo.visibleType().toVector,
+      typeInfo.hiddenType().toVector
     )
 
   /** Find source file path by the module name.

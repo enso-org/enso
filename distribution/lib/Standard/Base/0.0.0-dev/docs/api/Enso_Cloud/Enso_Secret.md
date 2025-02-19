@@ -1,0 +1,34 @@
+## Enso Signatures 1.0
+## module Standard.Base.Enso_Cloud.Enso_Secret
+- type Derived_Secret_Value
+    - Base_64_Encode value:Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value
+    - Concat left:Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value right:Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value
+    - Plain_Text text:Standard.Base.Data.Text.Text
+    - Secret_Value secret:Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret
+    - + self other:Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value -> Standard.Base.Any.Any
+    - simplify self -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Data.Text.Text
+    - to_plain_text self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+- type Enso_Secret
+    - create name:Standard.Base.Data.Text.Text value:Standard.Base.Data.Text.Text parent:(Standard.Base.Enso_Cloud.Enso_File.Enso_File|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
+    - delete self -> Standard.Base.Any.Any
+    - exists name:Standard.Base.Data.Text.Text parent:(Standard.Base.Enso_Cloud.Enso_File.Enso_File|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
+    - get name:Standard.Base.Data.Text.Text parent:(Standard.Base.Enso_Cloud.Enso_File.Enso_File|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
+    - list parent:(Standard.Base.Enso_Cloud.Enso_File.Enso_File|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
+    - name self -> Standard.Base.Any.Any
+    - path self -> Standard.Base.Any.Any
+    - pretty self -> Standard.Base.Any.Any
+    - resolve_path path:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+    - update_value self new_value:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+- Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value.from that:Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret -> Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value
+- type Enso_Secret_Error
+    - Access_Denied
+    - to_display_text self -> Standard.Base.Any.Any
+- as_hideable_value value:(Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret|Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value) -> Standard.Base.Any.Any
+- secret_asset_uri secret:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- secret_resource_uri secret:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value.from that:Standard.Base.Data.Text.Text -> Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value

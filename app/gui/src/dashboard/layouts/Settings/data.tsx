@@ -44,14 +44,6 @@ import { SetupTwoFaForm } from './SetupTwoFaForm'
 import SettingsTabType from './TabType'
 import UserGroupsSettingsSection from './UserGroupsSettingsSection'
 
-// =========================
-// === SettingsEntryType ===
-// =========================
-
-// =================
-// === Constants ===
-// =================
-
 export const SETTINGS_NO_RESULTS_SECTION_DATA: SettingsSectionData = {
   nameId: 'noResultsSettingsSection',
   heading: false,
@@ -79,17 +71,27 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
             schema: z.object({
               name: z.string().regex(/.*\S.*/),
               email: z.string().email(),
+              timeZone: z.string().or(z.undefined()),
             }),
-            getValue: (context) => pick(context.user, 'name', 'email'),
-            onSubmit: async (context, { name }) => {
+            getValue: (context) => ({
+              ...pick(context.user, 'name', 'email'),
+              timeZone: context.preferredTimeZone,
+            }),
+            onSubmit: async (context, { name, timeZone }) => {
               const oldName = context.user.name
               if (name !== oldName) {
                 await context.updateUser([{ username: name }])
+              }
+              if (timeZone != null) {
+                context.setPreferredTimeZone(timeZone)
+              } else {
+                context.deletePreferredTimeZone()
               }
             },
             inputs: [
               { nameId: 'userNameSettingsInput', name: 'name' },
               { nameId: 'userEmailSettingsInput', name: 'email', editable: false },
+              { nameId: 'userTimeZoneSettingsInput', name: 'timeZone' },
             ],
           }),
         ],
@@ -498,10 +500,6 @@ export const ALL_SETTINGS_TABS = SETTINGS_DATA.flatMap((section) =>
   section.tabs.map((tab) => tab.settingsTab),
 )
 
-// =======================
-// === SettingsContext ===
-// =======================
-
 /** Metadata describing inputs passed to every settings entry. */
 export interface SettingsContext {
   readonly accessToken: string
@@ -520,11 +518,10 @@ export interface SettingsContext {
   readonly queryClient: QueryClient
   readonly isMatch: (name: string) => boolean
   readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
+  readonly preferredTimeZone: string | undefined
+  readonly setPreferredTimeZone: (preferredTimeZone: string) => void
+  readonly deletePreferredTimeZone: () => void
 }
-
-// ==============================
-// === SettingsInputEntryData ===
-// ==============================
 
 /**
  * Possible values for the `type` property of {@link SettingsInputData}.
@@ -534,7 +531,7 @@ export interface SettingsContext {
 export type SettingsInputType = Extract<HTMLInputTypeAttribute, 'email' | 'password' | 'text'>
 
 /** Metadata describing an input in a {@link SettingsFormEntryData}. */
-export interface SettingsInputData<T extends Record<keyof T, string>> {
+export interface SettingsInputData<T> {
   readonly nameId: TextId & `${string}SettingsInput`
   readonly name: string & keyof T
   readonly autoComplete?: HTMLInputAutoCompleteAttribute
@@ -547,7 +544,7 @@ export interface SettingsInputData<T extends Record<keyof T, string>> {
 }
 
 /** Metadata describing a settings entry that is a form. */
-export interface SettingsFormEntryData<T extends Record<keyof T, string>> {
+export interface SettingsFormEntryData<T> {
   readonly type: 'form'
   readonly schema: z.ZodType<T> | ((context: SettingsContext) => z.ZodType<T>)
   readonly getValue: (context: SettingsContext) => T
@@ -557,13 +554,9 @@ export interface SettingsFormEntryData<T extends Record<keyof T, string>> {
 }
 
 /** A type-safe function to define a {@link SettingsFormEntryData}. */
-function settingsFormEntryData<T extends Record<keyof T, string>>(data: SettingsFormEntryData<T>) {
+function settingsFormEntryData<T>(data: SettingsFormEntryData<T>) {
   return data
 }
-
-// ===============================
-// === SettingsCustomEntryData ===
-// ===============================
 
 /** Metadata describing a settings entry that needs custom rendering. */
 export interface SettingsCustomEntryData {
@@ -574,17 +567,9 @@ export interface SettingsCustomEntryData {
   readonly getVisible?: (context: SettingsContext) => boolean
 }
 
-// =========================
-// === SettingsEntryData ===
-// =========================
-
 /** A settings entry of an arbitrary type. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type SettingsEntryData = SettingsCustomEntryData | SettingsFormEntryData<any>
-
-// =======================
-// === SettingsTabData ===
-// =======================
 
 /** Metadata describing a settings section. */
 export interface SettingsSectionData {
@@ -597,10 +582,6 @@ export interface SettingsSectionData {
   readonly aliases?: TextId[]
   readonly entries: readonly SettingsEntryData[]
 }
-
-// =======================
-// === SettingsTabData ===
-// =======================
 
 /** Metadata describing a settings tab. */
 export interface SettingsTabData {
@@ -618,19 +599,11 @@ export interface SettingsTabData {
   readonly onPress?: (context: SettingsContext) => Promise<void> | void
 }
 
-// ==============================
-// === SettingsTabSectionData ===
-// ==============================
-
 /** Metadata describing a settings tab section. */
 export interface SettingsTabSectionData {
   readonly nameId: TextId & `${string}SettingsTabSection`
   readonly tabs: readonly SettingsTabData[]
 }
-
-// ====================
-// === SettingsData ===
-// ====================
 
 /** Metadata describing all settings. */
 export type SettingsData = readonly SettingsTabSectionData[]

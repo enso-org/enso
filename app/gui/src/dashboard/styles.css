@@ -5,21 +5,9 @@
 }
 
 :where(body:not(.vibrancy)) {
-  &::before {
-    content: "";
-    inset: 0 -16vw -16vh 0;
-    z-index: -1;
-
-    background-color: #b09778ff;
-
-    @apply pointer-events-none fixed bg-cover;
-  }
-
-  & > * {
-    @apply bg-white/80;
-  }
+  @apply bg-cover bg-dashboard;
 }
 
 :where(.enso-app) {
-  @apply absolute inset-0 isolate overflow-hidden;
+  @apply absolute inset-0 isolate overflow-hidden transition-all duration-200 ease-in-out;
 }

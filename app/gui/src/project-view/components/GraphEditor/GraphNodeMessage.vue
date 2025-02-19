@@ -1,15 +1,45 @@
 <script setup lang="ts">
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { useGraphStore } from '@/stores/graph'
+import { QualifiedImport } from '@/stores/graph/imports'
+import { injectProjectNames } from '@/stores/projectNames'
 import type { Icon } from '@/util/iconMetadata/iconName'
+import { ProjectPath } from '@/util/projectPath'
+
+const graph = useGraphStore()
+const projectNames = injectProjectNames()
 
 const props = defineProps<{
   message: string
   type: MessageType
 }>()
 
+function containsLibraryName(): ProjectPath | null {
+  const prefix = 'Compile error: Fully qualified name references a library '
+  if (props.message.startsWith(prefix)) {
+    const rest = props.message.substring(prefix.length)
+    const libName = rest.split(' ')
+    if (!libName[0]) return null
+    const path = projectNames.parseProjectPathRaw(libName[0])
+    if (!path.ok) return null
+    return path.value
+  } else {
+    return null
+  }
+}
 function copyText() {
   window.navigator.clipboard.writeText(props.message)
+}
+function fixImport() {
+  const libName = containsLibraryName()
+  if (libName) {
+    const theImport = {
+      kind: 'Qualified',
+      module: libName,
+    } satisfies QualifiedImport
+    graph.edit((edit) => graph.addMissingImports(edit, [theImport]))
+  }
 }
 </script>
 
@@ -22,6 +52,7 @@ export const iconForMessageType: Record<MessageType, Icon> = {
   missing: 'metadata',
   panic: 'panic',
 }
+
 export const colorForMessageType: Record<MessageType, string> = {
   error: 'var(--color-error)',
   warning: 'var(--color-warning)',
@@ -35,7 +66,20 @@ export const colorForMessageType: Record<MessageType, string> = {
     <SvgIcon class="icon" :name="iconForMessageType[props.type]" />
     <div class="message" v-text="props.message"></div>
     <div class="toolbar">
-      <SvgButton name="copy2" class="copyButton" title="Copy message text" @click.stop="copyText" />
+      <SvgButton
+        v-if="containsLibraryName()"
+        name="edit"
+        class="fixImportButton"
+        title="Fix Import"
+        @click.stop="fixImport"
+      />
+      <SvgButton
+        v-if="!containsLibraryName()"
+        name="copy2"
+        class="copyButton"
+        title="Copy message text"
+        @click.stop="copyText"
+      />
     </div>
   </div>
 </template>
@@ -54,6 +98,7 @@ export const colorForMessageType: Record<MessageType, string> = {
   color: var(--color-text-inversed);
   background-color: var(--background-color);
   line-height: 20px;
+  z-index: 20;
 }
 
 .icon {
@@ -78,10 +123,7 @@ export const colorForMessageType: Record<MessageType, string> = {
 
   & > .SvgButton:active {
     background-color: color-mix(in oklab, black, transparent 70%);
+    color: var(--color-text-inversed);
   }
-}
-
-.copyButton:active {
-  color: var(--color-text-inversed);
 }
 </style>

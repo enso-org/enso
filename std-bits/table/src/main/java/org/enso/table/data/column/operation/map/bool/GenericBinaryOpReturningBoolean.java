@@ -1,6 +1,6 @@
 package org.enso.table.data.column.operation.map.bool;
 
-import java.util.BitSet;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -35,7 +35,7 @@ public abstract class GenericBinaryOpReturningBoolean<T, S extends SpecializedSt
   public Storage<?> runBinaryMap(
       S storage, Object arg, MapOperationProblemAggregator problemAggregator) {
     if (arg == null) {
-      return BoolStorage.makeEmpty(storage.size());
+      return BoolStorage.makeEmpty(storage.getSize());
     } else {
       T argT = tryCast(arg);
       if (argT != null) {
@@ -60,79 +60,76 @@ public abstract class GenericBinaryOpReturningBoolean<T, S extends SpecializedSt
     }
   }
 
-  private BoolStorage runHomogenousMap(S storage, T arg) {
-    BitSet newVals = new BitSet();
-    BitSet newIsNothing = new BitSet();
+  private Storage<Boolean> runHomogenousMap(S storage, T arg) {
     Context context = Context.getCurrent();
-    int n = storage.size();
-    for (int i = 0; i < n; i++) {
+    long n = storage.getSize();
+    var builder = Builder.getForBoolean(n);
+    for (long i = 0; i < n; i++) {
       if (storage.isNothing(i)) {
-        newIsNothing.set(i);
+        builder.appendNulls(1);
       } else {
         T storageItem = storage.getItemBoxed(i);
         assert storageItem != null : "isNothing returned true but element was null";
         boolean r = doOperation(storageItem, arg);
-        newVals.set(i, r);
+        builder.append(r);
       }
 
       context.safepoint();
     }
-    return new BoolStorage(newVals, newIsNothing, n, false);
+    return builder.seal();
   }
 
-  private BoolStorage runMixedMap(S storage, Object arg) {
-    BitSet newVals = new BitSet();
-    BitSet newIsNothing = new BitSet();
+  private Storage<Boolean> runMixedMap(S storage, Object arg) {
     Context context = Context.getCurrent();
-    int n = storage.size();
-    for (int i = 0; i < n; i++) {
+    long n = storage.getSize();
+    var builder = Builder.getForBoolean(n);
+    for (long i = 0; i < n; i++) {
       if (storage.isNothing(i)) {
-        newIsNothing.set(i);
+        builder.appendNulls(1);
       } else {
         T storageItem = storage.getItemBoxed(i);
         assert storageItem != null : "isNothing returned true but element was null";
         boolean r = doOther(storageItem, arg);
-        newVals.set(i, r);
+        builder.append(r);
       }
 
       context.safepoint();
     }
-    return new BoolStorage(newVals, newIsNothing, n, false);
+    return builder.seal();
   }
 
-  private BoolStorage runHomogenousZip(S storage, SpecializedStorage<T> argStorage) {
-    BitSet newVals = new BitSet();
-    BitSet newIsNothing = new BitSet();
+  private Storage<Boolean> runHomogenousZip(S storage, SpecializedStorage<T> argStorage) {
+    long n = storage.getSize();
+    long m = argStorage.getSize();
+
+    var builder = Builder.getForBoolean(n);
     Context context = Context.getCurrent();
-    int n = storage.size();
-    int m = argStorage.size();
-    for (int i = 0; i < n; i++) {
-      if (storage.isNothing(i) || !(i < m) || argStorage.isNothing(i)) {
-        newIsNothing.set(i);
+    for (long i = 0; i < n; i++) {
+      if (i >= m || storage.isNothing(i) || argStorage.isNothing(i)) {
+        builder.appendNulls(1);
       } else {
         T storageItem = storage.getItemBoxed(i);
         T argItem = argStorage.getItemBoxed(i);
         assert storageItem != null : "isNothing returned true but element was null";
         assert argItem != null : "isNothing returned true but element was null";
         boolean r = doOperation(storageItem, argItem);
-        newVals.set(i, r);
+        builder.appendBoolean(r);
       }
 
       context.safepoint();
     }
 
-    return new BoolStorage(newVals, newIsNothing, n, false);
+    return builder.seal();
   }
 
-  private BoolStorage runMixedZip(S storage, Storage<?> argStorage) {
-    BitSet newVals = new BitSet();
-    BitSet newIsNothing = new BitSet();
+  private Storage<Boolean> runMixedZip(S storage, Storage<?> argStorage) {
     Context context = Context.getCurrent();
-    int n = storage.size();
-    int m = argStorage.size();
-    for (int i = 0; i < n; i++) {
-      if (storage.isNothing(i) || !(i < m) || argStorage.isNothing(i)) {
-        newIsNothing.set(i);
+    long n = storage.getSize();
+    long m = argStorage.getSize();
+    var builder = Builder.getForBoolean(n);
+    for (long i = 0; i < n; i++) {
+      if (i >= m || storage.isNothing(i) || argStorage.isNothing(i)) {
+        builder.appendNulls(1);
       } else {
         T storageItem = storage.getItemBoxed(i);
         Object argItem = argStorage.getItemBoxed(i);
@@ -141,12 +138,12 @@ public abstract class GenericBinaryOpReturningBoolean<T, S extends SpecializedSt
 
         T argT = tryCast(argItem);
         boolean r = (argT != null) ? doOperation(storageItem, argT) : doOther(storageItem, argItem);
-        newVals.set(i, r);
+        builder.append(r);
       }
 
       context.safepoint();
     }
 
-    return new BoolStorage(newVals, newIsNothing, n, false);
+    return builder.seal();
   }
 }

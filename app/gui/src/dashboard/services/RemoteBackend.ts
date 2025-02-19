@@ -532,7 +532,15 @@ export default class RemoteBackend extends Backend {
       return this.throw(response, 'usersMeBackendError')
     } else {
       const user = await response.json()
-      this.user = { ...user }
+
+      Object.defineProperty(user, 'isEnsoTeamMember', {
+        value: user.email.endsWith('@enso.org') || user.email.endsWith('@ensoanalytics.com'),
+        writable: false,
+        configurable: false,
+        enumerable: true,
+      })
+
+      this.user = user
 
       return user
     }
@@ -602,6 +610,7 @@ export default class RemoteBackend extends Backend {
    */
   override async createDirectory(
     body: backend.CreateDirectoryRequestBody,
+    discardTitle = true,
   ): Promise<backend.CreatedDirectory> {
     const path = remoteBackendPaths.CREATE_DIRECTORY_PATH
 
@@ -609,7 +618,7 @@ export default class RemoteBackend extends Backend {
     // It's generated on the server side.
     const { title, ...rest } = body
 
-    const response = await this.post<backend.CreatedDirectory>(path, rest)
+    const response = await this.post<backend.CreatedDirectory>(path, discardTitle ? rest : body)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createFolderBackendError', title)
     } else {
@@ -829,6 +838,94 @@ export default class RemoteBackend extends Backend {
     const response = await this.get<backend.ProjectSession[]>(path)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'listProjectSessionsBackendError', title)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Create a project execution.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async createProjectExecution(
+    body: backend.CreateProjectExecutionRequestBody,
+    title: string,
+  ): Promise<backend.ProjectExecution> {
+    const { projectId, ...rest } = body
+    const path = remoteBackendPaths.createProjectExecutionPath(projectId)
+    const response = await this.post<backend.ProjectExecution>(path, rest)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'createProjectExecutionBackendError', title)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Update a project execution.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async updateProjectExecution(
+    executionId: backend.ProjectExecutionId,
+    body: backend.UpdateProjectExecutionRequestBody,
+    projectTitle: string,
+  ): Promise<backend.ProjectExecution> {
+    const path = remoteBackendPaths.updateProjectExecutionPath(executionId)
+    const response = await this.post<backend.ProjectExecution>(path, body)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'updateProjectExecutionBackendError', projectTitle)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Delete a project execution.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async deleteProjectExecution(
+    executionId: backend.ProjectExecutionId,
+    projectTitle: string,
+  ): Promise<void> {
+    const path = remoteBackendPaths.deleteProjectExecutionPath(executionId)
+    const response = await this.delete<backend.ProjectExecution>(path)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'createProjectExecutionBackendError', projectTitle)
+    } else {
+      return
+    }
+  }
+
+  /**
+   * Return a list of executions for a project.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async listProjectExecutions(
+    projectId: backend.ProjectId,
+    title: string,
+  ): Promise<readonly backend.ProjectExecution[]> {
+    const path = remoteBackendPaths.listProjectExecutionsPath(projectId)
+    const response = await this.get<readonly backend.ProjectExecution[]>(path)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'listProjectExecutionsBackendError', title)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Update a project execution to use the latest version of a project.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async syncProjectExecution(
+    executionId: backend.ProjectExecutionId,
+    projectTitle: string,
+  ): Promise<backend.ProjectExecution> {
+    const path = remoteBackendPaths.syncProjectExecutionPath(executionId)
+
+    const response = await this.post<backend.ProjectExecution>(path, {})
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'syncProjectExecutionBackendError', projectTitle)
     } else {
       return await response.json()
     }

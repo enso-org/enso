@@ -1,0 +1,106 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
+
+from Standard.Table import Aggregate_Column, Column, Table
+
+from Standard.Test import all
+
+add_specs suite_builder =
+    suite_builder.group "single-column Table" group_builder->
+        group_builder.specify "should be a Table but also a Column" <|
+            t1 = Table.new [["A", [1, 2, 3]]]
+            t1.should_be_a Table
+            (t1:Column).name.should_equal "A"
+            (t1:Column).to_vector.should_equal [1, 2, 3]
+            # Still has table methods
+            t1.column_names.should_equal ["A"]
+
+        group_builder.specify "will not be a Column if it has more than one column" <|
+            t1 = Table.new [["A", [1, 2, 3]], ["B", [4, 5, 6]]]
+            t1.should_be_a Table
+            Test.expect_panic Type_Error (t1:Column)
+
+        group_builder.specify "should allow passing the casted column to methods expecting column" <|
+            t1 = Table.new [["A", [1, 2, 3]]]
+            (t1:Column).zip (t1:Column) (+) . to_vector . should_equal [2, 4, 6]
+
+        group_builder.specify "should also work for Tables returned from various operations" <|
+            t1 = Table.new [["A", [1, 2]], ["B", [3, 4]]]
+
+            t2 = t1.select_columns ["A"]
+            t2.should_be_a Table
+            (t2:Column).name.should_equal "A"
+
+            t3 = t1.remove_columns ["A"]
+            t3.should_be_a Table
+            (t3:Column).name.should_equal "B"
+
+            t4 = t1.aggregate columns=[Aggregate_Column.Count]
+            t4.should_be_a Table
+            (t4:Column).name.should_equal "Count"
+
+        group_builder.specify "should also act as individual value if the only column has only one row (Integer)" <|
+            t1 = Table.new [["A", [32]]]
+            t1.should_be_a Table
+            (t1:Column).to_vector.should_equal [32]
+            (t1:Integer).should_equal 32
+            (t1:Integer)+100 . should_equal 132
+            (10 + (t1:Integer)) . should_equal 42
+
+            # But a table with more rows won't do that:
+            t2 = Table.new [["A", [32, 33]]]
+            t2.should_be_a Table
+            Test.expect_panic Type_Error (t2:Integer)
+
+        group_builder.specify "should also act as individual value if the only column has only one row (Float)" <|
+            t1 = Table.new [["A", [1.5]]]
+            t1.should_be_a Table
+            (t1:Column).to_vector.should_equal [1.5]
+            (t1:Float).should_equal 1.5
+            (t1:Float)+100 . should_equal 101.5
+
+        group_builder.specify "should also act as individual value if the only column has only one row (Text)" <|
+            t1 = Table.new [["A", ["hello"]]]
+            t1.should_be_a Table
+            (t1:Column).to_vector.should_equal ["hello"]
+            (t1:Text).should_equal "hello"
+            ((t1:Text) + "!") . should_equal "hello!"
+
+        group_builder.specify "should also act as individual value if the only column has only one row (Boolean)" <|
+            t1 = Table.new [["A", [True]]]
+            t1.should_be_a Table
+            (t1:Column).to_vector.should_equal [True]
+            (t1:Boolean).should_equal True
+            (t1:Boolean).not . should_equal False
+
+        group_builder.specify "should also act as individual value if the only column has only one row (Date)" <|
+            t1 = Table.new [["A", [Date.new 2025 1 1]]]
+            t1.should_be_a Table
+            (t1:Column).to_vector.should_equal [Date.new 2025 1 1]
+            (t1:Date).should_equal (Date.new 2025 1 1)
+            (t1:Date).add_work_days 100 . should_equal (Date.new 2025 5 21)
+
+        group_builder.specify "should also act as individual value if the only column has only one row (Time_Of_Day)" <|
+            t1 = Table.new [["A", [Time_Of_Day.new 12 0 0]]]
+            t1.should_be_a Table
+            (t1:Column).to_vector.should_equal [Time_Of_Day.new 12 0 0]
+            (t1:Time_Of_Day).should_equal (Time_Of_Day.new 12 0 0)
+
+        group_builder.specify "should also act as individual value if the only column has only one row (Date_Time)" <|
+            t1 = Table.new [["A", [Date_Time.new 2025 1 1 12 0 0]]]
+            t1.should_be_a Table
+            (t1:Column).to_vector.should_equal [Date_Time.new 2025 1 1 12 0 0]
+            (t1:Date_Time).should_equal (Date_Time.new 2025 1 1 12 0 0)
+
+        group_builder.specify "should also act as individual value if the only column has only one row (Decimal)" <|
+            t1 = Table.new [["A", [Decimal.new "3.5"]]]
+            t1.should_be_a Table
+            (t1:Column).to_vector.should_equal [Decimal.new "3.5"]
+            (t1:Decimal).should_equal (Decimal.new "3.5")
+            ((t1:Decimal) + (Decimal.new "1.5")) . should_equal (Decimal.new "5.0")
+
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

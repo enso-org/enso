@@ -204,13 +204,16 @@ common --disk_cache=C:/_bzl-disk
 common --repository_cache=C:/_bzl-repo
 ```
 
-3. You need to have `bash.exe` available in `PATH`, so either:
+3. You need to have `bash.exe` available in `PATH`. `bash.exe` from WSL is
+   **not** suitable so either:
 
 - install MSYS2 (https://www.msys2.org/)
 - or use bash executable provided with Git by adding the following to your
   `PATH` variable: `C:\Program Files\Git\bin`, if you have it installed.
 - or configure Git installation selecting the third option:
   ![Git installation settings](https://github.com/user-attachments/assets/def189fa-985b-47f3-8c8b-153c0f39fa26)
+- or have `BAZEL_SH` environment variable set to exact path to `bash.exe`,
+  whatever way you have it installed.
 
 **For users of M1 Mac**: installing GraalVM on M1 Mac requires manual actions,
 please refer to a [dedicated documentation](./graalvm-m1-mac.md).
@@ -242,26 +245,11 @@ defined by [rust-toolchain](../rust-toolchain.toml) override file. The `rustup`
 will automatically download the appropriate compiler version along with the
 necessary components.
 
-Please consult the [GUI Contribution Guide](../app/gui/docs/CONTRIBUTING.md) to
-learn details on setting your system up. Quick summary:
-
 ```bash
 enso$ rustup toolchain install stable   # Stable toolchain required for the following tools.
-enso$ cargo +stable install wasm-pack   # Install the wasm-pack toolkit.
-enso$ cargo +stable install cargo-watch # To enable `./run wasm watch` utility
 ```
 
-The previous three steps shall be enough to build the IDE via
-`./run wasm build run wasm build --wasm-profile dev`.
-
-### Using Cargo Watch Plus
-
-Currently, `cargo-watch` has
-[many issues](https://github.com/enso-org/cargo-watch-plus), including not
-working on modern macOS properly. Thus, we've developed a replacement, the
-[Cargo Watch Plus](https://github.com/enso-org/cargo-watch-plus). To use it,
-simply export the `USE_CARGO_WATCH_PLUS=1` in your shell and the build system
-will pick it up instead of the `cargo-watch`.
+The previous three steps shall be enough to build the IDE via `./run ide build`.
 
 ### Getting Set Up (Documentation)
 
@@ -287,12 +275,12 @@ You can format all of our documentation and configuration as follows:
 npx prettier --write <dir>
 ```
 
-### Building Enso
+### Building Enso Engine
 
-There are multiple projects in this repository, but all can be built, run and
-tested using `sbt`. As long as your configuration is correct, with the correct
-versions of SBT, Rust and GraalVM, the same steps can be followed on all of our
-supported platforms (Linux, MacOS and Windows).
+There are multiple projects in this repository, but all of the engine parts can
+be built, run and tested using `sbt`. As long as your configuration is correct,
+with the correct versions of SBT, Rust and GraalVM, the same steps can be
+followed on all of our supported platforms (Linux, MacOS and Windows).
 
 SBT will handle downloading and building library dependencies as needed, meaning
 that you don't need to handle any of this manually.
@@ -663,13 +651,14 @@ Hello, World!
 #### Running IDE
 
 You can start [IDE](https://github.com/enso-org/enso/tree/develop/gui) with a
-development version of the language server. IDE executable has
-`--external-backend` flag that switches off the bundled backend. That requires
-you to run the project manager process yourself. Running development version of
-the IDE is also possible via the `./run` script in the root of the repository:
+development version of the language server. IDE executable has `--no-engine`
+flag that switches off the bundled backend. That requires you to run the project
+manager process yourself. Running development version of the IDE is also
+possible via the npm script in the root of the repository:
 
 ```bash
-enso$ ./run gui watch --skip-wasm-opt
+enso$ corepack pnpm i
+enso$ corepack pnpm dev:gui
 ```
 
 To build the `project-manager` one needs to launch `sbt` - one way to do it is

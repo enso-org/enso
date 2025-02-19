@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.data;
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.GenerateUncached;
@@ -33,12 +34,14 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoMultiType.AllTypesWith;
+import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.graalvm.collections.Pair;
 
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
+@ExportLibrary(value = StructsLibrary.class)
 public final class EnsoMultiValue extends EnsoObject {
   private final EnsoMultiType dispatch;
   private final EnsoMultiType extra;
@@ -53,6 +56,10 @@ public final class EnsoMultiValue extends EnsoObject {
     this.dispatch = dispatch;
     this.extra = extra;
     this.values = values;
+  }
+
+  final Object firstDispatchValue() {
+    return values[firstDispatch];
   }
 
   /** Creates new instance of EnsoMultiValue from provided information. */
@@ -502,11 +509,39 @@ public final class EnsoMultiValue extends EnsoObject {
     throw UnknownIdentifierException.create(name);
   }
 
+  @ExportMessage
+  final boolean isStruct(@Shared("structs") @CachedLibrary(limit = "3") StructsLibrary delegate) {
+    // assumes the structure has been castTo with reorderOnly
+    // before method dispatch in InvokeMethodNode
+    return delegate.isStruct(values[firstDispatch]);
+  }
+
+  @ExportMessage
+  final Object getField(
+      int index, @Shared("structs") @CachedLibrary(limit = "3") StructsLibrary delegate) {
+    // assumes the structure has been castTo with reorderOnly
+    // before method dispatch in InvokeMethodNode
+    return delegate.getField(values[firstDispatch], index);
+  }
+
+  @ExportMessage
+  final boolean isFieldEvaluated(int index) {
+    return true;
+  }
+
+  @ExportMessage
+  final void setField(int index, Object value, @Bind("$node") Node here) {
+    var ctx = EnsoContext.get(here);
+    throw ctx.raiseAssertionPanic(here, "Field assignment isn't supported", null);
+  }
+
   @TruffleBoundary
   @Override
   public String toString() {
     var both = EnsoMultiType.AllTypesWith.getUncached().executeAllTypes(dispatch, extra, 0);
-    return Stream.of(both).map(t -> t.getName()).collect(Collectors.joining(" & "));
+    return Stream.of(both)
+        .map(t -> t != null ? t.getName() : "[?]")
+        .collect(Collectors.joining(" & "));
   }
 
   /** Casts {@link EnsoMultiValue} to requested type effectively. */
@@ -593,16 +628,21 @@ public final class EnsoMultiValue extends EnsoObject {
   public final Pair<Function, Type> resolveSymbol(
       MethodResolverNode node, UnresolvedSymbol symbol) {
     var ctx = EnsoContext.get(node);
-    Pair<Function, Type> foundAnyMethod = null;
+    Pair<Function, Type> fallbackToAnyMethod = null;
     for (var t : EnsoMultiType.AllTypesWith.getUncached().executeAllTypes(dispatch, null, 0)) {
       var fnAndType = node.execute(t, symbol);
       if (fnAndType != null) {
-        if (dispatch.typesLength() == 1 || fnAndType.getRight() != ctx.getBuiltins().any()) {
-          return Pair.create(fnAndType.getLeft(), t);
+        if (fnAndType.getRight() != ctx.getBuiltins().any()) {
+          // if there is a non-Any method available in any of the
+          // dispach types, then use it!
+          return fnAndType;
         }
-        foundAnyMethod = fnAndType;
+        if (fallbackToAnyMethod == null) {
+          // remember a suitable method on Any
+          fallbackToAnyMethod = fnAndType;
+        }
       }
     }
-    return foundAnyMethod;
+    return fallbackToAnyMethod;
   }
 }

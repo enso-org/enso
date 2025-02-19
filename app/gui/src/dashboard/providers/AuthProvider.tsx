@@ -5,7 +5,15 @@
  * can be used from any React component to access the currently logged-in user's session data. The
  * hook also provides methods for registering a user, logging in, logging out, etc.
  */
-import { createContext, useCallback, useContext, useEffect, useId, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useId,
+  useState,
+  type ReactNode,
+} from 'react'
 
 import { setUser as sentrySetUser } from '@sentry/react'
 import {
@@ -23,7 +31,13 @@ import invariant from 'tiny-invariant'
 
 import { architecture, platform } from 'enso-common/src/detect'
 
-import { DASHBOARD_PATH, LOGIN_PATH, RESTORE_USER_PATH, SETUP_PATH } from '#/appUtils'
+import {
+  DASHBOARD_PATH,
+  LOGIN_PATH,
+  OPEN_IDE_DEEPLINK,
+  RESTORE_USER_PATH,
+  SETUP_PATH,
+} from '#/appUtils'
 import { type UserSession as CognitoUserSession } from '#/authentication/cognito'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { event, gtag, gtagOpenCloseCallback } from '#/hooks/gtagHooks'
@@ -36,10 +50,25 @@ import {
   EmailAddress,
   isOrganizationId,
   type CreateUserRequestBody,
+  type default as RemoteBackend,
   type UpdateUserRequestBody,
   type User,
 } from '#/services/Backend'
-import type RemoteBackend from '#/services/RemoteBackend'
+import { Suspense } from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
+import { Button, Text } from '../components/AriaComponents'
+import { EnsoDevtools } from '../components/Devtools'
+import Page from '../components/Page'
+import { Result } from '../components/Result'
+import { useTimeoutCallback } from '../hooks/timeoutHooks'
+import { download } from '../utilities/download'
+import { getDownloadUrl } from '../utilities/github'
+import { unsafeWriteValue } from '../utilities/write'
+import {
+  featureFlagsForInternalTesting,
+  useFeatureFlag,
+  useSetFeatureFlags,
+} from './FeatureFlagsProvider'
 
 /** Possible types of {@link BaseUserSession}. */
 export enum UserSessionType {
@@ -148,6 +177,8 @@ export default function AuthProvider(props: AuthProviderProps) {
   const { onAuthenticated, children } = props
 
   const remoteBackend = useRemoteBackend()
+  const setFeatureFlags = useSetFeatureFlags()
+
   const { session, organizationId, signOut } = useSession()
   const { getText } = useText()
   const toastId = useId()
@@ -314,6 +345,12 @@ export default function AuthProvider(props: AuthProviderProps) {
     }
   }, [userData, onAuthenticated])
 
+  useEffect(() => {
+    if (userData?.type === UserSessionType.full && userData.user.isEnsoTeamMember) {
+      setFeatureFlags(featureFlagsForInternalTesting())
+    }
+  }, [userData, setFeatureFlags])
+
   const value: AuthContextType = {
     refetchSession,
     session: userData,
@@ -350,23 +387,43 @@ export function useAuth() {
 }
 
 /** A React Router layout route containing routes only accessible by users that are logged in. */
+export function AnyLoggedInUserLayout() {
+  const { session } = useAuth()
+
+  if (session == null) {
+    return <Navigate to={LOGIN_PATH} />
+  }
+
+  return <Outlet context={session} />
+}
+
+/** A React Router layout route containing routes only accessible by users that are logged in. */
 export function ProtectedLayout() {
   const { session } = useAuth()
 
   if (session == null) {
     return <Navigate to={LOGIN_PATH} />
-  } else if (session.type === UserSessionType.partial) {
-    return <Navigate to={SETUP_PATH} />
-  } else {
-    return (
-      <>
-        {/* This div is used as a flag to indicate that the dashboard has been loaded and the user is authenticated. */}
-        {/* also it guarantees that the top-level suspense boundary is already resolved */}
-        <div data-testid="after-auth-layout" aria-hidden />
-        <Outlet context={session} />
-      </>
-    )
   }
+
+  if (session.type === UserSessionType.partial) {
+    return <Navigate to={SETUP_PATH} />
+  }
+
+  return (
+    <>
+      {/* This div is used as a flag to indicate that the dashboard has been loaded and the user is authenticated. */}
+      {/* also it guarantees that the top-level suspense boundary is already resolved */}
+      <div data-testid="after-auth-layout" aria-hidden />
+
+      <Outlet context={session} />
+
+      <Suspense fallback={null}>
+        <ErrorBoundary fallbackRender={() => null}>
+          <EnsoDevtools />
+        </ErrorBoundary>
+      </Suspense>
+    </>
+  )
 }
 
 /**
@@ -380,14 +437,15 @@ export function SemiProtectedLayout() {
   // The user is not logged in - redirect to the login page.
   if (session == null) {
     return <Navigate to={LOGIN_PATH} replace />
-    // User is registered, redirect to dashboard or to the redirect path specified during the registration / login.
-  } else if (session.type === UserSessionType.full) {
-    const redirectTo = localStorage.delete('loginRedirect') ?? DASHBOARD_PATH
-    return <Navigate to={redirectTo} replace />
-    // User is in the process of registration, allow them to complete the registration.
-  } else {
-    return <Outlet context={session} />
   }
+
+  // User is registered, redirect to dashboard or to the redirect path specified during the registration / login.
+  if (session.type === UserSessionType.full) {
+    return <Navigate to={localStorage.consume('loginRedirect') ?? DASHBOARD_PATH} replace />
+  }
+
+  // User is in the process of registration, allow them to complete the registration.
+  return <Outlet context={session} />
 }
 
 /**
@@ -448,6 +506,77 @@ export function SoftDeletedUserLayout() {
     }
   }
 }
+
+const DEFAULT_REDIRECT_DELAY_MS = 3_000
+
+/** Props for a {@link CloudBrowserDisabledLayout}. */
+export interface CloudBrowserDisabledLayoutProps {
+  /** The delay in milliseconds before redirecting to the desktop edition. */
+  readonly redirectDelayMs?: number
+  /** The path to redirect to if the user is not a full user. */
+  readonly redirectPath?: string
+}
+
+/** Layout that disables the dashboard if the cloud is disabled. */
+export function CloudBrowserDisabledLayout(props: CloudBrowserDisabledLayoutProps) {
+  const { redirectDelayMs = DEFAULT_REDIRECT_DELAY_MS, redirectPath = '' } = props
+  const { session } = useAuth()
+  const { getText } = useText()
+  const isCloudExecutionEnabled = useFeatureFlag('enableCloudExecution')
+  const [isRedirecting, setIsRedirecting] = useState(true)
+
+  const normalizedRedirectPath = redirectPath.startsWith('/') ? redirectPath.slice(1) : redirectPath
+
+  const path = OPEN_IDE_DEEPLINK + normalizedRedirectPath
+
+  useTimeoutCallback({
+    callback: () => {
+      unsafeWriteValue(window.location, 'href', path)
+      setIsRedirecting(false)
+    },
+    ms: redirectDelayMs,
+    isDisabled: isCloudExecutionEnabled,
+  })
+
+  if (isCloudExecutionEnabled) {
+    return <Outlet context={session} />
+  }
+
+  return (
+    <Page>
+      <Result
+        status={isRedirecting ? 'loading' : 'info'}
+        title={getText('cloudBrowserDisabledTitle')}
+        subtitle={getText('cloudBrowserDisabledSubtitle')}
+      >
+        <Button.Group align="center" verticalAlign="center">
+          <Button variant="primary" href={path}>
+            {getText('openInDesktop')}
+          </Button>
+
+          <Text>{getText('or')}</Text>
+
+          <Button
+            variant="outline"
+            onPress={async () => {
+              const downloadUrl = await getDownloadUrl()
+
+              if (downloadUrl != null) {
+                download(downloadUrl)
+              }
+            }}
+          >
+            {getText('downloadIDE')}
+          </Button>
+        </Button.Group>
+      </Result>
+    </Page>
+  )
+}
+
+// =============================
+// === usePartialUserSession ===
+// =============================
 
 /**
  * A React context hook returning the user session

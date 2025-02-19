@@ -6,10 +6,10 @@ import { BackendType, type DirectoryId, type ProjectId } from 'enso-common/src/s
 import { defineLocalStorageKey } from '#/providers/LocalStorageProvider'
 
 /** Main content of the screen. Only one should be visible at a time. */
-export enum TabType {
-  drive = 'drive',
-  settings = 'settings',
-}
+export const TAB_TYPES = ['drive', 'settings'] as const
+
+/** Main content of the screen. Only one should be visible at a time. */
+export type TabType = (typeof TAB_TYPES)[number]
 
 const PROJECT_SCHEMA = z
   .object({
@@ -31,3 +31,19 @@ export const { use: useLaunchedProjects, useState: useLaunchedProjectsState } =
     isUserSpecific: true,
     schema: () => LAUNCHED_PROJECT_SCHEMA,
   })
+
+export const PAGES_SCHEMA = z
+  .enum(TAB_TYPES)
+  .or(
+    z.custom<LaunchedProjectId>(
+      (value) => typeof value === 'string' && value.startsWith('project-'),
+    ),
+  )
+
+export const {
+  use: usePage,
+  validate: validatePage,
+  useState: usePageState,
+} = defineLocalStorageKey('page', {
+  schema: () => PAGES_SCHEMA,
+})

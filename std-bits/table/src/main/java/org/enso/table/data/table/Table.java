@@ -13,8 +13,6 @@ import org.enso.base.Text_Utils;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.InferredBuilder;
-import org.enso.table.data.column.builder.StringBuilder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.TextType;
@@ -54,6 +52,8 @@ public class Table {
       throw new IllegalArgumentException("Column names must be unique within a Table.");
     }
 
+    assert checkAllColumnsHaveSameSize(columns) : "All columns must have the same row count.";
+
     this.columns = columns;
   }
 
@@ -62,6 +62,17 @@ public class Table {
     for (Column column : columns) {
       boolean wasNew = names.add(column.getName());
       if (!wasNew) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private static boolean checkAllColumnsHaveSameSize(Column[] columns) {
+    int size = columns[0].getSize();
+    for (Column column : columns) {
+      if (column.getSize() != size) {
         return false;
       }
     }
@@ -439,7 +450,7 @@ public class Table {
       System.arraycopy(id_columns, 0, newColumns, 0, id_columns.length);
 
       int size = id_columns.length == 0 ? 0 : id_columns[0].getSize();
-      Builder builder = new StringBuilder(size, TextType.VARIABLE_LENGTH);
+      var builder = Builder.getForText(TextType.VARIABLE_LENGTH, size);
       builder.appendNulls(size);
       Storage<?> newStorage = builder.seal();
       newColumns[id_columns.length] = new Column(name_field, newStorage);
@@ -459,8 +470,8 @@ public class Table {
                 storage[i] =
                     Builder.getForType(
                         id_columns[i].getStorage().getType(), new_count, problemAggregator));
-    storage[id_columns.length] = new StringBuilder(new_count, TextType.VARIABLE_LENGTH);
-    storage[id_columns.length + 1] = new InferredBuilder(new_count, problemAggregator);
+    storage[id_columns.length] = Builder.getForText(TextType.VARIABLE_LENGTH, new_count);
+    storage[id_columns.length + 1] = Builder.getInferredBuilder(new_count, problemAggregator);
 
     // Load Data
     Context context = Context.getCurrent();

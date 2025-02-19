@@ -122,14 +122,14 @@ public class MultiValueIndex<KeyType extends MultiValueKeyBase> {
       // No grouping and no data
       List<Integer> empty = new ArrayList<>();
       for (int i = 0; i < length; i++) {
-        storage[i].appendNoGrow(columns[i].aggregate(empty, problemAggregator));
+        storage[i].append(columns[i].aggregate(empty, problemAggregator));
         context.safepoint();
       }
     } else {
       for (List<Integer> group_locs : this.locs.values()) {
         for (int i = 0; i < length; i++) {
           Object value = columns[i].aggregate(group_locs, problemAggregator);
-          storage[i].appendNoGrow(value);
+          storage[i].append(value);
           context.safepoint();
         }
       }

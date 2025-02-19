@@ -81,7 +81,7 @@ create_table_upload_operation source_table connection (table_name : Text) (prima
         _ : DB_Table ->
             _create_database_table_upload_op source_table connection resolved_table_name primary_key temporary remove_after_transaction structure_hint on_problems row_limit
         _ ->
-            Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + Meta.get_qualified_type_name source_table)
+            Panic.throw <| Illegal_Argument.Error ("Unsupported table type: " + source_table.to Meta.Type . qualified_name)
 
 private _create_in_memory_table_upload_op (source_table : Table) connection table_name primary_key temporary remove_after_transaction structure_hint on_problems:Problem_Behavior row_limit = table_name.if_not_error <|
     _check_outside_transaction

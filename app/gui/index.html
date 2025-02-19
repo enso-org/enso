@@ -38,6 +38,11 @@
             user-scalable = no"
     />
     <title>Enso %ENSO_IDE_VERSION%</title>
+    <script type="module">
+      import { platform } from 'enso-common/src/detect'
+
+      document.documentElement.classList.add(platform().toLowerCase())
+    </script>
   </head>
 
   <body>

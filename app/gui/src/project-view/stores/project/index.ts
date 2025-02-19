@@ -7,14 +7,17 @@ import {
   type NodeVisualizationConfiguration,
 } from '@/stores/project/executionContext'
 import { VisualizationDataRegistry } from '@/stores/project/visualizationDataRegistry'
+import { type ProjectNameStore } from '@/stores/projectNames'
 import { attachProvider, useObserveYjs } from '@/util/crdt'
 import { nextEvent } from '@/util/data/observable'
 import { type Opt } from '@/util/data/opt'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { ReactiveMapping } from '@/util/database/reactiveDb'
+import { type MethodPointer } from '@/util/methodPointer'
 import { createDataWebsocket, createRpcTransport, useAbortScope } from '@/util/net'
 import { DataServer } from '@/util/net/dataServer'
-import { tryQualifiedName } from '@/util/qualifiedName'
+import { ProjectPath } from '@/util/projectPath'
+import { isIdentifier, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { computedAsync } from '@vueuse/core'
 import * as random from 'lib0/random'
 import {
@@ -22,7 +25,6 @@ import {
   markRaw,
   onScopeDispose,
   proxyRefs,
-  readonly,
   ref,
   shallowRef,
   watch,
@@ -30,9 +32,10 @@ import {
   type WatchSource,
   type WritableComputedRef,
 } from 'vue'
+import { type Identifier } from 'ydoc-shared/ast'
 import { OutboundPayload, VisualizationUpdate } from 'ydoc-shared/binaryProtocol'
 import { LanguageServer } from 'ydoc-shared/languageServer'
-import type { Diagnostic, ExpressionId, MethodPointer } from 'ydoc-shared/languageServerTypes'
+import type { Diagnostic, ExpressionId } from 'ydoc-shared/languageServerTypes'
 import { type AbortScope } from 'ydoc-shared/util/net'
 import {
   DistributedProject,
@@ -47,6 +50,11 @@ export interface LsUrls {
   dataUrl: string
   ydocUrl: string
 }
+
+const VISUALIZATION_PREPROCESSOR_PATH = ProjectPath.create(
+  'Standard.Visualization' as QualifiedName,
+  'Preprocessor' as Identifier,
+)
 
 function resolveYDocUrl(rpcUrl: string, url: string): URL {
   let resolved
@@ -89,9 +97,6 @@ export type ProjectStore = ReturnType<typeof useProjectStore>
  */
 export interface ProjectProps {
   projectId: string
-  projectName: string
-  projectDisplayedName: string
-  projectNamespace?: string | undefined
   renameProject: (newName: string) => void
   engine: LsUrls
 }
@@ -103,7 +108,7 @@ export interface ProjectProps {
  */
 export const [provideProjectStore, useProjectStore] = createContextStore(
   'project',
-  (props: ProjectProps) => {
+  (props: ProjectProps, projectNames: ProjectNameStore) => {
     const { projectId, renameProject: renameProjectBackend } = props
     const abort = useAbortScope()
 
@@ -111,12 +116,6 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
 
     const doc = new Y.Doc()
     const awareness = new Awareness(doc)
-
-    const projectName = ref(props.projectName)
-    // Note that `config` is not deeply reactive. This is fine as the config is an immutable object
-    // passed in from the dashboard, so the entire object will change if any of its nested
-    // properties change.
-    const projectDisplayName = computed(() => props.projectDisplayedName ?? projectName)
 
     const clientId = random.uuidv4() as Uuid
     const lsRpcConnection = createLsRpcConnection(clientId, props.engine.rpcUrl, abort)
@@ -133,21 +132,14 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
       rpcUrl.hostname === '[::1]' ||
       rpcUrl.hostname === '0:0:0:0:0:0:0:1'
 
-    const fullName = computed(() => {
-      const ns = props.projectNamespace
-      if (import.meta.env.PROD && ns == null) {
-        console.warn(
-          'Unknown project\'s namespace. Assuming "local", however it likely won\'t work in cloud',
-        )
-      }
-      return `${ns ?? 'local'}.${projectName.value}`
-    })
-    const modulePath = computed(() => {
+    const moduleProjectPath = computed((): Result<ProjectPath> | undefined => {
       const filePath = observedFileName.value
       if (filePath == null) return undefined
       const withoutFileExt = filePath.replace(/\.enso$/, '')
       const withDotSeparators = withoutFileExt.replace(/\//g, '.')
-      return tryQualifiedName(`${fullName.value}.${withDotSeparators}`)
+      const qn = tryQualifiedName(withDotSeparators)
+      if (!qn.ok) return qn
+      return Ok(ProjectPath.create(undefined, qn.value))
     })
 
     const ydocUrl = resolveYDocUrl(props.engine.rpcUrl, props.engine.ydocUrl)
@@ -195,9 +187,8 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
     )
 
     const entryPoint = computed<MethodPointer>(() => {
-      const projectName = fullName.value
-      const mainModule = `${projectName}.Main`
-      return { module: mainModule, definedOnType: mainModule, name: 'main' }
+      const mainModule = ProjectPath.create(undefined, 'Main' as Identifier)
+      return { module: mainModule, definedOnType: mainModule, name: 'main' as Identifier }
     })
 
     function createExecutionContextForMain(): ExecutionContext {
@@ -208,6 +199,7 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
           positionalArgumentsExpressions: [],
         },
         abort,
+        projectNames,
       )
     }
 
@@ -222,7 +214,10 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
       executionContext,
       dataConnection,
     )
-    const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(executionContext)
+    const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(
+      executionContext,
+      projectNames,
+    )
 
     const diagnostics = shallowRef<Diagnostic[]>([])
     executionContext.on('executionStatus', (newDiagnostics) => {
@@ -261,9 +256,9 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
             expressionId: id,
             visualizationModule: 'Standard.Visualization.Preprocessor',
             expression: {
-              module: 'Standard.Visualization.Preprocessor',
-              definedOnType: 'Standard.Visualization.Preprocessor',
-              name: 'error_preprocessor',
+              module: VISUALIZATION_PREPROCESSOR_PATH,
+              definedOnType: VISUALIZATION_PREPROCESSOR_PATH,
+              name: 'error_preprocessor' as Identifier,
             },
           }
         : null,
@@ -365,15 +360,18 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
     function renameProject(newDisplayedName: string) {
       try {
         renameProjectBackend(newDisplayedName)
+        if (isIdentifier(newDisplayedName)) {
+          projectNames.onProjectRenameRequested(newDisplayedName)
+        } else {
+          console.error(`Renaming project: Not a valid identifier: ${newDisplayedName}`)
+        }
         return Ok()
       } catch (err) {
         return Err(err)
       }
     }
     lsRpcConnection.on('refactoring/projectRenamed', ({ oldNormalizedName, newNormalizedName }) => {
-      if (oldNormalizedName === projectName.value) {
-        projectName.value = newNormalizedName
-      }
+      projectNames.onProjectRenamed(oldNormalizedName, newNormalizedName)
     })
 
     return proxyRefs({
@@ -384,14 +382,12 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
         return observedFileName.value
       },
       id: projectId,
-      displayName: readonly(projectDisplayName),
-      name: readonly(projectName),
       isOnLocalBackend,
       executionContext,
       firstExecution,
       diagnostics,
       module,
-      modulePath,
+      moduleProjectPath,
       entryPoint,
       projectModel,
       projectRootId,

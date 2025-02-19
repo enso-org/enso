@@ -21,7 +21,7 @@ public class QualifiedNameTest {
 
       main =
           obj = My_Type.Value 42
-          Meta.get_qualified_type_name obj
+          obj.to Meta.Type . qualified_name
       """;
 
   @Test

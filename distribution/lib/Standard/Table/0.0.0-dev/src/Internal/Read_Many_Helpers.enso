@@ -2,7 +2,9 @@ private
 
 from Standard.Base import all
 import Standard.Base.Data.Read.Many_Files_List.Many_Files_List
+import Standard.Base.Errors.Common.Failed_To_Load
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Base.Data.Read.Return_As import replace_with_nothing_and_propagate
 
 import project.Column.Column
 import project.Errors.Invalid_Value_Type
@@ -30,15 +32,18 @@ ensure_column_type_valid_to_be_files_list (column : Column) ~action =
         Value_Type.Mixed -> True
         # Columns containing paths as Text will be Char
         Value_Type.Char _ _ -> True
+        # Empty columns are also valid
+        Value_Type.Null -> True
         _ -> False
     if is_expected_type then action else
         Error.throw (Invalid_Value_Type.Column "Text or Mixed" column.value_type column.name)
 
-make_return (return_shape : Return_As_Table) (input : Many_Files_List) (objects : Vector Any) (on_problems : Problem_Behavior) -> Table =
+make_return (return_shape : Return_As_Table) (input : Many_Files_List) (objects : Vector (Any | Failed_To_Load)) (on_problems : Problem_Behavior) -> Table =
     base_table = _input_as_table input
     case return_shape of
         Return_As_Table.With_New_Column ->
-            _add_objects_column base_table objects
+            replaced = replace_with_nothing_and_propagate objects on_problems
+            _add_objects_column base_table replaced
         Return_As_Table.As_Merged_Table columns_to_keep match_columns ->
             tables = input.paths_to_load.zip objects path-> object->
                 strategy = Read_Many_As_Merged_Table_Strategy.from object
@@ -72,9 +77,9 @@ _merge_input_and_tables (input_table : Table) (tables_for_rows : Vector Read_Man
 
         multiplicated_inputs = duplicate_rows input_table counts
         Runtime.assert (unified_data.row_count == multiplicated_inputs.row_count)
-        Runtime.assert (unified_metadata.is_nothing || (unified_metadata.row_count == unified_data.row_count))
+        Runtime.assert ((Nothing == unified_metadata) || (unified_metadata.row_count == unified_data.row_count))
 
-        first_pass = if unified_metadata.is_nothing then multiplicated_inputs else
+        first_pass = if Nothing == unified_metadata then multiplicated_inputs else
             multiplicated_inputs.zip unified_metadata right_prefix=""
         first_pass.zip unified_data right_prefix=""
 
@@ -82,16 +87,16 @@ _merge_input_and_tables (input_table : Table) (tables_for_rows : Vector Read_Man
    metadata - in such case we want to insert as many Nothing rows for metadata 
    as there are rows in the corresponding data table.
 _unify_metadata (tables : Vector Read_Many_As_Table_Result) (on_problems : Problem_Behavior) -> Table | Nothing =
-    has_no_metadata = tables.all r-> r.metadata.is_nothing
+    has_no_metadata = tables.all r-> Nothing == r.metadata
     if has_no_metadata then Nothing else
         unique = Column_Naming_Helper.in_memory.create_unique_name_strategy
         tables.each r->
-            if r.metadata.is_nothing.not then unique.mark_used r.metadata.column_names
+            if Nothing != r.metadata then unique.mark_used r.metadata.column_names
         
         # A dummy column because we cannot create a table with 0 columns, it will be removed after union. We find an unique name for it to avoid conflicts.
         dummy_column_name = unique.make_unique "_Internal_Placeholder_Column_"
         tables_for_union = tables.map r->
-            if r.metadata.is_nothing.not then r.metadata else
+            if Nothing != r.metadata then r.metadata else
                 Table.new [Column.from_repeated_item dummy_column_name Nothing r.data.row_count]
         
         # Metadata are always merged by-name and columns that appear only in some tables are kept.
