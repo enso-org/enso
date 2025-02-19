@@ -216,6 +216,39 @@ make_json_for_table dataframe max_rows all_rows_count is_db_table =
 
 ## PRIVATE
 
+   applies the sprt model to the table.
+
+   Arguments:
+   - start_number: the start index of the next 100 rows to get
+   - sort_col_index_list: indexes of columns with sorts applies
+   - sort_direction_list: list of sort directions 1 for ascending -1 for descending
+
+get_distinct_values_for_column : Table -> Integer -> JS_Object
+get_distinct_values_for_column x column_index =
+    column = x.at column_index
+    values = column.to_vector.distinct
+    result = JS_Object.from_pairs [["distinct_vals", values]]
+    result.to_text
+
+## PRIVATE
+
+   applies the sprt model to the table.
+
+   Arguments:
+   - start_number: the start index of the next 100 rows to get
+   - sort_col_index_list: indexes of columns with sorts applies
+   - sort_direction_list: list of sort directions 1 for ascending -1 for descending
+
+apply_sort_to_table : Table -> List -> List -> Table
+apply_sort_to_table x sort_col_index_list sort_direction_list =
+    parse_direction d = if d == -1 then Sort_Direction.Descending else Sort_Direction.Ascending
+    get_pattern i = (Sort_Column.Index (sort_col_index_list.get i) (parse_direction (sort_direction_list.get i)))
+    sort_pattern = ((0.up_to sort_col_index_list.length).map idx-> get_pattern idx)
+    x.sort sort_pattern
+
+
+## PRIVATE
+
    Prepares the row data table for visualizations using the server side row model.
 
    Arguments:
@@ -225,11 +258,7 @@ get_rows_for_table : Any -> Integer -> List -> List -> JS_Object
 get_rows_for_table x start_number sort_col_index_list=Nothing sort_direction_list=Nothing =
     max_rows=100
     all_rows_count = x.row_count
-    parse_direction d = if d == -1 then Sort_Direction.Descending else Sort_Direction.Ascending
-    get_index i = sort_col_index_list.get i
-    get_pattern i = (Sort_Column.Index (get_index i) (parse_direction (sort_direction_list.get i)))
-    sort_pattern = if sort_col_index_list.is_nothing then Nothing else ((0.up_to sort_col_index_list.length).map idx-> get_pattern idx)
-    sorted_table = if sort_col_index_list.is_nothing then x else x.sort sort_pattern
+    sorted_table = if sort_col_index_list.is_nothing then x else apply_sort_to_table x sort_col_index_list sort_direction_list
     bucket_size = if max_rows < all_rows_count then max_rows else all_rows_count
     get_vector c         = Warning.set (Vector.new bucket_size i-> make_json_for_value (c.get (i + start_number))) []
     columns              = sorted_table.columns

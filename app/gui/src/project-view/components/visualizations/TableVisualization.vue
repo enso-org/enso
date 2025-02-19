@@ -257,14 +257,42 @@ const createRowsForTable = (data: unknown[][], startIndex: number, shift: number
     )
   })
 }
+
+async function getFilterValues(params) {
+  console.log({ params })
+  const colName = params.field
+  const index = props.data.header.findIndex((h: string) => colName === h)
+  const server = createServer()
+  const response: Response = await server.getSetFilterValues(index)
+
+  setTimeout(() => {
+    if (response.success) {
+      params.success(response.data)
+    } else {
+      params.fail()
+    }
+  }, 500)
+}
+
 type SortDirection = 'asc' | 'desc'
 const sortDirectionMap = computed(() => ({
   asc: '1',
   desc: '-1',
 }))
 
-function createRowServer() {
+function createServer() {
   return {
+    getSetFilterValues: async (columnIndex: number) => {
+      const response = await config.executeExpression(
+        'Standard.Visualization.Table.Visualization',
+        'get_distinct_values_for_column',
+        { type: 'single', value: `${columnIndex}` },
+      )
+      return {
+        success: true,
+        data: response.value.distinct_vals,
+      }
+    },
     getData: async (request: IServerSideGetRowsRequest) => {
       const sortColIndexesMap = request.sortModel.map((sortCol) => {
         return `${props.data.header.findIndex((h: string) => sortCol.colId === h)}`
@@ -295,7 +323,7 @@ interface Response {
 function createServerSideDatasource(): IServerSideDatasource {
   return {
     getRows: async (params) => {
-      const server = createRowServer()
+      const server = createServer()
       const response: Response = await server.getData(params.request)
       const startIndex = params.request.startRow ? params.request.startRow : 0
       const rows = createRowsForTable(response.data, startIndex, 1)
@@ -447,6 +475,7 @@ function toField(
     filter: filterType,
     filterParams: {
       maxNumConditions: 1,
+      values: getFilterValues,
     },
     headerComponentParams: {
       template,
