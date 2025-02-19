@@ -147,7 +147,8 @@ test('move to trash', ({ page }) =>
     .driveTable.expectPlaceholderRow()
     .goToCategory.trash()
     .driveTable.withRows(async (rows) => {
-      await expect(rows).toHaveText([/^New Folder 1/, /^New Folder 2/])
+      await expect(rows.getByTestId('asset-row-name').getByText(/^New Folder 1/)).toBeVisible()
+      await expect(rows.getByTestId('asset-row-name').getByText(/^New Folder 2/)).toBeVisible()
     }))
 
 test('move (keyboard)', ({ page }) =>
@@ -186,13 +187,12 @@ test('cut (keyboard)', ({ page }) =>
     }))
 
 test('duplicate', ({ page }) =>
-  mockAllAndLogin({ page })
-    // Assets: [0: New Project 1]
-    .newEmptyProject()
-    // FIXME[sb]: https://github.com/enso-org/cloud-v2/issues/1615
-    // Uncomment once cloud execution in the browser is re-enabled.
-    // .waitForEditorToLoad()
-    // .goToPage.drive()
+  mockAllAndLogin({
+    page,
+    setupAPI: (api) => {
+      api.addProject({ title: 'New Project 1' })
+    },
+  })
     .driveTable.rightClickRow(0)
     .contextMenu.duplicate()
     .driveTable.withRows(async (rows) => {
@@ -204,13 +204,12 @@ test('duplicate', ({ page }) =>
     }))
 
 test('duplicate (keyboard)', ({ page }) =>
-  mockAllAndLogin({ page })
-    // Assets: [0: New Project 1]
-    .newEmptyProject()
-    // FIXME[sb]: https://github.com/enso-org/cloud-v2/issues/1615
-    // Uncomment once cloud execution in the browser is re-enabled.
-    // .waitForEditorToLoad()
-    // .goToPage.drive()
+  mockAllAndLogin({
+    page,
+    setupAPI: (api) => {
+      api.addProject({ title: 'New Project 1' })
+    },
+  })
     .driveTable.clickRow(0)
     .press('Mod+D')
     .driveTable.withRows(async (rows) => {
