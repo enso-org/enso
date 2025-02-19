@@ -581,9 +581,10 @@ impl Resolvable for Gui {
         ctx: &Processor,
         from: <Self as IsTargetSource>::BuildInput,
     ) -> BoxFuture<'static, Result<<Self as IsTarget>::BuildInput>> {
-        let arg::gui::BuildInput {} = from;
+        let arg::gui::BuildInput { mode } = from;
         ok_ready_boxed(project::gui::BuildInput {
-            version:     ctx.triple.versions.version.clone(),
+            mode,
+            version: ctx.triple.versions.version.clone(),
             commit_hash: ctx.commit(),
         })
     }
