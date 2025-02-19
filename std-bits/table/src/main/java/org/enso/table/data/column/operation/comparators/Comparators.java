@@ -11,7 +11,12 @@ import org.enso.table.data.table.Column;
  * left columns.
  */
 public interface Comparators {
-  static Column Eq(Column left, Object rightValue, String newName) {
+  static boolean isSupported(Column left) {
+    var storageType = left.getStorage().getType();
+    return storageType instanceof DateType || storageType instanceof TimeOfDayType;
+  }
+
+  static Column eq(Column left, Object rightValue, String newName) {
     var leftStorage = left.getStorage();
     var comparator =
         switch (leftStorage.getType()) {
@@ -23,7 +28,7 @@ public interface Comparators {
     return performComparison(rightValue, newName, comparator, leftStorage);
   }
 
-  static Column NotEq(Column left, Object rightValue, String newName) {
+  static Column notEq(Column left, Object rightValue, String newName) {
     var leftStorage = left.getStorage();
     var comparator =
         switch (leftStorage.getType()) {
@@ -35,7 +40,7 @@ public interface Comparators {
     return performComparison(rightValue, newName, comparator, leftStorage);
   }
 
-  static Column LT(Column left, Object rightValue, String newName) {
+  static Column lessThan(Column left, Object rightValue, String newName) {
     var leftStorage = left.getStorage();
     var comparator =
         switch (leftStorage.getType()) {
@@ -47,7 +52,7 @@ public interface Comparators {
     return performComparison(rightValue, newName, comparator, leftStorage);
   }
 
-  static Column LTE(Column left, Object rightValue, String newName) {
+  static Column lessThanEq(Column left, Object rightValue, String newName) {
     var leftStorage = left.getStorage();
     var comparator =
         switch (leftStorage.getType()) {
@@ -59,7 +64,7 @@ public interface Comparators {
     return performComparison(rightValue, newName, comparator, leftStorage);
   }
 
-  static Column GT(Column left, Object rightValue, String newName) {
+  static Column greaterThan(Column left, Object rightValue, String newName) {
     var leftStorage = left.getStorage();
     var comparator =
         switch (leftStorage.getType()) {
@@ -71,7 +76,7 @@ public interface Comparators {
     return performComparison(rightValue, newName, comparator, leftStorage);
   }
 
-  static Column GTE(Column left, Object rightValue, String newName) {
+  static Column greaterThanEq(Column left, Object rightValue, String newName) {
     var leftStorage = left.getStorage();
     var comparator =
         switch (leftStorage.getType()) {
