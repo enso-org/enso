@@ -167,18 +167,22 @@ const currentFilePath = computed(
 // === Creating and Renaming Directories ===
 
 const editedAsset = ref<{
-  asset: Directory | typeof newDirPlaceholder
+  asset?: Directory
   name: string
   state: 'editing' | 'pending' | 'just created'
   createdId?: DirectoryId
 }>()
+watch(editedAsset, (x) => console.log(x), { flush: 'sync' })
+
+// Don't await invalidates, because we want `createDirectory` to return first, to fill
+// `keyOverride` property before getting update from backend.
 const createDir = mutation('createDirectory', { meta: { awaitInvalidates: false } })
 const updateDir = mutation('updateDirectory')
 
 function addNewDirectory() {
   assert(editedAsset.value == null)
   keyOverride.set(newDirPlaceholder, nextKeyForNewDir++)
-  editedAsset.value = { asset: newDirPlaceholder, name: 'New Folder', state: 'editing' }
+  editedAsset.value = { name: 'New Folder', state: 'editing' }
 }
 
 function renameDirectory(dir: DirectoryAsset) {
@@ -186,7 +190,7 @@ function renameDirectory(dir: DirectoryAsset) {
   editedAsset.value = { asset: dir, name: dir.title, state: 'editing' }
 }
 
-function acceptName(name: string, actionDescription: string) {
+async function acceptName(name: string) {
   if (editedAsset.value?.state !== 'editing') {
     console.error('Accepting edited name without editing')
     return
@@ -200,32 +204,41 @@ function acceptName(name: string, actionDescription: string) {
     return
   }
   const action =
-    edited.asset === newDirPlaceholder ?
-      createDir.mutateAsync([{ title: edited.name, parentId }, false])
-    : updateDir.mutateAsync([edited.asset.id, { title: edited.name }, edited.asset.title])
-  action
-    .then((result) => {
+    edited.asset == null ? createDir.mutateAsync([{ title: edited.name, parentId }, false])
+    : edited.asset.title != edited.name ?
+      updateDir.mutateAsync([edited.asset.id, { title: edited.name }, edited.asset.title])
+    : Promise.resolve(undefined)
+  action.then(
+    (result) => {
       assert(edited === editedAsset.value)
-      if (result?.id) {
-        editedAsset.value.createdId = result.id
-        editedAsset.value.state = 'just created'
+      // Editing existing asset does not require 'just created' state, because we await
+      // invalidates there
+      if (edited.asset == null && result != null) {
+        edited.createdId = result.id
+        edited.state = 'just created'
         const key = keyOverride.get(newDirPlaceholder)
         if (key != null) {
           keyOverride.set(result.id, key)
         }
+      } else {
+        editedAsset.value = undefined
       }
-    })
-    .catch((error) => {
+    },
+    (error) => {
+      const actionDescription = edited.asset == null ? 'create folder' : 'rename folder'
       errorToast.show(`Failed to ${actionDescription}: ${error}`)
       editedAsset.value = undefined
-    })
+    },
+  )
 }
 
 watch(
   directories,
   (dirs) => {
-    // Remove placeholder once received an actual directory.
-    if (dirs?.find((dir) => dir.id === editedAsset.value?.createdId)) editedAsset.value = undefined
+    // Finish editing once received an updated directory.
+    if (dirs?.find((dir) => dir.id === editedAsset.value?.createdId)) {
+      editedAsset.value = undefined
+    }
   },
   { flush: 'sync' },
 )
@@ -295,23 +308,23 @@ onMounted(() => {
     <div v-else :key="currentDirectory?.id ?? 'root'" class="listing contents">
       <TransitionGroup>
         <FileBrowserEntry
-          v-if="editedAsset?.asset === newDirPlaceholder"
+          v-if="editedAsset && editedAsset.asset == null"
           :key="keyOverride.get(newDirPlaceholder) ?? newDirPlaceholder"
           icon="folder"
           :title="editedAsset.name"
           :editingState="editedAsset.state"
           :renamable="false"
-          @nameAccepted="acceptName($event, 'create folder')"
+          @nameAccepted="acceptName($event)"
         />
         <FileBrowserEntry
           v-for="entry in directories"
           :key="keyOverride.get(entry.id) ?? entry.id"
           icon="folder"
-          :title="editedAsset?.asset === entry ? editedAsset.name : entry.title"
-          :editingState="editedAsset?.asset === entry ? editedAsset.state : undefined"
+          :title="editedAsset?.asset?.id === entry.id ? editedAsset.name : entry.title"
+          :editingState="editedAsset?.asset?.id === entry.id ? editedAsset.state : undefined"
           :renamable="editedAsset == null"
           @click="enterDir(entry)"
-          @nameAccepted="acceptName($event, 'rename folder')"
+          @nameAccepted="acceptName($event)"
           @renameRequested="renameDirectory(entry)"
         />
         <FileBrowserEntry

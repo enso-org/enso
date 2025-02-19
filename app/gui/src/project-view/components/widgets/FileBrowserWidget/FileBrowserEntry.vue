@@ -13,6 +13,12 @@ const props = defineProps<{
   editingState?: 'editing' | 'pending' | 'just created' | undefined
 }>()
 
+watch(
+  () => props.editingState,
+  (x) => console.log('editing state', x),
+  { flush: 'sync' },
+)
+
 const emit = defineEmits<{
   click: []
   nameAccepted: [string]
@@ -52,6 +58,12 @@ watch(input, (newInput) => {
         @blur="emit('nameAccepted', currentTitle)"
         @keydown.enter.stop="input?.blur()"
         @pointerdown.stop
+        @click.stop
+        @contextmenu.stop
+        @keydown.backspace.stop
+        @keydown.delete.stop
+        @keydown.arrow-left.stop
+        @keydown.arrow-right.stop
       />
       <div v-else>{{ title }}</div>
     </div>
