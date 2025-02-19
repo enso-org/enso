@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Common.Missing_Argument
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Runtime.Context
 
 from Standard.Table import Table
@@ -291,6 +292,12 @@ type Generic_JDBC_Connection
 
 type Generic_JDBC_Details
     Value url:Text
+
+    ## PRIVATE
+       Attempt to resolve the constructor.
+    resolve : Function -> Generic_JDBC_Details | Nothing
+    resolve constructor =
+        Panic.catch Type_Error (constructor:Generic_JDBC_Details) _->Nothing
 
     ## PRIVATE
        Build the Connection resource.
