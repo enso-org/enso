@@ -136,6 +136,7 @@ export interface SvgUseProps extends TestIdProps {
 /**
  * A component that displays an SVG from the icons bundle file.
  * Please refer to Figma for the list of available icons.
+ * @internal
  */
 export function SvgUse(props: SvgUseProps) {
   const { icon, testId = 'svg-use', className } = props

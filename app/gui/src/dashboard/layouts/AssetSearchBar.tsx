@@ -411,7 +411,7 @@ interface AssetSearchBarInputProps {
 /**
  * Renders the search field.
  */
-// eslint-disable-next-line no-restricted-syntax
+
 const AssetSearchBarInput = React.memo(function AssetSearchBarInput(
   props: AssetSearchBarInputProps,
 ) {

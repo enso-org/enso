@@ -45,9 +45,9 @@ import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
-import { inputFiles } from '#/utilities/input'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarToolbarProps {
@@ -144,7 +144,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
         void newProjectMutation.mutateAsync([null, null])
       },
       uploadFiles: () => {
-        void inputFiles().then((files) => uploadFiles(Array.from(files)))
+        void readUserSelectedFile().then((files) => uploadFiles(Array.from(files)))
       },
     }),
   )
@@ -292,7 +292,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                 icon={DataUploadIcon}
                 aria-label={getText('uploadFiles')}
                 onPress={async () => {
-                  const files = await inputFiles()
+                  const files = await readUserSelectedFile()
                   await uploadFiles(Array.from(files))
                 }}
               />

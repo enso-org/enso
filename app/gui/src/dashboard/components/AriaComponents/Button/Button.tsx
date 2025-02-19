@@ -292,7 +292,6 @@ function hasAddon(addon: ButtonContentProps['addonEnd']): boolean {
 /**
  * Renders the content of a button.
  */
-// eslint-disable-next-line no-restricted-syntax
 const ButtonContent = memo(function ButtonContent(props: ButtonContentProps) {
   const {
     isIconOnly,

@@ -444,7 +444,7 @@ interface DialogBodyProps {
 /**
  * The internals of a dialog. Exists only as a performance optimization.
  */
-// eslint-disable-next-line no-restricted-syntax
+
 const DialogBody = React.memo(function DialogBody(props: DialogBodyProps) {
   const {
     close,

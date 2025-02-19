@@ -2,7 +2,6 @@
 import * as detect from 'enso-common/src/detect'
 
 import * as newtype from '#/utilities/newtype'
-import { isDirectoryId, type DirectoryId } from '../services/Backend'
 
 // ============
 // === Path ===

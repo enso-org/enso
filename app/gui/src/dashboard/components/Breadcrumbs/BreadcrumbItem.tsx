@@ -309,13 +309,7 @@ export function BreadcrumbCollapsedItem<T extends object>(props: BreadcrumbColla
                 id={id as aria.Key}
                 aria-describedby={ariaDescribedby}
                 {...linkProps}
-                icon={(() => {
-                  if (typeof icon === 'function') {
-                    return icon({ isCurrent, isDisabled })
-                  }
-
-                  return icon
-                })()}
+                icon={renderIcon(icon, { isCurrent, isDisabled })}
               >
                 <>
                   {typeof breadcrumbChildren === 'function' ?

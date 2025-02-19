@@ -1,12 +1,8 @@
 /**
  * @file Breadcrumbs component implementation.
  */
-import ArrowRight from '#/assets/expand_arrow_right.svg'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import { createLeafComponent } from '@react-aria/collections'
-import { Fragment, type ReactElement } from 'react'
-import * as aria from 'react-aria-components'
 import {
   Fragment,
   memo,
@@ -17,7 +13,7 @@ import {
 } from 'react'
 import flattenChildren from 'react-keyed-flatten-children'
 import { useBreadcrumbs, type AriaBreadcrumbsProps, type DragAndDropHooks } from '../aria'
-import { Button, type TestIdProps } from '../AriaComponents'
+import { Button, type IconProp, type TestIdProps } from '../AriaComponents'
 import { Icon } from '../Icon'
 import { BreadcrumbCollapsedItem, BreadcrumbItem, BreadcrumbItemProvider } from './BreadcrumbItem'
 import { getItemsWithCollapsedItem, isCollapsedItem } from './utilities'
@@ -119,19 +115,21 @@ function BreadcrumbInner(props: BreadcrumbInnerProps) {
 /**
  * Props for {@link BreadcrumbSeparator}
  */
-interface BreadcrumbSeparatorProps {
-  readonly icon?: string
+interface BreadcrumbSeparatorProps<Icon extends string> {
+  readonly icon?: IconProp<Icon, never>
   readonly className?: string
 }
 
 /**
  * A separator between breadcrumb items.
  */
-const BreadcrumbSeparator = memo(function BreadcrumbSeparator(props: BreadcrumbSeparatorProps) {
-  const { icon = ArrowRight, className } = props
+// eslint-disable-next-line no-restricted-syntax
+const BreadcrumbSeparator = memo(function BreadcrumbSeparator<Icon extends string>(
+  props: BreadcrumbSeparatorProps<Icon>,
+) {
+  const { icon = 'arrow_right', className } = props
 
   return <Icon className={className}>{icon}</Icon>
-  },
-)
+}) as <Icon extends string>(props: BreadcrumbSeparatorProps<Icon>) => ReactElement
 
 Breadcrumbs.Item = BreadcrumbItem

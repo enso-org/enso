@@ -246,7 +246,6 @@ export interface HeadingProps extends Omit<TextProps, 'elementType'> {
 }
 
 /** Heading component */
-// eslint-disable-next-line no-restricted-syntax
 const Heading = memo(
   forwardRef(function Heading(props: HeadingProps, ref: React.Ref<HTMLHeadingElement>) {
     const { level = 1, ...textProps } = props
