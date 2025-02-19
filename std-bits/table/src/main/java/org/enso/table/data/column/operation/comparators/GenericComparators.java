@@ -1,13 +1,12 @@
 package org.enso.table.data.column.operation.comparators;
 
+import java.util.function.BiPredicate;
 import org.enso.base.CompareException;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
-
-import java.util.function.BiPredicate;
 
 public abstract class GenericComparators<T> implements Comparators {
   protected final BiPredicate<T, T> comparator;
@@ -47,12 +46,12 @@ public abstract class GenericComparators<T> implements Comparators {
       return StorageIterators.buildOverStorage(
           typedLeft,
           builder,
-          (b, index, value) -> { throw new CompareException(value, typedRight); });
+          (b, index, value) -> {
+            throw new CompareException(value, typedRight);
+          });
     } else {
       return StorageIterators.buildOverStorage(
-          typedLeft,
-          builder,
-          (b, index, value) -> b.appendBoolean(false));
+          typedLeft, builder, (b, index, value) -> b.appendBoolean(false));
     }
   }
 

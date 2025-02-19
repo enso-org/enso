@@ -2,7 +2,6 @@ package org.enso.table.data.column.operation.comparators;
 
 import java.time.LocalDate;
 import java.util.function.BiPredicate;
-
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;

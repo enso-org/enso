@@ -2899,7 +2899,7 @@ Many_Files_List.from (that : Column) =
 call_comparator left other new_name java_static ~enso_action =
     use_java = case left.value_type of
         Value_Type.Date -> True
-        Value_Type.Time_Of_Day -> True
+        Value_Type.Time -> True
         _ -> False
     if use_java then Column.from_java_column (java_static left.java_column (if other.is_a Column then other.java_column else other) new_name) else
         enso_action

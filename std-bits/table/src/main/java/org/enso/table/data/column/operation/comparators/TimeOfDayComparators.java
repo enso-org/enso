@@ -1,16 +1,16 @@
 package org.enso.table.data.column.operation.comparators;
 
+import java.time.LocalTime;
+import java.util.function.BiPredicate;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 
-import java.time.LocalTime;
-import java.util.function.BiPredicate;
-
 public class TimeOfDayComparators extends GenericComparators<LocalTime> {
   public static final TimeOfDayComparators EQ = new TimeOfDayComparators(LocalTime::equals, false);
-  public static final TimeOfDayComparators NEQ = new TimeOfDayComparators((a, b) -> !a.equals(b), false);
+  public static final TimeOfDayComparators NEQ =
+      new TimeOfDayComparators((a, b) -> !a.equals(b), false);
   public static final TimeOfDayComparators LT = new TimeOfDayComparators(LocalTime::isBefore);
   public static final TimeOfDayComparators LTE = new TimeOfDayComparators((a, b) -> !a.isAfter(b));
   public static final TimeOfDayComparators GT = new TimeOfDayComparators(LocalTime::isAfter);
@@ -48,5 +48,4 @@ public class TimeOfDayComparators extends GenericComparators<LocalTime> {
     return left.getType() instanceof TimeOfDayType
         && (right.getType() instanceof TimeOfDayType || right.getType() instanceof AnyObjectType);
   }
-
 }

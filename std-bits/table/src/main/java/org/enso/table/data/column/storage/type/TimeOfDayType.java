@@ -1,8 +1,7 @@
 package org.enso.table.data.column.storage.type;
 
-import org.enso.table.data.column.storage.ColumnStorage;
-
 import java.time.LocalTime;
+import org.enso.table.data.column.storage.ColumnStorage;
 
 public record TimeOfDayType() implements StorageType {
   public static final TimeOfDayType INSTANCE = new TimeOfDayType();
