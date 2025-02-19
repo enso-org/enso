@@ -1,16 +1,17 @@
 package org.enso.table.data.column.operation.comparators;
 
+import java.time.ZonedDateTime;
+import java.util.function.BiPredicate;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.DateTimeType;
 
-import java.time.ZonedDateTime;
-import java.util.function.BiPredicate;
-
 public class DateTimeComparators extends GenericComparators<ZonedDateTime> {
-  public static final DateTimeComparators EQ = new DateTimeComparators(ZonedDateTime::isEqual, false);
-  public static final DateTimeComparators NEQ = new DateTimeComparators((a, b) -> !a.equals(b), false);
+  public static final DateTimeComparators EQ =
+      new DateTimeComparators(ZonedDateTime::isEqual, false);
+  public static final DateTimeComparators NEQ =
+      new DateTimeComparators((a, b) -> !a.equals(b), false);
   public static final DateTimeComparators LT = new DateTimeComparators(ZonedDateTime::isBefore);
   public static final DateTimeComparators LTE = new DateTimeComparators((a, b) -> !a.isAfter(b));
   public static final DateTimeComparators GT = new DateTimeComparators(ZonedDateTime::isAfter);
@@ -20,7 +21,8 @@ public class DateTimeComparators extends GenericComparators<ZonedDateTime> {
     this(comparator, true);
   }
 
-  private DateTimeComparators(BiPredicate<ZonedDateTime, ZonedDateTime> comparator, boolean throwOnOther) {
+  private DateTimeComparators(
+      BiPredicate<ZonedDateTime, ZonedDateTime> comparator, boolean throwOnOther) {
     super(comparator, throwOnOther);
   }
 

@@ -1,8 +1,7 @@
 package org.enso.table.data.column.storage.type;
 
-import org.enso.table.data.column.storage.ColumnStorage;
-
 import java.time.ZonedDateTime;
+import org.enso.table.data.column.storage.ColumnStorage;
 
 public record DateTimeType() implements StorageType {
   public static final DateTimeType INSTANCE = new DateTimeType();

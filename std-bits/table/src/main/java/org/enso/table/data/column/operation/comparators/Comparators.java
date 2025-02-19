@@ -14,7 +14,9 @@ import org.enso.table.data.table.Column;
 public interface Comparators {
   static boolean isSupported(Column left) {
     var storageType = left.getStorage().getType();
-    return storageType instanceof DateType || storageType instanceof TimeOfDayType || storageType instanceof DateTimeType;
+    return storageType instanceof DateType
+        || storageType instanceof TimeOfDayType
+        || storageType instanceof DateTimeType;
   }
 
   static Column eq(Column left, Object rightValue, String newName) {
