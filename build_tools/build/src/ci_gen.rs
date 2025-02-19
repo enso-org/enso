@@ -881,9 +881,16 @@ fn benchmark_workflow(
         r#type: WorkflowDispatchInputType::Boolean { default: Some(false) },
         ..WorkflowDispatchInput::new("If set, benchmarks will be only checked to run correctly, not to measure actual performance.", true)
     };
+    let bench_name_input_name = "bench-name";
+    let bench_name_input = WorkflowDispatchInput {
+        r#type: WorkflowDispatchInputType::String { default: None },
+        ..WorkflowDispatchInput::new("Name (regex) of the benchmark to run.", false)
+    };
     let on = Event {
         workflow_dispatch: Some(
-            WorkflowDispatch::default().with_input(just_check_input_name, just_check_input),
+            WorkflowDispatch::default()
+                .with_input(just_check_input_name, just_check_input)
+                .with_input(bench_name_input_name, bench_name_input),
         ),
         schedule: vec![Schedule::new("0 0 * * *")?],
         ..default()
@@ -895,6 +902,8 @@ fn benchmark_workflow(
         "ENSO_BUILD_MINIMAL_RUN",
         wrap_expression(format!("true == inputs.{just_check_input_name}")),
     );
+    workflow
+        .env("ENSO_BUILD_BENCH_NAME", wrap_expression(format!("inputs.{bench_name_input_name}")));
 
     let graal_edition = graalvm::Edition::Community;
     let job_name = format!("{name} ({graal_edition})");

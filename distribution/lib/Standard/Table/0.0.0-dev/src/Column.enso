@@ -18,6 +18,7 @@ from Standard.Base.Widget_Helpers import make_data_cleanse_vector_selector, make
 
 import project.Constants.Previous_Value
 import project.Data_Formatter.Data_Formatter
+import project.Fill_With.Fill_With
 import project.Internal.Cast_Helpers
 import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 import project.Internal.Column_Ops
@@ -30,7 +31,6 @@ import project.Internal.Storage
 import project.Internal.Type_Refinements.Column_Refinements
 import project.Internal.Value_Type_Helpers
 import project.Internal.Widget_Helpers
-import project.Fill_With.Fill_With
 import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 import project.Value_Type.Auto
@@ -42,15 +42,15 @@ from project.Internal.Storage import enso_to_java, java_to_enso
 from project.Table import from_java_table
 
 polyglot java import org.enso.base.Time_Utils
+polyglot java import org.enso.table.data.column.operation.cast.CastOperation
+polyglot java import org.enso.table.data.column.operation.CountNonTrivialWhitespace
 polyglot java import org.enso.table.data.column.operation.CountNothing
 polyglot java import org.enso.table.data.column.operation.CountUntrimmed
-polyglot java import org.enso.table.data.column.operation.CountNonTrivialWhitespace
 polyglot java import org.enso.table.data.column.operation.SampleOperation
-polyglot java import org.enso.table.data.column.operation.cast.CastOperation
 polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
 polyglot java import org.enso.table.data.column.operation.unary.DateTruncateOperation
-polyglot java import org.enso.table.data.column.operation.unary.IsEmptyOperation
 polyglot java import org.enso.table.data.column.operation.unary.DoubleIsOperation
+polyglot java import org.enso.table.data.column.operation.unary.IsEmptyOperation
 polyglot java import org.enso.table.data.column.operation.unary.IsNothingOperation
 polyglot java import org.enso.table.data.column.operation.unary.NotOperation
 polyglot java import org.enso.table.data.column.operation.unary.TextLengthOperation
@@ -88,8 +88,7 @@ type Column
 
              example_from_vector =
                  Column.from_vector "My Column" [1, 2, 3, 4, 5]
-    from_vector : Text -> Vector -> Auto | Value_Type -> Column ! Invalid_Value_Type
-    from_vector (name : Text) (items : Vector) (value_type : Auto | Value_Type = Auto) -> Column =
+    from_vector name:Text items:Vector (value_type : Auto | Value_Type = Auto) -> Column ! Invalid_Value_Type =
         ## If the type does not accept date-time-like values, we can skip the
            additional logic for polyglot conversions that would normally be used,
            which is quite costly - so if we can guarantee it is unnecessary,
@@ -184,8 +183,7 @@ type Column
              import Standard.Examples
 
              example_display = Examples.integer_column.display
-    display : Integer -> Boolean -> Text
-    display self show_rows=10 format_terminal=False =
+    display self show_rows:Integer=10 format_terminal:Boolean=False -> Text =
         self.to_table.display show_rows format_terminal
 
     ## PRIVATE
@@ -203,8 +201,7 @@ type Column
              import Standard.Examples
 
              example_display = Examples.integer_column.print
-    print : Integer -> Nothing
-    print self show_rows=10 =
+    print self show_rows:Integer=10 -> Nothing =
         IO.println (self.display show_rows format_terminal=True)
         IO.println ''
 
@@ -240,8 +237,7 @@ type Column
              import Standard.Examples
 
              example_eq = Examples.integer_column == 1
-    == : Column | Any -> Column
-    == self other =
+    == self (other : Column | Any) -> Column =
         new_name = naming_helper.binary_operation_name "==" self other
         fallback problem_builder a b =
             if (a.is_a Float) || (b.is_a Float) then
@@ -262,8 +258,7 @@ type Column
        Returns a column with results of comparing this column's elements against
        `other`.
     @locale Locale.default_widget
-    equals_ignore_case : Column | Any -> Locale -> Column
-    equals_ignore_case self other locale:Locale=Locale.default =
+    equals_ignore_case self (other : Column | Any) locale:Locale=Locale.default -> Column =
         ## TODO currently this always runs the fallback which is slow due to the
            cost of Java-to-Enso calls. We want to have a vectorized
            implementation, but we need to extend the architecture to allow
@@ -308,8 +303,7 @@ type Column
              import Standard.Examples
 
              example_neq = Examples.integer_column != 1
-    != : Column | Any -> Column
-    != self other =
+    != self (other : Column | Any) -> Column =
         new_name = naming_helper.binary_operation_name "!=" self other
         (self == other).not . rename new_name
 
@@ -339,8 +333,7 @@ type Column
              import Standard.Examples
 
              example_geq = Examples.integer_column >= 1
-    >= : Column | Any -> Column
-    >= self other = Value_Type.expect_comparable self other <|
+    >= self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <|
         Incomparable_Values.handle_errors <|
             run_vectorized_binary_op self Java_Storage.Maps.GTE fallback_fn=(>=) other expected_result_type=Value_Type.Boolean
 
@@ -370,8 +363,7 @@ type Column
              import Standard.Examples
 
              example_leq = Examples.integer_column <= 1
-    <= : Column | Any -> Column
-    <= self other = Value_Type.expect_comparable self other <|
+    <= self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <|
         Incomparable_Values.handle_errors <|
             run_vectorized_binary_op self Java_Storage.Maps.LTE fallback_fn=(<=) other expected_result_type=Value_Type.Boolean
 
@@ -401,8 +393,7 @@ type Column
              import Standard.Examples
 
              example_gt = Examples.integer_column > 1
-    > : Column | Any -> Column
-    > self other = Value_Type.expect_comparable self other <|
+    > self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <|
         Incomparable_Values.handle_errors <|
             run_vectorized_binary_op self Java_Storage.Maps.GT fallback_fn=(>) other expected_result_type=Value_Type.Boolean
 
@@ -432,8 +423,7 @@ type Column
              import Standard.Examples
 
              example_lt = Examples.integer_column < 1
-    < : Column | Any -> Column
-    < self other = Value_Type.expect_comparable self other <|
+    < self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <|
         Incomparable_Values.handle_errors <|
             run_vectorized_binary_op self Java_Storage.Maps.LT fallback_fn=(<) other expected_result_type=Value_Type.Boolean
 
@@ -451,8 +441,7 @@ type Column
 
        Returns a column with boolean values indicating whether values of this
        column fit between the lower and upper bounds (both ends inclusive).
-    between : (Column | Any) -> (Column | Any) -> Column
-    between self lower upper =
+    between self (lower : Column | Any) (upper : Column | Any) -> Column =
         Value_Type.expect_comparable self lower <|
             Value_Type.expect_comparable self upper <|
                 new_name = naming_helper.concat <|
@@ -495,8 +484,7 @@ type Column
              import Standard.Examples
 
              example_plus = Examples.integer_column + 10
-    + : Column | Any -> Column
-    + self other =
+    + self (other : Column | Any) -> Column =
         Value_Type_Helpers.resolve_addition_kind self other . if_not_error <|
             run_vectorized_binary_op self Java_Storage.Maps.ADD other
 
@@ -536,8 +524,7 @@ type Column
              import Standard.Examples
 
              example_minus = Examples.integer_column - 10
-    - : Column | Any -> Column
-    - self other =
+    - self (other : Column | Any) -> Column =
         case Value_Type_Helpers.resolve_subtraction_kind self other of
             Value_Type_Helpers.Subtraction_Kind.Numeric_Subtract ->
                 run_vectorized_binary_op self Java_Storage.Maps.SUB other
@@ -591,8 +578,7 @@ type Column
              import Standard.Examples
 
              example_mul = Examples.integer_column * 10
-    * : Column | Any -> Column
-    * self other =
+    * self (other : Column | Any) -> Column =
         Value_Type_Helpers.check_binary_numeric_op self other <|
             run_vectorized_binary_op self Java_Storage.Maps.MUL other
 
@@ -636,8 +622,7 @@ type Column
              import Standard.Examples
 
              example_div = Examples.integer_column / 10
-    / : Column | Any -> Column
-    / self other =
+    / self (other : Column | Any) -> Column =
         Value_Type_Helpers.check_binary_numeric_op self other <|
             new_name = naming_helper.binary_operation_name "/" self other
             run_vectorized_binary_op self Java_Storage.Maps.DIV other new_name
@@ -673,8 +658,7 @@ type Column
              import Standard.Examples
 
              example_mod = Examples.integer_column % 3
-    % : Column | Any -> Column
-    % self other =
+    % self (other : Column | Any) -> Column =
         Value_Type_Helpers.check_binary_numeric_op self other <|
             new_name = naming_helper.binary_operation_name "%" self other
             run_vectorized_binary_op self Java_Storage.Maps.MOD other new_name
@@ -714,8 +698,7 @@ type Column
              import Standard.Examples
 
              example_div = Examples.decimal_column ^ Examples.integer_column
-    ^ : Column | Any -> Column
-    ^ self other =
+    ^ self (other : Column | Any) -> Column =
         Illegal_Argument.handle_java_exception <|
             Value_Type_Helpers.check_binary_numeric_op self other <|
                 run_vectorized_binary_op self Java_Storage.Maps.POWER other
@@ -747,8 +730,7 @@ type Column
              import Standard.Examples
 
              example_and = Examples.bool_column_1 && True
-    && : Column | Any -> Column
-    && self other =
+    && self (other : Column | Any) -> Column =
         Value_Type_Helpers.check_binary_boolean_op self other <|
             run_vectorized_binary_op self Java_Storage.Maps.AND other
 
@@ -780,8 +762,7 @@ type Column
              import Standard.Examples
 
              example_or = Examples.bool_column_1 || True
-    || : Column | Any -> Column
-    || self other =
+    || self (other : Column | Any) -> Column =
         Value_Type_Helpers.check_binary_boolean_op self other <|
            run_vectorized_binary_op self Java_Storage.Maps.OR other
 
@@ -797,8 +778,7 @@ type Column
              import Standard.Examples
 
              example_not = Examples.bool_column_1.not
-    not : Column
-    not self =
+    not self -> Column =
         Value_Type.expect_boolean self <|
             new_name = naming_helper.concat ["not", naming_helper.to_expression_text self]
             apply_unary_operation self NotOperation.INSTANCE new_name
@@ -820,8 +800,7 @@ type Column
              import Standard.Examples
 
              example_if = Examples.bool_column_1.iif 1 0
-    iif : Any -> Any -> Column
-    iif self when_true when_false =
+    iif self (when_true : Column | Any) (when_false : Column | Any) -> Column =
         Value_Type.expect_boolean self <|
             common_type = Value_Type_Helpers.find_common_type_for_arguments [when_true, when_false] . if_nothing Value_Type.Mixed
             storage_type = Storage.from_value_type_strict common_type
@@ -918,8 +897,7 @@ type Column
          Round a column of `Float` values`.
 
              Column.from_vector "foo" [1.2, 2.3, 3.6] . round == (Column.from_vector "foo" [1, 2, 4])
-    round : Integer -> Boolean -> Column | Illegal_Argument | Invalid_Value_Type
-    round self (decimal_places:Integer = 0) (use_bankers:Boolean = False) = Value_Type.expect_numeric self <|
+    round self decimal_places:Integer=0 use_bankers:Boolean=False -> Column ! Illegal_Argument | Invalid_Value_Type = Value_Type.expect_numeric self <|
         Illegal_Argument.handle_java_exception <| Rounding_Helpers.check_decimal_places decimal_places <|
             new_name = naming_helper.function_name "round" [self]
             run_vectorized_ternary_op self Java_Storage.Maps.ROUND decimal_places use_bankers new_name=new_name
@@ -943,8 +921,7 @@ type Column
             date_times = Column.from_vector "foo" [Date_Time.new 2020 10 24 1 2 3, Date_Time.new 2020 10 24 1 2 3]
             dates = Column.from_vector "foo" [Date.new 2020 10 24, Date.new 2020 10 24]
             col.truncate == dates
-    truncate : Column ! Invalid_Value_Type
-    truncate self =
+    truncate self -> Column ! Invalid_Value_Type =
         new_name = naming_helper.function_name "truncate" [self]
         precise_value_type = self.inferred_precise_value_type
         case precise_value_type.is_numeric of
@@ -970,8 +947,7 @@ type Column
          Take the ceiling of a column of `Float` values.
 
              Column.from_vector "foo" [1.25, 2.33, 3.57] . ceil == (Column.from_vector "foo" [2, 3, 4])
-    ceil : Column ! Invalid_Value_Type
-    ceil self = Value_Type.expect_numeric self <|
+    ceil self -> Column ! Invalid_Value_Type = Value_Type.expect_numeric self <|
         case self.inferred_precise_value_type.is_integer of
             True ->
                 new_name = naming_helper.function_name "ceil" [self]
@@ -990,8 +966,7 @@ type Column
          Take the floor of a column of `Float` values.
 
              Column.from_vector "foo" [1.25, 2.33, 3.57] . floor == (Column.from_vector "foo" [1, 2, 3])
-    floor : Column ! Invalid_Value_Type
-    floor self = Value_Type.expect_numeric self <|
+    floor self -> Column ! Invalid_Value_Type = Value_Type.expect_numeric self <|
         case self.inferred_precise_value_type.is_integer of
             True ->
                 new_name = naming_helper.function_name "floor" [self]
@@ -1013,8 +988,7 @@ type Column
              import Standard.Examples
 
              example_coalesce = Examples.decimal_column.coalesce Examples.integer_column
-    coalesce : (Any | Vector Any) -> Column
-    coalesce self values =
+    coalesce self (values : Any | Vector Any) -> Column =
         vec = Vector.unify_vector_or_element values
         new_name = self.naming_helper.function_name "coalesce" [self]+vec
         result = if vec.is_empty then self else
@@ -1035,8 +1009,7 @@ type Column
              import Standard.Examples
 
              example_min = Examples.decimal_column.min Examples.integer_column
-    min : (Any | Vector Any) -> Column
-    min self values =
+    min self (values : Any | Vector Any) -> Column =
         fallback a b = if a.is_nothing then b else
             if b.is_nothing then a else
                 if b < a then b else a
@@ -1057,8 +1030,7 @@ type Column
              import Standard.Examples
 
              example_max = Examples.decimal_column.max Examples.integer_column
-    max : (Any | Vector Any) -> Column
-    max self values =
+    max self (values : Any | Vector Any) -> Column =
         fallback a b = if a.is_nothing then b else
             if b.is_nothing then a else
                 if b > a then b else a
@@ -1076,8 +1048,7 @@ type Column
              import Standard.Examples
 
              example_is_nothing = Examples.decimal_column.is_nothing
-    is_nothing : Column
-    is_nothing self =
+    is_nothing self -> Column =
         new_name = naming_helper.concat [naming_helper.to_expression_text self, "is Nothing"]
         apply_unary_operation self IsNothingOperation.INSTANCE new_name
 
@@ -1085,8 +1056,7 @@ type Column
        ICON math
        Returns a column of booleans, with `True` items at the positions where
        this column contains a NaN. This is only applicable to double columns.
-    is_nan : Column
-    is_nan self = Value_Type.expect_numeric self <|
+    is_nan self -> Column = Value_Type.expect_numeric self <|
         self.internal_is_nan
 
     ## PRIVATE
@@ -1103,8 +1073,7 @@ type Column
        Returns a column of booleans, with `True` items at the positions where
        this column contains a +Inf/-Inf. This is only applicable to double
        columns.
-    is_infinite : Column
-    is_infinite self = Value_Type.expect_numeric self <|
+    is_infinite self -> Column = Value_Type.expect_numeric self <|
         new_name = naming_helper.function_name "is_infinite" [self]
         fallback x = case x of
             _ : Float   -> x.is_infinite
@@ -1116,8 +1085,7 @@ type Column
        Returns a column of booleans, with `True` items at the positions where
        this column contains a non-infinite, non-NaN floating point value. This
        is only applicable to double columns.
-    is_finite : Column
-    is_finite self = Value_Type.expect_numeric self <|
+    is_finite self -> Column = Value_Type.expect_numeric self <|
         new_name = naming_helper.function_name "is_finite" [self]
         fallback x = case x of
             _ : Float   -> x.is_finite
@@ -1127,8 +1095,7 @@ type Column
     ## PRIVATE
        Returns a column of booleans, with `True` items at the positions where
        this column contains an empty string or `Nothing`.
-    is_empty : Column
-    is_empty self = Value_Type.expect_text self <|
+    is_empty self -> Column = Value_Type.expect_text self <|
         self.internal_is_empty
 
     ## PRIVATE
@@ -1152,8 +1119,7 @@ type Column
              import Standard.Examples
 
              example_is_present = Examples.decimal_column.is_present
-    is_present : Column
-    is_present self =
+    is_present self -> Column =
         new_name = naming_helper.function_name "is_present" [self]
         self.is_nothing.not.rename new_name
 
@@ -1167,8 +1133,7 @@ type Column
 
        ? Blank values
          Blank values are `Nothing`, `""` and depending on setting `Number.nan`.
-    is_blank : Boolean -> Column
-    is_blank self treat_nans_as_blank=False =
+    is_blank self treat_nans_as_blank:Boolean=False -> Column =
         new_name = naming_helper.function_name "is_blank" [self]
         result = case self.value_type of
             Value_Type.Char _ _ -> self.is_empty
@@ -1201,8 +1166,7 @@ type Column
 
              example_fill_nothing = Examples.decimal_column.fill_nothing 20.5
     @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=self.value_type)
-    fill_nothing : Column | Previous_Value | Any -> Column
-    fill_nothing self default =
+    fill_nothing self (default : Column | Previous_Value | Any) -> Column =
         if Previous_Value == default then fill_previous self Nothing else
             common_type = Value_Type_Helpers.find_common_type_for_arguments [self, default]
             common_type.if_not_error <|
@@ -1238,8 +1202,7 @@ type Column
 
              example_fill_empty = Examples.text_column_1.fill_empty "hello"
     @default (self-> Widget_Helpers.make_fill_default_value_selector value_types=Value_Type.Char add_nothing=True)
-    fill_empty : Column | Previous_Value | Any -> Column
-    fill_empty self default =
+    fill_empty self (default : Column | Previous_Value | Any) -> Column =
         Value_Type.expect_text self <|
             if Previous_Value == default then fill_previous self self.is_empty else
                 Value_Type.expect_text default <|
@@ -1279,8 +1242,7 @@ type Column
              import Standard.Examples
 
              example_starts_with = Examples.text_column_1.starts_with "hell" Case_Sensitivity.Insensitive
-    starts_with : Column | Text -> Case_Sensitivity -> Column
-    starts_with self other case_sensitivity:Case_Sensitivity=..Default =
+    starts_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column =
         new_name = naming_helper.function_name "starts_with" [self, other]
         run_vectorized_binary_case_text_op self Java_Storage.Maps.STARTS_WITH other case_sensitivity (a -> b -> a.starts_with b case_sensitivity) new_name
 
@@ -1310,8 +1272,7 @@ type Column
              import Standard.Examples
 
              example_ends_with = Examples.text_column_1.ends_with "hell"
-    ends_with : Column | Text -> Case_Sensitivity -> Column
-    ends_with self other case_sensitivity:Case_Sensitivity=..Default =
+    ends_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column =
         new_name = naming_helper.function_name "ends_with" [self, other]
         run_vectorized_binary_case_text_op self Java_Storage.Maps.ENDS_WITH other case_sensitivity (a -> b -> a.ends_with b case_sensitivity) new_name
 
@@ -1329,8 +1290,7 @@ type Column
 
              example_text_length =
                 Examples.text_column_1.text_length
-    text_length : Column
-    text_length self =
+    text_length self -> Column =
         Value_Type.expect_text self <|
             apply_unary_operation self TextLengthOperation.INSTANCE
 
@@ -1348,8 +1308,7 @@ type Column
 
              example_text_length =
                 Examples.text_column_1.text_left 5
-    text_left : Column|Integer -> Column
-    text_left self n =
+    text_left self (n : Column | Integer) -> Column =
         Value_Type.expect_text self <|
             Value_Type.expect_integer n <|
                 new_name = naming_helper.function_name "text_left" [self, n]
@@ -1369,8 +1328,7 @@ type Column
 
              example_text_length =
                 Examples.text_column_1.text_right 5
-    text_right : Column|Integer -> Column
-    text_right self n =
+    text_right self (n : Column | Integer) -> Column =
         Value_Type.expect_text self <|
             Value_Type.expect_integer n <|
                 new_name = naming_helper.function_name "text_right" [self, n]
@@ -1402,8 +1360,7 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.contains "hell"
-    contains : Column | Text -> Case_Sensitivity -> Column
-    contains self other case_sensitivity:Case_Sensitivity=..Default =
+    contains self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column =
         new_name = naming_helper.function_name "contains" [self, other]
         run_vectorized_binary_case_text_op self Java_Storage.Maps.CONTAINS other case_sensitivity (a -> b -> a.contains b case_sensitivity) new_name
 
@@ -1424,8 +1381,7 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.like "F%."
-    like : Column | Text -> Column
-    like self pattern =
+    like self (pattern : Column | Text | Any) -> Column =
         Value_Type.expect_text self <|
             Value_Type.expect_text pattern <|
                 run_vectorized_binary_op self Java_Storage.Maps.LIKE pattern expected_result_type=Value_Type.Boolean
@@ -1440,8 +1396,7 @@ type Column
          function trims both ends of the input.
        - what: A `Text` (or text `Column`) containing characters that should be
          removed. By default, all whitespace is removed.
-    trim : Location -> Column | Text -> Column
-    trim self where:Location=..Both what='' = Value_Type.expect_text self <|
+    trim self where:Location=..Both (what : Text | Column = '') -> Column = Value_Type.expect_text self <|
         new_name = naming_helper.function_name "trim" [self]
 
         trim_get = wrap_text_argument_as_value_provider what
@@ -1496,8 +1451,7 @@ type Column
              column.text_replace '"(.*?)"'.to_regex '($1)'
     @term make_regex_text_widget
     @new_text (Text_Input display=..Always)
-    text_replace : Text | Regex | Column -> Text | Column -> Case_Sensitivity -> Boolean -> Column
-    text_replace self (term : Text | Regex | Column = "") new_text="" case_sensitivity:Case_Sensitivity=..Sensitive only_first=False =
+    text_replace self (term : Text | Regex | Column = "") (new_text : Text | Column = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Column =
         Value_Type.expect_text self <|
             term_fn = wrap_text_or_regex_argument_as_value_provider term
             new_text_fn = wrap_text_argument_as_value_provider new_text
@@ -1548,8 +1502,7 @@ type Column
 
              column.text_cleanse [..Leading_Whitespace, ..Trailing_Whitespace]
     @remove make_data_cleanse_vector_selector
-    text_cleanse : Vector Named_Pattern -> Column
-    text_cleanse self remove =
+    text_cleanse self (remove : Vector Named_Pattern) -> Column =
       remove.map (Text_Cleanse.Value _) . fold self (current-> tc-> tc.apply current)
 
     ## GROUP Standard.Base.DateTime
@@ -1558,8 +1511,7 @@ type Column
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    year : Column ! Invalid_Value_Type
-    year self = Value_Type.expect_has_date self <|
+    year self -> Column ! Invalid_Value_Type = Value_Type.expect_has_date self <|
         apply_unary_operation self DatePartOperation.YEAR_INSTANCE
 
     ## GROUP Standard.Base.DateTime
@@ -1568,8 +1520,7 @@ type Column
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    month : Column ! Invalid_Value_Type
-    month self = Value_Type.expect_has_date self <|
+    month self -> Column ! Invalid_Value_Type = Value_Type.expect_has_date self <|
         apply_unary_operation self DatePartOperation.MONTH_INSTANCE
 
     ## GROUP Standard.Base.DateTime
@@ -1579,8 +1530,7 @@ type Column
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    day : Column ! Invalid_Value_Type
-    day self = Value_Type.expect_has_date self <|
+    day self -> Column ! Invalid_Value_Type = Value_Type.expect_has_date self <|
         apply_unary_operation self DatePartOperation.DAY_INSTANCE
 
     ## GROUP Standard.Base.DateTime
@@ -1590,8 +1540,7 @@ type Column
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    day_of_year : Column ! Invalid_Value_Type
-    day_of_year self = Value_Type.expect_has_date self <|
+    day_of_year self -> Column ! Invalid_Value_Type = Value_Type.expect_has_date self <|
         apply_unary_operation self DatePartOperation.DAY_OF_YEAR_INSTANCE
 
     ## ALIAS weekday
@@ -1602,8 +1551,7 @@ type Column
 
        Applies only to columns that hold the `Date` or `Date_Time` types.
        Returns a column of `Integer` type.
-    day_of_week : Column ! Invalid_Value_Type
-    day_of_week self = Value_Type.expect_has_date self <|
+    day_of_week self -> Column ! Invalid_Value_Type = Value_Type.expect_has_date self <|
         apply_unary_operation self DatePartOperation.DAY_OF_WEEK_INSTANCE
 
     ## GROUP Standard.Base.DateTime
@@ -1612,8 +1560,7 @@ type Column
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
-    hour : Column ! Invalid_Value_Type
-    hour self = Value_Type.expect_has_time self <|
+    hour self -> Column ! Invalid_Value_Type = Value_Type.expect_has_time self <|
         apply_unary_operation self DatePartOperation.HOUR_INSTANCE
 
     ## GROUP Standard.Base.DateTime
@@ -1622,8 +1569,7 @@ type Column
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
-    minute : Column ! Invalid_Value_Type
-    minute self = Value_Type.expect_has_time self <|
+    minute self -> Column ! Invalid_Value_Type = Value_Type.expect_has_time self <|
         apply_unary_operation self DatePartOperation.MINUTE_INSTANCE
 
     ## GROUP Standard.Base.DateTime
@@ -1632,8 +1578,7 @@ type Column
 
        Applies only to columns that hold the `Time_Of_Day` or `Date_Time` types.
        Returns a column of `Integer` type.
-    second : Column ! Invalid_Value_Type
-    second self = Value_Type.expect_has_time self <|
+    second self -> Column ! Invalid_Value_Type = Value_Type.expect_has_time self <|
         apply_unary_operation self DatePartOperation.SECOND_INSTANCE
 
     ## GROUP Standard.Base.DateTime
@@ -1642,8 +1587,7 @@ type Column
 
        Returns a column of `Integer` type.
     @period Date_Time_Helpers.make_period_selector_for_column
-    date_part : Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
-    date_part self period:(Date_Period | Time_Period)=..Day =
+    date_part self (period : Date_Period | Time_Period = ..Day) -> Column ! Invalid_Value_Type | Illegal_Argument =
         date_part_operation col name =
             operation = case name of
                 DatePartOperation.YEAR -> DatePartOperation.YEAR_INSTANCE
@@ -1685,8 +1629,7 @@ type Column
          differences in time calculations between backends, especially around
          unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
-    date_diff : (Column | Date | Date_Time | Time_Of_Day) -> Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
-    date_diff self end (period : Date_Period | Time_Period = ..Day) =
+    date_diff self (end : Column | Date | Date_Time | Time_Of_Day) (period : Date_Period | Time_Period = ..Day) -> Column ! Invalid_Value_Type | Illegal_Argument =
         Value_Type.expect_type self .is_date_or_time "date/time" <|
             my_type = self.inferred_precise_value_type
             Value_Type.expect_type end (== my_type) my_type.to_display_text <|
@@ -1724,8 +1667,7 @@ type Column
          differences in time calculations between backends, especially around
          unusual events like DST.
     @period Date_Time_Helpers.make_period_selector_for_column
-    date_add : (Column | Integer) -> Date_Period | Time_Period -> Column ! Invalid_Value_Type | Illegal_Argument
-    date_add self amount (period : Date_Period | Time_Period = default_date_period self) =
+    date_add self (amount : Column | Integer) (period : Date_Period | Time_Period = default_date_period self) -> Column ! Invalid_Value_Type | Illegal_Argument =
         Value_Type.expect_type self .is_date_or_time "date/time" <|
             my_type = self.inferred_precise_value_type
             Value_Type.expect_integer amount <|
@@ -1757,8 +1699,7 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.is_in [1, 2, 5]
-    is_in : Column | Vector -> Column
-    is_in self vector =
+    is_in self (vector : Vector | Column | Array) -> Column =
         result_name = naming_helper.concat [naming_helper.to_expression_text self, "in", naming_helper.to_expression_text vector]
         as_vector = case vector of
             _ : Vector -> vector
@@ -1852,8 +1793,7 @@ type Column
              example_contains = Examples.text_column_1.parse Boolean 'Yes|No'
     @type Widget_Helpers.parse_type_selector
     @format (make_format_chooser include_number=False)
-    parse : Value_Type | Auto -> Text | Data_Formatter -> Problem_Behavior -> Column
-    parse self type:(Value_Type | Auto)=Auto format:(Text | Data_Formatter)="" on_problems:Problem_Behavior=..Report_Warning =
+    parse self (type : Value_Type | Auto = Auto) (format : Text | Data_Formatter = "") on_problems:Problem_Behavior=..Report_Warning -> Column =
         if type != Auto && self.value_type.is_same_type type then self else
             Value_Type.expect_text self <|
                 formatter = case format of
@@ -1947,8 +1887,7 @@ type Column
              # ==> ["100 000 000,00", "2 222,00", "3,00"]
     @locale Locale.default_widget
     @format (self-> Widget_Helpers.make_format_chooser_for_type self.value_type)
-    format : Text | Date_Time_Formatter | Column -> Locale -> Column ! Illegal_Argument
-    format self format:(Text | Date_Time_Formatter | Column)="" locale:Locale=Locale.default = case format of
+    format self (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default -> Column ! Illegal_Argument = case format of
         format_column : Column -> Value_Type.expect_text format_column <|
             formatter = make_value_formatter_for_value_type self.value_type locale
             formatter.if_not_error <|
@@ -2006,8 +1945,7 @@ type Column
          The `parse` method should be used to convert text values into other
          types. Due to this, a Mixed column containing values `[2, "3"]` will
          actually be converted into `[2, Nothing]` when casting to Integer type.
-    cast : Value_Type -> Problem_Behavior -> Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure
-    cast self value_type:Value_Type on_problems:Problem_Behavior=..Report_Warning =
+    cast self value_type:Value_Type on_problems:Problem_Behavior=..Report_Warning -> Column ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure =
         Cast_Helpers.check_cast_compatibility self.value_type value_type <|
             target_storage_type = Storage.from_value_type value_type on_problems
             Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
@@ -2045,8 +1983,7 @@ type Column
              elements are no longer than 255 characters, the column will get a
              max length of 255. Otherwise, the column size limit will stay
              unchanged.
-    auto_cast : Boolean -> Column
-    auto_cast self shrink_types=False =
+    auto_cast self shrink_types:Boolean=False -> Column =
         new_value_type = case shrink_types of
             False -> self.inferred_precise_value_type
             True ->
@@ -2122,8 +2059,7 @@ type Column
              import Standard.Examples
 
              example_map = Examples.integer_column.map (x -> x * x)
-    map : (Any -> Any) -> Boolean -> Value_Type | Auto -> Column ! Invalid_Value_Type
-    map self function skip_nothing=True expected_value_type=Auto =
+    map self (function : Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) -> Column ! Invalid_Value_Type =
         new_fn = if skip_nothing then (x-> if x.is_nothing then Nothing else function x) else function
         new_st = self.to_vector.map on_problems=No_Wrap.Value new_fn
         Column.from_vector self.name new_st value_type=expected_value_type
@@ -2163,8 +2099,7 @@ type Column
 
              example_zip =
                 Examples.integer_column.zip Examples.text_column_1 [_, _]
-    zip : Column -> (Any -> Any -> Any) -> Boolean -> Value_Type | Auto -> Column ! Invalid_Value_Type
-    zip self that:Column function skip_nothing=True expected_value_type=Auto =
+    zip self that:Column (function : Any -> Any -> Any) skip_nothing:Boolean=True (expected_value_type : Value_Type | Auto = Auto) -> Column ! Invalid_Value_Type =
         new_fn = case skip_nothing of
             True ->
                 x -> y ->
@@ -2190,8 +2125,7 @@ type Column
              import Standard.Examples
 
              example_rename = Examples.integer_column.rename "My Numbers"
-    rename : Text -> Column ! Illegal_Argument
-    rename self name = naming_helper.ensure_name_is_valid name <|
+    rename self name:Text -> Column ! Illegal_Argument = naming_helper.ensure_name_is_valid name <|
         Illegal_Argument.handle_java_exception <|
             Column.from_java_column (self.java_column.rename name)
 
@@ -2205,8 +2139,7 @@ type Column
              import Standard.Examples
 
              example_name = Examples.text_column_2.name
-    name : Text
-    name self = self.java_column.getName
+    name self -> Text = self.java_column.getName
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -2218,8 +2151,7 @@ type Column
              import Standard.Examples
 
              example_length = Examples.text_column_2.length
-    length : Integer
-    length self = self.java_column . getSize
+    length self -> Integer = self.java_column . getSize
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -2231,8 +2163,7 @@ type Column
              import Standard.Examples
 
              example_count_nothing = Examples.text_column_2.count_nothing
-    count_nothing : Integer
-    count_nothing self = CountNothing.apply self.java_column
+    count_nothing self -> Integer = CountNothing.apply self.java_column
 
     ## PRIVATE
        Counts the number of text values with leading or trailing whitespace.
@@ -2243,8 +2174,8 @@ type Column
             CountUntrimmed.apply self.java_column sample_size
 
     ## PRIVATE
-      Counts the number of text values with non trivial whitespace.
-      Used for data quality indicator in Table Viz.
+       Counts the number of text values with non trivial whitespace.
+       Used for data quality indicator in Table Viz.
     count_non_trivial_whitespace : Integer -> Integer | Nothing
     count_non_trivial_whitespace self sample_size:Integer=Column.default_sample_size =
         if (Column.can_contain_text self.value_type).not then Nothing else
@@ -2252,7 +2183,7 @@ type Column
 
     ## PRIVATE
        Determines if a value type is eligable for a text data quality count
-    private can_contain_text value_type:Value_Type -> Boolean = 
+    private can_contain_text value_type:Value_Type -> Boolean =
         value_type == Value_Type.Mixed || value_type.is_text
 
     ## PRIVATE
@@ -2270,8 +2201,7 @@ type Column
              import Standard.Examples
 
              example_count = Examples.text_column_2.count
-    count : Integer
-    count self = self.length - self.count_nothing
+    count self -> Integer = self.length - self.count_nothing
 
     ## GROUP Standard.Base.Selections
        ICON parse3
@@ -2290,8 +2220,7 @@ type Column
 
              example_at = Examples.integer_column.at 0
     @index (self-> Numeric_Input minimum=0 maximum=self.length-1)
-    at : Integer -> (Any | Nothing) ! Index_Out_Of_Bounds
-    at self index:Integer=0 =
+    at self index:Integer=0 -> Any | Nothing ! Index_Out_Of_Bounds =
         self.get index (Error.throw (Index_Out_Of_Bounds.Error index self.length))
 
     ## GROUP Standard.Base.Selections
@@ -2309,8 +2238,7 @@ type Column
 
              example_at = Examples.integer_column.get 0 -1
     @index (self-> Numeric_Input minimum=0 maximum=self.length-1)
-    get : Integer -> Any -> Any | Nothing
-    get self index:Integer=0 (~default=Nothing) =
+    get self index:Integer=0 ~default=Nothing -> Any | Nothing =
         if index < 0 && index >= -self.length then self.get (self.length + index) default else
             valid_index = (index >= 0) && (index < self.length)
             if valid_index.not then default else
@@ -2324,8 +2252,7 @@ type Column
        Arguments:
        - max_rows: specifies the maximum number of rows to read.
     @max_rows Rows_To_Read.default_widget
-    read : Rows_To_Read -> Column
-    read self (max_rows : Rows_To_Read = ..All_Rows) =
+    read self (max_rows : Rows_To_Read = ..All_Rows) -> Column =
         if max_rows.is_nothing then self else
             self.to_table.read max_rows . at 0
 
@@ -2339,8 +2266,7 @@ type Column
              import Standard.Examples
 
              example_to_vector = Examples.integer_column.to_vector
-    to_vector : Vector
-    to_vector self = Vector.from_polyglot_array self.java_column.getStorage.toList . map java_to_enso
+    to_vector self -> Vector = Vector.from_polyglot_array self.java_column.getStorage.toList . map java_to_enso
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -2348,8 +2274,7 @@ type Column
 
        The value type determines what type of values the column is storing and
        what operations are permitted.
-    value_type : Value_Type
-    value_type self =
+    value_type self -> Value_Type =
         storage_type = self.java_column.getStorage.getType
         Storage.to_value_type storage_type
 
@@ -2397,8 +2322,7 @@ type Column
              import Standard.Examples
 
              example_to_table = Examples.integer_column.to_table
-    to_table : Table
-    to_table self = from_java_table self.java_column.toTable
+    to_table self -> Table = from_java_table self.java_column.toTable
 
     ## ALIAS column type, field info, metadata
        GROUP Standard.Base.Metadata
@@ -2406,8 +2330,7 @@ type Column
        Returns a Table describing this column's contents and type.
 
        The table behaves like `Table.column_info.
-    info : Table
-    info self = self.to_table.column_info
+    info self -> Table = self.to_table.column_info
 
     ## ALIAS order_by
        GROUP Standard.Base.Selections
@@ -2449,8 +2372,7 @@ type Column
              example_sort =
                  my_compare a b = Ordering.compare a.abs b.abs
                  Examples.decimal_column.sort by=my_compare
-    sort : Sort_Direction -> Boolean -> (Any -> Any -> Ordering) | Nothing -> Column
-    sort self order:Sort_Direction=..Ascending missing_last:Boolean=True by=Nothing = case by of
+    sort self order:Sort_Direction=..Ascending missing_last:Boolean=True (by : (Any -> Any -> Ordering) | Nothing = Nothing) -> Column = case by of
         Nothing ->
             order_bool = case order of
                 Sort_Direction.Ascending -> True
@@ -2499,8 +2421,7 @@ type Column
              ## The take returns "Charlie"
              last_row = column.take (..Last 1)
     @range (self-> Index_Sub_Range.default_widget self.length)
-    take : (Index_Sub_Range | Range | Integer) -> Column
-    take self range:(Index_Sub_Range | Range | Integer)=..First =
+    take self (range : Index_Sub_Range | Range | Integer = ..First) -> Column =
         take_helper self.length (self.at _) self.slice (slice_ranges self) range
 
     ## ALIAS remove, skip
@@ -2512,8 +2433,7 @@ type Column
        Arguments:
        - range: The selection of rows from the table to remove.
     @range (self-> Index_Sub_Range.default_widget self.length)
-    drop : (Index_Sub_Range | Range | Integer) -> Column
-    drop self range:(Index_Sub_Range | Range | Integer)=..First =
+    drop self (range : Index_Sub_Range | Range | Integer = ..First) -> Column =
         drop_helper self.length (self.at _) self.slice (slice_ranges self) range
 
     ## PRIVATE
@@ -2538,8 +2458,7 @@ type Column
              import Standard.Examples
 
              example_first = Examples.integer_column.first
-    first : Any ! Index_Out_Of_Bounds
-    first self = self.at 0
+    first self -> Any ! Index_Out_Of_Bounds = self.at 0
 
     ## GROUP Standard.Base.Selections
        ICON select_row
@@ -2554,8 +2473,7 @@ type Column
              import Standard.Examples
 
              example_last = Examples.integer_column.last
-    last : Any ! Index_Out_Of_Bounds
-    last self = self.at (self.length - 1)
+    last self -> Any ! Index_Out_Of_Bounds = self.at (self.length - 1)
 
     ## GROUP Standard.Base.Selections
        ICON order
@@ -2568,8 +2486,7 @@ type Column
              import Standard.Examples
 
              example_reverse = Examples.integer_column.reverse
-    reverse : Column
-    reverse self =
+    reverse self -> Column =
         mask = OrderMask.reverse self.length
         Column.from_java_column (self.java_column.applyMask mask)
 
@@ -2584,14 +2501,12 @@ type Column
              import Standard.Examples
 
              example_duplicate_count = Examples.integer_column.duplicate_count
-    duplicate_count : Column
-    duplicate_count self =
+    duplicate_count self -> Column =
         Column.from_java_column self.java_column.duplicateCount
 
     ## PRIVATE
        Provides a simplified text representation for display in the REPL and errors.
-    to_text : Text
-    to_text self = "(In-Memory Column "+self.name.to_text+")"
+    to_text self -> Text = "(In-Memory Column "+self.name.to_text+")"
 
     ## PRIVATE
        Helper for the expression to tell it which functions needs a Vector.
@@ -2610,8 +2525,7 @@ type Column
 
        Arguments:
        - statistic: Statistic to calculate.
-    compute : Statistic -> Any
-    compute self statistic:Statistic=..Count =
+    compute self statistic:Statistic=..Count -> Any =
         Statistic.compute_bulk self.to_vector [statistic] . first
 
     ## ALIAS count, kurtosis, maximum, mean, median, minimum, mode, skew, standard_deviation, statistic, sum, variance
@@ -2620,13 +2534,12 @@ type Column
 
        Arguments:
        - statistics: Set of statistics to calculate.
-    compute_bulk : Vector Statistic -> Table
-    compute_bulk self statistics=[Statistic.Count, Statistic.Sum] =
+    compute_bulk self (statistics : Vector Statistic = [Statistic.Count, Statistic.Sum]) -> Table =
         values = Statistic.compute_bulk self.to_vector statistics
         names = statistics.map _.to_text
         Table.from_rows names [values]
 
-    ## ALIAS cumulative, count, sum, total, minimum, maximum, sum, mean, product, variance, standard deviation
+    ## ALIAS count, cumulative, maximum, mean, minimum, product, standard deviation, sum, sum, total, variance
        GROUP Standard.Base.Statistics
        ICON transform4
        Compute a single running statistic on the column.
@@ -2634,12 +2547,11 @@ type Column
        Arguments:
        - statistic: Statistic to calculate.
        - name: Name of the new column.
-    running : Statistic -> Text -> Column
-    running self statistic:Statistic=..Count name=statistic.to_text+" "+self.name =
+    running self statistic:Statistic=..Count (name : Text = statistic.to_text+" "+self.name) -> Column =
         data = Statistic.running self.to_vector statistic
         Column.from_vector name data
 
-    ## ALIAS shift, lead, lag, slide, displace
+    ## ALIAS displace, lag, lead, shift, slide
        GROUP Standard.Base.Values
        ICON column_add
 
