@@ -241,16 +241,16 @@ type Column
              example_eq = Examples.integer_column == 1
     == self (other : Column | Any) -> Column =
         new_name = naming_helper.binary_operation_name "==" self other
+        fallback problem_builder a b =
+            if (a.is_a Float) || (b.is_a Float) then
+                problem_builder.reportFloatingPointEquality -1
+            a == b
         call_comparator self other new_name Comparators.Eq <|
-            fallback problem_builder a b =
-                if (a.is_a Float) || (b.is_a Float) then
-                    problem_builder.reportFloatingPointEquality -1
-                a == b
             run_vectorized_binary_op_with_fallback_problem_handling self Java_Storage.Maps.EQ other fallback_fn=fallback new_name=new_name expected_result_type=Value_Type.Boolean skip_nulls=True
 
     ## GROUP Standard.Base.Logical
        ICON operators
-       Element-wise case-insensitive text equality comparison.`
+       Element-wise case-insensitive text equality comparison.
 
        Arguments:
        - other: The value to compare `self` against. If `other` is a column, the
@@ -2896,7 +2896,7 @@ Many_Files_List.from (that : Column) =
 
 ## PRIVATE
    Temporary function to determine if to use the Comparators statics or embedded operations.
-call_comparator left other new_name java_static enso_action =
+call_comparator left other new_name java_static ~enso_action =
     use_java = case left.value_type of
         Value_Type.Date -> True
         Value_Type.Time_Of_Day -> True
