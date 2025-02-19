@@ -556,6 +556,7 @@ onWindowBlur(() => {
         'components.copy',
         'components.deleteSelected',
       ]"
+      @contextmenu="ensureSelected"
     >
       <div
         ref="contentNode"

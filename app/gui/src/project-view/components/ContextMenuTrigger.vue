@@ -16,7 +16,7 @@ defineExpose({
 </script>
 
 <template>
-  <div style="display: contents" @contextmenu="point = $event">
+  <div style="display: contents" @contextmenu.stop.prevent="point = $event">
     <slot />
     <ContextMenu
       v-if="point != null"
