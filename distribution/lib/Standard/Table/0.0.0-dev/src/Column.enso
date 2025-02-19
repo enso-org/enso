@@ -1503,7 +1503,7 @@ type Column
             new_text_fn = wrap_text_argument_as_value_provider new_text
 
             term_fn.if_not_error <| new_text_fn.if_not_error <|
-                new_name = naming_helper.function_name "replace" [self, term.to_text, new_text]
+                new_name = naming_helper.function_name "replace" [self, term, new_text]
 
                 do_replace index input =
                     term = term_fn index
