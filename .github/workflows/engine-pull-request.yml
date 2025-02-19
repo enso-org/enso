@@ -37,7 +37,7 @@ jobs:
     secrets: inherit
 
   stdlib-api-changes-label:
-    name: 🏷 Append Standard library API change label
+    name: 🏷 Append labels to PR
     uses: ./.github/workflows/std-libs-labels.yml
     secrets: inherit
 

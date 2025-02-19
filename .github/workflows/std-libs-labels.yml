@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   base-changed-labels:
-    name: 🔍 Stadard.Base files changed
+    name: 🔍 Check changed files in Stadard.Base
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
