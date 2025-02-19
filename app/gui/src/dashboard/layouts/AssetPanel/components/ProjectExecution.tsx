@@ -119,9 +119,9 @@ export function ProjectExecution(props: ProjectExecutionProps) {
                 .join(', ')
           return `${startDateDailyRepeat} ${dayNames}`
         }
-        case 'monthly-date':
-        case 'monthly-weekday':
-        case 'monthly-last-weekday': {
+        case 'monthlyDate':
+        case 'monthlyWeekday':
+        case 'monthlyLastWeekday': {
           const monthNames =
             repeat.months.length === MONTHS_IN_YEAR ?
               getText('everyMonth')
@@ -129,7 +129,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
                 .map((month) => getText(MONTH_3_LETTER_TEXT_IDS[month] ?? 'january3'))
                 .join(', ')
           switch (repeat.type) {
-            case 'monthly-date': {
+            case 'monthlyDate': {
               return getText(
                 'repeatsTimeXMonthsXDateX',
                 startDateDailyRepeat,
@@ -137,7 +137,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
                 getOrdinal(repeat.date),
               )
             }
-            case 'monthly-weekday': {
+            case 'monthlyWeekday': {
               return getText(
                 'repeatsTimeXMonthsXDayXWeekX',
                 startDateDailyRepeat,
@@ -146,7 +146,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
                 getText('xthWeek', getOrdinal(repeat.weekNumber)),
               )
             }
-            case 'monthly-last-weekday': {
+            case 'monthlyLastWeekday': {
               return getText(
                 'repeatsTimeXMonthsXDayXLastWeek',
                 startDateDailyRepeat,

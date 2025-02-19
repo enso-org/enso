@@ -73,9 +73,9 @@ const INTERNAL_REPEAT_TYPES = [
   'none',
   'daily',
   'weekly',
-  'monthly-date',
-  'monthly-weekday',
-  'monthly-last-weekday',
+  'monthlyDate',
+  'monthlyWeekday',
+  'monthlyLastWeekday',
 ] as const
 
 const DAYS = [...Array(DAYS_PER_WEEK).keys()] as const
@@ -147,14 +147,14 @@ const UPSERT_EXECUTION_SCHEMA = z
               daysOfWeek: days,
             }
           }
-          case 'monthly-date': {
+          case 'monthlyDate': {
             return {
               type: repeatType,
               date: startDate.day,
               months,
             }
           }
-          case 'monthly-weekday': {
+          case 'monthlyWeekday': {
             return {
               type: repeatType,
               dayOfWeek: getDay(startDate),
@@ -162,7 +162,7 @@ const UPSERT_EXECUTION_SCHEMA = z
               months,
             }
           }
-          case 'monthly-last-weekday': {
+          case 'monthlyLastWeekday': {
             return {
               type: repeatType,
               dayOfWeek: getDay(startDate),
@@ -250,7 +250,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   const daysToEndOfMonth = endOfMonth(date).day - date.day
   const validRepeatTypes =
     daysToEndOfMonth >= DAYS_PER_WEEK ?
-      INTERNAL_REPEAT_TYPES.filter((type) => type !== 'monthly-last-weekday')
+      INTERNAL_REPEAT_TYPES.filter((type) => type !== 'monthlyLastWeekday')
     : INTERNAL_REPEAT_TYPES
 
   useEffect(() => {
@@ -299,17 +299,17 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       case 'weekly': {
         return getText('weekly')
       }
-      case 'monthly-date': {
+      case 'monthlyDate': {
         return getText('monthlyXthDay', getOrdinal(date.day))
       }
-      case 'monthly-weekday': {
+      case 'monthlyWeekday': {
         return getText(
           'monthlyXthXDay',
           getOrdinal(Math.floor(date.day / DAYS_PER_WEEK) + 1),
           dayOfWeek,
         )
       }
-      case 'monthly-last-weekday': {
+      case 'monthlyLastWeekday': {
         return getText('monthlyLastXDay', dayOfWeek)
       }
     }
@@ -369,7 +369,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
           {(n) => getText(DAY_3_LETTER_TEXT_IDS[n] ?? 'monday3')}
         </MultiSelector>
       )}
-      {(repeatType === 'monthly-date' || repeatType === 'monthly-weekday') && (
+      {(repeatType === 'monthlyDate' || repeatType === 'monthlyWeekday') && (
         <MultiSelector
           form={form}
           isRequired

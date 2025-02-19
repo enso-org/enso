@@ -38,7 +38,7 @@ export function firstProjectExecutionOnOrAfter(
       nextDate = nextDate.add({ days: dayOffset })
       break
     }
-    case 'monthly-weekday': {
+    case 'monthlyWeekday': {
       const currentDate = nextDate.day
       nextDate = nextDate.set({ day: 1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK })
       const currentDay = getDay(nextDate)
@@ -54,7 +54,7 @@ export function firstProjectExecutionOnOrAfter(
       }
       break
     }
-    case 'monthly-date': {
+    case 'monthlyDate': {
       const currentDate = nextDate.day
       const date = repeat.date
       const goToNextMonth = date < currentDate
@@ -73,8 +73,8 @@ export function firstProjectExecutionOnOrAfter(
     case 'daily': {
       break
     }
-    case 'monthly-date':
-    case 'monthly-weekday': {
+    case 'monthlyDate':
+    case 'monthlyWeekday': {
       const currentMonth = nextDate.month
       const month = repeat.months.find((month) => month >= currentMonth) ?? repeat.months[0] ?? 0
       const monthOffset = remainder(month - currentMonth, MONTHS_PER_YEAR)
@@ -99,7 +99,7 @@ export function nextProjectExecutionDate(
       nextDate = nextDate.add({ days: dayOffset })
       break
     }
-    case 'monthly-weekday': {
+    case 'monthlyWeekday': {
       nextDate = nextDate.set({ day: 1 })
       nextDate = nextDate.add({ months: 1 })
       nextDate = nextDate.set({ day: 1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK })
@@ -108,7 +108,7 @@ export function nextProjectExecutionDate(
       nextDate = nextDate.add({ days: dayOffset })
       break
     }
-    case 'monthly-date': {
+    case 'monthlyDate': {
       const startMonth = nextDate.month
       nextDate = nextDate.add({ months: 1 })
       if (remainder(nextDate.month - startMonth, MONTHS_PER_YEAR) > 1) {
@@ -121,8 +121,8 @@ export function nextProjectExecutionDate(
     case 'daily': {
       break
     }
-    case 'monthly-date':
-    case 'monthly-weekday': {
+    case 'monthlyDate':
+    case 'monthlyWeekday': {
       const currentMonth = nextDate.month
       const month = repeat.months.find((month) => month >= currentMonth) ?? repeat.months[0] ?? 0
       const monthOffset = remainder(month - currentMonth, MONTHS_PER_YEAR)
