@@ -230,8 +230,21 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
       // If the user is being redirected after clicking the registration confirmation link in their
       // email, then the URL will be for the confirmation page path.
       case '//auth/confirmation': {
-        const redirectUrl = `${appUtils.CONFIRM_REGISTRATION_PATH}${url.search}`
+        const verificationCode = url.searchParams.get('verification_code')
+
+        let redirectUrl = ''
+
+        // In case if the verifaction code is present, then we need to navigate to the confirmation
+        // page, because the URL is a deep link for confirmation page and user is not yet confirmed.
+        if (verificationCode != null) {
+          redirectUrl = `${appUtils.CONFIRM_REGISTRATION_PATH}${url.search}`
+        } else {
+          // Otherwise, we need to navigate to the setup page, because user is already confirmed.
+          // but the redirect link navigates to the confirmation page, for some reason.
+          redirectUrl = `${appUtils.SETUP_PATH}${url.search}`
+        }
         navigate(redirectUrl)
+
         break
       }
       case '//auth': {
@@ -281,7 +294,7 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
         break
       }
       default: {
-        logger.error(`Ignoring unknown deep link '${urlString}'.`)
+        navigate(pathname.slice(1))
         break
       }
     }
