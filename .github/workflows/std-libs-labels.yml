@@ -1,0 +1,47 @@
+# This file is not auto-generated. Feel free to edit it.
+
+name: 🏷 Standard Library Labels
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+  workflow_dispatch:
+  workflow_call: {}
+
+permissions:
+  checks: write
+  pull-requests: write
+
+jobs:
+  base-changed-labels:
+    name: 🔍 Stadard.Base files changed
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Get changed files
+        id: base-changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: |
+            distribution/lib/Standard/Base/**/docs/api/**.md
+      - name: List all changed files in Standard.Base
+        env:
+          ALL_CHANGED_FILES: ${{ steps.base-changed-files.outputs.all_changed_files }}
+        run: |
+          if [[ "${{ steps.base-changed-files.outputs.any_changed }}" == "true" ]]; then
+            echo "Files changed:"
+          fi
+          for file in ${ALL_CHANGED_FILES}; do
+            echo "$file"
+          done
+      - name: 🏷 Append -libs-API-change-Base label
+        if: steps.base-changed-files.outputs.any_changed == 'true'
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: "-libs-API-change"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
