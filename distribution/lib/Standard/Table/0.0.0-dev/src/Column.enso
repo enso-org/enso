@@ -245,7 +245,7 @@ type Column
             if (a.is_a Float) || (b.is_a Float) then
                 problem_builder.reportFloatingPointEquality -1
             a == b
-        _call_comparator self other new_name Comparators.eq <|
+        _call_comparator self other new_name (l->r->n-> Comparators.eq l r n) <|
             run_vectorized_binary_op_with_fallback_problem_handling self Java_Storage.Maps.EQ other fallback_fn=fallback new_name=new_name expected_result_type=Value_Type.Boolean skip_nulls=True
 
     ## GROUP Standard.Base.Logical
@@ -308,7 +308,7 @@ type Column
              example_neq = Examples.integer_column != 1
     != self (other : Column | Any) -> Column =
         new_name = naming_helper.binary_operation_name "!=" self other
-        _call_comparator self other new_name Comparators.notEq <|
+        _call_comparator self other new_name (l->r->n-> Comparators.notEq l r n) <|
             (self == other).not . rename new_name
 
     ## ALIAS greater than or equal
@@ -339,7 +339,7 @@ type Column
              example_geq = Examples.integer_column >= 1
     >= self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <| Incomparable_Values.handle_errors <|
         new_name = naming_helper.binary_operation_name ">=" self other
-        _call_comparator self other new_name Comparators.greaterThanEq <|
+        _call_comparator self other new_name (l->r->n-> Comparators.greaterThanEq l r n) <|
             run_vectorized_binary_op self Java_Storage.Maps.GTE new_name=new_name fallback_fn=(>=) other expected_result_type=Value_Type.Boolean
 
     ## ALIAS less than or equal
@@ -370,7 +370,7 @@ type Column
              example_leq = Examples.integer_column <= 1
     <= self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <| Incomparable_Values.handle_errors <|
         new_name = naming_helper.binary_operation_name "<=" self other
-        _call_comparator self other new_name Comparators.lessThanEq <|
+        _call_comparator self other new_name (l->r->n-> Comparators.lessThanEq l r n) <|
             run_vectorized_binary_op self Java_Storage.Maps.LTE new_name=new_name fallback_fn=(<=) other expected_result_type=Value_Type.Boolean
 
     ## ALIAS greater than
@@ -401,7 +401,7 @@ type Column
              example_gt = Examples.integer_column > 1
     > self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <| Incomparable_Values.handle_errors <|
         new_name = naming_helper.binary_operation_name ">" self other
-        _call_comparator self other new_name Comparators.greaterThan <|
+        _call_comparator self other new_name (l->r->n-> Comparators.greaterThan l r n) <|
             run_vectorized_binary_op self Java_Storage.Maps.GT new_name=new_name fallback_fn=(>) other expected_result_type=Value_Type.Boolean
 
     ## ALIAS less than
@@ -432,7 +432,7 @@ type Column
              example_lt = Examples.integer_column < 1
     < self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <| Incomparable_Values.handle_errors <|
         new_name = naming_helper.binary_operation_name "<" self other
-        _call_comparator self other new_name Comparators.lessThan <|
+        _call_comparator self other new_name (l->r->n-> Comparators.lessThan l r n) <|
             run_vectorized_binary_op self Java_Storage.Maps.LT new_name=new_name fallback_fn=(<) other expected_result_type=Value_Type.Boolean
 
     ## GROUP Standard.Base.Logical
@@ -2896,6 +2896,6 @@ Many_Files_List.from (that : Column) =
 
 ## PRIVATE
    Temporary function to determine if to use the Comparators statics or embedded operations.
-private _call_comparator left other new_name java_static ~enso_action =
+private _call_comparator left other new_name ~java_static ~enso_action =
     if Comparators.isSupported left.java_column then Column.from_java_column (java_static left.java_column (if other.is_a Column then other.java_column else other) new_name) else
         enso_action
