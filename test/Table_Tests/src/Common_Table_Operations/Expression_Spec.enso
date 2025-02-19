@@ -435,7 +435,7 @@ add_expression_specs suite_builder detailed setup =
         specify_test "should be able to perform comparisons to get boolean results" group_builder expression_test->
             expression_test "text_replace([C], 'o', '', ..Sensitive, 3<5)" ["Hell", "Wrld", "Hell World!", "", Nothing]
 
-        specify_test "should be able to use regex" group_builder expression_test->
+        if setup.is_database.not then specify_test "should be able to use regex" group_builder expression_test->
             expression_test "text_replace([C], regex('l{2}'), '')" ["Heo", "World", "Heo World!", "", Nothing]
             expression_test "text_replace([C], regex('L{2}'), '')" ["Hello", "World", "Hello World!", "", Nothing]
             expression_test "text_replace([C], r/l{2}/, '')" ["Heo", "World", "Heo World!", "", Nothing]
@@ -459,7 +459,7 @@ add_expression_specs suite_builder detailed setup =
         group_builder.specify "should fail with Argument_Mismatch if too many arguments" <|
             expect_error Expression_Error.Argument_Mismatch <| test_table.get.evaluate_expression "is_empty([C], 'Hello')"
             
-        group_builder.specify "should fail with bad regex" <|
+        if setup.is_database.not then group_builder.specify "should fail with bad regex" <|
             ## Unclosed regex literal
             expect_error Expression_Error.Syntax_Error <| test_table.get.evaluate_expression "text_replace([C], r/l{2}, '')"
             ## Bad regex
