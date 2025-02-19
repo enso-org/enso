@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Action, Actions } from '../providers/action'
+import { Action, ActionName } from '../providers/action'
 import ContextMenu from './ContextMenu.vue'
 
 const { actions } = defineProps<{
-  actions: (Action | keyof Actions)[]
+  actions: (Action | ActionName)[]
 }>()
 
 const point = ref<{ x: number; y: number } | null>(null)

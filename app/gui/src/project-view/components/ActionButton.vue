@@ -2,9 +2,9 @@
 import SvgButton from '@/components/SvgButton.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { computed, toValue } from 'vue'
-import { Action, Actions, injectActions } from '../providers/action'
+import { Action, ActionName, injectActions } from '../providers/action'
 
-const { action: actionOrName } = defineProps<{ action: Action | keyof Actions }>()
+const { action: actionOrName } = defineProps<{ action: Action | ActionName }>()
 const actions = injectActions()
 const action = computed(() =>
   typeof actionOrName === 'string' ? actions[actionOrName] : actionOrName,

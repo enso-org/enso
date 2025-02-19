@@ -4,6 +4,9 @@ import { type ToValue } from '@/util/reactivity'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { computed, type ComputedRef, ref, toValue } from 'vue'
 
+/**
+ * Register handlers of actions for many selected components.
+ */
 export function registerSelectionActionHandlers(
   selectedNodes: ToValue<Iterable<Node>>,
   actions: {

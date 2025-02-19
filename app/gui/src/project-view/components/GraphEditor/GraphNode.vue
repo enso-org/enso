@@ -418,6 +418,8 @@ const nodeClass = computed(() => {
 
 // === Component actions ===
 
+declare module '@/providers/'
+
 const { getNodeColor, getNodeColors } = injectNodeColors()
 const nodeColor = computed(() => getNodeColor(nodeId.value))
 const matchableColors = getNodeColors((node) => node !== nodeId.value)
@@ -462,13 +464,6 @@ registerHandlers(
     },
     'component.pickColor': {
       toggled: colorPickerOpened,
-      // actionData: {
-      //   currentColor: computed({
-      get: () => getNodeColor(nodeId.value),
-      //     set: (color) => emit('setNodeColor', color),
-      //   }),
-      //   matchableColors: getNodeColors((node) => node !== nodeId.value),
-      // },
     },
     'component.recompute': {
       action: recomputeOnce,

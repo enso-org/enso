@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { unrefElement, useEvent, useResizeObserver } from '@/composables/events'
-import { WidgetEditHandler, WidgetEditHandlerRoot } from '@/providers/widgetRegistry/editHandler'
+import { WidgetEditHandlerRoot } from '@/providers/widgetRegistry/editHandler'
 import { endOnClickOutside, targetIsOutside } from '@/util/autoBlur'
 import { autoUpdate, flip, shift, useFloating } from '@floating-ui/vue'
 import { computed, onMounted, ref, watch } from 'vue'
-import { Action, Actions } from '../providers/action'
-import { injectInteractionHandler, Interaction } from '../providers/interactionHandler'
+import { Action, ActionName } from '../providers/action'
+import { injectInteractionHandler } from '../providers/interactionHandler'
 import ActionMenu from './ActionMenu.vue'
 
 const menu = ref<HTMLElement>()
 const { actions, point } = defineProps<{
-  actions: (Action | keyof Actions)[]
+  actions: (Action | ActionName)[]
   /** Location to display the menu near, in client coordinates. */
   point: { x: number; y: number }
 }>()
@@ -47,6 +47,10 @@ watch(menuSize, update)
 onMounted(() => {
   // The widget interactions are a special case: in some widgets (e.g. dropdowns) there are context
   // menus while widget editing is "active" (like in File Browser inside WidgetSelection)
+  //
+  // TODO[ao]: this should be handled better, but I'm out of ideas for easy fixes.
+  // probably the drop-down widget should _not_ be an interaction, actually (this would also allow
+  // simplifying WidgetEditHandler, probably)
   if (!(interaction.getCurrent() instanceof WidgetEditHandlerRoot)) {
     interaction.setCurrent(
       endOnClickOutside(menu, {
