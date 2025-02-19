@@ -42,6 +42,7 @@ pub enum Command {
         #[clap(long, enso_env())]
         minimal_run: bool,
         bench_type:  BenchmarkType,
+        #[clap(enso_env())]
         bench_name:  Option<String>,
     },
     /// Run the tests.
