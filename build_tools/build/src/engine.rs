@@ -31,8 +31,6 @@ pub mod sbt;
 
 pub use context::RunContext;
 
-
-
 /// Whether pure Enso tests should be run in parallel.
 const PARALLEL_ENSO_TESTS: AsyncPolicy = AsyncPolicy::Sequential;
 
@@ -136,7 +134,7 @@ pub async fn download_project_templates(client: reqwest::Client, enso_root: Path
 
 /// Describe, which benchmarks should be run.
 #[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
-pub enum Benchmarks {
+pub enum BenchmarkType {
     /// Run all SBT-exposed benchmarks. Does *not* including pure [`Benchmarks::Enso`] benchmarks.
     All,
     /// Run the runtime benchmark (from `sbt`).
@@ -146,6 +144,38 @@ pub enum Benchmarks {
     /// Run Enso benchmarks via JMH
     EnsoJMH,
 }
+
+impl Default for BenchmarkType {
+    fn default() -> Self {
+        BenchmarkType::All
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct Benchmarks {
+    /// Name of a single benchmark, if a single benchmark should be run.
+    /// If None, all the benchmarks of the given type are executed
+    pub bench_name: Option<String>,
+    pub bench_type: BenchmarkType,
+}
+
+impl Benchmarks {
+    fn sbt_task(&self) -> Option<String> {
+        match &self.bench_type {
+            BenchmarkType::All => Some("bench".to_string()),
+            BenchmarkType::Runtime => match &self.bench_name {
+                None => Some("runtime-benchmarks/bench".to_string()),
+                Some(name) => Some(format!("runtime-benchmarks/benchOnly {}", name)),
+            },
+            BenchmarkType::Enso => None,
+            BenchmarkType::EnsoJMH => match &self.bench_name {
+                None => Some("std-benchmarks/bench".to_string()),
+                Some(name) => Some(format!("std-benchmarks/benchOnly {}", name)),
+            },
+        }
+    }
+}
+
 
 #[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
 pub enum Tests {
@@ -161,17 +191,6 @@ pub enum Tests {
 
     /// Run a subset of Standard Library tests that deals with Cloud-related functionality.
     StdCloudRelated,
-}
-
-impl Benchmarks {
-    pub fn sbt_task(self) -> Option<&'static str> {
-        match self {
-            Benchmarks::All => Some("bench"),
-            Benchmarks::Runtime => Some("runtime-benchmarks/bench"),
-            Benchmarks::Enso => None,
-            Benchmarks::EnsoJMH => Some("std-benchmarks/bench"),
-        }
-    }
 }
 
 /// Configuration for how the binary inside the engine distribution should be built.
@@ -229,7 +248,7 @@ pub struct BuildConfigurationFlags {
     /// Also, this does nothing if `execute_benchmarks` contains `Benchmarks::Enso`.
     pub check_enso_benchmarks: bool,
     /// Which benchmarks should be run.
-    pub execute_benchmarks: BTreeSet<Benchmarks>,
+    pub execute_benchmarks: Option<Benchmarks>,
     /// Used to check that benchmarks do not fail on runtime, rather than obtaining the results.
     pub execute_benchmarks_once: bool,
     pub build_engine_package: bool,
@@ -280,14 +299,14 @@ impl BuildConfigurationResolved {
         // Check for components that require Enso Engine runner. Basically everything that needs to
         // run pure Enso code.
         if config.test_standard_library.is_some()
-            || config.execute_benchmarks.contains(&Benchmarks::Enso)
+            || Self::should_run_enso_benchmarks(&config)
             || config.check_enso_benchmarks
         {
             config.build_engine_package = true;
         }
 
         // If we are about to run pure Enso benchmarks, there is no reason to try them in dry run.
-        if config.execute_benchmarks.contains(&Benchmarks::Enso) {
+        if Self::should_run_enso_benchmarks(&config) {
             config.check_enso_benchmarks = false;
         }
 
@@ -299,6 +318,13 @@ impl BuildConfigurationResolved {
             config.build_engine_package = true;
         }
         Self(config)
+    }
+
+    fn should_run_enso_benchmarks(config: &BuildConfigurationFlags) -> bool {
+        match &config.execute_benchmarks {
+            Some(benchmark) => benchmark.bench_type == BenchmarkType::Enso,
+            None => false,
+        }
     }
 }
 

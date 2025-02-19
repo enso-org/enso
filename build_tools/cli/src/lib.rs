@@ -32,6 +32,7 @@ use clap::Parser;
 use enso_build::config::Config;
 use enso_build::context::BuildContext;
 use enso_build::engine::context::EnginePackageProvider;
+use enso_build::engine::BenchmarkType;
 use enso_build::engine::Benchmarks;
 use enso_build::engine::StandardLibraryTestsSelection;
 use enso_build::engine::Tests;
@@ -339,9 +340,9 @@ impl Processor {
                 }
                 .boxed()
             }
-            arg::backend::Command::Benchmark { which, minimal_run } => {
+            arg::backend::Command::Benchmark { minimal_run, bench_type, bench_name } => {
                 let config = enso_build::engine::BuildConfigurationFlags {
-                    execute_benchmarks: which.into_iter().collect(),
+                    execute_benchmarks: Some(Benchmarks { bench_name, bench_type }),
                     execute_benchmarks_once: minimal_run,
                     ..default()
                 };
@@ -405,11 +406,14 @@ impl Processor {
                     build_native_ydoc: TARGET_OS == OS::Linux,
                     execute_benchmarks: {
                         // Run benchmarks only on Linux.
-                        let mut ret = BTreeSet::new();
                         if TARGET_OS == OS::Linux {
-                            ret.insert(Benchmarks::Runtime);
+                            Some(Benchmarks {
+                                bench_name: None,
+                                bench_type: BenchmarkType::Runtime,
+                            })
+                        } else {
+                            None
                         }
-                        ret
                     },
                     execute_benchmarks_once: true,
                     // Benchmarks are only checked on Linux because:
