@@ -7,7 +7,7 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 
-public class TimeOfDayComparators extends GenericComparators<LocalTime> {
+public final class TimeOfDayComparators extends GenericComparators<LocalTime> {
   public static final TimeOfDayComparators EQ = new TimeOfDayComparators(LocalTime::equals, false);
   public static final TimeOfDayComparators NEQ =
       new TimeOfDayComparators((a, b) -> !a.equals(b), false);

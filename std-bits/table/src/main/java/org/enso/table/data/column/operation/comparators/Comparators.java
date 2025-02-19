@@ -4,6 +4,7 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
+import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
 
@@ -16,7 +17,8 @@ public interface Comparators {
     var storageType = left.getStorage().getType();
     return storageType instanceof DateType
         || storageType instanceof TimeOfDayType
-        || storageType instanceof DateTimeType;
+        || storageType instanceof DateTimeType
+        || storageType instanceof TextType;
   }
 
   static Column eq(Column left, Object rightValue, String newName) {
@@ -26,6 +28,7 @@ public interface Comparators {
           case DateType dt -> DateComparators.EQ;
           case DateTimeType dt -> DateTimeComparators.EQ;
           case TimeOfDayType tm -> TimeOfDayComparators.EQ;
+          case TextType tt -> StringComparators.EQ;
           default -> throw new IllegalArgumentException("Unsupported StorageType");
         };
 
@@ -39,6 +42,7 @@ public interface Comparators {
           case DateType dt -> DateComparators.NEQ;
           case DateTimeType dt -> DateTimeComparators.NEQ;
           case TimeOfDayType tm -> TimeOfDayComparators.NEQ;
+          case TextType tt -> StringComparators.NEQ;
           default -> throw new IllegalArgumentException("Unsupported StorageType");
         };
 
@@ -52,6 +56,7 @@ public interface Comparators {
           case DateType dt -> DateComparators.LT;
           case DateTimeType dt -> DateTimeComparators.LT;
           case TimeOfDayType tm -> TimeOfDayComparators.LT;
+          case TextType tt -> StringComparators.LT;
           default -> throw new IllegalArgumentException("Unsupported StorageType");
         };
 
@@ -65,6 +70,7 @@ public interface Comparators {
           case DateType dt -> DateComparators.LTE;
           case DateTimeType dt -> DateTimeComparators.LTE;
           case TimeOfDayType tm -> TimeOfDayComparators.LTE;
+          case TextType tt -> StringComparators.LTE;
           default -> throw new IllegalArgumentException("Unsupported StorageType");
         };
 
@@ -78,6 +84,7 @@ public interface Comparators {
           case DateType dt -> DateComparators.GT;
           case DateTimeType dt -> DateTimeComparators.GT;
           case TimeOfDayType tm -> TimeOfDayComparators.GT;
+          case TextType tt -> StringComparators.GT;
           default -> throw new IllegalArgumentException("Unsupported StorageType");
         };
 
@@ -91,6 +98,7 @@ public interface Comparators {
           case DateType dt -> DateComparators.GTE;
           case DateTimeType dt -> DateTimeComparators.GTE;
           case TimeOfDayType tm -> TimeOfDayComparators.GTE;
+          case TextType tt -> StringComparators.GTE;
           default -> throw new IllegalArgumentException("Unsupported StorageType");
         };
 

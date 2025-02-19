@@ -7,7 +7,7 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.DateTimeType;
 
-public class DateTimeComparators extends GenericComparators<ZonedDateTime> {
+public final class DateTimeComparators extends GenericComparators<ZonedDateTime> {
   public static final DateTimeComparators EQ =
       new DateTimeComparators(ZonedDateTime::isEqual, false);
   public static final DateTimeComparators NEQ =

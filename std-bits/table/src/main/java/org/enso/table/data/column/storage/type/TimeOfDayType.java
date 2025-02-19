@@ -1,6 +1,5 @@
 package org.enso.table.data.column.storage.type;
 
-import java.time.LocalDate;
 import java.time.LocalTime;
 import org.enso.table.data.column.storage.ColumnStorage;
 
