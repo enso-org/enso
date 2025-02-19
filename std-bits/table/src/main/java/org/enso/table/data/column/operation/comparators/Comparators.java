@@ -2,10 +2,7 @@ package org.enso.table.data.column.operation.comparators;
 
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.DateTimeType;
-import org.enso.table.data.column.storage.type.DateType;
-import org.enso.table.data.column.storage.type.TextType;
-import org.enso.table.data.column.storage.type.TimeOfDayType;
+import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.table.Column;
 
 /**
@@ -18,13 +15,15 @@ public interface Comparators {
     return storageType instanceof DateType
         || storageType instanceof TimeOfDayType
         || storageType instanceof DateTimeType
-        || storageType instanceof TextType;
+        || storageType instanceof TextType
+        || storageType instanceof NullType;
   }
 
   static Column eq(Column left, Object rightValue, String newName) {
     var leftStorage = left.getStorage();
     var comparator =
         switch (leftStorage.getType()) {
+          case NullType nt -> NullComparators.INSTANCE;
           case DateType dt -> DateComparators.EQ;
           case DateTimeType dt -> DateTimeComparators.EQ;
           case TimeOfDayType tm -> TimeOfDayComparators.EQ;
@@ -39,6 +38,7 @@ public interface Comparators {
     var leftStorage = left.getStorage();
     var comparator =
         switch (leftStorage.getType()) {
+          case NullType nt -> NullComparators.INSTANCE;
           case DateType dt -> DateComparators.NEQ;
           case DateTimeType dt -> DateTimeComparators.NEQ;
           case TimeOfDayType tm -> TimeOfDayComparators.NEQ;
@@ -53,6 +53,7 @@ public interface Comparators {
     var leftStorage = left.getStorage();
     var comparator =
         switch (leftStorage.getType()) {
+          case NullType nt -> NullComparators.INSTANCE;
           case DateType dt -> DateComparators.LT;
           case DateTimeType dt -> DateTimeComparators.LT;
           case TimeOfDayType tm -> TimeOfDayComparators.LT;
@@ -67,6 +68,7 @@ public interface Comparators {
     var leftStorage = left.getStorage();
     var comparator =
         switch (leftStorage.getType()) {
+          case NullType nt -> NullComparators.INSTANCE;
           case DateType dt -> DateComparators.LTE;
           case DateTimeType dt -> DateTimeComparators.LTE;
           case TimeOfDayType tm -> TimeOfDayComparators.LTE;
@@ -81,6 +83,7 @@ public interface Comparators {
     var leftStorage = left.getStorage();
     var comparator =
         switch (leftStorage.getType()) {
+          case NullType nt -> NullComparators.INSTANCE;
           case DateType dt -> DateComparators.GT;
           case DateTimeType dt -> DateTimeComparators.GT;
           case TimeOfDayType tm -> TimeOfDayComparators.GT;
@@ -95,6 +98,7 @@ public interface Comparators {
     var leftStorage = left.getStorage();
     var comparator =
         switch (leftStorage.getType()) {
+          case NullType nt -> NullComparators.INSTANCE;
           case DateType dt -> DateComparators.GTE;
           case DateTimeType dt -> DateTimeComparators.GTE;
           case TimeOfDayType tm -> TimeOfDayComparators.GTE;
@@ -105,7 +109,7 @@ public interface Comparators {
     return performComparison(rightValue, newName, comparator, leftStorage);
   }
 
-  private static Column performComparison(
+  static Column performComparison(
       Object rightValue, String newName, Comparators comparator, Storage<?> leftStorage) {
     ColumnStorage<Boolean> output;
     if (rightValue instanceof Column right) {

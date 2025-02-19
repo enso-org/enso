@@ -6,7 +6,7 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.TextType;
 
-public final class StringComparators extends GenericComparators<String> {
+public class StringComparators extends GenericComparators<String> {
   public static final StringComparators EQ = new StringComparators(Text_Utils::equals, false);
   public static final StringComparators NEQ =
       new StringComparators((a, b) -> !Text_Utils.equals(a, b), false);
@@ -19,7 +19,7 @@ public final class StringComparators extends GenericComparators<String> {
   public static final StringComparators GTE =
       new StringComparators((a, b) -> Text_Utils.compare_normalized(a, b) >= 0);
 
-  private StringComparators(BiPredicate<String, String> comparator) {
+  protected StringComparators(BiPredicate<String, String> comparator) {
     this(comparator, true);
   }
 

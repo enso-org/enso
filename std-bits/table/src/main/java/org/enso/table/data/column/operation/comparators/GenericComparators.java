@@ -21,6 +21,10 @@ public abstract class GenericComparators<T> implements Comparators {
 
   protected abstract ColumnStorage<T> asTypedStorage(ColumnStorage<?> storage);
 
+  protected RuntimeException makeCompareError(Object left, Object right) {
+    return new CompareException(left, right);
+  }
+
   @Override
   public abstract boolean canApplyMap(ColumnStorage<?> left, Object rightValue);
 
@@ -47,7 +51,7 @@ public abstract class GenericComparators<T> implements Comparators {
           typedLeft,
           builder,
           (b, index, value) -> {
-            throw new CompareException(value, typedRight);
+            throw makeCompareError(value, rightValue);
           });
     } else {
       return StorageIterators.buildOverStorage(
@@ -74,7 +78,7 @@ public abstract class GenericComparators<T> implements Comparators {
             T typedRightValue = asTypedValue(rightValue);
             if (typedRightValue == null) {
               if (throwOnOther) {
-                throw new CompareException(leftValue, rightValue);
+                throw makeCompareError(leftValue, rightValue);
               } else {
                 return false;
               }
