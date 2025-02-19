@@ -567,10 +567,7 @@ impl RunContext {
     fn bench_sbt_task(&self) -> Option<String> {
         match &self.config.execute_benchmarks {
             None => None,
-            Some(benchs) => match benchs.sbt_task() {
-                None => None,
-                Some(x) => Some(x),
-            },
+            Some(benchs) => benchs.sbt_task().map(|x| x),
         }
     }
 

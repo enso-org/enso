@@ -133,9 +133,10 @@ pub async fn download_project_templates(client: reqwest::Client, enso_root: Path
 }
 
 /// Describe, which benchmarks should be run.
-#[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum)]
+#[derive(Clone, Copy, Debug, Display, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum, Default)]
 pub enum BenchmarkType {
     /// Run all SBT-exposed benchmarks. Does *not* including pure [`Benchmarks::Enso`] benchmarks.
+    #[default]
     All,
     /// Run the runtime benchmark (from `sbt`).
     Runtime,
@@ -143,12 +144,6 @@ pub enum BenchmarkType {
     Enso,
     /// Run Enso benchmarks via JMH
     EnsoJMH,
-}
-
-impl Default for BenchmarkType {
-    fn default() -> Self {
-        BenchmarkType::All
-    }
 }
 
 #[derive(Clone, Debug, Default)]
