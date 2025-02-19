@@ -142,6 +142,12 @@ export function getProjectExecutionRepetitionsForDateRange(
   startDate: ZonedDateTime,
   endDate: ZonedDateTime,
 ): readonly ZonedDateTime[] {
+  if (projectExecution.repeat.type === 'none') {
+    const soleExecutionDate = parseAbsolute(projectExecution.startDate, startDate.timeZone)
+    const isSoleExecutionWithinRange =
+      startDate.compare(soleExecutionDate) < 0 && endDate.compare(soleExecutionDate) > 0
+    return isSoleExecutionWithinRange ? [soleExecutionDate] : []
+  }
   const firstDate = firstProjectExecutionOnOrAfter(projectExecution, startDate)
   if (firstDate >= endDate) {
     return EMPTY_ARRAY
