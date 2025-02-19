@@ -207,9 +207,6 @@ public final class ExecutionService {
     try {
       var callFn = Function.fullyApplied(execute.getCallTarget(), substituteMissingArguments(call));
       RunStateNode.getUncached().execute(null, cacheKey(), cache, callFn);
-    } catch (Throwable t) {
-      t.printStackTrace();
-      throw t;
     } finally {
       context.getThreadManager().leave(p);
       eventNodeFactory.ifPresent(EventBinding::dispose);
