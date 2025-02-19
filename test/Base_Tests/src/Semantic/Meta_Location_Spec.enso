@@ -18,7 +18,7 @@ add_specs suite_builder = suite_builder.group "Meta-Value Inspection" group_buil
         y = My_Type.Value 1 2 3
         x.to Meta.Type . qualified_name . should_equal "Standard.Base.Data.Numbers.Integer"
         x.to Meta.Type . name . should_equal "Integer"
-        y.to Meta.Type . qualified_name . should_equal "enso_dev.Base_Tests.Meta_Location_Spec.My_Type"
+        y.to Meta.Type . qualified_name . should_equal "enso_dev.Base_Tests.Semantic.Meta_Location_Spec.My_Type"
         y.to Meta.Type . name . should_equal "My_Type"
 
     group_builder.specify "should allow access to package names" <|
