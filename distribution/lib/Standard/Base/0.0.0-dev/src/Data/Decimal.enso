@@ -1153,8 +1153,8 @@ type Decimal
 
              Decimal.parse "(123,456,789.654)" format="###,###.##;(###,###.##)"
              # => -123456789.654
-    parse : Text -> Locale -> Text -> Decimal ! Number_Parse_Error ! Illegal_Argument
-    parse text:Text locale:Locale=Locale.default format:Text="" -> Decimal ! Number_Parse_Error ! Illegal_Argument =
+    parse : Text -> Locale -> Text -> Decimal ! Number_Parse_Error | Illegal_Argument
+    parse text:Text locale:Locale=Locale.default format:Text="" -> Decimal ! Number_Parse_Error | Illegal_Argument =
         Illegal_Argument.handle_java_exception <|
             # `getInstance` returns `DecimalFormat` or a subclass of `DecimalFormat`.
             decimal_format = NumberFormat.getInstance locale.java_locale

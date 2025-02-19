@@ -20,8 +20,8 @@ export interface PaywallDevtoolsFeatureConfiguration {
 
 /** The state of this zustand store. */
 interface EnsoDevtoolsStore {
-  readonly showDevtools: boolean | null
-  readonly showEnsoDevtools: boolean | null
+  readonly showDevtools: boolean
+  readonly showEnsoDevtools: boolean
   readonly toggleEnsoDevtools: () => void
   readonly setShowDevtools: (showDevtools: boolean) => void
   readonly toggleDevtools: () => void
@@ -36,10 +36,10 @@ interface EnsoDevtoolsStore {
 export const ensoDevtoolsStore = zustand.createStore<EnsoDevtoolsStore>()(
   persist(
     (set) => ({
-      showDevtools: IS_DEV_MODE ? true : null,
-      showEnsoDevtools: IS_DEV_MODE ? true : null,
+      showDevtools: IS_DEV_MODE,
+      showEnsoDevtools: IS_DEV_MODE,
       toggleEnsoDevtools: () => {
-        set(({ showEnsoDevtools }) => ({ showEnsoDevtools: !(showEnsoDevtools ?? false) }))
+        set(({ showEnsoDevtools }) => ({ showEnsoDevtools: !showEnsoDevtools }))
       },
       setShowDevtools: (showDevtools) => {
         set({ showDevtools, showEnsoDevtools: showDevtools })
@@ -54,8 +54,8 @@ export const ensoDevtoolsStore = zustand.createStore<EnsoDevtoolsStore>()(
           }
 
           return {
-            showDevtools: !(showDevtools ?? false),
-            showEnsoDevtools: !(showDevtools ?? false),
+            showDevtools: !showDevtools,
+            showEnsoDevtools: !showDevtools,
           }
         })
       },

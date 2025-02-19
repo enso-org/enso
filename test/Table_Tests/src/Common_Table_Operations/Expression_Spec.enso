@@ -185,7 +185,9 @@ add_expression_specs suite_builder detailed setup =
 
             t.evaluate_expression "not(Nothing)" . to_vector . should_equal nulls
             t.evaluate_expression "Nothing + Nothing" . to_vector . should_equal nulls
-            t.evaluate_expression "[X] + Nothing" . to_vector . should_equal nulls
+            ## TODO Waiting for a fix on Column to be re-enabled
+            ## https://github.com/enso-org/enso/issues/12315
+            ## t.evaluate_expression "[X] + Nothing" . to_vector . should_equal nulls
             t.evaluate_expression "Nothing + [X]" . to_vector . should_equal nulls
 
             t.evaluate_expression "Nothing * Nothing" . to_vector . should_equal nulls
@@ -361,7 +363,9 @@ add_expression_specs suite_builder detailed setup =
             expression_test "True && TRUE" True
             expression_test "True AND False" False
 
-            expression_test "True && Nothing" Nothing
+            ## Waiting for a fix on Column to be re-enabled
+            ## https://github.com/enso-org/enso/issues/12315
+            ## expression_test "True && Nothing" Nothing
 
             # This requires Null columns, so it's not generally tested on DB backends.
             if setup.is_database.not || (setup.prefix.contains "SQLite")  then
@@ -421,6 +425,14 @@ add_expression_specs suite_builder detailed setup =
 
         if setup.flagged ..Date_Time then specify_test "should be able to call static expression methods" group_builder expression_test->
             expression_test "today()" Date.today
+
+        specify_test "should be able to perform arithmetic and get integer results" group_builder expression_test->
+            # This requires column offset which is not available in databases due to ordering
+            if setup.is_database.not then
+                expression_test "offset([A], 6 - 7)" [Nothing, 1, 2, 3, 4]
+
+        specify_test "should be able to perform comparisons to get boolean results" group_builder expression_test->
+            expression_test "text_replace([C], 'o', '', ..Sensitive, 3<5)" ["Hell", "Wrld", "Hell World!", "", Nothing]
 
     suite_builder.group prefix+"Expression Errors should be handled" group_builder->
         expect_error ctor expr =

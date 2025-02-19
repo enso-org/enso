@@ -92,7 +92,7 @@
   "confirmRegistrationTitleError": "Could not confirm your email",
   "confirmRegistrationSubtitleError": "Please try again or contact the administrators.",
   "confirmRegistrationTitleSuccess": "Email confirmed!",
-  "confirmRegistrationSubtitleSuccess": "You can now close this page.",
+  "confirmRegistrationSubtitleSuccess": "You will be redirected back to the IDE shortly.",
   "confirmRegistrationTitleIdle": "Confirm your email",
   "confirmRegistrationSubtitleIdle": "Please enter the verification code we emailed you.",
   "setUsernameError": "Could not set your username.",
@@ -105,6 +105,7 @@
   "forgotPasswordSuccess": "We have sent you an email with further instructions!",
   "changePasswordSuccess": "Successfully changed password!",
   "resetPasswordSuccess": "Successfully reset password!",
+  "resetPasswordSuccessSubtitle": "You will be redirected back to the IDE shortly.",
   "signOutSuccess": "Successfully logged out!",
   "userNotAuthorizedError": "Your session has expired. Please log in again.",
 
@@ -1109,5 +1110,10 @@
   "assetProjectExecutions.notProjectAsset": "Select a single project to view its executions.",
   "assetProjectExecutionsCalendar.localBackend": "The execution calendar is not available for local projects.",
   "assetProjectExecutionsCalendar.notSelected": "Select a single project to view its execution calendar.",
-  "assetProjectExecutionsCalendar.notProjectAsset": "Select a single project to view its execution calendar."
+  "assetProjectExecutionsCalendar.notProjectAsset": "Select a single project to view its execution calendar.",
+
+  "cloudBrowserDisabledTitle": "Desktop App Required.",
+  "cloudBrowserDisabledSubtitle": "For the best experience and full functionality, please use our desktop app. You will be redirected to the desktop app shortly. Alternatively, you can download the desktop app below.",
+  "openInDesktop": "Open in Desktop",
+  "downloadIDE": "Download Enso Desktop Edition"
 }
