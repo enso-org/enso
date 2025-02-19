@@ -30,11 +30,11 @@ type Context
 
     is_enabled : Text -> Boolean
     is_enabled self environment=Runtime.current_execution_environment =
-        self.is_enabled_builtin environment
+        is_enabled_builtin self environment
 
-    ## PRIVATE
-    is_enabled_builtin : Text -> Boolean
-    is_enabled_builtin self environment = @Builtin_Method "Context.is_enabled_builtin"
+## PRIVATE
+is_enabled_builtin : Text -> Boolean
+is_enabled_builtin c environment = @Builtin_Method "Context.is_enabled_builtin"
 
 current_execution_environment : Text
 current_execution_environment = @Builtin_Method "Runtime.current_execution_environment"
