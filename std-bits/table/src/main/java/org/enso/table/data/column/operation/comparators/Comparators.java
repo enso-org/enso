@@ -2,6 +2,7 @@ package org.enso.table.data.column.operation.comparators;
 
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
@@ -13,7 +14,7 @@ import org.enso.table.data.table.Column;
 public interface Comparators {
   static boolean isSupported(Column left) {
     var storageType = left.getStorage().getType();
-    return storageType instanceof DateType || storageType instanceof TimeOfDayType;
+    return storageType instanceof DateType || storageType instanceof TimeOfDayType || storageType instanceof DateTimeType;
   }
 
   static Column eq(Column left, Object rightValue, String newName) {
@@ -21,6 +22,7 @@ public interface Comparators {
     var comparator =
         switch (leftStorage.getType()) {
           case DateType dt -> DateComparators.EQ;
+          case DateTimeType dt -> DateTimeComparators.EQ;
           case TimeOfDayType tm -> TimeOfDayComparators.EQ;
           default -> throw new IllegalArgumentException("Unsupported StorageType");
         };
@@ -33,6 +35,7 @@ public interface Comparators {
     var comparator =
         switch (leftStorage.getType()) {
           case DateType dt -> DateComparators.NEQ;
+          case DateTimeType dt -> DateTimeComparators.NEQ;
           case TimeOfDayType tm -> TimeOfDayComparators.NEQ;
           default -> throw new IllegalArgumentException("Unsupported StorageType");
         };
@@ -45,6 +48,7 @@ public interface Comparators {
     var comparator =
         switch (leftStorage.getType()) {
           case DateType dt -> DateComparators.LT;
+          case DateTimeType dt -> DateTimeComparators.LT;
           case TimeOfDayType tm -> TimeOfDayComparators.LT;
           default -> throw new IllegalArgumentException("Unsupported StorageType");
         };
@@ -57,6 +61,7 @@ public interface Comparators {
     var comparator =
         switch (leftStorage.getType()) {
           case DateType dt -> DateComparators.LTE;
+          case DateTimeType dt -> DateTimeComparators.LTE;
           case TimeOfDayType tm -> TimeOfDayComparators.LTE;
           default -> throw new IllegalArgumentException("Unsupported StorageType");
         };
@@ -69,6 +74,7 @@ public interface Comparators {
     var comparator =
         switch (leftStorage.getType()) {
           case DateType dt -> DateComparators.GT;
+          case DateTimeType dt -> DateTimeComparators.GT;
           case TimeOfDayType tm -> TimeOfDayComparators.GT;
           default -> throw new IllegalArgumentException("Unsupported StorageType");
         };
@@ -81,6 +87,7 @@ public interface Comparators {
     var comparator =
         switch (leftStorage.getType()) {
           case DateType dt -> DateComparators.GTE;
+          case DateTimeType dt -> DateTimeComparators.GTE;
           case TimeOfDayType tm -> TimeOfDayComparators.GTE;
           default -> throw new IllegalArgumentException("Unsupported StorageType");
         };
