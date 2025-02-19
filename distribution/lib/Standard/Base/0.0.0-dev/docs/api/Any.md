@@ -17,6 +17,7 @@
     - is_nothing self -> Standard.Base.Any.Any
     - map_error self ~f:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - map_nothing self f:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - my_method self -> Standard.Base.Any.Any
     - pretty self -> Standard.Base.Any.Any
     - remove_warnings self warning_type:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - throw_on_warning self warning_type:Standard.Base.Any.Any= -> Standard.Base.Any.Any
