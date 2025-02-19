@@ -1,7 +1,4 @@
 /** @file Restore an account that has been deleted. */
-import * as React from 'react'
-
-import * as reactQuery from '@tanstack/react-query'
 
 import UntrashIcon from '#/assets/untrash.svg'
 
@@ -26,16 +23,6 @@ export default function RestoreAccount() {
   const { signOut } = useSessionAPI()
   const navigate = useNavigate()
 
-  const signOutMutation = reactQuery.useMutation({
-    mutationFn: signOut,
-    onSuccess: () => {
-      navigate(LOGIN_PATH)
-    },
-  })
-  const restoreAccountMutation = reactQuery.useMutation({
-    mutationFn: () => restoreUser(),
-  })
-
   return (
     <div className="flex h-full w-full overflow-auto">
       <div className="flex min-h-96 w-full flex-col items-center justify-center">
@@ -55,10 +42,8 @@ export default function RestoreAccount() {
         <div className="mt-8 flex items-center gap-8">
           <ariaComponents.Button
             onPress={async () => {
-              await restoreAccountMutation.mutateAsync()
+              await restoreUser()
             }}
-            loading={restoreAccountMutation.isPending}
-            isDisabled={restoreAccountMutation.isPending}
             variant="icon"
             className="flex items-center justify-center gap-icon-with-text rounded-full bg-blue-600 px-4 py-auth-input-y text-white transition-all duration-auth selectable enabled:active"
           >
@@ -67,10 +52,10 @@ export default function RestoreAccount() {
 
           <ariaComponents.Button
             variant="icon"
-            loading={signOutMutation.isPending}
-            isDisabled={signOutMutation.isPending}
             onPress={async () => {
-              await signOutMutation.mutateAsync()
+              await signOut().then(() => {
+                navigate(LOGIN_PATH)
+              })
             }}
           >
             {getText('signOutShortcut')}

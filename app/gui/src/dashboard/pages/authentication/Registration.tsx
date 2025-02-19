@@ -6,7 +6,6 @@ import * as z from 'zod'
 
 import { LOGIN_PATH } from '#/appUtils'
 import AtIcon from '#/assets/at.svg'
-import CreateAccountIcon from '#/assets/create_account.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
 import { Alert, Button, Checkbox, Form, Input, Password, Text } from '#/components/AriaComponents'
@@ -63,10 +62,10 @@ export default function Registration() {
   const organizationId = query.get('organization_id')
   const redirectTo = query.get('redirect_to')
   const [isManualCodeEntry, setIsManualCodeEntry] = useState(false)
-  const [emailInput, setEmailInput] = useState(initialEmail)
 
   const signupForm = Form.useForm({
     defaultValues: { email: initialEmail, agreedToTos: [], agreedToPrivacyPolicy: [] },
+    resetOnSubmit: false,
     schema: (schema) =>
       schema
         .object({
@@ -146,8 +145,6 @@ export default function Registration() {
       return () => {
         clearInterval(interval)
       }
-    } else {
-      return
     }
   }, [stepperState.currentStep, trySignIn])
 
@@ -155,167 +152,176 @@ export default function Registration() {
     <AuthenticationPage
       supportsOffline={supportsOffline}
       footer={
-        <Link
-          to={LOGIN_PATH + `?${new URLSearchParams({ email: emailInput }).toString()}`}
-          icon={GoBackIcon}
-          text={getText('alreadyHaveAnAccount')}
-        />
+        <Form.FieldValue form={signupForm} name="email">
+          {(email) => (
+            <Link
+              to={LOGIN_PATH + `?${new URLSearchParams({ email }).toString()}`}
+              icon={GoBackIcon}
+              text={getText('alreadyHaveAnAccount')}
+            />
+          )}
+        </Form.FieldValue>
       }
     >
       <Stepper state={stepperState} renderStep={() => null}>
-        {stepperState.currentStep === 0 && (
-          <>
-            <Text.Heading level={1} balance className="mb-4 text-center">
-              {getText('createANewAccount')}
-            </Text.Heading>
+        <Stepper.StepContent index={0}>
+          {() => (
+            <>
+              <Text.Heading level={1} balance className="mb-4 text-center">
+                {getText('createANewAccount')}
+              </Text.Heading>
 
-            <Form form={signupForm}>
-              {({ form }) => (
-                <>
-                  <Input
-                    form={form}
-                    autoFocus
-                    required
-                    testId="email-input"
-                    name="email"
-                    label={getText('emailLabel')}
-                    type="email"
-                    autoComplete="email"
-                    icon={AtIcon}
-                    placeholder={getText('emailPlaceholder')}
-                    onChange={(event) => {
-                      setEmailInput(event.target.value)
+              <Form form={signupForm}>
+                {({ form }) => (
+                  <>
+                    <Input
+                      form={form}
+                      autoFocus
+                      required
+                      testId="email-input"
+                      name="email"
+                      label={getText('emailLabel')}
+                      type="email"
+                      autoComplete="email"
+                      icon={AtIcon}
+                      placeholder={getText('emailPlaceholder')}
+                    />
+
+                    <Password
+                      form={form}
+                      required
+                      testId="password-input"
+                      name="password"
+                      label={getText('passwordLabel')}
+                      autoComplete="new-password"
+                      icon={LockIcon}
+                      placeholder={getText('passwordPlaceholder')}
+                      description={getText('passwordValidationMessage')}
+                    />
+
+                    <Password
+                      form={form}
+                      required
+                      testId="confirm-password-input"
+                      name="confirmPassword"
+                      label={getText('confirmPasswordLabel')}
+                      autoComplete="new-password"
+                      icon={LockIcon}
+                      placeholder={getText('confirmPasswordPlaceholder')}
+                    />
+
+                    <Checkbox.Group
+                      form={form}
+                      name="agreedToTos"
+                      description={
+                        <Button
+                          variant="link"
+                          target="_blank"
+                          href="https://ensoanalytics.com/eula"
+                        >
+                          {getText('viewLicenseAgreement')}
+                        </Button>
+                      }
+                    >
+                      <Checkbox value="agree">{getText('licenseAgreementCheckbox')}</Checkbox>
+                    </Checkbox.Group>
+
+                    <Checkbox.Group
+                      name="agreedToPrivacyPolicy"
+                      description={
+                        <Button
+                          variant="link"
+                          target="_blank"
+                          href="https://ensoanalytics.com/privacy"
+                        >
+                          {getText('viewPrivacyPolicy')}
+                        </Button>
+                      }
+                    >
+                      <Checkbox value="agree">{getText('privacyPolicyCheckbox')}</Checkbox>
+                    </Checkbox.Group>
+
+                    <Form.Submit size="large" icon="create_account" fullWidth>
+                      {getText('register')}
+                    </Form.Submit>
+
+                    <Form.FormError />
+                  </>
+                )}
+              </Form>
+            </>
+          )}
+        </Stepper.StepContent>
+
+        <Stepper.StepContent index={1}>
+          {() => (
+            <>
+              <Text.Heading level={1} balance className="mb-4 text-center">
+                {getText('confirmRegistration')}
+              </Text.Heading>
+
+              <div className="flex flex-col gap-4 text-start">
+                <div className="flex flex-col">
+                  <Text disableLineHeightCompensation>
+                    {getText('confirmRegistrationInstruction')}
+                  </Text>
+                  <ul>
+                    <li>
+                      <Text disableLineHeightCompensation>
+                        {getText('confirmRegistrationMethod1')}
+                      </Text>
+                    </li>
+                    <li>
+                      <Text disableLineHeightCompensation>
+                        {getText('confirmRegistrationMethod2')}
+                      </Text>
+                    </li>
+                  </ul>
+                </div>
+
+                <Alert variant="neutral">
+                  <Text>{getText('confirmRegistrationSpam')}</Text>
+                </Alert>
+
+                {!isManualCodeEntry && (
+                  <Button
+                    variant="outline"
+                    onPress={() => {
+                      setIsManualCodeEntry(true)
                     }}
-                  />
-
-                  <Password
-                    form={form}
-                    required
-                    testId="password-input"
-                    name="password"
-                    label={getText('passwordLabel')}
-                    autoComplete="new-password"
-                    icon={LockIcon}
-                    placeholder={getText('passwordPlaceholder')}
-                    description={getText('passwordValidationMessage')}
-                  />
-
-                  <Password
-                    form={form}
-                    required
-                    testId="confirm-password-input"
-                    name="confirmPassword"
-                    label={getText('confirmPasswordLabel')}
-                    autoComplete="new-password"
-                    icon={LockIcon}
-                    placeholder={getText('confirmPasswordPlaceholder')}
-                  />
-
-                  <Checkbox.Group
-                    form={form}
-                    name="agreedToTos"
-                    description={
-                      <Button variant="link" target="_blank" href="https://ensoanalytics.com/eula">
-                        {getText('viewLicenseAgreement')}
-                      </Button>
-                    }
                   >
-                    <Checkbox value="agree">{getText('licenseAgreementCheckbox')}</Checkbox>
-                  </Checkbox.Group>
+                    {getText('enterCodeManually')}
+                  </Button>
+                )}
 
-                  <Checkbox.Group
-                    form={form}
-                    name="agreedToPrivacyPolicy"
-                    description={
-                      <Button
-                        variant="link"
-                        target="_blank"
-                        href="https://ensoanalytics.com/privacy"
-                      >
-                        {getText('viewPrivacyPolicy')}
-                      </Button>
+                {isManualCodeEntry && (
+                  <Form
+                    schema={(schema) =>
+                      schema.object({ verificationCode: Form.schema.string().min(1) })
                     }
+                    onSubmit={async ({ verificationCode }) => {
+                      const email = signupForm.getValues('email')
+                      const password = signupForm.getValues('password')
+
+                      return confirmSignUp(email, verificationCode).then(() =>
+                        signInWithPassword(email, password),
+                      )
+                    }}
                   >
-                    <Checkbox value="agree">{getText('privacyPolicyCheckbox')}</Checkbox>
-                  </Checkbox.Group>
+                    <Input
+                      name="verificationCode"
+                      label={getText('confirmRegistrationVerificationCodeLabel')}
+                    />
 
-                  <Form.Submit size="large" icon={CreateAccountIcon} fullWidth>
-                    {getText('register')}
-                  </Form.Submit>
+                    <Form.Submit fullWidth />
 
-                  <Form.FormError />
-                </>
-              )}
-            </Form>
-          </>
-        )}
-        {stepperState.currentStep === 1 && (
-          <>
-            <Text.Heading level={1} balance className="mb-4 text-center">
-              {getText('confirmRegistration')}
-            </Text.Heading>
-
-            <div className="flex flex-col gap-4 text-start">
-              <div className="flex flex-col">
-                <Text disableLineHeightCompensation>
-                  {getText('confirmRegistrationInstruction')}
-                </Text>
-                <ul>
-                  <li>
-                    <Text disableLineHeightCompensation>
-                      {getText('confirmRegistrationMethod1')}
-                    </Text>
-                  </li>
-                  <li>
-                    <Text disableLineHeightCompensation>
-                      {getText('confirmRegistrationMethod2')}
-                    </Text>
-                  </li>
-                </ul>
+                    <Form.FormError />
+                  </Form>
+                )}
               </div>
-
-              <Alert variant="neutral">
-                <Text>{getText('confirmRegistrationSpam')}</Text>
-              </Alert>
-
-              {!isManualCodeEntry && (
-                <Button
-                  variant="outline"
-                  onPress={() => {
-                    setIsManualCodeEntry(true)
-                  }}
-                >
-                  {getText('enterCodeManually')}
-                </Button>
-              )}
-
-              {isManualCodeEntry && (
-                <Form
-                  schema={(schema) =>
-                    schema.object({ verificationCode: Form.schema.string().min(1) })
-                  }
-                  onSubmit={async ({ verificationCode }) => {
-                    const email = signupForm.getValues('email')
-                    const password = signupForm.getValues('password')
-
-                    return confirmSignUp(email, verificationCode).then(() =>
-                      signInWithPassword(email, password),
-                    )
-                  }}
-                >
-                  <Input
-                    name="verificationCode"
-                    label={getText('confirmRegistrationVerificationCodeLabel')}
-                  />
-
-                  <Form.Submit fullWidth />
-
-                  <Form.FormError />
-                </Form>
-              )}
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </Stepper.StepContent>
       </Stepper>
     </AuthenticationPage>
   )

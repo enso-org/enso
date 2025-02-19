@@ -61,6 +61,7 @@
 - [Added DB_Table.Offset for Snowflake, Postgres, SQLite][12251]
 - [Support for key-pair authentication in Snowflake connector.][12247]
 - [Support for generic JDBC connections through external drivers.][12300]
+- [Support for basic arithmetic operations as numbers in Expressions.][12297]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
@@ -72,6 +73,7 @@
 [12251]: https://github.com/enso-org/enso/pull/12251
 [12247]: https://github.com/enso-org/enso/pull/12247
 [12300]: https://github.com/enso-org/enso/pull/12300
+[12297]: https://github.com/enso-org/enso/pull/12297
 
 #### Enso Language & Runtime
 

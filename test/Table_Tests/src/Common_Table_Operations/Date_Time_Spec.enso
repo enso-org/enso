@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table, Value_Type
@@ -494,7 +495,7 @@ add_specs suite_builder setup =
 
         group_builder.specify "should check shift_amount type in date_add" <|
             t = dates1.get
-            t.at "d_X" . date_add "text" Date_Period.Day . should_fail_with Invalid_Value_Type
+            Test.expect_panic Type_Error <| t.at "d_X" . date_add "text" Date_Period.Day
 
         group_builder.specify "date_diff and date_add should work correctly with DST" pending="May be failing on some Database configurations. ToDo: investigate - https://github.com/enso-org/enso/issues/7326" <|
             # TODO the behaviour here may differ between backends.
