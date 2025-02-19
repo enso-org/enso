@@ -93,9 +93,11 @@ final class JavaFinder {
           versionUsedForBuild);
       return newerRuntime.get().javaExecutable();
     }
-    logger.trace("No appropriate runtime found in the distribution.");
-    logger.trace("graalVersionManager.getAllRuntimes() = {}", graalVersionManager.getAllRuntimes());
-    logger.trace("Paths of distributionManager = {}", distributionManager.paths());
+    logger.trace(
+        "No appropriate runtime found in the distribution. "
+            + "graalVersionManager.getAllRuntimes() = {}, Paths of distributionManager = {}",
+        graalVersionManager.getAllRuntimes(),
+        distributionManager.paths());
     return null;
   }
 
