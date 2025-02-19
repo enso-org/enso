@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage.type;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
 import org.enso.table.data.column.storage.ColumnStorage;
 
@@ -23,8 +24,9 @@ public record TimeOfDayType() implements StorageType {
 
   public ColumnStorage<LocalTime> asTypedStorage(ColumnStorage<?> storage) {
     if (storage.getType() instanceof TimeOfDayType) {
-      //noinspection unchecked
-      return (ColumnStorage<LocalTime>) storage;
+      @SuppressWarnings("unchecked")
+      var output = (ColumnStorage<LocalTime>) storage;
+      return output;
     }
     throw new IllegalArgumentException("Storage is not of TimeOfDayType");
   }

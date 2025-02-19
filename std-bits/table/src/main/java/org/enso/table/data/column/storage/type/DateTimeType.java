@@ -23,8 +23,9 @@ public record DateTimeType() implements StorageType {
 
   public ColumnStorage<ZonedDateTime> asTypedStorage(ColumnStorage<?> storage) {
     if (storage.getType() instanceof DateTimeType) {
-      //noinspection unchecked
-      return (ColumnStorage<ZonedDateTime>) storage;
+      @SuppressWarnings("unchecked")
+      var output = (ColumnStorage<ZonedDateTime>) storage;
+      return output;
     }
     throw new IllegalArgumentException("Storage is not of DateTimeType");
   }

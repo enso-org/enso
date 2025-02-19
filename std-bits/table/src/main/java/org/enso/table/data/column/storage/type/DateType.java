@@ -23,8 +23,9 @@ public record DateType() implements StorageType {
 
   public ColumnStorage<LocalDate> asTypedStorage(ColumnStorage<?> storage) {
     if (storage.getType() instanceof DateType) {
-      //noinspection unchecked
-      return (ColumnStorage<LocalDate>) storage;
+      @SuppressWarnings("unchecked")
+      var output = (ColumnStorage<LocalDate>) storage;
+      return output;
     }
     throw new IllegalArgumentException("Storage is not of DateType");
   }
