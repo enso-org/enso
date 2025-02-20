@@ -5,7 +5,7 @@ import org.enso.interpreter.dsl.BuiltinType;
 import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin;
 
 @BuiltinType
-public class NotInvokable extends UniquelyConstructibleBuiltin {
+public class NoSuchArgument extends UniquelyConstructibleBuiltin {
   @Override
   protected String getConstructorName() {
     return "Error";
@@ -13,6 +13,6 @@ public class NotInvokable extends UniquelyConstructibleBuiltin {
 
   @Override
   protected List<String> getConstructorParamNames() {
-    return List.of("target", "cause");
+    return List.of("argument_name");
   }
 }
