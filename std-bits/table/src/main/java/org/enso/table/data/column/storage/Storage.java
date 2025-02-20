@@ -387,10 +387,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    */
   public abstract Storage<T> slice(List<SliceRange> ranges);
 
-  public List<Object> toList() {
-    return new StorageListView(this);
-  }
-
   /**
    * Counts the number of times each value has been seen before in this storage.
    *

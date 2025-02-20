@@ -1591,10 +1591,10 @@ type DB_Column
             input_type = Meta.type_of term
             params = Replace_Params.Value input_type case_sensitivity only_first
             self.connection.dialect.if_replace_params_supports params <|
+                new_name = self.naming_helper.function_name "replace" [self, term, new_text]
                 raw_term = case term of
                     _ : Regex -> term.pattern
                     _ -> term
-                new_name = self.naming_helper.function_name "replace" [self, raw_term, new_text]
                 self.make_op "REPLACE" [raw_term, new_text] new_name [term, params]
 
     ## GROUP Standard.Base.Text

@@ -103,7 +103,8 @@ type Column_Naming_Helper
        For other objects, it will return its pretty-printed representation.
     to_expression_text self value =
         if is_column value then "[" + value.name + "]" else
-            value.pretty
+            if value.is_a Regex then "regex('" + value.pattern + "')" else
+                value.pretty
 
     ## PRIVATE
        Concatenates a vector of texts that are meant to make a single column
