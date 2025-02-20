@@ -16,7 +16,6 @@ import { assert } from '@/util/assert'
 import type { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import type {
-  AnyAsset,
   DatalinkAsset,
   DirectoryAsset,
   DirectoryId,
