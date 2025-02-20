@@ -856,7 +856,19 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
 /// Workflow that cheks whether some API signature files in any of the standard
 /// libraries changed, and if so, appends a corresponding label to the PR.
 fn stdlib_api_change_labels_workflow() -> Result<Workflow> {
-    let lib_names = vec!["Base", "Table"];
+    let lib_names = vec![
+        "AWS",
+        "Base",
+        "Database",
+        "Google_Api",
+        "Image",
+        "Microsoft",
+        "Snowflake",
+        "Table",
+        "Tableau",
+        "Test",
+        "Visualization",
+    ];
     let on = Event {
         push:              Some(Push { inner_branches: Branches::new(["develop"]), ..default() }),
         pull_request:      Some(PullRequest::default()),
