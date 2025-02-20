@@ -1317,10 +1317,10 @@ add_column_operation_specs suite_builder setup =
         group_builder.specify "text_left and text_right should error on non integer parameters" <|
             t = table_builder [["numbers", [1, 2, 3]]]
             col = t.at "numbers"
-            col.text_left 3.14 . should_fail_with Invalid_Value_Type
-            col.text_right 3.14 . should_fail_with Invalid_Value_Type
-            col.text_left "7" . should_fail_with Invalid_Value_Type
-            col.text_left "7" . should_fail_with Invalid_Value_Type
+            Test.expect_panic Type_Error <| col.text_left 3.14
+            Test.expect_panic Type_Error <| col.text_right 3.14
+            Test.expect_panic Type_Error <| col.text_left "7"
+            Test.expect_panic Type_Error <| col.text_left "7"
 
         group_builder.specify "text_left and text_right should return empty on zero argument" <|
             with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
@@ -1603,11 +1603,12 @@ add_column_operation_specs suite_builder setup =
 
             supported_replace_params = setup.test_selection.supported_replace_params
             if supported_replace_params.contains (Replace_Params.Value Text Case_Sensitivity.Default False) then
-                col.text_replace 'hello' 'bye' . name . should_equal 'replace([x], \'hello\', \'bye\')'
+                col.text_replace 'hello' 'bye' . name . should_equal "replace([x], 'hello', 'bye')"
             if supported_replace_params.contains (Replace_Params.Value Regex Case_Sensitivity.Default False) then
-                col.text_replace 'a[bcd]'.to_regex 'hey' . name . should_equal 'replace([x], \'a[bcd]\', \'hey\')'
+                col.text_replace 'a[bcd]'.to_regex 'hey' . name . should_equal "replace([x], regex('a[bcd]'), 'hey')"
+                col.text_replace (regex 'a[bcd]') 'hey' . name . should_equal "replace([x], regex('a[bcd]'), 'hey')"
             if supported_replace_params.contains (Replace_Params.Value DB_Column Case_Sensitivity.Default False) then
-                col.text_replace patterns replacements . name . should_equal 'replace([x], [patterns], [replacements])'
+                col.text_replace patterns replacements . name . should_equal "replace([x], [patterns], [replacements])"
 
     suite_builder.group prefix+"(Column_Operations_Spec) Column Operations - Text Replace (in-memory only)" group_builder->
 
@@ -1623,8 +1624,12 @@ add_column_operation_specs suite_builder setup =
                 data.a.text_replace data.b "#" Case_Sensitivity.Insensitive only_first=True . to_vector . should_equal ["#lpha", "Brav#", "Ch#rlie", "D#lta", "Ech#", "F#xtrot"]
 
             group_builder.specify "should allow regex based replacing" <|
-                data.a.text_replace "[aeiou]".to_regex "#" . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
-                data.a.text_replace "[aeiou]".to_regex "#" . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
+                r = data.a.text_replace "[aeiou]".to_regex "#" 
+                r . name . should_equal "replace([A], regex('[aeiou]'), '#')"
+                r . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
+                r2 = data.a.text_replace (regex "[aeiou]") "#" 
+                r2 . name . should_equal "replace([A], regex('[aeiou]'), '#')"
+                r2 . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
                 data.a.text_replace "([aeiou])(.*?)[aeiou]".to_regex "$1$2$1" . to_vector . should_equal ["Alpha", "Brava", "Charlae", "Delte", "Echo", "Foxtrot"]
 
             group_builder.specify "should handle unicode" <|
@@ -1647,7 +1652,7 @@ add_column_operation_specs suite_builder setup =
                 data.c.text_replace "a" "#" . should_fail_with Invalid_Value_Type
                 Test.expect_panic Type_Error (data.a.text_replace 1 "#")
                 data.a.text_replace data.c "#" . should_fail_with Invalid_Value_Type
-                data.a.text_replace "a" 1 . should_fail_with Invalid_Value_Type
+                Test.expect_panic Type_Error (data.a.text_replace "a" 1)
                 data.a.text_replace "a" data.c . should_fail_with Invalid_Value_Type
 
             group_builder.specify "should not replace if Empty term" <|
@@ -1695,7 +1700,7 @@ add_column_operation_specs suite_builder setup =
 
         group_builder.specify "should only allow trim on Text columns" <|
             data.c.trim what="a" . should_fail_with Invalid_Value_Type
-            data.a.trim what=1 . should_fail_with Invalid_Value_Type
+            Test.expect_panic Type_Error <| data.a.trim what=1
             data.a.trim what=data.c . should_fail_with Invalid_Value_Type
 
     suite_builder.group prefix+"(Column_Operations_Spec) Other Column Operations" group_builder->
@@ -1783,7 +1788,7 @@ add_column_operation_specs suite_builder setup =
             t = table_builder [["a", [1, 2, 3]]]
             c = t.at "a"
 
-            c.rename Nothing . should_fail_with Invalid_Column_Names
+            Test.expect_panic Type_Error <| c.rename Nothing
             c.rename '' . should_fail_with Invalid_Column_Names
             c.rename 'a\0b' . should_fail_with Invalid_Column_Names
             c.rename '\0' . should_fail_with Invalid_Column_Names

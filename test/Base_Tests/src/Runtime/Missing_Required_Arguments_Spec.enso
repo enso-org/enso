@@ -7,16 +7,16 @@ import Standard.Base.Runtime.Ref.Ref
 from Standard.Test import all
 
 
-my_function (xyz : Integer = Missing_Argument.ensure_present "xyz") (y : Integer = 100) =
+my_function (xyz : Integer = Missing_Argument.throw "xyz") (y : Integer = 100) =
     xyz + y
 
-my_function_2 (x : Integer = Missing_Argument.ensure_present "x") =
+my_function_2 (x : Integer = Missing_Argument.throw "x") =
     x * 10
 
 type Foo
-    Ctor (x : Integer = Missing_Argument.ensure_present "x") (y : Integer = 100)
+    Ctor (x : Integer = Missing_Argument.throw "x") (y : Integer = 100)
 
-    member self (txt : Text = Missing_Argument.ensure_present "txt") =
+    member self (txt : Text = Missing_Argument.throw "txt") =
         "Foo(" + self.x.to_text + ", " + self.y.to_text + "): " + txt
 
 add_specs suite_builder = suite_builder.group "Missing_Argument" group_builder->
@@ -44,7 +44,7 @@ add_specs suite_builder = suite_builder.group "Missing_Argument" group_builder->
         r1.catch.function_name . should_equal "Missing_Required_Arguments_Spec.my_function"
         r1.catch.call_location.file.name . should_equal "Missing_Required_Arguments_Spec.enso"
         r1.catch.call_location.start_line . should_equal 41
-        r1.catch.to_display_text . should_equal "Missing required argument `xyz` in function `Missing_Required_Arguments_Spec.my_function`."
+        r1.catch.to_display_text . should_equal "Provide a value for the argument `xyz`."
 
         r2 = my_function_2
         r2.should_fail_with Missing_Argument
@@ -56,7 +56,7 @@ add_specs suite_builder = suite_builder.group "Missing_Argument" group_builder->
         r4.should_fail_with Missing_Argument
         r4.catch.argument_name . should_equal "txt"
         r4.catch.function_name . should_equal "Foo.member"
-        r4.catch.to_display_text . should_equal "Missing required argument `txt` in function `Foo.member`."
+        r4.catch.to_display_text . should_equal "Provide a value for the argument `txt`."
 
     group_builder.specify "but will still allow suspending the argument explicitly" <|
         f1 = my_function _

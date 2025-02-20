@@ -94,6 +94,7 @@ import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 
 import { useInitAuthService } from '#/authentication/service'
 import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
+import { CloudBrowserDisabledLayout } from '#/providers/AuthProvider'
 import { useMutation } from '@tanstack/react-query'
 import { useOffline } from './hooks/offlineHooks'
 
@@ -471,21 +472,28 @@ function AppRouter(props: AppRouterProps) {
       <router.Route element={<authProvider.NotDeletedUserLayout />}>
         <router.Route element={<authProvider.ProtectedLayout />}>
           <router.Route element={<AgreementsModal />}>
-            <router.Route element={<SetupOrganizationAfterSubscribe />}>
-              <router.Route element={<InvitedToOrganizationModal />}>
-                <router.Route element={<openAppWatcher.OpenAppWatcher />}>
-                  <router.Route path={appUtils.DASHBOARD_PATH} element={<Dashboard {...props} />} />
+            <router.Route
+              element={<CloudBrowserDisabledLayout redirectPath={appUtils.SETUP_PATH} />}
+            >
+              <router.Route element={<SetupOrganizationAfterSubscribe />}>
+                <router.Route element={<InvitedToOrganizationModal />}>
+                  <router.Route element={<openAppWatcher.OpenAppWatcher />}>
+                    <router.Route
+                      path={appUtils.DASHBOARD_PATH}
+                      element={<Dashboard {...props} />}
+                    />
 
-                  <router.Route
-                    path={appUtils.SUBSCRIBE_PATH}
-                    element={
-                      <errorBoundary.ErrorBoundary>
-                        <suspense.Suspense>
-                          <subscribe.Subscribe />
-                        </suspense.Suspense>
-                      </errorBoundary.ErrorBoundary>
-                    }
-                  />
+                    <router.Route
+                      path={appUtils.SUBSCRIBE_PATH}
+                      element={
+                        <errorBoundary.ErrorBoundary>
+                          <suspense.Suspense>
+                            <subscribe.Subscribe />
+                          </suspense.Suspense>
+                        </errorBoundary.ErrorBoundary>
+                      }
+                    />
+                  </router.Route>
                 </router.Route>
               </router.Route>
             </router.Route>
@@ -505,8 +513,14 @@ function AppRouter(props: AppRouterProps) {
       </router.Route>
 
       <router.Route element={<AgreementsModal />}>
-        <router.Route element={<authProvider.NotDeletedUserLayout />}>
-          <router.Route path={appUtils.SETUP_PATH} element={<setup.Setup />} />
+        <router.Route element={<authProvider.AnyLoggedInUserLayout />}>
+          <router.Route element={<authProvider.NotDeletedUserLayout />}>
+            <router.Route
+              element={<CloudBrowserDisabledLayout redirectPath={appUtils.SETUP_PATH} />}
+            >
+              <router.Route path={appUtils.SETUP_PATH} element={<setup.Setup />} />
+            </router.Route>
+          </router.Route>
         </router.Route>
       </router.Route>
 

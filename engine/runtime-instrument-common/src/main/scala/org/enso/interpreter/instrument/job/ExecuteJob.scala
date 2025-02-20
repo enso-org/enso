@@ -45,7 +45,7 @@ class ExecuteJob(
     _threadName = Thread.currentThread().getName
     try {
       ctx.executionService.getLogger.log(
-        Level.INFO,
+        Level.FINE,
         "Starting ExecuteJob[{}]",
         _jobId
       )

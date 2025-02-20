@@ -24,21 +24,19 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
 
   const isCreatingSecret = id == null
 
-  const form = Form.useForm({
-    method: 'dialog',
-    schema: (z) =>
-      z.object({ title: z.string().min(1, getText('emptyStringError')), value: z.string() }),
-    defaultValues: { title: nameRaw ?? '', value: '' },
-    onSubmit: async ({ title, value }) => {
-      await doCreate(title, value)
-      form.reset({ title, value })
-    },
-  })
-
   const content = (
-    <Form form={form} testId="upsert-secret-modal" gap="none" className="w-full">
+    <Form
+      method="dialog"
+      schema={(z) => z.object({ title: z.string().min(1), value: z.string() })}
+      defaultValues={{ title: nameRaw ?? '', value: '' }}
+      onSubmit={async ({ title, value }, form) => {
+        await doCreate(title, value)
+        form.reset({ title, value })
+      }}
+      testId="upsert-secret-modal"
+      className="w-full"
+    >
       <Input
-        form={form}
         name="title"
         autoFocus
         autoComplete="off"
@@ -46,7 +44,6 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
         placeholder={getText('secretNamePlaceholder')}
       />
       <Input
-        form={form}
         name="value"
         type="password"
         autoComplete="off"
@@ -55,6 +52,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
           nameRaw == null ? getText('secretValuePlaceholder') : getText('secretValueHidden')
         }
       />
+
       <ButtonGroup className="mt-2">
         <Form.Submit>{isCreatingSecret ? getText('create') : getText('update')}</Form.Submit>
         {canCancel && <DialogDismiss />}

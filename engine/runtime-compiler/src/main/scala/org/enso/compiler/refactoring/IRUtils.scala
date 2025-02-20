@@ -130,8 +130,10 @@ trait IRUtils {
       usages <- findDynamicUsages(ir, node.name)
     } yield {
       usages.collect {
-        case Application.Prefix(function: Name.Literal, args, _, _, _)
-            if function.name == node.name =>
+        case app: Application.Prefix
+            if app.function.isInstanceOf[Name.Literal] &&
+            app.function.asInstanceOf[Name.Literal].name == node.name =>
+          val function = app.function.asInstanceOf[Name.Literal]
           function.getMetadata(MethodCalls) match {
             case Some(resolution) =>
               resolution.target match {
@@ -142,7 +144,7 @@ trait IRUtils {
                   None
               }
             case None =>
-              args.headOption match {
+              app.arguments.headOption match {
                 case Some(arg) if arg.isSynthetic =>
                   Some(function)
                 case _ =>

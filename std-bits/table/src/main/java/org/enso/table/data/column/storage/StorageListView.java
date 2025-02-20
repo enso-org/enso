@@ -12,7 +12,7 @@ import org.graalvm.polyglot.Context;
  * is not modifiable.
  */
 public class StorageListView implements List<Object> {
-  private final Storage<?> storage;
+  private final ColumnStorage<?> storage;
   private final int from;
   private final int to;
 
@@ -21,11 +21,11 @@ public class StorageListView implements List<Object> {
    *
    * @param storage the storage to wrap.
    */
-  public StorageListView(Storage<?> storage) {
+  public StorageListView(ColumnStorage<?> storage) {
     this(storage, 0, Math.toIntExact(storage.getSize()));
   }
 
-  private StorageListView(Storage<?> storage, int from, int to) {
+  private StorageListView(ColumnStorage<?> storage, int from, int to) {
     this.storage = storage;
     this.from = from;
     this.to = to;

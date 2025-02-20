@@ -611,12 +611,12 @@ add_specs suite_builder =
             warnings.not_empty . should_be_false
         group_builder.specify "Running min ignores NaN values and works with grouping and warns" <|
             result = table.running Statistic.Minimum "Ticket Price" "Running" group_by=["Flight"]
-            expected_column = Column.from_vector "Running" [100.5, 100.5, Number.nan, 100.5, 73.77]
+            expected_column = Column.from_vector "Running" [100.5, 100.5, Nothing, 100.5, 73.77]
             #   | Flight | Passenger | Ticket Price | Running
             #---+--------+-----------+--------------+-------------------------
             # 0 | BA0123 | A         | 100.5        | 100.5
             # 1 | BA0123 | B         | 575.99       | 100.5
-            # 2 | SG0456 | A         | NaN          | NaN
+            # 2 | SG0456 | A         | NaN          | Nothing
             # 3 | BA0123 | C         | NaN          | 100.5
             # 4 | SG0456 | E         | 73.77        | 73.77
             expected_table = table.zip expected_column
@@ -626,12 +626,12 @@ add_specs suite_builder =
             w.rows.should_equal [2, 3]
         group_builder.specify "Running max ignores NaN values and works with grouping and warns" <|
             result = table.running Statistic.Maximum "Ticket Price" "Running" group_by=["Flight"]
-            expected_column = Column.from_vector "Running" [100.5, 575.99, Number.nan, 575.99, 73.77]
+            expected_column = Column.from_vector "Running" [100.5, 575.99, Nothing, 575.99, 73.77]
             #   | Flight | Passenger | Ticket Price | Running
             #---+--------+-----------+--------------+-------------------------
             # 0 | BA0123 | A         | 100.5        | 100.5
             # 1 | BA0123 | B         | 575.99       | 575.99
-            # 2 | SG0456 | A         | NaN          | NaN
+            # 2 | SG0456 | A         | NaN          | Nothing
             # 3 | BA0123 | C         | NaN          | 575.99
             # 4 | SG0456 | E         | 73.77        | 73.77
             expected_table = table.zip expected_column
@@ -656,12 +656,12 @@ add_specs suite_builder =
             w.rows.should_equal [2, 3]
         group_builder.specify "Running mean ignores NaN values and works when first value is NaN and warns" <|
             result = table.running Statistic.Mean "Ticket Price" "Running" group_by=["Flight"]
-            expected_column = Column.from_vector "Running" [100.5, 338.245, Number.nan, 338.245, 73.77]
+            expected_column = Column.from_vector "Running" [100.5, 338.245, Nothing, 338.245, 73.77]
             #   | Flight | Passenger | Ticket Price | Running
             #---+--------+-----------+--------------+-------------------------
             # 0 | BA0123 | A         | 100.5        | 100.5
             # 1 | BA0123 | B         | 575.99       | 338.245
-            # 2 | SG0456 | A         | NaN          | NaN
+            # 2 | SG0456 | A         | NaN          | Nothing
             # 3 | BA0123 | C         | NaN          | 338.245
             # 4 | SG0456 | E         | 73.77        | 73.77
             expected_table = table.zip expected_column

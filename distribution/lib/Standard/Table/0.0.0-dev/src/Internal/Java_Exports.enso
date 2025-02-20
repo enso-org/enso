@@ -14,7 +14,7 @@ polyglot java import org.enso.table.problems.ProblemAggregator
 ## PRIVATE
    Note: Value_Type must have an exact representation in Java.
 make_builder_for_type : Value_Type -> Integer -> ProblemAggregator -> Builder
-make_builder_for_type value_type initial_size java_problem_aggregator=(Missing_Argument.ensure_present "java_problem_aggregator") =
+make_builder_for_type value_type initial_size java_problem_aggregator=(Missing_Argument.throw "java_problem_aggregator") =
     storage_type = Storage.from_value_type_strict value_type
     Builder.getForType storage_type initial_size java_problem_aggregator
 
@@ -24,13 +24,13 @@ make_bool_builder initial_size = Builder.getForBoolean initial_size
 
 ## PRIVATE
 make_double_builder : Integer -> ProblemAggregator -> BuilderForDouble
-make_double_builder initial_size java_problem_aggregator=(Missing_Argument.ensure_present "java_problem_aggregator") =
+make_double_builder initial_size java_problem_aggregator=(Missing_Argument.throw "java_problem_aggregator") =
     float_type = Storage.from_value_type_strict Value_Type.Float
     Builder.getForDouble float_type initial_size java_problem_aggregator
 
 ## PRIVATE
 make_long_builder : Integer -> Bits -> ProblemAggregator -> BuilderForLong
-make_long_builder initial_size bits java_problem_aggregator=(Missing_Argument.ensure_present "java_problem_aggregator") =
+make_long_builder initial_size bits java_problem_aggregator=(Missing_Argument.throw "java_problem_aggregator") =
     integer_type = Storage.from_value_type_strict (Value_Type.Integer bits)
     Builder.getForLong integer_type initial_size java_problem_aggregator
 
@@ -42,5 +42,5 @@ make_string_builder initial_size value_type=Value_Type.Char =
 
 ## PRIVATE
 make_inferred_builder : Integer -> ProblemAggregator -> Builder
-make_inferred_builder initial_size java_problem_aggregator=(Missing_Argument.ensure_present "java_problem_aggregator") =
+make_inferred_builder initial_size java_problem_aggregator=(Missing_Argument.throw "java_problem_aggregator") =
     Builder.getInferredBuilder initial_size java_problem_aggregator

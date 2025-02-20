@@ -6,6 +6,8 @@
 
 // === Paths ===
 
+export const OPEN_IDE_DEEPLINK = 'enso://'
+
 /** Path to the root of the app (i.e., the Cloud dashboard). */
 export const DASHBOARD_PATH = '/'
 /** Path to the login page. */

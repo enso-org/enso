@@ -11,6 +11,8 @@ import { useAuth } from '#/providers/AuthProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useSessionAPI } from '#/providers/SessionProvider.tsx'
 import { useText } from '#/providers/TextProvider'
+import { useNavigate } from 'react-router-dom'
+import { LOGIN_PATH } from '../appUtils'
 
 // ================
 // === InfoMenu ===
@@ -25,6 +27,7 @@ export interface InfoMenuProps {
 export default function InfoMenu(props: InfoMenuProps) {
   const { hidden = false } = props
 
+  const navigate = useNavigate()
   const { signOut } = useSessionAPI()
   const { session } = useAuth()
   const { setModal } = useSetModal()
@@ -49,7 +52,16 @@ export default function InfoMenu(props: InfoMenuProps) {
                 setModal(<AboutModal />)
               }}
             />
-            {session && <MenuEntry action="signOut" doAction={signOut} />}
+            {session && (
+              <MenuEntry
+                action="signOut"
+                doAction={() =>
+                  signOut().then(() => {
+                    navigate(LOGIN_PATH)
+                  })
+                }
+              />
+            )}
           </div>
         )}
       </FocusArea>

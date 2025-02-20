@@ -14,8 +14,16 @@ object GraalVM {
 
     override def toString(): String = {
       val prop = System.getenv(VAR_NAME)
-      // default value is `shell`
-      return if (prop == null) "shell" else prop;
+      // default value is `shell` for development and `native` for the release
+      return if (prop != null) {
+        prop
+      } else {
+        if (BuildInfo.isReleaseMode) {
+          "native"
+        } else {
+          "shell"
+        }
+      }
     }
 
     private lazy val parsed

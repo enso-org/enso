@@ -5,6 +5,7 @@ import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.StorageListView;
 import org.enso.table.util.ImmutableBitSet;
 import org.graalvm.polyglot.Context;
 
@@ -56,7 +57,7 @@ public class BooleanIsInOp extends BinaryMapOperation<Boolean, BoolStorage> {
     // We could try BitSets for BoolStorage, but it is unclear if they will improve performance due
     // to need for additional allocations. It does not seem worth optimizing this rare usecase
     // currently.
-    return runMap(storage, arg.toList());
+    return runMap(storage, new StorageListView(arg));
   }
 
   private BoolStorage run(BoolStorage storage, boolean hadNull, boolean hadTrue, boolean hadFalse) {

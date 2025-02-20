@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-from Standard.Base.Errors.Common import Floating_Point_Equality, No_Such_Method
+from Standard.Base.Errors.Common import Floating_Point_Equality, Missing_Argument, No_Such_Method
 
 import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Aggregate_Column_Helper.Internal_Order_By_Column_Reference
@@ -110,7 +110,7 @@ make_aggregate_column table aggregate as dialect infer_return_type problem_build
    Implementation for the `DB_Table.aggregate` method.
 aggregate table:DB_Table group_by:(Vector | Text | Integer | Regex) columns:Vector error_on_missing_columns:Boolean on_problems:Problem_Behavior =
     normalized_group_by = Vector.unify_vector_or_element group_by
-    if normalized_group_by.is_empty && columns.is_empty then Error.throw (No_Output_Columns.Error "No columns specified in aggregate.") else
+    if normalized_group_by.is_empty && columns.is_empty then Missing_Argument.throw "columns" "Provide a value for either the `group_by` or `columns` arguments." else
         ## This is a fix for #10321 - if the source query contains an ORDER BY,
            we need to push it into a subquery to not interfere with aggregations.
         base_table = if table.context.orders.not_empty then table.as_subquery else table
