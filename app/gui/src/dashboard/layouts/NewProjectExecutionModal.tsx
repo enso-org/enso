@@ -63,6 +63,9 @@ import {
 } from 'enso-common/src/utilities/data/dateTime'
 import { useEffect, useRef } from 'react'
 
+// This is a SAFE upcast.
+// eslint-disable-next-line no-restricted-syntax
+const DISABLE_LAST_WEEKDAY_REPEAT_TYPE = true as boolean
 const MAX_DURATION_DEFAULT_MINUTES = 60
 const MAX_DURATION_MINIMUM_MINUTES = 1
 const MAX_DURATION_MAXIMUM_MINUTES = 180
@@ -240,7 +243,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   form.watch('months')
   const daysToEndOfMonth = endOfMonth(date).day - date.day
   const validRepeatTypes =
-    daysToEndOfMonth >= DAYS_PER_WEEK ?
+    DISABLE_LAST_WEEKDAY_REPEAT_TYPE || daysToEndOfMonth >= DAYS_PER_WEEK ?
       PROJECT_EXECUTION_REPEAT_TYPES.filter((type) => type !== 'MonthlyLastWeekday')
     : PROJECT_EXECUTION_REPEAT_TYPES
 
