@@ -7,5 +7,7 @@ module org.enso.benchmarks.common {
   requires jmh.core;
 
   exports org.enso.interpreter.bench;
-  opens org.enso.interpreter.bench.result to com.fasterxml.jackson.databind;
+
+  opens org.enso.interpreter.bench.result to
+      com.fasterxml.jackson.databind;
 }
