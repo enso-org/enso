@@ -2,7 +2,7 @@
 /* eslint-disable no-empty-pattern */
 
 import { test as base, expect } from '@chromatic-com/playwright'
-import { _electron, Electron, ElectronApplication, type Page } from '@playwright/test'
+import { _electron, ElectronApplication, type Page } from '@playwright/test'
 import { TEXTS } from 'enso-common/src/text'
 import fs from 'node:fs/promises'
 import os from 'node:os'
@@ -33,12 +33,16 @@ const electronExecutablePath = await (async () => {
  * Similar to playwright's test, but launches electron, and passes Page of the main window.
  */
 export const test = base.extend<{
+  testRunId: string,
   projectsDir: string
   app: ElectronApplication
   page: Page
 }>({
-  projectsDir: async function ({}, use, testInfo) {
-    const projectsDir = path.join(os.tmpdir(), 'enso-test-projects', testInfo.testId)
+  testRunId: async function({}, use, testInfo) {
+    await use(`${testInfo.testId}-${new Date().toISOString()}`)
+  },
+  projectsDir: async function ({ testRunId }, use) {
+    const projectsDir = path.join(os.tmpdir(), 'enso-test-projects', testRunId)
     await use(projectsDir)
   },
 
@@ -46,7 +50,7 @@ export const test = base.extend<{
    * Setup for all tests: checks if and where electron exec is.
    * @throws when no Enso package could be found.
    */
-  app: async function ({ projectsDir, viewport }, use, testInfo) {
+  app: async function ({ projectsDir, testRunId, viewport }, use) {
     const args = process.env.ENSO_TEST_APP_ARGS?.split(',') ?? []
     if (viewport) args.push(`--window.size=${viewport.width}x${viewport.height}`)
     const app = await _electron.launch({
@@ -56,7 +60,7 @@ export const test = base.extend<{
     })
     await app.context().tracing.start({ screenshots: true, snapshots: true, sources: true })
     await use(app)
-    await app.context().tracing.stop({ path: `test-traces/${testInfo.testId}.zip` })
+    await app.context().tracing.stop({ path: `test-traces/${testRunId}.zip` })
     await app.close()
   },
   page: async function ({ app, viewport }, use) {

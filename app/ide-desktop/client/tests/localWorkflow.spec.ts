@@ -1,9 +1,22 @@
 /** @file A test for basic flow of the application: open project and see if nodes appear. */
 
 import { expect, takeSnapshot } from '@chromatic-com/playwright'
+import { Page, TestInfo } from '@playwright/test'
 import fs from 'node:fs/promises'
 import pathModule from 'node:path'
 import { CONTROL_KEY, loginAsTestUser, test } from './electronTest'
+
+const startTimestamp = Date.now()
+let screenshotIndex = 0
+async function _doScreenshot(page: Page): Promise<void> {
+  page.screenshot({ path: `test-traces/screenshots/${startTimestamp}/${screenshotIndex++}.png` })
+}
+
+async function doSnapshot(page: Page, testInfo: TestInfo): Promise<void> {
+  // Enable for local testing only:
+  // await _doScreenshot(page)
+  await takeSnapshot(page, testInfo)
+}
 
 test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   const OUTPUT_FILE = 'output.txt'
@@ -23,7 +36,7 @@ test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   await expect(page.locator('.TableVisualization')).toBeVisible({ timeout: 30000 })
   await expect(page.locator('.TableVisualization')).toContainText('Welcome To Enso!')
 
-  await takeSnapshot(page, testInfo)
+  await doSnapshot(page, testInfo)
 
   // Create node connected to the first node by picking suggestion.
   await page.locator('.GraphNode').click()
@@ -33,7 +46,7 @@ test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
     hasText: 'column_count',
   })
   await expect(entry).toBeVisible()
-  await entry.click()
+  await await entry.click()
   await expect(page.locator('.GraphNode'), {}).toHaveCount(2)
   const addedNode = page.locator('.GraphNode', { hasText: 'column_count' })
   await addedNode.click()
@@ -50,7 +63,7 @@ test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   await page.keyboard.press('Enter')
   await expect(page.locator('.GraphNode'), {}).toHaveCount(3)
 
-  await takeSnapshot(page, testInfo)
+  await doSnapshot(page, testInfo)
 
   // Create write node
   await page.keyboard.press('Enter')
@@ -67,24 +80,15 @@ test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   await expect(writeNode.locator('.TableVisualization')).toContainText('output_ensodryrun')
 
   expect(await fs.readdir(PROJECT_PATH)).not.toContain(OUTPUT_FILE)
-
+  await expect(page.locator('.GraphEditor .GraphNode.pending')).toHaveCount(0)
   // Press `Write once` button.
   await writeNode.locator('.More').click()
   await writeNode.getByTestId('recompute').click()
+  await page.mouse.move(0, 0) // Avoid showing a tooltip
+  await expect(page.locator('.GraphEditor .GraphNode.pending')).toHaveCount(0)
 
   // Check that the output file is created and contains expected text.
-  try {
-    await expect(writeNode.locator('.TableVisualization')).toContainText(OUTPUT_FILE, {
-      timeout: 10000,
-    })
-  } catch {
-    // TODO[ao]
-    // The above check is flaky, because sometimes the additional engine run overrides node output back to "dry run".
-    // To confirm if this should be expected.
-    console.error(
-      'Didn\'t see the visualization update after "Write once" action; assuming it\'s already done',
-    )
-  }
+  await expect(writeNode.locator('.TableVisualization')).toContainText(OUTPUT_FILE)
   let projectFiles = await fs.readdir(PROJECT_PATH)
   expect(projectFiles).toContain(OUTPUT_FILE)
   if (projectFiles.includes(OUTPUT_FILE)) {
@@ -115,8 +119,9 @@ test('Local Workflow', async ({ page, app, projectsDir }, testInfo) => {
   expect(projectFiles).toContain('images')
   const images = await fs.readdir(pathModule.join(PROJECT_PATH, 'images'))
   expect(images).toContain('image.png')
+  await expect(page.locator('.GraphEditor .GraphNode.pending')).toHaveCount(0)
 
-  await takeSnapshot(page, testInfo)
+  await doSnapshot(page, testInfo)
 })
 
 async function readFile(projectDir: string, fileName: string): Promise<string> {

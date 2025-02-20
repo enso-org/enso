@@ -346,6 +346,11 @@ jobs:
           compression-level: 0
           name: test-traces-linux-amd64
           path: app/ide-desktop/client/test-traces
+      - name: Upload Chromatic snapshots
+        uses: chromaui/action@v11
+        with:
+          projectToken: ${{ secrets.ELECTRON_IDE_CHROMATIC_PROJECT_TOKEN }}
+          storybookBuildDir: app/ide-desktop/client/test-traces
       - name: Upload ide
         uses: actions/upload-artifact@v4
         with:
@@ -440,6 +445,11 @@ jobs:
           compression-level: 0
           name: test-traces-windows-amd64
           path: app/ide-desktop/client/test-traces
+      - name: Upload Chromatic snapshots
+        uses: chromaui/action@v11
+        with:
+          projectToken: ${{ secrets.ELECTRON_IDE_CHROMATIC_PROJECT_TOKEN }}
+          storybookBuildDir: app/ide-desktop/client/test-traces
       - name: Upload ide
         uses: actions/upload-artifact@v4
         with:

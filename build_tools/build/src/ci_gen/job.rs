@@ -716,6 +716,20 @@ rm dist/backend/project-manager.tar"
                 };
                 steps.push(upload_test_traces_step);
 
+                let upload_chromatic_step = Step {
+                    name: Some("Upload Chromatic snapshots".into()),
+                    uses: Some("chromaui/action@v11".into()),
+                    with: Some(Argument::Other(BTreeMap::from_iter([
+                        (
+                            "projectToken".into(),
+                            "${{ secrets.ELECTRON_IDE_CHROMATIC_PROJECT_TOKEN }}".into(),
+                        ),
+                        ("storybookBuildDir".into(), "app/ide-desktop/client/test-traces".into()),
+                    ]))),
+                    ..Default::default()
+                };
+                steps.push(upload_chromatic_step);
+
                 let upload_ide = step::upload_artifact("Upload ide")
                     .with_custom_argument("name", format!("ide-{}", target.0))
                     .with_custom_argument(
