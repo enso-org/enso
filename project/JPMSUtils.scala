@@ -63,7 +63,20 @@ object JPMSUtils {
           val i = f.data.getName.lastIndexOf("-")
           f.data.getName.substring(0, i)
         })
-        log.error("diff: " + distinctModules.map(_.name).diff(names))
+        log.error(
+          s"[JPMSUtils/$projName] diff: " + distinctModules
+            .map(_.name)
+            .diff(names)
+        )
+        val cpModIds = cp
+          .map { f =>
+            f.metadata.get(AttributeKey[ModuleID]("moduleID")).get
+          }
+          .sortBy(_.organization)
+        log.error(s"[JPMSUtils/$projName] All Modules from cp:")
+        cpModIds.foreach { m =>
+          log.error(s"  - ${m.organization}; ${m.name}; ${m.revision}")
+        }
       }
     }
     ret
