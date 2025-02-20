@@ -24,8 +24,7 @@ public record Result(
     int measureIterations,
     long measureMillis,
     String commitId,
-    String branch,
-    Configuration configuration) {
+    String branch) {
   public static Result fromJMHResult(RunResult result) {
     var params = result.getParams();
     var benchName = params.getBenchmark();
@@ -44,7 +43,6 @@ public record Result(
     var samples = result.getPrimaryResult().getStatistics().getN();
     var commitId = BuildVersion.commit();
     var branch = BuildVersion.ref();
-    var configuration = Configuration.fromSystemProperties();
     return new Result(
         benchName,
         timestamp,
@@ -60,7 +58,6 @@ public record Result(
         measureIterations,
         measureMillis,
         commitId,
-        branch,
-        configuration);
+        branch);
   }
 }
