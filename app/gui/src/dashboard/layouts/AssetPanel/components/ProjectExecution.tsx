@@ -106,21 +106,21 @@ export function ProjectExecution(props: ProjectExecutionProps) {
         `${zonedStartDate.hour % 12 || 12}:${minuteString}`,
       )
       switch (repeat.type) {
-        case 'None': {
+        case 'none': {
           return getText('doesNotRepeat')
         }
-        case 'Daily': {
+        case 'daily': {
           return `${startDateDailyRepeat} ${getText('everyDaySuffix')}`
         }
-        case 'Weekly': {
+        case 'weekly': {
           const dayNames = repeat.daysOfWeek
             .map((day) => getText(DAY_3_LETTER_TEXT_IDS[day] ?? 'monday3'))
             .join(', ')
           return `${startDateDailyRepeat} ${dayNames}`
         }
-        case 'MonthlyDate':
-        case 'MonthlyWeekday':
-        case 'MonthlyLastWeekday': {
+        case 'monthlyDate':
+        case 'monthlyWeekday':
+        case 'monthlyLastWeekday': {
           const monthNames =
             repeat.months.length === MONTHS_IN_YEAR ?
               getText('everyMonth')
@@ -128,7 +128,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
                 .map((month) => getText(MONTH_3_LETTER_TEXT_IDS[month] ?? 'january3'))
                 .join(', ')
           switch (repeat.type) {
-            case 'MonthlyDate': {
+            case 'monthlyDate': {
               return getText(
                 'repeatsTimeXMonthsXDateX',
                 startDateDailyRepeat,
@@ -136,7 +136,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
                 getOrdinal(repeat.date),
               )
             }
-            case 'MonthlyWeekday': {
+            case 'monthlyWeekday': {
               return getText(
                 'repeatsTimeXMonthsXDayXWeekX',
                 startDateDailyRepeat,
@@ -145,7 +145,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
                 getText('xthWeek', getOrdinal(repeat.weekNumber)),
               )
             }
-            case 'MonthlyLastWeekday': {
+            case 'monthlyLastWeekday': {
               return getText(
                 'repeatsTimeXMonthsXDayXLastWeek',
                 startDateDailyRepeat,

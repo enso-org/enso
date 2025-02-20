@@ -11,7 +11,7 @@ const TIME_ZONE_SUMMER_OFFSET = -25200000
 const WEEKLY_EXECUTION: ProjectExecutionInfo = {
   projectId: ProjectId('project-aaaaaaaa'),
   repeat: {
-    type: 'Weekly',
+    type: 'weekly',
     daysOfWeek: [0, 5],
   },
   startDate: toRfc3339(

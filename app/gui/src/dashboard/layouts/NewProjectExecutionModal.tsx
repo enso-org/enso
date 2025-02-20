@@ -125,30 +125,30 @@ const UPSERT_EXECUTION_SCHEMA = z
       )
       const repeat = ((): ProjectExecutionRepeatInfo => {
         switch (repeatType) {
-          case 'None': {
+          case 'none': {
             return {
               type: repeatType,
             }
           }
-          case 'Daily': {
+          case 'daily': {
             return {
               type: repeatType,
             }
           }
-          case 'Weekly': {
+          case 'weekly': {
             return {
               type: repeatType,
               daysOfWeek: days,
             }
           }
-          case 'MonthlyDate': {
+          case 'monthlyDate': {
             return {
               type: repeatType,
               date: startDate.day,
               months,
             }
           }
-          case 'MonthlyWeekday': {
+          case 'monthlyWeekday': {
             return {
               type: repeatType,
               dayOfWeek: getDay(startDate),
@@ -156,7 +156,7 @@ const UPSERT_EXECUTION_SCHEMA = z
               months,
             }
           }
-          case 'MonthlyLastWeekday': {
+          case 'monthlyLastWeekday': {
             return {
               type: repeatType,
               dayOfWeek: getDay(startDate),
@@ -222,7 +222,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
     schema: UPSERT_EXECUTION_SCHEMA,
     defaultValues: {
       projectId: item.id,
-      repeatType: 'Daily',
+      repeatType: 'daily',
       parallelMode: 'restart',
       startDate: defaultStartDate,
       maxDurationMinutes: MAX_DURATION_DEFAULT_MINUTES,
@@ -234,7 +234,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       await createProjectExecution([values, item.title])
     },
   })
-  const repeatType = form.watch('repeatType', 'Daily')
+  const repeatType = form.watch('repeatType', 'daily')
   const parallelMode = form.watch('parallelMode', 'restart')
   const date = form.watch('startDate', defaultStartDate) ?? defaultStartDate
   const formTimeZone = form.watch('timeZone', timeZone)
@@ -244,7 +244,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   const daysToEndOfMonth = endOfMonth(date).day - date.day
   const validRepeatTypes =
     DISABLE_LAST_WEEKDAY_REPEAT_TYPE || daysToEndOfMonth >= DAYS_PER_WEEK ?
-      PROJECT_EXECUTION_REPEAT_TYPES.filter((type) => type !== 'MonthlyLastWeekday')
+      PROJECT_EXECUTION_REPEAT_TYPES.filter((type) => type !== 'monthlyLastWeekday')
     : PROJECT_EXECUTION_REPEAT_TYPES
 
   useEffect(() => {
@@ -288,22 +288,22 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
     const dayOfWeekNumber = getDay(date)
     const dayOfWeek = getText(DAY_TEXT_IDS[dayOfWeekNumber] ?? 'monday')
     switch (otherRepeatType) {
-      case 'None': {
+      case 'none': {
         return getText('doesNotRepeat')
       }
-      case 'Daily': {
+      case 'daily': {
         return getText('daily')
       }
-      case 'Weekly': {
+      case 'weekly': {
         return getText('weekly')
       }
-      case 'MonthlyDate': {
+      case 'monthlyDate': {
         return getText('monthlyXthDay', getOrdinal(date.day))
       }
-      case 'MonthlyWeekday': {
+      case 'monthlyWeekday': {
         return getText('monthlyXthXDay', getOrdinal(getWeekOfMonth(date.day)), dayOfWeek)
       }
-      case 'MonthlyLastWeekday': {
+      case 'monthlyLastWeekday': {
         return getText('monthlyLastXDay', dayOfWeek)
       }
     }
@@ -351,7 +351,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       >
         {({ item: otherItem }) => repeatText(otherItem)}
       </FormDropdown>
-      {repeatType === 'Weekly' && (
+      {repeatType === 'weekly' && (
         <MultiSelector
           form={form}
           isRequired
@@ -363,7 +363,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
           {(n) => getText(DAY_3_LETTER_TEXT_IDS[n] ?? 'monday3')}
         </MultiSelector>
       )}
-      {(repeatType === 'MonthlyDate' || repeatType === 'MonthlyWeekday') && (
+      {(repeatType === 'monthlyDate' || repeatType === 'monthlyWeekday') && (
         <MultiSelector
           form={form}
           isRequired
@@ -376,7 +376,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
           {(n) => getText(MONTH_3_LETTER_TEXT_IDS[n] ?? 'january3')}
         </MultiSelector>
       )}
-      <div className={repeatType === 'None' ? 'hidden' : ''}>
+      <div className={repeatType === 'none' ? 'hidden' : ''}>
         <Text>{getText('repeatsAt')}</Text>
         {repeatTimes.map((dateTime, i) => (
           <Text key={i}>{zonedDateTimeToReadableIsoString(dateTime)}</Text>

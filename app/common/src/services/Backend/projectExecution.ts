@@ -31,21 +31,21 @@ export function firstProjectExecutionOnOrAfter(
     nextDate = nextDate.add({ days: 1 })
   }
   switch (repeat.type) {
-    case 'None': {
+    case 'none': {
       return parseAbsolute(projectExecution.startDate, startDate.timeZone)
     }
-    case 'Daily': {
+    case 'daily': {
       nextDate = nextDate.add({ days: 1 })
       break
     }
-    case 'Weekly': {
+    case 'weekly': {
       const currentDay = getDay(nextDate)
       const day = repeat.daysOfWeek.find((day) => day >= currentDay) ?? repeat.daysOfWeek[0] ?? 0
       const dayOffset = remainder(day - currentDay, DAYS_PER_WEEK)
       nextDate = nextDate.add({ days: dayOffset })
       break
     }
-    case 'MonthlyWeekday': {
+    case 'monthlyWeekday': {
       const currentDate = nextDate.day
       nextDate = nextDate.set({ day: 1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK })
       const currentDay = getDay(nextDate)
@@ -61,7 +61,7 @@ export function firstProjectExecutionOnOrAfter(
       }
       break
     }
-    case 'MonthlyDate': {
+    case 'monthlyDate': {
       const currentDate = nextDate.day
       const date = repeat.date
       const goToNextMonth = date < currentDate
@@ -77,8 +77,8 @@ export function firstProjectExecutionOnOrAfter(
     }
   }
   switch (repeat.type) {
-    case 'MonthlyDate':
-    case 'MonthlyWeekday': {
+    case 'monthlyDate':
+    case 'monthlyWeekday': {
       const currentMonth = nextDate.month
       const month = repeat.months.find((month) => month >= currentMonth) ?? repeat.months[0] ?? 0
       const monthOffset = remainder(month - currentMonth, MONTHS_PER_YEAR)
@@ -96,22 +96,22 @@ export function nextProjectExecutionDate(
   let nextDate = date
   const { repeat } = projectExecution
   switch (repeat.type) {
-    case 'None':
+    case 'none':
     default: {
       return null
     }
-    case 'Daily': {
+    case 'daily': {
       nextDate = nextDate.add({ days: 1 })
       break
     }
-    case 'Weekly': {
+    case 'weekly': {
       const currentDay = getDay(nextDate)
       const day = repeat.daysOfWeek.find((day) => day > currentDay) ?? repeat.daysOfWeek[0] ?? 0
       const dayOffset = ((day - currentDay + 6) % 7) + 1
       nextDate = nextDate.add({ days: dayOffset })
       break
     }
-    case 'MonthlyWeekday': {
+    case 'monthlyWeekday': {
       nextDate = nextDate.set({ day: 1 })
       nextDate = nextDate.add({ months: 1 })
       nextDate = nextDate.set({ day: 1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK })
@@ -120,7 +120,7 @@ export function nextProjectExecutionDate(
       nextDate = nextDate.add({ days: dayOffset })
       break
     }
-    case 'MonthlyDate': {
+    case 'monthlyDate': {
       const startMonth = nextDate.month
       nextDate = nextDate.add({ months: 1 })
       if (remainder(nextDate.month - startMonth, MONTHS_PER_YEAR) > 1) {
@@ -130,8 +130,8 @@ export function nextProjectExecutionDate(
     }
   }
   switch (repeat.type) {
-    case 'MonthlyDate':
-    case 'MonthlyWeekday': {
+    case 'monthlyDate':
+    case 'monthlyWeekday': {
       const currentMonth = nextDate.month
       const month = repeat.months.find((month) => month >= currentMonth) ?? repeat.months[0] ?? 0
       const monthOffset = remainder(month - currentMonth, MONTHS_PER_YEAR)
@@ -151,7 +151,7 @@ export function getProjectExecutionRepetitionsForDateRange(
   startDate: ZonedDateTime,
   endDate: ZonedDateTime,
 ): readonly ZonedDateTime[] {
-  if (projectExecution.repeat.type === 'None') {
+  if (projectExecution.repeat.type === 'none') {
     const soleExecutionDate = parseAbsolute(projectExecution.startDate, startDate.timeZone)
     const isSoleExecutionWithinRange =
       startDate.compare(soleExecutionDate) < 0 && endDate.compare(soleExecutionDate) > 0

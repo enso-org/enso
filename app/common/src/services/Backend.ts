@@ -380,21 +380,21 @@ export const PARALLEL_MODE_TO_DESCRIPTION_ID = {
 export type ProjectParallelMode = (typeof PROJECT_PARALLEL_MODES)[number]
 
 export const PROJECT_EXECUTION_REPEAT_TYPES = [
-  'None',
-  'Daily',
-  'Weekly',
-  'MonthlyDate',
-  'MonthlyWeekday',
-  'MonthlyLastWeekday',
+  'none',
+  'daily',
+  'weekly',
+  'monthlyDate',
+  'monthlyWeekday',
+  'monthlyLastWeekday',
 ] as const
 
 export const PROJECT_EXECUTION_REPEAT_TYPE_TO_TEXT_ID = {
-  None: 'noneProjectExecutionRepeatType',
-  Daily: 'dailyProjectExecutionRepeatType',
-  Weekly: 'weeklyProjectExecutionRepeatType',
-  MonthlyDate: 'monthlyProjectExecutionRepeatType',
-  MonthlyWeekday: 'monthlyProjectExecutionRepeatType',
-  MonthlyLastWeekday: 'monthlyProjectExecutionRepeatType',
+  none: 'noneProjectExecutionRepeatType',
+  daily: 'dailyProjectExecutionRepeatType',
+  weekly: 'weeklyProjectExecutionRepeatType',
+  monthlyDate: 'monthlyProjectExecutionRepeatType',
+  monthlyWeekday: 'monthlyProjectExecutionRepeatType',
+  monthlyLastWeekday: 'monthlyProjectExecutionRepeatType',
 } satisfies {
   readonly [K in ProjectExecutionRepeatType]: TextId & `${string}ProjectExecutionRepeatType`
 }
@@ -404,23 +404,23 @@ export type ProjectExecutionRepeatType = ProjectExecutionRepeatInfo['type']
 
 /** Details for a project execution that repeats hourly. */
 export interface ProjectExecutionNoneRepeatInfo {
-  readonly type: 'None'
+  readonly type: 'none'
 }
 
 /** Details for a project execution that repeats daily. */
 export interface ProjectExecutionDailyRepeatInfo {
-  readonly type: 'Daily'
+  readonly type: 'daily'
 }
 
 /** Details for a project execution that repeats weekly on one or more days. */
 export interface ProjectExecutionWeeklyRepeatInfo {
-  readonly type: 'Weekly'
+  readonly type: 'weekly'
   readonly daysOfWeek: readonly number[]
 }
 
 /** Details for a project execution that repeats monthly on a specific date. */
 export interface ProjectExecutionMonthlyDateRepeatInfo {
-  readonly type: 'MonthlyDate'
+  readonly type: 'monthlyDate'
   readonly date: number
   readonly months: readonly number[]
 }
@@ -430,7 +430,7 @@ export interface ProjectExecutionMonthlyDateRepeatInfo {
  * of a specific month.
  */
 export interface ProjectExecutionMonthlyWeekdayRepeatInfo {
-  readonly type: 'MonthlyWeekday'
+  readonly type: 'monthlyWeekday'
   readonly weekNumber: number
   readonly dayOfWeek: number
   readonly months: readonly number[]
@@ -441,7 +441,7 @@ export interface ProjectExecutionMonthlyWeekdayRepeatInfo {
  * of a specific month.
  */
 export interface ProjectExecutionMonthlyLastWeekdayRepeatInfo {
-  readonly type: 'MonthlyLastWeekday'
+  readonly type: 'monthlyLastWeekday'
   readonly dayOfWeek: number
   readonly months: readonly number[]
 }
