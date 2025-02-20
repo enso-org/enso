@@ -345,13 +345,30 @@ impl JobArchetype for StandardLibraryTests {
     }
 }
 
+/// Job that checks if any of stdlib APIs have changed, by building the Enso
+/// engine distribution, and running `enso --docs api --in-project <std-lib>`,
+/// and comparing it to the API signature files that are already in the VCS.
+#[derive(Clone, Copy, Debug)]
+pub struct StandardLibraryApiCheck;
+
+impl JobArchetype for StandardLibraryApiCheck {
+    fn job(&self, target: Target) -> Job {
+        let job_name = "Standard Library API check";
+        let run_command = "backend stdlib-api-check";
+        let job = RunStepsBuilder::new(run_command).build_job(job_name, target);
+        job
+    }
+}
+
+/// Job that checks if the API of a standard library has changed, and if so,
+/// appends a label to the PR.
 #[derive(Clone, Debug)]
-pub struct StandardLibraryApiCheck {
+pub struct StandardLibraryLabelCheck {
     /// Library name to check. WIthout the leading `Standard` prefix
     pub lib_name: String,
 }
 
-impl StandardLibraryApiCheck {
+impl StandardLibraryLabelCheck {
     fn changed_files_step_name(&self) -> String {
         format!("{}-changed-files", self.lib_name)
     }
@@ -411,7 +428,7 @@ impl StandardLibraryApiCheck {
     }
 }
 
-impl JobArchetype for StandardLibraryApiCheck {
+impl JobArchetype for StandardLibraryLabelCheck {
     fn job(&self, target: Target) -> Job {
         if target.0 != OS::Linux {
             panic!("StandardLibraryApiCheck jobs run only on Linux");

@@ -43,7 +43,6 @@ use ide_ci::actions::workflow::definition::WorkflowDispatchInput;
 use ide_ci::actions::workflow::definition::WorkflowDispatchInputType;
 use ide_ci::actions::workflow::definition::WorkflowToWrite;
 use ide_ci::cache::goodie::graalvm;
-use job::StandardLibraryApiCheck;
 
 
 // ==============
@@ -787,6 +786,7 @@ pub fn engine_checks() -> Result<Workflow> {
         ..default()
     };
     workflow.add(PRIMARY_TARGET, job::VerifyLicensePackages);
+    workflow.add(PRIMARY_TARGET, job::StandardLibraryApiCheck);
     for target in PR_REQUIRED_TARGETS {
         add_backend_checks(&mut workflow, target, graalvm::Edition::Community);
     }
@@ -887,7 +887,7 @@ fn stdlib_api_change_labels_workflow() -> Result<Workflow> {
     ..default()
   };
     for lib_name in lib_names {
-        let lib_api_check = StandardLibraryApiCheck { lib_name: lib_name.to_string() };
+        let lib_api_check = job::StandardLibraryLabelCheck { lib_name: lib_name.to_string() };
         workflow.add(PRIMARY_TARGET, lib_api_check);
     }
     Ok(workflow)
