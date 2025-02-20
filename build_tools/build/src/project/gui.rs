@@ -99,7 +99,7 @@ impl IsTarget for Gui {
                 .set_env(ide_env::ENSO_IDE_COMMIT_HASH, &commit_hash)?
                 .set_env(ide_env::ENSO_IDE_VERSION, &version_string)?
                 .run("build:gui")
-                .arg(&format!("--mode={mode}"))
+                .arg(format!("--mode={mode}"))
                 .run_ok()
                 .await?;
 
