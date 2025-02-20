@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.compiler.core.ir.Warning;
@@ -1536,6 +1537,35 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var x1 = ModuleUtils.findAssignment(foo, "x1");
     assertAtomType("local.Project1.modA.My_Type", x1);
   }
+
+
+  @Test
+  public void missingFunctionArgumentWarning() throws Exception {
+    final URI uri = new URI("memory://missingFunctionArgumentWarning.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    my_function a b c = [a, b, c]
+                    foo =
+                        # This call has no effect as the result is discarded but no function was called either.
+                        my_function 1
+                        0
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = ModuleUtils.findStaticMethod(module, "foo");
+
+    var allDiagnostics = ModuleUtils.getDescendantsDiagnostics(foo);
+    Optional<Diagnostic> diagnostic = allDiagnostics.stream().filter(diag -> diag instanceof Warning.DiscardedValue).findFirst();
+    assertTrue("The DiscardedWarning should be found among " + allDiagnostics, diagnostic.isPresent());
+    Warning.DiscardedValue discardedWarning = (Warning.DiscardedValue) diagnostic.get();
+    assertEquals(discardedWarning.discardedType(), "Any -> Any -> Vector");
+  }
+
 
   @Test
   public void staticTypeCheckerReportsWarningsOnProject() throws IOException {
