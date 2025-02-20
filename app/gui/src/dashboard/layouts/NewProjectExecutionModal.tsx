@@ -69,14 +69,6 @@ const MAX_DURATION_MAXIMUM_MINUTES = 180
 const REPEAT_TIMES_COUNT = 3
 const DAYS_PER_WEEK = 7
 const MONTHS_PER_YEAR = 12
-const INTERNAL_REPEAT_TYPES = [
-  'none',
-  'daily',
-  'weekly',
-  'monthlyDate',
-  'monthlyWeekday',
-  'monthlyLastWeekday',
-] as const
 
 const DAYS = [...Array(DAYS_PER_WEEK).keys()] as const
 const MONTHS = [...Array(MONTHS_PER_YEAR).keys()] as const
@@ -85,7 +77,7 @@ const MONTHS = [...Array(MONTHS_PER_YEAR).keys()] as const
 const UPSERT_EXECUTION_SCHEMA = z
   .object({
     projectId: z.string().refine((x: unknown): x is ProjectId => true),
-    repeatType: z.enum([...PROJECT_EXECUTION_REPEAT_TYPES, 'weekly']),
+    repeatType: z.enum(PROJECT_EXECUTION_REPEAT_TYPES),
     days: z
       .number()
       .int()
@@ -130,31 +122,30 @@ const UPSERT_EXECUTION_SCHEMA = z
       )
       const repeat = ((): ProjectExecutionRepeatInfo => {
         switch (repeatType) {
-          case 'none': {
+          case 'None': {
             return {
               type: repeatType,
             }
           }
-          case 'daily': {
+          case 'Daily': {
             return {
-              type: 'daily',
-              daysOfWeek: DAYS,
+              type: repeatType,
             }
           }
-          case 'weekly': {
+          case 'Weekly': {
             return {
-              type: 'daily',
+              type: repeatType,
               daysOfWeek: days,
             }
           }
-          case 'monthlyDate': {
+          case 'MonthlyDate': {
             return {
               type: repeatType,
               date: startDate.day,
               months,
             }
           }
-          case 'monthlyWeekday': {
+          case 'MonthlyWeekday': {
             return {
               type: repeatType,
               dayOfWeek: getDay(startDate),
@@ -162,7 +153,7 @@ const UPSERT_EXECUTION_SCHEMA = z
               months,
             }
           }
-          case 'monthlyLastWeekday': {
+          case 'MonthlyLastWeekday': {
             return {
               type: repeatType,
               dayOfWeek: getDay(startDate),
@@ -228,7 +219,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
     schema: UPSERT_EXECUTION_SCHEMA,
     defaultValues: {
       projectId: item.id,
-      repeatType: 'daily',
+      repeatType: 'Daily',
       parallelMode: 'restart',
       startDate: defaultStartDate,
       maxDurationMinutes: MAX_DURATION_DEFAULT_MINUTES,
@@ -240,7 +231,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       await createProjectExecution([values, item.title])
     },
   })
-  const repeatType = form.watch('repeatType', 'daily')
+  const repeatType = form.watch('repeatType', 'Daily')
   const parallelMode = form.watch('parallelMode', 'restart')
   const date = form.watch('startDate', defaultStartDate) ?? defaultStartDate
   const formTimeZone = form.watch('timeZone', timeZone)
@@ -250,8 +241,8 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   const daysToEndOfMonth = endOfMonth(date).day - date.day
   const validRepeatTypes =
     daysToEndOfMonth >= DAYS_PER_WEEK ?
-      INTERNAL_REPEAT_TYPES.filter((type) => type !== 'monthlyLastWeekday')
-    : INTERNAL_REPEAT_TYPES
+      PROJECT_EXECUTION_REPEAT_TYPES.filter((type) => type !== 'MonthlyLastWeekday')
+    : PROJECT_EXECUTION_REPEAT_TYPES
 
   useEffect(() => {
     if (onChange) {
@@ -290,26 +281,26 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
     const dayOfWeekNumber = getDay(date)
     const dayOfWeek = getText(DAY_TEXT_IDS[dayOfWeekNumber] ?? 'monday')
     switch (otherRepeatType) {
-      case 'none': {
+      case 'None': {
         return getText('doesNotRepeat')
       }
-      case 'daily': {
+      case 'Daily': {
         return getText('daily')
       }
-      case 'weekly': {
+      case 'Weekly': {
         return getText('weekly')
       }
-      case 'monthlyDate': {
+      case 'MonthlyDate': {
         return getText('monthlyXthDay', getOrdinal(date.day))
       }
-      case 'monthlyWeekday': {
+      case 'MonthlyWeekday': {
         return getText(
           'monthlyXthXDay',
           getOrdinal(Math.floor(date.day / DAYS_PER_WEEK) + 1),
           dayOfWeek,
         )
       }
-      case 'monthlyLastWeekday': {
+      case 'MonthlyLastWeekday': {
         return getText('monthlyLastXDay', dayOfWeek)
       }
     }
@@ -357,7 +348,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       >
         {({ item: otherItem }) => repeatText(otherItem)}
       </FormDropdown>
-      {repeatType === 'weekly' && (
+      {repeatType === 'Weekly' && (
         <MultiSelector
           form={form}
           isRequired
@@ -369,7 +360,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
           {(n) => getText(DAY_3_LETTER_TEXT_IDS[n] ?? 'monday3')}
         </MultiSelector>
       )}
-      {(repeatType === 'monthlyDate' || repeatType === 'monthlyWeekday') && (
+      {(repeatType === 'MonthlyDate' || repeatType === 'MonthlyWeekday') && (
         <MultiSelector
           form={form}
           isRequired
@@ -382,7 +373,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
           {(n) => getText(MONTH_3_LETTER_TEXT_IDS[n] ?? 'january3')}
         </MultiSelector>
       )}
-      <div className={repeatType === 'none' ? 'hidden' : ''}>
+      <div className={repeatType === 'None' ? 'hidden' : ''}>
         <Text>{getText('repeatsAt')}</Text>
         {repeatTimes.map((dateTime, i) => (
           <Text key={i}>{zonedDateTimeToReadableIsoString(dateTime)}</Text>

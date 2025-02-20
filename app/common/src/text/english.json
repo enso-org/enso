@@ -761,6 +761,7 @@
   "advancedOptions": "Advanced options",
   "noneProjectExecutionRepeatType": "No repeat",
   "dailyProjectExecutionRepeatType": "Daily",
+  "weeklyProjectExecutionRepeatType": "Weekly",
   "monthlyProjectExecutionRepeatType": "Monthly",
   "xthWeek": "$0 week",
 
