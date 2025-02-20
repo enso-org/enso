@@ -1538,7 +1538,6 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertAtomType("local.Project1.modA.My_Type", x1);
   }
 
-
   @Test
   public void missingFunctionArgumentWarning() throws Exception {
     final URI uri = new URI("memory://missingFunctionArgumentWarning.enso");
@@ -1560,12 +1559,13 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var foo = ModuleUtils.findStaticMethod(module, "foo");
 
     var allDiagnostics = ModuleUtils.getDescendantsDiagnostics(foo);
-    Optional<Diagnostic> diagnostic = allDiagnostics.stream().filter(diag -> diag instanceof Warning.DiscardedValue).findFirst();
-    assertTrue("The DiscardedWarning should be found among " + allDiagnostics, diagnostic.isPresent());
+    Optional<Diagnostic> diagnostic =
+        allDiagnostics.stream().filter(diag -> diag instanceof Warning.DiscardedValue).findFirst();
+    assertTrue(
+        "The DiscardedWarning should be found among " + allDiagnostics, diagnostic.isPresent());
     Warning.DiscardedValue discardedWarning = (Warning.DiscardedValue) diagnostic.get();
     assertEquals(discardedWarning.discardedType(), "Any -> (Any -> Any)");
   }
-
 
   @Test
   public void staticTypeCheckerReportsWarningsOnProject() throws IOException {
