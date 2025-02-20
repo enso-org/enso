@@ -52,10 +52,15 @@ import {
 import {
   DAY_3_LETTER_TEXT_IDS,
   DAY_TEXT_IDS,
+  DAYS,
+  DAYS_PER_WEEK,
   getDay,
+  getWeekOfMonth,
   HOUR_MINUTES,
   MINUTE_MS,
   MONTH_3_LETTER_TEXT_IDS,
+  MONTHS,
+  MONTHS_PER_YEAR,
   toRfc3339,
   WHITELISTED_TIME_ZONE_MAP,
   WHITELISTED_TIME_ZONES,
@@ -70,11 +75,6 @@ const MAX_DURATION_DEFAULT_MINUTES = 60
 const MAX_DURATION_MINIMUM_MINUTES = 1
 const MAX_DURATION_MAXIMUM_MINUTES = 180
 const REPEAT_TIMES_COUNT = 3
-const DAYS_PER_WEEK = 7
-const MONTHS_PER_YEAR = 12
-
-const DAYS = [...Array(DAYS_PER_WEEK).keys()] as const
-const MONTHS = [...Array(MONTHS_PER_YEAR).keys()] as const
 
 /** The form schema for this page. */
 const UPSERT_EXECUTION_SCHEMA = z
@@ -152,7 +152,7 @@ const UPSERT_EXECUTION_SCHEMA = z
             return {
               type: repeatType,
               dayOfWeek: getDay(startDate),
-              weekNumber: Math.floor((startDate.day - 1) / DAYS_PER_WEEK) + 1,
+              weekNumber: getWeekOfMonth(startDate.day),
               months,
             }
           }
@@ -297,11 +297,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         return getText('monthlyXthDay', getOrdinal(date.day))
       }
       case 'MonthlyWeekday': {
-        return getText(
-          'monthlyXthXDay',
-          getOrdinal(Math.floor((date.day - 1) / DAYS_PER_WEEK) + 1),
-          dayOfWeek,
-        )
+        return getText('monthlyXthXDay', getOrdinal(getWeekOfMonth(date.day)), dayOfWeek)
       }
       case 'MonthlyLastWeekday': {
         return getText('monthlyLastXDay', dayOfWeek)

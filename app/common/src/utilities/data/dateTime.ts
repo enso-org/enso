@@ -14,6 +14,11 @@ export const MINUTE_MS = 60_000
 /** The number of minutes in an hour. */
 export const HOUR_MINUTES = 60
 
+/** All possible day numbers. */
+export const DAYS: readonly number[] = [...Array(DAYS_PER_WEEK).keys()].map((n) => n + 1)
+/** All possible month numbers. */
+export const MONTHS: readonly number[] = [...Array(MONTHS_PER_YEAR).keys()].map((n) => n + 1)
+
 /** A mapping from the month index returned by {@link Date.getMonth} to its full name. */
 export const MONTH_NAMES = [
   'January',
@@ -536,4 +541,12 @@ export function zonedDateTimeToReadableIsoString(date: ZonedDateTime) {
 /** Get a consistent day number for the day of week no matter the locale of the local device. */
 export function getDay(date: ZonedDateTime) {
   return getDayOfWeek(date, DAY_OF_WEEK_LOCALE)
+}
+
+/**
+ * Get the number of times this day of the week has occurred so far this month.
+ * Dates 1 through 7 are week 1, 8 through 14 are week 2, etc.
+ */
+export function getWeekOfMonth(day: number) {
+  return Math.floor((day - 1) / DAYS_PER_WEEK) + 1
 }
