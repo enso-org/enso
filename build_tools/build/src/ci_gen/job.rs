@@ -375,7 +375,7 @@ impl StandardLibraryApiCheck {
         if [[ "${{{{ steps.{}.outputs.any_changed }}}}" == "true" ]]; then
             echo "Files changed:"
         fi
-        for file in ${{{{ALL_CHANGED_FILES}}}}; do
+        for file in ${{ALL_CHANGED_FILES}}; do
             echo "$file"
         done
         "#,
