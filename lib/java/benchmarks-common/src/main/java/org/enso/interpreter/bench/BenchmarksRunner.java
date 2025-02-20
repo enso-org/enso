@@ -7,7 +7,7 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion.VersionFlag;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import org.enso.interpreter.bench.result.Result;
@@ -32,6 +32,9 @@ import org.openjdk.jmh.runner.options.TimeValue;
 public class BenchmarksRunner {
   private final File resultsFile;
   private static final String schemaFileName = "results_schema.json";
+  private static final URI SCHEMA_URI =
+      URI.create(
+          "https://raw.githubusercontent.com/enso-org/enso/e3322694913312d01f70c8af6b8b06ed78cfa002/lib/java/benchmarks-common/src/main/resources/results_schema.json");
 
   public BenchmarksRunner() {
     this.resultsFile = new File("./bench-results.json");
@@ -125,7 +128,7 @@ public class BenchmarksRunner {
   private void reportResult(RunResult result) throws IOException {
     if (!resultsFile.exists()) {
       resultsFile.createNewFile();
-      var results = new Results(schemaFileName, new ArrayList<>());
+      var results = Results.createEmpty(SCHEMA_URI);
       ObjectMapper mapper = new ObjectMapper();
       mapper.writeValue(resultsFile, results);
     }
