@@ -1,47 +1,68 @@
-# This file is not auto-generated. Feel free to edit it.
+# This file is auto-generated. Do not edit it manually!
+# Edit the enso_build::ci_gen module instead and run `cargo run --package enso-build-ci-gen`.
 
 name: 🏷 Standard Library Labels
-
+description: Check if the API signature files in any of the standard libraries changed and if so, append a corresponding label to the PR.
 on:
   push:
     branches:
       - develop
-  pull_request:
-  workflow_dispatch:
+  pull_request: {}
+  workflow_dispatch: {}
   workflow_call: {}
-
 permissions:
   checks: write
   pull-requests: write
-
 jobs:
-  base-changed-labels:
-    name: 🔍 Check changed files in Stadard.Base
-    runs-on: ubuntu-latest
+  stdlib-api-check-Base-linux-amd64:
+    name: Base-change-labels
+    runs-on:
+      - ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checking out the repository
         uses: actions/checkout@v4
         with:
+          clean: false
           fetch-depth: 2
-      - name: Get changed files
-        id: base-changed-files
+      - id: Base-changed-files
+        name: Base-changed-files
         uses: tj-actions/changed-files@v45
         with:
-          files: |
-            distribution/lib/Standard/Base/**/docs/api/**.md
-      - name: List all changed files in Standard.Base
+          files: distribution/lib/Standard/Base/**/docs/api/**.md
+      - name: List all changed files in Base
+        run: "\n        if [[ \"${ steps.Base-changed-files.outputs.any_changed }\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
         env:
-          ALL_CHANGED_FILES: ${{ steps.base-changed-files.outputs.all_changed_files }}
-        run: |
-          if [[ "${{ steps.base-changed-files.outputs.any_changed }}" == "true" ]]; then
-            echo "Files changed:"
-          fi
-          for file in ${ALL_CHANGED_FILES}; do
-            echo "$file"
-          done
-      - name: 🏷 Append -libs-API-change-Base label
-        if: steps.base-changed-files.outputs.any_changed == 'true'
+          ALL_CHANGED_FILES: ${{ steps.Base-changed-files.outputs.all_changed_files }}
+      - if: steps.Base-changed-files.outputs.any_changed == 'true'
+        name: Append -libs-API-change-Base label
         uses: actions-ecosystem/action-add-labels@v1
         with:
-          labels: "-libs-API-change"
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: -libs-API-change-Base
+  stdlib-api-check-Table-linux-amd64:
+    name: Table-change-labels
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          fetch-depth: 2
+      - id: Table-changed-files
+        name: Table-changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: distribution/lib/Standard/Table/**/docs/api/**.md
+      - name: List all changed files in Table
+        run: "\n        if [[ \"${ steps.Table-changed-files.outputs.any_changed }\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
+        env:
+          ALL_CHANGED_FILES: ${{ steps.Table-changed-files.outputs.all_changed_files }}
+      - if: steps.Table-changed-files.outputs.any_changed == 'true'
+        name: Append -libs-API-change-Table label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: -libs-API-change-Table
+env:
+  ENSO_BUILD_SKIP_VERSION_CHECK: "true"

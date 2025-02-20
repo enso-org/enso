@@ -15,6 +15,7 @@ use crate::paths;
 
 use core::panic;
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
+use ide_ci::actions::workflow::definition::checkout_repo_step;
 use ide_ci::actions::workflow::definition::get_input_expression;
 use ide_ci::actions::workflow::definition::setup_wasm_pack_step;
 use ide_ci::actions::workflow::definition::shell;
@@ -344,15 +345,89 @@ impl JobArchetype for StandardLibraryTests {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct StandardLibraryApiCheck;
+#[derive(Clone, Debug)]
+pub struct StandardLibraryApiCheck {
+    /// Library name to check. WIthout the leading `Standard` prefix
+    pub lib_name: String,
+}
+
+impl StandardLibraryApiCheck {
+    fn changed_files_step_name(&self) -> String {
+        format!("{}-changed-files", self.lib_name)
+    }
+
+    fn changed_files_step(&self) -> Step {
+        let changed_files_pattern =
+            format!("distribution/lib/Standard/{}/**/docs/api/**.md", self.lib_name);
+        let changed_files_action = "tj-actions/changed-files@v45".to_string();
+        Step {
+            id: Some(self.changed_files_step_name()),
+            name: Some(self.changed_files_step_name()),
+            uses: Some(changed_files_action),
+            ..default()
+        }
+        .with_custom_argument("files", changed_files_pattern)
+    }
+
+    fn list_all_changed_files_step(&self) -> Step {
+        let run = format!(
+            r#"
+        if [[ "${{ steps.{}.outputs.any_changed }}" == "true" ]]; then
+            echo "Files changed:"
+        fi
+        for file in ${{ALL_CHANGED_FILES}}; do
+            echo "$file"
+        done
+        "#,
+            self.changed_files_step_name()
+        );
+        Step {
+            name: Some(format!("List all changed files in {}", self.lib_name)),
+            run: Some(run),
+            ..default()
+        }
+        .with_env(
+            "ALL_CHANGED_FILES",
+            "${{ steps.".to_string()
+                + &self.changed_files_step_name()
+                + ".outputs.all_changed_files }}",
+        )
+    }
+
+    fn append_label_step(&self) -> Step {
+        let label_name = format!("-libs-API-change-{}", self.lib_name);
+        let add_label_action = "actions-ecosystem/action-add-labels@v1".to_string();
+        Step {
+            name: Some(format!("Append {} label", label_name)),
+            uses: Some(add_label_action),
+            r#if: Some(format!(
+                "steps.{}.outputs.any_changed == 'true'",
+                self.changed_files_step_name()
+            )),
+            ..default()
+        }
+        .with_custom_argument("labels", label_name)
+        .with_custom_argument("github_token", "${{ secrets.GITHUB_TOKEN }}")
+    }
+}
 
 impl JobArchetype for StandardLibraryApiCheck {
     fn job(&self, target: Target) -> Job {
-        let job_name = "Standard Library API check";
-        let run_command = "backend stdlib-api-check";
-        let job = RunStepsBuilder::new(run_command).build_job(job_name, target);
-        job
+        if target.0 != OS::Linux {
+            panic!("StandardLibraryApiCheck jobs run only on Linux");
+        }
+        let job_name = format!("{}-change-labels", self.lib_name);
+        let steps: Vec<Step> = vec![
+            checkout_repo_step(Some(2)),
+            self.changed_files_step(),
+            self.list_all_changed_files_step(),
+            self.append_label_step(),
+        ];
+        Job { name: job_name, runs_on: vec![RunnerLabel::LinuxLatest], steps, ..default() }
+    }
+
+    fn id_key_base(&self) -> String {
+        format!("stdlib-api-check-{}", self.lib_name)
     }
 }
 
