@@ -37,6 +37,7 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
   private final Map<TypeScopeReference, Map<String, TypeRepresentation>> methods;
 
   // The Map maps target types to a set of source types that can be converted to it.
+  // TODO conversions can also have optional arguments, we should include this (so no longer a Set but Map)
   private final Map<TypeScopeReference, Set<TypeScopeReference>> conversions;
 
   private StaticModuleScope(

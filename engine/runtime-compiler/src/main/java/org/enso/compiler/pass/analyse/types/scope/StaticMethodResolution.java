@@ -77,7 +77,9 @@ public final class StaticMethodResolution
   @Override
   protected TypeRepresentation getConversionFromScope(
       StaticImportExportScope scope, TypeScopeReference target, TypeScopeReference source) {
-    // TODO conversions in static analysis
+    // TODO conversions can also have optional arguments, we should include this
+    // boolean hasConversion = scope.resolve(moduleResolver, this).getMethodForType()
+    // TODO...
     return null;
   }
 
