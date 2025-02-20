@@ -19,7 +19,7 @@ import {
 import { useEventCallback } from '../../hooks/eventCallbackHooks'
 import type { TestIdProps } from '../AriaComponents'
 
-const SCROLLER_STYLES = tv({
+export const SCROLLER_STYLES = tv({
   base: 'relative w-auto min-w-0',
   variants: {
     scrollbar: {
@@ -112,7 +112,7 @@ const SCROLLER_STYLES = tv({
 
   defaultVariants: {
     scrollbar: false,
-    snap: true,
+    snap: false,
     orientation: 'horizontal',
     showShadows: true,
     startHidden: true,
@@ -136,7 +136,7 @@ export function Scroller(props: ScrollerProps) {
   const {
     className,
     scrollbar = false,
-    snap = true,
+    snap = false,
     variants = SCROLLER_STYLES,
     orientation = 'horizontal',
     showShadows = true,

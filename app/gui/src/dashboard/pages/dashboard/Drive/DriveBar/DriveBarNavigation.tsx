@@ -5,7 +5,7 @@
 import BackIcon from '#/assets/expand_arrow_left.svg'
 import * as React from 'react'
 
-import { Button, ButtonGroup } from '#/components/AriaComponents'
+import { Button, ButtonGroup, Menu } from '#/components/AriaComponents'
 import { Breadcrumbs, type OnDrop } from '#/components/Breadcrumbs'
 import { Scroller } from '#/components/Scroller/Scroller'
 import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
@@ -21,7 +21,6 @@ import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { isDirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
-import { getMessageOrToString } from '#/utilities/error'
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import { useState, useTransition } from 'react'
 import { toast } from 'react-toastify'
@@ -57,11 +56,8 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
       driveStore.setState({ selectedKeys: new Set(), visuallySelectedKeys: new Set() })
     },
     onError: (error) => {
-      if ('errors' in error && Array.isArray(error.errors)) {
-        for (const message of error.errors) {
-          toast.error(getMessageOrToString(message))
-        }
-
+      if ('failed' in error && error.failed !== 0) {
+        toast.error(getText('moveMultipleAssetsError'))
         return
       }
 
@@ -119,7 +115,7 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
     })
   })
 
-  const onDrop = useEventCallback<OnDrop>(async (id, e) => {
+  const onDrop = useEventCallback<OnDrop>(async (id) => {
     const { selectedKeys } = driveStore.getState()
 
     if (selectedKeys.size === 0) {
@@ -155,20 +151,35 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
     case 'team':
     case 'local-directory': {
       return (
-        <div className="flex w-full max-w-fit flex-none  items-center">
+        <div className="flex w-full flex-none items-center">
           <ButtonGroup
-            className="mr-4 w-auto flex-none"
+            className="mr-2 w-auto flex-none"
             buttonVariants={{ variant: 'icon', size: 'small' }}
           >
-            <Button
-              icon={BackIcon}
-              aria-label={getText('back')}
-              isDisabled={currentDirectoryId === user.rootDirectoryId}
-              onPress={navigateToParent}
-            />
+            <Menu.Trigger trigger="longPress">
+              <Button
+                icon={BackIcon}
+                aria-label={getText('back')}
+                isDisabled={currentDirectoryId === user.rootDirectoryId}
+                onPress={navigateToParent}
+              />
+
+              <Menu items={[...finalPath].reverse()} onAction={navigateToDirectory}>
+                {(item) => (
+                  <Menu.Item
+                    key={item.id}
+                    id={item.id}
+                    icon={item.icon}
+                    isDisabled={item.id === currentDirectoryId}
+                  >
+                    {item.label}
+                  </Menu.Item>
+                )}
+              </Menu>
+            </Menu.Trigger>
           </ButtonGroup>
 
-          <Scroller>
+          <Scroller orientation="horizontal">
             <Breadcrumbs onAction={navigateToDirectory} onDrop={onDrop}>
               {finalPath.map((pathItem) => {
                 const isLoading = isTransitioning && pathItem.id === navigatingKey
@@ -178,7 +189,6 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
                     id={pathItem.id}
                     icon={pathItem.icon}
                     isLoading={isLoading}
-                    className="snap-start"
                   >
                     {pathItem.label}
                   </Breadcrumbs.Item>

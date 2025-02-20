@@ -22,6 +22,7 @@
   "restoreProjectError": "Could not restore project '$0'",
   "copyAssetError": "Could not copy '$0'",
   "moveAssetError": "Could not move '$0'",
+  "moveMultipleAssetsError": "Some assets could not be moved, please try again.",
   "deleteAssetError": "Could not delete '$0'",
   "restoreAssetError": "Could not restore '$0'",
 
