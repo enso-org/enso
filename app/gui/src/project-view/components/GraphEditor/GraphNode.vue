@@ -19,8 +19,8 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import { useComponentColors } from '@/composables/componentColors'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { usePointer, useResizeObserver } from '@/composables/events'
-import type { Action } from '@/providers/action'
-import { registerHandlers } from '@/providers/action'
+import type { Action, ActionHandler } from '@/providers/action'
+import { registerHandlers, toggledAction } from '@/providers/action'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
@@ -418,14 +418,12 @@ const nodeClass = computed(() => {
 
 // === Component actions ===
 
-declare module '@/providers/'
-
 const { getNodeColor, getNodeColors } = injectNodeColors()
 const nodeColor = computed(() => getNodeColor(nodeId.value))
 const matchableColors = getNodeColors((node) => node !== nodeId.value)
 const { recomputeOnce, isBeingRecomputed } = useRecomputation()
 
-function selectBeforeAction<Handlers extends { [K in string]?: Partial<Action> }>(
+function selectBeforeAction<Handlers extends { [K in string]?: ActionHandler }>(
   handlers: Handlers,
 ) {
   for (const actionName in handlers) {
@@ -450,21 +448,15 @@ registerHandlers(
     'component.startEditing': {
       action: startEditingNode,
     },
-    'component.editingComment': {
-      toggled: editingComment,
-    },
+    'component.editingComment': toggledAction(editingComment),
     'component.createNewNode': {
       action: () => emit('createNodes', [{ commit: false, content: undefined }]),
     },
     'component.toggleDocPanel': {
       action: () => emit('toggleDocPanel'),
     },
-    'component.toggleVisualization': {
-      toggled: isVisualizationEnabled,
-    },
-    'component.pickColor': {
-      toggled: colorPickerOpened,
-    },
+    'component.toggleVisualization': toggledAction(isVisualizationEnabled),
+    'component.pickColor': toggledAction(colorPickerOpened),
     'component.recompute': {
       action: recomputeOnce,
       disabled: isBeingRecomputed,

@@ -13,20 +13,14 @@ const props = defineProps<{
   editingState?: 'editing' | 'pending' | 'just created' | undefined
 }>()
 
-watch(
-  () => props.editingState,
-  (x) => console.log('editing state', x),
-  { flush: 'sync' },
-)
-
 const emit = defineEmits<{
   click: []
   nameAccepted: [string]
   renameRequested: []
 }>()
 
-const removeAction: Action = {
-  icon: 'trash2',
+const renameAction: Action = {
+  icon: 'edit',
   description: 'Rename directory',
   disabled: computed(() => !props.renamable),
   action: () => emit('renameRequested'),
@@ -47,7 +41,7 @@ watch(input, (newInput) => {
 </script>
 
 <template>
-  <ContextMenuTrigger :actions="[removeAction]">
+  <ContextMenuTrigger :actions="[renameAction]">
     <div class="FileBrowserEntry" @click="emit('click')">
       <LoadingSpinner v-if="editingState === 'pending'" :size="16" />
       <SvgIcon v-else :name="icon" />

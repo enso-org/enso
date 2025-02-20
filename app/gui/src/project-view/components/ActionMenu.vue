@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import MenuEntry from '@/components/MenuEntry.vue'
 import MenuPanel from '@/components/MenuPanel.vue'
-import { Action, ActionName } from '../providers/action'
-import MenuEntry from './MenuEntry.vue'
+import type { Action, ActionName } from '@/providers/action'
 
 const { actions } = defineProps<{
   actions: (Action | ActionName)[]

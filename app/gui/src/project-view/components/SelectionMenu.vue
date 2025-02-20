@@ -3,31 +3,32 @@ import ActionButton from '@/components/ActionButton.vue'
 import ColorPickerMenu from '@/components/ColorPickerMenu.vue'
 import { injectActions } from '@/providers/action'
 import { injectGraphSelection } from '@/providers/graphSelection'
+import { toValue } from 'vue'
 
 const actions = injectActions()
-const { selected } = injectGraphSelection()
+const selection = injectGraphSelection()
 const pickColorMulti = actions['components.pickColorMulti']
 </script>
 
 <template>
   <Transition>
-    <div v-if="selected.size > 1" class="SelectionMenu">
-      <span v-text="`${selected.size} components selected`" />
+    <div v-if="selection.selected.size > 1" class="SelectionMenu">
+      <span v-text="`${selection.selected.size} components selected`" />
       <ActionButton action="components.collapse" />
       <ActionButton
         action="components.pickColorMulti"
         :class="{
           // Any `pointerdown` event outside the color picker will close it. Ignore clicks that occur while the color
           // picker is open, so that it isn't toggled back open.
-          disableInput: pickColorMulti.toggled,
+          disableInput: toValue(pickColorMulti.toggled),
         }"
       />
       <ActionButton action="components.copy" />
       <ActionButton action="components.deleteSelected" />
       <ColorPickerMenu
-        v-if="pickColorMulti.toggled"
+        v-if="toValue(pickColorMulti.toggled)"
         class="submenu"
-        @close="pickColorMulti.toggled.value = false"
+        @close="pickColorMulti.action?.()"
       />
     </div>
   </Transition>

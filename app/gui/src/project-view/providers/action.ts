@@ -4,7 +4,7 @@ import { assert } from '@/util/assert'
 import { Icon } from '@/util/iconMetadata/iconName'
 import { ToValue } from '@/util/reactivity'
 import { BindingInfo } from '@/util/shortcuts'
-import { Ref } from 'vue'
+import { ref, Ref } from 'vue'
 import { ForbidExcessProps } from 'ydoc-shared/util/types'
 
 /**
@@ -18,9 +18,9 @@ export interface Action {
   description: ToValue<string>
   hidden?: ToValue<boolean>
   disabled?: ToValue<boolean>
-  /** If defined, action will be toggleable - clicking button will toggle the value of this ref */
-  toggled?: Ref<boolean>
+  toggled?: ToValue<boolean>
 }
+export type ActionHandler = Partial<Action> & { action: () => void }
 
 const actions = {
   'components.collapse': {
@@ -122,7 +122,7 @@ export function initializeActions() {
  *  (to make some context-dependent description like, if only one node is selected or many).
  * @returns All actions, with applied `handlers`.
  */
-export function registerHandlers<Handlers extends Partial<Record<keyof Actions, Partial<Action>>>>(
+export function registerHandlers<Handlers extends Partial<Record<keyof Actions, ActionHandler>>>(
   handlers: ForbidExcessProps<Handlers, Actions>,
 ): Actions & Handlers {
   const actions = injectActions()
@@ -141,6 +141,16 @@ export function registerHandlers<Handlers extends Partial<Record<keyof Actions, 
   }
   provideActions(newActions)
   return newActions as Actions & Handlers
+}
+
+export function toggledAction(toggleState = ref(false)) {
+  return {
+    action: () => {
+      toggleState.value = !toggleState.value
+      console.log('toggled to', toggleState.value)
+    },
+    toggled: toggleState,
+  }
 }
 
 export { injectActions }

@@ -172,7 +172,6 @@ const editedAsset = ref<{
   state: 'editing' | 'pending' | 'just created'
   createdId?: DirectoryId
 }>()
-watch(editedAsset, (x) => console.log(x), { flush: 'sync' })
 
 // Don't await invalidates, because we want `createDirectory` to return first, to fill
 // `keyOverride` property before getting update from backend.

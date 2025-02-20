@@ -19,7 +19,7 @@ const descriptionWithShortcut = computed(() =>
 <template>
   <ToggleIcon
     v-if="action.toggled != null"
-    v-model="action.toggled.value"
+    :modelValue="toValue(action.toggled)"
     :icon="toValue(action.icon)"
     :disabled="toValue(action.disabled)"
     :title="descriptionWithShortcut"

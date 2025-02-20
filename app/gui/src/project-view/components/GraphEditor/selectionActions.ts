@@ -1,4 +1,4 @@
-import { registerHandlers } from '@/providers/action'
+import { registerHandlers, toggledAction } from '@/providers/action'
 import { type Node } from '@/stores/graph'
 import { type ToValue } from '@/util/reactivity'
 import * as iter from 'enso-common/src/utilities/data/iter'
@@ -44,7 +44,7 @@ export function registerSelectionActionHandlers(
       action: action('deleteNodes'),
     },
     'components.pickColorMulti': {
-      toggled: ref(false),
+      ...toggledAction(),
       disabled: computed(() => singleNodeSelected.value || noNormalNodes.value),
     },
   })
