@@ -280,6 +280,18 @@ const sortDirectionMap = computed(() => ({
   desc: '-1',
 }))
 
+const actionMap = {
+  equals: '..Equal',
+  notEqual: '..Not_Equal',
+  greaterThan: '..Greater',
+  greaterThanOrEqual: '..Equal_Or_Greater',
+  lessThan: '..Less',
+  lessThanOrEqual: '..Equal_Or_Less',
+  inRange: '..Between',
+  blank: '..Is_Nothing',
+  notBlank: '..Not_Nothing',
+}
+
 function createServer() {
   return {
     getSetFilterValues: async (columnIndex: number) => {
@@ -302,12 +314,19 @@ function createServer() {
         return sortDirectionMap.value[sortCol.sort as SortDirection]
       })
       const sortDirections = sortDirectionsMap.length ? sortDirectionsMap : 'Nothing'
+      const filterColumnName = Object.keys(request.filterModel)[0]
+      const filterColIndex = props.data.header.findIndex((h: string) => filterColumnName === h)
+      const filterAction = filterColumnName ? actionMap[request.filterModel[filterColumnName]?.type] : 'Nothing'
+      const filterVal = filterColumnName ? request.filterModel[filterColumnName]?.filter : 'Nothing'
       const response = await config.executeExpression(
         'Standard.Visualization.Table.Visualization',
         'get_rows_for_table',
         { type: 'single', value: `${request.startRow}` },
         { type: 'array', value: sortColIndexes },
         { type: 'array', value: sortDirections },
+        { type: 'single', value: filterColIndex === -1 ? 'Nothing' : `${filterColIndex}` },
+        { type: 'single', value: filterAction},
+        { type: 'single', value: `${filterVal}` },
       )
       return {
         success: true,
