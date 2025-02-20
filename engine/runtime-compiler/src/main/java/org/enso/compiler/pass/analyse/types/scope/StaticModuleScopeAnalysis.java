@@ -117,7 +117,10 @@ public class StaticModuleScopeAnalysis implements IRPass {
 
     @Override
     protected void processConversion(Method.Conversion conversion) {
-      // TODO conversion handling is not implemented yet in the type checker
+      TypeScopeReference toType;
+      TypeScopeReference fromType;
+      // TODO extract to and from types from IR
+      scopeBuilder.registerConversionMethod(toType, fromType);
     }
 
     @Override
