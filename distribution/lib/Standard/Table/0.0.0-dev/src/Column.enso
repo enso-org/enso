@@ -47,6 +47,7 @@ polyglot java import org.enso.table.data.column.operation.CountNonTrivialWhitesp
 polyglot java import org.enso.table.data.column.operation.CountNothing
 polyglot java import org.enso.table.data.column.operation.CountUntrimmed
 polyglot java import org.enso.table.data.column.operation.SampleOperation
+polyglot java import org.enso.table.data.column.operation.comparators.Comparators
 polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
 polyglot java import org.enso.table.data.column.operation.unary.DateTruncateOperation
 polyglot java import org.enso.table.data.column.operation.unary.DoubleIsOperation
@@ -58,6 +59,7 @@ polyglot java import org.enso.table.data.column.operation.unary.TruncatedTimePar
 polyglot java import org.enso.table.data.column.operation.unary.UnaryRoundOperation
 polyglot java import org.enso.table.data.column.operation.UnaryOperation
 polyglot java import org.enso.table.data.column.storage.Storage as Java_Storage
+polyglot java import org.enso.table.data.column.storage.StorageListView
 polyglot java import org.enso.table.data.mask.OrderMask
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.error.ValueTypeMismatchException
@@ -243,7 +245,8 @@ type Column
             if (a.is_a Float) || (b.is_a Float) then
                 problem_builder.reportFloatingPointEquality -1
             a == b
-        run_vectorized_binary_op_with_fallback_problem_handling self Java_Storage.Maps.EQ other fallback_fn=fallback new_name=new_name expected_result_type=Value_Type.Boolean skip_nulls=True
+        _call_comparator self other new_name (l->r->n-> Comparators.eq l r n) <|
+            run_vectorized_binary_op_with_fallback_problem_handling self Java_Storage.Maps.EQ other fallback_fn=fallback new_name=new_name expected_result_type=Value_Type.Boolean skip_nulls=True
 
     ## GROUP Standard.Base.Logical
        ICON operators
@@ -305,7 +308,8 @@ type Column
              example_neq = Examples.integer_column != 1
     != self (other : Column | Any) -> Column =
         new_name = naming_helper.binary_operation_name "!=" self other
-        (self == other).not . rename new_name
+        _call_comparator self other new_name (l->r->n-> Comparators.notEq l r n) <|
+            (self == other).not . rename new_name
 
     ## ALIAS greater than or equal
        GROUP Standard.Base.Operators
@@ -333,9 +337,10 @@ type Column
              import Standard.Examples
 
              example_geq = Examples.integer_column >= 1
-    >= self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <|
-        Incomparable_Values.handle_errors <|
-            run_vectorized_binary_op self Java_Storage.Maps.GTE fallback_fn=(>=) other expected_result_type=Value_Type.Boolean
+    >= self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <| Incomparable_Values.handle_errors <|
+        new_name = naming_helper.binary_operation_name ">=" self other
+        _call_comparator self other new_name (l->r->n-> Comparators.greaterThanEq l r n) <|
+            run_vectorized_binary_op self Java_Storage.Maps.GTE new_name=new_name fallback_fn=(>=) other expected_result_type=Value_Type.Boolean
 
     ## ALIAS less than or equal
        GROUP Standard.Base.Operators
@@ -363,9 +368,10 @@ type Column
              import Standard.Examples
 
              example_leq = Examples.integer_column <= 1
-    <= self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <|
-        Incomparable_Values.handle_errors <|
-            run_vectorized_binary_op self Java_Storage.Maps.LTE fallback_fn=(<=) other expected_result_type=Value_Type.Boolean
+    <= self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <| Incomparable_Values.handle_errors <|
+        new_name = naming_helper.binary_operation_name "<=" self other
+        _call_comparator self other new_name (l->r->n-> Comparators.lessThanEq l r n) <|
+            run_vectorized_binary_op self Java_Storage.Maps.LTE new_name=new_name fallback_fn=(<=) other expected_result_type=Value_Type.Boolean
 
     ## ALIAS greater than
        GROUP Standard.Base.Operators
@@ -393,9 +399,10 @@ type Column
              import Standard.Examples
 
              example_gt = Examples.integer_column > 1
-    > self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <|
-        Incomparable_Values.handle_errors <|
-            run_vectorized_binary_op self Java_Storage.Maps.GT fallback_fn=(>) other expected_result_type=Value_Type.Boolean
+    > self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <| Incomparable_Values.handle_errors <|
+        new_name = naming_helper.binary_operation_name ">" self other
+        _call_comparator self other new_name (l->r->n-> Comparators.greaterThan l r n) <|
+            run_vectorized_binary_op self Java_Storage.Maps.GT new_name=new_name fallback_fn=(>) other expected_result_type=Value_Type.Boolean
 
     ## ALIAS less than
        GROUP Standard.Base.Operators
@@ -423,9 +430,10 @@ type Column
              import Standard.Examples
 
              example_lt = Examples.integer_column < 1
-    < self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <|
-        Incomparable_Values.handle_errors <|
-            run_vectorized_binary_op self Java_Storage.Maps.LT fallback_fn=(<) other expected_result_type=Value_Type.Boolean
+    < self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <| Incomparable_Values.handle_errors <|
+        new_name = naming_helper.binary_operation_name "<" self other
+        _call_comparator self other new_name (l->r->n-> Comparators.lessThan l r n) <|
+            run_vectorized_binary_op self Java_Storage.Maps.LT new_name=new_name fallback_fn=(<) other expected_result_type=Value_Type.Boolean
 
     ## GROUP Standard.Base.Logical
        ICON operators
@@ -1457,7 +1465,7 @@ type Column
             new_text_fn = wrap_text_argument_as_value_provider new_text
 
             term_fn.if_not_error <| new_text_fn.if_not_error <|
-                new_name = naming_helper.function_name "replace" [self, term.to_text, new_text]
+                new_name = naming_helper.function_name "replace" [self, term, new_text]
 
                 do_replace index input =
                     term = term_fn index
@@ -2266,7 +2274,9 @@ type Column
              import Standard.Examples
 
              example_to_vector = Examples.integer_column.to_vector
-    to_vector self -> Vector = Vector.from_polyglot_array self.java_column.getStorage.toList . map java_to_enso
+    to_vector self -> Vector =
+        storage_list = StorageListView.new self.java_column.getStorage
+        Vector.from_polyglot_array storage_list . map java_to_enso
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
@@ -2883,3 +2893,9 @@ apply_unary_map column:Column new_name:Text function expected_result_type:Value_
 Many_Files_List.from (that : Column) =
     Read_Many_Helpers.ensure_column_type_valid_to_be_files_list that <|
         Many_Files_List.Value that that.to_vector
+
+## PRIVATE
+   Temporary function to determine if to use the Comparators statics or embedded operations.
+private _call_comparator left other new_name ~java_static ~enso_action =
+    if Comparators.isSupported left.java_column then Column.from_java_column (java_static left.java_column (if other.is_a Column then other.java_column else other) new_name) else
+        enso_action

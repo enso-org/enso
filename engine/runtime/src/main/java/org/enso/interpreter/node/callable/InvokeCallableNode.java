@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
@@ -105,10 +106,18 @@ public abstract class InvokeCallableNode extends BaseNode {
 
   private final ArgumentsExecutionMode argumentsExecutionMode;
 
+  @CompilerDirectives.CompilationFinal(dimensions = 1)
+  private final CallArgumentInfo[] schema;
+
+  private final boolean isForOversaturatedArguments;
+
   InvokeCallableNode(
       CallArgumentInfo[] schema,
       DefaultsExecutionMode defaultsExecutionMode,
-      ArgumentsExecutionMode argumentsExecutionMode) {
+      ArgumentsExecutionMode argumentsExecutionMode,
+      boolean isForOversaturatedArguments) {
+    this.schema = schema;
+    this.isForOversaturatedArguments = isForOversaturatedArguments;
     Integer thisArg = thisArgumentPosition(schema);
     this.canApplyThis = thisArg != null;
     this.thisArgumentPosition = thisArg == null ? -1 : thisArg;
@@ -166,7 +175,8 @@ public abstract class InvokeCallableNode extends BaseNode {
       CallArgumentInfo[] schema,
       DefaultsExecutionMode defaultsExecutionMode,
       ArgumentsExecutionMode argumentsExecutionMode) {
-    return InvokeCallableNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
+    return InvokeCallableNodeGen.create(
+        schema, defaultsExecutionMode, argumentsExecutionMode, false);
   }
 
   @Specialization
@@ -375,8 +385,23 @@ public abstract class InvokeCallableNode extends BaseNode {
   @Fallback
   public Object invokeGeneric(
       Object callable, VirtualFrame callerFrame, State state, Object[] arguments) {
-    Atom error = EnsoContext.get(this).getBuiltins().error().makeNotInvokable(callable);
-    throw new PanicException(error, this);
+    throw buildNotInvokablePanicWithCause(this, callable, isForOversaturatedArguments, schema);
+  }
+
+  static PanicException buildNotInvokablePanicWithCause(
+      Node node,
+      Object notCallableTarget,
+      boolean isForOversaturatedArguments,
+      CallArgumentInfo[] schema) {
+    boolean isMismatchedNamedArgument =
+        isForOversaturatedArguments && schema.length >= 1 && schema[0].isNamed();
+    CompilerAsserts.partialEvaluationConstant(isMismatchedNamedArgument);
+    var errors = EnsoContext.get(node).getBuiltins().error();
+    Atom cause = null;
+    if (isMismatchedNamedArgument) {
+      cause = errors.makeNoSuchArgument(schema[0].getName());
+    }
+    return new PanicException(errors.makeNotInvokableWithCause(notCallableTarget, cause), node);
   }
 
   /**

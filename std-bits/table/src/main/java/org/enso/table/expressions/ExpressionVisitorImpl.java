@@ -425,6 +425,14 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
   }
 
   @Override
+  public Value visitRegexLiteral(ExpressionParser.RegexLiteralContext ctx) {
+    String regexPattern = ctx.REGEX_LITERAL().getText();
+    // Remove leading 'r/' and trailing '/'
+    regexPattern = regexPattern.substring(2, regexPattern.length() - 1);
+    return executeMethod("regex", Value.asValue(regexPattern));
+  }
+
+  @Override
   public Value visitParen(ExpressionParser.ParenContext ctx) {
     return visit(ctx.expr());
   }

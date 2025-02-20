@@ -18,13 +18,12 @@ from Standard.Test import all
 
 import project.Database.Common.Common_Spec
 import project.Database.Common.IR_Spec
-import project.Database.Transaction_Spec
-import project.Database.Upload_Spec
-import project.Database.Types.SQLite_Type_Mapping_Spec
 import project.Database.Helpers.Name_Generator
+import project.Database.JDBC.Generic_JDBC_SQLite_Spec
+import project.Database.Transaction_Spec
+import project.Database.Types.SQLite_Type_Mapping_Spec
+import project.Database.Upload_Spec
 import project.Common_Table_Operations
-
-import enso_dev.Generic_JDBC_Tests.Generic_JDBC_Connection_Spec
 
 type Test_Data
     Value ~connection
@@ -421,6 +420,7 @@ add_specs suite_builder =
     Transaction_Spec.add_specs suite_builder (_ -> create_inmem_connection) in_memory_prefix
 
     SQLite_Type_Mapping_Spec.add_specs suite_builder
+    Generic_JDBC_SQLite_Spec.add_specs suite_builder
 
     suite_builder.group "SQLite_Format should allow connecting to SQLite files" group_builder->
         data = File_Connection.setup database_file
@@ -464,80 +464,7 @@ add_specs suite_builder =
             t2 = t1.cast "X" (Value_Type.Char size=1)
             Warning.get_all t2 . length . should_equal 1
 
-add_generic_jdbc_specs config suite_builder =
-    Generic_JDBC_Connection_Spec.add_specs_for_backend config suite_builder
-
-    suite_builder.group "(SQLite) Generic JDBC Connection" group_builder->
-        # Cleans things up afterwards, but also before for easier debugging.
-        cleanup typ conn names ~action =
-            cleanup =
-                names.map (n-> conn.execute "drop "+typ+" if exists "+n)
-            cleanup
-            Panic.with_finalizer cleanup action
-
-        cleanup_tables = cleanup "table"
-
-        group_builder.specify "should be able to read a table by name" <|
-            config.with_connection conn-> cleanup_tables conn ["foo", "bar"] <|
-                conn.execute "create table foo (a int, b text)"
-                conn.execute "insert into foo (a, b) values (10, 'asdf')"
-                conn.execute "insert into foo (a, b) values (20, 'zxcv')"
-                conn.execute "create table bar (c int, d text)"
-                conn.execute "insert into bar (c, d) values (20, 'qqqq')"
-                conn.execute "insert into bar (c, d) values (30, 'zzzz')"
-
-                r = conn.read (SQL_Query.Table_Name "foo")
-                r.at "a" . to_vector . should_equal [10, 20]
-                r.at "b" . to_vector . should_equal ['asdf', 'zxcv']
-
-                r2 = conn.read (SQL_Query.Table_Name "bar")
-                r2.at "c" . to_vector . should_equal [20, 30]
-                r2.at "d" . to_vector . should_equal ['qqqq', 'zzzz']
-
-## PRIVATE
-type SQLite_JDBC_File_Config
-    Value
-
-    name self = "SQLite File"
-
-    with_database self ~action =
-        data_dir = enso_project.data / "transient"
-        database_root = data_dir / "sqlite_tests"
-        url = "jdbc:sqlite:" + database_root.path + "/test"
-        cleanup =
-            database_root . delete_if_exists recursive=True
-        cleanup
-        Panic.with_finalizer cleanup <|
-            database_root . create_directory
-            action url
-
-    with_connection self ~action =
-        self.with_database url->
-            conn = Generic_JDBC_Connection.connect url
-            conn.should_succeed
-            cleanup =
-                conn.close
-            Panic.with_finalizer cleanup <|
-                action conn
-
-## PRIVATE
-type SQLite_JDBC_In_Memory_Config
-    Value
-
-    name self = "SQLite In-Memory"
-
-    with_connection self ~action =
-        url = "jdbc:sqlite::memory:"
-        conn = Generic_JDBC_Connection.connect url
-        conn.should_succeed
-        cleanup =
-            conn.close
-        Panic.with_finalizer cleanup <|
-            action conn
-
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-        add_generic_jdbc_specs SQLite_JDBC_File_Config.Value suite_builder
-        add_generic_jdbc_specs SQLite_JDBC_In_Memory_Config.Value suite_builder
     suite.run_with_filter filter
