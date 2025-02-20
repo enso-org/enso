@@ -99,7 +99,7 @@ class TypeCompatibility {
       // TODO later check: this may not work well with a function that has all-default arguments
       // TODO also here we have to check if there exists a conversion (TypeOf{expected}.from (that :
       // Function) = ...) if {provided} is a function
-      return TypeCompatibility.NEVER_COMPATIBLE;
+      return Compatibility.NEVER_COMPATIBLE;
       // return Compatibility.UNKNOWN;
       // FIXME ensure that T.from Function is not allowed.
     }

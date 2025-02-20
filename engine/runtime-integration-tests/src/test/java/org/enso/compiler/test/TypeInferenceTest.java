@@ -853,9 +853,13 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                     type Other_Type
                         Value o
                     Other_type.from (that : My_Type) = Other_Type.Value that.v+1000
+                    
+                    function_taking_other o:Other_Type =
+                        o.o
+                    
                     foo =
                         x = My_Type.Value 12
-                        y = (x : Other_Type)
+                        y = function_taking_other x
                         y
                     """,
                 uri.getAuthority())
