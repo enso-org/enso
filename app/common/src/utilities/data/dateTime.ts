@@ -3,7 +3,8 @@ import { ZonedDateTime, getDayOfWeek } from '@internationalized/date'
 import type { TextId } from '../../text'
 import { type Newtype, newtypeConstructor } from './newtype'
 
-const DAY_OF_WEEK_LOCALE = 'en-US'
+// 0 = Monday. Use `en-US` for 0 = Sunday.
+const DAY_OF_WEEK_LOCALE = 'en-GB'
 const ISO_FORMAT = Intl.DateTimeFormat('sv', { dateStyle: 'short', timeStyle: 'short' })
 /** The number of hours in half a day. This is used to get the number of hours for AM/PM time. */
 export const HALF_DAY_HOURS = 12
