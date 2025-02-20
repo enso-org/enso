@@ -26,8 +26,8 @@ test('create project', ({ page }) =>
     .newEmptyProject()
     // FIXME[sb]: https://github.com/enso-org/cloud-v2/issues/1615
     // Uncomment once cloud execution in the browser is re-enabled.
-    // .do((thePage) => expect(locateEditor(thePage)).toBeAttached())
-    // .goToPage.drive()
+    .waitForEditorToLoad()
+    .goToPage.drive()
     .driveTable.withRows((rows) => expect(rows).toHaveCount(1)))
 
 test('upload file', ({ page }) =>

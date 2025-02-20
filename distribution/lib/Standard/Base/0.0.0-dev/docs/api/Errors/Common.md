@@ -62,6 +62,9 @@
 - type No_Conversion_Currying
     - Error has_this:Standard.Base.Any.Any has_that:Standard.Base.Any.Any conversion:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
+- type No_Such_Argument
+    - Error argument_name:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
 - type No_Such_Conversion
     - Error target:Standard.Base.Any.Any that:Standard.Base.Any.Any conversion:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
@@ -74,7 +77,7 @@
     - to_display_text self -> Standard.Base.Any.Any
 - type Not_Found
 - type Not_Invokable
-    - Error target:Standard.Base.Any.Any
+    - Error target:Standard.Base.Any.Any cause:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
 - type Out_Of_Memory
     - Error operation:Standard.Base.Any.Any

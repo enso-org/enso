@@ -316,7 +316,9 @@ lazy val enso = (project in file("."))
     `engine-common`,
     `engine-runner`,
     `engine-runner-common`,
+    `enso-generic-jdbc-connection-spec-dependencies`,
     `enso-test-java-helpers`,
+    `snowflake-test-java-helpers`,
     `exploratory-benchmark-java-helpers`,
     `fansi-wrapper`,
     filewatcher,
@@ -618,6 +620,7 @@ val guavaVersion            = "32.0.0-jre"
 val jgitVersion             = "6.7.0.202309050840-r"
 val kindProjectorVersion    = "0.13.3"
 val mockitoScalaVersion     = "1.17.14"
+val mockitoJavaVersion      = "5.15.2"
 val newtypeVersion          = "0.4.4"
 val pprintVersion           = "0.8.1"
 val pureconfigVersion       = "0.17.4"
@@ -645,6 +648,7 @@ val jnaVersion              = "5.14.0"
 val googleProtobufVersion   = "3.25.1"
 val shapelessVersion        = "2.3.10"
 val postgresVersion         = "42.4.0"
+val h2Version               = "2.3.232"
 
 // ============================================================================
 // === Utility methods =====================================================
@@ -2828,6 +2832,10 @@ lazy val runtime = (project in file("engine/runtime"))
     (Runtime / compile) := (Runtime / compile)
       .dependsOn(`std-base` / Compile / packageBin)
       .dependsOn(`enso-test-java-helpers` / Compile / packageBin)
+      .dependsOn(
+        `enso-generic-jdbc-connection-spec-dependencies` / Compile / packageBin
+      )
+      .dependsOn(`snowflake-test-java-helpers` / Compile / packageBin)
       .dependsOn(`benchmark-java-helpers` / Compile / packageBin)
       .dependsOn(`exploratory-benchmark-java-helpers` / Compile / packageBin)
       .dependsOn(`std-image` / Compile / packageBin)
@@ -4723,7 +4731,7 @@ lazy val `std-base` = project
       "org.netbeans.api"           % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "com.fasterxml.jackson.core" % "jackson-databind"        % jacksonVersion
     ),
-    Compile / packageBin := Def.task {
+    Compile / packageBin := {
       val result = (Compile / packageBin).value
       val _ensureCoreIsCompiled =
         (`common-polyglot-core-utils` / Compile / packageBin).value
@@ -4735,7 +4743,7 @@ lazy val `std-base` = project
         )
         .value
       result
-    }.value
+    }
   )
   .dependsOn(`common-polyglot-core-utils`)
 
@@ -4780,6 +4788,39 @@ lazy val `enso-test-java-helpers` = project
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
+
+lazy val `enso-generic-jdbc-connection-spec-dependencies` = project
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    libraryDependencies ++= Seq(
+      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided",
+      "com.h2database"       % "h2"       % h2Version
+    ),
+    Compile / packageBin := Def.task {
+      val result = (Compile / packageBin).value
+      val _ = StdBits
+        .copyDependencies(
+          file("test/Generic_JDBC_Tests/polyglot/java/"),
+          Seq(),
+          ignoreScalaLibrary = true
+        )
+        .value
+      result
+    }.value
+  )
+  .dependsOn(`std-base` % "provided")
+  .dependsOn(`std-table` % "provided")
+
+lazy val `snowflake-test-java-helpers` = project
+  .in(file("test/Snowflake_Tests/polyglot-sources/snowflake-test-java-helpers"))
+  .settings(
+    frgaalJavaCompilerSetting,
+    autoScalaLibrary := false,
+    Compile / packageBin / artifactPath :=
+      file("test/Snowflake_Tests/polyglot/java/snowflake-test-helpers.jar")
+  )
+  .dependsOn(`std-snowflake` % "provided")
 
 lazy val `exploratory-benchmark-java-helpers` = project
   .in(
@@ -4841,17 +4882,22 @@ lazy val `std-table` = project
     },
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot"     % "polyglot"                % graalMavenPackagesVersion % "provided",
+      "org.graalvm.truffle"      % "truffle-api"             % graalMavenPackagesVersion % "provided",
       "org.netbeans.api"         % "org-openide-util-lookup" % netbeansApiVersion        % "provided",
       "com.univocity"            % "univocity-parsers"       % univocityParsersVersion,
       "org.apache.poi"           % "poi-ooxml"               % poiOoxmlVersion,
       "org.apache.xmlbeans"      % "xmlbeans"                % xmlbeansVersion,
       "org.antlr"                % "antlr4-runtime"          % antlrVersion,
       "org.apache.logging.log4j" % "log4j"                   % "2.24.3",
-      "org.apache.logging.log4j" % "log4j-to-slf4j"          % "2.24.3" // org.apache.poi uses log4j
+      "org.apache.logging.log4j" % "log4j-to-slf4j"          % "2.24.3", // org.apache.poi uses log4j
+      "junit"                    % "junit"                   % junitVersion              % Test,
+      "com.github.sbt"           % "junit-interface"         % junitIfVersion            % Test,
+      "org.mockito"              % "mockito-core"            % mockitoJavaVersion        % Test,
+      "org.mockito"              % "mockito-junit-jupiter"   % mockitoJavaVersion        % Test
     ),
     Compile / packageBin := Def.task {
       val result = (Compile / packageBin).value
-      val _ = StdBits
+      StdBits
         .copyDependencies(
           `table-polyglot-root`,
           Seq("std-table.jar"),
@@ -4865,6 +4911,10 @@ lazy val `std-table` = project
 
 lazy val extractNativeLibs = taskKey[Unit](
   "Helper task to extract native libraries from OpenCV JAR"
+)
+
+lazy val cleanPolyglotRoot = taskKey[Unit](
+  "Helper task that prepares polyglot directory of a stdlib component"
 )
 
 lazy val `std-image` = project
@@ -4885,29 +4935,43 @@ lazy val `std-image` = project
     // Extract native libraries from opencv.jar, and put them under
     // Standard/Image/polyglot/lib directory. The minimized opencv.jar will
     // be put under Standard/Image/polyglot/java directory.
-    extractNativeLibs := {
+    extractNativeLibs := (
       StdBits
         .extractNativeLibsFromOpenCV(
           `image-polyglot-root`,
           `image-native-libs`,
           opencvVersion
         )
-        .value
-    },
-    Compile / packageBin := Def.task {
-      val result = (Compile / packageBin).value
-      // Ensure dependencies are first copied.
-      StdBits
-        .copyDependencies(
-          `image-polyglot-root`,
-          Seq("std-image.jar", "opencv.jar"),
-          ignoreScalaLibrary = true,
-          ignoreDependency   = Some("org.openpnp" % "opencv" % opencvVersion)
-        )
-        .value
-      extractNativeLibs.value
-      result
-    }.value
+      )
+      .dependsOn(
+        // Ensure dependencies are first copied.
+        StdBits
+          .copyDependencies(
+            `image-polyglot-root`,
+            Seq("std-image.jar", "opencv.jar"),
+            ignoreScalaLibrary = true,
+            ignoreDependency   = Some("org.openpnp" % "opencv" % opencvVersion)
+          )
+      )
+      .value,
+    cleanPolyglotRoot := Def.task {
+      StdBits.ensureDirExistsAndIsClean(
+        `image-polyglot-root`.toPath,
+        streams.value.log
+      )
+      StdBits.ensureDirExistsAndIsClean(
+        `image-native-libs`.toPath,
+        streams.value.log
+      )
+    }.value,
+    Compile / packageBin := Def
+      .task {
+        val result = (Compile / packageBin).value
+        extractNativeLibs.value
+        result
+      }
+      .dependsOn(cleanPolyglotRoot)
+      .value
   )
   .dependsOn(`std-base` % "provided")
 
@@ -4931,29 +4995,43 @@ lazy val `std-google-api` = project
     // Extract native libraries from grpc-netty-shaded-***.jar, and put them under
     // Standard/Google_Api/polyglot/lib directory. The minimized jar will
     // be put under Standard/Google_Api/polyglot/java directory.
-    extractNativeLibs := {
+    extractNativeLibs := (
       StdBits
         .extractNativeLibsFromGrpc(
           `google-api-polyglot-root`,
           `google-api-native-libs`,
           grpcVersion
         )
-        .value
-    },
-    Compile / packageBin := Def.task {
-      val result = (Compile / packageBin).value
-      StdBits
-        .copyDependencies(
-          `google-api-polyglot-root`,
-          Seq("std-google-api.jar"),
-          ignoreScalaLibrary = true,
-          ignoreDependencyIncludeTransitive =
-            Some(s"grpc-netty-shaded-${grpcVersion}")
-        )
-        .value
-      extractNativeLibs.value
-      result
-    }.value
+      )
+      .dependsOn(
+        StdBits
+          .copyDependencies(
+            `google-api-polyglot-root`,
+            Seq("std-google-api.jar"),
+            ignoreScalaLibrary = true,
+            ignoreDependencyIncludeTransitive =
+              Some(s"grpc-netty-shaded-${grpcVersion}")
+          )
+      )
+      .value,
+    cleanPolyglotRoot := Def.task {
+      StdBits.ensureDirExistsAndIsClean(
+        `google-api-polyglot-root`.toPath,
+        streams.value.log
+      )
+      StdBits.ensureDirExistsAndIsClean(
+        `google-api-native-libs`.toPath,
+        streams.value.log
+      )
+    }.value,
+    Compile / packageBin := Def
+      .task {
+        val result = (Compile / packageBin).value
+        extractNativeLibs.value
+        result
+      }
+      .dependsOn(cleanPolyglotRoot)
+      .value
   )
   .dependsOn(`std-table` % "provided")
 
@@ -4973,9 +5051,9 @@ lazy val `std-database` = project
       "org.xerial"           % "sqlite-jdbc"             % sqliteVersion,
       "org.postgresql"       % "postgresql"              % postgresVersion
     ),
-    Compile / packageBin := Def.task {
+    Compile / packageBin := {
       val result = (Compile / packageBin).value
-      val _ = StdBits
+      StdBits
         .copyDependencies(
           `database-polyglot-root`,
           Seq("std-database.jar"),
@@ -4983,7 +5061,7 @@ lazy val `std-database` = project
         )
         .value
       result
-    }.value
+    }
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -5010,9 +5088,9 @@ lazy val `std-aws` = project
       "software.amazon.awssdk" % "sso"                     % awsJavaSdkV2Version,
       "software.amazon.awssdk" % "ssooidc"                 % awsJavaSdkV2Version
     ),
-    Compile / packageBin := Def.task {
+    Compile / packageBin := {
       val result = (Compile / packageBin).value
-      val _ = StdBits
+      StdBits
         .copyDependencies(
           `std-aws-polyglot-root`,
           Seq("std-aws.jar"),
@@ -5020,7 +5098,7 @@ lazy val `std-aws` = project
         )
         .value
       result
-    }.value
+    }
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -5040,9 +5118,9 @@ lazy val `std-snowflake` = project
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "net.snowflake"    % "snowflake-jdbc"          % snowflakeJDBCVersion
     ),
-    Compile / packageBin := Def.task {
+    Compile / packageBin := {
       val result = (Compile / packageBin).value
-      val _ = StdBits
+      StdBits
         .copyDependencies(
           `std-snowflake-polyglot-root`,
           Seq("std-snowflake.jar"),
@@ -5050,7 +5128,7 @@ lazy val `std-snowflake` = project
         )
         .value
       result
-    }.value
+    }
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -5070,9 +5148,9 @@ lazy val `std-microsoft` = project
       "org.netbeans.api"        % "org-openide-util-lookup" % netbeansApiVersion % "provided",
       "com.microsoft.sqlserver" % "mssql-jdbc"              % mssqlserverJDBCVersion
     ),
-    Compile / packageBin := Def.task {
+    Compile / packageBin := {
       val result = (Compile / packageBin).value
-      val _ = StdBits
+      StdBits
         .copyDependencies(
           `std-microsoft-polyglot-root`,
           Seq("std-microsoft.jar"),
@@ -5080,7 +5158,7 @@ lazy val `std-microsoft` = project
         )
         .value
       result
-    }.value
+    }
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -5187,7 +5265,7 @@ lazy val `std-tableau` = project
     ),
     // Extract native libraries from tableau's jar, and put them under
     // Standard/Tableau/polyglot/lib directory.
-    extractNativeLibs := {
+    extractNativeLibs := (
       StdBits
         .extractNativeLibsFromTableau(
           `std-tableau-polyglot-root`,
@@ -5195,22 +5273,36 @@ lazy val `std-tableau` = project
           tableauVersion,
           jnaVersion
         )
-        .value
-    },
-    Compile / packageBin := Def.task {
-      val result = (Compile / packageBin).value
-      StdBits
-        .copyDependencies(
-          `std-tableau-polyglot-root`,
-          Seq("std-tableau.jar"),
-          ignoreScalaLibrary = true,
-          ignoreUnmanagedDependency =
-            Some(!_.getName.endsWith("tableauhyperapi.jar"))
-        )
-        .value
-      extractNativeLibs.value
-      result
-    }.value
+      )
+      .dependsOn(
+        StdBits
+          .copyDependencies(
+            `std-tableau-polyglot-root`,
+            Seq("std-tableau.jar"),
+            ignoreScalaLibrary = true,
+            ignoreUnmanagedDependency =
+              Some(!_.getName.endsWith("tableauhyperapi.jar"))
+          )
+      )
+      .value,
+    cleanPolyglotRoot := Def.task {
+      StdBits.ensureDirExistsAndIsClean(
+        `std-tableau-polyglot-root`.toPath,
+        streams.value.log
+      )
+      StdBits.ensureDirExistsAndIsClean(
+        `std-tableau-native-libs`.toPath,
+        streams.value.log
+      )
+    }.value,
+    Compile / packageBin := Def
+      .task {
+        val result = (Compile / packageBin).value
+        extractNativeLibs.value
+        result
+      }
+      .dependsOn(cleanPolyglotRoot)
+      .value
   )
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
@@ -5484,6 +5576,8 @@ pkgStdLibInternal := Def.inputTask {
       (`std-table` / Compile / packageBin).value
     case "TestHelpers" =>
       (`enso-test-java-helpers` / Compile / packageBin).value
+      (`enso-generic-jdbc-connection-spec-dependencies` / Compile / packageBin).value
+      (`snowflake-test-java-helpers` / Compile / packageBin).value
       (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
       (`benchmark-java-helpers` / Compile / packageBin).value
     case "AWS" =>
@@ -5497,6 +5591,8 @@ pkgStdLibInternal := Def.inputTask {
     case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
+      (`enso-generic-jdbc-connection-spec-dependencies` / Compile / packageBin).value
+      (`snowflake-test-java-helpers` / Compile / packageBin).value
       (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
       (`benchmark-java-helpers` / Compile / packageBin).value
       (`std-table` / Compile / packageBin).value

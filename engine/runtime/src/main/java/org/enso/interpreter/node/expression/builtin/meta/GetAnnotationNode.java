@@ -17,7 +17,6 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
-import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Meta",
@@ -26,13 +25,11 @@ import org.enso.interpreter.runtime.state.State;
     autoRegister = false)
 public abstract class GetAnnotationNode extends BaseNode {
 
-  abstract Object execute(
-      VirtualFrame frame, State state, Object target, Object method, Object parameter);
+  abstract Object execute(VirtualFrame frame, Object target, Object method, Object parameter);
 
   @Specialization
   Object doExecute(
       VirtualFrame frame,
-      State state,
       Object target,
       Object method,
       Object parameter,
@@ -62,7 +59,7 @@ public abstract class GetAnnotationNode extends BaseNode {
         String parameterName = expectStringNode.execute(parameter);
         Annotation annotation = methodFunction.getSchema().getAnnotation(parameterName);
         if (annotation != null) {
-          return executeAnnotation(annotation, frame, thunkExecutorNode, state, getTailStatus());
+          return executeAnnotation(annotation, frame, thunkExecutorNode, getTailStatus());
         }
       }
       if (target instanceof Type type) {
@@ -73,7 +70,7 @@ public abstract class GetAnnotationNode extends BaseNode {
           String parameterName = expectStringNode.execute(parameter);
           Annotation annotation = constructorFunction.getSchema().getAnnotation(parameterName);
           if (annotation != null) {
-            return executeAnnotation(annotation, frame, thunkExecutorNode, state, getTailStatus());
+            return executeAnnotation(annotation, frame, thunkExecutorNode, getTailStatus());
           }
         }
       }
@@ -82,14 +79,15 @@ public abstract class GetAnnotationNode extends BaseNode {
     return EnsoContext.get(this).getNothing();
   }
 
-  private static Object executeAnnotation(
+  private Object executeAnnotation(
       Annotation annotation,
       VirtualFrame frame,
       ThunkExecutorNode thunkExecutorNode,
-      State state,
       TailStatus tail) {
     var target = annotation.getExpression().getCallTarget();
     var thunk = Function.thunk(target, frame.materialize());
+    var ctx = EnsoContext.get(this);
+    var state = ctx.currentState();
     var result = thunkExecutorNode.executeThunk(frame, thunk, state, tail);
     return result;
   }

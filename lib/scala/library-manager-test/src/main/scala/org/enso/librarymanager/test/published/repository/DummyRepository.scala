@@ -10,6 +10,7 @@ import org.enso.process.WrappedProcess
 import org.enso.semver.SemVer
 import org.enso.version.BuildVersion
 import org.enso.yaml.YamlHelper
+import org.slf4j.LoggerFactory
 
 import java.io.File
 import java.lang.ProcessBuilder.Redirect
@@ -210,11 +211,20 @@ abstract class DummyRepository(toolsRootDirectory: Path) {
       "--root",
       root.toAbsolutePath.normalize.toString
     ) ++ uploadsArgs
-    val rawProcess = (new ProcessBuilder)
+    val processBuilder = (new ProcessBuilder)
       .command(command: _*)
       .directory(serverDirectory.toFile)
-      .start()
-    val process = new WrappedProcess(command, rawProcess)
+    val process = withRetries(command, processBuilder, 3)
+    Server(process)
+  }
+
+  private def withRetries(
+    cmd: Seq[String],
+    processBuilder: ProcessBuilder,
+    retriesLeft: Int
+  ): WrappedProcess = {
+    val rawProcess = processBuilder.start()
+    val process    = new WrappedProcess(cmd, rawProcess)
     try {
       process.printIO()
       process.waitForMessage(
@@ -222,12 +232,19 @@ abstract class DummyRepository(toolsRootDirectory: Path) {
         timeoutSeconds = 15,
         process.StdOut
       )
+      process
     } catch {
       case NonFatal(e) =>
         process.kill()
-        throw e
+        if (retriesLeft > 0) {
+          LoggerFactory
+            .getLogger(classOf[DummyRepository])
+            .warn("Failed to start process: " + cmd + ". Retrying...")
+          withRetries(cmd, processBuilder, retriesLeft - 1)
+        } else {
+          throw e
+        }
     }
-    Server(process)
   }
 }
 object DummyRepository {

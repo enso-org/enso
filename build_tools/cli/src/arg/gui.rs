@@ -1,4 +1,5 @@
 use enso_build::prelude::*;
+use enso_build::project::gui::BuildMode;
 
 use crate::arg::BuildJob;
 use crate::arg::Source;
@@ -14,7 +15,10 @@ source_args_hlp!(Gui, "gui", BuildInput);
 
 #[derive(Args, Clone, Copy, Debug, PartialEq)]
 #[group(skip)]
-pub struct BuildInput {}
+pub struct BuildInput {
+    #[clap(value_enum, long, default_value_t=BuildMode::Production)]
+    pub mode: BuildMode,
+}
 
 #[derive(Subcommand, Clone, Debug, PartialEq)]
 pub enum Command {

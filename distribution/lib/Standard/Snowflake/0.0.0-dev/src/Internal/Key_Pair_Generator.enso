@@ -1,0 +1,27 @@
+private
+
+from Standard.Base import all
+
+polyglot java import java.security.KeyPairGenerator
+polyglot java import java.util.Base64
+
+public_key_prefix = "-----BEGIN PUBLIC KEY-----"
+public_key_suffix = "-----END PUBLIC KEY-----"
+
+type Key_Pair
+    ## A pair of RSA keys stored as base64 encoded strings.
+    Value raw_private_key:Text raw_public_key:Text
+
+    formatted_public_key self -> Text =
+        crlf = '\r\n'
+        public_key_prefix + crlf + self.raw_public_key + crlf + public_key_suffix + crlf
+
+generate =
+    key_pair_generator = KeyPairGenerator.getInstance "RSA"
+    key_pair_generator.initialize 2048
+    key_pair = key_pair_generator.generateKeyPair
+
+    base64_encoder = Base64.getMimeEncoder
+    private_key = base64_encoder.encodeToString key_pair.getPrivate.getEncoded
+    public_key = base64_encoder.encodeToString key_pair.getPublic.getEncoded
+    Key_Pair.Value private_key public_key

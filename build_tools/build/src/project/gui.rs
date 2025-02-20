@@ -13,6 +13,7 @@ use crate::project::IsArtifact;
 use crate::project::IsTarget;
 use crate::source::WithDestination;
 
+use clap::ValueEnum;
 use ide_ci::ok_ready_boxed;
 use ide_ci::programs::Pnpm;
 
@@ -48,8 +49,23 @@ impl Artifact {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Gui;
 
+#[derive(ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BuildMode {
+    Staging,
+    Production,
+}
+
+impl Display for BuildMode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Staging => write!(f, "staging"),
+            Self::Production => write!(f, "production"),
+        }
+    }
+}
 #[derive_where(Debug)]
 pub struct BuildInput {
+    pub mode:        BuildMode,
     pub version:     Version,
     #[derive_where(skip)]
     pub commit_hash: BoxFuture<'static, Result<String>>,
@@ -72,7 +88,7 @@ impl IsTarget for Gui {
         context: Context,
         job: WithDestination<Self::BuildInput>,
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
-        let WithDestination { inner: BuildInput { version, commit_hash }, destination } = job;
+        let WithDestination { inner: BuildInput { mode, version, commit_hash }, destination } = job;
         async move {
             let repo_root = &context.repo_root;
             let version_string = version.to_string();
@@ -83,6 +99,7 @@ impl IsTarget for Gui {
                 .set_env(ide_env::ENSO_IDE_COMMIT_HASH, &commit_hash)?
                 .set_env(ide_env::ENSO_IDE_VERSION, &version_string)?
                 .run("build:gui")
+                .arg(format!("--mode={mode}"))
                 .run_ok()
                 .await?;
 

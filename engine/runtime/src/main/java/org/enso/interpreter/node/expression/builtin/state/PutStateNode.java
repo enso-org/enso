@@ -23,21 +23,24 @@ public abstract class PutStateNode extends Node {
     return PutStateNodeGen.create();
   }
 
-  abstract Object execute(State state, Object key, Object new_state);
+  abstract Object execute(Object key, Object new_state);
+
+  final State state() {
+    return EnsoContext.get(this).currentState();
+  }
 
   @Specialization(guards = "objects.containsKey(data, key)")
   Object doPut(
-      State state,
       Object key,
       Object new_state,
-      @Bind("state.getContainer()") State.Container data,
+      @Bind("state().getContainer()") State.Container data,
       @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
     objects.put(data, key, new_state);
     return new_state;
   }
 
   @Fallback
-  Object doMissing(State state, Object key, Object new_state) {
+  Object doMissing(Object key, Object new_state) {
     throw new PanicException(
         EnsoContext.get(this).getBuiltins().error().makeUninitializedStateError(key), this);
   }

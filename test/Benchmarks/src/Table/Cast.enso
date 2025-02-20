@@ -1,0 +1,72 @@
+from Standard.Base import all
+
+from Standard.Table import Table, Value_Type
+
+from Standard.Test import Bench
+
+options = Bench.options . set_warmup (Bench.phase_conf 3 5) . set_measure (Bench.phase_conf 3 5)
+
+create_table : Table
+create_table num_rows =
+    x = Vector.new num_rows i->
+        i+1
+    y = Vector.new num_rows i->
+        i % 3
+    floats = Vector.new num_rows i->
+        (i % 1000) + 0.5
+    base_dt = Date_Time.new 2020 01 01
+    z = Vector.new num_rows i->
+        base_dt.date_add i ..Second
+
+    t = Table.new [["X", x], ["Y", y], ["date_time", z], ["floats", floats]]
+
+    Runtime.assert ((t.at "X" . value_type) == Value_Type.Integer)
+    Runtime.assert ((t.at "Y" . value_type) == Value_Type.Integer)
+    Runtime.assert ((t.at "date_time" . value_type) == Value_Type.Date_Time)
+    Runtime.assert ((t.at "floats" . value_type) == Value_Type.Float)
+    t
+
+type Data
+    private Value ~table
+
+    create num_rows = Data.Value (create_table num_rows)
+
+collect_benches = Bench.build builder->
+    num_rows = 1000000
+    data = Data.create num_rows
+
+    builder.group ("Column_Cast_" + num_rows.to_text) options group_builder->
+        group_builder.specify "Integer_To_Float" <|
+            r = data.table.at "X" . cast Value_Type.Float
+            Runtime.assert (Warning.get_all r == [])
+            r
+
+        group_builder.specify "Integer_To_Boolean" <|
+            data.table.at "Y" . cast Value_Type.Boolean
+
+        group_builder.specify "Integer_To_Smaller_Integer_Fitting" <|
+            r = data.table.at "Y" . cast (Value_Type.Integer ..Bits_16)
+            Runtime.assert (Warning.get_all r == [])
+            r
+
+        Runtime.assert (num_rows > 32767)
+        group_builder.specify "Integer_To_Smaller_Integer_Not_Fitting" <|
+            r = data.table.at "X" . cast (Value_Type.Integer ..Bits_16)
+            Runtime.assert (Warning.get_all r != [])
+            r
+
+        group_builder.specify "Integer_To_Text" <|
+            data.table.at "X" . cast Value_Type.Char
+
+        group_builder.specify "Float_To_Integer" <|
+            r = data.table.at "floats" . cast Value_Type.Integer
+            Runtime.assert (Warning.get_all r == [])
+            r
+
+        group_builder.specify "Float_To_Decimal" <|
+            data.table.at "floats" . cast Value_Type.Decimal
+
+        group_builder.specify "Date_Time_To_Time" <|
+            data.table.at "date_time" . cast Value_Type.Time
+
+main = collect_benches . run_main

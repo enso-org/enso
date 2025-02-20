@@ -610,6 +610,7 @@ export default class RemoteBackend extends Backend {
    */
   override async createDirectory(
     body: backend.CreateDirectoryRequestBody,
+    discardTitle = true,
   ): Promise<backend.CreatedDirectory> {
     const path = remoteBackendPaths.CREATE_DIRECTORY_PATH
 
@@ -617,7 +618,7 @@ export default class RemoteBackend extends Backend {
     // It's generated on the server side.
     const { title, ...rest } = body
 
-    const response = await this.post<backend.CreatedDirectory>(path, rest)
+    const response = await this.post<backend.CreatedDirectory>(path, discardTitle ? rest : body)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createFolderBackendError', title)
     } else {

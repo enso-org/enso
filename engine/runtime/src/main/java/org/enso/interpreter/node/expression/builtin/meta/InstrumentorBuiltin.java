@@ -35,8 +35,9 @@ public class InstrumentorBuiltin extends Node {
     return null;
   }
 
-  Object execute(State state, Text operation, Object args) {
+  Object execute(Text operation, Object args) {
     var ctx = EnsoContext.get(this);
+    State state = ctx.currentState();
     var op = operation.toString();
     try {
       if ("uuid".equals(op)) {
