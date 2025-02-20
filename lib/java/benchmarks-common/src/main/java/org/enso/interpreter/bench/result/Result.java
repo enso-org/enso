@@ -1,9 +1,9 @@
 package org.enso.interpreter.bench.result;
 
-import buildinfo.Info;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
+import org.enso.version.BuildVersion;
 import org.openjdk.jmh.results.RunResult;
 
 /**
@@ -42,8 +42,8 @@ public record Result(
     var mean = result.getPrimaryResult().getStatistics().getMean();
     var stdDev = result.getPrimaryResult().getStatistics().getStandardDeviation();
     var samples = result.getPrimaryResult().getStatistics().getN();
-    var commitId = Info.commit();
-    var branch = Info.ref();
+    var commitId = BuildVersion.commit();
+    var branch = BuildVersion.ref();
     var configuration = Configuration.fromSystemProperties();
     return new Result(
         benchName,

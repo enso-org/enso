@@ -1,11 +1,10 @@
 module org.enso.benchmarks.common {
-  requires jakarta.xml.bind;
-  requires jmh.core;
   requires org.enso.engine.common;
+  requires org.enso.version.output;
   requires org.graalvm.polyglot;
+  requires com.fasterxml.jackson.databind;
+  requires com.networknt.schema;
+  requires jmh.core;
 
   exports org.enso.interpreter.bench;
-
-  opens org.enso.interpreter.bench to
-      jakarta.xml.bind;
 }

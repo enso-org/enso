@@ -4120,19 +4120,22 @@ lazy val `benchmarks-common` =
       libraryDependencies ++= GraalVM.modules ++ Seq(
         "org.openjdk.jmh"            % "jmh-core"                 % jmhVersion,
         "org.openjdk.jmh"            % "jmh-generator-annprocess" % jmhVersion,
-        "jakarta.xml.bind"           % "jakarta.xml.bind-api"     % jaxbVersion,
-        "com.sun.xml.bind"           % "jaxb-impl"                % jaxbVersion,
         "com.fasterxml.jackson.core" % "jackson-databind"         % jacksonVersion,
         "com.networknt"              % "json-schema-validator"    % "1.4.0"
       ),
       Compile / moduleDependencies := Seq(
-        "org.openjdk.jmh"      % "jmh-core"               % jmhVersion, // Automatic module
-        "jakarta.xml.bind"     % "jakarta.xml.bind-api"   % jaxbVersion,
-        "jakarta.activation"   % "jakarta.activation-api" % jaActivationVersion,
-        "org.graalvm.polyglot" % "polyglot"               % graalMavenPackagesVersion
+        "org.openjdk.jmh"                  % "jmh-core"                % jmhVersion, // Automatic module
+        "org.graalvm.polyglot"             % "polyglot"                % graalMavenPackagesVersion,
+        "com.fasterxml.jackson.core"       % "jackson-core"            % "2.15.3",
+        "com.fasterxml.jackson.core"       % "jackson-annotations"     % "2.15.3",
+        "com.fasterxml.jackson.core"       % "jackson-databind"        % "2.15.3",
+        "com.fasterxml.jackson.dataformat" % "jackson-dataformat-yaml" % "2.15.3",
+        "com.networknt"                    % "json-schema-validator"   % "1.4.0",
+        "com.ethlo.time"                   % "itu"                     % "1.8.0"
       ),
       Compile / internalModuleDependencies := Seq(
-        (`engine-common` / Compile / exportedModule).value
+        (`engine-common` / Compile / exportedModule).value,
+        (`version-output` / Compile / exportedModule).value
       )
     )
     .dependsOn(`polyglot-api`)
