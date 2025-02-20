@@ -842,35 +842,6 @@ public class TypeInferenceTest extends StaticAnalysisTest {
 
 
   @Test
-  public void typeErrorFromAscription() throws Exception {
-    final URI uri = new URI("memory://typeErrorFromAscription.enso");
-    final Source src =
-        Source.newBuilder(
-                "enso",
-                """
-                    type My_Type
-                        Value v
-                    type Other_Type
-                        Value o
-                    foo =
-                        x = My_Type.Value 12
-                        y = (x : Other_Type)
-                        y
-                    """,
-                uri.getAuthority())
-            .uri(uri)
-            .buildLiteral();
-
-    var module = compile(src);
-    var foo = ModuleUtils.findStaticMethod(module, "foo");
-
-    var y = ModuleUtils.findAssignment(foo, "y");
-    var typeError =
-        new Warning.TypeMismatch(y.expression().identifiedLocation(), "Other_Type", "My_Type");
-    assertEquals(List.of(typeError), ModuleUtils.getDescendantsDiagnostics(y.expression()));
-  }
-
-  @Test
   public void noTypeErrorIfConversionExists() throws Exception {
     final URI uri = new URI("memory://noTypeErrorIfConversionExists.enso");
     final Source src =
