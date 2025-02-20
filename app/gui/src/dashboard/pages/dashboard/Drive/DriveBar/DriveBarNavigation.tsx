@@ -2,24 +2,27 @@
  * @file Header menubar for the directory listing, containing information about
  * the current directory and some configuration options.
  */
+import BackIcon from '#/assets/expand_arrow_left.svg'
 import * as React from 'react'
 
-import BackIcon from '#/assets/expand_arrow_left.svg'
 import { Button, ButtonGroup } from '#/components/AriaComponents'
-import { Breadcrumbs } from '#/components/Breadcrumbs'
+import { Breadcrumbs, type OnDrop } from '#/components/Breadcrumbs'
 import { listDirectoryQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { AssetPanelToggle } from '#/layouts/AssetPanel'
 import { type Category } from '#/layouts/CategorySwitcher/Category'
-import { useCategories } from '#/layouts/Drive/Categories/categoriesHooks'
+import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { isDirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import { useState, useTransition } from 'react'
+import { Scroller } from '../../../../components/Scroller/Scroller'
+import { moveAssetsMutationOptions } from '../../../../hooks/backendBatchedHooks'
+import { useDriveStore } from '../../../../providers/DriveProvider'
 
 /** Props for a {@link DriveBarNavigation}. */
 export interface DriveBarNavigationProps {
@@ -37,11 +40,16 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
   const { getText } = useText()
   const { user } = useFullUserSession()
   const { getCategoryByDirectoryId } = useCategories()
+  const { associatedBackend } = useCategoriesAPI()
   const [isTransitioning, startTransition] = useTransition()
   const [navigatingKey, setNavigatingKey] = useState<React.Key | null>(null)
 
   const { rootDirectoryId, currentDirectoryId, parentDirectoryId, setCurrentDirectoryId } =
     useDirectoryIds({ category })
+
+  const driveStore = useDriveStore()
+
+  const moveAssetsMutation = useMutation(moveAssetsMutationOptions(associatedBackend))
 
   const { data: directoryData } = useSuspenseQuery({
     ...listDirectoryQueryOptions({
@@ -93,6 +101,20 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
     })
   })
 
+  const onDrop = useEventCallback<OnDrop>(async (id, e) => {
+    const selectedKeys = driveStore.getState().selectedKeys
+
+    if (selectedKeys.size === 0) {
+      return
+    }
+
+    if (!isDirectoryId(id)) {
+      return
+    }
+
+    await moveAssetsMutation.mutateAsync([[...selectedKeys], id])
+  })
+
   const navigateToParent = useEventCallback(() => {
     navigateToDirectory(parentDirectoryId)
   })
@@ -115,7 +137,7 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
     case 'team':
     case 'local-directory': {
       return (
-        <div className="flex w-auto flex-none items-center">
+        <div className="flex w-full max-w-fit flex-none  items-center">
           <ButtonGroup
             className="mr-4 w-auto flex-none"
             buttonVariants={{ variant: 'icon', size: 'small' }}
@@ -128,24 +150,24 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
             />
           </ButtonGroup>
 
-          <Breadcrumbs className="mr-2" onAction={navigateToDirectory}>
-            {finalPath.map((pathItem) => {
-              const isCurrent = pathItem.id === currentDirectoryId
-              const isLoading = isTransitioning && pathItem.id === navigatingKey
-
-              return (
-                <Breadcrumbs.Item
-                  key={pathItem.id}
-                  id={pathItem.id}
-                  icon={pathItem.icon}
-                  isCurrent={isCurrent}
-                  isLoading={isLoading}
-                >
-                  {pathItem.label}
-                </Breadcrumbs.Item>
-              )
-            })}
-          </Breadcrumbs>
+          <Scroller>
+            <Breadcrumbs onAction={navigateToDirectory} onDrop={onDrop}>
+              {finalPath.map((pathItem) => {
+                const isLoading = isTransitioning && pathItem.id === navigatingKey
+                return (
+                  <Breadcrumbs.Item
+                    key={pathItem.id}
+                    id={pathItem.id}
+                    icon={pathItem.icon}
+                    isLoading={isLoading}
+                    className="snap-start"
+                  >
+                    {pathItem.label}
+                  </Breadcrumbs.Item>
+                )
+              })}
+            </Breadcrumbs>
+          </Scroller>
 
           <div className="ml-auto">
             <AssetPanelToggle showWhen="collapsed" className="my-auto" />

@@ -12,16 +12,20 @@ import {
   type ReactNode,
 } from 'react'
 import flattenChildren from 'react-keyed-flatten-children'
-import { useBreadcrumbs, type AriaBreadcrumbsProps, type DragAndDropHooks } from '../aria'
+import { useBreadcrumbs, type AriaBreadcrumbsProps, type DropEvent } from '../aria'
 import { Button, type IconProp, type TestIdProps } from '../AriaComponents'
 import { Icon } from '../Icon'
-import { BreadcrumbCollapsedItem, BreadcrumbItem, BreadcrumbItemProvider } from './BreadcrumbItem'
-import { getItemsWithCollapsedItem, isCollapsedItem } from './utilities'
+import { BreadcrumbItem, BreadcrumbItemProvider } from './BreadcrumbItem'
 
 export const BREADCRUMBS_STYLES = tv({
   base: 'flex items-center w-full',
   slots: { separator: 'text-primary last:hidden w-2.5 h-2.5 mt-[0.5px]' },
 })
+
+/**
+ * The type of the `onDrop` callback.
+ */
+export type OnDrop = (key: Key, e: DropEvent) => Promise<void> | void
 
 /**
  * Props for {@link Breadcrumbs}
@@ -35,7 +39,7 @@ export interface BreadcrumbsProps
   /** Called when an item is acted upon (usually selection via press). */
   readonly onAction?: (key: Key) => Promise<void> | void
   readonly className?: string
-  readonly dragAndDropHooks?: DragAndDropHooks | undefined
+  readonly onDrop?: OnDrop
 }
 
 /**
@@ -48,42 +52,33 @@ export function Breadcrumbs(props: BreadcrumbsProps) {
     variants = BREADCRUMBS_STYLES,
     testId,
     onAction = () => {},
-    dragAndDropHooks,
+    onDrop = () => {},
     ...breadcrumbsProps
   } = props
 
   const styles = variants()
 
   const onActionStableCallback = useEventCallback(onAction)
-  const itemsWithCollapsedItem = getItemsWithCollapsedItem<ReactElement>(flattenChildren(children))
+  const onDropStableCallback = useEventCallback(onDrop)
 
   return (
     <Button.GroupProvider variant="icon">
       <BreadcrumbInner {...breadcrumbsProps} className={styles.base({ className })} testId={testId}>
-        {itemsWithCollapsedItem.map((item, i, array) => {
-          const element =
-            isCollapsedItem(item) ?
-              <BreadcrumbCollapsedItem
-                key="collapsed-item"
-                items={item.items}
-                children={(menuItem) => menuItem}
-              />
-            : item
+        {flattenChildren(children).map((item: ReactElement, i: number, array: ReactElement[]) => (
+          <Fragment key={item.key}>
+            <BreadcrumbItemProvider
+              isCurrent={i === array.length - 1}
+              onAction={onActionStableCallback}
+              onActionSpecified={props.onAction != null}
+              onDrop={onDropStableCallback}
+              onDropSpecified={props.onDrop != null}
+            >
+              {item}
+            </BreadcrumbItemProvider>
 
-          return (
-            <Fragment key={element.key}>
-              <BreadcrumbItemProvider
-                isCurrent={i === array.length - 1}
-                onAction={onActionStableCallback}
-                onActionSpecified={props.onAction != null}
-              >
-                {element}
-              </BreadcrumbItemProvider>
-
-              <BreadcrumbSeparator className={styles.separator()} />
-            </Fragment>
-          )
-        })}
+            <BreadcrumbSeparator className={styles.separator()} />
+          </Fragment>
+        ))}
       </BreadcrumbInner>
     </Button.GroupProvider>
   )
@@ -127,7 +122,7 @@ interface BreadcrumbSeparatorProps<Icon extends string> {
 const BreadcrumbSeparator = memo(function BreadcrumbSeparator<Icon extends string>(
   props: BreadcrumbSeparatorProps<Icon>,
 ) {
-  const { icon = 'arrow_right', className } = props
+  const { icon = 'folder_closed', className } = props
 
   return <Icon className={className}>{icon}</Icon>
 }) as <Icon extends string>(props: BreadcrumbSeparatorProps<Icon>) => ReactElement

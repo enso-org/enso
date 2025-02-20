@@ -181,8 +181,8 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
         data-testid="drive-view"
         className="mt-4 flex flex-1 flex-col gap-4 overflow-visible px-4"
       >
-        <div className="flex flex-1 gap-drive overflow-hidden">
-          <div className="flex w-40 flex-none flex-col gap-drive-sidebar overflow-y-auto overflow-x-hidden pt-1">
+        <div className="grid flex-1 grid-cols-[minmax(180px,auto)_minmax(0,1fr)] gap-3 overflow-hidden">
+          <div className="grid-col-1 flex flex-none flex-col gap-drive-sidebar overflow-y-auto overflow-x-hidden pt-1">
             <CategorySwitcher category={category} setCategoryId={setCategory} />
 
             {isCloud && (
@@ -197,7 +197,7 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
             <AssetsTableAssetsUnselector />
           </div>
 
-          <div className="flex flex-1 flex-col gap-drive">
+          <div className="grid-col-2 flex flex-col gap-3">
             <DriveBar
               key={rootDirectoryId}
               backend={backend}

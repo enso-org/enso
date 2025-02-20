@@ -32,6 +32,7 @@ import {
   copyAssetsMutationOptions,
   deleteAssetsMutationOptions,
   downloadAssetsMutationOptions,
+  moveAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
 import { useNewProject } from '#/hooks/backendHooks'

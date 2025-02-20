@@ -561,6 +561,7 @@ const config = [
       '@typescript-eslint/no-magic-numbers': 'off',
       '@typescript-eslint/unbound-method': 'off',
       '@typescript-eslint/naming-convention': 'off',
+      'react-hooks/rules-of-hooks': 'off',
     },
   },
   {

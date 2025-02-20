@@ -16,8 +16,14 @@ import { Icon as IconComponent } from '#/components/Icon'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { forwardRef } from '#/utilities/react'
+import { useContextProps } from '../../hooks/useContextProps'
 import { ButtonGroup, ButtonGroupJoin } from './ButtonGroup'
-import { ButtonGroupProvider, useJoinedButtonPrivateContext, useMergedButtonStyles } from './shared'
+import {
+  ButtonContext,
+  ButtonGroupProvider,
+  useJoinedButtonPrivateContext,
+  useMergedButtonStyles,
+} from './shared'
 import type { ButtonProps } from './types'
 import { BUTTON_STYLES } from './variants'
 
@@ -31,7 +37,10 @@ export const Button = memo(
     props: ButtonProps<IconType>,
     ref: ForwardedRef<HTMLButtonElement>,
   ) {
+    // @ts-expect-error ts errors are expected here because we are merging props with different types
+    ;[props, ref] = useContextProps(props, ref, ButtonContext)
     props = useMergedButtonStyles(props)
+
     const {
       className,
       contentClassName,

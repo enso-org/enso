@@ -3,11 +3,11 @@
  */
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useText } from '#/providers/TextProvider'
+import { noop } from '#/utilities/functions'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import { useMutation } from '@tanstack/react-query'
 import {
   createContext,
-  isValidElement,
   useContext,
   useRef,
   type CSSProperties,
@@ -15,18 +15,21 @@ import {
   type PropsWithChildren,
   type ReactNode,
 } from 'react'
-import { useBreadcrumbItem, type AriaBreadcrumbItemProps } from 'react-aria'
+import {
+  useBreadcrumbItem,
+  useDrop,
+  type AriaBreadcrumbItemProps,
+  type DropEvent,
+} from 'react-aria'
 import type * as aria from 'react-aria-components'
-import type { DragAndDropHooks } from 'react-aria-components'
-import type { DraggableCollectionState } from 'react-stately'
 import invariant from 'tiny-invariant'
-import { Button, Menu, Text, type Addon, type IconProp, type TestIdProps } from '../AriaComponents'
-import { Icon as IconComponent, renderIcon } from '../Icon'
+import { Button, Text, type Addon, type IconProp, type TestIdProps } from '../AriaComponents'
+import { Icon as IconComponent } from '../Icon'
 
 export const BREADCRUMB_ITEM_STYLES = tv({
-  base: 'flex items-center gap-2',
+  base: 'flex items-center gap-2 bg-transparent transition-colors',
   slots: {
-    link: 'max-w-48',
+    link: 'block max-w-48 min-w-4 w-auto',
     more: 'aspect-square',
     container: 'flex items-center gap-2',
     icon: '-mb-0.5',
@@ -35,14 +38,18 @@ export const BREADCRUMB_ITEM_STYLES = tv({
     isCurrent: {
       true: { link: 'flex justify-center px-2 h-8' },
     },
+    isDropTarget: {
+      true: { base: 'bg-primary/10 rounded-4xl cursor-copy' },
+    },
   },
   defaultVariants: {
     isCurrent: false,
+    isDropTarget: false,
   },
 })
 
 /**
- *
+ * Render props for {@link BreadcrumbItem}
  */
 export interface BreadcrumbItemRenderProps {
   readonly isCurrent: boolean
@@ -81,6 +88,12 @@ export interface BreadcrumbItemContextType {
    */
   readonly onActionSpecified: boolean
   readonly onAction: (key: Key) => Promise<void> | void
+  /**
+   * Workaround to have optimized `onDrop` callback using `useEventCallback` hook.
+   * And be able to check if `onDrop` prop was specified and id is not.
+   */
+  readonly onDropSpecified: boolean
+  readonly onDrop: (key: Key, e: DropEvent) => Promise<void> | void
 }
 
 /**
@@ -89,19 +102,17 @@ export interface BreadcrumbItemContextType {
 export const BreadcrumbItemContext = createContext<BreadcrumbItemContextType>({
   isCurrent: false,
   onActionSpecified: false,
-  onAction: () => {},
+  onAction: noop,
+  onDropSpecified: false,
+  onDrop: noop,
 })
 
 /**
  * Provider for the breadcrumb item context.
  */
 export function BreadcrumbItemProvider(props: PropsWithChildren<BreadcrumbItemContextType>) {
-  const { children, isCurrent, onAction, onActionSpecified } = props
-
   return (
-    <BreadcrumbItemContext.Provider value={{ isCurrent, onAction, onActionSpecified }}>
-      {children}
-    </BreadcrumbItemContext.Provider>
+    <BreadcrumbItemContext.Provider value={props}>{props.children}</BreadcrumbItemContext.Provider>
   )
 }
 
@@ -128,12 +139,31 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
   } = props
   const { id, ...breadcrumbItemProps } = props
 
-  const { isCurrent, onAction, onActionSpecified } = useContext(BreadcrumbItemContext)
+  const { isCurrent, onAction, onActionSpecified, onDrop, onDropSpecified } =
+    useContext(BreadcrumbItemContext)
 
   const renderProps = { isCurrent, isDisabled } satisfies BreadcrumbItemRenderProps
 
   const ref = useRef(null)
   const { itemProps } = useBreadcrumbItem({ elementType: 'div', ...breadcrumbItemProps }, ref)
+
+  const dropMutation = useMutation({
+    mutationFn: async (params: { id: Key | null | undefined; e: DropEvent }) => {
+      if (params.id == null) {
+        return
+      }
+
+      return onDrop(params.id, params.e)
+    },
+  })
+
+  const { dropProps, isDropTarget } = useDrop({
+    isDisabled: !onDropSpecified && (isDisabled || isCurrent),
+    ref,
+    onDrop: (e) => {
+      dropMutation.mutate({ id, e })
+    },
+  })
 
   const onPress = useEventCallback(async () => {
     if (id == null) {
@@ -167,7 +197,7 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
         'download' | 'href' | 'hrefLang' | 'ping' | 'referrerPolicy' | 'rel' | 'target'
       >)
 
-  const styles = variants({ isCurrent })
+  const styles = variants({ isCurrent, isDropTarget })
 
   const container =
     isCurrent ?
@@ -187,7 +217,12 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
           {typeof children === 'function' ? children(renderProps) : children}
         </span>
       </Text>
-    : <Button {...linkProps} onPress={onPress} icon={iconComponent}>
+    : <Button
+        {...linkProps}
+        loading={dropMutation.isPending}
+        onPress={onPress}
+        icon={iconComponent}
+      >
         <Text className={styles.link()} nowrap truncate="1" disableLineHeightCompensation>
           {typeof children === 'function' ? children(renderProps) : children}
         </Text>
@@ -200,6 +235,7 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
       })}
       style={typeof style === 'function' ? style(renderProps) : style}
       {...(id != null ? { id: id.toString() } : {})}
+      {...dropProps}
     >
       <div className={styles.container()} {...itemProps}>
         <Button.GroupJoin verticalAlign="center" buttonVariants={{ variant: 'icon', isDisabled }}>
@@ -211,118 +247,5 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
         </Button.GroupJoin>
       </div>
     </li>
-  )
-}
-
-/**
- *
- */
-type DropHooks = Pick<
-  DragAndDropHooks,
-  | 'DragPreview'
-  | 'dropTargetDelegate'
-  | 'renderDropIndicator'
-  | 'useDropIndicator'
-  | 'useDroppableCollection'
-  | 'useDroppableItem'
->
-
-/**
- * Props for {@link BreadcrumbCollapsedItem}
- */
-interface BreadcrumbCollapsedItemProps<T extends object> {
-  readonly id?: aria.Key | undefined
-  /** The items to render */
-  readonly items: T[]
-  /** The children to render */
-  readonly children: (item: T) => React.ReactNode
-  readonly triggerLabel?: string
-  /** The callback to call when an item is selected */
-  readonly onAction?: (key: Key) => void
-  readonly dropHooks?: DropHooks | undefined
-  readonly draggableCollectionState?: DraggableCollectionState | undefined
-}
-
-/**
- * A collapsed breadcrumb item. Displays a menu with the items, that don't fit in the breadcrumbs list.
- * @internal
- */
-export function BreadcrumbCollapsedItem<T extends object>(props: BreadcrumbCollapsedItemProps<T>) {
-  const { getText } = useText()
-
-  const {
-    items,
-    children,
-    triggerLabel = getText('more'),
-    dropHooks,
-    draggableCollectionState,
-  } = props
-
-  const { onAction } = useContext(BreadcrumbItemContext)
-
-  return (
-    <Menu.Trigger>
-      <Button aria-label={triggerLabel} className="aspect-square">
-        {/* eslint-disable-next-line no-restricted-syntax */}
-        <span aria-hidden="true">...</span>
-      </Button>
-
-      <Menu items={items} onAction={onAction}>
-        {(menuItem) => {
-          const breadcrumb = children(menuItem)
-
-          if (isValidElement(breadcrumb) && breadcrumb.type === BreadcrumbItem) {
-            const {
-              testId,
-              id,
-              children: breadcrumbChildren,
-              href,
-              download,
-              target,
-              hrefLang,
-              isCurrent = false,
-              isDisabled = false,
-              'aria-describedby': ariaDescribedby,
-              rel,
-              icon,
-              // eslint-disable-next-line no-restricted-syntax
-            } = breadcrumb.props as BreadcrumbItemProps<string>
-
-            if (breadcrumbChildren == null) {
-              return null
-            }
-
-            // eslint-disable-next-line no-restricted-syntax
-            const linkProps = {
-              href,
-              download,
-              target,
-              hrefLang,
-              rel,
-            } as Pick<aria.LinkProps, 'download' | 'href' | 'hrefLang' | 'rel' | 'target'>
-
-            return (
-              <Menu.Item
-                testId={testId}
-                // This is safe, because we're passing the id transparently to the Menu.Item
-                // eslint-disable-next-line no-restricted-syntax
-                id={id as aria.Key}
-                aria-describedby={ariaDescribedby}
-                {...linkProps}
-                icon={renderIcon(icon, { isCurrent, isDisabled })}
-              >
-                <>
-                  {typeof breadcrumbChildren === 'function' ?
-                    breadcrumbChildren({ isCurrent, isDisabled })
-                  : breadcrumbChildren}
-                </>
-              </Menu.Item>
-            )
-          }
-
-          return null
-        }}
-      </Menu>
-    </Menu.Trigger>
   )
 }
