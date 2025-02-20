@@ -5,15 +5,18 @@ export default {
 </script>
 
 <script setup lang="ts">
+import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useBackend } from '@/composables/backend'
+import { Action } from '@/providers/action'
 import { injectBackend } from '@/providers/backend'
 import { assert } from '@/util/assert'
 import type { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import type {
+  AnyAsset,
   DatalinkAsset,
   DirectoryAsset,
   DirectoryId,
@@ -241,6 +244,14 @@ watch(
   },
   { flush: 'sync' },
 )
+// Currently, the only way to "focus" on an element is by context menu.
+const focusedDirectory = ref<DirectoryAsset>()
+const renameAction: Action = {
+  icon: 'edit',
+  description: 'Rename directory',
+  disabled: computed(() => focusedDirectory.value == null || editedAsset.value != null),
+  action: () => focusedDirectory.value && renameDirectory(focusedDirectory.value),
+}
 
 // === Initialization ===
 
@@ -305,36 +316,35 @@ onMounted(() => {
     <div v-else-if="anyError" class="centerContent contents">Error: {{ anyError }}</div>
     <div v-else-if="isEmpty" class="centerContent contents">Directory is empty</div>
     <div v-else :key="currentDirectory?.id ?? 'root'" class="listing contents">
-      <TransitionGroup>
-        <FileBrowserEntry
-          v-if="editedAsset && editedAsset.asset == null"
-          :key="keyOverride.get(newDirPlaceholder) ?? newDirPlaceholder"
-          icon="folder"
-          :title="editedAsset.name"
-          :editingState="editedAsset.state"
-          :renamable="false"
-          @nameAccepted="acceptName($event)"
-        />
-        <FileBrowserEntry
-          v-for="entry in directories"
-          :key="keyOverride.get(entry.id) ?? entry.id"
-          icon="folder"
-          :title="editedAsset?.asset?.id === entry.id ? editedAsset.name : entry.title"
-          :editingState="editedAsset?.asset?.id === entry.id ? editedAsset.state : undefined"
-          :renamable="editedAsset == null"
-          @click="enterDir(entry)"
-          @nameAccepted="acceptName($event)"
-          @renameRequested="renameDirectory(entry)"
-        />
-        <FileBrowserEntry
-          v-for="entry in files"
-          :key="entry.id"
-          icon="text2"
-          :title="entry.title"
-          :renamable="false"
-          @click="chooseFile(entry)"
-        />
-      </TransitionGroup>
+      <ContextMenuTrigger :actions="[renameAction]" @hidden="focusedDirectory = undefined">
+        <TransitionGroup>
+          <FileBrowserEntry
+            v-if="editedAsset && editedAsset.asset == null"
+            :key="keyOverride.get(newDirPlaceholder) ?? newDirPlaceholder"
+            icon="folder"
+            :title="editedAsset.name"
+            :editingState="editedAsset.state"
+            @nameAccepted="acceptName($event)"
+          />
+          <FileBrowserEntry
+            v-for="entry in directories"
+            :key="keyOverride.get(entry.id) ?? entry.id"
+            icon="folder"
+            :title="editedAsset?.asset?.id === entry.id ? editedAsset.name : entry.title"
+            :editingState="editedAsset?.asset?.id === entry.id ? editedAsset.state : undefined"
+            @click="enterDir(entry)"
+            @nameAccepted="acceptName($event)"
+            @contextmenu="focusedDirectory = entry"
+          />
+          <FileBrowserEntry
+            v-for="entry in files"
+            :key="entry.id"
+            icon="text2"
+            :title="entry.title"
+            @click="chooseFile(entry)"
+          />
+        </TransitionGroup>
+      </ContextMenuTrigger>
     </div>
     <div v-if="writeMode" class="fileNameBar">
       <input

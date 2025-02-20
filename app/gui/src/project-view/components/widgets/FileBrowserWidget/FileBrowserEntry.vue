@@ -1,30 +1,19 @@
 <script setup lang="ts">
-import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { Action } from '@/providers/action'
 import { Icon } from '@/util/iconMetadata/iconName'
-import { computed, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 
 const props = defineProps<{
   title: string
   icon: Icon
-  renamable: boolean
   editingState?: 'editing' | 'pending' | 'just created' | undefined
 }>()
 
 const emit = defineEmits<{
   click: []
   nameAccepted: [string]
-  renameRequested: []
 }>()
-
-const renameAction: Action = {
-  icon: 'edit',
-  description: 'Rename directory',
-  disabled: computed(() => !props.renamable),
-  action: () => emit('renameRequested'),
-}
 
 const currentTitle = ref(props.title)
 const input = ref<HTMLInputElement>()
@@ -41,27 +30,25 @@ watch(input, (newInput) => {
 </script>
 
 <template>
-  <ContextMenuTrigger :actions="[renameAction]">
-    <div class="FileBrowserEntry" @click="emit('click')">
-      <LoadingSpinner v-if="editingState === 'pending'" :size="16" />
-      <SvgIcon v-else :name="icon" />
-      <input
-        v-if="editingState === 'editing'"
-        ref="input"
-        v-model="currentTitle"
-        @blur="emit('nameAccepted', currentTitle)"
-        @keydown.enter.stop="input?.blur()"
-        @pointerdown.stop
-        @click.stop
-        @contextmenu.stop
-        @keydown.backspace.stop
-        @keydown.delete.stop
-        @keydown.arrow-left.stop
-        @keydown.arrow-right.stop
-      />
-      <div v-else>{{ title }}</div>
-    </div>
-  </ContextMenuTrigger>
+  <div class="FileBrowserEntry" @click="emit('click')">
+    <LoadingSpinner v-if="editingState === 'pending'" :size="16" />
+    <SvgIcon v-else :name="icon" />
+    <input
+      v-if="editingState === 'editing'"
+      ref="input"
+      v-model="currentTitle"
+      @blur="emit('nameAccepted', currentTitle)"
+      @keydown.enter.stop="input?.blur()"
+      @pointerdown.stop
+      @click.stop
+      @contextmenu.stop
+      @keydown.backspace.stop
+      @keydown.delete.stop
+      @keydown.arrow-left.stop
+      @keydown.arrow-right.stop
+    />
+    <div v-else>{{ title }}</div>
+  </div>
 </template>
 
 <style scoped>
