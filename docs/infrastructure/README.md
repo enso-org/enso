@@ -14,7 +14,7 @@ up as follows:
 
 - [**sbt:**](sbt.md) The build tools that are used for building the project.
 - [**Native Image:**](native-image.md) Description of the Native Image build
-  used for building the launcher native binary.
+  used for building the `ensoup` native binary.
 - [**Rust:**](rust.md) Description of integration of the Scala project with the
   Rust components.
 - [**Upgrading GraalVM:**](upgrading-graalvm.md) Description of steps that have

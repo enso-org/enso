@@ -12,6 +12,9 @@ polyglot java import java.time.temporal.TemporalAdjusters
 polyglot java import java.time.temporal.TemporalUnit
 polyglot java import org.enso.base.time.CustomTemporalUnits
 polyglot java import org.enso.base.time.Date_Period_Utils
+polyglot java import org.enso.base.time.Date_Time_Utils
+polyglot java import org.enso.base.time.Date_Utils
+polyglot java import org.enso.base.time.Time_Of_Day_Utils
 polyglot java import org.enso.base.Time_Utils
 
 ## Represents a unit of time longer on the scale of days (longer than a day).
@@ -43,12 +46,6 @@ type Date_Period
     Week (first_day:Day_Of_Week = Day_Of_Week.Monday)
 
     ## Represents a time period of a single calendar day.
-
-       ? Daylight Saving Time
-
-         Note that due to DST changes, some days may be slightly longer or
-         shorter. This date period will reflect that and still count such days
-         as one day. For a measure of exactly 24 hours, use `Time_Period.Day`.
     Day
 
     ## PRIVATE
@@ -64,7 +61,7 @@ type Date_Period
 
     ## PRIVATE
     adjust_end : (Date | Date_Time) -> (Date | Date_Time)
-    adjust_end self date = if self == Date_Period.Day then date else
+    adjust_end self date =
         adjuster = case self of
             Date_Period.Year -> TemporalAdjusters.lastDayOfYear
             Date_Period.Quarter -> Date_Period_Utils.quarter_end

@@ -32,6 +32,19 @@
                 <folder name="ToolTips">
                     <file name="org-netbeans-modules-debugger-jpda-truffle-vars-tooltip-ToolTipAnnotation.instance"/>
                 </folder>
+                <file name="org-netbeans-modules-lsp-client-bridge-BridgingLanguageServerProvider.instance">
+                    <!--org.netbeans.modules.lsp.client.newpackage-->
+                    <attr name="instanceOf" stringvalue="org.netbeans.modules.lsp.client.spi.LanguageServerProvider"/>
+                </file>
+                <folder name="SideBar">
+                    <file name="breadcrumbs.instance">
+                        <!--org.netbeans.modules.lsp.client.newpackage-->
+                        <attr name="location" stringvalue="South"/>
+                        <attr intvalue="5237" name="position"/>
+                        <attr boolvalue="false" name="scrollable"/>
+                        <attr methodvalue="org.netbeans.modules.editor.breadcrumbs.spi.BreadcrumbsController.createSideBarFactory" name="instanceCreate"/>
+                    </file>
+                </folder>
             </folder>
         </folder>
     </folder>

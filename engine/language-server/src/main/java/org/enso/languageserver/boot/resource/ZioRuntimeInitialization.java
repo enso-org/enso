@@ -29,9 +29,9 @@ public class ZioRuntimeInitialization extends LockedInitialization {
 
   @Override
   public void initComponent() {
-    logger.info("Initializing ZIO runtime...");
+    logger.debug("Initializing ZIO runtime");
     runtime.init();
-    logger.info("ZIO runtime initialized [{}].", runtime);
+    logger.debug("ZIO runtime initialized");
     eventStream.publish(InitializedEvent.ZioRuntimeInitialized$.MODULE$);
   }
 }

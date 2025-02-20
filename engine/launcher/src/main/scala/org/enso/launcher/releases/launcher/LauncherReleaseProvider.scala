@@ -29,8 +29,7 @@ class LauncherReleaseProvider(releaseProvider: SimpleReleaseProvider)
           .find(_.fileName == LauncherManifest.assetName)
           .toRight(
             ReleaseProviderException(
-              s"${LauncherManifest.assetName} file is missing from release " +
-              s"assets."
+              s"${LauncherManifest.assetName} file is missing from $tag release assets."
             )
           )
           .toTry

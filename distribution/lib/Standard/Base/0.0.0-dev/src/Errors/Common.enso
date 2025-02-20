@@ -1,3 +1,4 @@
+import project.Data.Numbers.Float
 import project.Data.Numbers.Integer
 import project.Data.Text.Extensions
 import project.Data.Text.Text
@@ -14,6 +15,7 @@ from project.Data.Boolean import Boolean, False, True
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.ClassCastException
 polyglot java import java.lang.OutOfMemoryError
+polyglot java import org.enso.base.cache.ResponseTooLargeException
 polyglot java import org.enso.base.CompareException
 
 ## An error indicating that no value was found.
@@ -197,8 +199,13 @@ type No_Such_Method
        Convert the No_Such_Method error to a human-readable format.
     to_display_text : Text
     to_display_text self =
-        target_type_name = if Meta.is_polyglot self.target then self.target.to_display_text else (Meta.type_of self.target).to_display_text
-        "Method `"+self.method_name+"` of type "+target_type_name+" could not be found."
+        target_name =
+          is_poly = Meta.is_polyglot self.target
+          is_fn = Meta.is_same_object Function (Meta.type_of self.target)
+          if is_poly then "type " + self.target.to_display_text else
+             if is_fn then self.target.to_text else
+                "type " + (Meta.type_of self.target).to_display_text
+        "Method `"+self.method_name+"` of "+target_name+" could not be found."
 
 @Builtin_Type
 type No_Such_Field
@@ -262,8 +269,11 @@ type Incomparable_Values
     to_display_text : Text
     to_display_text self =
         case self.left.is_nothing && self.right.is_nothing of
-            True -> "Incomparable_Values"
-            False -> "Cannot compare `" + self.left.to_text + "` with `" + self.right.to_text + "`"
+            True -> "Could not compare values."
+            False ->
+                left_text = self.left.to_display_text + " (" + (Meta.type_of self.left).to_text + ")"
+                right_text = self.right.to_display_text + " (" + (Meta.type_of self.right).to_text + ")"
+                "Cannot compare " + left_text + " with " + right_text + "."
 
     ## PRIVATE
        ADVANCED
@@ -271,9 +281,9 @@ type Incomparable_Values
        `Incomparable_Values` if any occur.
     handle_errors ~function =
         handle t = Panic.catch t handler=(_-> Error.throw (Incomparable_Values.Error Nothing Nothing))
-        handle_cmp_exc = Panic.catch CompareException handler=(exc-> Error.throw (Incomparable_Values.Error exc.getLeftOperand exc.getRightOperand))
+        handle_cmp_exc = Panic.catch CompareException handler=(exc-> Error.throw (Incomparable_Values.Error exc.payload.getLeftOperand exc.payload.getRightOperand))
 
-        handle ClassCastException <| handle No_Such_Method <| handle Type_Error <| handle Unsupported_Argument_Types <| handle_cmp_exc <|
+        handle Type_Error <| handle Unsupported_Argument_Types <| handle ClassCastException <| handle_cmp_exc <|
             function
 
 @Builtin_Type
@@ -288,7 +298,7 @@ type Invalid_Array_Index
     Error array index
 
     ## PRIVATE
-       Convert the Forbidden_Operation error to a human-readable format.
+       Convert the Invalid_Array_Index error to a human-readable format.
     to_display_text : Text
     to_display_text self = "Invalid array index: "+self.index.to_text+"."
 
@@ -300,12 +310,32 @@ type Not_Invokable
 
        Arguments:
        - target: The called object.
-    Error target
+       - cause: Additional information about what may have caused the error.
+    Error target cause
 
     ## PRIVATE
        Convert the Not_Invokable error to a human-readable format.
     to_display_text : Text
-    to_display_text self = "Type error: expected a function, but got "+self.target.to_display_text+"."
+    to_display_text self =
+        suffix = case self.cause of
+            Nothing -> ""
+            _ -> " Caused by: "+self.cause.to_display_text
+        "Type error: expected a function, but got "+self.target.to_display_text+"."+suffix
+
+@Builtin_Type
+type No_Such_Argument
+    ## PRIVATE
+       Indicates that an argument was passed by name, but the function being
+       called did not take any argument that matched that name.
+
+       Arguments:
+       - argument_name: The name of the argument that was not found.
+    Error argument_name
+
+    ## PRIVATE
+       Convert the No_Such_Argument error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "The named argument `"+self.argument_name.to_text+"` did not match any argument names. Perhaps it is misspelled?"
 
 @Builtin_Type
 type Private_Access
@@ -426,7 +456,7 @@ type Forbidden_Operation
     ## PRIVATE
        Convert the Forbidden_Operation error to a human-readable format.
     to_display_text : Text
-    to_display_text self = "Forbidden operation: "+self.message
+    to_display_text self = self.message
 
 type Dry_Run_Operation
     ## PRIVATE
@@ -460,40 +490,33 @@ type Out_Of_Memory
 
 ## Indicates that an expression cannot be evaluated because somewhere within it,
    a function does not have all required arguments provided.
-type Missing_Required_Argument
+type Missing_Argument
     ## PRIVATE
        Indicates that an expression cannot be evaluated because somewhere within
        it, a function does not have all required arguments provided.
-    Error (argument_name : Text) (function_name : Text) (call_location : Source_Location | Nothing)
+    Error (argument_name : Text) (function_name : Text | Nothing = Nothing) (call_location : Source_Location | Nothing = Nothing) (message : Text = "Provide a value for the argument `" + argument_name + "`.")
 
     ## PRIVATE
     to_display_text : Text
-    to_display_text self =
-        "Missing required argument `" + self.argument_name + "` in function `" + self.function_name + "`."
+    to_display_text self = self.message
 
     ## PRIVATE
        Throws an error saying that a required argument has not been provided.
-
-       This function is supposed to be used as a default value for arguments
-       that are supposed to be required and should prevent errors stemming from
-       a not-fully-applied function being passed around. Instead, this error is
-       raised and propagated to the top, so that the IDE can see that the node
-       still has some missing arguments within it.
-
-       > Example
-
-         my_function (arg1 = Missing_Required_Argument.ensure_present "arg1") (arg2 = 100) = arg1+arg2
-    ensure_present : Text -> Nothing ! Missing_Required_Argument
-    ensure_present (argument_name : Text = Missing_Required_Argument.ensure_present "argument_name") =
+    throw : Text -> Text | Nothing -> Nothing ! Missing_Argument
+    throw argument_name:Text message_override:Text|Nothing=Nothing =
         stack_trace = Runtime.get_stack_trace
         function_frame = stack_trace . at 1
         caller_frame = stack_trace . at 2
 
         function_name = function_frame.name
         call_location = caller_frame.source_location
-        Error.throw (Missing_Required_Argument.Error argument_name function_name call_location)
+
+        error = if message_override.is_nothing then Missing_Argument.Error argument_name function_name call_location else
+            Missing_Argument.Error argument_name function_name call_location message_override
+        Error.throw error
 
 ## Warning when additional warnings occurred.
+@Builtin_Type
 type Additional_Warnings
     ## PRIVATE
     Error (count:Integer)
@@ -519,7 +542,7 @@ type Loss_Of_Numeric_Precision
     ## PRIVATE
     to_text : Text
     to_text self =
-        "(Loss_Of_Numeric_Precision.Warning (original_value = "+self.original_value.to_text+") (new_value = " + self.new_value.to_text+"))"
+        "(Loss_Of_Numeric_Precision.Warning (original_value = "+self.original_value.to_text+") (new_value = "+self.new_value.to_text+"))"
 
 ## Indicates that a computed or provided value is outside the allowable range.
 type Out_Of_Range
@@ -536,5 +559,66 @@ type Out_Of_Range
     ## PRIVATE
     to_text : Text
     to_text self =
-        extra = if self.message.is_nothing then "" else ": "+self.message.to_text
+        extra = if self.message.is_nothing then "" else " (message = "+self.message.to_text+")"
         "(Out_Of_Range (value = "+self.value.to_text+")" + extra + ")"
+
+## Indiciates that the response from a remote endpoint is over the size limit.
+type Response_Too_Large
+    ## PRIVATE
+    Error actual_size:Integer|Nothing limit:Integer
+
+    ## PRIVATE
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        suggestion = " Use `Data.fetch` with `cache_policy=No_Cache`, or use `Data.download` to fetch the data to a local file, and `Data.read` to read the file."
+        actual_size_message = if self.actual_size == Nothing then "" else " "+self.actual_size.to_text
+        "Response too large: response size"+actual_size_message+" is over the limit "+self.limit.to_text+"."+suggestion
+
+    ## PRIVATE
+    to_text : Text
+    to_text self =
+        "(Response_Too_Large (actual_size = "+self.actual_size.to_text+") (limit = "+self.limit.to_text+"))"
+
+    ## PRIVATE
+       Convert the Java exception to an Enso dataflow error.
+    handle_java_exception ~action =
+        Panic.catch ResponseTooLargeException action (cause-> Error.throw (Response_Too_Large.Error cause.payload.getActualSize cause.payload.getLimit))
+
+## Indicates that some operation relies on equality on floating-point values,
+   which is not recommended.
+type Floating_Point_Equality
+    ## PRIVATE
+       Represents a general floating-point equality error, such as a direct comparison.
+    Error (location:Text)
+
+    ## PRIVATE
+       Represents the use of a floating-point value as a `Dictionary` key.
+    Used_As_Dictionary_Key value:Float
+
+    ## PRIVATE
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self = case self of
+        Floating_Point_Equality.Error location ->
+            "Relying on equality of floating-point numbers is not recommended (within "+location+")."
+        Floating_Point_Equality.Used_As_Dictionary_Key value ->
+            "Float used as dictionary key: "+value.to_text
+
+    ## PRIVATE
+    to_text : Text
+    to_text self = case self of
+        Floating_Point_Equality.Error location ->
+            "(Error  (location = "+location+"))"
+        Floating_Point_Equality.Used_As_Dictionary_Key value ->
+            "(Used_As_Dictionary_Key (value = "+value.to_text+"))"
+
+## A warning indicating that a file failed to be loaded.
+type Failed_To_Load
+    ## PRIVATE
+    Warning path cause
+
+    ## PRIVATE
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self = "Failed to load file at path: "+self.path.to_display_text+": "+self.cause.to_display_text

@@ -44,21 +44,37 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
     var logger = ctx.executionService().getLogger();
     ctx.locking()
         .withContextLock(
-            contextId,
+            ctx.locking().getOrCreateContextLock(contextId),
             this.getClass(),
             () -> {
-              var oldEnvironment = ctx.executionService().getContext().getExecutionEnvironment();
-              if (!oldEnvironment.getName().equals(executionEnvironment.name())) {
-                ctx.jobControlPlane().abortJobs(contextId);
+              var oldEnvironmentName =
+                  ctx.executionService().getContext().getGlobalExecutionEnvironment().getName();
+              if (!oldEnvironmentName.equals(executionEnvironment.name())) {
+                ctx.jobControlPlane()
+                    .abortJobs(
+                        contextId,
+                        "set execution environment to " + executionEnvironment.name(),
+                        false);
                 ctx.locking()
                     .withWriteCompilationLock(
                         this.getClass(),
                         () -> {
                           Stack<InstrumentFrame> stack = ctx.contextManager().getStack(contextId);
-                          ctx.executionService()
-                              .getContext()
-                              .setExecutionEnvironment(
-                                  ExecutionEnvironment.forName(executionEnvironment.name()));
+                          ctx.state()
+                              .executionHooks()
+                              .add(
+                                  () ->
+                                      ctx.locking()
+                                          .withWriteCompilationLock(
+                                              this.getClass(),
+                                              () -> {
+                                                ctx.executionService()
+                                                    .getContext()
+                                                    .setExecutionEnvironment(
+                                                        ExecutionEnvironment.forName(
+                                                            executionEnvironment.name()));
+                                                return null;
+                                              }));
                           CacheInvalidation.invalidateAll(stack);
                           ctx.jobProcessor().run(ExecuteJob.apply(contextId, stack.toList()));
                           reply(new Runtime$Api$SetExecutionEnvironmentResponse(contextId), ctx);
@@ -66,8 +82,10 @@ public class SetExecutionEnvironmentCommand extends AsynchronousCommand {
                         });
               } else {
                 logger.log(
-                    Level.FINEST,
-                    "Requested environment is the same as the current one. Request has no effect");
+                    Level.FINE,
+                    "Requested environment '{}' is the same as the current one. Request has no"
+                        + " effect",
+                    oldEnvironmentName);
                 reply(new Runtime$Api$SetExecutionEnvironmentResponse(contextId), ctx);
               }
               return null;

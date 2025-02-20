@@ -1,8 +1,8 @@
 package org.enso.languageserver.websocket.json
 
 import io.circe.literal._
-import org.enso.logger.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.testkit.ReportLogsOnFailure
 
 import java.util.UUID
 

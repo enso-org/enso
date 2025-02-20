@@ -1,6 +1,8 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
@@ -12,12 +14,12 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.InlinedBranchProfile;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
-import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -29,14 +31,14 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.error.Warning;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
-import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 /**
  * This class is responsible for performing the actual invocation of a given callable with its
@@ -104,10 +106,18 @@ public abstract class InvokeCallableNode extends BaseNode {
 
   private final ArgumentsExecutionMode argumentsExecutionMode;
 
+  @CompilerDirectives.CompilationFinal(dimensions = 1)
+  private final CallArgumentInfo[] schema;
+
+  private final boolean isForOversaturatedArguments;
+
   InvokeCallableNode(
       CallArgumentInfo[] schema,
       DefaultsExecutionMode defaultsExecutionMode,
-      ArgumentsExecutionMode argumentsExecutionMode) {
+      ArgumentsExecutionMode argumentsExecutionMode,
+      boolean isForOversaturatedArguments) {
+    this.schema = schema;
+    this.isForOversaturatedArguments = isForOversaturatedArguments;
     Integer thisArg = thisArgumentPosition(schema);
     this.canApplyThis = thisArg != null;
     this.thisArgumentPosition = thisArg == null ? -1 : thisArg;
@@ -165,7 +175,8 @@ public abstract class InvokeCallableNode extends BaseNode {
       CallArgumentInfo[] schema,
       DefaultsExecutionMode defaultsExecutionMode,
       ArgumentsExecutionMode argumentsExecutionMode) {
-    return InvokeCallableNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
+    return InvokeCallableNodeGen.create(
+        schema, defaultsExecutionMode, argumentsExecutionMode, false);
   }
 
   @Specialization
@@ -285,12 +296,12 @@ public abstract class InvokeCallableNode extends BaseNode {
       VirtualFrame callerFrame,
       State state,
       Object[] arguments,
-      @Shared("warnings") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
-
-    Warning[] extracted;
+      @Shared("warnings") @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @Cached AppendWarningNode appendWarningNode) {
+    EnsoHashMap extracted;
     Object callable;
     try {
-      extracted = warnings.getWarnings(warning, null, false);
+      extracted = warnings.getWarnings(warning, false);
       callable = warnings.removeWarnings(warning);
     } catch (UnsupportedMessageException e) {
       var ctx = EnsoContext.get(this);
@@ -323,7 +334,7 @@ public abstract class InvokeCallableNode extends BaseNode {
       if (result instanceof DataflowError) {
         return result;
       } else {
-        return WithWarnings.wrap(EnsoContext.get(this), result, extracted);
+        return appendWarningNode.executeAppend(null, result, extracted);
       }
     } catch (TailCallException e) {
       throw new TailCallException(e, extracted);
@@ -337,40 +348,60 @@ public abstract class InvokeCallableNode extends BaseNode {
         "!types.hasSpecialDispatch(self)",
         "iop.isExecutable(self)",
       })
-  Object doPolyglot(
+  static Object doPolyglot(
       Object self,
       VirtualFrame frame,
       State state,
       Object[] arguments,
+      @Bind("$node") Node node,
       @CachedLibrary(limit = "3") InteropLibrary iop,
       @Shared("warnings") @CachedLibrary(limit = "3") WarningsLibrary warnings,
       @CachedLibrary(limit = "3") TypesLibrary types,
-      @Cached ThunkExecutorNode thunkNode) {
-    var errors = EnsoContext.get(this).getBuiltins().error();
+      @Cached ThunkExecutorNode thunkNode,
+      @Cached InlinedBranchProfile errorNeedsToBeReported) {
+    var errors = EnsoContext.get(node).getBuiltins().error();
     try {
       for (int i = 0; i < arguments.length; i++) {
         arguments[i] = thunkNode.executeThunk(frame, arguments[i], state, TailStatus.NOT_TAIL);
       }
       return iop.execute(self, arguments);
     } catch (UnsupportedTypeException ex) {
+      errorNeedsToBeReported.enter(node);
       var err = errors.makeUnsupportedArgumentsError(ex.getSuppliedValues(), ex.getMessage());
-      throw new PanicException(err, this);
+      throw new PanicException(err, node);
     } catch (ArityException ex) {
+      errorNeedsToBeReported.enter(node);
       var err =
           errors.makeArityError(
               ex.getExpectedMinArity(), ex.getExpectedMaxArity(), arguments.length);
-      throw new PanicException(err, this);
+      throw new PanicException(err, node);
     } catch (UnsupportedMessageException ex) {
+      errorNeedsToBeReported.enter(node);
       var err = errors.makeNotInvokable(self);
-      throw new PanicException(err, this);
+      throw new PanicException(err, node);
     }
   }
 
   @Fallback
   public Object invokeGeneric(
       Object callable, VirtualFrame callerFrame, State state, Object[] arguments) {
-    Atom error = EnsoContext.get(this).getBuiltins().error().makeNotInvokable(callable);
-    throw new PanicException(error, this);
+    throw buildNotInvokablePanicWithCause(this, callable, isForOversaturatedArguments, schema);
+  }
+
+  static PanicException buildNotInvokablePanicWithCause(
+      Node node,
+      Object notCallableTarget,
+      boolean isForOversaturatedArguments,
+      CallArgumentInfo[] schema) {
+    boolean isMismatchedNamedArgument =
+        isForOversaturatedArguments && schema.length >= 1 && schema[0].isNamed();
+    CompilerAsserts.partialEvaluationConstant(isMismatchedNamedArgument);
+    var errors = EnsoContext.get(node).getBuiltins().error();
+    Atom cause = null;
+    if (isMismatchedNamedArgument) {
+      cause = errors.makeNoSuchArgument(schema[0].getName());
+    }
+    return new PanicException(errors.makeNotInvokableWithCause(notCallableTarget, cause), node);
   }
 
   /**
@@ -422,5 +453,10 @@ public abstract class InvokeCallableNode extends BaseNode {
     if (childDispatch != null) {
       childDispatch.setId(id);
     }
+  }
+
+  /** Returns expression ID of this node. */
+  public UUID getId() {
+    return invokeFunctionNode.getId();
   }
 }

@@ -8,7 +8,7 @@ import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.enso.compiler.context.FramePointer;
+import org.enso.compiler.pass.analyse.FramePointer;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.function.Function;
 

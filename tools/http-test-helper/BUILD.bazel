@@ -1,0 +1,14 @@
+java_binary(
+    name = "http-test-helper",
+    srcs = glob(["src/main/java/**/*.java"]),
+    javacopts = ["-Xlint:all"],
+    main_class = "org.enso.shttp.HTTPTestHelperServer",
+    visibility = ["//lib:__subpackages__"],
+    deps = [
+        "@maven//:com_fasterxml_jackson_core_jackson_core",
+        "@maven//:com_fasterxml_jackson_core_jackson_databind",
+        "@maven//:org_apache_commons_commons_text",
+        "@maven//:org_apache_httpcomponents_httpclient",
+        "@maven//:org_apache_httpcomponents_httpcore",
+    ],
+)

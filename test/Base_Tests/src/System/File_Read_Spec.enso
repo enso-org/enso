@@ -1,9 +1,14 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.Map_Error
+import Standard.Base.Errors.Common.Failed_To_Load
 import Standard.Base.Errors.Encoding_Error.Encoding_Error
 import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Test import all
 
+type Lazy_Ref
+    Value ~get
 
 add_specs suite_builder =
     sample_xxx = enso_project.data / "sample.xxx"
@@ -41,22 +46,22 @@ add_specs suite_builder =
 
     suite_builder.group "Plain_Text" group_builder->
         group_builder.specify "should be able to read a file as Text" <|
-            text = sample_xxx.read Plain_Text
+            text = sample_xxx.read ..Plain_Text
             text.should_equal "Hello World!"
 
         group_builder.specify "should be able to read a file as Text with Encoding" <|
-            text = windows_log.read (Plain_Text Encoding.windows_1252)
+            text = windows_log.read (..Plain_Text Encoding.windows_1252)
             text.should_equal "Hello World! $¢¤¥"
 
         group_builder.specify "should raise a warning when invalid encoding in a Text file" <|
-            action = windows_log.read (Plain_Text Encoding.ascii) on_problems=_
+            action = windows_log.read (..Plain_Text Encoding.ascii) on_problems=_
             tester result = result . should_equal 'Hello World! $\uFFFD\uFFFD\uFFFD'
             problems = [Encoding_Error.Error "Failed to decode 3 code units (at positions: 14, 15, 16)."]
             Problems.test_problem_handling action problems tester
 
             # Check that it defaults to warning.
             Problems.expect_only_warning Encoding_Error <|
-                windows_log.read (Plain_Text Encoding.ascii)
+                windows_log.read (..Plain_Text Encoding.ascii)
 
     suite_builder.group "JSON_Format" group_builder->
         group_builder.specify "should be able to read a file as Json" <|
@@ -79,8 +84,71 @@ add_specs suite_builder =
             r1.should_fail_with File_Error
             r1.catch.should_be_a File_Error.Corrupted_Format
 
+    suite_builder.group "File Format" group_builder->
+        group_builder.specify "should provide a list of all supported file format name patterns" <|
+            patterns = File_Format.all_known_name_patterns
+            patterns.should_contain "*.txt"
+            patterns.should_contain "*.json"
+
+    suite_builder.group "Data.read_many" group_builder->
+        js_object = JS_Object.from_pairs [["arr", [1, 2, 3]], ["num", 42.5], ["not", Nothing]]
+        js_as_text = Lazy_Ref.Value <|
+            (enso_project.data / "sample.json") . read ..Plain_Text
+        group_builder.specify "should allow to read a list of files and return them as vector" <|
+            files = [enso_project.data / "sample.json", enso_project.data / "helloworld.txt"]
+
+            # Read all files using Auto_Detect - each file is read according to its inferred format.
+            # If the return type is not specified, if the input is a Vector, the return type is also Vector:
+            r1 = Data.read_many files return=..As_Vector
+            r1.should_equal [js_object, "Hello World!"]
+
+            # Read all files using a specified format.
+            r2 = Data.read_many files format=..Plain_Text return=..As_Vector
+            r2.should_be_a Vector
+            r2.should_equal [js_as_text.get, "Hello World!"]
+
+        group_builder.specify "would default to returning as merged Table, but will raise a helpful error if Standard.Table is not loaded" <|
+            is_table_imported = File_Format.all.map .to_text . contains "Delimited_Format"
+            Runtime.assert is_table_imported.not "This test assumes that Base_Tests does not import Standard.Table."
+            files = [enso_project.data / "sample.json"]
+            r1 = Data.read_many files
+            r1.should_fail_with Illegal_Argument
+            r1.catch.to_display_text.should_contain "not imported"
+            r1.catch.to_display_text.should_contain "Standard.Table"
+            r1.catch.to_display_text.should_contain "As_Vector"
+
+        group_builder.specify "should work with paths as Text" <|
+            files = [enso_project.data / "sample.json", enso_project.data / "helloworld.txt"]
+            paths = files.map .path
+            r1 = Data.read_many paths return=..As_Vector
+            r1.should_equal [js_object, "Hello World!"]
+
+        three_files = [enso_project.data / "sample.json", enso_project.data / "nonexistent.txt", enso_project.data / "helloworld.txt"]
+        group_builder.specify "should allow to Report_Error if any file fails to load" <|
+            r1 = Data.read_many three_files return=..As_Vector on_problems=..Report_Error
+            # The error reports as File_Error
+            r1.should_fail_with Failed_To_Load
+
+        group_builder.specify "should allow to Ignore errors if any file fails to load" <|
+            r1 = Data.read_many three_files return=..As_Vector on_problems=..Ignore
+            r1.should_equal [js_object, Nothing, "Hello World!"]
+            Problems.assume_no_problems r1
+
+        group_builder.specify "should allow to continue loading if errors are encountered, but report them as warnings" <|
+            r1 = Data.read_many three_files return=..As_Vector on_problems=..Report_Warning
+            r1.should_equal [js_object, Nothing, "Hello World!"]
+            Problems.expect_only_warning Failed_To_Load r1
+
+        group_builder.specify "should return empty vector if no files were provided" <|
+            r1 = Data.read_many [] return=..As_Vector
+            r1.should_equal []
+            Problems.assume_no_problems r1
+
+        group_builder.specify "should raise an error if input vector contains Nothing" <|
+            r1 = Data.read_many [Nothing] return=..As_Vector
+            r1.should_fail_with Illegal_Argument
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

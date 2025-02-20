@@ -2,6 +2,7 @@ package org.enso.compiler.test.pass.desugar
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
+import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
@@ -12,8 +13,13 @@ import org.enso.compiler.core.ir.{
 }
 import org.enso.compiler.core.ir.expression.{Application, Case}
 import org.enso.compiler.pass.desugar.LambdaShorthandToLambda
-import org.enso.compiler.pass.{PassConfiguration, PassGroup, PassManager}
-import org.enso.compiler.test.CompilerTest
+import org.enso.compiler.pass.{
+  MiniIRPass,
+  PassConfiguration,
+  PassGroup,
+  PassManager
+}
+import org.enso.compiler.test.{CompilerTest, CompilerTests}
 
 class LambdaShorthandToLambdaTest extends CompilerTest {
 
@@ -42,7 +48,13 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       * @return [[ir]], with all lambda shorthand desugared
       */
     def desugar(implicit inlineContext: InlineContext): Expression = {
-      LambdaShorthandToLambda.runExpression(ir, inlineContext)
+      LambdaShorthandToLambdaMegaPass.runExpression(ir, inlineContext)
+    }
+
+    def desugarMini(implicit inlineContext: InlineContext): Expression = {
+      val miniPass =
+        LambdaShorthandToLambda.createForInlineCompilation(inlineContext)
+      MiniIRPass.compile(classOf[Expression], ir, miniPass)
     }
   }
 
@@ -52,6 +64,20 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
     */
   def mkInlineContext: InlineContext = {
     buildInlineContext(freshNameSupply = Some(new FreshNameSupply))
+  }
+
+  private def desugarWithMegaPass(
+    code: String
+  ): IR = {
+    implicit val ctx: InlineContext = mkInlineContext
+    code.preprocessExpression.get.desugar
+  }
+
+  private def desugarWithMiniPass(
+    code: String
+  ): IR = {
+    implicit val ctx: InlineContext = mkInlineContext
+    code.preprocessExpression.get.desugarMini
   }
 
   // === The Tests ============================================================
@@ -83,13 +109,13 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
         .body
         .asInstanceOf[Application.Prefix]
 
-      val arg2Name = body
-        .arguments(1)
+      val arg2Name = body.arguments
+        .apply(1)
         .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name.Literal]
-      val arg4Name = body
-        .arguments(3)
+      val arg4Name = body.arguments
+        .apply(3)
         .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name.Literal]
@@ -127,8 +153,8 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           .value
           .asInstanceOf[Name.Literal]
       val arg3Name =
-        app
-          .arguments(2)
+        app.arguments
+          .apply(2)
           .asInstanceOf[CallArgument.Specified]
           .value
           .asInstanceOf[Name.Literal]
@@ -225,7 +251,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
         irFn.arguments.head.asInstanceOf[DefinitionArgument.Specified].name
 
       val body     = irFn.body.asInstanceOf[Application.Prefix]
-      val rightArg = body.arguments(1).value.asInstanceOf[Name.Literal]
+      val rightArg = body.arguments.apply(1).value.asInstanceOf[Name.Literal]
 
       argName.name shouldEqual rightArg.name
     }
@@ -253,7 +279,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       val leftCallArgName =
         body.arguments.head.value.asInstanceOf[Name.Literal]
       val rightCallArgName =
-        body.arguments(1).value.asInstanceOf[Name.Literal]
+        body.arguments.apply(1).value.asInstanceOf[Name.Literal]
 
       underscoreArgName.name shouldEqual leftCallArgName.name
       rightArgLambdaArgName.name shouldEqual rightCallArgName.name
@@ -279,7 +305,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       app.arguments.length shouldEqual 2
 
       val leftArg  = app.arguments.head.value.asInstanceOf[Name.Literal]
-      val rightArg = app.arguments(1).value.asInstanceOf[Name.Literal]
+      val rightArg = app.arguments.apply(1).value.asInstanceOf[Name.Literal]
 
       arg1Name.name shouldEqual leftArg.name
       arg2Name.name shouldEqual rightArg.name
@@ -308,7 +334,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       app.arguments.length shouldEqual 2
 
       val appLeftName  = app.arguments.head.value.asInstanceOf[Name.Literal]
-      val appRightName = app.arguments(1).value.asInstanceOf[Name.Literal]
+      val appRightName = app.arguments.apply(1).value.asInstanceOf[Name.Literal]
 
       leftArgName.name shouldEqual appLeftName.name
       rightArgName.name shouldEqual appRightName.name
@@ -326,119 +352,132 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       val fun2 = fun1.body.asInstanceOf[Function.Lambda]
       val vec  = fun2.body.asInstanceOf[Application.Sequence]
 
-      fun1.arguments(0).name shouldEqual vec.items(1)
-      fun2.arguments(0).name shouldEqual vec.items(3)
-      vec.items(0) shouldBe an[Literal.Number]
-      vec.items(2) shouldBe an[Application.Prefix]
+      fun1.arguments(0).name shouldEqual vec.items.apply(1)
+      fun2.arguments(0).name shouldEqual vec.items.apply(3)
+      vec.items.apply(0) shouldBe an[Literal.Number]
+      vec.items.apply(2) shouldBe an[Application.Prefix]
     }
   }
 
   "Nested underscore arguments" should {
     "work for applications" in {
-      implicit val ctx: InlineContext = mkInlineContext
-
-      val ir =
+      val code =
         """
           |a _ (fn _ c)
-          |""".stripMargin.preprocessExpression.get.desugar
+          |""".stripMargin
+      val megaIr = desugarWithMegaPass(code)
+      val miniIr = desugarWithMiniPass(code)
 
-      ir shouldBe an[Function.Lambda]
-      ir.asInstanceOf[Function.Lambda].body shouldBe an[Application.Prefix]
-      val irBody = ir
-        .asInstanceOf[Function.Lambda]
-        .body
-        .asInstanceOf[Application.Prefix]
+      for ((ir, msg) <- List((miniIr, "Mini IR"), (megaIr, "Mega IR"))) {
+        withClue("Processed by " + msg) {
+          ir shouldBe an[Function.Lambda]
+          ir.asInstanceOf[Function.Lambda].body shouldBe an[Application.Prefix]
+          val irBody = ir
+            .asInstanceOf[Function.Lambda]
+            .body
+            .asInstanceOf[Application.Prefix]
 
-      irBody
-        .arguments(1)
-        .asInstanceOf[CallArgument.Specified]
-        .value shouldBe an[Function.Lambda]
-      val lamArg = irBody
-        .arguments(1)
-        .asInstanceOf[CallArgument.Specified]
-        .value
-        .asInstanceOf[Function.Lambda]
-      val lamArgArgName =
-        lamArg.arguments.head.asInstanceOf[DefinitionArgument.Specified].name
+          irBody.arguments
+            .apply(1)
+            .asInstanceOf[CallArgument.Specified]
+            .value shouldBe an[Function.Lambda]
+          val lamArg = irBody.arguments
+            .apply(1)
+            .asInstanceOf[CallArgument.Specified]
+            .value
+            .asInstanceOf[Function.Lambda]
+          val lamArgArgName =
+            lamArg.arguments.head
+              .asInstanceOf[DefinitionArgument.Specified]
+              .name
 
-      lamArg.body shouldBe an[Application.Prefix]
-      val lamArgBody = lamArg.body.asInstanceOf[Application.Prefix]
-      val lamArgBodyArg1Name = lamArgBody.arguments.head
-        .asInstanceOf[CallArgument.Specified]
-        .value
-        .asInstanceOf[Name.Literal]
+          lamArg.body shouldBe an[Application.Prefix]
+          val lamArgBody = lamArg.body.asInstanceOf[Application.Prefix]
+          val lamArgBodyArg1Name = lamArgBody.arguments.head
+            .asInstanceOf[CallArgument.Specified]
+            .value
+            .asInstanceOf[Name.Literal]
 
-      lamArgArgName.name shouldEqual lamArgBodyArg1Name.name
+          lamArgArgName.name shouldEqual lamArgBodyArg1Name.name
+        }
+      }
     }
 
     "work in named applications" in {
-      implicit val ctx: InlineContext = mkInlineContext
-
-      val ir =
+      val code =
         """
           |a _ (fn (t = _) c)
-          |""".stripMargin.preprocessExpression.get.desugar
+          |""".stripMargin
+      val megaIr = desugarWithMegaPass(code)
+      val miniIr = desugarWithMiniPass(code)
 
-      ir shouldBe an[Function.Lambda]
-      ir.asInstanceOf[Function.Lambda].body shouldBe an[Application.Prefix]
-      val irBody = ir
-        .asInstanceOf[Function.Lambda]
-        .body
-        .asInstanceOf[Application.Prefix]
+      for ((ir, msg) <- List((miniIr, "Mini IR"), (megaIr, "Mega IR"))) {
+        withClue("Processed by " + msg) {
+          ir shouldBe an[Function.Lambda]
+          ir.asInstanceOf[Function.Lambda].body shouldBe an[Application.Prefix]
+          val irBody = ir
+            .asInstanceOf[Function.Lambda]
+            .body
+            .asInstanceOf[Application.Prefix]
 
-      irBody
-        .arguments(1)
-        .asInstanceOf[CallArgument.Specified]
-        .value shouldBe an[Function.Lambda]
-      val lamArg = irBody
-        .arguments(1)
-        .asInstanceOf[CallArgument.Specified]
-        .value
-        .asInstanceOf[Function.Lambda]
-      val lamArgArgName =
-        lamArg.arguments.head.asInstanceOf[DefinitionArgument.Specified].name
+          irBody.arguments
+            .apply(1)
+            .asInstanceOf[CallArgument.Specified]
+            .value shouldBe an[Function.Lambda]
+          val lamArg = irBody.arguments
+            .apply(1)
+            .asInstanceOf[CallArgument.Specified]
+            .value
+            .asInstanceOf[Function.Lambda]
+          val lamArgArgName =
+            lamArg.arguments.head
+              .asInstanceOf[DefinitionArgument.Specified]
+              .name
 
-      lamArg.body shouldBe an[Application.Prefix]
-      val lamArgBody = lamArg.body.asInstanceOf[Application.Prefix]
-      val lamArgBodyArg1Name = lamArgBody.arguments.head
-        .asInstanceOf[CallArgument.Specified]
-        .value
-        .asInstanceOf[Name.Literal]
+          lamArg.body shouldBe an[Application.Prefix]
+          val lamArgBody = lamArg.body.asInstanceOf[Application.Prefix]
+          val lamArgBodyArg1Name = lamArgBody.arguments.head
+            .asInstanceOf[CallArgument.Specified]
+            .value
+            .asInstanceOf[Name.Literal]
 
-      lamArgArgName.name shouldEqual lamArgBodyArg1Name.name
+          lamArgArgName.name shouldEqual lamArgBodyArg1Name.name
+        }
+      }
     }
 
     "work in function argument defaults" in {
-      implicit val ctx: InlineContext = mkInlineContext
-
-      val ir =
+      val code =
         """
-          |a -> (b = f _ 1) -> f a
-          |""".stripMargin.preprocessExpression.get.desugar
+          |\a (b = f _ 1) -> f a
+          |""".stripMargin
+      val megaIr = desugarWithMegaPass(code)
+      val miniIr = desugarWithMiniPass(code)
 
-      ir shouldBe an[Function.Lambda]
-      val bArgFn = ir
-        .asInstanceOf[Function.Lambda]
-        .body
-        .asInstanceOf[Function.Lambda]
-      val bArg1 =
-        bArgFn.arguments.head.asInstanceOf[DefinitionArgument.Specified]
+      for ((ir, msg) <- List((miniIr, "Mini IR"), (megaIr, "Mega IR"))) {
+        withClue("Processed by " + msg) {
+          ir shouldBe an[Function.Lambda]
+          val irFn = ir.asInstanceOf[Function.Lambda]
+          val bArg =
+            irFn.arguments.tail.head.asInstanceOf[DefinitionArgument.Specified]
 
-      bArg1.defaultValue shouldBe defined
-      bArg1.defaultValue.get shouldBe an[Function.Lambda]
-      val default = bArg1.defaultValue.get.asInstanceOf[Function.Lambda]
-      val defaultArgName = default.arguments.head
-        .asInstanceOf[DefinitionArgument.Specified]
-        .name
+          bArg.defaultValue shouldBe defined
+          bArg.defaultValue.get shouldBe an[Function.Lambda]
+          val default = bArg.defaultValue.get.asInstanceOf[Function.Lambda]
+          val defaultArgName = default.arguments.head
+            .asInstanceOf[DefinitionArgument.Specified]
+            .name
 
-      default.body shouldBe an[Application.Prefix]
-      val defBody = default.body.asInstanceOf[Application.Prefix]
-      val defBodyArg1Name = defBody.arguments.head
-        .asInstanceOf[CallArgument.Specified]
-        .value
-        .asInstanceOf[Name.Literal]
+          default.body shouldBe an[Application.Prefix]
+          val defBody = default.body.asInstanceOf[Application.Prefix]
+          val defBodyArg1Name = defBody.arguments.head
+            .asInstanceOf[CallArgument.Specified]
+            .value
+            .asInstanceOf[Name.Literal]
 
-      defaultArgName.name shouldEqual defBodyArg1Name.name
+          defaultArgName.name shouldEqual defBodyArg1Name.name
+        }
+      }
     }
 
     "work for case expressions" in {
@@ -498,7 +537,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
 
       val ir =
         """
-          |(x = _) -> x
+          |\ x=_ -> x
           |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[Function.Lambda]
@@ -568,8 +607,8 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
         .value
         .asInstanceOf[Name]
         .name
-      val appArg2Name = app
-        .arguments(1)
+      val appArg2Name = app.arguments
+        .apply(1)
         .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name]
@@ -578,4 +617,42 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       secondLamArgName shouldEqual appArg2Name
     }
   }
+
+  "Mini lambda shorthand pass" should {
+    "Produce same results as mega pass" in {
+      val codeInputs = List(
+        "_.length",
+        "foo a _ b _",
+        "foo (a = _) b _",
+        "_ a b",
+        "if _ then a",
+        """
+          |case _ of
+          |    Nil -> 0
+          |""".stripMargin,
+        "(10 + _)",
+        "(_ +)",
+        "(_ + _)",
+        "(+ _)",
+        "[1, _, (3 + 4), _]",
+        """
+          |case _ of
+          |    Nil -> f _ b
+          |""".stripMargin,
+        "x = _",
+        "\\ x=_ -> x",
+        "(_ + 5) 5",
+        "(f _ _ b) b"
+      )
+
+      codeInputs.zipWithIndex.foreach { case (code, idx) =>
+        val testName = "test-" + idx
+        val msg      = s"Code that failed to compile: `$code`"
+        val megaIr   = desugarWithMegaPass(code)
+        val miniIr   = desugarWithMiniPass(code)
+        CompilerTests.assertEqualsIR(msg, testName, megaIr, miniIr)
+      }
+    }
+  }
+
 }

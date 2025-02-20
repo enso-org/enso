@@ -6,36 +6,16 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import org.enso.common.MethodNames;
-import org.enso.test.utils.ContextUtils;
-import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class SignatureTest {
-  private static Context ctx;
-
-  @BeforeClass
-  public static void prepareCtx() {
-    ctx =
-        ContextUtils.defaultContextBuilder()
-            .out(OutputStream.nullOutputStream())
-            .err(OutputStream.nullOutputStream())
-            .build();
-  }
-
-  @AfterClass
-  public static void disposeCtx() {
-    ctx.close();
-  }
+public class SignatureTest extends ContextTest {
 
   @Test
   public void wrongFunctionSignature() throws Exception {
@@ -898,6 +878,33 @@ public class SignatureTest {
   }
 
   @Test
+  public void unionInArgument() throws Exception {
+    var uri = new URI("memory://binary.enso");
+    var src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import all
+    foo (arg : Integer | Text) = arg
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+    var module = ctx.eval(src);
+
+    var ok1 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo 42");
+    assertEquals(42, ok1.asInt());
+    var ok2 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo 'Hi'");
+    assertEquals("Hi", ok2.asString());
+    try {
+      var v = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo []");
+      fail("Expecting an error, not " + v);
+    } catch (PolyglotException ex) {
+      assertTypeError("`arg`", "Integer | Text", "Vector", ex.getMessage());
+    }
+  }
+
+  @Test
   public void unresolvedReturnTypeSignature() throws Exception {
     final URI uri = new URI("memory://neg.enso");
     final Source src =
@@ -964,6 +971,95 @@ public class SignatureTest {
       assertContains(
           "expected the result of `plusChecked` to be Integer, but got Text", e.getMessage());
     }
+  }
+
+  @Test
+  public void returnTypeNoCheckJustSignature() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                type Integer
+
+                plusChecked a b =
+                    x:Integer
+                    x = a + b
+                    x
+                """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "plusChecked");
+    assertEquals(5, plusChecked.execute(2, 3).asInt());
+    var res = plusChecked.execute("a", "b");
+    assertEquals("ab", res.asString());
+  }
+
+  @Test
+  public void returnTypeCheckByLastStatement() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                from Standard.Base import Integer
+
+                plusChecked a b =
+                    x = a + b
+                    x:Integer
+                """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var plusChecked = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "plusChecked");
+    assertEquals(5, plusChecked.execute(2, 3).asInt());
+    try {
+      var res = plusChecked.execute("a", "b");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains("expected expression to be Integer, but got Text", e.getMessage());
+    }
+  }
+
+  @Test
+  public void returnTypeCheckByLastStatementOfMainTextFirst() throws Exception {
+    var main = assertTypeCheckByLastStatementOfMain("Text & Integer");
+    assertTrue(main.isString());
+    assertEquals("42", main.asString());
+  }
+
+  @Test
+  public void returnTypeCheckByLastStatementOfMainIntFirst() throws Exception {
+    var main = assertTypeCheckByLastStatementOfMain("Integer & Text");
+    assertTrue(main.fitsInInt());
+    assertEquals(42, main.asInt());
+  }
+
+  private Value assertTypeCheckByLastStatementOfMain(String cast) throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                from Standard.Base import all
+
+                fn =
+                    (42 : ${cast})
+
+                Text.from (that:Integer) = that.to_text
+                """
+                    .replace("${cast}", cast),
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    return module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
   }
 
   /**
@@ -1206,6 +1302,173 @@ public class SignatureTest {
       assertEquals(
           "Type error: expected the result of `foo_bad` to be Integer, but got Text.",
           e.getMessage());
+    }
+  }
+
+  @Test
+  public void returnTypeCheckErrorSignature() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer
+    import Standard.Base.Errors.Illegal_State.Illegal_State
+    foo a -> Integer ! Illegal_State =
+        a+a
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    assertEquals(20, foo.execute(10).asInt());
+    try {
+      var res = foo.execute(".");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains("expected the result of `foo` to be Integer, but got Text", e.getMessage());
+    }
+  }
+
+  /**
+   * The `!` part in the type signature is currently only for documentation purposes - it is not
+   * checked. Other kinds of dataflow errors may be returned as well and this is not an error. In
+   * particular, we don't distinguish errors raised by the function from errors propagate from its
+   * inputs.
+   */
+  @Test
+  public void returnTypeCheckErrorSignatureAllowsAllErrors() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer, Error
+    import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+    import Standard.Base.Errors.Illegal_State.Illegal_State
+
+    foo a -> Integer ! Illegal_State =
+        Error.throw (Illegal_Argument.Error "foo: "+a.to_text)
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    var result = foo.execute(10);
+    assertTrue(result.isException());
+    assertContains("Illegal_Argument.Error 'foo: 10'", result.toString());
+  }
+
+  @Test
+  public void returnTypeCheckSum() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer, Text
+    foo a -> Integer | Text =
+        a+a
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    assertEquals(20, foo.execute(10).asInt());
+    assertEquals("..", foo.execute(".").asString());
+
+    try {
+      Object vec = new Integer[] {1, 2, 3};
+      var res = foo.execute(vec);
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains(
+          "expected the result of `foo` to be Integer | Text, but got Vector", e.getMessage());
+    }
+  }
+
+  @Test
+  public void returnTypeCheckProduct() throws Exception {
+    final URI uri = new URI("memory://rts.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer, Text
+    type Clazz
+        Value a
+    Clazz.from (that : Integer) = Clazz.Value that
+
+    foo a -> (Integer | Text) & Clazz =
+        a+a
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+    var foo = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    assertEquals(20, foo.execute(10).asInt());
+
+    try {
+      var res = foo.execute(".");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains(
+          "expected the result of `foo` to be (Integer | Text) & Clazz, but got Text",
+          e.getMessage());
+    }
+  }
+
+  @Test
+  public void returnTypeCheckOptInErrorMethodsOnTypes() throws Exception {
+    final URI uri = new URI("memory://returnTypeCheckOptInErrorMethodsOnTypes.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+    from Standard.Base import Integer
+    type My_Type
+        Value
+        plus_member self a b -> Integer = b+a
+        plus_static a b -> Integer = b+a
+    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctx.eval(src);
+
+    var res1 =
+        module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "My_Type.Value.plus_member 1 2");
+    assertEquals(3, res1.asInt());
+
+    var res2 = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "My_Type.plus_static 3 4");
+    assertEquals(7, res2.asInt());
+
+    try {
+      var res =
+          module.invokeMember(
+              MethodNames.Module.EVAL_EXPRESSION, "My_Type.Value.plus_member 'a' 'b'");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains(
+          "expected the result of `plus_member` to be Integer, but got Text", e.getMessage());
+    }
+
+    try {
+      var res =
+          module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "My_Type.plus_static 'a' 'b'");
+      fail("Expecting an exception, not: " + res);
+    } catch (PolyglotException e) {
+      assertContains(
+          "expected the result of `plus_static` to be Integer, but got Text", e.getMessage());
     }
   }
 

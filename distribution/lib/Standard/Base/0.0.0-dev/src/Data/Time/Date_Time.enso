@@ -16,6 +16,7 @@ import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Common.Missing_Argument
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
@@ -25,6 +26,8 @@ import project.Panic.Panic
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
+from project.Data.Time.Date import make_day_picker
+from project.Metadata import Display, Widget
 from project.Widget_Helpers import make_date_time_format_selector
 
 polyglot java import java.lang.ArithmeticException
@@ -148,8 +151,18 @@ type Date_Time
              from Standard.Base import Date_Time, Time_Zone
 
              example_new = Date_Time.new 1986 8 5
+    @year (Widget.Numeric_Input display=Display.Always)
+    @month (Widget.Numeric_Input minimum=1 maximum=12 display=Display.Always)
+    @day make_day_picker
+    @hour (Widget.Numeric_Input minimum=0 maximum=23 display=Display.Always)
+    @minute (Widget.Numeric_Input minimum=0 maximum=59 display=Display.Always)
+    @second (Widget.Numeric_Input minimum=0 maximum=59 display=Display.When_Modified)
+    @millisecond (Widget.Numeric_Input minimum=0 maximum=999 display=Display.When_Modified)
+    @microsecond (Widget.Numeric_Input minimum=0 maximum=999 display=Display.When_Modified)
+    @nanosecond (Widget.Numeric_Input minimum=0 maximum=999 display=Display.When_Modified)
+    @zone Time_Zone.default_widget
     new : Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Integer -> Time_Zone -> Date_Time ! Time_Error
-    new year (month = 1) (day = 1) (hour = 0) (minute = 0) (second = 0) (millisecond = 0) (microsecond = 0) (nanosecond = 0) (zone = Time_Zone.system) =
+    new (year:Integer=(Missing_Argument.throw "year")) (month:Integer=1) (day:Integer=1) (hour:Integer=0) (minute:Integer=0) (second:Integer=0) (millisecond:Integer=0) (microsecond:Integer=0) (nanosecond = 0) (zone:Time_Zone=Time_Zone.system) =
         total_nanoseconds = nanosecond + microsecond * 1000 + millisecond * 1000000
         Panic.catch JException (new_builtin year month day hour minute second total_nanoseconds zone) cause->
             Error.throw (Time_Error.Error cause.payload.getMessage)
@@ -593,7 +606,7 @@ type Date_Time
     start_of self period=Date_Period.Month =
         adjusted = period.adjust_start self
         case period of
-            _ : Date_Period -> Time_Period.Day.adjust_start adjusted
+            _ : Date_Period -> Date_Period.Day.adjust_start adjusted
             _ : Time_Period -> adjusted
 
     ## GROUP DateTime
@@ -604,7 +617,7 @@ type Date_Time
     end_of self period=Date_Period.Month =
         adjusted = period.adjust_end self
         case period of
-            _ : Date_Period -> Time_Period.Day.adjust_end adjusted
+            _ : Date_Period -> Date_Period.Day.adjust_end adjusted
             _ : Time_Period -> adjusted
 
     ## ALIAS time to date
@@ -656,7 +669,6 @@ type Date_Time
             Date_Period.Month       -> self.month
             Date_Period.Week _      -> self.week_of_year locale=Nothing
             Date_Period.Day         -> self.day
-            Time_Period.Day         -> self.day
             Time_Period.Hour        -> self.hour
             Time_Period.Minute      -> self.minute
             Time_Period.Second      -> self.second
@@ -822,6 +834,30 @@ type Date_Time
         time_format = if self.nanosecond include_milliseconds=True == 0 then "HH:mm:ss" else "HH:mm:ss.fff"
         zone_format = if self.zone == Time_Zone.system then "" else "'['TT']'"
         self.format "yyyy-MM-dd "+time_format+zone_format
+
+    ## PRIVATE
+       GROUP convert
+       ICON enso_logo
+       Convert the value to a corresponding Enso code representation.
+
+       > Example
+         Getting the Enso code of the date 29-October-2024 12:34.
+
+             (Date_Time.new 2024 10 29 12 34).pretty
+             ## Returns a Text
+                Date_Time.new 2024 10 29 12 34
+    pretty : Text
+    pretty self =
+        parts = Vector.build builder->
+            builder.append ("Date_Time.new " + self.year.to_text + " " + self.month.to_text + " " + self.day.to_text)
+            if self.hour != 0 then builder.append ((if builder.length!=1 then " hour=" else " ") + self.hour.to_text)
+            if self.minute != 0 then builder.append ((if builder.length!=2 then " minute=" else " ") + self.minute.to_text)
+            if self.second != 0 then builder.append ((if builder.length!=3 then " second=" else " ") + self.second.to_text)
+            if self.millisecond != 0 then builder.append ((if builder.length!=4 then " millisecond=" else " ") + self.millisecond.to_text)
+            if self.microsecond != 0 then builder.append ((if builder.length!=5 then " microsecond=" else " ") + self.microsecond.to_text)
+            if self.nanosecond != 0 then builder.append ((if builder.length!=6 then " nanosecond=" else " ") + self.nanosecond.to_text)
+            if self.zone != Time_Zone.system then builder.append ((if builder.length!=7 then " zone=(" else " (") + self.zone.pretty + ")")
+        parts.join ""
 
     ## PRIVATE
        Convert to a JavaScript Object representing a Date_Time.

@@ -45,7 +45,7 @@ input_number = Unimplemented.throw "This function should not be called."
 
 ## ALIAS table input
    GROUP Standard.Base.Constants
-   ICON data_input
+   ICON table_edit
 
    Creating a table in Enso is usually done directly from data. Nevertheless, it
    can be useful to create tables manually.

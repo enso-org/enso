@@ -43,8 +43,6 @@
 //! write-only; we never try to inspect it, but just use its [`Display`] implementation to produce
 //! Java code after all computation is completed.
 
-// === Features ===
-#![feature(impl_trait_in_assoc_type)]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]

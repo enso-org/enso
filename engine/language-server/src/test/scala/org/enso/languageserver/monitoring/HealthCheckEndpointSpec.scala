@@ -11,8 +11,7 @@ import org.enso.languageserver.monitoring.HealthCheckEndpointSpec.{
 }
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
-import org.enso.logger.ReportLogsOnFailure
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.must.Matchers
 

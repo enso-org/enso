@@ -6,12 +6,14 @@ import Standard.Base.System.Input_Stream.Input_Stream
 
 import project.Data_Formatter.Data_Formatter
 import project.Delimited.Delimited_Format.Delimited_Format
+import project.Delimited.Invalid_Rows.Invalid_Rows
 import project.Delimited.Quote_Style.Quote_Style
 import project.Headers.Headers
 import project.Internal.Java_Problems
 import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 from project.Errors import Empty_File_Error, Mismatched_Quote, Parser_Error
+from project.Table import from_java_table
 
 polyglot java import com.univocity.parsers.common.TextParsingException
 polyglot java import java.io.InputStream
@@ -23,6 +25,8 @@ polyglot java import org.enso.table.parsing.IdentityParser
 polyglot java import org.enso.table.parsing.problems.MismatchedQuote
 polyglot java import org.enso.table.parsing.TypeInferringParser
 polyglot java import org.enso.table.read.DelimitedReader
+polyglot java import org.enso.table.read.DelimitedReader.HeaderBehavior
+polyglot java import org.enso.table.read.DelimitedReader.InvalidRowsBehavior
 polyglot java import org.enso.table.read.ParsingFailedException
 polyglot java import org.enso.table.read.QuoteStrippingParser
 
@@ -37,7 +41,7 @@ polyglot java import org.enso.table.read.QuoteStrippingParser
      If set to `Report_Error`, the operation fails with a dataflow error.
      If set to `Ignore`, the operation proceeds without errors or warnings.
 read_file : Delimited_Format -> File -> Problem_Behavior -> Any
-read_file format file on_problems =
+read_file format file on_problems:Problem_Behavior =
     ## We use the default `max_columns` setting. If we want to be able to
        read files with unlimited column limits (risking OutOfMemory
        exceptions), we can catch the exception indicating the limit has been
@@ -50,7 +54,7 @@ read_file format file on_problems =
 
 ## PRIVATE
 read_text : Text -> Delimited_Format -> Problem_Behavior -> Table
-read_text text format on_problems =
+read_text text format on_problems:Problem_Behavior =
     java_reader = StringReader.new text
     read_from_reader format java_reader on_problems
 
@@ -70,7 +74,7 @@ read_text text format on_problems =
    - related_file: The file related to the provided `java_stream`, if available,
      or `Nothing`. It is used for more detailed error reporting.
 read_stream : Delimited_Format -> Input_Stream -> Problem_Behavior -> Integer -> File | Nothing -> Any
-read_stream format stream on_problems max_columns=default_max_columns related_file=Nothing =
+read_stream format stream on_problems:Problem_Behavior max_columns=default_max_columns related_file=Nothing =
     handle_io_exception related_file <|
         stream.with_stream_decoder format.encoding on_problems reporting_stream_decoder->
             read_from_reader format reporting_stream_decoder on_problems max_columns
@@ -92,15 +96,15 @@ read_stream format stream on_problems max_columns=default_max_columns related_fi
      avoid `OutOfMemory` errors on malformed files. It must be a positive
      integer.
 read_from_reader : Delimited_Format -> Reader -> Problem_Behavior -> Integer -> Any
-read_from_reader format java_reader on_problems max_columns=4096 =
+read_from_reader format java_reader on_problems:Problem_Behavior max_columns=4096 =
     Illegal_Argument.handle_java_exception <| handle_parsing_failure <| handle_parsing_exception <| Empty_File_Error.handle_java_exception <|
         Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
             reader = prepare_reader format max_columns on_problems java_problem_aggregator
             java_table = reader.read java_reader
-            format.row_limit.attach_warning (Table.Value java_table)
+            format.row_limit.attach_warning (from_java_table java_table)
 
 ## PRIVATE
-prepare_reader format:Delimited_Format max_columns on_problems java_problem_aggregator newline_override=Nothing =
+prepare_reader format:Delimited_Format max_columns on_problems:Problem_Behavior java_problem_aggregator newline_override=Nothing =
     java_headers = case format.headers of
         Headers.Has_Headers -> DelimitedReader.HeaderBehavior.USE_FIRST_ROW_AS_HEADERS
         Headers.Detect_Headers -> DelimitedReader.HeaderBehavior.INFER
@@ -122,9 +126,13 @@ prepare_reader format:Delimited_Format max_columns on_problems java_problem_aggr
     newline = newline_override.if_nothing <| case format.line_endings of
         Infer -> Nothing
         endings -> endings.to_text
+    on_invalid_rows_java = case format.on_invalid_rows of
+        Invalid_Rows.Keep_Invalid_Rows -> InvalidRowsBehavior.KEEP
+        Invalid_Rows.Drop_Invalid_Rows -> InvalidRowsBehavior.DROP
+        Invalid_Rows.Add_Extra_Columns -> InvalidRowsBehavior.ADD_EXTRA_COLUMNS
 
     warnings_as_errors = on_problems == Problem_Behavior.Report_Error
-    DelimitedReader.new format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser format.keep_invalid_rows newline format.comment_character warnings_as_errors java_problem_aggregator
+    DelimitedReader.new format.delimiter quote_characters.first quote_characters.second java_headers format.skip_rows row_limit max_columns value_parser cell_type_guesser on_invalid_rows_java newline format.comment_character warnings_as_errors java_problem_aggregator
 
 ## PRIVATE
    An internal type representing columns deduced from an existing file.
@@ -132,7 +140,11 @@ type Detected_Headers
     ## Represents the headers found in the file.
     Existing (column_names : Vector Text)
 
-    ## Indicates that the file exists but no headers have been found, so only positional column matching is possible.
+    ## Indicates that the file exists but no headers have been found,
+       so only positional column matching is possible.
+
+       Note that the file may still contain rows that have less or more columns
+       than specified here. This column count is only based on the first row.
     None (column_count : Integer)
 
 ## PRIVATE
@@ -207,12 +219,12 @@ detect_metadata file format =
 newline_at_eof : File -> Encoding -> Text|Nothing
 newline_at_eof file encoding =
     newlines = ['\r\n', '\n', '\r']
-    newline_bytes = newlines.map (x-> x.bytes encoding Report_Error)
+    newline_bytes = newlines.map (x-> x.bytes encoding Problem_Behavior.Report_Error)
     most_bytes = newline_bytes.map .length . compute Statistic.Maximum
     file_last_bytes = file.read_last_bytes most_bytes
     result = newlines.zip newline_bytes . find if_missing=[Nothing] pair->
         bytes = pair.second
-        bytes == (file_last_bytes.take (Last bytes.length))
+        bytes == (file_last_bytes.take (..Last bytes.length))
     result.first
 
 ## PRIVATE

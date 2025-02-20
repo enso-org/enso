@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.scope;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import java.util.List;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.interpreter.runtime.Module;
@@ -11,7 +12,7 @@ import org.enso.interpreter.runtime.data.Type;
  * A proxy scope delegating to the underlying module's scope. Additionally, `ImportExportScope` may
  * limit the number of types that are imported/exported.
  */
-public class ImportExportScope implements EnsoObject {
+public class ImportExportScope extends EnsoObject {
 
   private final Module module;
   private final List<String> typesOnlyNames;
@@ -40,9 +41,9 @@ public class ImportExportScope implements EnsoObject {
     }
   }
 
-  public Function getExportedConversion(Type type, Type target) {
+  public Function getExportedConversion(Type target, Type source) {
     if (isValidType(target)) {
-      return module.getScope().getExportedConversion(type, target);
+      return module.getScope().getExportedConversion(target, source);
     } else {
       return null;
     }
@@ -56,15 +57,17 @@ public class ImportExportScope implements EnsoObject {
     }
   }
 
-  public Function getConversionForType(Type target, Type type) {
+  public Function getConversionForType(Type target, Type source) {
     if (isValidType(target)) {
-      var result = module.getScope().getConversionsFor(target);
-      if (result == null) {
-        return null;
-      }
-      return result.get(type);
+      return module.getScope().getConversionFor(target, source);
     } else {
       return null;
     }
+  }
+
+  @Override
+  @TruffleBoundary
+  public Object toDisplayString(boolean allowSideEffects) {
+    return "ImportExportScope{" + module.getName().toString() + "}";
   }
 }

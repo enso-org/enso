@@ -6,12 +6,14 @@ import project.Widgets.Database_Widgets_Spec
 import project.Widgets.File_Format_Widgets_Spec
 import project.Widgets.Table_Widgets_Spec
 import project.Widgets.Text_Widgets_Spec
+import project.Widgets.Widget_Helpers_Spec
 
 add_specs suite_builder =
     Table_Widgets_Spec.add_specs suite_builder
     Database_Widgets_Spec.add_specs suite_builder
     File_Format_Widgets_Spec.add_specs suite_builder
     Text_Widgets_Spec.add_specs suite_builder
+    Widget_Helpers_Spec.add_specs suite_builder
 
 main filter=Nothing =
     suite = Test.build suite_builder->

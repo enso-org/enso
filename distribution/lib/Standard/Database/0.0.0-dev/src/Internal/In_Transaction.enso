@@ -13,7 +13,7 @@ type In_Transaction
 
     ## PRIVATE
        Executes the provided action marking as being run within a transaction.
-    mark_running_in_transaction ~action =
+    private mark_running_in_transaction ~action =
         State.run In_Transaction True action
 
     ## PRIVATE

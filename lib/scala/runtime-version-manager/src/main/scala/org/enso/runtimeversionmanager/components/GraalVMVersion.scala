@@ -11,7 +11,8 @@ import org.enso.semver.SemVer
   *                    Can be specified either as a single integer or as a
   *                    semantic version
   */
-case class GraalVMVersion(graalVersion: String, javaVersion: String) {
+case class GraalVMVersion(graalVersion: String, javaVersion: String)
+    extends Comparable[GraalVMVersion] {
   require(GraalVMVersion.isCorrectVersionFormat(graalVersion))
   require(GraalVMVersion.isCorrectVersionFormat(javaVersion))
 
@@ -29,15 +30,35 @@ case class GraalVMVersion(graalVersion: String, javaVersion: String) {
     }
   }
 
-  /** The GraalVM distribution policy changed a lot since GraalVM 23.1.0 for JDK 21.
-    * Most of the components for the newest GraalVM distributions are distributed as
-    * artifacts from the Maven central. This mens there is no longer `gu` tool.
-    *
-    * @see https://medium.com/graalvm/truffle-unchained-13887b77b62c
-    * @return true if this version is associated with Truffle unchained.
-    */
-  def isUnchained: Boolean = {
-    javaMajorVersion >= 21 && graalMajorVersion >= 23
+  override def compareTo(other: GraalVMVersion): Int = {
+    val javaSemVer      = SemVer.parse(javaVersion)
+    val otherJavaSemVer = SemVer.parse(other.javaVersion)
+    if (javaSemVer.isSuccess && otherJavaSemVer.isSuccess) {
+      val comp = javaSemVer.get.compareTo(otherJavaSemVer.get)
+      if (comp != 0) {
+        return comp
+      }
+    }
+
+    val graalSemVer      = SemVer.parse(graalVersion)
+    val otherGraalSemVer = SemVer.parse(other.graalVersion)
+    if (graalSemVer.isSuccess && otherGraalSemVer.isSuccess) {
+      val comp = graalSemVer.get.compareTo(otherGraalSemVer.get)
+      if (comp != 0) {
+        return comp
+      }
+    }
+
+    val javaMajorComp = javaMajorVersion.compareTo(other.javaMajorVersion)
+    if (javaMajorComp != 0) {
+      return javaMajorComp
+    }
+    val graalMajorComp = graalMajorVersion.compareTo(other.graalMajorVersion)
+    if (graalMajorComp != 0) {
+      return graalMajorComp
+    }
+
+    0
   }
 }
 

@@ -5,14 +5,12 @@ import org.enso.interpreter.bench.BenchmarksRunner;
 import org.openjdk.jmh.runner.RunnerException;
 
 /**
- * The only purpose for this class is to enable the {@link org.enso.benchmarks.processor.BenchProcessor}
- * to generate JMH sources for the benchmarks in {@code test/Benchmarks} project.
- * For more information see {@code docs/infrastructure/benchmarks.md#Standard-library-benchmarks}.
+ * The only purpose for this class is to enable the {@link
+ * org.enso.benchmarks.processor.BenchProcessor} to generate JMH sources for the benchmarks in
+ * {@code test/Benchmarks} project. For more information see {@code
+ * docs/infrastructure/benchmarks.md#Standard-library-benchmarks}.
  */
-@GenerateBenchSources(
-    projectRootPath = "test/Benchmarks",
-    moduleName = "local.Benchmarks.Main"
-)
+@GenerateBenchSources(projectRootPath = "test/Benchmarks", moduleName = "local.Benchmarks.Main")
 public class LibBenchRunner {
 
   public static void main(String[] args) throws RunnerException {

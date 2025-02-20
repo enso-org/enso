@@ -5,7 +5,8 @@ import org.apache.commons.io.filefilter.{IOFileFilter, TrueFileFilter}
 import org.enso.interpreter.test.{InterpreterException, ValueEquality}
 import org.enso.pkg.PackageManager
 import org.enso.common.LanguageInfo
-import org.enso.polyglot.{PolyglotContext, RuntimeOptions}
+import org.enso.common.RuntimeOptions
+import org.enso.polyglot.PolyglotContext
 import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
@@ -70,13 +71,15 @@ trait ModifiedTest
       .build()
     context.initialize(LanguageInfo.ID)
     val executionContext = new PolyglotContext(context)
-    InterpreterException.rethrowPolyglot {
+    val result = InterpreterException.rethrowPolyglot {
       val topScope        = executionContext.getTopScope
       val mainModuleScope = topScope.getModule(mainModule.toString)
       val assocCons       = mainModuleScope.getAssociatedType
       val mainFun         = mainModuleScope.getMethod(assocCons, "main").get
       mainFun.execute()
     }
+    context.close()
+    result
   }
 
   private def initialCopy(from: File, to: File): Unit = {

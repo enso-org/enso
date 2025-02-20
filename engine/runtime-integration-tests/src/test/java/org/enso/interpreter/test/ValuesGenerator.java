@@ -25,6 +25,11 @@ import java.util.Set;
 import java.util.TimeZone;
 import org.enso.common.MethodNames;
 import org.enso.common.MethodNames.Module;
+import org.enso.interpreter.node.expression.foreign.HostValueToEnsoNode;
+import org.enso.interpreter.runtime.data.EnsoMultiValue;
+import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
@@ -47,6 +52,11 @@ public final class ValuesGenerator {
     this.languages = languages;
   }
 
+  /**
+   * @param type Either an atom or a type.
+   * @param check An executable that checks if the value is of the given type. Takes a single
+   *     parameter.
+   */
   private record ValueInfo(Value type, Value check) {}
 
   public static ValuesGenerator create(Context ctx, Language... langs) {
@@ -61,6 +71,13 @@ public final class ValuesGenerator {
     return v(key, prelude, typeOrValue, key != null ? typeOrValue : null);
   }
 
+  /**
+   * @param key Used as a key in {@link #values}. If the key is already there, nothing is created.
+   *     Nullable.
+   * @param prelude Additional code inserted before {@code typeOrValue} expression, like imports.
+   * @param typeOrValue An expression that results in an atom or a type.
+   * @param typeCheck If not null, this is used as a type name and the value is checked against it.
+   */
   private ValueInfo v(String key, String prelude, String typeOrValue, String typeCheck) {
     if (key == null) {
       key = typeOrValue;
@@ -302,10 +319,31 @@ public final class ValuesGenerator {
         .type();
   }
 
+  public Value typeNoWrap() {
+    return v("typeNoWrap", """
+    import Standard.Base.Data.Vector.No_Wrap
+    """, "No_Wrap")
+        .type();
+  }
+
+  public Value typeProblemBehavior() {
+    return v(
+            "typeProblemBehavior",
+            """
+    import Standard.Base.Errors.Problem_Behavior.Problem_Behavior
+    """,
+            "Problem_Behavior")
+        .type();
+  }
+
   public Value typeMap() {
-    return v("typeMap", """
-    import Standard.Base.Data.Map.Map
-    """, "Map").type();
+    return v(
+            "typeMap",
+            """
+    import Standard.Base.Data.Dictionary.Dictionary
+    """,
+            "Dictionary")
+        .type();
   }
 
   public Value typeWarning() {
@@ -503,7 +541,7 @@ public final class ValuesGenerator {
           v(null, "import Standard.Base.Data.Time.Date_Period.Date_Period", "Date_Period.Year")
               .type());
       collect.add(
-          v(null, "import Standard.Base.Data.Time.Time_Period.Time_Period", "Time_Period.Day")
+          v(null, "import Standard.Base.Data.Time.Time_Period.Time_Period", "Time_Period.Hour")
               .type());
       collect.add(
           v(null, "import Standard.Base.Data.Time.Period.Period", "Period.new 1 2 3").type());
@@ -679,28 +717,28 @@ public final class ValuesGenerator {
     if (languages.contains(Language.ENSO)) {
       var imports =
           """
-          import Standard.Base.Data.Map.Map
+          import Standard.Base.Data.Dictionary.Dictionary
           import Standard.Base.Nothing.Nothing
           """;
       for (var expr :
           List.of(
-              "Map.empty",
-              "Map.singleton Nothing Nothing",
-              "Map.singleton Nothing 'my_value'",
-              "Map.singleton 'my_value' Nothing",
-              "Map.singleton 1 1",
-              "Map.singleton 'C' 3",
-              "Map.singleton 'C' 43",
-              "Map.empty.insert 'A' 10 . insert 'B' 20",
+              "Dictionary.empty",
+              "Dictionary.singleton Nothing Nothing",
+              "Dictionary.singleton Nothing 'my_value'",
+              "Dictionary.singleton 'my_value' Nothing",
+              "Dictionary.singleton 1 1",
+              "Dictionary.singleton 'C' 3",
+              "Dictionary.singleton 'C' 43",
+              "Dictionary.empty.insert 'A' 10 . insert 'B' 20",
               // ((int) 'A') + ((int) 'B') = 131 ; codePoint(131) = \203
-              "Map.singleton '\203' 30",
-              "Map.singleton Map.empty 1",
-              "Map.singleton Map.empty Map.empty",
-              "Map.empty.insert 1 1 . insert 2 2",
-              "Map.empty.insert Nothing 'val' . insert 'key' 42",
-              "Map.empty.insert 'A' 1 . insert 'B' 2 . insert 'C' 3",
-              "Map.empty.insert 'C' 3 . insert 'B' 2 . insert 'A' 1")) {
-        collect.add(v("maps-" + expr, imports, expr, "Map").type());
+              "Dictionary.singleton '\203' 30",
+              "Dictionary.singleton Dictionary.empty 1",
+              "Dictionary.singleton Dictionary.empty Dictionary.empty",
+              "Dictionary.empty.insert 1 1 . insert 2 2",
+              "Dictionary.empty.insert Nothing 'val' . insert 'key' 42",
+              "Dictionary.empty.insert 'A' 1 . insert 'B' 2 . insert 'C' 3",
+              "Dictionary.empty.insert 'C' 3 . insert 'B' 2 . insert 'A' 1")) {
+        collect.add(v("maps-" + expr, imports, expr, "Dictionary").type());
       }
     }
     if (languages.contains(Language.JAVA)) {
@@ -819,8 +857,60 @@ public final class ValuesGenerator {
       collect.add(typeNothing());
     }
 
-    if (languages.contains(Language.JAVA)) {}
+    return collect;
+  }
 
+  public List<Value> problemBehaviors() {
+    var collect = new ArrayList<Value>();
+    if (languages.contains(Language.ENSO)) {
+      var prelude = "import Standard.Base.Errors.Problem_Behavior.Problem_Behavior";
+      collect.add(v(null, prelude, "Problem_Behavior.Report_Error").type());
+      collect.add(v(null, prelude, "Problem_Behavior.Ignore").type());
+    }
+    return collect;
+  }
+
+  public List<Value> numbersMultiText() {
+    var leak = ContextUtils.leakContext(ctx);
+    var numberTextTypes =
+        new Type[] {
+          leak.getBuiltins().number().getInteger(), leak.getBuiltins().text(),
+        };
+    var textNumberTypes =
+        new Type[] {
+          leak.getBuiltins().text(), leak.getBuiltins().number().getInteger(),
+        };
+    var collect = new ArrayList<Value>();
+    var toEnso = HostValueToEnsoNode.getUncached();
+    for (var n : numbers()) {
+      for (var t : textual()) {
+        var rawN = toEnso.execute(ContextUtils.unwrapValue(ctx, n));
+        var rawT = ContextUtils.unwrapValue(ctx, t);
+        if (!(rawT instanceof EnsoObject)) {
+          continue;
+        }
+        addMultiToCollect(collect, numberTextTypes, 2, rawN, rawT);
+        addMultiToCollect(collect, numberTextTypes, 1, rawN, rawT);
+        addMultiToCollect(collect, textNumberTypes, 2, rawT, rawN);
+        addMultiToCollect(collect, textNumberTypes, 1, rawT, rawN);
+      }
+    }
+    return collect;
+  }
+
+  private void addMultiToCollect(
+      List<Value> collect, Type[] types, int dispatchTypes, Object... values) {
+    var raw = EnsoMultiValue.NewNode.getUncached().newValue(types, dispatchTypes, 0, values);
+    var wrap = ctx.asValue(raw);
+    collect.add(wrap);
+  }
+
+  public List<Value> noWrap() {
+    var collect = new ArrayList<Value>();
+    if (languages.contains(Language.ENSO)) {
+      var prelude = "import Standard.Base.Data.Vector.No_Wrap";
+      collect.add(v(null, prelude, "No_Wrap.Value").type());
+    }
     return collect;
   }
 

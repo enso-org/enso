@@ -4,6 +4,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.interpreter.runtime.state.HasContextEnabledNode;
 
 @BuiltinMethod(
     type = "Error",
@@ -11,7 +12,9 @@ import org.enso.interpreter.runtime.error.DataflowError;
     description = "Returns a new value error with given payload.",
     inlineable = true)
 public class ThrowErrorNode extends Node {
+  private @Child HasContextEnabledNode hasContextEnabledNode = HasContextEnabledNode.create();
+
   public Object execute(VirtualFrame giveMeAStackFrame, Object payload) {
-    return DataflowError.withoutTrace(payload, this);
+    return DataflowError.withDefaultTrace(payload, this, hasContextEnabledNode);
   }
 }

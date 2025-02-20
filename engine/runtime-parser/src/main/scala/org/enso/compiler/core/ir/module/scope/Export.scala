@@ -8,6 +8,7 @@ import org.enso.compiler.core.ir.{
   Expression,
   IRKind,
   IdentifiedLocation,
+  LazyDiagnosticStorage,
   LazyId,
   MetadataStorage,
   Name
@@ -39,38 +40,31 @@ object Export {
 
   /** An export statement.
     *
-    * @param name        the full path representing the export
-    * @param rename      the name this export is visible as
-    * @param isAll       is this an unqualified export
-    * @param onlyNames   exported names selected from the exported module
-    * @param hiddenNames exported names hidden from the exported module
-    * @param location    the source location that the node corresponds to
+    * @param name the full path representing the export
+    * @param rename the name this export is visible as
+    * @param onlyNames exported names selected from the exported module
+    * @param identifiedLocation the source location that the node corresponds to
     * @param isSynthetic is this export compiler-generated
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Module(
     name: Name.Qualified,
     rename: Option[Name.Literal],
-    isAll: Boolean,
     onlyNames: Option[List[Name.Literal]],
-    hiddenNames: Option[List[Name.Literal]],
-    override val location: Option[IdentifiedLocation],
-    isSynthetic: Boolean                        = false,
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    isSynthetic: Boolean                   = false,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends IR
       with IRKind.Primitive
       with Export
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
       *
       * @param name        the full path representing the export
       * @param rename      the name this export is visible as
-      * @param isAll       is this an unqualified export
       * @param onlyNames   exported names selected from the exported module
-      * @param hiddenNames exported names hidden from the exported module
       * @param location    the source location that the node corresponds to
       * @param isSynthetic is this import compiler-generated
       * @param passData    the pass metadata associated with this node
@@ -79,30 +73,37 @@ object Export {
       * @return a copy of `this`, updated with the specified values
       */
     def copy(
-      name: Name.Qualified                    = name,
-      rename: Option[Name.Literal]            = rename,
-      isAll: Boolean                          = isAll,
-      onlyNames: Option[List[Name.Literal]]   = onlyNames,
-      hiddenNames: Option[List[Name.Literal]] = hiddenNames,
-      location: Option[IdentifiedLocation]    = location,
-      isSynthetic: Boolean                    = isSynthetic,
-      passData: MetadataStorage               = passData,
-      diagnostics: DiagnosticStorage          = diagnostics,
-      id: UUID @Identifier                    = id
+      name: Name.Qualified                  = name,
+      rename: Option[Name.Literal]          = rename,
+      onlyNames: Option[List[Name.Literal]] = onlyNames,
+      isSynthetic: Boolean                  = isSynthetic,
+      location: Option[IdentifiedLocation]  = location,
+      passData: MetadataStorage             = passData,
+      diagnostics: DiagnosticStorage        = diagnostics,
+      id: UUID @Identifier                  = id
     ): Module = {
-      val res = Module(
-        name,
-        rename,
-        isAll,
-        onlyNames,
-        hiddenNames,
-        location,
-        isSynthetic,
-        passData,
-        diagnostics
-      )
-      res.id = id
-      res
+      if (
+        name != this.name
+        || rename != this.rename
+        || onlyNames != this.onlyNames
+        || isSynthetic != this.isSynthetic
+        || location != this.location
+        || (passData ne this.passData)
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Module(
+          name,
+          rename,
+          onlyNames,
+          location.orNull,
+          isSynthetic,
+          passData
+        )
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -116,9 +117,8 @@ object Export {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -132,15 +132,13 @@ object Export {
       fn: java.util.function.Function[Expression, Expression]
     ): Module = this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Module.Scope.Export.Module(
          |name = $name,
          |rename = $rename,
-         |isAll = $isAll,
          |onlyNames = $onlyNames,
-         |hidingNames = $hiddenNames,
          |location = $location,
          |passData = ${this.showPassData},
          |diagnostics = $diagnostics,
@@ -152,24 +150,17 @@ object Export {
     override def children: List[IR] =
       name :: List(
         rename.toList,
-        onlyNames.getOrElse(List()),
-        hiddenNames.getOrElse(List())
+        onlyNames.getOrElse(List())
       ).flatten
 
     /** @inheritdoc */
     override def showCode(indent: Int): String = {
       val renameCode = rename.map(n => s" as ${n.name}").getOrElse("")
-      if (isAll) {
-        val onlyPart = onlyNames
-          .map(names => " " + names.map(_.name).mkString(", "))
-          .getOrElse("")
-        val hidingPart = hiddenNames
-          .map(names => s" hiding ${names.map(_.name).mkString(", ")}")
-          .getOrElse("")
-        val all = if (onlyNames.isDefined) "" else " all"
-        s"from ${name.name}$renameCode export$onlyPart$all$hidingPart"
-      } else {
-        s"export ${name.name}$renameCode"
+      onlyNames match {
+        case Some(names) =>
+          s"from ${name.name} export ${names.map(_.name).mkString(", ")}$renameCode"
+        case None =>
+          s"export ${name.name}$renameCode"
       }
     }
 
@@ -190,11 +181,8 @@ object Export {
       * @return whether the name could be accessed or not
       */
     def allowsAccess(name: String): Boolean = {
-      if (!isAll) return false;
       if (onlyNames.isDefined) {
         onlyNames.get.exists(_.name.toLowerCase == name.toLowerCase)
-      } else if (hiddenNames.isDefined) {
-        !hiddenNames.get.exists(_.name.toLowerCase == name.toLowerCase)
       } else {
         true
       }

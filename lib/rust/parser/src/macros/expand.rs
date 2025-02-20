@@ -167,8 +167,9 @@ impl<'s> Match<'s> {
             | Self::Expected(_, _)
             | Self::Block(_)
             | Self::NotBlock(_) => {}
-            Self::Or(box OrMatch::First(item) | box OrMatch::Second(item)) =>
-                item.build_var_map(tree, validator),
+            Self::Or(or) => match *or {
+                OrMatch::First(item) | OrMatch::Second(item) => item.build_var_map(tree, validator),
+            },
             Self::Seq(first, second) => {
                 first.build_var_map(tree, validator);
                 second.build_var_map(tree, validator);

@@ -13,7 +13,7 @@ type Scenario
     Value table1 table2
 
 shuffle vec =
-    vec.take (Index_Sub_Range.Sample vec.length seed=42)
+    vec.take (..Sample vec.length seed=42)
 
 create_scenario_equals num_rows =
     xs = (0.up_to num_rows).to_vector

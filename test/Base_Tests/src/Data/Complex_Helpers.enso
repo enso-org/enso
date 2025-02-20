@@ -1,0 +1,25 @@
+private
+
+import Standard.Base.Nothing
+import Standard.Base.Data.Numbers.Float
+import Standard.Base.Data.Ordering.Ordering
+import Standard.Base.Error.Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import project.Data.Complex.Complex
+
+type Complex_Comparator
+    compare x:Complex y:Complex = if x.re==y.re && x.im==y.im then Ordering.Equal else
+        if x.im==0 && y.im==0 then Ordering.compare x.re y.re else
+            Nothing
+    hash x:Complex = if x.im == 0 then Ordering.hash x.re else
+        7*x.re + 11*x.im
+
+## uses the explicit conversion defined in this private module
+Complex.as_complex_and_float self =
+    self : Complex&Float
+
+## explicit "conversion" of `Complex` to `Float` in a private module
+   used in `as_complex_and_float`
+Float.from (that:Complex) =
+    if that.im == 0 then that.re else
+        Error.throw <| Illegal_Argument.Error "Cannot convert Complex with imaginary part to Float"

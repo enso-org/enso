@@ -1,9 +1,8 @@
 package org.enso.projectmanager.protocol
 
 import io.circe.literal.JsonStringContext
-import org.enso.logger.ReportLogsOnFailure
 import org.enso.projectmanager.BaseServerSpec
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 
 import scala.concurrent.Future
 import java.net.URI

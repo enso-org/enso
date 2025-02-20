@@ -4,8 +4,9 @@ import Standard.Base.Errors.Common.Not_Found
 
 from Standard.Test import all
 
+pending_js_missing = if Polyglot.is_language_installed "js" then Nothing else "Can't run JavaScript tests, language `js` is not installed."
 
-type_spec suite_builder name ctor = suite_builder.group name group_builder->
+type_spec suite_builder name ctor pending=Nothing = suite_builder.group name pending=pending group_builder->
     group_builder.specify "should allow mapping" <|
         ctor 1 2 . map x->x+1 . should_equal (ctor 2 3)
 
@@ -113,7 +114,7 @@ add_specs suite_builder =
     type_spec suite_builder "Pair - from Pair.new" Pair.new
     type_spec suite_builder "Pair - from Pair.Value" Pair.Value
     type_spec suite_builder "Pair - from 2-Item Vector" a->b->[a,b]
-    type_spec suite_builder "Pair - from 2-Item JavaScript Array" js_pair
+    type_spec suite_builder "Pair - from 2-Item JavaScript Array" js_pair pending_js_missing
     type_spec suite_builder "Pair - from 2-Item List" a->b->(List.Cons a (List.Cons b List.Nil))
 
 foreign js js_pair a b = """

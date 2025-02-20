@@ -15,5 +15,5 @@ trait EditionProvider {
   ): Either[EditionLoadingError, Editions.Raw.Edition]
 
   /** Finds all editions that are currently available. */
-  def findAvailableEditions(): Seq[String]
+  def findAvailableEditions(update: Boolean = false): Seq[String]
 }

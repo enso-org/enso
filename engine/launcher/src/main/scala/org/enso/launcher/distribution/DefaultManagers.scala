@@ -39,10 +39,6 @@ object DefaultManagers {
   lazy val temporaryDirectoryManager =
     TemporaryDirectoryManager(distributionManager, defaultResourceManager)
 
-  /** Default [[RuntimeComponentConfiguration]]. */
-  lazy val componentConfig: RuntimeComponentConfiguration =
-    new GraalVMComponentConfiguration
-
   /** Creates a [[RuntimeVersionManager]] that uses the default distribution. */
   def runtimeVersionManager(
     globalCLIOptions: GlobalCLIOptions,
@@ -55,12 +51,11 @@ object DefaultManagers {
         alwaysInstallMissing
       ),
       distributionManager,
+      new GraalVersionManager(distributionManager, LauncherEnvironment),
       temporaryDirectoryManager,
       defaultResourceManager,
       EngineRepository.defaultEngineReleaseProvider,
       GraalCEReleaseProvider.default,
-      componentConfig,
-      RuntimeComponentUpdaterFactory.Default,
       InstallerKind.Launcher
     )
 }

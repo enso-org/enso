@@ -1,0 +1,28 @@
+## Enso Signatures 1.0
+## module Standard.Base.Data.Text.Encoding
+- type Encoding
+    - all_character_sets -> Standard.Base.Any.Any
+    - all_encodings -> Standard.Base.Any.Any
+    - ascii -> Standard.Base.Any.Any
+    - character_set_name self -> Standard.Base.Any.Any
+    - default -> Standard.Base.Data.Text.Encoding.Encoding
+    - default_widget display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
+    - from_java_charset charset:Standard.Base.Data.Text.Encoding.Charset -> Standard.Base.Data.Text.Encoding.Encoding
+    - from_name name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_java_charset self -> Standard.Base.Any.Any
+    - to_java_charset_or_null self -> Standard.Base.Any.Any
+    - utf_16_be -> Standard.Base.Any.Any
+    - utf_16_le -> Standard.Base.Any.Any
+    - utf_32_be -> Standard.Base.Any.Any
+    - utf_32_le -> Standard.Base.Any.Any
+    - utf_8 -> Standard.Base.Any.Any
+    - windows_1250 -> Standard.Base.Any.Any
+    - windows_1251 -> Standard.Base.Any.Any
+    - windows_1252 -> Standard.Base.Any.Any
+    - windows_1253 -> Standard.Base.Any.Any
+    - windows_1254 -> Standard.Base.Any.Any
+    - windows_1255 -> Standard.Base.Any.Any
+    - windows_1256 -> Standard.Base.Any.Any
+    - windows_1257 -> Standard.Base.Any.Any
+    - windows_1258 -> Standard.Base.Any.Any

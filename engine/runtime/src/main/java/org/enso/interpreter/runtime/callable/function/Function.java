@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.callable.function;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
@@ -17,6 +18,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.profiles.InlinedBranchProfile;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.common.MethodNames;
 import org.enso.interpreter.node.callable.InteropApplicationNode;
@@ -29,14 +31,15 @@ import org.enso.interpreter.runtime.callable.function.FunctionSchema.CallerFrame
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.Types;
+import org.slf4j.LoggerFactory;
 
 /** A runtime representation of a function object in Enso. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-public final class Function implements EnsoObject {
+public final class Function extends EnsoObject {
   private final RootCallTarget callTarget;
   private final MaterializedFrame scope;
   private final FunctionSchema schema;
@@ -130,6 +133,7 @@ public final class Function implements EnsoObject {
   /**
    * @return the name of this function.
    */
+  @TruffleBoundary
   public String getName() {
     return getCallTarget().getRootNode().getName();
   }
@@ -137,6 +141,8 @@ public final class Function implements EnsoObject {
   /**
    * @return the source section this function was defined in.
    */
+  @TruffleBoundary
+  @ExportMessage(name = "getSourceLocation")
   public SourceSection getSourceSection() {
     return getCallTarget().getRootNode().getSourceSection();
   }
@@ -188,6 +194,21 @@ public final class Function implements EnsoObject {
     return true;
   }
 
+  @ExportMessage
+  boolean hasSourceLocation() {
+    return getSourceSection() != null;
+  }
+
+  @ExportMessage
+  boolean hasExecutableName() {
+    return this.getName() != null;
+  }
+
+  @ExportMessage
+  String getExecutableName() {
+    return this.getName();
+  }
+
   /**
    * A class representing the executable behaviour of the function.
    *
@@ -201,9 +222,28 @@ public final class Function implements EnsoObject {
         Function function,
         Object[] arguments,
         @Cached InteropApplicationNode interopApplicationNode,
-        @CachedLibrary("function") InteropLibrary thisLib) {
-      return interopApplicationNode.execute(
-          function, EnsoContext.get(thisLib).emptyState(), arguments);
+        @CachedLibrary("function") InteropLibrary thisLib,
+        @Cached InlinedBranchProfile panicProfile) {
+      try {
+        return interopApplicationNode.execute(
+            function, EnsoContext.get(thisLib).emptyState(), arguments);
+      } catch (StackOverflowError err) {
+        CompilerDirectives.transferToInterpreter();
+        var asserts = false;
+        assert asserts = true;
+        var logger = LoggerFactory.getLogger(Function.class);
+        if (asserts) {
+          logger.error("StackOverflowError detected", err);
+        } else {
+          logger.debug("StackOverflowError detected", err);
+        }
+        throw err;
+      } catch (PanicException ex) {
+        panicProfile.enter(thisLib);
+        // materialize the exception message
+        ex.getMessage();
+        throw ex;
+      }
     }
   }
 
@@ -254,7 +294,9 @@ public final class Function implements EnsoObject {
    */
   @ExportMessage
   boolean isMemberInvocable(String member) {
-    return member.equals(MethodNames.Function.EQUALS);
+    return member.equals(MethodNames.Function.EQUALS)
+        || member.equals(MethodNames.Function.GET_SOURCE_START)
+        || member.equals(MethodNames.Function.GET_SOURCE_LENGTH);
   }
 
   /**
@@ -277,7 +319,10 @@ public final class Function implements EnsoObject {
    */
   @ExportMessage
   Object getMembers(boolean includeInternal) {
-    return ArrayLikeHelpers.wrapStrings(MethodNames.Function.EQUALS);
+    return ArrayLikeHelpers.wrapStrings(
+        MethodNames.Function.EQUALS,
+        MethodNames.Function.GET_SOURCE_START,
+        MethodNames.Function.GET_SOURCE_LENGTH);
   }
 
   /**
@@ -295,26 +340,23 @@ public final class Function implements EnsoObject {
      * how to do this, see {@link InvokeFunctionNode}.
      *
      * @param function the function to be called
-     * @param state the state to execute the function with
      * @param positionalArguments the arguments to that function, sorted into positional order
      * @return an array containing the necessary information to call an Enso function
      */
     public static Object[] buildArguments(
-        Function function, CallerInfo callerInfo, Object state, Object[] positionalArguments) {
-      return new Object[] {function.getScope(), callerInfo, state, positionalArguments};
+        Function function, CallerInfo callerInfo, Object[] positionalArguments) {
+      return new Object[] {function.getScope(), callerInfo, positionalArguments};
     }
 
     /**
      * Generates an array of arguments using the schema to be passed to a call target.
      *
      * @param frame the frame becoming the lexical scope
-     * @param state the state to execute the thunk with
      * @param positionalArguments the positional arguments to the call target
      * @return an array containing the necessary information to call an Enso function
      */
-    public static Object[] buildArguments(
-        MaterializedFrame frame, Object state, Object[] positionalArguments) {
-      return new Object[] {frame, null, state, positionalArguments};
+    public static Object[] buildArguments(MaterializedFrame frame, Object[] positionalArguments) {
+      return new Object[] {frame, null, positionalArguments};
     }
 
     /**
@@ -324,8 +366,8 @@ public final class Function implements EnsoObject {
      * @param state the state to execute the thunk with
      * @return an array containing the necessary information to call an Enso thunk
      */
-    public static Object[] buildArguments(Function thunk, Object state) {
-      return new Object[] {thunk.getScope(), null, state, new Object[0]};
+    public static Object[] buildArguments(Function thunk) {
+      return new Object[] {thunk.getScope(), null, new Object[0]};
     }
 
     /**
@@ -336,18 +378,7 @@ public final class Function implements EnsoObject {
      * @return the positional arguments to the function
      */
     public static Object[] getPositionalArguments(Object[] arguments) {
-      return (Object[]) arguments[3];
-    }
-
-    /**
-     * Gets the state out of the array.
-     *
-     * @param arguments an array produced by {@link
-     *     ArgumentsHelper#buildArguments(Function,CallerInfo, Object, Object[])}
-     * @return the state for the function
-     */
-    public static State getState(Object[] arguments) {
-      return (State) arguments[2];
+      return (Object[]) arguments[2];
     }
 
     /**
@@ -406,7 +437,8 @@ public final class Function implements EnsoObject {
   }
 
   @ExportMessage
-  String toDisplayString(boolean sideEffects) {
+  @Override
+  public String toDisplayString(boolean sideEffects) {
     return toString();
   }
 

@@ -38,39 +38,15 @@ case class Engine(version: SemVer, path: Path, manifest: Manifest) {
     */
   def componentDirPath: Path = path / "component"
 
-  /** Path to the runner JAR.
-    */
-  def runnerPath: Option[Path] = {
-    if (graalRuntimeVersion.isUnchained) {
-      None
-    } else {
-      Some(
-        componentDirPath / "runner.jar"
-      )
-    }
-  }
-
-  /** Path to the runtime JAR.
-    */
-  def runtimePath: Path = componentDirPath / "runtime.jar"
-
   /** Checks if the installation is not corrupted and reports any issues as
     * failures.
     */
   def ensureValid(): Try[Unit] = {
-    if (runnerPath.isDefined && !Files.exists(runnerPath.get)) {
+    if (!Files.exists(componentDirPath)) {
       return Failure(
         CorruptedComponentError(
-          s"Engine's runner.jar (expected at " +
-          s"`${MaskedPath(runnerPath.get).applyMasking()}`) is missing."
-        )
-      )
-    }
-    if (!Files.exists(runtimePath)) {
-      return Failure(
-        CorruptedComponentError(
-          s"`Engine's runtime.jar (expected at " +
-          s"${MaskedPath(runtimePath).applyMasking()}`) is missing."
+          s"`Engine's component directory (expected at " +
+          s"${MaskedPath(componentDirPath).applyMasking()}`) is missing."
         )
       )
     }

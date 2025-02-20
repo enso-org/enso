@@ -1,13 +1,16 @@
 package org.enso.interpreter.service;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
+import org.enso.interpreter.instrument.ExpressionExecutionState;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.OneshotExpression;
 import org.enso.interpreter.instrument.RuntimeCache;
+import org.enso.interpreter.instrument.TypeInfo;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
 import org.enso.interpreter.instrument.VisualizationHolder;
 import org.enso.interpreter.instrument.profiling.ExecutionTime;
@@ -31,6 +34,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   private final MethodCallsCache methodCallsCache;
   private final UpdatesSynchronizationState syncState;
   private final Map<UUID, FunctionCallInfo> calls = new HashMap<>();
+  private final ExpressionExecutionState expressionExecutionState;
   private final Consumer<ExpressionValue> onCachedCallback;
   private final Consumer<ExpressionValue> onComputedCallback;
   private final Consumer<ExpressionCall> functionCallCallback;
@@ -39,13 +43,16 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   /**
    * Creates callbacks instance.
    *
+   * @param visualizationHolder the holder of all visualizations attached to an execution context.
+   * @param nextExecutionItem the next item scheduled for execution.
    * @param cache the precomputed expression values.
    * @param methodCallsCache the storage tracking the executed updateCachedResult calls.
    * @param syncState the synchronization state of runtime updates.
-   * @param nextExecutionItem the next item scheduled for execution.
-   * @param functionCallCallback the consumer of function call events.
+   * @param expressionExecutionState the execution state for each expression.
    * @param onComputedCallback the consumer of the computed value events.
    * @param onCachedCallback the consumer of the cached value events.
+   * @param functionCallCallback the consumer of function call events.
+   * @param onExecutedVisualizationCallback the consumer of an executed visualization result.
    */
   ExecutionCallbacks(
       VisualizationHolder visualizationHolder,
@@ -53,6 +60,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       RuntimeCache cache,
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
+      ExpressionExecutionState expressionExecutionState,
       Consumer<ExpressionValue> onCachedCallback,
       Consumer<ExpressionValue> onComputedCallback,
       Consumer<ExpressionCall> functionCallCallback,
@@ -62,6 +70,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     this.cache = cache;
     this.methodCallsCache = methodCallsCache;
     this.syncState = syncState;
+    this.expressionExecutionState = expressionExecutionState;
     this.onCachedCallback = onCachedCallback;
     this.onComputedCallback = onComputedCallback;
     this.functionCallCallback = functionCallCallback;
@@ -91,9 +100,9 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   @Override
   public void updateCachedResult(IdExecutionService.Info info) {
     Object result = info.getResult();
-    String resultType = typeOf(result);
+    TypeInfo resultType = typeOf(result);
     UUID nodeId = info.getId();
-    String cachedType = cache.getType(nodeId);
+    TypeInfo cachedType = cache.getType(nodeId);
     FunctionCallInfo call = functionCallInfoById(nodeId);
     FunctionCallInfo cachedCall = cache.getCall(nodeId);
     ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(info.getElapsedTime())};
@@ -139,6 +148,12 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     }
     methodCallsCache.setExecuted(nodeId);
     return null;
+  }
+
+  @Override
+  @CompilerDirectives.TruffleBoundary
+  public Object getExecutionEnvironment(IdExecutionService.Info info) {
+    return expressionExecutionState.getExecutionEnvironment(info.getId());
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -201,19 +216,39 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     return calls.get(nodeId);
   }
 
-  private String typeOf(Object value) {
-    String resultType;
+  private TypeInfo typeOf(Object value) {
     if (value instanceof UnresolvedSymbol) {
-      resultType = Constants.UNRESOLVED_SYMBOL;
-    } else {
-      var typeOfNode = TypeOfNode.getUncached();
-      Object typeResult = value == null ? null : typeOfNode.execute(value);
-      if (typeResult instanceof Type t) {
-        resultType = t.getQualifiedName().toString();
-      } else {
-        resultType = null;
+      return TypeInfo.ofType(Constants.UNRESOLVED_SYMBOL);
+    }
+
+    if (value != null) {
+      final TypeOfNode typeOfNode = TypeOfNode.getUncached();
+      final Type[] publicTypes = typeOfNode.findAllTypesOrNull(value, false);
+
+      if (publicTypes != null) {
+        final Type[] allTypes = typeOfNode.findAllTypesOrNull(value, true);
+        assert Arrays.equals(publicTypes, Arrays.copyOfRange(allTypes, 0, publicTypes.length));
+        final Type[] hiddenTypes =
+            Arrays.copyOfRange(allTypes, publicTypes.length, allTypes.length);
+
+        final String[] publicTypeNames = new String[publicTypes.length];
+        for (var i = 0; i < publicTypes.length; i++) {
+          publicTypeNames[i] = getTypeQualifiedName(publicTypes[i]);
+        }
+        final String[] hiddenTypeNames = new String[hiddenTypes.length];
+        for (var i = 0; i < hiddenTypeNames.length; i++) {
+          hiddenTypeNames[i] = getTypeQualifiedName(hiddenTypes[i]);
+        }
+
+        return new TypeInfo(publicTypeNames, hiddenTypeNames);
       }
     }
-    return resultType;
+
+    return null;
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private static String getTypeQualifiedName(Type t) {
+    return t.getQualifiedName().toString();
   }
 }

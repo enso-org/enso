@@ -2,7 +2,6 @@ package org.enso.languageserver.filemanager
 
 import akka.actor.{Actor, Props}
 import akka.pattern.pipe
-import akka.routing.SmallestMailboxPool
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.data.FileManagerConfig
 import org.enso.languageserver.effect._
@@ -323,13 +322,4 @@ object FileManager {
     exec: Exec[BlockingIO]
   ): Props =
     Props(new FileManager(config, contentRootManager, fs, exec))
-
-  def pool(
-    config: FileManagerConfig,
-    contentRootManager: ContentRootManager,
-    fs: FileSystem,
-    exec: Exec[BlockingIO]
-  ): Props =
-    SmallestMailboxPool(config.parallelism)
-      .props(props(config, contentRootManager, fs, exec))
 }

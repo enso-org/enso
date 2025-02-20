@@ -1,56 +1,33 @@
 package org.enso.base.file_format;
 
+import java.util.List;
 import java.util.Objects;
-import java.util.ServiceLoader;
-import java.util.stream.Collectors;
-import org.enso.base.polyglot.EnsoMeta;
+import org.enso.base.spi.EnsoService;
+import org.enso.base.spi.EnsoServiceLoader;
 import org.graalvm.polyglot.Value;
 
-public abstract class FileFormatSPI {
-  private static final ServiceLoader<FileFormatSPI> loader =
-      ServiceLoader.load(FileFormatSPI.class, FileFormatSPI.class.getClassLoader());
+public abstract class FileFormatSPI extends EnsoService {
+  private static final EnsoServiceLoader<FileFormatSPI> loader =
+      EnsoServiceLoader.load(FileFormatSPI.class);
 
-  public static Value[] get_types(boolean refresh) {
+  public static List<Value> get_types(boolean refresh) {
     if (refresh) {
       loader.reload();
     }
-    return loader.stream().map(provider -> provider.get().getTypeObject()).toArray(Value[]::new);
+    return loader.getTypeObjects();
   }
 
   public static Value findFormatForDataLinkSubType(String subType) {
     Objects.requireNonNull(subType, "subType must not be null/Nothing.");
 
-    var providers =
-        loader.stream()
-            .filter(provider -> subType.equalsIgnoreCase(provider.get().getDataLinkFormatName()))
-            .toList();
-    if (providers.isEmpty()) {
+    var found =
+        loader.findSingleProvider(
+            provider -> subType.equalsIgnoreCase(provider.getDataLinkFormatName()), subType);
+    if (found == null) {
       return null;
     }
-
-    if (providers.size() > 1) {
-      var modules =
-          providers.stream()
-              .map(provider -> provider.get().getModuleName())
-              .collect(Collectors.joining(", "));
-      throw new IllegalStateException(
-          "Error: Multiple Format providers found for format: "
-              + subType
-              + ". The clashing definitions are in the following modules: "
-              + modules
-              + ".");
-    }
-
-    return providers.get(0).get().getTypeObject();
+    return found.getTypeObject();
   }
-
-  public Value getTypeObject() {
-    return EnsoMeta.getType(getModuleName(), getTypeName());
-  }
-
-  protected abstract String getModuleName();
-
-  protected abstract String getTypeName();
 
   /**
    * An optional method that allows this format to be parsed as a selected format in data-links.

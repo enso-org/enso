@@ -19,6 +19,7 @@ import org.apache.arrow.vector.BaseFixedWidthVector;
 import org.apache.arrow.vector.BigIntVector;
 import org.apache.arrow.vector.IntVector;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
 import org.junit.AfterClass;
@@ -84,7 +85,7 @@ public class VerifyArrowTest {
     date32ArrayBuilder.invokeMember("build");
     assertFalse(date32ArrayBuilder.canInvokeMember("append"));
     assertThrows(
-        UnsupportedOperationException.class,
+        PolyglotException.class,
         () -> finalDate32ArrayBuilder.invokeMember("append", startDateTime));
     assertFalse(date32Array.canInvokeMember("append"));
   }
@@ -151,6 +152,33 @@ public class VerifyArrowTest {
     assertThrows(UnsupportedOperationException.class, () -> int8Array.setArrayElement(5, 21));
     v = int8Array.getArrayElement(5);
     assertEquals((byte) 5, v.asByte());
+  }
+
+  @Test
+  public void arrowInt64() {
+    var arrow = ctx.getEngine().getLanguages().get("arrow");
+    assertNotNull("Arrow is available", arrow);
+    var constr = ctx.eval("arrow", "new[Int64]");
+    assertNotNull(constr);
+
+    var arrLength = 48;
+    Value builder = constr.newInstance(arrLength);
+    for (var i = 0; i < arrLength; i++) {
+      builder.invokeMember("append", i);
+    }
+    var arr = builder.invokeMember("build");
+    assertEquals(arrLength, arr.getArraySize());
+    for (var i = 0; i < arrLength; i++) {
+      var ith = arr.getArrayElement(i);
+      assertEquals("Checking value at " + i, i, ith.asLong());
+    }
+
+    var plus = ctx.eval("arrow", "+[Int64]");
+    var doubled = plus.execute(arr, arr);
+    for (var i = 0; i < arrLength; i++) {
+      var ith = doubled.getArrayElement(i);
+      assertEquals("Checking double value at " + i, 2 * i, ith.asInt());
+    }
   }
 
   @Test

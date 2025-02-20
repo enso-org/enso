@@ -1,0 +1,35 @@
+from Standard.Base import all
+
+## Type describing a Google Analytics dimension or metric.
+type Google_Analytics_Field
+    private Dimension java_record
+
+    private Metric java_record
+
+    ## Dimension API Name.
+    api_name : Text
+    api_name self = self.java_record.apiName
+
+    ## Dimension display name.
+    name : Text
+    name self = self.java_record.displayName
+
+    ## Dimension category.
+    category : Text
+    category self = self.java_record.category
+
+    ## Dimension description.
+    description : Text
+    description self = self.java_record.description
+
+    ## PRIVATE
+    to_text : Text
+    to_text self = case self of
+        Google_Analytics_Field.Dimension _ -> self.api_name + " (Dimension)"
+        Google_Analytics_Field.Metric _ -> self.api_name + " (Metric)"
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = case self of
+        Google_Analytics_Field.Dimension _ -> "GA Dimension { " + self.api_name + " (" + self.category + ")}"
+        Google_Analytics_Field.Metric _ -> "GA Metric { " + self.api_name + " (" + self.category + ")}"

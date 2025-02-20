@@ -92,13 +92,11 @@ final class SuggestionsHandler(
   import SuggestionsHandler._
 
   override def preStart(): Unit = {
-    logger.info(
-      "Starting suggestions handler from [{}, {}].",
+    logger.debug(
+      "Starting suggestions handler from [{}, {}]",
       config,
       suggestionsRepo
     )
-    context.system.eventStream
-      .subscribe(self, classOf[Api.ExpressionUpdates])
     context.system.eventStream
       .subscribe(self, classOf[Api.SuggestionsDatabaseModuleUpdateNotification])
     context.system.eventStream.subscribe(
@@ -121,12 +119,12 @@ final class SuggestionsHandler(
 
   private def initializing(init: SuggestionsHandler.Initialization): Receive = {
     case ProjectNameUpdated(name, updates) =>
-      logger.info("Initializing: project name is updated to [{}].", name)
+      logger.debug("Initializing: project name is updated to [{}]", name)
       updates.foreach(sessionRouter ! _)
       tryInitialize(init.copy(project = Some(name)))
 
     case InitializedEvent.SuggestionsRepoInitialized =>
-      logger.info("Initializing: suggestions repo initialized.")
+      logger.debug("Initializing: suggestions repo initialized")
       tryInitialize(
         init.copy(suggestions =
           Some(InitializedEvent.SuggestionsRepoInitialized)
@@ -134,13 +132,13 @@ final class SuggestionsHandler(
       )
 
     case InitializedEvent.TruffleContextInitialized =>
-      logger.info("Initializing: Truffle context initialized.")
+      logger.debug("Initializing: Truffle context initialized")
       PackageManager.Default
         .loadPackage(config.projectContentRoot.file)
         .fold(
           t =>
             logger.error(
-              "Cannot read the package definition from [{}].",
+              "Cannot read the package definition from [{}]",
               MaskedPath(config.projectContentRoot.file.toPath),
               t
             ),
@@ -150,11 +148,11 @@ final class SuggestionsHandler(
       runtimeConnector ! Api.Request(requestId, Api.GetTypeGraphRequest())
 
     case Api.Response(_, Api.GetTypeGraphResponse(g)) =>
-      logger.info("Initializing: got type graph response.")
+      logger.trace("Initializing: got type graph response")
       tryInitialize(init.copy(typeGraph = Some(g)))
 
     case Status.Failure(ex) =>
-      logger.error("Initialization failure.", ex)
+      logger.error("Initialization failure", ex)
 
     case _ => stash()
   }
@@ -186,7 +184,7 @@ final class SuggestionsHandler(
     case msg: Api.SuggestionsDatabaseSuggestionsLoadedNotification
         if state.isSuggestionLoadingRunning =>
       logger.trace(
-        "SuggestionsDatabaseSuggestionsLoadedNotification [shouldStartBackgroundProcessing={}].",
+        "SuggestionsDatabaseSuggestionsLoadedNotification [shouldStartBackgroundProcessing={}]",
         state.shouldStartBackgroundProcessing
       )
       if (state.shouldStartBackgroundProcessing) {
@@ -197,7 +195,7 @@ final class SuggestionsHandler(
 
     case msg: Api.SuggestionsDatabaseSuggestionsLoadedNotification =>
       logger.debug(
-        "Starting loading suggestions for library [{}].",
+        "Starting loading suggestions for library [{}]",
         msg.libraryName
       )
       context.become(
@@ -224,7 +222,7 @@ final class SuggestionsHandler(
             self ! SuggestionsHandler.SuggestionLoadingCompleted
           case Failure(ex) =>
             logger.error(
-              "Error applying suggestion updates for loaded library [{}].",
+              "Error applying suggestion updates for loaded library [{}]",
               msg.libraryName,
               ex
             )
@@ -240,7 +238,7 @@ final class SuggestionsHandler(
       applyDatabaseUpdates(msg)
         .onComplete {
           case Success(notification) =>
-            logger.debug("Complete module update [{}].", msg.module)
+            logger.debug("Complete module update [{}]", msg.module)
             if (notification.updates.nonEmpty) {
               clients.foreach { clientId =>
                 sessionRouter ! DeliverToJsonController(clientId, notification)
@@ -249,56 +247,8 @@ final class SuggestionsHandler(
             self ! SuggestionsHandler.SuggestionUpdatesCompleted
           case Failure(ex) =>
             logger.error(
-              "Error applying suggestion database updates [{}].",
+              "Error applying suggestion database updates [{}]",
               msg.module,
-              ex
-            )
-            self ! SuggestionsHandler.SuggestionUpdatesCompleted
-        }
-      context.become(
-        initialized(
-          projectName,
-          graph,
-          clients,
-          state.suggestionUpdatesRunning()
-        )
-      )
-
-    case msg: Api.ExpressionUpdates if state.isSuggestionUpdatesRunning =>
-      state.suggestionUpdatesQueue.enqueue(msg)
-
-    case Api.ExpressionUpdates(_, updates) =>
-      logger.debug(
-        "Received expression updates [{}].",
-        updates.map(u => (u.expressionId, u.expressionType))
-      )
-      val types = updates.toSeq
-        .filter(_.typeChanged)
-        .flatMap(update => update.expressionType.map(update.expressionId -> _))
-      suggestionsRepo
-        .updateAll(types)
-        .map { case (version, updatedIds) =>
-          val updates = types.zip(updatedIds).collect {
-            case ((_, typeValue), Some(suggestionId)) =>
-              SuggestionsDatabaseUpdate.Modify(
-                id         = suggestionId,
-                returnType = Some(fieldUpdate(typeValue))
-              )
-          }
-          SuggestionsDatabaseUpdateNotification(version, updates)
-        }
-        .onComplete {
-          case Success(notification) =>
-            if (notification.updates.nonEmpty) {
-              clients.foreach { clientId =>
-                sessionRouter ! DeliverToJsonController(clientId, notification)
-              }
-            }
-            self ! SuggestionsHandler.SuggestionUpdatesCompleted
-          case Failure(ex) =>
-            logger.error(
-              "Error applying changes from computed values [{}].",
-              updates.map(_.expressionId),
               ex
             )
             self ! SuggestionsHandler.SuggestionUpdatesCompleted
@@ -343,7 +293,7 @@ final class SuggestionsHandler(
           _ <- suggestionsRepo.clean
         } yield {
           logger.trace(
-            "ClearSuggestionsDatabase [{}].",
+            "ClearSuggestionsDatabase [{}]",
             state.suggestionLoadingQueue
           )
           state.suggestionLoadingQueue.clear()
@@ -400,12 +350,12 @@ final class SuggestionsHandler(
             }
           case Success(Left(err)) =>
             logger.error(
-              s"Error cleaning the index after file delete event [{}].",
+              s"Error cleaning the index after file delete event [{}]",
               err
             )
           case Failure(ex) =>
             logger.error(
-              "Error cleaning the index after file delete event.",
+              "Error cleaning the index after file delete event",
               ex
             )
         }
@@ -473,7 +423,7 @@ final class SuggestionsHandler(
     logger.debug("Trying to initialize with state [{}]", state)
     state.initialized.fold(context.become(initializing(state))) {
       case (projectName, graph) =>
-        logger.debug("Initialized with state [{}].", state)
+        logger.debug("Initialized with state [{}]", state)
         context.become(initialized(projectName, graph, Set(), new State()))
         unstashAll()
     }
@@ -527,7 +477,7 @@ final class SuggestionsHandler(
           action match {
             case Api.SuggestionAction.Add() =>
               if (ids.isEmpty) {
-                logger.error("Cannot {} [{}].", verb, suggestion)
+                logger.error("Cannot {} [{}]", verb, suggestion)
               }
               ids.map(
                 SuggestionsDatabaseUpdate.Add(
@@ -537,7 +487,7 @@ final class SuggestionsHandler(
               )
             case Api.SuggestionAction.Remove() =>
               if (ids.isEmpty) {
-                logger.error(s"Cannot {} [{}].", verb, suggestion)
+                logger.error(s"Cannot {} [{}]", verb, suggestion)
               }
               ids.map(id => SuggestionsDatabaseUpdate.Remove(id))
             case m: Api.SuggestionAction.Modify =>
@@ -585,8 +535,8 @@ final class SuggestionsHandler(
     */
   private def fieldUpdateOption[A](value: Option[A]): FieldUpdate[A] =
     value match {
-      case Some(value) => FieldUpdate(FieldAction.Set, Some(value))
-      case None        => FieldUpdate(FieldAction.Remove, None)
+      case Some(value) => FieldUpdate(FieldActions.Set, Some(value))
+      case None        => FieldUpdate(FieldActions.Remove, None)
     }
 
   /** Construct the field update object from and update value.
@@ -595,10 +545,10 @@ final class SuggestionsHandler(
     * @return the field update object representing the value update
     */
   private def fieldUpdate[A](value: A): FieldUpdate[A] =
-    FieldUpdate(FieldAction.Set, Some(value))
+    FieldUpdate(FieldActions.Set, Some(value))
 
   private def fieldRemove[A]: FieldUpdate[A] =
-    FieldUpdate[A](FieldAction.Remove, None)
+    FieldUpdate[A](FieldActions.Remove, None)
 
   /** Construct [[SuggestionArgumentUpdate]] from the runtime message.
     *

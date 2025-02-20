@@ -14,7 +14,7 @@ import org.enso.pkg.{
 }
 import org.enso.common.LanguageInfo
 import org.enso.common.MethodNames
-import org.enso.polyglot.RuntimeOptions
+import org.enso.common.RuntimeOptions
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.testkit.OsSpec
@@ -104,7 +104,7 @@ class RuntimeComponentsTest
         name            = packageName,
         namespace       = "Enso_Test",
         edition         = Some(edition),
-        componentGroups = componentGroups
+        componentGroups = Some(componentGroups)
       )
     }
 

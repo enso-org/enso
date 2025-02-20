@@ -138,8 +138,12 @@ add_specs suite_builder =
             Problems.assume_no_problems c6
             c6.cast value_type . to_vector . should_equal [-1, -2, Nothing, -1]
 
-        test_no_overflow Value_Type.Byte Java_Byte.MAX_VALUE Java_Byte.MIN_VALUE
-        test_no_overflow (Value_Type.Integer Bits.Bits_16) Java_Short.MAX_VALUE Java_Short.MIN_VALUE
+        javaByteMaxValue = 127 # Java_Byte.MAX_VALUE
+        javaByteMinValue = -128 # Java_Byte.MIN_VALUE
+        javaShortMaxValue = 32767 # Java_Short.MAX_VALUE
+        javaShortMinValue = -32768 # Java_Short.MIN_VALUE
+        test_no_overflow Value_Type.Byte javaByteMaxValue javaByteMinValue
+        test_no_overflow (Value_Type.Integer Bits.Bits_16) javaShortMaxValue javaShortMinValue
         test_no_overflow (Value_Type.Integer Bits.Bits_32) Java_Integer.MAX_VALUE Java_Integer.MIN_VALUE
 
         group_builder.specify "if we cast to Decimal first, then the operations will not overflow" <|

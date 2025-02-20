@@ -6,7 +6,8 @@ import akka.actor.{
   OneForOneStrategy,
   Props,
   Stash,
-  SupervisorStrategy
+  SupervisorStrategy,
+  Terminated
 }
 import com.typesafe.scalalogging.LazyLogging
 
@@ -59,6 +60,7 @@ final class MessageHandlerSupervisor(
           Props(new MessageHandler(protocolFactory, clientActor)),
           s"message-handler-$clientId"
         )
+      context.watch(messageHandler)
       clientActor ! JsonRpcServer.WebConnect(messageHandler, port)
       context.become(initialized(messageHandler))
       unstashAll()
@@ -67,8 +69,11 @@ final class MessageHandlerSupervisor(
       stash()
   }
 
-  private def initialized(messageHandler: ActorRef): Receive = { case message =>
-    messageHandler.forward(message)
+  private def initialized(messageHandler: ActorRef): Receive = {
+    case Terminated(`messageHandler`) =>
+      context.stop(self)
+    case message =>
+      messageHandler.forward(message)
   }
 }
 

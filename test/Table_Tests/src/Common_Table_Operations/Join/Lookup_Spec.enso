@@ -1,11 +1,14 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Floating_Point_Equality
+import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import all
 from Standard.Table.Errors import all
 
 from Standard.Database import all
-from Standard.Database.Errors import Unsupported_Database_Operation, Invariant_Violation, Integrity_Error
+import Standard.Database.Feature.Feature
+from Standard.Database.Errors import all
 
 from Standard.Test import all
 
@@ -14,46 +17,39 @@ import project.Util
 
 main filter=Nothing = run_default_backend add_specs filter
 
-type Data
-    Value ~connection
-
-    setup create_connection_fn =
-        Data.Value (create_connection_fn Nothing)
-
-    teardown self = self.connection.close
-
-
 add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Merge then (add_merge_specs suite_builder setup) else
+        suite_builder.group setup.prefix+"Table.merge" group_builder->
+            group_builder.specify "merge should report unsupported" <|
+                table_builder = setup.light_table_builder
+                t1 = table_builder [["X", [1, 2, 3, 2]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
+                t2 = table_builder [["Y", ["A", "B", "A"]], ["X", [1, 2, 3]]]
+                t3 = t1.merge t2 key_columns="X"
+                t3.should_fail_with (Unsupported_Database_Operation.Error "merge")
+
+add_merge_specs suite_builder setup =
     prefix = setup.prefix
-    create_connection_fn = setup.create_connection_func
     materialize = setup.materialize
+    table_builder = setup.table_builder
     suite_builder.group prefix+"Table.merge" group_builder->
-        data = Data.setup create_connection_fn
-
-        group_builder.teardown <|
-            data.teardown
-
-        table_builder cols =
-            setup.table_builder cols connection=data.connection
-
         group_builder.specify "should allow to simply update columns based on a lookup table" <|
             lookup = table_builder [["Y", ["A", "B", "A"]], ["X", [1, 2, 3]]]
             my_table = table_builder [["X", [1, 2, 3, 2]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
 
             t2 = my_table.merge lookup key_columns="X"
             t2.column_names . should_equal ["X", "Y", "Z"]
-            m2 = t2 |> materialize |> _.order_by "Z"
+            m2 = t2 |> materialize |> _.sort "Z"
             m2.at "Z" . to_vector . should_equal [10, 20, 30, 40]
             m2.at "X" . to_vector . should_equal [1, 2, 3, 2]
             m2.at "Y" . to_vector . should_equal ["A", "B", "A", "B"]
 
-        group_builder.specify "should allow to add new columns from a lookup table" <|
+        group_builder.specify "should allow to add new columns from a lookup table (add_new_columns=True (default))" <|
             lookup = table_builder [["code", ["a", "b", "c"]], ["status", ["new", "old", "changed"]]]
             my_table = table_builder [["id", [1, 2, 3, 4]], ["code", ["a", "c", "c", "b"]], ["hmm", [10, 20, 30, 40]]]
 
-            t2 = my_table.merge lookup key_columns="code"  add_new_columns=True
+            t2 = my_table.merge lookup key_columns="code"
             t2.column_names . should_equal ["id", "code", "hmm", "status"]
-            m2 = t2 |> materialize |> _.order_by "id"
+            m2 = t2 |> materialize |> _.sort "id"
             m2.at "id" . to_vector . should_equal [1, 2, 3, 4]
             m2.at "code" . to_vector . should_equal ["a", "c", "c", "b"]
             m2.at "hmm" . to_vector . should_equal [10, 20, 30, 40]
@@ -63,18 +59,18 @@ add_specs suite_builder setup =
             my_table2 = table_builder [["A", [1, 2, 3, 4]], ["is_X", [True, True, False, True]]]
             t3 = my_table2.merge lookup2 key_columns="is_X" add_new_columns=True
             t3.column_names . should_equal ["A", "is_X", "X"]
-            m3 = t3 |> materialize |> _.order_by "A"
+            m3 = t3 |> materialize |> _.sort "A"
             m3.at "A" . to_vector . should_equal [1, 2, 3, 4]
             m3.at "is_X" . to_vector . should_equal [True, True, False, True]
             m3.at "X" . to_vector . should_equal ["Yes", "Yes", "No", "Yes"]
 
-        group_builder.specify "will warn if extra columns are unexpected (add_new_columns=False) (default)" <|
+        group_builder.specify "will warn if extra columns are unexpected (add_new_columns=False)" <|
             lookup = table_builder [["code", ["a", "b", "c"]], ["status", ["new", "old", "changed"]]]
             my_table = table_builder [["id", [1, 2, 3, 4]], ["code", ["a", "c", "c", "b"]], ["hmm", [10, 20, 30, 40]]]
 
-            t2 = my_table.merge lookup key_columns="code"
+            t2 = my_table.merge lookup key_columns="code" add_new_columns=False
             t2.column_names . should_equal ["id", "code", "hmm"]
-            m2 = t2 |> materialize |> _.order_by "id"
+            m2 = t2 |> materialize |> _.sort "id"
             m2.at "id" . to_vector . should_equal [1, 2, 3, 4]
             m2.at "code" . to_vector . should_equal ["a", "c", "c", "b"]
             m2.at "hmm" . to_vector . should_equal [10, 20, 30, 40]
@@ -84,14 +80,14 @@ add_specs suite_builder setup =
             w2.to_display_text . should_contain "unexpected columns were ignored"
             w2.to_display_text . should_contain "status"
 
-            err2 = my_table.merge lookup key_columns=["code"] add_new_columns=False on_problems=Problem_Behavior.Report_Error
+            err2 = my_table.merge lookup key_columns=["code"] add_new_columns=False on_problems=..Report_Error
             err2.should_fail_with Unexpected_Extra_Columns
             err2.catch.columns . should_equal ["status"]
 
             lookup2 = table_builder [["code", ["a", "b", "c"]], ["status", ["new", "old", "changed"]], ["hmm", [111, 222, 333]]]
             t3 = my_table.merge lookup2 key_columns=["code"] add_new_columns=False
             t3.column_names . should_equal ["id", "code", "hmm"]
-            m3 = t3 |> materialize |> _.order_by "id"
+            m3 = t3 |> materialize |> _.sort "id"
             m3.at "id" . to_vector . should_equal [1, 2, 3, 4]
             m3.at "code" . to_vector . should_equal ["a", "c", "c", "b"]
             m3.at "hmm" . to_vector . should_equal [111, 333, 333, 222]
@@ -104,7 +100,7 @@ add_specs suite_builder setup =
 
             t2 = my_table.merge lookup key_columns=["X"]
             t2.column_names . should_equal ["X", "Y", "Z"]
-            m2 = t2 |> materialize |> _.order_by "Z"
+            m2 = t2 |> materialize |> _.sort "Z"
             m2.at "Z" . to_vector . should_equal [10, 20, 30, 40]
             m2.at "X" . to_vector . should_equal [1, 2, 3, 2]
             m2.at "Y" . to_vector . should_equal ["A", "B", "ZZZ", "B"]
@@ -116,7 +112,7 @@ add_specs suite_builder setup =
 
             t2 = my_table.merge lookup key_columns=["X"] allow_unmatched_rows=True add_new_columns=True
             t2.column_names . should_equal ["X", "Y", "Z", "W"]
-            m2 = t2 |> materialize |> _.order_by "Z"
+            m2 = t2 |> materialize |> _.sort "Z"
             m2.at "Z" . to_vector . should_equal [10, 20, 30, 40]
             m2.at "X" . to_vector . should_equal [1, 2, 3, 2]
             m2.at "Y" . to_vector . should_equal ["A", "B", "ZZZ", "B"]
@@ -135,7 +131,7 @@ add_specs suite_builder setup =
             lookup2 = table_builder [["X", [1, 2, 3]], ["Y", ["A", "B", "C"]]]
             my_table2 = table_builder [["X", [1, 2, 1, 1]], ["Y", ["Z", "ZZ", "ZZZ", "ZZZZ"]], ["Z", [10, 20, 30, 40]]]
             t3 = my_table2.merge lookup2 key_columns=["X"] add_new_columns=True
-            m3 = t3 |> materialize |> _.order_by "Z"
+            m3 = t3 |> materialize |> _.sort "Z"
             m3.at "X" . to_vector . should_equal [1, 2, 1, 1]
             m3.at "Y" . to_vector . should_equal ["A", "B", "A", "A"]
             m3.at "Z" . to_vector . should_equal [10, 20, 30, 40]
@@ -160,7 +156,7 @@ add_specs suite_builder setup =
             t2 = my_table.merge lookup key_columns=["X", "Y"]
             t2.column_names . should_equal ["X", "Y", "Z", "W"]
 
-            m2 = t2 |> materialize |> _.order_by "W"
+            m2 = t2 |> materialize |> _.sort "W"
             m2.at "W" . to_vector . should_equal [1000, 2000, 3000, 4000]
             m2.at "X" . to_vector . should_equal [1, 1, 1, 2]
             m2.at "Y" . to_vector . should_equal ["A", "B", "A", "B"]
@@ -173,7 +169,7 @@ add_specs suite_builder setup =
             # If the duplicates do not show up in result - it is accepted.
             t2 = my_table.merge lookup key_columns=["X"]
             t2.column_names . should_equal ["X", "Y", "Z"]
-            m2 = t2 |> materialize |> _.order_by "Z"
+            m2 = t2 |> materialize |> _.sort "Z"
             m2.at "Z" . to_vector . should_equal [10, 20, 30, 40]
             m2.at "X" . to_vector . should_equal [4, 2, 3, 2]
             m2.at "Y" . to_vector . should_equal ["Z", "B", "ZZZ", "B"]
@@ -190,7 +186,7 @@ add_specs suite_builder setup =
             r3 = my_table2.merge lookup2 key_columns=["X"]
             r3.should_fail_with Non_Unique_Key
 
-            m3 = my_table2.merge lookup2 key_columns=["X", "Y"] |> materialize |> _.order_by "Z"
+            m3 = my_table2.merge lookup2 key_columns=["X", "Y"] |> materialize |> _.sort "Z"
             m3.at "Z" . to_vector . should_equal [10, 20]
             m3.at "X" . to_vector . should_equal [1, 2]
             m3.at "Y" . to_vector . should_equal ["Z", "ZZ"]
@@ -208,7 +204,7 @@ add_specs suite_builder setup =
 
             t2 = my_table.merge lookup key_columns=["X"] add_new_columns=True
             t2.column_names . should_equal ["X", "Z", "Y"]
-            m2 = t2 |> materialize |> _.order_by "Z"
+            m2 = t2 |> materialize |> _.sort "Z"
             m2.at "X" . to_vector . should_equal [1, 2, 2, 2, 1]
             m2.at "Y" . to_vector . should_equal ["A", "B", "B", "B", "A"]
             m2.at "Z" . to_vector . should_equal [10, 20, 20, 20, 50]
@@ -224,25 +220,25 @@ add_specs suite_builder setup =
                 t2 = table_prepared.merge lookup key_columns=["key1", "key2"] allow_unmatched_rows=allow_unmatched_rows add_new_columns=True
                 t2.column_names . should_equal ["key1", "key2", "X", "Y", "Z", "W", "A", "B", "C", "D", "X2", "Y2", "Z2", "W2"]
 
-                t2.at "key1" . value_type . should_be_a (Value_Type.Integer ...)
+                setup.expect_integer_type <| t2.at "key1"
                 t2.at "key2" . value_type . should_equal Value_Type.Char
 
-                t2.at "X" . value_type . should_be_a (Value_Type.Integer ...)
+                setup.expect_integer_type <| t2.at "X"
                 t2.at "Y" . value_type . should_equal Value_Type.Char
                 t2.at "Z" . value_type . should_equal Value_Type.Float
                 t2.at "W" . value_type . should_equal Value_Type.Boolean
 
-                t2.at "A" . value_type . should_be_a (Value_Type.Integer ...)
+                setup.expect_integer_type <| t2.at "A"
                 t2.at "B" . value_type . should_equal Value_Type.Char
                 t2.at "C" . value_type . should_equal Value_Type.Float
                 t2.at "D" . value_type . should_equal Value_Type.Boolean
 
-                t2.at "X2" . value_type . should_be_a (Value_Type.Integer ...)
+                setup.expect_integer_type <| t2.at "X2"
                 t2.at "Y2" . value_type . should_equal Value_Type.Char
                 t2.at "Z2" . value_type . should_equal Value_Type.Float
                 t2.at "W2" . value_type . should_equal Value_Type.Boolean
 
-        if setup.test_selection.fixed_length_text_columns then group_builder.specify "should correctly preserve types of original, merged and added columns (various Char types test case)" <|
+        if setup.flagged ..Fixed_Length_Text_Columns then group_builder.specify "should correctly preserve types of original, merged and added columns (various Char types test case)" <|
             table2 = (table_builder [["key", ["0"]], ["X", ["a"]], ["A", ["bbbbb"]]]) . cast "key" (Value_Type.Char size=50) . cast "X" (Value_Type.Char size=1) . cast "A" (Value_Type.Char size=5 variable_length=False)
             lookup2 = (table_builder [["key", ["0"]], ["X2", ["ccc"]], ["A", ["dddd"]]]) . cast "key" (Value_Type.Char size=100) . cast "X2" (Value_Type.Char size=3 variable_length=False) . cast "A" (Value_Type.Char size=4 variable_length=False)
 
@@ -278,7 +274,7 @@ add_specs suite_builder setup =
 
             t2 = my_table.merge lookup key_columns="X"
             t2.column_names . should_equal ["X", "Y", "Z"]
-            m2 = t2 |> materialize |> _.order_by "Z"
+            m2 = t2 |> materialize |> _.sort "Z"
             m2.at "Z" . to_vector . should_equal [10, 20, 30, 40]
             m2.at "X" . to_vector . should_equal [2.0, 3.0, 2.0, 3.0]
             m2.at "Y" . to_vector . should_equal ["B", "C", "B", "C"]
@@ -292,9 +288,10 @@ add_specs suite_builder setup =
 
             r2 = my_table.merge lookup key_columns="X"
             r2.should_fail_with No_Common_Type
-            r2.catch.to_display_text . should_contain "Integer"
-            r2.catch.to_display_text . should_contain "Char"
-            r2.catch.to_display_text . should_contain "when unifying column [Y]"
+            txt = r2.catch.to_display_text
+            ((txt.contains "Integer") || (txt.contains "Decimal")).should_be_true
+            txt.should_contain "Char"
+            txt.should_contain "when unifying column [Y]"
 
         group_builder.specify "will allow incompatible types if allow_unmatched_rows=False" <|
             lookup = table_builder [["X", [1, 2, 3]], ["Y", [1, 11, 111]]]
@@ -303,8 +300,8 @@ add_specs suite_builder setup =
 
             t2 = my_table.merge lookup key_columns="X" allow_unmatched_rows=False
             t2.column_names . should_equal ["X", "Y", "Z"]
-            t2.at "Y" . value_type . is_integer . should_be_true
-            m2 = t2 |> materialize |> _.order_by "Z"
+            setup.expect_integer_type <| t2.at "Y"
+            m2 = t2 |> materialize |> _.sort "Z"
             m2.at "X" . to_vector . should_equal [2, 3, 2, 3]
             m2.at "Y" . to_vector . should_equal [11, 111, 11, 111]
             m2.at "Z" . to_vector . should_equal [10, 20, 30, 40]
@@ -319,7 +316,7 @@ add_specs suite_builder setup =
             lookup2 = table_builder [["X", [1, 2]], ["Y", ["A", "B"]]]
             my_table2 = table_builder [["X", [2, 3, Nothing, 3]], ["Z", [10, 20, 30, 40]]]
             t2 = my_table2.merge lookup2 key_columns="X" allow_unmatched_rows=True add_new_columns=True
-            m2 = t2 |> materialize |> _.order_by "Z"
+            m2 = t2 |> materialize |> _.sort "Z"
             m2.at "X" . to_vector . should_equal [2, 3, Nothing, 3]
             m2.at "Y" . to_vector . should_equal ["B", Nothing, Nothing, Nothing]
             m2.at "Z" . to_vector . should_equal [10, 20, 30, 40]
@@ -333,9 +330,9 @@ add_specs suite_builder setup =
             my_table = table_builder [["X", [2, 1]], ["Z", [10, 20]]]
 
             r2 = my_table.merge lookup key_columns=[] add_new_columns=True
-            r2.should_fail_with Illegal_Argument
+            r2.should_fail_with Missing_Argument
 
-        if setup.is_database.not then group_builder.specify "(in-memory only) will preserve the order of rows from the original table" <|
+        if setup.is_database.not then group_builder.specify "(in-memory only) will preserve the 279table_builder of rows from the original table" <|
             lookup = table_builder [["Y", [1, 0]], ["V", ["TRUE", "FALSE"]]]
             xs = 0.up_to 50 . to_vector
             ys = xs.map x-> x%2
@@ -358,7 +355,7 @@ add_specs suite_builder setup =
                 # Immediately, the query is all good.
                 Problems.assume_no_problems r1
 
-                m1 = r1 |> materialize |> _.order_by "Z"
+                m1 = r1 |> materialize |> _.sort "Z"
                 m1.at "X" . to_vector . should_equal [1, 2, 2]
                 m1.at "Y" . to_vector . should_equal ["A", "B", "B"]
                 m1.at "Z" . to_vector . should_equal [10, 20, 30]
@@ -386,7 +383,7 @@ add_specs suite_builder setup =
 
                         r3.row_count . should_equal 3
                         r3.at "Z" . to_vector . length . should_equal 3
-                        r3.at "Z" . to_vector . should_contain_the_same_elements_as [10, 20, 30]
+                        r3.at "Z" . to_vector . should_equal_ignoring_order [10, 20, 30]
                 m3.should_fail_with Invariant_Violation
                 r3.at "Z" . to_vector . should_fail_with Invariant_Violation
 
@@ -398,7 +395,7 @@ add_specs suite_builder setup =
                 # Immediately, the query is all good.
                 Problems.assume_no_problems r1
 
-                m1 = r1 |> materialize |> _.order_by "Z"
+                m1 = r1 |> materialize |> _.sort "Z"
                 m1.at "X" . to_vector . should_equal [1, 2, 2]
                 m1.at "Y" . to_vector . should_equal ["A", "B", "B"]
                 m1.at "Z" . to_vector . should_equal [10, 20, 30]
@@ -420,7 +417,7 @@ add_specs suite_builder setup =
                 # Immediately, the query is all good.
                 Problems.assume_no_problems r1
 
-                m1 = r1 |> materialize |> _.order_by "Z"
+                m1 = r1 |> materialize |> _.sort "Z"
                 m1.at "X" . to_vector . should_equal [1, 2, 2]
                 m1.at "Y" . to_vector . should_equal ["A", "B", "B"]
                 m1.at "Z" . to_vector . should_equal [10, 20, 30]
@@ -440,7 +437,7 @@ add_specs suite_builder setup =
             t2 = table.merge table key_columns="X"
             t2.column_names . should_equal ["X", "Y"]
 
-            m2 = t2 |> materialize |> _.order_by "X"
+            m2 = t2 |> materialize |> _.sort "X"
             m2.at "X" . to_vector . should_equal [1, 2, 3]
             m2.at "Y" . to_vector . should_equal ["A", "B", "C"]
 

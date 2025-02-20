@@ -53,7 +53,7 @@ moving_backup file action = recover_io_and_not_found <|
 ## PRIVATE
 write_file_backing_up_old_one file action = recover_io_and_not_found <|
     parent = file.parent
-    bak_file = parent / file.name+".bak"
+    bak_file = parent / (file.name+".bak")
     # The loop is looking for a name for a temporary file that is not yet taken.
     go i =
         new_name = file.name + ".new" + if i == 0 then "" else "." + i.to_text

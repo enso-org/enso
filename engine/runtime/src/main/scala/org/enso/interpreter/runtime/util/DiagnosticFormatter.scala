@@ -169,9 +169,15 @@ class DiagnosticFormatter(
     endCol: Int
   ): String = {
     val line = source.createSection(lineNum).getCharacters.toString
-    linePrefix(lineNum) + fansi
-      .Str(line)
-      .overlay(textAttrs, startCol - 1, endCol)
+    val suffix =
+      try {
+        fansi
+          .Str(line)
+          .overlay(textAttrs, startCol - 1, endCol)
+      } catch {
+        case _: IllegalArgumentException => line
+      }
+    linePrefix(lineNum) + suffix
   }
 
   private def linePrefix(lineNum: Int): String = {

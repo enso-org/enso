@@ -102,7 +102,7 @@ class SuspendedArgumentsTest extends InterpreterTest {
       val code =
         """from Standard.Base import all
           |
-          |main = a -> (~b = Panic.throw 1) -> a
+          |main = \a (~b = Panic.throw 1) -> a
           |""".stripMargin
       eval(code).call(1) shouldEqual 1
     }
@@ -111,7 +111,7 @@ class SuspendedArgumentsTest extends InterpreterTest {
       val code =
         """from Standard.Base import all
           |
-          |main = a -> (~b = Panic.throw 1) -> (~c = Panic.throw 2) -> a
+          |main = \a (~b = Panic.throw 1) (~c = Panic.throw 2) -> a
           |""".stripMargin
       eval(code).call(1) shouldEqual 1
     }
@@ -119,7 +119,7 @@ class SuspendedArgumentsTest extends InterpreterTest {
     "allow passing suspended functions" in {
       val code =
         """main =
-          |    foo = ~x -> x 1
+          |    foo = \~x -> x 1
           |    foo (x -> x)
           |""".stripMargin
 

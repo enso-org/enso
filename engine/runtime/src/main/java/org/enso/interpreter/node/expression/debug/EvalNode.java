@@ -22,7 +22,6 @@ import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.state.State;
 
 /** Node running Enso expressions passed to it as strings. */
 @NodeInfo(shortName = "Eval", description = "Evaluates code passed to it as string")
@@ -60,12 +59,13 @@ public abstract class EvalNode extends BaseNode {
    * @param expression the string containing expression to evaluate
    * @return the result of evaluating {@code expression} in the {@code callerInfo} context
    */
-  public abstract Object execute(CallerInfo callerInfo, State state, Text expression);
+  public abstract Object execute(CallerInfo callerInfo, Text expression);
 
   @CompilerDirectives.TruffleBoundary
   RootCallTarget parseExpression(LocalScope scope, ModuleScope moduleScope, String expression) {
     EnsoContext context = EnsoContext.get(this);
-    LocalScope localScope = scope.createChild();
+    LocalScope localScope =
+        scope == LocalScope.empty() ? LocalScope.createEmpty() : scope.createChild();
     var compiler = context.getCompiler();
     InlineContext inlineContext =
         InlineContext.fromJava(
@@ -83,7 +83,7 @@ public abstract class EvalNode extends BaseNode {
     var newInlineContext = tuppleOption.get()._1();
     var ir = tuppleOption.get()._2();
 
-    var sco = newInlineContext.localScope().getOrElse(LocalScope::root);
+    var sco = newInlineContext.localScope().getOrElse(LocalScope::empty);
     var mod = newInlineContext.getModule();
     var m = org.enso.interpreter.runtime.Module.fromCompilerModule(mod);
     var toTruffle = new IrToTruffle(context, src, m.getScopeBuilder(), compiler.getConfig());
@@ -107,7 +107,6 @@ public abstract class EvalNode extends BaseNode {
       limit = Constants.CacheSizes.EVAL_NODE)
   Object doCached(
       CallerInfo callerInfo,
-      State state,
       Text expression,
       @Cached("expression") Text cachedExpression,
       @Shared("toJavaStringNode") @Cached("build()") ToJavaStringNode toJavaStringNode,
@@ -118,14 +117,14 @@ public abstract class EvalNode extends BaseNode {
                   + " expressionStr)")
           RootCallTarget cachedCallTarget,
       @Shared("thunkExecutorNode") @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
-    Function thunk = Function.thunk(cachedCallTarget, callerInfo.getFrame());
+    var thunk = Function.thunk(cachedCallTarget, callerInfo.getFrame());
+    var state = EnsoContext.get(this).currentState();
     return thunkExecutorNode.executeThunk(callerInfo.getFrame(), thunk, state, getTailStatus());
   }
 
   @Specialization
   Object doUncached(
       CallerInfo callerInfo,
-      State state,
       Text expression,
       @Shared("thunkExecutorNode") @Cached("build()") ThunkExecutorNode thunkExecutorNode,
       @Shared("toJavaStringNode") @Cached("build()") ToJavaStringNode toJavaStringNode) {
@@ -134,7 +133,8 @@ public abstract class EvalNode extends BaseNode {
             callerInfo.getLocalScope(),
             callerInfo.getModuleScope(),
             toJavaStringNode.execute(expression));
-    Function thunk = Function.thunk(callTarget, callerInfo.getFrame());
+    var thunk = Function.thunk(callTarget, callerInfo.getFrame());
+    var state = EnsoContext.get(this).currentState();
     return thunkExecutorNode.executeThunk(callerInfo.getFrame(), thunk, state, getTailStatus());
   }
 }

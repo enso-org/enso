@@ -4,6 +4,7 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
@@ -13,7 +14,7 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
-import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 
 /**
  * Helper node for invocation of {@code Comparable.has_custom_comparator atom}. Note that emulating
@@ -40,18 +41,25 @@ public abstract class CustomComparatorNode extends Node {
   @Specialization
   Type hasCustomComparatorCached(
       Atom atom,
+      @CachedLibrary(limit = "1") StructsLibrary structs,
       @Cached(value = "buildConvertionNode()", allowUncached = true)
           InvokeConversionNode convertNode,
       @Cached(value = "createConversion()", allowUncached = true) UnresolvedConversion conversion) {
     var ctx = EnsoContext.get(this);
     var comparableType = ctx.getBuiltins().comparable().getType();
-    var state = State.create(ctx);
-    Object res =
+    var state = ctx.currentState();
+    Object rawRes =
         convertNode.execute(
             null, state, conversion, comparableType, atom, new Object[] {comparableType, atom});
-    return res instanceof Type result && result != ctx.getBuiltins().defaultComparator().getType()
-        ? result
-        : null;
+    if (rawRes instanceof Atom res
+        && res.getConstructor() == ctx.getBuiltins().comparable().getBy()) {
+      if (structs.getField(res, 1) instanceof Type result) {
+        if (result != ctx.getBuiltins().defaultComparator().getType()) {
+          return result;
+        }
+      }
+    }
+    return null;
   }
 
   @NeverDefault

@@ -71,11 +71,6 @@ public class SuggestionsRepoBenchmark {
     return (scala.Option<T>) scala.None$.MODULE$;
   }
 
-  @Benchmark
-  public Object updateByExternalId() throws TimeoutException, InterruptedException {
-    return Await.result(repo.updateAll(updateInput), TIMEOUT);
-  }
-
   public static void main(String[] args) throws RunnerException {
     Options opt =
         new OptionsBuilder().include(SuggestionsRepoBenchmark.class.getSimpleName()).build();

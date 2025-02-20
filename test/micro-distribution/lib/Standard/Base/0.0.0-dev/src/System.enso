@@ -3,3 +3,5 @@ create_process command arguments input redirect_in redirect_out redirect_err = @
 @Builtin_Type
 type System_Process_Result
     Result exit_code stdout stderr
+
+exit code = @Builtin_Method "System.exit"

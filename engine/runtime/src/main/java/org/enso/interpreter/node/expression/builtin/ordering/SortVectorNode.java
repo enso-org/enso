@@ -39,12 +39,13 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.error.Warning;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
-import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.Warning;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
+import org.enso.interpreter.runtime.warning.WithWarnings;
 
 /**
  * Sorts a vector with elements that have only Default_Comparator, thus, only elements with a
@@ -66,7 +67,7 @@ public abstract class SortVectorNode extends Node {
    * @param self Vector that has elements with only Default_Comparator, that are elements with
    *     builtin types.
    * @param ascending -1 for descending, 1 for ascending
-   * @param comparators Vector of comparators, with the same length of self. This is gather in the
+   * @param comparators Vector of comparators, with the same length of self. This is gathered in the
    *     Enso code, because doing that in this builtin would be difficult. If {@code onFunc}
    *     parameter is not {@code Nothing}, comparators are gathered from the result of {@code
    *     onFunc} projection.
@@ -80,7 +81,6 @@ public abstract class SortVectorNode extends Node {
    */
   public abstract Object execute(
       VirtualFrame frame,
-      State state,
       @AcceptsError Object self,
       long ascending,
       Object comparators,
@@ -105,7 +105,6 @@ public abstract class SortVectorNode extends Node {
       })
   Object sortPrimitives(
       VirtualFrame frame,
-      State state,
       Object self,
       long ascending,
       Object comparators,
@@ -146,7 +145,7 @@ public abstract class SortVectorNode extends Node {
     try {
       return sortPrimitiveVector(elems, javaComparator);
     } catch (CompareException e) {
-      return DataflowError.withoutTrace(
+      return DataflowError.withDefaultTrace(
           incomparableValuesError(e.leftOperand, e.rightOperand), this);
     }
   }
@@ -179,7 +178,6 @@ public abstract class SortVectorNode extends Node {
       })
   Object sortGeneric(
       MaterializedFrame frame,
-      State state,
       Object self,
       long ascending,
       Object comparatorsArray,
@@ -239,7 +237,7 @@ public abstract class SortVectorNode extends Node {
                   group.comparator,
                   callNode,
                   toTextNode,
-                  state,
+                  EnsoContext.get(this).currentState(),
                   less,
                   equal,
                   greater,
@@ -266,7 +264,7 @@ public abstract class SortVectorNode extends Node {
                 ctx.getBuiltins()
                     .error()
                     .makeIncomparableValues(firstIncomparableElem, secondIncomparableElem);
-            return DataflowError.withoutTrace(err, this);
+            return DataflowError.withDefaultTrace(err, this);
           } else {
             // Just one comparator, different from Default_Comparator
             if (!gatheredWarnings.isEmpty()) {
@@ -289,7 +287,7 @@ public abstract class SortVectorNode extends Node {
         default -> throw EnsoContext.get(this).raiseAssertionPanic(this, "unreachable", null);
       }
     } catch (CompareException e) {
-      return DataflowError.withoutTrace(
+      return DataflowError.withDefaultTrace(
           incomparableValuesError(e.leftOperand, e.rightOperand), this);
     }
   }
@@ -354,19 +352,29 @@ public abstract class SortVectorNode extends Node {
             .map(text -> Warning.create(ctx, text, this))
             .limit(MAX_SORT_WARNINGS)
             .toArray(Warning[]::new);
-    return WithWarnings.appendTo(ctx, vector, warnArray.length < warnings.size(), warnArray);
+    var reachedMaxCount = warnArray.length < warnings.size();
+    return WithWarnings.create(vector, MAX_SORT_WARNINGS, reachedMaxCount, warnArray);
   }
 
   private Object attachDifferentComparatorsWarning(Object vector, List<Group> groups) {
-    var diffCompsMsg =
-        groups.stream()
-            .map(Group::comparator)
-            .map(comparator -> comparator.getQualifiedName().toString())
-            .collect(Collectors.joining(", "));
-    var text = Text.create("Different comparators: [" + diffCompsMsg + "]");
-    var ctx = EnsoContext.get(this);
-    var warn = Warning.create(ctx, text, this);
-    return WithWarnings.appendTo(ctx, vector, false, warn);
+    if (groups.size() > 1) {
+      var diffCompsMsg =
+          groups.stream()
+              .map(Group::comparator)
+              .map(comparator -> comparator.getQualifiedName().toString())
+              .collect(Collectors.joining(", "));
+      var text = Text.create("Different comparators: [" + diffCompsMsg + "]");
+      var ctx = EnsoContext.get(this);
+      var warnsLib = WarningsLibrary.getUncached();
+      if (warnsLib.hasWarnings(vector) && warnsLib.isLimitReached(vector)) {
+        return vector;
+      } else {
+        var warn = Warning.create(ctx, text, this);
+        return AppendWarningNode.getUncached().executeAppend(null, vector, warn);
+      }
+    } else {
+      return vector;
+    }
   }
 
   private String getDefaultComparatorQualifiedName() {
@@ -601,7 +609,7 @@ public abstract class SortVectorNode extends Node {
     }
 
     int compareValuesWithDefaultComparator(Object x, Object y) {
-      if (equalsNode.execute(frame, x, y)) {
+      if (equalsNode.execute(frame, x, y).isTrue()) {
         return 0;
       } else {
         // Check if x < y
@@ -661,11 +669,11 @@ public abstract class SortVectorNode extends Node {
     }
 
     private boolean isPrimitiveValue(Object object) {
-      return isBuiltinType(typeOfNode.execute(object));
+      return isBuiltinType(typeOfNode.findTypeOrError(object));
     }
 
     private String getQualifiedTypeName(Object object) {
-      var typeObj = typeOfNode.execute(object);
+      var typeObj = typeOfNode.findTypeOrError(object);
       return toTextNode.execute(typeObj).toString();
     }
 
@@ -675,7 +683,7 @@ public abstract class SortVectorNode extends Node {
       } else if (isNan(object)) {
         return 100;
       } else {
-        var type = typeOfNode.execute(object);
+        var type = typeOfNode.findTypeOrError(object);
         return getBuiltinTypeCost(type);
       }
     }

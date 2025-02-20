@@ -29,9 +29,9 @@ class DetachVisualizationJob(
     }
 
   /** @inheritdoc */
-  override def run(implicit ctx: RuntimeContext): Unit = {
+  override def runImpl(implicit ctx: RuntimeContext): Unit = {
     ctx.locking.withContextLock(
-      contextId,
+      ctx.locking.getOrCreateContextLock(contextId),
       this.getClass,
       () => {
         ctx.contextManager.removeVisualization(

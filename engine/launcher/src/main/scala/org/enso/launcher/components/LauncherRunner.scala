@@ -55,7 +55,8 @@ class LauncherRunner(
           projectManager.findProject(currentWorkingDirectory).get
       }
 
-      val version = resolveVersion(versionOverride, inProject)
+      val version          = resolveVersion(versionOverride, inProject)
+      val workingDirectory = workingDirectoryForRunner(inProject, None)
       val arguments = inProject match {
         case Some(project) =>
           val projectPackagePath =
@@ -68,6 +69,7 @@ class LauncherRunner(
         version,
         arguments ++ setLogLevelArgs(logLevel, logMasking)
         ++ additionalArguments,
+        workingDirectory         = workingDirectory,
         connectLoggerIfAvailable = true
       )
     }
@@ -109,6 +111,10 @@ class LauncherRunner(
         else projectManager.findProject(actualPath).get
       val version = resolveVersion(versionOverride, project)
 
+      // The engine is started in the directory containing the project, or the standalone script.
+      val workingDirectory =
+        workingDirectoryForRunner(project, Some(actualPath))
+
       val arguments =
         if (projectMode) Seq("--run", actualPath.toString)
         else
@@ -127,9 +133,23 @@ class LauncherRunner(
         version,
         arguments ++ setLogLevelArgs(logLevel, logMasking)
         ++ additionalArguments,
+        workingDirectory         = workingDirectory,
         connectLoggerIfAvailable = true
       )
     }
+
+  private def workingDirectoryForRunner(
+    inProject: Option[Project],
+    scriptPath: Option[Path]
+  ): Option[Path] = {
+    // The path of the project or standalone script that is being run.
+    val baseDirectory = inProject match {
+      case Some(project) => Some(project.path)
+      case None          => scriptPath
+    }
+
+    baseDirectory.map(p => p.toAbsolutePath.normalize().getParent)
+  }
 
   private def setLogLevelArgs(
     level: Level,
@@ -190,7 +210,12 @@ class LauncherRunner(
         }
 
       (
-        RunSettings(version, arguments, connectLoggerIfAvailable = false),
+        RunSettings(
+          version,
+          arguments,
+          workingDirectory         = None,
+          connectLoggerIfAvailable = false
+        ),
         whichEngine
       )
     }
@@ -239,6 +264,7 @@ class LauncherRunner(
         version,
         arguments ++ setLogLevelArgs(logLevel, logMasking)
         ++ additionalArguments,
+        workingDirectory         = None,
         connectLoggerIfAvailable = true
       )
     }
@@ -286,6 +312,7 @@ class LauncherRunner(
         version,
         arguments ++ setLogLevelArgs(logLevel, logMasking)
         ++ additionalArguments,
+        workingDirectory         = None,
         connectLoggerIfAvailable = true
       )
     }

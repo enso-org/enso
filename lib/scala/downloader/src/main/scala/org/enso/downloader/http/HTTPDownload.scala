@@ -44,7 +44,7 @@ object HTTPDownload {
     sizeHint: Option[Long] = None,
     encoding: Charset      = StandardCharsets.UTF_8
   ): TaskProgress[APIResponse] = {
-    logger.debug("Fetching [{}].", request.requestImpl.uri())
+    logger.debug("Fetching [{} {}].", request.method, request.uri)
     val taskProgress =
       new TaskProgressImplementation[APIResponse](ProgressUnit.Bytes)
     val total: java.lang.Long = if (sizeHint.isDefined) sizeHint.get else null

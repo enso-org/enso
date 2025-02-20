@@ -2,7 +2,9 @@ package org.enso.compiler.refactoring
 
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.{ExternalID, IR, Identifier}
-import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.{Expression, Name}
+import org.enso.compiler.core.ir.expression.Application
+import org.enso.compiler.core.ir.module.scope.definition.Method
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.compiler.pass.resolve.MethodCalls
@@ -19,7 +21,78 @@ trait IRUtils {
     * @return the first node with the given external id in `ir`
     */
   def findByExternalId(ir: IR, externalId: UUID @ExternalID): Option[IR] = {
-    ir.preorder.find(_.getExternalId.contains(externalId))
+    IR.preorder(
+      ir,
+      { ir =>
+        if (ir.getExternalId.contains(externalId)) {
+          return Some(ir)
+        }
+      }
+    )
+    None
+  }
+
+  /** Find definitions with the provided name.
+    *
+    * @param ir the IR where to search the definition
+    * @param name the definition name to look for
+    * @return the list of definitions with the provided name
+    */
+  def findModuleDefinitions(ir: IR, name: String): Set[IR] = {
+    val builder = Set.newBuilder[IR]
+    IR.preorder(
+      ir,
+      {
+        case methodExplicit: Method.Explicit
+            if methodExplicit.methodName.name == name =>
+          builder.addOne(methodExplicit)
+        case _ =>
+      }
+    )
+    builder.result()
+  }
+
+  /** Find definitions with the provided name.
+    *
+    * @param scope the IR where to search the definition
+    * @param name the definition name to look for
+    * @return the list of definitions with the provided name
+    */
+  def findLocalDefinitions(scope: IR, name: String): Set[IR] = {
+    val builder = Set.newBuilder[IR]
+    IR.preorder(
+      scope,
+      {
+        case expressionBinding: Expression.Binding
+            if expressionBinding.name.name == name =>
+          builder.addOne(expressionBinding)
+        case _ =>
+      }
+    )
+    builder.result()
+  }
+
+  /** Get the [[Expression.Block]] containing the provided expression.
+    *
+    * @param scope the scope where to look
+    * @param expression the expression to look for
+    * @return the block containing the provided expression
+    */
+  def getExpressionBlock(
+    scope: IR,
+    expression: IR
+  ): Option[Expression.Block] = {
+    val blocksBuilder = Set.newBuilder[Expression.Block]
+    IR.preorder(
+      scope,
+      {
+        case block: Expression.Block => blocksBuilder.addOne(block)
+        case _                       =>
+      }
+    )
+    val blocks = blocksBuilder.result()
+
+    blocks.find(block => findById(block, expression.getId).isDefined)
   }
 
   /** Find usages of a local defined in the body block.
@@ -54,25 +127,31 @@ trait IRUtils {
     node: Name
   ): Option[Set[Name.Literal]] =
     for {
-      usages <- findDynamicUsages(ir, node)
+      usages <- findDynamicUsages(ir, node.name)
     } yield {
-      usages
-        .collect {
-          case usage: Name.Literal
-              if usage.isMethod && usage.name == node.name =>
-            usage
-        }
-        .flatMap { symbol =>
-          symbol.getMetadata(MethodCalls).flatMap { resolution =>
-            resolution.target match {
-              case BindingsMap.ResolvedMethod(module, _)
-                  if module.getName == moduleName =>
-                Some(symbol)
-              case _ =>
-                None
-            }
+      usages.collect {
+        case app: Application.Prefix
+            if app.function.isInstanceOf[Name.Literal] &&
+            app.function.asInstanceOf[Name.Literal].name == node.name =>
+          val function = app.function.asInstanceOf[Name.Literal]
+          function.getMetadata(MethodCalls) match {
+            case Some(resolution) =>
+              resolution.target match {
+                case BindingsMap.ResolvedModuleMethod(module, _)
+                    if module.getName == moduleName =>
+                  Some(function)
+                case _ =>
+                  None
+              }
+            case None =>
+              app.arguments.headOption match {
+                case Some(arg) if arg.isSynthetic =>
+                  Some(function)
+                case _ =>
+                  None
+              }
           }
-        }
+      }.flatten
     }
 
   /** Find usages of a static dependency in the [[DataflowAnalysis]] metadata.
@@ -104,16 +183,16 @@ trait IRUtils {
   /** Find usages of a dynamic dependency in the [[DataflowAnalysis]] metadata.
     *
     * @param ir the syntax tree
-    * @param node the name to look for
+    * @param name the name to look for
     * @return the list of usages of the given name in the `ir`
     */
   private def findDynamicUsages(
     ir: IR,
-    node: Name
+    name: String
   ): Option[Set[IR]] = {
     for {
       metadata <- ir.getMetadata(DataflowAnalysis)
-      key = DataflowAnalysis.DependencyInfo.Type.Dynamic(node.name, None)
+      key = DataflowAnalysis.DependencyInfo.Type.Dynamic(name, None)
       dependents <- metadata.dependents.get(key)
     } yield {
       dependents
@@ -133,7 +212,15 @@ trait IRUtils {
     * @return the `ir` node with the given identifier
     */
   private def findById(ir: IR, id: UUID @Identifier): Option[IR] = {
-    ir.preorder.find(_.getId == id)
+    IR.preorder(
+      ir,
+      { ir =>
+        if (ir.getId == id) {
+          return Some(ir)
+        }
+      }
+    )
+    None
   }
 }
 

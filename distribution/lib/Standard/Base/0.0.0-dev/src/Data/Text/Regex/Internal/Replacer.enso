@@ -71,7 +71,7 @@ replacer_cache_lookup : Text -> Replacer | Nothing
 replacer_cache_lookup replacement_string = Replacer_Cache.INSTANCE.get replacement_string
 
 ## PRIVATE
-group_reference_regex = "\$(([0-9]+)|(\$)|(&)|(<([^>]+)>))"
+group_reference_regex = Regex.compile "\$(([0-9]+)|(\$)|(&)|(<([^>]+)>))"
 
 ## PRIVATE
 
@@ -95,7 +95,7 @@ build_replacement_vector_cached replacement_string pattern =
    strings and group reference numbers.
 build_replacement_vector : Text -> Regex -> Vector Replacement ! No_Such_Group
 build_replacement_vector replacement_string pattern =
-    replacement_pattern = Regex.compile group_reference_regex
+    replacement_pattern = group_reference_regex
     it = replacement_pattern.iterator replacement_string
 
     Vector.build builder->

@@ -8,7 +8,11 @@ import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.data.BindingsMap.ModuleReference
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
 import org.enso.compiler.pass.analyse.BindingAnalysis
-import org.enso.compiler.pass.{PassConfiguration, PassManager}
+import org.enso.compiler.pass.{
+  PassConfiguration,
+  PassManager,
+  PassManagerTestUtils
+}
 import org.enso.interpreter.runtime
 import org.enso.interpreter.runtime.ModuleTestUtils
 import org.enso.compiler.context.LocalScope
@@ -20,42 +24,6 @@ import org.enso.common.CompilationStage
   */
 trait CompilerTestSetup {
   // === IR Utilities =========================================================
-
-  /** An extension method to allow converting string source code to IR as a
-    * module.
-    *
-    * @param source the source code to convert
-    */
-  implicit private class ToIrModule(source: String) {
-
-    /** Converts program text to a top-level Enso module.
-      *
-      * @return the [[IR]] representing [[source]]
-      */
-    def toIrModule: Module = {
-      val compiler = new EnsoParser()
-      try compiler.compile(source)
-      finally compiler.close()
-    }
-  }
-
-  /** An extension method to allow converting string source code to IR as an
-    * expression.
-    *
-    * @param source the source code to convert
-    */
-  implicit private class ToIrExpression(source: String) {
-
-    /** Converts the program text to an Enso expression.
-      *
-      * @return the [[IR]] representing [[source]], if it is a valid expression
-      */
-    def toIrExpression: Option[Expression] = {
-      val compiler = new EnsoParser()
-      try compiler.generateIRInline(compiler.parse(source))
-      finally compiler.close()
-    }
-  }
 
   /** Provides an extension method allowing the running of a specified list of
     * passes on the provided IR.
@@ -74,7 +42,17 @@ trait CompilerTestSetup {
       passManager: PassManager,
       moduleContext: ModuleContext
     ): Module = {
-      passManager.runPassesOnModule(ir, moduleContext)
+      val passGroups = PassManagerTestUtils.getPasses(passManager)
+      val runtimeMod = runtime.Module.fromCompilerModule(moduleContext.module)
+      passGroups.foldLeft(ir)((curIr, group) => {
+        // Before a PassGroup is run on a module, we need to explicitly set the
+        // IR on the runtime module, as the pass manager will not do this for us.
+        // This is to ensure consistency between the curIr and IR stored in moduleContext
+        ModuleTestUtils.unsafeSetIr(runtimeMod, curIr)
+        val newIr =
+          passManager.runPassesOnModule(curIr, moduleContext, group, None)
+        newIr
+      })
     }
   }
 
@@ -112,7 +90,7 @@ trait CompilerTestSetup {
       * @return IR appropriate for testing the alias analysis pass as a module
       */
     def preprocessModule(implicit moduleContext: ModuleContext): Module = {
-      source.toIrModule.runPasses(passManager, moduleContext)
+      EnsoParser.compile(source).runPasses(passManager, moduleContext)
     }
 
     /** Translates the source code into appropriate IR for testing this pass
@@ -123,7 +101,9 @@ trait CompilerTestSetup {
     def preprocessExpression(implicit
       inlineContext: InlineContext
     ): Option[Expression] = {
-      source.toIrExpression.map(_.runPasses(passManager, inlineContext))
+      EnsoParser
+        .compileInline(source)
+        .map(_.runPasses(passManager, inlineContext))
     }
   }
 
@@ -195,7 +175,7 @@ trait CompilerTestSetup {
       runtime.Module.empty(QualifiedName.simpleName("Test_Module"), null)
     ModuleTestUtils.unsafeSetIr(
       mod,
-      Module(List(), List(), List(), false, None)
+      Module(List(), List(), List(), false, null)
         .updateMetadata(
           new MetadataPair(
             BindingAnalysis,
@@ -215,7 +195,7 @@ trait CompilerTestSetup {
       compilerConfig = compilerConfig
     )
     InlineContext(
-      module            = mc,
+      moduleContext     = mc,
       freshNameSupply   = freshNameSupply,
       passConfiguration = passConfiguration,
       localScope        = localScope,

@@ -45,16 +45,21 @@
   "name":"[Lorg.enso.interpreter.runtime.callable.argument.CallArgument;"
 },
 {
-  "name":"[Lorg.enso.text.buffer.Node;"
+  "name":"[Lscala.Tuple2;"
 },
 {
-  "name":"[Lscala.Tuple2;"
+  "name":"[Lsun.security.pkcs.SignerInfo;"
 },
 {
   "name":"[S"
 },
 {
   "name":"[Z"
+},
+{
+  "name":"ch.qos.logback.classic.encoder.PatternLayoutEncoder",
+  "queryAllPublicMethods":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
   "name":"ch.qos.logback.classic.pattern.DateConverter",
@@ -81,12 +86,41 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"ch.qos.logback.classic.pattern.ThreadConverter",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"ch.qos.logback.core.ConsoleAppender",
+  "queryAllPublicMethods":true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"ch.qos.logback.core.OutputStreamAppender",
+  "methods":[{"name":"setEncoder","parameterTypes":["ch.qos.logback.core.encoder.Encoder"] }]
+},
+{
+  "name":"ch.qos.logback.core.encoder.Encoder",
+  "methods":[{"name":"valueOf","parameterTypes":["java.lang.String"] }]
+},
+{
+  "name":"ch.qos.logback.core.encoder.LayoutWrappingEncoder",
+  "methods":[{"name":"setParent","parameterTypes":["ch.qos.logback.core.spi.ContextAware"] }]
+},
+{
+  "name":"ch.qos.logback.core.pattern.PatternLayoutEncoderBase",
+  "methods":[{"name":"setPattern","parameterTypes":["java.lang.String"] }]
+},
+{
   "name":"ch.qos.logback.core.rolling.helper.DateTokenConverter",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
   "name":"ch.qos.logback.core.rolling.helper.IntegerTokenConverter",
   "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"ch.qos.logback.core.spi.ContextAware",
+  "methods":[{"name":"valueOf","parameterTypes":["java.lang.String"] }]
 },
 {
   "name":"com.fasterxml.jackson.core.JsonProcessingException"
@@ -180,6 +214,10 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"com.sun.crypto.provider.HmacCore$HmacSHA256",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "name":"com.sun.crypto.provider.TlsKeyMaterialGenerator",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
@@ -244,11 +282,27 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"com.sun.org.apache.xerces.internal.jaxp.SAXParserFactoryImpl",
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
   "name":"com.typesafe.sslconfig.ssl.NoopHostnameVerifier",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"com.univocity.parsers.common.TextParsingException"
+},
+{
+  "name":"java.beans.Introspector"
+},
+{
+  "name":"java.io.BufferedInputStream"
+},
+{
   "name":"java.io.ByteArrayInputStream"
+},
+{
+  "name":"java.io.ByteArrayOutputStream"
 },
 {
   "name":"java.io.File"
@@ -272,13 +326,25 @@
   "name":"java.io.OutputStream"
 },
 {
+  "name":"java.io.PrintWriter"
+},
+{
+  "name":"java.io.Reader"
+},
+{
   "name":"java.io.Serializable"
 },
 {
   "name":"java.io.StringReader"
 },
 {
+  "name":"java.io.StringWriter"
+},
+{
   "name":"java.io.UncheckedIOException"
+},
+{
+  "name":"java.io.Writer"
 },
 {
   "name":"java.lang.ArithmeticException"
@@ -338,11 +404,11 @@
 },
 {
   "name":"java.lang.Integer",
-  "fields":[{"name":"TYPE"}]
+  "fields":[{"name":"TYPE"}, {"name": "MAX_VALUE"}]
 },
 {
   "name":"java.lang.Long",
-  "fields":[{"name":"TYPE"}]
+  "fields":[{"name":"TYPE"}, {"name": "MAX_VALUE"}]
 },
 {
   "name":"java.lang.Math"
@@ -359,7 +425,10 @@
 },
 {
   "name":"java.lang.Object",
-  "methods":[{"name":"equals","parameterTypes":["java.lang.Object"] }, {"name":"hashCode","parameterTypes":[] }, {"name":"toString","parameterTypes":[] }]
+  "methods":[
+    {"name":"<init>", "parameterTypes":[]},
+    {"name":"equals","parameterTypes":["java.lang.Object"] }, {"name":"hashCode","parameterTypes":[] }, {"name":"toString","parameterTypes":[] }
+  ]
 },
 {
   "name":"java.lang.OutOfMemoryError"
@@ -369,7 +438,7 @@
 },
 {
   "name":"java.lang.Short",
-  "fields":[{"name":"TYPE"}]
+  "fields":[{"name":"TYPE"}, {"name": "MAX_VALUE"}]
 },
 {
   "name":"java.lang.StackTraceElement",
@@ -377,7 +446,11 @@
 },
 {
   "name":"java.lang.String",
-  "fields":[{"name":"TYPE"}, {"name":"value"}]
+  "fields":[{"name":"TYPE"}, {"name":"CASE_INSENSITIVE_ORDER"}, {"name":"value"}],
+  "methods":[
+    {"name":"<init>","parameterTypes":["java.lang.String"]},
+    {"name":"format","parameterTypes":["java.lang.String", "java.lang.Object[]"]}
+  ]
 },
 {
   "name":"java.lang.StringBuilder"
@@ -401,6 +474,9 @@
 {
   "name":"java.lang.Throwable",
   "methods":[{"name":"addSuppressed","parameterTypes":["java.lang.Throwable"] }]
+},
+{
+  "name":"java.lang.UnsupportedOperationException"
 },
 {
   "name":"java.lang.Void",
@@ -528,13 +604,37 @@
   "name":"java.net.http.HttpClient"
 },
 {
+  "name":"java.net.http.HttpClient$Builder"
+},
+{
+  "name":"java.net.http.HttpClient$Redirect"
+},
+{
+  "name":"java.net.http.HttpClient.Builder"
+},
+{
+  "name":"java.net.http.HttpClient.Redirect"
+},
+{
   "name":"java.net.http.HttpRequest"
 },
 {
   "name":"java.net.http.HttpRequest$BodyPublisher"
 },
 {
+  "name":"java.net.http.HttpRequest$BodyPublishers"
+},
+{
+  "name":"java.net.http.HttpRequest$Builder"
+},
+{
   "name":"java.net.http.HttpRequest.BodyPublisher"
+},
+{
+  "name":"java.net.http.HttpRequest.BodyPublishers"
+},
+{
+  "name":"java.net.http.HttpRequest.Builder"
 },
 {
   "name":"java.nio.Buffer"
@@ -573,6 +673,9 @@
   "name":"java.nio.file.Path"
 },
 {
+  "name":"java.nio.file.WatchEvent$Modifier"
+},
+{
   "name":"java.nio.file.Path[]"
 },
 {
@@ -583,6 +686,9 @@
 },
 {
   "name":"java.nio.file.attribute.PosixFilePermission"
+},
+{
+  "name":"java.nio.file.attribute.PosixFilePermissions"
 },
 {
   "name":"java.security.AlgorithmParametersSpi"
@@ -624,10 +730,37 @@
   "name":"java.security.spec.DSAParameterSpec"
 },
 {
+  "name":"java.sql.Connection"
+},
+{
+  "name":"java.sql.DatabaseMetaData"
+},
+{
   "name":"java.sql.Date"
 },
 {
+  "name":"java.sql.JDBCType"
+},
+{
+  "name":"java.sql.PreparedStatement"
+},
+{
+  "name":"java.sql.ResultSet"
+},
+{
+  "name":"java.sql.ResultSetMetaData"
+},
+{
+  "name":"java.sql.SQLException"
+},
+{
+  "name":"java.sql.SQLTimeoutException"
+},
+{
   "name":"java.sql.Timestamp"
+},
+{
+  "name":"java.sql.Types"
 },
 {
   "name":"java.text.DecimalFormat"
@@ -711,6 +844,9 @@
   "name":"java.time.temporal.TemporalUnit"
 },
 {
+  "name":"java.time.temporal.UnsupportedTemporalTypeException"
+},
+{
   "name":"java.util.AbstractList"
 },
 {
@@ -720,7 +856,25 @@
   "name":"java.util.Base64"
 },
 {
+  "name":"java.util.Base64$Decoder"
+},
+{
+  "name":"java.util.Base64$Encoder"
+},
+{
+  "name":"java.util.Base64.Decoder"
+},
+{
+  "name":"java.util.Base64.Encoder"
+},
+{
   "name":"java.util.Date"
+},
+{
+  "name":"java.util.HashSet"
+},
+{
+  "name":"java.util.Iterator"
 },
 {
   "name":"java.util.List"
@@ -745,6 +899,9 @@
 },
 {
   "name":"java.util.Random"
+},
+{
+  "name":"java.util.Set"
 },
 {
   "name":"java.util.UUID"
@@ -782,6 +939,9 @@
 {
   "name":"java.util.logging.LoggingMXBean",
   "queryAllPublicMethods":true
+},
+{
+  "name":"java.util.regex.Pattern"
 },
 {
   "name":"javax.management.MBeanOperationInfo",
@@ -833,6 +993,9 @@
 },
 {
   "name":"javax.xml.parsers.DocumentBuilderFactory"
+},
+{
+  "name":"javax.xml.xpath.XPath"
 },
 {
   "name":"javax.xml.xpath.XPathConstants"
@@ -1365,653 +1528,6 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
-  "name":"org.enso.base.Array_Utils"
-},
-{
-  "name":"org.enso.base.CompareException"
-},
-{
-  "name":"org.enso.base.DryRunFileManager"
-},
-{
-  "name":"org.enso.base.Encoding_Utils"
-},
-{
-  "name":"org.enso.base.Environment_Utils"
-},
-{
-  "name":"org.enso.base.FileLineReader"
-},
-{
-  "name":"org.enso.base.ObjectComparator"
-},
-{
-  "name":"org.enso.base.Regex_Utils"
-},
-{
-  "name":"org.enso.base.Text_Utils"
-},
-{
-  "name":"org.enso.base.Time_Utils"
-},
-{
-  "name":"org.enso.base.XML_Utils"
-},
-{
-  "name":"org.enso.base.arrays.LongArrayList"
-},
-{
-  "name":"org.enso.base.encoding.ReportingStreamDecoder"
-},
-{
-  "name":"org.enso.base.encoding.ReportingStreamEncoder"
-},
-{
-  "name":"org.enso.base.enso_cloud.AuthenticationProvider"
-},
-{
-  "name":"org.enso.base.enso_cloud.CacheSettings"
-},
-{
-  "name":"org.enso.base.enso_cloud.CloudAPI"
-},
-{
-  "name":"org.enso.base.enso_cloud.CloudRequestCache"
-},
-{
-  "name":"org.enso.base.enso_cloud.DataLinkSPI"
-},
-{
-  "name":"org.enso.base.enso_cloud.EnsoSecretAccessDenied"
-},
-{
-  "name":"org.enso.base.enso_cloud.EnsoSecretHelper"
-},
-{
-  "name":"org.enso.base.enso_cloud.ExternalLibrarySecretHelper"
-},
-{
-  "name":"org.enso.base.enso_cloud.HideableValue"
-},
-{
-  "name":"org.enso.base.file_format.FileFormatSPI"
-},
-{
-  "name":"org.enso.base.file_system.FileSystemSPI"
-},
-{
-  "name":"org.enso.base.net.URITransformer"
-},
-{
-  "name":"org.enso.base.net.URIWithSecrets"
-},
-{
-  "name":"org.enso.base.net.http.MultipartBodyBuilder"
-},
-{
-  "name":"org.enso.base.net.http.UrlencodedBodyBuilder"
-},
-{
-  "name":"org.enso.base.numeric.ConversionResult"
-},
-{
-  "name":"org.enso.base.numeric.Decimal_Utils"
-},
-{
-  "name":"org.enso.base.random.RandomInstanceHolder"
-},
-{
-  "name":"org.enso.base.random.Random_Utils"
-},
-{
-  "name":"org.enso.base.statistics.CorrelationStatistics"
-},
-{
-  "name":"org.enso.base.statistics.FitError"
-},
-{
-  "name":"org.enso.base.statistics.Moments"
-},
-{
-  "name":"org.enso.base.statistics.Rank"
-},
-{
-  "name":"org.enso.base.statistics.Regression"
-},
-{
-  "name":"org.enso.base.statistics.Statistic"
-},
-{
-  "name":"org.enso.base.text.CaseFoldedString"
-},
-{
-  "name":"org.enso.base.text.Replacer_Cache"
-},
-{
-  "name":"org.enso.base.text.TextFoldingStrategy"
-},
-{
-  "name":"org.enso.base.time.CustomTemporalUnits"
-},
-{
-  "name":"org.enso.base.time.Date_Period_Utils"
-},
-{
-  "name":"org.enso.base.time.EnsoDateTimeFormatter"
-},
-{
-  "name":"org.enso.base.time.FormatterCache"
-},
-{
-  "name":"org.enso.base.time.FormatterCacheKey"
-},
-{
-  "name":"org.enso.base.time.FormatterKind"
-},
-{
-  "name":"org.enso.base_test_helpers.CallbackHelper"
-},
-{
-  "name":"org.enso.base_test_helpers.FileSystemHelper"
-},
-{
-  "name":"org.enso.base_test_helpers.IntHolder"
-},
-{
-  "name":"org.enso.base_test_helpers.IntHolderEquals"
-},
-{
-  "name":"org.enso.base_test_helpers.Number_Utils"
-},
-{
-  "name":"org.enso.compiler.core.ir.IrPersistance$PersistDiagnosticStorage",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.IrPersistance$PersistDouble",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.IrPersistance$PersistIdentifiedLocation",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.IrPersistance$PersistLong",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.IrPersistance$PersistMap",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.IrPersistance$PersistMetadataStorage",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.IrPersistance$PersistScalaList",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.IrPersistance$PersistScalaMap",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.IrPersistance$PersistScalaMutableMap",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.IrPersistance$PersistScalaOption",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.IrPersistance$PersistScalaSeq",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.IrPersistance$PersistScalaSet",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.IrPersistance$PersistString",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.IrPersistance$PersistUUID",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistApplication_Force",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistApplication_Prefix",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistApplication_Sequence",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistCallArgument_Specified",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistCase_Branch",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistCase_Expr",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistDefinitionArgument_Specified",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistDefinition_Data",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistDefinition_Type",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistExport_Module",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistExpression_Binding",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistExpression_Block",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistForeign_Definition",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistFunction_Lambda",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistImport_Module",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistLiteral_Number",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistLiteral_Text",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistLocation",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistMethod_Conversion",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistMethod_Explicit",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistModule",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistName_Blank",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistName_BuiltinAnnotation",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistName_GenericAnnotation",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistName_Literal",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistName_MethodReference",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistName_Qualified",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistName_Self",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistName_SelfType",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistOperator_Binary",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistPattern_Constructor",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistPattern_Literal",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistPattern_Name",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistPattern_Type",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistPolyglot",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistPolyglot_Java",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistSet_Intersection",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistSet_Union",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistType_Error",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistType_Function",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistUnused_Binding",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistUnused_FunctionArgument",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistUnused_PatternBinding",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistWarning_DuplicatedImport",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.core.ir.PersistWarning_WrongBuiltinMethod",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PassPersistance$PersistAliasAnalysisGraph",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PassPersistance$PersistAliasAnalysisGraphScope",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PassPersistance$PersistState",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PassPersistance$PersistTail",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistAliasAnalysis$",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistBindingAnalysis$",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistCachePreferenceAnalysis$",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistCachePreferenceAnalysis_WeightInfo",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistDataflowAnalysis$",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistDataflowAnalysis$DependencyInfo$Type$Dynamic",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistDataflowAnalysis$DependencyInfo$Type$Static",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistDataflowAnalysis_DependencyInfo",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistDataflowAnalysis_DependencyMapping",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistDocumentationComments$",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistDocumentationComments_Doc",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistExpressionAnnotations$",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistFullyQualifiedNames$",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistFullyQualifiedNames_FQNResolution",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistFullyQualifiedNames_ResolvedLibrary",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistFullyQualifiedNames_ResolvedModule",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistGatherDiagnostics$",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistGatherDiagnostics_DiagnosticsMeta",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistGenericAnnotations$",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistGlobalNames$",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistGraph$Occurrence$Def",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistGraph$Occurrence$Use",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistGraph_Link",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistIgnoredBindings$",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistInfo$Scope$Child",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistInfo$Scope$Root",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistInfo_Occurrence",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistMethodCalls$",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistMethodDefinitions$",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistModuleAnnotations$",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistModuleAnnotations_Annotations",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistPatterns$",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistTailCall$",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistTypeNames$",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistTypeSignatures$",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.compiler.pass.analyse.PersistTypeSignatures_Signature",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.ImportExportCache$PersistBindingsMap",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.ImportExportCache$PersistMapToBindings",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.PersistBindingsMap$ModuleReference$Abstract",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.PersistBindingsMap$SymbolRestriction$All$",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.PersistBindingsMap$SymbolRestriction$AllowedResolution",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.PersistBindingsMap$SymbolRestriction$Hiding",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.PersistBindingsMap$SymbolRestriction$Intersect",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.PersistBindingsMap$SymbolRestriction$Only",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.PersistBindingsMap$SymbolRestriction$Union",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.PersistBindingsMap_Cons",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.PersistBindingsMap_ExportedModule",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.PersistBindingsMap_ModuleMethod",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.PersistBindingsMap_PolyglotSymbol",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.PersistBindingsMap_Resolution",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.PersistBindingsMap_ResolvedConstructor",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.PersistBindingsMap_ResolvedImport",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.PersistBindingsMap_ResolvedMethod",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.PersistBindingsMap_ResolvedModule",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.PersistBindingsMap_ResolvedPolyglotField",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.PersistBindingsMap_ResolvedPolyglotSymbol",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.PersistBindingsMap_ResolvedType",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.PersistBindingsMap_Type",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
-  "name":"org.enso.interpreter.caches.PersistQualifiedName",
-  "methods":[{"name":"<init>","parameterTypes":[] }]
-},
-{
   "name":"org.enso.interpreter.node.expression.builtin.Any",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
@@ -2365,6 +1881,10 @@
 },
 {
   "name":"org.enso.interpreter.node.expression.builtin.error.GetAllArrayWarningMethodGen",
+  "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.EnsoLanguage","boolean"] }]
+},
+{
+  "name":"org.enso.interpreter.node.expression.builtin.error.GetAllVectorWarningMethodGen",
   "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.EnsoLanguage","boolean"] }]
 },
 {
@@ -3056,6 +2576,10 @@
   "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.EnsoLanguage","boolean"] }]
 },
 {
+  "name":"org.enso.interpreter.node.expression.builtin.resource.TakeManagedResourceMethodGen",
+  "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.EnsoLanguage","boolean"] }]
+},
+{
   "name":"org.enso.interpreter.node.expression.builtin.resource.WithMethodGen",
   "methods":[{"name":"makeFunction","parameterTypes":["org.enso.interpreter.EnsoLanguage","boolean"] }]
 },
@@ -3181,9 +2705,6 @@
   "name":"org.enso.interpreter.runtime.library.dispatch.TypesLibrary"
 },
 {
-  "name":"org.enso.persist.Persistance"
-},
-{
   "name":"org.enso.polyglot.common_utils.Core_Math_Utils"
 },
 {
@@ -3222,13 +2743,35 @@
   "allDeclaredFields":true
 },
 {
+  "name":"org.jline.terminal.impl.jna.osx.CLibrary$termios",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.jline.terminal.impl.jna.osx.CLibrary$winsize",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.jline.terminal.impl.jna.windows.CLibrary$termios",
+  "allDeclaredFields":true
+},
+{
+  "name":"org.jline.terminal.impl.jna.windows.CLibrary$winsize",
+  "allDeclaredFields":true
+},
+{
   "name":"org.openide.util.RequestProcessor"
+},
+{
+  "name":"org.w3c.dom.Attr"
 },
 {
   "name":"org.w3c.dom.Document"
 },
 {
   "name":"org.w3c.dom.Element"
+},
+{
+  "name":"org.w3c.dom.NamedNodeMap"
 },
 {
   "name":"org.w3c.dom.Node"
@@ -3389,6 +2932,9 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
+  "name":"sun.security.util.ObjectIdentifier"
+},
+{
   "name":"sun.security.x509.AuthorityInfoAccessExtension",
   "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
 },
@@ -3403,6 +2949,9 @@
 {
   "name":"sun.security.x509.CRLDistributionPointsExtension",
   "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
+},
+{
+  "name":"sun.security.x509.CertificateExtensions"
 },
 {
   "name":"sun.security.x509.CertificatePoliciesExtension",

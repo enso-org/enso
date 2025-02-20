@@ -9,7 +9,7 @@ enso-reflect-macros = { path = "macros" }
 enso-metamodel = { path = "../metamodel", features = ["rust"] }
 
 [features]
-default = ["graphviz"]
+default = []
 graphviz = ["enso-metamodel/graphviz"]
 
 [lints]

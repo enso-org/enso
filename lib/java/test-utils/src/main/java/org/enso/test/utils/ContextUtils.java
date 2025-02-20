@@ -12,8 +12,8 @@ import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames.Module;
 import org.enso.common.MethodNames.TopScope;
+import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
@@ -21,10 +21,9 @@ import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.io.IOAccess;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 
-/**
- * A collection of classes and methods useful for testing {@link Context} related stuff.
- */
+/** A collection of classes and methods useful for testing {@link Context} related stuff. */
 public final class ContextUtils {
+
   private ContextUtils() {}
 
   public static Context createDefaultContext() {
@@ -62,12 +61,15 @@ public final class ContextUtils {
   }
 
   /**
-   * Executes the given callable in the given context. A necessity for executing artificially
-   * created Truffle ASTs.
+   * Executes the given callable in the given context.A necessity for executing artificially created
+   * Truffle ASTs.
    *
+   * @param <T> type of the return value
+   * @param ctx context to execute at
+   * @param callable action to invoke with given return type
    * @return Object returned from {@code callable} wrapped in {@link Value}.
    */
-  public static Value executeInContext(Context ctx, Callable<Object> callable) {
+  public static <T> Value executeInContext(Context ctx, Callable<T> callable) {
     // Force initialization of the context
     ctx.eval("enso", "value = 0");
     var err = new Exception[1];
@@ -89,7 +91,6 @@ public final class ContextUtils {
     }
     return res;
   }
-
 
   @SuppressWarnings("unchecked")
   private static <E extends Throwable> E raise(Class<E> clazz, Throwable t) throws E {
@@ -140,14 +141,62 @@ public final class ContextUtils {
   /**
    * Evaluates the given source as if it was in an unnamed module.
    *
+   * @param ctx context to evaluate the module at
    * @param src The source code of the module
    * @return The value returned from the main method of the unnamed module.
    */
-  public static Value evalModule(Context ctx, String src) {
-    Value module = ctx.eval(Source.create("enso", src));
-    Value assocType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
-    Value mainMethod = module.invokeMember(Module.GET_METHOD, assocType, "main");
-    return mainMethod.execute();
+  public static Value evalModule(Context ctx, CharSequence src) {
+    return evalModule(ctx, src, null, "main");
+  }
+
+  /**
+   * Evaluates the given source as if it was in a module with given name.
+   *
+   * @param ctx context to evaluate the module at
+   * @param src The source code of the module
+   * @param name name of the module defining the source
+   * @param methodName name of main method to invoke
+   * @return The value returned from the main method of the unnamed module.
+   */
+  public static Value evalModule(Context ctx, CharSequence src, String name, String methodName) {
+    Source s;
+    if (name == null) {
+      s = Source.create("enso", src);
+    } else {
+      var b = Source.newBuilder("enso", src, name);
+      s = b.buildLiteral();
+    }
+    return evalModule(ctx, s, methodName);
+  }
+
+  /**
+   * Evaluates the given source as if it was in a module with given name.
+   *
+   * @param ctx context to evaluate the module at
+   * @param src The source code of the module
+   * @param methodName name of main method to invoke
+   * @return The value returned from the main method of the unnamed module.
+   */
+  public static Value evalModule(Context ctx, Source src, String methodName) {
+    var module = ctx.eval(src);
+    var assocType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
+    var method = module.invokeMember(Module.GET_METHOD, assocType, methodName);
+    return "main".equals(methodName) ? method.execute() : method.execute(assocType);
+  }
+
+  public static org.enso.compiler.core.ir.Module compileModule(Context ctx, String src) {
+    return compileModule(ctx, src, "Test");
+  }
+
+  public static org.enso.compiler.core.ir.Module compileModule(
+      Context ctx, String src, String moduleName) {
+    var source = Source.newBuilder(LanguageInfo.ID, src, moduleName + ".enso").buildLiteral();
+    var module = ctx.eval(source);
+    var runtimeMod = (org.enso.interpreter.runtime.Module) unwrapValue(ctx, module);
+    if (runtimeMod.getIr() == null) {
+      runtimeMod.compileScope(leakContext(ctx));
+    }
+    return runtimeMod.getIr();
   }
 
   /**
@@ -163,6 +212,7 @@ public final class ContextUtils {
 
   @ExportLibrary(InteropLibrary.class)
   static final class Unwrapper implements TruffleObject {
+
     Object[] args;
 
     @ExportMessage

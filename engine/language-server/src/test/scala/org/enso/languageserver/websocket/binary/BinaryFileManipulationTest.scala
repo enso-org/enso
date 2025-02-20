@@ -5,8 +5,7 @@ import org.apache.commons.io.FileUtils
 import org.enso.languageserver.protocol.binary._
 import org.enso.languageserver.util.binary.BinaryDecoder
 import org.enso.languageserver.websocket.binary.factory._
-import org.enso.logger.ReportLogsOnFailure
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 
 import java.io.File
 import java.nio.ByteBuffer

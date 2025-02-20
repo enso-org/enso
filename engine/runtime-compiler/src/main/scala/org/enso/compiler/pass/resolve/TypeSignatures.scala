@@ -14,10 +14,13 @@ import org.enso.compiler.core.ir.{
 }
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.expression.{errors, Comment, Error}
-import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.{CompilerError, IR}
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.lint.UnusedBindings
+
+import java.util.function.Consumer
 
 /** This pass is responsible for resolving type signatures and associating
   * them as metadata with the typed object.
@@ -34,16 +37,16 @@ case object TypeSignatures extends IRPass {
   override type Metadata = Signature
   override type Config   = IRPass.Configuration.Default
 
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     TypeFunctions,
     ModuleAnnotations
   )
-  override lazy val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     CachePreferenceAnalysis,
     DataflowAnalysis,
     DemandAnalysis,
-    TailCall,
+    org.enso.compiler.pass.analyse.TailCall.INSTANCE,
     UnusedBindings
   )
 
@@ -92,12 +95,16 @@ case object TypeSignatures extends IRPass {
         res
       case meth: definition.Method =>
         val newMethod = meth.mapExpressions(resolveExpression)
-        newMethod.body.preorder.foreach {
-          case fn: Function => verifyAscribedArguments(fn.arguments)
-          case _            =>
-        }
+        IR.preorder(
+          newMethod.body,
+          {
+            case fn: Function => verifyAscribedArguments(fn.arguments)
+            case _            =>
+          }: Consumer[IR]
+        )
+
         val res = lastSignature match {
-          case Some(asc @ Type.Ascription(typed, sig, comment, _, _, _)) =>
+          case Some(asc @ Type.Ascription(typed, sig, comment, _, _)) =>
             val methodRef = meth.methodReference
             val newMethodWithDoc = asc
               .getMetadata(DocumentationComments)
@@ -217,21 +224,15 @@ case object TypeSignatures extends IRPass {
     argument: DefinitionArgument
   ): DefinitionArgument =
     argument match {
-      case specified @ DefinitionArgument.Specified(
-            _,
-            Some(ascribedType),
-            _,
-            _,
-            _,
-            _,
-            _
-          ) =>
-        val sig = resolveExpression(ascribedType.duplicate())
-        specified.copy(
-          name = specified.name.updateMetadata(
+      case specified: DefinitionArgument.Specified
+          if specified.ascribedType.isDefined =>
+        val ascribedType = specified.ascribedType.get
+        val sig          = resolveExpression(ascribedType.duplicate())
+        specified.copyWithNameAndAscribedType(
+          specified.name.updateMetadata(
             new MetadataPair(this, Signature(sig))
           ),
-          ascribedType = Some(
+          Some(
             ascribedType.updateMetadata(new MetadataPair(this, Signature(sig)))
           )
         )
@@ -273,7 +274,7 @@ case object TypeSignatures extends IRPass {
       case binding: Expression.Binding =>
         val newBinding = binding.mapExpressions(resolveExpression)
         val res = lastSignature match {
-          case Some(asc @ Type.Ascription(typed, sig, comment, _, _, _)) =>
+          case Some(asc @ Type.Ascription(typed, sig, comment, _, _)) =>
             val name = binding.name
             val newBindingWithDoc = asc
               .getMetadata(DocumentationComments)
@@ -310,7 +311,15 @@ case object TypeSignatures extends IRPass {
         lastSignature = None
         res
       case a => Some(resolveExpression(a))
-    } ::: lastSignature.map(errors.Unexpected.TypeSignature(_)).toList
+    } ::: lastSignature
+      .map({
+        case asc @ Type.Ascription(_, sig, comment, _, _) =>
+          asc.updateMetadata(
+            new MetadataPair(this, Signature(sig, comment))
+          )
+        case any => errors.Unexpected.TypeSignature(any)
+      })
+      .toList
 
     block.copy(
       expressions = newExpressions.init,
@@ -331,7 +340,7 @@ case object TypeSignatures extends IRPass {
 
     /** @inheritdoc */
     override def prepareForSerialization(compiler: Compiler): Signature = {
-      signature.preorder.foreach(_.passData.prepareForSerialization(compiler))
+      IR.preorder(signature, _.passData.prepareForSerialization(compiler))
       this
     }
 
@@ -339,11 +348,14 @@ case object TypeSignatures extends IRPass {
     override def restoreFromSerialization(
       compiler: Compiler
     ): Option[Signature] = {
-      signature.preorder.foreach { node =>
-        if (!node.passData.restoreFromSerialization(compiler)) {
-          return None
+      IR.preorder(
+        signature,
+        { node =>
+          if (!node.passData.restoreFromSerialization(compiler)) {
+            return None
+          }
         }
-      }
+      )
       Some(this)
     }
 

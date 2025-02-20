@@ -7,6 +7,7 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import java.util.ArrayList;
 import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
+import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.test.ValuesGenerator;
@@ -66,6 +67,7 @@ public class TypeOfNodeTest {
   public static void disposeCtx() throws Exception {
     if (ctx != null) {
       ctx.close();
+      ctx = null;
     }
   }
 
@@ -79,12 +81,29 @@ public class TypeOfNodeTest {
     assertType(value, type, true);
   }
 
-  private void assertType(Object symbol, String expectedTypeName, boolean withPriming) {
+  private static void assertType(Object symbol, String expectedTypeName, boolean withPriming) {
     ContextUtils.executeInContext(
         ctx(),
         () -> {
           var node = TypeOfNode.create();
-          var root = new TestRootNode((frame) -> node.execute(frame.getArguments()[0]));
+          var root =
+              new TestRootNode(
+                  (frame) -> {
+                    var arg = frame.getArguments()[0];
+                    var typeOrNull = node.findTypeOrNull(arg);
+                    var typeOrError = node.findTypeOrError(arg);
+                    if (typeOrNull == null) {
+                      if (typeOrError instanceof EnsoObject) {
+                        assertTrue(
+                            "Expecting error for " + arg, typeOrError instanceof DataflowError);
+                      } else {
+                        // probably HostMetaObject
+                      }
+                    } else {
+                      assertEquals("Types should be the same for " + arg, typeOrNull, typeOrError);
+                    }
+                    return typeOrError;
+                  });
           root.insertChildren(node);
           var call = root.getCallTarget();
 

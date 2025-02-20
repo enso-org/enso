@@ -1,3 +1,4 @@
+export project.AWS.AWS
 export project.AWS_Credential.AWS_Credential
 export project.AWS_Region.AWS_Region
 export project.Database.Redshift.Redshift_Details.Redshift_Details

@@ -1,0 +1,8 @@
+{
+  "$schema": "https://www.chromatic.com/config-file.schema.json",
+  "projectId": "Enso Dashboard",
+  "autoAcceptChanges": "develop",
+  "exitOnceUploaded": true,
+  "skip": "dependabot/**",
+  "buildScriptName": "build-storybook:react"
+}

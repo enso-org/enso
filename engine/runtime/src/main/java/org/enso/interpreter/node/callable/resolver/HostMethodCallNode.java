@@ -15,7 +15,7 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.profiles.BranchProfile;
-import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
+import org.enso.interpreter.node.expression.foreign.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.error.PanicException;
@@ -183,13 +183,17 @@ public abstract class HostMethodCallNode extends Node {
       return PolyglotCallType.CONVERT_TO_HASH_MAP;
     }
 
-    String methodName = symbol.getName();
-    if (library.isMemberInvocable(self, methodName)) {
-      return PolyglotCallType.CALL_METHOD;
-    } else if (library.isMemberReadable(self, methodName)) {
-      return PolyglotCallType.GET_MEMBER;
-    } else if (library.isInstantiable(self) && methodName.equals(NEW_NAME)) {
-      return PolyglotCallType.INSTANTIATE;
+    try {
+      String methodName = symbol.getName();
+      if (library.isMemberInvocable(self, methodName)) {
+        return PolyglotCallType.CALL_METHOD;
+      } else if (library.isMemberReadable(self, methodName)) {
+        return PolyglotCallType.GET_MEMBER;
+      } else if (library.isInstantiable(self) && methodName.equals(NEW_NAME)) {
+        return PolyglotCallType.INSTANTIATE;
+      }
+    } catch (TypeNotPresentException ex) {
+      // no call, get or instantiate is possible
     }
     return PolyglotCallType.NOT_SUPPORTED;
   }

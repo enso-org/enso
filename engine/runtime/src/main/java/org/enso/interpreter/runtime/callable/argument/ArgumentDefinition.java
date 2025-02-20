@@ -2,7 +2,7 @@ package org.enso.interpreter.runtime.callable.argument;
 
 import java.util.Optional;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.callable.argument.ReadArgumentCheckNode;
+import org.enso.interpreter.node.typecheck.TypeCheckValueNode;
 
 /** Tracks the specifics about how arguments are defined at the callable definition site. */
 public final class ArgumentDefinition {
@@ -26,7 +26,7 @@ public final class ArgumentDefinition {
 
   private final int position;
   private final String name;
-  private final ReadArgumentCheckNode checkType;
+  private final TypeCheckValueNode checkType;
   private final ExpressionNode defaultValue;
   private final boolean isSuspended;
 
@@ -42,7 +42,7 @@ public final class ArgumentDefinition {
   public ArgumentDefinition(
       int position,
       String name,
-      ReadArgumentCheckNode checkType,
+      TypeCheckValueNode checkType,
       ExpressionNode defaultValue,
       ExecutionMode executionMode) {
     this.position = position;
@@ -103,7 +103,7 @@ public final class ArgumentDefinition {
    *
    * @return {@code null} or list of types to check argument against
    */
-  public ReadArgumentCheckNode getCheckType() {
+  public TypeCheckValueNode getCheckType() {
     return checkType;
   }
 }

@@ -1,0 +1,84 @@
+# This file is not auto-generated. Feel free to edit it.
+
+name: Engine Changed Files
+
+on:
+  workflow_call:
+    outputs:
+      all_changed_files:
+        description: "Returns all changed files"
+        value: ${{ jobs.engine-changed-files.outputs.all_changed_files }}
+      any_changed:
+        description: "Returns `true` when any of the filenames have changed"
+        value: ${{ jobs.engine-changed-files.outputs.any_changed }}
+      stdlib_api_any_changed:
+        description: "Returns `true` when any of the Standard library API filenames have changed"
+        value: ${{ jobs.stdlib-api-changed-files.outputs.any_changed }}
+
+jobs:
+  engine-changed-files:
+    runs-on: ubuntu-latest
+    name: Changed Files
+    outputs:
+      all_changed_files: ${{ steps.engine-changed-files.outputs.all_changed_files }}
+      any_changed: ${{ steps.engine-changed-files.outputs.any_changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Get changed files
+        id: engine-changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: |
+            distribution/**
+            engine/**
+            lib/**
+            project/**
+            std-bits/**
+            test/**
+            build.sbt
+            .cargo/**
+            Cargo.lock
+            Cargo.toml
+            rust-toolchain.toml
+            .github/workflows/engine-changed-files.yml
+            .github/workflows/engine-checks-optional.yml
+            .github/workflows/engine-checks.yml
+            .github/workflows/engine-pull-request.yml
+      - name: List all changed files
+        env:
+          ALL_CHANGED_FILES: ${{ steps.engine-changed-files.outputs.all_changed_files }}
+        run: |
+          if [[ "${{ steps.engine-changed-files.outputs.any_changed }}" == "true" ]]; then
+            echo "Files changed:"
+          fi
+          for file in ${ALL_CHANGED_FILES}; do
+            echo "$file"
+          done
+  stdlib-api-changed-files:
+    runs-on: ubuntu-latest
+    name: Changed Standard libs API docs files
+    outputs:
+      all_changed_files: ${{ steps.stdlib-api-changed-files.outputs.all_changed_files }}
+      any_changed: ${{ steps.stdlib-api-changed-files.outputs.any_changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Get changed files
+        id: stdlib-api-changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: |
+            distribution/lib/Standard/**/docs/api/**.md
+      - name: List all changed files
+        env:
+          ALL_CHANGED_FILES: ${{ steps.stdlib-api-changed-files.outputs.all_changed_files }}
+        run: |
+          if [[ "${{ steps.stdlib-api-changed-files.outputs.any_changed }}" == "true" ]]; then
+            echo "API docs files changed:"
+          fi
+          for file in ${ALL_CHANGED_FILES}; do
+            echo "$file"
+          done

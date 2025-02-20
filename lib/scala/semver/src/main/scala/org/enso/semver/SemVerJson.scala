@@ -26,7 +26,7 @@ object SemVerJson {
         Left(
           DecodingFailure(
             s"`$version` is not a valid semantic versioning string.",
-            json.history
+            if (json != null) json.history else Nil
           )
         )
     }
@@ -35,4 +35,5 @@ object SemVerJson {
   /** [[Encoder]] instance allowing to serialize semantic versioning strings.
     */
   implicit val semverEncoder: Encoder[SemVer] = _.toString.asJson
+
 }

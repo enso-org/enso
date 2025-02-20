@@ -1,7 +1,7 @@
 package org.enso.languageserver.boot
 
 import akka.actor.ActorSystem
-import buildinfo.Info
+import akka.stream.Materializer
 import com.typesafe.config.ConfigFactory
 import org.enso.distribution.locking.{
   ResourceManager,
@@ -12,6 +12,7 @@ import org.enso.editions.EditionResolver
 import org.enso.editions.updater.EditionManager
 import org.enso.filewatcher.WatcherAdapterFactory
 import org.enso.jsonrpc.{JsonRpcServer, SecureConnectionConfig}
+import org.enso.runner.common.CompilerBasedDependencyExtractor
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect
@@ -45,29 +46,24 @@ import org.enso.librarymanager.LibraryLocations
 import org.enso.librarymanager.local.DefaultLocalLibraryProvider
 import org.enso.librarymanager.published.PublishedLibraryCache
 import org.enso.lockmanager.server.LockManagerService
-import org.enso.logger.Converter
 import org.enso.logger.masking.Masking
-import org.enso.logger.JulHandler
-import org.enso.logger.akka.AkkaConverter
-import org.enso.common.HostAccessFactory
-import org.enso.languageserver.boot.config.ApplicationConfig
-import org.enso.polyglot.{RuntimeOptions, RuntimeServerInfo}
+import org.enso.common.RuntimeOptions
+import org.enso.common.ContextFactory
+import org.enso.logging.utils.akka.AkkaConverter
+import org.enso.polyglot.RuntimeServerInfo
 import org.enso.profiling.events.NoopEventsMonitor
 import org.enso.searcher.memory.InMemorySuggestionsRepo
 import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
-import org.enso.ydoc.Ydoc
-import org.graalvm.polyglot.Engine
-import org.graalvm.polyglot.Context
+import org.enso.version.BuildVersion
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.slf4j.event.Level
-import org.slf4j.LoggerFactory
+import org.slf4j.{LoggerFactory, MDC}
 
 import java.io.{File, PrintStream}
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.Clock
-
-import scala.concurrent.duration._
+import scala.concurrent.duration.DurationInt
 
 /** A main module containing all components of the server.
   *
@@ -77,16 +73,15 @@ import scala.concurrent.duration._
 class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
 
   private val log = LoggerFactory.getLogger(this.getClass)
-  log.info(
+  log.debug(
     "Initializing main module of the Language Server from [{}, {}, {}]",
-    Info.currentEdition,
+    BuildVersion.currentEdition,
     serverConfig,
     logLevel
   )
 
-  private val applicationConfig = ApplicationConfig.load()
-
-  private val utcClock = Clock.systemUTC()
+  private val contextSupervisor = new ComponentSupervisor()
+  private val utcClock          = Clock.systemUTC()
 
   val directoriesConfig = ProjectDirectoriesConfig(serverConfig.contentRootPath)
   private val contentRoot = ContentRootWithFile(
@@ -94,7 +89,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     new File(serverConfig.contentRootPath)
   )
 
-  private val openAiKey = sys.env.get("OPENAI_API_KEY")
+  private val openAiKey = Option(java.lang.System.getenv("OPENAI_API_KEY"))
   private val openAiCfg = openAiKey.map(AICompletionConfig)
 
   val languageServerConfig = Config(
@@ -112,40 +107,40 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     serverConfig.startupConfig,
     openAiCfg
   )
-  log.trace("Created Language Server config [{}].", languageServerConfig)
+  log.trace("Created Language Server config [{}]", languageServerConfig)
 
-  implicit val system: ActorSystem =
+  val system: ActorSystem =
     ActorSystem(
       serverConfig.name,
       None,
       Some(getClass.getClassLoader),
       Some(serverConfig.computeExecutionContext)
     )
-  log.trace("Created ActorSystem [{}].", system)
+  log.trace("Created ActorSystem [{}]", system)
 
   private val zioRuntime =
     new effect.ExecutionContextRuntime(system.dispatcher)
   private val zioExec = effect.ZioExec(zioRuntime)
-  log.trace("Created ZIO executor [{}].", zioExec)
+  log.trace("Created ZIO executor [{}]", zioExec)
 
   private val fileSystem: FileSystem = new FileSystem(log)
-  log.trace("Created file system [{}].", fileSystem)
+  log.trace("Created file system [{}]", fileSystem)
 
   val git = Git.withEmptyUserConfig(
     Some(languageServerConfig.vcsManager.dataDirectory),
     languageServerConfig.vcsManager.asyncInit
   )
-  log.trace("Created git [{}].", git)
+  log.trace("Created git [{}]", git)
 
   implicit val versionCalculator: ContentBasedVersioning =
     Sha3_224VersionCalculator
-  log.trace("Created Version Calculator [{}].", versionCalculator)
+  log.trace("Created Version Calculator [{}]", versionCalculator)
 
   val suggestionsRepo =
     new InMemorySuggestionsRepo()(
       system.dispatcher
     );
-  log.trace("Created SQL suggestions repo: [{}].", suggestionsRepo)
+  log.trace("Created SQL suggestions repo: [{}]", suggestionsRepo)
 
   val idlenessMonitor =
     system.actorOf(IdlenessMonitor.props(utcClock))
@@ -158,7 +153,11 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   val distributionManager = new DistributionManager(environment)
 
   val editionProvider =
-    EditionManager.makeEditionProvider(distributionManager, Some(languageHome))
+    EditionManager.makeEditionProvider(
+      distributionManager,
+      Some(languageHome),
+      false
+    )
   val editionResolver = EditionResolver(editionProvider)
   val editionReferenceResolver = new EditionReferenceResolver(
     contentRoot.file,
@@ -185,7 +184,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
         new NoopEventsMonitor() -> None
     }
   log.trace(
-    "Started runtime events monitor [{}].",
+    "Started runtime events monitor [{}]",
     runtimeEventsMonitor.getClass.getName
   )
 
@@ -222,7 +221,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     new ContentRootManagerWrapper(languageServerConfig, contentRootManagerActor)
 
   lazy val fileManager = system.actorOf(
-    FileManager.pool(
+    FileManager.props(
       languageServerConfig.fileManager,
       contentRootManagerWrapper,
       fileSystem,
@@ -305,31 +304,37 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   val stdInSink = new ObservableOutputStream
   val stdIn     = new ObservablePipedInputStream(stdInSink)
 
-  val builder = Context
-    .newBuilder()
-    .allowAllAccess(true)
-    .allowHostAccess(new HostAccessFactory().allWithTypeMapping())
-    .allowExperimentalOptions(true)
-    .option(RuntimeServerInfo.ENABLE_OPTION, "true")
-    .option(RuntimeOptions.INTERACTIVE_MODE, "true")
-    .option(RuntimeOptions.PROJECT_ROOT, serverConfig.contentRootPath)
-    .option(
-      RuntimeOptions.LOG_LEVEL,
-      Converter.toJavaLevel(logLevel).getName
-    )
-    .option(RuntimeOptions.STRICT_ERRORS, "false")
-    .option(RuntimeOptions.LOG_MASKING, Masking.isMaskingEnabled.toString)
-    .option(RuntimeOptions.EDITION_OVERRIDE, Info.currentEdition)
-    .option(
-      RuntimeOptions.JOB_PARALLELISM,
-      Runtime.getRuntime.availableProcessors().toString
-    )
-    .option(RuntimeOptions.PREINITIALIZE, "js")
+  val extraOptions = new java.util.HashMap[String, String]()
+  extraOptions.put(RuntimeOptions.INTERACTIVE_MODE, "true")
+  extraOptions.put(
+    RuntimeOptions.LOG_MASKING,
+    Masking.isMaskingEnabled.toString
+  )
+  extraOptions.put(RuntimeOptions.EDITION_OVERRIDE, BuildVersion.currentEdition)
+  extraOptions.put(
+    RuntimeOptions.JOB_PARALLELISM,
+    Runtime.getRuntime.availableProcessors().toString
+  )
+
+  if (java.lang.Boolean.getBoolean("com.oracle.graalvm.isaot")) {
+    log.trace("Running Language Server in AOT mode")
+  } else {
+    log.trace("Running Language Server in non-AOT mode")
+  }
+
+  private val builder = ContextFactory
+    .create()
+    .projectRoot(serverConfig.contentRootPath)
+    .logLevel(logLevel)
+    .strictErrors(false)
+    .disableLinting(false)
+    .enableIrCaches(true)
     .out(stdOut)
     .err(stdErr)
     .in(stdIn)
-    .logHandler(JulHandler.get())
-    .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
+    .options(extraOptions)
+    .enableRuntimeServerInfoKey(RuntimeServerInfo.ENABLE_OPTION)
+    .messageTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
         val connection = new RuntimeConnector.Endpoint(
           runtimeConnector,
@@ -339,30 +344,16 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
         connection
       } else null
     })
-  if (
-    Engine
-      .newBuilder()
-      .allowExperimentalOptions(true)
-      .build
-      .getLanguages()
-      .containsKey("java")
-  ) {
-    builder
-      .option("java.ExposeNativeJavaVM", "true")
-      .option("java.Polyglot", "true")
-      .option("java.UseBindingsLoader", "true")
-      .allowCreateThread(true)
+  if (System.getProperty("enso.dev.insight") != null) {
+    stdOut.attach(arr => System.out.write(arr))
   }
 
-  val context = builder.build()
-  log.trace("Created Runtime context [{}].", context)
-
   system.eventStream.setLogLevel(AkkaConverter.toAkka(logLevel))
-  log.trace("Set akka log level to [{}].", logLevel)
+  log.trace("Set akka log level to [{}]", logLevel)
 
   val runtimeKiller =
     system.actorOf(
-      RuntimeKiller.props(runtimeConnector, context),
+      RuntimeKiller.props(runtimeConnector, contextSupervisor),
       "runtime-context"
     )
 
@@ -446,7 +437,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       directoriesConfig,
       jsonRpcProtocolFactory,
       suggestionsRepo,
-      context,
+      builder,
+      contextSupervisor,
       zioRuntime
     )(system.dispatcher)
 
@@ -468,9 +460,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     profilingManager       = profilingManager,
     libraryConfig          = libraryConfig,
     config                 = languageServerConfig
-  )
+  )(system)
   log.trace(
-    "Created JSON connection controller factory [{}].",
+    "Created JSON connection controller factory [{}]",
     jsonRpcControllerFactory
   )
 
@@ -481,6 +473,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       Some(_)
     )
 
+  val materializer: Materializer = Materializer.createMaterializer(system)
   val jsonRpcServer =
     new JsonRpcServer(
       jsonRpcProtocolFactory,
@@ -493,43 +486,35 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
         ),
       List(healthCheckEndpoint, idlenessEndpoint),
       messagesCallback
-    )
-  log.trace("Created JSON RPC Server [{}].", jsonRpcServer)
+    )(system, materializer)
+  log.trace("Created JSON RPC Server [{}]", jsonRpcServer)
 
   val binaryServer =
     new BinaryWebSocketServer(
       InboundMessageDecoder,
       BinaryEncoder.empty,
-      new BinaryConnectionControllerFactory(fileManager),
+      new BinaryConnectionControllerFactory(fileManager)(system),
       BinaryWebSocketServer.Config(
         outgoingBufferSize = 100,
         lazyMessageTimeout = 10.seconds,
         secureConfig       = secureConfig
       ),
       messagesCallback
-    )
-  log.trace("Created Binary WebSocket Server [{}].", binaryServer)
+    )(system, materializer)
+  log.trace("Created Binary WebSocket Server [{}]", binaryServer)
 
-  private val ydoc = Ydoc
-    .builder()
-    .hostname(applicationConfig.ydoc.hostname)
-    .port(applicationConfig.ydoc.port)
-    .build()
-  ydoc.start()
-  log.debug("Started Ydoc server.")
-
-  log.info(
-    "Main module of the Language Server initialized with config [{}].",
+  log.debug(
+    "Main module of the Language Server initialized with config [{}]",
     languageServerConfig
   )
 
   /** Close the main module releasing all resources. */
   def close(): Unit = {
     suggestionsRepo.close()
-    context.close()
+    contextSupervisor.close()
     runtimeEventsMonitor.close()
-    ydoc.close()
-    log.info("Closed Language Server main module.")
+    log.info("Stopped Language Server")
+    MDC.remove("project.id")
   }
 
   private def akkaHttpsConfig(): com.typesafe.config.Config = {

@@ -12,8 +12,9 @@ import org.junit.Test;
 import org.slf4j.spi.SLF4JServiceProvider;
 
 /**
- * In the `runtime/Test` testing suite, {@link }org.enso.logger.TestLogProvider} should be among the
- * logging providers, because it is explicitly chosen as the logging provider for the tests.
+ * In the `runtime/Test` testing suite, {@link
+ * org.enso.logging.service.logback.test.provider.TestLogProvider} should be among the logging
+ * providers, because it is explicitly chosen as the logging provider for the tests.
  *
  * <p>Note that the same test is in the `runtime/Test` project.
  */
@@ -28,14 +29,16 @@ public class TestLogProviderOnClasspath {
     }
     List<String> providerNames =
         providers.stream().map(elem -> elem.getClass().getName()).collect(Collectors.toList());
-    assertThat(providerNames, hasItem("org.enso.logger.TestLogProvider"));
+    assertThat(
+        providerNames, hasItem("org.enso.logging.service.logback.test.provider.TestLogProvider"));
   }
 
   @Test
   public void testLogProviderIsInUnnamedModule() {
     Class<?> testLogProviderClass = null;
     try {
-      testLogProviderClass = Class.forName("org.enso.logger.TestLogProvider");
+      testLogProviderClass =
+          Class.forName("org.enso.logging.service.logback.test.provider.TestLogProvider");
     } catch (ClassNotFoundException e) {
       fail("TestLogProvider class not found");
     }

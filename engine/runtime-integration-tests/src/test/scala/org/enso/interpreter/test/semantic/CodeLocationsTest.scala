@@ -34,19 +34,25 @@ class CodeLocationsTest extends InterpreterTest {
 
     "be correct in simple arithmetic expressions" in
     withLocationsInstrumenter { instrumenter =>
-      val code = "main = 2 + 45 * 20"
-      instrumenter.assertNodeExists(7, 11, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(11, 7, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(11, 2, classOf[LiteralNode])
+      val code =
+        """from Standard.Base.Data.Numbers import all
+          |main = (2 + 45) * 20
+          |""".stripMargin.replace("\r", "")
+      instrumenter.assertNodeExists(50, 13, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(51, 6, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(51, 1, classOf[LiteralNode])
       eval(code)
       ()
     }
 
     "be correct with parenthesized expressions" in
     withLocationsInstrumenter { instrumenter =>
-      val code = "main = (2 + 45) * 20"
-      instrumenter.assertNodeExists(7, 13, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(8, 6, classOf[ApplicationNode])
+      val code =
+        """from Standard.Base.Data.Numbers import all
+          |main = (2 + 45) * 20
+          |""".stripMargin.replace("\r", "")
+      instrumenter.assertNodeExists(50, 13, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(51, 6, classOf[ApplicationNode])
       eval(code)
       ()
     }
@@ -54,13 +60,12 @@ class CodeLocationsTest extends InterpreterTest {
     "be correct in applications and method calls" in
     withLocationsInstrumenter { instrumenter =>
       val code =
-        """import Standard.Base.Data.List.List
-          |import Standard.Base.Any.Any
+        """from Standard.Base import all
           |
           |main = (2-2 == 0).if_then_else (List.Cons 5 6) 0
           |""".stripMargin.linesIterator.mkString("\n")
-      instrumenter.assertNodeExists(73, 41, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(98, 13, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(38, 41, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(63, 13, classOf[ApplicationNode])
       eval(code)
       ()
     }
@@ -69,18 +74,18 @@ class CodeLocationsTest extends InterpreterTest {
     withLocationsInstrumenter { instrumenter =>
       val code =
         """
-          |import Standard.Base.IO
+          |from Standard.Base import all
           |
           |main =
           |    x = 2 + 2 * 2
           |    y = x * x
           |    IO.println y
           |""".stripMargin.linesIterator.mkString("\n")
-      instrumenter.assertNodeExists(37, 13, classOf[AssignmentNode])
-      instrumenter.assertNodeExists(55, 9, classOf[AssignmentNode])
-      instrumenter.assertNodeExists(59, 1, classOf[ReadLocalVariableNode])
-      instrumenter.assertNodeExists(63, 1, classOf[ReadLocalVariableNode])
-      instrumenter.assertNodeExists(80, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(43, 13, classOf[AssignmentNode])
+      instrumenter.assertNodeExists(61, 9, classOf[AssignmentNode])
+      instrumenter.assertNodeExists(65, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(69, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(86, 1, classOf[ReadLocalVariableNode])
       eval(code)
       ()
     }
@@ -89,8 +94,7 @@ class CodeLocationsTest extends InterpreterTest {
     withLocationsInstrumenter { instrumenter =>
       val code =
         """
-          |import Standard.Base.Nothing
-          |import Standard.Base.IO
+          |from Standard.Base import all
           |
           |Nothing.method =
           |    foo = a -> b ->
@@ -102,10 +106,10 @@ class CodeLocationsTest extends InterpreterTest {
           |main = Nothing.method
           |""".stripMargin.linesIterator.mkString("\n")
 
-      instrumenter.assertNodeExists(137, 5, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(155, 1, classOf[ReadLocalVariableNode])
-      instrumenter.assertNodeExists(151, 7, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(163, 9, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(114, 5, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(132, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(128, 7, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(140, 9, classOf[ApplicationNode])
       eval(code)
       ()
     }
@@ -114,7 +118,7 @@ class CodeLocationsTest extends InterpreterTest {
     withLocationsInstrumenter { instrumenter =>
       val code =
         """
-          |import Standard.Base.Data.List.List
+          |from Standard.Base import all
           |
           |main =
           |    x = List.Cons 1 2
@@ -131,10 +135,10 @@ class CodeLocationsTest extends InterpreterTest {
           |
           |    foo x + foo y
           |""".stripMargin.linesIterator.mkString("\n")
-      instrumenter.assertNodeExists(127, 0, 114, 1, classOf[CaseNode])
-      instrumenter.assertNodeExists(178, 7, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(198, 9, classOf[AssignmentNode])
-      instrumenter.assertNodeExists(235, 5, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(121, 0, 114, 1, classOf[CaseNode])
+      instrumenter.assertNodeExists(172, 7, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(192, 9, classOf[AssignmentNode])
+      instrumenter.assertNodeExists(229, 5, classOf[ApplicationNode])
       eval(code)
       ()
     }
@@ -142,7 +146,8 @@ class CodeLocationsTest extends InterpreterTest {
     "be correct for lambdas" in
     withLocationsInstrumenter { instrumenter =>
       val code =
-        """
+        """from Standard.Base import all
+          |
           |main =
           |    f = a -> b -> a + b
           |    g = x -> y ->
@@ -151,8 +156,8 @@ class CodeLocationsTest extends InterpreterTest {
           |
           |    f 1 (g 2 3)
           |""".stripMargin.linesIterator.mkString("\n")
-      instrumenter.assertNodeExists(16, 15, classOf[CreateFunctionNode])
-      instrumenter.assertNodeExists(40, 42, classOf[CreateFunctionNode])
+      instrumenter.assertNodeExists(46, 15, classOf[CreateFunctionNode])
+      instrumenter.assertNodeExists(70, 42, classOf[CreateFunctionNode])
       eval(code)
       ()
     }
@@ -160,16 +165,17 @@ class CodeLocationsTest extends InterpreterTest {
     "be correct for defaulted arguments" in
     withLocationsInstrumenter { instrumenter =>
       val code =
-        """
+        """from Standard.Base import all
+          |
           |main =
           |    bar = x -> x + x * x
           |    foo = x -> (y = bar x) -> x + y
           |    foo 0
           |""".stripMargin.linesIterator.mkString("\n")
 
-      instrumenter.assertNodeExists(53, 5, classOf[ApplicationNode])
-      instrumenter.assertNodeExists(53, 3, classOf[ReadLocalVariableNode])
-      instrumenter.assertNodeExists(57, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(93, 5, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(93, 1, classOf[ReadLocalVariableNode])
+      instrumenter.assertNodeExists(97, 1, classOf[ReadLocalVariableNode])
       eval(code)
       ()
     }
@@ -177,13 +183,14 @@ class CodeLocationsTest extends InterpreterTest {
     "be correct for lazy arguments" in
     withLocationsInstrumenter { instrumenter =>
       val code =
-        """
+        """from Standard.Base import all
+          |
           |main =
           |    bar = a -> ~b -> ~c -> b
           |
           |    bar 0 10 0
           |""".stripMargin.linesIterator.mkString("\n")
-      instrumenter.assertNodeExists(35, 1, classOf[ForceNode])
+      instrumenter.assertNodeExists(65, 1, classOf[ForceNode])
       eval(code)
       ()
     }
@@ -198,19 +205,21 @@ class CodeLocationsTest extends InterpreterTest {
     "be correct for negated expressions" in
     withLocationsInstrumenter { instrumenter =>
       val code =
-        """
+        """from Standard.Base import all
+          |
           |main =
           |    f = 1
           |    -f
           |""".stripMargin.linesIterator.mkString("\n")
-      instrumenter.assertNodeExists(22, 1, 2, 1, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(52, 1, 2, 1, classOf[ApplicationNode])
       eval(code)
     }
 
     "be correct in sugared method definitions" in
     withLocationsInstrumenter { instrumenter =>
       val code =
-        """
+        """from Standard.Base.Data.Numbers import all
+          |
           |Test.foo a b = a * b - a
           |
           |main = Test.foo 2 3
@@ -221,7 +230,10 @@ class CodeLocationsTest extends InterpreterTest {
       val method = mod.getMethod(tpe, "foo").get
       method.value.invokeMember(
         MethodNames.Function.GET_SOURCE_START
-      ) shouldEqual 1
+      ) should (
+        equal(44) or
+        equal(45)
+      )
       method.value.invokeMember(
         MethodNames.Function.GET_SOURCE_LENGTH
       ) should (
@@ -229,7 +241,7 @@ class CodeLocationsTest extends InterpreterTest {
         equal(25)
       )
 
-      instrumenter.assertNodeExists(16, 9, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(59, 9, classOf[ApplicationNode])
 
       eval(code)
     }
@@ -237,20 +249,23 @@ class CodeLocationsTest extends InterpreterTest {
     "be correct in sugared function definitions" in
     withLocationsInstrumenter { instrumenter =>
       val code =
-        """|main =
+        """|from Standard.Base import all
+           |
+           |main =
            |    f a b = a - b
            |    f 10 20
            |""".stripMargin.linesIterator.mkString("\n")
 
-      instrumenter.assertNodeExists(11, 1, 13, 0, classOf[AssignmentNode])
-      instrumenter.assertNodeExists(19, 1, 5, 0, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(41, 1, 13, 0, classOf[AssignmentNode])
+      instrumenter.assertNodeExists(49, 1, 5, 0, classOf[ApplicationNode])
       eval(code)
     }
 
     "be correct in the presence of comments" in
     withLocationsInstrumenter { instrumenter =>
       val code =
-        """
+        """from Standard.Base import all
+          |
           |# this is a comment
           |#this too
           |## But this is a doc.
@@ -260,8 +275,8 @@ class CodeLocationsTest extends InterpreterTest {
           |    # perform the addition
           |    x + y # the addition is performed here
           |""".stripMargin.linesIterator.mkString("\n")
-      instrumenter.assertNodeExists(82, 1, classOf[LiteralNode])
-      instrumenter.assertNodeExists(164, 5, classOf[ApplicationNode])
+      instrumenter.assertNodeExists(112, 1, classOf[LiteralNode])
+      instrumenter.assertNodeExists(194, 5, classOf[ApplicationNode])
       eval(code) shouldEqual 3
     }
 

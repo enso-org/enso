@@ -5,13 +5,17 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link.Data_Link
 import project.Enso_Cloud.Data_Link_Helpers
+import project.Error.Error
 import project.Errors.Deprecated.Deprecated
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Metadata.Display
 import project.Metadata.Widget
+import project.Network.HTTP.Cache_Policy.Cache_Policy
 import project.Network.HTTP.HTTP
+import project.Network.HTTP.HTTP_Error.HTTP_Error
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.URI.URI
+import project.Nothing.Nothing
 import project.Warning.Warning
 from project.Data import Raw_Response
 from project.Data.Boolean import Boolean, False, True
@@ -20,6 +24,8 @@ from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
 from project.System.File_Format import Auto_Detect, format_types
 
+polyglot java import java.lang.Thread
+
 ## PRIVATE
 looks_like_uri path:Text -> Boolean =
     (path.starts_with "http://" Case_Sensitivity.Insensitive) || (path.starts_with "https://" Case_Sensitivity.Insensitive)
@@ -27,16 +33,27 @@ looks_like_uri path:Text -> Boolean =
 ## PRIVATE
    A common implementation for fetching a resource and decoding it,
    following encountered data links.
-fetch_following_data_links (uri:URI) (method:HTTP_Method = HTTP_Method.Get) (headers:Vector = []) format =
-    response = HTTP.fetch uri method headers
-    decode_http_response_following_data_links response format
+fetch_following_data_links (uri:URI) (method:HTTP_Method = ..Get) (headers:Vector = []) format (cache_policy:Cache_Policy = ..Default) =
+    fetch_and_decode =
+        response = HTTP.fetch uri method headers cache_policy=cache_policy
+        decode_http_response_following_data_links response format
+
+    error_handler attempt =
+        caught_error ->
+            exponential_backoff = [100, 200, 400]
+            if method != HTTP_Method.Get || attempt >= exponential_backoff.length then Error.throw caught_error else
+                sleep_time = exponential_backoff . get attempt
+                Thread.sleep sleep_time
+                fetch_and_decode . catch HTTP_Error (error_handler (attempt + 1))
+
+    fetch_and_decode . catch HTTP_Error (error_handler 0)
 
 ## PRIVATE
    Decodes a HTTP response, handling data link access.
 decode_http_response_following_data_links response format =
     # If Raw_Response is requested, we ignore data link handling.
     if format == Raw_Response then response.with_materialized_body else
-        case Data_Link.is_data_link response.body.metadata of
+        case Data_Link.is_data_link_from_metadata response.body.metadata of
             True ->
                 data_link = Data_Link_Helpers.interpret_json_as_data_link response.decode_as_json
                 data_link.read format Problem_Behavior.Report_Error

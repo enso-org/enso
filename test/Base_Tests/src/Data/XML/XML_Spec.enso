@@ -133,8 +133,8 @@ add_specs suite_builder =
             data.root.at 3 . attribute "does_not_exist" if_missing="if_missing" . should_equal "if_missing"
 
         group_builder.specify "Can get element an attribute map" <|
-            data.root.at 2 . attributes . should_equal (Map.from_vector [["studentId", "1000"], ["year", "2"]])
-            data.root.at 3 . attributes . should_equal (Map.from_vector [["studentId", "1001"], ["year", "3"]])
+            data.root.at 2 . attributes . should_equal (Dictionary.from_vector [["studentId", "1000"], ["year", "2"]])
+            data.root.at 3 . attributes . should_equal (Dictionary.from_vector [["studentId", "1001"], ["year", "3"]])
 
         group_builder.specify "Can get nodes via xpath" <|
             classes = data.root.get_xpath "/class"

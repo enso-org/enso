@@ -39,22 +39,35 @@ class OpenFileHandler(
       bufferRegistry ! TextProtocol.OpenFile(rpcSession, params.path)
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-      context.become(responseStage(id, sender(), cancellable))
+      context.become(responseStage(id, sender(), cancellable, 10))
   }
 
   private def responseStage(
     id: Id,
     replyTo: ActorRef,
-    cancellable: Cancellable
+    cancellable: Cancellable,
+    retries: Int
   ): Receive = {
     case RequestTimeout =>
-      logger.error(
-        "Opening file request [{}] for [{}] timed out.",
-        id,
-        rpcSession.clientId
-      )
-      replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
-      context.stop(self)
+      if (retries > 0) {
+        logger.error(
+          "Opening file request [{}] for [{}] timed out. Retry attempts left {}...",
+          id,
+          rpcSession.clientId,
+          retries
+        )
+        val newCancellable =
+          context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
+        context.become(responseStage(id, replyTo, newCancellable, retries - 1))
+      } else {
+        logger.error(
+          "Opening file request [{}] for [{}] timed out.",
+          id,
+          rpcSession.clientId
+        )
+        replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
+        context.stop(self)
+      }
 
     case OpenFileResponse(Right(OpenFileResult(buffer, capability))) =>
       replyTo ! ResponseResult(

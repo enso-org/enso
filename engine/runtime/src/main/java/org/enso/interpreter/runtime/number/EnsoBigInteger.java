@@ -1,23 +1,16 @@
 package org.enso.interpreter.runtime.number;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import com.oracle.truffle.api.nodes.Node;
 import java.math.BigInteger;
-import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.data.EnsoObject;
-import org.enso.interpreter.runtime.data.Type;
-import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
+import org.enso.interpreter.runtime.builtin.BuiltinObject;
 
 /** Internal wrapper for a {@link BigInteger}. */
 @ExportLibrary(InteropLibrary.class)
-@ExportLibrary(TypesLibrary.class)
-public final class EnsoBigInteger implements EnsoObject {
+public final class EnsoBigInteger extends BuiltinObject {
   private final BigInteger value;
 
   /**
@@ -38,6 +31,11 @@ public final class EnsoBigInteger implements EnsoObject {
   }
 
   @Override
+  protected String builtinName() {
+    return "Integer";
+  }
+
+  @Override
   @CompilerDirectives.TruffleBoundary
   public String toString() {
     return value.toString();
@@ -45,7 +43,8 @@ public final class EnsoBigInteger implements EnsoObject {
 
   @CompilerDirectives.TruffleBoundary
   @ExportMessage
-  String toDisplayString(boolean allowSideEffects) {
+  @Override
+  public String toDisplayString(boolean allowSideEffects) {
     return value.toString();
   }
 
@@ -122,26 +121,6 @@ public final class EnsoBigInteger implements EnsoObject {
   @ExportMessage
   public final BigInteger asBigInteger() {
     return value;
-  }
-
-  @ExportMessage
-  Type getMetaObject(@CachedLibrary("this") InteropLibrary thisLib) {
-    return EnsoContext.get(thisLib).getBuiltins().number().getInteger();
-  }
-
-  @ExportMessage
-  boolean hasMetaObject() {
-    return true;
-  }
-
-  @ExportMessage
-  boolean hasType() {
-    return true;
-  }
-
-  @ExportMessage
-  Type getType(@Bind("$node") Node node) {
-    return EnsoContext.get(node).getBuiltins().number().getInteger();
   }
 
   @Override

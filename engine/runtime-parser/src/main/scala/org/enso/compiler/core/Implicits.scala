@@ -3,6 +3,8 @@ package org.enso.compiler.core
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.{Diagnostic, ProcessingPass}
 
+import scala.annotation.unused
+
 object Implicits {
 
   /** This class adds an extension method to control how the pass data element
@@ -30,7 +32,7 @@ object Implicits {
 
     /** Converts a multiline string to a single line
       *
-      * @return [[string]], converted to a single line
+      * @return String, converted to a single line
       */
     def toSingleLine: String = {
       val lines = string.stripMargin.split("\n").toList.filterNot(_ == "")
@@ -55,7 +57,7 @@ object Implicits {
       * @return [[ir]] with added diagnostics
       */
     def addDiagnostic(diagnostic: Diagnostic): T = {
-      ir.diagnostics.add(diagnostic)
+      ir.getDiagnostics.add(diagnostic)
       ir
     }
   }
@@ -69,7 +71,7 @@ object Implicits {
 
     /** Adds a metadata pair to the node metadata.
       *
-      * This will overwrite any entry whose key matches [[MetadataPair#pass]].
+      * This will overwrite any entry whose key matches MetadataPair#pass.
       *
       * @param metadataPair the pair to add to the storage
       * @tparam K the concrete type of the pass
@@ -89,6 +91,19 @@ object Implicits {
       */
     def getMetadata[K <: ProcessingPass](pass: K): Option[pass.Metadata] = {
       ir.passData.get(pass).asInstanceOf[Option[pass.Metadata]]
+    }
+
+    /** Getting metadata from passes that are implemented in Java and thus have no
+      * overriden type alias for the metadata types.
+      * @return
+      */
+    def getMetadata[MetaType <: ProcessingPass.Metadata](
+      pass: ProcessingPass,
+      @unused
+      expectedMetaType: Class[MetaType]
+    ): Option[MetaType] = {
+      val meta = ir.passData.get(pass)
+      meta.asInstanceOf[Option[MetaType]]
     }
 
     /** Unsafely gets the metadata for the specified pass, if it exists.
@@ -118,7 +133,7 @@ object Implicits {
     */
   implicit class ListAsIr[T <: IR](list: List[T]) {
 
-    /** Calls [[IR#duplicate]] on the elements in [[list]].
+    /** Calls [[IR#duplicate]] on the elements in list.
       *
       * @param keepLocations   whether or not locations should be kept in the
       *                        duplicated IR
@@ -128,7 +143,7 @@ object Implicits {
       *                        the duplicated IR
       * @param keepIdentifiers whether or not the identifiers should be
       *                        regenerated in the duplicated IR
-      * @return a duplicate of [[list]]
+      * @return a duplicate of list
       */
     def duplicate(
       keepLocations: Boolean   = true,

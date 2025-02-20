@@ -1,6 +1,5 @@
 package org.enso.runner;
 
-import buildinfo.Info;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -8,10 +7,16 @@ import java.net.URISyntaxException;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -22,40 +27,46 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.enso.common.ContextFactory;
+import org.enso.common.DebugServerInfo;
 import org.enso.common.HostEnsoUtils;
 import org.enso.common.LanguageInfo;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
 import org.enso.editions.DefaultEdition;
-import org.enso.languageserver.boot.LanguageServerConfig;
-import org.enso.languageserver.boot.ProfilingConfig;
-import org.enso.languageserver.boot.StartupConfig;
 import org.enso.libraryupload.LibraryUploader.UploadFailedError;
-import org.enso.pkg.ComponentGroups;
 import org.enso.pkg.Contact;
 import org.enso.pkg.PackageManager;
 import org.enso.pkg.PackageManager$;
 import org.enso.pkg.Template;
 import org.enso.polyglot.Module;
 import org.enso.polyglot.PolyglotContext;
+import org.enso.polyglot.debugger.DebuggerSessionManagerEndpoint;
 import org.enso.profiling.sampler.NoopSampler;
 import org.enso.profiling.sampler.OutputStreamSampler;
+import org.enso.runner.common.LanguageServerApi;
+import org.enso.runner.common.ProfilingConfig;
+import org.enso.runner.common.WrongOption;
+import org.enso.version.BuildVersion;
 import org.enso.version.VersionDescription;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.PolyglotException.StackFrame;
 import org.graalvm.polyglot.SourceSection;
+import org.graalvm.polyglot.io.MessageTransport;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.slf4j.event.Level;
+import scala.Option$;
 import scala.concurrent.ExecutionContext;
 import scala.concurrent.ExecutionContextExecutor;
 import scala.concurrent.duration.FiniteDuration;
 import scala.runtime.BoxedUnit;
 
 /** The main CLI entry point class. */
-public final class Main {
+public class Main {
+  private static final String JVM_OPTION = "jvm";
   private static final String RUN_OPTION = "run";
   private static final String INSPECT_OPTION = "inspect";
-  private static final String DUMP_GRAPHS_OPTION = "dump-graphs";
   private static final String HELP_OPTION = "help";
   private static final String NEW_OPTION = "new";
   private static final String PROJECT_NAME_OPTION = "new-project-name";
@@ -69,14 +80,7 @@ public final class Main {
   private static final String PROFILING_PATH = "profiling-path";
   private static final String PROFILING_TIME = "profiling-time";
   private static final String LANGUAGE_SERVER_OPTION = "server";
-  private static final String DAEMONIZE_OPTION = "daemon";
-  private static final String INTERFACE_OPTION = "interface";
-  private static final String RPC_PORT_OPTION = "rpc-port";
-  private static final String DATA_PORT_OPTION = "data-port";
-  private static final String SECURE_RPC_PORT_OPTION = "secure-rpc-port";
-  private static final String SECURE_DATA_PORT_OPTION = "secure-data-port";
-  private static final String ROOT_ID_OPTION = "root-id";
-  private static final String ROOT_PATH_OPTION = "path";
+  private static final String LANGUAGE_SERVER_NATIVE_OPTION = "native-server";
   private static final String IN_PROJECT_OPTION = "in-project";
   private static final String VERSION_OPTION = "version";
   private static final String JSON_OPTION = "json";
@@ -84,6 +88,7 @@ public final class Main {
   private static final String NO_IR_CACHES_OPTION = "no-ir-caches";
   private static final String NO_READ_IR_CACHES_OPTION = "no-read-ir-caches";
   private static final String DISABLE_PRIVATE_CHECK_OPTION = "disable-private-check";
+  private static final String ENABLE_STATIC_ANALYSIS_OPTION = "enable-static-analysis";
   private static final String COMPILE_OPTION = "compile";
   private static final String NO_COMPILE_DEPENDENCIES_OPTION = "no-compile-dependencies";
   private static final String NO_GLOBAL_CACHE_OPTION = "no-global-cache";
@@ -95,25 +100,26 @@ public final class Main {
   private static final String HIDE_PROGRESS = "hide-progress";
   private static final String AUTH_TOKEN = "auth-token";
   private static final String AUTO_PARALLELISM_OPTION = "with-auto-parallelism";
-  private static final String SKIP_GRAALVM_UPDATER = "skip-graalvm-updater";
   private static final String EXECUTION_ENVIRONMENT_OPTION = "execution-environment";
   private static final String WARNINGS_LIMIT = "warnings-limit";
+  private static final String SYSTEM_PROPERTY = "vm.D";
+
+  private static final String DEFAULT_MAIN_METHOD_NAME = "main";
 
   private static final org.slf4j.Logger logger = LoggerFactory.getLogger(Main.class);
 
+  Main() {}
+
   private static boolean isDevBuild() {
-    return Info.ensoVersion().matches(".+-SNAPSHOT$");
+    return BuildVersion.ensoVersion().matches(".+-SNAPSHOT$");
   }
 
   private static Option.Builder cliOptionBuilder() {
     return Option.builder();
   }
 
-  /**
-   * Builds the [[Options]] object representing the CLI syntax.
-   *
-   * @return an [[Options]] object representing the CLI syntax
-   */
+  private static final Options CLI_OPTIONS = buildOptions();
+
   private static Options buildOptions() {
     var help =
         cliOptionBuilder().option("h").longOpt(HELP_OPTION).desc("Displays this message.").build();
@@ -126,20 +132,29 @@ public final class Main {
             .longOpt(RUN_OPTION)
             .desc("Runs a specified Enso file.")
             .build();
+    var jvm =
+        cliOptionBuilder()
+            .hasArg(true)
+            .numberOfArgs(1)
+            .optionalArg(true)
+            .argName("jvm")
+            .longOpt(JVM_OPTION)
+            .desc("Specifies whether to run JVM mode and optionally selects a JVM to run with.")
+            .build();
     var inspect =
         cliOptionBuilder()
             .longOpt(INSPECT_OPTION)
             .desc("Start the Chrome inspector when --run is used.")
             .build();
-    var dumpGraphs =
-        cliOptionBuilder()
-            .longOpt(DUMP_GRAPHS_OPTION)
-            .desc("Dumps IGV graphs when --run is used.")
-            .build();
     var docs =
         cliOptionBuilder()
+            .hasArg(true)
+            .numberOfArgs(1)
+            .optionalArg(true)
             .longOpt(DOCS_OPTION)
-            .desc("Runs the Enso documentation generator.")
+            .desc(
+                "Runs the Enso documentation generator. Additional argument may specify format -"
+                    + " either the default `md` or `api`.")
             .build();
     var preinstall =
         cliOptionBuilder()
@@ -208,13 +223,18 @@ public final class Main {
             .build();
     var lsOption =
         cliOptionBuilder().longOpt(LANGUAGE_SERVER_OPTION).desc("Runs Language Server").build();
+    var lsNativeOption =
+        cliOptionBuilder()
+            .longOpt(LANGUAGE_SERVER_NATIVE_OPTION)
+            .desc("Runs Language Server in native-image mode")
+            .build();
     var lsProfilingPathOption =
         cliOptionBuilder()
             .hasArg(true)
             .numberOfArgs(1)
             .argName("file")
             .longOpt(PROFILING_PATH)
-            .desc("The path to the Language Server profiling file.")
+            .desc("The path to the profiling file.")
             .build();
     var lsProfilingTimeOption =
         cliOptionBuilder()
@@ -225,10 +245,13 @@ public final class Main {
             .desc("The duration in seconds limiting the profiling time.")
             .build();
     var deamonizeOption =
-        cliOptionBuilder().longOpt(DAEMONIZE_OPTION).desc("Daemonize Language Server").build();
+        cliOptionBuilder()
+            .longOpt(LanguageServerApi.DAEMONIZE_OPTION)
+            .desc("Daemonize Language Server")
+            .build();
     var interfaceOption =
         cliOptionBuilder()
-            .longOpt(INTERFACE_OPTION)
+            .longOpt(LanguageServerApi.INTERFACE_OPTION)
             .hasArg(true)
             .numberOfArgs(1)
             .argName("interface")
@@ -236,7 +259,7 @@ public final class Main {
             .build();
     var rpcPortOption =
         cliOptionBuilder()
-            .longOpt(RPC_PORT_OPTION)
+            .longOpt(LanguageServerApi.RPC_PORT_OPTION)
             .hasArg(true)
             .numberOfArgs(1)
             .argName("rpc-port")
@@ -244,7 +267,7 @@ public final class Main {
             .build();
     var secureRpcPortOption =
         cliOptionBuilder()
-            .longOpt(SECURE_RPC_PORT_OPTION)
+            .longOpt(LanguageServerApi.SECURE_RPC_PORT_OPTION)
             .hasArg(true)
             .numberOfArgs(1)
             .argName("rpc-port")
@@ -252,7 +275,7 @@ public final class Main {
             .build();
     var dataPortOption =
         cliOptionBuilder()
-            .longOpt(DATA_PORT_OPTION)
+            .longOpt(LanguageServerApi.DATA_PORT_OPTION)
             .hasArg(true)
             .numberOfArgs(1)
             .argName("data-port")
@@ -260,7 +283,7 @@ public final class Main {
             .build();
     var secureDataPortOption =
         cliOptionBuilder()
-            .longOpt(SECURE_DATA_PORT_OPTION)
+            .longOpt(LanguageServerApi.SECURE_DATA_PORT_OPTION)
             .hasArg(true)
             .numberOfArgs(1)
             .argName("data-port")
@@ -271,15 +294,23 @@ public final class Main {
             .hasArg(true)
             .numberOfArgs(1)
             .argName("uuid")
-            .longOpt(ROOT_ID_OPTION)
+            .longOpt(LanguageServerApi.ROOT_ID_OPTION)
             .desc("Content root id.")
+            .build();
+    var projectIdOption =
+        cliOptionBuilder()
+            .hasArg(true)
+            .numberOfArgs(1)
+            .argName("uuid")
+            .longOpt(LanguageServerApi.PROJECT_ID_OPTION)
+            .desc("Project id.")
             .build();
     var pathOption =
         cliOptionBuilder()
             .hasArg(true)
             .numberOfArgs(1)
             .argName("path")
-            .longOpt(ROOT_PATH_OPTION)
+            .longOpt(LanguageServerApi.ROOT_PATH_OPTION)
             .desc("Path to the content root.")
             .build();
     var inProjectOption =
@@ -411,7 +442,7 @@ public final class Main {
 
     var skipGraalVMUpdater =
         cliOptionBuilder()
-            .longOpt(SKIP_GRAALVM_UPDATER)
+            .longOpt(LanguageServerApi.SKIP_GRAALVM_UPDATER)
             .desc("Skips GraalVM and its components setup during bootstrapping.")
             .build();
 
@@ -440,14 +471,30 @@ public final class Main {
             .longOpt(DISABLE_PRIVATE_CHECK_OPTION)
             .desc("Disables private module checking at runtime. Useful for tests.")
             .build();
+    var enableStaticAnalysisOption =
+        cliOptionBuilder()
+            .longOpt(ENABLE_STATIC_ANALYSIS_OPTION)
+            .desc("Enable static analysis (Experimental type inference).")
+            .build();
+
+    var systemPropOption =
+        cliOptionBuilder()
+            .longOpt(SYSTEM_PROPERTY)
+            .argName("<property>=<value>")
+            .desc(
+                "Sets a system property. May be specified multiple times. If `value` is not"
+                    + " specified, 'true' is inserted.")
+            .hasArg(true)
+            .numberOfArgs(1)
+            .build();
 
     var options = new Options();
     options
         .addOption(help)
         .addOption(repl)
+        .addOption(jvm)
         .addOption(run)
         .addOption(inspect)
-        .addOption(dumpGraphs)
         .addOption(docs)
         .addOption(preinstall)
         .addOption(newOpt)
@@ -457,6 +504,7 @@ public final class Main {
         .addOption(newProjectAuthorNameOpt)
         .addOption(newProjectAuthorEmailOpt)
         .addOption(lsOption)
+        .addOption(lsNativeOption)
         .addOption(lsProfilingPathOption)
         .addOption(lsProfilingTimeOption)
         .addOption(deamonizeOption)
@@ -466,6 +514,7 @@ public final class Main {
         .addOption(secureRpcPortOption)
         .addOption(secureDataPortOption)
         .addOption(uuidOption)
+        .addOption(projectIdOption)
         .addOption(pathOption)
         .addOption(inProjectOption)
         .addOption(version)
@@ -486,32 +535,38 @@ public final class Main {
         .addOption(skipGraalVMUpdater)
         .addOption(executionEnvironmentOption)
         .addOption(warningsLimitOption)
-        .addOption(disablePrivateCheckOption);
+        .addOption(disablePrivateCheckOption)
+        .addOption(systemPropOption)
+        .addOption(enableStaticAnalysisOption);
 
     return options;
   }
 
-  /**
-   * Prints the help message to the standard output.
-   *
-   * @param options object representing the CLI syntax
-   */
-  private static void printHelp(Options options) {
-    new HelpFormatter().printHelp(LanguageInfo.ID, options);
+  /** Prints the help message to the standard output. */
+  void printHelp() {
+    new HelpFormatter().printHelp(LanguageInfo.ID, CLI_OPTIONS);
   }
 
-  /** Terminates the process with a failure exit code. */
-  private RuntimeException exitFail() {
+  /**
+   * Terminates the process with a failure exit code.
+   *
+   * @param error the error message to send to stderr before terminating the process, can be {@code
+   *     null}
+   */
+  private RuntimeException exitFail(String error) {
+    if (error != null) {
+      stderr(error);
+    }
     return doExit(1);
   }
 
   /** Terminates the process with a success exit code. */
-  private RuntimeException exitSuccess() {
+  private final RuntimeException exitSuccess() {
     return doExit(0);
   }
 
   /** Shuts down the logging service and terminates the process. */
-  private RuntimeException doExit(int exitCode) {
+  RuntimeException doExit(int exitCode) {
     RunnerLogging.tearDown();
     System.exit(exitCode);
     return null;
@@ -553,14 +608,12 @@ public final class Main {
 
     var template =
         templateOption.map(
-            (n) -> {
-              return Template.fromString(n)
-                  .getOrElse(
-                      () -> {
-                        logger.error("Unknown project template name: '" + n + "'.");
-                        throw exitFail();
-                      });
-            });
+            (n) ->
+                Template.fromString(n)
+                    .getOrElse(
+                        () -> {
+                          throw exitFail("Unknown project template name: '" + n + "'.");
+                        }));
 
     PackageManager$.MODULE$
         .Default()
@@ -575,7 +628,7 @@ public final class Main {
             authors,
             nil(),
             "",
-            ComponentGroups.empty());
+            Option$.MODULE$.empty());
     throw exitSuccess();
   }
 
@@ -587,6 +640,8 @@ public final class Main {
    *     compiled
    * @param shouldUseGlobalCache whether or not the compilation result should be written to the
    *     global cache
+   * @param shouldUseIrCaches whether or not IR caches should be used.
+   * @param enableStaticAnalysis whether or not static type checking should be enabled
    * @param logLevel the logging level
    * @param logMasking whether or not log masking is enabled
    */
@@ -594,34 +649,36 @@ public final class Main {
       String packagePath,
       boolean shouldCompileDependencies,
       boolean shouldUseGlobalCache,
+      boolean shouldUseIrCaches,
+      boolean enableStaticAnalysis,
       Level logLevel,
       boolean logMasking) {
     var file = new File(packagePath);
     if (!file.exists() || !file.isDirectory()) {
-      println("No package exists at " + file + ".");
-      throw exitFail();
+      throw exitFail("No package exists at " + file + ".");
     }
 
     var context =
-        ContextFactory.create()
-            .projectRoot(packagePath)
-            .in(System.in)
-            .out(System.out)
-            .repl(new Repl(makeTerminalForRepl()))
-            .logLevel(logLevel)
-            .logMasking(logMasking)
-            .enableIrCaches(true)
-            .strictErrors(true)
-            .useGlobalIrCacheLocation(shouldUseGlobalCache)
-            .build();
+        new PolyglotContext(
+            ContextFactory.create()
+                .projectRoot(packagePath)
+                .in(System.in)
+                .out(System.out)
+                .logLevel(logLevel)
+                .logMasking(logMasking)
+                .enableIrCaches(shouldUseIrCaches)
+                .enableStaticAnalysis(enableStaticAnalysis)
+                .strictErrors(true)
+                .useGlobalIrCacheLocation(shouldUseGlobalCache)
+                .build());
 
     var topScope = context.getTopScope();
     try {
-      topScope.compile(shouldCompileDependencies);
+      topScope.compile(shouldCompileDependencies, scala.Option.empty());
       throw exitSuccess();
     } catch (Throwable t) {
       logger.error("Unexpected internal error", t);
-      throw exitFail();
+      throw exitFail("Unexpected internal error");
     } finally {
       context.context().close();
     }
@@ -640,79 +697,98 @@ public final class Main {
    * @param enableIrCaches are IR caches enabled
    * @param disablePrivateCheck Is private modules check disabled. If yes, `private` keyword is
    *     ignored.
+   * @param enableStaticAnalysis whether or not static type checking should be enabled
    * @param inspect shall inspect option be enabled
-   * @param dump shall graphs be sent to the IGV
    * @param executionEnvironment name of the execution environment to use during execution or {@code
    *     null}
    */
-  private void run(
+  private void handleRun(
       String path,
-      java.util.List<String> additionalArgs,
+      List<String> additionalArgs,
       String projectPath,
       Level logLevel,
       boolean logMasking,
       boolean enableIrCaches,
       boolean disablePrivateCheck,
       boolean enableAutoParallelism,
+      boolean enableStaticAnalysis,
+      boolean enableDebugServer,
       boolean inspect,
-      boolean dump,
       String executionEnvironment,
       int warningsLimit)
       throws IOException {
     var fileAndProject = Utils.findFileAndProject(path, projectPath);
     if (fileAndProject == null) {
-      throw exitFail();
+      throw exitFail("Cannot find " + path + " and " + projectPath);
     }
     var projectMode = fileAndProject._1();
     var file = fileAndProject._2();
+    var mainFile = file;
+    if (projectMode) {
+      var result = PackageManager$.MODULE$.Default().loadPackage(file);
+      if (result.isSuccess()) {
+        var pkg = result.get();
+
+        mainFile = pkg.mainFile();
+        if (!mainFile.exists()) {
+          throw exitFail("Main file does not exist.");
+        }
+      } else {
+        throw exitFail(result.failed().get().getMessage());
+      }
+    }
+
     var projectRoot = fileAndProject._3();
     var options = new HashMap<String, String>();
-    if (dump) {
-      options.put("engine.TraceCompilation", "true");
-      options.put("engine.MultiTier", "false");
-    }
-    if (inspect) {
-      options.put("inspect", "");
-    }
-    var context =
+
+    var factory =
         ContextFactory.create()
             .projectRoot(projectRoot)
-            .in(System.in)
-            .out(System.out)
-            .repl(new Repl(makeTerminalForRepl()))
             .logLevel(logLevel)
             .logMasking(logMasking)
             .enableIrCaches(enableIrCaches)
             .disablePrivateCheck(disablePrivateCheck)
             .strictErrors(true)
             .enableAutoParallelism(enableAutoParallelism)
+            .enableStaticAnalysis(enableStaticAnalysis)
             .executionEnvironment(executionEnvironment != null ? executionEnvironment : "live")
             .warningsLimit(warningsLimit)
-            .options(options)
-            .build();
+            .options(options);
 
-    if (projectMode) {
-      var result = PackageManager$.MODULE$.Default().loadPackage(file);
-      if (result.isSuccess()) {
-        var s = (scala.util.Success) result;
-        @SuppressWarnings("unchecked")
-        var pkg = (org.enso.pkg.Package<java.io.File>) s.get();
-        var main = pkg.mainFile();
-        if (!main.exists()) {
-          println("Main file does not exist.");
-          context.context().close();
-          throw exitFail();
-        }
-        var mainModuleName = pkg.moduleNameForFile(pkg.mainFile()).toString();
-        runPackage(context, mainModuleName, file, additionalArgs);
-      } else {
-        println(((scala.util.Failure) result).exception().getMessage());
-        throw exitFail();
+    if (inspect) {
+      if (enableDebugServer) {
+        throw exitFail("Cannot use --inspect and --repl and --run at once");
       }
-    } else {
-      runSingleFile(context, file, additionalArgs);
+      options.put("inspect", "");
     }
-    context.context().close();
+    if (enableDebugServer) {
+      factory.messageTransport(replTransport());
+      factory.enableDebugServer(true);
+    } else {
+      factory.checkForWarnings(mainFile.getName().replace(".enso", "") + ".main");
+    }
+    var context = new PolyglotContext(factory.build());
+    try {
+      if (projectMode) {
+        var result = PackageManager$.MODULE$.Default().loadPackage(file);
+        if (result.isSuccess()) {
+          var pkg = result.get();
+          var mainModuleName = pkg.moduleNameForFile(pkg.mainFile()).toString();
+          runPackage(context, mainModuleName, file, additionalArgs);
+        } else {
+          throw exitFail(result.failed().get().getMessage());
+        }
+      } else {
+        runSingleFile(context, file, additionalArgs);
+      }
+    } catch (RuntimeException e) {
+      // forces computation of the exception message sooner than context is closed
+      // should work around issues seen at #11127
+      logger.debug("Execution failed with " + e.getMessage());
+      throw e;
+    } finally {
+      context.context().close();
+    }
     throw exitSuccess();
   }
 
@@ -727,12 +803,15 @@ public final class Main {
    * @param enableIrCaches are the IR caches enabled
    */
   private void genDocs(
-      String projectPath, Level logLevel, boolean logMasking, boolean enableIrCaches) {
-    if (projectPath.isEmpty()) {
-      println("Path hasn't been provided.");
-      throw exitFail();
+      String docsFormat,
+      String projectPath,
+      Level logLevel,
+      boolean logMasking,
+      boolean enableIrCaches) {
+    if (projectPath == null || projectPath.isEmpty()) {
+      throw exitFail("Specify path to a project with --in-project option");
     }
-    generateDocsFrom(projectPath, logLevel, logMasking, enableIrCaches);
+    generateDocsFrom(docsFormat, projectPath, logLevel, logMasking, enableIrCaches);
     throw exitSuccess();
   }
 
@@ -741,34 +820,25 @@ public final class Main {
    * path.
    */
   private void generateDocsFrom(
-      String path, Level logLevel, boolean logMasking, boolean enableIrCaches) {
+      String docsFormat, String path, Level logLevel, boolean logMasking, boolean enableIrCaches) {
     var executionContext =
-        ContextFactory.create()
-            .projectRoot(path)
-            .in(System.in)
-            .out(System.out)
-            .repl(new Repl(makeTerminalForRepl()))
-            .logLevel(logLevel)
-            .logMasking(logMasking)
-            .enableIrCaches(enableIrCaches)
-            .build();
+        new PolyglotContext(
+            ContextFactory.create()
+                .projectRoot(path)
+                .in(System.in)
+                .out(System.out)
+                .logLevel(logLevel)
+                .logMasking(logMasking)
+                .enableIrCaches(enableIrCaches)
+                .build());
 
     var file = new File(path);
     var pkg = PackageManager.Default().fromDirectory(file);
     var main = pkg.map(x -> x.mainFile());
 
     if (main.exists(x -> x.exists())) {
-      var mainFile = main.get();
-      var mainModuleName = pkg.get().moduleNameForFile(mainFile).toString();
       var topScope = executionContext.getTopScope();
-      var mainModule = topScope.getModule(mainModuleName);
-      var generated = mainModule.generateDocs();
-      println(generated.toString());
-
-      // TODO:
-      // - go through executed code and get all HTML docs
-      //   with their corresponding atoms/methods etc.
-      // - Save those to files
+      topScope.compile(false, scala.Option.apply(docsFormat == null ? "md" : docsFormat));
     }
   }
 
@@ -782,15 +852,14 @@ public final class Main {
    */
   private void preinstallDependencies(String projectPath, Level logLevel) {
     if (projectPath == null) {
-      println("Dependency installation is only available for projects.");
-      throw exitFail();
+      throw exitFail("Dependency installation is only available for projects.");
     }
     try {
       DependencyPreinstaller.preinstallDependencies(new File(projectPath), logLevel);
       throw exitSuccess();
     } catch (RuntimeException error) {
       logger.error("Dependency installation failed: " + error.getMessage(), error);
-      throw exitFail();
+      throw exitFail("Dependency installation failed: " + error.getMessage());
     }
   }
 
@@ -801,34 +870,33 @@ public final class Main {
       java.util.List<String> additionalArgs) {
     var topScope = context.getTopScope();
     var mainModule = topScope.getModule(mainModuleName);
-    runMain(mainModule, projectPath, additionalArgs, "main");
+    runMain(mainModule, projectPath, additionalArgs, DEFAULT_MAIN_METHOD_NAME);
   }
 
   private void runSingleFile(
       PolyglotContext context, File file, java.util.List<String> additionalArgs) {
     var mainModule = context.evalModule(file);
-    runMain(mainModule, file, additionalArgs, "main");
+    runMain(mainModule, file, additionalArgs, DEFAULT_MAIN_METHOD_NAME);
   }
 
   private void runMain(
       Module mainModule,
       File rootPkgPath,
       java.util.List<String> additionalArgs,
-      String mainMethodName // = "main"
+      String mainMethodName // = DEFAULT_MAIN_METHOD_NAME
       ) {
     try {
       var mainType = mainModule.getAssociatedType();
       var mainFun = mainModule.getMethod(mainType, mainMethodName);
       if (mainFun.isEmpty()) {
-        System.err.println(
+        throw exitFail(
             "The module "
                 + mainModule.getName()
                 + " does not contain a `main` "
                 + "function. It could not be run.");
-        throw exitFail();
       }
       var main = mainFun.get();
-      if (!"main".equals(mainMethodName)) {
+      if (!DEFAULT_MAIN_METHOD_NAME.equals(mainMethodName)) {
         main.execute(join(mainType, nil()));
       } else {
         // Opportunistically parse arguments and convert to ints.
@@ -848,15 +916,30 @@ public final class Main {
         for (var e : parsedArgs) {
           listOfArgs = join(e, listOfArgs);
         }
-        var res = main.execute(listOfArgs.reverse());
+        listOfArgs = listOfArgs.reverse();
+        logger.debug("Executing the main function with arguments {}", listOfArgs.mkString(", "));
+        var res = main.execute(listOfArgs);
         if (!res.isNull()) {
           var textRes = res.isString() ? res.asString() : res.toString();
-          println(textRes);
+          stdout(textRes);
+          if (res.isException()) {
+            try {
+              throw res.throwException();
+            } catch (PolyglotException e) {
+              if (e.isExit()) {
+                throw doExit(e.getExitStatus());
+              }
+            }
+          }
         }
       }
     } catch (PolyglotException e) {
-      printPolyglotException(e, rootPkgPath);
-      throw exitFail();
+      if (e.isExit()) {
+        throw doExit(e.getExitStatus());
+      } else {
+        printPolyglotException(e, rootPkgPath);
+        throw exitFail(e.getMessage());
+      }
     }
   }
 
@@ -867,9 +950,14 @@ public final class Main {
    * @param logLevel log level to set for the engine runtime
    * @param logMasking is the log masking enabled
    * @param enableIrCaches are IR caches enabled
+   * @param enableStaticAnalysis whether or not static type checking should be enabled
    */
   private void runRepl(
-      String projectPath, Level logLevel, boolean logMasking, boolean enableIrCaches) {
+      String projectPath,
+      Level logLevel,
+      boolean logMasking,
+      boolean enableIrCaches,
+      boolean enableStaticAnalysis) {
     var mainMethodName = "internal_repl_entry_point___";
     var dummySourceToTriggerRepl =
         """
@@ -881,19 +969,42 @@ public final class Main {
             .replace("$mainMethodName", mainMethodName);
     var replModuleName = "Internal_Repl_Module___";
     var projectRoot = projectPath != null ? projectPath : "";
+
     var context =
-        ContextFactory.create()
-            .projectRoot(projectRoot)
-            .in(System.in)
-            .out(System.out)
-            .repl(new Repl(makeTerminalForRepl()))
-            .logLevel(logLevel)
-            .logMasking(logMasking)
-            .enableIrCaches(enableIrCaches)
-            .build();
+        new PolyglotContext(
+            ContextFactory.create()
+                .projectRoot(projectRoot)
+                .messageTransport(replTransport())
+                .enableDebugServer(true)
+                .logLevel(logLevel)
+                .executionEnvironment("live")
+                .logMasking(logMasking)
+                .enableIrCaches(enableIrCaches)
+                .disableLinting(true)
+                .enableStaticAnalysis(enableStaticAnalysis)
+                .build());
     var mainModule = context.evalModule(dummySourceToTriggerRepl, replModuleName);
     runMain(mainModule, null, Collections.emptyList(), mainMethodName);
     throw exitSuccess();
+  }
+
+  private static MessageTransport replTransport() {
+    ThreadFactory factory = (r) -> new Thread(r, "Initialize Enso Terminal");
+    var executor = Executors.newSingleThreadExecutor(factory);
+    var futureRepl = executor.submit(() -> new Repl(makeTerminalForRepl()));
+    MessageTransport transport =
+        (uri, peer) -> {
+          if (DebugServerInfo.URI.equals(uri.toString())) {
+            try {
+              var repl = futureRepl.get();
+              return new DebuggerSessionManagerEndpoint(repl, peer);
+            } catch (InterruptedException | ExecutionException ex) {
+              logger.error("Cannot initialize REPL transport", ex);
+            }
+          }
+          return null;
+        };
+    return transport;
   }
 
   /**
@@ -902,14 +1013,10 @@ public final class Main {
    * @param useJson whether the output should be JSON or human-readable.
    */
   private void displayVersion(boolean useJson) {
+    var customVersion = CurrentVersion.getVersion().toString();
     var versionDescription =
-        VersionDescription.make(
-            "Enso Compiler and Runtime",
-            true,
-            VersionDescription.make$default$3(),
-            VersionDescription.make$default$4(),
-            scala.Option.apply(CurrentVersion.version().toString()));
-    println(versionDescription.asString(useJson));
+        VersionDescription.make("Enso Compiler and Runtime", true, false, List.of(), customVersion);
+    stdout(versionDescription.asString(useJson));
   }
 
   /** Parses the log level option. */
@@ -922,8 +1029,7 @@ public final class Main {
           Stream.of(Level.values())
               .map(x -> x.toString().toLowerCase())
               .collect(Collectors.joining(", "));
-      System.err.println("Invalid log level. Possible values are " + possible + ".");
-      throw exitFail();
+      throw exitFail("Invalid log level. Possible values are " + possible + ".");
     } else {
       return found.get();
     }
@@ -934,8 +1040,7 @@ public final class Main {
     try {
       return new URI(string);
     } catch (URISyntaxException ex) {
-      System.err.println("`" + string + "` is not a valid URI.");
-      throw exitFail();
+      throw exitFail("`" + string + "` is not a valid URI.");
     }
   }
 
@@ -947,22 +1052,20 @@ public final class Main {
    *
    * @param args the command line arguments
    */
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) throws Exception {
     new Main().launch(args);
   }
 
   /**
    * Main entry point for the CLI program.
    *
-   * @param options the command line options
    * @param line the provided command line arguments
    * @param logLevel the provided log level
    * @param logMasking the flag indicating if the log masking is enabled
    */
-  private void runMain(Options options, CommandLine line, Level logLevel, boolean logMasking)
-      throws IOException {
+  final void mainEntry(CommandLine line, Level logLevel, boolean logMasking) throws IOException {
     if (line.hasOption(HELP_OPTION)) {
-      printHelp(options);
+      printHelp();
       throw exitSuccess();
     }
     if (line.hasOption(VERSION_OPTION)) {
@@ -986,26 +1089,25 @@ public final class Main {
               .map(x -> Path.of(x))
               .getOrElse(
                   () -> {
-                    logger.error(
+                    throw exitFail(
                         "When uploading, the "
                             + IN_PROJECT_OPTION
                             + " is mandatory "
                             + "to specify which project to upload.");
-                    throw exitFail();
                   });
 
       try {
         ProjectUploader.uploadProject(
             projectRoot.get(),
             line.getOptionValue(UPLOAD_OPTION),
-            scala.Option.apply(line.getOptionValue(AUTH_TOKEN)),
+            line.getOptionValue(AUTH_TOKEN),
             !line.hasOption(HIDE_PROGRESS),
             logLevel);
         throw exitSuccess();
       } catch (UploadFailedError ex) {
         // We catch this error to avoid printing an unnecessary stack trace.
         // The error itself is already logged.
-        throw exitFail();
+        throw exitFail(ex.getMessage());
       }
     }
 
@@ -1015,28 +1117,35 @@ public final class Main {
               .map(x -> Path.of(x))
               .getOrElse(
                   () -> {
-                    logger.error("The " + IN_PROJECT_OPTION + " is mandatory.");
-                    throw exitFail();
+                    throw exitFail("The " + IN_PROJECT_OPTION + " is mandatory.");
                   });
       try {
         ProjectUploader.updateManifest(projectRoot, logLevel);
       } catch (Throwable err) {
         err.printStackTrace();
-        throw exitFail();
+        throw exitFail(err.getMessage());
       }
       throw exitSuccess();
     }
 
     if (line.hasOption(COMPILE_OPTION)) {
-      var packagePaths = line.getOptionValue(COMPILE_OPTION);
+      var packagePath = line.getOptionValue(COMPILE_OPTION);
       var shouldCompileDependencies = !line.hasOption(NO_COMPILE_DEPENDENCIES_OPTION);
       var shouldUseGlobalCache = !line.hasOption(NO_GLOBAL_CACHE_OPTION);
+      var shouldUseIrCaches = !line.hasOption(NO_IR_CACHES_OPTION);
 
-      compile(packagePaths, shouldCompileDependencies, shouldUseGlobalCache, logLevel, logMasking);
+      compile(
+          packagePath,
+          shouldCompileDependencies,
+          shouldUseGlobalCache,
+          shouldUseIrCaches,
+          line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
+          logLevel,
+          logMasking);
     }
 
     if (line.hasOption(RUN_OPTION)) {
-      run(
+      handleRun(
           line.getOptionValue(RUN_OPTION),
           Arrays.asList(line.getArgs()),
           line.getOptionValue(IN_PROJECT_OPTION),
@@ -1045,27 +1154,36 @@ public final class Main {
           shouldEnableIrCaches(line),
           line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),
           line.hasOption(AUTO_PARALLELISM_OPTION),
+          line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
+          line.hasOption(REPL_OPTION),
           line.hasOption(INSPECT_OPTION),
-          line.hasOption(DUMP_GRAPHS_OPTION),
           line.getOptionValue(EXECUTION_ENVIRONMENT_OPTION),
           scala.Option.apply(line.getOptionValue(WARNINGS_LIMIT))
               .map(Integer::parseInt)
               .getOrElse(() -> 100));
     }
-    if (line.hasOption(REPL_OPTION)) {
+    if (line.hasOption(REPL_OPTION) && !line.hasOption(RUN_OPTION)) {
       runRepl(
-          line.getOptionValue(IN_PROJECT_OPTION), logLevel, logMasking, shouldEnableIrCaches(line));
+          line.getOptionValue(IN_PROJECT_OPTION),
+          logLevel,
+          logMasking,
+          shouldEnableIrCaches(line),
+          line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION));
     }
     if (line.hasOption(DOCS_OPTION)) {
       genDocs(
-          line.getOptionValue(IN_PROJECT_OPTION), logLevel, logMasking, shouldEnableIrCaches(line));
+          line.getOptionValue(DOCS_OPTION),
+          line.getOptionValue(IN_PROJECT_OPTION),
+          logLevel,
+          logMasking,
+          shouldEnableIrCaches(line));
     }
     if (line.hasOption(PREINSTALL_OPTION)) {
       preinstallDependencies(line.getOptionValue(IN_PROJECT_OPTION), logLevel);
     }
     if (line.getOptions().length == 0) {
-      printHelp(options);
-      throw exitFail();
+      printHelp();
+      throw exitFail(null);
     }
   }
 
@@ -1115,14 +1233,14 @@ public final class Main {
           try {
             sampler.stop();
           } catch (IOException ex) {
-            logger.info("Error stopping sampler", ex);
+            logger.error("Error stopping sampler", ex);
           }
           return BoxedUnit.UNIT;
         });
 
     try {
       return main.call();
-    } catch (IOException ex) {
+    } catch (IOException | RuntimeException ex) {
       throw ex;
     } catch (Exception ex) {
       throw new IOException(ex);
@@ -1132,81 +1250,29 @@ public final class Main {
   }
 
   /**
-   * Handles `--server` CLI option
+   * Parses all system properties from the given command line.
    *
-   * @param line a CLI line
-   * @param logLevel log level to set for the engine runtime
+   * @return null if no cmdline argument was specified.
    */
-  private void runLanguageServer(CommandLine line, Level logLevel) {
-    try {
-      var config = parseServerOptions(line);
-      LanguageServerApp.run(config, logLevel, line.hasOption(Main.DAEMONIZE_OPTION));
-      throw exitSuccess();
-    } catch (WrongOption e) {
-      System.err.println(e.getMessage());
-      throw exitFail();
-    }
-  }
-
-  private static LanguageServerConfig parseServerOptions(CommandLine line) throws WrongOption {
-    UUID rootId;
-    try {
-      var id = line.getOptionValue(ROOT_ID_OPTION);
-      if (id == null) {
-        throw new WrongOption("Root id must be provided");
+  protected Map<String, String> parseSystemProperties(CommandLine cmdLine) {
+    if (cmdLine.hasOption(SYSTEM_PROPERTY)) {
+      Map<String, String> props = new HashMap<>();
+      var optionValues = cmdLine.getOptionValues(SYSTEM_PROPERTY);
+      for (var optionValue : optionValues) {
+        var items = optionValue.split("=");
+        if (items.length == 2) {
+          props.put(items[0], items[1]);
+        } else if (items.length == 1) {
+          props.put(items[0], "true");
+        } else {
+          throw exitFail(
+              "Argument to " + SYSTEM_PROPERTY + " must be in the form <property>=<value>");
+        }
       }
-      rootId = UUID.fromString(id);
-    } catch (IllegalArgumentException e) {
-      throw new WrongOption("Root must be UUID");
+      return props;
+    } else {
+      return null;
     }
-    var rootPath = line.getOptionValue(ROOT_PATH_OPTION);
-    if (rootPath == null) {
-      throw new WrongOption("Root path must be provided");
-    }
-    var interfac = line.getOptionValue(INTERFACE_OPTION, "127.0.0.1");
-    int rpcPort;
-    try {
-      rpcPort = Integer.parseInt(line.getOptionValue(RPC_PORT_OPTION, "8080"));
-    } catch (NumberFormatException e) {
-      throw new WrongOption("Port must be integer");
-    }
-    int dataPort;
-    try {
-      dataPort = Integer.parseInt(line.getOptionValue(DATA_PORT_OPTION, "8081"));
-    } catch (NumberFormatException e) {
-      throw new WrongOption("Port must be integer");
-    }
-    Integer secureRpcPort;
-    try {
-      var port = line.getOptionValue(SECURE_RPC_PORT_OPTION);
-      secureRpcPort = port == null ? null : Integer.valueOf(port);
-    } catch (NumberFormatException e) {
-      throw new WrongOption("Port must be integer");
-    }
-    Integer secureDataPort;
-    try {
-      var port = line.getOptionValue(SECURE_DATA_PORT_OPTION);
-      secureDataPort = port == null ? null : Integer.valueOf(port);
-    } catch (NumberFormatException e) {
-      throw new WrongOption("Port must be integer");
-    }
-    var profilingConfig = parseProfilingConfig(line);
-    var graalVMUpdater = line.hasOption(SKIP_GRAALVM_UPDATER);
-
-    var config =
-        new LanguageServerConfig(
-            interfac,
-            rpcPort,
-            scala.Option.apply(secureRpcPort),
-            dataPort,
-            scala.Option.apply(secureDataPort),
-            rootId,
-            rootPath,
-            profilingConfig,
-            new StartupConfig(graalVMUpdater),
-            "language-server",
-            ExecutionContext.global());
-    return config;
   }
 
   private static ProfilingConfig parseProfilingConfig(CommandLine line) throws WrongOption {
@@ -1244,14 +1310,14 @@ public final class Main {
         exception.isSyntaxError(),
         msg,
         relativeTo,
-        this::println,
+        this::stderr,
         fnLangId,
         fnRootName,
         fnSourceSection);
   }
 
   @SuppressWarnings("unchecked")
-  private static final <T> scala.collection.immutable.List<T> nil() {
+  private static <T> scala.collection.immutable.List<T> nil() {
     return (scala.collection.immutable.List<T>) scala.collection.immutable.Nil$.MODULE$;
   }
 
@@ -1260,39 +1326,179 @@ public final class Main {
     return scala.collection.immutable.$colon$colon$.MODULE$.apply(head, tail);
   }
 
-  private void println(String msg) {
+  void stdout(String msg) {
     System.out.println(msg);
   }
 
-  private void launch(String[] args) {
-    var options = buildOptions();
-    var line = preprocessArguments(options, args);
-    launch(options, line);
+  void stderr(String msg) {
+    System.err.println(msg);
   }
 
-  protected CommandLine preprocessArguments(Options options, String[] args) {
+  private void launch(String[] args) throws IOException, InterruptedException, URISyntaxException {
+    var line = preprocessArguments(args);
+
+    var logMasking = new boolean[1];
+    var logLevel = setupLogging(line, logMasking);
+    var props = parseSystemProperties(line);
+
+    var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
+    var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
+    if (!component.getName().equals("component")) {
+      component = new File(component, "component");
+    }
+    assert checkOutdatedLauncher(new File(loc.toURI()), component) || true;
+    if (line.hasOption(JVM_OPTION)) {
+      var jvm = line.getOptionValue(JVM_OPTION);
+      var current = System.getProperty("java.home");
+      if (jvm == null) {
+        jvm = current;
+      }
+      var shouldLaunchJvm = current == null || !current.equals(jvm);
+      if (!shouldLaunchJvm) {
+        stderr(JVM_OPTION + " option has no effect - already running in JVM " + current);
+      } else {
+        var commandAndArgs = new ArrayList<String>();
+        if (jvm == null) {
+          var javaExe = JavaFinder.findJavaExecutable();
+          if (javaExe == null) {
+            throw exitFail("Cannot find java executable");
+          }
+          commandAndArgs.add(javaExe);
+        } else {
+          commandAndArgs.add(new File(new File(new File(jvm), "bin"), "java").getAbsolutePath());
+        }
+        var jvmOptions = System.getenv("JAVA_OPTS");
+        if (jvmOptions != null) {
+          for (var op : jvmOptions.split(" ")) {
+            if (op.isEmpty()) {
+              continue;
+            }
+            commandAndArgs.add(op);
+          }
+        }
+        var assertsOn = false;
+        assert assertsOn = true;
+        if (assertsOn) {
+          commandAndArgs.add("-ea");
+        }
+        if (props != null) {
+          for (var e : props.entrySet()) {
+            commandAndArgs.add("-D" + e.getKey() + "=" + e.getValue());
+          }
+        }
+        commandAndArgs.add("--add-opens=java.base/java.nio=ALL-UNNAMED");
+        commandAndArgs.add("--module-path");
+        if (!component.isDirectory()) {
+          throw new IOException("Cannot find " + component + " directory");
+        }
+        commandAndArgs.add(component.getPath());
+        commandAndArgs.add("-m");
+        commandAndArgs.add("org.enso.runner/org.enso.runner.Main");
+        var it = line.iterator();
+        while (it.hasNext()) {
+          var op = it.next();
+          if (JVM_OPTION.equals(op.getLongOpt())) {
+            continue;
+          }
+          if (SYSTEM_PROPERTY.equals(op.getLongOpt())) {
+            continue;
+          }
+          var longName = op.getLongOpt();
+          if (longName != null) {
+            commandAndArgs.add("--" + longName);
+          } else {
+            commandAndArgs.add("-" + op.getOpt());
+          }
+          var values = op.getValuesList();
+          if (values != null) {
+            commandAndArgs.addAll(values);
+          }
+        }
+        commandAndArgs.addAll(line.getArgList());
+        var pb = new ProcessBuilder();
+        pb.inheritIO();
+        pb.command(commandAndArgs);
+        var p = pb.start();
+        var exitCode = p.waitFor();
+        if (exitCode == 0) {
+          throw exitSuccess();
+        } else {
+          throw doExit(exitCode);
+        }
+      }
+    }
+
+    if (props != null) {
+      for (var e : props.entrySet()) {
+        System.setProperty(e.getKey(), e.getValue());
+      }
+    }
+
+    launch(line, logLevel, logMasking[0]);
+  }
+
+  final CommandLine preprocessArguments(String... args) {
     var parser = new DefaultParser();
     try {
-      var line = parser.parse(options, args);
+      var startParsing = System.currentTimeMillis();
+      var line = parser.parse(CLI_OPTIONS, args);
+      logger.trace(
+          "Parsing Language Server arguments took {0}ms",
+          System.currentTimeMillis() - startParsing);
       return line;
     } catch (Exception e) {
-      printHelp(options);
-      throw exitFail();
+      printHelp();
+      throw exitFail(e.getMessage());
     }
   }
 
-  protected void launch(Options options, CommandLine line) {
+  private Level setupLogging(CommandLine line, boolean[] logMasking) {
     var logLevel =
         scala.Option.apply(line.getOptionValue(LOG_LEVEL))
             .map(this::parseLogLevel)
             .getOrElse(() -> defaultLogLevel);
-    var connectionUri = scala.Option.apply(line.getOptionValue(LOGGER_CONNECT)).map(this::parseUri);
-    var logMasking = !line.hasOption(NO_LOG_MASKING);
-    RunnerLogging.setup(connectionUri, logLevel, logMasking);
-
-    if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
-      runLanguageServer(line, logLevel);
+    URI connectionUri;
+    if (line.getOptionValue(LOGGER_CONNECT) != null) {
+      connectionUri = parseUri(line.getOptionValue(LOGGER_CONNECT));
     } else {
+      connectionUri = null;
+    }
+    logMasking[0] = !line.hasOption(NO_LOG_MASKING);
+    var projectIdOptional = line.getOptionValue(LanguageServerApi.PROJECT_ID_OPTION);
+    String projectId;
+    try {
+      // sanity check
+      projectId =
+          projectIdOptional != null
+              ? UUID.fromString(projectIdOptional).toString()
+              : "00000000-0000-0000-0000-000000000000";
+    } catch (IllegalArgumentException e) {
+      projectId = "00000000-0000-0000-0000-000000000000";
+    }
+
+    MDC.put("project.id", projectId);
+    RunnerLogging.setup(connectionUri, logLevel, logMasking[0]);
+    return logLevel;
+  }
+
+  private void launch(CommandLine line, Level logLevel, boolean logMasking) {
+    if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
+      try {
+        var conf = parseProfilingConfig(line);
+        LanguageServerApi.launchLanguageServer(line, conf, logLevel);
+        throw exitSuccess();
+      } catch (WrongOption e) {
+        throw exitFail(e.getMessage());
+      }
+    } else {
+      if (line.hasOption(LANGUAGE_SERVER_NATIVE_OPTION)) {
+        stderr(
+            "\"--"
+                + LANGUAGE_SERVER_NATIVE_OPTION
+                + "\" has no effect without --\""
+                + LANGUAGE_SERVER_OPTION
+                + "\"");
+      }
       try {
         var conf = parseProfilingConfig(line);
         try {
@@ -1300,16 +1506,17 @@ public final class Main {
               conf,
               ExecutionContext.global(),
               () -> {
-                runMain(options, line, logLevel, logMasking);
+                mainEntry(line, logLevel, logMasking);
                 return BoxedUnit.UNIT;
               });
         } catch (IOException ex) {
-          System.err.println(ex.getMessage());
-          exitFail();
+          if (logger.isDebugEnabled()) {
+            logger.error("Error during execution", ex);
+          }
+          throw exitFail("Command failed with an error: " + ex.getMessage());
         }
       } catch (WrongOption e) {
-        System.err.println(e.getMessage());
-        throw exitFail();
+        throw exitFail(e.getMessage());
       }
     }
   }
@@ -1318,9 +1525,27 @@ public final class Main {
     return LanguageInfo.ID;
   }
 
-  private static final class WrongOption extends Exception {
-    WrongOption(String msg) {
-      super(msg);
+  /**
+   * Check if native image based launcher is up-to-date. Prints a warning when it is outdated.
+   *
+   * @param base the base file to check
+   * @param dir directory with other files that should be older than base
+   * @return
+   */
+  private boolean checkOutdatedLauncher(File base, File dir) {
+    var needsCheck = base.canExecute();
+    if (needsCheck) {
+      var files = dir.listFiles();
+      if (files != null) {
+        var baseTime = base.lastModified();
+        for (var f : files) {
+          if (baseTime < f.lastModified()) {
+            stderr("File " + base + " is older than " + f + " consider running in --jvm mode");
+            return false;
+          }
+        }
+      }
     }
+    return true;
   }
 }

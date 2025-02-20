@@ -6,4 +6,5 @@ trait ProjectRepositoryFactory[F[+_, +_]] {
   def getProjectRepository(
     projectsDirectory: Option[File]
   ): ProjectRepository[F]
+
 }

@@ -50,7 +50,7 @@ public abstract class PolyglotSymbolTypeBranchNode extends BranchNode {
       Object state,
       Object target,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
-    Object tpeOfTarget = typeOfNode.execute(target);
+    Object tpeOfTarget = typeOfNode.findTypeOrError(target);
     boolean test = isSameObject.execute(polyglotSymbol, tpeOfTarget);
     if (profile.profile(test)) {
       accept(frame, state, new Object[] {target});

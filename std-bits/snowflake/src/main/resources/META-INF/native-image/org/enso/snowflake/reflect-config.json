@@ -1,0 +1,1250 @@
+[
+    {
+        "name": "java.nio.DirectByteBuffer",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "long",
+                    "int"
+                ]
+            },
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "long",
+                    "long"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.core.OpaqueContextDTO",
+        "allDeclaredFields": true,
+        "queryAllDeclaredMethods": true,
+        "queryAllDeclaredConstructors": true,
+        "methods": [
+            {
+                "name": "getBase64Data",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.core.ParameterBindingDTO",
+        "allDeclaredFields": true,
+        "queryAllDeclaredMethods": true,
+        "queryAllDeclaredConstructors": true,
+        "methods": [
+            {
+                "name": "getType",
+                "parameterTypes": []
+            },
+            {
+                "name": "getValue",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.core.QueryContextDTO",
+        "allDeclaredFields": true,
+        "queryAllDeclaredMethods": true,
+        "queryAllDeclaredConstructors": true,
+        "methods": [
+            {
+                "name": "getEntries",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.core.QueryContextEntryDTO",
+        "allDeclaredFields": true,
+        "queryAllDeclaredMethods": true,
+        "queryAllDeclaredConstructors": true,
+        "methods": [
+            {
+                "name": "getContext",
+                "parameterTypes": []
+            },
+            {
+                "name": "getId",
+                "parameterTypes": []
+            },
+            {
+                "name": "getPriority",
+                "parameterTypes": []
+            },
+            {
+                "name": "getTimestamp",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.core.QueryExecDTO",
+        "allDeclaredFields": true,
+        "queryAllDeclaredMethods": true,
+        "queryAllDeclaredConstructors": true,
+        "methods": [
+            {
+                "name": "getAsyncExec",
+                "parameterTypes": []
+            },
+            {
+                "name": "getBindStage",
+                "parameterTypes": []
+            },
+            {
+                "name": "getBindings",
+                "parameterTypes": []
+            },
+            {
+                "name": "getDescribedJobId",
+                "parameterTypes": []
+            },
+            {
+                "name": "getIsInternal",
+                "parameterTypes": []
+            },
+            {
+                "name": "getParameters",
+                "parameterTypes": []
+            },
+            {
+                "name": "getQuerySubmissionTime",
+                "parameterTypes": []
+            },
+            {
+                "name": "getSequenceId",
+                "parameterTypes": []
+            },
+            {
+                "name": "getSqlText",
+                "parameterTypes": []
+            },
+            {
+                "name": "getqueryContextDTO",
+                "parameterTypes": []
+            },
+            {
+                "name": "isDescribeOnly",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.SnowflakeDatabaseMetaData",
+        "methods": [
+            {
+                "name": "getTables",
+                "parameterTypes": [
+                    "java.lang.String",
+                    "java.lang.String",
+                    "java.lang.String",
+                    "java.lang.String[]"
+                ]
+            },
+            {
+                "name": "getPrimaryKeys",
+                "parameterTypes": [
+                    "java.lang.String",
+                    "java.lang.String",
+                    "java.lang.String"
+                ]
+            },
+            {
+                "name": "getCatalogs",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.SnowflakeDriver"
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.apache.arrow.memory.DefaultAllocationManagerFactory",
+        "fields": [
+            {
+                "name": "FACTORY"
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.apache.arrow.memory.RootAllocator",
+        "methods": [
+            {
+                "name": "<init>"
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.apache.arrow.memory.util.MemoryUtil",
+        "methods": [
+            {
+                "name": "<init>"
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.io.netty.buffer.AbstractByteBufAllocator",
+        "queryAllDeclaredMethods": true
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.io.netty.buffer.PooledByteBufAllocator",
+        "fields": [
+            {
+                "name": "directArenas"
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.apache.commons.logging.impl.LogFactoryImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.apache.commons.logging.impl.WeakHashtable",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.snowflake.common.core.ClientAuthnDTO",
+        "allDeclaredFields": true,
+        "queryAllDeclaredMethods": true,
+        "queryAllDeclaredConstructors": true,
+        "methods": [
+            {
+                "name": "getData",
+                "parameterTypes": []
+            },
+            {
+                "name": "getInFlightCtx",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.snowflake.common.core.SubmittedAuthnDTO",
+        "queryAllDeclaredMethods": true
+    },
+    {
+        "name": "net.snowflake.client.log.JDK14JCLWrapper",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            },
+            {
+                "name": "setLogFactory",
+                "parameterTypes": [
+                    "org.apache.commons.logging.LogFactory"
+                ]
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.telemetryOOB.TelemetryService",
+        "methods": [
+            {
+                "name": "getInstance"
+            }
+        ]
+    },
+    {
+        "name": "org.enso.snowflake.SnowflakeIntegerColumnMaterializer"
+    },
+    {
+        "name": "org.enso.snowflake.SnowflakeJDBCUtils"
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.apache.arrow.vector.types.pojo.ArrowType",
+        "allDeclaredFields": true,
+        "queryAllDeclaredMethods": true,
+        "queryAllDeclaredConstructors": true
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.apache.arrow.vector.types.pojo.ArrowType$Int",
+        "allDeclaredFields": true,
+        "queryAllDeclaredMethods": true,
+        "queryAllDeclaredConstructors": true
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.apache.arrow.vector.types.pojo.ArrowType$PrimitiveType",
+        "allDeclaredFields": true,
+        "queryAllDeclaredMethods": true
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.apache.arrow.vector.types.pojo.DictionaryEncoding",
+        "allDeclaredFields": true,
+        "queryAllDeclaredMethods": true,
+        "queryAllDeclaredConstructors": true
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.apache.arrow.vector.types.pojo.Field",
+        "allDeclaredFields": true,
+        "queryAllDeclaredMethods": true,
+        "queryAllDeclaredConstructors": true
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.apache.arrow.vector.types.pojo.Schema",
+        "allDeclaredFields": true,
+        "queryAllDeclaredMethods": true,
+        "queryAllDeclaredConstructors": true
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.fasterxml.jackson.databind.ext.Java7SupportImpl",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.io.netty.buffer.AbstractByteBufAllocator",
+        "queryAllDeclaredMethods": true
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.io.netty.buffer.AbstractReferenceCountedByteBuf",
+        "fields": [
+            {
+                "name": "refCnt"
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.io.netty.buffer.PooledByteBufAllocator",
+        "fields": [
+            {
+                "name": "directArenas"
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.io.netty.util.Recycler$DefaultHandle",
+        "fields": [
+            {
+                "name": "state"
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.io.netty.util.internal.shaded.org.jctools.queues.BaseMpscLinkedArrayQueueColdProducerFields",
+        "fields": [
+            {
+                "name": "producerLimit"
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.io.netty.util.internal.shaded.org.jctools.queues.BaseMpscLinkedArrayQueueConsumerFields",
+        "fields": [
+            {
+                "name": "consumerIndex"
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.io.netty.util.internal.shaded.org.jctools.queues.BaseMpscLinkedArrayQueueProducerFields",
+        "fields": [
+            {
+                "name": "producerIndex"
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.asymmetric.COMPOSITE$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.asymmetric.DH$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.asymmetric.DSA$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.asymmetric.DSTU4145$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.asymmetric.Dilithium$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.asymmetric.EC$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.asymmetric.ECGOST$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.asymmetric.EXTERNAL$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.asymmetric.EdEC$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.asymmetric.ElGamal$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.asymmetric.Falcon$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.asymmetric.GM$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.asymmetric.GOST$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.asymmetric.IES$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.asymmetric.LMS$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.asymmetric.NTRU$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.asymmetric.RSA$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.asymmetric.SPHINCSPlus$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.asymmetric.X509$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.Blake2b$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.Blake2s$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.Blake3$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.DSTU7564$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.GOST3411$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.Haraka$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.Keccak$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.MD2$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.MD4$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.MD5$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.RIPEMD128$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.RIPEMD160$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.RIPEMD256$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.RIPEMD320$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.SHA1$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.SHA224$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.SHA256$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.SHA3$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.SHA384$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.SHA512$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.SM3$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.Skein$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.Tiger$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.digest.Whirlpool$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.drbg.DRBG$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.keystore.BC$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.keystore.BCFKS$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.keystore.PKCS12$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.AES$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.ARC4$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.ARIA$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.Blowfish$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.CAST5$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.CAST6$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.Camellia$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.ChaCha$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.DES$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.DESede$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.DSTU7624$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.GOST28147$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.GOST3412_2015$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.Grain128$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.Grainv1$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.HC128$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.HC256$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.IDEA$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.Noekeon$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.OpenSSLPBKDF$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.PBEPBKDF1$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.PBEPBKDF2$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.PBEPKCS12$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.Poly1305$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.RC2$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.RC5$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.RC6$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.Rijndael$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.SCRYPT$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.SEED$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.SM4$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.Salsa20$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.Serpent$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.Shacal2$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.SipHash$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.SipHash128$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.Skipjack$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.TEA$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.TLSKDF$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.Threefish$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.Twofish$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.VMPC$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.VMPCKSA3$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.XSalsa20$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.XTEA$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jcajce.provider.symmetric.Zuc$Mappings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.org.bouncycastle.jce.provider.BouncyCastleProvider",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.snowflake.common.core.ClientAuthnDTO",
+        "allDeclaredFields": true,
+        "queryAllDeclaredMethods": true,
+        "queryAllDeclaredConstructors": true,
+        "methods": [
+            {
+                "name": "getData",
+                "parameterTypes": []
+            },
+            {
+                "name": "getInFlightCtx",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "net.snowflake.client.jdbc.internal.snowflake.common.core.SubmittedAuthnDTO",
+        "queryAllDeclaredMethods": true
+    },
+    {
+        "name": "net.snowflake.client.log.JDK14JCLWrapper",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            },
+            {
+                "name": "setLogFactory",
+                "parameterTypes": [
+                    "net.snowflake.client.jdbc.internal.apache.commons.logging.LogFactory"
+                ]
+            }
+        ]
+    }
+]

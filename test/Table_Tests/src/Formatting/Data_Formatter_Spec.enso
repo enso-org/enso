@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 from Standard.Base.Data.Time.Errors import Date_Time_Format_Parse_Error, Suspicious_Date_Time_Format
@@ -109,7 +110,7 @@ add_specs suite_builder =
 
             r1 = plain_formatter.parse "1E3" Value_Type.Float
             r1.should_equal Nothing
-            Problems.get_attached_warnings r1 . should_equal [(Invalid_Format.Error Nothing Value_Type.Float ["1E3"])]
+            Problems.get_attached_warnings r1 . should_equal [(Invalid_Format.Error Nothing Value_Type.Float 1 ["1E3"])]
 
             exponential_formatter.parse "1E3" . should_equal 1000.0
             exponential_formatter.parse "1E3" Value_Type.Float . should_equal 1000.0
@@ -214,7 +215,7 @@ add_specs suite_builder =
 
         group_builder.specify "should not allow unexpected types" <|
             formatter = Data_Formatter.Value
-            formatter.parse "Text" type=List . should_fail_with Illegal_Argument
+            Test.expect_panic Type_Error (formatter.parse "Text" type=List)
 
     suite_builder.group "DataFormatter.format" group_builder->
         group_builder.specify "should handle Nothing" <|

@@ -1,4 +1,4 @@
-from Standard.Base import all hiding First, Last
+from Standard.Base import all
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Runtime import assert
@@ -67,7 +67,7 @@ prepare_aggregate_columns naming_helper group_by aggregates table error_on_missi
             assert (resolved_keys.contains Nothing . not)
             problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
             columns = if old_style then group_by else keys+aggregates
-            valid_resolved_aggregate_columns = columns.map on_problems=No_Wrap (resolve_aggregate table problem_builder) . filter x-> x.is_nothing.not
+            valid_resolved_aggregate_columns = columns.map on_problems=No_Wrap.Value (resolve_aggregate table problem_builder) . filter x-> x.is_nothing.not
 
             # Grouping Key
             key_columns = resolved_keys.map .column
@@ -80,7 +80,7 @@ prepare_aggregate_columns naming_helper group_by aggregates table error_on_missi
                The second pass resolves the default names, ensuring that they do not
                clash with the user-specified names (ensuring that user-specified names
                take precedence).
-            pass_1 = valid_resolved_aggregate_columns.map on_problems=No_Wrap c-> if c.as == "" then "" else
+            pass_1 = valid_resolved_aggregate_columns.map on_problems=No_Wrap.Value c-> if c.as == "" then "" else
                 # Verify if the user-provided name is valid and if not, throw an error.
                 naming_helper.ensure_name_is_valid c.as <|
                     unique.make_unique c.as
@@ -168,7 +168,7 @@ resolve_aggregate table problem_builder aggregate_column:Aggregate_Column =
         resolved = columns_helper.select_columns_helper selector Case_Sensitivity.Default True problem_builder
         if resolved.is_empty then Error.throw Internal_Missing_Column_Error else resolved
 
-    resolve_order_by selector = case selector of
+    resolve_order_by selector -> Nothing | Vector Internal_Order_By_Column_Reference = case selector of
         Nothing -> Nothing
         _ -> if selector == [] then Nothing else
             columns_for_ordering = Table_Helpers.prepare_order_by table_columns selector problem_builder
@@ -188,7 +188,7 @@ resolve_aggregate table problem_builder aggregate_column:Aggregate_Column =
         Value_Type.expect_text col <|
             internal_column
 
-    result = case aggregate_column of
+    result = case aggregate_column:Aggregate_Column of
         Group_By c as -> Group_By (resolve c) as
         Count as -> Count as
         Count_Distinct c as ignore_nothing -> if c == [] then Count as else

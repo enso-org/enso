@@ -11,7 +11,7 @@ public class PowerOp<T extends Number, I extends Storage<? super T>>
 
   @Override
   public double doDouble(
-      double a, double b, int ix, MapOperationProblemAggregator problemAggregator) {
+      double a, double b, long ix, MapOperationProblemAggregator problemAggregator) {
     return Math.pow(a, b);
   }
 }

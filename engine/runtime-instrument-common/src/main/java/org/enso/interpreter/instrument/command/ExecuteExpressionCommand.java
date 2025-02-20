@@ -47,6 +47,10 @@ public final class ExecuteExpressionCommand extends SynchronousCommand {
       ctx.jobControlPlane()
           .abortJobs(
               contextId,
+              "execute expression for expression "
+                  + expressionId
+                  + " in visualization "
+                  + visualizationId,
               job -> {
                 if (job instanceof ExecuteJob e) {
                   return e.visualizationTriggered();

@@ -77,4 +77,7 @@ object RefactoringApi {
   case class ProjectRenameFailed(oldName: String, newName: String)
       extends Error(9004, s"Project rename failed [$oldName, $newName]")
 
+  case class DefinitionAlreadyExists(name: String)
+      extends Error(9005, s"Definition [$name] already exists")
+
 }

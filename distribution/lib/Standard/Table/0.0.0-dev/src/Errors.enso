@@ -68,8 +68,8 @@ type Invalid_Column_Names
             Nothing -> ""
             message -> " "+message
         case self.column_names.length == 1 of
-            True -> "The name " + (self.column_names.at 0).to_display_text.pretty + " is invalid and may be replaced in the resulting table."+suffix
-            False -> "The names "+self.column_names.short_display_text+" are invalid and may be replaced in the resulting table."+suffix
+            True -> "The name " + (self.column_names.at 0).to_display_text.pretty + " is invalid and may be replaced in the resulting table." + suffix
+            False -> "The names "+self.column_names.short_display_text+" are invalid and may be replaced in the resulting table." + suffix
 
     ## PRIVATE
        Handles the Java counterpart `InvalidColumnNameException` and converts it into a dataflow error.
@@ -105,9 +105,10 @@ type No_Output_Columns
 
        Pretty prints the no output columns error.
     to_display_text : Text
-    to_display_text self =
-        if self.cause.is_nothing then "The result would contain no columns." else
-            "No columns in the result, because of another problem: "+self.cause.to_display_text
+    to_display_text self = case self.cause of
+        Nothing -> "The result would contain no columns."
+        _ : Text -> self.cause
+        _ -> "No columns in the result, because of another problem: "+self.cause.to_display_text
 
 ## Indicates that one column has been matched by multiple selectors, resulting
    in ambiguous new names.
@@ -167,19 +168,6 @@ type Ignored_Nothing_Values
     to_display_text : Text
     to_display_text self =
         "The column "+self.column+" contained Nothing values in rows " + self.rows.short_display_text + " which were ignored."
-
-## Indicates that some operation relies on equality on floating-point values,
-   which is not recommended.
-type Floating_Point_Equality
-    ## PRIVATE
-    Error (location:Text)
-
-    ## PRIVATE
-
-       Create a human-readable version of the error.
-    to_display_text : Text
-    to_display_text self =
-        "Relying on equality of floating-point numbers is not recommended (within "+self.location+")."
 
 ## Indicates that a text value with a delimiter was included in a concatenation
    without any quote character
@@ -289,13 +277,14 @@ type Invalid_Location
      format.
 type Invalid_Format
     ## PRIVATE
-    Error column:(Text|Nothing) (value_type:Value_Type|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean|Any) (cells:(Vector Text))
+    Error column:(Text|Nothing) (value_type:Value_Type|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean|Any) (count:Integer) (cells:(Vector Text))
 
     ## PRIVATE
        Pretty print the invalid format error.
     to_display_text : Text
     to_display_text self =
-        self.cells.length.to_text+" cells in column "+self.column+" had invalid format for type "+self.value_type.to_text+"."
+        examples = (self.cells.take 3 . join ", ") + (if self.cells.length > 3 then ", ..." else "")
+        self.count.to_text+" cells in column "+self.column+" had invalid format for "+self.value_type.to_text+" (" + examples + ")."
 
 ## Indicates that an empty file was encountered, so no data could be loaded.
 type Empty_File_Error
@@ -468,6 +457,13 @@ type Invalid_Value_Type
             Invalid_Value_Type.Incomparable type_1 type_2 ->
                 "Types "+type_1.to_display_text+" and "+type_2.to_display_text+" cannot be compared to each other."
 
+    ## PRIVATE
+    to_text self -> Text = case self of
+        Invalid_Value_Type.Column expected actual related_column -> "Invalid_Value_Type.Column "+expected.to_text+" "+actual.to_text+" "+related_column.to_text
+        Invalid_Value_Type.Value expected actual value -> "Invalid_Value_Type.Value "+expected.to_text+" "+actual.to_text+" "+value.to_text
+        Invalid_Value_Type.Not_Ordered actual -> "Invalid_Value_Type.Not_Ordered "+actual.to_text
+        Invalid_Value_Type.Incomparable type_1 type_2 -> "Invalid_Value_Type.Incomparable "+type_1.to_text+" "+type_2.to_text
+
 ## An error representing an invalid JSON format for conversion.
 type Invalid_JSON_Format
     ## PRIVATE
@@ -513,7 +509,7 @@ type No_Common_Type
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
-        types = self.types.map .to_display_text . join ", "
+        types = self.types.distinct.map .to_display_text . join ", "
         prefix = "No common type was found for types: "+types
         location = case self.related_column_name of
             column_name : Text -> " when unifying column ["+column_name+"]"
@@ -521,8 +517,7 @@ type No_Common_Type
         suffix_type = case self of
             No_Common_Type.Error _ _ -> "."
             No_Common_Type.Warning_Convert_To_Text _ _ -> ", so the values were converted to text."
-        suffix_mixed = " If you want to have mixed types instead, please cast one of the columns to `Mixed` beforehand."
-        prefix + location + suffix_type + suffix_mixed
+        prefix + location + suffix_type
 
     ## PRIVATE
     to_text self -> Text =
@@ -645,11 +640,11 @@ type Conversion_Failure
 
         case self of
             Conversion_Failure.Error _ _ _ _ ->
-                rows_info + " could not be converted into the target type "+self.target_type.to_display_text+column_suffix+"."
+                rows_info + " could not be converted into the target type " + self.target_type.to_display_text + column_suffix + "."
             Conversion_Failure.Out_Of_Range _ _ _ _ ->
-                rows_info + " are out of the range of the target type "+self.target_type.to_display_text+column_suffix+"."
+                rows_info + " are out of the range of the target type " + self.target_type.to_display_text + column_suffix + "."
             Conversion_Failure.Text_Too_Long _ _ _ _ ->
-                rows_info + " have a text representation that does not fit the target type "+self.target_type.to_display_text+column_suffix+"."
+                rows_info + " have a text representation that does not fit the target type " + self.target_type.to_display_text + column_suffix + "."
 
 type Loss_Of_Integer_Precision
     ## PRIVATE
@@ -671,6 +666,26 @@ type Loss_Of_Integer_Precision
     to_text self =
         "(Loss_Of_Integer_Precision.Warning (affected_rows_count = " + self.affected_rows_count.to_text + ") (example_value = " + self.example_value.to_text + ") (example_value_converted = " + self.example_value_converted.to_text + "))"
 
+type Loss_Of_Decimal_Precision
+    ## PRIVATE
+       Indicates that an automatic conversion of a Decimal column to a Float
+       column is losing precision because some of the values cannot be exactly
+       represented by the floating-point type.
+
+       Currently, this error is only reported in-memory.
+    Warning (affected_rows_count : Integer) (example_value : Decimal) (example_value_converted : Float)
+
+    ## PRIVATE
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self =
+        self.affected_rows_count.to_text+" rows contained Decimals that cannot be represented exactly as a floating-point number. Some loss of precision will occur. For example, the number "+self.example_value.to_text+" gets converted to "+self.example_value_converted.to_text+"."
+
+    ## PRIVATE
+    to_text : Text
+    to_text self =
+        "(Loss_Of_Decimal_Precision.Warning (affected_rows_count = " + self.affected_rows_count.to_text + ") (example_value = " + self.example_value.to_text + ") (example_value_converted = " + self.example_value_converted.to_text + "))"
+
 type Arithmetic_Overflow
     ## PRIVATE
        Indicates that the result of an arithmetic operation is too large to fit the target type.
@@ -687,7 +702,7 @@ type Arithmetic_Overflow
             Nothing -> ""
             operands ->
                 " (e.g. operation " + (operands.map .to_display_text . join " ") + ")"
-        rows_info + op_info + " encountered integer overflow - the results do not fit the type "+self.target_type.to_display_text+". These values have ben replaced with `Nothing`."
+        rows_info + op_info + " encountered integer overflow - the results do not fit the type " + self.target_type.to_display_text + ". These values have ben replaced with `Nothing`."
 
     ## PRIVATE
     to_text : Text
@@ -735,7 +750,7 @@ type Truncated_Column_Names
     ## PRIVATE
        Indicates that some column names were truncated to fit the maximum length
        supported by the backend.
-    Warning (names_map : Map Text Text)
+    Warning (names_map : Dictionary Text Text)
 
     ## PRIVATE
        Get the original column names.
@@ -807,7 +822,7 @@ type Non_Unique_Key
        Pretty print the non-unique primary key error.
     to_display_text : Text
     to_display_text self =
-        "The key " + self.key_column_names.to_display_text + " is not unique, for example key "+self.clashing_example_key_values.to_display_text+" corresponds to "+self.clashing_example_row_count.to_text+" rows."
+        "The key " + self.key_column_names.to_display_text + " is not unique, for example key " + self.clashing_example_key_values.to_display_text + " corresponds to " + self.clashing_example_row_count.to_text + " rows."
 
 type Null_Values_In_Key_Columns
     ## PRIVATE
@@ -820,7 +835,7 @@ type Null_Values_In_Key_Columns
     to_display_text : Text
     to_display_text self =
         suffix = if self.add_sql_suffix.not then "" else " The operation has been rolled back. Due to how NULL equality works in SQL, these rows would not be correctly matched to the target rows. Please use a key that does not contain NULLs."
-        "The operation encountered input rows that contained Nothing values in key columns (for example, the row " + self.example_row.to_display_text + ")."+suffix
+        "The operation encountered input rows that contained Nothing values in key columns (for example, the row " + self.example_row.to_display_text + ")." + suffix
 
 ## Indicates that the query may not have downloaded all rows that were
    available.
@@ -873,3 +888,12 @@ type Mixing_Date_Time_Types
                 "Mixing Date and Date_Time values"+location+": the Date values have been automatically converted to Date_Time by adding a time of 00:00 in the default time-zone."
             Mixing_Date_Time_Types.Implicit_Time_Zone _ ->
                 "Mixing Date_Time values with and without timezone"+location+". A default timezone has been assumed where it was missing."
+
+## Indicates that a table with no rows has been returned.
+type No_Rows
+    ## PRIVATE
+       The message should be used to provide additional context.
+    private Warning message:Text
+
+    ## PRIVATE
+    to_display_text self -> Text = self.message

@@ -1,0 +1,33 @@
+import Standard.Base.Data.Numbers.Float
+import Standard.Base.Data.Numbers.Number
+import Standard.Base.Data.Ordering.Comparable
+import Standard.Base.Data.Ordering.Ordering
+import project.Data.Complex_Helpers
+import project.Data.Complex_Helpers.Complex_Comparator
+
+## Sample definition of a complex number with conversions
+  from Number and implementation of a comparator.
+type Complex
+    private Value re:Float im:Float
+
+    new re=0:Float im=0:Float -> Complex =
+        c = Complex.Value re im
+        if im != 0 then c:Complex else
+            c.as_complex_and_float
+
+    + self (that:Complex) = Complex.new self.re+that.re self.im+that.im
+
+    < self (that:Complex) = Complex_Comparator.compare self that == Ordering.Less
+    > self (that:Complex) = Complex_Comparator.compare self that == Ordering.Greater
+    >= self (that:Complex) =
+        ordering = Complex_Comparator.compare self that
+        ordering == Ordering.Greater || ordering == Ordering.Equal
+    <= self (that:Complex) =
+        ordering = Complex_Comparator.compare self that
+        ordering == Ordering.Less || ordering == Ordering.Equal
+
+Complex.from (that:Number) = Complex.new that
+
+
+Comparable.from (that:Complex) = Comparable.new that Complex_Comparator
+Comparable.from (that:Number) = Comparable.new that Complex_Comparator

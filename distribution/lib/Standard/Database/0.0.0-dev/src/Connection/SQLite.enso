@@ -1,17 +1,25 @@
 from Standard.Base import all
+import Standard.Base.Errors.Common.Missing_Argument
+import Standard.Base.Errors.Common.Type_Error
 
 import project.Connection.Connection_Options.Connection_Options
-import project.Internal.SQLite.SQLite_Connection.SQLite_Connection
+import project.Connection.SQLite_Connection.SQLite_Connection
 
 type SQLite
     ## Connect to a SQLite DB File.
 
        Arguments:
        - location: Location of the SQLite database to connect to.
-    From_File (location:File)
+    From_File (location:File=(Missing_Argument.throw "location"))
 
     ## Connect to a SQLite In Memory.
     In_Memory
+
+    ## PRIVATE
+       Attempt to resolve the constructor.
+    resolve : Function -> SQLite | Nothing
+    resolve constructor =
+        Panic.catch Type_Error (constructor:SQLite) _->Nothing
 
     ## PRIVATE
        Build the Connection resource.

@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.error;
 
+import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
@@ -20,7 +21,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.error.PanicSentinel;
 
 @BuiltinMethod(
     type = "Panic",
@@ -47,43 +48,56 @@ public abstract class CatchPanicNode extends Node {
   }
 
   abstract Object execute(
-      VirtualFrame frame, State state, Object panicType, @Suspend Object action, Object handler);
+      VirtualFrame frame, Object panicType, @Suspend Object action, Object handler);
 
   @Specialization
   Object doExecute(
       VirtualFrame frame,
-      State state,
       Object panicType,
       Object action,
       Object handler,
       @Cached BranchProfile panicBranchProfile,
       @Cached BranchProfile otherExceptionBranchProfile,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
+    var ctx = EnsoContext.get(this);
+    var state = ctx.currentState();
     try {
       // Note [Tail call]
-      return thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.NOT_TAIL);
+      var ret = thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.NOT_TAIL);
+      if (ret instanceof PanicSentinel sentinel) {
+        throw sentinel.getPanic();
+      }
+      return ret;
     } catch (PanicException e) {
       panicBranchProfile.enter();
       Object payload = e.getPayload();
-      return executeCallbackOrRethrow(frame, state, panicType, handler, payload, e, interop);
+      return executeCallbackOrRethrow(frame, panicType, handler, payload, e, interop);
     } catch (AbstractTruffleException e) {
       otherExceptionBranchProfile.enter();
-      return executeCallbackOrRethrow(frame, state, panicType, handler, e, e, interop);
+      return executeCallbackOrRethrow(frame, panicType, handler, e, e, interop);
     }
   }
 
   private Object executeCallbackOrRethrow(
       VirtualFrame frame,
-      State state,
       Object panicType,
       Object handler,
       Object payload,
       AbstractTruffleException originalException,
       InteropLibrary interopLibrary) {
 
-    if (profile.profile(isValueOfTypeNode.execute(panicType, payload))) {
-      var builtins = EnsoContext.get(this).getBuiltins();
+    if (profile.profile(isValueOfTypeNode.execute(panicType, payload, true))) {
+      var ctx = EnsoContext.get(this);
+      var state = ctx.currentState();
+      var builtins = ctx.getBuiltins();
       var cons = builtins.caughtPanic().getUniqueConstructor();
+      if (originalException instanceof PanicException panic) {
+        panic.assignCaughtLocation(this);
+      } else {
+        // materializes stack trace of non-Enso
+        // exceptions in case it is needed by the handler
+        TruffleStackTrace.fillIn(originalException);
+      }
       var caughtPanic =
           AtomNewInstanceNode.getUncached().newInstance(cons, payload, originalException);
       return invokeCallableNode.execute(handler, frame, state, new Object[] {caughtPanic});

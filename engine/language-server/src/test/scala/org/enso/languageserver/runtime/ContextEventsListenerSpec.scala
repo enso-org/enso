@@ -3,7 +3,8 @@ package org.enso.languageserver.runtime
 import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.apache.commons.io.FileUtils
-import org.enso.languageserver.boot.{ProfilingConfig, StartupConfig}
+import org.enso.runner.common.ProfilingConfig
+import org.enso.languageserver.boot.StartupConfig
 import org.enso.languageserver.data._
 import org.enso.languageserver.filemanager.{
   ContentRoot,
@@ -19,9 +20,8 @@ import org.enso.languageserver.session.SessionRouter.{
   DeliverToBinaryController,
   DeliverToJsonController
 }
-import org.enso.logger.ReportLogsOnFailure
 import org.enso.polyglot.runtime.Runtime.Api
-import org.enso.testkit.RetrySpec
+import org.enso.testkit.{ReportLogsOnFailure, RetrySpec}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -64,7 +64,12 @@ class ContextEventsListenerSpec
           Set(
             Api.ExpressionUpdate(
               Suggestions.method.externalId.get,
-              Some(Suggestions.method.returnType),
+              Some(
+                Api.ExpressionType(
+                  Vector(Suggestions.method.returnType),
+                  Vector(Suggestions.method.selfType)
+                )
+              ),
               Some(methodCall),
               Vector(),
               false,
@@ -86,7 +91,8 @@ class ContextEventsListenerSpec
               Vector(
                 ContextRegistryProtocol.ExpressionUpdate(
                   Suggestions.method.externalId.get,
-                  Some(Suggestions.method.returnType),
+                  Vector(Suggestions.method.returnType),
+                  Vector(Suggestions.method.selfType),
                   Some(toProtocolMethodCall(methodCall)),
                   Vector(),
                   false,
@@ -135,7 +141,8 @@ class ContextEventsListenerSpec
               Vector(
                 ContextRegistryProtocol.ExpressionUpdate(
                   Suggestions.method.externalId.get,
-                  None,
+                  Vector(),
+                  Vector(),
                   None,
                   Vector(),
                   false,
@@ -173,7 +180,8 @@ class ContextEventsListenerSpec
               Vector(
                 ContextRegistryProtocol.ExpressionUpdate(
                   Suggestions.method.externalId.get,
-                  None,
+                  Vector(),
+                  Vector(),
                   None,
                   Vector(),
                   false,
@@ -229,7 +237,8 @@ class ContextEventsListenerSpec
             Vector(
               ContextRegistryProtocol.ExpressionUpdate(
                 Suggestions.method.externalId.get,
-                None,
+                Vector(),
+                Vector(),
                 None,
                 Vector(),
                 false,
@@ -238,7 +247,8 @@ class ContextEventsListenerSpec
               ),
               ContextRegistryProtocol.ExpressionUpdate(
                 Suggestions.local.externalId.get,
-                None,
+                Vector(),
+                Vector(),
                 None,
                 Vector(),
                 false,
@@ -440,7 +450,7 @@ class ContextEventsListenerSpec
               contextId,
               Seq(
                 ExecutionDiagnostic(
-                  ExecutionDiagnosticKind.Error,
+                  ExecutionDiagnosticKinds.Error,
                   Some(message),
                   None,
                   None,

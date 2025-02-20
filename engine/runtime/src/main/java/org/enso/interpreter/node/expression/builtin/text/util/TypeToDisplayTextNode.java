@@ -17,7 +17,7 @@ public final class TypeToDisplayTextNode extends Node {
   }
 
   public String execute(Object o) {
-    return switch (typeOfNode.execute(o)) {
+    return switch (typeOfNode.findTypeOrError(o)) {
       case Type t -> t.getName();
       default -> fallbackDisplay(o);
     };

@@ -6,7 +6,7 @@ import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
 
 /** Aggregate Column getting the grouping key. */
-public class GroupBy extends Aggregator {
+public class GroupBy extends KnownTypeAggregator {
   private final Storage<?> storage;
 
   public GroupBy(String name, Column column) {

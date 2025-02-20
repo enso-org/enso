@@ -17,6 +17,7 @@ import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.desugar.{
   LambdaShorthandToLambda,
@@ -38,19 +39,19 @@ case object TypeFunctions extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
-  override lazy val precursorPasses: Seq[IRPass] = List(
+  override lazy val precursorPasses: Seq[IRProcessingPass] = List(
     IgnoredBindings,
     LambdaShorthandToLambda,
     OperatorToFunction,
-    SectionsToBinOp
+    SectionsToBinOp.INSTANCE
   )
 
-  override lazy val invalidatedPasses: Seq[IRPass] = List(
+  override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     CachePreferenceAnalysis,
     DataflowAnalysis,
     DemandAnalysis,
-    TailCall,
+    org.enso.compiler.pass.analyse.TailCall.INSTANCE,
     UnusedBindings
   )
 
@@ -89,7 +90,7 @@ case object TypeFunctions extends IRPass {
   // === Pass Internals =======================================================
 
   /** The names of the known typing functions. */
-  val knownTypingFunctions: Set[String] = Set(
+  private val knownTypingFunctions: Set[String] = Set(
     Type.Ascription.name,
     Type.Context.name,
     Type.Error.name,
@@ -106,16 +107,14 @@ case object TypeFunctions extends IRPass {
     * @return `expr`, with any typing functions resolved
     */
   def resolveExpression(expr: Expression): Expression = {
-    expr.transformExpressions {
-      case asc: Type.Ascription => asc
-      case app: Application =>
-        val result = resolveApplication(app)
-        app
-          .getMetadata(DocumentationComments)
-          .map(doc =>
-            result.updateMetadata(new MetadataPair(DocumentationComments, doc))
-          )
-          .getOrElse(result)
+    expr.transformExpressions { case app: Application =>
+      val result = resolveApplication(app)
+      app
+        .getMetadata(DocumentationComments)
+        .map(doc =>
+          result.updateMetadata(new MetadataPair(DocumentationComments, doc))
+        )
+        .getOrElse(result)
     }
   }
 
@@ -124,30 +123,35 @@ case object TypeFunctions extends IRPass {
     * @param app the application to perform resolution in
     * @return `app`, with any typing functions resolved
     */
-  def resolveApplication(app: Application): Expression = {
+  private def resolveApplication(app: Application): Expression = {
     app match {
-      case pre @ Application.Prefix(fn, arguments, _, _, _, _) =>
-        fn match {
+      case pre: Application.Prefix =>
+        pre.function match {
           case name: Name if name.name == `type`.Set.Union.name =>
             val members = flattenUnion(app).map(resolveExpression)
-            `type`.Set.Union(members, app.location)
+            `type`.Set.Union(members, app.identifiedLocation())
           case name: Name if knownTypingFunctions.contains(name.name) =>
-            resolveKnownFunction(name, pre.arguments, pre.location, pre)
+            resolveKnownFunction(
+              name,
+              pre.arguments,
+              pre.identifiedLocation,
+              pre
+            )
           case _ =>
             pre.copy(
-              function  = resolveExpression(fn),
-              arguments = arguments.map(resolveCallArgument)
+              function  = resolveExpression(pre.function),
+              arguments = pre.arguments.map(resolveCallArgument)
             )
         }
-      case force @ Application.Force(target, _, _, _) =>
-        force.copy(target = resolveExpression(target))
-      case seq @ Application.Sequence(items, _, _, _) =>
-        seq.copy(
-          items = items.map(resolveExpression)
+      case force: Application.Force =>
+        force.copyWithTarget(resolveExpression(force.target))
+      case seq: Application.Sequence =>
+        seq.copyWithItems(
+          seq.items.map(resolveExpression)
         )
-      case tSet @ Application.Typeset(expr, _, _, _) =>
-        tSet.copy(
-          expression = expr.map(resolveExpression)
+      case tSet: Application.Typeset =>
+        tSet.copyWithExpression(
+          tSet.expression.map(resolveExpression)
         )
       case _: Operator =>
         throw new CompilerError(
@@ -156,24 +160,28 @@ case object TypeFunctions extends IRPass {
     }
   }
 
-  def flattenUnion(expr: Expression): List[Expression] = {
+  private def flattenUnion(expr: Expression): List[Expression] = {
     expr match {
-      case Application.Prefix(n: Name, args, _, _, _, _)
-          if n.name == `type`.Set.Union.name =>
-        args.flatMap(arg => flattenUnion(arg.value))
+      case app: Application.Prefix
+          if app.function.isInstanceOf[Name] &&
+          app.function.asInstanceOf[Name].name == `type`.Set.Union.name =>
+        app.arguments.flatMap(arg => flattenUnion(arg.value))
       case _ => List(expr)
     }
   }
 
   /** Resolves a known typing function to its IR node.
     *
-    * @param prefix the application to resolve
+    * @param name the typing function name
+    * @param arguments the application arguments
+    * @param location the application location
+    * @param originalIR the application to resolve
     * @return the IR node representing `prefix`
     */
-  def resolveKnownFunction(
+  private def resolveKnownFunction(
     name: Name,
     arguments: List[CallArgument],
-    location: Option[IdentifiedLocation],
+    location: IdentifiedLocation,
     originalIR: IR
   ): Expression = {
     val expectedNumArgs = 2
@@ -210,11 +218,11 @@ case object TypeFunctions extends IRPass {
     * @param arg the argument to perform resolution in
     * @return `arg`, with any call arguments resolved
     */
-  def resolveCallArgument(arg: CallArgument): CallArgument = {
+  private def resolveCallArgument(arg: CallArgument): CallArgument = {
     arg match {
-      case spec @ CallArgument.Specified(_, value, _, _, _) =>
+      case spec: CallArgument.Specified =>
         spec.copy(
-          value = resolveExpression(value)
+          resolveExpression(spec.value)
         )
     }
   }
@@ -232,10 +240,10 @@ case object TypeFunctions extends IRPass {
     * @param arg the argument to check
     * @return `true` if `arg` is valid, otherwise `false`
     */
-  def isValidCallArg(arg: CallArgument): Boolean = {
+  private def isValidCallArg(arg: CallArgument): Boolean = {
     arg match {
-      case CallArgument.Specified(name, _, _, _, _) =>
-        name.isEmpty
+      case specified: CallArgument.Specified =>
+        specified.name.isEmpty
     }
   }
 }

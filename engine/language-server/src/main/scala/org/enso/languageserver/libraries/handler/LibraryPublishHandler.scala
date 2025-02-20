@@ -12,14 +12,12 @@ import org.enso.languageserver.libraries.LocalLibraryManagerProtocol.{
   FindLibrary,
   FindLibraryResponse
 }
-import org.enso.languageserver.libraries.{
-  BlockingOperation,
-  CompilerBasedDependencyExtractor
-}
+import org.enso.runner.common.CompilerBasedDependencyExtractor
+import org.enso.languageserver.libraries.BlockingOperation
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.libraryupload.{auth, LibraryUploader}
-import org.enso.logging.LoggingServiceManager
+import org.enso.logging.service.LoggingServiceManager
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration

@@ -1,0 +1,39 @@
+{
+  "//": [
+    "This is the topbar links configuration file. It is used to configure the topbar links for the dashboard.",
+    "The items array is used to configure the topbar links for the dashboard.",
+    "The name property is a valid dictionary key. Please refer to the /app/common/src/text/english.json file for the list of valid keys.",
+    "The url property is used to configure the url of the topbar link. Can be an absolute url or a relative url.",
+    "The menu property turns the topbar link into a joined button with \/ button, that opens a dropdown menu.",
+    "The menu property is an array of objects. Each object is an item.",
+    "It's possible to omit the url property, in that case the topbar button will be a dropdown menu with the items in the menu array."
+  ],
+  "items": [
+    {
+      "name": "whatsNew",
+      "url": "https://community.ensoanalytics.com/c/what-is-new-in-enso/"
+    },
+    {
+      "name": "community",
+      "url": "https://community.ensoanalytics.com/",
+      "menu": [
+        {
+          "name": "askAQuestion",
+          "url": "https://community.ensoanalytics.com/c/q_and_a/"
+        },
+        {
+          "name": "enso101",
+          "url": "https://community.ensoanalytics.com/c/enso101/"
+        },
+        {
+          "name": "componentExamples",
+          "url": "https://community.ensoanalytics.com/c/enso-component-examples/"
+        }
+      ]
+    },
+    {
+      "name": "docs",
+      "url": "https://help.enso.org/"
+    }
+  ]
+}

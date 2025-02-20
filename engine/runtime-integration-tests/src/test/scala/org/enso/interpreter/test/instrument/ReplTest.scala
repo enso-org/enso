@@ -1,7 +1,8 @@
 package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.test.{InterpreterContext, InterpreterTest}
-import org.enso.polyglot.debugger.{DebugServerInfo, ObjectRepresentation}
+import org.enso.common.DebugServerInfo
+import org.enso.polyglot.debugger.ObjectRepresentation
 import org.graalvm.polyglot.Context
 import org.scalatest.{BeforeAndAfter, EitherValues, Inside}
 
@@ -14,7 +15,9 @@ class ReplTest
   override def subject: String = "Repl"
 
   override def contextModifiers: Option[Context#Builder => Context#Builder] =
-    Some(_.option(DebugServerInfo.ENABLE_OPTION, "true"))
+    Some(b => {
+      b.option(DebugServerInfo.ENABLE_OPTION, "true")
+    })
 
   override def specify(implicit
     interpreterContext: InterpreterContext
@@ -292,9 +295,7 @@ class ReplTest
         executor.exit()
       }
       eval(code)
-      val errorMsg =
-        "Compile_Error.Error"
-      evalResult.left.value.getMessage shouldEqual errorMsg
+      evalResult.left.value.getMessage should include("Compile_Error")
     }
 
     "handle errors gracefully (pretty print)" in {

@@ -1,9 +1,12 @@
 package org.enso.interpreter.runtime;
 
-import static org.enso.interpreter.util.ScalaConversions.nil;
+import static org.enso.scala.wrapper.ScalaConversions.nil;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,18 +14,18 @@ import java.nio.file.Paths;
 import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
+import org.enso.common.RuntimeOptions;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap$ModuleReference$Concrete;
 import org.enso.pkg.QualifiedName;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
+import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.io.IOAccess;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import scala.Option;
 
 public class ModuleTest {
 
@@ -50,6 +53,18 @@ public class ModuleTest {
   public void cleanup() {
     f.delete();
     this.ctx.close();
+    this.ctx = null;
+  }
+
+  @Test
+  public void noSuchModuleError() {
+    var b = ctx.getBindings(LanguageInfo.ID);
+    try {
+      var r = b.invokeMember(MethodNames.TopScope.GET_MODULE, "Does.Not.Exist.Module");
+      fail("Expecting failure, but got: " + r);
+    } catch (PolyglotException ex) {
+      assertThat(ex.getMessage(), containsString("Module_Does_Not_Exist"));
+    }
   }
 
   @Test
@@ -127,9 +142,7 @@ public class ModuleTest {
 
     assertNull("No IR by default", module.getIr());
 
-    var ir =
-        new org.enso.compiler.core.ir.Module(
-            nil(), nil(), nil(), false, Option.empty(), null, null);
+    var ir = new org.enso.compiler.core.ir.Module(nil(), nil(), nil(), false, null, null);
     compilerContext.updateModule(
         module,
         (u) -> {

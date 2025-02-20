@@ -12,6 +12,7 @@ import java.time.ZonedDateTime;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 
 public class JDBCUtils {
+
   /** Gets a LocalDate from a ResultSet. */
   public static LocalDate getLocalDate(ResultSet rs, int columnIndex) throws SQLException {
     var sqlDate = rs.getDate(columnIndex);
@@ -73,6 +74,7 @@ public class JDBCUtils {
   /** Sets a LocalDate in a PreparedStatement. */
   public static void setLocalDate(PreparedStatement stmt, int columnIndex, LocalDate localDate)
       throws SQLException {
+
     stmt.setObject(columnIndex, localDate, Types.DATE);
   }
 }

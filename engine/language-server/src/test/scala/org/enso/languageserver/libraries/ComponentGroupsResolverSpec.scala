@@ -1,7 +1,6 @@
 package org.enso.languageserver.libraries
 
 import org.enso.editions.LibraryName
-import org.enso.logger.ReportLogsOnFailure
 import org.enso.pkg.{
   Component,
   ComponentGroup,
@@ -11,6 +10,7 @@ import org.enso.pkg.{
   GroupName,
   GroupReference
 }
+import org.enso.testkit.ReportLogsOnFailure
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -268,7 +268,7 @@ object ComponentGroupsResolverSpec {
   def config(
     namespace: String,
     name: String,
-    componentGroups: ComponentGroups = ComponentGroups.empty
+    componentGroups: ComponentGroups
   ): Config =
     Config(
       name                 = name,
@@ -280,7 +280,25 @@ object ComponentGroupsResolverSpec {
       maintainers          = Nil,
       edition              = None,
       preferLocalLibraries = true,
-      componentGroups      = Right(componentGroups)
+      componentGroups      = Some(componentGroups)
+    )
+
+  /** Create a new config. */
+  def config(
+    namespace: String,
+    name: String
+  ): Config =
+    Config(
+      name                 = name,
+      normalizedName       = None,
+      namespace            = namespace,
+      version              = "0.0.1",
+      license              = "",
+      authors              = Nil,
+      maintainers          = Nil,
+      edition              = None,
+      preferLocalLibraries = true,
+      componentGroups      = None
     )
 
   /** Create a new component group. */

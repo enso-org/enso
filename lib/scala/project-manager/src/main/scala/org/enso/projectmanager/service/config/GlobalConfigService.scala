@@ -1,6 +1,5 @@
 package org.enso.projectmanager.service.config
 
-import io.circe.Json
 import org.enso.semver.SemVer
 import org.enso.editions.{DefaultEnsoVersion, EnsoVersion, SemVerEnsoVersion}
 import org.enso.projectmanager.control.core.CovariantFlatMap
@@ -28,8 +27,7 @@ class GlobalConfigService[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     key: String
   ): F[GlobalConfigServiceFailure, Option[String]] =
     Sync[F].blockingOp {
-      val valueOption = configurationManager.getConfig.original.apply(key)
-      valueOption.map(json => json.asString.getOrElse(json.toString()))
+      configurationManager.getConfig.findByKey(key)
     }.recoverAccessErrors
 
   /** @inheritdoc */
@@ -37,7 +35,7 @@ class GlobalConfigService[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     key: String,
     value: String
   ): F[GlobalConfigServiceFailure, Unit] = Sync[F].blockingOp {
-    configurationManager.updateConfigRaw(key, Json.fromString(value))
+    configurationManager.updateConfigRaw(key, value)
   }.recoverAccessErrors
 
   /** @inheritdoc */

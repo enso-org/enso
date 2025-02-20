@@ -11,18 +11,25 @@ import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import org.enso.compiler.core.CompilerStub;
+import org.enso.persist.Persistable;
 import scala.Option;
 
 /** Stores metadata for the various passes. */
+@Persistable(id = 398)
 public final class MetadataStorage {
   private Map<ProcessingPass, ProcessingPass.Metadata> metadata;
 
+  /** Constructs empty, ready to be populated metadata. */
   public MetadataStorage() {
     this(Collections.emptyMap());
   }
 
-  public MetadataStorage(Map<ProcessingPass, ProcessingPass.Metadata> init) {
-    this.metadata = init;
+  MetadataStorage(Map<ProcessingPass, ProcessingPass.Metadata> metaValues) {
+    this.metadata = metaValues;
+  }
+
+  final Map<ProcessingPass, ProcessingPass.Metadata> metaValues() {
+    return this.metadata;
   }
 
   /**
@@ -42,7 +49,7 @@ public final class MetadataStorage {
   /**
    * Adds a metadata pair to the node metadata.
    *
-   * <p>This will overwrite any entry whose key matches [[MetadataPair#pass]].
+   * <p>This will overwrite any entry whose key matches {@code MetadataPair.pass}.
    *
    * @param <K> the concrete type of the pass
    * @param metadataPair the pair to add to the storage
@@ -80,6 +87,15 @@ public final class MetadataStorage {
   public Option<ProcessingPass.Metadata> get(ProcessingPass pass) {
     var prev = (ProcessingPass.Metadata) metadata.get(pass);
     return Option.apply(prev);
+  }
+
+  /**
+   * Creates a shallow copy of `this`. Use when re-assigning metadata from one IR to another.
+   *
+   * @return a shallow copy of `this`
+   */
+  public MetadataStorage copy() {
+    return new MetadataStorage(metadata);
   }
 
   /**
@@ -214,7 +230,7 @@ public final class MetadataStorage {
       return true;
     }
     if (obj instanceof MetadataStorage other) {
-      return Objects.equals(this.metadata, other.metadata);
+      return this.metadata.equals(other.metadata);
     }
     return false;
   }

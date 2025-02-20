@@ -181,11 +181,12 @@ add_specs suite_builder =
                     <Year>1859</Year>
                   </Row>
                 </Table>
+            ## '''
             r.outer_xml.should_equal (depretty e)
             Problems.expect_warning (Unexpected_Extra_Columns.Warning ["Last Borrowed"]) r
         group_builder.specify "Will not warn if not all incoming columns specified, but warnings are ignored" <|
             t = data.table . take 1
-            r = t.to_xml ["Year"] ["Author", "Price"] "Title" on_problems=Problem_Behavior.Ignore
+            r = t.to_xml ["Year"] ["Author", "Price"] "Title" on_problems=..Ignore
             e = '''
                 <Table>
                   <Row Author="Charles Dickens" Price="9.99">
@@ -193,11 +194,12 @@ add_specs suite_builder =
                     <Year>1859</Year>
                   </Row>
                 </Table>
-           r.outer_xml.should_equal (depretty e)
+            ## '''
+            r.outer_xml.should_equal (depretty e)
             Problems.assume_no_problems r
-        group_builder.specify "Will error if not all incoming columns specified and on_problems set to Report_Error" <|
+        group_builder.specify "Will error if not all incoming columns specified and on_problems set to `Report_Error`" <|
             t = data.table
-            r = t.to_xml ["Year"] ["Author", "Price"] "Title" on_problems=Problem_Behavior.Report_Error
+            r = t.to_xml ["Year"] ["Author", "Price"] "Title" on_problems=..Report_Error
             r.should_fail_with (Unexpected_Extra_Columns.Warning ["Last Borrowed"])
         group_builder.specify "Will error if configured with a element column that is not in the table" <|
             t = data.table
@@ -221,6 +223,7 @@ add_specs suite_builder =
                     <Year>1859</Year>
                   </_22book>
                 </the_library>
+            ## '''
             r.outer_xml.should_equal (depretty e)
         group_builder.specify "Illegal xml names are cleaned up" <|
             numeric_column_name = ["1", [10]]
@@ -239,6 +242,7 @@ add_specs suite_builder =
                     <Last_Borrowed>1999-01-02T03:40Z[UTC]</Last_Borrowed>
                   </Row>
                 </Table>
+            ## '''
             r.outer_xml.should_equal (depretty e)
         group_builder.specify "Empty strings are empty attributes/elements. Nothing values omit the entire attribute/element" <|
             desc_column = ["desc", ["Col1 and Col2 both have values", "Col1 has value, Col2 Nothing", "Col1 empty string, Col2 has value", "Col1 and Col2 both blank string", "Col1 and Col2 both Nothing" ]]
@@ -274,6 +278,7 @@ add_specs suite_builder =
                   </Row>
                   <Row desc="Col1 and Col2 both Nothing"/>
                 </Table>
+            ## '''
             r.outer_xml.should_equal (depretty e)
         group_builder.specify "Panic if wrong types passed in element_columns" <|
             t = data.table
@@ -326,6 +331,7 @@ add_specs suite_builder =
                     <unicode>👩‍🔬</unicode>
                   </Row>
                 </Table>
+            ## '''
             r.outer_xml.should_equal (depretty e)
         group_builder.specify "xml or special characters get escaped" <|
             xml_column = ["xml", ["</Table>", "<tag>12</tag>", '<r><c v="1"></c></r>']]

@@ -35,13 +35,17 @@ involving the centralized logging service.
 
 ## Configuration
 
-The logging settings should be placed under the `logging-service` key of the
-`application.conf` config. Each of the main components can customize format and
-output target via section in `application.conf` configuration file. The
+All logging settings are configured via the `logging-service` section of the
+`application.conf` config file. Each of the main components can customize format
+and output target via section in `application.conf` configuration file. The
 configuration is using HOCON-style, as defined by
 [lightbend/config](https://github.com/lightbend/config). Individual values
 accepted in the config are inspired by SLF4J's properties, formatting and
-implementations.
+implementations. Currently 3 components define logging configuration:
+
+- [`project-manager`](../../lib/scala/project-manager/src/main/resources/application.conf)
+- [`launcher`](../../engine/launcher/src/main/resources/application.conf)
+- [CLI](../../engine/runner/src/main/resources/application.conf)
 
 The configuration has two main sections:
 
@@ -52,13 +56,13 @@ The configuration has two main sections:
 During component's setup, its `application.conf` config file is parsed. The
 config's keys and values are validated and, if correct, the parsed
 representation is available as an instance of
-`org.enso.logger.config.LoggingServiceConfig` class. The class encapsulates the
+`org.enso.logging.config.LoggingServiceConfig` class. The class encapsulates the
 `logging-service` section of `application.conf` file and is used to
 programmatically initialize loggers.
 
 As per [configuration schema](https://github.com/lightbend/config) any key can
-have a default value that can be overridden by an environment variable. For
-example
+be defined with a default value that can be overridden by an environment
+variable. For example
 
 ```
   {
@@ -72,10 +76,18 @@ it is defined during loading of the config file.
 
 ### Custom Log Levels
 
-The `logging-service.logger` configuration provides an ability to override the
-default application log level for particular loggers. In the `logger` subconfig
-the key specifies the logger name (or it's prefix) and the value specifies the
-log level for that logger.
+Possible log level values are (in the order of precedence):
+
+- `error`
+- `warn`
+- `info`
+- `debug`
+- `trace`
+
+The `logging-service.logger` configuration section provides an ability to
+override the default application log level for particular loggers. In the
+`logger` subconfig the key specifies the logger name (or it's prefix) and the
+value specifies the log level for that logger.
 
 ```
 logging-service.logger {
@@ -117,7 +129,7 @@ properties always have a higher priority over those defined in the
 
 ### Appenders
 
-Log output target is also configured in the `application.conf` files in the
+Log output target is configured in the `application.conf` files in the
 "appenders" section ("appender" is equivalent to `java.util.logging.Handler`
 semantics). Each appender section can provide further required and optional
 key/value pairs, to better customize the log target output.
@@ -133,15 +145,17 @@ Currently supported are
   a sentry.io service
 
 The appenders are defined by the `logging-service.appenders`. Currently only a
-single appender can be selected at a time. The selection may also be done via an
-environmental variable but it depends on which component we are executing.
+single appender can be selected at a time, although additional
+[logging to file](#logging-to-file) is supported. The selection may also be done
+via an environmental variable but it depends on which component we are
+executing.
 
 - `project-manager` - project manager by default starts a centralized logging
   server that collects logs (as defined in `logging-service.server` config key)
   and the logs output can be overwritten by `ENSO_LOGSERVER_APPENDER` env
   variable
-- `launcher` or `runner` - the default log output can be overwritten by defining
-  the `ENSO_APPENDER_DEFAULT` env variable
+- `ensoup` or `enso` - the default log output can be overwritten by defining the
+  `ENSO_APPENDER_DEFAULT` env variable
 
 For example, for the project manager to output to `console` one simply executes
 
@@ -169,6 +183,17 @@ message via `pattern` field e.g.
   ]
 ```
 
+In the above example `%logger` format will be substituted with a class name for
+which the logger was created with.
+
+By default, console pattern includes `%nopex` formatter which means that any
+stacktrace attached to the log message will always be ignored. By default other
+appenders do not have such formatting key. This means that if an exception is
+included in the logged messaged, a full stacktrace will be attached, if present.
+
+For a full list of formatting keys please refer to the concrete implementation's
+[manual](https://logback.qos.ch/manual/layouts.html#ClassicPatternLayout).
+
 #### File Appender
 
 Enabled with `ENSO_APPENDER_DEFAULT=file` environment variable.
@@ -191,7 +216,7 @@ File appender directs all log events to a log file:
 
 Rolling policy is a fully optional property of File Appender that would trigger
 automatic log rotation. All properties are optional with some reasonable
-defaults if missing (defined in `org.enso.logger.config.FileAppender` config
+defaults if missing (defined in `org.enso.logging.config.FileAppender` config
 class).
 
 #### Socket Appender
@@ -281,9 +306,10 @@ The `org.slf4j.Logger` instances have to know where to send log events. This
 setting is typically performed once, when the service starts, and applies
 globally during its execution. Currently, it is not possible to dynamically
 change where log events are being stored. The main (abstract) class used for
-setting up logging is `org.enso.logger.LoggerSetup`. An instance of that class
-can be retrieved with the thread-safe `org.enso.logger.LoggerSetup.get` factory
-method. `org.enso.logger.LoggerSetup` provides a number of `setupXYZAppender`
+setting up logging is `org.enso.logging.config.LoggerSetup`. An instance of that
+class can be retrieved with the thread-safe
+`org.enso.logging.config.LoggerSetup.get` factory method.
+`org.enso.logging.config.LoggerSetup` provides a number of `setupXYZAppender`
 methods that will direct loggers to send log events to an `XYZ` appender.
 Setting a specific hard-coded appender programmatically should however be
 avoided by the users. Instead, one should invoke one of the overloaded `setup`
@@ -292,7 +318,7 @@ configuration.
 
 ```java
 package foo;
-import org.enso.logger.LoggerSetup;
+import org.enso.logging.config.LoggerSetup;
 import org.slf4j.event.Level;
 
 public class MyService {
@@ -308,13 +334,13 @@ public class MyService {
 }
 ```
 
-`org.enso.logging.LoggingSetupHelper` class was introduced to help with the most
-common use cases - establishing a file-based logging in the Enso's dedicated
-directories or connecting to an existing logging server once it starts accepting
-connections. That is why services don't call `LoggerSetup` directly but instead
-provide a service-specific implementation of
-`org.enso.logging.LoggingSetupHelper`. `LoggingSetupHelper` and `LoggerSetup`
-provide `teardown` methods to properly dispose of log events.
+`org.enso.logging.service.LoggingSetupHelper` class was introduced to help with
+the most common use cases - establishing a file-based logging in the Enso's
+dedicated directories or connecting to an existing logging server once it starts
+accepting connections. That is why services don't call `LoggerSetup` directly
+but instead provide a service-specific implementation of
+`org.enso.logging.service.LoggingSetupHelper`. `LoggingSetupHelper` and
+`LoggerSetup` provide `teardown` methods to properly dispose of log events.
 
 ### Log Masking
 
@@ -351,18 +377,83 @@ way it can verify that all logs are being reported within the provided code.
 ### Logging to file
 
 By default Enso will attempt to persist (verbose) logs into a designated log
-file. This means that even though a user might be shown `WARNING` level logs in
-the console, logs with up to `DEBUG` level will be dumped into the log file. A
-user can disable this parallel logging to a file by setting the environment
-variable:
+file. This means that even though a user might be shown only `WARNING` level
+logs in the console, logs with up to `DEBUG` or `TRACE` level, including full
+stacktraces, can be dumped into the log file. A user can disable this parallel
+logging to a file by setting the environment variable:
 
 ```
 ENSO_LOG_TO_FILE=false project-manager ...
 ```
 
-Users can also modify the default maximal log level, `DEBUG`, used when logging
-to a log file by setting the environment variable:
+Users can fully control the maximal log level used when logging to a log file by
+setting the environment variable:
 
 ```
 ENSO_LOG_TO_FILE_LOG_LEVEL=trace project-manager ...
 ```
+
+For example, in the above example `project-manager` will log events of up-to
+`trace` in the log file.
+
+**Note** Logging to a file requires presence of the `file`
+[appender](#file-appender) in the `logging-service.appenders` section.
+
+# How to use logging
+
+Logging infrastructure uses a popular SLF4J interface which most of developers
+should be familiar with. In this section we include a only small number of
+examples, full user manual is available at SLF4J's
+[website](https://www.slf4j.org/manual.html).
+
+## Log a simple INFO message
+
+```
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class HelloWorld {
+
+  public static void main(String[] args) {
+    Logger logger = LoggerFactory.getLogger(HelloWorld.class);
+    logger.info("Hello World");
+  }
+}
+```
+
+## Log a simple INFO message only if TRACE is enabled
+
+```
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class HelloWorld {
+
+  public static void main(String[] args) {
+    Logger logger = LoggerFactory.getLogger(HelloWorld.class);
+    if (logger.isTraceEnabled()) {
+      logger.info("Hello World");
+    }
+  }
+}
+```
+
+## Log an exception
+
+```
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class HelloWorld {
+
+  public static void main(String[] args) {
+    Logger logger = LoggerFactory.getLogger(HelloWorld.class);
+    Throwable ex = new RuntimeException("foo")
+    logger.error("Hello World", ex);
+  }
+}
+```
+
+Note that in order for the full stacktrace to be printed, pattern in the desired
+appender must not contain `%nopex` formatting key. See [formatting](#format) for
+details.

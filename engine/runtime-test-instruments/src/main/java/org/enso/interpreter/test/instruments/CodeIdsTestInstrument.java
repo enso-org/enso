@@ -5,7 +5,6 @@ import com.oracle.truffle.api.instrumentation.*;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.LinkedHashMap;
 import java.util.Map;
-
 import java.util.UUID;
 import org.enso.interpreter.test.instruments.service.RuntimeTestService;
 import org.openide.util.Lookup;

@@ -14,6 +14,7 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 from project.Data.Boolean import Boolean, False, True
 from project.Internal.Number_Builtins import all
+from project.Internal.Ordering_Helpers import Positive_Integer_Comparator
 from project.Widget_Helpers import make_number_format_selector
 
 polyglot java import java.lang.Double
@@ -749,23 +750,64 @@ type Float
        GROUP Conversions
        ICON convert
 
-       Parses a textual representation of a float into a float number, returning
-       a `Number_Parse_Error` if the text does not represent a valid float.
+       Parses a string into a `Float`, returning a `Number_Parse_Error` if the
+       text does not represent a valid `Float`.
 
        Arguments:
-       - text: The text to parse into a float.
-       - locale: The locale that specifies the format to use when parsing
+       - text: The text to parse into a `Float`.
+       - locale: The locale that specifies the format to use when parsing.
+       - format: The Java-style format to use to parse the string.
+
+       ! Error Conditions
+
+         - If `text` is incorrectly formatted, a `Number_Parse_Error` is thrown.
+         - If `format` is incorrectly formatted (or uses digit separators that
+           differ from the ones specified by the locale), an `Illegal_Argument`
+           is thrown.
 
        > Example
-         Parse the text "7.6" into a float number.
+         Parse a `Float` with no locale specifier.
 
-             Float.parse "7.6"
-    parse : Text -> Locale | Nothing -> Float ! Number_Parse_Error
-    parse text locale=Nothing = case locale of
-        Nothing -> Panic.catch NumberFormatException (Double.parseDouble text) _->
-            Error.throw (Number_Parse_Error.Error text)
-        Locale.Value java_locale -> Panic.catch ParseException ((NumberFormat.getInstance java_locale).parse text) _->
-            Error.throw (Number_Parse_Error.Error text)
+             Float.parse "123456789.87654"
+             # => 123456789.87654
+
+       > Example
+         Parse a `Float` with the default locale.
+
+             Float.parse "123,456,789.87654" locale=Locale.default
+             # => 123456789.87654
+
+       > Example
+         Parse a `Float` with the US locale.
+
+             Float.parse "123,456,789.87654" locale=Locale.us
+             # => 123456789.87654
+
+       > Example
+         Parse a `Float` with the Italy locale.
+
+             Float.parse "123.456.789,87654" locale=Locale.italy
+             # => 123456789.87654
+       > Example
+         Parse a `Float` with an explicit negative number format.
+
+             Float.parse "(123,456,789.654)" format="###,###.##;(###,###.##)"
+             # => -123456789.654
+    parse : Text -> Locale | Nothing -> Text | Nothing -> Float ! Number_Parse_Error | Illegal_Argument
+    parse text:Text (locale : Locale | Nothing = Nothing) (format : Text | Nothing = Nothing) -> Float ! Number_Parse_Error | Illegal_Argument =
+        case locale.is_nothing && format.is_nothing of
+            True ->
+                Panic.catch NumberFormatException (Double.parseDouble text) _->
+                    Error.throw (Number_Parse_Error.Error text)
+            False ->
+                Illegal_Argument.handle_java_exception <|
+                    defaulted_locale = locale.if_nothing Locale.default
+                    defaulted_format = format.if_nothing ""
+                    # `getInstance` returns `DecimalFormat` or a subclass of `DecimalFormat`.
+                    decimal_format = NumberFormat.getInstance defaulted_locale.java_locale
+                    decimal_format.applyLocalizedPattern defaulted_format
+                    Panic.catch ParseException (decimal_format.parse text) _->
+                        Error.throw (Number_Parse_Error.Error text)
 
     ## ICON input_number
 
@@ -1118,9 +1160,9 @@ type Integer
        of bits in the operands.
 
        > Example
-         Computing the bitwise conjunction of 2_01101101 and 2_11110000.
+         Computing the bitwise conjunction of 0b01101101 and 0b11110000.
 
-             2_01101101.bit_and 2_11110000
+             0b01101101.bit_and 0b11110000
     bit_and self that:Integer -> Integer = integer_bit_and self that
 
     ## GROUP Bitwise
@@ -1130,9 +1172,9 @@ type Integer
        The bitwise compliment negates the value of each bit in the operand.
 
        > Example
-         Bitwise negation of 2_0110.
+         Bitwise negation of 0b0110.
 
-             2_0110.bit_not
+             0b0110.bit_not
     bit_not self -> Integer = integer_bit_not self
 
     ## GROUP Bitwise
@@ -1147,9 +1189,9 @@ type Integer
        bits in the operands.
 
        > Example
-         Computing the bitwise disjunction of 2_01101101 and 2_11110000.
+         Computing the bitwise disjunction of 0b01101101 and 0b11110000.
 
-             2_01101101.bit_or 2_11110000
+             0b01101101.bit_or 0b11110000
     bit_or self that:Integer -> Integer = integer_bit_or self that
 
     ## GROUP Bitwise
@@ -1163,9 +1205,9 @@ type Integer
        corresponding bits in the operands.
 
        > Example
-         Computing the bitwise exclusive or of 2_01101101 and 2_11110000.
+         Computing the bitwise exclusive or of 0b01101101 and 0b11110000.
 
-             2_01101101.bit_xor 2_11110000
+             0b01101101.bit_xor 0b11110000
     bit_xor self that:Integer -> Integer = integer_bit_xor self that
 
     ## GROUP Bitwise
@@ -1245,7 +1287,11 @@ type Integer
          Parse the text "20220216" into an integer number.
 
             Integer.parse "20220216"
-    parse text:Text (radix=10:Integer) -> Integer ! Number_Parse_Error = integer_parse text radix
+    parse text:Text (radix:Integer = 10) -> Integer ! Number_Parse_Error = integer_parse text radix
+
+    ## PRIVATE
+    fits_in_long self -> Boolean =
+        self >= Long.MIN_VALUE && self <= Long.MAX_VALUE
 
 ## A syntax error when parsing a double.
 @Builtin_Type
@@ -1288,13 +1334,4 @@ Positive_Integer.from (that : Integer) = Positive_Integer.new that
 Integer.from (that : Positive_Integer) = that.integer
 
 ## PRIVATE
-type Positive_Integer_Comparator
-    ## PRIVATE
-    compare x y =
-        Comparable.from x.integer . compare x.integer y.integer
-
-    ## PRIVATE
-    hash x = Comparable.from x.integer . hash x.integer
-
-## PRIVATE
-Comparable.from (_:Positive_Integer) = Positive_Integer_Comparator
+Comparable.from (that:Positive_Integer) = Comparable.new that Positive_Integer_Comparator

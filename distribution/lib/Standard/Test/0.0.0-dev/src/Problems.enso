@@ -23,8 +23,11 @@ get_attached_warnings v =
      the standard testing approach, like `x.should_equal y`.
    - unwrap_errors: If true, remove any wrapping errors from errors and warnings
      before checking them.
-test_problem_handling : (Problem_Behavior -> Any) -> Vector Any -> (Any -> Nothing) -> Boolean -> Nothing
-test_problem_handling action expected_problems result_checker unwrap_errors=True =
+   - ignore_warning_cardinality: If true, the reported warnings may be
+     duplicated and that will be accepted. If false (default), the warning count
+     has to match the counts in `expected_problems`.
+test_problem_handling : (Problem_Behavior -> Any) -> Vector Any -> (Any -> Nothing) -> Boolean -> Boolean -> Nothing
+test_problem_handling action expected_problems result_checker (unwrap_errors : Boolean = True) (ignore_warning_cardinality : Boolean = False) =
     unwrap_maybe error = if unwrap_errors then Error.unwrap error else error
 
     error_checker error_result =
@@ -33,9 +36,10 @@ test_problem_handling action expected_problems result_checker unwrap_errors=True
         error_result . should_fail_with first_problem_type unwrap_errors=unwrap_errors frames_to_skip=3
         (unwrap_maybe error_result.catch) . should_equal first_problem frames_to_skip=3
     warnings_checker warnings =
-        ## TODO [RW] we are not checking if there are no duplicate warnings, because the warnings are in fact duplicated - we should figure out how to handle that and then possibly modify the test
         Test.with_clue "The warnings were "+warnings.to_text+'.\n' <|
-            warnings . map unwrap_maybe . should_contain_the_same_elements_as expected_problems frames_to_skip=5
+            (if ignore_warning_cardinality then warnings.distinct else warnings)
+                . map unwrap_maybe
+                . should_equal_ignoring_order expected_problems frames_to_skip=8
     test_advanced_problem_handling action error_checker warnings_checker result_checker frames_to_skip=1
 
 ## UNSTABLE
@@ -73,9 +77,9 @@ test_advanced_problem_handling action error_checker warnings_checker result_chec
 ## UNSTABLE
    Checks if the provided value does not have any attached problems.
 assume_no_problems result =
-    loc = Meta.get_source_location 1
+    loc = Test.get_source_location 1
     if result.is_error then
-        Test.fail "Expected the result to not be an error, but a dataflow error has been matched: "+result.catch.to_display_text+" (at "+loc+")."
+        Test.fail "Expected the result to not be an error, but a dataflow error has been matched: "+result.catch.to_display_text+" (at "+loc+")." details=result.get_stack_trace_text
     warnings = get_attached_warnings result
     if warnings.not_empty then
         Test.fail "Expected the result to not contain any warnings, but it did: "+warnings.to_text+" (at "+loc+")."
@@ -93,7 +97,7 @@ assume_no_problems result =
 expect_warning : Any -> Any -> Boolean -> Nothing
 expect_warning expected_warning result unwrap_errors=True =
     unwrap_maybe error = if unwrap_errors then Error.unwrap error else error
-    loc = Meta.get_source_location 1
+    loc = Test.get_source_location 1
     if result.is_error then
         Test.fail "Expected a warning "+expected_warning.to_text+", but a dataflow error has been matched: "+result.catch.to_display_text+" (at "+loc+")."
     warnings = get_attached_warnings result . map unwrap_maybe
@@ -117,7 +121,7 @@ expect_warning expected_warning result unwrap_errors=True =
 expect_only_warning : Any -> Any -> Boolean -> Any
 expect_only_warning expected_warning result unwrap_errors=True =
     unwrap_maybe error = if unwrap_errors then Error.unwrap error else error
-    loc = Meta.get_source_location 1
+    loc = Test.get_source_location 1
     if result.is_error then
         Test.fail "Expected only warning "+expected_warning.to_text+", but a dataflow error has been matched: "+result.catch.to_display_text+" (at "+loc+")."
     warnings = get_attached_warnings result . map unwrap_maybe
@@ -140,5 +144,5 @@ not_expect_warning expected_warning_type result =
     warnings = get_attached_warnings result
     found = warnings.find if_missing=Nothing x-> x.is_a expected_warning_type
     if found.is_nothing.not then
-        loc = Meta.get_source_location 3
+        loc = Test.get_source_location 3
         Test.fail 'The result contained a warning it was not supposed to: '+found.to_text+' (at '+loc+').'

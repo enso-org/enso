@@ -4,13 +4,14 @@ import akka.actor.ActorSystem
 import akka.stream.SystemMaterializer
 import cats.MonadError
 import org.enso.jsonrpc.JsonRpcServer
-import org.enso.logger.akka.AkkaConverter
+import org.enso.logging.utils.akka.AkkaConverter
 import org.enso.projectmanager.boot.configuration.{
   MainProcessConfig,
   ProjectManagerConfig
 }
 import org.enso.projectmanager.control.core.{Applicative, CovariantFlatMap}
 import org.enso.projectmanager.control.effect.{Async, ErrorChannel, Exec, Sync}
+import org.enso.projectmanager.infrastructure.desktop.{DesktopTrash, TrashCan}
 import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
 import org.enso.projectmanager.infrastructure.http.ProjectsEndpoint
 import org.enso.projectmanager.infrastructure.languageserver.{
@@ -21,10 +22,7 @@ import org.enso.projectmanager.infrastructure.languageserver.{
 }
 import org.enso.projectmanager.infrastructure.log.Slf4jLogging
 import org.enso.projectmanager.infrastructure.random.SystemGenerator
-import org.enso.projectmanager.infrastructure.repository.{
-  ProjectFileRepository,
-  ProjectFileRepositoryFactory
-}
+import org.enso.projectmanager.infrastructure.repository.ProjectFileRepositoryFactory
 import org.enso.projectmanager.infrastructure.time.RealClock
 import org.enso.projectmanager.protocol.{
   JsonRpcProtocolFactory,
@@ -71,15 +69,15 @@ class MainModule[
 
   lazy val projectValidator = new ProjectNameValidator[F]()
 
-  lazy val projectRepositoryFactory =
-    new ProjectFileRepositoryFactory[F](config.storage, clock, fileSystem, gen)
+  lazy val trash: TrashCan[F] = DesktopTrash[F]
 
-  lazy val projectRepository =
-    new ProjectFileRepository[F](
+  lazy val projectRepositoryFactory =
+    new ProjectFileRepositoryFactory[F](
       config.storage,
       clock,
       fileSystem,
-      gen
+      gen,
+      trash
     )
 
   val distributionConfiguration = DefaultDistributionConfiguration
@@ -149,7 +147,7 @@ class MainModule[
       timeoutConfig                   = config.timeout
     )
 
-  lazy val projectsEndpoint = new ProjectsEndpoint(projectRepository)
+  lazy val projectsEndpoint = new ProjectsEndpoint(projectRepositoryFactory)
   lazy val server =
     new JsonRpcServer(
       new JsonRpcProtocolFactory,

@@ -6,13 +6,15 @@ import project.Errors.Common.Forbidden_Operation
 import project.Function.Function
 import project.Panic.Panic
 
-from project.Data.Boolean import True
-from project.Runtime.Context import Input, Output
+import project.Data.Boolean.Boolean.True
+import project.Runtime.Context.Input
+import project.Runtime.Context.Output
 
 @Builtin_Type
 type Context
     Input
     Output
+    Dataflow_Stack_Trace
 
     name : Text
     name self =
@@ -21,13 +23,13 @@ type Context
             Output -> "Output"
 
     if_enabled : Any -> Text -> Text -> Boolean -> Any ! Forbidden_Operation
-    if_enabled self ~action environment="design" disabled_message="The "+self.name+" context is disabled." panic=True =
+    if_enabled self ~action environment=Runtime.current_execution_environment disabled_message="The "+self.name+" context is disabled." panic=True =
         if self.is_enabled environment then action else
             error = Forbidden_Operation.Error disabled_message
             if panic then Panic.throw error else Error.throw error
 
     is_enabled : Text -> Boolean
-    is_enabled self environment="design" =
+    is_enabled self environment=Runtime.current_execution_environment =
         self.is_enabled_builtin environment
 
     ## PRIVATE

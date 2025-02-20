@@ -131,8 +131,8 @@ prepare_file_modification_strategy table section on_existing_file match_columns 
             java_headers = Excel_Reader.make_java_headers headers
             java_limit = row_limit.rows_to_write
             java_range = case address of
-                Excel_Range.Value java_range -> java_range
-                text : Text -> text
+                _ : Excel_Range -> address.java_range
+                _ : Text -> address
             workbook_to_modify->
                 ExcelWriter.writeTableToRange workbook_to_modify java_range existing_data_mode skip_rows table.java_table java_limit java_headers
 

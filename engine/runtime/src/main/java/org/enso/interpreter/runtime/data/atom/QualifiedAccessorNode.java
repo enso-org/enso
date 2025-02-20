@@ -24,7 +24,7 @@ final class QualifiedAccessorNode extends EnsoRootNode {
       EnsoLanguage language, AtomConstructor atomConstructor, ModuleScope moduleScope) {
     super(
         language,
-        LocalScope.root(),
+        LocalScope.empty(),
         moduleScope,
         atomConstructor.getQualifiedName().toString(),
         null);
@@ -54,7 +54,7 @@ final class QualifiedAccessorNode extends EnsoRootNode {
       } else if (atomConstructor == falseCtor) {
         return false;
       } else {
-        return atomConstructor.newInstance();
+        return atomConstructor.getConstructorFunction();
       }
     } else {
       return atomConstructor;

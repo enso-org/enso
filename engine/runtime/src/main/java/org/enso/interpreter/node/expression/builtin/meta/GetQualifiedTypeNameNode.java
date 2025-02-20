@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -20,11 +21,16 @@ public class GetQualifiedTypeNameNode extends Node {
     var maybeType =
         switch (value) {
           case Type type -> type;
-          default -> typeOfNode.execute(value);
+          default -> typeOfNode.findTypeOrError(value);
         };
     if (maybeType instanceof Type type) {
-      return Text.create(type.getQualifiedName().toString());
+      return Text.create(getQualifiedName(type));
     }
     return EnsoContext.get(this).getBuiltins().nothing();
+  }
+
+  @TruffleBoundary
+  private static String getQualifiedName(Type type) {
+    return type.getQualifiedName().toString();
   }
 }

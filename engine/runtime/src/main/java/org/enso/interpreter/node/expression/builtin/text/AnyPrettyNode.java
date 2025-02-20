@@ -47,7 +47,7 @@ public abstract class AnyPrettyNode extends Node {
 
   @CompilerDirectives.TruffleBoundary
   private Text consName(AtomConstructor constructor) {
-    return Text.create(constructor.getDisplayName());
+    return Text.create(constructor.getType().getName() + "." + constructor.getName());
   }
 
   @CompilerDirectives.TruffleBoundary

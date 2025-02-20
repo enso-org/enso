@@ -14,13 +14,13 @@ import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.IR.SQL_Join_Kind.SQL_Join_Kind
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-from project.Internal.Upload_Table import check_for_null_keys
+from project.Internal.Upload.Helpers.Check_Queries import check_for_null_keys
 
 ## PRIVATE
    Implementation of `lookup_and_replace` for Database backend.
    See `Table.lookup_and_replace` for more details.
 build_lookup_query : DB_Table -> DB_Table -> (Vector (Integer | Text | Regex) | Text | Integer | Regex) -> Boolean -> Boolean -> Problem_Behavior -> DB_Table ! Missing_Input_Columns | Non_Unique_Key | Unmatched_Rows_In_Lookup
-build_lookup_query base_table lookup_table key_columns add_new_columns allow_unmatched_rows on_problems =
+build_lookup_query base_table lookup_table key_columns add_new_columns allow_unmatched_rows on_problems:Problem_Behavior =
     lookup_columns = Lookup_Helpers.prepare_columns_for_lookup base_table lookup_table key_columns add_new_columns allow_unmatched_rows on_problems
     lookup_columns.if_not_error <| check_initial_invariants base_table lookup_table lookup_columns allow_unmatched_rows <|
         column_naming_helper = base_table.connection.base_connection.column_naming_helper
@@ -57,7 +57,7 @@ build_lookup_query base_table lookup_table key_columns add_new_columns allow_unm
         new_ctx_with_invariant_check = new_ctx.add_where_filters [make_invariant_check subquery_setup.lookup_counter allow_unmatched_rows]
 
         precheck_for_duplicate_matches lookup_columns subquery_setup base_table.connection new_ctx <|
-            DB_Table.Value subquery_setup.new_table_name base_table.connection new_columns new_ctx_with_invariant_check
+            DB_Table.new subquery_setup.new_table_name base_table.connection new_columns new_ctx_with_invariant_check
 
 ## PRIVATE
    Checks if they key contains NULL values or if there would be unmatched rows
@@ -196,7 +196,7 @@ precheck_for_duplicate_matches lookup_columns subquery_setup connection new_ctx 
     key_columns_for_duplicate_check = (_.flatten) <| lookup_columns.map_with_index ix-> c-> case c of
         Lookup_Column.Key_Column _ _ -> [subquery_setup.get_self_column ix]
         _ -> []
-    table_for_duplicate_check = DB_Table.Value subquery_setup.new_table_name connection [subquery_setup.lookup_counter]+key_columns_for_duplicate_check new_ctx
+    table_for_duplicate_check = DB_Table.new subquery_setup.new_table_name connection [subquery_setup.lookup_counter]+key_columns_for_duplicate_check new_ctx
     duplicate_lookup_matches = table_for_duplicate_check.filter 0 (Filter_Condition.Greater than=1) . read (..First 1)
     case duplicate_lookup_matches.row_count > 0 of
         True ->

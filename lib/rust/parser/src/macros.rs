@@ -5,9 +5,8 @@
 
 use crate::prelude::*;
 
+use crate::im_list;
 use crate::syntax;
-
-use enso_data_structures::im_list;
 
 
 // ==============
@@ -35,12 +34,11 @@ pub use pattern::Pattern;
 ///
 /// If you want to create macro definition in Rust, use the [`macro_definition`] macro instead,
 /// which for a nice and concise definitions.
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive_where(Debug)]
 #[allow(missing_docs)]
 pub struct Definition<'a> {
     pub segments: im_list::NonEmpty<SegmentDefinition<'a>>,
-    #[derivative(Debug = "ignore")]
+    #[derive_where(skip)]
     pub body:     Rc<DefinitionBody>,
 }
 
@@ -107,8 +105,7 @@ fn matched_segments_into_multi_segment_app<'s>(
 ) -> syntax::Tree<'s> {
     let segments = matched_segments.mapped(|segment| {
         let header = segment.header;
-        let tokens = segment.result.tokens();
-        let body = precedence.resolve(tokens);
+        let body = precedence.resolve(&mut segment.result.tokens());
         syntax::tree::MultiSegmentAppSegment { header, body }
     });
     syntax::Tree::multi_segment_app(segments)

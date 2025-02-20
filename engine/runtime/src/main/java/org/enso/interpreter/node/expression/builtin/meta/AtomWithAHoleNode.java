@@ -24,7 +24,6 @@ import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Meta",
@@ -41,7 +40,7 @@ public abstract class AtomWithAHoleNode extends Node {
     return v instanceof HoleInAtom;
   }
 
-  abstract Object execute(VirtualFrame frame, Object factory, State state);
+  abstract Object execute(VirtualFrame frame, Object factory);
 
   @NeverDefault
   static InvokeCallableNode callWithHole() {
@@ -55,12 +54,12 @@ public abstract class AtomWithAHoleNode extends Node {
   Object doExecute(
       VirtualFrame frame,
       Object factory,
-      State state,
-      @Cached("callWithHole()") InvokeCallableNode iop,
+      @Cached("callWithHole()") InvokeCallableNode invokeNode,
       @Cached SwapAtomFieldNode swapNode) {
     var ctx = EnsoContext.get(this);
+    var state = ctx.currentState();
     var lazy = new HoleInAtom();
-    var result = iop.execute(factory, frame, state, new Object[] {lazy});
+    var result = invokeNode.execute(factory, frame, state, new Object[] {lazy});
     if (result instanceof Atom atom) {
       var index = swapNode.findHoleIndex(atom, lazy);
       if (index >= 0) {
@@ -73,7 +72,7 @@ public abstract class AtomWithAHoleNode extends Node {
   }
 
   @ExportLibrary(InteropLibrary.class)
-  static final class HoleInAtom implements EnsoObject {
+  static final class HoleInAtom extends EnsoObject {
     Atom result;
     int index;
     Function function;
@@ -134,13 +133,15 @@ public abstract class AtomWithAHoleNode extends Node {
           return function;
         }
         var ctx = EnsoContext.get(invoke);
-        return invoke.execute(function, null, State.create(ctx), args);
+        var state = ctx.currentState();
+        return invoke.execute(function, null, state, args);
       }
       throw UnknownIdentifierException.create(name);
     }
 
     @ExportMessage
-    String toDisplayString(boolean pure) {
+    @Override
+    public String toDisplayString(boolean pure) {
       return "Meta.atom_with_hole";
     }
   }

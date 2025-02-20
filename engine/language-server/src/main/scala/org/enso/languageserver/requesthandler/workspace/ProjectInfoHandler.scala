@@ -1,7 +1,6 @@
 package org.enso.languageserver.requesthandler.workspace
 
 import akka.actor.{Actor, Props}
-import buildinfo.Info
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.jsonrpc.{Request, ResponseError, ResponseResult}
 import org.enso.languageserver.data.Config
@@ -10,6 +9,7 @@ import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.workspace.WorkspaceApi.ProjectInfo
 import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.{Config => PkgConfig}
+import org.enso.version.BuildVersion
 
 import java.io.{File, FileReader}
 
@@ -31,8 +31,8 @@ class ProjectInfoHandler(languageServerConfig: Config)
       if (projectConfig.isSuccess) {
         val projectInfo = ProjectInfo.Result(
           projectName   = projectConfig.get.moduleName,
-          engineVersion = Info.ensoVersion,
-          graalVersion  = Info.graalVersion
+          engineVersion = BuildVersion.ensoVersion,
+          graalVersion  = BuildVersion.graalVersion
         )
         sender() ! ResponseResult(
           ProjectInfo,

@@ -1,0 +1,17 @@
+from Standard.Base import all
+
+from Standard.Table import Value_Type
+
+## An Enso representation of a Column in a Tableau Hyper Table.
+type Hyper_Column
+    ## PRIVATE
+    Value name:Text value_type:Value_Type nullable:Boolean
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = self.name + " (" + self.value_type.to_display_text + ")"
+
+    ## PRIVATE
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Hyper_Column"], ["name", self.name], ["value_type", self.value_type], ["nullable", self.nullable]]

@@ -1,0 +1,24 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Missing_Argument
+
+polyglot java import org.enso.table.operations.AddGroupNumber
+
+## Specifies a method for grouping rows in `add_group_number`.
+type Grouping_Method
+    ## Group rows by the specified columns.
+
+       Arguments:
+       - on: Rows that have the same values for these columns will be grouped
+         together. At least one column must be specified.
+    Unique (on:(Vector | Text | Integer | Regex)=(Missing_Argument.throw "on"))
+
+    ## Create the specified number of groups with the same number of rows in
+       each group (except possibly the last one).
+
+       Arguments
+       - group_count: The number of groups to divide the table into.
+       - order_by: (Optional.) Specifies the order in which rows should be
+         assigned to groups. Only affects the assignment of group numbers, not
+         the ordering of the output rows. Defaults to the order of the rows in
+         the table.
+    Equal_Count (group_count:Integer=(Missing_Argument.throw "group_count")) (order_by:(Vector | Text)=[])

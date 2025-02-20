@@ -22,7 +22,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 /** Simple runtime value representing a yet-unresolved by-name symbol. */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-public final class UnresolvedConversion implements EnsoObject {
+public final class UnresolvedConversion extends EnsoObject {
   private final ModuleScope scope;
 
   /**
@@ -71,7 +71,8 @@ public final class UnresolvedConversion implements EnsoObject {
   }
 
   @ExportMessage
-  String toDisplayString(boolean allowSideEffects) {
+  @Override
+  public String toDisplayString(boolean allowSideEffects) {
     return this.toString();
   }
 

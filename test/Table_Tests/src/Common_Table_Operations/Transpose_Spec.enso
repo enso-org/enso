@@ -126,6 +126,6 @@ add_specs suite_builder setup =
             Problems.test_problem_handling action2 problems2 tester2
 
             # No clash with the columns that are removed by transpose.
-            t2 = t1.transpose ["X"] attribute_column_name="Y" value_column_name="Z" on_problems=Problem_Behavior.Report_Error
+            t2 = t1.transpose ["X"] attribute_column_name="Y" value_column_name="Z" on_problems=..Report_Error
             Problems.assume_no_problems t2
             t2.column_names . should_equal ["X", "Y", "Z"]

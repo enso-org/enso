@@ -3,7 +3,7 @@ package org.enso.projectmanager.protocol
 import io.circe.Json
 import org.enso.semver.SemVer
 import org.enso.projectmanager.BaseServerSpec
-import org.enso.projectmanager.data.MissingComponentAction
+import org.enso.projectmanager.data.MissingComponentActions
 import org.enso.runtimeversionmanager.components.GraalVMVersion
 import org.enso.testkit.RetrySpec
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -12,7 +12,7 @@ trait MissingComponentBehavior {
   this: BaseServerSpec with AnyWordSpecLike with RetrySpec =>
   def buildRequest(
     version: SemVer,
-    missingComponentAction: MissingComponentAction
+    missingComponentAction: MissingComponentActions.MissingComponentAction
   ): Json
 
   def isSuccess(json: Json): Boolean
@@ -23,14 +23,14 @@ trait MissingComponentBehavior {
   def correctlyHandleMissingComponents(): Unit = {
     "fail if a missing version is requested with Fail" in {
       val client = new WsTestClient(address)
-      client.send(buildRequest(defaultVersion, MissingComponentAction.Fail))
+      client.send(buildRequest(defaultVersion, MissingComponentActions.Fail))
       client.expectError(4020)
     }
 
     "install the missing version and succeed with Install" taggedAs Retry in {
       val client = new WsTestClient(address)
       client.send(
-        buildRequest(defaultVersion, MissingComponentAction.Install)
+        buildRequest(defaultVersion, MissingComponentActions.Install)
       )
 
       /** We do not check for success here as we are concerned onyl that the
@@ -44,7 +44,7 @@ trait MissingComponentBehavior {
     "Install" in {
       pending // #7750
       val client = new WsTestClient(address)
-      client.send(buildRequest(brokenVersion, MissingComponentAction.Install))
+      client.send(buildRequest(brokenVersion, MissingComponentActions.Install))
       client.expectError(4021)
     }
 
@@ -52,7 +52,7 @@ trait MissingComponentBehavior {
     "with ForceInstallBroken" taggedAs Retry in {
       val client = new WsTestClient(address)
       client.send(
-        buildRequest(brokenVersion, MissingComponentAction.ForceInstallBroken)
+        buildRequest(brokenVersion, MissingComponentActions.ForceInstallBroken)
       )
       client.expectTaskStarted()
     }
@@ -69,7 +69,7 @@ trait MissingComponentBehavior {
 
       val client = new WsTestClient(address)
       client.send(
-        buildRequest(defaultVersion, MissingComponentAction.Install)
+        buildRequest(defaultVersion, MissingComponentActions.Install)
       )
 
       /** We do not check for success here as we are concerned onyl that the

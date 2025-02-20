@@ -1,3 +1,7 @@
+import sbt.singleFileFinder
+
+import java.io.File
+
 object Platform {
 
   /** Returns true if the build system is running on Windows.
@@ -46,4 +50,17 @@ object Platform {
     if (isWindows) s".\\$name.bat" else name
   }
 
+  /** Returns the executable file on the current platform.
+    *
+    * @param file the generic executable path
+    * @return the file corresponding to the provided executable on the current platform
+    */
+  def executableFile(file: File): String =
+    if (isWindows) {
+      val parent = file.getParentFile
+      if (parent == null) s".\\${file.getName}.bat"
+      else if (parent.isAbsolute)
+        new File(parent, s"${file.getName}.bat").getPath
+      else s".\\${parent.getPath}${file.getPath}.bat"
+    } else file.getPath
 }

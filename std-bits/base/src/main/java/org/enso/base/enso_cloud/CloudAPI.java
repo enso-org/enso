@@ -1,6 +1,7 @@
 package org.enso.base.enso_cloud;
 
 import org.enso.base.Environment_Utils;
+import org.enso.base.enso_cloud.audit.AuditLog;
 
 public final class CloudAPI {
   /**
@@ -25,9 +26,19 @@ public final class CloudAPI {
     return Environment_Utils.get_environment_variable("ENSO_CLOUD_PROJECT_ID");
   }
 
+  /**
+   * Returns the session ID of the currently running cloud session.
+   *
+   * <p>When running locally, this returns {@code null}.
+   */
+  public static String getCloudSessionId() {
+    return Environment_Utils.get_environment_variable("ENSO_CLOUD_PROJECT_SESSION_ID");
+  }
+
   public static void flushCloudCaches() {
-    CloudRequestCache.clear();
+    CloudRequestCache.INSTANCE.clear();
     AuthenticationProvider.reset();
     EnsoSecretReader.flushCache();
+    AuditLog.resetCache();
   }
 }

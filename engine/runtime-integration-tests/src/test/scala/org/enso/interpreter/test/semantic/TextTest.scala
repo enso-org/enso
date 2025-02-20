@@ -113,7 +113,6 @@ class TextTest extends InterpreterTest {
           |import Standard.Base.Panic.Panic
           |import Standard.Base.IO
           |import Standard.Base.Nothing
-          |import Standard.Base.Data.Json.Extensions
           |
           |main =
           |    IO.println (List.Cons Nothing Nothing).to_display_text

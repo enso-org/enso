@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
@@ -7,7 +8,9 @@ from Standard.Table import Aggregate_Column, Join_Kind, Value_Type
 import project.Connection.Connection.Connection
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
+import project.Dialect_Flag.Dialect_Flag
 import project.Internal.Column_Fetcher.Column_Fetcher
+import project.Internal.DB_Wrapped_Error.DB_Wrapped_Error
 import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.Context.Context
 import project.Internal.IR.From_Spec.From_Spec
@@ -17,13 +20,17 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.Postgres.Postgres_Dialect
 import project.Internal.Replace_Params.Replace_Params
+import project.Internal.SQL_Part.SQL_Part
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Dialect
 import project.Internal.Statement_Setter.Statement_Setter
+import project.SQL.SQL_Builder
 import project.SQL_Statement.SQL_Statement
 import project.SQL_Type.SQL_Type
 from project.Errors import SQL_Error, Unsupported_Database_Operation
+from project.Feature import Feature
+from project.Internal.JDBC_Connection import JDBC_Connection
 from project.Internal.Result_Set import result_set_to_table
 
 ## PRIVATE
@@ -44,6 +51,27 @@ type Dialect
     generate_sql : Query -> SQL_Statement
     generate_sql self query =
         _ = [query]
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Generates SQL to truncate a table.
+    generate_truncate_table_sql : Text -> SQL_Builder
+    generate_truncate_table_sql self table_name =
+         _ = [table_name]
+         Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Generates SQL modifier for limiting the number of rows and its position in the query
+    get_limit_sql_modifier : Integer -> Any
+    get_limit_sql_modifier self limit =
+         _ = [limit]
+         Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
+       If you add extensions using Context_Extension you have to provide an order for them here
+    get_part_order self part:SQL_Part -> Integer =
+        _ = [part]
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
@@ -68,14 +96,6 @@ type Dialect
     prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> DB_Table
     prepare_distinct self table key_columns case_sensitivity problem_builder =
         _ = [table, key_columns, case_sensitivity, problem_builder]
-        Unimplemented.throw "This is an interface only."
-
-    ## PRIVATE
-       A heuristic used by `Connection.query` to determine if a given text looks
-       like a SQL query for the given dialect or is rather a table name.
-    is_probably_a_query : Text -> Boolean
-    is_probably_a_query self text =
-        _ = [text]
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
@@ -119,30 +139,19 @@ type Dialect
        executing the query. In some however, like SQLite, this is insufficient
        and will yield incorrect results, so the query needs to be executed (even
        though the full results may not need to be streamed).
-    needs_execute_query_for_type_inference : Boolean
-    needs_execute_query_for_type_inference self =
+
+       The function takes the statement as an argument which can be used in
+       heuristics telling whether the execute is needed.
+    needs_execute_query_for_type_inference : Text | SQL_Statement -> Boolean
+    needs_execute_query_for_type_inference self statement =
+        _ = statement
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
-       Specifies if the Database distinguishes a separate `NaN` value for
-       floating point columns. Some databases will not be able to distinguish
-       NaN from NULL.
-    supports_separate_nan : Boolean
-    supports_separate_nan self =
-        Unimplemented.throw "This is an interface only."
-
-    ## PRIVATE
-       Specifies whether the Database ROUND() function supports negative
-       decimal places.
-    supports_negative_round_decimal_places : Boolean
-    supports_negative_round_decimal_places self =
-        Unimplemented.throw "This is an interface only."
-
-    ## PRIVATE
-       Specifies whether round() can take a decimal_places argument for floating point values.
-    rounding_decimal_places_not_allowed_for_floats : Boolean
-    rounding_decimal_places_not_allowed_for_floats self =
-        Unimplemented.throw "This is an interface only."
+       Specifies how the database creates temp tables.
+    temp_table_style : Temp_Table_Style
+    temp_table_style self =
+         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
        Performs any transformations on a column resulting from unifying other
@@ -170,6 +179,12 @@ type Dialect
         _ = [expression, context]
         Unimplemented.throw "This is an interface only."
 
+
+    ## PRIVATE
+    generate_collate self collation_name:Text -> Text = 
+         _ = collation_name
+         Unimplemented.throw "This is an interface only."
+
     ## PRIVATE
        Checks if the given aggregate is supported.
 
@@ -181,9 +196,20 @@ type Dialect
 
     ## PRIVATE
        Checks if an operation is supported by the dialect.
-    is_supported : Text -> Boolean
-    is_supported self operation =
+    is_operation_supported self operation:Text -> Boolean =
         _ = operation
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Checks if a feature is supported by the dialect.
+    is_feature_supported self feature:Feature -> Boolean =
+        _ = feature
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Checks a dialect flag
+    flagged self flag:Dialect_Flag -> Boolean =
+        _ = flag
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
@@ -234,6 +260,43 @@ type Dialect
         _ = column
         Unimplemented.throw "This is an interface only."
 
+    ## PRIVATE
+       An optional method. It only needs to be implemented if
+       `DDL_Transaction.Support_Level` of this connection is different than `Allowed`.
+
+       It specifies if the table integrity should be checked at the beginning of
+       the transaction - to check if there were no unexpected modifications
+       between the table was created (outside of transaction) and the
+       transaction was entered. Some dialects may decide to opt-out of
+       this check for performance reasons.
+    should_check_table_integrity_at_beginning_of_transaction self -> Boolean =
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       An optional method adding custom handling for the `aggregate` operation.
+
+       This method may be left undefined, in which case the default
+       implementation defined in `Aggregate_Helper.default_build_aggregate` will
+       be used. The method should be defined only if the dialect requires custom
+       logic.
+    custom_build_aggregate self (base_table : DB_Table) (key_columns : Vector Internal_Column) (resolved_aggregates : Vector (Pair Text Aggregate_Column)) (problem_builder : Problem_Builder) -> Pair Context (Vector (Internal_Column | DB_Wrapped_Error)) =
+        _ = [base_table, key_columns, resolved_aggregates, problem_builder]
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Generates a expression for use in the SELECT OR WHERE clause. 
+       Used for databases where the expression syntax is different in the SELECT clause 
+       to the syntax in the WHERE clause
+    generate_expression self base_gen expr:(SQL_Expression | Order_Descriptor | Query) for_select:Boolean -> SQL_Builder =
+        _ = [base_gen, expr, for_select]
+        Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+    ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument
+    ensure_query_has_no_holes jdbc:JDBC_Connection raw_sql:Text =
+        _ = [jdbc, raw_sql]
+        Unimplemented.throw "This is an interface only."
+
 ## PRIVATE
 
    The dialect of SQLite databases.
@@ -247,11 +310,6 @@ postgres : Dialect
 postgres = Postgres_Dialect.postgres
 
 ## PRIVATE
-default_fetch_types_query dialect expression context =
-    empty_context = context.add_where_filters [SQL_Expression.Literal "FALSE"]
-    dialect.generate_sql (Query.Select [["typed_column", expression]] empty_context)
-
-## PRIVATE
    Default implementation relying on DatabaseMetaData.
 default_fetch_primary_key connection table_name =
     connection.jdbc_connection.with_metadata metadata->
@@ -259,5 +317,15 @@ default_fetch_primary_key connection table_name =
         keys_table = result_set_to_table rs connection.dialect.get_type_mapping.make_column_fetcher
         # The names of the columns are sometimes lowercase and sometimes uppercase, so we do a case insensitive select first.
         selected = keys_table.select_columns ["COLUMN_NAME", "KEY_SEQ"] case_sensitivity=Case_Sensitivity.Insensitive reorder=True
-        key_column_names = selected.order_by 1 . at 0 . to_vector
+        key_column_names = selected.sort 1 . at 0 . to_vector
         if key_column_names.is_empty then Nothing else key_column_names
+
+## PRIVATE
+type Temp_Table_Style
+    ## PRIVATE
+       The temporary table is created using a create table statement.
+    Temporary_Table
+
+    ## PRIVATE
+       The temporary table is created using a # table name.
+    Hash_Prefix

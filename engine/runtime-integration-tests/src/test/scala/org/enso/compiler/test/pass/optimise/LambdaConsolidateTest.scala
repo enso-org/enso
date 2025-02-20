@@ -77,7 +77,7 @@ class LambdaConsolidateTest extends CompilerTest {
     */
   def mkContext: InlineContext = {
     buildInlineContext(
-      localScope        = Some(LocalScope.root),
+      localScope        = Some(LocalScope.createEmpty),
       freshNameSupply   = Some(new FreshNameSupply),
       passConfiguration = Some(passConfiguration)
     )
@@ -156,7 +156,8 @@ class LambdaConsolidateTest extends CompilerTest {
         .name shouldEqual "x"
       ir.body
         .asInstanceOf[Application.Prefix]
-        .arguments(1)
+        .arguments()
+        .apply(1)
         .asInstanceOf[CallArgument.Specified]
         .value
         .asInstanceOf[Name.Literal]
@@ -228,38 +229,37 @@ class LambdaConsolidateTest extends CompilerTest {
 
       val ir: Function.Lambda = new Function.Lambda(
         List(
-          DefinitionArgument
-            .Specified(
-              Name
-                .Literal("a", isMethod = false, None),
-              None,
-              None,
-              suspended = false,
-              None
-            ),
-          DefinitionArgument.Specified(
-            Name.Literal("b", isMethod = false, None),
+          new DefinitionArgument.Specified(
+            Name
+              .Literal("a", isMethod = false, identifiedLocation = null),
             None,
             None,
-            suspended = false,
-            None
+            suspended          = false,
+            identifiedLocation = null
+          ),
+          new DefinitionArgument.Specified(
+            Name.Literal("b", isMethod = false, identifiedLocation = null),
+            None,
+            None,
+            suspended          = false,
+            identifiedLocation = null
           )
         ),
         new Function.Lambda(
           List(
-            DefinitionArgument.Specified(
+            new DefinitionArgument.Specified(
               Name
-                .Literal("c", isMethod = false, None),
+                .Literal("c", isMethod = false, identifiedLocation = null),
               None,
               None,
-              suspended = false,
-              None
+              suspended          = false,
+              identifiedLocation = null
             )
           ),
-          Name.Literal("c", isMethod = false, None),
-          None
+          Name.Literal("c", isMethod = false, identifiedLocation = null),
+          identifiedLocation = null
         ),
-        None
+        identifiedLocation = null
       )
         .runPasses(passManager, inlineContext)
         .optimise

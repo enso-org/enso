@@ -2,9 +2,8 @@ package org.enso.projectmanager.protocol
 
 import akka.testkit.TestDuration
 import io.circe.literal._
-import org.enso.logger.ReportLogsOnFailure
 import org.enso.projectmanager.BaseServerSpec
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 
 import scala.concurrent.duration.DurationInt
 
@@ -181,7 +180,7 @@ class EngineManagementApiSpec
 
       val message =
         "Installation has been cancelled by the user because the requested " +
-        "engine release is marked as broken."
+        "engine release is marked as broken"
       client.expectJson(json"""
           {
             "jsonrpc":"2.0",

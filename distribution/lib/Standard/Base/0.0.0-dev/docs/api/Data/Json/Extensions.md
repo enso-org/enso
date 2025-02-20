@@ -1,0 +1,31 @@
+## Enso Signatures 1.0
+## module Standard.Base.Data.Json.Extensions
+- Standard.Base.Any.Any.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.to_json self -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.to_json self -> Standard.Base.Any.Any
+- Standard.Base.Data.Array.Array.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Data.Array.Array.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Data.Boolean.Boolean.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Data.Boolean.Boolean.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Data.Decimal.Decimal.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Data.Decimal.Decimal.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Data.Dictionary.Dictionary.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Data.Dictionary.Dictionary.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Error.Error.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Error.Error.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Error.Error.to_json self -> Standard.Base.Any.Any
+- Standard.Base.Error.Error.to_json self -> Standard.Base.Any.Any
+- Standard.Base.Data.Locale.Locale.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Data.Locale.Locale.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Nothing.Nothing.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Data.Numbers.Number.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Data.Numbers.Number.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.parse_fast_json self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.parse_fast_json self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Data.Vector.Vector.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Data.Vector.Vector.to_js_object self -> Standard.Base.Any.Any
+- Standard.Base.Data.Numbers.Integer.from that:Standard.Base.Data.Json.JS_Object -> Standard.Base.Data.Numbers.Integer
+- Standard.Base.Data.Decimal.Decimal.from that:Standard.Base.Data.Json.JS_Object -> Standard.Base.Data.Decimal.Decimal

@@ -32,7 +32,7 @@ class MoveProjectDirCmd[F[+_, +_]: CovariantFlatMap: ErrorChannel](
     def go() =
       for {
         _   <- log.debug("Moving project [{}] to [{}].", projectId, newName)
-        dir <- repo.moveProjectToTargetDir(projectId, newName)
+        dir <- repo.moveProject(projectId, newName)
         _   <- log.info("Project [{}] moved to [{}].", projectId, dir)
       } yield ()
 

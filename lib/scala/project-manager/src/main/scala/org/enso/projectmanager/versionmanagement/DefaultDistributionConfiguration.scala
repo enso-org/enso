@@ -52,12 +52,6 @@ object DefaultDistributionConfiguration
   lazy val temporaryDirectoryManager =
     TemporaryDirectoryManager(distributionManager, resourceManager)
 
-  lazy val componentConfiguration: RuntimeComponentConfiguration =
-    new GraalVMComponentConfiguration
-
-  lazy val runtimeComponentUpdaterFactory: RuntimeComponentUpdaterFactory =
-    RuntimeComponentUpdaterFactory.Default
-
   /** @inheritdoc */
   def engineReleaseProvider: ReleaseProvider[EngineRelease] =
     EngineRepository.defaultEngineReleaseProvider
@@ -67,15 +61,15 @@ object DefaultDistributionConfiguration
     userInterface: RuntimeVersionManagementUserInterface
   ): RuntimeVersionManager =
     new RuntimeVersionManager(
-      environment               = this.environment,
-      userInterface             = userInterface,
-      distributionManager       = distributionManager,
+      environment         = this.environment,
+      userInterface       = userInterface,
+      distributionManager = distributionManager,
+      graalVersionManager =
+        new GraalVersionManager(distributionManager, environment),
       temporaryDirectoryManager = temporaryDirectoryManager,
       resourceManager           = resourceManager,
       engineReleaseProvider     = engineReleaseProvider,
       runtimeReleaseProvider    = GraalCEReleaseProvider.default,
-      componentConfig           = componentConfiguration,
-      componentUpdaterFactory   = runtimeComponentUpdaterFactory,
       installerKind             = InstallerKind.ProjectManager
     )
 

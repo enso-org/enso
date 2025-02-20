@@ -1,0 +1,74 @@
+load("@io_bazel_rules_scala//scala:scala.bzl", "scala_library", "scala_test")
+
+java_library(
+    name = "downloader",
+    srcs = glob(["src/main/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        ":downloader_scala",
+        "//lib/scala/cli",
+        "//tools/http-test-helper",
+        "@maven//:org_scala_lang_scala_library",
+        "@maven//:org_slf4j_slf4j_api",
+    ],
+)
+
+scala_library(
+    name = "downloader_scala",
+    srcs = glob([
+        "src/main/scala/**/*.scala",
+        "src/main/java/**/*.java",
+    ]),
+    visibility = ["//visibility:public"],
+    deps = [
+        "//tools/http-test-helper",
+        "//lib/scala/cli",
+        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:com_typesafe_scala_logging_scala_logging_2_13",
+        "@maven//:commons_io_commons_io",
+        "@maven//:org_apache_commons_commons_compress",
+        ##"@maven//:org_scala_lang_scala_library"
+    ],
+)
+
+java_test(
+    name = "tests",
+    srcs = glob(["src/test/java/**/*.java"]),
+    test_class = "org.enso.downloader.http.HttpDownloaderTest",
+    deps = [
+        ":downloader",
+        ":downloader_scala",
+        "//lib/scala/cli",
+        "//lib/scala/testkit",
+        "//tools/http-test-helper",
+        "@maven//:com_fasterxml_jackson_core_jackson_core",
+        "@maven//:com_fasterxml_jackson_core_jackson_databind",
+        "@maven//:org_hamcrest_hamcrest_all",
+        "@maven//:org_scala_lang_scala_library",
+        "@maven//:org_scalactic_scalactic_2_13",
+        "@maven//:org_scalatest_scalatest_compatible",
+        "@maven//:org_scalatest_scalatest_core_2_13",
+        "@maven//:org_scalatest_scalatest_wordspec_2_13",
+        "@maven//:org_typelevel_cats_core_2_13",
+        "@maven//:org_typelevel_cats_kernel_2_13",
+    ],
+)
+
+scala_test(
+    name = "tests_scala",
+    srcs = glob(["src/test/scala/**/*.scala"]),
+    tags = ["unit"],
+    deps = [
+        ":downloader",
+        ":downloader_scala",
+        "//lib/scala/cli",
+        "//tools/http-test-helper",
+        "@maven//:org_scala_lang_scala_library",
+        "@maven//:org_scalactic_scalactic_2_13",
+        "@maven//:org_scalatest_scalatest_compatible",
+        "@maven//:org_scalatest_scalatest_core_2_13",
+        "@maven//:org_scalatest_scalatest_wordspec_2_13",
+        "@maven//:org_typelevel_cats_core_2_13",
+        "@maven//:org_typelevel_cats_kernel_2_13",
+    ],
+)

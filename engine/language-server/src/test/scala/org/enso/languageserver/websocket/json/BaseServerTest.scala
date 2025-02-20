@@ -10,15 +10,14 @@ import org.enso.distribution.locking.ResourceManager
 import org.enso.distribution.{DistributionManager, LanguageHome}
 import org.enso.editions.updater.EditionManager
 import org.enso.editions.{EditionResolver, Editions}
-import org.enso.filewatcher.{NoopWatcherFactory, WatcherAdapterFactory}
+import org.enso.filewatcher.WatcherAdapterFactory
+import org.enso.filewatcher.test.NoopWatcherFactory
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, ProtocolFactory}
 import org.enso.languageserver.TestClock
-import org.enso.languageserver.boot.{
-  ProfilingConfig,
-  StartupConfig,
-  TimingsConfig
-}
+import org.enso.runner.common.ProfilingConfig
+import org.enso.runner.common.CompilerBasedDependencyExtractor
+import org.enso.languageserver.boot.{StartupConfig, TimingsConfig}
 import org.enso.languageserver.boot.resource.{
   DirectoriesInitialization,
   InitializationComponent,
@@ -347,7 +346,8 @@ abstract class BaseServerTest
     val editionProvider =
       EditionManager.makeEditionProvider(
         distributionManager,
-        Some(languageHome)
+        Some(languageHome),
+        true
       )
     val editionResolver = EditionResolver(editionProvider)
     val editionReferenceResolver = new EditionReferenceResolver(

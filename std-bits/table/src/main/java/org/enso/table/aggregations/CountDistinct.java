@@ -18,7 +18,7 @@ import org.graalvm.polyglot.Context;
  * Aggregate Column counting the number of distinct items in a group. If `ignoreAllNull` is true,
  * does count when all items are null.
  */
-public class CountDistinct extends Aggregator {
+public class CountDistinct extends KnownTypeAggregator {
   private final Storage<?>[] storage;
   private final List<TextFoldingStrategy> textFoldingStrategy;
   private final boolean ignoreAllNull;

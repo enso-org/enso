@@ -2,8 +2,7 @@ package org.enso.languageserver.websocket.json
 
 import java.nio.file.{Files, Paths}
 import io.circe.literal._
-import org.enso.logger.ReportLogsOnFailure
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 
 class ReceivesTreeUpdatesHandlerTest
     extends BaseServerTest

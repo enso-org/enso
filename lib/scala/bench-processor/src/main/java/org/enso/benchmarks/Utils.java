@@ -8,7 +8,7 @@ import java.nio.file.Files;
 public class Utils {
 
   /**
-   * Returns the path to the {@link org.enso.polyglot.RuntimeOptions#LANGUAGE_HOME_OVERRIDE language
+   * Returns the path to the {@link org.enso.common.RuntimeOptions#LANGUAGE_HOME_OVERRIDE language
    * home override directory}.
    *
    * <p>Note that the returned file may not exist.

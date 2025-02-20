@@ -23,7 +23,7 @@ target/
 wasm-pack.log
 generated/
 /target
-/build/rust/target/
+/build_tools/rust/target/
 /rust-analyzer-target
 
 ###########
@@ -36,7 +36,14 @@ generated/
 ## NodeJS ##
 ############
 
-node_modules/
+node_modules
+eslint_report.json
+.eslintcache
+
+############
+## Python ##
+############
+**/__pycache__/
 
 ############
 ## System ##
@@ -73,6 +80,8 @@ node_modules/
 .metals
 tools/performance/engine-benchmarks/generated_site
 *.tsbuildinfo
+vite.config.ts.timestamp-*.mjs
+vitest.config.ts.timestamp-*.mjs
 
 ############################
 ## Rendered Documentation ##
@@ -95,11 +104,13 @@ bench-report*.xml
 
 /built-distribution/
 /enso
+/ensoup
 /project-manager
 /enso.exp
 /enso.lib
 
 *.dll
+*.dylib
 *.exe
 *.pdb
 *.so
@@ -116,6 +127,7 @@ bench-report*.xml
 project/metals.sbt
 /build.json
 /app/ide-desktop/lib/client/electron-builder-config.json
+*.config.ts.timestamp-*
 
 # Resources fire generated build-time for Win installer/uninstaller.
 /build/install/installer/archive.rc
@@ -126,18 +138,19 @@ project/metals.sbt
 ## Build Cache ##
 #################
 
-build-cache/
+bazel-*
+build-cache
 
 ##################
 ## Native Image ##
 ##################
 
 *.build_artifacts.txt
-/runner
 
 ######################
 ## Enso-Development ##
 ######################
+*.local
 dist/
 distribution/lib/Standard/Examples/*/data/scratch_file
 distribution/lib/Standard/Examples/*/data/image.png
@@ -172,3 +185,18 @@ test-results
 ##################
 
 .direnv
+
+##########################
+## Playwright artifacts ##
+##########################
+
+test-results/
+test-traces/
+playwright-report/
+playwright/.cache/
+
+#########
+## Git ##
+#########
+
+/.mailmap

@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -21,6 +22,7 @@ import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.ApplicationNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.callable.function.BlockNode;
@@ -32,6 +34,7 @@ import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
@@ -46,7 +49,7 @@ import org.enso.interpreter.runtime.state.State;
  */
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(TypesLibrary.class)
-public final class UnresolvedConstructor implements EnsoObject {
+public final class UnresolvedConstructor extends EnsoObject {
   private static final CallArgumentInfo[] NONE = new CallArgumentInfo[0];
   private final String name;
   private final Node where;
@@ -73,13 +76,15 @@ public final class UnresolvedConstructor implements EnsoObject {
   }
 
   @Override
-  @CompilerDirectives.TruffleBoundary
+  @TruffleBoundary
   public String toString() {
     return ".." + name;
   }
 
   @ExportMessage
-  String toDisplayString(boolean allowSideEffects) {
+  @Override
+  @TruffleBoundary
+  public String toDisplayString(boolean allowSideEffects) {
     return toString();
   }
 
@@ -176,30 +181,35 @@ public final class UnresolvedConstructor implements EnsoObject {
           prototype.where.getRootNode() instanceof EnsoRootNode root ? root.getModuleScope() : null;
       for (var where = prototype.where; where != null; where = where.getParent()) {
         if (where instanceof ExpressionNode withId && withId.getId() != null) {
-          id = withId.getId();
+          if (!(where instanceof ApplicationNode)) {
+            id = withId.getId();
+          }
           section = withId.getSourceSection();
           scope = withId.getRootNode() instanceof EnsoRootNode root ? root.getModuleScope() : null;
           break;
+        } else if (where instanceof InvokeCallableNode callable && callable.getId() != null) {
+          id = callable.getId();
         }
       }
-      var fn = ReadArgumentNode.build(0, null, null);
+      var fn = ReadArgumentNode.build(0, null);
       var args = new CallArgument[prototype.descs.length];
       for (var i = 0; i < args.length; i++) {
         args[i] =
-            new CallArgument(
-                prototype.descs[i].getName(), ReadArgumentNode.build(1 + i, null, null));
+            new CallArgument(prototype.descs[i].getName(), ReadArgumentNode.build(1 + i, null));
       }
       var expr = ApplicationNode.build(fn, args, DefaultsExecutionMode.EXECUTE);
-      expr.setId(id);
+      if (id != null) {
+        expr.setId(id);
+      }
       if (section != null) {
         expr.setSourceLocation(section.getCharIndex(), section.getCharLength());
       }
       var lang = EnsoLanguage.get(null);
-      var body = BlockNode.build(new ExpressionNode[0], expr);
+      var body = BlockNode.buildSilent(new ExpressionNode[0], expr);
       body.adoptChildren();
       var root =
           ClosureRootNode.build(
-              lang, LocalScope.root(), scope, body, section, prototype.getName(), true, true);
+              lang, LocalScope.empty(), scope, body, section, prototype.getName(), true, true);
       root.adoptChildren();
       assert Objects.equals(expr.getSourceSection(), section)
           : "Expr: " + expr.getSourceSection() + " orig: " + section;
@@ -254,9 +264,11 @@ public final class UnresolvedConstructor implements EnsoObject {
       var args = new Object[prototype.descs.length + 1];
       System.arraycopy(unresolved.args, 0, args, 1, prototype.descs.length);
       args[0] = fn;
-      var helper = Function.ArgumentsHelper.buildArguments(fn, null, state, args);
+      var helper = Function.ArgumentsHelper.buildArguments(fn, null, args);
       var r = callNode.call(helper);
       if (r instanceof Atom) {
+        return r;
+      } else if (r instanceof DataflowError) {
         return r;
       } else {
         var ctx = EnsoContext.get(this);

@@ -1,0 +1,16 @@
+from Standard.Base import all
+
+import Standard.Base.Runtime.Ref.Ref
+
+## PRIVATE
+   Traverse a Query using a function that returns values to accumulate into a
+   Vector. The return value of the traversal is not used.
+traverse_and_accumulate : (Any -> Vector Any) -> Any -> Any
+traverse_and_accumulate  (f : Any -> Vector Any) node =
+    Vector.build builder->
+        wrapped_f node =
+            new_values = f node
+            new_values.if_not_nothing <|
+                builder.append_vector_range new_values
+            node
+        node.traverse wrapped_f

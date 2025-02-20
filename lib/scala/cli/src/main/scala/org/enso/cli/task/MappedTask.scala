@@ -6,7 +6,7 @@ import scala.util.Try
   *
   * Used internally by [[TaskProgress.flatMap]].
   */
-private class MappedTask[A, B](source: TaskProgress[A], f: A => Try[B])
+private class MappedTask[A, B](source: TaskProgress[A], f: Try[A] => Try[B])
     extends TaskProgress[B] { self =>
 
   var listeners: List[ProgressListener[B]] = Nil
@@ -17,7 +17,7 @@ private class MappedTask[A, B](source: TaskProgress[A], f: A => Try[B])
       listeners.foreach(_.progressUpdate(done, total))
 
     override def done(result: Try[A]): Unit = self.synchronized {
-      val mapped = result.flatMap(f)
+      val mapped = f(result)
       savedResult = Some(mapped)
       listeners.foreach(_.done(mapped))
     }

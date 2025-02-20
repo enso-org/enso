@@ -11,7 +11,7 @@ import org.enso.testkit.WithTemporaryDirectory
 class InstallerSpec extends NativeTest with WithTemporaryDirectory {
   def portableRoot = getTestDirectory / "portable"
   def portableLauncher =
-    portableRoot / "bin" / OS.executableName("enso")
+    portableRoot / "bin" / OS.executableName(Constants.name)
 
   def preparePortableDistribution(): Unit = {
     copyLauncherTo(portableLauncher)
@@ -66,9 +66,13 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
         env
       )
 
-      (installedRoot / "bin" / OS.executableName("enso")).toFile should exist
+      (installedRoot / "bin" / OS.executableName(
+        Constants.name
+      )).toFile should exist
       assert(
-        Files.isExecutable(installedRoot / "bin" / OS.executableName("enso")),
+        Files.isExecutable(
+          installedRoot / "bin" / OS.executableName(Constants.name)
+        ),
         "The installed file should be executable."
       )
 
@@ -97,7 +101,9 @@ class InstallerSpec extends NativeTest with WithTemporaryDirectory {
         env
       )
 
-      (installedRoot / "bin" / OS.executableName("enso")).toFile should exist
+      (installedRoot / "bin" / OS.executableName(
+        Constants.name
+      )).toFile should exist
       portableLauncher.toFile should exist
     }
 

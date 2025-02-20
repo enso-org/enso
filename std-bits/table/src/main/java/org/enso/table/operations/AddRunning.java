@@ -3,9 +3,10 @@ package org.enso.table.operations;
 import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.base.statistics.Statistic;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.IgnoredNaN;
@@ -22,18 +23,49 @@ public class AddRunning {
       Column[] orderingColumns,
       int[] directions,
       ProblemAggregator problemAggregator) {
-    var runningStatistic = createRunningStatistic(statistic, sourceColumn, problemAggregator);
-    RunningLooper.loop(
+    var runningStatistic =
+        new RunningStatisticRowVisitorFactory(statistic, sourceColumn, problemAggregator);
+    GroupingOrderingVisitor.visit(
         groupingColumns,
         orderingColumns,
         directions,
         problemAggregator,
         runningStatistic,
         sourceColumn.getSize());
-    return runningStatistic.getResult();
+    return runningStatistic.runningStatistic.getResult();
   }
 
-  private static RunningStatistic<?> createRunningStatistic(
+  private static class RunningStatisticRowVisitorFactory implements RowVisitorFactory {
+
+    RunningStatisticBase<?> runningStatistic;
+
+    RunningStatisticRowVisitorFactory(
+        Statistic statistic, Column sourceColumn, ProblemAggregator problemAggregator) {
+      runningStatistic = createRunningStatistic(statistic, sourceColumn, problemAggregator);
+    }
+
+    @Override
+    public GroupRowVisitor getNewRowVisitor() {
+      return new RunningStatisticRowVisitor<>(runningStatistic);
+    }
+
+    private static class RunningStatisticRowVisitor<T> implements GroupRowVisitor {
+      RunningStatisticBase<T> runningStatistic;
+      RunningIterator<T> iterator;
+
+      RunningStatisticRowVisitor(RunningStatisticBase<T> runningStatistic) {
+        this.runningStatistic = runningStatistic;
+        iterator = runningStatistic.getNewIterator();
+      }
+
+      @Override
+      public void visit(int row) {
+        runningStatistic.calculateNextValue(row, iterator);
+      }
+    }
+  }
+
+  private static RunningStatisticBase<?> createRunningStatistic(
       Statistic statistic, Column sourceColumn, ProblemAggregator problemAggregator) {
     switch (statistic) {
       case Sum -> {
@@ -93,6 +125,11 @@ public class AddRunning {
   }
 
   private static class DoubleHandler implements TypeHandler<Double> {
+    private final ProblemAggregator problemAggregator;
+
+    DoubleHandler(ProblemAggregator problemAggregator) {
+      this.problemAggregator = problemAggregator;
+    }
 
     @Override
     public Double tryConvertingToType(Object o) {
@@ -106,7 +143,18 @@ public class AddRunning {
 
     @Override
     public Storage<Double> createStorage(long[] result, int size, BitSet isNothing) {
-      return new DoubleStorage(result, size, isNothing);
+      // Have to convert the long[] to double[].
+      var builder = Builder.getForDouble(FloatType.FLOAT_64, size, problemAggregator);
+
+      for (int i = 0; i < size; i++) {
+        if (!isNothing.get(i)) {
+          builder.append(Double.longBitsToDouble(result[i]));
+        } else {
+          builder.appendNulls(1);
+        }
+      }
+
+      return builder.seal();
     }
   }
 
@@ -134,7 +182,7 @@ public class AddRunning {
     }
   }
 
-  private abstract static class RunningStatisticBase<T> implements RunningStatistic<T> {
+  private abstract static class RunningStatisticBase<T> {
 
     long[] result;
     BitSet isNothing;
@@ -151,7 +199,6 @@ public class AddRunning {
       this.typeHandler = typeHandler;
     }
 
-    @Override
     public void calculateNextValue(int i, RunningIterator<T> it) {
       Object value = sourceColumn.getStorage().getItemBoxed(i);
       if (value == null) {
@@ -174,10 +221,11 @@ public class AddRunning {
       }
     }
 
-    @Override
     public Storage<T> getResult() {
       return typeHandler.createStorage(result, sourceColumn.getSize(), isNothing);
     }
+
+    protected abstract RunningIterator<T> getNewIterator();
   }
 
   private abstract static class RunningIteratorBase implements RunningIterator<Double> {
@@ -217,7 +265,7 @@ public class AddRunning {
   private static class RunningSumStatistic extends RunningStatisticBase<Double> {
 
     RunningSumStatistic(Column sourceColumn, ProblemAggregator problemAggregator) {
-      super(sourceColumn, problemAggregator, new DoubleHandler());
+      super(sourceColumn, problemAggregator, new DoubleHandler(problemAggregator));
     }
 
     @Override
@@ -229,7 +277,7 @@ public class AddRunning {
   private static class RunningMeanStatistic extends RunningStatisticBase<Double> {
 
     RunningMeanStatistic(Column sourceColumn, ProblemAggregator problemAggregator) {
-      super(sourceColumn, problemAggregator, new DoubleHandler());
+      super(sourceColumn, problemAggregator, new DoubleHandler(problemAggregator));
     }
 
     @Override
@@ -241,7 +289,7 @@ public class AddRunning {
   private static class RunningProductStatistic extends RunningStatisticBase<Double> {
 
     RunningProductStatistic(Column sourceColumn, ProblemAggregator problemAggregator) {
-      super(sourceColumn, problemAggregator, new DoubleHandler());
+      super(sourceColumn, problemAggregator, new DoubleHandler(problemAggregator));
     }
 
     @Override
@@ -256,7 +304,7 @@ public class AddRunning {
 
     RunningVarianceStatistic(
         Column sourceColumn, ProblemAggregator problemAggregator, boolean isPopulationVariance) {
-      super(sourceColumn, problemAggregator, new DoubleHandler());
+      super(sourceColumn, problemAggregator, new DoubleHandler(problemAggregator));
       this.isPopulationVariance = isPopulationVariance;
     }
 
@@ -272,7 +320,7 @@ public class AddRunning {
 
     RunningStandardDeviationStatistic(
         Column sourceColumn, ProblemAggregator problemAggregator, boolean isPopulation) {
-      super(sourceColumn, problemAggregator, new DoubleHandler());
+      super(sourceColumn, problemAggregator, new DoubleHandler(problemAggregator));
       this.isPopulation = isPopulation;
     }
 
@@ -288,7 +336,7 @@ public class AddRunning {
 
     RunningSkewStatistic(
         Column sourceColumn, ProblemAggregator problemAggregator, boolean isPopulation) {
-      super(sourceColumn, problemAggregator, new DoubleHandler());
+      super(sourceColumn, problemAggregator, new DoubleHandler(problemAggregator));
       this.isPopulation = isPopulation;
     }
 
@@ -301,7 +349,7 @@ public class AddRunning {
   private static class RunningKurtosisStatistic extends RunningStatisticBase<Double> {
 
     RunningKurtosisStatistic(Column sourceColumn, ProblemAggregator problemAggregator) {
-      super(sourceColumn, problemAggregator, new DoubleHandler());
+      super(sourceColumn, problemAggregator, new DoubleHandler(problemAggregator));
     }
 
     @Override
@@ -435,8 +483,7 @@ public class AddRunning {
               : ((double) ((currentCount - 1) * (currentCount - 2)) / (double) currentCount);
       double scale =
           1.0 / (standardDeviation * standardDeviation * standardDeviation) / denominator;
-      double skew = (sumCubes - 3 * mean * sumSquares + 2 * mean * mean * sum) * scale;
-      return skew;
+      return (sumCubes - 3 * mean * sumSquares + 2 * mean * mean * sum) * scale;
     }
   }
 
@@ -496,7 +543,7 @@ public class AddRunning {
   private static class RunningMinStatistic extends RunningStatisticBase<Double> {
 
     RunningMinStatistic(Column sourceColumn, ProblemAggregator problemAggregator) {
-      super(sourceColumn, problemAggregator, new DoubleHandler());
+      super(sourceColumn, problemAggregator, new DoubleHandler(problemAggregator));
     }
 
     @Override
@@ -537,7 +584,7 @@ public class AddRunning {
   private static class RunningMaxStatistic extends RunningStatisticBase<Double> {
 
     RunningMaxStatistic(Column sourceColumn, ProblemAggregator problemAggregator) {
-      super(sourceColumn, problemAggregator, new DoubleHandler());
+      super(sourceColumn, problemAggregator, new DoubleHandler(problemAggregator));
     }
 
     @Override

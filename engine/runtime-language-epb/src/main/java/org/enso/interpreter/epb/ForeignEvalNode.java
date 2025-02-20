@@ -9,6 +9,7 @@ import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import java.util.Arrays;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -27,6 +28,11 @@ final class ForeignEvalNode extends RootNode {
   static ForeignEvalNode parse(EpbLanguage epb, Source langAndCode, List<String> args) {
     var node = new ForeignEvalNode(epb, langAndCode, args);
     return node;
+  }
+
+  @Override
+  public boolean isInternal() {
+    return true;
   }
 
   private String truffleId(Source langAndCode) {
@@ -64,7 +70,8 @@ final class ForeignEvalNode extends RootNode {
       }
       at++;
     }
-    throw new ForeignParsingException("No " + ch + " found", this);
+    throw new ForeignParsingException(
+        "No `" + ch + "` found. Expecting `lang:lineno#code` format.", this);
   }
 
   @Override
@@ -73,11 +80,12 @@ final class ForeignEvalNode extends RootNode {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       var id = truffleId(langAndCode);
       var context = EpbContext.get(this);
-      var installedLanguages = context.getEnv().getInternalLanguages();
+      var installedLanguages = context.getEnv().getPublicLanguages();
       var node =
           switch (installedLanguages.containsKey(id) ? 1 : 0) {
             case 0 -> {
-              var ex = new ForeignParsingException(id, installedLanguages.keySet(), this);
+              var sortedLangs = new TreeSet<>(installedLanguages.keySet());
+              var ex = new ForeignParsingException(id, sortedLangs, this);
               yield new ExceptionForeignNode(ex);
             }
             default -> {
@@ -106,12 +114,19 @@ final class ForeignEvalNode extends RootNode {
   private ForeignFunctionCallNode parseJs() {
     var context = EpbContext.get(this);
     var inner = context.getInnerContext();
-    var code = foreignSource(langAndCode);
-    var args = Arrays.stream(argNames).skip(1).collect(Collectors.joining(","));
-    var wrappedSrc = "var poly_enso_eval=function(" + args + "){" + code + "\n};poly_enso_eval";
-    Source source = newSource("js", wrappedSrc);
-    var fn = inner.evalPublic(this, source);
-    return JsForeignNode.build(fn);
+    if (inner != null) {
+      context.initializePolyfill(this, inner);
+
+      var code = foreignSource(langAndCode);
+      var args = Arrays.stream(argNames).collect(Collectors.joining(","));
+      var wrappedSrc = "var poly_enso_eval=function(" + args + "){" + code + "\n};poly_enso_eval";
+      Source source = newSource("js", wrappedSrc);
+      var fn = inner.evalPublic(this, source);
+      return JsForeignNode.build(fn);
+    } else {
+      return new GenericForeignNode(
+          RootNode.createConstantNode("Cannot evaluate script in inner context!").getCallTarget());
+    }
   }
 
   private ForeignFunctionCallNode parseGeneric(

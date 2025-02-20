@@ -7,6 +7,7 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
+import project.Errors.Common.Type_Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
@@ -17,6 +18,8 @@ import project.Metadata.Display
 import project.Metadata.Widget
 import project.Network.URI.URI
 import project.Nothing.Nothing
+import project.Panic.Panic
+import project.Runtime
 import project.System.File.File
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File_Format_Metadata.File_Format_Metadata
@@ -50,7 +53,7 @@ type Auto_Detect
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any ! File_Error
-    read self file on_problems:Problem_Behavior = if file.is_directory then file.list else
+    read self file on_problems:Problem_Behavior =
         metadata = File_Format_Metadata.from file
         reader = Auto_Detect.get_reading_format metadata
         if reader == Nothing then Error.throw (File_Error.Unsupported_Type file) else
@@ -75,7 +78,13 @@ type Auto_Detect
 
     ## PRIVATE
     get_dropdown_options : Vector Option
-    get_dropdown_options = [Option "Auto Detect" (Meta.get_qualified_type_name Auto_Detect)]
+    get_dropdown_options = [Option "Auto Detect" (Auto_Detect.to Meta.Type . qualified_name)]
+
+    ## PRIVATE
+       Returns the union of name patterns of all currently loaded formats,
+       since `Auto_Detect` should be able to read any of the loaded formats.
+    get_name_patterns -> Vector File_Name_Pattern =
+        [File_Name_Pattern.Value "All known formats" File_Format.all_known_name_patterns]
 
 ## Interface for all file formats.
 type File_Format
@@ -90,9 +99,22 @@ type File_Format
     all = [Auto_Detect] + format_types
 
     ## PRIVATE
+       Resolve an unresolved constructor to the actual type.
+    resolve : Function -> File_Format
+    resolve constructor = case constructor of
+        _ : Function ->
+            try_next idx =
+                if idx >= format_types.length then Error.throw (Illegal_Argument.Error "Expected a file format, but got a function.") else
+                    format = format_types.at idx
+                    resolved = format.resolve constructor
+                    if resolved.is_nothing then @Tail_Call try_next (idx + 1) else resolved
+            try_next 0
+        _ -> constructor
+
+    ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
-    read self file on_problems =
+    read self file on_problems:Problem_Behavior =
         _ = [file, on_problems]
         Unimplemented.throw "This is an interface only."
 
@@ -104,20 +126,47 @@ type File_Format
         Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
-    default_widget : Widget
-    default_widget =
-        options = ([Auto_Detect]+format_types).flat_map .get_dropdown_options
-        Single_Choice display=Display.Always values=options
+       A static method on each format that returns a vector of options that can
+       be displayed in format selectors that allow choosing this file format.
+
+       A single format instance can provide multiple options to choose, or none
+       at all.
+    get_dropdown_options : Vector Option
+    get_dropdown_options = Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
-       Checks if the `format` argument is valid and raises a more user-friendly
-       error if it is a `Function` (meaning that some arguments were missing).
-    handle_format_missing_arguments : Any -> Any -> Any
-    handle_format_missing_arguments format ~action =
-        case format of
-            _ : Function ->
-                Error.throw (Illegal_Argument.Error "Expected a file format, but got a function. Perhaps the format is missing some required arguments?")
-            _ -> action
+       A static method on each format that returns a vector of name pattern
+       options that can be displayed in the `name_filter_widget`.
+    get_name_patterns -> Vector File_Name_Pattern = Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Returns a list of all name patterns of all known file formats.
+    all_known_name_patterns -> Vector Text =
+        format_types.flat_map .get_name_patterns . flat_map .patterns . distinct
+
+    ## PRIVATE
+    default_widget display:Display=..When_Modified -> Widget =
+        options = ([Auto_Detect]+format_types).flat_map .get_dropdown_options
+        Single_Choice display=display values=options
+
+    ## PRIVATE
+       Builds a widget intended to be used for `name_filter` of `File.list` and
+       its siblings that allows to filter file names by file format.
+    name_filter_widget -> Widget =
+        known_patterns = File_Format.all.flat_map .get_name_patterns
+        options = [Option "Any file" '""'] + known_patterns.map file_name_pattern->
+            value = (_combine_patterns file_name_pattern.patterns) . pretty
+            Option file_name_pattern.display_name value
+        Single_Choice display=Display.When_Modified values=options
+
+## Combines a set of file name patterns into a single pattern that will match any of them.
+   It is compatible with the `name_filter` format of `File.list`.
+private _combine_patterns (patterns : Vector Text) -> Text =
+    Runtime.assert (patterns.length > 0)
+    Runtime.assert message="The name patterns cannot contain {a,b} patterns to be mergeable." <|
+        contains_cases_regex = ".*[{},].*"
+        patterns.all (p-> p.match contains_cases_regex . not)
+    patterns.join prefix="{" separator="," suffix="}"
 
 ## A file format for plain text files.
 type Plain_Text_Format
@@ -131,6 +180,12 @@ type Plain_Text_Format
          overridden.
     @encoding Encoding.default_widget
     Plain_Text (encoding : Encoding | Infer = Infer)
+
+    ## PRIVATE
+       Resolve an unresolved constructor to the actual type.
+    resolve : Function -> Plain_Text_Format | Nothing
+    resolve constructor =
+        Panic.catch Type_Error (constructor:Plain_Text_Format) _->Nothing
 
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
@@ -155,12 +210,16 @@ type Plain_Text_Format
 
     ## PRIVATE
     get_dropdown_options : Vector Option
-    get_dropdown_options = [Option "Plain Text" (Meta.get_qualified_type_name Plain_Text_Format)+".Plain_Text"]
+    get_dropdown_options = [Option "Plain Text" "..Plain_Text"]
+
+    ## PRIVATE
+    get_name_patterns -> Vector File_Name_Pattern =
+        [File_Name_Pattern.Value "Plain Text" ["*.txt"], File_Name_Pattern.Value ".log files as Plain Text" ["*.log"]]
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
-    read self file on_problems =
+    read self file on_problems:Problem_Behavior =
         file.read_text (self.resolve_encoding file) on_problems
 
     ## PRIVATE
@@ -180,6 +239,13 @@ type Plain_Text_Format
 ## A file format for reading or writing files as a sequence of bytes.
 type Bytes
     ## PRIVATE
+       Resolve an unresolved constructor to the actual type.
+    resolve : Function -> Bytes | Nothing
+    resolve constructor =
+        _ = constructor
+        Nothing
+
+    ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
     for_read : File_Format_Metadata -> Bytes | Nothing
     for_read file:File_Format_Metadata =
@@ -194,12 +260,16 @@ type Bytes
 
     ## PRIVATE
     get_dropdown_options : Vector Option
-    get_dropdown_options = [Option "Bytes" (Meta.get_qualified_type_name Bytes)]
+    get_dropdown_options = [Option "Bytes" (Bytes.to Meta.Type . qualified_name)]
+
+    ## PRIVATE
+    get_name_patterns -> Vector File_Name_Pattern =
+        [File_Name_Pattern.Value ".dat Binary Data" ["*.dat"]]
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
-    read self file on_problems =
+    read self file on_problems:Problem_Behavior =
         _ = [on_problems]
         file.read_bytes
 
@@ -212,6 +282,13 @@ type Bytes
 
 ## A file format for reading and writing files as JSON.
 type JSON_Format
+    ## PRIVATE
+       Resolve an unresolved constructor to the actual type.
+    resolve : Function -> JSON_Format | Nothing
+    resolve constructor =
+        _ = constructor
+        Nothing
+
     ## PRIVATE
        If the File_Format supports reading from the file, return a configured instance.
     for_read : File_Format_Metadata -> JSON_Format | Nothing
@@ -233,12 +310,16 @@ type JSON_Format
 
     ## PRIVATE
     get_dropdown_options : Vector Option
-    get_dropdown_options = [Option "JSON" (Meta.get_qualified_type_name JSON_Format)]
+    get_dropdown_options = [Option "JSON" (JSON_Format.to Meta.Type . qualified_name)]
+
+    ## PRIVATE
+    get_name_patterns -> Vector File_Name_Pattern =
+        [File_Name_Pattern.Value "JSON" ["*.json", "*.geojson"]]
 
     ## PRIVATE
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
-    read self file on_problems =
+    read self file on_problems:Problem_Behavior =
         _ = [on_problems]
         text = file.read_text
         Json.parse text . catch Invalid_JSON error->
@@ -259,7 +340,6 @@ JSON_Format.from (that : JS_Object) =
 ## A setting to infer the default behaviour of some option.
 type Infer
 
-
 ## PRIVATE
    A helper for parsing the JSON representation of `Boolean | Infer`.
    It defaults to `Infer` if the value was `Nothing`.
@@ -272,3 +352,16 @@ parse_boolean_with_infer (field_name : Text) (value : Boolean | Text | Nothing) 
         "true" -> True
         "false" -> False
         _ -> Error.throw (Illegal_Argument.Error ("The field `"+field_name+"` must be a boolean or the string `infer`."))
+
+## PRIVATE
+type File_Name_Pattern
+    ## PRIVATE
+       Represents a single file pattern entry.
+       It may still contain multiple patterns that are related to a single type
+       of file.
+
+       Each pattern should comply with the format expected by `name_filter` in
+       `File.list`, however, the patterns should not use the `{a,b}` syntax,
+       as it will be used by the `File_Format` to merge patterns and nesting it
+       would not be allowed.
+    Value display_name:Text (patterns : Vector Text)

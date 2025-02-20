@@ -9,7 +9,7 @@ import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 
 /** Aggregate Column finding the first value in a group. */
-public class First extends Aggregator {
+public class First extends KnownTypeAggregator {
   private final Storage<?> storage;
   private final Storage<?>[] orderByColumns;
   private final int[] orderByDirections;

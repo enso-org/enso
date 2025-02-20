@@ -5,6 +5,7 @@ import project.System.Process.Exit_Code.Exit_Code
 import project.System.Process.Process_Builder.Process_Builder
 import project.System.Process.Process_Builder.Process_Result
 from project.Data.Boolean import Boolean, False, True
+from project.Metadata.Widget import Text_Input, Vector_Editor
 
 ## ALIAS run a command
    GROUP Input
@@ -25,8 +26,9 @@ from project.Data.Boolean import Boolean, False, True
          example_run = case Platform.os of
              Platform.OS.Windows -> Process.run "PowerShell" ["-Command", "exit 42"]
              _ -> Process.run "bash" ["-c", "exit 42"]
+@arguments (Vector_Editor item_editor=Text_Input item_default='""')
 run : Text -> Vector Text -> Text -> Process_Result
-run command arguments=[] stdin="" =
+run command:Text arguments=[] stdin:Text="" =
     new_builder command arguments stdin . create
 
 ## PRIVATE

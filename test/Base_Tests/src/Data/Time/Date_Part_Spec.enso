@@ -3,8 +3,8 @@ from Standard.Base import all
 from Standard.Test import all
 
 
-add_specs suite_builder name create_new_date =
-    suite_builder.group (name + " date part tests")  group_builder->
+add_specs suite_builder name create_new_date pending=Nothing =
+    suite_builder.group (name + " date part tests")  pending=pending group_builder->
         group_builder.specify "should return if a leap year" <|
             create_new_date 2022 8 25 . is_leap_year . should_equal False
             create_new_date 1999 12 31 . is_leap_year . should_equal False

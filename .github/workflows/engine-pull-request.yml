@@ -1,0 +1,65 @@
+# This file is not auto-generated. Feel free to edit it.
+
+name: ✨ Engine
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-engine-pull-request
+  cancel-in-progress: ${{ github.ref != 'refs/heads/develop' }}
+
+permissions:
+  checks: write
+  pull-requests: write
+
+jobs:
+  engine-changed-files:
+    name: 🔍 Files Changed
+    uses: ./.github/workflows/engine-changed-files.yml
+    secrets: inherit
+
+  engine-checks:
+    name: ⚙️ Checks
+    uses: ./.github/workflows/engine-checks.yml
+    needs: [engine-changed-files]
+    if: needs.engine-changed-files.outputs.any_changed == 'true' || github.ref == 'refs/heads/develop'
+    secrets: inherit
+
+  engine-checks-optional:
+    name: ⚙️ Checks (Optional)
+    uses: ./.github/workflows/engine-checks-optional.yml
+    needs: [engine-changed-files]
+    if: needs.engine-changed-files.outputs.any_changed == 'true' || github.ref == 'refs/heads/develop'
+    secrets: inherit
+
+  stdlib-api-changes-label:
+    name: 🏷 Append Standard library API change label
+    runs-on: ubuntu-latest
+    needs: [engine-changed-files]
+    if: needs.engine-changed-files.outputs.stdlib_api_any_changed == 'true'
+    steps:
+      - name: Add label to the PR
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: "-libs-API-change"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+  required-checks:
+    name: Engine Required Checks
+    runs-on: ubuntu-latest
+    needs: [engine-checks, stdlib-api-changes-label]
+    if: always()
+    steps:
+      - name: Checks Summary
+        run: |
+          echo "Engine Checks: ${{ needs.engine-checks.result }}"
+
+          if [[ "${{ needs.engine-checks.result }}" == "failure" ]]; then
+            exit 1
+          fi
+
+          echo "Success!"

@@ -8,7 +8,7 @@ import org.enso.shttp.HttpMethod;
 /**
  * Lists assets in a directory.
  *
- * <p>In the mock, only root directory can be listed, and it may only contain secrets.
+ * <p>In the mock, only user's home directory can be listed, and it may only contain secrets.
  */
 public class DirectoriesHandler implements CloudHandler {
 
@@ -37,7 +37,7 @@ public class DirectoriesHandler implements CloudHandler {
   }
 
   private void listDirectory(String parentId, CloudExchange exchange) throws IOException {
-    final String effectiveParentId = parentId.isEmpty() ? AssetStore.ROOT_DIRECTORY_ID : parentId;
+    final String effectiveParentId = parentId.isEmpty() ? AssetStore.HOME_DIRECTORY_ID : parentId;
     ListDirectoryResponse response =
         new ListDirectoryResponse(
             assetStore.listAssets(effectiveParentId).stream()

@@ -8,7 +8,6 @@ import java.util.List;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
 import javax.tools.JavaFileObject;
-import org.enso.interpreter.dsl.Builtin;
 
 public abstract class MethodNodeClassGenerator {
   ClassName builtinNode;
@@ -29,7 +28,7 @@ public abstract class MethodNodeClassGenerator {
    * @return true if the annotation exists, false otherwise
    */
   protected boolean needsGuestValueConversion(Element origin) {
-    return origin.getAnnotation(Builtin.ReturningGuestObject.class) != null;
+    return false;
   }
 
   public void generate(

@@ -32,13 +32,13 @@ class RenameSymbolCmd(
       .map(module => Seq(new File(module.getPath)))
       .orElseGet(() => Seq())
 
-    val ensureCompiledJob = ctx.jobProcessor.run(
+    def ensureCompiledJob = ctx.jobProcessor.run(
       new EnsureCompiledJob(
         (ctx.state.pendingEdits.files ++ moduleFile).distinct,
         isCancellable = false
       )
     )
-    val refactoringRenameJob = ctx.jobProcessor.run(
+    def refactoringRenameJob = ctx.jobProcessor.run(
       new RefactoringRenameJob(
         maybeRequestId,
         request.module,

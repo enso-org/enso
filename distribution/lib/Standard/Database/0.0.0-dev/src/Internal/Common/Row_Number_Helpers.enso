@@ -1,0 +1,13 @@
+from Standard.Base import all
+
+import project.Internal.IR.Operation_Metadata
+import project.Internal.IR.Order_Descriptor.Order_Descriptor
+import project.Internal.IR.SQL_Expression.SQL_Expression
+
+## PRIVATE
+make_row_number (from : Integer) (step : Integer) (order_descriptors : Vector Order_Descriptor) (grouping_expressions : Vector SQL_Expression) -> SQL_Expression =
+    # The SQL row_number() counts from 1, so we adjust the offset.
+    offset = (from - step) : Integer
+    params = [SQL_Expression.Literal offset.to_text, SQL_Expression.Literal step.to_text] + order_descriptors + grouping_expressions
+    metadata = Operation_Metadata.Row_Number_Metadata.Value grouping_expressions.length
+    SQL_Expression.Operation "ROW_NUMBER" params metadata

@@ -1,5 +1,7 @@
 package org.enso.interpreter.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -10,8 +12,8 @@ import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
+import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -26,7 +28,7 @@ public class AutoscopedConstructorTest {
     ctx = ContextUtils.createDefaultContext(out);
   }
 
-  @Before
+  @After
   public void resetOut() {
     out.reset();
   }
@@ -34,6 +36,7 @@ public class AutoscopedConstructorTest {
   @AfterClass
   public static void disposeCtx() {
     ctx.close();
+    ctx = null;
   }
 
   @Test
@@ -265,6 +268,70 @@ public class AutoscopedConstructorTest {
       assertTrue(
           "Expecting type error, but got: " + e.getMessage(),
           e.getMessage().contains("Type_Error"));
+    }
+  }
+
+  @Test
+  public void simpleAnyCheck() {
+    var code =
+        """
+    import Standard.Base.Any.Any
+
+    type A
+        Typed x:Any
+
+    t = ..Typed ..My_Other
+    materialize v:A = v
+
+    create = materialize t
+    """;
+
+    var create = ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
+
+    assertEquals("A", create.getMetaObject().getMetaSimpleName());
+  }
+
+  @Test
+  public void simpleAnyOrACheck() {
+    var code =
+        """
+    import Standard.Base.Any.Any
+
+    type A
+        Typed (x:Any|A)
+
+    t = ..Typed ..My_Other
+    materialize v:A = v
+
+    create = materialize t
+    """;
+
+    var create = ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
+
+    assertEquals("A", create.getMetaObject().getMetaSimpleName());
+  }
+
+  @Test
+  public void intersectionAnyOrACheck() {
+    var code =
+        """
+    import Standard.Base.Any.Any
+
+    type A
+        Typed (x:Any&A)
+
+    t = ..Typed ..My_Other
+    materialize v:A = v
+
+    create = materialize t
+    """;
+
+    try {
+      var create =
+          ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "create");
+      fail("Got value, but expecting an exception: " + create);
+    } catch (PolyglotException ex) {
+      assertThat(ex.getMessage(), containsString("Cannot find constructor ..My_Other among A."));
     }
   }
 }

@@ -7,8 +7,9 @@ import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.atom.Atom;
-import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 
 @BuiltinMethod(
     type = "Runtime",
@@ -20,10 +21,16 @@ public class RuntimeWithEnabledContextNode extends Node {
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
   private @Child ExpectStringNode expectStringNode = ExpectStringNode.build();
 
-  Object execute(
-      VirtualFrame frame, State state, Atom context, Object env_name, @Suspend Object action) {
+  Object execute(VirtualFrame frame, Atom context, Object env_name, @Suspend Object action) {
+    var ctx = EnsoContext.get(this);
+    var state = ctx.currentState();
     String envName = expectStringNode.execute(env_name);
-    return thunkExecutorNode.executeThunk(
-        frame, action, state.withContextEnabledIn(context, envName), BaseNode.TailStatus.NOT_TAIL);
+    ExecutionEnvironment original =
+        EnsoContext.get(this).enableExecutionEnvironment(context, envName);
+    try {
+      return thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.NOT_TAIL);
+    } finally {
+      EnsoContext.get(this).setExecutionEnvironment(original);
+    }
   }
 }

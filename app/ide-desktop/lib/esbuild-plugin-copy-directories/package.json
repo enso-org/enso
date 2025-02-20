@@ -1,9 +1,0 @@
-{
-  "name": "esbuild-plugin-copy-directories",
-  "version": "1.0.0",
-  "type": "module",
-  "main": "src/index.js",
-  "devDependencies": {
-    "esbuild": "^0.19.3"
-  }
-}

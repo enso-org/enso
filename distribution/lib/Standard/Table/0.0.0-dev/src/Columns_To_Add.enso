@@ -1,5 +1,5 @@
 from Standard.Base import all
-from Standard.Base.Metadata import make_single_choice, Widget
+from Standard.Base.Metadata import Display, make_single_choice, Widget
 
 ## PRIVATE
 type Columns_To_Add
@@ -10,8 +10,8 @@ type Columns_To_Add
     First columns:Integer=1
 
     ## PRIVATE
-    default_widget -> Widget = 
-        make_single_choice [["All_Columns", "..All_Columns"], ["First", "..First"]]
+    default_widget display:Display=..When_Modified -> Widget =
+        make_single_choice [["All_Columns", "..All_Columns"], ["First", "..First"]] display=display
 
     ## PRIVATE
        Gets the number of columns to add (or Nothing if all columns).

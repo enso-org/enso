@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.controlflow.caseexpr;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -12,10 +13,11 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.*;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.type.TypesGen;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 /**
  * A node representing a pattern match on an arbitrary runtime value.
@@ -82,12 +84,12 @@ public abstract class CaseNode extends ExpressionNode {
   Object doWarning(
       VirtualFrame frame,
       Object object,
-      @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+      @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @Cached AppendWarningNode appendWarningNode) {
     try {
-      EnsoContext ctx = EnsoContext.get(this);
-      Warning[] ws = warnings.getWarnings(object, this, false);
+      var ws = warnings.getWarnings(object, false);
       Object result = doMatch(frame, warnings.removeWarnings(object), warnings);
-      return WithWarnings.wrap(ctx, result, ws);
+      return appendWarningNode.executeAppend(null, result, ws);
     } catch (UnsupportedMessageException e) {
       throw EnsoContext.get(this).raiseAssertionPanic(this, null, e);
     }
@@ -111,7 +113,7 @@ public abstract class CaseNode extends ExpressionNode {
       VirtualFrame frame,
       Object object,
       @Shared("warnsLib") @CachedLibrary(limit = "3") WarningsLibrary warnings) {
-    State state = Function.ArgumentsHelper.getState(frame.getArguments());
+    State state = EnsoContext.get(this).currentState();
     try {
       for (BranchNode branchNode : cases) {
         branchNode.execute(frame, state, object);

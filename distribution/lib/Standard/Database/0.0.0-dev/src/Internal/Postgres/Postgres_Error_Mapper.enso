@@ -6,9 +6,19 @@ from project.Errors import Invariant_Violation, SQL_Error
 type Postgres_Error_Mapper
 
     ## PRIVATE
-    is_primary_key_violation : SQL_Error -> Boolean
-    is_primary_key_violation error =
+    is_duplicate_primary_key_violation : SQL_Error -> Boolean
+    is_duplicate_primary_key_violation error =
         error.java_exception.getMessage.contains "duplicate key value violates unique constraint"
+
+    ## PRIVATE
+    is_null_primary_key_violation : SQL_Error -> Boolean
+    is_null_primary_key_violation error =
+        error.java_exception.getMessage.contains "violates not-null constraint"
+
+    ## PRIVATE
+    is_table_already_exists_error : SQL_Error -> Boolean
+    is_table_already_exists_error error =
+        error.java_exception.getMessage.match "ERROR: relation .* already exists"
 
     ## PRIVATE
     transform_custom_errors : SQL_Error -> Any

@@ -12,6 +12,8 @@ public class VersionsTest {
     assertTrue(SemVer.parse("0.1.1").isSuccess());
     assertTrue(SemVer.parse("9999.0.0").isSuccess());
     assertTrue(SemVer.parse("0.1").isFailure());
+    assertTrue(SemVer.parse("21.0.2").isSuccess());
+    assertTrue(SemVer.parse("17.0.7").isSuccess());
   }
 
   @Test

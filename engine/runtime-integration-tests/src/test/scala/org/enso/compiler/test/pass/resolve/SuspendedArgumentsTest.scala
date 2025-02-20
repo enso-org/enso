@@ -80,7 +80,7 @@ class SuspendedArgumentsTest extends CompilerTest {
   def mkInlineContext: InlineContext = {
     buildInlineContext(
       freshNameSupply = Some(new FreshNameSupply),
-      localScope      = Some(LocalScope.root)
+      localScope      = Some(LocalScope.createEmpty)
     )
   }
 

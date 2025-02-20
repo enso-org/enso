@@ -14,7 +14,7 @@ import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
-import org.enso.interpreter.node.expression.builtin.interop.syntax.HostValueToEnsoNode;
+import org.enso.interpreter.node.expression.foreign.HostValueToEnsoNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;

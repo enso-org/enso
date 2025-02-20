@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
 
 import Standard.Table.Row.Row
-from Standard.Table import Column, Table
+from Standard.Table import Column, Excel_Workbook, Table, Value_Type
 
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
@@ -16,43 +16,41 @@ import project.Helpers
    Prepares a table or column for visualization.
 
    Arguments:
-   - x: The table to prepare for visualization.
+   - y: The table to prepare for visualization.
    - max_rows: The maximum number of rows to display.
 
    In case of Database backed data, it materializes a fragment of the data.
 prepare_visualization : Any -> Integer -> Text
-prepare_visualization y max_rows=1000 =
+prepare_visualization y max_rows=1000 = if y.is_error then (make_json_for_error y.catch).to_text else
     x = Warning.set y []
 
     result = case x of
-        _ : Vector -> make_json_for_vector x max_rows
-        _ : Array -> prepare_visualization x.to_vector max_rows
-        _ : Map -> make_json_for_map x max_rows
-        _ : JS_Object -> make_json_for_js_object x max_rows
-        _ : Row -> make_json_for_map x.to_map max_rows "column"
-        _ : Column -> prepare_visualization x.to_table max_rows
-        _ : Table ->
-            dataframe = x.take max_rows
-            all_rows_count = x.row_count
-            index = Column.from_vector "#" (Vector.new dataframe.row_count i->i)
-            make_json_for_table dataframe [index] all_rows_count
-        _ : DB_Column -> prepare_visualization x.to_table max_rows
-        _ : DB_Table ->
-            dataframe = x.read (..First max_rows)
-            all_rows_count = x.row_count
-            make_json_for_table dataframe [] all_rows_count
-        _ : Function ->
-            pairs = [['_display_text_', '[Function '+x.to_text+']']]
+        v : Vector -> make_json_for_vector v max_rows
+        v : Array -> prepare_visualization v.to_vector max_rows
+        v : Dictionary -> make_json_for_dictionary v max_rows
+        v : JS_Object -> make_json_for_js_object v max_rows
+        v : Row -> make_json_for_row v
+        t : Table ->
+            all_rows_count = t.row_count
+            make_json_for_table t max_rows all_rows_count True False
+        c : Column -> prepare_visualization c.to_table max_rows
+        t : DB_Table ->
+            dataframe = t.read (..First max_rows)
+            all_rows_count = t.row_count
+            make_json_for_table dataframe max_rows all_rows_count True True
+        c : DB_Column -> prepare_visualization c.to_table max_rows
+        f : Function ->
+            pairs = [['_display_text_', '[Function '+f.to_text+']']]
             value = JS_Object.from_pairs pairs
             JS_Object.from_pairs [["json", value]]
-        _ : Number ->
-            JS_Object.from_pairs [["json", make_json_for_value x]]
-        _ ->
-            js_value = x.to_js_object
-            value = if js_value.is_a JS_Object . not then js_value else
-                pairs = [['_display_text_', x.to_display_text]] + js_value.field_names.map f-> [f, make_json_for_value (js_value.get f)]
-                JS_Object.from_pairs pairs
-            JS_Object.from_pairs [["json", value]]
+        v : Number ->
+            JS_Object.from_pairs [["json", make_json_for_value v]]
+        v : Excel_Workbook ->
+            js_value = v.to_js_object
+            JS_Object.from_pairs [["json", js_value], ["sheet_names", v.sheet_names], ["get_child_node_action", "read"], ["type", "Excel_Workbook"]]
+        v : XML_Document -> make_json_for_xml_element v.root_element max_rows "XML_Document"
+        v : XML_Element -> make_json_for_xml_element v max_rows
+        _ -> make_json_for_other x
 
     result.to_text
 
@@ -61,18 +59,39 @@ prepare_visualization y max_rows=1000 =
 max_columns = 250
 
 ## PRIVATE
+   Render Error to JSON
+make_json_for_error : Any -> JS_Object
+make_json_for_error error =
+    pairs = [["error", error.to_display_text]]
+    JS_Object.from_pairs pairs
+
+## PRIVATE
+   Render Vector to JSON
+make_json_for_row : Row -> JS_Object
+make_json_for_row row =
+    header = ["header", ["column", "value"]]
+    all_rows = ["all_rows_count", row.length]
+    column_names = row.column_names
+    values = ((0.up_to row.length).map idx-> make_json_for_value (row.get idx))
+    data = ["data", [column_names, values]]
+    links = ["get_child_node_action", "at"]
+    get_child_node_action_link_name = ["get_child_node_link_name", "column"]
+    JS_Object.from_pairs [header, all_rows, data, links, get_child_node_action_link_name, ["type", "Map"]]
+
+## PRIVATE
    Render Vector to JSON
 make_json_for_vector : Vector -> Integer -> JS_Object
 make_json_for_vector vector max_rows =
     all_rows = ["all_rows_count", vector.length]
+    get_child_node_action = ["get_child_node_action", "at"]
     truncated = vector.take max_rows
     some_values = truncated.any (v->v.is_nothing.not)
-    if some_values.not then JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value]] else
+    if some_values.not then JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value], get_child_node_action] else
         matrix = make_json_for_matrix (Builder.new truncated.length) truncated
-        if matrix.is_nothing.not then JS_Object.from_pairs [["type", "Matrix"], all_rows, ["json", matrix], ["column_count", matrix.fold 0 c->v-> if v.is_nothing then c else c.max v.length]] else
+        if matrix.is_nothing.not then JS_Object.from_pairs [["type", "Matrix"], all_rows, ["json", matrix], ["column_count", matrix.fold 0 c->v-> if v.is_nothing then c else c.max v.length], get_child_node_action] else
             object_matrix = make_json_for_object_matrix (Builder.new truncated.length) truncated
-            if object_matrix.is_nothing.not then JS_Object.from_pairs [["type", "Object_Matrix"], all_rows, ["json", object_matrix]] else
-                JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value]]
+            if object_matrix.is_nothing.not then JS_Object.from_pairs [["type", "Object_Matrix"], all_rows, ["json", object_matrix], get_child_node_action] else
+                JS_Object.from_pairs [["type", "Vector"], all_rows, ["json", truncated.map make_json_for_value], get_child_node_action, ["child_label", "value"]]
 
 ## PRIVATE
    Render Vector of Vector / Array to JSON
@@ -100,7 +119,7 @@ make_json_for_object_matrix current vector idx=0 = if idx == vector.length then 
         _ : Date_Time -> False
         _ : Duration -> False
         _ : Period -> False
-        _ : Map ->
+        _ : Dictionary ->
             pairs = row.keys.map k-> [k.to_text, make_json_for_value (row.get k)]
             JS_Object.from_pairs pairs
         _ : Row ->
@@ -117,15 +136,17 @@ make_json_for_object_matrix current vector idx=0 = if idx == vector.length then 
         @Tail_Call make_json_for_object_matrix current vector idx+1
 
 ## PRIVATE
-   Render Map to JSON
-make_json_for_map : Map -> Integer -> Text -> JS_Object
-make_json_for_map map max_items key_name="key" =
-    header = ["header", [key_name, "value"]]
-    all_rows = ["all_rows_count", map.size]
-    map_vector = Warning.clear (map.to_vector.take max_items)
-    mapped = map_vector . map p-> [p.first.to_text, make_json_for_value p.second]
+   Render Dictionary to JSON
+make_json_for_dictionary : Dictionary -> Integer -> JS_Object
+make_json_for_dictionary dict max_items =
+    header = ["header", ["key", "value"]]
+    all_rows = ["all_rows_count", dict.size]
+    as_vector = Warning.clear (dict.to_vector.take max_items)
+    mapped = as_vector . map p-> [p.first.to_text, make_json_for_value p.second]
     data = ["data", [mapped.map .first, mapped.map .second]]
-    JS_Object.from_pairs [header, data, all_rows, ["type", "Map"]]
+    links = ["get_child_node_action", "at"]
+    get_child_node_action_link_name = ["get_child_node_link_name", "key"]
+    JS_Object.from_pairs [header, data, all_rows, links, get_child_node_action_link_name, ["type", "Map"], ["child_label", "value"]]
 
 ## PRIVATE
    Render JS_Object to JSON
@@ -140,75 +161,128 @@ make_json_for_js_object js_object max_items =
     JS_Object.from_pairs [header, data, all_rows, ["type", "Map"]]
 
 ## PRIVATE
+   Render XML_Element to JSON
+make_json_for_xml_element : XML_Element -> Integer -> Text -> JS_Object
+make_json_for_xml_element xml_element max_items type:Text="XML_Element" =
+    header = ["header", ["key", "type", "value"]]
+    all_rows = ["all_rows_count", xml_element.attributes.length + xml_element.children.length]
+
+    attribs = xml_element.attributes.to_vector.take max_items . map a-> ["@" + a.first, "Attribute", a.second]
+    children = xml_element.children.take (max_items - attribs.length) . map_with_index i->c-> if c.is_a Text then [i.to_text, "Text", c] else
+        render_start = "<"+c.name
+        render_attribs = if c.attributes.length == 0 then "" else
+            " " + ((c.attributes.to_vector.take 5 . map a-> a.first+'="'+a.second+'"') . join " ") + (if c.attributes.length > 5 then " ..." else "")
+        render_end = case c.child_count of
+            0 -> "/>"
+            1 -> if c.children.first.is_a Text then ">" + c.children.first + "</" + c.name + ">" else "> ... 1 child element ... </" + c.name + ">"
+            _ -> ">..." + c.child_count.to_text + " child elements...</" + c.name + ">"
+        [i.to_text, "Element", render_start+render_attribs+render_end]
+    map_vector = Warning.clear (attribs + children)
+
+    data = ["data", [map_vector.map .first, map_vector.map .second, map_vector.map i-> i.at 2]]
+    get_child_node_fields = if type == "XML_Element" then [["get_child_node_action", "get"], ["get_child_node_link_name", "key"], ["link_value_type", "number"]] else [["get_child_node_action", "get_child_element"], ["get_child_node_link_name", "key"], ["link_value_type", "number"]]
+    JS_Object.from_pairs <| [header, data, all_rows, ["type", type]] + get_child_node_fields
+
+## PRIVATE
    Creates a JSON representation for the visualizations.
 
    Arguments:
    - dataframe: the dataframe containing (possibly just a fragment of) the data
      to display.
-   - indices: a vector of dataframe columns that should be displayed as indices;
-     it can be empty, they should have the same amount of rows as the
-     `dataframe`.
    - all_rows_count: the number of all rows in the underlying data, useful if
      only a fragment is displayed.
-make_json_for_table : Table -> Vector Column -> Integer -> JS_Object
-make_json_for_table dataframe indices all_rows_count =
-    get_vector c = Warning.set (c.to_vector.map v-> make_json_for_value v) []
-    columns     = dataframe.columns
-    header      = ["header", columns.map .name]
-    data        = ["data",   columns.map get_vector]
-    all_rows    = ["all_rows_count", all_rows_count]
-    ixes        = ["indices", indices.map get_vector]
-    ixes_header = ["indices_header", indices.map .name]
-    pairs       = [header, data, all_rows, ixes, ixes_header, ["type", "Table"]]
+make_json_for_table : Table -> Integer -> Integer -> Boolean -> Boolean -> JS_Object
+make_json_for_table dataframe max_rows all_rows_count include_index_col is_db_table =
+    act_max = if max_rows < all_rows_count then max_rows else all_rows_count
+    get_vector c         = Warning.set (Vector.new act_max i-> make_json_for_value (c.get i)) []
+    columns              = dataframe.columns
+    header               = ["header", columns.map .name]
+    value_type           = ["value_type", columns.map .value_type]
+    data                 = ["data",   columns.map get_vector]
+    all_rows             = ["all_rows_count", all_rows_count]
+    has_index_col        = ["has_index_col", include_index_col]
+    links                = ["get_child_node_action", "get_row"]
+    child_label          = ["child_label", "row"]
+    data_quality_metrics = if is_db_table then [] else
+        number_nothing = JS_Object.from_pairs [["name", "Count nothings"], ["percentage_value", columns.map .count_nothing]]
+        sampled_label = if all_rows_count > Column.default_sample_size then " (sampled)" else ""
+        number_untrimmed = JS_Object.from_pairs [["name", "Count untrimmed whitespace" + sampled_label], ["percentage_value", columns.map .count_untrimmed]]
+        number_non_triv = JS_Object.from_pairs [["name", "Count non trivial whitespace" + sampled_label], ["percentage_value", columns.map .count_non_trivial_whitespace]]
+        JS_Object.from_pairs
+        [number_nothing, number_untrimmed, number_non_triv]
+    pairs                = [header, value_type, data, all_rows, has_index_col, links, ["data_quality_metrics", data_quality_metrics] ,["type", "Table"], child_label]
     JS_Object.from_pairs pairs
+
+## PRIVATE
+   Create JSON serialization of values.
+make_json_for_other : Any -> JS_Object
+make_json_for_other x =
+    js_value = Panic.recover Any x.to_js_object
+    supports_js_object = js_value.is_error.not
+    case supports_js_object of
+        True ->
+            value = if js_value.is_a JS_Object . not then js_value else
+                pairs = [['_display_text_', x.to_display_text]] + js_value.field_names.map f-> [f, make_json_for_value (js_value.get f)]
+                JS_Object.from_pairs pairs
+            link_fields = if js_value.is_a JS_Object . not then [] else
+                if js_value.contains_key 'links' then [["links", js_value.get 'links']] else []
+            additional_fields = if js_value.is_a JS_Object . not then [] else
+                if js_value.contains_key 'get_child_node_action' then [["get_child_node_action", js_value.get 'get_child_node_action']] else []
+            label = if js_value.is_a JS_Object . not then [] else
+                if js_value.contains_key 'child_label' then [["child_label", js_value.get 'child_label']] else []
+            header = if js_value.is_a JS_Object . not then [] else
+                if js_value.contains_key 'visualization_header' then [["visualization_header", js_value.get 'visualization_header']] else []
+            JS_Object.from_pairs <| [["json", value]] + additional_fields + link_fields + label + header
+
+        # Fallback for objects that fail to be serialized through `to_js_object`.
+        False ->
+            json = JS_Object.from_pairs [["_display_text_", x.to_display_text], ["_to_js_object_error_", js_value.catch.to_display_text]]
+            JS_Object.from_pairs [["json", json]]
 
 ## PRIVATE
    Create JSON serialization of values for the table.
 make_json_for_value : Any -> Integer -> Text
 make_json_for_value val level=0 = case val of
     Nothing -> Nothing
-    _ : Text -> val
-    _ : Number ->
-        js_version = if val.is_finite then val.to_js_object else JS_Object.from_pairs [["type", "Float"], ["value", val.to_text]]
+    txt : Text -> txt
+    num : Number ->
+        js_version = if num.is_finite then num.to_js_object else JS_Object.from_pairs [["type", "Float"], ["value", num.to_text]]
         if js_version.is_a JS_Object . not then js_version else
-            pairs = [['_display_text_', val.to_display_text]] + js_version.field_names.map f-> [f, js_version.get f]
+            pairs = [['_display_text_', num.to_display_text]] + js_version.field_names.map f-> [f, js_version.get f]
             JS_Object.from_pairs pairs
-    _ : Boolean -> val
-    _ : Vector ->
-        if level != 0 then "[… "+val.length.to_text+" items]" else
-            truncated = val.take 5 . map v-> (make_json_for_value v level+1).to_text
-            prepared = if val.length > 5 then truncated + ["… " + (val.length - 5).to_text+ " items"] else truncated
+    boolean : Boolean -> boolean
+    vec : Vector ->
+        if level != 0 then "[… "+vec.length.to_text+" items]" else
+            truncated = vec.take 5 . map v-> (make_json_for_value v level+1).to_text
+            prepared = if vec.length > 5 then truncated + ["… " + (vec.length - 5).to_text+ " items"] else truncated
             "[" + (prepared.join ", ") + "]"
-    _ : Array -> make_json_for_value val.to_vector level
-    _ : Map ->
-        if level != 0 then "{… "+val.size.to_text+" items}" else
-            truncated = val.keys.take 5 . map k-> k.to_text + ": " + (make_json_for_value (val.get k) level+1).to_text
-            prepared = if val.length > 5 then truncated + ["… " + (val.length - 5).to_text+ " items"] else truncated
+    array : Array -> make_json_for_value array.to_vector level
+    dict : Dictionary ->
+        if level != 0 then "{… "+dict.size.to_text+" items}" else
+            truncated = dict.keys.take 5 . map k-> k.to_text + ": " + (make_json_for_value (val.get k) level+1).to_text
+            prepared = if dict.length > 5 then truncated + ["… " + (dict.length - 5).to_text+ " items"] else truncated
             "{" + (prepared.join ", ") + "}"
-    _ : Column ->
-        if level != 0 then "Column{" +val.name + ": " + val.row_count + " rows}" else
-            items = make_json_for_value val.to_vector level
-            "Column{" + val.name + ": " + items + "}"
-    _ : Row ->
-        if level != 0 then "Row{" + val.table.column_count + " columns}" else
-            truncated = val.table.column_names.take 5 . map _.to_text
-            prepared = if val.table.column_count > 5 then truncated + ["… " + (val.table.column_count - 5).to_text+ " more"] else truncated
+    row : Row ->
+        if level != 0 then "Row{" + row.table.column_count + " columns}" else
+            truncated = row.table.column_names.take 5 . map _.to_text
+            prepared = if row.table.column_count > 5 then truncated + ["… " + (row.table.column_count - 5).to_text+ " more"] else truncated
             "Row{" + (prepared.join ", ") + "}"
-    _ : DB_Column ->
-        if level != 0 then "Column{" +val.name + ": " + val.row_count + " rows}" else
-            materialise = val.read (..First 5)
-            truncated = materialise . map k-> k.to_text + ": " + (make_json_for_value (val.get k) level+1).to_text
-            prepared = if val.length > 5 then truncated + ["… " + (val.length - 5).to_text+ " items"] else truncated
-            "Column{" + val.name + ": " + prepared + "}"
-    _ : Table ->
-        if level != 0 then "Table{" + val.row_count + " rows x " + val.column_count + " columns}" else
-            truncated = val.columns.take 5 . map _.name
-            prepared = if val.column_count > 5 then truncated + ["… " + (val.column_count - 5).to_text+ " more"] else truncated
-            "Table{" + val.row_count.to_text + " rows x [" + (prepared.join ", ") + "]}"
-    _ : DB_Table ->
-        if level != 0 then "Table{" + val.row_count + " rows x " + val.column_count + " columns}" else
-            truncated = val.columns.take 5 . map _.name
-            prepared = if val.column_count > 5 then truncated + ["… " + (val.column_count - 5).to_text+ " more"] else truncated
-            "Table{" + val.row_count.to_text + " rows x [" + (prepared.join ", ") + "]}"
-    _ : Function -> "[Function "+val.to_text+"]"
+    table : Table ->
+        if level != 0 then "Table{" + table.row_count.to_text + " rows x " + table.column_count.to_text + " columns}" else
+            truncated = table.columns.take 5 . map _.name
+            prepared = if table.column_count > 5 then truncated + ["… " + (table.column_count - 5).to_text+ " more"] else truncated
+            "Table{" + table.row_count.to_text + " rows x [" + (prepared.join ", ") + "]}"
+    col : Column ->
+        if level != 0 then "Column{" +col.name + ": " + col.row_count.to_text + " rows}" else
+            items = make_json_for_value col.to_vector level
+            "Column{" + col.name + ": " + items + "}"
+    table : DB_Table ->
+        if level != 0 then "DB_Table{" + table.column_count.to_text + " columns}" else
+            truncated = table.columns.take 5 . map _.name
+            prepared = if table.column_count > 5 then truncated + ["… " + (table.column_count - 5).to_text+ " more"] else truncated
+            "DB_Table{" + table.row_count.to_text + " rows x [" + (prepared.join ", ") + "]}"
+    col : DB_Column ->
+        if level != 0 then "DB_Column{"+col.name+"}" else
+            "DB_Column{" + col.name + ": " + col.length.to_text + " rows}"
+    f : Function -> "[Function "+f.to_text+"]"
     _ -> val.to_display_text

@@ -1,0 +1,13 @@
+:where(body) {
+  overflow: hidden;
+  height: 100vh;
+  background-blend-mode: lighten;
+}
+
+:where(body:not(.vibrancy)) {
+  @apply bg-cover bg-dashboard;
+}
+
+:where(.enso-app) {
+  @apply absolute inset-0 isolate overflow-hidden transition-all duration-200 ease-in-out;
+}

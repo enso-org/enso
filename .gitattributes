@@ -1,2 +1,3 @@
 *.enso text eol=lf
 *.png binary
+CHANGELOG.md merge=union

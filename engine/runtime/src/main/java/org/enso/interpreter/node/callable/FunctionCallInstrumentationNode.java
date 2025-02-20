@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -56,7 +57,7 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
 
   /** A simple value class for function call information. */
   @ExportLibrary(InteropLibrary.class)
-  public static final class FunctionCall implements EnsoObject {
+  public static final class FunctionCall extends EnsoObject {
     private final Function function;
     private final State state;
     private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] arguments;
@@ -120,20 +121,32 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
     }
 
     /**
-     * @return the arguments passed to the function in this call.
+     * Get the arguments passed to the function in this call.
+     *
+     * <p>The {@code null} value in the arguments array indicates that the corresponding argument
+     * was not provided, and the default value should be used.
+     *
+     * @return the function arguments provided to this call
      */
     public Object[] getArguments() {
       return arguments;
     }
 
     @Override
-    @CompilerDirectives.TruffleBoundary
+    @TruffleBoundary
     public String toString() {
       return "FunctionCall[function="
           + function
           + ", arguments: "
           + Arrays.toString(arguments)
           + "]";
+    }
+
+    @Override
+    @ExportMessage
+    @TruffleBoundary
+    public Object toDisplayString(boolean allowSideEffects) {
+      return toString();
     }
   }
 

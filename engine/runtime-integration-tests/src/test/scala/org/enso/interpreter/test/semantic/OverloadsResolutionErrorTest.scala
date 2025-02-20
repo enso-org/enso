@@ -5,7 +5,7 @@ import org.enso.interpreter.test.{
   InterpreterException,
   InterpreterTest
 }
-import org.enso.polyglot.RuntimeOptions
+import org.enso.common.RuntimeOptions
 import org.graalvm.polyglot.Context
 
 class OverloadsResolutionErrorTest extends InterpreterTest {

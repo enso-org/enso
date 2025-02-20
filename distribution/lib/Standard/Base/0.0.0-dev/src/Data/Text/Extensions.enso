@@ -1,5 +1,5 @@
 import project.Any.Any
-import project.Data.Index_Sub_Range as Index_Sub_Range_Module
+import project.Data.Decimal.Decimal
 import project.Data.Index_Sub_Range.Index_Sub_Range
 import project.Data.Locale.Locale
 import project.Data.Range.Range
@@ -25,6 +25,7 @@ import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Common.Missing_Argument
 import project.Errors.Common.Syntax_Error
 import project.Errors.Encoding_Error.Encoding_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -33,24 +34,26 @@ import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Nothing.Nothing
 import project.Panic.Panic
+import project.System.Internal.Reporting_Stream_Decoder_Helper
 from project.Data.Boolean import Boolean, False, True
+from project.Data.Index_Sub_Range import invert_range_selection
 from project.Data.Json import Invalid_JSON, JS_Object, Json
 from project.Data.Numbers import Float, Integer, Number, Number_Parse_Error
 from project.Data.Range.Extensions import all
 from project.Data.Text.Text_Cleanse import Cleansable_Text, Text_Cleanse
-from project.Metadata import Display, Widget
+from project.Metadata import Display, make_single_choice, Widget
 from project.Widget_Helpers import make_data_cleanse_vector_selector, make_date_format_selector, make_date_time_format_selector, make_delimiter_selector, make_regex_text_widget, make_time_format_selector
 
 polyglot java import com.ibm.icu.lang.UCharacter
 polyglot java import com.ibm.icu.text.BreakIterator
 polyglot java import java.lang.StringBuilder
 polyglot java import org.enso.base.encoding.Encoding_Utils
-polyglot java import org.enso.base.text.ResultWithWarnings
-polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.base.Regex_Utils
-polyglot java import org.enso.base.WithProblems
 polyglot java import org.enso.base.text.GraphemeSpan
+polyglot java import org.enso.base.text.ResultWithWarnings
 polyglot java import org.enso.base.text.Utf16Span
+polyglot java import org.enso.base.Text_Utils
+polyglot java import org.enso.base.WithProblems
 
 ## GROUP Text
    ICON text
@@ -236,19 +239,23 @@ Text.characters self =
     Vector.build builder->
         self.each builder.append
 
-## GROUP Selections
+## ALIAS match
+   GROUP Selections
    ICON find
    Find the regular expression `pattern` in `self`, returning the first match
    if present or `Nothing` if not found.
+
+   For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
 
    Arguments:
    - pattern: The pattern to match `self` against.
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
-   If an empty regex is used, `find` throws an `Illegal_Argument` error.
+   ! Error Conditions
 
-   If a non-default locale is used, `find` throws an `Illegal_Argument` error.
+   - If an empty regex is used, `find` throws an `Illegal_Argument` error.
+   - If a non-default locale is used, `find` throws an `Illegal_Argument` error.
 
    > Example
      Find the first substring matching the regex.
@@ -259,25 +266,30 @@ Text.characters self =
          example_find_insensitive =
              ## This matches `aBc` @ character 11
              "aabbbbccccaaBcaaaa".find "a[ab]c" Case_Sensitivity.Insensitive
-Text.find : Text -> Case_Sensitivity -> Match | Nothing ! Regex_Syntax_Error | Illegal_Argument
-Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
+@pattern make_regex_text_widget
+Text.find : (Regex | Text) -> Case_Sensitivity -> Match | Nothing ! Regex_Syntax_Error | Illegal_Argument
+Text.find self pattern:(Regex | Text)=".*" case_sensitivity:Case_Sensitivity=..Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.match self
 
-## GROUP Selections
+## ALIAS matches
+   GROUP Selections
    ICON find
    Finds all the matches of the regular expression `pattern` in `self`,
    returning a Vector. If not found, will be an empty Vector.
+
+   For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
 
    Arguments:
    - pattern: The pattern to match `self` against.
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
-   If an empty regex is used, `find_all` throws an `Illegal_Argument` error.
+   ! Error Conditions
 
-   If a non-default locale is used, `find_all` throws an `Illegal_Argument` error.
+   - If an empty regex is used, `find` throws an `Illegal_Argument` error.
+   - If a non-default locale is used, `find` throws an `Illegal_Argument` error.
 
    > Example
      Find the substring matching the regex.
@@ -288,26 +300,30 @@ Text.find self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
          example_find_all_insensitive =
               ## This matches `aABbbbc` @ character 0 and `aBC` @ character 11
              "aABbbbccccaaBCaaaa".find_all "a[ab]+c" Case_Sensitivity.Insensitive
-Text.find_all : Text -> Case_Sensitivity -> Vector Match ! Regex_Syntax_Error | Illegal_Argument
-Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
+@pattern make_regex_text_widget
+Text.find_all : Text|Regex -> Case_Sensitivity -> Vector Match ! Regex_Syntax_Error | Illegal_Argument
+Text.find_all self pattern:Text|Regex=".*" case_sensitivity:Case_Sensitivity=..Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.match_all self
 
-## ALIAS check matches
+## ALIAS check matches, like, regex
    GROUP Text
    ICON preparation
 
    Checks if the whole text in `self` matches a provided `pattern`.
+
+   For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
 
    Arguments:
    - pattern: The pattern to match `self` against.
    - case_sensitivity: Specifies if the text values should be compared case
      sensitively.
 
-   If an empty regex is used, `match` throws an `Illegal_Argument` error.
+   ! Error Conditions
 
-   If a non-default locale is used, `match` throws an `Illegal_Argument` error.
+   - If an empty regex is used, `find` throws an `Illegal_Argument` error.
+   - If a non-default locale is used, `find` throws an `Illegal_Argument` error.
 
    > Example
      Checks if whole text matches a basic email regex.
@@ -320,8 +336,9 @@ Text.find_all self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
              regex = ".+ct@.+"
              # Evaluates to true
              "CONTACT@enso.org".match regex Case_Sensitivity.Insensitive
-Text.match : Text -> Case_Sensitivity -> Boolean ! Regex_Syntax_Error | Illegal_Argument
-Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
+@pattern Widget.Text_Input
+Text.match : Text|Regex -> Case_Sensitivity -> Boolean ! Regex_Syntax_Error | Illegal_Argument
+Text.match self pattern:Text|Regex=".*" case_sensitivity:Case_Sensitivity=..Sensitive -> Boolean ! Regex_Syntax_Error | Illegal_Argument =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.matches self
@@ -345,7 +362,7 @@ Text.match self pattern=".*" case_sensitivity=Case_Sensitivity.Sensitive =
 Text.to_regex : Boolean -> Regex ! Regex_Syntax_Error | Illegal_Argument
 Text.to_regex self case_insensitive=False = Regex.compile self case_insensitive
 
-## ALIAS split text
+## ALIAS parse, tokenize
    GROUP Conversions
    ICON split
 
@@ -379,8 +396,8 @@ Text.to_regex self case_insensitive=False = Regex.compile self case_insensitive
 
          'azbzczdzezfzg'.split ['b', 'zez'] == ['az', 'zczd', 'fzg']
 @delimiter make_delimiter_selector
-Text.split : Text | Vector Text -> Case_Sensitivity -> Boolean -> Vector Text | Illegal_Argument
-Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_regex=False =
+Text.split : Text | Vector Text -> Case_Sensitivity -> Boolean -> Vector Text ! Illegal_Argument
+Text.split self delimiter="," case_sensitivity:Case_Sensitivity=..Sensitive use_regex=False =
     delimiter_is_empty = case delimiter of
         _ : Text -> delimiter.is_empty
         _ : Vector -> delimiter.is_empty || delimiter.any (.is_empty)
@@ -393,7 +410,7 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_re
         if delimiter_is_singleton_vector then self.split delimiter=(delimiter.first) case_sensitivity=case_sensitivity use_regex=use_regex else
             case use_regex of
                 False ->
-                    delimiters = split_find_delimiters self delimiter case_sensitivity
+                    delimiters = _split_find_delimiters self delimiter case_sensitivity
                     Vector.new delimiters.length+1 i->
                         start = if i == 0 then 0 else
                             delimiters.at i-1 . codeunit_end
@@ -412,6 +429,7 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_re
                         self.split combined_delimiter case_sensitivity=case_sensitivity use_regex=True
 
 ## ADVANCED
+   ALIAS parse, regex, split
    GROUP Conversions
    ICON split
    Takes an input string and and a pattern and returns all the matches as a
@@ -438,8 +456,9 @@ Text.split self delimiter="," case_sensitivity=Case_Sensitivity.Sensitive use_re
 
         'Hello Big\r\nWide\tWorld\nGoodbye!' . tokenize "(\S+)(?:\s+|$)"
             == ["Hello","Big","Wide","World","Goodbye!"]
-Text.tokenize : Text -> Case_Sensitivity -> Vector Text
-Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
+@pattern Widget.Text_Input
+Text.tokenize : Text|Regex -> Case_Sensitivity -> Vector Text
+Text.tokenize self pattern:Text|Regex=(Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
     compiled_pattern = Regex.compile pattern case_insensitive=case_insensitive
     compiled_pattern.tokenize self
@@ -457,7 +476,9 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
        $0: the entire match string
        $&: the entire match string
        $n: the nth group
-       $<foo>: Named group `foo`
+       $&lt;foo&gt;: Named group `foo`
+
+   For details on Enso's Regex syntax, see the [Help Documentation](https://help.enso.org/docs/using-enso/regular-expressions).
 
    Arguments:
    - term: The `Text` or `Regex` to find.
@@ -466,10 +487,10 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
      sensitively.
    - only_first: If True, only replace the first match.
 
-   If an empty regex is used, `replace` throws an `Illegal_Argument` error.
+   ! Error Conditions
 
-   If a non-default locale is used with a regex, `replace` throws an
-   Illegal_Argument error.
+   - If an empty regex is used, `find` throws an `Illegal_Argument` error.
+   - If a non-default locale is used, `find` throws an `Illegal_Argument` error.
 
    > Example
      Replace letters in the text "aaa".
@@ -514,7 +535,7 @@ Text.tokenize self pattern="." case_sensitivity=Case_Sensitivity.Sensitive =
    > Example
      Regexp replace.
 
-     '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>'.to_regex '$2 is at $1'== 'content is at url'
+         '<a href="url">content</a>'.replace '<a href="(.*?)">(.*?)</a>'.to_regex '$2 is at $1'== 'content is at url'
 @term make_regex_text_widget
 Text.replace : Text | Regex -> Text -> Case_Sensitivity -> Boolean -> Text ! Illegal_Argument
 Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Sensitivity=Case_Sensitivity.Default) only_first:Boolean=False =
@@ -543,13 +564,14 @@ Text.replace self term:(Text | Regex) replacement:Text (case_sensitivity:Case_Se
    Applies the specified cleansings to the text.
 
    Arguments:
-   - remove: A vector of the named patterns to cleanse from the text. The named patterns are 
+   - remove: A vector of the named patterns to cleanse from the text. The named patterns are
       applied in the order they are provided. The same named pattern can be used multiple
       times. The named patterns are:
       - ..Leading_Whitespace: Removes all whitespace from the start of the string.
       - ..Trailing_Whitespace: Removes all whitespace from the end of the string.
       - ..Duplicate_Whitespace: Removes all duplicate whitespace from the string replacing it with the first whitespace character of the duplicated block.
       - ..All_Whitespace: Removes all whitespace from the string.
+      - ..Newlines: Removes all newline characters from the string. Line Feed and Carriage Return characters are considered newlines.
       - ..Leading_Numbers: Removes all numbers from the start of the string.
       - ..Trailing_Numbers: Removes all numbers from the end of the string.
       - ..Non_ASCII: Removes all non-ascii characters from the string.
@@ -597,7 +619,7 @@ Cleansable_Text.from (that:Text) = Cleansable_Text.Value (pattern->replace_with-
 
          "แมวมีสี่ขา".words == ['แมว', 'มี', 'สี่', 'ขา']
 Text.words : Boolean -> Vector Text
-Text.words self keep_whitespace=False =
+Text.words self keep_whitespace:Boolean=False =
     iterator = BreakIterator.getWordInstance
     iterator.setText self
     Vector.build builder->
@@ -640,7 +662,7 @@ Text.words self keep_whitespace=False =
 
         '\na\nb\n'.lines keep_endings=True == ['\n', 'a\n', 'b\n']
 Text.lines : Boolean -> Vector Text
-Text.lines self keep_endings=False =
+Text.lines self keep_endings:Boolean=False =
     Vector.from_polyglot_array (Text_Utils.split_on_lines self keep_endings)
 
 ## GROUP Text
@@ -667,7 +689,7 @@ Text.lines self keep_endings=False =
          "Hello World!".insert 5 " Cruel" == "Hello Cruel World!"
          "Hello World!".insert -1 " Cruel" == "Hello World! Cruel"
 Text.insert : Integer -> Text -> Text ! Index_Out_Of_Bounds
-Text.insert self index that =
+Text.insert self index:Integer that:Text =
     len = self.length
     idx = if index < 0 then len + index + 1 else index
     if (idx < 0) || (idx > len) then Error.throw (Index_Out_Of_Bounds.Error index len) else
@@ -701,7 +723,7 @@ Text.insert self index that =
          "A0".is_digit 1 == True
          "건반(Korean)".is_digit 1 == False
 Text.is_digit : Integer -> Boolean ! Index_Out_Of_Bounds
-Text.is_digit self (index=0) =
+Text.is_digit self index:Integer=0 =
     grapheme = self.at index
     char = (Text_Utils.get_chars grapheme).at 0
     char>=48 && char<=57
@@ -740,7 +762,7 @@ Text.is_whitespace self =
          "Hello".bytes (Encoding.ascii)
 @encoding Encoding.default_widget
 Text.bytes : Encoding -> Problem_Behavior -> Vector Integer
-Text.bytes self (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+Text.bytes self (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Behavior = ..Report_Warning) =
     result = Encoding_Utils.get_bytes self encoding.to_java_charset : ResultWithWarnings
     vector = Vector.from_polyglot_array result.result
     if result.warnings.is_nothing then vector else
@@ -762,12 +784,8 @@ Text.bytes self (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Be
          Text.from_bytes [72, 101, 108, 108, 111] (Encoding.ascii)
 @encoding Encoding.default_widget
 Text.from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
-Text.from_bytes bytes (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = Problem_Behavior.Report_Error) =
-    result = Encoding_Utils.from_bytes bytes encoding.to_java_charset_or_null : WithProblems
-    if result.problems.is_empty then result.result else
-        problems = result.problems.map decoding_problem->
-            Encoding_Error.Error decoding_problem.message
-        on_problems.attach_problems_after result.result problems
+Text.from_bytes bytes (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = ..Report_Error) =
+    Reporting_Stream_Decoder_Helper.decode_bytes_to_text bytes encoding on_problems
 
 ## ICON convert
    Returns a vector containing bytes representing the UTF-8 encoding of the
@@ -788,7 +806,7 @@ Text.from_bytes bytes (encoding : Encoding = Encoding.default) (on_problems : Pr
 
          "Hello".utf_8
 Text.utf_8 : Problem_Behavior -> Vector Integer
-Text.utf_8 self (on_problems : Problem_Behavior = Problem_Behavior.Report_Warning) =
+Text.utf_8 self (on_problems : Problem_Behavior = ..Report_Warning) =
     self.bytes Encoding.utf_8 on_problems
 
 ## ICON convert
@@ -807,7 +825,7 @@ Text.utf_8 self (on_problems : Problem_Behavior = Problem_Behavior.Report_Warnin
 
          Text.from_utf_8 [-32, -92, -107, -32, -91, -115, -32, -92, -73, -32, -92, -65]
 Text.from_utf_8 : Vector Integer -> Problem_Behavior -> Text
-Text.from_utf_8 bytes (on_problems : Problem_Behavior = Problem_Behavior.Report_Error) =
+Text.from_utf_8 bytes (on_problems : Problem_Behavior = ..Report_Error) =
     Text.from_bytes bytes Encoding.utf_8 on_problems
 
 ## ICON convert
@@ -890,7 +908,7 @@ Text.from_codepoints codepoints = Text_Utils.from_codepoints codepoints
          "Hello!".starts_with "hello" == False
          "Hello!".starts_with "hello" Case_Sensitivity.Insensitive == True
 Text.starts_with : Text -> Case_Sensitivity -> Boolean
-Text.starts_with self prefix case_sensitivity=Case_Sensitivity.Sensitive = case case_sensitivity of
+Text.starts_with self prefix:Text case_sensitivity:Case_Sensitivity=..Sensitive = case case_sensitivity of
     Case_Sensitivity.Default -> self.starts_with prefix Case_Sensitivity.Sensitive
     Case_Sensitivity.Sensitive -> Text_Utils.starts_with self prefix
     Case_Sensitivity.Insensitive locale ->
@@ -920,7 +938,7 @@ Text.starts_with self prefix case_sensitivity=Case_Sensitivity.Sensitive = case 
          "Hello World".ends_with "world" == False
          "Hello World".ends_with "world" Case_Sensitivity.Insensitive == True
 Text.ends_with : Text -> Case_Sensitivity -> Boolean
-Text.ends_with self suffix case_sensitivity=Case_Sensitivity.Sensitive = case case_sensitivity of
+Text.ends_with self suffix:Text case_sensitivity:Case_Sensitivity=..Sensitive = case case_sensitivity of
     Case_Sensitivity.Default -> self.ends_with suffix Case_Sensitivity.Sensitive
     Case_Sensitivity.Sensitive -> Text_Utils.ends_with self suffix
     Case_Sensitivity.Insensitive locale ->
@@ -966,7 +984,7 @@ Text.ends_with self suffix case_sensitivity=Case_Sensitivity.Sensitive = case ca
 
          "Hello!".contains "LO" Case_Sensitivity.Insensitive
 Text.contains : Text -> Case_Sensitivity -> Boolean
-Text.contains self term="" case_sensitivity=Case_Sensitivity.Sensitive = case case_sensitivity of
+Text.contains self term:Text="" case_sensitivity:Case_Sensitivity=..Sensitive = case case_sensitivity of
     Case_Sensitivity.Default -> self.contains term Case_Sensitivity.Sensitive
     Case_Sensitivity.Sensitive -> Text_Utils.contains self term
     Case_Sensitivity.Insensitive locale ->
@@ -982,16 +1000,16 @@ Text.contains self term="" case_sensitivity=Case_Sensitivity.Sensitive = case ca
      the new text.
 
    > Example
-     Repeat the string "A" five times.
+     Repeat the text "A" five times.
 
          "A" * 5 == "AAAAA"
 
    > Example
-     Repeat the string "Hello " twice.
+     Repeat the text "Hello " twice.
 
          "Hello " * 2 == "Hello Hello "
 Text.* : Integer -> Text
-Text.* self count = self.repeat count
+Text.* self count:Integer = self.repeat count
 
 ## GROUP Calculations
    ICON text
@@ -1003,16 +1021,16 @@ Text.* self count = self.repeat count
      the new text.
 
    > Example
-     Repeat the string "ABBA" five times.
+     Repeat the text "ABBA" five times.
 
          "ABBA".repeat 5 == "ABBAABBAABBAABBAABBA"
 
    > Example
-     Repeat the string "Hello " twice.
+     Repeat the text "Hello " twice.
 
          "Hello ".repeat 2 == "Hello Hello "
 Text.repeat : Integer -> Text
-Text.repeat self count=1 =
+Text.repeat self count:Integer=1 =
     0.up_to count . fold "" acc-> _-> acc + self
 
 ## ALIAS first, head, keep, last, left, limit, mid, right, slice, substring, tail, top
@@ -1034,35 +1052,35 @@ Text.repeat self count=1 =
    > Example
      Various different ways to take part of "Hello World!"
 
-         "Hello World!".take First == "H"
-         "Hello World!".take (First 5) == "Hello"
-         "Hello World!".take (First 0) == ""
-         "Hello World!".take Last == "!"
-         "Hello World!".take (Last 6) == "World!"
-         "Hello World!".take (Before " ") == "Hello"
-         "Hello World!".take (Before_Last "o") == "Hello W"
-         "Hello World!".take (After " ") == "World!"
-         "Hello World!".take (After_Last "o") == "rld!"
-         "Hello World!".take (While c->c!=" ") == "Hello"
-         "Hello World!".take (Range 3 5) == "lo"
-         "Hello World!".take (Range 5 Nothing) == " World!"
-         "Hello World!".take (Range 5 12) == " World!"
-         "Hello World!".take (Range 6 12 2) == "Wrd"
-         "Hello World!".take (Every 2 first=6) == "Wrd"
-         "Hello World!".take (Every 3) == "Hl Wl"
-         "Hello World!".take (By_Index 0) == "H"
-         "Hello World!".take (By_Index [1, 0, 0, 6, 0]) == "eHHWH"
-         "Hello World!".take (By_Index [Range 0 3, 6, Range 6 12 2]) == "HelWWrd"
-         "Hello World!".take (Sample 3 seed=42) == "l d"
+         "Hello World!".take ..First == "H"
+         "Hello World!".take (..First 5) == "Hello"
+         "Hello World!".take (..First 0) == ""
+         "Hello World!".take ..Last == "!"
+         "Hello World!".take (..Last 6) == "World!"
+         "Hello World!".take (..Before " ") == "Hello"
+         "Hello World!".take (..Before_Last "o") == "Hello W"
+         "Hello World!".take (..After " ") == "World!"
+         "Hello World!".take (..After_Last "o") == "rld!"
+         "Hello World!".take (..While c->c!=" ") == "Hello"
+         "Hello World!".take (..Range 3 5) == "lo"
+         "Hello World!".take (..Range 5 Nothing) == " World!"
+         "Hello World!".take (..Range 5 12) == " World!"
+         "Hello World!".take (..Range 6 12 2) == "Wrd"
+         "Hello World!".take (..Every 2 first=6) == "Wrd"
+         "Hello World!".take (..Every 3) == "Hl Wl"
+         "Hello World!".take (..By_Index 0) == "H"
+         "Hello World!".take (..By_Index [1, 0, 0, 6, 0]) == "eHHWH"
+         "Hello World!".take (..By_Index [Range 0 3, 6, Range 6 12 2]) == "HelWWrd"
+         "Hello World!".take (..Sample 3 seed=42) == "l d"
 @range Text_Sub_Range.default_widget
 Text.take : (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> Text ! Index_Out_Of_Bounds
-Text.take self range=(Index_Sub_Range.First 1) =
+Text.take self range:(Text_Sub_Range | Index_Sub_Range | Range | Integer)=..First =
     ranges = Codepoint_Ranges.resolve self range
     case ranges of
         Range.Between start end 1 ->
             Text_Utils.substring self start end
         Codepoint_Ranges.Value char_ranges _ ->
-            slice_text self char_ranges
+            _slice_text self char_ranges
 
 ## ALIAS remove, skip
    GROUP Selections
@@ -1083,29 +1101,29 @@ Text.take self range=(Index_Sub_Range.First 1) =
    > Example
      Various different ways to take part of "Hello World!"
 
-         "Hello World!".drop First == "ello World!"
-         "Hello World!".drop (First 5) == " World!"
-         "Hello World!".drop (First 0) == "Hello World!"
-         "Hello World!".drop Last == "Hello World"
-         "Hello World!".drop (Last 6) == "Hello "
-         "Hello World!".drop (Before " ") == " World!"
-         "Hello World!".drop (Before_Last "o") == "orld!"
-         "Hello World!".drop (After " ") == "Hello "
-         "Hello World!".drop (After_Last "o") == "Hello Wo"
-         "Hello World!".drop (While c->c!=" ") == " World!"
-         "Hello World!".drop (Range 3 5) == "Hel World!"
-         "Hello World!".drop (Range 5 Nothing) == "Hello"
-         "Hello World!".drop (Range 5 12) == "Hello"
-         "Hello World!".drop (Range 6 12 2) == "Hello ol!"
-         "Hello World!".drop (Every 2 first=6) == "Hello ol!"
-         "Hello World!".drop (Every 3) == "elo ord!"
-         "Hello World!".drop (By_Index 0) == "ello World!"
-         "Hello World!".drop (By_Index [1, 0, 0, 6, 0]) == "llo orld!"
-         "Hello World!".drop (By_Index [Range 0 3, 6, Range 6 12 2]) == "lo ol!"
-         "Hello World!".drop (Sample 3 seed=42) == "HeloWorl!"
+         "Hello World!".drop ..First == "ello World!"
+         "Hello World!".drop (..First 5) == " World!"
+         "Hello World!".drop (..First 0) == "Hello World!"
+         "Hello World!".drop ..Last == "Hello World"
+         "Hello World!".drop (..Last 6) == "Hello "
+         "Hello World!".drop (..Before " ") == " World!"
+         "Hello World!".drop (..Before_Last "o") == "orld!"
+         "Hello World!".drop (..After " ") == "Hello "
+         "Hello World!".drop (..After_Last "o") == "Hello Wo"
+         "Hello World!".drop (..While c->c!=" ") == " World!"
+         "Hello World!".drop (..Range 3 5) == "Hel World!"
+         "Hello World!".drop (..Range 5 Nothing) == "Hello"
+         "Hello World!".drop (..Range 5 12) == "Hello"
+         "Hello World!".drop (..Range 6 12 2) == "Hello ol!"
+         "Hello World!".drop (..Every 2 first=6) == "Hello ol!"
+         "Hello World!".drop (..Every 3) == "elo ord!"
+         "Hello World!".drop (..By_Index 0) == "ello World!"
+         "Hello World!".drop (..By_Index [1, 0, 0, 6, 0]) == "llo orld!"
+         "Hello World!".drop (..By_Index [Range 0 3, 6, Range 6 12 2]) == "lo ol!"
+         "Hello World!".drop (..Sample 3 seed=42) == "HeloWorl!"
 @range Text_Sub_Range.default_widget
-Text.drop : (Text_Sub_Range | Index_Sub_Range | Range) -> Text ! Index_Out_Of_Bounds
-Text.drop self range=(Index_Sub_Range.First 1) =
+Text.drop : (Text_Sub_Range | Index_Sub_Range | Range | Integer) -> Text ! Index_Out_Of_Bounds
+Text.drop self range:(Text_Sub_Range | Index_Sub_Range | Range | Integer)=..First =
     ranges = Codepoint_Ranges.resolve self range
     case ranges of
         Range.Between start end 1 ->
@@ -1116,8 +1134,8 @@ Text.drop self range=(Index_Sub_Range.First 1) =
         _ : Codepoint_Ranges ->
             sorted_char_ranges_to_remove = ranges.sorted_and_distinct_ranges
             char_length = Text_Utils.char_length self
-            inverted = Index_Sub_Range_Module.invert_range_selection sorted_char_ranges_to_remove char_length needs_sorting=False
-            slice_text self inverted
+            inverted = invert_range_selection sorted_char_ranges_to_remove char_length needs_sorting=False
+            _slice_text self inverted
 
 ## ALIAS lower, proper, title, upper
    GROUP Text
@@ -1153,7 +1171,7 @@ Text.drop self range=(Index_Sub_Range.First 1) =
          example_case_with_locale = "i".to_case Upper (Locale.new "tr") == "İ"
 @locale Locale.default_widget
 Text.to_case : Case -> Locale -> Text
-Text.to_case self case_option=Case.Lower locale=Locale.default = case case_option of
+Text.to_case self case_option:Case=..Lower locale:Locale=Locale.default = case case_option of
     Case.Lower -> UCharacter.toLowerCase locale.java_locale self
     Case.Upper -> UCharacter.toUpperCase locale.java_locale self
     Case.Title -> UCharacter.toTitleCase locale.java_locale self Nothing
@@ -1182,10 +1200,12 @@ Text.to_case self case_option=Case.Lower locale=Locale.default = case case_optio
 
          "HELLO".pad 9 "AB" == "HELLOABAB"
          "HELLO".pad 8 "AB" == "HELLOABA"
-         "HELLO".pad 8 "AB" Location.Start == "BABHELLO"
-
+         "HELLO".pad 8 "AB" ..Left == "BABHELLO"
+@length (Widget.Numeric_Input display=Display.Always)
+@with_pad (Widget.Text_Input display=Display.Always)
+@at (make_single_choice [["Left", "..Left"], ["Right", "..Right"]])
 Text.pad : Integer -> Text -> Location -> Text
-Text.pad self length=0 with_pad=' ' at=Location.End = case at of
+Text.pad self length:Integer=0 with_pad:Text=' ' at:Location=..Right = case at of
     Location.Both -> Error.throw (Illegal_Argument.Error "`Location.Both` cannot be used with `pad`.")
     _ ->
         with_pad_length = with_pad.length
@@ -1195,10 +1215,10 @@ Text.pad self length=0 with_pad=' ' at=Location.End = case at of
                 full_repetitions = pad_size.div with_pad_length
                 remainder = pad_size % with_pad_length
                 case at of
-                    Location.Start ->
-                        with_pad.take (Index_Sub_Range.Last remainder) + with_pad.repeat full_repetitions + self
-                    Location.End ->
-                        self + with_pad.repeat full_repetitions + with_pad.take (Index_Sub_Range.First remainder)
+                    Location.Left ->
+                        with_pad.take (..Last remainder) + with_pad.repeat full_repetitions + self
+                    Location.Right ->
+                        self + with_pad.repeat full_repetitions + with_pad.take (..First remainder)
 
 ## GROUP Text
    ICON text
@@ -1216,42 +1236,40 @@ Text.pad self length=0 with_pad=' ' at=Location.End = case at of
      Trimming whitespace from a string.
 
          " Hello! ".trim == "Hello!"
-         " Hello! ".trim Location.Start == "Hello! "
-         " Hello! ".trim Location.End == " Hello!"
+         " Hello! ".trim ..Left == "Hello! "
+         " Hello! ".trim ..Right == " Hello!"
 
    > Example
      Trimming a specific set of letters from a string.
 
-        "ABC123".trim Location.Start "ABC" == "123"
-        "ABBA123".trim Location.Start "ABC" == "123"
+        "ABC123".trim ..Left "ABC" == "123"
+        "ABBA123".trim ..Left "ABC" == "123"
+@where (make_single_choice [["Both", "..Both"], ["Left", "..Left"], ["Right", "..Right"]])
+@what (Widget.Text_Input display=Display.Always)
 Text.trim : Location -> (Text | (Text -> Boolean)) -> Text
-Text.trim self where=Location.Both what=_.is_whitespace =
+Text.trim self where:Location=..Both what=_.is_whitespace =
     predicate = case what of
         _ : Text -> what.contains _
         _ -> what
     break_iterator = BreakIterator.getCharacterInstance
     break_iterator.setText self
-    start_index = case where of
-        Location.End -> 0
-        _ ->
-            loop current next =
-                if next < 0 then current else
-                    case predicate (Text_Utils.substring self current next) of
-                        True ->
-                            @Tail_Call loop next break_iterator.next
-                        False -> current
-            loop 0 break_iterator.next
-    end_index = case where of
-        Location.Start -> Text_Utils.char_length self
-        _ ->
-            loop current prev =
-                if prev < 0 then current else
-                    case predicate (Text_Utils.substring self prev current) of
-                        True ->
-                            @Tail_Call loop prev break_iterator.previous
-                        False -> current
-            current = break_iterator.last
-            loop current break_iterator.previous
+    start_index = if where == Location.Right then 0 else
+        loop current next =
+            if next < 0 then current else
+                case predicate (Text_Utils.substring self current next) of
+                    True ->
+                        @Tail_Call loop next break_iterator.next
+                    False -> current
+        loop 0 break_iterator.next
+    end_index = if where == Location.Left then Text_Utils.char_length self else
+        loop current prev =
+            if prev < 0 then current else
+                case predicate (Text_Utils.substring self prev current) of
+                    True ->
+                        @Tail_Call loop prev break_iterator.previous
+                    False -> current
+        current = break_iterator.last
+        loop current break_iterator.previous
     if start_index >= end_index then "" else
         Text_Utils.substring self start_index end_index
 
@@ -1330,7 +1348,7 @@ Text.trim self where=Location.Both what=_.is_whitespace =
          match_1 == match_2
 
 Text.locate : Text -> Matching_Mode -> Case_Sensitivity -> Span | Nothing
-Text.locate self term="" mode=Matching_Mode.First case_sensitivity=Case_Sensitivity.Sensitive = case case_sensitivity of
+Text.locate self term:Text="" mode=Matching_Mode.First case_sensitivity:Case_Sensitivity=..Sensitive = case case_sensitivity of
     Case_Sensitivity.Default -> self.locate term mode Case_Sensitivity.Sensitive
     Case_Sensitivity.Sensitive ->
         codepoint_span = case mode of
@@ -1421,7 +1439,7 @@ Text.locate self term="" mode=Matching_Mode.First case_sensitivity=Case_Sensitiv
          match_2 = ligatures . locate_all "ffiff" case_sensitivity=Case_Sensitive.Insensitive
          match_2 . map .length == [2, 5]
 Text.locate_all : Text -> Case_Sensitivity -> Vector Span
-Text.locate_all self term="" case_sensitivity=Case_Sensitivity.Sensitive = if term.is_empty then Vector.new (self.length + 1) (ix -> Span.Value (ix.up_to ix) self) else case case_sensitivity of
+Text.locate_all self term:Text="" case_sensitivity:Case_Sensitivity=..Sensitive = if term.is_empty then Vector.new (self.length + 1) (ix -> Span.Value (ix.up_to ix) self) else case case_sensitivity of
     Case_Sensitivity.Default -> self.locate term Case_Sensitivity.Sensitive
     Case_Sensitivity.Sensitive ->
         codepoint_spans = Vector.from_polyglot_array <| Text_Utils.span_of_all self term
@@ -1466,7 +1484,7 @@ Text.locate_all self term="" case_sensitivity=Case_Sensitivity.Sensitive = if te
          "Hello World!".index_of "J" == Nothing
          "Hello World!".index_of "o" == 4
 Text.index_of : Text -> Integer -> Case_Sensitivity -> Integer | Nothing
-Text.index_of self term="" (start : Integer = 0) case_sensitivity=Case_Sensitivity.Sensitive =
+Text.index_of self term:Text="" (start : Integer = 0) case_sensitivity:Case_Sensitivity=..Sensitive =
     used_start = if start < 0 then start+self.length else start
     if used_start < 0 || used_start > self.length then Error.throw (Index_Out_Of_Bounds.Error start self.length+1) else
         used = if used_start == 0 then self else self.drop used_start
@@ -1501,7 +1519,7 @@ Text.index_of self term="" (start : Integer = 0) case_sensitivity=Case_Sensitivi
          "Hello World!".last_index_of "J" == Nothing
          "Hello World!".last_index_of "o" == 7
 Text.last_index_of : Text -> Integer -> Case_Sensitivity -> Integer | Nothing
-Text.last_index_of self term="" start=-1 case_sensitivity=Case_Sensitivity.Sensitive =
+Text.last_index_of self term:Text="" start=-1 case_sensitivity:Case_Sensitivity=..Sensitive =
     used_start = if start < 0 then start+self.length else start
     if used_start < 0 || used_start >= self.length then Error.throw (Index_Out_Of_Bounds.Error start self.length) else
         used = if used_start == self.length-1 then self else self.take used_start+1
@@ -1524,7 +1542,7 @@ Text.last_index_of self term="" start=-1 case_sensitivity=Case_Sensitivity.Sensi
          "7.6".parse_float
 @locale Locale.default_widget
 Text.parse_float : Locale | Nothing -> Float ! Number_Parse_Error
-Text.parse_float self locale=Nothing = Float.parse self locale
+Text.parse_float self locale=Locale.default = Float.parse self locale
 
 ## ALIAS integer from text, to_integer
    GROUP Conversions
@@ -1883,6 +1901,46 @@ Text.parse_time_of_day self format:Date_Time_Formatter=Date_Time_Formatter.iso_t
 Text.parse_time_zone : Time_Zone ! Time_Error
 Text.parse_time_zone self = Time_Zone.parse self
 
+## GROUP Conversions
+   ICON convert
+   Convert this `Text` to a `Decimal`.
+
+   Arguments:
+   - scale: the optional Decimal scale to use. See `Decimal.set_scale` for more
+     information about Decimal scales. If this argument is not used, the default
+     scale is used.
+
+   > Example
+     Convert a `Text` to a `Decimal`.
+
+         d = "23.456".to_decimal
+         d == Decimal.new "23.456"
+         # => True
+
+    ! Error Conditions
+
+        - If an explicit `scale` parameter is passed, and the scale is not
+          large enough to represent the number exactly, an `Arithmetic_Error`
+          is thrown.
+
+   > Example
+     Convert a `Text` to a `Decimal` with an explicit scale.
+
+         d = "23.456".to_decimal scale=4
+         d == Decimal.new "23.456"
+         # => True
+
+   > Example
+     Get an error when using a scale that is too small.
+
+         "23.456".to_decimal scale=2
+         # => Arithmetic_Error
+Text.to_decimal : Integer | Nothing -> Decimal
+Text.to_decimal self (scale : Integer | Nothing = Nothing) -> Decimal =
+    d_unscaled = Decimal.from_text self
+    if scale == Nothing then d_unscaled else
+        d_unscaled.set_scale scale
+
 ## ALIAS mid, slice, substring
    GROUP Selections
    ICON split
@@ -1919,7 +1977,7 @@ Text.substring self start:Integer length:Integer=self.length =
    input's range.
 
    The input ranges are in UTF-16 code unit space.
-slice_text text char_ranges =
+private _slice_text text char_ranges =
     sb = StringBuilder.new
     char_ranges.map char_range->
        sb.append text char_range.start char_range.end
@@ -1928,8 +1986,8 @@ slice_text text char_ranges =
 ## PRIVATE
 
    Find occurrences of delimiters in a string.
-split_find_delimiters : Text -> Text | Vector Text  -> Case_Sensitivity -> Vector Text | Illegal_Argument
-split_find_delimiters input delimiter case_sensitivity =
+_split_find_delimiters : Text -> Text | Vector Text  -> Case_Sensitivity -> Vector Text | Illegal_Argument
+private _split_find_delimiters input delimiter case_sensitivity =
     Vector.from_polyglot_array <| case delimiter of
         _ : Text -> case case_sensitivity of
             Case_Sensitivity.Sensitive ->

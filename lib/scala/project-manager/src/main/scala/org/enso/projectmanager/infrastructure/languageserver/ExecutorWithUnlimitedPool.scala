@@ -4,7 +4,7 @@ import akka.actor.ActorRef
 import com.typesafe.scalalogging.Logger
 import org.apache.commons.lang3.concurrent.BasicThreadFactory
 import org.enso.logger.masking.Masking
-import org.enso.logging.LoggingServiceManager
+import org.enso.logging.service.LoggingServiceManager
 import org.enso.projectmanager.boot.Cli.{PROFILING_PATH, PROFILING_TIME}
 import org.enso.projectmanager.service.versionmanagement.RuntimeVersionManagerFactory
 import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
@@ -84,6 +84,7 @@ object ExecutorWithUnlimitedPool extends LanguageServerExecutor {
       LoggingServiceManager.currentLogLevelForThisApplication()
     val options = LanguageServerOptions(
       rootId         = descriptor.rootId,
+      projectId      = descriptor.projectId,
       interface      = descriptor.networkConfig.interface,
       rpcPort        = rpcPort,
       secureRpcPort  = secureRpcPort,

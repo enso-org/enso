@@ -3,7 +3,7 @@ package org.enso.compiler.test.pass
 import org.enso.compiler.Passes
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.{
-  IRPass,
+  IRProcessingPass,
   PassConfiguration,
   PassGroup,
   PassManager
@@ -24,11 +24,11 @@ class PassManagerTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val invalidOrdering: List[IRPass] = List(
+  val invalidOrdering: List[IRProcessingPass] = List(
     ComplexType,
     FunctionBinding,
     GenerateMethodBodies,
-    SectionsToBinOp,
+    SectionsToBinOp.INSTANCE,
     OperatorToFunction,
     LambdaShorthandToLambda,
     IgnoredBindings,
@@ -36,7 +36,7 @@ class PassManagerTest extends CompilerTest {
     LambdaConsolidate,
     OverloadsResolution,
     DemandAnalysis,
-    TailCall,
+    TailCall.INSTANCE,
     AliasAnalysis,
     DataflowAnalysis,
     UnusedBindings

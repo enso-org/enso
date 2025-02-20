@@ -1,0 +1,108 @@
+import { syntaxHighlighting } from '@codemirror/language'
+import type { Extension } from '@codemirror/state'
+import { type Tag, tagHighlighter, tags } from '@lezer/highlight'
+
+const tagNames: (keyof typeof tags)[] = [
+  'comment',
+  'lineComment',
+  'blockComment',
+  'docComment',
+  'name',
+  'variableName',
+  'typeName',
+  'tagName',
+  'propertyName',
+  'attributeName',
+  'className',
+  'labelName',
+  'namespace',
+  'macroName',
+  'literal',
+  'string',
+  'docString',
+  'character',
+  'attributeValue',
+  'number',
+  'integer',
+  'float',
+  'bool',
+  'regexp',
+  'escape',
+  'color',
+  'url',
+  'keyword',
+  'self',
+  'null',
+  'atom',
+  'unit',
+  'modifier',
+  'operatorKeyword',
+  'controlKeyword',
+  'definitionKeyword',
+  'moduleKeyword',
+  'operator',
+  'derefOperator',
+  'arithmeticOperator',
+  'logicOperator',
+  'bitwiseOperator',
+  'compareOperator',
+  'updateOperator',
+  'definitionOperator',
+  'typeOperator',
+  'controlOperator',
+  'punctuation',
+  'separator',
+  'bracket',
+  'angleBracket',
+  'squareBracket',
+  'paren',
+  'brace',
+  'content',
+  'heading',
+  'heading1',
+  'heading2',
+  'heading3',
+  'heading4',
+  'heading5',
+  'heading6',
+  'contentSeparator',
+  'list',
+  'quote',
+  'emphasis',
+  'strong',
+  'link',
+  'monospace',
+  'strikethrough',
+  'inserted',
+  'deleted',
+  'changed',
+  'invalid',
+  'meta',
+  'documentMeta',
+  'annotation',
+  'processingInstruction',
+]
+
+/**
+ * Defines an {@link Extension} that applies a highlighting CSS class for any {@link Tag} with a provided class mapping.
+ * @param css A mapping from {@link Tag} names to CSS class names.
+ */
+export function highlightStyle(css: Record<string, string>): Extension {
+  const modTagClasses = (mod: keyof typeof tags) =>
+    tagNames.map((tag) => ({
+      tag: (tags[mod] as any)(tags[tag]) as Tag,
+      class: `${tags[mod]}-${tag}`,
+    }))
+  const tagClasses = tagNames.map((tag) => ({ tag: tags[tag] as Tag, class: css[tag] ?? tag }))
+  return syntaxHighlighting(
+    tagHighlighter([
+      ...tagClasses,
+      ...modTagClasses('definition'),
+      ...modTagClasses('constant'),
+      ...modTagClasses('function'),
+      ...modTagClasses('standard'),
+      ...modTagClasses('local'),
+      ...modTagClasses('special'),
+    ]),
+  )
+}

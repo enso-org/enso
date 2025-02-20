@@ -1,15 +1,19 @@
 package org.enso.interpreter.runtime.data.atom;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.NodeFactory;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.BranchProfile;
 import java.util.List;
 import org.enso.interpreter.runtime.data.atom.UnboxingAtom.FieldGetterNode;
 import org.enso.interpreter.runtime.data.atom.UnboxingAtom.FieldSetterNode;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 /**
  * A version of {@link org.enso.interpreter.runtime.data.atom.Atom} that stores its fields in an
@@ -44,12 +48,12 @@ final class BoxingAtom extends Atom {
   private final Object[] fields;
 
   private BoxingAtom(AtomConstructor constructor, Object[] fields) {
-    super(constructor);
+    super(constructor, false);
     this.fields = fields;
   }
 
   private BoxingAtom(AtomConstructor constructor) {
-    super(constructor);
+    super(constructor, true);
     this.fields = NO_FIELDS;
   }
 
@@ -82,11 +86,31 @@ final class BoxingAtom extends Atom {
     fields[index] = value;
   }
 
+  @ExportMessage
+  boolean isFieldEvaluated(int index) {
+    return true;
+  }
+
+  @Override
+  @TruffleBoundary
+  public Object toDisplayString(boolean allowSideEffects) {
+    return toDisplayString(
+        allowSideEffects,
+        InteropLibrary.getUncached(),
+        WarningsLibrary.getUncached(),
+        InteropLibrary.getUncached(),
+        BranchProfile.getUncached());
+  }
+
   private static class InstantiatorNode extends UnboxingAtom.InstantiatorNode {
     @Override
     public Atom execute(AtomConstructor constructor, Layout layout, Object[] args) {
       assert constructor.getBoxedLayout() == layout;
-      return new BoxingAtom(constructor, args);
+      if (args.length == 0) {
+        return constructor.newInstance(new Object[0]);
+      } else {
+        return new BoxingAtom(constructor, args);
+      }
     }
   }
 

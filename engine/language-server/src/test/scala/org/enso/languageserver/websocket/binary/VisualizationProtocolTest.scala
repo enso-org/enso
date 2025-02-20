@@ -12,8 +12,7 @@ import org.enso.languageserver.runtime.ContextRegistryProtocol.{
   VisualizationUpdate
 }
 import org.enso.languageserver.util.binary.BinaryDecoder
-import org.enso.logger.ReportLogsOnFailure
-import org.enso.testkit.FlakySpec
+import org.enso.testkit.{FlakySpec, ReportLogsOnFailure}
 import org.scalatest.concurrent.Eventually
 
 class VisualizationProtocolTest

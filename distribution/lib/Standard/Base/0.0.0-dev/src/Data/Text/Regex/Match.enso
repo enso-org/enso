@@ -1,6 +1,6 @@
 import project.Any.Any
+import project.Data.Dictionary.Dictionary
 import project.Data.Json.JS_Object
-import project.Data.Map.Map
 import project.Data.Numbers.Integer
 import project.Data.Range.Range
 import project.Data.Text.Regex.No_Such_Group
@@ -260,7 +260,7 @@ type Match
 
     ## GROUP Metadata
        ICON metadata
-       Gets a map containing the named capturing groups for the pattern,
+       Gets a Dictionary containing the named capturing groups for the pattern,
        replacing the value for groups that did not participate in the match with
        `default`.
 
@@ -279,17 +279,18 @@ type Match
        a named group that does not participate to the default value.
 
        > Example
-         Get the map of all of the named groups in this match, replacing the
-         value for groups that didn't participate in the match with "UNMATCHED".
+         Get the Dictionary of all of the named groups in this match, replacing
+         the value for groups that didn't participate in the match with
+         "UNMATCHED".
 
             pattern = Regex.compile "(.. .. )(?<letters>.+)()??(?<empty>)??"
             input = "aa ab abc a bc bcd"
             match = pattern.match input
             ## match.named_groups.keys.sort == ["empty", "letters"]
-    named_groups : Any -> Map Text (Text | Any)
+    named_groups : Any -> Dictionary Text (Text | Any)
     named_groups self default=Nothing =
         pattern_named_groups = self.pattern.named_groups
-        Map.from_vector <|
+        Dictionary.from_vector <|
             pattern_named_groups.map name-> [name, self.text name default=default]
 
     ## ICON split

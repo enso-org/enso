@@ -3,8 +3,9 @@ package org.enso.projectmanager.protocol
 import akka.testkit.TestActors.blackholeProps
 import io.circe.Json
 import io.circe.literal.JsonStringContext
+import org.enso.editions.Editions
 import org.enso.semver.SemVer
-import org.enso.projectmanager.data.MissingComponentAction
+import org.enso.projectmanager.data.MissingComponentActions
 import org.enso.projectmanager.{BaseServerSpec, ProjectManagementOps}
 import org.enso.testkit.RetrySpec
 import zio.Runtime
@@ -32,7 +33,7 @@ abstract class ProjectOpenSpecBase
       projectName            = "Proj_1",
       projectTemplate        = None,
       engineVersion          = defaultVersion,
-      missingComponentAction = MissingComponentAction.Fail,
+      missingComponentAction = MissingComponentActions.Fail,
       projectsDirectory      = None
     )
     ordinaryProject = zio.Unsafe.unsafe { implicit unsafe =>
@@ -47,7 +48,7 @@ abstract class ProjectOpenSpecBase
       projectName            = brokenName,
       projectTemplate        = None,
       engineVersion          = defaultVersion,
-      missingComponentAction = MissingComponentAction.Fail,
+      missingComponentAction = MissingComponentActions.Fail,
       projectsDirectory      = None
     )
     brokenProject = zio.Unsafe.unsafe { implicit unsafe =>
@@ -62,7 +63,9 @@ abstract class ProjectOpenSpecBase
     val pkgManager = org.enso.pkg.PackageManager.Default
     val pkg        = pkgManager.loadPackage(projectDir).get
     pkg.updateConfig(config => {
-      val edition = config.edition.get
+      val edition = config.edition.getOrElse(
+        Editions.Raw.Edition(engineVersion = Some(defaultVersion))
+      )
       config.copy(edition =
         Some(
           edition.copy(engineVersion = Some(brokenVersion))
@@ -73,7 +76,7 @@ abstract class ProjectOpenSpecBase
 
   override def buildRequest(
     version: SemVer,
-    missingComponentAction: MissingComponentAction
+    missingComponentAction: MissingComponentActions.MissingComponentAction
   ): Json = {
     val prerelease = version.preReleaseVersion()
     val projectId =

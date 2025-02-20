@@ -51,7 +51,9 @@ class FileSystemEditionProvider(searchPaths: List[Path])
   }
 
   /** Finds all editions available on the [[searchPaths]]. */
-  override def findAvailableEditions(): Seq[String] =
+  override def findAvailableEditions(
+    ignoreUpdateRequest: Boolean
+  ): Seq[String] =
     searchPaths.flatMap(findEditionsAt).distinct
 
   private def findEditionName(path: Path): Option[String] =

@@ -243,8 +243,8 @@ fn implement_hash_code(graph: &TypeGraph, class: &Class) -> syntax::Method {
 ///
 /// The implementation:
 /// - Returns `true` if the objects are identity-equal.
-/// - Returns `false` if the other object is not of the same type as this object.
-/// Otherwise, returns a boolean-and of a field-by-field comparison:
+/// - Returns `false` if the other object is not of the same type as this object. Otherwise, returns
+///   a boolean-and of a field-by-field comparison:
 /// - Primitive fields are compared with `==`.
 /// - Reference-type fields are compared with `Object.equals`.
 ///

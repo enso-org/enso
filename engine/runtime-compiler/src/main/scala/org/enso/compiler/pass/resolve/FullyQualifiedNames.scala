@@ -16,7 +16,6 @@ import org.enso.compiler.core.ir.expression.warnings
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.data.BindingsMap.{
-  ExportedModule,
   ModuleReference,
   Resolution,
   ResolvedType
@@ -26,7 +25,7 @@ import org.enso.compiler.core.Implicits.{AsDiagnostics, AsMetadata}
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
-import org.enso.compiler.pass.analyse.alias.{Info => AliasInfo}
+import org.enso.compiler.pass.analyse.alias.{AliasMetadata => AliasInfo}
 import org.enso.compiler.pass.desugar.Imports
 import org.enso.editions.LibraryName
 
@@ -92,47 +91,45 @@ case object FullyQualifiedNames extends IRPass {
     // `Standard.Base.Error.Foo`, will always lead to name conflicts with
     // the exported type `Error`.
     if (isMainModule(moduleContext)) {
-      scopeMap.resolvedExports.foreach {
-        case ExportedModule(
-              resolution @ ResolvedType(exportedModuleRef, tpe),
-              exportedAs,
-              _
-            ) =>
-          val tpeName        = exportedAs.getOrElse(tpe.name)
-          val exportedModule = exportedModuleRef.unsafeAsModule()
-          if (
-            exportedModuleRef.getName.path.length == 2 && exportedModuleRef.getName.item == tpeName && !exportedModule.isSynthetic
-          ) {
-            val allStarting = moduleContext.pkgRepo
-              .map(
-                _.getLoadedModules.filter(m =>
-                  exportedModuleRef.getName != m.getName && m
-                    .getName()
-                    .toString
-                    .startsWith(exportedModuleRef.getName.toString + ".")
+      scopeMap.exportedSymbols.foreach { case (symbolName, resolvedNames) =>
+        resolvedNames.foreach {
+          case resolution @ ResolvedType(exportedModuleRef, _) =>
+            val tpeName        = symbolName
+            val exportedModule = exportedModuleRef.unsafeAsModule()
+            if (
+              exportedModuleRef.getName.path.length == 2 && exportedModuleRef.getName.item == tpeName && !exportedModule.isSynthetic
+            ) {
+              val allStarting = moduleContext.pkgRepo
+                .map(
+                  _.getLoadedModules.filter(m =>
+                    exportedModuleRef.getName != m.getName && m
+                      .getName()
+                      .toString
+                      .startsWith(exportedModuleRef.getName.toString + ".")
+                  )
                 )
-              )
-              .getOrElse(Nil)
-            if (allStarting.nonEmpty) {
-              ir.exports.foreach { export =>
-                export match {
-                  case m: Export.Module
-                      if m.name.name == resolution.qualifiedName.toString =>
-                    m.addDiagnostic(
-                      warnings.Shadowed.TypeInModuleNameConflicts(
-                        exportedModule.getName.toString,
-                        tpeName,
-                        allStarting.head.getName.toString,
-                        m,
-                        m.location
+                .getOrElse(Nil)
+              if (allStarting.nonEmpty) {
+                ir.exports.foreach { export =>
+                  export match {
+                    case m: Export.Module
+                        if m.name.name == resolution.qualifiedName.toString =>
+                      m.addDiagnostic(
+                        warnings.Shadowed.TypeInModuleNameConflicts(
+                          exportedModule.getName.toString,
+                          tpeName,
+                          allStarting.head.getName.toString,
+                          m,
+                          m.identifiedLocation
+                        )
                       )
-                    )
-                  case _ =>
+                    case _ =>
+                  }
                 }
               }
             }
-          }
-        case _ =>
+          case _ =>
+        }
       }
     }
     ir.copy(bindings = new_bindings)
@@ -184,7 +181,10 @@ case object FullyQualifiedNames extends IRPass {
       case asc: Type.Ascription => asc
       case method: definition.Method =>
         val resolution = method.methodReference.typePointer.flatMap(
-          _.getMetadata(MethodDefinitions)
+          _.getMetadata(
+            MethodDefinitions.INSTANCE,
+            classOf[BindingsMap.Resolution]
+          )
         )
         method.mapExpressions(
           processExpression(
@@ -199,16 +199,22 @@ case object FullyQualifiedNames extends IRPass {
       case tp: Definition.Type =>
         tp.copy(members =
           tp.members.map(
-            _.mapExpressions(
+            _.mapExpressions(expr => {
+              val selfTypeResolution =
+                bindings.resolveName(tp.name.name) match {
+                  case Right(List(resolvedName)) =>
+                    Some(Resolution(resolvedName))
+                  case _ => None
+                }
               processExpression(
-                _,
+                expr,
                 bindings,
                 tp.params.map(_.name),
                 freshNameSupply,
-                bindings.resolveName(tp.name.name).toOption.map(Resolution),
+                selfTypeResolution,
                 pkgRepo
               )
-            )
+            })
           )
         )
 
@@ -254,7 +260,7 @@ case object FullyQualifiedNames extends IRPass {
         } else {
           lit
         }
-      case app @ Application.Prefix(_, List(_), _, _, _, _) =>
+      case app: Application.Prefix if app.arguments.nonEmpty =>
         app.function match {
           case lit: Name.Literal =>
             if (lit.isMethod)

@@ -45,6 +45,15 @@ add_specs suite_builder =
             actual.at "datetimes" . should_equal expected_datetimes
             check_unchanged data.table actual ["times", "bools", "ints", "floats", "strings", "date_formats", "time_formats", "numeric_formats", "bool_formats"]
 
+        group_builder.specify "Date and Date_Time, with format string, selected by type" <|
+            expected_dates = Column.from_vector "dates" ["20201221", "20230425"]
+            expected_datetimes = Column.from_vector "datetimes" ["20200110", "20200808"]
+            actual = data.table.format [..By_Type ..Date_Time, ..By_Type ..Date] "yyyyMMdd"
+            actual.column_names . should_equal data.table.column_names
+            actual.at "dates" . should_equal expected_dates
+            actual.at "datetimes" . should_equal expected_datetimes
+            check_unchanged data.table actual ["times", "bools", "ints", "floats", "strings", "date_formats", "time_formats", "numeric_formats", "bool_formats"]
+
         group_builder.specify "Date_Time and Time_Of_Day, with format string" <|
             expected_datetimes = Column.from_vector "datetimes" ["03:04:05", "05:06:07"]
             expected_times = Column.from_vector "times" ["01:02:03", "10:30:35"]

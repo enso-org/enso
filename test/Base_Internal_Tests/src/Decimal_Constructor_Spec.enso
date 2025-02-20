@@ -1,0 +1,27 @@
+from Standard.Base import all
+
+from Standard.Test import all
+
+id_decimal (x : Decimal) -> Decimal = x
+
+is_value_constructor d = case d of
+    Decimal.Value _ -> True
+    Decimal.From_Float _ _ -> False
+
+add_specs suite_builder =
+    suite_builder.group "(Decimal_Constructor_Spec) conversions" group_builder->
+        group_builder.specify "Conversion from float to decimal should use the correct constructor" <|
+            is_value_constructor (dec 0.1) . should_be_true
+            is_value_constructor (0.1 . to_decimal) . should_be_true
+            is_value_constructor (0.1 . to_decimal) . should_be_true
+            is_value_constructor (Decimal.from_float 0.1) . should_be_true
+
+            is_value_constructor (Decimal.new 0.1) . should_be_false
+            is_value_constructor (Decimal.from 0.1) . should_be_false
+            is_value_constructor (Decimal.from_float 0.1 explicit=False) . should_be_false
+            is_value_constructor (id_decimal 0.1) . should_be_false
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

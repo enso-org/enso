@@ -1,19 +1,13 @@
 package org.enso.interpreter.instrument.job
 
-import cats.implicits._
 import com.oracle.truffle.api.TruffleLogger
-import org.enso.common.CompilationStage
-import org.enso.compiler.CompilerResult
+import org.enso.common.{CachePreferences, CompilationStage}
+import org.enso.compiler.{data, CompilerResult}
 import org.enso.compiler.context._
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.{ExternalID, IR}
-import org.enso.compiler.core.ir.{
-  expression,
-  Diagnostic,
-  IdentifiedLocation,
-  Warning
-}
-import org.enso.compiler.core.ir.expression.Error
+import org.enso.compiler.core.ir
+import org.enso.compiler.core.ir.{expression, Location}
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
@@ -26,20 +20,25 @@ import org.enso.interpreter.instrument.execution.{
 }
 import org.enso.interpreter.instrument.{
   CacheInvalidation,
+  Changeset,
+  ChangesetBuilder,
   InstrumentFrame,
   Visualization
 }
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.service.error.ModuleNotFoundForFileException
+import org.enso.logger.masking.MaskedPath
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.StackItem
 import org.enso.text.buffer.Rope
+import org.enso.text.editing.model.IdMap
 
 import java.io.File
+import java.util
 import java.util.UUID
+import java.util.function.Consumer
 import java.util.logging.Level
-
 import scala.jdk.OptionConverters._
 
 /** A job that ensures that specified files are compiled.
@@ -47,7 +46,7 @@ import scala.jdk.OptionConverters._
   * @param files a files to compile
   * @param isCancellable a flag indicating if the job is cancellable
   */
-final class EnsureCompiledJob(
+class EnsureCompiledJob(
   protected val files: Iterable[File],
   isCancellable: Boolean = true
 ) extends Job[EnsureCompiledJob.CompilationStatus](
@@ -56,17 +55,18 @@ final class EnsureCompiledJob(
       false
     ) {
 
-  import EnsureCompiledJob.CompilationStatus
+  import EnsureCompiledJob._
 
   /** @inheritdoc */
-  override def run(implicit ctx: RuntimeContext): CompilationStatus = {
+  override def runImpl(implicit ctx: RuntimeContext): CompilationStatus = {
     ctx.locking.withWriteCompilationLock(
       this.getClass,
       () => {
-        val compilationResult = ensureCompiledFiles(files)(
-          implicitly[RuntimeContext],
-          ctx.executionService.getLogger
-        )
+        val compilationResult =
+          ensureCompiledFiles(files)(
+            ctx,
+            ctx.executionService.getLogger
+          )
         setCacheWeights()
         compilationResult
       }
@@ -115,7 +115,7 @@ final class EnsureCompiledJob(
       case _ =>
     }
     applyEdits(new File(module.getPath)).map { changeset =>
-      compile(module)
+      compile(module, changeset.idMap)
         .map { _ =>
           // Side-effect: ensures that module's source is correctly initialized.
           module.getSource()
@@ -182,8 +182,7 @@ final class EnsureCompiledJob(
             (
               modules
                 .addAll(
-                  compilerResult.compiledModules
-                    .map(Module.fromCompilerModule(_))
+                  compilerResult.compiledModules.map(Module.fromCompilerModule)
                 )
                 .addOne(module),
               statuses += status
@@ -231,9 +230,9 @@ final class EnsureCompiledJob(
       )
       .diagnostics
     val diagnostics = pass.collect {
-      case warn: Warning =>
+      case warn: ir.Warning =>
         createDiagnostic(Api.DiagnosticType.Warning, module, warn)
-      case error: Error =>
+      case error: expression.Error =>
         createDiagnostic(Api.DiagnosticType.Error, module, error)
     }
     sendDiagnosticUpdates(diagnostics)
@@ -250,11 +249,11 @@ final class EnsureCompiledJob(
   private def createDiagnostic(
     kind: Api.DiagnosticType,
     module: Module,
-    diagnostic: Diagnostic
+    diagnostic: ir.Diagnostic
   ): Api.ExecutionResult.Diagnostic = {
     val source = module.getSource
 
-    def fileLocationFromSection(loc: IdentifiedLocation) = {
+    def fileLocationFromSection(loc: ir.IdentifiedLocation) = {
       val section =
         source.createSection(loc.location().start(), loc.location().length());
       val locStr = "" + section.getStartLine() + ":" + section
@@ -281,25 +280,44 @@ final class EnsureCompiledJob(
   /** Compile the module.
     *
     * @param module the module to compile.
+    * @param idMapOpt the external identifiers
     * @param ctx the runtime context
     * @return the compiled module
     */
   private def compile(
-    module: Module
+    module: Module,
+    idMapOpt: Option[IdMap] = None
   )(implicit ctx: RuntimeContext): Either[Throwable, CompilerResult] =
-    Either.catchNonFatal {
+    try {
       val compilationStage = module.getCompilationStage
-      if (!compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)) {
+      if (
+        !compilationStage.isAtLeast(CompilationStage.AFTER_CODEGEN)
+        || idMapOpt.isDefined
+      ) {
         ctx.executionService.getLogger
           .log(Level.FINEST, s"Compiling ${module.getName}.")
-        val result = ctx.executionService.getContext.getCompiler
-          .run(module.asCompilerModule())
-        result.copy(compiledModules =
-          result.compiledModules.filter(_.getName != module.getName)
+        val compiler = ctx.executionService.getContext.getCompiler
+
+        idMapOpt.foreach { idMap =>
+          compiler.context.updateModule(
+            module.asCompilerModule(),
+            _.idMap(toCompilerIdMap(idMap))
+          )
+        }
+
+        val result = compiler.run(module.asCompilerModule())
+
+        Right(
+          result.copy(compiledModules =
+            result.compiledModules.filter(_.getName != module.getName)
+          )
         )
       } else {
-        CompilerResult.empty
+        Right(CompilerResult.empty)
       }
+    } catch {
+      case e: Throwable =>
+        Left(e)
     }
 
   /** Apply pending edits to the file.
@@ -322,7 +340,18 @@ final class EnsureCompiledJob(
           this.getClass,
           () => {
             val pendingEdits = ctx.state.pendingEdits.dequeue(file)
-            val edits        = pendingEdits.map(_.edit)
+            val idMap        = ctx.state.pendingEdits.removeIdMap(file)
+            ctx.executionService.getLogger
+              .log(
+                Level.FINEST,
+                s"Applying pending file [{0}] edits [{1}] idMap [{2}]",
+                Array[Any](
+                  MaskedPath(file.toPath),
+                  pendingEdits.length,
+                  idMap.map(_.values.length)
+                )
+              )
+            val edits = pendingEdits.map(_.edit)
             val shouldExecute =
               pendingEdits.isEmpty || pendingEdits.exists(_.execute)
             val module = ctx.executionService.getContext
@@ -332,7 +361,7 @@ final class EnsureCompiledJob(
               module.getLiteralSource,
               module.getIr
             )
-            val changeset = changesetBuilder.build(pendingEdits)
+            val changeset = changesetBuilder.build(pendingEdits, idMap)
             ctx.executionService.modifyModuleSources(
               module,
               edits,
@@ -361,7 +390,7 @@ final class EnsureCompiledJob(
       CacheInvalidation.Command.InvalidateKeys(
         changeset.invalidated ++ resolutionErrors
       )
-    val moduleIds = ir.preorder().flatMap(_.location()).flatMap(_.id()).toSet
+    val moduleIds = getModuleIds(ir)
     val invalidateStaleCommand =
       CacheInvalidation.Command.InvalidateStale(moduleIds)
     Seq(
@@ -374,8 +403,21 @@ final class EnsureCompiledJob(
         CacheInvalidation.StackSelector.All,
         invalidateStaleCommand,
         Set(CacheInvalidation.IndexSelector.All)
+      ),
+      CacheInvalidation(
+        CacheInvalidation.StackSelector.Tail,
+        CacheInvalidation.Command.InvalidateByKind(
+          Seq(CachePreferences.Kind.SELF_ARGUMENT)
+        )
       )
     )
+  }
+
+  private def getModuleIds(ir: IR): Set[UUID @ExternalID] = {
+    val builder = Set.newBuilder[UUID @ExternalID]
+    IR.preorder(ir, _.getExternalId.foreach(builder.addOne))
+
+    builder.result()
   }
 
   /** Looks for the nodes with the resolution error and their dependents.
@@ -390,26 +432,26 @@ final class EnsureCompiledJob(
         "Empty dataflow analysis metadata during the interactive compilation."
       )
 
-    val resolutionNotFoundKeys =
-      ir.preorder()
-        .collect {
-          case err @ expression.errors.Resolution(
-                _,
-                expression.errors.Resolution
-                  .ResolverError(BindingsMap.ResolutionNotFound),
-                _,
-                _
-              ) =>
-            DataflowAnalysis.DependencyInfo.Type.Static(
-              err.getId(),
-              err.getExternalId
-            )
-        }
-        .toSet
-
-    resolutionNotFoundKeys.flatMap(
-      metadata.dependents.getExternal(_).getOrElse(Set())
+    val builder = Set.newBuilder[UUID @ExternalID]
+    IR.preorder(
+      ir,
+      {
+        case err @ expression.errors.Resolution(
+              _,
+              expression.errors.Resolution
+                .ResolverError(BindingsMap.ResolutionNotFound),
+              _
+            ) =>
+          val key = DataflowAnalysis.DependencyInfo.Type.Static(
+            err.getId(),
+            err.getExternalId
+          )
+          metadata.dependents.getExternal(key).foreach(builder.addAll)
+        case _ =>
+      }: Consumer[IR]
     )
+
+    builder.result()
   }
 
   /** Run the invalidation commands.
@@ -658,4 +700,18 @@ object EnsureCompiledJob {
           None
       }
 
+  /** Convert the identifiers map to its compiler equivalent.
+    *
+    * @param idMap the identifiers map
+    * @return the compiler representation of identifiers map
+    */
+  private def toCompilerIdMap(idMap: IdMap): data.IdMap = {
+    val values =
+      idMap.values.foldLeft(new util.HashMap[Location, UUID]()) {
+        case (map, (span, id)) =>
+          map.put(new Location(span.start, span.end), id)
+          map
+      }
+    new data.IdMap(values)
+  }
 }

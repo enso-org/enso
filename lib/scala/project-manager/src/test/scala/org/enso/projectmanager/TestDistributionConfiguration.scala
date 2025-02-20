@@ -7,7 +7,7 @@ import org.enso.editions.updater.EditionManager
 import java.nio.file.Path
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.components.{
-  GraalVMComponentConfiguration,
+  GraalVersionManager,
   InstallerKind,
   RuntimeVersionManagementUserInterface,
   RuntimeVersionManager
@@ -25,10 +25,9 @@ import org.enso.runtimeversionmanager.releases.{
   ReleaseProvider,
   SimpleReleaseProvider
 }
-import org.enso.runtimeversionmanager.runner.{JVMSettings, JavaCommand}
+import org.enso.runtimeversionmanager.runner.{JVMSettings, JavaExecCommand}
 import org.enso.runtimeversionmanager.test.{
   FakeEnvironment,
-  NoopComponentUpdaterFactory,
   TestLocalLockManager
 }
 import org.enso.testkit.HasTestDirectory
@@ -60,6 +59,9 @@ class TestDistributionConfiguration(
 
   lazy val distributionManager = new DistributionManager(environment)
 
+  lazy val graalVersionManager =
+    new GraalVersionManager(distributionManager, environment)
+
   lazy val lockManager = new TestLocalLockManager
 
   lazy val resourceManager = new ResourceManager(lockManager)
@@ -69,10 +71,6 @@ class TestDistributionConfiguration(
   lazy val temporaryDirectoryManager =
     TemporaryDirectoryManager(distributionManager, resourceManager)
 
-  lazy val componentConfig = new GraalVMComponentConfiguration
-
-  lazy val componentUpdaterFactory = NoopComponentUpdaterFactory
-
   override def makeRuntimeVersionManager(
     userInterface: RuntimeVersionManagementUserInterface
   ): RuntimeVersionManager = new RuntimeVersionManager(
@@ -80,11 +78,10 @@ class TestDistributionConfiguration(
     userInterface             = userInterface,
     distributionManager       = distributionManager,
     temporaryDirectoryManager = temporaryDirectoryManager,
+    graalVersionManager       = graalVersionManager,
     resourceManager           = resourceManager,
     engineReleaseProvider     = engineReleaseProvider,
     runtimeReleaseProvider    = runtimeReleaseProvider,
-    componentConfig           = componentConfig,
-    componentUpdaterFactory   = componentUpdaterFactory,
     installerKind             = InstallerKind.ProjectManager
   )
 
@@ -97,11 +94,12 @@ class TestDistributionConfiguration(
   override def defaultJVMSettings: JVMSettings = {
     val currentProcess =
       ProcessHandle.current().info().command().toScala.getOrElse("java")
-    val javaCommand = JavaCommand(currentProcess, None)
+    val javaCommand = new JavaExecCommand(currentProcess, None)
     new JVMSettings(
       javaCommandOverride = Some(javaCommand),
       jvmOptions          = Seq(),
-      extraOptions        = Seq()
+      extraOptions        = Seq(),
+      nativeImage         = false
     )
   }
 

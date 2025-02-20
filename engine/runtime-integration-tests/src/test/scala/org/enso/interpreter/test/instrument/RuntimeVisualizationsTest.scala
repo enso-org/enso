@@ -2,11 +2,12 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
+
 import org.enso.pkg.QualifiedName
+import org.enso.common.RuntimeOptions
 import org.enso.polyglot._
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.text.editing.model
-import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -119,21 +120,13 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           fromCache: Boolean   = false,
           typeChanged: Boolean = true
         ): Api.Response =
-          Api.Response(
-            Api.ExpressionUpdates(
-              contextId,
-              Set(
-                Api.ExpressionUpdate(
-                  Main.idMainX,
-                  Some(ConstantsGen.INTEGER),
-                  None,
-                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  fromCache,
-                  typeChanged,
-                  Api.ExpressionUpdate.Payload.Value()
-                )
-              )
-            )
+          TestMessages.update(
+            contextId,
+            Main.idMainX,
+            ConstantsGen.INTEGER,
+            fromCache,
+            typeChanged,
+            methodCall = None
           )
 
         def mainY(
@@ -141,29 +134,19 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           fromCache: Boolean   = false,
           typeChanged: Boolean = true
         ): Api.Response =
-          Api.Response(
-            Api.ExpressionUpdates(
-              contextId,
-              Set(
-                Api.ExpressionUpdate(
-                  Main.idMainY,
-                  Some(ConstantsGen.INTEGER),
-                  Some(
-                    Api.MethodCall(
-                      Api.MethodPointer(
-                        "Enso_Test.Test.Main",
-                        ConstantsGen.NUMBER,
-                        "foo"
-                      )
-                    )
-                  ),
-                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  fromCache,
-                  typeChanged,
-                  Api.ExpressionUpdate.Payload.Value()
-                )
+          TestMessages.update(
+            contextId,
+            Main.idMainY,
+            ConstantsGen.INTEGER,
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Enso_Test.Test.Main",
+                ConstantsGen.NUMBER,
+                "foo"
               )
-            )
+            ),
+            fromCache,
+            typeChanged
           )
 
         def mainZ(
@@ -171,29 +154,19 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           fromCache: Boolean   = false,
           typeChanged: Boolean = true
         ): Api.Response =
-          Api.Response(
-            Api.ExpressionUpdates(
-              contextId,
-              Set(
-                Api.ExpressionUpdate(
-                  Main.idMainZ,
-                  Some(ConstantsGen.INTEGER),
-                  Some(
-                    Api.MethodCall(
-                      Api.MethodPointer(
-                        "Standard.Base.Data.Numbers",
-                        "Standard.Base.Data.Numbers.Integer",
-                        "+"
-                      )
-                    )
-                  ),
-                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  fromCache,
-                  typeChanged,
-                  Api.ExpressionUpdate.Payload.Value()
-                )
+          TestMessages.update(
+            contextId,
+            Main.idMainZ,
+            ConstantsGen.INTEGER,
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Standard.Base.Data.Numbers",
+                "Standard.Base.Data.Numbers.Integer",
+                "+"
               )
-            )
+            ),
+            fromCache,
+            typeChanged
           )
 
         def fooY(
@@ -201,29 +174,19 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           fromCache: Boolean   = false,
           typeChanged: Boolean = true
         ): Api.Response =
-          Api.Response(
-            Api.ExpressionUpdates(
-              contextId,
-              Set(
-                Api.ExpressionUpdate(
-                  Main.idFooY,
-                  Some(ConstantsGen.INTEGER),
-                  Some(
-                    Api.MethodCall(
-                      Api.MethodPointer(
-                        "Standard.Base.Data.Numbers",
-                        "Standard.Base.Data.Numbers.Integer",
-                        "+"
-                      )
-                    )
-                  ),
-                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  fromCache,
-                  typeChanged,
-                  Api.ExpressionUpdate.Payload.Value()
-                )
+          TestMessages.update(
+            contextId,
+            Main.idFooY,
+            ConstantsGen.INTEGER,
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Standard.Base.Data.Numbers",
+                "Standard.Base.Data.Numbers.Integer",
+                "+"
               )
-            )
+            ),
+            fromCache,
+            typeChanged
           )
 
         def fooZ(
@@ -231,29 +194,19 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           fromCache: Boolean   = false,
           typeChanged: Boolean = true
         ): Api.Response =
-          Api.Response(
-            Api.ExpressionUpdates(
-              contextId,
-              Set(
-                Api.ExpressionUpdate(
-                  Main.idFooZ,
-                  Some(ConstantsGen.INTEGER),
-                  Some(
-                    Api.MethodCall(
-                      Api.MethodPointer(
-                        "Standard.Base.Data.Numbers",
-                        "Standard.Base.Data.Numbers.Integer",
-                        "*"
-                      )
-                    )
-                  ),
-                  Vector(Api.ProfilingInfo.ExecutionTime(0)),
-                  fromCache,
-                  typeChanged,
-                  Api.ExpressionUpdate.Payload.Value()
-                )
+          TestMessages.update(
+            contextId,
+            Main.idFooZ,
+            ConstantsGen.INTEGER,
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Standard.Base.Data.Numbers",
+                "Standard.Base.Data.Numbers.Integer",
+                "*"
               )
-            )
+            ),
+            fromCache,
+            typeChanged
           )
       }
     }
@@ -423,7 +376,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None)
+          Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
 
@@ -551,7 +504,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None)
+          Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
       context.receiveNIgnoreExpressionUpdates(2) should contain allOf (
@@ -570,7 +523,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
                 Vector(context.Main.idMainX)
               )
             ),
-            None
+            None,
+            Seq()
           )
         )
       )
@@ -700,12 +654,13 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.EditFileNotification(
             mainFile,
             Seq(
-              TextEdit(
+              model.TextEdit(
                 model.Range(model.Position(4, 8), model.Position(4, 9)),
                 "5"
               )
             ),
-            execute = true
+            execute = true,
+            idMap   = None
           )
         )
       )
@@ -835,12 +790,13 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.EditFileNotification(
             mainFile,
             Seq(
-              TextEdit(
+              model.TextEdit(
                 model.Range(model.Position(4, 8), model.Position(4, 9)),
                 "5"
               )
             ),
-            execute = true
+            execute = true,
+            idMap   = None
           )
         )
       )
@@ -1024,12 +980,13 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.EditFileNotification(
             mainFile,
             Seq(
-              TextEdit(
+              model.TextEdit(
                 model.Range(model.Position(10, 15), model.Position(10, 16)),
                 "5"
               )
             ),
-            execute = true
+            execute = true,
+            idMap   = None
           )
         )
       )
@@ -1348,38 +1305,44 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
     )
 
-    context.send(
-      Api.Request(
-        Api.EditFileNotification(
-          mainFile,
-          Seq(
-            TextEdit(
-              model.Range(model.Position(4, 8), model.Position(4, 9)),
-              "7"
-            )
-          ),
-          execute = true
-        )
-      )
-    )
+    val attachVisualizationResponses =
+      context.receiveNIgnoreExpressionUpdates(4)
 
-    val responses =
-      context.receiveNIgnoreExpressionUpdates(7)
-
-    responses should contain allOf (
-      Api.Response(requestId, Api.VisualizationAttached()),
-      context.executionComplete(contextId)
-    )
-
-    responses.filter(
+    attachVisualizationResponses.filter(
       _.payload.isInstanceOf[Api.VisualizationAttached]
     ) shouldEqual List(
       Api.Response(requestId, Api.VisualizationAttached()),
       Api.Response(requestId, Api.VisualizationAttached())
     )
 
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          Seq(
+            model.TextEdit(
+              model.Range(model.Position(4, 8), model.Position(4, 9)),
+              "7"
+            )
+          ),
+          execute = true,
+          idMap   = None
+        )
+      )
+    )
+
+    val editFileResponses =
+      context.receiveNIgnoreExpressionUpdates(3)
+
+    editFileResponses should contain(
+      context.executionComplete(contextId)
+    )
+
     val visualizationUpdatesResponses =
-      responses.filter(_.payload.isInstanceOf[Api.VisualizationUpdate])
+      (attachVisualizationResponses ::: editFileResponses).filter(
+        _.payload.isInstanceOf[Api.VisualizationUpdate]
+      )
     val expectedExpressionId = context.Main.idMainX
     val visualizationUpdates = visualizationUpdatesResponses.map(
       _.payload.asInstanceOf[Api.VisualizationUpdate]
@@ -1568,7 +1531,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None)
+          Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
       context.receiveNIgnoreExpressionUpdates(
@@ -1589,7 +1552,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
                 Vector(context.Main.idMainX)
               )
             ),
-            None
+            None,
+            Seq()
           )
         )
       )
@@ -1705,12 +1669,13 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.EditFileNotification(
             mainFile,
             Seq(
-              TextEdit(
+              model.TextEdit(
                 model.Range(model.Position(6, 12), model.Position(6, 13)),
                 "6"
               )
             ),
-            execute = true
+            execute = true,
+            idMap   = None
           )
         )
       )
@@ -2698,7 +2663,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         data
     }
     val stringified = new String(data)
-    stringified shouldEqual """{"kind":"Dataflow","message":"The List is empty. (at <enso> Main.main(Enso_Test.Test.Main:7:5-40)"}"""
+    stringified shouldEqual """{"kind":"Dataflow","message":"The List is empty. (at <enso> Main.main(Enso_Test.Test.Main:7:5-40))"}"""
   }
 
   it should "run visualization default preprocessor" in withContext() {
@@ -2801,7 +2766,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           data
       }
       val stringified = new String(data)
-      stringified shouldEqual "\"Function\""
+      stringified should include("""{"value":"Function"""")
   }
 
   it should "attach text visualization with arguments" in withContext() {
@@ -2895,7 +2860,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None)
+          Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
 
@@ -3069,7 +3034,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None)
+          Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
 
@@ -3208,7 +3173,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None)
+          Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
 
@@ -3392,7 +3357,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       context.send(
         Api.Request(
           requestId,
-          Api.RecomputeContextRequest(contextId, None, None)
+          Api.RecomputeContextRequest(contextId, None, None, Seq())
         )
       )
 
@@ -3424,12 +3389,13 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.EditFileNotification(
             visualizationFile,
             Seq(
-              TextEdit(
+              model.TextEdit(
                 model.Range(model.Position(6, 21), model.Position(6, 22)),
                 "2"
               )
             ),
-            execute = true
+            execute = true,
+            idMap   = None
           )
         )
       )
@@ -4061,7 +4027,238 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     new String(data, StandardCharsets.UTF_8) shouldEqual "(Mk_Newtype 42)"
   }
 
-  it should "emit visualization update for the target of a method call" in withContext() {
+  it should "resolve multiple autoscoped atomconstructor" in withContext() {
+    context =>
+      val contextId       = UUID.randomUUID()
+      val requestId       = UUID.randomUUID()
+      val visualizationId = UUID.randomUUID()
+      val moduleName      = "Enso_Test.Test.Main"
+      val moduleNameLib   = "Enso_Test.Test.Lib"
+      val metadata        = new Metadata
+
+      val idS    = metadata.addItem(50, 13, "eeee")
+      val idX    = metadata.addItem(72, 14, "aaaa")
+      val idAArg = UUID.randomUUID()
+      val idBArg = UUID.randomUUID()
+      val idRes  = metadata.addItem(91, 1, "dddd")
+
+      val typesMetadata = new Metadata
+      val codeTypes = typesMetadata.appendToCode(
+        """type Foo
+          |    A
+          |
+          |type Bar
+          |    B
+          |""".stripMargin.linesIterator.mkString("\n")
+      )
+      val typesFile = context.writeInSrcDir("Types", codeTypes)
+
+      val libMetadata = new Metadata
+      val codeLib = libMetadata.appendToCode(
+        """from project.Types import Foo, Bar
+          |from Standard.Base import all
+          |
+          |type Singleton
+          |    S value
+          |
+          |    test : Foo -> Bar -> Number
+          |    test self (x : Foo = ..A) (y : Bar = ..B) =
+          |        Singleton.from_test x y
+          |
+          |    from_test : Foo -> Bar -> Number
+          |    from_test (x : Foo = ..A) (y : Bar = ..B) =
+          |        _ = x
+          |        _ = y
+          |        42
+          |""".stripMargin.linesIterator.mkString("\n")
+      )
+
+      val libFile = context.writeInSrcDir("Lib", codeLib)
+
+      val code =
+        """from project.Lib import Singleton
+          |
+          |main =
+          |    s = Singleton.S 1
+          |    x = s.test ..A ..B
+          |    x
+          |""".stripMargin.linesIterator.mkString("\n")
+      val contents = metadata.appendToCode(code)
+      val mainFile = context.writeMain(contents)
+
+      metadata.assertInCode(idS, code, "Singleton.S 1")
+      metadata.assertInCode(idX, code, "s.test ..A ..B")
+      metadata.assertInCode(idRes, code, "x")
+
+      // create context
+      context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+      context.receive shouldEqual Some(
+        Api.Response(requestId, Api.CreateContextResponse(contextId))
+      )
+
+      // Open files
+      context.send(
+        Api.Request(requestId, Api.OpenFileRequest(typesFile, codeTypes))
+      )
+      context.receive shouldEqual Some(
+        Api.Response(Some(requestId), Api.OpenFileResponse)
+      )
+      context.send(
+        Api.Request(requestId, Api.OpenFileRequest(libFile, codeLib))
+      )
+      context.receive shouldEqual Some(
+        Api.Response(Some(requestId), Api.OpenFileResponse)
+      )
+      context.send(
+        Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+      )
+      context.receive shouldEqual Some(
+        Api.Response(Some(requestId), Api.OpenFileResponse)
+      )
+
+      // push main
+      val item1 = Api.StackItem.ExplicitCall(
+        Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+        None,
+        Vector()
+      )
+      context.send(
+        Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+      )
+      context.receiveNIgnorePendingExpressionUpdates(
+        5
+      ) should contain theSameElementsAs Seq(
+        Api.Response(requestId, Api.PushContextResponse(contextId)),
+        TestMessages.update(
+          contextId,
+          idS,
+          s"$moduleNameLib.Singleton",
+          methodCall = Some(
+            Api.MethodCall(
+              Api
+                .MethodPointer(moduleNameLib, s"$moduleNameLib.Singleton", "S")
+            )
+          ),
+          payload = Api.ExpressionUpdate.Payload.Value(None)
+        ),
+        TestMessages.update(
+          contextId,
+          idX,
+          s"Standard.Base.Data.Numbers.Integer",
+          methodCall = Some(
+            Api.MethodCall(
+              Api
+                .MethodPointer(
+                  moduleNameLib,
+                  s"$moduleNameLib.Singleton",
+                  "test"
+                )
+            )
+          ),
+          payload = Api.ExpressionUpdate.Payload.Value(None)
+        ),
+        TestMessages.update(
+          contextId,
+          idRes,
+          s"Standard.Base.Data.Numbers.Integer",
+          payload = Api.ExpressionUpdate.Payload.Value(None)
+        ),
+        context.executionComplete(contextId)
+      )
+
+      // attach visualization
+      context.send(
+        Api.Request(
+          requestId,
+          Api.AttachVisualization(
+            visualizationId,
+            idRes,
+            Api.VisualizationConfiguration(
+              contextId,
+              Api.VisualizationExpression.Text(
+                "Enso_Test.Test.Main",
+                "x -> x.to_text",
+                Vector()
+              ),
+              "Enso_Test.Test.Main"
+            )
+          )
+        )
+      )
+
+      val attachVisualizationResponses =
+        context.receiveNIgnoreExpressionUpdates(3)
+      attachVisualizationResponses should contain allOf (
+        Api.Response(requestId, Api.VisualizationAttached()),
+        context.executionComplete(contextId)
+      )
+      val Some(data) = attachVisualizationResponses.collectFirst {
+        case Api.Response(
+              None,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
+                  `contextId`,
+                  `idRes`
+                ),
+                data
+              )
+            ) =>
+          data
+      }
+      new String(data, StandardCharsets.UTF_8) shouldEqual "42"
+
+      context.send(
+        Api.Request(
+          Api.EditFileNotification(
+            mainFile,
+            Seq(),
+            execute = true,
+            idMap = Some(
+              model.IdMap(
+                Vector(
+                  model.Span(79, 82) -> idAArg,
+                  model.Span(83, 86) -> idBArg
+                )
+              )
+            )
+          )
+        )
+      )
+      val afterIdMapUpdate = context.receiveN(3)
+
+      // Can't do comparison directly because of Arrays https://github.com/scalatest/scalatest/issues/491
+      afterIdMapUpdate should contain allOf (
+        TestMessages.update(
+          contextId,
+          idRes,
+          s"Standard.Base.Data.Numbers.Integer",
+          typeChanged = false,
+          payload     = Api.ExpressionUpdate.Payload.Value(None)
+        ),
+        context.executionComplete(contextId)
+      )
+
+      val Some(data2) = afterIdMapUpdate.collectFirst {
+        case Api.Response(
+              None,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
+                  `contextId`,
+                  `idRes`
+                ),
+                data
+              )
+            ) =>
+          data
+      }
+
+      new String(data2, StandardCharsets.UTF_8) shouldEqual "42"
+
+  }
+
+  it should "emit visualization update for the target of a method call (subexpression)" in withContext() {
     context =>
       val contextId       = UUID.randomUUID()
       val requestId       = UUID.randomUUID()
@@ -4069,10 +4266,10 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       val moduleName      = "Enso_Test.Test.Main"
       val metadata        = new Metadata("import Standard.Base.Data.Numbers\n\n")
 
-      val idX      = metadata.addItem(65, 1, "aa")
+      val idYX     = metadata.addItem(65, 1, "aa")
       val idY      = metadata.addItem(65, 7, "ab")
       val idS      = metadata.addItem(81, 1)
-      val idZ      = metadata.addItem(91, 5, "ac")
+      val idZ      = metadata.addItem(91, 5, "ad")
       val idZexprS = metadata.addItem(93, 1)
       val idZexpr1 = metadata.addItem(95, 1)
 
@@ -4121,7 +4318,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         8
       ) should contain theSameElementsAs Seq(
         Api.Response(requestId, Api.PushContextResponse(contextId)),
-        TestMessages.update(contextId, idX, s"$moduleName.T"),
+        TestMessages.update(contextId, idYX, s"$moduleName.T"),
         TestMessages.update(
           contextId,
           idY,
@@ -4140,13 +4337,170 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         context.executionComplete(contextId)
       )
 
+      // attach visualization to `x` in `x.inc 7`
+      context.send(
+        Api.Request(
+          requestId,
+          Api.AttachVisualization(
+            visualizationId,
+            idYX,
+            Api.VisualizationConfiguration(
+              contextId,
+              Api.VisualizationExpression.Text(
+                moduleName,
+                "x -> x.to_text",
+                Vector()
+              ),
+              moduleName
+            )
+          )
+        )
+      )
+      val attachVisualizationResponses =
+        context.receiveNIgnoreExpressionUpdates(2)
+      attachVisualizationResponses.size should be(2)
+      attachVisualizationResponses should contain(
+        Api.Response(requestId, Api.VisualizationAttached())
+      )
+      attachVisualizationResponses should not contain context.executionComplete(
+        contextId
+      )
+      val Some(data) = attachVisualizationResponses.collectFirst {
+        case Api.Response(
+              None,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
+                  `contextId`,
+                  `idYX`
+                ),
+                data
+              )
+            ) =>
+          data
+      }
+      new String(data, StandardCharsets.UTF_8) shouldEqual "C"
+
+      // Modify the file
+      context.send(
+        Api.Request(
+          Api.EditFileNotification(
+            mainFile,
+            Seq(
+              model.TextEdit(
+                model.Range(model.Position(9, 8), model.Position(9, 9)),
+                "x"
+              )
+            ),
+            execute = true,
+            idMap   = None
+          )
+        )
+      )
+
+      val editFileResponse = context.receiveNIgnoreExpressionUpdates(2)
+      editFileResponse should contain(
+        context.executionComplete(contextId)
+      )
+      val Some(data1) = editFileResponse.collectFirst {
+        case Api.Response(
+              None,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
+                  `contextId`,
+                  `idYX`
+                ),
+                data
+              )
+            ) =>
+          data
+      }
+      new String(data1, StandardCharsets.UTF_8) shouldEqual "C"
+  }
+
+  it should "emit visualization update for the target of a method call (subexpression) with IdMap" in withContext() {
+    context =>
+      val contextId       = UUID.randomUUID()
+      val requestId       = UUID.randomUUID()
+      val visualizationId = UUID.randomUUID()
+      val moduleName      = "Enso_Test.Test.Main"
+      val metadata        = new Metadata("import Standard.Base.Data.Numbers\n\n")
+
+      val idY = metadata.addItem(65, 7, "ab")
+
+      val code =
+        """type T
+          |    C
+          |
+          |    inc self x = x + 1
+          |
+          |main =
+          |    x = T.C
+          |    y = x.inc 7
+          |    y
+          |""".stripMargin.linesIterator.mkString("\n")
+      val contents = metadata.appendToCode(code)
+      val mainFile = context.writeMain(contents)
+
+      // create context
+      context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+      context.receive shouldEqual Some(
+        Api.Response(requestId, Api.CreateContextResponse(contextId))
+      )
+
+      // Open the new file
+      context.send(
+        Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+      )
+      context.receive shouldEqual Some(
+        Api.Response(Some(requestId), Api.OpenFileResponse)
+      )
+
+      // push main
+      val item1 = Api.StackItem.ExplicitCall(
+        Api.MethodPointer(moduleName, "Enso_Test.Test.Main", "main"),
+        None,
+        Vector()
+      )
+      context.send(
+        Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+      )
+      context.receiveNIgnorePendingExpressionUpdates(
+        3
+      ) should contain theSameElementsAs Seq(
+        Api.Response(requestId, Api.PushContextResponse(contextId)),
+        TestMessages.update(
+          contextId,
+          idY,
+          ConstantsGen.INTEGER,
+          Api.MethodCall(Api.MethodPointer(moduleName, s"$moduleName.T", "inc"))
+        ),
+        context.executionComplete(contextId)
+      )
+
+      // Send IdMap
+      val idYX = new UUID(0, 1)
+      context.send(
+        Api.Request(
+          Api.EditFileNotification(
+            mainFile,
+            Seq(),
+            execute = false,
+            idMap = Some(
+              model.IdMap(Vector(model.Span(100, 101) -> idYX))
+            )
+          )
+        )
+      )
+
       // attach visualization
       context.send(
         Api.Request(
           requestId,
           Api.AttachVisualization(
             visualizationId,
-            idX,
+            idYX,
             Api.VisualizationConfiguration(
               contextId,
               Api.VisualizationExpression.Text(
@@ -4172,7 +4526,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
                 Api.VisualizationContext(
                   `visualizationId`,
                   `contextId`,
-                  `idX`
+                  `idYX`
                 ),
                 data
               )
@@ -4187,12 +4541,13 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           Api.EditFileNotification(
             mainFile,
             Seq(
-              TextEdit(
+              model.TextEdit(
                 model.Range(model.Position(9, 8), model.Position(9, 9)),
                 "x"
               )
             ),
-            execute = true
+            execute = true,
+            idMap   = None
           )
         )
       )
@@ -4208,7 +4563,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
                 Api.VisualizationContext(
                   `visualizationId`,
                   `contextId`,
-                  `idX`
+                  `idYX`
                 ),
                 data
               )

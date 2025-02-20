@@ -17,15 +17,12 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.error.Warning;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
-import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 /**
  * Invokes any callable with given arguments.
@@ -74,7 +71,8 @@ public abstract class IndirectInvokeCallableNode extends Node {
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail,
       @Cached IndirectInvokeCallableNode invokeCallableNode,
-      @CachedLibrary(limit = "3") WarningsLibrary warnings) {
+      @CachedLibrary(limit = "3") WarningsLibrary warnings,
+      @Cached AppendWarningNode appendWarningNode) {
     try {
       var result =
           invokeCallableNode.execute(
@@ -87,8 +85,8 @@ public abstract class IndirectInvokeCallableNode extends Node {
               argumentsExecutionMode,
               isTail);
 
-      Warning[] extracted = warnings.getWarnings(warning, null, false);
-      return WithWarnings.wrap(EnsoContext.get(this), result, extracted);
+      var extracted = warnings.getWarnings(warning, false);
+      return appendWarningNode.executeAppend(null, result, extracted);
     } catch (UnsupportedMessageException e) {
       var ctx = EnsoContext.get(this);
       throw ctx.raiseAssertionPanic(this, null, e);
@@ -214,7 +212,10 @@ public abstract class IndirectInvokeCallableNode extends Node {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail) {
-    Atom error = EnsoContext.get(this).getBuiltins().error().makeNotInvokable(callable);
-    throw new PanicException(error, this);
+    // The IndirectInvokeCallableNode is used only from IndirectCurryNode, so it is always used for
+    // oversaturated arguments as long as schema.length >= 1.
+    boolean isEligibleForOversaturatedApplication = true;
+    throw InvokeCallableNode.buildNotInvokablePanicWithCause(
+        this, callable, isEligibleForOversaturatedApplication, schema);
   }
 }

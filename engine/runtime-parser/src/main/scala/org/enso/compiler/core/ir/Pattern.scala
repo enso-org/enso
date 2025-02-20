@@ -35,17 +35,16 @@ object Pattern {
     * As a result they can be used to represent a catch all pattern (e.g.
     * `_ -> ...` or `a -> ...`).
     *
-    * @param name        the name that constitutes the pattern
-    * @param location    the source location for this IR node
-    * @param passData    any pass metadata associated with the node
-    * @param diagnostics compiler diagnostics for this node
+    * @param name the name that constitutes the pattern
+    * @param identifiedLocation the source location for this IR node
+    * @param passData any pass metadata associated with the node
     */
   sealed case class Name(
     name: IRName,
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Pattern
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -64,9 +63,24 @@ object Pattern {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Name = {
-      val res = Name(name, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        name != this.name
+        || location != this.location
+        || (passData ne this.passData)
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Name(name, location.orNull, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
+    }
+
+    def copyWithName(
+      name: IRName
+    ) = {
+      copy(name = name)
     }
 
     /** @inheritdoc */
@@ -86,9 +100,8 @@ object Pattern {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -98,7 +111,7 @@ object Pattern {
       copy(name = name.mapExpressions(fn))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Case.Pattern.Name(
@@ -123,22 +136,21 @@ object Pattern {
 
   /** A pattern that destructures a constructor application.
     *
-    * The first part of the pattern must be a refferent name. The fields of
+    * The first part of the pattern must be a referent name. The fields of
     * the constructor may be any available kind of pattern.
     *
     * @param constructor the constructor being matched on
-    * @param fields      the asserted fields of the constructor
-    * @param location    the source location for this IR node
-    * @param passData    any pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param fields the asserted fields of the constructor
+    * @param identifiedLocation the source location for this IR node
+    * @param passData any pass metadata associated with this node
     */
   sealed case class Constructor(
     constructor: IRName,
     fields: List[Pattern],
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Pattern
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -159,10 +171,25 @@ object Pattern {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Constructor = {
-      val res =
-        Constructor(constructor, fields, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        constructor != this.constructor
+        || fields != this.fields
+        || location != this.location
+        || (passData ne this.passData)
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Constructor(constructor, fields, location.orNull, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
+    }
+
+    def copyWithFields(
+      fields: List[Pattern]
+    ): Constructor = {
+      copy(fields = fields)
     }
 
     /** @inheritdoc */
@@ -190,9 +217,8 @@ object Pattern {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** Checks if the constructor pattern has been desugared.
@@ -221,7 +247,7 @@ object Pattern {
       *
       * @return the fields from `this`
       */
-    def fieldsAsNamed: List[Option[Pattern.Name]] = {
+    private def fieldsAsNamed: List[Option[Pattern.Name]] = {
       fields.map {
         case f: Name => Some(f)
         case _       => None
@@ -245,7 +271,7 @@ object Pattern {
         fields      = fields.map(_.mapExpressions(fn))
       )
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Case.Pattern.Constructor(
@@ -279,17 +305,16 @@ object Pattern {
     *
     * A literal pattern matches on constants.
     *
-    * @param literal     the literal representing the pattern
-    * @param location    the source location for this IR node
-    * @param passData    any pass metadata associated with the node
-    * @param diagnostics compiler diagnostics for this node
+    * @param literal the literal representing the pattern
+    * @param identifiedLocation the source location for this IR node
+    * @param passData any pass metadata associated with the node
     */
   sealed case class Literal(
     literal: IRLiteral,
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Pattern
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -308,9 +333,18 @@ object Pattern {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Literal = {
-      val res = Literal(literal, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        literal != this.literal
+        || location != this.location
+        || (passData ne this.passData)
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Literal(literal, location.orNull, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -330,9 +364,8 @@ object Pattern {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -342,7 +375,7 @@ object Pattern {
       copy(literal = literal.mapExpressions(fn))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Case.Pattern.Literal(
@@ -370,21 +403,20 @@ object Pattern {
     * A type pattern matches on types. Type pattern is composed of two parts:
     * - a single identifier (e.g. `a` or `_`)
     * - a (potentially fully qualified) type name
-    * E.g., `a : Foo -> ...` or `_ : Bar -> ...``
+    * E.g., `a : Foo -> ...` or `_ : Bar -> ...`
     *
-    * @param name        the name of the bound variable, or wildcard
-    * @param tpe         the name of the type to match on
-    * @param location    the source location for this IR node
-    * @param passData    any pass metadata associated with the node
-    * @param diagnostics compiler diagnostics for this node
+    * @param name the name of the bound variable, or wildcard
+    * @param tpe the name of the type to match on
+    * @param identifiedLocation the source location for this IR node
+    * @param passData any pass metadata associated with the node
     */
   sealed case class Type(
     name: IRName,
     tpe: IRName,
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Pattern
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -405,9 +437,19 @@ object Pattern {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Type = {
-      val res = Type(name, tpe, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        name != this.name
+        || tpe != this.tpe
+        || location != this.location
+        || (passData ne this.passData)
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Type(name, tpe, location.orNull, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -433,9 +475,8 @@ object Pattern {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -445,7 +486,7 @@ object Pattern {
       copy(name = name.mapExpressions(fn), tpe = tpe.mapExpressions(fn))
     }
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Case.Pattern.Type(
@@ -477,17 +518,16 @@ object Pattern {
     * created with its pattern being an instance of this Doc and expression
     * being empty.
     *
-    * @param doc         the documentation entity
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param doc the documentation entity
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   final case class Documentation(
     doc: String,
-    override val location: Option[IdentifiedLocation],
-    override val passData: MetadataStorage      = new MetadataStorage(),
-    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Pattern
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** @inheritdoc */
@@ -518,9 +558,18 @@ object Pattern {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Documentation = {
-      val res = Documentation(doc, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        doc != this.doc
+        || location != this.location
+        || (passData ne this.passData)
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Documentation(doc, location.orNull, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -535,15 +584,14 @@ object Pattern {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
     override def children: List[IR] = Nil
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Case.Pattern.Documentation(

@@ -1,0 +1,46 @@
+from Standard.Base import all
+import Standard.Base.Data.Read.Many_Files_List.Many_Files_List
+import Standard.Base.Data.Read.Return_As.Return_As
+import Standard.Base.Errors.Common.Type_Error
+from Standard.Base.Metadata.Choice import Option
+
+import project.Columns_To_Keep.Columns_To_Keep
+import project.Internal.Read_Many_Helpers
+import project.Match_Columns.Match_Columns
+
+type Return_As_Table
+    ## Returns a table with a new column `Value` containing the objects loaded
+       from each file.
+
+       When the source for files to load was a table, all columns from the
+       original table are also retained. In case of name clashes, the newly
+       added columns will get a suffix.
+
+       When the source was a simple Vector, the returned table will also contain
+       a `Path` column.
+    With_New_Column
+
+    ## All files are interpreted as tables and then merged into a single table
+       by a union operation.
+
+       Each file is loaded according to the provided/detected format. If the
+       format reads it as something else than a table, then it is expanded in
+       the same way as `Table.from_objects`.
+    As_Merged_Table (columns_to_keep : Columns_To_Keep = ..In_Any) (match : Match_Columns = ..By_Name)
+
+    ## PRIVATE
+    get_dropdown_options : Vector Option
+    get_dropdown_options =
+        [Option "With New Column" "..With_New_Column", Option "As Merged Table" "..As_Merged_Table"]
+
+    ## PRIVATE
+    resolve value =
+        Panic.catch Type_Error (value:Return_As_Table) _->Nothing
+
+    ## PRIVATE
+    make_return self (input : Many_Files_List) (objects : Vector Any) (on_problems : Problem_Behavior) =
+        Read_Many_Helpers.make_return self input objects on_problems
+
+## PRIVATE
+Return_As.from (that : Return_As_Table) =
+    Return_As.Instance that

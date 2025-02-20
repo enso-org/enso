@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Data.Array.Array
+import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Meta
@@ -292,3 +293,6 @@ type Wrapped_Dataflow_Error
     ## PRIVATE
        Throws the original error.
     unwrap self = Error.throw self.payload
+
+    ## PRIVATE
+    to_display_text self -> Text = "Wrapped_Dataflow_Error: "+self.payload.to_display_text

@@ -3,6 +3,7 @@ package org.enso.table.data.column.storage;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -18,7 +19,7 @@ import org.graalvm.polyglot.Context;
  * specific type.
  */
 public final class MixedStorage extends ObjectStorage implements ColumnStorageWithInferredStorage {
-  private StorageType inferredType = null;
+  private StorageType inferredType;
 
   /**
    * Holds a specialized storage for the inferred type, if available.
@@ -28,8 +29,7 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
    * inferred type. This allows it to support operations of that type.
    *
    * <p>Once the specialized storage is first computed, all vectorized operations will be forwarded
-   * to it - assuming that it will most likely provide more efficient implementations, even for
-   * operations that are also defined on ObjectStorage.
+   * to it - assuming that it will most likely provide more efficient implementations.
    */
   private Storage<?> cachedInferredStorage = null;
 
@@ -37,28 +37,30 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
 
   /**
    * @param data the underlying data
-   * @param size the number of items stored
    */
-  public MixedStorage(Object[] data, int size) {
-    super(data, size);
+  public MixedStorage(Object[] data) {
+    super(data);
     inferredType = null;
   }
 
   @Override
-  protected SpecializedStorage<Object> newInstance(Object[] data, int size) {
-    return new MixedStorage(data, size);
+  protected SpecializedStorage<Object> newInstance(Object[] data) {
+    return new MixedStorage(data);
   }
 
   private boolean isNumeric(StorageType type) {
     return type instanceof IntegerType
         || type instanceof FloatType
-        || type instanceof BigIntegerType;
+        || type instanceof BigIntegerType
+        || type instanceof BigDecimalType;
   }
 
   private StorageType commonNumericType(StorageType a, StorageType b) {
     assert isNumeric(a);
     assert isNumeric(b);
-    if (a instanceof FloatType || b instanceof FloatType) {
+    if (a instanceof BigDecimalType || b instanceof BigDecimalType) {
+      return BigDecimalType.INSTANCE;
+    } else if (a instanceof FloatType || b instanceof FloatType) {
       return FloatType.FLOAT_64;
     } else if (a instanceof BigIntegerType || b instanceof BigIntegerType) {
       return BigIntegerType.INSTANCE;
@@ -75,7 +77,7 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
       StorageType currentType = null;
 
       Context context = Context.getCurrent();
-      for (int i = 0; i < size(); i++) {
+      for (long i = 0; i < getSize(); i++) {
         var item = getItemBoxed(i);
         if (item == null) {
           continue;
@@ -129,9 +131,9 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
         // for purposes of a
         // computation.
         Builder builder =
-            Builder.getForType(inferredType, size(), BlackholeProblemAggregator.INSTANCE);
-        for (int i = 0; i < size(); i++) {
-          builder.appendNoGrow(getItemBoxed(i));
+            Builder.getForType(inferredType, getSize(), BlackholeProblemAggregator.INSTANCE);
+        for (long i = 0; i < getSize(); i++) {
+          builder.append(getItemBoxed(i));
         }
         cachedInferredStorage = builder.seal();
       }

@@ -14,13 +14,11 @@ import org.enso.interpreter.runtime.callable.function.Function;
 public final class ReadArgumentNode extends ExpressionNode {
   private final int index;
   @Child ExpressionNode defaultValue;
-  @Child ReadArgumentCheckNode checkType;
   private final CountingConditionProfile defaultingProfile = CountingConditionProfile.create();
 
-  private ReadArgumentNode(int position, ExpressionNode defaultValue, ReadArgumentCheckNode check) {
+  private ReadArgumentNode(int position, ExpressionNode defaultValue) {
     this.index = position;
     this.defaultValue = defaultValue;
-    this.checkType = check;
   }
 
   /**
@@ -28,18 +26,10 @@ public final class ReadArgumentNode extends ExpressionNode {
    *
    * @param position the argument's position at the definition site
    * @param defaultValue the default value provided for that argument
-   * @param check {@code null} or node to check type of input
    * @return a node representing the argument at position {@code idx}
    */
-  public static ReadArgumentNode build(
-      int position, ExpressionNode defaultValue, ReadArgumentCheckNode check) {
-    return new ReadArgumentNode(position, defaultValue, check);
-  }
-
-  ReadArgumentNode plainRead() {
-    var node = (ReadArgumentNode) this.copy();
-    node.checkType = null;
-    return node;
+  public static ReadArgumentNode build(int position, ExpressionNode defaultValue) {
+    return new ReadArgumentNode(position, defaultValue);
   }
 
   /**
@@ -67,9 +57,6 @@ public final class ReadArgumentNode extends ExpressionNode {
       } else {
         v = arguments[index];
       }
-    }
-    if (checkType != null) {
-      v = checkType.handleCheckOrConversion(frame, v);
     }
     return v;
   }

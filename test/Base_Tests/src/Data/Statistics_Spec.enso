@@ -13,10 +13,12 @@ type Ord
     Value number
 
 type Ord_Comparator
-    compare x y = (Comparable.from x.number) . compare x.number y.number
-    hash x = (Comparable.from x.number) . hash x.number
+    compare x y =
+        Ordering.compare x.number y.number
+    hash x =
+        Ordering.hash x.number
 
-Comparable.from (_:Ord) = Ord_Comparator
+Comparable.from (that:Ord) = Comparable.new that Ord_Comparator
 
 type No_Ord
     Value number
@@ -30,7 +32,7 @@ type No_Ord_Comparator
         _ = x
         0
 
-Comparable.from (_:No_Ord) = No_Ord_Comparator
+Comparable.from (that:No_Ord) = Comparable.new that No_Ord_Comparator
 
 type Bad_Comparator_Type
     Value x
@@ -41,7 +43,7 @@ type Bad_Comparator
         Error.throw (Illegal_State.Error "TEST")
     hash x = x
 
-Comparable.from (_:Bad_Comparator_Type) = Bad_Comparator
+Comparable.from (that:Bad_Comparator_Type) = Comparable.new that Bad_Comparator
 
 # Tests
 
@@ -81,10 +83,17 @@ add_specs suite_builder =
             text_set.compute Statistic.Maximum . should_equal "D"
 
         group_builder.specify "should be able to get sum of values" <|
-            simple_set.compute Statistic.Sum . should_equal 15 epsilon=double_error
+            int_sum = simple_set.compute Statistic.Sum
+            int_sum.should_equal 15
+            int_sum.should_be_a Integer
             number_set.compute Statistic.Sum . should_equal -101.28 epsilon=double_error
             missing_set.compute Statistic.Sum . should_equal -81.8 epsilon=double_error
             with_nans_set.compute Statistic.Sum . should_equal -81.8 epsilon=double_error
+
+        group_builder.specify "should be able to get a sum of big integer values" <|
+            r1 = [2^62, 2^62, 2^62, 2^62, 2^62].compute ..Sum
+            r1.should_equal (5 * 2^62)
+            r1.should_be_a Integer
 
         group_builder.specify "should be able to get product of values" <|
             simple_set.compute Statistic.Product . should_equal 120 epsilon=double_error
@@ -369,4 +378,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-

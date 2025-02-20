@@ -22,6 +22,7 @@ polyglot java import java.sql.DatabaseMetaData
 polyglot java import java.sql.PreparedStatement
 polyglot java import java.sql.SQLException
 polyglot java import java.sql.SQLTimeoutException
+polyglot java import org.enso.base.enso_cloud.HideableValue
 polyglot java import org.enso.database.dryrun.OperationSynchronizer
 polyglot java import org.enso.database.JDBCProxy
 polyglot java import org.graalvm.collections.Pair as Java_Pair
@@ -38,20 +39,10 @@ type JDBC_Connection
        Runs the provided action ensuring that no other thread is working with
        this Connection concurrently.
     synchronized self ~action =
-        # We save and restore context information. This is a workaround for bug #7117.
-        restore_context context =
-            saved_setting = context.is_enabled
-            ~action ->
-                case saved_setting of
-                    True -> context.with_enabled action
-                    False -> context.with_disabled action
-        restore_output = restore_context Context.Output
-        restore_input = restore_context Context.Input
-        callback _ =
-            restore_input <|
-                restore_output <|
-                    action
-        self.operation_synchronizer.runSynchronizedAction callback
+        ## Workaround for https://github.com/enso-org/enso/issues/7117
+           Once the bug is fixed, we should prefer `runSynchronizedAction`.
+        self.operation_synchronizer.enterSynchronizedAction
+        Panic.with_finalizer self.operation_synchronizer.exitSynchronizedAction action
 
     ## PRIVATE
        Closes the connection releasing the underlying database resources
@@ -75,7 +66,11 @@ type JDBC_Connection
        `synchronized` critical section (including the current thread).
     run_maintenance_action_if_possible : (Nothing -> Any) -> Nothing
     run_maintenance_action_if_possible self callback =
-        self.operation_synchronizer.runMaintenanceActionIfPossible callback
+        # TODO The wrapping is a workaround for https://github.com/enso-org/enso/issues/7117
+        wrapped_callback x =
+            Context.Output.with_enabled <|
+                callback x
+        self.operation_synchronizer.runMaintenanceActionIfPossible wrapped_callback
 
     ## PRIVATE
 
@@ -102,7 +97,7 @@ type JDBC_Connection
          (e.g. `ensure_query_has_no_holes` which prepares a statement but does
          not execute it).
     with_prepared_statement : Text  | SQL_Statement -> Statement_Setter -> (PreparedStatement -> Any) -> Boolean -> Any
-    with_prepared_statement self query statement_setter action skip_log=False = self.synchronized <|
+    with_prepared_statement self query statement_setter action skip_log=False = self.synchronized <| profile_sql_if_enabled self query.to_text <|
         prepare template values = self.with_connection java_connection->
             stmt = java_connection.prepareStatement template
             handle_illegal_state caught_panic =
@@ -126,6 +121,29 @@ type JDBC_Connection
             SQL_Statement.Value _ ->
                 compiled = query.prepare
                 go compiled.first compiled.second
+
+    ## PRIVATE
+       Executes the provided SQL.
+       Typically this shouldn't be used and with_prepared_statement should be preferred.
+       It is needed for SQLServer temp table creation where we need to execute a raw SQL statement
+       outside of a stored procedure.
+    execute : Text | SQL_Statement -> Any
+    execute self query:(Text | SQL_Statement) = self.synchronized <| profile_sql_if_enabled self query.to_text <|
+        compiled_query = case query of
+            _ : Text -> query
+            SQL_Statement.Value _ -> query.prepare.first
+        self.with_connection java_connection->
+            stmt = java_connection.createStatement
+            handle_illegal_state caught_panic =
+                Error.throw (Illegal_Argument.Error caught_panic.payload.message)
+            handle_any caught_panic =
+                stmt.close
+                Panic.throw caught_panic
+            result = Panic.catch Illegal_State handler=handle_illegal_state <|
+                Panic.catch Any handler=handle_any <|
+                    stmt.execute compiled_query
+            result.if_not_error <|
+                [result, stmt]
 
     ## PRIVATE
        Given a prepared statement, gets the column names and types for the
@@ -159,7 +177,6 @@ type JDBC_Connection
     raw_read_statement : Text -> Table
     raw_read_statement self raw_sql =
         self.with_prepared_statement raw_sql Statement_Setter.null stmt->
-            log_sql_if_enabled self stmt.toString
             rs = stmt.executeQuery
             make_fallback_fetcher _ =
                 Column_Fetcher_Module.fallback_fetcher
@@ -226,7 +243,7 @@ type JDBC_Connection
        It is the caller's responsibility to call this method from within a
        transaction to ensure consistency.
     batch_insert : Text -> Statement_Setter -> Table -> Integer -> Vector Value_Type | Nothing -> Integer | Nothing -> Nothing
-    batch_insert self insert_template statement_setter table batch_size expected_type_hints=Nothing row_limit=Nothing =
+    batch_insert self insert_template statement_setter table batch_size expected_type_hints=Nothing row_limit=Nothing = profile_sql_if_enabled self insert_template <|
         In_Transaction.ensure_in_transaction <| self.with_connection java_connection-> handle_sql_errors related_query=insert_template <|
             Managed_Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
                 log_sql_if_enabled self insert_template
@@ -245,8 +262,8 @@ type JDBC_Connection
                     values = columns.map col-> col.at row_id
                     set_statement_values stmt statement_setter values expected_type_hints=expected_type_hints
                     stmt.addBatch
-                    if (row_id+1 % batch_size) == 0 then check_rows stmt.executeBatch batch_size
-                if (num_rows % batch_size) != 0 then check_rows stmt.executeBatch (num_rows % batch_size)
+                    if (row_id+1) % batch_size == 0 then check_rows stmt.executeBatch batch_size
+                if num_rows % batch_size != 0 then check_rows stmt.executeBatch (num_rows % batch_size)
 
 ## PRIVATE
 
@@ -259,7 +276,11 @@ type JDBC_Connection
 create : Text -> Vector -> JDBC_Connection
 create url properties = handle_sql_errors <|
     java_props = properties.map pair->
-        Java_Pair.create pair.first (as_hideable_value pair.second)
+        # Some parameters may be passed by the dialect as a `HideableValue` directly, so they do not need to be converted.
+        value = pair.second
+        java_value = if value.is_a HideableValue then value else
+            as_hideable_value value
+        Java_Pair.create pair.first java_value
     java_connection = JDBCProxy.getConnection url java_props
 
     resource = Managed_Resource.register java_connection close_connection
@@ -320,6 +341,31 @@ log_sql_if_enabled jdbc_connection ~query_text =
             log_line = timestamp + " [" + db_id + "] " + query_text + '\n'
             Context.Output.with_enabled <|
                 log_line.write path on_existing_file=Existing_File_Behavior.Append
+
+## PRIVATE
+   A helper that logs performed SQL queries/statements run-time to a profiling
+   file, if an environment variable is set.
+profile_sql_if_enabled (jdbc_connection : JDBC_Connection) (~query_text : Text) ~action =
+    case Environment.get "ENSO_SQL_PROFILING_PATH" of
+        Nothing -> action
+        path -> if path.is_empty then action else
+            db_id = jdbc_connection.with_metadata .getDatabaseProductName
+            duration_and_result = Duration.time_execution action
+            duration = duration_and_result.first
+            result = duration_and_result.second
+            ## If the action returns a dataflow error, `time_execution` returns the error, no duration.
+               We could work around this. But we don't want to - the failing queries likely did not run anyway,
+               so their time info would most likely be an outlier. For current purposes it makes sense to ignore such cases.
+            result.if_not_error <|
+                padded_query = query_text.to_display_text.pad length=80
+                millis = duration.total_milliseconds
+                millis_text = (millis.to_text.pad length=5 with_pad=' ' at=..Left) + ' ms'
+
+                # E.g. [SQLite] SELECT * FROM "test" ... --> 12 ms
+                log_line = "[" + db_id + "] " + padded_query + " --> " + millis_text + '\n'
+                Context.Output.with_enabled <|
+                    log_line.write path on_existing_file=Existing_File_Behavior.Append
+                result
 
 ## PRIVATE
 get_pragma_value : JDBC_Connection -> Text -> Any

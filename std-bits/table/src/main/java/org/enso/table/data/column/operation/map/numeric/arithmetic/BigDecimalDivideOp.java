@@ -12,13 +12,13 @@ public class BigDecimalDivideOp<T extends Number, I extends Storage<? super T>>
 
   @Override
   public BigDecimal doBigDecimal(
-      BigDecimal a, BigDecimal b, int ix, MapOperationProblemAggregator problemAggregator) {
+      BigDecimal a, BigDecimal b, long ix, MapOperationProblemAggregator problemAggregator) {
     try {
       return a.divide(b);
     } catch (ArithmeticException e) {
       String extraMessage =
           " Please use `.divide` with an explicit `Math_Context` to limit the numeric precision.";
-      problemAggregator.reportArithmeticError(e.getMessage() + extraMessage, ix);
+      problemAggregator.reportArithmeticError(e.getMessage() + extraMessage, (int) ix);
       return null;
     }
   }

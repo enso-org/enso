@@ -1,0 +1,18 @@
+[package]
+name = "enso-build-cli"
+edition = "2021"
+version = "0.1.0"
+default-run = "enso-build-cli"
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+derive-where = { workspace = true }
+enso-build-base = { path = "../base" }
+enso-build = { path = "../build" }
+enso-formatter = { path = "../enso-formatter" }
+futures-util = { workspace = true }
+ide-ci = { path = "../ci_utils" }
+octocrab = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }

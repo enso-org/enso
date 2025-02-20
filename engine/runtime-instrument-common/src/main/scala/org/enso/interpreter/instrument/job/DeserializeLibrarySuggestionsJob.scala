@@ -27,7 +27,7 @@ final class DeserializeLibrarySuggestionsJob(
     }
 
   /** @inheritdoc */
-  override def run(implicit ctx: RuntimeContext): Unit = {
+  override def runImpl(implicit ctx: RuntimeContext): Unit = {
     ctx.executionService.getLogger.log(
       Level.FINE,
       "Deserializing suggestions for library [{}].",

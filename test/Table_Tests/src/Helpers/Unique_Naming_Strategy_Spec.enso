@@ -116,7 +116,7 @@ add_specs suite_builder =
             strategy.make_unique "abc" . should_equal "ab 10"
             strategy.make_unique "abc" . should_equal "ab 11"
 
-            strategy.truncated_names . should_be_a Map
+            strategy.truncated_names . should_be_a Dictionary
             strategy.truncated_names.get "abcdefgh" . should_equal "abcde"
             # abc will contain the entry for the last truncated case
             strategy.truncated_names.get "abc" . should_equal "ab 11"

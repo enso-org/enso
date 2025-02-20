@@ -1,0 +1,86 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.Test import all
+
+from project.Helpers import expect_test_failure
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+
+add_specs suite_builder =
+    suite_builder.group "should_equal extension method" group_builder->
+        group_builder.specify "should report correct location for Text" <|
+            r1 = expect_test_failure <|
+                "a".should_equal "b"
+            r1.message.should_contain "Extensions_Spec.enso:17"
+
+        group_builder.specify "should report correct location for numbers" <|
+            r1 = expect_test_failure <|
+                1.should_equal 2
+            r1.message.should_contain "Extensions_Spec.enso:22"
+
+            r2 = expect_test_failure <|
+                1.0 . should_equal 2
+            r2.message.should_contain "Extensions_Spec.enso:26"
+
+            r3 = expect_test_failure <|
+                1.to_decimal . should_equal 2
+            r3.message.should_contain "Extensions_Spec.enso:30"
+
+            r4 = expect_test_failure <|
+                Number.nan.should_equal 2
+            r4.message.should_contain "Extensions_Spec.enso:34"
+
+        group_builder.specify "should report correct location for errors" <|
+            error = Error.throw (Illegal_Argument.Error "foo")
+            r1 = expect_test_failure <|
+                error.should_equal 10
+            r1.message.should_contain "Extensions_Spec.enso:40"
+
+        group_builder.specify "should panic if error is expected" <|
+            error = Error.throw (Illegal_Argument.Error "foo")
+            Test.expect_panic Illegal_Argument <|
+                10.should_equal error
+
+    suite_builder.group "should_not_equal extension method" group_builder->
+        group_builder.specify "should report correct location" <|
+            r1 = expect_test_failure <|
+                1.should_not_equal 1
+            r1.message.should_contain "Extensions_Spec.enso:51"
+
+        group_builder.specify "should report correct location for errors" <|
+            error = Error.throw (Illegal_Argument.Error "foo")
+            r1 = expect_test_failure <|
+                error.should_not_equal 1
+            r1.message.should_contain "Extensions_Spec.enso:57"
+
+    suite_builder.group "should_contain extension method" group_builder->
+        group_builder.specify "should report correct location" <|
+            r1 = expect_test_failure <|
+                [1, 2].should_contain 3
+            r1.message.should_contain "Extensions_Spec.enso:63"
+
+            r2 = expect_test_failure <|
+                "abc".should_contain "d"
+            r2.message.should_contain "Extensions_Spec.enso:67"
+
+    suite_builder.group "should_not_contain extension method" group_builder->
+        group_builder.specify "should report correct location" <|
+            r1 = expect_test_failure <|
+                [1, 2].should_not_contain 2
+            r1.message.should_contain "Extensions_Spec.enso:73"
+
+    suite_builder.group "should_start_with extension method" group_builder->
+        group_builder.specify "should report correct location" <|
+            r1 = expect_test_failure <|
+                "abc".should_start_with "d"
+            r1.message.should_contain "Extensions_Spec.enso:79"
+
+    suite_builder.group "should_end_with extension method" group_builder->
+        group_builder.specify "should report correct location" <|
+            r1 = expect_test_failure <|
+                "abc".should_end_with "d"
+            r1.message.should_contain "Extensions_Spec.enso:85"

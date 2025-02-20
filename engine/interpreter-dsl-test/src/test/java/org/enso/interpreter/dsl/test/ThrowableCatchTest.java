@@ -10,13 +10,13 @@ import java.util.function.Supplier;
 import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames.TopScope;
+import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.polyglot.RuntimeOptions;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.io.IOAccess;
 import org.junit.After;
@@ -76,12 +76,11 @@ public class ThrowableCatchTest {
   public void testMostErrorsCanPropagateFromBuiltinMethods() {
     var func = ThrowBuiltinMethodGen.makeFunction(EnsoLanguage.get(null));
     var funcCallTarget = func.getCallTarget();
-    var emptyState = ensoCtx.emptyState();
     for (long errorSupplierIdx = 0; errorSupplierIdx < errorSuppliers.size(); errorSupplierIdx++) {
       Object self = null;
       Object[] args =
           Function.ArgumentsHelper.buildArguments(
-              func, null, emptyState, new Object[] {self, Text.create("error"), errorSupplierIdx});
+              func, null, new Object[] {self, Text.create("error"), errorSupplierIdx});
       try {
         funcCallTarget.call(args);
       } catch (Throwable t) {

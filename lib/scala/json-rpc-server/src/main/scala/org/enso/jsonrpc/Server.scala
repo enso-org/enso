@@ -29,7 +29,6 @@ abstract class Server(implicit private val system: ActorSystem) {
           .generateSSLContext()
           .map(ctx => ConnectionContext.httpsServer(ctx))
           .toOption
-
       })
       httpsContext match {
         case Some(ctx) =>

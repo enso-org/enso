@@ -3,29 +3,23 @@ package org.enso.table.data.column.builder;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.BitSet;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.datetime.DateStorage;
 import org.enso.table.data.column.storage.datetime.DateTimeStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.graalvm.polyglot.Context;
 
 /** A builder for ZonedDateTime columns. */
-public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
-  @Override
-  protected ZonedDateTime[] newArray(int size) {
-    return new ZonedDateTime[size];
-  }
+public final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
+  private final boolean allowDateToDateTimeConversion;
+  private final BitSet wasLocalDate;
 
-  public DateTimeBuilder(int size) {
-    super(size);
-  }
-
-  @Override
-  public StorageType getType() {
-    return DateTimeType.INSTANCE;
+  DateTimeBuilder(int size, boolean allowDateToDateTimeConversion) {
+    super(DateTimeType.INSTANCE, new ZonedDateTime[size]);
+    this.allowDateToDateTimeConversion = allowDateToDateTimeConversion;
+    this.wasLocalDate = allowDateToDateTimeConversion ? new BitSet(size) : null;
   }
 
   /**
@@ -37,9 +31,15 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
   }
 
   @Override
-  public void appendNoGrow(Object o) {
+  public void append(Object o) {
+    ensureSpaceToAppend();
     try {
-      data[currentSize++] = (ZonedDateTime) o;
+      if (allowDateToDateTimeConversion && o instanceof LocalDate localDate) {
+        data[currentSize++] = convertDate(localDate);
+        wasLocalDate.set(currentSize - 1);
+      } else {
+        data[currentSize++] = (ZonedDateTime) o;
+      }
     } catch (ClassCastException e) {
       throw new ValueTypeMismatchException(getType(), o);
     }
@@ -48,25 +48,17 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
   @Override
   public void appendBulkStorage(Storage<?> storage) {
     if (storage.getType() instanceof DateType) {
-      if (storage instanceof DateStorage dateStorage) {
-        Context context = Context.getCurrent();
-        for (int i = 0; i < dateStorage.size(); ++i) {
-          LocalDate date = dateStorage.getItemBoxed(i);
-          if (date == null) {
-            data[currentSize++] = null;
-          } else {
-            data[currentSize++] = convertDate(date);
-          }
-
-          context.safepoint();
+      Context context = Context.getCurrent();
+      for (long i = 0; i < storage.getSize(); ++i) {
+        var date = storage.getItemBoxed(i);
+        if (date == null) {
+          appendNulls(1);
+        } else if (date instanceof LocalDate localDate) {
+          append(convertDate(localDate));
+        } else {
+          throw new IllegalStateException("Unexpected type in DateStorage: " + date.getClass());
         }
-      } else {
-        throw new IllegalStateException(
-            "Unexpected storage implementation for type "
-                + storage.getType()
-                + ": "
-                + storage
-                + ". This is a bug in the Table library.");
+        context.safepoint();
       }
     } else {
       super.appendBulkStorage(storage);
@@ -75,11 +67,29 @@ public class DateTimeBuilder extends TypedBuilderImpl<ZonedDateTime> {
 
   @Override
   public boolean accepts(Object o) {
-    return o instanceof ZonedDateTime;
+    return o instanceof ZonedDateTime || (allowDateToDateTimeConversion && o instanceof LocalDate);
   }
 
   @Override
   protected Storage<ZonedDateTime> doSeal() {
-    return new DateTimeStorage(data, currentSize);
+    return new DateTimeStorage(data);
+  }
+
+  @Override
+  public void copyDataTo(Object[] items) {
+    if (allowDateToDateTimeConversion) {
+      if (currentSize >= 0) {
+        System.arraycopy(data, 0, items, 0, currentSize);
+
+        // Replace ZonedDateTime with LocalDate where necessary.
+        int next = this.wasLocalDate.nextSetBit(0);
+        while (next != -1) {
+          items[next] = data[next].toLocalDate();
+          next = this.wasLocalDate.nextSetBit(next + 1);
+        }
+      }
+    } else {
+      super.copyDataTo(items);
+    }
   }
 }

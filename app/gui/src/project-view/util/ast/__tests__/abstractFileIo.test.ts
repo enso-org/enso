@@ -1,0 +1,38 @@
+import { Ast } from '@/util/ast'
+import * as fs from 'fs'
+import { expect, test } from 'vitest'
+import { splitFileContents } from 'ydoc-shared/ensoFile'
+
+// FIXME: This test pulls parts of the server code to read a fixture file. Move necessary parts of
+// file format handling to shared and create a test utility for easy *.enso file fixture loading.
+import { deserializeIdMap } from 'ydoc-server'
+
+/** Print the AST and re-parse it, copying `externalId`s (but not other metadata) from the original. */
+function normalize(rootIn: Ast.Ast): Ast.Ast {
+  const printed = Ast.printWithSpans(rootIn)
+  const idMap = Ast.spanMapToIdMap(printed.info)
+  const module = Ast.MutableModule.Transient()
+  const tree = Ast.rawParseModule(printed.code)
+  const { root: parsed, spans } = Ast.abstract(module, tree, printed.code)
+  module.setRoot(parsed)
+  Ast.setExternalIds(module, spans, idMap)
+  return parsed
+}
+
+test('full file IdMap round trip', () => {
+  const content = fs.readFileSync(__dirname + '/fixtures/stargazers.enso').toString()
+  const { code, idMapJson, metadataJson: _ } = splitFileContents(content)
+  const idMapOriginal = deserializeIdMap(idMapJson!)
+  const idMap = idMapOriginal.clone()
+  const ast_ = Ast.parseUpdatingIdMap(code, idMapOriginal.clone()).root
+  const ast = Ast.parseUpdatingIdMap(code, idMap).root
+  const ast2 = normalize(ast)
+  const astTT = Ast.tokenTreeWithIds(ast)
+  expect(ast2.code()).toBe(ast.code())
+  expect(Ast.tokenTreeWithIds(ast2), 'Print/parse preserves IDs').toStrictEqual(astTT)
+  expect(Ast.tokenTreeWithIds(ast_), 'All node IDs come from IdMap').toStrictEqual(astTT)
+  expect([...idMap.entries()].sort()).toStrictEqual([...idMapOriginal.entries()].sort())
+
+  // Parsed tree shouldn't need any repair.
+  expect(Ast.repair(ast).fixes).toBe(undefined)
+})

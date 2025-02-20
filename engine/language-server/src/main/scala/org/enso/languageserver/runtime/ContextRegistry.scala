@@ -11,7 +11,7 @@ import org.enso.languageserver.event.{
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.runtime.handler._
 import org.enso.languageserver.util.UnhandledLogging
-import org.enso.logger.akka.ActorMessageLogging
+import org.enso.logging.utils.akka.ActorMessageLogging
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.ContextId
 
@@ -166,6 +166,9 @@ final class ContextRegistry(
           sender() ! AccessDenied
         }
 
+      case DestroyContextResponse(_) =>
+      // Initiated by *this* registry. Ignore
+
       case PushContextRequest(client, contextId, stackItem) =>
         if (store.hasContext(client.clientId, contextId)) {
           val item = getRuntimeStackItem(stackItem)
@@ -193,7 +196,8 @@ final class ContextRegistry(
             client,
             contextId,
             expressions,
-            environment
+            environment,
+            expressionConfigs
           ) =>
         if (store.hasContext(client.clientId, contextId)) {
           val handler =
@@ -210,7 +214,8 @@ final class ContextRegistry(
             Api.RecomputeContextRequest(
               contextId,
               invalidatedExpressions,
-              environment.map(ExecutionEnvironment.toApi)
+              environment.map(ExecutionEnvironments.toApi),
+              expressionConfigs.map(_.toApi)
             )
           )
         } else {
@@ -230,7 +235,7 @@ final class ContextRegistry(
           handler.forward(
             Api.SetExecutionEnvironmentRequest(
               contextId,
-              ExecutionEnvironment.toApi(environment)
+              ExecutionEnvironments.toApi(environment)
             )
           )
         } else {

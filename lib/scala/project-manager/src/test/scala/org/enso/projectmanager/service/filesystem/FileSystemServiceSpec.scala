@@ -35,7 +35,8 @@ class FileSystemServiceSpec
         config.storage,
         testClock,
         fileSystem,
-        gen
+        gen,
+        trash
       )
     new FileSystemService[ZIO[ZAny, +*, +*]](
       fileSystem,
@@ -46,7 +47,7 @@ class FileSystemServiceSpec
   def metadataFileStorage(directory: File) =
     new MetadataFileStorage[ZIO[ZAny, +*, +*]](
       directory,
-      config.storage,
+      config.storage.metadata,
       testClock,
       fileSystem,
       gen
@@ -104,6 +105,29 @@ class FileSystemServiceSpec
         .unsafeRunSync()
 
       Files.isDirectory(directoryPath.toPath) shouldEqual true
+
+      // cleanup
+      FileUtils.deleteQuietly(directoryPath)
+    }
+
+    "create directory fail when one exists with the same name" in {
+      val testDir = testStorageConfig.userProjectsPath
+
+      val directoryName = "filesystem_test_create_dir_with_same_name"
+      val directoryPath = new File(testDir, directoryName)
+
+      val result1 = fileSystemService
+        .createDirectory(directoryPath)
+        .unsafeRunSync()
+
+      result1 shouldEqual Right(())
+      Files.isDirectory(directoryPath.toPath) shouldEqual true
+
+      val result2 = fileSystemService
+        .createDirectory(directoryPath)
+        .unsafeRunSync()
+
+      result2.isLeft shouldEqual true
 
       // cleanup
       FileUtils.deleteQuietly(directoryPath)
@@ -183,6 +207,52 @@ class FileSystemServiceSpec
       FileUtils.deleteQuietly(targetPath)
     }
 
+    "copy file" in {
+      val testDir = testStorageConfig.userProjectsPath
+
+      val targetFileName      = "target_copy_file.txt"
+      val destinationFileName = "destination_copy_file.txt"
+      val targetFilePath      = new File(testDir, targetFileName)
+      val destinationFilePath = new File(testDir, destinationFileName)
+
+      FileUtils.forceMkdirParent(targetFilePath)
+      FileUtils.touch(targetFilePath)
+
+      fileSystemService
+        .copy(targetFilePath, destinationFilePath)
+        .unsafeRunSync()
+
+      Files.exists(targetFilePath.toPath) shouldEqual true
+      Files.exists(destinationFilePath.toPath) shouldEqual true
+
+      // cleanup
+      FileUtils.deleteQuietly(targetFilePath)
+      FileUtils.deleteQuietly(destinationFilePath)
+    }
+
+    "copy directory" in {
+      implicit val client: WsTestClient = new WsTestClient(address)
+
+      val testDir = testStorageConfig.userProjectsPath
+
+      val projectName = "New_Project_To_Copy"
+      createProject(projectName)
+
+      val directoryPath = new File(testDir, projectName)
+      val targetPath    = new File(testDir, "Target_Copy_Directory")
+
+      fileSystemService
+        .copy(directoryPath, targetPath)
+        .unsafeRunSync()
+
+      Files.exists(directoryPath.toPath) shouldEqual true
+      Files.isDirectory(targetPath.toPath) shouldEqual true
+
+      // cleanup
+      FileUtils.deleteQuietly(directoryPath)
+      FileUtils.deleteQuietly(targetPath)
+    }
+
     "write path" in {
       val testDir = testStorageConfig.userProjectsPath
 
@@ -202,6 +272,30 @@ class FileSystemServiceSpec
 
       // cleanup
       FileUtils.deleteQuietly(filePath)
+    }
+
+    "check existence of a path" in {
+      implicit val client: WsTestClient = new WsTestClient(address)
+
+      val testDir = testStorageConfig.userProjectsPath
+
+      val projectName = "New_Project_1"
+      createProject(projectName)
+
+      val testFile  = new File(testDir, "foo.txt")
+      val dummyFile = new File(testDir, "foo.exe")
+
+      Files.createFile(testFile.toPath)
+
+      val result1 = fileSystemService
+        .exists(testFile)
+        .unsafeRunSync()
+      result1.value should be(true)
+
+      val result2 = fileSystemService
+        .exists(dummyFile)
+        .unsafeRunSync()
+      result2.value should be(false)
     }
 
   }

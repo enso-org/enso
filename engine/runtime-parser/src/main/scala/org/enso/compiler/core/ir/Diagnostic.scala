@@ -15,7 +15,11 @@ trait Diagnostic extends Serializable {
     message(source)
 
   /** The location at which the diagnostic occurs. */
-  val location: Option[IdentifiedLocation]
+  def identifiedLocation: IdentifiedLocation
+
+  /** The location at which the diagnostic occurs. */
+  def location: Option[IdentifiedLocation] =
+    Option(identifiedLocation)
 
   /** The important keys identifying identity of the diagnostic
     */

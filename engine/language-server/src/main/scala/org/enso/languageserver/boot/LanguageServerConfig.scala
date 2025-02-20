@@ -2,6 +2,7 @@ package org.enso.languageserver.boot
 
 import java.util.UUID
 
+import org.enso.runner.common.ProfilingConfig
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
 
 /**  The config of the running Language Server instance.
@@ -13,6 +14,7 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
   * @param secureDataPort an optional secure data port that the server listen to
   * @param contentRootUuid an id of content root
   * @param contentRootPath a path to the content root
+  * @param projectId an id of project
   * @param profilingConfig an application profiling configuration
   * @param startupConfig a startup configuration
   */
@@ -24,6 +26,7 @@ case class LanguageServerConfig(
   secureDataPort: Option[Int],
   contentRootUuid: UUID,
   contentRootPath: String,
+  projectId: UUID,
   profilingConfig: ProfilingConfig,
   startupConfig: StartupConfig,
   name: String                                      = "language-server",

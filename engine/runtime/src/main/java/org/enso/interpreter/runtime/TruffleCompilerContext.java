@@ -1,13 +1,14 @@
 package org.enso.interpreter.runtime;
 
-import static org.enso.interpreter.util.ScalaConversions.cons;
-import static org.enso.interpreter.util.ScalaConversions.nil;
+import static org.enso.scala.wrapper.ScalaConversions.cons;
+import static org.enso.scala.wrapper.ScalaConversions.nil;
 
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,7 @@ import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.CompilerConfig;
+import org.enso.compiler.data.IdMap;
 import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.suggestions.ExportsBuilder;
 import org.enso.compiler.suggestions.ExportsMap;
@@ -158,6 +160,11 @@ final class TruffleCompilerContext implements CompilerContext {
   @Override
   public CharSequence getCharacters(CompilerContext.Module module) throws IOException {
     return module.getCharacters();
+  }
+
+  @Override
+  public IdMap getIdMap(CompilerContext.Module module) {
+    return module.getIdMap();
   }
 
   @Override
@@ -481,11 +488,18 @@ final class TruffleCompilerContext implements CompilerContext {
   private boolean deserializeModuleDirect(CompilerContext.Module module)
       throws InterruptedException {
     var pool = serializationPool;
-    if (pool.isWaitingForSerialization(module.getName())) {
-      pool.abort(module.getName());
+    var moduleName = module.getName();
+    var awaitingSerialization = pool.isWaitingForSerialization(moduleName);
+    logSerializationManager(
+        Level.FINE,
+        "deserializing module [{0}]. Awaiting serialization: {1}",
+        moduleName,
+        awaitingSerialization);
+    if (awaitingSerialization) {
+      pool.abort(moduleName);
       return false;
     } else {
-      pool.waitWhileSerializing(module.getName());
+      pool.waitWhileSerializing(moduleName);
 
       var loaded = loadCache(((Module) module).getCache());
       if (loaded.isPresent()) {
@@ -499,12 +513,11 @@ final class TruffleCompilerContext implements CompilerContext {
         logSerializationManager(
             Level.FINE,
             "Restored IR from cache for module [{0}] at stage [{1}].",
-            module.getName(),
+            moduleName,
             loaded.get().compilationStage());
         return true;
       } else {
-        logSerializationManager(
-            Level.FINE, "Unable to load a cache for module [{0}].", module.getName());
+        logSerializationManager(Level.FINE, "Unable to load a cache for module [{0}].", moduleName);
         return false;
       }
     }
@@ -669,6 +682,7 @@ final class TruffleCompilerContext implements CompilerContext {
   private final class ModuleUpdater implements Updater, AutoCloseable {
     private final Module module;
     private BindingsMap[] map;
+    private IdMap idMap;
     private org.enso.compiler.core.ir.Module[] ir;
     private CompilationStage stage;
     private Boolean loadedFromCache;
@@ -682,6 +696,11 @@ final class TruffleCompilerContext implements CompilerContext {
     @Override
     public void bindingsMap(BindingsMap map) {
       this.map = new BindingsMap[] {map};
+    }
+
+    @Override
+    public void idMap(IdMap idMap) {
+      this.idMap = idMap;
     }
 
     @Override
@@ -713,12 +732,15 @@ final class TruffleCompilerContext implements CompilerContext {
     public void close() {
       if (map != null) {
         if (module.bindings != null && map[0] != null) {
-          loggerCompiler.log(Level.FINEST, "Reassigining bindings to {0}", module);
+          loggerCompiler.log(Level.FINEST, "Reassigning bindings to {0}", module);
         }
         module.bindings = map[0];
       }
       if (ir != null) {
         module.module.unsafeSetIr(ir[0]);
+      }
+      if (idMap != null) {
+        module.module.unsafeSetIdMap(idMap);
       }
       if (stage != null) {
         module.module.unsafeSetCompilationStage(stage);
@@ -736,6 +758,7 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   public static final class Module extends CompilerContext.Module {
+
     private final org.enso.interpreter.runtime.Module module;
     private BindingsMap bindings;
 
@@ -759,7 +782,7 @@ final class TruffleCompilerContext implements CompilerContext {
     }
 
     /** Intentionally not public. */
-    final org.enso.interpreter.runtime.Module unsafeModule() {
+    org.enso.interpreter.runtime.Module unsafeModule() {
       return module;
     }
 
@@ -775,7 +798,9 @@ final class TruffleCompilerContext implements CompilerContext {
           var meta = module.getIr().passData();
           var pass = meta.get(BindingAnalysis$.MODULE$);
           emitIOException();
-          return (BindingsMap) pass.get();
+          if (pass.isDefined()) {
+            return (BindingsMap) pass.get();
+          }
         } catch (IOException ex) {
           var logger =
               TruffleLogger.getLogger(LanguageInfo.ID, org.enso.interpreter.runtime.Module.class);
@@ -787,7 +812,12 @@ final class TruffleCompilerContext implements CompilerContext {
       return bindings;
     }
 
-    final TruffleFile getSourceFile() {
+    @Override
+    public IdMap getIdMap() {
+      return module.getIdMap();
+    }
+
+    TruffleFile getSourceFile() {
       return module.getSourceFile();
     }
 
@@ -861,6 +891,21 @@ final class TruffleCompilerContext implements CompilerContext {
       sb.append("module=").append(module);
       sb.append('}');
       return sb.toString();
+    }
+
+    @Override
+    public int findLine(IdentifiedLocation loc) {
+      var ss = module.createSection(loc.start(), loc.length());
+      return ss.getStartLine();
+    }
+
+    @Override
+    public URI getUri() {
+      try {
+        return module.getSource().getURI();
+      } catch (IOException ex) {
+        return null;
+      }
     }
   }
 

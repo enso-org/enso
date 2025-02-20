@@ -1,0 +1,59 @@
+from Standard.Base import all
+
+from project.Network.Http.Http_Test_Setup import base_url_with_slash, pending_has_url
+
+from Standard.Test import all
+import Standard.Test.Test_Environment
+
+polyglot java import java.lang.Thread
+
+with_test_file f ~action =
+    f.delete_if_exists
+    Panic.with_finalizer (f.delete_if_exists) <|
+        action f
+
+## file_maker should take a path component and return a full file path, for example:
+   "if_not_exist"
+     =>
+   (enso_project.data / "transient" / "if_not_exist.txt")
+add_specs prefix suite_builder file_maker =
+    suite_builder.group prefix+"Download Mode" pending=pending_has_url group_builder->
+        url_n_bytes n = base_url_with_slash+'test_download?length='+n.to_text
+
+        group_builder.specify prefix+"Will always download a file for mode Always" <|
+            with_test_file (file_maker "always") file->
+                file.exists . should_be_false
+                Data.download (url_n_bytes 10) replace_existing=..Always file
+                first_contents = file.read
+                Data.download (url_n_bytes 11) replace_existing=..Always file
+                second_contents = file.read
+                first_contents . should_not_equal second_contents
+
+        group_builder.specify prefix+"Will download a file if it does not exist for default mode If_Not_Exists" <|
+            with_test_file (file_maker "if_not_exist") file->
+                file.exists . should_be_false
+                Data.download (url_n_bytes 10) file
+                first_contents = file.read
+                Data.download (url_n_bytes 11) file
+                second_contents = file.read
+                first_contents . should_equal second_contents
+
+        # With retries because it relies on a short `sleep`
+        group_builder.specify prefix+"Will download a file if it is older than a specified duration for mode If_Older_Than" <| Test.with_retries <|
+            with_test_file (file_maker "if_older_than") file->
+                sleep_duration_secs = 3
+
+                file.exists . should_be_false
+
+                Data.download (url_n_bytes 10) file
+                first_contents = file.read
+
+                Data.download (url_n_bytes 11) (replace_existing=..If_Older_Than (Duration.new seconds=sleep_duration_secs)) file
+                second_contents = file.read
+                first_contents . should_equal second_contents
+
+                Thread.sleep ((sleep_duration_secs + 0.5) * 1000)
+
+                Data.download (url_n_bytes 12) (replace_existing=..If_Older_Than (Duration.new seconds=sleep_duration_secs)) file
+                third_contents = file.read
+                first_contents . should_not_equal third_contents

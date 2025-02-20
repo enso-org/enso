@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "composite": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "removeComments": true,
+    "skipLibCheck": true,
+    "target": "ES2022",
+    "jsx": "react-jsx"
+  },
+  "exclude": [
+    "tools",
+    "node_modules",
+    "lib",
+    "engine",
+    "test",
+    "dist",
+    "docs",
+    "bazel-*",
+    "build_tools"
+  ]
+}

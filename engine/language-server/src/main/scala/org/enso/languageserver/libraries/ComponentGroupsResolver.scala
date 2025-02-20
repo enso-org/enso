@@ -33,7 +33,7 @@ final class ComponentGroupsResolver {
           config.moduleName
         ) -> config.componentGroups
       }
-      .collect { case (libraryName, Right(componentGroups)) =>
+      .collect { case (libraryName, componentGroups) =>
         libraryName -> componentGroups
       }
     val libraryComponentsMap =
@@ -50,14 +50,18 @@ final class ComponentGroupsResolver {
     * @return the list of component groups with dependencies resolved
     */
   def resolveComponentGroups(
-    libraryComponents: Map[LibraryName, ComponentGroups]
+    libraryComponents: Map[LibraryName, Option[ComponentGroups]]
   ): Vector[LibraryComponentGroup] = {
     val newLibraryComponentGroups: View[LibraryComponentGroup] =
       libraryComponents.view
         .flatMap { case (libraryName, componentGroups) =>
-          componentGroups.newGroups.map(
-            LibraryComponentGroup.fromComponentGroup(libraryName, _)
-          )
+          componentGroups
+            .map(
+              _.newGroups.map(
+                LibraryComponentGroup.fromComponentGroup(libraryName, _)
+              )
+            )
+            .getOrElse(Nil)
         }
     val newLibraryComponentGroupsMap
       : Map[GroupReference, LibraryComponentGroup] =
@@ -73,7 +77,7 @@ final class ComponentGroupsResolver {
     val extendedComponentGroups: View[ExtendedComponentGroup] =
       libraryComponents.view
         .flatMap { case (_, componentGroups) =>
-          componentGroups.extendedGroups
+          componentGroups.map(_.extendedGroups).getOrElse(Nil)
         }
     val extendedComponentGroupsMap
       : Map[GroupReference, Vector[ExtendedComponentGroup]] =

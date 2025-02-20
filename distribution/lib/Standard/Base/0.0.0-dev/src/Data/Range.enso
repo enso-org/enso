@@ -7,6 +7,7 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Common.Not_Found
 import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
@@ -197,7 +198,7 @@ type Range
          Selecting all elements that are greater than 3.
 
              (0.up_to 7).filter (> 3)
-             (0.up_to 7).filter (Filter_Condition.Greater than=3)
+             (0.up_to 7).filter (..Greater than=3)
     @filter range_default_filter_condition_widget
     filter : (Filter_Condition | (Integer -> Boolean)) -> Vector Integer
     filter self (filter : Filter_Condition | (Integer -> Boolean)) =
@@ -365,7 +366,7 @@ type Range
        > Example
          Checking that all numbers in the range are greater than 5.
 
-             10.up_to 100 . all (Filter_Condition.Greater than=5)
+             10.up_to 100 . all (..Greater than=5)
 
        > Example
          Checking that all numbers in the range are even.
@@ -388,7 +389,7 @@ type Range
        > Example
          Checking that at least one number in the range is greater than 10.
 
-             1.up_to 100 . any (Filter_Condition.Greater than=10)
+             1.up_to 100 . any (..Greater than=10)
 
        > Example
          Checking that at least one number in the range is even.
@@ -396,7 +397,8 @@ type Range
              1.up_to 100 . any (x-> x%2 == 0)
     @condition range_default_filter_condition_widget
     any : (Filter_Condition | (Integer -> Boolean)) -> Boolean
-    any self (condition : Filter_Condition | (Integer -> Boolean)) = self.find condition . is_nothing . not
+    any self (condition : Filter_Condition | (Integer -> Boolean)) =
+        self.find condition if_missing=Nothing . is_nothing . not
 
     ## GROUP Selections
        ICON find
@@ -418,10 +420,10 @@ type Range
        > Example
          Get the first number in the range that is greater than 10.
 
-             1.up_to 100 . find (Filter_Condition.Greater than=10)
+             1.up_to 100 . find (..Greater than=10)
     @condition range_default_filter_condition_widget
     find : (Filter_Condition | (Integer -> Boolean)) -> Integer -> Any -> Any
-    find self (condition : Filter_Condition | (Integer -> Boolean)) (start : Integer = 0) ~if_missing=Nothing =
+    find self (condition : Filter_Condition | (Integer -> Boolean)) (start : Integer = 0) ~if_missing=(Error.throw Not_Found) =
         predicate = unify_condition_or_predicate condition
         check_start_valid start self used_start->
             result = find_internal self used_start predicate
@@ -471,7 +473,8 @@ type Range
         check_start_valid start self used_start->
             case condition of
                 element : Integer -> get_index self used_start self.length-1 element
-                f : Function ->
+                _ : Function ->
+                    f = unify_condition_or_predicate condition
                     result = find_internal self used_start f
                     if result.is_nothing then Nothing else result.second
                 fc : Filter_Condition ->
@@ -500,7 +503,8 @@ type Range
             check_start_valid start self include_end=False used_start->
                 case condition of
                     element : Integer -> get_index self 0 used_start element
-                    f : Function ->
+                    _ : Function ->
+                        f = unify_condition_or_predicate condition
                         start_value = self.start + used_start*self.step
                         go current idx =
                             if f current then idx else
@@ -571,6 +575,23 @@ type Range
         step = if self.step.abs == 1 then "" else " by " + self.step.to_display_text
         start + step + "]"
 
+    ## PRIVATE
+       GROUP convert
+       ICON enso_logo
+       Convert the value to a corresponding Enso code representation.
+
+       > Example
+         Getting the Enso code of the range 1 until 29.
+
+             1.up_to 29 . pretty
+             ## Returns a Text
+                Range.new 1 29
+    pretty : Text
+    pretty self =
+        start = self.start.pretty
+        end = self.end.pretty
+        "Range.new " + start + " " + end + (if self.step.abs == 1 then "" else " step=" + self.step.abs.pretty)
+
 ## PRIVATE
 throw_zero_step_error = Error.throw (Illegal_State.Error "A range with step = 0 is ill-formed.")
 
@@ -606,7 +627,7 @@ get_index range min max value =
 
 ## PRIVATE
 range_default_filter_condition_widget =
-    Filter_Condition.default_widget include_text=False include_boolean=False include_nullable=False
+    Filter_Condition.default_widget include_text=False include_boolean=False include_nullable=False include_date=False include_time=False include_date_time=False
 
 ## PRIVATE
 Vector.from (that:Range) = that.to_vector

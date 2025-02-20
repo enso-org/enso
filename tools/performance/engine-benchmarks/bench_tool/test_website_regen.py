@@ -17,8 +17,8 @@ class TestWebsiteRegen(unittest.IsolatedAsyncioTestCase):
         remote_cache = SyncRemoteCache(self.LOCAL_REPO_ROOT)
         # Pull the repo if necessary
         await remote_cache.initialize()
-        since = datetime.fromisoformat("2023-02-01")
-        until = datetime.fromisoformat("2023-02-25")
+        since = datetime.fromisoformat("2024-10-01")
+        until = datetime.fromisoformat("2024-10-25")
         with WithTempDir("test_engine_website_regen") as temp_dir:
             temp_dir_path = Path(temp_dir)
             html_out = temp_dir_path.joinpath("engine-benchs.html")

@@ -84,7 +84,7 @@ final class ReceivesTreeUpdatesHandler(
 
   private def initializing: Receive = {
     case InitializedEvent.ZioRuntimeInitialized =>
-      logger.info("Initialized")
+      logger.debug("Initialized")
       unstashAll()
       context.become(withStore(Store()))
 

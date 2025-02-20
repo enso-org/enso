@@ -19,6 +19,8 @@ abstract class Job[+A](
   val highPriority: Boolean
 ) {
 
+  @volatile private var _hasStarted = false
+
   def this(
     contextIds: List[UUID],
     isCancellable: Boolean,
@@ -27,11 +29,32 @@ abstract class Job[+A](
     this(contextIds, isCancellable, mayInterruptIfRunning, false)
   }
 
+  /** Executes a job. Will mark the job as "started".
+    *
+    * @param ctx contains suppliers of services to perform a request
+    */
+  final def run(implicit ctx: RuntimeContext): A = {
+    _hasStarted = true
+    runImpl(ctx)
+  }
+
   /** Executes a job.
     *
     * @param ctx contains suppliers of services to perform a request
     */
-  def run(implicit ctx: RuntimeContext): A
+  def runImpl(implicit ctx: RuntimeContext): A
+
+  /** Returns the name of the thread which executes the job, if any.
+    * @return a name of the thread or null, if information is unsupported
+    */
+  def threadNameExecutingJob(): String = null
+
+  /** Indicates whether the job has started executing. */
+  def hasStarted(): Boolean = {
+    _hasStarted
+  }
+
+  private[instrument] def setJobId(id: UUID): Unit = ()
 
 }
 

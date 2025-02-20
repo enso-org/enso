@@ -1,8 +1,13 @@
 package org.enso.compiler.pass.analyse;
 
 import java.io.IOException;
-import org.enso.compiler.pass.analyse.alias.Graph;
-import org.enso.compiler.pass.analyse.alias.Info;
+import org.enso.common.CachePreferences;
+import org.enso.compiler.pass.analyse.alias.AliasMetadata;
+import org.enso.compiler.pass.analyse.alias.graph.Graph;
+import org.enso.compiler.pass.analyse.alias.graph.GraphOccurrence;
+import org.enso.compiler.pass.analyse.types.TypeInferencePropagation;
+import org.enso.compiler.pass.analyse.types.TypeInferenceSignatures;
+import org.enso.compiler.pass.analyse.types.scope.StaticModuleScopeAnalysis;
 import org.enso.compiler.pass.resolve.DocumentationComments;
 import org.enso.compiler.pass.resolve.DocumentationComments$;
 import org.enso.compiler.pass.resolve.ExpressionAnnotations$;
@@ -13,7 +18,7 @@ import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.compiler.pass.resolve.IgnoredBindings;
 import org.enso.compiler.pass.resolve.IgnoredBindings$;
 import org.enso.compiler.pass.resolve.MethodCalls$;
-import org.enso.compiler.pass.resolve.MethodDefinitions$;
+import org.enso.compiler.pass.resolve.MethodDefinitions;
 import org.enso.compiler.pass.resolve.ModuleAnnotations;
 import org.enso.compiler.pass.resolve.ModuleAnnotations$;
 import org.enso.compiler.pass.resolve.Patterns$;
@@ -23,7 +28,6 @@ import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 import org.openide.util.lookup.ServiceProvider;
-import scala.Option;
 import scala.Tuple2$;
 
 @Persistable(clazz = CachePreferenceAnalysis.WeightInfo.class, id = 1111)
@@ -45,35 +49,27 @@ import scala.Tuple2$;
 @Persistable(clazz = GlobalNames$.class, id = 1205)
 @Persistable(clazz = IgnoredBindings$.class, id = 1206)
 @Persistable(clazz = Patterns$.class, id = 1207)
-@Persistable(clazz = TailCall$.class, id = 1208)
+@Persistable(clazz = TailCall.class, id = 1208)
 @Persistable(clazz = TypeNames$.class, id = 1209)
 @Persistable(clazz = TypeSignatures$.class, id = 1210)
 @Persistable(clazz = DocumentationComments$.class, id = 1211)
 @Persistable(clazz = ModuleAnnotations$.class, id = 1212)
 @Persistable(clazz = GatherDiagnostics$.class, id = 1213)
 @Persistable(clazz = MethodCalls$.class, id = 1214)
-@Persistable(clazz = MethodDefinitions$.class, id = 1215)
+@Persistable(clazz = MethodDefinitions.class, id = 1215)
 @Persistable(clazz = GenericAnnotations$.class, id = 1216)
 @Persistable(clazz = ExpressionAnnotations$.class, id = 1217)
 @Persistable(clazz = FullyQualifiedNames$.class, id = 1218)
-@Persistable(clazz = Info.Occurrence.class, id = 1261, allowInlining = false)
-@Persistable(
-    clazz = org.enso.compiler.pass.analyse.alias.Info$Scope$Root.class,
-    id = 1262,
-    allowInlining = false)
-@Persistable(
-    clazz = org.enso.compiler.pass.analyse.alias.Info$Scope$Child.class,
-    id = 1263,
-    allowInlining = false)
-@Persistable(
-    clazz = org.enso.compiler.pass.analyse.alias.Graph$Occurrence$Use.class,
-    id = 1264,
-    allowInlining = false)
-@Persistable(
-    clazz = org.enso.compiler.pass.analyse.alias.Graph$Occurrence$Def.class,
-    id = 1265,
-    allowInlining = false)
+@Persistable(clazz = AliasMetadata.Occurrence.class, id = 1261, allowInlining = false)
+@Persistable(clazz = AliasMetadata.RootScope.class, id = 1262, allowInlining = false)
+@Persistable(clazz = AliasMetadata.ChildScope.class, id = 1263, allowInlining = false)
 @Persistable(clazz = Graph.Link.class, id = 1266, allowInlining = false)
+@Persistable(clazz = TypeInferencePropagation.class, id = 1280)
+@Persistable(clazz = TypeInferenceSignatures.class, id = 1281)
+@Persistable(clazz = FramePointerAnalysis$.class, id = 1282)
+@Persistable(clazz = TailCall.TailPosition.class, id = 1284)
+@Persistable(clazz = CachePreferences.class, id = 1285)
+@Persistable(clazz = StaticModuleScopeAnalysis.class, id = 1287)
 public final class PassPersistance {
   private PassPersistance() {}
 
@@ -98,27 +94,6 @@ public final class PassPersistance {
     }
   }
 
-  @ServiceProvider(service = Persistance.class)
-  public static final class PersistTail extends Persistance<TailCall.TailPosition> {
-    public PersistTail() {
-      super(TailCall.TailPosition.class, true, 1102);
-    }
-
-    @Override
-    protected void writeObject(TailCall.TailPosition obj, Output out) throws IOException {
-      out.writeBoolean(obj.isTail());
-    }
-
-    @Override
-    protected TailCall.TailPosition readObject(Input in)
-        throws IOException, ClassNotFoundException {
-      var b = in.readBoolean();
-      return b
-          ? org.enso.compiler.pass.analyse.TailCall$TailPosition$Tail$.MODULE$
-          : org.enso.compiler.pass.analyse.TailCall$TailPosition$NotTail$.MODULE$;
-    }
-  }
-
   @org.openide.util.lookup.ServiceProvider(service = Persistance.class)
   public static final class PersistAliasAnalysisGraphScope extends Persistance<Graph.Scope> {
     public PersistAliasAnalysisGraphScope() {
@@ -129,15 +104,14 @@ public final class PassPersistance {
     @SuppressWarnings("unchecked")
     protected Graph.Scope readObject(Input in) throws IOException {
       var childScopes = in.readInline(scala.collection.immutable.List.class);
-      var occurrencesValues = (scala.collection.immutable.Set<Graph.Occurrence>) in.readObject();
+      var occurrencesValues = (scala.collection.immutable.Set<GraphOccurrence>) in.readObject();
       var occurrences = occurrencesValues.map(v -> Tuple2$.MODULE$.apply(v.id(), v)).toMap(null);
       var allDefinitions = in.readInline(scala.collection.immutable.List.class);
       var parent = new Graph.Scope(childScopes, occurrences, allDefinitions);
-      var optionParent = Option.apply(parent);
       childScopes.forall(
           (object) -> {
             var ch = (Graph.Scope) object;
-            ch.parent_$eq(optionParent);
+            ch.withParent(parent);
             return null;
           });
       return parent;
@@ -160,19 +134,15 @@ public final class PassPersistance {
 
     @SuppressWarnings("unchecked")
     protected Graph readObject(Input in) throws IOException {
-      var g = new Graph();
 
       var rootScope = (Graph.Scope) in.readObject();
       assignParents(rootScope);
-      g.rootScope_$eq(rootScope);
 
       var links =
           (scala.collection.immutable.Set) in.readInline(scala.collection.immutable.Set.class);
-      g.initLinks(links);
 
       var nextIdCounter = in.readInt();
-      g.nextIdCounter_$eq(nextIdCounter);
-
+      var g = new Graph(rootScope, nextIdCounter, links);
       return g;
     }
 
@@ -185,13 +155,12 @@ public final class PassPersistance {
     }
 
     private static void assignParents(Graph.Scope scope) {
-      var option = Option.apply(scope);
       scope
           .childScopes()
           .foreach(
               (ch) -> {
                 assignParents(ch);
-                ch.parent_$eq(option);
+                ch.withParent(scope);
                 return null;
               });
     }

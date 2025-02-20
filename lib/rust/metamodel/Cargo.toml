@@ -6,7 +6,6 @@ authors = ["Enso Team <contact@enso.org>"]
 
 [dependencies]
 enso-zst = { path = "../zst" }
-derivative = { workspace = true }
 derive-where = { workspace = true }
 derive_more = { workspace = true }
 
@@ -14,7 +13,7 @@ derive_more = { workspace = true }
 bincode = "1.3"
 
 [features]
-default = ["graphviz", "java", "rust"]
+default = []
 graphviz = []
 java = []
 rust = []

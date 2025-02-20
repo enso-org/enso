@@ -6,7 +6,7 @@ import org.enso.compiler.core.{CompilerError, IR, Identifier}
 import java.util.UUID
 
 /** Enso literals. */
-sealed trait Literal extends Expression with IRKind.Primitive {
+trait Literal extends Expression with IRKind.Primitive {
 
   /** @inheritdoc */
   override def mapExpressions(
@@ -29,19 +29,18 @@ object Literal {
 
   /** A numeric Enso literal.
     *
-    * @param base        the optional base for the number, expressed in decimal
-    * @param value       the textual representation of the numeric literal
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param base the optional base for the number, expressed in decimal
+    * @param value the textual representation of the numeric literal
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Number(
     base: Option[String],
     value: String,
-    location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Literal
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -62,9 +61,19 @@ object Literal {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Number = {
-      val res = Number(base, value, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        base != this.base
+        || value != this.value
+        || location != this.location
+        || (passData ne this.passData)
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Number(base, value, location.orNull, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -78,9 +87,8 @@ object Literal {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -92,7 +100,7 @@ object Literal {
       fn: java.util.function.Function[Expression, Expression]
     ): Number = this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""Literal.Number(
          |base = $base,
@@ -158,17 +166,16 @@ object Literal {
 
   /** A textual Enso literal.
     *
-    * @param text        the text of the literal
-    * @param location    the source location that the node corresponds to
-    * @param passData    the pass metadata associated with this node
-    * @param diagnostics compiler diagnostics for this node
+    * @param text the text of the literal
+    * @param identifiedLocation the source location that the node corresponds to
+    * @param passData the pass metadata associated with this node
     */
   sealed case class Text(
     text: String,
-    location: Option[IdentifiedLocation],
-    passData: MetadataStorage      = new MetadataStorage(),
-    diagnostics: DiagnosticStorage = DiagnosticStorage()
+    override val identifiedLocation: IdentifiedLocation,
+    override val passData: MetadataStorage = new MetadataStorage()
   ) extends Literal
+      with LazyDiagnosticStorage
       with LazyId {
 
     /** Creates a copy of `this`.
@@ -187,9 +194,18 @@ object Literal {
       diagnostics: DiagnosticStorage       = diagnostics,
       id: UUID @Identifier                 = id
     ): Text = {
-      val res = Text(text, location, passData, diagnostics)
-      res.id = id
-      res
+      if (
+        text != this.text
+        || location != this.location
+        || (passData ne this.passData)
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Text(text, location.orNull, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
     }
 
     /** @inheritdoc */
@@ -203,9 +219,8 @@ object Literal {
         location = if (keepLocations) location else None,
         passData =
           if (keepMetadata) passData.duplicate else new MetadataStorage(),
-        diagnostics =
-          if (keepDiagnostics) diagnostics.copy else DiagnosticStorage(),
-        id = if (keepIdentifiers) id else null
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
       )
 
     /** @inheritdoc */
@@ -217,7 +232,7 @@ object Literal {
       fn: java.util.function.Function[Expression, Expression]
     ): Text = this
 
-    /** @inheritdoc */
+    /** String representation. */
     override def toString: String =
       s"""
          |Literal.Text(

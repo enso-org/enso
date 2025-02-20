@@ -18,6 +18,7 @@ import org.enso.interpreter.node.expression.builtin.error.MapError;
 import org.enso.interpreter.node.expression.builtin.error.ModuleDoesNotExist;
 import org.enso.interpreter.node.expression.builtin.error.ModuleNotInPackageError;
 import org.enso.interpreter.node.expression.builtin.error.NoConversionCurrying;
+import org.enso.interpreter.node.expression.builtin.error.NoSuchArgument;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchConversion;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchField;
 import org.enso.interpreter.node.expression.builtin.error.NoSuchMethod;
@@ -38,6 +39,7 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.error.DataflowError;
 
 /** Container for builtin Error types */
 public final class Error {
@@ -60,6 +62,7 @@ public final class Error {
   private final UnsupportedArgumentTypes unsupportedArgumentsError;
   private final ModuleDoesNotExist moduleDoesNotExistError;
   private final NotInvokable notInvokable;
+  private final NoSuchArgument noSuchArgument;
   private final PrivateAccess privateAccessError;
   private final InvalidConversionTarget invalidConversionTarget;
   private final NoSuchField noSuchField;
@@ -99,6 +102,7 @@ public final class Error {
     unsupportedArgumentsError = builtins.getBuiltinType(UnsupportedArgumentTypes.class);
     moduleDoesNotExistError = builtins.getBuiltinType(ModuleDoesNotExist.class);
     notInvokable = builtins.getBuiltinType(NotInvokable.class);
+    noSuchArgument = builtins.getBuiltinType(NoSuchArgument.class);
     privateAccessError = builtins.getBuiltinType(PrivateAccess.class);
     invalidConversionTarget = builtins.getBuiltinType(InvalidConversionTarget.class);
     noSuchField = builtins.getBuiltinType(NoSuchField.class);
@@ -110,16 +114,16 @@ public final class Error {
     mapError = builtins.getBuiltinType(MapError.class);
   }
 
-  public Atom makeSyntaxError(Object message) {
-    return syntaxError.newInstance(message);
+  public Atom makeSyntaxError(String message) {
+    return syntaxError.newInstance(Text.create(message));
   }
 
-  public Atom makeCompileError(Object message) {
-    return compileError.newInstance(message);
+  public Atom makeCompileError(String message) {
+    return compileError.newInstance(Text.create(message));
   }
 
-  public Atom makeAssertionError(Text text) {
-    return assertionError.newInstance(text);
+  public Atom makeAssertionError(String text) {
+    return assertionError.newInstance(Text.create(text));
   }
 
   public Atom makeIndexOutOfBounds(long index, long length) {
@@ -311,7 +315,30 @@ public final class Error {
    * @return a not invokable error
    */
   public Atom makeNotInvokable(Object target) {
-    return notInvokable.newInstance(target);
+    return notInvokable.newInstance(target, context.getNothing());
+  }
+
+  /**
+   * @param target the target attempted to be invoked
+   * @param cause additional information on what caused the error
+   * @return a not invokable error
+   */
+  public Atom makeNotInvokableWithCause(Object target, Object cause) {
+    if (cause == null) {
+      cause = context.getNothing();
+    }
+    return notInvokable.newInstance(target, cause);
+  }
+
+  /**
+   * Constructs an error that indicates that a named argument application could not find a matching
+   * parameter.
+   *
+   * @param argumentName name of the named argument being applied
+   * @return a no such argument error
+   */
+  public Atom makeNoSuchArgument(String argumentName) {
+    return noSuchArgument.newInstance(Text.create(argumentName));
   }
 
   /**
@@ -349,5 +376,17 @@ public final class Error {
    */
   public Atom makeMapError(long index, Object innerError) {
     return mapError.newInstance(index, innerError);
+  }
+
+  /**
+   * Creates error on missing polyglot java import class.
+   *
+   * @param className the name of the class that is missing
+   * @return data flow error representing the missing value
+   */
+  public DataflowError makeMissingPolyglotImportError(String className) {
+    var msg = "No polyglot symbol for " + className;
+    var err = makeCompileError(msg);
+    return DataflowError.withDefaultTrace(err, null);
   }
 }

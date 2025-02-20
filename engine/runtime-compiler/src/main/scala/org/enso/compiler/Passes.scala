@@ -3,6 +3,11 @@ package org.enso.compiler
 import org.enso.compiler.data.CompilerConfig
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
+import org.enso.compiler.pass.analyse.types.scope.StaticModuleScopeAnalysis
+import org.enso.compiler.pass.analyse.types.{
+  TypeInferencePropagation,
+  TypeInferenceSignatures
+}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.{
   ModuleNameConflicts,
@@ -16,16 +21,13 @@ import org.enso.compiler.pass.optimise.{
 }
 import org.enso.compiler.pass.resolve._
 import org.enso.compiler.pass.{
-  IRPass,
+  IRProcessingPass,
   PassConfiguration,
   PassGroup,
   PassManager
 }
 
-class Passes(
-  config: CompilerConfig,
-  passes: Option[List[PassGroup]] = None
-) {
+class Passes(config: CompilerConfig) {
 
   val moduleDiscoveryPasses = new PassGroup(
     List(
@@ -35,19 +37,18 @@ class Passes(
       ComplexType,
       FunctionBinding,
       GenerateMethodBodies,
-      BindingAnalysis,
-      ModuleNameConflicts
-    )
+      BindingAnalysis
+    ) ++ (if (config.isLintingDisabled) Nil else List(ModuleNameConflicts))
   )
 
   val globalTypingPasses = new PassGroup(
     List(
-      MethodDefinitions,
-      SectionsToBinOp,
+      MethodDefinitions.INSTANCE,
+      SectionsToBinOp.INSTANCE,
       OperatorToFunction,
       LambdaShorthandToLambda,
-      ImportSymbolAnalysis,
-      AmbiguousImportsAnalysis
+      ImportSymbolAnalysis.INSTANCE,
+      AmbiguousImportsAnalysis.INSTANCE
     ) ++ (if (config.privateCheckEnabled) {
             List(
               PrivateModuleAnalysis.INSTANCE,
@@ -55,9 +56,8 @@ class Passes(
             )
           } else List())
     ++ List(
-      ExportSymbolAnalysis.INSTANCE,
-      ShadowedPatternFields,
-      UnreachableMatchBranches,
+      ShadowedPatternFields.INSTANCE,
+      UnreachableMatchBranches.INSTANCE,
       NestedPatternMatch,
       IgnoredBindings,
       TypeFunctions,
@@ -89,18 +89,34 @@ class Passes(
       AliasAnalysis,
       DemandAnalysis,
       AliasAnalysis,
-      TailCall,
+      TailCall.INSTANCE,
       Patterns
     ) ++ (if (config.privateCheckEnabled) {
             List(PrivateSymbolsAnalysis.INSTANCE)
           } else List()) ++ List(
       AliasAnalysis,
+      FramePointerAnalysis,
       DataflowAnalysis,
       CachePreferenceAnalysis,
-      UnusedBindings,
-      NoSelfInStatic,
       GenericAnnotations
-    )
+    ) ++ (if (config.isLintingDisabled) {
+            Nil
+          } else {
+            List(UnusedBindings, NoSelfInStatic)
+          }) ++ (if (config.staticTypeInferenceEnabled) {
+                   List(
+                     TypeInferenceSignatures.INSTANCE,
+                     StaticModuleScopeAnalysis.INSTANCE
+                   )
+                 } else Nil)
+  )
+
+  val typeInferenceFinalPasses = new PassGroup(
+    if (config.staticTypeInferenceEnabled) {
+      List(
+        TypeInferencePropagation.INSTANCE
+      )
+    } else List()
   )
 
   /** A list of the compiler phases, in the order they should be run.
@@ -109,16 +125,16 @@ class Passes(
     * dependencies between passes, and so this pass ordering must adhere to
     * these dependencies.
     */
-  val passOrdering: List[PassGroup] = passes.getOrElse(
+  val passOrdering: List[PassGroup] =
     List(
       moduleDiscoveryPasses,
       globalTypingPasses,
-      functionBodyPasses
+      functionBodyPasses,
+      typeInferenceFinalPasses
     )
-  )
 
   /** The ordered representation of all passes run by the compiler. */
-  val allPassOrdering: List[IRPass] = passOrdering.flatMap(_.passes)
+  val allPassOrdering: List[IRProcessingPass] = passOrdering.flatMap(_.passes)
 
   /** Configuration for the passes. */
   private val passConfig: PassConfiguration = PassConfiguration(
@@ -137,7 +153,7 @@ class Passes(
     * @param pass the pass to get the precursors for
     * @return the precursors to the first instance of `pass`
     */
-  def getPrecursors(pass: IRPass): Option[PassGroup] = {
+  def getPrecursors(pass: IRProcessingPass): Option[PassGroup] = {
     val allPasses = passOrdering.flatMap(_.passes)
     val result    = allPasses.takeWhile(_ != pass)
     if (result.length != allPasses.length) {

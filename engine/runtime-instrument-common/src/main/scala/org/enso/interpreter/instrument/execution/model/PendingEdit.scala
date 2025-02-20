@@ -18,6 +18,8 @@ object PendingEdit {
 
   case class SetExpressionValue(edit: TextEdit, id: ExpressionId, value: String)
       extends PendingEdit {
+
+    /** @inheritdoc */
     override val execute: Boolean = true
   }
 

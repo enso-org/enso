@@ -16,7 +16,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.SOURCE)
 public @interface BuiltinMethod {
   /**
-   * @return the language-level type of {@code self} argument.
+   * @return the language-level type of {@code self} argument. Not a fully-qualified name.
    */
   String type();
 

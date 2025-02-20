@@ -1,0 +1,33 @@
+import Standard.Base.Error.Error
+import Standard.Base.Meta
+import Standard.Base.Nothing.Nothing
+import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+import Standard.Base.Runtime.Ref.Ref
+from Standard.Base.Data.Boolean import Boolean, False, True
+
+## PRIVATE
+   This is used by ReloadDetector.java to create a `Managed_Resource` that is
+   garbage collected when the reload button is pressed.
+
+   The managed resource contains a Ref containing a 0 (the value is
+   unimportant). When the reload button is pressed, the ref is removed and
+   attempting to access it using `with` throws an `Uninitialized_State`. When
+   the `Uninitialized_State` is detected, it indicates that the reload has been
+   initiated.
+type Reload_Detector
+    private Value mr:Managed_Resource
+
+    ## Create a new reload detector.
+    new -> Reload_Detector =
+        mr = Managed_Resource.register (Ref.new 1) (_-> Nothing) True
+        Reload_Detector.Value mr
+
+    ## Check if a reload has occurred.
+    has_reload_occurred self =
+        self.mr.has_been_finalized
+
+## PRIVATE
+simulate_reload_test_only reload_detector = reload_detector.mr.finalize
+
+## PRIVATE
+create_reload_detector = Reload_Detector.new

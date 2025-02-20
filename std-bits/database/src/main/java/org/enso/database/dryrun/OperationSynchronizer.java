@@ -27,7 +27,11 @@ public class OperationSynchronizer {
    *
    * <p>Note: the return type is Value and not Object to preserve Enso specific additional
    * information like warnings or dataflow error; converting to Object could lose some of it.
+   *
+   * @deprecated This method should not be used until the bug <a
+   *     href="https://github.com/enso-org/enso/issues/7117">#7117</a> is fixed.
    */
+  @Deprecated
   public Value runSynchronizedAction(Function<Integer, Value> action) {
     lock.lock();
     try {
@@ -37,6 +41,31 @@ public class OperationSynchronizer {
       nestingLevel--;
       lock.unlock();
     }
+  }
+
+  /**
+   * Enters a synchronized action, incrementing the nesting level.
+   *
+   * <p>This is much less safe than `runSynchronizedAction` but it gets us around the <a
+   * href="https://github.com/enso-org/enso/issues/7117">#7117</a> bug.
+   *
+   * <p>Any call to this MUST be followed by a call to `exitSynchronizedAction` in a `finally`
+   * block, or otherwise the resource may be locked forever.
+   */
+  public int enterSynchronizedAction() {
+    lock.lock();
+    nestingLevel++;
+    return nestingLevel;
+  }
+
+  /**
+   * Exits a synchronized action, decrementing the nesting level.
+   *
+   * @see #enterSynchronizedAction()
+   */
+  public void exitSynchronizedAction() {
+    nestingLevel--;
+    lock.unlock();
   }
 
   /**

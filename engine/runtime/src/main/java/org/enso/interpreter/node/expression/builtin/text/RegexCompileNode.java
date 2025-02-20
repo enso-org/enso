@@ -66,6 +66,8 @@ public abstract class RegexCompileNode extends Node {
     try {
       var regex = ctx.parseInternal(src).call();
       return regex;
+    } catch (IllegalStateException ex) {
+      throw ctx.raiseAssertionPanic(this, null, ex);
     } catch (AbstractTruffleException e) {
       Builtins builtins = ctx.getBuiltins();
       String msg = "Regex parse error: " + e.getMessage();

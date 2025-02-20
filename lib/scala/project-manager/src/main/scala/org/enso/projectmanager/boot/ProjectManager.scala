@@ -12,8 +12,10 @@ import org.enso.projectmanager.boot.Globals.{
 import org.enso.projectmanager.boot.command.filesystem.{
   FileSystemCreateDirectoryCommand,
   FileSystemDeleteCommand,
+  FileSystemExistsCommand,
   FileSystemListCommand,
   FileSystemMoveDirectoryCommand,
+  FileSystemReadPathCommand,
   FileSystemWritePathCommand
 }
 import org.enso.projectmanager.boot.command.{CommandHandler, ProjectListCommand}
@@ -21,6 +23,7 @@ import org.enso.projectmanager.boot.configuration.{
   MainProcessConfig,
   ProjectManagerConfig
 }
+import org.enso.projectmanager.infrastructure.migration.ProjectsMigration
 import org.enso.projectmanager.protocol.JsonRpcProtocolFactory
 import org.enso.version.VersionDescription
 import org.slf4j.event.Level
@@ -53,11 +56,11 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
     new JsonRpcProtocolFactory().getProtocol()
   )
 
-  val computeThreadPool = new ScheduledThreadPoolExecutor(
+  private val computeThreadPool = new ScheduledThreadPoolExecutor(
     java.lang.Runtime.getRuntime.availableProcessors()
   )
 
-  val computeExecutionContext: ExecutionContextExecutor =
+  private val computeExecutionContext: ExecutionContextExecutor =
     ExecutionContext.fromExecutor(
       computeThreadPool,
       th => logger.error("An expected error occurred.", th)
@@ -77,6 +80,7 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
   private def mainProcess(
     processConfig: MainProcessConfig
   ): ZIO[ZAny, IOException, Unit] = {
+    ProjectsMigration.migrate(config.storage)
     val mainModule =
       new MainModule[ZIO[ZAny, +*, +*]](
         config,
@@ -107,7 +111,10 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         .as("")
     }
 
-  private def killAllLanguageServer(mainModule: MainModule[ZIO[ZAny, +*, +*]]) =
+  @scala.annotation.nowarn("msg=pure expression does nothing")
+  private def killAllLanguageServer(
+    mainModule: MainModule[ZIO[ZAny, +*, +*]]
+  ): ZIO[ZAny, Nothing, Unit] =
     mainModule.languageServerGateway
       .killAllServers()
       .foldZIO(
@@ -216,6 +223,11 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
       ZIO.succeed(SuccessExitCode)
     } else if (options.hasOption(Cli.VERSION_OPTION)) {
       displayVersion(options.hasOption(Cli.JSON_OPTION))
+    } else if (options.hasOption(Cli.FILESYSTEM_EXISTS)) {
+      val path = Paths.get(options.getOptionValue(Cli.FILESYSTEM_EXISTS))
+      val fileSystemExistsCommand =
+        FileSystemExistsCommand[ZIO[ZAny, +*, +*]](config, path.toFile)
+      commandHandler.printJson(fileSystemExistsCommand.run)
     } else if (options.hasOption(Cli.FILESYSTEM_LIST)) {
       val directory = Paths.get(options.getOptionValue(Cli.FILESYSTEM_LIST))
       val fileSystemListCommand =
@@ -246,14 +258,22 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
           to.toFile
         )
       commandHandler.printJson(fileSystemMoveDirectoryCommand.run)
+    } else if (options.hasOption(Cli.FILESYSTEM_READ_PATH)) {
+      val path = Paths.get(options.getOptionValue(Cli.FILESYSTEM_READ_PATH))
+      val fileSystemReadPathCommand =
+        FileSystemReadPathCommand[ZIO[ZAny, +*, +*]](
+          config,
+          path.toFile
+        )
+      commandHandler.printJsonErr(fileSystemReadPathCommand.run)
     } else if (options.hasOption(Cli.FILESYSTEM_WRITE_PATH)) {
       val path = Paths.get(options.getOptionValue(Cli.FILESYSTEM_WRITE_PATH))
-      val fileSystemMoveDirectoryCommand =
+      val fileSystemWritePathCommand =
         FileSystemWritePathCommand[ZIO[ZAny, +*, +*]](
           config,
           path.toFile
         )
-      commandHandler.printJson(fileSystemMoveDirectoryCommand.run)
+      commandHandler.printJson(fileSystemWritePathCommand.run)
     } else if (options.hasOption(Cli.PROJECT_LIST)) {
       val projectsPathOpt =
         Option(options.getOptionValue(Cli.PROJECTS_DIRECTORY))
@@ -286,6 +306,7 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
           },
           _ => SuccessExitCode
         )
+        _ <- teardownLogging()
       } yield exitCode
     }
   }
@@ -311,6 +332,13 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
       .as(level)
   }
 
+  private def teardownLogging(): ZIO[ZAny, Throwable, Unit] = {
+    ZIO.attempt {
+      Logging.tearDown()
+      ()
+    }
+  }
+
   private def displayVersion(
     useJson: Boolean
   ): ZIO[ZAny, IOException, ExitCode] = {
@@ -321,8 +349,8 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
   private def makeVersionDescription: VersionDescription =
     VersionDescription.make(
       "Enso Project Manager",
-      includeRuntimeJVMInfo         = false,
-      enableNativeImageOSWorkaround = true
+      false,
+      true
     )
 
   private def logServerStartup(): UIO[Unit] =

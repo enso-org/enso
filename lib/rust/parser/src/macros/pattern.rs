@@ -143,7 +143,7 @@ impl std::ops::Shr for Pattern {
 }
 
 /// The syntax `pattern1 | pattern2` is a shortcut for `or(pattern1, pattern2)`.
-impl std::ops::BitOr for Pattern {
+impl BitOr for Pattern {
     type Output = Pattern;
     fn bitor(self, rhs: Pattern) -> Self::Output {
         or(self, rhs)
@@ -185,7 +185,7 @@ pub enum Match<'s> {
     Identifier(syntax::Item<'s>),
     Expected(String, Box<Match<'s>>),
     Named(String, Box<Match<'s>>),
-    Block(Vec<syntax::item::Line<'s>>),
+    Block(Box<[syntax::item::Line<'s>]>),
     NotBlock(syntax::Item<'s>),
 }
 
@@ -229,10 +229,10 @@ impl<'s> Match<'s> {
                 fst.get_tokens(out);
                 snd.get_tokens(out);
             }
-            Self::Expected(_, box item)
-            | Self::Named(_, box item)
-            | Self::Or(box OrMatch::First(item) | box OrMatch::Second(item)) =>
-                item.get_tokens(out),
+            Self::Expected(_, item) | Self::Named(_, item) => item.get_tokens(out),
+            Self::Or(or) => match *or {
+                OrMatch::First(item) | OrMatch::Second(item) => item.get_tokens(out),
+            },
             Self::Many(matches) => matches.into_iter().for_each(|match_| match_.get_tokens(out)),
         }
     }
@@ -244,7 +244,6 @@ impl<'s> Match<'s> {
         out
     }
 }
-
 
 
 // ===================
@@ -349,13 +348,16 @@ impl Pattern {
             }
             PatternData::Identifier => match input.pop_front() {
                 None => Err(default()),
-                Some(t) =>
-                    if t.is_variant(syntax::token::variant::VariantMarker::Ident) {
-                        Ok(MatchResult::new(Match::Identifier(t), input))
-                    } else {
-                        input.push_front(t);
-                        Err(input)
-                    },
+                Some(
+                    t @ syntax::Item::Token(syntax::Token {
+                        variant: syntax::token::Variant::Ident(_),
+                        ..
+                    }),
+                ) => Ok(MatchResult::new(Match::Identifier(t), input)),
+                Some(t) => {
+                    input.push_front(t);
+                    Err(input)
+                }
             },
             PatternData::Block => match input.pop_front() {
                 None => Err(default()),

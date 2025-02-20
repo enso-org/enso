@@ -5,7 +5,6 @@ import org.enso.compiler.core.{CompilerError, IR, Identifier}
 import org.enso.compiler.core.ir.ProcessingPass
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Expression
-import shapeless.=:!=
 
 import java.util.UUID
 import scala.annotation.unused
@@ -20,10 +19,7 @@ import scala.reflect.ClassTag
   * its header the requirements it has for pass configuration and for passes
   * that must run before it.
   */
-trait IRPass extends ProcessingPass {
-
-  /** An identifier for the pass. Useful for keying it in maps. */
-  val key: UUID @Identifier = IRPass.genId
+trait IRPass extends IRProcessingPass with ProcessingPass {
 
   /** The type of the metadata object that the pass writes to the IR. */
   type Metadata <: ProcessingPass.Metadata
@@ -32,10 +28,10 @@ trait IRPass extends ProcessingPass {
   type Config <: IRPass.Configuration
 
   /** The passes that this pass depends _directly_ on to run. */
-  val precursorPasses: Seq[IRPass]
+  val precursorPasses: Seq[IRProcessingPass]
 
   /** The passes that are invalidated by running this pass. */
-  val invalidatedPasses: Seq[IRPass]
+  val invalidatedPasses: Seq[IRProcessingPass]
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir`.
@@ -110,7 +106,7 @@ object IRPass {
     * passes such that it can be stored in each IR node.
     *
     * All metadata instances must be [[Serializable]], but are guaranteed to
-    * have `prepareForSpecialization` called before being serialised. Similarly,
+    * have `prepareForSerialization` called before being serialised. Similarly,
     * they are guaranteed to have `restoreFromSerialization` called after they
     * have been deserialized and before any other operations occur.
     */
@@ -129,7 +125,7 @@ object IRPass {
       * @return `ev`, cast to `T` if it is a `T`
       */
     def as[T <: Metadata: ClassTag](implicit
-      @unused ev: T =:!= Metadata
+      @unused ev: T =!= Metadata
     ): Option[T] = {
       this match {
         case p: T => Some(p)
@@ -146,7 +142,7 @@ object IRPass {
       */
     @throws[CompilerError]
     def unsafeAs[T <: Metadata: ClassTag](implicit
-      @unused ev: T =:!= Metadata
+      @unused ev: T =!= Metadata
     ): T = {
       this
         .as[T]
@@ -182,5 +178,19 @@ object IRPass {
       /** @inheritdoc */
       override def duplicate(): Option[Metadata] = Some(this)
     }
+  }
+
+  // https://stackoverflow.com/questions/6909053/enforce-type-difference
+
+  sealed class =!=[A, B]
+
+  trait LowerPriorityImplicits {
+    implicit def equal[A]: =!=[A, A] = sys.error("should not be called")
+  }
+  object =!= extends LowerPriorityImplicits {
+    implicit def nequal[A, B](implicit same: A =:= B = null): =!=[A, B] =
+      if (same != null)
+        sys.error("should not be called explicitly with same type")
+      else new =!=[A, B]
   }
 }

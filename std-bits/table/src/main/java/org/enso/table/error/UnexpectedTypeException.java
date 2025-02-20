@@ -19,6 +19,11 @@ public class UnexpectedTypeException extends RuntimeException {
     this.expected = expected;
   }
 
+  public UnexpectedTypeException(String expected, String got) {
+    super("Unexpected value type. Expected " + expected + ", but got " + got + ".");
+    this.expected = expected;
+  }
+
   /**
    * @return the expected type descriptor
    */

@@ -5,10 +5,11 @@ import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.core.{Applicative, CovariantFlatMap}
 import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
+import org.enso.projectmanager.infrastructure.desktop.DesktopTrash
 import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
 import org.enso.projectmanager.infrastructure.random.SystemGenerator
 import org.enso.projectmanager.infrastructure.repository.{
-  ProjectFileRepository,
+  ProjectFileRepositoryFactory,
   ProjectRepository
 }
 import org.enso.projectmanager.infrastructure.time.RealClock
@@ -47,17 +48,18 @@ object ProjectListCommand {
     val clock      = new RealClock[F]
     val fileSystem = new BlockingFileSystem[F](config.timeout.ioTimeout)
     val gen        = new SystemGenerator[F]
-    val storageConfig = projectsPath.fold(config.storage)(path =>
-      config.storage.copy(userProjectsPath = path)
-    )
+    val trash      = DesktopTrash[F]
 
-    val projectRepository =
-      new ProjectFileRepository[F](
-        storageConfig,
+    val projectRepositoryFactory =
+      new ProjectFileRepositoryFactory[F](
+        config.storage,
         clock,
         fileSystem,
-        gen
+        gen,
+        trash
       )
+    val projectRepository =
+      projectRepositoryFactory.getProjectRepository(projectsPath)
 
     new ProjectListCommand[F](projectRepository, limitOpt)
   }

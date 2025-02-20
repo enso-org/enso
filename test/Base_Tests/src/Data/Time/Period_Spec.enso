@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Incomparable_Values
+import Standard.Base.Runtime.Debug
 
 from Standard.Test import all
 
@@ -49,6 +50,18 @@ add_specs suite_builder =
             Period.new months=18 . to_display_text . should_equal "1Y 6M"
             Period.new years=2 days=3 . to_display_text . should_equal "2Y 0M 3D"
             Period.new days=18 . to_display_text . should_equal "18D"
+
+        group_builder.specify "should render to Enso code" <|
+            Period.new . pretty . should_equal "Period.new"
+            Period.new years=2 . pretty . should_equal "Period.new 2"
+            Period.new months=24 . pretty . should_equal "Period.new months=24"
+            Period.new months=4 . pretty . should_equal "Period.new months=4"
+            Period.new years=1 months=6 . pretty . should_equal "Period.new 1 6"
+            Period.new years=2 days=3 . pretty . should_equal "Period.new 2 days=3"
+            Period.new days=18 . pretty . should_equal "Period.new days=18"
+
+            period = Period.new years=2 days=3
+            Debug.eval period.pretty . should_equal period
 
 main filter=Nothing =
     suite = Test.build suite_builder->

@@ -14,7 +14,6 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import com.oracle.truffle.api.source.SourceSection;
@@ -43,7 +42,6 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.control.TailCallException;
-import org.enso.interpreter.runtime.data.ArrayRope;
 import org.enso.interpreter.runtime.data.EnsoDate;
 import org.enso.interpreter.runtime.data.EnsoDateTime;
 import org.enso.interpreter.runtime.data.EnsoDuration;
@@ -51,15 +49,17 @@ import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.EnsoTimeOfDay;
 import org.enso.interpreter.runtime.data.EnsoTimeZone;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
+import org.enso.interpreter.runtime.data.hash.HashMapInsertAllNode;
+import org.enso.interpreter.runtime.data.hash.HashMapSizeNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.error.Warning;
-import org.enso.interpreter.runtime.error.WarningsLibrary;
-import org.enso.interpreter.runtime.error.WithWarnings;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 @ImportStatic({HostMethodCallNode.PolyglotCallType.class, HostMethodCallNode.class})
 public abstract class InvokeMethodNode extends BaseNode {
@@ -168,16 +168,18 @@ public abstract class InvokeMethodNode extends BaseNode {
       return null;
     }
 
-    RootNode where = function.getCallTarget().getRootNode();
-    // If both Any and the type where `function` is declared, define `symbol`
-    // and the method is invoked statically, i.e. type of self is the eigentype,
-    // then we want to disambiguate method resolution by always resolved to the one in Any.
-    EnsoContext ctx = EnsoContext.get(this);
-    if (where instanceof MethodRootNode node && typeCanOverride(node, ctx)) {
-      Type any = ctx.getBuiltins().any();
-      Function anyFun = symbol.getScope().lookupMethodDefinition(any, symbol.getName());
-      if (anyFun != null) {
-        function = anyFun;
+    if (selfTpe.getDefinitionScope().getAssociatedType() != selfTpe) {
+      var where = function.getCallTarget().getRootNode();
+      // If both Any and the type where `function` is declared, define `symbol`
+      // and the method is invoked statically, i.e. type of self is the eigentype,
+      // then we want to disambiguate method resolution by always resolved to the one in Any.
+      var ctx = EnsoContext.get(this);
+      if (where instanceof MethodRootNode node && typeCanOverride(node, ctx)) {
+        Type any = ctx.getBuiltins().any();
+        Function anyFun = symbol.getScope().lookupMethodDefinition(any, symbol.getName());
+        if (anyFun != null) {
+          function = anyFun;
+        }
       }
     }
     return function;
@@ -294,13 +296,17 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       EnsoMultiValue self,
       Object[] arguments,
-      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode,
+      @Cached EnsoMultiValue.CastToNode castTo) {
     var fnAndType = self.resolveSymbol(methodResolverNode, symbol);
     if (fnAndType != null) {
-      var unwrapSelf = self.castTo(fnAndType.getRight());
-      if (unwrapSelf != null) {
-        assert arguments[0] == self;
-        arguments[0] = unwrapSelf;
+      var ctx = EnsoContext.get(this);
+      if (ctx.getBuiltins().any() != fnAndType.getRight()) {
+        var unwrapSelf = castTo.findTypeOrNull(fnAndType.getRight(), self, true, false);
+        if (unwrapSelf != null) {
+          assert arguments[0] == self;
+          arguments[0] = unwrapSelf;
+        }
       }
       return invokeFunctionNode.execute(fnAndType.getLeft(), frame, state, arguments);
     }
@@ -435,12 +441,13 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol,
       Object self,
       Object[] arguments,
-      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings) {
+      @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
+      @Shared @Cached AppendWarningNode appendWarningNode) {
     Object selfWithoutWarnings;
-    Warning[] arrOfWarnings;
+    EnsoHashMap warnsMap;
     try {
       selfWithoutWarnings = warnings.removeWarnings(self);
-      arrOfWarnings = warnings.getWarnings(self, this, false);
+      warnsMap = warnings.getWarnings(self, false);
     } catch (UnsupportedMessageException e) {
       var ctx = EnsoContext.get(this);
       throw ctx.raiseAssertionPanic(this, null, e);
@@ -474,9 +481,10 @@ public abstract class InvokeMethodNode extends BaseNode {
 
     try {
       Object result = childDispatch.execute(frame, state, symbol, selfWithoutWarnings, arguments);
-      return WithWarnings.appendTo(EnsoContext.get(this), result, arrOfWarnings);
+      return appendWarningNode.executeAppend(null, result, warnsMap);
     } catch (TailCallException e) {
-      throw new TailCallException(e, arrOfWarnings);
+      CompilerDirectives.transferToInterpreter();
+      throw new TailCallException(e, warnsMap);
     }
   }
 
@@ -504,10 +512,13 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Cached(value = "buildProfiles()", dimensions = 1) BranchProfile[] profiles,
       @Cached(value = "buildProfiles()", dimensions = 1) BranchProfile[] warningProfiles,
       @Cached BranchProfile anyWarningsProfile,
-      @Cached HostMethodCallNode hostMethodCallNode) {
+      @Cached HostMethodCallNode hostMethodCallNode,
+      @Shared @Cached AppendWarningNode appendWarningNode,
+      @Cached HashMapSizeNode mapSizeNode,
+      @Cached HashMapInsertAllNode mapInsertAllNode) {
     Object[] args = new Object[argExecutors.length];
     boolean anyWarnings = false;
-    ArrayRope<Warning> accumulatedWarnings = new ArrayRope<>();
+    var accumulatedWarnings = EnsoHashMap.empty();
     for (int i = 0; i < argExecutors.length; i++) {
       var r = argExecutors[i].executeThunk(frame, arguments[i + 1], state, TailStatus.NOT_TAIL);
       if (r instanceof DataflowError) {
@@ -517,7 +528,12 @@ public abstract class InvokeMethodNode extends BaseNode {
         warningProfiles[i].enter();
         anyWarnings = true;
         try {
-          accumulatedWarnings = accumulatedWarnings.append(warnings.getWarnings(r, this, false));
+          EnsoHashMap rWarnsMap = warnings.getWarnings(r, false);
+          var maxWarningsToAdd =
+              EnsoContext.get(this).getWarningsLimit() - mapSizeNode.execute(accumulatedWarnings);
+          accumulatedWarnings =
+              mapInsertAllNode.executeInsertAll(
+                  frame, accumulatedWarnings, rWarnsMap, maxWarningsToAdd);
           args[i] = warnings.removeWarnings(r);
         } catch (UnsupportedMessageException e) {
           var ctx = EnsoContext.get(this);
@@ -530,7 +546,7 @@ public abstract class InvokeMethodNode extends BaseNode {
     Object res = hostMethodCallNode.execute(polyglotCallType, symbol.getName(), self, args);
     if (anyWarnings) {
       anyWarningsProfile.enter();
-      res = WithWarnings.appendTo(EnsoContext.get(this), res, accumulatedWarnings);
+      res = appendWarningNode.executeAppend(null, res, accumulatedWarnings);
     }
     return res;
   }
@@ -637,7 +653,7 @@ public abstract class InvokeMethodNode extends BaseNode {
       @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode) {
     var ctx = EnsoContext.get(this);
-    var hashMapType = ctx.getBuiltins().map();
+    var hashMapType = ctx.getBuiltins().dictionary();
     var function = methodResolverNode.expectNonNull(self, hashMapType, symbol);
     arguments[0] = self;
     return invokeFunctionNode.execute(function, frame, state, arguments);

@@ -7,7 +7,7 @@ import org.enso.interpreter.instrument.job.Job;
 public interface JobControlPlane {
 
   /** Aborts all interruptible jobs. */
-  void abortAllJobs();
+  void abortAllJobs(String reason);
 
   /**
    * Abort all jobs except the ignored jobs.
@@ -15,17 +15,21 @@ public interface JobControlPlane {
    * @param ignoredJobs the list of jobs to keep in the execution queue
    */
   @SuppressWarnings("unchecked")
-  void abortAllExcept(Class<? extends Job<?>>... ignoredJobs);
+  void abortAllExcept(String reason, Class<? extends Job<?>>... ignoredJobs);
 
   /**
    * Aborts jobs that relates to the specified execution context.
    *
    * @param contextId an identifier of a context
+   * @param reason reason for aborting job(s)
+   * @param softAbortFirst true if ongoing jobs should be aborted with safepoints first, even if
+   *     marked as interruptible
    * @param classOf abort jobs of a given class only. If empty all jobs for the given context are
    *     aborted
    */
   @SuppressWarnings("unchecked")
-  void abortJobs(UUID contextId, Class<? extends Job<?>>... classOf);
+  void abortJobs(
+      UUID contextId, String reason, boolean softAbortFirst, Class<? extends Job<?>>... classOf);
 
   /**
    * Aborts jobs that relate to the specified execution context.
@@ -34,7 +38,8 @@ public interface JobControlPlane {
    * @param accept filter that selects jobs to be aborted
    */
   @SuppressWarnings("unchecked")
-  void abortJobs(UUID contextId, java.util.function.Function<Job<?>, Boolean> accept);
+  void abortJobs(
+      UUID contextId, String reason, java.util.function.Function<Job<?>, Boolean> accept);
 
   /**
    * Abort provided background jobs.
@@ -42,7 +47,7 @@ public interface JobControlPlane {
    * @param toAbort the list of jobs to abort
    */
   @SuppressWarnings("unchecked")
-  void abortBackgroundJobs(Class<? extends Job<?>>... toAbort);
+  void abortBackgroundJobs(String reason, Class<? extends Job<?>>... toAbort);
 
   /**
    * Starts background jobs processing.

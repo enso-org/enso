@@ -1,7 +1,5 @@
 package org.enso.polyglot.data
 
-import com.fasterxml.jackson.annotation.JsonIgnore
-
 import scala.collection.mutable
 
 /** A collection that represents subsumption relationships between types.
@@ -30,7 +28,6 @@ case class TypeGraph(
     *
     * @param name the fully-qualified typename
     */
-  @JsonIgnore
   def insertWithoutParent(name: String): Unit = {
     parentLinks.update(name, Set())
   }
@@ -40,7 +37,6 @@ case class TypeGraph(
     * @param typeName the fully-qualified name of the type to set the parent for
     * @param parentName the fully-qualified name of the parent of `typeName`
     */
-  @JsonIgnore
   def insert(typeName: String, parentName: String): Unit = {
     parentLinks.updateWith(typeName) {
       case Some(parents) => Some(parents + parentName)
@@ -57,7 +53,6 @@ case class TypeGraph(
     *                 parents for
     * @return the set of direct parents for `typeName`
     */
-  @JsonIgnore
   def getDirectParents(typeName: String): Set[String] = {
     parentLinks.getOrElse(typeName, Set(defaultRootType))
   }
@@ -70,7 +65,6 @@ case class TypeGraph(
     * @param typeName the fully-qualified type name for which to get the parents
     * @return all parents of `typeName`, ordered by specificity
     */
-  @JsonIgnore
   def getParents(typeName: String): List[String] = {
     var seenNodes: Set[String] = Set()
 

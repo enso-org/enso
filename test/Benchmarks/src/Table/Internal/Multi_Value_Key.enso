@@ -22,7 +22,7 @@ type My_Pair_Comparator
 
     hash x = x.x1.bit_xor x.x2
 
-Comparable.from (_:My_Pair) = My_Pair_Comparator
+Comparable.from (that:My_Pair) = Comparable.new that My_Pair_Comparator
 
 create_table : Integer -> Table
 create_table num_rows =

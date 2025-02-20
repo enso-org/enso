@@ -71,7 +71,9 @@ type Function
    - x: the value to return.
 
    > Example
-     five = Function.identity 5 # returns number 5
+     Create a function always returning the provided argument and apply it to 5.
+
+         five = Function.identity 5
 identity : Any -> Any
 identity x = x
 
@@ -83,7 +85,10 @@ identity x = x
    - f function that takes two arguments
 
    > Example
-    IO.println <| Function.flip (+) "world" "hello" # Prints 'helloworld'
+     Create a function that concatenates two strings in reverse order and print the result.
+
+       # Prints 'helloworld'
+       IO.println <| Function.flip (+) "world" "hello"
 flip : (Any -> Any -> Any) -> (Any -> Any -> Any)
 flip f = (x -> y -> f y x)
 
@@ -95,7 +100,8 @@ flip f = (x -> y -> f y x)
    - x constant value to return
 
    > Example
-    IO.println <| [1, 2, 3].map (Function.const 7) # Prints '[7, 7, 7]'
+
+       IO.println <| [1, 2, 3].map (Function.const 7) # Prints '[7, 7, 7]'
 const : Any -> Any -> Any
 const x ~f =
     black_hole ~_ = Nothing

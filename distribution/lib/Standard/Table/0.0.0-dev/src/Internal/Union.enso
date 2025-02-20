@@ -1,0 +1,52 @@
+private
+
+from Standard.Base import all
+
+import project.Column.Column
+import project.Columns_To_Keep.Columns_To_Keep
+import project.Internal.Java_Problems
+import project.Internal.Match_Columns_Helpers
+import project.Internal.Problem_Builder.Problem_Builder
+import project.Internal.Table_Helpers
+import project.Internal.Table_Helpers.Union_Result_Type
+import project.Match_Columns.Match_Columns
+import project.Table.Table
+import project.Value_Type.Value_Type
+from project.Column import make_storage_builder_for_type
+
+## The implementation of common logic that is used by `Table.from_union`.
+   The caller should ensure that `tables` contains only `Table` instances or `Nothing`.
+   Each `Nothing` is replaced by a single all-nothing row, not introducing any new columns. 
+   The `tables` vector must contain at least one non-nothing entry.
+make_union (tables : Vector) (columns_to_keep : Columns_To_Keep) (match_columns : Match_Columns) (on_problems : Problem_Behavior) =
+    problem_builder = Problem_Builder.new
+    matched_column_sets = Match_Columns_Helpers.match_columns tables match_columns columns_to_keep problem_builder
+    result_row_count = tables.fold 0 c-> t-> c + t.row_count
+    merged_columns = matched_column_sets.map column_set->
+        case Table_Helpers.unify_result_type_for_union column_set tables problem_builder of
+            Union_Result_Type.Common_Type common_type ->
+                _concat_columns column_set tables common_type result_row_count needs_cast=False on_problems
+            Union_Result_Type.Fallback_To_Text ->
+                _concat_columns column_set tables Value_Type.Char result_row_count needs_cast=True on_problems
+            Union_Result_Type.No_Types_To_Unify ->
+                Column.from_repeated_item column_set.name Nothing result_row_count
+    if merged_columns.is_empty then problem_builder.raise_no_output_columns_with_cause else
+        problem_builder.attach_problems_before on_problems <|
+            Table.new merged_columns
+
+## A helper that efficiently concatenates storages of in-memory columns.
+private _concat_columns column_set tables result_type result_row_count needs_cast on_problems =
+    Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+        storage_builder = make_storage_builder_for_type result_type on_problems initial_size=result_row_count java_problem_aggregator
+        column_set.column_indices.zip tables i-> parent_table->
+            case i of
+                Nothing ->
+                    null_row_count = parent_table.row_count
+                    storage_builder.appendNulls null_row_count
+                _ : Integer ->
+                    column = parent_table.at i
+                    converted = if needs_cast then column.cast result_type on_problems=..Report_Error else column
+                    storage = converted.java_column.getStorage
+                    storage_builder.appendBulkStorage storage
+        sealed_storage = storage_builder.seal
+        Column.from_storage column_set.name sealed_storage

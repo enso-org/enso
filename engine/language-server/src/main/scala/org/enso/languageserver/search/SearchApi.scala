@@ -5,7 +5,7 @@ import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.search.SearchProtocol.{
   SuggestionDatabaseEntry,
   SuggestionId,
-  SuggestionKind,
+  SuggestionKinds,
   SuggestionsDatabaseUpdate
 }
 import org.enso.text.editing.model.Position
@@ -89,7 +89,7 @@ object SearchApi {
       position: Position,
       selfType: Option[String],
       returnType: Option[String],
-      tags: Option[Seq[SuggestionKind]],
+      tags: Option[Seq[SuggestionKinds.SuggestionKind]],
       isStatic: Option[Boolean]
     )
 

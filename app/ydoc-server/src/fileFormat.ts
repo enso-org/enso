@@ -1,0 +1,129 @@
+import * as json from 'lib0/json'
+import { z } from 'zod'
+
+export type Vector = z.infer<typeof vector>
+export const vector = z.tuple([z.number(), z.number()])
+
+const visualizationProject = z.discriminatedUnion('project', [
+  z.object({ project: z.literal('Builtin') }),
+  z.object({ project: z.literal('CurrentProject') }),
+  z.object({ project: z.literal('Library'), contents: z.string() }),
+])
+
+export type VisualizationMetadata = z.infer<typeof visualizationMetadata>
+const visualizationMetadata = z
+  .object({
+    show: z.boolean().default(true),
+    width: z.number().optional(),
+    height: z.number().optional(),
+    fullscreen: z.boolean().optional(),
+    project: visualizationProject.optional(),
+    name: z.string().optional(),
+  })
+  .passthrough()
+
+export type NodeMetadata = z.infer<typeof nodeMetadata>
+export const nodeMetadata = z
+  .object({
+    position: z.object({ vector }).catch((ctx) => {
+      printError(ctx)
+      return { vector: [0, 0] satisfies Vector }
+    }),
+    visualization: visualizationMetadata.optional().catch(() => undefined),
+    colorOverride: z.string().optional(),
+  })
+  .passthrough()
+
+export type IdeMetadata = z.infer<typeof ideMetadata>
+export const ideMetadata = z
+  .object({
+    node: z.record(z.string().uuid(), nodeMetadata),
+    widget: z.optional(z.record(z.string().uuid(), z.record(z.string(), z.unknown()))),
+    // The ydoc diff algorithm places the snapshot at the end of the metadata.
+    // Making it the last field prevents unnecessary edits.
+    snapshot: z.string().optional(),
+  })
+  .passthrough()
+  .default(() => defaultMetadata().ide)
+  .catch((ctx) => {
+    printError(ctx)
+    return defaultMetadata().ide
+  })
+
+export type Metadata = z.infer<typeof metadata>
+export const metadata = z
+  .object({
+    ide: ideMetadata,
+  })
+  .passthrough()
+  .catch((ctx) => {
+    printError(ctx)
+    return defaultMetadata()
+  })
+
+export type IdMapValue = z.infer<typeof idMapValue>
+export const idMapValue = z.object({
+  value: z.number(),
+})
+
+export type IdMapRange = z.infer<typeof idMapRange>
+export const idMapRange = z.object({
+  index: idMapValue,
+  size: idMapValue,
+})
+
+export type IdMapEntry = z.infer<typeof idMapEntry>
+export const idMapEntry = z.tuple([idMapRange, z.string().uuid()])
+
+export type IdMap = z.infer<typeof idMap>
+export const idMap = z.array(idMapEntry).catch((ctx) => {
+  printError(ctx)
+  return []
+})
+
+function defaultMetadata() {
+  return {
+    ide: {
+      node: {},
+      import: {},
+      widget: {},
+    },
+  }
+}
+
+function printError(ctx: { error: z.ZodError; input: any }) {
+  console.error('=== METADATA PARSE ERROR ===')
+  console.error('Error:', ctx.error.issues)
+  console.error('Input:', ctx.input)
+  console.error('============================')
+}
+
+/**
+ * Parses the metadata JSON string if provided. If parts of the metadata are missing or invalid,
+ * they are filled in with default values.
+ *
+ * Failure to parse the metadata JSON string is logged to the console.
+ */
+export function tryParseMetadataOrFallback(metadataJson: string | undefined | null): Metadata {
+  if (metadataJson == null) return defaultMetadata()
+  const parsedMeta = tryParseJson(metadataJson)
+  return metadata.parse(parsedMeta)
+}
+
+/** Return a parsed {@link IdMap} from a JSON string, or a default value if parsing failed. */
+export function tryParseIdMapOrFallback(idMapJson: string | undefined | null): IdMap {
+  if (idMapJson == null) return []
+  const parsedIdMap = tryParseJson(idMapJson)
+  return idMap.parse(parsedIdMap)
+}
+
+/** Parse a JSON string, or return `null` if parsing failed instead of throwing an error. */
+function tryParseJson(jsonString: string) {
+  try {
+    return json.parse(jsonString)
+  } catch (error) {
+    console.error('Failed to parse metadata JSON:')
+    console.error(error)
+    return null
+  }
+}

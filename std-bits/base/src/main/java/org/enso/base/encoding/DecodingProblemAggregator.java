@@ -31,6 +31,10 @@ public class DecodingProblemAggregator {
     }
   }
 
+  public boolean hasEncounteredInvalidCharacters() {
+    return invalidUnitCount > 0;
+  }
+
   private DecodingProblem summarizeInvalidCharacterProblems() {
     if (invalidUnitCount == 0) {
       return null;

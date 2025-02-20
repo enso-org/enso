@@ -1,0 +1,64 @@
+from Standard.Base import all
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.Tableau import Hyper_File
+
+from Standard.Test import all
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+
+add_specs suite_builder = suite_builder.group "Structure" group_builder->
+    no_file = enso_project.data / "no_file.hyper"
+    empty_file = enso_project.data / "empty.hyper"
+    names_file = enso_project.data / "names.hyper"
+
+    group_builder.specify "should default to all schema" <|
+        Hyper_File.new names_file . schema . should_equal "*"
+
+    group_builder.specify "should be able to list schema" <|
+        schemas = Hyper_File.new names_file . schemas
+        schemas.sort.should_equal ["Extract", "public"]
+
+        schemas_2 = Hyper_File.new empty_file . schemas
+        schemas_2.should_equal ["public"]
+
+    group_builder.specify "should handle a missing file when listing schema" <|
+        r1 = Hyper_File.new no_file . schemas
+        r1.should_fail_with File_Error
+        r1.catch.should_be_a File_Error.Not_Found
+
+    group_builder.specify "should default to set schema" <|
+        Hyper_File.new names_file schema="Extract" . schema . should_equal "Extract"
+        Hyper_File.new names_file . set_schema "Extract" . schema . should_equal "Extract"
+        Hyper_File.new names_file schema="*" . schema . should_equal "*"
+        Hyper_File.new names_file schema="*" . set_schema "Extract" . schema . should_equal "Extract"
+
+    group_builder.specify "should reject invalid schema to set schema" <|
+        Hyper_File.new names_file schema="" . should_fail_with Illegal_Argument
+        Hyper_File.new names_file . set_schema "" . should_fail_with Illegal_Argument
+
+    group_builder.specify "should be able to list table" <|
+        tables = Hyper_File.new names_file . tables
+        tables.length.should_equal 1
+        tables.first.schema.should_equal "Extract"
+        tables.first.table.should_equal "Extract"
+
+        tables_2 = Hyper_File.new names_file schema="Extract" . tables
+        tables_2.length.should_equal 1
+        tables_2.first.schema.should_equal "Extract"
+        tables_2.first.table.should_equal "Extract"
+
+        tables_3 = Hyper_File.new names_file schema="public" . tables
+        tables_3.length.should_equal 0
+
+        tables_4 = Hyper_File.new names_file schema="DoesNotExist" . tables
+        tables_4.length.should_equal 0
+
+    group_builder.specify "should handle a missing file when listing tables" <|
+        r1 = Hyper_File.new no_file . tables
+        r1.should_fail_with File_Error
+        r1.catch.should_be_a File_Error.Not_Found

@@ -99,7 +99,7 @@ class RopeTextEditorSpec extends AnyFlatSpec with Matchers {
     //given
     //0x0001F4AF
     val utf32Text           = Rope("unicode: \ud83d\udcaf end")
-    val positionInCodeUnits = Range(Position(0, 9), Position(0, 10))
+    val positionInCodeUnits = Range(Position(0, 9), Position(0, 11))
     //0x0001F449
     val diff = TextEdit(positionInCodeUnits, "\ud83d\udc49")
     //when

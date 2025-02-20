@@ -11,10 +11,14 @@ import Standard.Base.System.File.Generic.Writable_File.Writable_File
 polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
 from Standard.Test import all
+import Standard.Test.Test_Environment
+
+import project.Data.Data_Spec
+import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
 ## We rely on a less strict equality for `File` as it is fine if a relative file gets resolved to absolute.
 File.should_equal self other frames_to_skip=0 =
-    loc = Meta.get_source_location 1+frames_to_skip
+    loc = Test.get_source_location 1+frames_to_skip
     are_same = case other of
         _ : File -> self.absolute.normalize.path == other.absolute.normalize.path
         _ -> False
@@ -31,6 +35,12 @@ add_specs suite_builder =
     windows_file = enso_project.data / "windows.txt"
     non_existent_file = File.new "does_not_exist.txt"
 
+    only_on_windows = case Platform.os of
+        Platform.OS.Windows -> Nothing
+        _ -> "This test runs only on Windows."
+
+    add_data_specs suite_builder
+
     suite_builder.group "File Operations" group_builder->
         group_builder.specify "should get name of the root" <|
             root = File.new "/"
@@ -40,6 +50,13 @@ add_specs suite_builder =
         group_builder.specify "should allow creating a new file" <|
             path = sample_file.path
             File.new path
+
+        group_builder.specify "invalid character in path on Windows" pending=only_on_windows <|
+            err = File.new "C:\dev:a"
+            err . should_fail_with Illegal_Argument
+
+            err2 = File.new "." / ":"
+            err2 . should_fail_with Illegal_Argument
 
         group_builder.specify "should have `new` be a no-op on a file" <|
             file = File.new sample_file
@@ -274,12 +291,12 @@ add_specs suite_builder =
     suite_builder.group "read_bytes" group_builder->
         group_builder.specify "should allow reading a file to byte vector" <|
             contents = sample_file.read_bytes
-            contents.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
+            contents.take (..First 6) . should_equal [67, 117, 112, 99, 97, 107]
 
         group_builder.specify "should allow reading a file to byte vector via path" <|
             full_path = sample_file . path
             contents = File.new full_path . read_bytes
-            contents.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
+            contents.take (..First 6) . should_equal [67, 117, 112, 99, 97, 107]
 
         group_builder.specify "should allow to read last n bytes from a file" <|
             file = enso_project.data / "transient" / "bytes.txt"
@@ -303,10 +320,10 @@ add_specs suite_builder =
         group_builder.specify "should open and read the file in one shot" <|
             path_name = sample_file.path
             contents = File.new path_name . read_bytes
-            contents.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
+            contents.take (..First 6) . should_equal [67, 117, 112, 99, 97, 107]
             file = sample_file
             contents_2 = File.new file . read_bytes
-            contents_2.take (First 6) . should_equal [67, 117, 112, 99, 97, 107]
+            contents_2.take (..First 6) . should_equal [67, 117, 112, 99, 97, 107]
 
     suite_builder.group "Path Operations" group_builder->
         group_builder.specify "should allow going above the first part of a relative directory by resolving it to absolute" <|
@@ -317,6 +334,7 @@ add_specs suite_builder =
         group_builder.specify "will not resolve a relative directory to absolute in `parent` if not necessary" <|
             f = File.new "foo/bar"
             f.parent . should_equal (File.new "foo")
+            f.parent.path . should_equal "foo"
 
         group_builder.specify "will return Nothing for a root path that has no parent" <|
             root = File.new "/" . absolute . normalize
@@ -351,6 +369,61 @@ add_specs suite_builder =
 
             (File.new ".").name . should_equal (File.new "." . absolute . normalize . name)
             (File.new "..").name . should_equal (File.new "." . parent . absolute . normalize . name)
+
+        current_project_root = enso_project.root
+        base_directory = current_project_root.parent
+        is_correct_working_directory = File.current_directory.absolute.normalize.path == base_directory.absolute.normalize.path
+        group_builder.specify "will resolve relative paths relative to the currently running project" pending=(if is_correct_working_directory.not then "The working directory is not set-up as expected, so this test cannot run. Please run the tests using `ensoup` to ensure the working directory is correct.") <|
+            dot = File.new "."
+            dot.should_be_a File
+            # The `.` path should resolve to the base path
+            dot.absolute.normalize.path . should_equal base_directory.absolute.normalize.path
+
+            expected_file = base_directory / "abc" / "def.txt"
+            f = File.new "abc/def.txt"
+            f.should_be_a File
+            f.absolute.normalize.path . should_equal expected_file.absolute.normalize.path
+
+            (File.new "abc").create_directory . should_succeed
+            txt = "test-content"+Random.uuid
+            txt.write expected_file . should_succeed
+            Panic.with_finalizer expected_file.delete_if_exists <|
+                f.read_text . should_equal txt
+                Data.read "abc/def.txt" . should_equal txt
+
+        cloud_setup = Cloud_Tests_Setup.prepare
+        with_temporary_cloud_root ~action =
+            subdir = (Enso_File.home / ("my_test_CWD-" + Random.uuid.take 5)).create_directory
+            subdir.should_succeed
+            cleanup =
+                Enso_User.flush_caches
+                subdir.delete recursive=True
+            Panic.with_finalizer cleanup <|
+                Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_PROJECT_DIRECTORY_PATH" subdir.path <|
+                    # Flush caches to ensure fresh dir is used
+                    Enso_User.flush_caches
+                    Test.with_clue "(running with ENSO_CLOUD_PROJECT_DIRECTORY_PATH set to "+subdir.path+") " <|
+                        action
+
+        group_builder.specify "will resolve relative paths as Cloud paths if running in the Cloud" pending=cloud_setup.real_cloud_pending <|
+            with_temporary_cloud_root <|
+                root = File.new "."
+                root.should_be_a Enso_File
+                root.should_equal Enso_File.current_working_directory
+
+                f = File.new "abc/def.txt"
+                f.should_be_a Enso_File
+                f.should_equal (Enso_File.current_working_directory / "abc" / "def.txt")
+
+                # Data.read should be consistent too
+                txt = "test-content"+Random.uuid
+                (File.new "abc").create_directory . should_succeed
+                txt.write f . should_succeed
+                Panic.with_finalizer f.delete_if_exists <|
+                    Data.read "abc/def.txt" . should_equal txt
+
+        group_builder.specify "will resolve empty path to the current working directory" <|
+            File.new "" . should_equal File.current_directory
 
     suite_builder.group "read_text" group_builder->
         group_builder.specify "should allow reading a UTF-8 file" <|
@@ -508,8 +581,8 @@ add_specs suite_builder =
         group_builder.specify "should allow appending text to a file" <|
             f = transient / "work.txt"
             f.delete_if_exists
-            "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed . should_equal f
-            '\nline 2!'.write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed . should_equal f
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=..Report_Error . should_succeed . should_equal f
+            '\nline 2!'.write f on_existing_file=Existing_File_Behavior.Append on_problems=..Report_Error . should_succeed . should_equal f
             f.read_text.should_equal 'line 1!\nline 2!'
             f.delete
             f.exists.should_be_false
@@ -517,10 +590,10 @@ add_specs suite_builder =
         group_builder.specify "should perform a dry run appending text to a file if Context.Output is disabled" <|
             f = transient / "work.txt"
             f.delete_if_exists
-            "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error . should_succeed . should_equal f
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=..Report_Error . should_succeed . should_equal f
 
             Context.Output.with_disabled <|
-                r = '\nline 2!'.write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error
+                r = '\nline 2!'.write f on_existing_file=Existing_File_Behavior.Append on_problems=..Report_Error
                 Problems.expect_only_warning Dry_Run_Operation r
                 r.exists.should_be_true
                 r.read_text.should_equal 'line 1!\nline 2!'
@@ -533,11 +606,11 @@ add_specs suite_builder =
             f.delete_if_exists
 
             Context.Output.with_disabled <|
-                r = "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error
+                r = "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=..Report_Error
                 Problems.expect_only_warning Dry_Run_Operation r
                 r.exists.should_be_true
 
-                s = '\nline 2!'.write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error
+                s = '\nline 2!'.write f on_existing_file=Existing_File_Behavior.Append on_problems=..Report_Error
                 Problems.expect_only_warning Dry_Run_Operation s
                 s.exists.should_be_true
 
@@ -556,12 +629,12 @@ add_specs suite_builder =
             f.delete_if_exists
 
             Context.Output.with_disabled <|
-                dry_run_file = "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error
+                dry_run_file = "line 1!".write f on_existing_file=Existing_File_Behavior.Append on_problems=..Report_Error
                 Problems.expect_only_warning Dry_Run_Operation dry_run_file
                 dry_run_file.exists.should_be_true
 
                 # Contrary to example above, we write to the returned file, not just `f`.
-                s = '\nline 2!'.write dry_run_file on_existing_file=Existing_File_Behavior.Append on_problems=Report_Error
+                s = '\nline 2!'.write dry_run_file on_existing_file=Existing_File_Behavior.Append on_problems=..Report_Error
                 Problems.expect_only_warning Dry_Run_Operation s
                 s.exists.should_be_true
 
@@ -578,10 +651,10 @@ add_specs suite_builder =
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            "line 1!".write f on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed . should_equal f
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Overwrite on_problems=..Report_Error . should_succeed . should_equal f
             f.exists.should_be_true
             f.read_text.should_equal "line 1!"
-            "line 2!".write f on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed . should_equal f
+            "line 2!".write f on_existing_file=Existing_File_Behavior.Overwrite on_problems=..Report_Error . should_succeed . should_equal f
             f.read_text.should_equal "line 2!"
             f.delete
             f.exists.should_be_false
@@ -590,7 +663,7 @@ add_specs suite_builder =
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            "line 1!".write f on_existing_file=Existing_File_Behavior.Overwrite on_problems=Report_Error . should_succeed . should_equal f
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Overwrite on_problems=..Report_Error . should_succeed . should_equal f
             f.exists.should_be_true
 
             r = Context.Output.with_disabled <|
@@ -606,7 +679,7 @@ add_specs suite_builder =
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            "line 1!".write f on_existing_file=Existing_File_Behavior.Error on_problems=Report_Error . should_succeed . should_equal f
+            "line 1!".write f on_existing_file=Existing_File_Behavior.Error on_problems=..Report_Error . should_succeed . should_equal f
             f.exists.should_be_true
             f.read_text.should_equal "line 1!"
 
@@ -628,7 +701,7 @@ add_specs suite_builder =
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            "line 1!".write f on_problems=Report_Error . should_succeed . should_equal f
+            "line 1!".write f on_problems=..Report_Error . should_succeed . should_equal f
             if f.exists.not then
                 Test.fail "The file should have been created."
             f.read_text.should_equal "line 1!"
@@ -646,7 +719,7 @@ add_specs suite_builder =
                 "new content".write n on_existing_file=Existing_File_Behavior.Overwrite
             n3.delete_if_exists
 
-            "line 2!".write f on_problems=Report_Error . should_succeed . should_equal f
+            "line 2!".write f on_problems=..Report_Error . should_succeed . should_equal f
             f.read_text.should_equal "line 2!"
             bak.read_text.should_equal "line 1!"
             if n3.exists then
@@ -659,7 +732,7 @@ add_specs suite_builder =
             f = transient / "work.txt"
             f.delete_if_exists
             f.exists.should_be_false
-            "line 1!".write f on_problems=Report_Error . should_succeed . should_equal f
+            "line 1!".write f on_problems=..Report_Error . should_succeed . should_equal f
 
             r = Context.Output.with_disabled <|
                 s = "New Content!".write f on_existing_file=Existing_File_Behavior.Backup
@@ -834,7 +907,7 @@ add_specs suite_builder =
             f.delete_if_exists
             "Initial Content".write f on_existing_file=Existing_File_Behavior.Overwrite
             big_content = "Hello " * 2000 + input_content
-            r2 = big_content.write f encoding on_problems=Problem_Behavior.Report_Error
+            r2 = big_content.write f encoding on_problems=..Report_Error
             r2.should_fail_with Encoding_Error
             f.read . should_equal "Initial Content"
             f.delete
@@ -846,37 +919,59 @@ add_specs suite_builder =
 
         group_builder.specify "should list files in a directory" <|
             root = enso_project.data / "tree"
-            immediate = root.list.map .to_text . sort
-            expected = [root / "sample.csv", root / "sample.txt", root / "subdirectory"].map .to_text . sort
+            immediate = root.list.map .to_text
+            expected = [root / "sample.csv", root / "sample.txt", root / "subdirectory"].map .to_text
             immediate.should_equal expected
 
             filtered1 = root.list name_filter="s[a-cw]mple.{t?t,md}"
             filtered1.should_equal [root / "sample.txt"]
 
-            filtered2 = Data.list_directory root name_filter="*di*"
+            filtered2 = Data.list root name_filter="*di*"
             filtered2.should_equal [root / "subdirectory"]
+
+        group_builder.specify "File.list should sort its result" <|
+            dir = enso_project.data / "list_sort"
+            dir.delete_if_exists recursive=True
+            dir.create_directory
+
+            nums = (0.up_to 10 . to_vector) + (30.down_to 20 . to_vector)
+            nums.each i->
+                f = dir / i.to_text
+                "abcd".write f
+                lst = dir.list
+                lst . should_equal (lst.sort on=.path)
+
+            dir.delete recursive=True . should_succeed
 
         group_builder.specify "should list files in a directory recursively" <|
             root = enso_project.data / "tree"
             resolve files = files.map str-> (root / str) . to_text
 
             all = root.list recursive=True . map .to_text
-            all.sort.should_equal (resolve ["", "sample.csv", "sample.txt", "subdirectory", "subdirectory/a.txt", "subdirectory/nested", "subdirectory/nested/b.txt"])
+            all.should_equal (resolve ["", "sample.csv", "sample.txt", "subdirectory", "subdirectory/a.txt", "subdirectory/nested", "subdirectory/nested/b.txt"])
 
             filtered1 = root.list name_filter="**.txt" recursive=True . map .to_text
-            filtered1.sort.should_equal (resolve ["sample.txt", "subdirectory/a.txt", "subdirectory/nested/b.txt"])
+            filtered1.should_equal (resolve ["sample.txt", "subdirectory/a.txt", "subdirectory/nested/b.txt"])
 
             filtered1b = root.list name_filter="*.txt" recursive=True . map .to_text
-            filtered1b.sort.should_equal (resolve ["sample.txt", "subdirectory/a.txt", "subdirectory/nested/b.txt"])
+            filtered1b.should_equal (resolve ["sample.txt", "subdirectory/a.txt", "subdirectory/nested/b.txt"])
+
+            # It should also work if more complicated pattern is used
+            filtered1c = root.list name_filter="{*.txt,foobarbaz}" recursive=True . map .to_text
+            filtered1c.should_equal (resolve ["sample.txt", "subdirectory/a.txt", "subdirectory/nested/b.txt"])
+
+            # And correctly match file 'starts with' condition in recursive mode
+            filtered1d = root.list name_filter="a*.txt" recursive=True . map .to_text
+            filtered1d.should_equal (resolve ["subdirectory/a.txt"])
 
             filtered2 = root.list name_filter="*/*/*" recursive=True . map .to_text
             filtered2.should_equal (resolve ["subdirectory/nested/b.txt"])
 
             filtered3 = root.list name_filter="a.txt" recursive=True . map .to_text
-            filtered3.sort.should_equal (resolve ["subdirectory/a.txt"])
+            filtered3.should_equal (resolve ["subdirectory/a.txt"])
 
             filtered4 = root.list name_filter="nested/*.txt" recursive=True . map .to_text
-            filtered4.sort.should_equal (resolve ["subdirectory/nested/b.txt"])
+            filtered4.should_equal (resolve ["subdirectory/nested/b.txt"])
 
         add_create_and_delete_directory_specs group_builder (enso_project.data / "transient")
 
@@ -962,6 +1057,10 @@ add_create_and_delete_directory_specs group_builder ~parent_dir =
         r.catch.should_be_a File_Error.Not_Found
 
         dir.delete_if_exists . should_equal Nothing
+
+add_data_specs suite_builder =
+    file_maker path_element:Text = enso_project.data / "transient" / (path_element+".txt")
+    Data_Spec.add_specs "(File) " suite_builder file_maker
 
 add_copy_edge_cases_specs group_builder ~parent_dir file_from_path=File.new =
     group_builder.specify "should allow copy/move edge case with source=target" <|

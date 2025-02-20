@@ -71,7 +71,11 @@ final class EnsoRootProject implements Project {
 
     @Override
     public Node findPath(Node node, Object o) {
-      return org.openide.nodes.NodeOp.findChild(node, (String) o);
+      if (o instanceof String path) {
+        return org.openide.nodes.NodeOp.findChild(node, path);
+      } else {
+        return null;
+      }
     }
   }
 

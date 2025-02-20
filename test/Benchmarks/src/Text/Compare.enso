@@ -16,7 +16,7 @@ create_very_short_template character_template =
 
 create_very_short character_template faker =
     very_short_template = create_very_short_template character_template
-    Vector.new 100000 _-> '🤩' + faker.string_value very_short_template
+    Vector.new 100000 _-> '🤩' + faker.text_value very_short_template
 
 
 create_medium_template character_template =
@@ -25,7 +25,7 @@ create_medium_template character_template =
 
 create_medium character_template faker =
     medium_template = create_medium_template character_template
-    Vector.new 10000 _-> faker.string_value medium_template
+    Vector.new 10000 _-> faker.text_value medium_template
 
 
 create_big_template character_template =
@@ -34,14 +34,14 @@ create_big_template character_template =
 
 create_big_random character_template faker =
     big_template = create_big_template character_template
-    Vector.new 100 _-> faker.string_value big_template
+    Vector.new 100 _-> faker.text_value big_template
 
 
 create_big_early_difference character_template faker =
     big_a_codepoint = 65
     big_template = create_big_template character_template
     Vector.new 100 ix->
-        "bb" + (Text.from_codepoints [big_a_codepoint + ix%5]) + "aaa" + (faker.string_value big_template)
+        "bb" + (Text.from_codepoints [big_a_codepoint + ix%5]) + "aaa" + (faker.text_value big_template)
 
 
 create_big_late_difference common_prefix =

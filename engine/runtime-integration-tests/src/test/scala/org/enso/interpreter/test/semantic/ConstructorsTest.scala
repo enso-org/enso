@@ -104,5 +104,30 @@ class ConstructorsTest extends InterpreterTest {
           |""".stripMargin
       eval(testCode) shouldEqual 55
     }
+
+    "support argument-definition lines" in {
+      val testCode =
+        """import Standard.Base.Nothing.Nothing
+          |import Standard.Base.Any.Any
+          |
+          |type C2
+          |    Cons2
+          |        # Each argument may be specified on its own indented line.
+          |        a
+          |        # Blank lines (or plain comments) are allowed between arguments.
+          |        b
+          |
+          |Nothing.genList = i -> if i == 0 then Nil2 else C2.Cons2 i (Nothing.genList (i - 1))
+          |
+          |type Nil2
+          |
+          |Nothing.sumList = list -> case list of
+          |  C2.Cons2 h t -> h + Nothing.sumList t
+          |  Nil2 -> 0
+          |
+          |main = Nothing.sumList (Nothing.genList 10)
+          |""".stripMargin
+      eval(testCode) shouldEqual 55
+    }
   }
 }

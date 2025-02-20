@@ -1,0 +1,28 @@
+## Enso Signatures 1.0
+## module Standard.Base.Enso_Cloud.Data_Link_Helpers
+- type Data_Link_Source_Metadata
+    - Cloud_Asset id:Standard.Base.Data.Text.Text
+    - Unknown
+- data_link_content_type -> Standard.Base.Any.Any
+- data_link_encoding -> Standard.Base.Any.Any
+- data_link_extension -> Standard.Base.Any.Any
+- data_link_name data_link_instance:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- disallow_links_in_copy source:Standard.Base.Any.Any target:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- disallow_links_in_move source:Standard.Base.Any.Any target:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- interpret_data_link_as_writable_file file:Standard.Base.System.File.Generic.File_Like.File_Like -> Standard.Base.System.File.Generic.Writable_File.Writable_File
+- interpret_data_link_target_as_file file:Standard.Base.System.File.Generic.File_Like.File_Like -> Standard.Base.Any.Any
+- interpret_data_link_target_as_file_or_nothing file:Standard.Base.System.File.Generic.File_Like.File_Like -> (Standard.Base.Any.Any|Standard.Base.Nothing.Nothing)
+- interpret_existing_asset_as_data_link asset:Standard.Base.Enso_Cloud.Internal.Existing_Enso_Asset.Existing_Enso_Asset -> Standard.Base.Any.Any
+- interpret_json_as_data_link json:Standard.Base.Any.Any source:Standard.Base.Enso_Cloud.Data_Link_Helpers.Data_Link_Source_Metadata= -> Standard.Base.Any.Any
+- is_directory file:Standard.Base.Any.Any ~check_file_directly:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- is_regular_file file:Standard.Base.Any.Any ~check_file_directly:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- parse_format json:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- parse_secure_value json:Standard.Base.Any.Any -> (Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret)
+- read_and_interpret_data_link file:Standard.Base.System.File.Generic.File_Like.File_Like -> Standard.Base.Any.Any
+- read_data_link file:Standard.Base.System.File.Generic.File_Like.File_Like format:Standard.Base.Any.Any on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
+- read_data_link_as_stream file:Standard.Base.System.File.Generic.File_Like.File_Like open_options:Standard.Base.Data.Vector.Vector f:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- save_data_link_to_file data_link_instance:Standard.Base.Any.Any target_file:Standard.Base.System.File.Generic.Writable_File.Writable_File -> Standard.Base.Any.Any
+- save_password_for_data_link data_link_location:Standard.Base.Enso_Cloud.Enso_File.Enso_File secure_value:(Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret) name_hint:Standard.Base.Data.Text.Text= -> Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret
+- secure_value_to_json value:(Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret) -> (Standard.Base.Data.Json.JS_Object|Standard.Base.Data.Text.Text)
+- store_as_secret base_location:Standard.Base.Enso_Cloud.Enso_File.Enso_File name_hint:Standard.Base.Data.Text.Text secure_value:(Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret) -> Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret
+- write_data_link_as_stream file:Standard.Base.System.File.Generic.File_Like.File_Like open_options:Standard.Base.Data.Vector.Vector f:Standard.Base.Any.Any -> Standard.Base.Any.Any

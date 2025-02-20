@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.TruffleStackTraceElement;
 import com.oracle.truffle.api.nodes.Node;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import org.enso.interpreter.dsl.BuiltinMethod;
@@ -76,6 +77,11 @@ public class GetStackTraceTextNode extends Node {
         var sourceLoc = errorFrame.getLocation().getEncapsulatingSourceSection();
         if (sourceLoc != null) {
           var path = sourceLoc.getSource().getPath();
+          try {
+            path = new File(sourceLoc.getSource().getURI()).getPath();
+          } catch (IllegalArgumentException | NullPointerException ignore) {
+            // keep original value of path
+          }
           var ident = (path != null) ? path : sourceLoc.getSource().getName();
           var loc =
               (sourceLoc.getStartLine() == sourceLoc.getEndLine())

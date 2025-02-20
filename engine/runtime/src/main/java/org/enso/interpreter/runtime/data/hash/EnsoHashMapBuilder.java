@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.data.hash;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import java.util.Arrays;
+import java.util.Iterator;
 import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 import org.enso.interpreter.node.expression.builtin.meta.HashCodeNode;
 
@@ -48,17 +49,22 @@ final class EnsoHashMapBuilder {
   }
 
   /** Create a new builder with default size being {@code 11}. */
-  public static EnsoHashMapBuilder create() {
+  static EnsoHashMapBuilder create() {
     return new EnsoHashMapBuilder(11);
   }
 
+  static EnsoHashMapBuilder createWithCapacity(int capacity) {
+    assert capacity > 0;
+    return new EnsoHashMapBuilder(capacity);
+  }
+
   /** Returns count of elements in the storage. */
-  public int generation() {
+  int generation() {
     return generation;
   }
 
   /** Returns the actual number of visible elements in current generation. */
-  public int size() {
+  int size() {
     return actualSize;
   }
 
@@ -66,7 +72,7 @@ final class EnsoHashMapBuilder {
    * Provides access to all {@code StorageEntry} in this builder at given {@code atGeneration}.
    * Classical usage is to {@code for (var e : this) if (e.isVisible(atGeneration) operation(e))}.
    */
-  public StorageEntry[] getEntries(int atGeneration, int size) {
+  StorageEntry[] getEntries(int atGeneration, int size) {
     var arr = new StorageEntry[size];
     var at = 0;
     for (var i = 0; i < byHash.length; i++) {
@@ -82,12 +88,57 @@ final class EnsoHashMapBuilder {
     }
   }
 
+  record Entry(Object key, Object value) {}
+
+  Iterator<Entry> getEntriesIterator(int atGeneration) {
+    return new EntriesIterator(atGeneration);
+  }
+
+  final class EntriesIterator implements Iterator<Entry> {
+    private final int atGeneration;
+    private int nextVisibleEntryIdx = -1;
+
+    EntriesIterator(int atGeneration) {
+      this.atGeneration = atGeneration;
+      skipToNextVisibleEntry();
+    }
+
+    @Override
+    public boolean hasNext() {
+      if (nextVisibleEntryIdx >= byHash.length) {
+        return false;
+      }
+      var entry = byHash[nextVisibleEntryIdx];
+      return entry != null && entry.isVisible(atGeneration);
+    }
+
+    @Override
+    public Entry next() {
+      var entry = byHash[nextVisibleEntryIdx];
+      skipToNextVisibleEntry();
+      return new Entry(entry.key(), entry.value());
+    }
+
+    private void skipToNextVisibleEntry() {
+      while (true) {
+        nextVisibleEntryIdx++;
+        if (nextVisibleEntryIdx == byHash.length) {
+          break;
+        }
+        var entry = byHash[nextVisibleEntryIdx];
+        if (entry != null && entry.isVisible(atGeneration)) {
+          break;
+        }
+      }
+    }
+  }
+
   /**
    * Prepares a builder ready for modification at given generation. It may return {@code this} if
    * the {@code atGeneration == this.generation} and the {@code byHash} array is less than 75% full.
    * Otherwise it may return new builder suitable for additions.
    */
-  public EnsoHashMapBuilder asModifiable(
+  EnsoHashMapBuilder asModifiable(
       VirtualFrame frame, int atGeneration, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
     if (atGeneration != generation || generation * 4 > byHash.length * 3) {
       var newSize = Math.max(actualSize * 2, byHash.length);
@@ -103,7 +154,7 @@ final class EnsoHashMapBuilder {
    * equal key, it marks it as removed, if it hasn't been removed yet. Once it finds an empty slot,
    * it puts there a new entry with the next generation.
    */
-  public void put(
+  void put(
       VirtualFrame frame,
       Object key,
       Object value,
@@ -139,7 +190,7 @@ final class EnsoHashMapBuilder {
    * Finds storage entry for given key or {@code null}. Searches only entries that are visible for
    * given {@code generation}.
    */
-  public StorageEntry get(
+  StorageEntry get(
       VirtualFrame frame,
       Object key,
       int generation,
@@ -175,8 +226,7 @@ final class EnsoHashMapBuilder {
    *
    * @return true if the removal was successful false otherwise.
    */
-  public boolean remove(
-      VirtualFrame frame, Object key, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
+  boolean remove(VirtualFrame frame, Object key, HashCodeNode hashCodeNode, EqualsNode equalsNode) {
     assert actualSize <= generation;
     var at = findWhereToStart(key, hashCodeNode);
     var nextGeneration = ++generation;
@@ -225,11 +275,11 @@ final class EnsoHashMapBuilder {
    * are in the storage as of this moment, i.e., all the entries with their indexes lesser than
    * {@code generation}.
    *
-   * <p>Should be called where most once for a particular {@code generation}.
+   * <p>Should be called at most once for a particular {@code generation}.
    *
    * @return A new hash map snapshot.
    */
-  public EnsoHashMap build() {
+  EnsoHashMap build() {
     return EnsoHashMap.createWithBuilder(this);
   }
 
@@ -248,7 +298,7 @@ final class EnsoHashMapBuilder {
     if (a instanceof Double aDbl && b instanceof Double bDbl && aDbl.isNaN() && bDbl.isNaN()) {
       return true;
     } else {
-      return equalsNode.execute(frame, a, b);
+      return equalsNode.execute(frame, a, b).isTrue();
     }
   }
 

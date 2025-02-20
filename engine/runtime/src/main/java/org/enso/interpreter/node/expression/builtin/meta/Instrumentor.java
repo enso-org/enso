@@ -1,20 +1,21 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import org.enso.interpreter.EnsoLanguage;
-import org.enso.interpreter.instrument.Timer;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
+import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.polyglot.debugger.IdExecutionService;
 
-final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
+final class Instrumentor extends EnsoObject implements IdExecutionService.Callbacks {
 
   private final IdExecutionService service;
   private final RootCallTarget target;
@@ -119,5 +120,22 @@ final class Instrumentor implements EnsoObject, IdExecutionService.Callbacks {
     } catch (InteropException ignored) {
     }
     return null;
+  }
+
+  @Override
+  public Object getExecutionEnvironment(IdExecutionService.Info info) {
+    return null;
+  }
+
+  @Override
+  @TruffleBoundary
+  public Object toDisplayString(boolean allowSideEffects) {
+    String rootName;
+    if (target.getRootNode() != null) {
+      rootName = target.getRootNode().getQualifiedName();
+    } else {
+      rootName = "<unknown>";
+    }
+    return "Instrumentor(target = " + rootName + ")";
   }
 }

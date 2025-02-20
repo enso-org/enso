@@ -1,6 +1,6 @@
 package org.enso.projectmanager.protocol
 
-import org.enso.logger.ReportLogsOnFailure
+import org.enso.testkit.ReportLogsOnFailure
 
 class ProjectCreateMissingComponentsSpec
     extends ProjectCreateSpecBase

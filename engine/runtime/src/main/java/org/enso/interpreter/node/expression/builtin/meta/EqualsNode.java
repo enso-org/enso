@@ -9,7 +9,6 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.callable.InteropConversionCallNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
@@ -19,29 +18,15 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.State;
 
-@BuiltinMethod(
-    type = "Any",
-    name = "==",
-    description =
-        """
-      Compares self with other object and returns True iff `self` is exactly the same as
-      the other object, including all its transitively accessible properties or fields,
-      False otherwise.
-
-      Can handle arbitrary objects, including all foreign objects.
-
-      Does not throw dataflow errors or panics.
-
-      Note that this is different than `Meta.is_same_object`, which checks whether two
-      references point to the same object on the heap. Moreover, `Meta.is_same_object`
-      implies `Any.==` for all object with the exception of `Number.nan`.
-      """)
 public final class EqualsNode extends Node {
   @Child private EqualsSimpleNode node;
   @Child private TypeOfNode types;
@@ -82,11 +67,11 @@ public final class EqualsNode extends Node {
    * @param other the other object
    * @return {@code true} if {@code self} and {@code that} seem equal
    */
-  public boolean execute(VirtualFrame frame, Object self, Object other) {
+  public EqualsAndInfo execute(VirtualFrame frame, Object self, Object other) {
     var areEqual = node.execute(frame, self, other);
-    if (!areEqual) {
-      var selfType = types.execute(self);
-      var otherType = types.execute(other);
+    if (!areEqual.isTrue()) {
+      var selfType = types.findTypeOrNull(self);
+      var otherType = types.findTypeOrNull(other);
       if (selfType != otherType) {
         if (convert == null) {
           CompilerDirectives.transferToInterpreter();
@@ -114,11 +99,10 @@ public final class EqualsNode extends Node {
      * @return {code false} if the conversion makes no sense or result of equality check after doing
      *     the conversion
      */
-    abstract boolean executeWithConversion(VirtualFrame frame, Object self, Object that);
+    abstract EqualsAndInfo executeWithConversion(VirtualFrame frame, Object self, Object that);
 
     static Type findType(TypeOfNode typeOfNode, Object obj) {
-      var rawType = typeOfNode.execute(obj);
-      return rawType instanceof Type type ? type : null;
+      return typeOfNode.findTypeOrNull(obj);
     }
 
     static Type findTypeUncached(Object obj) {
@@ -126,7 +110,7 @@ public final class EqualsNode extends Node {
     }
 
     private static boolean isDefinedIn(ModuleScope scope, Function fn) {
-      if (fn.getCallTarget().getRootNode() instanceof EnsoRootNode ensoRoot) {
+      if (fn != null && fn.getCallTarget().getRootNode() instanceof EnsoRootNode ensoRoot) {
         return ensoRoot.getModuleScope().getModule() == scope.getModule();
       } else {
         return false;
@@ -139,9 +123,16 @@ public final class EqualsNode extends Node {
       var node =
           InvokeFunctionNode.build(
               argSchema, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE);
-      var state = State.create(ctx);
-      return node.execute(
-          convFn, null, state, new Object[] {ctx.getBuiltins().comparable(), value});
+      var state = ctx.currentState();
+      var by =
+          node.execute(convFn, null, state, new Object[] {ctx.getBuiltins().comparable(), value});
+      if (by instanceof Atom atom
+          && atom.getConstructor() == ctx.getBuiltins().comparable().getBy()) {
+        var structs = StructsLibrary.getUncached();
+        return structs.getField(atom, 1);
+      } else {
+        return null;
+      }
     }
 
     /**
@@ -175,14 +166,14 @@ public final class EqualsNode extends Node {
           UnresolvedConversion.build(selfScope).resolveFor(ctx, comparableType, thatType);
       var betweenBoth = UnresolvedConversion.build(selfScope).resolveFor(ctx, selfType, thatType);
 
-      if (isDefinedIn(selfScope, fromSelfType)
-          && isDefinedIn(selfScope, fromThatType)
-          && convertor(ctx, fromSelfType, self) == convertor(ctx, fromThatType, that)
-          && betweenBoth != null) {
-        return true;
-      } else {
-        return false;
+      if (isDefinedIn(selfScope, fromSelfType) && isDefinedIn(selfScope, fromThatType)) {
+        var c1 = convertor(ctx, fromSelfType, self);
+        var c2 = convertor(ctx, fromThatType, that);
+        if (c1 == c2 && c1 != null && betweenBoth != null) {
+          return true;
+        }
       }
+      return false;
     }
 
     @Specialization(
@@ -193,7 +184,7 @@ public final class EqualsNode extends Node {
           "selfType == findType(typeOfNode, self)",
           "thatType == findType(typeOfNode, that)"
         })
-    final boolean doConversionCached(
+    final EqualsAndInfo doConversionCached(
         VirtualFrame frame,
         Object self,
         Object that,
@@ -206,7 +197,7 @@ public final class EqualsNode extends Node {
         @Shared("convert") @Cached InteropConversionCallNode convertNode,
         @Shared("invoke") @Cached(allowUncached = true) EqualsSimpleNode equalityNode) {
       if (convert == null) {
-        return false;
+        return EqualsAndInfo.FALSE;
       }
       if (convert) {
         return doDispatch(frame, that, self, thatType, convertNode, equalityNode);
@@ -216,7 +207,7 @@ public final class EqualsNode extends Node {
     }
 
     @Specialization(replaces = "doConversionCached")
-    final boolean doConversionUncached(
+    final EqualsAndInfo doConversionUncached(
         VirtualFrame frame,
         Object self,
         Object that,
@@ -233,10 +224,10 @@ public final class EqualsNode extends Node {
                 : doDispatch(frame, self, that, selfType, convertNode, equalityNode);
         return result;
       }
-      return false;
+      return EqualsAndInfo.FALSE;
     }
 
-    private boolean doDispatch(
+    private EqualsAndInfo doDispatch(
         VirtualFrame frame,
         Object self,
         Object that,
@@ -250,19 +241,27 @@ public final class EqualsNode extends Node {
       var state = State.create(ctx);
       try {
         var thatAsSelf = convertNode.execute(convert, state, new Object[] {selfType, that});
-        var result = equalityNode.execute(frame, self, thatAsSelf);
+        if (thatAsSelf instanceof EnsoMultiValue emv) {
+          thatAsSelf =
+              EnsoMultiValue.CastToNode.getUncached().findTypeOrNull(selfType, emv, false, false);
+        }
+        if (thatAsSelf == null) {
+          return EqualsAndInfo.FALSE;
+        }
+        var withInfo = equalityNode.execute(frame, self, thatAsSelf);
+        var result = withInfo.isTrue();
         assert !result || assertHashCodeIsTheSame(that, thatAsSelf);
-        return result;
+        return withInfo;
       } catch (ArityException ex) {
         var assertsOn = false;
         assert assertsOn = true;
         if (assertsOn) {
           throw new AssertionError("Unexpected arity exception", ex);
         }
-        return false;
+        return EqualsAndInfo.FALSE;
       } catch (PanicException ex) {
         if (ctx.getBuiltins().error().isNoSuchConversionError(ex.getPayload())) {
-          return false;
+          return EqualsAndInfo.FALSE;
         }
         throw ex;
       }

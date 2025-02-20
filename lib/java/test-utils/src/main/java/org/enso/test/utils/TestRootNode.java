@@ -8,8 +8,7 @@ import org.enso.interpreter.EnsoLanguage;
 
 /**
  * An artificial RootNode. Used for tests of nodes that need to be adopted. Just create this root
- * node inside a context, all the other nodes, and insert them via
- * {@link #insertChildren(Node...)}.
+ * node inside a context, all the other nodes, and insert them via {@link #insertChildren(Node...)}.
  */
 public final class TestRootNode extends RootNode {
 
@@ -30,9 +29,7 @@ public final class TestRootNode extends RootNode {
     }
   }
 
-  /**
-   * In the tests, do not execute this root node, but execute directly the child nodes.
-   */
+  /** In the tests, do not execute this root node, but execute directly the child nodes. */
   @Override
   public Object execute(VirtualFrame frame) {
     if (callback == null) {

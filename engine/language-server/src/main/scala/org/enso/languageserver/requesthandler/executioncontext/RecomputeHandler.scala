@@ -48,7 +48,8 @@ class RecomputeHandler(
       session,
       msg.params.contextId,
       msg.params.invalidatedExpressions,
-      msg.params.executionEnvironment
+      msg.params.executionEnvironment,
+      msg.params.expressionConfigs.getOrElse(Seq())
     )
 
   override protected def positiveResponse(

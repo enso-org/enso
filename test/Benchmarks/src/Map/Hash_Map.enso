@@ -9,13 +9,16 @@ polyglot java import org.enso.benchmark_helpers.JavaHashMapWrapper
 options = Bench.options . set_warmup (Bench.phase_conf 2 2) . set_measure (Bench.phase_conf 2 3)
 
 type Data
-    Value ~ints
+    Value ~dense_ints ~sparse_ints
 
     create n =
-        create_ints =
+        create_dense_ints =
             Vector.new n _->
                 Random.integer 0 ((n.div 100) - 1)
-        Data.Value create_ints
+        create_sparse_ints =
+            Vector.new n _->
+                Random.integer 0 (n - 1)
+        Data.Value create_dense_ints create_sparse_ints
 
 type Scenario
     Instance map_constructor
@@ -43,15 +46,23 @@ collect_benches = Bench.build builder->
 
     builder.group ("Enso_Hash_Map_" + n.to_text) options group_builder->
         # Scenario similar to what is done in distinct
+        # 'Sparse' ints have fewer duplicates and cause more inserts and fewer updates to happen.
+        group_builder.specify "Enso_Sparse_Incremental" <|
+            Scenario.Instance (_ -> Dictionary.empty) . run_distinct data.sparse_ints
+        group_builder.specify "Java_Sparse_Incremental" <|
+            Scenario.Instance (_ -> JavaHashMapWrapper.new) . run_distinct data.sparse_ints
+
+        # Scenario similar to what is done in distinct
+        # 'Dense' ints have more duplicates and cause fewer inserts and more updates to happen.
         group_builder.specify "Enso_Incremental" <|
-            Scenario.Instance (_ -> Map.empty) . run_distinct data.ints
+            Scenario.Instance (_ -> Dictionary.empty) . run_distinct data.dense_ints
         group_builder.specify "Java_Incremental" <|
-            Scenario.Instance (_ -> JavaHashMapWrapper.new) . run_distinct data.ints
+            Scenario.Instance (_ -> JavaHashMapWrapper.new) . run_distinct data.dense_ints
 
         # A scenario similar to what is done in add_row_number with grouping
         group_builder.specify "Enso_Replacement" <|
-            Scenario.Instance (_ -> Map.empty) . run_count_keys data.ints
+            Scenario.Instance (_ -> Dictionary.empty) . run_count_keys data.dense_ints
         group_builder.specify "Java_Replacement" <|
-            Scenario.Instance (_ -> JavaHashMapWrapper.new) . run_count_keys data.ints
+            Scenario.Instance (_ -> JavaHashMapWrapper.new) . run_count_keys data.dense_ints
 
 main = collect_benches . run_main

@@ -1,5 +1,6 @@
 package org.enso.projectmanager.model
 
+import ProjectKinds.ProjectKind
 import java.time.OffsetDateTime
 import java.util.UUID
 

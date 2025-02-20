@@ -18,18 +18,22 @@ code from modules.
 - [Import Syntax](#import-syntax)
   - [Qualified Imports](#qualified-imports)
   - [Unqualified Imports](#unqualified-imports)
+- [Imports with multiple targets](#imports-with-multiple-targets)
 - [Export Syntax](#export-syntax)
   - [Qualified Exports](#qualified-exports)
   - [Unqualified Exports](#unqualified-exports)
   - [Visibility of Export Bindings](#visibility-of-export-bindings)
+  - [Implicit exports](#implicit-exports)
+    - [Defined entities in a module](#defined-entities-in-a-module)
+    - [Synthetic module](#synthetic-module)
+- [Exports with multiple targets](#exports-with-multiple-targets)
 
 <!-- /MarkdownTOC -->
 
 ## Qualified Names
 
 In the following text, **entity** shall denote a module, a method (instance,
-static, foreign), type, or a type constructor. In other words, an _entity_ is
-anything that can be assigned to a variable.
+static, extension, conversion or foreign), type, or a type constructor.
 
 Both imports and exports require the use of qualified entity names. A qualified
 name consists of the library namespace (usually organization under which its
@@ -95,6 +99,30 @@ Imports in Enso _may_ introduce ambiguous symbols, which is treated as a
 compilation error. Ideally, the error should be delayed until one of the
 ambiguous symbols is _used_ in Enso code.
 
+## Imports with multiple targets
+
+Import of one symbol can resolve to multiple targets in case of extension or
+conversion methods. For example, the following import in `Main.enso`:
+`A_Module.enso`:
+
+```
+type My_Type
+type Other_Type
+My_Type.method = 42
+Other_Type.method = 42
+```
+
+`Main.enso`:
+
+```
+import project.A_Module.method
+```
+
+imports both `My_Type.method` and `Other_Type.method` methods.
+
+Note that `import project.A_Module.My_Type.method` would lead to a compilation
+error, as it is only possible to import constructors from a type, not methods.
+
 ## Export Syntax
 
 In order to allow for easy composition and aggregation of code, Enso provides
@@ -112,31 +140,19 @@ the name provided after the `as` keyword, if provided).
 
 ### Unqualified Exports
 
-Unqualified exports are broken up into three main categories:
+Unlike imports, exports cannot be used with the `all` and `hiding` keywords. So
+the only supported syntax is to export a list of names with _restricted
+exports_.
 
-1. **Unrestricted Exports:** These export all symbols from the module or type
-   into the current scope. They consist of the keyword `from`, followed by a
-   qualified module name, followed by an optional rename part (using the `as`
-   keyword), then the keywords `export all`. For example:
-   ```
-   from Standard.Base.Data.List as Builtin_List export all
-   ```
-2. **Restricted Exports:** These export a specified set of names, behaving as
-   though they were redefined in the current scope. They consist of the keyword
-   `from`, followed by a qualified module or type name (with optional
-   `as`-rename), then the word `export` followed by a coma-separated list of
-   names to be exported. For example:
-   ```
-   from Standard.Base.Data.List export Cons, Nil, from_vector
-   ```
-3. **Hiding Exports:** These are the inverse of restricted exports, and export
-   _all_ symbols other than the named ones. They consist of the `from` keyword,
-   followed by a qualified module or type name (with optional `as`-rename), then
-   the words `export all hiding`, followed by a coma-separated list of names to
-   be excluded from the export. For example:
-   ```
-   from Standard.Base.Data.List export all hiding from_vector, Nil
-   ```
+**Restricted Exports:** These export a specified set of names, behaving as
+though they were redefined in the current scope. They consist of the keyword
+`from`, followed by a qualified module or type name (with optional `as`-rename),
+then the word `export` followed by a coma-separated list of names to be
+exported. For example:
+
+```
+from Standard.Base.Data.List export Cons, Nil, from_vector
+```
 
 In essence, an export allows the user to "paste" the contents of the module or
 type being exported into the module declaring the export. This means that
@@ -146,3 +162,63 @@ exports that create name clashes must be resolved at the _export_ site.
 
 Bindings exported from a module `X` are available in an identical fashion to
 bindings that are _defined_ in the module `X`.
+
+### Implicit exports
+
+The compiler inserts implicit exports for entities defined in a module and for
+submodules of a _synthetic module_. A synthetic module is basically a directory
+in the source structure.
+
+#### Defined entities in a module
+
+Entities defined in a module are automatically exported from the module. This
+means that the following modules are semantically identical:
+
+```
+type My_Type
+method x = x
+```
+
+```
+export project.Module.My_Type
+export project.Module.method
+type My_Type
+method x = x
+```
+
+#### Synthetic module
+
+Consider a project named `Proj` with the following source structure:
+
+`Proj/src/Synthetic_Mod/Module.enso`:
+
+```
+type My_Type
+```
+
+`Proj/src/Main.enso`:
+
+```
+import project.Synthetic_Mod.Module.My_Type
+```
+
+We can import submodules of `Synthetic_Mod`, because the compiler automatically
+inserts exports for them. Internally, `Synthetic_Mod` is represented as a module
+with single export:
+
+```
+export project.Synthetic_Mod.Module
+```
+
+## Exports with multiple targets
+
+Export of a single symbol can be resolved to multiple targets (entities) in case
+of extension or conversion methods. Similarly to
+[imports with multiple targets](#imports-with-multiple-targets), the following
+export in `A_Module.enso`:
+
+```
+export project.A_Module.export
+```
+
+exports both `My_Type.method` and `Other_Type.method` methods.

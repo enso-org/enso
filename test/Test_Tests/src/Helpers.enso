@@ -1,0 +1,17 @@
+from Standard.Base import all
+
+import Standard.Test.Spec_Result.Spec_Result
+from Standard.Test import Test
+
+## Expects the inner action to report a test failure exception and returns its payload.
+expect_test_failure ~action -> Spec_Result =
+    loc = Test.get_source_location 1
+    handle_panic caught_panic =
+        result = caught_panic.payload
+        case result of
+            Spec_Result.Failure _ _ -> result
+            _ -> Test.fail "Expected test failure, but "+result.to_text+" was raised as error."
+
+    Panic.catch Spec_Result handler=handle_panic <|
+        action
+        Test.fail "Expected the inner action to fail, but there was no failure (at "+loc+")."

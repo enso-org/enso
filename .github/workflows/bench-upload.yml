@@ -7,6 +7,9 @@ on:
     workflows: ["Benchmark Engine", "Benchmark Standard Libraries"]
     types:
       - completed
+  # Allow to trigger this workflow manually
+  workflow_dispatch:
+
 jobs:
   upload-benchmarks:
     name: Upload benchmarks

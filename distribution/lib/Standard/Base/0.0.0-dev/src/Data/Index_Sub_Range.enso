@@ -5,6 +5,7 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Index_Out_Of_Bounds
+import project.Errors.Common.Missing_Argument
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
@@ -18,7 +19,7 @@ import project.Runtime.Ref.Ref
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Metadata.Choice import Option
-from project.Metadata.Widget import Single_Choice
+from project.Metadata.Widget import Numeric_Input, Single_Choice, Vector_Editor
 from project.Random import get_default_seed, Random
 
 type Index_Sub_Range
@@ -35,7 +36,7 @@ type Index_Sub_Range
     Last (count : Integer = 1)
 
     ## Select elements from the start while the predicate returns `True`.
-    While (predicate : (Any -> Boolean))
+    While (predicate : (Any -> Boolean) = Missing_Argument.throw "predicate")
 
     ## Selects specific indexes (starting from 0) either as an `Integer` or a
        `Range`.
@@ -47,13 +48,13 @@ type Index_Sub_Range
        Only ranges with positive step and positive indices are supported.
        Individual integer indices can be negative which allows for indexing
        from the end of the collection.
-    By_Index (indexes : (Integer | Range | Vector (Integer | Range)))
+    By_Index (indexes : (Integer | Range | Vector (Integer | Range)) = Missing_Argument.throw "indexes")
 
     ## Gets a random sample of entries, without repetitions.
 
        If `count` is greater than the length of the input, a random permutation
        of all elements from the input is selected.
-    Sample (count:Integer) (seed:Integer|Nothing=Nothing)
+    Sample (count : Integer = 1) (seed:Integer=0)
 
     ## Gets every Nth entry.
 
@@ -61,7 +62,7 @@ type Index_Sub_Range
        - step: The step between consecutive entries that are included.
        - first: The first entry to include. If it is outside of bounds of the
          input, an error is raised.
-    Every (step:Integer) (first:Integer=0)
+    Every (step:Integer=1) (first:Integer=0)
 
     ## PRIVATE
        Convert to a display representation of this Index_Sub_Range.
@@ -78,21 +79,23 @@ type Index_Sub_Range
        It includes all constructors of `Index_Sub_Range` but also `Range`, since
        the `Index_Sub_Range` type is by default used in sum types containing
        `Range` too.
-    default_options : Vector Option
-    default_options =
-        o1 = Option "First" "(Index_Sub_Range.First 1)"
-        o2 = Option "Last" "(Index_Sub_Range.Last 1)"
-        o3 = Option "While" "(Index_Sub_Range.While (x-> False))"
-        o4 = Option "By_Index" "(Index_Sub_Range.By_Index [0])"
-        o5 = Option "Sample" "(Index_Sub_Range.Sample 10)"
-        o6 = Option "Every" "(Index_Sub_Range.Every 2)"
-        o7 = Option "Range" "(Range.new 0 100)"
-        [o1, o2, o3, o4, o5, o6, o7]
+    default_options : (Integer|Nothing) -> Vector Option
+    default_options count:(Integer|Nothing)=Nothing =
+        count_editor = if count.is_nothing then Numeric_Input else Numeric_Input minimum=1 maximum=count display=Display.Always
+        index_editor = if count.is_nothing then Numeric_Input else Numeric_Input minimum=0 maximum=(count-1) display=Display.Always
+
+        o1 = Option "First" "..First" [["count", count_editor]]
+        o2 = Option "Last" "..Last" [["count", count_editor]]
+        o4 = Option "By_Index" "..By_Index" [["indexes", Vector_Editor item_editor=index_editor item_default="0"]]
+        o5 = Option "Sample" "..Sample" parameters=[["count", count_editor]]
+        o6 = Option "Every" "..Every"
+        o7 = Option "Range" "(..Between 0 100)" [["start", index_editor], ["end", count_editor]]
+        o3 = Option "While" "(..While (x-> False))"
+        [o1, o2, o4, o5, o6, o7, o3]
 
     ## PRIVATE
-    default_widget : Widget
-    default_widget =
-        Single_Choice display=Display.Always Index_Sub_Range.default_options
+    default_widget count:(Integer|Nothing)=Nothing display:Display=..Always -> Widget =
+        Single_Choice display=display (Index_Sub_Range.default_options count)
 
 ## PRIVATE
    Resolves a vector of ranges or indices into a vector of ranges that fit
@@ -195,15 +198,14 @@ sort_and_merge_ranges ranges =
      normalization on its own.
    - range: The `Index_Sub_Range` to take from the collection.
 take_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vector (Integer | Range) -> Vector Any) -> (Index_Sub_Range | Range | Integer) -> Any
-take_helper length at single_slice slice_ranges range = case range of
+take_helper length at single_slice slice_ranges range:(Index_Sub_Range | Range | Integer) = case range of
     count : Integer -> take_helper length at single_slice slice_ranges (Index_Sub_Range.First count)
     _ : Range -> take_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)
     Index_Sub_Range.First count -> single_slice 0 (length.min count)
     Index_Sub_Range.Last count -> single_slice length-count length
     Index_Sub_Range.While predicate ->
-        end = 0.up_to length . find i-> (predicate (at i)).not
-        true_end = if end.is_nothing then length else end
-        single_slice 0 true_end
+        end = 0.up_to length . find (i-> (predicate (at i)).not) if_missing=length
+        single_slice 0 end
     Index_Sub_Range.By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds, Illegal_Argument] <|
         indices = case one_or_many_descriptors of
             _ : Vector -> one_or_many_descriptors
@@ -246,15 +248,14 @@ take_helper length at single_slice slice_ranges range = case range of
      normalized.
    - range: The `Index_Sub_Range` to drop from the collection.
 drop_helper : Integer -> (Integer -> Any) -> (Integer -> Integer -> Any) -> (Vector (Integer | Range) -> Vector Any) -> (Index_Sub_Range | Range | Integer) -> Any
-drop_helper length at single_slice slice_ranges range = case range of
+drop_helper length at single_slice slice_ranges range:(Index_Sub_Range | Range | Integer) = case range of
     _ : Integer -> single_slice range length
     _ : Range -> drop_helper length at single_slice slice_ranges (Index_Sub_Range.By_Index range)
     Index_Sub_Range.First count -> single_slice count length
     Index_Sub_Range.Last count -> single_slice 0 length-count
     Index_Sub_Range.While predicate ->
-        end = 0.up_to length . find i-> (predicate (at i)).not
-        true_end = if end.is_nothing then length else end
-        single_slice true_end length
+        end = 0.up_to length . find (i-> (predicate (at i)).not) if_missing=length
+        single_slice end length
     Index_Sub_Range.By_Index one_or_many_descriptors -> Panic.recover [Index_Out_Of_Bounds, Illegal_Argument] <|
         indices = case one_or_many_descriptors of
             _ : Vector -> one_or_many_descriptors

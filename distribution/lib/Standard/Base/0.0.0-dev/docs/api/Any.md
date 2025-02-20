@@ -1,0 +1,26 @@
+## Enso Signatures 1.0
+## module Standard.Base.Any
+- type Any
+    - != self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - < self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - <= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - == self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - > self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - >= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - catch self error_type:Standard.Base.Any.Any= handler:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - catch_primitive self handler:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - has_warnings self warning_type:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - if_not_error self ~other:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - if_not_nothing self ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - if_nothing self ~other:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - is_error self -> Standard.Base.Any.Any
+    - is_nothing self -> Standard.Base.Any.Any
+    - map_error self ~f:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - map_nothing self f:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - pretty self -> Standard.Base.Any.Any
+    - remove_warnings self warning_type:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - throw_on_warning self warning_type:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - to self target_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+    - |> self ~function:Standard.Base.Any.Any -> Standard.Base.Any.Any

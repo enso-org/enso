@@ -1,7 +1,7 @@
 package org.enso.editions.updater
 
+import org.enso.librarymanager.test.published.repository.ExampleRepository
 import org.enso.semver.SemVer
-import org.enso.librarymanager.published.repository.ExampleRepository
 import org.enso.testkit.WithTemporaryDirectory
 import org.scalatest.Inside
 import org.scalatest.matchers.should.Matchers

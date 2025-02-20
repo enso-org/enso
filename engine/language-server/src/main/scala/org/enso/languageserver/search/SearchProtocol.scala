@@ -1,6 +1,5 @@
 package org.enso.languageserver.search
 
-import enumeratum._
 import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
@@ -235,16 +234,18 @@ object SearchProtocol {
     * @param tag the modifying action
     * @param value the updated value
     */
-  case class FieldUpdate[A](tag: FieldAction, value: Option[A])
+  case class FieldUpdate[A](tag: FieldActions.FieldAction, value: Option[A])
 
   /** The modifying action on the field. */
-  sealed trait FieldAction extends EnumEntry
-  object FieldAction extends Enum[FieldAction] with CirceEnum[FieldAction] {
+  object FieldActions extends Enumeration {
+    type FieldAction = Value
 
-    case object Remove extends FieldAction
-    case object Set    extends FieldAction
+    val Remove, Set = Value
 
-    override def values = findValues
+    implicit val genderDecoder: Decoder[FieldAction] =
+      Decoder.decodeEnumeration(FieldActions)
+    implicit val genderEncoder: Encoder[FieldAction] =
+      Encoder.encodeEnumeration(FieldActions)
   }
 
   /** An operation applied to the suggestion argument. */
@@ -399,33 +400,30 @@ object SearchProtocol {
   }
 
   /** The type of a suggestion. */
-  sealed trait SuggestionKind extends EnumEntry
-  object SuggestionKind
-      extends Enum[SuggestionKind]
-      with CirceEnum[SuggestionKind] {
+  object SuggestionKinds extends Enumeration {
+
+    type SuggestionKind = Value
 
     /** A module suggestion. */
-    case object Module extends SuggestionKind
+    val Module = Value
 
     /** An type suggestion. */
-    case object Type extends SuggestionKind
+    val Type = Value
 
     /** An type constructor suggestion. */
-    case object Constructor extends SuggestionKind
+    val Constructor = Value
 
     /** A method suggestion. */
-    case object Method extends SuggestionKind
+    val Method = Value
 
     /** A conversion suggestion. */
-    case object Conversion extends SuggestionKind
+    val Conversion = Value
 
     /** A function suggestion. */
-    case object Function extends SuggestionKind
+    val Function = Value
 
     /** Local binding suggestion. */
-    case object Local extends SuggestionKind
-
-    override val values = findValues
+    val Local = Value
 
     /** Create API kind from the [[Suggestion.Kind]]
       *
@@ -459,6 +457,11 @@ object SearchProtocol {
         case Function    => Suggestion.Kind.Function
         case Local       => Suggestion.Kind.Local
       }
+
+    implicit val genderDecoder: Decoder[SuggestionKind] =
+      Decoder.decodeEnumeration(SuggestionKinds)
+    implicit val genderEncoder: Encoder[SuggestionKind] =
+      Encoder.encodeEnumeration(SuggestionKinds)
   }
 
   /** The entry in the suggestions database.

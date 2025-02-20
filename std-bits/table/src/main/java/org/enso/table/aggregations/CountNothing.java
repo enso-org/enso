@@ -11,7 +11,7 @@ import org.graalvm.polyglot.Context;
  * Aggregate Column counting the number of (not-)null entries in a group. If `isNothing` is true,
  * counts null entries. If `isNothing` is false, counts non-null entries.
  */
-public class CountNothing extends Aggregator {
+public class CountNothing extends KnownTypeAggregator {
   private final Storage<?> storage;
   private final boolean isNothing;
 

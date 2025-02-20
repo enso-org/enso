@@ -3,16 +3,15 @@ package org.enso.interpreter.test.privateaccess;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.AllOf.allOf;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import com.oracle.truffle.api.interop.InteropLibrary;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.List;
-import org.enso.interpreter.util.ScalaConversions;
+import org.enso.common.RuntimeOptions;
 import org.enso.polyglot.PolyglotContext;
-import org.enso.polyglot.RuntimeOptions;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.graalvm.polyglot.PolyglotException;
@@ -41,21 +40,28 @@ public class PrivateConstructorAccessTest {
   }
 
   @Test
-  public void privateFieldIsNotExposedToPolyglot() throws IOException {
-    var mainSrc =
+  public void accessMethodOnATypeWithAllPrivateConstructors() throws IOException {
+    var codeA =
         """
-        type My_Type
-            private Cons data
-        main = My_Type.Cons 42
+            type A
+                private Cons data
+                find d = A.Cons d
+            """;
+    var codeUse =
+        """
+        import local.Proj_A
+        create x = local.Proj_A.Main.A.find x
+        main = create
         """;
-    var projDir = tempFolder.newFolder().toPath();
-    ProjectUtils.createProject("My_Project", mainSrc, projDir);
+    var proj1Dir = tempFolder.newFolder("Proj_A").toPath();
+    ProjectUtils.createProject("Proj_A", codeA, proj1Dir);
+    var proj2Dir = tempFolder.newFolder("Proj_Use").toPath();
+    ProjectUtils.createProject("Proj_Use", codeUse, proj2Dir);
     ProjectUtils.testProjectRun(
-        projDir,
-        res -> {
-          assertThat(res.hasMember("data"), is(false));
-          assertThat(res.canInvokeMember("data"), is(false));
-          assertThat(res.getMember("data"), is(nullValue()));
+        proj2Dir,
+        create -> {
+          var res = create.execute("Hello");
+          assertEquals("It is object: " + res, "(Cons 'Hello')", res.toString());
         });
   }
 
@@ -75,40 +81,18 @@ public class PrivateConstructorAccessTest {
       var polyCtx = new PolyglotContext(ctx);
       var mainMod = polyCtx.evalModule(mainSrcPath.toFile());
       var myType = mainMod.getType("My_Type");
-      assertThat(myType.hasMember("Cons"), is(false));
-    }
-  }
-
-  @Test
-  public void typeWithPrivateConstructorExposesPublicMethodsToPolyglot() throws IOException {
-    var mainSrc =
-        """
-        type My_Type
-            private Cons data
-            get_data self = self.data
-        main =
-            My_Type.Cons 42
-        """;
-    var projDir = tempFolder.newFolder().toPath();
-    ProjectUtils.createProject("My_Project", mainSrc, projDir);
-    var mainSrcPath = projDir.resolve("src").resolve("Main.enso");
-    try (var ctx =
-        ContextUtils.defaultContextBuilder()
-            .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
-            .build()) {
-      var polyCtx = new PolyglotContext(ctx);
-      var mainMod = polyCtx.evalModule(mainSrcPath.toFile());
-      var myType = mainMod.getType("My_Type");
-      var getDataMethod = mainMod.getMethod(myType, "get_data").get();
-      var assocType = mainMod.getAssociatedType();
-      var mainMethod = mainMod.getMethod(assocType, "main").get();
-      var res = mainMethod.execute();
-      assertThat("Atoms should generally have members", res.hasMembers(), is(true));
-      assertThat("data is a private field", res.hasMember("data"), is(false));
-      assertThat("get_data is a public method", res.hasMember("get_data"), is(true));
-      var data = getDataMethod.execute(ScalaConversions.seq(List.of(res)));
-      assertThat("public accessor method can be called from polyglot", data.isNumber(), is(true));
-      assertThat("public accessor method can be called from polyglot", data.asInt(), is(42));
+      ContextUtils.executeInContext(
+          ctx,
+          () -> {
+            var myTypeUnwrapped = ContextUtils.unwrapValue(ctx, myType);
+            var interop = InteropLibrary.getUncached();
+            var members = interop.getMembers(myTypeUnwrapped, false);
+            assertThat(
+                "My_Type should not have any 'public' members",
+                interop.getArraySize(members),
+                is(0L));
+            return null;
+          });
     }
   }
 

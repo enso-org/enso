@@ -5,7 +5,7 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.error.Warning;
+import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.state.State;
 
 /**
@@ -43,5 +43,5 @@ public abstract class CallOptimiserNode extends Node {
       CallerInfo callerInfo,
       State state,
       Object[] arguments,
-      Warning[] warnings);
+      EnsoHashMap warnings);
 }

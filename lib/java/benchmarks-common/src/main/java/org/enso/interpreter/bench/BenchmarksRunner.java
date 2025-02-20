@@ -13,10 +13,14 @@ import java.util.List;
 import org.enso.interpreter.bench.result.Result;
 import org.enso.interpreter.bench.result.Results;
 import org.openjdk.jmh.results.RunResult;
+import org.openjdk.jmh.runner.Defaults;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
+import org.openjdk.jmh.runner.format.OutputFormat;
+import org.openjdk.jmh.runner.format.OutputFormatFactory;
 import org.openjdk.jmh.runner.options.CommandLineOptionException;
 import org.openjdk.jmh.runner.options.CommandLineOptions;
+import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.openjdk.jmh.runner.options.TimeValue;
 
@@ -30,6 +34,9 @@ public class BenchmarksRunner {
   }
 
   public void run(String[] args) throws RunnerException {
+    if (args.length == 0) {
+      args = new String[] {"--jvmArgsPrepend=-Dbench.all=true"};
+    }
     CommandLineOptions cmdOpts = null;
     try {
       cmdOpts = new CommandLineOptions(args);
@@ -43,7 +50,7 @@ public class BenchmarksRunner {
       // Do not report results from `compileOnly` mode
       runCompileOnly(cmdOpts.getIncludes());
     } else {
-      Runner jmhRunner = new Runner(cmdOpts);
+      var jmhRunner = createRunner(cmdOpts);
 
       if (cmdOpts.shouldHelp()) {
         System.err.println("Enso benchmark runner: A modified JMH runner for Enso benchmarks.");
@@ -99,7 +106,7 @@ public class BenchmarksRunner {
             .forks(0);
     includes.forEach(optsBuilder::include);
     var opts = optsBuilder.build();
-    var runner = new Runner(opts);
+    var runner = createRunner(opts);
     try {
       runner.run();
       System.out.println(
@@ -142,6 +149,86 @@ public class BenchmarksRunner {
           System.exit(1);
         }
       }
+    }
+  }
+
+  private static Runner createRunner(Options cmdOpts) {
+    var output =
+        OutputFormatFactory.createFormatInstance(
+            System.out, cmdOpts.verbosity().orElse(Defaults.VERBOSITY));
+    Runner jmhRunner = new Runner(cmdOpts, new GitHubActionsFormat(output));
+    return jmhRunner;
+  }
+
+  private static final class GitHubActionsFormat implements OutputFormat {
+    private final OutputFormat output;
+
+    GitHubActionsFormat(OutputFormat output) {
+      this.output = output;
+    }
+
+    @Override
+    public void iteration(BenchmarkParams benchParams, IterationParams params, int iteration) {
+      output.iteration(benchParams, params, iteration);
+    }
+
+    @Override
+    public void iterationResult(
+        BenchmarkParams benchParams, IterationParams params, int iteration, IterationResult data) {
+      output.iterationResult(benchParams, params, iteration, data);
+    }
+
+    @Override
+    public void startBenchmark(BenchmarkParams benchParams) {
+      output.println("::group::" + benchParams.getBenchmark());
+    }
+
+    @Override
+    public void endBenchmark(BenchmarkResult result) {
+      output.println("::endgroup::");
+    }
+
+    @Override
+    public void startRun() {
+      output.startRun();
+    }
+
+    @Override
+    public void endRun(Collection<RunResult> result) {
+      output.endRun(result);
+    }
+
+    @Override
+    public void print(String s) {
+      output.print(s);
+    }
+
+    @Override
+    public void println(String s) {
+      output.println(s);
+    }
+
+    @Override
+    public void flush() {
+      output.flush();
+    }
+
+    @Override
+    public void close() {}
+
+    @Override
+    public void verbosePrintln(String s) {
+      output.verbosePrintln(s);
+    }
+
+    @Override
+    public void write(int b) {
+      output.write(b);
+    }
+
+    @Override
+    public void write(byte[] b) throws IOException {
+      output.write(b);
     }
   }
 }

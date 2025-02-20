@@ -1,7 +1,7 @@
 package org.enso.interpreter.test.instrument
 
 import org.enso.common.LanguageInfo
-import org.enso.polyglot.RuntimeOptions
+import org.enso.common.RuntimeOptions
 import org.graalvm.polyglot.{Context, PolyglotException}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

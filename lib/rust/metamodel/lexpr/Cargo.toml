@@ -7,12 +7,11 @@ authors = ["Enso Team <contact@enso.org>"]
 [dependencies]
 lexpr = "0.2.6"
 bincode = "1.3"
-serde = "1"
+serde = { workspace = true }
 enso-metamodel = { path = "../" }
-derivative = { workspace = true }
+derive-where = { workspace = true }
 
 [dev-dependencies]
-serde = { workspace = true }
 enso-reflect = { path = "../../reflect" }
 
 [lints]

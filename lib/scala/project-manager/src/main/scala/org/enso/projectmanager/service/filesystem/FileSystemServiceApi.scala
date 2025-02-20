@@ -1,8 +1,15 @@
 package org.enso.projectmanager.service.filesystem
 
-import java.io.{File, InputStream}
+import java.io.{File, InputStream, OutputStream}
 
 trait FileSystemServiceApi[F[+_, +_]] {
+
+  /** Checks if the file or directory exists.
+    *
+    * @param path the file or directory to check
+    * @return true if the file or directory exists, false otherwise
+    */
+  def exists(path: File): F[FileSystemServiceFailure, Boolean]
 
   /** List file system entries in the provided directory
     *
@@ -30,10 +37,25 @@ trait FileSystemServiceApi[F[+_, +_]] {
     */
   def move(from: File, to: File): F[FileSystemServiceFailure, Unit]
 
+  /** Copy a file or directory recursively.
+    *
+    * @param from the target path
+    * @param to the destination path
+    */
+  def copy(from: File, to: File): F[FileSystemServiceFailure, Unit]
+
+  /** Read a file to the provided output.
+    *
+    * @param path the file path to write
+    * @param out the output consuming the file contents
+    * @return the number of bytes read
+    */
+  def read(path: File, out: OutputStream): F[FileSystemServiceFailure, Int]
+
   /** Writes a file
     *
     * @param path the file path to write
-    * @param bytes the file contents
+    * @param in the file contents
     */
   def write(path: File, in: InputStream): F[FileSystemServiceFailure, Unit]
 }

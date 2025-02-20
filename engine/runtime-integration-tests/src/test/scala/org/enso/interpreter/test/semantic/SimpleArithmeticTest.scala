@@ -44,7 +44,7 @@ class SimpleArithmeticTest extends InterpreterTest {
       val code =
         """import Standard.Base.Data.Numbers
           |main =
-          |    expr = (10 * 3+2) - 1
+          |    expr = 10 * (3+2) - 1
           |    -expr
           |""".stripMargin
 

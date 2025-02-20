@@ -11,8 +11,9 @@ import akka.actor.{
   Terminated
 }
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.logging.utils.akka.ActorMessageLogging
+import org.enso.projectmanager.boot.Logging
 import org.enso.semver.SemVer
-import org.enso.logger.akka.ActorMessageLogging
 import org.enso.projectmanager.boot.configuration._
 import org.enso.projectmanager.data.{LanguageServerSockets, Socket}
 import org.enso.projectmanager.event.ClientEvent.{
@@ -81,6 +82,7 @@ class LanguageServerController(
       name                           = s"language-server-${project.id}",
       rootId                         = UUID.randomUUID(),
       rootPath                       = project.path.toString,
+      projectId                      = project.id,
       networkConfig                  = networkConfig,
       distributionConfiguration      = distributionConfiguration,
       engineVersion                  = engineVersion,
@@ -127,7 +129,7 @@ class LanguageServerController(
   private def booting(Bootloader: ActorRef): Receive =
     LoggingReceive.withLabel("booting") {
       case BootTimeout =>
-        logger.error("Booting failed for {}.", descriptor)
+        logger.error("Booting failed for {}", descriptor)
         unstashAll()
         context.become(bootFailed(LanguageServerProtocol.ServerBootTimedOut))
 
@@ -151,12 +153,12 @@ class LanguageServerController(
         )
 
       case Terminated(Bootloader) =>
-        logger.error("Bootloader for project {} failed.", project.name)
+        logger.error("Bootloader for project {} failed", project.name)
         unstashAll()
         context.become(
           bootFailed(
             LanguageServerProtocol.ServerBootFailed(
-              new Exception("The number of boot retries exceeded.")
+              new Exception("The number of boot retries exceeded")
             )
           )
         )
@@ -169,25 +171,24 @@ class LanguageServerController(
     * @param connectionInfo language server connection info
     * @param serverProcessManager an actor that manages the lifecycle of the server process
     * @param clients list of connected clients
-    * @param scheduledShutdown cancellable timeout of the hard shutdown event and a port number of the client that initiated it
+    * @param lastClientPort if no clients are connected denotes the last port number of a client or a project
     * @return current supervising actor state
     */
   private def supervising(
     connectionInfo: LanguageServerConnectionInfo,
     serverProcessManager: ActorRef,
-    clients: Set[UUID]                            = Set.empty,
-    scheduledShutdown: Option[(Cancellable, Int)] = None
+    clients: Set[UUID]          = Set.empty,
+    lastClientPort: Option[Int] = None
   ): Receive =
     LoggingReceive.withLabel("supervising") {
       case StartServer(clientId, _, requestedEngineVersion, _, _) =>
-        scheduledShutdown.foreach(_._1.cancel())
         if (requestedEngineVersion != engineVersion) {
           sender() ! ServerBootFailed(
             new IllegalStateException(
               s"Requested to boot a server version $requestedEngineVersion, " +
               s"but a server for this project with a different version, " +
               s"$engineVersion, is already running. Two servers with different " +
-              s"versions cannot be running for a single project."
+              s"versions cannot be running for a single project"
             )
           )
         } else {
@@ -213,10 +214,10 @@ class LanguageServerController(
           )
         }
       case Terminated(_) =>
-        scheduledShutdown.foreach(_._1.cancel())
-        logger.debug("Bootloader for {} terminated.", project)
+        logger.debug("Bootloader for {} terminated", project)
 
-      case StopServer(clientId, _) =>
+      case StopServer(clientId, projectId) =>
+        Logging.tearDown(projectId)
         removeClient(
           connectionInfo,
           serverProcessManager,
@@ -224,18 +225,16 @@ class LanguageServerController(
           clientId,
           Some(sender()),
           explicitShutdownRequested = true,
-          None,
-          scheduledShutdown
+          lastClientPort
         )
 
       case ScheduledShutdown(requester) =>
         shutDownServer(requester)
 
       case LanguageServerStatusRequest =>
-        sender() ! LanguageServerStatus(project.id, scheduledShutdown.isDefined)
+        sender() ! LanguageServerStatus(project.id, lastClientPort.isDefined)
 
       case ShutDownServer =>
-        scheduledShutdown.foreach(_._1.cancel())
         shutDownServer(None)
 
       case ClientDisconnected(clientId, port) =>
@@ -246,13 +245,11 @@ class LanguageServerController(
           clientId,
           None,
           explicitShutdownRequested = false,
-          atPort                    = Some(port),
-          scheduledShutdown
+          lastClientPort.orElse(Some(port))
         )
       case ClientConnected(clientId, clientPort) =>
-        scheduledShutdown match {
-          case Some((cancellable, port)) if clientPort == port =>
-            cancellable.cancel()
+        lastClientPort match {
+          case Some(port) if clientPort == port =>
             context.become(
               supervising(
                 connectionInfo,
@@ -265,7 +262,6 @@ class LanguageServerController(
         }
 
       case RenameProject(_, namespace, oldName, newName) =>
-        scheduledShutdown.foreach(_._1.cancel())
         val socket = Socket(connectionInfo.interface, connectionInfo.rpcPort)
         context.actorOf(
           ProjectRenameAction
@@ -283,8 +279,7 @@ class LanguageServerController(
         )
 
       case ServerDied =>
-        scheduledShutdown.foreach(_._1.cancel())
-        logger.error("Language server died [{}].", connectionInfo)
+        logger.error("Language server died [{}]", connectionInfo)
         context.stop(self)
 
     }
@@ -296,36 +291,24 @@ class LanguageServerController(
     clientId: UUID,
     maybeRequester: Option[ActorRef],
     explicitShutdownRequested: Boolean,
-    atPort: Option[Int],
-    shutdownTimeout: Option[(Cancellable, Int)]
+    atPort: Option[Int]
   ): Unit = {
     val updatedClients = clients - clientId
     if (updatedClients.isEmpty) {
       if (!explicitShutdownRequested) {
-        logger.debug("Delaying shutdown for project {}.", project.id)
-        val scheduledShutdown: Option[(Cancellable, Int)] =
-          shutdownTimeout.orElse(
-            Some(
-              (
-                context.system.scheduler.scheduleOnce(
-                  timeoutConfig.delayedShutdownTimeout,
-                  self,
-                  ScheduledShutdown(maybeRequester)
-                ),
-                atPort.getOrElse(0)
-              )
-            )
-          )
+        logger.debug(
+          "Last client disconnected for project [{}]. Awaiting re-connection or shutdown",
+          project.id
+        )
         context.become(
           supervising(
             connectionInfo,
             serverProcessManager,
             Set.empty,
-            scheduledShutdown
+            atPort
           )
         )
       } else {
-        shutdownTimeout.foreach(_._1.cancel())
         shutDownServer(maybeRequester)
       }
     } else {
@@ -335,14 +318,14 @@ class LanguageServerController(
           connectionInfo,
           serverProcessManager,
           updatedClients,
-          shutdownTimeout
+          None
         )
       )
     }
   }
 
   private def shutDownServer(maybeRequester: Option[ActorRef]): Unit = {
-    logger.debug("Shutting down a language server for project {}.", project.id)
+    logger.debug("Shutting down a language server for project {}", project.id)
     context.children.foreach(_ ! GracefulStop)
     val cancellable =
       context.system.scheduler
@@ -364,10 +347,10 @@ class LanguageServerController(
       case LanguageServerProcess.ServerTerminated(exitCode) =>
         cancellable.cancel()
         if (exitCode == 0) {
-          logger.info("Language server shut down successfully [{}].", project)
+          logger.debug("Language server shut down successfully [{}]", project)
         } else {
           logger.warn(
-            "Language server shut down with non-zero exit code: {} [{}].",
+            "Language server shut down with non-zero exit code: {} [{}]",
             exitCode,
             project
           )
@@ -376,17 +359,17 @@ class LanguageServerController(
         stop()
 
       case ShutdownTimeout =>
-        logger.error("Language server shutdown timed out.")
+        logger.error("Language server shutdown timed out")
         maybeRequester.foreach(_ ! ServerShutdownTimedOut)
         stop()
 
       case ClientDisconnected(clientId, _) =>
         logger.debug(
-          s"Received client ($clientId) disconnect request during shutdown. Ignoring."
+          s"Received client ($clientId) disconnect request during shutdown. Ignoring"
         )
 
       case ShutDownServer =>
-        logger.debug(s"Received shutdown request during shutdown. Ignoring.")
+        logger.debug(s"Received shutdown request during shutdown. Ignoring")
 
       case m: StartServer =>
         // This instance has not yet been shut down. Retry

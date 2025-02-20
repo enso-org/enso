@@ -13,7 +13,7 @@ fn main() {
     if let Some((_meta, code_)) = enso_parser::metadata::parse(code) {
         code = code_;
     }
-    let ast = enso_parser::Parser::new().run(code);
+    let ast = enso_parser::Parser::new().parse_module(code);
     let data =
         enso_parser::format::serialize(&ast).expect("Failed to serialize AST to binary format");
     std::io::stdout().write_all(&data).unwrap();

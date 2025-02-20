@@ -1,6 +1,7 @@
 package org.enso.interpreter.epb;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import com.oracle.truffle.api.source.Source;
 import java.util.Collections;
@@ -21,7 +22,7 @@ public class ForeignEvalNodeTest {
       var res = node.execute(null);
       fail("Unexpected result: " + res);
     } catch (ForeignParsingException e) {
-      assertEquals("No # found", e.getMessage());
+      assertEquals("No `#` found. Expecting `lang:lineno#code` format.", e.getMessage());
     }
   }
 }

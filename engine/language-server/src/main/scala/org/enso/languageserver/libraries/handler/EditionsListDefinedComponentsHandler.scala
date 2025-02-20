@@ -66,7 +66,7 @@ class EditionsListDefinedComponentsHandler(
 
           val validatedLibraries = validationResults.collect {
             case (libraryName, Right(componentGroups)) =>
-              libraryName -> componentGroups
+              libraryName -> Some(componentGroups)
           }.toMap
           componentGroupsResolver.resolveComponentGroups(validatedLibraries)
         }

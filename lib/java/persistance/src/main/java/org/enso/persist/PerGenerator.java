@@ -1,6 +1,7 @@
 package org.enso.persist;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -14,7 +15,7 @@ import org.slf4j.Logger;
 final class PerGenerator {
   static final byte[] HEADER = new byte[] {0x0a, 0x0d, 0x13, 0x0f};
   private final OutputStream main;
-  private final Map<Object, Integer> knownObjects = new IdentityHashMap<>();
+  private final Map<Object, WriteResult> knownObjects = new IdentityHashMap<>();
   private int countReferences = 1;
   private final Map<Object, Integer> pendingReferences = new IdentityHashMap<>();
   private final Histogram histogram;
@@ -60,17 +61,29 @@ final class PerGenerator {
     arr[position + 3] = (byte) (value & 0xff);
   }
 
-  final <T> int writeObject(T t) throws IOException {
+  private record WriteResult(Persistance<?> usedPersistance, int position) {
+    void writePositionAndPersistanceId(DataOutput out) throws IOException {
+      if (usedPersistance == null) {
+        assert position == NULL_REFERENCE_ID;
+        out.writeInt(NULL_REFERENCE_ID);
+      } else {
+        out.writeInt(position);
+        out.writeInt(usedPersistance.id);
+      }
+    }
+  }
+
+  final <T> WriteResult writeObject(T t) throws IOException {
     if (t == null) {
-      return -1;
+      return new WriteResult(null, NULL_REFERENCE_ID);
     }
     java.lang.Object obj = writeReplace.apply(t);
-    java.lang.Integer found = knownObjects.get(obj);
+    WriteResult found = knownObjects.get(obj);
     if (found == null) {
       org.enso.persist.Persistance<?> p = map.forType(obj.getClass());
       java.io.ByteArrayOutputStream os = new ByteArrayOutputStream();
       p.writeInline(obj, new ReferenceOutput(this, os));
-      found = this.position;
+      found = new WriteResult(p, this.position);
       byte[] arr = os.toByteArray();
       main.write(arr);
       this.position += arr.length;
@@ -82,19 +95,19 @@ final class PerGenerator {
   final void writeIndirect(Object obj, Persistance.Output out) throws IOException {
     obj = writeReplace.apply(obj);
     if (obj == null) {
-      out.writeInt(-1);
+      out.writeInt(NULL_REFERENCE_ID);
       return;
     }
-    org.enso.persist.Persistance<?> p = map.forType(obj.getClass());
     if (obj instanceof String s) {
       obj = s.intern();
     }
-    java.lang.Integer found = knownObjects.get(obj);
+    WriteResult found = knownObjects.get(obj);
     if (found == null) {
       var os = new ByteArrayOutputStream();
       var osData = new ReferenceOutput(this, os);
+      org.enso.persist.Persistance<?> p = map.forType(obj.getClass());
       p.writeInline(obj, osData);
-      found = position;
+      found = new WriteResult(p, position);
       if (os.size() == 0) {
         os.write(0);
       }
@@ -106,8 +119,7 @@ final class PerGenerator {
         histogram.register(obj.getClass(), arr.length);
       }
     }
-    out.writeInt(found);
-    out.writeInt(p.id);
+    found.writePositionAndPersistanceId(out);
   }
 
   final int versionStamp() {
@@ -116,6 +128,10 @@ final class PerGenerator {
 
   private int registerReference(Persistance.Reference<?> ref) {
     var obj = ref.get(Object.class);
+    if (obj == null) {
+      return NULL_REFERENCE_ID;
+    }
+
     var existingId = pendingReferences.get(obj);
     if (existingId == null) {
       var currentSize = countReferences++;
@@ -135,12 +151,12 @@ final class PerGenerator {
    */
   private int writeObjectAndReferences(Object obj) throws IOException {
     pendingReferences.put(obj, 0);
-    var objAt = writeObject(obj);
+    WriteResult root = writeObject(obj);
 
     var refsOut = new ByteArrayOutputStream();
     var refsData = new DataOutputStream(refsOut);
     refsData.writeInt(-1); // space for size of references
-    refsData.writeInt(objAt); // the main object
+    root.writePositionAndPersistanceId(refsData);
     var count = 1;
     for (; ; ) {
       var all = new ArrayList<>(pendingReferences.entrySet());
@@ -153,10 +169,17 @@ final class PerGenerator {
         break;
       }
       for (var entry : round) {
+        WriteResult writeResult = writeObject(entry.getKey());
+        assert count == entry.getValue()
+            : "Expecting "
+                + count
+                + " got "
+                + entry.getValue()
+                + " (in "
+                + entry.getKey().getClass().getCanonicalName()
+                + ")";
+        writeResult.writePositionAndPersistanceId(refsData);
         count++;
-        var at = writeObject(entry.getKey());
-        assert count == entry.getValue() : "Expecting " + count + " got " + entry.getValue();
-        refsData.writeInt(at);
       }
     }
     refsData.flush();
@@ -171,8 +194,12 @@ final class PerGenerator {
     return tableAt;
   }
 
-  private static final class ReferenceOutput extends DataOutputStream
-      implements Persistance.Output {
+  static int registerReference(Persistance.Output out, Persistance.Reference<?> ref) {
+    var g = ((ReferenceOutput) out).generator;
+    return g.registerReference(ref);
+  }
+
+  static final class ReferenceOutput extends DataOutputStream implements Persistance.Output {
     private final PerGenerator generator;
 
     ReferenceOutput(PerGenerator g, ByteArrayOutputStream out) {
@@ -182,12 +209,6 @@ final class PerGenerator {
 
     @Override
     public <T> void writeInline(Class<T> clazz, T t) throws IOException {
-      if (Persistance.Reference.class == clazz) {
-        Persistance.Reference<?> ref = (Persistance.Reference<?>) t;
-        var id = this.generator.registerReference(ref);
-        writeInt(id);
-        return;
-      }
       var obj = generator.writeReplace.apply(t);
       var p = generator.map.forType(clazz);
       p.writeInline(obj, this);
@@ -231,4 +252,7 @@ final class PerGenerator {
       c[1]++;
     }
   }
+
+  static final int INLINED_REFERENCE_ID = -2;
+  static final int NULL_REFERENCE_ID = -1;
 }

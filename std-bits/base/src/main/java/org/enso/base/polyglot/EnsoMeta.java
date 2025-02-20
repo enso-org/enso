@@ -12,7 +12,15 @@ public final class EnsoMeta {
   /** Returns a type object from the Enso runtime. */
   public static Value getType(String moduleName, String typeName) {
     var module = getBindings().invokeMember("get_module", moduleName);
-    return module.invokeMember("get_type", typeName);
+    try {
+      return module.invokeMember("get_type", typeName);
+    } catch (NullPointerException e) {
+      var ex =
+          new NullPointerException(
+              "Cannot get type for " + moduleName + " type: " + typeName + " at " + module);
+      ex.initCause(e);
+      throw ex;
+    }
   }
 
   /** Calls a static method defined directly on a module (not inside of a type). */

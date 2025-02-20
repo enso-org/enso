@@ -13,6 +13,6 @@ public class ProjectDescription extends UniquelyConstructibleBuiltin {
 
   @Override
   protected List<String> getConstructorParamNames() {
-    return List.of("prim_root_file", "prim_config");
+    return List.of("prim_root_file", "ns", "n");
   }
 }

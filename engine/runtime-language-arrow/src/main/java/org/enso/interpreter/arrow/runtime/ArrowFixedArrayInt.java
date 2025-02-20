@@ -1,13 +1,23 @@
 package org.enso.interpreter.arrow.runtime;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Bind;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
+import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.StopIterationException;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.profiles.InlinedExactClassProfile;
+import java.nio.BufferOverflowException;
+import java.nio.ByteBuffer;
 import org.enso.interpreter.arrow.LogicalLayout;
 
 @ExportLibrary(InteropLibrary.class)
@@ -27,7 +37,24 @@ public final class ArrowFixedArrayInt implements TruffleObject {
   }
 
   @ExportMessage
-  public boolean hasArrayElements() {
+  boolean hasArrayElements() {
+    return true;
+  }
+
+  @ExportMessage
+  Object getIterator(
+      @Cached(value = "this.getUnit()", allowUncached = true) LogicalLayout cachedUnit)
+      throws UnsupportedMessageException {
+    if (cachedUnit == LogicalLayout.Int64) {
+      var dataIt = new LongIterator(buffer.getDataBuffer(), cachedUnit.sizeInBytes());
+      var nullIt = new NullIterator(dataIt, buffer.getBitmapBuffer());
+      return nullIt;
+    }
+    return new GenericIterator(this);
+  }
+
+  @ExportMessage
+  boolean hasIterator() {
     return true;
   }
 
@@ -65,13 +92,18 @@ public final class ArrowFixedArrayInt implements TruffleObject {
     }
 
     @Specialization(guards = "receiver.getUnit() == Int64")
-    public static Object doLong(ArrowFixedArrayInt receiver, long index)
+    public static Object doLong(
+        ArrowFixedArrayInt receiver,
+        long index,
+        @Bind("$node") Node node,
+        @CachedLibrary("receiver") InteropLibrary iop,
+        @Cached InlinedExactClassProfile bufferClazz)
         throws UnsupportedMessageException, InvalidArrayIndexException {
-      var at = adjustedIndex(receiver.buffer, receiver.unit, receiver.size, index);
+      var at = adjustedIndex(receiver.buffer, LogicalLayout.Int64, receiver.size, index);
       if (receiver.buffer.isNull((int) index)) {
         return NullValue.get();
       }
-      return receiver.buffer.getLong(at);
+      return receiver.buffer.getLong(at, iop, bufferClazz);
     }
   }
 
@@ -95,5 +127,134 @@ public final class ArrowFixedArrayInt implements TruffleObject {
 
   private static int typeAdjustedIndex(long index, SizeInBytes unit) {
     return Math.toIntExact(index * unit.sizeInBytes());
+  }
+
+  @ExportLibrary(InteropLibrary.class)
+  static final class LongIterator implements TruffleObject {
+    private int at;
+    private final ByteBuffer buffer;
+    @NeverDefault final int step;
+
+    LongIterator(ByteBuffer buffer, int step) {
+      assert step != 0;
+      this.buffer = buffer;
+      this.step = step;
+    }
+
+    @ExportMessage
+    Object getIteratorNextElement(
+        @Bind("$node") Node node,
+        @Cached("this.step") int step,
+        @Cached InlinedExactClassProfile bufferTypeProfile)
+        throws StopIterationException {
+      var buf = bufferTypeProfile.profile(node, buffer);
+      try {
+        var res = buf.getLong(at);
+        at += step;
+        return res;
+      } catch (BufferOverflowException ex) {
+        CompilerDirectives.transferToInterpreter();
+        throw StopIterationException.create();
+      }
+    }
+
+    @ExportMessage
+    boolean isIterator() {
+      return true;
+    }
+
+    @ExportMessage
+    boolean hasIteratorNextElement() throws UnsupportedMessageException {
+      return at < buffer.limit();
+    }
+  }
+
+  @ExportLibrary(value = InteropLibrary.class)
+  static final class NullIterator implements TruffleObject {
+    private final TruffleObject it;
+    private final ByteBuffer buffer;
+    private byte byteMask;
+    private byte byteValue;
+
+    NullIterator(TruffleObject delegate, ByteBuffer buffer) {
+      this.it = delegate;
+      this.buffer = buffer;
+    }
+
+    final TruffleObject it() {
+      return it;
+    }
+
+    @ExportMessage(limit = "3")
+    Object getIteratorNextElement(
+        @Bind("$node") Node node,
+        @CachedLibrary("this.it()") InteropLibrary iopIt,
+        @Cached InlinedExactClassProfile bufferTypeProfile)
+        throws StopIterationException, UnsupportedMessageException {
+      var element = iopIt.getIteratorNextElement(it);
+      if (buffer != null) {
+        var buf = bufferTypeProfile.profile(node, buffer);
+        if (byteMask == 0) {
+          // (byte) (0x01 << 8) ==> 0
+          byteValue = buf.get();
+          byteMask = 0x01;
+        }
+        var include = byteValue & byteMask;
+        byteMask = (byte) (byteMask << 1);
+        if (include == 0) {
+          return NullValue.get();
+        }
+      }
+      return element;
+    }
+
+    @ExportMessage
+    boolean isIterator() {
+      return true;
+    }
+
+    @ExportMessage(limit = "3")
+    boolean hasIteratorNextElement(@CachedLibrary("this.it()") InteropLibrary iopIt)
+        throws UnsupportedMessageException {
+      return iopIt.hasIteratorNextElement(it);
+    }
+  }
+
+  @ExportLibrary(InteropLibrary.class)
+  static final class GenericIterator implements TruffleObject {
+    private int at;
+    private final TruffleObject array;
+
+    GenericIterator(TruffleObject array) {
+      assert InteropLibrary.getUncached().hasArrayElements(array);
+      this.array = array;
+    }
+
+    TruffleObject array() {
+      return array;
+    }
+
+    @ExportMessage(limit = "3")
+    Object getIteratorNextElement(@CachedLibrary("this.array()") InteropLibrary iop)
+        throws StopIterationException {
+      try {
+        var res = iop.readArrayElement(array, at);
+        at++;
+        return res;
+      } catch (UnsupportedMessageException | InvalidArrayIndexException ex) {
+        throw StopIterationException.create();
+      }
+    }
+
+    @ExportMessage
+    boolean isIterator() {
+      return true;
+    }
+
+    @ExportMessage(limit = "3")
+    boolean hasIteratorNextElement(@CachedLibrary("this.array()") InteropLibrary iop)
+        throws UnsupportedMessageException {
+      return at < iop.getArraySize(array);
+    }
   }
 }

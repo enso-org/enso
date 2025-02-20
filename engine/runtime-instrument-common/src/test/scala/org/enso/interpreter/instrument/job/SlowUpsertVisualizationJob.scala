@@ -21,7 +21,7 @@ class SlowUpsertVisualizationJob(
   override val isCancellable: Boolean         = true
   override val mayInterruptIfRunning: Boolean = true
 
-  override def run(implicit ctx: RuntimeContext): Option[Executable] = {
+  override def runImpl(implicit ctx: RuntimeContext): Option[Executable] = {
     if (
       ctx.executionService.getContext.isRandomDelayedCommandExecution && delay
     ) {

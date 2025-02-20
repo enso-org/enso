@@ -297,6 +297,18 @@ below.
   fully support currying - e.g. one can create `fn = Maybe.Just` and later apply
   two to it (`fn 2`) to obtain new atom.
 
+  Constructor arguments may be defined on the same line as above (similarly to
+  the syntax for defining functions); alternatively, each argument may be
+  defined on its own line in an indented block following the constructor name.
+  This can make complex constructor definitions easier to read:
+
+  ```ruby
+  type Maybe
+      Nothing
+      Just
+          value : Integer
+  ```
+
 - **Autoscoped Constructors:** Referencing constructors via their type name may
   lead to long and boilerplate code. To simplify referencing constructors when
   the _context is known_ a special `..` syntax is supported. Should there be a

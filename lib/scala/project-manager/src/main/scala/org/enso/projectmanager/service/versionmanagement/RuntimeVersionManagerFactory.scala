@@ -1,7 +1,8 @@
 package org.enso.projectmanager.service.versionmanagement
 
 import akka.actor.ActorRef
-import org.enso.projectmanager.data.MissingComponentAction
+import org.enso.projectmanager.data.MissingComponentActions
+import org.enso.projectmanager.data.MissingComponentActions.MissingComponentAction
 import org.enso.projectmanager.versionmanagement.DistributionConfiguration
 import org.enso.runtimeversionmanager.components._
 
@@ -51,9 +52,9 @@ case class RuntimeVersionManagerFactory(
     missingComponentAction: MissingComponentAction
   ): RuntimeVersionManager = {
     val (missing, broken) = missingComponentAction match {
-      case MissingComponentAction.Fail               => (false, false)
-      case MissingComponentAction.Install            => (true, false)
-      case MissingComponentAction.ForceInstallBroken => (true, true)
+      case MissingComponentActions.Fail               => (false, false)
+      case MissingComponentActions.Install            => (true, false)
+      case MissingComponentActions.ForceInstallBroken => (true, true)
     }
     makeRuntimeVersionManager(
       progressTracker,

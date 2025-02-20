@@ -8,7 +8,7 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "inlineSourceMap": true,
-    "lib": ["ES2021", "dom"],
+    "lib": ["ES2021", "dom", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "composite": true,

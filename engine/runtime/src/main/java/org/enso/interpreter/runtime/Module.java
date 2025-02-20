@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.dsl.Cached;
@@ -30,6 +31,7 @@ import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.LocalScope;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.data.IdMap;
 import org.enso.compiler.suggestions.SimpleUpdate;
 import org.enso.interpreter.caches.Cache;
 import org.enso.interpreter.caches.ModuleCache;
@@ -52,7 +54,7 @@ import org.enso.text.buffer.Rope;
 
 /** Represents a source module with a known location. */
 @ExportLibrary(InteropLibrary.class)
-public final class Module implements EnsoObject {
+public final class Module extends EnsoObject {
   private ModuleSources sources;
   private QualifiedName name;
   private ModuleScope.Builder scopeBuilder;
@@ -65,6 +67,7 @@ public final class Module implements EnsoObject {
   private CompilationStage compilationStage = CompilationStage.INITIAL;
   private org.enso.compiler.core.ir.Module ir;
   private Map<UUID, IR> uuidsMap;
+  private IdMap idMap;
 
   /**
    * This list is filled in case there is a directory with the same name as this module. The
@@ -85,6 +88,7 @@ public final class Module implements EnsoObject {
    * @param sourceFile the module's source file.
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, TruffleFile sourceFile) {
+    ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(sourceFile);
     this.name = name;
     this.scopeBuilder = new ModuleScope.Builder(this);
@@ -103,6 +107,7 @@ public final class Module implements EnsoObject {
    * @param literalSource the module's source.
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, String literalSource) {
+    ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(Rope.apply(literalSource));
     this.name = name;
     this.scopeBuilder = new ModuleScope.Builder(this);
@@ -122,6 +127,7 @@ public final class Module implements EnsoObject {
    * @param literalSource the module's source.
    */
   public Module(QualifiedName name, Package<TruffleFile> pkg, Rope literalSource) {
+    ensureConsistentName(name, pkg);
     this.sources = ModuleSources.NONE.newWith(literalSource);
     this.name = name;
     this.scopeBuilder = new ModuleScope.Builder(this);
@@ -141,6 +147,7 @@ public final class Module implements EnsoObject {
    */
   private Module(
       QualifiedName name, Package<TruffleFile> pkg, boolean synthetic, Rope literalSource) {
+    ensureConsistentName(name, pkg);
     this.sources =
         literalSource == null ? ModuleSources.NONE : ModuleSources.NONE.newWith(literalSource);
     this.name = name;
@@ -154,6 +161,27 @@ public final class Module implements EnsoObject {
       scopeBuilder.build();
     } else {
       this.compilationStage = CompilationStage.AFTER_CODEGEN;
+    }
+  }
+
+  private void ensureConsistentName(QualifiedName name, Package<TruffleFile> pkg) {
+    if (name.toString().equals(Builtins.MODULE_NAME)) {
+      return;
+    }
+    if (pkg != null && name.isSimple()) {
+      throw new IllegalArgumentException(
+          "Simple module name must not be in a package, i.e., trying to initialize a module in a"
+              + " package '"
+              + pkg.libraryName().toString()
+              + "' with a simple name '"
+              + name
+              + "'");
+    } else if (pkg == null && !name.isSimple()) {
+      throw new IllegalArgumentException(
+          "Qualified module name must be in a package, i.e., trying to initialize "
+              + "a module with a qualified name '"
+              + name
+              + "' without a package");
     }
   }
 
@@ -404,15 +432,13 @@ public final class Module implements EnsoObject {
       var newMap = new HashMap<UUID, IR>();
       var localIr = getIr();
       if (localIr != null) {
-        localIr
-            .preorder()
-            .foreach(
-                (v1) -> {
-                  if (v1.getExternalId().isDefined()) {
-                    newMap.put(v1.getExternalId().get(), v1);
-                  }
-                  return null;
-                });
+        IR.preorder(
+            localIr,
+            v1 -> {
+              if (v1.getExternalId().isDefined()) {
+                newMap.put(v1.getExternalId().get(), v1);
+              }
+            });
       }
       uuidsMap = newMap;
       map = newMap;
@@ -449,6 +475,16 @@ public final class Module implements EnsoObject {
    */
   void unsafeSetIr(org.enso.compiler.core.ir.Module ir) {
     this.ir = ir;
+    this.uuidsMap = null;
+  }
+
+  /**
+   * Sets the identifiers map for this module.
+   *
+   * @param idMap the identifiers map
+   */
+  void unsafeSetIdMap(IdMap idMap) {
+    this.idMap = idMap;
     this.uuidsMap = null;
   }
 
@@ -497,6 +533,13 @@ public final class Module implements EnsoObject {
    */
   public TruffleFile getSourceFile() {
     return sources.file();
+  }
+
+  /**
+   * @return the IdMap of this module.
+   */
+  public IdMap getIdMap() {
+    return idMap;
   }
 
   /**
@@ -641,7 +684,7 @@ public final class Module implements EnsoObject {
               .getBuiltinFunction(
                   builtins.debug(), Builtins.MethodNames.Debug.EVAL, context.getLanguage())
               .orElseThrow();
-      CallerInfo callerInfo = new CallerInfo(null, LocalScope.root(), scope);
+      CallerInfo callerInfo = new CallerInfo(null, LocalScope.empty(), scope);
       return callOptimiserNode.executeDispatch(
           null,
           eval.getFunction(),
@@ -652,7 +695,10 @@ public final class Module implements EnsoObject {
     }
 
     private static Object generateDocs(Module module, EnsoContext context) {
-      return context.getCompiler().generateDocs(module.asCompilerModule());
+      var compilerModule = module.asCompilerModule();
+      var res = context.getCompiler().generateDocs(compilerModule);
+      assert res == compilerModule;
+      return module;
     }
 
     @CompilerDirectives.TruffleBoundary
@@ -730,6 +776,10 @@ public final class Module implements EnsoObject {
   boolean isMemberInvocable(String member) {
     return member.equals(MethodNames.Module.GET_METHOD)
         || member.equals(MethodNames.Module.REPARSE)
+        || member.equals(MethodNames.Module.GATHER_IMPORT_STATEMENTS)
+        || member.equals(MethodNames.Module.GENERATE_DOCS)
+        || member.equals(MethodNames.Module.GET_NAME)
+        || member.equals(MethodNames.Module.GET_TYPE)
         || member.equals(MethodNames.Module.SET_SOURCE)
         || member.equals(MethodNames.Module.SET_SOURCE_FILE)
         || member.equals(MethodNames.Module.GET_ASSOCIATED_TYPE)
@@ -753,8 +803,15 @@ public final class Module implements EnsoObject {
         MethodNames.Module.EVAL_EXPRESSION);
   }
 
+  @ExportMessage
+  @TruffleBoundary
+  @Override
+  public String toDisplayString(boolean allowSideEffects) {
+    return "Module[" + name + ']';
+  }
+
   @Override
   public String toString() {
-    return "Module[" + name + ']';
+    return toDisplayString(false);
   }
 }

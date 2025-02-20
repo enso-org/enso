@@ -7,7 +7,6 @@
 use proc_macro2::TokenTree;
 use syn::WhereClause;
 use syn::WherePredicate;
-use syn_1 as syn;
 
 
 

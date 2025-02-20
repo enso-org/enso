@@ -1,0 +1,110 @@
+from Standard.Base import all
+from Standard.Base.Metadata import Display, make_single_choice, Widget
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Text_Input, Vector_Editor
+
+import Standard.Table.Rows_To_Read.Rows_To_Read
+
+import project.Google_Analytics.Google_Analytics
+import project.Google_Credential.Google_Credential
+
+polyglot java import org.enso.google.GoogleAnalyticsReader.AnalyticsAccount
+
+## Type describing a Google Analytics account.
+type Google_Analytics_Account
+    private Value java_record
+
+    ## Account ID.
+    id : Text
+    id self = self.java_record.id
+
+    ## Account display name.
+    name : Text
+    name self = self.java_record.displayName
+
+    ## Account creation time.
+    create_time : Date_Time
+    create_time self = self.java_record.created
+
+    ## Account region code.
+    region_code : Text
+    region_code self = self.java_record.regionCode
+
+    ## Has the account been deleted?
+    is_deleted : Boolean
+    is_deleted self = self.java_record.deleted
+
+    ## PRIVATE
+    to_text : Text
+    to_text self = "Google_Analytics_Account " + self.name + " (" + self.id + ")"
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = "GA Account {" + self.name + " (" + self.id + ")}"
+
+    ## GROUP Standard.Base.Metadata
+       ICON data_input
+       List of all properties of the account.
+
+       Arguments:
+       - credentials: The Google credentials to use. Default is the default
+         credentials.
+       - limit: The maximum number of accounts to read. Default is 1000.
+       - include_deleted: Whether to include deleted accounts. Default is false.
+    @credentials Google_Credential.default_widget
+    @limit Rows_To_Read.default_widget
+    properties : Google_Credential -> Rows_To_Read -> Boolean -> Vector
+    properties self credentials:Google_Credential=..Default (limit : Rows_To_Read = ..First_With_Warning 1000) include_deleted:Boolean=False =
+        Google_Analytics.list_properties credentials self limit include_deleted
+
+## Filter for Google Analytics accounts.
+type Google_Analytics_Account_Filter
+    ## Filter to all accounts.
+    All_Accounts
+
+    ## Filter to a single account
+    @account (Text_Input display=..Always)
+    Account account:Text|Google_Analytics_Account
+
+    ## Filter to set of accounts
+    @accounts (Vector_Editor item_editor=Text_Input item_default="''")
+    Accounts accounts:Vector
+
+    ## PRIVATE
+    default_widget self_arg cache display:Display=..Always -> Widget =
+        _ = self_arg
+        default = [Option "<All>" "..All_Accounts", Option "<Account>" "..Account", Option "<Multiple Accounts>" "..Accounts"]
+        Panic.catch Any handler=_->(make_single_choice default) <|
+            credentials = cache.if_not_nothing <| cache "credentials"
+            options = Google_Analytics.list_accounts credentials=(credentials.if_nothing Google_Credential.Default) limit=(..First 10) . map p->(Option (p.name + " (" + p.id + ")") "..Account "+p.id.pretty)
+            make_single_choice default+options display=display
+
+    ## PRIVATE
+    private as_java self -> Array | Nothing = case self of
+        Google_Analytics_Account_Filter.All_Accounts -> Nothing
+        Google_Analytics_Account_Filter.Account acc -> case acc of
+            _ : Google_Analytics_Account -> [acc.java_record].to_array
+            _ : Text -> [_create_analytics_account_from_text acc].to_array
+        Google_Analytics_Account_Filter.Accounts accounts ->
+            vec = accounts.map acc-> case acc of
+                _ : Google_Analytics_Account -> acc.java_record
+                _ : Text -> _create_analytics_account_from_text acc
+            vec.to_array
+
+## PRIVATE
+   Creates a Google Analytics account from a text ID.
+   Most values are defaulted.
+private _create_analytics_account_from_text account:Text -> AnalyticsAccount =
+    id = if account.starts_with "accounts/" then account else "accounts/" + account
+    display = id.replace (regex "^accounts/") ""
+    AnalyticsAccount.new id display False Date_Time.now Nothing
+
+## PRIVATE
+Google_Analytics_Account_Filter.from (that:Google_Analytics_Account) = Google_Analytics_Account_Filter.Account that
+
+## PRIVATE
+Google_Analytics_Account_Filter.from (that:Text) = Google_Analytics_Account_Filter.Account that
+
+## PRIVATE
+Google_Analytics_Account_Filter.from (that:Vector) = Google_Analytics_Account_Filter.Accounts that
+

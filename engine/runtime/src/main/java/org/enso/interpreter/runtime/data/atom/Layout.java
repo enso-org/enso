@@ -5,7 +5,7 @@ import com.oracle.truffle.api.dsl.NodeFactory;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.List;
 import org.enso.interpreter.dsl.atom.LayoutSpec;
-import org.enso.interpreter.node.callable.argument.ReadArgumentCheckNode;
+import org.enso.interpreter.node.typecheck.TypeCheckValueNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 
 /**
@@ -232,12 +232,12 @@ class Layout {
   private static final class SetterTypeCheckFactory
       implements NodeFactory<UnboxingAtom.FieldSetterNode> {
     private final String argName;
-    private final ReadArgumentCheckNode typeCheck;
+    private final TypeCheckValueNode typeCheck;
     private final NodeFactory<UnboxingAtom.FieldSetterNode> delegate;
 
     private SetterTypeCheckFactory(
         ArgumentDefinition arg,
-        ReadArgumentCheckNode typeCheck,
+        TypeCheckValueNode typeCheck,
         NodeFactory<UnboxingAtom.FieldSetterNode> factory) {
       assert factory != null;
       this.argName = arg.getName();
@@ -247,7 +247,7 @@ class Layout {
 
     @Override
     public UnboxingAtom.FieldSetterNode createNode(Object... arguments) {
-      var checkNode = (ReadArgumentCheckNode) typeCheck.copy();
+      var checkNode = (TypeCheckValueNode) typeCheck.copy();
       var setterNode = delegate.createNode(arguments);
       return checkNode == null ? setterNode : new CheckFieldSetterNode(setterNode, checkNode);
     }
@@ -274,18 +274,18 @@ class Layout {
   }
 
   private static final class CheckFieldSetterNode extends UnboxingAtom.FieldSetterNode {
-    @Child ReadArgumentCheckNode checkNode;
+    @Child TypeCheckValueNode checkNode;
     @Child UnboxingAtom.FieldSetterNode setterNode;
 
     private CheckFieldSetterNode(
-        UnboxingAtom.FieldSetterNode setterNode, ReadArgumentCheckNode checkNode) {
+        UnboxingAtom.FieldSetterNode setterNode, TypeCheckValueNode checkNode) {
       this.setterNode = setterNode;
       this.checkNode = checkNode;
     }
 
     @Override
     public void execute(Atom atom, Object value) {
-      var valueOrConvertedValue = checkNode.handleCheckOrConversion(null, value);
+      var valueOrConvertedValue = checkNode.handleCheckOrConversion(null, value, null);
       setterNode.execute(atom, valueOrConvertedValue);
     }
   }

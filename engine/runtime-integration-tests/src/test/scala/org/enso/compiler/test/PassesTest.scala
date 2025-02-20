@@ -9,13 +9,16 @@ import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   AmbiguousImportsAnalysis,
   BindingAnalysis,
-  ExportSymbolAnalysis,
   ImportSymbolAnalysis,
   PrivateConstructorAnalysis,
   PrivateModuleAnalysis
 }
 import org.enso.compiler.pass.desugar._
-import org.enso.compiler.pass.lint.{ModuleNameConflicts, ShadowedPatternFields}
+import org.enso.compiler.pass.lint.{
+  ModuleNameConflicts,
+  ShadowedPatternFields,
+  UnusedBindings
+}
 import org.enso.compiler.pass.optimise.UnreachableMatchBranches
 import org.enso.compiler.pass.resolve._
 
@@ -57,17 +60,16 @@ class PassesTest extends CompilerTest {
           GenerateMethodBodies,
           BindingAnalysis,
           ModuleNameConflicts,
-          MethodDefinitions,
-          SectionsToBinOp,
+          MethodDefinitions.INSTANCE,
+          SectionsToBinOp.INSTANCE,
           OperatorToFunction,
           LambdaShorthandToLambda,
-          ImportSymbolAnalysis,
-          AmbiguousImportsAnalysis,
+          ImportSymbolAnalysis.INSTANCE,
+          AmbiguousImportsAnalysis.INSTANCE,
           PrivateModuleAnalysis.INSTANCE,
           PrivateConstructorAnalysis.INSTANCE,
-          ExportSymbolAnalysis.INSTANCE,
-          ShadowedPatternFields,
-          UnreachableMatchBranches,
+          ShadowedPatternFields.INSTANCE,
+          UnreachableMatchBranches.INSTANCE,
           NestedPatternMatch,
           IgnoredBindings,
           TypeFunctions,
@@ -79,6 +81,14 @@ class PassesTest extends CompilerTest {
 
     "return `None` if the pass doesn't exists" in {
       passes.getPrecursors(Pass1) should not be defined
+    }
+  }
+
+  "Compiler pass ordering slicing" should {
+    val passes = new Passes(defaultConfig.copy(isLintingDisabled = true))
+
+    "not include linting passes when disabled" in {
+      passes.allPassOrdering should not contain UnusedBindings
     }
   }
 }

@@ -9,7 +9,7 @@ from project.Internal.Fan_Out import all
    Splits a column of text into a set of new columns.
    See `Table.split_to_columns`.
 split_to_columns : Table -> Text | Integer -> Text -> Columns_To_Add -> Problem_Behavior -> Table
-split_to_columns table input_column_id delimiter="," column_count:Columns_To_Add=..All_Columns on_problems=Report_Error =
+split_to_columns table input_column_id delimiter="," column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Error =
     column = table.at input_column_id
     Value_Type.expect_text column <|
         fan_out_to_columns table column.name (handle_nothing (_.split delimiter)) column_count on_problems=on_problems
@@ -28,7 +28,7 @@ split_to_rows table input_column_id:(Text | Integer) delimiter="," =
    expression.
    See `Table.tokenize_to_columns`.
 tokenize_to_columns : Table -> Text | Integer -> Text -> Case_Sensitivity -> Columns_To_Add -> Problem_Behavior -> Table
-tokenize_to_columns table input_column_id pattern case_sensitivity column_count on_problems =
+tokenize_to_columns table input_column_id pattern case_sensitivity column_count on_problems:Problem_Behavior =
     column = table.at input_column_id
     Value_Type.expect_text column <|
         fan_out_to_columns table column.name (handle_nothing (_.tokenize pattern case_sensitivity)) column_count on_problems=on_problems
@@ -48,7 +48,7 @@ tokenize_to_rows table input_column_id pattern="." case_sensitivity=Case_Sensiti
    pattern.
    See `Table.parse_to_columns`.
 parse_to_columns : Table -> Text | Integer -> Text | Regex -> Case_Sensitivity -> Boolean -> Problem_Behavior -> Table
-parse_to_columns table input_column_id (pattern:(Text | Regex)=".") case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems=Report_Error =
+parse_to_columns table input_column_id (pattern:(Text | Regex)=".") case_sensitivity=Case_Sensitivity.Sensitive parse_values=True on_problems:Problem_Behavior=..Report_Error =
     regex = case pattern of
         _ : Regex -> pattern.recompile case_sensitivity
         _ : Text ->
@@ -91,7 +91,7 @@ regex_to_column_names pattern original_column_name =
             group_nums_to_names = pattern.group_nums_to_names
 
             unnamed_group_numbers = 1.up_to pattern.group_count . filter i-> group_nums_to_names.contains_key i . not
-            group_number_to_column_name_suffix = Map.from_vector <| unnamed_group_numbers.zip (0.up_to unnamed_group_numbers.length)
+            group_number_to_column_name_suffix = Dictionary.from_vector <| unnamed_group_numbers.zip (0.up_to unnamed_group_numbers.length)
 
             Vector.new (pattern.group_count-1) i->
                 # explicit groups start at 1

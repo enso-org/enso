@@ -1,38 +1,180 @@
 from Standard.Base import all
 import Standard.Base.Data.Array_Proxy.Array_Proxy
-import Standard.Base.Metadata.Display
-from Standard.Base.Metadata import make_single_choice, Widget
-from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
+import Standard.Base.Errors.Common.Missing_Argument
+from Standard.Base.Metadata import Display, make_single_choice, Widget
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Single_Choice, Text_Input, Vector_Editor
 
-from Standard.Table import Table
+import Standard.Table.Rows_To_Read.Rows_To_Read
+from Standard.Table import Data_Formatter, Table
+from Standard.Table.Table import from_java_table
 
+import project.Google_Analytics_Account.Google_Analytics_Account
+import project.Google_Analytics_Account.Google_Analytics_Account_Filter
+import project.Google_Analytics_Field.Google_Analytics_Field
+import project.Google_Analytics_Property.Google_Analytics_Property
 import project.Google_Credential.Google_Credential
-from project.Internal.Google_Analytics_Internal import all
+
+polyglot java import org.enso.google.GoogleAnalyticsReader
+
+## Type providing API access to Google Analytics.
+type Google_Analytics
+    ## GROUP Standard.Base.Input
+       ICON data_input
+       Performs Google Analytics call
+       This method calls the Google Analytics Reporting v4 API.
+
+       Arguments:
+       - property: The Google Analytics property_id that is being queried
+       - dimensions: The dimensions being queried. Default is ['country'].
+       - metrics: The metrics being queried. Default is ['activeUsers'].
+       - start_date: The beginning date of the query. Default is start of the
+         current year.
+       - end_date: The end date being queried. Defaults to today.
+       - credentials: The Google credentials to use. Default is to use the
+         Google Application Default Credentials in the environment variables.
+         See https://cloud.google.com/docs/authentication/application-default-credentials
+    @credentials (Google_Credential.default_widget display=..Always)
+    @property Google_Analytics_Property.default_widget
+    @dimensions _make_dimensions_vector_selector
+    @metrics _make_metrics_vector_selector
+    @start_date _make_start_date_widget
+    @end_date (Date.default_widget include_today=True)
+    read : Google_Credential -> Google_Analytics_Property -> (Vector Text) -> (Vector Text) -> Date -> Date -> Table
+    read credentials:Google_Credential=(Missing_Argument.throw "credentials") property:Google_Analytics_Property=(Missing_Argument.throw "property") dimensions:Vector=['country'] metrics:Vector=['activeUsers'] start_date:Date=(Date.today.previous ..Year) end_date:Date=Date.today -> Table =
+        case credentials of
+            Google_Credential.Sample -> _read_sample_data dimensions metrics start_date end_date
+            _ ->
+                java_credentials = credentials.as_java
+                java_table = _handle_google_error <| GoogleAnalyticsReader.runReport java_credentials property.java_record start_date end_date dimensions metrics
+                java_table.if_not_error <|
+                    formatter = Data_Formatter.Value.with_datetime_formats date_formats=["yyyyMMdd"]
+                    from_java_table java_table . parse format=formatter
+
+    ## ICON data_input
+       Reads the set of accounts from Google Analytics Admin API.
+
+       Arguments:
+       - credentials: The Google credentials to use. Default is to use the
+         Google Application Default Credentials in the environment variables.
+         See https://cloud.google.com/docs/authentication/application-default-credentials
+       - limit: The maximum number of accounts to read. Default is 1000.
+       - include_deleted: Whether to include deleted accounts. Default is false.
+    @credentials (Google_Credential.default_widget display=..Always)
+    @limit Rows_To_Read.default_widget
+    list_accounts : Google_Credential -> Rows_To_Read -> Boolean -> Vector
+    list_accounts credentials:Google_Credential=..Default (limit : Rows_To_Read = ..First_With_Warning 1000) include_deleted:Boolean=False -> Vector =
+        java_credentials = credentials.as_java
+        to_read = limit.rows_to_read.if_nothing 0
+        array = _handle_google_error <| GoogleAnalyticsReader.listAccounts java_credentials to_read include_deleted
+        array.if_not_error <|
+            vector = array.map a-> Google_Analytics_Account.Value a
+            limit.attach_warning_vector vector
+
+    ## ICON data_input
+       Reads the set of properties from Google Analytics Admin API.
+
+       Arguments:
+       - account: The Google Analytics account(s) to read properties from or all
+         accounts. Default is all accounts.
+       - credentials: The Google credentials to use. Default is to use the
+         Google Application Default Credentials in the environment variables.
+         See https://cloud.google.com/docs/authentication/application-default-credentials
+       - limit: The maximum number of accounts to read. Default is 1000.
+       - include_deleted: Whether to include deleted accounts. Default is false.
+    @credentials Google_Credential.default_widget
+    @account Google_Analytics_Account_Filter.default_widget
+    @limit Rows_To_Read.default_widget
+    list_properties : Google_Credential -> Google_Analytics_Account_Filter -> Rows_To_Read -> Boolean -> Vector
+    list_properties credentials:Google_Credential=..Default account:Google_Analytics_Account_Filter=..All_Accounts (limit : Rows_To_Read = ..First_With_Warning 1000) include_deleted:Boolean=False -> Vector =
+        java_credentials = credentials.as_java
+        to_read = limit.rows_to_read.if_nothing 0
+        filter = account.as_java
+        array = _handle_google_error <| GoogleAnalyticsReader.listProperties java_credentials filter to_read include_deleted
+        array.if_not_error <|
+            vector = array.map a-> Google_Analytics_Property.Value a
+            limit.attach_warning_vector vector
+
+    ## ICON data_input
+       Reads the set of metrics from Google Analytics for a property.
+
+       Arguments:
+       - property: The Google Analytics property to read metrics from.
+       - credentials: The Google credentials to use. Default is to use the
+         Google Application Default Credentials in the environment variables.
+         See https://cloud.google.com/docs/authentication/application-default-credentials
+    @credentials (Google_Credential.default_widget display=..Always)
+    @property Google_Analytics_Property.default_widget
+    list_metrics : Google_Credential -> Google_Analytics_Property -> Vector
+    list_metrics credentials:Google_Credential=(Missing_Argument.throw "credentials") property:Google_Analytics_Property=(Missing_Argument.throw "property") -> Vector =
+        java_credentials = credentials.as_java
+        array = _handle_google_error <| GoogleAnalyticsReader.listMetrics java_credentials property.java_record
+        array.if_not_error <| array.map record-> Google_Analytics_Field.Metric record
+
+    ## ICON data_input
+       Reads the set of dimensions from Google Analytics for a property.
+
+       Arguments:
+       - property: The Google Analytics property to read metrics from.
+       - credentials: The Google credentials to use. Default is to use the
+         Google Application Default Credentials in the environment variables.
+         See https://cloud.google.com/docs/authentication/application-default-credentials
+    @credentials (Google_Credential.default_widget display=..Always)
+    @property Google_Analytics_Property.default_widget
+    list_dimensions : Google_Credential -> Google_Analytics_Property -> Vector
+    list_dimensions credentials:Google_Credential=(Missing_Argument.throw "credentials") property:Google_Analytics_Property=(Missing_Argument.throw "property") -> Vector =
+        java_credentials = credentials.as_java
+        array = _handle_google_error <| GoogleAnalyticsReader.listDimensions java_credentials property.java_record
+        array.if_not_error <| array.map record-> Google_Analytics_Field.Dimension record
+
 
 ## PRIVATE
-make_dimensions_vector_selector : Widget
-make_dimensions_vector_selector =
-    item_editor = make_single_choice ['country', 'date', 'isConversionEvent', 'language', 'userAgeBracket', 'userGender']
-    Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=Display.Always
+private _make_metrics_vector_selector self_arg cache display:Display=..Always -> Widget =
+    _ = self_arg
+    items = Panic.catch Any handler=p->[p.payload.to_display_text] <|
+        property = cache.if_not_nothing <| cache "property"
+        property.if_not_nothing <|
+            credentials = cache.if_not_nothing <| cache "credentials"
+            Google_Analytics.list_metrics (credentials.if_nothing Google_Credential.Default) property . map f-> Option (f.api_name + " (" + f.category + ")") f.api_name.pretty
+    item_editor = make_single_choice (items.if_nothing ['activeUsers', 'bounceRate', 'conversions', 'newUsers', 'sessionsPerUser', 'userConversionRate'])
+    Widget.Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=display
 
 ## PRIVATE
-make_metrics_vector_selector : Widget
-make_metrics_vector_selector =
-    item_editor = make_single_choice ['activeUsers', 'bounceRate', 'conversions', 'newUsers', 'sessionsPerUser', 'userConversionRate']
-    Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=Display.Always
+private _make_dimensions_vector_selector self_arg cache display:Display=..Always -> Widget  =
+    _ = self_arg
+    items = Panic.catch Any handler=p->[p.payload.to_display_text] <|
+        property = cache.if_not_nothing <| cache "property"
+        property.if_not_nothing <|
+            credentials = cache.if_not_nothing <| cache "credentials"
+            Google_Analytics.list_dimensions (credentials.if_nothing Google_Credential.Default) property . map f-> Option (f.api_name + " (" + f.category + ")") f.api_name.pretty
+    item_editor = make_single_choice (items.if_nothing ['country', 'year', 'month', 'date', 'userAgeBracket', 'userGender'])
+    Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=display
 
-## GROUP Standard.Base.Input
-   ICON data_input
-   Performs google analytics call
-   This method calls the google reporting v4 api. 
-   Arguments:
-   - property_id: The Google Analytics property_id that is being queried
-   - start_date: The beginning date of the query. Default is 2020-03-31
-   - end_date: The end date being queried. Defaults to today.
-@dimensions make_dimensions_vector_selector
-@metrics make_metrics_vector_selector
-read : Text -> (Vector Text) -> (Vector Text) -> Date -> Date -> Google_Credential -> Table
-read property_id:Text dimensions:Vector=['country'] metrics:Vector=['activeUsers'] start_date:Date=(Date.today.previous Date_Period.Year) end_date:Date=Date.today credentials:Google_Credential=Google_Credential.Default -> Table =
-    case credentials of
-        Google_Credential.Sample -> read_sample_data dimensions metrics start_date end_date
-        _ -> read_api_data property_id dimensions metrics start_date end_date credentials
+## PRIVATE
+private _make_start_date_widget -> Widget =
+    options = [Option "<Fixed Date>" "Date.new", Option "<Start of Period>" "Date.today.previous"]
+    Widget.Single_Choice values=options display=..When_Modified
+
+## PRIVATE
+private _read_sample_data dimensions:Vector metrics:Vector start_date:Date end_date:Date -> Table =
+    _ = [dimensions, metrics, start_date, end_date]
+    Data.read ((Project_Description.new Standard.Google_Api . data) / "Google_Analytics_Sample.csv") (..Delimited value_formatter=Standard.Base.Nothing)
+
+## PRIVATE
+private _handle_google_error ~action =
+    Panic.catch Any action handler=c->
+        payload = c.payload
+        Error.throw (Google_Analytics_Error.Value payload.getMessage payload)
+
+## PRIVATE
+type Google_Analytics_Error
+    ## PRIVATE
+    private Value message:Text payload
+
+    ## PRIVATE
+    to_text : Text
+    to_text self = "Error: " + self.message
+
+    ## PRIVATE
+    to_display_text : Text
+    to_display_text self = self.to_text

@@ -14,6 +14,9 @@ type Named_Pattern
     ## Matches one or more whitespace characters anywhere in a string.
     All_Whitespace
 
+    ## Matches one or more newline characters.
+    Newlines
+
     ## Matches one or more digits at the beginning of a string.
     Leading_Numbers
 
@@ -23,19 +26,19 @@ type Named_Pattern
     ## Matches any character that is not in the ASCII range (0x00-0x7F).
     Non_ASCII
 
-    ## Matches a tab character.
+    ## Matches any tab characters.
     Tabs
 
-    ## Matches any single alphabetic character (both lowercase and uppercase).
+    ## Matches any alphabetic characters (both lowercase and uppercase).
     Letters
 
-    ## Matches any single digit.
+    ## Matches any digits.
     Numbers
 
-    ## Matches any single punctuation character from the set: comma, period, exclamation mark, question mark, colon, semicolon, single quote, double quote, parenthesis.
+    ## Matches any punctuation characters from the set: comma, period, exclamation mark, question mark, colon, semicolon, single quote, double quote, parenthesis.
     Punctuation
 
-    ## Matches any single character that is not an alphabetic character, digit, or whitespace.
+    ## Matches any characters that are not an alphabetic character, digit, or whitespace.
     Symbols
 
     ## PRIVATE
@@ -44,6 +47,7 @@ type Named_Pattern
         Named_Pattern.Trailing_Whitespace -> "\s+$"
         Named_Pattern.Duplicate_Whitespace -> "(?<=\s)\s+"
         Named_Pattern.All_Whitespace -> "\s+"
+        Named_Pattern.Newlines -> "(?:\r\n?|\n)"
         Named_Pattern.Leading_Numbers -> "^\d+"
         Named_Pattern.Trailing_Numbers -> "\d+$"
         Named_Pattern.Non_ASCII -> "[^\x00-\x7F]"

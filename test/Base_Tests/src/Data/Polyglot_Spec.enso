@@ -10,6 +10,8 @@ polyglot java import java.time.LocalDate
 polyglot java import java.util.function.Function as Java_Function
 polyglot java import org.enso.base_test_helpers.IntHolder
 
+pending_js_missing = if Polyglot.is_language_installed "js" then Nothing else "Can't run JavaScript tests, language `js` is not installed."
+
 add_specs suite_builder = suite_builder.group "Polyglot" group_builder->
     group_builder.specify "should be able to invoke a polyglot method by name and pass arguments" <|
         poly_date = LocalDate.now
@@ -28,20 +30,20 @@ add_specs suite_builder = suite_builder.group "Polyglot" group_builder->
     group_builder.specify "use Double created by constructor" <|
         Polyglot.new Double [42] . should_equal 42
 
-    group_builder.specify "use Integer read from Polyglot object" <|
+    group_builder.specify "use Integer read from JavaScript object" pending=pending_js_missing <|
         (Polyglot.get_member js_meaning "meaning") . should_equal 42
 
-    group_builder.specify "access Integer field from Polyglot object" <|
+    group_builder.specify "access Integer field from JavaScript object" pending=pending_js_missing <|
         js_meaning.meaning . should_equal 42
 
-    group_builder.specify "Execute JavaScript function" <|
+    group_builder.specify "Execute JavaScript function" pending=pending_js_missing <|
         js_plus 3 5 . should_equal 8
 
-    group_builder.specify "Execute JavaScript with insufficient number of arguments" <|
+    group_builder.specify "Execute JavaScript with insufficient number of arguments" pending=pending_js_missing <|
         r = js_plus 3
         r.is_nan . should_be_true
 
-    group_builder.specify "Cannot Execute JavaScript number" <|
+    group_builder.specify "Cannot Execute JavaScript number" pending=pending_js_missing <|
         fourty_two = js_meaning.meaning
         Test.expect_panic Not_Invokable <|
             fourty_two "Cannot invoke"

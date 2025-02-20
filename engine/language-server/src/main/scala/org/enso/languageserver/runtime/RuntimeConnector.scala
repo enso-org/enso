@@ -9,14 +9,14 @@ import org.enso.languageserver.runtime.RuntimeConnector.{
 }
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.lockmanager.server.LockManagerService
-import org.enso.logger.akka.ActorMessageLogging
 import org.enso.logger.masking.ToLogString
+import org.enso.logging.utils.akka.ActorMessageLogging
 import org.enso.polyglot.runtime.Runtime
 import org.enso.polyglot.runtime.Runtime.{Api, ApiEnvelope}
+import org.enso.polyglot.runtime.serde.ApiSerde
 import org.graalvm.polyglot.io.MessageEndpoint
 
 import java.nio.ByteBuffer
-
 import scala.util.{Failure, Success}
 
 /** An actor managing a connection to Enso's runtime server. */
@@ -30,14 +30,13 @@ final class RuntimeConnector(
     with Stash {
 
   override def preStart(): Unit = {
-    logger.info("Starting the runtime connector.")
+    logger.debug("Starting the runtime connector")
   }
 
   override def receive: Receive = {
     case RuntimeConnector.Initialize(engine) =>
-      logger.info(
-        s"Runtime connector established connection with the message endpoint [{}].",
-        engine
+      logger.debug(
+        "Runtime connector established connection with the message endpoint"
       )
       unstashAll()
       context.become(waitingOnEndpoint(engine))
@@ -50,13 +49,15 @@ final class RuntimeConnector(
             Runtime.Api.Response(None, Api.InitializedNotification())
           ) =>
         logger.debug(
-          s"Message endpoint [{}] is initialized. Runtime connector can accept messages.",
+          "Message endpoint [{}] is initialized. Runtime connector can accept messages",
           engine
         )
         unstashAll()
         context.become(initialized(engine, Map()))
 
-      case _ => stash()
+      case msg =>
+        logger.trace("Runtime received unexpected message: {}", msg)
+        stash()
     })
 
   /** Performs communication between runtime and language server.
@@ -90,7 +91,7 @@ final class RuntimeConnector(
       context.stop(self)
 
     case msg: Runtime.ApiEnvelope =>
-      engine.sendBinary(Runtime.Api.serialize(msg))
+      engine.sendBinary(ApiSerde.serialize(msg))
 
       msg match {
         case Api.Request(Some(id), _) =>
@@ -104,8 +105,8 @@ final class RuntimeConnector(
           handler ! request
         case None =>
           logger.warn(
-            s"No registered handler found for request " +
-            s"[${payload.getClass.getCanonicalName}]."
+            "No registered handler found for request [{}]",
+            payload.getClass.getCanonicalName
           )
       }
 
@@ -120,9 +121,8 @@ final class RuntimeConnector(
           sender ! msg
         case None =>
           logger.warn(
-            "No sender has been found associated with request id [{}], the response [{}] will be dropped.",
-            correlationId,
-            payload.getClass.getCanonicalName
+            "No sender has been found associated with request id [{}], the response [{}] will be dropped",
+            Array[Any](correlationId, payload.getClass.getCanonicalName)
           )
           payload match {
             case msg: ToLogString =>
@@ -178,7 +178,7 @@ object RuntimeConnector {
     override def sendText(text: String): Unit = {}
 
     override def sendBinary(data: ByteBuffer): Unit =
-      Runtime.Api.deserializeApiEnvelope(data) match {
+      ApiSerde.deserializeApiEnvelope(data) match {
         case Success(msg) =>
           actor ! MessageFromRuntime(msg)
         case Failure(ex) =>

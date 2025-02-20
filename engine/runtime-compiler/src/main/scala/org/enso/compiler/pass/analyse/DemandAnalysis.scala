@@ -10,6 +10,7 @@ import org.enso.compiler.core.ir.{
   Function,
   IdentifiedLocation,
   Literal,
+  MetadataStorage,
   Module,
   Name,
   Type
@@ -116,14 +117,14 @@ case object DemandAnalysis extends IRPass {
         analyseType(typ, isInsideCallArgument)
       case cse: Case =>
         analyseCase(cse, isInsideCallArgument)
-      case block @ Expression.Block(expressions, retVal, _, _, _, _) =>
+      case block @ Expression.Block(expressions, retVal, _, _, _) =>
         block.copy(
           expressions = expressions.map(x =>
             analyseExpression(x, isInsideCallArgument = false)
           ),
           returnValue = analyseExpression(retVal, isInsideCallArgument = false)
         )
-      case binding @ Expression.Binding(_, expression, _, _, _) =>
+      case binding @ Expression.Binding(_, expression, _, _) =>
         binding.copy(expression =
           analyseExpression(
             expression,
@@ -186,11 +187,14 @@ case object DemandAnalysis extends IRPass {
     } else {
       name match {
         case lit: Name.Literal if isDefined(lit) =>
-          val forceLocation = name.location
           val newNameLocation =
             name.location.map(l => new IdentifiedLocation(l.location()))
           val newName = lit.copy(location = newNameLocation)
-          Application.Force(newName, forceLocation)
+          new Application.Force(
+            newName,
+            name.identifiedLocation(),
+            new MetadataStorage()
+          )
         case _ => name
       }
     }
@@ -202,7 +206,7 @@ case object DemandAnalysis extends IRPass {
         AliasAnalysis,
         "Missing alias occurrence information for a name usage"
       )
-      .unsafeAs[alias.Info.Occurrence]
+      .unsafeAs[alias.AliasMetadata.Occurrence]
 
     aliasInfo.graph.defLinkFor(aliasInfo.id).isDefined
   }
@@ -219,35 +223,36 @@ case object DemandAnalysis extends IRPass {
     isInsideCallArgument: Boolean
   ): Application =
     application match {
-      case pref @ Application.Prefix(fn, args, _, _, _, _) =>
-        val newFun = fn match {
+      case pref: Application.Prefix =>
+        val newFun = pref.function match {
           case n: Name => n
           case e       => analyseExpression(e, isInsideCallArgument = false)
         }
         pref.copy(
           function  = newFun,
-          arguments = args.map(analyseCallArgument)
+          arguments = pref.arguments.map(analyseCallArgument)
         )
-      case force @ Application.Force(target, _, _, _) =>
-        force.copy(target =
+      case force: Application.Force =>
+        force.copyWithTarget(
           analyseExpression(
-            target,
+            force.target,
             isInsideCallArgument
           )
         )
-      case vec @ Application.Sequence(items, _, _, _) =>
-        vec.copy(items =
-          items.map(
+      case vec: Application.Sequence =>
+        vec.copyWithItems(
+          vec.items.map(
             analyseExpression(
               _,
               isInsideCallArgument = false
             )
           )
         )
-      case tSet @ Application.Typeset(expr, _, _, _) =>
-        tSet.copy(
-          expression =
-            expr.map(analyseExpression(_, isInsideCallArgument = false))
+      case tSet: Application.Typeset =>
+        tSet.copyWithExpression(
+          tSet.expression.map(
+            analyseExpression(_, isInsideCallArgument = false)
+          )
         )
       case _: Operator =>
         throw new CompilerError(
@@ -266,10 +271,10 @@ case object DemandAnalysis extends IRPass {
     */
   def analyseCallArgument(arg: CallArgument): CallArgument = {
     arg match {
-      case spec @ CallArgument.Specified(_, expr, _, _, _) =>
-        spec.copy(
-          value = analyseExpression(
-            expr,
+      case arg: CallArgument.Specified =>
+        arg.copy(
+          analyseExpression(
+            arg.value,
             isInsideCallArgument = true
           )
         )
@@ -285,9 +290,10 @@ case object DemandAnalysis extends IRPass {
     arg: DefinitionArgument
   ): DefinitionArgument = {
     arg match {
-      case spec @ DefinitionArgument.Specified(_, _, default, _, _, _, _) =>
-        spec.copy(
-          defaultValue = default.map(x =>
+      case spec: DefinitionArgument.Specified =>
+        val default = spec.defaultValue
+        spec.copyWithDefaultValue(
+          default.map(x =>
             analyseExpression(
               x,
               isInsideCallArgument = false
@@ -322,7 +328,7 @@ case object DemandAnalysis extends IRPass {
     isInsideCallArgument: Boolean
   ): Case =
     cse match {
-      case expr @ Case.Expr(scrutinee, branches, _, _, _, _) =>
+      case expr @ Case.Expr(scrutinee, branches, _, _, _) =>
         expr.copy(
           scrutinee = analyseExpression(
             scrutinee,

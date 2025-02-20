@@ -3,8 +3,7 @@ package org.enso.languageserver.runtime
 import io.circe.syntax._
 import io.circe.{Decoder, DecodingFailure, Encoder}
 
-/** A request to invalidate expressions.
-  */
+/** A request to invalidate expressions. */
 sealed trait InvalidatedExpressions
 
 object InvalidatedExpressions {

@@ -89,6 +89,7 @@ public class BinaryOpFloatTest {
   @AfterClass
   public static void closeContext() {
     ctx.close();
+    ctx = null;
   }
 
   private final String operation;

@@ -71,7 +71,6 @@ final class SuggestionBuilder[A: IndexedSource](
                 params,
                 List(),
                 _,
-                _,
                 _
               ) =>
             val tpe =
@@ -83,7 +82,6 @@ final class SuggestionBuilder[A: IndexedSource](
                 params,
                 members,
                 _,
-                _,
                 _
               ) =>
             val tpe =
@@ -93,7 +91,6 @@ final class SuggestionBuilder[A: IndexedSource](
                     name,
                     arguments,
                     annotations,
-                    _,
                     isPrivate,
                     _,
                     _
@@ -123,7 +120,7 @@ final class SuggestionBuilder[A: IndexedSource](
 
           case m @ definition.Method
                 .Explicit(
-                  Name.MethodReference(typePtr, methodName, _, _, _),
+                  Name.MethodReference(typePtr, methodName, _, _),
                   Function.Lambda(args, body, _, _, _, _),
                   _,
                   _,
@@ -134,7 +131,10 @@ final class SuggestionBuilder[A: IndexedSource](
             val (selfTypeOpt, isStatic) = typePtr match {
               case Some(typePtr) =>
                 val selfType = typePtr
-                  .getMetadata(MethodDefinitions)
+                  .getMetadata(
+                    MethodDefinitions.INSTANCE,
+                    classOf[BindingsMap.Resolution]
+                  )
                   .map(_.target.qualifiedName)
                 selfType -> m.isStatic
               case None =>
@@ -162,16 +162,18 @@ final class SuggestionBuilder[A: IndexedSource](
 
           case conversionMeth @ definition.Method
                 .Conversion(
-                  Name.MethodReference(typePtr, _, _, _, _),
+                  Name.MethodReference(typePtr, _, _, _),
                   _,
                   Function.Lambda(args, body, _, _, _, _),
-                  _,
                   _,
                   _
                 ) if !conversionMeth.isPrivate =>
             val selfType = typePtr.flatMap { typePointer =>
               typePointer
-                .getMetadata(MethodDefinitions)
+                .getMetadata(
+                  MethodDefinitions.INSTANCE,
+                  classOf[BindingsMap.Resolution]
+                )
                 .map(_.target.qualifiedName)
             }
             val conversion = buildConversion(
@@ -186,7 +188,6 @@ final class SuggestionBuilder[A: IndexedSource](
           case Expression.Binding(
                 name,
                 Function.Lambda(args, body, _, _, _, _),
-                _,
                 _,
                 _
               ) if name.location.isDefined =>
@@ -206,7 +207,7 @@ final class SuggestionBuilder[A: IndexedSource](
             )
             go(tree += Tree.Node(function, subforest), scope)
 
-          case Expression.Binding(name, expr, _, _, _)
+          case Expression.Binding(name, expr, _, _)
               if name.location.isDefined =>
             val typeSignature = ir.getMetadata(TypeSignatures)
             val local = buildLocal(
@@ -422,12 +423,12 @@ final class SuggestionBuilder[A: IndexedSource](
     argument: DefinitionArgument
   ): Suggestion = {
     val getterName = argument.name.name
-    val thisArg = DefinitionArgument.Specified(
-      name         = Name.Self(None),
-      ascribedType = None,
-      defaultValue = None,
-      suspended    = false,
-      location     = None
+    val thisArg = new DefinitionArgument.Specified(
+      name               = Name.Self(identifiedLocation = null),
+      ascribedType       = None,
+      defaultValue       = None,
+      suspended          = false,
+      identifiedLocation = null
     )
     buildMethod(
       externalId         = None,
@@ -565,24 +566,17 @@ final class SuggestionBuilder[A: IndexedSource](
         (acc, targs.lastOption)
       } else {
         vargs match {
-          case DefinitionArgument.Specified(
-                name: Name.Self,
-                _,
-                defaultValue,
-                suspended,
-                _,
-                _,
-                _
-              ) +: vtail =>
+          case (defArg: DefinitionArgument.Specified) +: vtail
+              if defArg.name().isInstanceOf[Name.Self] =>
             if (isStatic) {
               go(vtail, targs, acc)
             } else {
               val thisArg = Suggestion.Argument(
-                name         = name.name,
+                name         = defArg.name.name,
                 reprType     = selfType.toString,
-                isSuspended  = suspended,
-                hasDefault   = defaultValue.isDefined,
-                defaultValue = defaultValue.map(buildDefaultValue)
+                isSuspended  = defArg.suspended,
+                hasDefault   = defArg.defaultValue.isDefined,
+                defaultValue = defArg.defaultValue.map(buildDefaultValue)
               )
               go(vtail, targs, acc :+ thisArg)
             }
@@ -770,7 +764,9 @@ final class SuggestionBuilder[A: IndexedSource](
     */
   private def buildDefaultValue(expr: IR): String =
     expr match {
-      case Application.Prefix(name, path, _, _, _, _) =>
+      case app: Application.Prefix =>
+        val name = app.function
+        val path = app.arguments
         path.map(_.value.showCode()).mkString(".") + "." + name.showCode()
       case other => other.showCode()
     }

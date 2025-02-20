@@ -42,9 +42,9 @@ pub fn schema() -> impl serde::Serialize {
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Schema {
     /// The type definitions.
-    pub types:         HashMap<TypeId, Type>,
+    pub types:         BTreeMap<TypeId, Type>,
     /// Serialization information for the types.
-    pub serialization: HashMap<TypeId, Layout>,
+    pub serialization: BTreeMap<TypeId, Layout>,
 }
 
 
@@ -57,18 +57,18 @@ pub struct Type {
     /// The type's name, in snake case.
     pub name:   Rc<str>,
     /// The type's fields.
-    pub fields: HashMap<FieldName, TypeRef>,
+    pub fields: BTreeMap<FieldName, TypeRef>,
     /// The type's parent, if any.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parent: Option<TypeId>,
 }
 
 /// Arbitrary key uniquely identifying a type within the schema.
-#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TypeId(Rc<str>);
 
 /// The name of a field, in snake case.
-#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct FieldName(Rc<str>);
 
 /// A reference to a type, which may be a [`Type`] defined in the schema, a primitive, or a
@@ -154,7 +154,7 @@ pub struct Discriminant(u32);
 // ==================
 
 struct Types {
-    types: HashMap<TypeId, Type>,
+    types: BTreeMap<TypeId, Type>,
     ids:   HashMap<meta::TypeId, TypeId>,
 }
 
@@ -169,7 +169,7 @@ fn types(graph: &meta::TypeGraph) -> Types {
     let mut ids = HashMap::new();
     let mut primitives = vec![];
     // Map struct types; gather primitive types.
-    for (key, ty) in &graph.types {
+    for (key, ty) in graph.types.iter() {
         match &ty.data {
             Data::Struct(_) => {
                 let id = next_type_id();
@@ -211,7 +211,7 @@ fn types(graph: &meta::TypeGraph) -> Types {
             }
         });
     }
-    let types: HashMap<_, _> = graph
+    let types: BTreeMap<_, _> = graph
         .types
         .iter()
         .filter_map(|(key, ty)| {

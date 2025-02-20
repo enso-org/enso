@@ -12,6 +12,7 @@ import org.enso.languageserver.runtime.{
 }
 import org.enso.languageserver.util.UnhandledLogging
 
+import java.util.UUID
 import scala.concurrent.duration.FiniteDuration
 
 /** A request handler for `executionContext/modifyVisualization` commands.
@@ -41,16 +42,23 @@ class ModifyVisualizationHandler(
       )
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-      context.become(responseStage(id, sender(), cancellable))
+      context.become(
+        responseStage(id, params.visualizationId, sender(), cancellable)
+      )
   }
 
   private def responseStage(
     id: Id,
+    visualizationID: UUID,
     replyTo: ActorRef,
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      logger.error("Request [{}] timed out.", id)
+      logger.error(
+        "Request [{}] timed out for visualization {}.",
+        id,
+        visualizationID
+      )
       replyTo ! ResponseError(Some(id), Errors.RequestTimeout)
       context.stop(self)
 

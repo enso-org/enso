@@ -1,7 +1,5 @@
 package org.enso.base.encoding;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -13,7 +11,6 @@ import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CodingErrorAction;
 import java.util.Arrays;
-import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -97,89 +94,25 @@ public class Encoding_Utils {
   }
 
   /**
-   * Converts an array of encoded bytes into a string.
+   * Checks if the following stream can be decoded without errors using the given charset.
    *
-   * @param bytes the bytes to convert
-   * @param charset the character set to use for decoding, use {@code null} to try auto-detection
-   * @return the resulting string, and any potential problems
+   * <p>The stream is (partially or wholly) consumed as part of this process.
    */
-  public static WithProblems<String, DecodingProblem> from_bytes(byte[] bytes, Charset charset) {
-    if (bytes == null || bytes.length == 0) {
-      return new WithProblems<>("", List.of());
-    }
-
+  public static boolean canDecodeWithoutErrors(InputStream stream, Charset charset)
+      throws IOException {
     DecodingProblemAggregator problemAggregator = new DecodingProblemAggregator();
-    ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
-    ReportingStreamDecoder decoder;
-    try {
-      decoder = create_stream_decoder(inputStream, charset, problemAggregator, true);
-    } catch (IOException e) {
-      throw new IllegalStateException(
-          "Unexpected IO exception in internal code: " + e.getMessage(), e);
-    }
-
-    CharBuffer out = CharBuffer.allocate((int) (bytes.length * decoder.averageCharsPerByte()));
-    try {
-      int n;
-      do {
-        if (!out.hasRemaining()) {
-          out = resize(out, CharBuffer::allocate, CharBuffer::put);
+    try (var decoder = new ReportingStreamDecoder(stream, charset, problemAggregator, true)) {
+      char[] tmpBuffer = new char[1024];
+      while (decoder.read(tmpBuffer) >= 0) {
+        if (problemAggregator.hasEncounteredInvalidCharacters()) {
+          // early exit - no need to process the stream any further
+          return false;
         }
-        // read is already polling safepoints so we don't have to
-        n = decoder.read(out);
-      } while (n >= 0);
-    } catch (IOException e) {
-      throw new IllegalStateException("Unexpected exception: " + e.getMessage(), e);
+      }
     }
 
-    out.flip();
-    return new WithProblems<>(out.toString(), problemAggregator.summarize());
-  }
-
-  /**
-   * Creates a new instance of {@code ReportingStreamDecoder} decoding a given charset.
-   *
-   * @param stream the input stream to decode
-   * @param charset the character set to use for decoding, use {@code null} to try auto-detection
-   * @param pollSafepoints whether to poll for safepoints during decoding. This should be true if
-   *     the decoding will run on the main thread, and false otherwise.
-   */
-  private static ReportingStreamDecoder create_stream_decoder(
-      InputStream stream,
-      Charset charset,
-      DecodingProblemAggregator problemAggregator,
-      boolean pollSafepoints)
-      throws IOException {
-    BufferedInputStream bufferedStream = new BufferedInputStream(stream);
-    EncodingRepresentation representation = EncodingRepresentation.fromCharset(charset);
-    // This may also advance the stream past the BOM
-    Charset detectedCharset = representation.detectCharset(bufferedStream, problemAggregator);
-    return new ReportingStreamDecoder(
-        bufferedStream, detectedCharset, problemAggregator, pollSafepoints);
-  }
-
-  /**
-   * A helper function which runs an action with a created stream decoder and closes it afterwards.
-   *
-   * <p>It returns the result returned from the executed action and any encoding problems that
-   * occurred when processing it.
-   *
-   * @param stream the input stream to decode
-   * @param charset the character set to use for decoding, use {@code null} to try auto-detection
-   * @param action the action to run with the created decoder
-   * @return the result of the action and any problems that occurred during decoding
-   */
-  public static WithProblems<Value, DecodingProblem> with_stream_decoder(
-      InputStream stream, Charset charset, Function<ReportingStreamDecoder, Value> action)
-      throws IOException {
-    DecodingProblemAggregator problemAggregator = new DecodingProblemAggregator();
-    Value result;
-    ReportingStreamDecoder decoder =
-        create_stream_decoder(stream, charset, problemAggregator, false);
-    try (decoder) {
-      result = action.apply(decoder);
-    }
-    return new WithProblems<>(result, problemAggregator.summarize());
+    // Check one more time after EOF
+    return !problemAggregator.hasEncounteredInvalidCharacters();
   }
 
   /** Creates a new instance of {@code ReportingStreamEncoder} encoding a given charset. */

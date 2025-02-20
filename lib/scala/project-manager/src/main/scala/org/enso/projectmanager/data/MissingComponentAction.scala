@@ -1,25 +1,21 @@
 package org.enso.projectmanager.data
 
-import enumeratum._
+import io.circe.{Decoder, Encoder}
 
 /** Specifies how to handle missing components. */
-sealed trait MissingComponentAction extends EnumEntry
-object MissingComponentAction
-    extends Enum[MissingComponentAction]
-    with CirceEnum[MissingComponentAction] {
+object MissingComponentActions extends Enumeration {
+  type MissingComponentAction = Value
 
-  /** Specifies that an action requiring a missing component should fail. */
-  case object Fail extends MissingComponentAction
-
-  /** Specifies that an action requiring a missing component should install it,
+  /** Fail - specifies that an action requiring a missing component should fail.
+    * Install - specifies that an action requiring a missing component should install it,
     * unless it is broken.
-    */
-  case object Install extends MissingComponentAction
-
-  /** Specifies that an action requiring a missing component should forcibly
+    * ForceInstallBroken - specifies that an action requiring a missing component should forcibly
     * install it, even if it is broken.
     */
-  case object ForceInstallBroken extends MissingComponentAction
+  val Fail, Install, ForceInstallBroken = Value
 
-  override val values = findValues
+  implicit val genderDecoder: Decoder[MissingComponentAction] =
+    Decoder.decodeEnumeration(MissingComponentActions)
+  implicit val genderEncoder: Encoder[MissingComponentAction] =
+    Encoder.encodeEnumeration(MissingComponentActions)
 }
