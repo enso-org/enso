@@ -152,7 +152,7 @@ const UPSERT_EXECUTION_SCHEMA = z
             return {
               type: repeatType,
               dayOfWeek: getDay(startDate),
-              weekNumber: Math.floor(startDate.day / DAYS_PER_WEEK) + 1,
+              weekNumber: Math.floor((startDate.day - 1) / DAYS_PER_WEEK) + 1,
               months,
             }
           }
@@ -299,7 +299,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       case 'MonthlyWeekday': {
         return getText(
           'monthlyXthXDay',
-          getOrdinal(Math.floor(date.day / DAYS_PER_WEEK) + 1),
+          getOrdinal(Math.floor((date.day - 1) / DAYS_PER_WEEK) + 1),
           dayOfWeek,
         )
       }
