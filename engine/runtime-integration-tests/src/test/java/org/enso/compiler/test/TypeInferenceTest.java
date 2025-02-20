@@ -1105,9 +1105,6 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertAtomType(myType, ModuleUtils.findAssignment(foo, "x8"));
   }
 
-  @Ignore(
-      "TODO: error can only be reported when we can rule out there is no Other_Type -> My_Type"
-          + " conversion")
   @Test
   public void staticCallWithWrongType() throws Exception {
     final URI uri = new URI("memory://staticCallWithWrongType.enso");

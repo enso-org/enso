@@ -2,7 +2,12 @@ package org.enso.compiler.pass.analyse.types;
 
 /** A class that helps with computing compatibility between types. */
 class TypeCompatibility {
-  TypeCompatibility() {}
+  TypeCompatibility(MethodTypeResolver methodTypeResolver) {
+    this.conversionResolver = methodTypeResolver;
+  }
+
+  // FIXME maybe separate into separate class? but both functionality is related, maybe rename...
+  private final MethodTypeResolver conversionResolver;
 
   /** Denotes if a given provided type can fit into an expected type. */
   enum Compatibility {
@@ -81,13 +86,11 @@ class TypeCompatibility {
       return Compatibility.NEVER_COMPATIBLE;
     }
 
-    if (expected instanceof TypeRepresentation.AtomType
-        && provided instanceof TypeRepresentation.AtomType) {
-      // If both are atom types, but they were not == above, that means they are not compatible.
-      // TODO we have to check if there might be a conversion in the scope, see
-      // `noTypeErrorIfConversionExists` test
-      // return TypeCompatibility.NEVER_COMPATIBLE;
-      return Compatibility.UNKNOWN;
+    if (expected instanceof TypeRepresentation.AtomType expectedAtom
+        && provided instanceof TypeRepresentation.AtomType providedAtom) {
+      assert !expected.equals(provided) : "Equal types should already have been handled by one of conditions above.";
+      boolean existsConversionInScope = conversionResolver.findConversion(providedAtom, expectedAtom);
+      return existsConversionInScope ? Compatibility.ALWAYS_COMPATIBLE : Compatibility.NEVER_COMPATIBLE;
     }
 
     if (isFunctionLike(expected) != isFunctionLike(provided)) {

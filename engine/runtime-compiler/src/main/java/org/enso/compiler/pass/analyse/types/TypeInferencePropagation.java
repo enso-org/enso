@@ -73,7 +73,6 @@ public final class TypeInferencePropagation implements IRPass {
   public static final TypeInferencePropagation INSTANCE = new TypeInferencePropagation();
   private static final Logger LOGGER = LoggerFactory.getLogger(TypeInferencePropagation.class);
   private final TypeResolver typeResolver = new TypeResolver();
-  private final TypeCompatibility checker = new TypeCompatibility();
 
   private TypeInferencePropagation() {}
 
@@ -81,7 +80,7 @@ public final class TypeInferencePropagation implements IRPass {
       Module module, Option<PackageRepository> packageRepository) {
     var packageRepo = packageRepository.isDefined() ? packageRepository.get() : null;
     ModuleResolver moduleResolver = new ModuleResolver(packageRepo);
-    return new TypePropagation(typeResolver, checker, module, moduleResolver) {
+    return new TypePropagation(typeResolver, module, moduleResolver) {
       @Override
       protected void encounteredIncompatibleTypes(
           IR relatedIr, TypeRepresentation expected, TypeRepresentation provided) {
