@@ -2,7 +2,11 @@ package org.enso.table.data.column.operation.comparators;
 
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.column.storage.type.DateTimeType;
+import org.enso.table.data.column.storage.type.DateType;
+import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
 
 /**
@@ -31,7 +35,7 @@ public interface Comparators {
           default -> throw new IllegalArgumentException("Unsupported StorageType");
         };
 
-    return performComparison(rightValue, newName, comparator, leftStorage);
+    return performComparison(leftStorage, rightValue, newName, comparator);
   }
 
   static Column notEq(Column left, Object rightValue, String newName) {
@@ -46,7 +50,7 @@ public interface Comparators {
           default -> throw new IllegalArgumentException("Unsupported StorageType");
         };
 
-    return performComparison(rightValue, newName, comparator, leftStorage);
+    return performComparison(leftStorage, rightValue, newName, comparator);
   }
 
   static Column lessThan(Column left, Object rightValue, String newName) {
@@ -61,7 +65,7 @@ public interface Comparators {
           default -> throw new IllegalArgumentException("Unsupported StorageType");
         };
 
-    return performComparison(rightValue, newName, comparator, leftStorage);
+    return performComparison(leftStorage, rightValue, newName, comparator);
   }
 
   static Column lessThanEq(Column left, Object rightValue, String newName) {
@@ -76,7 +80,7 @@ public interface Comparators {
           default -> throw new IllegalArgumentException("Unsupported StorageType");
         };
 
-    return performComparison(rightValue, newName, comparator, leftStorage);
+    return performComparison(leftStorage, rightValue, newName, comparator);
   }
 
   static Column greaterThan(Column left, Object rightValue, String newName) {
@@ -91,7 +95,7 @@ public interface Comparators {
           default -> throw new IllegalArgumentException("Unsupported StorageType");
         };
 
-    return performComparison(rightValue, newName, comparator, leftStorage);
+    return performComparison(leftStorage, rightValue, newName, comparator);
   }
 
   static Column greaterThanEq(Column left, Object rightValue, String newName) {
@@ -106,11 +110,11 @@ public interface Comparators {
           default -> throw new IllegalArgumentException("Unsupported StorageType");
         };
 
-    return performComparison(rightValue, newName, comparator, leftStorage);
+    return performComparison(leftStorage, rightValue, newName, comparator);
   }
 
   static Column performComparison(
-      Object rightValue, String newName, Comparators comparator, Storage<?> leftStorage) {
+      Storage<?> leftStorage, Object rightValue, String newName, Comparators comparator) {
     ColumnStorage<Boolean> output;
     if (rightValue instanceof Column right) {
       var rightStorage = right.getStorage();
@@ -125,6 +129,12 @@ public interface Comparators {
       output = comparator.applyMap(leftStorage, rightValue);
     }
     return new Column(newName, (Storage<Boolean>) output);
+  }
+
+  default boolean canApply(Column left, Object right) {
+    return right instanceof Column rightColumn
+        ? canApply(left.getStorage(), rightColumn.getStorage())
+        : canApplyMap(left.getStorage(), right);
   }
 
   /** Can the map be applied to pair of ColumnStorage and constant? */

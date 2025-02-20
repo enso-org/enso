@@ -11,7 +11,6 @@ import org.enso.table.data.column.operation.SampleOperation;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.text.CoalescingStringStringOp;
 import org.enso.table.data.column.operation.map.text.LikeOp;
-import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
 import org.enso.table.data.column.operation.map.text.StringLongToStringOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
@@ -112,20 +111,6 @@ public final class StringStorage extends SpecializedStorage<String> {
   private static MapOperationStorage<String, SpecializedStorage<String>> buildOps() {
     MapOperationStorage<String, SpecializedStorage<String>> t = new MapOperationStorage<>();
     t.add(
-        new StringBooleanOp(Maps.STARTS_WITH) {
-          @Override
-          protected boolean doString(String a, String b) {
-            return Text_Utils.starts_with(a, b);
-          }
-        });
-    t.add(
-        new StringBooleanOp(Maps.ENDS_WITH) {
-          @Override
-          protected boolean doString(String a, String b) {
-            return Text_Utils.ends_with(a, b);
-          }
-        });
-    t.add(
         new StringLongToStringOp(Maps.TEXT_LEFT) {
           @Override
           protected String doOperation(String a, long b) {
@@ -137,13 +122,6 @@ public final class StringStorage extends SpecializedStorage<String> {
           @Override
           protected String doOperation(String a, long b) {
             return Text_Utils.take_suffix(a, b);
-          }
-        });
-    t.add(
-        new StringBooleanOp(Maps.CONTAINS) {
-          @Override
-          protected boolean doString(String a, String b) {
-            return Text_Utils.contains(a, b);
           }
         });
     t.add(new LikeOp());
