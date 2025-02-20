@@ -8,6 +8,16 @@ type Order_Descriptor
     ## PRIVATE
     Value (expression : SQL_Expression) (direction : Sort_Direction) (nulls_order : Nothing | Nulls_Order = Nothing) (collation : Nothing | Text = Nothing)
 
+    reverse self -> Order_Descriptor =
+        new_direction = case self.direction of
+            Sort_Direction.Ascending -> Sort_Direction.Descending
+            Sort_Direction.Descending -> Sort_Direction.Ascending
+        new_nulls_order = case self.nulls_order of
+            Nothing -> Nothing
+            Nulls_Order.First -> Nulls_Order.Last
+            Nulls_Order.Last -> Nulls_Order.First
+        Order_Descriptor.Value self.expression new_direction new_nulls_order self.collation
+
     ## PRIVATE
        A bottom-up, depth-first traversal of this IR node and its children. Each
        node is passed to the provided function, and the return value of the

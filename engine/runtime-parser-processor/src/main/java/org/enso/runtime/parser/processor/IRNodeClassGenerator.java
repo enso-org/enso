@@ -5,6 +5,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.processing.ProcessingEnvironment;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.PackageElement;
+import javax.lang.model.element.TypeElement;
 import org.enso.runtime.parser.processor.field.Field;
 import org.enso.runtime.parser.processor.field.FieldCollector;
 import org.enso.runtime.parser.processor.methodgen.BuilderMethodGenerator;
@@ -101,10 +105,37 @@ final class IRNodeClassGenerator {
             .collect(Collectors.toUnmodifiableSet());
     var allImports = new HashSet<String>();
     allImports.addAll(defaultImportedTypes);
+    addImportForType(allImports, processedClass.getClazz());
+    for (var ifaceToImplement : processedClass.getInterfaces()) {
+      addImportForType(allImports, ifaceToImplement);
+    }
     allImports.addAll(importsForFields);
     return allImports.stream()
         .map(importedType -> "import " + importedType + ";")
         .collect(Collectors.toUnmodifiableSet());
+  }
+
+  /**
+   * Adds import for a type that is not in an unnamed package.
+   *
+   * @param imports Set of imports to potentially add to
+   */
+  private void addImportForType(Set<String> imports, TypeElement type) {
+    if (!isInUnnamedPackage(type)) {
+      imports.add(type.getQualifiedName().toString());
+    }
+  }
+
+  private boolean isInUnnamedPackage(TypeElement type) {
+    Element enclosingElement = type.getEnclosingElement();
+    while (enclosingElement != null) {
+      if (enclosingElement.getKind() == ElementKind.PACKAGE) {
+        var pkg = (PackageElement) enclosingElement;
+        return pkg.isUnnamed();
+      }
+      enclosingElement = enclosingElement.getEnclosingElement();
+    }
+    return false;
   }
 
   /** Generates the body of the class - fields, field setters, method overrides, builder, etc. */
@@ -117,8 +148,14 @@ final class IRNodeClassGenerator {
 
         $validateConstructor
 
+        /** Empty builder */
         public static Builder builder() {
           return new Builder();
+        }
+
+        /** Builder with initial values */
+        public static Builder builder($processedClassName obj) {
+          return new Builder(obj);
         }
 
         $copyMethod
@@ -140,6 +177,7 @@ final class IRNodeClassGenerator {
             .replace("$fields", fieldsCode())
             .replace("$defaultCtor", defaultConstructor())
             .replace("$validateConstructor", validateConstructor())
+            .replace("$processedClassName", processedClass.getClazz().getSimpleName().toString())
             .replace("$copyMethod", copyMethodGenerator.generateMethodCode())
             .replace("$userDefinedGetters", userDefinedGetters())
             .replace("$overrideIRMethods", overrideIRMethods())
@@ -397,11 +435,6 @@ final class IRNodeClassGenerator {
         }
 
         $duplicateMethods
-
-        @Override
-        public String showCode(int indent) {
-          throw new UnsupportedOperationException("unimplemented");
-        }
         """
             .replace("$childrenMethodBody", childrenMethodBody())
             .replace("$setLocationMethod", setLocationMethodGenerator.generateMethodCode())

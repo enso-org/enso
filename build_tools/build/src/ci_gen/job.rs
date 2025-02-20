@@ -344,6 +344,18 @@ impl JobArchetype for StandardLibraryTests {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct StandardLibraryApiCheck;
+
+impl JobArchetype for StandardLibraryApiCheck {
+    fn job(&self, target: Target) -> Job {
+        let job_name = "Standard Library API check";
+        let run_command = "backend stdlib-api-check";
+        let job = RunStepsBuilder::new(run_command).build_job(job_name, target);
+        job
+    }
+}
+
 /** This is a temporary workaround.
  *
  * The Cloud tests preparation requires `aws` CLI to be installed on the machine.

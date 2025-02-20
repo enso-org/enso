@@ -8,6 +8,7 @@ import java.util.List;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.typecheck.TypeCheckValueNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.atom.UnboxingAtom.FieldGetterNode;
@@ -21,6 +22,7 @@ import org.enso.interpreter.runtime.error.DataflowError;
 final class SuspendedFieldGetterNode extends UnboxingAtom.FieldGetterNode {
   @Node.Child private UnboxingAtom.FieldSetterNode set;
   @Node.Child private UnboxingAtom.FieldGetterNode get;
+  private boolean isEvaluated = false;
   private final BranchProfile exceptionalState = BranchProfile.create();
 
   @Node.Child
@@ -94,7 +96,7 @@ final class SuspendedFieldGetterNode extends UnboxingAtom.FieldGetterNode {
     java.lang.Object value = get.execute(atom);
     if (value instanceof Function fn && shallBeExtracted(fn)) {
       try {
-        var state = Function.ArgumentsHelper.getState(fn.getScope().getArguments());
+        var state = EnsoContext.get(this).currentState();
         var newValue = invoke.execute(fn, null, state, new Object[0]);
         set.execute(atom, newValue);
         return newValue;
@@ -103,6 +105,8 @@ final class SuspendedFieldGetterNode extends UnboxingAtom.FieldGetterNode {
         var rethrow = DataflowError.withTrace(ex, ex);
         set.execute(atom, rethrow);
         throw ex;
+      } finally {
+        isEvaluated = true;
       }
     } else if (value instanceof DataflowError suspended) {
       exceptionalState.enter();
@@ -111,5 +115,9 @@ final class SuspendedFieldGetterNode extends UnboxingAtom.FieldGetterNode {
       }
     }
     return value;
+  }
+
+  boolean isEvaluated() {
+    return isEvaluated;
   }
 }

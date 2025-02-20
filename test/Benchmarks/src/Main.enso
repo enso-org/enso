@@ -19,6 +19,7 @@ import project.Sum
 import project.Table.Add_Row_Number
 import project.Table.Aggregate
 import project.Table.Arithmetic
+import project.Table.Cast
 import project.Table.Column_Comparisons
 import project.Table.Column_From_Vector
 import project.Table.Cross_Tab
@@ -27,6 +28,7 @@ import project.Table.Join
 import project.Table.Mixed_Operations
 import project.Table.Sorting
 import project.Table.Internal.Multi_Value_Key
+import project.Table.Unary_Column_Operations
 import project.Text.Build
 import project.Text.Compare
 import project.Text.Contains
@@ -66,6 +68,7 @@ all_benchmarks =
         builder.append Aggregate.collect_benches
         builder.append Arithmetic.collect_benches
         builder.append Add_Row_Number.collect_benches
+        builder.append Cast.collect_benches
         builder.append Column_Comparisons.collect_benches
         builder.append Column_From_Vector.collect_benches
         builder.append Cross_Tab.collect_benches
@@ -74,6 +77,7 @@ all_benchmarks =
         builder.append Sorting.collect_benches
         builder.append Multi_Value_Key.collect_benches
         builder.append Mixed_Operations.collect_benches
+        builder.append Unary_Column_Operations.collect_benches
 
         # Text
         builder.append Build.collect_benches

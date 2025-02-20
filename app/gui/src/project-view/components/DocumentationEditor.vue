@@ -21,7 +21,6 @@ const emit = defineEmits<{
   'update:fullscreen': [boolean]
 }>()
 
-const toolbarElement = ref<HTMLElement>()
 const markdownEditor = ref<ComponentInstance<typeof MarkdownEditor>>()
 
 const graphStore = useGraphStore()
@@ -72,25 +71,23 @@ const handler = documentationEditorBindings.handler({
 
 <template>
   <WithFullscreenMode :fullscreen="fullscreen" @update:animating="fullscreenAnimating = $event">
-    <div class="DocumentationEditor">
-      <div ref="toolbarElement" class="toolbar">
-        <FullscreenButton v-model="fullscreen" />
-        <SvgButton name="image" title="Insert image" @click.stop="tryUploadImageFile()" />
-      </div>
-      <slot name="belowToolbar" />
-      <div
-        class="scrollArea"
-        @keydown="handler"
-        @dragover.prevent
-        @drop.prevent="tryUploadDroppedImage($event)"
-      >
-        <MarkdownEditor
-          ref="markdownEditor"
-          :content="yText"
-          :transformImageUrl="transformImageUrl"
-          :toolbarContainer="toolbarElement"
-        />
-      </div>
+    <div
+      class="DocumentationEditor"
+      @keydown="handler"
+      @dragover.prevent
+      @drop.prevent="tryUploadDroppedImage($event)"
+    >
+      <MarkdownEditor ref="markdownEditor" :content="yText" :transformImageUrl="transformImageUrl">
+        <template #toolbarLeft>
+          <FullscreenButton v-model="fullscreen" />
+        </template>
+        <template #toolbarRight>
+          <SvgButton name="image" title="Insert image" @click.stop="tryUploadImageFile()" />
+        </template>
+        <template #belowToolbar>
+          <slot name="belowToolbar" />
+        </template>
+      </MarkdownEditor>
     </div>
   </WithFullscreenMode>
 </template>
@@ -102,25 +99,5 @@ const handler = documentationEditorBindings.handler({
   background-color: #fff;
   height: 100%;
   width: 100%;
-}
-
-.scrollArea {
-  width: 100%;
-  overflow-y: auto;
-  padding-left: 10px;
-  /* Prevent touchpad back gesture, which can be triggered while panning. */
-  overscroll-behavior-x: none;
-  flex-grow: 1;
-}
-
-.toolbar {
-  height: 48px;
-  padding-left: 16px;
-  flex-shrink: 0;
-
-  display: flex;
-  align-items: center;
-  flex-direction: row;
-  gap: 8px;
 }
 </style>

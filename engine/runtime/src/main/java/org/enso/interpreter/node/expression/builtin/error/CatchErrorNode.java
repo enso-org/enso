@@ -11,7 +11,6 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Error",
@@ -22,7 +21,7 @@ import org.enso.interpreter.runtime.state.State;
 public abstract class CatchErrorNode extends Node {
   private @Child InvokeCallableNode invokeCallableNode;
 
-  public abstract Object execute(VirtualFrame frame, State state, Object self, Object handler);
+  public abstract Object execute(VirtualFrame frame, Object self, Object handler);
 
   public static CatchErrorNode build() {
     return CatchErrorNodeGen.create();
@@ -38,12 +37,13 @@ public abstract class CatchErrorNode extends Node {
   }
 
   @Specialization
-  Object doDataflowError(VirtualFrame frame, State state, DataflowError self, Object handler) {
-    return invokeCallableNode.execute(handler, frame, state, new Object[] {self.getPayload()});
+  Object doDataflowError(VirtualFrame frame, DataflowError self, Object handler) {
+    return invokeCallableNode.execute(
+        handler, frame, EnsoContext.get(this).currentState(), new Object[] {self.getPayload()});
   }
 
   @Fallback
-  Object doOther(VirtualFrame frame, State state, Object self, Object handler) {
+  Object doOther(VirtualFrame frame, Object self, Object handler) {
     var builtins = EnsoContext.get(this).getBuiltins();
     var typeErr = builtins.error().makeTypeError("Dataflow_Error", self, "self");
     throw new PanicException(typeErr, this);

@@ -5,6 +5,7 @@ import static org.enso.scala.wrapper.ScalaConversions.asScala;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.Writer;
 import java.util.IdentityHashMap;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.IR;
@@ -49,11 +50,22 @@ public final class DocsGenerate {
       var dir = createDirs(fs, apiDir, stripNamespace(moduleName));
       var md = fs.getChild(dir, moduleName.item() + ".md");
       try (var mdWriter = fs.newBufferedWriter(md);
-          var pw = new PrintWriter(mdWriter)) {
+          var pw = new UnixLineEndingPrintWriter(mdWriter)) {
         visitModule(visitor, moduleName, ir, pw);
       }
     }
     return apiDir;
+  }
+
+  private static class UnixLineEndingPrintWriter extends PrintWriter {
+    public UnixLineEndingPrintWriter(Writer out) {
+      super(out);
+    }
+
+    @Override
+    public void println() {
+      super.print('\n');
+    }
   }
 
   public static <File> File defaultOutputDir(org.enso.pkg.Package<File> pkg) {

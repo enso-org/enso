@@ -333,7 +333,7 @@ case object ComplexType extends IRPass {
 
     val binding = new definition.Method.Binding(
       methodRef.duplicate(),
-      args.map(_.duplicate()),
+      args.map(_.duplicate(true, true, true, false)),
       isPrivate,
       body.duplicate(),
       identifiedLocation,

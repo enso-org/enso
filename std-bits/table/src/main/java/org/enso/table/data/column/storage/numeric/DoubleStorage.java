@@ -3,6 +3,7 @@ package org.enso.table.data.column.storage.numeric;
 import java.math.BigInteger;
 import java.util.BitSet;
 import java.util.List;
+import java.util.NoSuchElementException;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
@@ -20,13 +21,8 @@ import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterCompa
 import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterOrEqualComparison;
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparison;
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
-import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
 import org.enso.table.data.column.operation.map.numeric.isin.DoubleIsInOp;
-import org.enso.table.data.column.storage.BoolStorage;
-import org.enso.table.data.column.storage.ColumnDoubleStorage;
-import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.ValueIsNothingException;
+import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -40,9 +36,9 @@ import org.graalvm.polyglot.Value;
 
 /** A column containing floating point numbers. */
 public final class DoubleStorage extends Storage<Double>
-    implements DoubleArrayAdapter, ColumnStorageWithNothingMap, ColumnDoubleStorage {
-  private final double[] data;
-  private final BitSet isNothing;
+    implements ColumnDoubleStorage, ColumnStorageWithNothingMap {
+  final double[] data;
+  final BitSet isNothing;
   private final int size;
   private static final MapOperationStorage<Double, DoubleStorage> ops = buildOps();
 
@@ -99,21 +95,6 @@ public final class DoubleStorage extends Storage<Double>
       throw new IndexOutOfBoundsException(idx);
     }
     return isNothing.get((int) idx);
-  }
-
-  @Override
-  public long size() {
-    return getSize();
-  }
-
-  /** Used by the DoubleBuilder in appendBulkStorage. */
-  public double[] getRawData() {
-    return data;
-  }
-
-  @Override
-  public DoubleStorage intoStorage() {
-    return this;
   }
 
   @Override
@@ -397,7 +378,7 @@ public final class DoubleStorage extends Storage<Double>
     ComputedNullableLongStorage longAdapter =
         new ComputedNullableLongStorage(size) {
           @Override
-          protected Long computeItem(int idx) {
+          protected Long computeItem(long idx) {
             if (parent.isNothing(idx)) {
               return null;
             }
@@ -411,5 +392,153 @@ public final class DoubleStorage extends Storage<Double>
 
     // And rely on its shrinking logic.
     return longAdapter.inferPreciseTypeShrunk();
+  }
+
+  /** Allow access to the underlying data array for copying. */
+  public double[] getArray() {
+    return data;
+  }
+
+  @Override
+  public ColumnDoubleStorageIterator iterator() {
+    return new DoubleStorageIterator(data, isNothing, (int) getSize());
+  }
+
+  private static class DoubleStorageIterator implements ColumnDoubleStorageIterator {
+    private final double[] data;
+    private final BitSet isNothing;
+    private final int size;
+    private int index = -1;
+
+    public DoubleStorageIterator(double[] data, BitSet isNothing, int size) {
+      this.data = data;
+      this.isNothing = isNothing;
+      this.size = size;
+    }
+
+    @Override
+    public Double getItemBoxed() {
+      return isNothing.get(index) ? null : data[index];
+    }
+
+    @Override
+    public double getItemAsDouble() {
+      return data[index];
+    }
+
+    @Override
+    public boolean isNothing() {
+      return isNothing.get(index);
+    }
+
+    @Override
+    public boolean hasNext() {
+      return index + 1 < size;
+    }
+
+    @Override
+    public Double next() {
+      if (!hasNext()) {
+        throw new NoSuchElementException();
+      }
+      index++;
+      return getItemBoxed();
+    }
+
+    @Override
+    public long getIndex() {
+      return index;
+    }
+
+    @Override
+    public boolean moveNext() {
+      if (!hasNext()) {
+        return false;
+      }
+      index++;
+      return true;
+    }
+
+    @Override
+    public void zip(ColumnDoubleStorage otherStorage, DoubleDoubleZipper zipper) {
+      Context context = Context.getCurrent();
+      var otherSize = otherStorage.getSize();
+      var toCount = Math.max(size, otherSize);
+
+      if (otherStorage instanceof DoubleStorage doubleStorage) {
+        for (int i = 0; i < toCount; i++) {
+          boolean isNothing1 = i >= size || isNothing.get(i);
+          double value1 = isNothing1 ? Double.NaN : data[i];
+          boolean isNothing2 = i >= otherSize || doubleStorage.isNothing.get(i);
+          double value2 = isNothing2 ? Double.NaN : doubleStorage.data[i];
+          zipper.accept(i, value1, isNothing1, value2, isNothing2);
+          context.safepoint();
+        }
+      } else {
+        int minSize = (int) Math.min(size, otherSize);
+        for (int i = 0; i < minSize; i++) {
+          boolean isNothing1 = i >= size || isNothing.get(i);
+          double value1 = isNothing1 ? 0 : data[i];
+          boolean isNothing2 = otherStorage.isNothing(i);
+          if (isNothing2) {
+            zipper.accept(i, value1, isNothing1, Double.NaN, true);
+          } else {
+            zipper.accept(i, value1, isNothing1, otherStorage.getItemAsDouble(i), false);
+          }
+          context.safepoint();
+        }
+
+        for (long i = minSize; i < toCount; i++) {
+          var isNothing2 = otherStorage.isNothing(i);
+          if (isNothing2) {
+            zipper.accept(i, 0, true, Double.NaN, true);
+          } else {
+            zipper.accept(i, 0, true, otherStorage.getItemAsDouble(i), false);
+          }
+          context.safepoint();
+        }
+      }
+    }
+
+    @Override
+    public void zip(ColumnLongStorage otherStorage, DoubleLongZipper zipper) {
+      Context context = Context.getCurrent();
+      var otherSize = otherStorage.getSize();
+      var toCount = Math.max(size, otherSize);
+
+      if (otherStorage instanceof LongStorage longStorage) {
+        for (int i = 0; i < toCount; i++) {
+          boolean isNothing1 = i >= size || isNothing.get(i);
+          double value1 = isNothing1 ? Double.NaN : data[i];
+          boolean isNothing2 = i >= otherSize || longStorage.isNothing.get(i);
+          long value2 = isNothing2 ? 0 : longStorage.data[i];
+          zipper.accept(i, value1, isNothing1, value2, isNothing2);
+          context.safepoint();
+        }
+      } else {
+        int minSize = (int) Math.min(size, otherSize);
+        for (int i = 0; i < minSize; i++) {
+          boolean isNothing1 = i >= size || isNothing.get(i);
+          double value1 = isNothing1 ? 0 : data[i];
+          var isNothing2 = otherStorage.isNothing(i);
+          if (isNothing2) {
+            zipper.accept(i, value1, isNothing1, 0, true);
+          } else {
+            zipper.accept(i, value1, isNothing1, otherStorage.getItemAsLong(i), false);
+          }
+          context.safepoint();
+        }
+
+        for (long i = minSize; i < toCount; i++) {
+          var isNothing2 = otherStorage.isNothing(i);
+          if (isNothing2) {
+            zipper.accept(i, 0, true, 0, true);
+          } else {
+            zipper.accept(i, 0, true, otherStorage.getItemAsLong(i), false);
+          }
+          context.safepoint();
+        }
+      }
+    }
   }
 }

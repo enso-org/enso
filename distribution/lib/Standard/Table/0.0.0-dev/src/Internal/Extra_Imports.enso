@@ -22,19 +22,8 @@ polyglot java import org.enso.table.aggregations.ShortestOrLongest
 polyglot java import org.enso.table.aggregations.StandardDeviation
 polyglot java import org.enso.table.aggregations.Sum
 
-polyglot java import org.enso.table.data.column.operation.CountNothing as CountNothingOp
-polyglot java import org.enso.table.data.column.operation.UnaryOperation
 polyglot java import org.enso.table.data.column.operation.cast.CastProblemAggregator
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailure
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailureType
 polyglot java import org.enso.table.data.column.operation.map.MapOperationProblemAggregator
-polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
-polyglot java import org.enso.table.data.column.operation.unary.IsEmptyOperation
-polyglot java import org.enso.table.data.column.operation.unary.IsInfiniteOperation
-polyglot java import org.enso.table.data.column.operation.unary.IsNaNOperation
-polyglot java import org.enso.table.data.column.operation.unary.IsNothingOperation
-polyglot java import org.enso.table.data.column.operation.unary.NotOperation
-polyglot java import org.enso.table.data.column.operation.unary.TextLengthOperation
-polyglot java import org.enso.table.data.column.operation.unary.TruncatedTimePartOperation
-polyglot java import org.enso.table.data.column.operation.unary.UnaryRoundOperation
 polyglot java import org.enso.table.util.NamingProperties

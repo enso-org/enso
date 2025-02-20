@@ -32,6 +32,7 @@ import org.enso.interpreter.instrument.Endpoint;
 import org.enso.interpreter.instrument.ExpressionExecutionState;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.RuntimeCache;
+import org.enso.interpreter.instrument.TypeInfo;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
 import org.enso.interpreter.instrument.VisualizationHolder;
 import org.enso.interpreter.instrument.profiling.ProfilingInfo;
@@ -662,8 +663,8 @@ public final class ExecutionService {
   public static final class ExpressionValue {
     private final UUID expressionId;
     private final Object value;
-    private final String[] types;
-    private final String[] cachedTypes;
+    private final TypeInfo typeInfo;
+    private final TypeInfo cachedTypeInfo;
     private final FunctionCallInfo callInfo;
     private final FunctionCallInfo cachedCallInfo;
     private final ProfilingInfo[] profilingInfo;
@@ -674,8 +675,8 @@ public final class ExecutionService {
      *
      * @param expressionId the id of the expression being computed.
      * @param value the value returned by computing the expression.
-     * @param types the type of the returned value.
-     * @param cachedTypes the cached type of the value.
+     * @param typeInfo the type info of the returned value.
+     * @param cachedTypeInfo the cached type info of the value.
      * @param callInfo the function call data.
      * @param cachedCallInfo the cached call data.
      * @param profilingInfo the profiling information associated with this node
@@ -684,16 +685,16 @@ public final class ExecutionService {
     public ExpressionValue(
         UUID expressionId,
         Object value,
-        String[] types,
-        String[] cachedTypes,
+        TypeInfo typeInfo,
+        TypeInfo cachedTypeInfo,
         FunctionCallInfo callInfo,
         FunctionCallInfo cachedCallInfo,
         ProfilingInfo[] profilingInfo,
         boolean wasCached) {
       this.expressionId = expressionId;
       this.value = value;
-      this.types = types;
-      this.cachedTypes = cachedTypes;
+      this.typeInfo = typeInfo;
+      this.cachedTypeInfo = cachedTypeInfo;
       this.callInfo = callInfo;
       this.cachedCallInfo = cachedCallInfo;
       this.profilingInfo = profilingInfo;
@@ -708,11 +709,11 @@ public final class ExecutionService {
           + expressionId
           + ", value="
           + (value == null ? "null" : new MaskedString(value.toString()).applyMasking())
-          + ", types='"
-          + Arrays.toString(types)
+          + ", typeInfo='"
+          + typeInfo
           + '\''
-          + ", cachedTypes='"
-          + Arrays.toString(cachedTypes)
+          + ", cachedTypeInfo='"
+          + cachedTypeInfo
           + '\''
           + ", callInfo="
           + callInfo
@@ -735,15 +736,15 @@ public final class ExecutionService {
     /**
      * @return the type of the returned value.
      */
-    public String[] getTypes() {
-      return types;
+    public TypeInfo getType() {
+      return typeInfo;
     }
 
     /**
      * @return the cached type of the value.
      */
-    public String[] getCachedTypes() {
-      return cachedTypes;
+    public TypeInfo getCachedType() {
+      return cachedTypeInfo;
     }
 
     /**
@@ -785,7 +786,22 @@ public final class ExecutionService {
      * @return {@code true} when the type differs from the cached value.
      */
     public boolean isTypeChanged() {
-      return !Arrays.equals(types, cachedTypes);
+      String[] visibleType = null;
+      String[] hiddenType = null;
+      if (typeInfo != null) {
+        visibleType = typeInfo.visibleType();
+        hiddenType = typeInfo.hiddenType();
+      }
+
+      String[] cachedVisibleType = null;
+      String[] cachedHiddenType = null;
+      if (cachedTypeInfo != null) {
+        cachedVisibleType = cachedTypeInfo.visibleType();
+        cachedHiddenType = cachedTypeInfo.hiddenType();
+      }
+
+      return !Arrays.equals(visibleType, cachedVisibleType)
+          || !Arrays.equals(hiddenType, cachedHiddenType);
     }
 
     /**

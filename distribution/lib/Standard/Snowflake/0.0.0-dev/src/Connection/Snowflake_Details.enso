@@ -2,15 +2,21 @@ from Standard.Base import all
 import Standard.Base.Data.Numbers.Number_Parse_Error
 import Standard.Base.Errors.Common.Missing_Argument
 import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Widget.Text_Input
+from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 
 import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.Connection.Credentials.Credentials
+import Standard.Database.Errors.SQL_Error
 import Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup
 
+import project.Connection.Key_Pair_Credentials.Key_Pair_Credentials
+import project.Connection.Widgets
 import project.Snowflake_Connection.Snowflake_Connection
 
+polyglot java import org.enso.base.enso_cloud.InterpretAsPrivateKey
 polyglot java import net.snowflake.client.jdbc.SnowflakeDriver
 
 type Snowflake_Details
@@ -23,8 +29,8 @@ type Snowflake_Details
        - schema: The name of the schema to connect to.
        - warehouse: The name of the warehouse to use.
     @account (Text_Input display=..Always)
-    @credentials Credentials.default_widget
-    Snowflake (account:Text=(Missing_Argument.throw "account")) (credentials:Credentials=(Missing_Argument.throw "credentials")) database:Text="SNOWFLAKE" schema:Text="PUBLIC" warehouse:Text=""
+    @credentials Widgets.password_or_keypair_widget
+    Snowflake (account:Text=(Missing_Argument.throw "account")) (credentials:Credentials|Key_Pair_Credentials=(Missing_Argument.throw "credentials")) database:Text="SNOWFLAKE" schema:Text="PUBLIC" warehouse:Text=""
 
     ## PRIVATE
        Attempt to resolve the constructor.
@@ -47,7 +53,8 @@ type Snowflake_Details
         make_new database schema warehouse =
             Snowflake_Details.Snowflake self.account self.credentials (database.if_nothing self.database) (schema.if_nothing self.schema) (warehouse.if_nothing self.warehouse) . connect options allow_data_links
 
-        Snowflake_Connection.create self.jdbc_url properties make_new data_link_setup
+        _enhance_connection_errors self <|
+            Snowflake_Connection.create self.jdbc_url properties make_new data_link_setup
 
     ## PRIVATE
        Provides the jdbc url for the connection.
@@ -64,7 +71,22 @@ type Snowflake_Details
         ## should be prepended to properties. That would make it fallback to plain `json`.
 
         account = [Pair.new 'account' self.account]
-        credentials = [Pair.new 'user' self.credentials.username, Pair.new 'password' self.credentials.password]
+        credentials = case self.credentials of
+            Credentials.Username_And_Password username password -> [Pair.new 'user' username, Pair.new 'password' password]
+            Key_Pair_Credentials.Key_Pair username private_key passphrase ->
+                key_part = case private_key of
+                    local_file : File ->
+                        passphrase_part = if passphrase != Nothing then [Pair.new 'private_key_file_pwd' passphrase] else []
+                        [Pair.new 'private_key_file' local_file.absolute.path] + passphrase_part
+                    _ : Enso_File ->
+                        Error.throw (Illegal_Argument.Error "Currently only local files can be used as private keys. In Cloud, consider using a Secret instead of a file.")
+                    secret : Enso_Secret ->
+                        if passphrase != Nothing then
+                            Error.throw (Illegal_Argument.Error "Passphrase is not applicable when using a secret as a private key.")
+                        secret_as_private_key = InterpretAsPrivateKey.new (as_hideable_value secret)
+                        [Pair.new 'privateKey' secret_as_private_key]
+                [Pair.new 'user' username] + key_part
+
         database = [Pair.new 'db' self.database]
         schema = [Pair.new 'schema' self.schema]
         warehouse = if self.warehouse=="" then [] else [Pair.new 'warehouse' self.warehouse]
@@ -83,3 +105,21 @@ private create_data_link_structure details:Snowflake_Details data_link_location:
         warehouse_part = if details.warehouse.not_empty then [["warehouse", details.warehouse]] else []
         credential_part = [["credentials", credentials_json]]
         header + connection_part + schema_part + warehouse_part + credential_part
+
+private _enhance_connection_errors (details:Snowflake_Details) ~action =
+    result = action
+    result.catch SQL_Error error->
+        is_using_key_pair_auth = details.credentials.is_a Key_Pair_Credentials
+        message = error.java_exception.getMessage
+        is_likely_missing_public_key = is_using_key_pair_auth && message.contains "JWT token is invalid"
+        if is_likely_missing_public_key then
+            Error.throw (Illegal_State.Error "Authentication failed. Make sure you have associated the public key with your account and used correct username. The original error was: "+message cause=error)
+
+        is_using_cloud = case details.credentials of
+            Key_Pair_Credentials.Key_Pair _ private_key _ -> private_key.is_a Enso_Secret
+            _ -> False
+        is_invalid_private_key_format = message.contains "Private key provided is invalid or not supported"
+        if is_using_cloud.not && is_invalid_private_key_format then
+            Error.throw (Illegal_State.Error "The provided private key file is not supported by the Snowflake driver. We recommend generating the key using `generate_key_pair` method and storing it as a Secret in Enso Cloud. The original error was: "+message cause=error)
+
+        result

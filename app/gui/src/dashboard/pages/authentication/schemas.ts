@@ -12,6 +12,7 @@ export function passwordSchema(getText: GetText) {
   return (
     z
       .string()
+      .trim()
       // eslint-disable-next-line @typescript-eslint/no-magic-numbers
       .min(6, { message: getText('passwordLengthError') })
       // eslint-disable-next-line @typescript-eslint/no-magic-numbers
