@@ -6,6 +6,7 @@ use crate::source_args_hlp;
 
 use clap::Args;
 use clap::Subcommand;
+use enso_build::engine::BenchmarkType;
 use enso_build::project;
 use enso_build::project::backend::Backend;
 
@@ -40,8 +41,9 @@ pub enum Command {
         /// the benchmarks can execute without issues.
         #[clap(long, enso_env())]
         minimal_run: bool,
-        #[clap(value_enum)]
-        which:       Vec<enso_build::engine::Benchmarks>,
+        bench_type:  BenchmarkType,
+        #[clap(enso_env())]
+        bench_name:  Option<String>,
     },
     /// Run the tests.
     Test {

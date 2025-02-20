@@ -245,26 +245,21 @@ class DistributionManager(val env: Environment) {
     */
   private val BUNDLE_MARK_FILENAME = ".enso.bundle"
 
-  /** Root directory of a bundle.
-    *
-    * If the bundle is present, it will be located next to the `bin/` directory
-    * that contains the executable that we are currently running.
-    */
-  private def possibleBundleRoot =
-    env.getPathToRunningExecutable.getParent.getParent
-
-  /** Checks if [[possibleBundleRoot]] contains the bundle mark file and returns
-    * directories for the bundle if it was found.
-    */
-  private def detectBundle(): Option[Bundle] =
-    if (Files.exists(possibleBundleRoot / BUNDLE_MARK_FILENAME))
-      Some(
-        Bundle(
-          engines  = possibleBundleRoot / ENGINES_DIRECTORY,
-          runtimes = possibleBundleRoot / RUNTIMES_DIRECTORY
+  private def detectBundle(): Option[Bundle] = {
+    var curPath = env.getPathToRunningExecutable
+    while (curPath != null) {
+      if (Files.exists(curPath / BUNDLE_MARK_FILENAME)) {
+        return Some(
+          Bundle(
+            engines  = curPath / ENGINES_DIRECTORY,
+            runtimes = curPath / RUNTIMES_DIRECTORY
+          )
         )
-      )
-    else None
+      }
+      curPath = curPath.getParent
+    }
+    None
+  }
 
   /** Removes unused lockfiles. */
   def tryCleaningUnusedLockfiles(): Unit = {

@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.concurrent.TimeUnit;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.Environment;
+import org.enso.distribution.PortableDistributionManager;
 import org.enso.runtimeversionmanager.components.GraalRuntime;
 import org.enso.runtimeversionmanager.components.GraalVMVersion;
 import org.enso.runtimeversionmanager.components.GraalVersionManager;
@@ -68,7 +69,10 @@ final class JavaFinder {
    */
   private static Path findJavaExecutableInDistributionRuntimes() {
     var env = new Environment() {};
-    var distributionManager = new DistributionManager(env);
+    var distributionManager = new PortableDistributionManager(env);
+    if (distributionManager.isRunningPortable()) {
+      logger.trace("Running in portable distribution");
+    }
     var graalVersionManager = new GraalVersionManager(distributionManager, env);
     var versionUsedForBuild =
         new GraalVMVersion(BuildVersion.graalVersion(), BuildVersion.javaVersion());
@@ -89,6 +93,11 @@ final class JavaFinder {
           versionUsedForBuild);
       return newerRuntime.get().javaExecutable();
     }
+    logger.trace(
+        "No appropriate runtime found in the distribution. "
+            + "graalVersionManager.getAllRuntimes() = {}, Paths of distributionManager = {}",
+        graalVersionManager.getAllRuntimes(),
+        distributionManager.paths());
     return null;
   }
 

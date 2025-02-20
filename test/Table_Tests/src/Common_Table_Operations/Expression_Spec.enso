@@ -7,6 +7,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Table import Table, Column, Sort_Column, Aggregate_Column, Value_Type, expr
 from Standard.Table.Errors import all
 import Standard.Table.Expression.Expression_Error
+import Standard.Base.Data.Text.Regex.Regex_Syntax_Error
 
 from Standard.Database.Errors import SQL_Error, Unsupported_Database_Type
 import Standard.Database.Feature.Feature
@@ -434,6 +435,11 @@ add_expression_specs suite_builder detailed setup =
         specify_test "should be able to perform comparisons to get boolean results" group_builder expression_test->
             expression_test "text_replace([C], 'o', '', ..Sensitive, 3<5)" ["Hell", "Wrld", "Hell World!", "", Nothing]
 
+        if setup.is_database.not then specify_test "should be able to use regex" group_builder expression_test->
+            expression_test "text_replace([C], regex('l{2}'), '')" ["Heo", "World", "Heo World!", "", Nothing]
+            expression_test "text_replace([C], regex('L{2}'), '')" ["Hello", "World", "Hello World!", "", Nothing]
+            expression_test "text_replace([C], r/l{2}/, '')" ["Heo", "World", "Heo World!", "", Nothing]
+            
     suite_builder.group prefix+"Expression Errors should be handled" group_builder->
         expect_error ctor expr =
             expr.should_fail_with Expression_Error
@@ -452,6 +458,16 @@ add_expression_specs suite_builder detailed setup =
 
         group_builder.specify "should fail with Argument_Mismatch if too many arguments" <|
             expect_error Expression_Error.Argument_Mismatch <| test_table.get.evaluate_expression "is_empty([C], 'Hello')"
+            
+        if setup.is_database.not then group_builder.specify "should fail with bad regex" <|
+            ## Unclosed regex literal
+            expect_error Expression_Error.Syntax_Error <| test_table.get.evaluate_expression "text_replace([C], r/l{2}, '')"
+            ## Bad regex
+            r = test_table.get.evaluate_expression "text_replace([C], regex('l{2'), '')"
+            r.catch.should_be_a Regex_Syntax_Error.Error
+            ## Bad regex in a literal
+            r2 = test_table.get.evaluate_expression "text_replace([C], r/l{2/, '')"
+            r2.catch.should_be_a Regex_Syntax_Error.Error
 
     suite_builder.group prefix+"Expression Warnings should be reported" group_builder->
         group_builder.specify "should report floating point equality" <|
