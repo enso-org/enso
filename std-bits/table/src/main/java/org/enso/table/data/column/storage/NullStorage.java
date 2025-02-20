@@ -61,7 +61,6 @@ public class NullStorage extends Storage<Void> {
     ops.add(new NullAndOp());
     ops.add(new NullOrOp());
 
-    ops.add(new NullOp(Maps.LIKE));
     ops.add(new NullOp(Maps.TEXT_LEFT));
     ops.add(new NullOp(Maps.TEXT_RIGHT));
 

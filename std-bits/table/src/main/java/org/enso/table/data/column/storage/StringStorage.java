@@ -10,7 +10,6 @@ import org.enso.table.data.column.operation.CountUntrimmed;
 import org.enso.table.data.column.operation.SampleOperation;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.text.CoalescingStringStringOp;
-import org.enso.table.data.column.operation.map.text.LikeOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
 import org.enso.table.data.column.operation.map.text.StringLongToStringOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
@@ -124,7 +123,6 @@ public final class StringStorage extends SpecializedStorage<String> {
             return Text_Utils.take_suffix(a, b);
           }
         });
-    t.add(new LikeOp());
     t.add(new StringIsInOp<>());
     t.add(
         new StringStringOp(Maps.ADD) {

@@ -1390,10 +1390,10 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.like "F%."
-    like self (pattern : Column | Text | Any) -> Column =
-        Value_Type.expect_text self <|
-            Value_Type.expect_text pattern <|
-                run_vectorized_binary_op self Java_Storage.Maps.LIKE pattern expected_result_type=Value_Type.Boolean
+    like self (pattern : Column | Text | Any) -> Column = Value_Type.expect_text self <| Value_Type.expect_text pattern <|
+        new_name = naming_helper.function_name "like" [self, pattern]
+        fallback x y = Error.throw (Illegal_Argument.throw "LIKE operation is not supported for the given types.")
+        _apply_case_sensitive_text_operation self pattern ..Default TextPredicates.LIKE fallback new_name
 
     ## GROUP Standard.Base.Text
        ICON text

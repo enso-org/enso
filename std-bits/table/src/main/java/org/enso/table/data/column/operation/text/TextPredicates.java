@@ -1,6 +1,12 @@
 package org.enso.table.data.column.operation.text;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.BiPredicate;
+import java.util.regex.Pattern;
+
+import com.ibm.icu.impl.UnicodeRegex;
+import org.enso.base.Regex_Utils;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.operation.comparators.Comparators;
 import org.enso.table.data.column.operation.comparators.GenericComparators;
@@ -15,6 +21,7 @@ public final class TextPredicates extends GenericComparators<String> {
   public static final TextPredicates STARTS_WITH = new TextPredicates(Text_Utils::starts_with);
   public static final TextPredicates ENDS_WITH = new TextPredicates(Text_Utils::ends_with);
   public static final TextPredicates CONTAINS = new TextPredicates(Text_Utils::contains);
+  public static final TextPredicates LIKE = new TextPredicates(TextPredicates::LikePredicate);
 
   private TextPredicates(BiPredicate<String, String> predicate) {
     super(predicate, true);
@@ -55,5 +62,24 @@ public final class TextPredicates extends GenericComparators<String> {
   @Override
   public boolean canApply(ColumnStorage<?> left, ColumnStorage<?> right) {
     return canApplyMap(left, null) && canApplyMap(right, null);
+  }
+
+  private static final Map<String, Pattern> regexCache = new HashMap<>();
+
+  private static Pattern createRegexPatternFromSql(String sqlPattern) {
+    String regex = Regex_Utils.sql_like_pattern_to_regex(sqlPattern);
+    String unicodeTransformed = UnicodeRegex.fix(regex);
+    /*
+     * There is <a href="https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8032926">a bug with Java
+     * Regex in Unicode normalized mode (CANON_EQ) with quoting</a>. Once that bug is fixed, we should
+     * add all relevant Unicode flags here too, consistently with the Default Enso regex engine.
+     */
+    return Pattern.compile(unicodeTransformed, Pattern.DOTALL);
+  }
+
+  private static boolean LikePredicate(String left, String right) {
+    return regexCache.computeIfAbsent(right, TextPredicates::createRegexPatternFromSql)
+        .matcher(left)
+        .matches();
   }
 }

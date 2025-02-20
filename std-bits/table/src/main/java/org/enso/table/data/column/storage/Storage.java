@@ -81,7 +81,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     public static final String OR = "||";
     public static final String TEXT_LEFT = "text_left";
     public static final String TEXT_RIGHT = "text_right";
-    public static final String LIKE = "like";
     public static final String IS_IN = "is_in";
     public static final String MIN = "min";
     public static final String MAX = "max";
