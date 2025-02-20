@@ -1152,25 +1152,28 @@ add_specs suite_builder =
                 r3.at "Value" . at 0 . should_be_a Table
                 r3.at "Value" . at 1 . should_be_a Excel_Workbook
 
-        group_builder.specify "should clear cache on simulated reload" pending="https://github.com/enso-org/enso/issues/12166" <|
+        group_builder.specify "should clear cache on simulated reload" <|
             ExcelConnectionPool.INSTANCE.simulateReloadTestOnly
-            check_workbook <| xlsx_sheet.read
+            w0 = xlsx_sheet.read
             ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
-            check_workbook <| xlsx_sheet.read
+            w1 = xlsx_sheet.read
             ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
-            check_workbook <| xls_sheet.read
+            w2 = xls_sheet.read
             ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
-            check_workbook <| xls_sheet.read
+            w3 = xls_sheet.read
             ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
+            [w0, w1, w2, w3].each check_workbook
+
             ExcelConnectionPool.INSTANCE.simulateReloadTestOnly
-            check_workbook <| xlsx_sheet.read
+            w4 = xlsx_sheet.read
             ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
-            check_workbook <| xlsx_sheet.read
+            w5 = xlsx_sheet.read
             ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 1
-            check_workbook <| xls_sheet.read
+            w6 = xls_sheet.read
             ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
-            check_workbook <| xls_sheet.read
+            w7 = xls_sheet.read
             ExcelConnectionPool.INSTANCE.getConnectionRecordCount . should_equal 2
+            [w4, w5, w6, w7].each check_workbook
 
     suite_builder.group "Problems" group_builder->
         group_builder.specify "should report a user-friendly error message when format is missing a required argument" <|

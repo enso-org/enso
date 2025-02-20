@@ -2,6 +2,7 @@ package org.enso.table.data.column.storage;
 
 import java.util.BitSet;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.function.IntFunction;
 import org.enso.base.CompareException;
 import org.enso.base.polyglot.Polyglot_Utils;
@@ -321,6 +322,62 @@ public final class BoolStorage extends Storage<Boolean>
       }
     }
     return builder.seal();
+  }
+
+  @Override
+  public ColumnBooleanStorageIterator iterator() {
+    return new BoolStorageIterator(this);
+  }
+
+  private static class BoolStorageIterator implements ColumnBooleanStorageIterator {
+    private final BoolStorage parent;
+    private int index = -1;
+
+    public BoolStorageIterator(BoolStorage parent) {
+      this.parent = parent;
+    }
+
+    @Override
+    public Boolean getItemBoxed() {
+      return parent.getItemBoxed(index);
+    }
+
+    @Override
+    public boolean getItemAsBoolean() {
+      return !parent.isNothing(index) && parent.getItemAsBoolean(index);
+    }
+
+    @Override
+    public boolean isNothing() {
+      return parent.isNothing(index);
+    }
+
+    @Override
+    public boolean hasNext() {
+      return index + 1 < parent.getSize();
+    }
+
+    @Override
+    public Boolean next() {
+      if (!hasNext()) {
+        throw new NoSuchElementException();
+      }
+      return parent.getItemBoxed(++index);
+    }
+
+    @Override
+    public long getIndex() {
+      return index;
+    }
+
+    @Override
+    public boolean moveNext() {
+      if (!hasNext()) {
+        return false;
+      }
+      index++;
+      return true;
+    }
   }
 
   private static class BoolEq extends BinaryMapOperation<Boolean, BoolStorage> {

@@ -17,6 +17,8 @@ use ide_ci::actions::workflow::definition::run;
 use ide_ci::actions::workflow::definition::setup_artifact_api;
 use ide_ci::actions::workflow::definition::setup_bazel;
 use ide_ci::actions::workflow::definition::setup_bazel_env;
+use ide_ci::actions::workflow::definition::setup_corepack;
+use ide_ci::actions::workflow::definition::setup_node;
 use ide_ci::actions::workflow::definition::shell;
 use ide_ci::actions::workflow::definition::wrap_expression;
 use ide_ci::actions::workflow::definition::Branches;
@@ -226,7 +228,7 @@ impl Display for CleaningCondition {
             Self::Always => write!(f, "always()"),
             Self::OnRequest => write!(
                 f,
-                "contains(github.event.pull_request.labels.*.name, '{}') || inputs.{}",
+                "contains(github.event.pull_request.labels.*.name, '{}') || (github.ref == 'refs/heads/develop') || inputs.{}",
                 crate::ci::labels::CLEAN_BUILD_REQUIRED,
                 crate::ci::inputs::CLEAN_BUILD_REQUIRED
             ),
@@ -373,8 +375,14 @@ pub fn runs_on(os: OS, runner_type: RunnerType) -> Vec<RunnerLabel> {
 
 /// Initial CI job steps: check out the source code and set up the environment.
 pub fn setup_script_steps() -> Vec<Step> {
-    let mut ret =
-        vec![setup_bazel_env(), setup_bazel(), setup_artifact_api(), checkout_repo_step()];
+    let mut ret = vec![
+        setup_bazel_env(),
+        setup_bazel(),
+        setup_artifact_api(),
+        checkout_repo_step(),
+        setup_node(),
+        setup_corepack(),
+    ];
     // We run `./run --help` so:
     // * The build-script is build in a separate step. This allows us to monitor its build-time and
     //   not affect timing of the actual build.
@@ -776,6 +784,7 @@ pub fn engine_checks() -> Result<Workflow> {
         ..default()
     };
     workflow.add(PRIMARY_TARGET, job::VerifyLicensePackages);
+    workflow.add(PRIMARY_TARGET, job::StandardLibraryApiCheck);
     for target in PR_REQUIRED_TARGETS {
         add_backend_checks(&mut workflow, target, graalvm::Edition::Community);
     }
@@ -872,9 +881,16 @@ fn benchmark_workflow(
         r#type: WorkflowDispatchInputType::Boolean { default: Some(false) },
         ..WorkflowDispatchInput::new("If set, benchmarks will be only checked to run correctly, not to measure actual performance.", true)
     };
+    let bench_name_input_name = "bench-name";
+    let bench_name_input = WorkflowDispatchInput {
+        r#type: WorkflowDispatchInputType::String { default: None },
+        ..WorkflowDispatchInput::new("Name (regex) of the benchmark to run.", false)
+    };
     let on = Event {
         workflow_dispatch: Some(
-            WorkflowDispatch::default().with_input(just_check_input_name, just_check_input),
+            WorkflowDispatch::default()
+                .with_input(just_check_input_name, just_check_input)
+                .with_input(bench_name_input_name, bench_name_input),
         ),
         schedule: vec![Schedule::new("0 0 * * *")?],
         ..default()
@@ -886,6 +902,8 @@ fn benchmark_workflow(
         "ENSO_BUILD_MINIMAL_RUN",
         wrap_expression(format!("true == inputs.{just_check_input_name}")),
     );
+    workflow
+        .env("ENSO_BUILD_BENCH_NAME", wrap_expression(format!("inputs.{bench_name_input_name}")));
 
     let graal_edition = graalvm::Edition::Community;
     let job_name = format!("{name} ({graal_edition})");

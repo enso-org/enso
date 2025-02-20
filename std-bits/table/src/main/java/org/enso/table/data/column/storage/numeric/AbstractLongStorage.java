@@ -20,10 +20,7 @@ import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterOrEqu
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparison;
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
 import org.enso.table.data.column.operation.map.numeric.isin.LongIsInOp;
-import org.enso.table.data.column.storage.BoolStorage;
-import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.ValueIsNothingException;
+import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.mask.OrderMask;
@@ -273,7 +270,7 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
     int size = (int) parent.getSize();
     return new ComputedNullableLongStorage(size + count) {
       @Override
-      protected Long computeItem(int idx) {
+      protected Long computeItem(long idx) {
         if (idx < size) {
           return parent.getItemBoxed(idx);
         } else {
@@ -281,5 +278,24 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
         }
       }
     };
+  }
+
+  @Override
+  public ColumnLongStorageIterator iterator() {
+    return new BaseLongStorageIterator(this);
+  }
+
+  /** Basic iterator for long storages. */
+  public static class BaseLongStorageIterator extends StorageIterator<Long>
+      implements ColumnLongStorageIterator {
+    public BaseLongStorageIterator(ColumnLongStorage parent) {
+      super(parent);
+    }
+
+    @Override
+    public long getItemAsLong() {
+      Long l = getItemBoxed();
+      return l == null ? 0 : l;
+    }
   }
 }

@@ -66,6 +66,11 @@ public class TestIRProcessorInline {
         public final class JName extends JNameGen {
           @GenerateFields
           public JName() {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """);
     var compiler = Compiler.javac().withProcessors(new IRProcessor());
@@ -118,6 +123,11 @@ public class TestIRProcessorInline {
         public final class JName {
           @GenerateFields
           public JName() {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var compilation = compile("JName", src);
@@ -139,6 +149,11 @@ public class TestIRProcessorInline {
         public final class MyIR extends MyIRGen {
           @GenerateFields
           public MyIR() {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
   """;
     var generatedClass = generatedClass("MyIR", src);
@@ -159,6 +174,12 @@ public class TestIRProcessorInline {
     public final class MyIR extends MyIRGen {
       @GenerateFields
       public MyIR() {}
+
+      @Override
+      public String showCode(int indent) {
+        return "";
+      }
+
     }
 """;
     var generatedClass = generatedClass("MyIR", src);
@@ -180,6 +201,11 @@ public class TestIRProcessorInline {
           public JName(@IRField String name) {
             super(name);
           }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var genClass = generatedClass("JName", src);
@@ -198,6 +224,11 @@ public class TestIRProcessorInline {
         public final class JName extends JNameGen {
           @GenerateFields
           public JName() {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var genClass = generatedClass("JName", src);
@@ -223,6 +254,11 @@ public class TestIRProcessorInline {
           public JName() {
             super();
           }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var compilation = compile("JName", src);
@@ -242,6 +278,11 @@ public class TestIRProcessorInline {
           @GenerateFields
           public JName(@IRField boolean suspended, @IRField String name) {
             super(suspended, name);
+          }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
           }
         }
         """;
@@ -263,6 +304,11 @@ public class TestIRProcessorInline {
           @GenerateFields
           public JName(DiagnosticStorage diag, IdentifiedLocation loc) {
             super(diag, loc);
+          }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
           }
         }
         """;
@@ -286,6 +332,11 @@ public class TestIRProcessorInline {
           public JName(DiagnosticStorage diag, IdentifiedLocation loc, @IRField boolean suspended) {
             super(diag, loc, suspended);
           }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var compilation = compile("JName", src);
@@ -303,6 +354,11 @@ public class TestIRProcessorInline {
         public final class JName extends JNameGen {
           @GenerateFields
           public JName() {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var genClass = generatedClass("JName", src);
@@ -320,6 +376,11 @@ public class TestIRProcessorInline {
         public final class JName extends MySuperGeneratedClass {
           @GenerateFields
           public JName() {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var genClass = generatedClass("JName", src);
@@ -341,6 +402,11 @@ public class TestIRProcessorInline {
         public final class JName extends JNameGen {
           @GenerateFields
           public JName() {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var genClass = generatedClass("JName", src);
@@ -359,6 +425,11 @@ public class TestIRProcessorInline {
         public final class JName extends JNameGen {
           @GenerateFields
           public JName() {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var genClass = generatedClass("JName", src);
@@ -376,6 +447,11 @@ public class TestIRProcessorInline {
         public final class JName extends JNameGen {
           @GenerateFields
           public JName() {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var genClass = generatedClass("JName", src);
@@ -393,6 +469,11 @@ public class TestIRProcessorInline {
         public final class JName extends JNameGen {
           @GenerateFields
           public JName() {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var genClass = generatedClass("JName", src);
@@ -410,6 +491,11 @@ public class TestIRProcessorInline {
         public final class JName extends JNameGen {
           @GenerateFields
           public JName(int param) {}
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """;
     var compilation = compile("JName", src);
@@ -430,6 +516,11 @@ public class TestIRProcessorInline {
           @GenerateFields
           public JName(MetadataStorage passData) {
             super(passData);
+          }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
           }
         }
         """;
@@ -454,6 +545,11 @@ public class TestIRProcessorInline {
           public MyIR(@IRChild Expression expression) {
             super(expression);
           }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """);
     assertThat(genSrc, containsString("Expression expression()"));
@@ -475,6 +571,11 @@ public class TestIRProcessorInline {
           @GenerateFields
           public MyIR(@IRField boolean suspended) {
             super(suspended);
+          }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
           }
         }
         """);
@@ -502,6 +603,11 @@ public class TestIRProcessorInline {
           public MyIR(@IRField boolean suspended) {
             super(suspended);
           }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """);
     assertThat(src, containsString("boolean suspended()"));
@@ -527,6 +633,11 @@ public class TestIRProcessorInline {
           @GenerateFields
           public MyIR(@IRField boolean suspended) {
             super(suspended);
+          }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
           }
         }
 
@@ -558,6 +669,11 @@ public class TestIRProcessorInline {
           public MyIR(@IRField boolean suspended) {
             super(suspended);
           }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """);
     assertThat(src, containsString("boolean suspended()"));
@@ -582,6 +698,11 @@ public class TestIRProcessorInline {
             @GenerateFields
             public JBlank(@IRField String name) {
               super(name);
+            }
+
+            @Override
+              public String showCode(int indent) {
+              return "";
             }
           }
         }
@@ -608,6 +729,11 @@ public class TestIRProcessorInline {
           public JName(@IRChild List<IR> expressions) {
             super(expressions);
           }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
         }
         """);
     assertThat(src, containsString("class JNameGen"));
@@ -631,6 +757,11 @@ public class TestIRProcessorInline {
           @GenerateFields
           public JName(@IRChild Option<IR> expression) {
             super(expression);
+          }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
           }
         }
         """);

@@ -324,7 +324,7 @@ class DataflowAnalysisTest extends CompilerTest {
       printlnExpr.arguments.head.asInstanceOf[CallArgument.Specified]
     val printlnArgIOExpr = printlnArgIO.value.asInstanceOf[errors.Resolution]
     val printlnArgB =
-      printlnExpr.arguments(1).asInstanceOf[CallArgument.Specified]
+      printlnExpr.arguments.apply(1).asInstanceOf[CallArgument.Specified]
     val printlnArgBExpr = printlnArgB.value.asInstanceOf[Name.Literal]
 
     // The `c =` expression
@@ -336,7 +336,7 @@ class DataflowAnalysisTest extends CompilerTest {
       plusExpr.arguments.head.asInstanceOf[CallArgument.Specified]
     val plusExprArgAExpr = plusExprArgA.value.asInstanceOf[Name.Literal]
     val plusExprArgB =
-      plusExpr.arguments(1).asInstanceOf[CallArgument.Specified]
+      plusExpr.arguments.apply(1).asInstanceOf[CallArgument.Specified]
     val plusExprArgBExpr = plusExprArgB.value.asInstanceOf[Name.Literal]
 
     // The `frobnicate` return expression
@@ -346,7 +346,7 @@ class DataflowAnalysisTest extends CompilerTest {
       frobExpr.arguments.head.asInstanceOf[CallArgument.Specified]
     val frobArgAExpr = frobArgA.value.asInstanceOf[Name.Literal]
     val frobArgC =
-      frobExpr.arguments(1).asInstanceOf[CallArgument.Specified]
+      frobExpr.arguments.apply(1).asInstanceOf[CallArgument.Specified]
     val frobArgCExpr = frobArgC.value.asInstanceOf[Name.Literal]
 
     // The global symbols
@@ -956,7 +956,7 @@ class DataflowAnalysisTest extends CompilerTest {
         fnBody.arguments.head.asInstanceOf[CallArgument.Specified]
       val plusArgXExpr = plusArgX.value.asInstanceOf[Name.Literal]
       val plusArgY =
-        fnBody.arguments(1).asInstanceOf[CallArgument.Specified]
+        fnBody.arguments.apply(1).asInstanceOf[CallArgument.Specified]
       val plusArgYExpr = plusArgY.value.asInstanceOf[Name.Literal]
 
       // Identifiers
@@ -1016,7 +1016,7 @@ class DataflowAnalysisTest extends CompilerTest {
       val appArg10Expr = appArg10.value.asInstanceOf[Literal.Number]
       val appArg10Name = appArg10.name.get.asInstanceOf[Name.Literal]
       val appArgFn =
-        app.arguments(1).asInstanceOf[CallArgument.Specified]
+        app.arguments.apply(1).asInstanceOf[CallArgument.Specified]
       val lam = appArgFn.value.asInstanceOf[Function.Lambda]
       val lamArgX =
         lam.arguments.head.asInstanceOf[DefinitionArgument.Specified]
@@ -1025,7 +1025,7 @@ class DataflowAnalysisTest extends CompilerTest {
       val mulArg1 =
         mul.arguments.head.asInstanceOf[CallArgument.Specified]
       val mulArg1Expr = mulArg1.value.asInstanceOf[Name.Literal]
-      val mulArg2     = mul.arguments(1).asInstanceOf[CallArgument.Specified]
+      val mulArg2     = mul.arguments.apply(1).asInstanceOf[CallArgument.Specified]
       val mulArg2Expr = mulArg2.value.asInstanceOf[Name.Literal]
 
       // Identifiers
@@ -1210,8 +1210,8 @@ class DataflowAnalysisTest extends CompilerTest {
         bindingExpr.arguments.head.asInstanceOf[CallArgument.Specified]
       val numArgExpr = numArg.value.asInstanceOf[Literal.Number]
       val undefinedArg =
-        bindingExpr
-          .arguments(1)
+        bindingExpr.arguments
+          .apply(1)
           .asInstanceOf[CallArgument.Specified]
       val undefinedExpr = undefinedArg.value.asInstanceOf[errors.Resolution]
       val undefinedName = undefinedExpr.originalName
@@ -1277,9 +1277,9 @@ class DataflowAnalysisTest extends CompilerTest {
       val vector = ir.body
         .asInstanceOf[Application.Sequence]
 
-      val xUseId = mkStaticDep(vector.items(0).getId())
-      val yId    = mkStaticDep(vector.items(1).getId())
-      val litId  = mkStaticDep(vector.items(2).getId())
+      val xUseId = mkStaticDep(vector.items.apply(0).getId())
+      val yId    = mkStaticDep(vector.items.apply(1).getId())
+      val litId  = mkStaticDep(vector.items.apply(2).getId())
       val vecId  = mkStaticDep(vector.getId())
       val appId  = mkStaticDep(ir.body.getId())
       val lamId  = mkStaticDep(ir.getId())
@@ -1360,8 +1360,8 @@ class DataflowAnalysisTest extends CompilerTest {
       val aArg = consBranchExpression.arguments.head
         .asInstanceOf[CallArgument.Specified]
       val aUse = aArg.value.asInstanceOf[Name.Literal]
-      val bArg = consBranchExpression
-        .arguments(1)
+      val bArg = consBranchExpression.arguments
+        .apply(1)
         .asInstanceOf[CallArgument.Specified]
       val bUse = bArg.value.asInstanceOf[Name.Literal]
 
@@ -1560,7 +1560,8 @@ class DataflowAnalysisTest extends CompilerTest {
     val fooFunction = fooExpr.function.asInstanceOf[Name]
     val fooArg1     = fooExpr.arguments.head.asInstanceOf[CallArgument.Specified]
     val fooArg1Expr = fooArg1.value.asInstanceOf[Name]
-    val fooArg2     = fooExpr.arguments(1).asInstanceOf[CallArgument.Specified]
+    val fooArg2 =
+      fooExpr.arguments.apply(1).asInstanceOf[CallArgument.Specified]
     val fooArg2Expr = fooArg2.value.asInstanceOf[Literal.Number]
 
     // The global symbols

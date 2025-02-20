@@ -1,6 +1,7 @@
 package org.enso.interpreter.service;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -9,6 +10,7 @@ import org.enso.interpreter.instrument.ExpressionExecutionState;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.OneshotExpression;
 import org.enso.interpreter.instrument.RuntimeCache;
+import org.enso.interpreter.instrument.TypeInfo;
 import org.enso.interpreter.instrument.UpdatesSynchronizationState;
 import org.enso.interpreter.instrument.VisualizationHolder;
 import org.enso.interpreter.instrument.profiling.ExecutionTime;
@@ -98,16 +100,16 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   @Override
   public void updateCachedResult(IdExecutionService.Info info) {
     Object result = info.getResult();
-    String[] resultTypes = typeOf(result);
+    TypeInfo resultType = typeOf(result);
     UUID nodeId = info.getId();
-    String[] cachedTypes = cache.getType(nodeId);
+    TypeInfo cachedType = cache.getType(nodeId);
     FunctionCallInfo call = functionCallInfoById(nodeId);
     FunctionCallInfo cachedCall = cache.getCall(nodeId);
     ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(info.getElapsedTime())};
 
     ExpressionValue expressionValue =
         new ExpressionValue(
-            nodeId, result, resultTypes, cachedTypes, call, cachedCall, profilingInfo, false);
+            nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false);
     syncState.setExpressionUnsync(nodeId);
     syncState.setVisualizationUnsync(nodeId);
 
@@ -119,7 +121,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       cache.offer(nodeId, result);
       cache.putCall(nodeId, call);
     }
-    cache.putType(nodeId, resultTypes);
+    cache.putType(nodeId, resultType);
 
     callOnComputedCallback(expressionValue);
     executeOneshotExpressions(nodeId, result, info);
@@ -214,19 +216,32 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     return calls.get(nodeId);
   }
 
-  private String[] typeOf(Object value) {
+  private TypeInfo typeOf(Object value) {
     if (value instanceof UnresolvedSymbol) {
-      return new String[] {Constants.UNRESOLVED_SYMBOL};
+      return TypeInfo.ofType(Constants.UNRESOLVED_SYMBOL);
     }
 
-    var typeOfNode = TypeOfNode.getUncached();
-    Type[] allTypes = value == null ? null : typeOfNode.findAllTypesOrNull(value, true);
-    if (allTypes != null) {
-      String[] result = new String[allTypes.length];
-      for (var i = 0; i < allTypes.length; i++) {
-        result[i] = getTypeQualifiedName(allTypes[i]);
+    if (value != null) {
+      final TypeOfNode typeOfNode = TypeOfNode.getUncached();
+      final Type[] publicTypes = typeOfNode.findAllTypesOrNull(value, false);
+
+      if (publicTypes != null) {
+        final Type[] allTypes = typeOfNode.findAllTypesOrNull(value, true);
+        assert Arrays.equals(publicTypes, Arrays.copyOfRange(allTypes, 0, publicTypes.length));
+        final Type[] hiddenTypes =
+            Arrays.copyOfRange(allTypes, publicTypes.length, allTypes.length);
+
+        final String[] publicTypeNames = new String[publicTypes.length];
+        for (var i = 0; i < publicTypes.length; i++) {
+          publicTypeNames[i] = getTypeQualifiedName(publicTypes[i]);
+        }
+        final String[] hiddenTypeNames = new String[hiddenTypes.length];
+        for (var i = 0; i < hiddenTypeNames.length; i++) {
+          hiddenTypeNames[i] = getTypeQualifiedName(hiddenTypes[i]);
+        }
+
+        return new TypeInfo(publicTypeNames, hiddenTypeNames);
       }
-      return result;
     }
 
     return null;

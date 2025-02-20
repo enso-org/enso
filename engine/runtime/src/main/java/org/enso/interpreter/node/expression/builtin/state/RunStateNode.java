@@ -33,47 +33,49 @@ public abstract class RunStateNode extends Node {
   private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
 
   abstract Object execute(
-      VirtualFrame frame, State state, Object key, Object local_state, @Suspend Object computation);
+      VirtualFrame frame, Object key, Object local_state, @Suspend Object computation);
+
+  final State state() {
+    return EnsoContext.get(this).currentState();
+  }
 
   @Specialization(guards = "objects.containsKey(data, key)")
   Object doExisting(
       VirtualFrame frame,
-      State state,
       Type key,
       Object local,
       Object computation,
-      @Bind("state.getContainer()") State.Container data,
+      @Bind("state().getContainer()") State.Container data,
       @Shared("dynamicObjectLib") @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
     var old = objects.getOrDefault(data, key, null);
     objects.put(data, key, local);
     try {
       return thunkExecutorNode.executeThunk(
-          frame, computation, state, BaseNode.TailStatus.NOT_TAIL);
+          frame, computation, state(), BaseNode.TailStatus.NOT_TAIL);
     } finally {
-      objects.put(state.getContainer(), key, old);
+      objects.put(data, key, old);
     }
   }
 
   @Specialization(guards = "!objects.containsKey(data, key)")
   Object doFresh(
       VirtualFrame frame,
-      State state,
       Type key,
       Object local,
       Object computation,
-      @Bind("state.getContainer()") State.Container data,
+      @Bind("state().getContainer()") State.Container data,
       @Shared("dynamicObjectLib") @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
     objects.put(data, key, local);
     try {
       return thunkExecutorNode.executeThunk(
-          frame, computation, state, BaseNode.TailStatus.NOT_TAIL);
+          frame, computation, state(), BaseNode.TailStatus.NOT_TAIL);
     } finally {
       objects.removeKey(data, key);
     }
   }
 
   @Fallback
-  Object doNonType(State state, Object key, Object local, Object computation) {
+  Object doNonType(Object key, Object local, Object computation) {
     var b = EnsoContext.get(this).getBuiltins();
     var payload = b.error().makeUnsupportedArgumentsError(new Object[] {key}, "Use type as a key.");
     throw new PanicException(payload, this);
