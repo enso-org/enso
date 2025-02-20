@@ -455,7 +455,7 @@ type Column
             [naming_helper.to_expression_text self, "between", naming_helper.to_expression_text lower, "and", naming_helper.to_expression_text upper]
         lower_check = (self >= lower)
         upper_check = (self <= upper)
-        result = (lower_check.is_nothing || upper_check.is_nothing) . iif Nothing (lower_check && upper_check)
+        result = lower_check && upper_check
         result.rename new_name
 
     ## ALIAS add, concatenate, plus

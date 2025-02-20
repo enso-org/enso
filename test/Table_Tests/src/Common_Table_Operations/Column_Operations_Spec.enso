@@ -833,10 +833,10 @@ add_column_operation_specs suite_builder setup =
                 ((t7.at "Y") > (t7.at "X")) . to_vector . should_fail_with Incomparable_Values
 
         group_builder.specify "Between should return null if any of the values are null" <|
-            a = [2, 3, Nothing, 7,       5,       Nothing]
-            b = [0, 5, 7,       Nothing, 7,       Nothing]
-            c = [9, 8, 7,       7,       Nothing, Nothing]
-            r = [True, False, Nothing, Nothing, Nothing, Nothing]
+            a = [2, 3, Nothing, 7,       5,       Nothing,      11]
+            b = [0, 5, 7,       Nothing, 7,       Nothing, Nothing]
+            c = [9, 8, 7,       7,       Nothing, Nothing,       9]
+            r = [True, False, Nothing, Nothing, False, Nothing, False]
 
             t = table_builder [["A", a], ["B", b], ["C", c]]
             ((t.at "A").between (t.at "B") (t.at "C")) . to_vector . should_equal r
