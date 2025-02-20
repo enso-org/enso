@@ -33,7 +33,8 @@ add_expression_specs suite_builder detailed setup =
     test_table = Lazy_Ref.Value <|
         column_b = ["B", [1.0, 1.5, 2.5, 4, 6]]
         column_c = ["C", ["Hello", "World", "Hello World!", "", Nothing]]
-        table_builder [column_a_description, column_b, column_c, column_odd_description]
+        column_d = ["D", ["A/B", "C//D", "E\F", "", Nothing]]
+        table_builder [column_a_description, column_b, column_c, column_d, column_odd_description]
 
     pending_datetime = if (setup.flagged ..Date_Time).not then "Date/Time operations are not supported by this backend."
 
@@ -439,6 +440,14 @@ add_expression_specs suite_builder detailed setup =
             expression_test "text_replace([C], regex('l{2}'), '')" ["Heo", "World", "Heo World!", "", Nothing]
             expression_test "text_replace([C], regex('L{2}'), '')" ["Hello", "World", "Hello World!", "", Nothing]
             expression_test "text_replace([C], r/l{2}/, '')" ["Heo", "World", "Heo World!", "", Nothing]
+
+        if setup.is_database.not then specify_test "can use forward slash in regex literal by escaping it" group_builder expression_test->
+            expression_test "text_replace([D], r/\//, '*')" ["A*B", "C**D", "E\F", "", Nothing]
+            expression_test "text_replace([D], regex('/'), '*')" ["A*B", "C**D", "E\F", "", Nothing]
+
+        if setup.is_database.not then specify_test "other regex escape characters work" group_builder expression_test->
+            expression_test "text_replace([D], r/\\{1}/, '*')" ["A/B", "C//D", "E*F", "", Nothing]
+            expression_test 'text_replace([D], regex("\\\\{1}"), "*")' ["A/B", "C//D", "E*F", "", Nothing]
             
     suite_builder.group prefix+"Expression Errors should be handled" group_builder->
         expect_error ctor expr =

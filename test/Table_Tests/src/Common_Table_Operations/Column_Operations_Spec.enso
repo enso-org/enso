@@ -1605,8 +1605,9 @@ add_column_operation_specs suite_builder setup =
             if supported_replace_params.contains (Replace_Params.Value Text Case_Sensitivity.Default False) then
                 col.text_replace 'hello' 'bye' . name . should_equal "replace([x], 'hello', 'bye')"
             if supported_replace_params.contains (Replace_Params.Value Regex Case_Sensitivity.Default False) then
-                col.text_replace 'a[bcd]'.to_regex 'hey' . name . should_equal "replace([x], regex('a[bcd]'), 'hey')"
-                col.text_replace (regex 'a[bcd]') 'hey' . name . should_equal "replace([x], regex('a[bcd]'), 'hey')"
+                col.text_replace 'a[bcd]'.to_regex 'hey' . name . should_equal "replace([x], r/a[bcd]/, 'hey')"
+                col.text_replace (regex 'a[bcd]') 'hey' . name . should_equal "replace([x], r/a[bcd]/, 'hey')"
+                col.text_replace (regex 'a[/bcd]') 'hey' . name . should_equal "replace([x], r/a[\/bcd]/, 'hey')"
             if supported_replace_params.contains (Replace_Params.Value DB_Column Case_Sensitivity.Default False) then
                 col.text_replace patterns replacements . name . should_equal "replace([x], [patterns], [replacements])"
 
@@ -1625,12 +1626,14 @@ add_column_operation_specs suite_builder setup =
 
             group_builder.specify "should allow regex based replacing" <|
                 r = data.a.text_replace "[aeiou]".to_regex "#" 
-                r . name . should_equal "replace([A], regex('[aeiou]'), '#')"
+                r . name . should_equal "replace([A], r/[aeiou]/, '#')"
                 r . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
                 r2 = data.a.text_replace (regex "[aeiou]") "#" 
-                r2 . name . should_equal "replace([A], regex('[aeiou]'), '#')"
+                r2 . name . should_equal "replace([A], r/[aeiou]/, '#')"
                 r2 . to_vector . should_equal ["Alph#", "Br#v#", "Ch#rl##", "D#lt#", "Ech#", "F#xtr#t"]
                 data.a.text_replace "([aeiou])(.*?)[aeiou]".to_regex "$1$2$1" . to_vector . should_equal ["Alpha", "Brava", "Charlae", "Delte", "Echo", "Foxtrot"]
+                r3 = data.a.text_replace (regex "[/aei\tou]") "#" 
+                r3 . name . should_equal "replace([A], r/[\/aei\tou]/, '#')"
 
             group_builder.specify "should handle unicode" <|
                 table = table_builder [["x", ["śćxx", "ąąasdfąą", "aﬃb"]], ["patterns", ["ć", "ąą", "ﬃ"]], ["replacements", ["abc", "def", "ghi"]]]
