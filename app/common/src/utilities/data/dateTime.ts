@@ -37,23 +37,23 @@ export const MONTH_NAMES = [
 ]
 
 export const DAY_3_LETTER_TEXT_IDS = [
-  'sunday3',
   'monday3',
   'tuesday3',
   'wednesday3',
   'thursday3',
   'friday3',
   'saturday3',
+  'sunday3',
 ] satisfies TextId[]
 
 export const DAY_TEXT_IDS = [
-  'sunday',
   'monday',
   'tuesday',
   'wednesday',
   'thursday',
   'friday',
   'saturday',
+  'sunday',
 ] satisfies TextId[]
 
 export const MONTH_3_LETTER_TEXT_IDS = [
