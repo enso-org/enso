@@ -125,7 +125,9 @@ public final class TypeInferencePropagation implements IRPass {
 
       @Override
       protected void encounteredDiscardedValue(IR relatedIr, TypeRepresentation type) {
-
+        relatedIr
+            .getDiagnostics()
+            .add(new Warning.DiscardedValue(relatedIr.identifiedLocation(), type.toString()));
       }
     };
   }

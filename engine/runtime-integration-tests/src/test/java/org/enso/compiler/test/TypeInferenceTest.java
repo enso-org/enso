@@ -1563,7 +1563,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     Optional<Diagnostic> diagnostic = allDiagnostics.stream().filter(diag -> diag instanceof Warning.DiscardedValue).findFirst();
     assertTrue("The DiscardedWarning should be found among " + allDiagnostics, diagnostic.isPresent());
     Warning.DiscardedValue discardedWarning = (Warning.DiscardedValue) diagnostic.get();
-    assertEquals(discardedWarning.discardedType(), "Any -> Any -> Vector");
+    assertEquals(discardedWarning.discardedType(), "Any -> (Any -> Any)");
   }
 
 
