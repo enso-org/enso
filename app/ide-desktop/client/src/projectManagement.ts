@@ -465,6 +465,7 @@ export function bumpMetadata(
   return { id, name, parentDirectory }
 }
 
+/** Download project templates GitHub repo into the Samples directory if one not exists. */
 export async function downloadSamples(): Promise<void> {
   logger.log('Downloading samples.')
 
