@@ -8,10 +8,10 @@ const TIME_ZONE = 'America/Los_Angeles'
 const TIME_ZONE_WINTER_OFFSET = -28800000
 const TIME_ZONE_SUMMER_OFFSET = -25200000
 
-const DAILY_EXECUTION: ProjectExecutionInfo = {
+const WEEKLY_EXECUTION: ProjectExecutionInfo = {
   projectId: ProjectId('project-aaaaaaaa'),
   repeat: {
-    type: 'daily',
+    type: 'Weekly',
     daysOfWeek: [0, 5],
   },
   startDate: toRfc3339(
@@ -25,7 +25,7 @@ const DAILY_EXECUTION: ProjectExecutionInfo = {
 
 v.test.each([
   {
-    info: DAILY_EXECUTION,
+    info: WEEKLY_EXECUTION,
     current: new ZonedDateTime(2000, 6, 4, TIME_ZONE, TIME_ZONE_SUMMER_OFFSET, 7, 3),
     next1: new ZonedDateTime(2000, 6, 9, TIME_ZONE, TIME_ZONE_SUMMER_OFFSET, 7, 3),
     next2: new ZonedDateTime(2000, 6, 11, TIME_ZONE, TIME_ZONE_SUMMER_OFFSET, 7, 3),
@@ -48,12 +48,12 @@ v.test.each([
 
 v.test.each([
   {
-    info: DAILY_EXECUTION,
+    info: WEEKLY_EXECUTION,
     current: new ZonedDateTime(1999, 1, 1, TIME_ZONE, TIME_ZONE_WINTER_OFFSET),
     next: new ZonedDateTime(2000, 1, 2, TIME_ZONE, TIME_ZONE_WINTER_OFFSET, 7, 3),
   },
   {
-    info: DAILY_EXECUTION,
+    info: WEEKLY_EXECUTION,
     current: new ZonedDateTime(2000, 11, 16, TIME_ZONE, TIME_ZONE_WINTER_OFFSET),
     next: new ZonedDateTime(2000, 11, 17, TIME_ZONE, TIME_ZONE_WINTER_OFFSET, 7, 3),
   },
