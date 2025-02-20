@@ -5,6 +5,7 @@
   "open": "Open",
   "forward": "Forward",
 
+  "arbitraryMutationError": "An error occurred while performing an action. Please try again.",
   "arbitraryFetchError": "An error occurred while fetching data",
   "arbitraryFetchImageError": "An error occurred while fetching an image",
 

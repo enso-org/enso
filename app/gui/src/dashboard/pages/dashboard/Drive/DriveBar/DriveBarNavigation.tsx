@@ -7,6 +7,8 @@ import * as React from 'react'
 
 import { Button, ButtonGroup } from '#/components/AriaComponents'
 import { Breadcrumbs, type OnDrop } from '#/components/Breadcrumbs'
+import { Scroller } from '#/components/Scroller/Scroller'
+import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { listDirectoryQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { AssetPanelToggle } from '#/layouts/AssetPanel'
@@ -14,15 +16,15 @@ import { type Category } from '#/layouts/CategorySwitcher/Category'
 import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
+import { useDriveStore } from '#/providers/DriveProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { isDirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
+import { getMessageOrToString } from '#/utilities/error'
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import { useState, useTransition } from 'react'
-import { Scroller } from '../../../../components/Scroller/Scroller'
-import { moveAssetsMutationOptions } from '../../../../hooks/backendBatchedHooks'
-import { useDriveStore } from '../../../../providers/DriveProvider'
+import { toast } from 'react-toastify'
 
 /** Props for a {@link DriveBarNavigation}. */
 export interface DriveBarNavigationProps {
@@ -49,7 +51,23 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
 
   const driveStore = useDriveStore()
 
-  const moveAssetsMutation = useMutation(moveAssetsMutationOptions(associatedBackend))
+  const moveAssetsMutation = useMutation({
+    ...moveAssetsMutationOptions(associatedBackend),
+    onSuccess: () => {
+      driveStore.setState({ selectedKeys: new Set(), visuallySelectedKeys: new Set() })
+    },
+    onError: (error) => {
+      if ('errors' in error && Array.isArray(error.errors)) {
+        for (const message of error.errors) {
+          toast.error(getMessageOrToString(message))
+        }
+
+        return
+      }
+
+      toast.error(getText('arbitraryMutationError'))
+    },
+  })
 
   const { data: directoryData } = useSuspenseQuery({
     ...listDirectoryQueryOptions({
@@ -102,7 +120,7 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
   })
 
   const onDrop = useEventCallback<OnDrop>(async (id, e) => {
-    const selectedKeys = driveStore.getState().selectedKeys
+    const { selectedKeys } = driveStore.getState()
 
     if (selectedKeys.size === 0) {
       return
