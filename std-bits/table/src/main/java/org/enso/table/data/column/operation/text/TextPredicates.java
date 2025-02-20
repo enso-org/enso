@@ -1,11 +1,10 @@
 package org.enso.table.data.column.operation.text;
 
+import com.ibm.icu.impl.UnicodeRegex;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiPredicate;
 import java.util.regex.Pattern;
-
-import com.ibm.icu.impl.UnicodeRegex;
 import org.enso.base.Regex_Utils;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.operation.comparators.Comparators;
@@ -78,7 +77,8 @@ public final class TextPredicates extends GenericComparators<String> {
   }
 
   private static boolean LikePredicate(String left, String right) {
-    return regexCache.computeIfAbsent(right, TextPredicates::createRegexPatternFromSql)
+    return regexCache
+        .computeIfAbsent(right, TextPredicates::createRegexPatternFromSql)
         .matcher(left)
         .matches();
   }

@@ -148,8 +148,8 @@ public interface Comparators {
 
   default boolean canApply(Column left, Object right) {
     return right instanceof Column rightColumn
-        ? canApply(left.getStorage(), rightColumn.getStorage())
-        : canApplyMap(left.getStorage(), right);
+        ? canApply(getStorage(left), getStorage(rightColumn))
+        : canApplyMap(getStorage(left), right);
   }
 
   /** Can the map be applied to the pair of ColumnStorage and constant? */
