@@ -17,8 +17,6 @@ from Standard.Test import all
 from project.Util import all
 from project.Common_Table_Operations.Util import run_default_backend, build_sorted_table
 
-import Standard.Base.Runtime.Debug
-
 main filter=Nothing = run_default_backend (add_specs detailed=True) filter
 
 type Lazy_Ref
