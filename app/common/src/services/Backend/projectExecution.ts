@@ -31,6 +31,9 @@ export function firstProjectExecutionOnOrAfter(
     nextDate = nextDate.add({ days: 1 })
   }
   switch (repeat.type) {
+    case 'None': {
+      return parseAbsolute(projectExecution.startDate, startDate.timeZone)
+    }
     case 'Daily': {
       nextDate = nextDate.add({ days: 1 })
       break
@@ -74,9 +77,6 @@ export function firstProjectExecutionOnOrAfter(
     }
   }
   switch (repeat.type) {
-    case 'Daily': {
-      break
-    }
     case 'MonthlyDate':
     case 'MonthlyWeekday': {
       const currentMonth = nextDate.month
@@ -92,10 +92,14 @@ export function firstProjectExecutionOnOrAfter(
 export function nextProjectExecutionDate(
   projectExecution: ProjectExecutionInfo,
   date: ZonedDateTime,
-): ZonedDateTime {
+): ZonedDateTime | null {
   let nextDate = date
   const { repeat } = projectExecution
   switch (repeat.type) {
+    case 'None':
+    default: {
+      return null
+    }
     case 'Daily': {
       nextDate = nextDate.add({ days: 1 })
       break
@@ -126,9 +130,6 @@ export function nextProjectExecutionDate(
     }
   }
   switch (repeat.type) {
-    case 'Daily': {
-      break
-    }
     case 'MonthlyDate':
     case 'MonthlyWeekday': {
       const currentMonth = nextDate.month
@@ -157,13 +158,12 @@ export function getProjectExecutionRepetitionsForDateRange(
     return isSoleExecutionWithinRange ? [soleExecutionDate] : []
   }
   const firstDate = firstProjectExecutionOnOrAfter(projectExecution, startDate)
-  if (firstDate >= endDate) {
+  if (firstDate.compare(endDate) >= 0) {
     return EMPTY_ARRAY
   }
   const repetitions: ZonedDateTime[] = [firstDate]
-  let currentDate = firstDate
-  currentDate = nextProjectExecutionDate(projectExecution, currentDate)
-  while (currentDate.compare(endDate) < 0) {
+  let currentDate = nextProjectExecutionDate(projectExecution, firstDate)
+  while (currentDate != null && currentDate.compare(endDate) < 0) {
     repetitions.push(currentDate)
     currentDate = nextProjectExecutionDate(projectExecution, currentDate)
   }

@@ -40,9 +40,9 @@ v.test.each([
 }[])(
   'Get next project execution date (current: $current)',
   ({ info, current, next1, next2, next3 }) => {
-    v.expect(nextProjectExecutionDate(info, current).toString()).toBe(next1.toString())
-    v.expect(nextProjectExecutionDate(info, next1).toString()).toBe(next2.toString())
-    v.expect(nextProjectExecutionDate(info, next2).toString()).toBe(next3.toString())
+    v.expect(nextProjectExecutionDate(info, current)?.toString()).toBe(next1.toString())
+    v.expect(nextProjectExecutionDate(info, next1)?.toString()).toBe(next2.toString())
+    v.expect(nextProjectExecutionDate(info, next2)?.toString()).toBe(next3.toString())
   },
 )
 

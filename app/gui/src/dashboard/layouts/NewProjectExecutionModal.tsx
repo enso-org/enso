@@ -270,11 +270,15 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
     if (!projectExecution) {
       return []
     }
-    let nextDate = firstProjectExecutionOnOrAfter(projectExecution, toZoned(date, formTimeZone))
+    let nextDate: ZonedDateTime | null = firstProjectExecutionOnOrAfter(
+      projectExecution,
+      toZoned(date, formTimeZone),
+    )
     const dates = [nextDate]
-    while (dates.length < REPEAT_TIMES_COUNT) {
-      nextDate = nextProjectExecutionDate(projectExecution, nextDate)
+    nextDate = nextProjectExecutionDate(projectExecution, nextDate)
+    while (nextDate && dates.length < REPEAT_TIMES_COUNT) {
       dates.push(nextDate)
+      nextDate = nextProjectExecutionDate(projectExecution, nextDate)
     }
     return dates
   })()

@@ -4,7 +4,6 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   DAY_3_LETTER_TEXT_IDS,
   DAY_TEXT_IDS,
-  DAYS_PER_WEEK,
   MONTH_3_LETTER_TEXT_IDS,
 } from 'enso-common/src/utilities/data/dateTime'
 
@@ -107,21 +106,21 @@ export function ProjectExecution(props: ProjectExecutionProps) {
         `${zonedStartDate.hour % 12 || 12}:${minuteString}`,
       )
       switch (repeat.type) {
-        case 'none': {
+        case 'None': {
           return getText('doesNotRepeat')
         }
-        case 'daily': {
-          const dayNames =
-            repeat.daysOfWeek.length === DAYS_PER_WEEK ?
-              getText('everyDaySuffix')
-            : repeat.daysOfWeek
-                .map((day) => getText(DAY_3_LETTER_TEXT_IDS[day] ?? 'monday3'))
-                .join(', ')
+        case 'Daily': {
+          return `${startDateDailyRepeat} ${getText('everyDaySuffix')}`
+        }
+        case 'Weekly': {
+          const dayNames = repeat.daysOfWeek
+            .map((day) => getText(DAY_3_LETTER_TEXT_IDS[day] ?? 'monday3'))
+            .join(', ')
           return `${startDateDailyRepeat} ${dayNames}`
         }
-        case 'monthlyDate':
-        case 'monthlyWeekday':
-        case 'monthlyLastWeekday': {
+        case 'MonthlyDate':
+        case 'MonthlyWeekday':
+        case 'MonthlyLastWeekday': {
           const monthNames =
             repeat.months.length === MONTHS_IN_YEAR ?
               getText('everyMonth')
@@ -129,7 +128,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
                 .map((month) => getText(MONTH_3_LETTER_TEXT_IDS[month] ?? 'january3'))
                 .join(', ')
           switch (repeat.type) {
-            case 'monthlyDate': {
+            case 'MonthlyDate': {
               return getText(
                 'repeatsTimeXMonthsXDateX',
                 startDateDailyRepeat,
@@ -137,7 +136,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
                 getOrdinal(repeat.date),
               )
             }
-            case 'monthlyWeekday': {
+            case 'MonthlyWeekday': {
               return getText(
                 'repeatsTimeXMonthsXDayXWeekX',
                 startDateDailyRepeat,
@@ -146,7 +145,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
                 getText('xthWeek', getOrdinal(repeat.weekNumber)),
               )
             }
-            case 'monthlyLastWeekday': {
+            case 'MonthlyLastWeekday': {
               return getText(
                 'repeatsTimeXMonthsXDayXLastWeek',
                 startDateDailyRepeat,

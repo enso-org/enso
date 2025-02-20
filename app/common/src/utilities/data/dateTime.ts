@@ -16,9 +16,9 @@ export const MINUTE_MS = 60_000
 export const HOUR_MINUTES = 60
 
 /** All possible day numbers. */
-export const DAYS: readonly number[] = [...Array(DAYS_PER_WEEK).keys()].map((n) => n + 1)
+export const DAYS = [...Array(DAYS_PER_WEEK).keys()] as const
 /** All possible month numbers. */
-export const MONTHS: readonly number[] = [...Array(MONTHS_PER_YEAR).keys()].map((n) => n + 1)
+export const MONTHS = [...Array(MONTHS_PER_YEAR).keys()] as const
 
 /** A mapping from the month index returned by {@link Date.getMonth} to its full name. */
 export const MONTH_NAMES = [
