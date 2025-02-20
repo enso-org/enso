@@ -17,6 +17,8 @@ from Standard.Test import all
 from project.Util import all
 from project.Common_Table_Operations.Util import run_default_backend, build_sorted_table
 
+import Standard.Base.Runtime.Debug
+
 main filter=Nothing = run_default_backend (add_specs detailed=True) filter
 
 type Lazy_Ref
@@ -552,3 +554,18 @@ add_expression_specs suite_builder detailed setup =
             t4.at "Z" . to_vector . should_equal ["A", "A", "B"]
             # Should still keep the inherited warning from "Y".
             Problems.expect_warning Illegal_State t4
+    
+    suite_builder.group prefix+"Large expressions" group_builder->
+        group_builder.specify "Should be able to build and run large expressions up to token limit" <|
+            t1 = table_builder [["X", ["A"]]]
+            ## length([X])+length([X])+...+length([X])
+            large_expression = Vector.fill 204 "length([X])" . join "+" 
+            t2 = t1.set (expr large_expression) as="Z"
+            t2.at "Z" . to_vector . should_equal [204]
+            ## Each length([X])+ is 5 tokens so 5*205 = 1025
+            larger_expression = Vector.fill 205 "length([X])" . join "+" 
+            t1.set (expr larger_expression) as="Z" . should_fail_with (Expression_Error.Syntax_Error "Expression is too complex: 1025 tokens (exceeds 1024). Consider splitting into multiple expressions." 1 2459)
+            ## If we make the expression even larger we still get the same character count where we tip over the limit - 2459
+            even_larger_expression = Vector.fill 1000 "length([X])" . join "+" 
+            t1.set (expr even_larger_expression) as="Z" . should_fail_with (Expression_Error.Syntax_Error "Expression is too complex: 5000 tokens (exceeds 1024). Consider splitting into multiple expressions." 1 2459)
+

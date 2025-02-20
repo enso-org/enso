@@ -7,11 +7,13 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.Token;
 import org.enso.base.time.EnsoDateTimeFormatter;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
@@ -158,6 +160,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     lexer.addErrorListener(ThrowOnErrorListener.INSTANCE);
 
     var tokens = new CommonTokenStream(lexer);
+    checkTokenLimit(tokens, 1024);
+
     var parser = new ExpressionParser(tokens);
     parser.removeErrorListeners();
     parser.addErrorListener(ThrowOnErrorListener.INSTANCE);
@@ -167,9 +171,29 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
             getColumn, makeConstantColumn, isColumn, getMethod, makeConstructor);
 
     var expr = parser.prog();
+    int nodeCount = expr.children != null ? expr.children.size() : 0;
+    if (nodeCount > 512) {
+        throw new IllegalArgumentException("Expression is too complex: exceeds 512 direct children.");
+    }
     var result = visitor.visit(expr);
     return makeConstantColumn.apply(result);
   }
+
+  private static void checkTokenLimit(CommonTokenStream tokens, int tokenLimit) {
+    tokens.fill(); // Ensure the token stream is fully populated
+    int tokenCount = 0;
+    for (var token : tokens.getTokens()) {
+      tokenCount++;
+      if (tokenCount > tokenLimit) {
+          throw new SyntaxErrorException(
+              "Expression is too complex: " + tokens.size() + " tokens (exceeds " + tokenLimit + "). " +
+              "Consider splitting into multiple expressions.", 
+              token.getLine(), token.getCharPositionInLine()
+          );
+      }
+    }
+}
+
 
   private final Function<String, Value> getColumn;
   private final Function<Object, Value> makeConstantColumn;
