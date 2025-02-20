@@ -232,10 +232,10 @@ get_distinct_values_for_column x column_index =
 
 ## PRIVATE
 
-   applies the sprt model to the table.
+   applies the sort model to the table.
 
    Arguments:
-   - start_number: the start index of the next 100 rows to get
+   - x: table to sort
    - sort_col_index_list: indexes of columns with sorts applies
    - sort_direction_list: list of sort directions 1 for ascending -1 for descending
 
@@ -249,21 +249,41 @@ apply_sort_to_table x sort_col_index_list sort_direction_list =
 
 ## PRIVATE
 
+   applies the filter model to the table.
+
+   Arguments:
+   - table: table to sort
+   - filter_col: indexes of columns with sorts applies
+   - filter_action: list of filter actions 
+   - filter_val: values to filter
+
+apply_filter_to_table : Table -> List -> List -> List -> List -> Integer -> Table
+apply_filter_to_table table filter_col filter_action filter_val filter_to_val i = 
+    col = filter_col.get i
+    action = filter_action.get i 
+    val = filter_val.get i 
+    to_val = filter_to_val.get i
+    if to_val.is_nothing then table.filter col (action val) else table.filter col (action val to_val)
+
+
+## PRIVATE
+
    Prepares the row data table for visualizations using the server side row model.
 
    Arguments:
    - start_number: the start index of the next 100 rows to get
 
-get_rows_for_table : Any -> Integer -> List -> List -> JS_Object
-get_rows_for_table x start_number sort_col_index_list=Nothing sort_direction_list=Nothing =
+get_rows_for_table : Any -> Integer -> List -> List -> List -> List -> List -> List -> JS_Object
+get_rows_for_table x start_number sort_col_index_list=Nothing sort_direction_list=Nothing filter_col=Nothing filter_action=Nothing filter_val=Nothing filter_extra_val=Nothing =
     max_rows=100
     all_rows_count = x.row_count
-    sorted_table = if sort_col_index_list.is_nothing then x else apply_sort_to_table x sort_col_index_list sort_direction_list
+    filtered_table = if filter_col.is_nothing then x else apply_filter_to_table x filter_col filter_action filter_val filter_extra_val 0
+    sorted_table = if sort_col_index_list.is_nothing then filtered_table else apply_sort_to_table filtered_table sort_col_index_list sort_direction_list
     bucket_size = if max_rows < all_rows_count then max_rows else all_rows_count
     get_vector c         = Warning.set (Vector.new bucket_size i-> make_json_for_value (c.get (i + start_number))) []
     columns              = sorted_table.columns
     rows = columns.map get_vector
-    result = JS_Object.from_pairs [["rows", rows]]
+    result = JS_Object.from_pairs [["rows", rows], ["filter_col",filter_col], ["filter_action",filter_action.to_text], ["filter_val",filter_val], ["filter_extra_val",filter_extra_val]]
     result.to_text
 
 ## PRIVATE

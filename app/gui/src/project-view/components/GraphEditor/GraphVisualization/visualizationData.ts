@@ -95,15 +95,12 @@ export function useVisualizationData({
     },
   )
 
-  //      Ast.Vector.new(module, itemList),
-  //    const itemList = items.map((i) => valueFormatter(i, module))
-
   const parseArgument = (arg: any, tempModule: Ast.MutableModule) => {
-    if (arg.type === 'array' && arg.value != 'Nothing') {
-      const itemList = arg.value.map((i) => Ast.parseExpression(i, tempModule))
+    if (Array.isArray(arg)) {
+      const itemList = arg.map((i) => Ast.parseExpression(i, tempModule))
       return Ast.Vector.new(tempModule, itemList)
     }
-    return Ast.parseExpression(arg.value, tempModule)!
+    return Ast.parseExpression(arg, tempModule)!
   }
 
   const executeExpression = async (

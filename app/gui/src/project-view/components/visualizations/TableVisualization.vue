@@ -24,6 +24,7 @@ import { computed, ref, shallowRef, watchEffect, type Ref } from 'vue'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
 import { getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
+import { actionMap, getFilterValue } from './TableVisualization/tableVizFilterUtils'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -259,8 +260,7 @@ const createRowsForTable = (data: unknown[][], startIndex: number, shift: number
 }
 
 async function getFilterValues(params) {
-  console.log({ params })
-  const colName = params.field
+  const colName = params.colDef.field
   const index = props.data.header.findIndex((h: string) => colName === h)
   const server = createServer()
   const response: Response = await server.getSetFilterValues(index)
@@ -280,25 +280,13 @@ const sortDirectionMap = computed(() => ({
   desc: '-1',
 }))
 
-const actionMap = {
-  equals: '..Equal',
-  notEqual: '..Not_Equal',
-  greaterThan: '..Greater',
-  greaterThanOrEqual: '..Equal_Or_Greater',
-  lessThan: '..Less',
-  lessThanOrEqual: '..Equal_Or_Less',
-  inRange: '..Between',
-  blank: '..Is_Nothing',
-  notBlank: '..Not_Nothing',
-}
-
 function createServer() {
   return {
     getSetFilterValues: async (columnIndex: number) => {
       const response = await config.executeExpression(
         'Standard.Visualization.Table.Visualization',
         'get_distinct_values_for_column',
-        { type: 'single', value: `${columnIndex}` },
+        `${columnIndex}`,
       )
       return {
         success: true,
@@ -314,20 +302,49 @@ function createServer() {
         return sortDirectionMap.value[sortCol.sort as SortDirection]
       })
       const sortDirections = sortDirectionsMap.length ? sortDirectionsMap : 'Nothing'
-      const filterColumnName = Object.keys(request.filterModel)[0]
-      const filterColIndex = props.data.header.findIndex((h: string) => filterColumnName === h)
-      const filterAction = filterColumnName ? actionMap[request.filterModel[filterColumnName]?.type] : 'Nothing'
-      const filterVal = filterColumnName ? request.filterModel[filterColumnName]?.filter : 'Nothing'
+      const filterColumnNames = Object.keys(request.filterModel)
+
+      const filterColumnIndexList = filterColumnNames.map(
+        (colName) => `${props.data.header.findIndex((h: string) => colName === h)}`,
+      )
+      const filterActions =
+        filterColumnNames.length ?
+          filterColumnNames.map((name) => `${actionMap[request.filterModel[name]?.type]}`)
+        : 'Nothing'
+
+      const valueMap = filterColumnNames.map(colName => {
+        const filterModel = request.filterModel[colName]
+        return getFilterValue(filterModel, filterModel.type)
+      })
+
+      const valueList = valueMap.map(value => {
+        if(typeof value === 'object') {
+          return `${value.fromValue}`
+        }
+        return `${value}`
+      })
+      const toValueList = valueMap.map(value => {
+        if(typeof value === 'object') {
+          return `${value.toValue}`
+        }
+        return 'Nothing'
+      })
       const response = await config.executeExpression(
         'Standard.Visualization.Table.Visualization',
         'get_rows_for_table',
-        { type: 'single', value: `${request.startRow}` },
-        { type: 'array', value: sortColIndexes },
-        { type: 'array', value: sortDirections },
-        { type: 'single', value: filterColIndex === -1 ? 'Nothing' : `${filterColIndex}` },
-        { type: 'single', value: filterAction},
-        { type: 'single', value: `${filterVal}` },
+        `${request.startRow}`,
+        sortColIndexes,
+        sortDirections,
+        //column indexes for filtering
+        filterColumnIndexList.length ? filterColumnIndexList : 'Nothing',
+        //column actions i.e Greater Than, Between...
+        filterActions,
+        //column values, or From Values
+        valueList.length ? valueList : 'Nothing',
+        // To Values
+        toValueList.length ? toValueList : 'Nothing',
       )
+      console.log({ response })
       return {
         success: true,
         data: response.value.rows,
