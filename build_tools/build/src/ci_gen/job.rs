@@ -372,10 +372,10 @@ impl StandardLibraryApiCheck {
     fn list_all_changed_files_step(&self) -> Step {
         let run = format!(
             r#"
-        if [[ "${{ steps.{}.outputs.any_changed }}" == "true" ]]; then
+        if [[ "${{{{ steps.{}.outputs.any_changed }}}}" == "true" ]]; then
             echo "Files changed:"
         fi
-        for file in ${{ALL_CHANGED_FILES}}; do
+        for file in ${{{{ALL_CHANGED_FILES}}}}; do
             echo "$file"
         done
         "#,

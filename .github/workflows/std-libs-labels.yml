@@ -30,7 +30,7 @@ jobs:
         with:
           files: distribution/lib/Standard/Base/**/docs/api/**.md
       - name: List all changed files in Base
-        run: "\n        if [[ \"${ steps.Base-changed-files.outputs.any_changed }\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
+        run: "\n        if [[ \"${{ steps.Base-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${{ALL_CHANGED_FILES}}; do\n            echo \"$file\"\n        done\n        "
         env:
           ALL_CHANGED_FILES: ${{ steps.Base-changed-files.outputs.all_changed_files }}
       - if: steps.Base-changed-files.outputs.any_changed == 'true'
@@ -55,7 +55,7 @@ jobs:
         with:
           files: distribution/lib/Standard/Table/**/docs/api/**.md
       - name: List all changed files in Table
-        run: "\n        if [[ \"${ steps.Table-changed-files.outputs.any_changed }\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
+        run: "\n        if [[ \"${{ steps.Table-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${{ALL_CHANGED_FILES}}; do\n            echo \"$file\"\n        done\n        "
         env:
           ALL_CHANGED_FILES: ${{ steps.Table-changed-files.outputs.all_changed_files }}
       - if: steps.Table-changed-files.outputs.any_changed == 'true'
