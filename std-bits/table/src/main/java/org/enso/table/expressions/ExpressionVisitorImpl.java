@@ -169,10 +169,6 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
             getColumn, makeConstantColumn, isColumn, getMethod, makeConstructor);
 
     var expr = parser.prog();
-    int nodeCount = expr.children != null ? expr.children.size() : 0;
-    if (nodeCount > 512) {
-      throw new IllegalArgumentException("Expression is too complex: exceeds 512 direct children.");
-    }
     var result = visitor.visit(expr);
     return makeConstantColumn.apply(result);
   }
