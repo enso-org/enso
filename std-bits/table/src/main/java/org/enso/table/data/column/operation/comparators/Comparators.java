@@ -1,6 +1,7 @@
 package org.enso.table.data.column.operation.comparators;
 
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
@@ -14,8 +15,22 @@ import org.enso.table.data.table.Column;
  * left columns.
  */
 public interface Comparators {
+  /* Get the storage of the column resolving through inferred storages. */
+  static ColumnStorage<?> getStorage(Column input) {
+    var storage = input.getStorage();
+    if (storage instanceof ColumnStorageWithInferredStorage withInferredStorage) {
+      var inferredStorage = withInferredStorage.getInferredStorage();
+      if (inferredStorage != null) {
+        return inferredStorage;
+      }
+    }
+    return storage;
+  }
+
   static boolean isSupported(Column left) {
-    var storageType = left.getStorage().getType();
+    var storage = getStorage(left);
+    var storageType = storage.getType();
+
     return storageType instanceof DateType
         || storageType instanceof TimeOfDayType
         || storageType instanceof DateTimeType
@@ -24,7 +39,7 @@ public interface Comparators {
   }
 
   static Column eq(Column left, Object rightValue, String newName) {
-    var leftStorage = left.getStorage();
+    var leftStorage = getStorage(left);
     var comparator =
         switch (leftStorage.getType()) {
           case NullType nt -> NullComparators.INSTANCE;
@@ -39,7 +54,7 @@ public interface Comparators {
   }
 
   static Column notEq(Column left, Object rightValue, String newName) {
-    var leftStorage = left.getStorage();
+    var leftStorage = getStorage(left);
     var comparator =
         switch (leftStorage.getType()) {
           case NullType nt -> NullComparators.INSTANCE;
@@ -54,7 +69,7 @@ public interface Comparators {
   }
 
   static Column lessThan(Column left, Object rightValue, String newName) {
-    var leftStorage = left.getStorage();
+    var leftStorage = getStorage(left);
     var comparator =
         switch (leftStorage.getType()) {
           case NullType nt -> NullComparators.INSTANCE;
@@ -69,7 +84,7 @@ public interface Comparators {
   }
 
   static Column lessThanEq(Column left, Object rightValue, String newName) {
-    var leftStorage = left.getStorage();
+    var leftStorage = getStorage(left);
     var comparator =
         switch (leftStorage.getType()) {
           case NullType nt -> NullComparators.INSTANCE;
@@ -84,7 +99,7 @@ public interface Comparators {
   }
 
   static Column greaterThan(Column left, Object rightValue, String newName) {
-    var leftStorage = left.getStorage();
+    var leftStorage = getStorage(left);
     var comparator =
         switch (leftStorage.getType()) {
           case NullType nt -> NullComparators.INSTANCE;
@@ -99,7 +114,7 @@ public interface Comparators {
   }
 
   static Column greaterThanEq(Column left, Object rightValue, String newName) {
-    var leftStorage = left.getStorage();
+    var leftStorage = getStorage(left);
     var comparator =
         switch (leftStorage.getType()) {
           case NullType nt -> NullComparators.INSTANCE;
@@ -114,10 +129,10 @@ public interface Comparators {
   }
 
   static Column performComparison(
-      Storage<?> leftStorage, Object rightValue, String newName, Comparators comparator) {
+      ColumnStorage<?> leftStorage, Object rightValue, String newName, Comparators comparator) {
     ColumnStorage<Boolean> output;
     if (rightValue instanceof Column right) {
-      var rightStorage = right.getStorage();
+      var rightStorage = getStorage(right);
       if (!comparator.canApply(leftStorage, rightStorage)) {
         throw new IllegalArgumentException("Cannot apply zip");
       }
@@ -137,13 +152,13 @@ public interface Comparators {
         : canApplyMap(left.getStorage(), right);
   }
 
-  /** Can the map be applied to pair of ColumnStorage and constant? */
+  /** Can the map be applied to the pair of ColumnStorage and constant? */
   boolean canApplyMap(ColumnStorage<?> left, Object rightValue);
 
   /** Apply the map to the pair of ColumnStorage and constant. */
   ColumnStorage<Boolean> applyMap(ColumnStorage<?> left, Object rightValue);
 
-  /** Can the map be applied to pair of ColumnStorage? */
+  /** Can the map be applied to the pair of ColumnStorage? */
   boolean canApply(ColumnStorage<?> left, ColumnStorage<?> right);
 
   /** Apply the map to the pair of ColumnStorage. */

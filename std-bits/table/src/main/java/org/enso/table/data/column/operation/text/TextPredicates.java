@@ -28,7 +28,7 @@ public final class TextPredicates extends GenericComparators<String> {
   }
 
   public Column apply(Column left, Object right, String newName) {
-    var leftStorage = left.getStorage();
+    var leftStorage = Comparators.getStorage(left);
     if (leftStorage.getType() instanceof NullType) {
       return new Column(newName, BoolStorage.makeEmpty(leftStorage.getSize()));
     }

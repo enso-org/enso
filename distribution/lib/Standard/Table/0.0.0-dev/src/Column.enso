@@ -1391,8 +1391,10 @@ type Column
 
              example_contains = Examples.text_column_1.like "F%."
     like self (pattern : Column | Text | Any) -> Column = Value_Type.expect_text self <| Value_Type.expect_text pattern <|
-        new_name = naming_helper.function_name "like" [self, pattern]
-        fallback x y = Error.throw (Illegal_Argument.throw "LIKE operation is not supported for the given types.")
+        new_name = naming_helper.binary_operation_name "like" self pattern
+        fallback x y =
+            _ = [x, y]
+            Error.throw (Illegal_Argument.Error "LIKE operation is not supported for the given types.")
         _apply_case_sensitive_text_operation self pattern ..Default TextPredicates.LIKE fallback new_name
 
     ## GROUP Standard.Base.Text
