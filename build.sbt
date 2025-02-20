@@ -3110,12 +3110,9 @@ lazy val `runtime-benchmarks` =
           "com.ibm.icu"            % "icu4j"                        % icuVersion,
           "com.google.flatbuffers" % "flatbuffers-java"             % flatbuffersVersion,
           "org.yaml"               % "snakeyaml"                    % snakeyamlVersion,
-          "com.typesafe"           % "config"                       % typesafeConfigVersion,
-          // Dependencies for benchmarks-common
-          "org.openjdk.jmh"    % "jmh-core"               % jmhVersion, // Automatic module
-          "jakarta.xml.bind"   % "jakarta.xml.bind-api"   % jaxbVersion,
-          "jakarta.activation" % "jakarta.activation-api" % jaActivationVersion
-        )
+          "com.typesafe"           % "config"                       % typesafeConfigVersion
+        ) ++
+        (`benchmarks-common` / Compile / moduleDependencies).value
       },
       Compile / internalModuleDependencies := Seq(
         (`runtime` / Compile / exportedModule).value,
