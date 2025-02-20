@@ -46,7 +46,7 @@ public final class StringComparators extends GenericComparators<String> {
   }
 
   @Override
-  public boolean canApply(ColumnStorage<?> left, ColumnStorage<?> right) {
+  public boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
     return left.getType() instanceof TextType
         && (right.getType() instanceof TextType || right.getType() instanceof AnyObjectType);
   }

@@ -61,16 +61,16 @@ public abstract class GenericComparators<T> implements Comparators {
   }
 
   @Override
-  public abstract boolean canApply(ColumnStorage<?> left, ColumnStorage<?> right);
+  public abstract boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right);
 
   @Override
-  public ColumnStorage<Boolean> apply(ColumnStorage<?> left, ColumnStorage<?> right) {
+  public ColumnStorage<Boolean> applyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
     if (left.getType() instanceof NullType || right.getType() instanceof NullType) {
       var size = Math.max(left.getSize(), right.getSize());
       return BoolStorage.makeEmpty(size);
     }
 
-    assert canApply(left, right);
+    assert canApplyZip(left, right);
 
     var typedLeft = asTypedStorage(left);
     if (right.getType() instanceof AnyObjectType) {

@@ -7,7 +7,6 @@ import java.util.function.BiPredicate;
 import java.util.regex.Pattern;
 import org.enso.base.Regex_Utils;
 import org.enso.base.Text_Utils;
-import org.enso.table.data.column.operation.comparators.Comparators;
 import org.enso.table.data.column.operation.comparators.GenericComparators;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -26,12 +25,13 @@ public final class TextPredicates extends GenericComparators<String> {
     super(predicate, true);
   }
 
+  @Override
   public Column apply(Column left, Object right, String newName) {
-    var leftStorage = Comparators.getStorage(left);
+    var leftStorage = getStorage(left);
     if (leftStorage.getType() instanceof NullType) {
       return new Column(newName, BoolStorage.makeEmpty(leftStorage.getSize()));
     }
-    return Comparators.performComparison(leftStorage, right, newName, this);
+    return super.apply(left, right, newName);
   }
 
   @Override
@@ -59,7 +59,7 @@ public final class TextPredicates extends GenericComparators<String> {
   }
 
   @Override
-  public boolean canApply(ColumnStorage<?> left, ColumnStorage<?> right) {
+  public boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
     return canApplyMap(left, null) && canApplyMap(right, null);
   }
 
