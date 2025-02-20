@@ -35,7 +35,6 @@ export function firstProjectExecutionOnOrAfter(
       return parseAbsolute(projectExecution.startDate, startDate.timeZone)
     }
     case 'daily': {
-      nextDate = nextDate.add({ days: 1 })
       break
     }
     case 'weekly': {
@@ -158,7 +157,7 @@ export function getProjectExecutionRepetitionsForDateRange(
     return isSoleExecutionWithinRange ? [soleExecutionDate] : []
   }
   const firstDate = firstProjectExecutionOnOrAfter(projectExecution, startDate)
-  if (firstDate.compare(endDate) >= 0) {
+  if (firstDate.compare(endDate) > 0) {
     return EMPTY_ARRAY
   }
   const repetitions: ZonedDateTime[] = [firstDate]

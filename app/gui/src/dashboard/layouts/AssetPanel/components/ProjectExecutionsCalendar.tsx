@@ -123,13 +123,14 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
     string,
     { readonly date: ZonedDateTime; readonly projectExecution: BackendProjectExecution }[]
   > = {}
+
   for (const projectExecution of projectExecutions) {
     for (const date of getProjectExecutionRepetitionsForDateRange(
       projectExecution,
       startDate,
       endDate,
     )) {
-      const dateString = toCalendarDate(toZoned(date, timeZone)).toString()
+      const dateString = toCalendarDate(date).toString()
       ;(projectExecutionsByDate[dateString] ??= []).push({ date, projectExecution })
     }
   }
