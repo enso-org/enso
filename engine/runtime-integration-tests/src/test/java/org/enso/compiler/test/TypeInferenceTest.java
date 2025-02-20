@@ -840,7 +840,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertEquals(List.of(), ModuleUtils.getDescendantsDiagnostics(module));
   }
 
-  @Ignore("We cannot report type errors until we check there are no Conversions")
+
   @Test
   public void typeErrorFromAscription() throws Exception {
     final URI uri = new URI("memory://typeErrorFromAscription.enso");
@@ -901,7 +901,6 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         ModuleUtils.getDescendantsDiagnostics(y.expression()));
   }
 
-  @Ignore("We cannot report type errors until we check there are no Conversions")
   @Test
   public void typeErrorFunctionToObject() throws Exception {
     final URI uri = new URI("memory://typeErrorFunctionToObject.enso");
@@ -938,7 +937,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertEquals(List.of(typeError2), ModuleUtils.getDescendantsDiagnostics(z.expression()));
   }
 
-  @Ignore("We cannot report type errors until we check there are no Conversions")
+
   @Test
   public void typeErrorInLocalCall() throws Exception {
     final URI uri = new URI("memory://typeErrorInLocalCall.enso");
@@ -974,7 +973,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertEquals(List.of(typeError), ModuleUtils.getImmediateDiagnostics(arg));
   }
 
-  @Ignore("We cannot report type errors until we check there are no Conversions")
+
   @Test
   public void typeErrorInReturn() throws Exception {
     final URI uri = new URI("memory://typeErrorInReturn.enso");
