@@ -6,9 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
-
 import javax.xml.parsers.ParserConfigurationException;
-
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.util.XMLHelper;
@@ -91,27 +89,26 @@ public class XSSFReaderSheet implements ExcelSheet {
   }
 
   private int findLastNonEmptyRow() {
-      // Walk backwards to find the first row with actual data
-      for (int i = lastRow; i >= 0; i--) {
-          if (!isRowEmpty(rowData.get(i))) {
-              return i; // Found the last row with data
-          }
+    // Walk backwards to find the first row with actual data
+    for (int i = lastRow; i >= 0; i--) {
+      if (!isRowEmpty(rowData.get(i))) {
+        return i; // Found the last row with data
       }
-      return lastRow; // Fallback case (shouldn't happen)
+    }
+    return lastRow; // Fallback case (shouldn't happen)
   }
 
   private boolean isRowEmpty(SortedMap<Short, XSSFReaderSheetXMLHandler.CellValue> cells) {
-      if (cells == null || cells.isEmpty()) {
-          return true;
+    if (cells == null || cells.isEmpty()) {
+      return true;
+    }
+    for (XSSFReaderSheetXMLHandler.CellValue value : cells.values()) {
+      if (value != null && !value.strValue().isEmpty()) {
+        return false; // Found a non-empty cell
       }
-      for (XSSFReaderSheetXMLHandler.CellValue value : cells.values()) {
-          if (value != null && !value.strValue().isEmpty()) {
-              return false; // Found a non-empty cell
-          }
-      }
-      return true; // No non-empty cells found
+    }
+    return true; // No non-empty cells found
   }
-
 
   @Override
   public int getSheetIndex() {
