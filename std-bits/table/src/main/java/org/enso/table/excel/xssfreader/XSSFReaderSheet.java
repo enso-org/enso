@@ -6,7 +6,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+
 import javax.xml.parsers.ParserConfigurationException;
+
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.util.XMLHelper;
@@ -141,14 +143,17 @@ public class XSSFReaderSheet implements ExcelSheet {
   @Override
   public ExcelRow get(int row) throws InterruptedException {
     ensureReadSheetData();
+
     if (!rowData.containsKey(row)) {
       return null;
     }
+
     return new XSSFReaderRow(rowData.get(row), parent.use1904Format());
   }
 
   @Override
   public Sheet getSheet() {
+    // Not supported as we don't have the underlying Apache POI Sheet object.
     throw new UnsupportedOperationException(
         "XSSFReader does not support getting the Sheet object.");
   }
