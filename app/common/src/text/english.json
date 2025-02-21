@@ -304,6 +304,12 @@
   "clientSecret": "Client Secret",
   "role": "Role",
   "snowflakeCredentialType": "Snowflake",
+  "googleCredentialType": "Google",
+  "googleCredentialSheetsScope": "Sheets",
+  "googleCredentialSheetsReadScope": "Read sheets",
+  "googleCredentialSheetsWriteScope": "Write sheets",
+  "googleCredentialSheetsDriveBrowseScope": "Browse files on drive",
+  "googleCredentialAnalyticsScope": "Analytics",
 
   "enterSecretPath": "Enter secret path",
   "enterText": "Enter text",

@@ -4,7 +4,7 @@
  * Remember to ensure this file is re-exported by `./index.ts`.
  */
 
-import { Form } from '#/components/AriaComponents'
+import { Form as FormComponent } from '#/components/AriaComponents'
 import { CredentialsFormButtons } from '#/data/serviceCredentials/CredentialsFormButtons'
 import { useSynchronizeCredentialsValue } from '#/data/serviceCredentials/hooks'
 import { useText } from '#/providers/TextProvider'
@@ -15,7 +15,7 @@ export function SnowflakeCredentialsDialog(props: CredentialsDialogProps) {
   const { value, upsertCredential, ...buttonsProps } = props
 
   const { getText } = useText()
-  const form = Form.useFormWithComponents({
+  const { form, Form, Input } = FormComponent.useFormWithComponents({
     mode: 'onChange',
     schema: (z) =>
       z
@@ -29,20 +29,18 @@ export function SnowflakeCredentialsDialog(props: CredentialsDialogProps) {
           const { role, ...rest } = obj
           return { ...rest, ...(role !== '' ? { role } : {}) }
         }),
-    onSubmit: async (values) => {
-      await upsertCredential(values)
-    },
+    onSubmit: upsertCredential,
   })
-  useSynchronizeCredentialsValue(form.form, value)
+  useSynchronizeCredentialsValue(form, value)
 
   return (
-    <form.Form className="w-full">
+    <Form className="w-full">
       {/* `name` field is pre-filtered to only fields with a matching type! */}
-      <form.Input name="account" label={getText('account')} />
-      <form.Input name="clientId" label={getText('clientId')} />
-      <form.Input name="clientSecret" label={getText('clientSecret')} />
-      <form.Input name="role" label={getText('role')} />
+      <Input name="account" label={getText('account')} />
+      <Input name="clientId" label={getText('clientId')} />
+      <Input name="clientSecret" label={getText('clientSecret')} />
+      <Input name="role" label={getText('role')} />
       <CredentialsFormButtons {...buttonsProps} />
-    </form.Form>
+    </Form>
   )
 }
