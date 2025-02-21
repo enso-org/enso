@@ -34,7 +34,7 @@ public class BenchmarksRunner {
   private static final String schemaFileName = "results_schema.json";
   private static final URI SCHEMA_URI =
       URI.create(
-          "https://raw.githubusercontent.com/enso-org/enso/e3322694913312d01f70c8af6b8b06ed78cfa002/lib/java/benchmarks-common/src/main/resources/results_schema.json");
+          "https://raw.githubusercontent.com/enso-org/enso/97f204bf1627cfba84f21b16660567982b1477b5/lib/java/benchmarks-common/src/main/resources/results_schema.json");
 
   public BenchmarksRunner() {
     this.resultsFile = new File("./bench-results.json");
