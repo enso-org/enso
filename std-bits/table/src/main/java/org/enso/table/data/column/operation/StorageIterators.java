@@ -1,5 +1,6 @@
 package org.enso.table.data.column.operation;
 
+import java.util.function.LongFunction;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
@@ -26,15 +27,16 @@ public class StorageIterators {
       boolean preserveNothing,
       Builder builder,
       BuildObjectOperation<S> operation) {
-    long size = source.getSize();
     Context context = Context.getCurrent();
-    for (long index = 0; index < size; index++) {
-      if (preserveNothing && source.isNothing(index)) {
+    long idx = 0;
+    for (S item : source) {
+      if (preserveNothing && item == null) {
         builder.appendNulls(1);
       } else {
-        operation.apply(builder, index, source.getItemBoxed(index));
+        operation.apply(builder, idx, item);
       }
       context.safepoint();
+      idx++;
     }
     return builder.seal();
   }
@@ -45,13 +47,17 @@ public class StorageIterators {
       boolean preserveNothing,
       Builder builder,
       DoubleBuildObjectOperation operation) {
-    long size = source.getSize();
     Context context = Context.getCurrent();
-    for (long index = 0; index < size; index++) {
-      if (preserveNothing && source.isNothing(index)) {
-        builder.appendNulls(1);
+    var iterator = source.iterator();
+    while (iterator.moveNext()) {
+      if (iterator.isNothing()) {
+        if (preserveNothing) {
+          builder.appendNulls(1);
+        } else {
+          operation.apply(builder, iterator.getIndex(), Double.NaN, true);
+        }
       } else {
-        operation.apply(builder, index, source.getItemAsDouble(index), source.isNothing(index));
+        operation.apply(builder, iterator.getIndex(), iterator.getItemAsDouble(), false);
       }
       context.safepoint();
     }
@@ -87,10 +93,10 @@ public class StorageIterators {
    * @param source the source storage to read from and iterate over.
    * @param builder the output builder.
    * @param operation a callback to process a single value.
-   * @return a built ColumnStorage from sealing the builder.
    * @param <B> Builder type.
    * @param <S> Input Java type.
    * @param <T> Output Java type.
+   * @return a built ColumnStorage from sealing the builder.
    */
   public static <B extends BuilderForType<T>, S, T> ColumnStorage<T> buildOverStorage(
       ColumnStorage<S> source, B builder, BuildOperation<B, S> operation) {
@@ -107,22 +113,23 @@ public class StorageIterators {
    *     the operation.
    * @param builder the output builder.
    * @param operation a callback to process a single value.
-   * @return a built ColumnStorage from sealing the builder.
    * @param <B> Builder type.
    * @param <S> Input Java type.
    * @param <T> Output Java type.
+   * @return a built ColumnStorage from sealing the builder.
    */
   public static <B extends BuilderForType<T>, S, T> ColumnStorage<T> buildOverStorage(
       ColumnStorage<S> source, boolean preserveNothing, B builder, BuildOperation<B, S> operation) {
-    long size = source.getSize();
     Context context = Context.getCurrent();
-    for (long index = 0; index < size; index++) {
-      if (preserveNothing && source.isNothing(index)) {
+    long idx = 0;
+    for (S item : source) {
+      if (preserveNothing && item == null) {
         builder.appendNulls(1);
       } else {
-        operation.apply(builder, index, source.getItemBoxed(index));
+        operation.apply(builder, idx, item);
       }
       context.safepoint();
+      idx++;
     }
     return builder.seal();
   }
@@ -136,9 +143,9 @@ public class StorageIterators {
    * @param source the source storage to read from and iterate over.
    * @param builder the output builder.
    * @param operation a callback to process a single value.
-   * @return a built ColumnStorage from sealing the builder.
    * @param <B> Builder type.
    * @param <T> Output Java type.
+   * @return a built ColumnStorage from sealing the builder.
    */
   public static <B extends BuilderForType<T>, T> ColumnStorage<T> buildOverLongStorage(
       ColumnLongStorage source, B builder, LongBuildOperation<B> operation) {
@@ -155,22 +162,26 @@ public class StorageIterators {
    *     the operation.
    * @param builder the output builder.
    * @param operation a callback to process a single value.
-   * @return a built ColumnStorage from sealing the builder.
    * @param <B> Builder type.
    * @param <T> Output Java type.
+   * @return a built ColumnStorage from sealing the builder.
    */
   public static <B extends BuilderForType<T>, T> ColumnStorage<T> buildOverLongStorage(
       ColumnLongStorage source,
       boolean preserveNothing,
       B builder,
       LongBuildOperation<B> operation) {
-    long size = source.getSize();
     Context context = Context.getCurrent();
-    for (long index = 0; index < size; index++) {
-      if (preserveNothing && source.isNothing(index)) {
-        builder.appendNulls(1);
+    var iterator = source.iterator();
+    while (iterator.moveNext()) {
+      if (iterator.isNothing()) {
+        if (preserveNothing) {
+          builder.appendNulls(1);
+        } else {
+          operation.apply(builder, iterator.getIndex(), 0, true);
+        }
       } else {
-        operation.apply(builder, index, source.getItemAsLong(index), source.isNothing(index));
+        operation.apply(builder, iterator.getIndex(), iterator.getItemAsLong(), false);
       }
       context.safepoint();
     }
@@ -186,9 +197,9 @@ public class StorageIterators {
    * @param source the source storage to read from and iterate over.
    * @param builder the output builder.
    * @param operation a callback to process a single value.
-   * @return a built ColumnStorage from sealing the builder.
    * @param <B> Builder type.
    * @param <T> Output Java type.
+   * @return a built ColumnStorage from sealing the builder.
    */
   public static <B extends BuilderForType<T>, T> ColumnStorage<T> buildOverDoubleStorage(
       ColumnDoubleStorage source, B builder, DoubleBuildOperation<B> operation) {
@@ -205,22 +216,26 @@ public class StorageIterators {
    *     the operation.
    * @param builder the output builder.
    * @param operation a callback to process a single value.
-   * @return a built ColumnStorage from sealing the builder.
    * @param <B> Builder type.
    * @param <T> Output Java type.
+   * @return a built ColumnStorage from sealing the builder.
    */
   public static <B extends BuilderForType<T>, T> ColumnStorage<T> buildOverDoubleStorage(
       ColumnDoubleStorage source,
       boolean preserveNothing,
       B builder,
       DoubleBuildOperation<B> operation) {
-    long size = source.getSize();
     Context context = Context.getCurrent();
-    for (long index = 0; index < size; index++) {
-      if (preserveNothing && source.isNothing(index)) {
-        builder.appendNulls(1);
+    var iterator = source.iterator();
+    while (iterator.moveNext()) {
+      if (iterator.isNothing()) {
+        if (preserveNothing) {
+          builder.appendNulls(1);
+        } else {
+          operation.apply(builder, iterator.getIndex(), Double.NaN, true);
+        }
       } else {
-        operation.apply(builder, index, source.getItemAsDouble(index), source.isNothing(index));
+        operation.apply(builder, iterator.getIndex(), iterator.getItemAsDouble(), false);
       }
       context.safepoint();
     }
@@ -236,9 +251,9 @@ public class StorageIterators {
    * @param source the source storage to read from and iterate over.
    * @param builder the output builder.
    * @param operation a callback to process a single value.
-   * @return a built ColumnStorage from sealing the builder.
    * @param <B> Builder type.
    * @param <T> Output Java type.
+   * @return a built ColumnStorage from sealing the builder.
    */
   public static <B extends BuilderForType<T>, T> ColumnStorage<T> buildOverBooleanStorage(
       ColumnBooleanStorage source, B builder, BooleanBuildOperation<B> operation) {
@@ -255,22 +270,26 @@ public class StorageIterators {
    *     the operation.
    * @param builder the output builder.
    * @param operation a callback to process a single value.
-   * @return a built ColumnStorage from sealing the builder.
    * @param <B> Builder type.
    * @param <T> Output Java type.
+   * @return a built ColumnStorage from sealing the builder.
    */
   public static <B extends BuilderForType<T>, T> ColumnStorage<T> buildOverBooleanStorage(
       ColumnBooleanStorage source,
       boolean preserveNothing,
       B builder,
       BooleanBuildOperation<B> operation) {
-    long size = source.getSize();
     Context context = Context.getCurrent();
-    for (long index = 0; index < size; index++) {
-      if (preserveNothing && source.isNothing(index)) {
-        builder.appendNulls(1);
+    var iterator = source.iterator();
+    while (iterator.moveNext()) {
+      if (iterator.isNothing()) {
+        if (preserveNothing) {
+          builder.appendNulls(1);
+        } else {
+          operation.apply(builder, iterator.getIndex(), false, true);
+        }
       } else {
-        operation.apply(builder, index, source.getItemAsBoolean(index), source.isNothing(index));
+        operation.apply(builder, iterator.getIndex(), iterator.getItemAsBoolean(), false);
       }
       context.safepoint();
     }
@@ -278,7 +297,7 @@ public class StorageIterators {
   }
 
   @FunctionalInterface
-  public interface MapOperation<T, S> {
+  public interface MapOperation<S, T> {
     T apply(long index, S value);
   }
 
@@ -305,12 +324,12 @@ public class StorageIterators {
    * @param source the source storage to read from and iterate over.
    * @param builder the output builder.
    * @param operation a callback to process a single value.
-   * @return a built ColumnStorage from sealing the builder.
    * @param <S> Input Java type.
    * @param <T> Output Java type.
+   * @return a built ColumnStorage from sealing the builder.
    */
   public static <S, T> ColumnStorage<T> mapOverStorage(
-      ColumnStorage<S> source, BuilderForType<T> builder, MapOperation<T, S> operation) {
+      ColumnStorage<S> source, BuilderForType<T> builder, MapOperation<S, T> operation) {
     return mapOverStorage(source, true, builder, operation);
   }
 
@@ -323,24 +342,25 @@ public class StorageIterators {
    *     the operation.
    * @param builder the output builder.
    * @param operation a callback to process a single value.
-   * @return a built ColumnStorage from sealing the builder.
    * @param <S> Input Java type.
    * @param <T> Output Java type.
+   * @return a built ColumnStorage from sealing the builder.
    */
   public static <S, T> ColumnStorage<T> mapOverStorage(
       ColumnStorage<S> source,
       boolean preserveNothing,
       BuilderForType<T> builder,
-      MapOperation<T, S> operation) {
-    long size = source.getSize();
+      MapOperation<S, T> operation) {
     Context context = Context.getCurrent();
-    for (long index = 0; index < size; index++) {
-      if (preserveNothing && source.isNothing(index)) {
+    long idx = 0;
+    for (S item : source) {
+      if (preserveNothing && item == null) {
         builder.appendNulls(1);
       } else {
-        var result = operation.apply(index, source.getItemBoxed(index));
+        var result = operation.apply(idx, item);
         builder.append(result);
       }
+      idx++;
       context.safepoint();
     }
     return builder.seal();
@@ -354,8 +374,8 @@ public class StorageIterators {
    * @param source the source storage to read from and iterate over.
    * @param builder the output builder.
    * @param operation a callback to process a single value.
-   * @return a built ColumnStorage from sealing the builder.
    * @param <T> Output Java type.
+   * @return a built ColumnStorage from sealing the builder.
    */
   public static <T> ColumnStorage<T> mapOverLongStorage(
       ColumnLongStorage source, BuilderForType<T> builder, LongMapOperation<T> operation) {
@@ -371,21 +391,26 @@ public class StorageIterators {
    *     the operation.
    * @param builder the output builder.
    * @param operation a callback to process a single value.
-   * @return a built ColumnStorage from sealing the builder.
    * @param <T> Output Java type.
+   * @return a built ColumnStorage from sealing the builder.
    */
   public static <T> ColumnStorage<T> mapOverLongStorage(
       ColumnLongStorage source,
       boolean preserveNothing,
       BuilderForType<T> builder,
       LongMapOperation<T> operation) {
-    long size = source.getSize();
     Context context = Context.getCurrent();
-    for (long index = 0; index < size; index++) {
-      if (preserveNothing && source.isNothing(index)) {
-        builder.appendNulls(1);
+    var iterator = source.iterator();
+    while (iterator.moveNext()) {
+      if (iterator.isNothing()) {
+        if (preserveNothing) {
+          builder.appendNulls(1);
+        } else {
+          var result = operation.apply(iterator.getIndex(), 0, true);
+          builder.append(result);
+        }
       } else {
-        var result = operation.apply(index, source.getItemAsLong(index), source.isNothing(index));
+        var result = operation.apply(iterator.getIndex(), iterator.getItemAsLong(), false);
         builder.append(result);
       }
       context.safepoint();
@@ -401,8 +426,8 @@ public class StorageIterators {
    * @param source the source storage to read from and iterate over.
    * @param builder the output builder.
    * @param operation a callback to process a single value.
-   * @return a built ColumnStorage from sealing the builder.
    * @param <T> Output Java type.
+   * @return a built ColumnStorage from sealing the builder.
    */
   public static <T> ColumnStorage<T> mapOverDoubleStorage(
       ColumnDoubleStorage source, BuilderForType<T> builder, DoubleMapOperation<T> operation) {
@@ -418,21 +443,26 @@ public class StorageIterators {
    *     the operation.
    * @param builder the output builder.
    * @param operation a callback to process a single value.
-   * @return a built ColumnStorage from sealing the builder.
    * @param <T> Output Java type.
+   * @return a built ColumnStorage from sealing the builder.
    */
   public static <T> ColumnStorage<T> mapOverDoubleStorage(
       ColumnDoubleStorage source,
       boolean preserveNothing,
       BuilderForType<T> builder,
       DoubleMapOperation<T> operation) {
-    long size = source.getSize();
     Context context = Context.getCurrent();
-    for (long index = 0; index < size; index++) {
-      if (preserveNothing && source.isNothing(index)) {
-        builder.appendNulls(1);
+    var iterator = source.iterator();
+    while (iterator.moveNext()) {
+      if (iterator.isNothing()) {
+        if (preserveNothing) {
+          builder.appendNulls(1);
+        } else {
+          var result = operation.apply(iterator.getIndex(), Double.NaN, true);
+          builder.append(result);
+        }
       } else {
-        var result = operation.apply(index, source.getItemAsDouble(index), source.isNothing(index));
+        var result = operation.apply(iterator.getIndex(), iterator.getItemAsDouble(), false);
         builder.append(result);
       }
       context.safepoint();
@@ -448,8 +478,8 @@ public class StorageIterators {
    * @param source the source storage to read from and iterate over.
    * @param builder the output builder.
    * @param operation a callback to process a single value.
-   * @return a built ColumnStorage from sealing the builder.
    * @param <T> Output Java type.
+   * @return a built ColumnStorage from sealing the builder.
    */
   public static <T> ColumnStorage<T> mapOverBooleanStorage(
       ColumnBooleanStorage source, BuilderForType<T> builder, BooleanMapOperation<T> operation) {
@@ -465,26 +495,259 @@ public class StorageIterators {
    *     the operation.
    * @param builder the output builder.
    * @param operation a callback to process a single value.
-   * @return a built ColumnStorage from sealing the builder.
    * @param <T> Output Java type.
+   * @return a built ColumnStorage from sealing the builder.
    */
   public static <T> ColumnStorage<T> mapOverBooleanStorage(
       ColumnBooleanStorage source,
       boolean preserveNothing,
       BuilderForType<T> builder,
       BooleanMapOperation<T> operation) {
-    long size = source.getSize();
     Context context = Context.getCurrent();
-    for (long index = 0; index < size; index++) {
-      if (preserveNothing && source.isNothing(index)) {
-        builder.appendNulls(1);
+    var iterator = source.iterator();
+    while (iterator.moveNext()) {
+      if (iterator.isNothing()) {
+        if (preserveNothing) {
+          builder.appendNulls(1);
+        } else {
+          var result = operation.apply(iterator.getIndex(), false, true);
+          builder.append(result);
+        }
       } else {
-        var result =
-            operation.apply(index, source.getItemAsBoolean(index), source.isNothing(index));
+        var result = operation.apply(iterator.getIndex(), iterator.getItemAsBoolean(), false);
         builder.append(result);
       }
       context.safepoint();
     }
+    return builder.seal();
+  }
+
+  @FunctionalInterface
+  public interface ZipOperation<R, S, T> {
+    T apply(long index, R value1, S value2);
+  }
+
+  @FunctionalInterface
+  public interface LongZipOperation<T> {
+    // Note if isNothing1 is true then value1 is undefined, likewise for isNothing2 and value2.
+    T apply(long index, long value1, boolean isNothing1, long value2, boolean isNothing2);
+  }
+
+  @FunctionalInterface
+  public interface LongDoubleZipOperation<T> {
+    // Note if isNothing1 is true then value1 is undefined, likewise for isNothing2 and value2.
+    T apply(long index, long value1, boolean isNothing1, double value2, boolean isNothing2);
+  }
+
+  @FunctionalInterface
+  public interface DoubleLongZipOperation<T> {
+    // Note if isNothing1 is true then value1 is undefined, likewise for isNothing2 and value2.
+    T apply(long index, double value1, boolean isNothing1, long value2, boolean isNothing2);
+  }
+
+  @FunctionalInterface
+  public interface DoubleZipOperation<T> {
+    // Note if isNothing1 is true then value1 is undefined, likewise for isNothing2 and value2.
+    T apply(long index, double value1, boolean isNothing1, double value2, boolean isNothing2);
+  }
+
+  /**
+   * Zips two storages together, applying an operation to each pair of values. The operation's
+   * result is appended to the builder. The builderConstructor will be passed the expected size to
+   * create a new builder. If skipNothing is true, then if either value is Nothing, the result will
+   * be Nothing and appended automatically.
+   *
+   * @param source1 the first source storage to read from and iterate over.
+   * @param source2 the second source storage to read from and iterate over.
+   * @param builderConstructor a function to create a new builder of the correct type.
+   * @param skipNothing if true, then if either value is Nothing, the result will be Nothing.
+   * @param operation a callback to process a pair of values.
+   * @param <R> Input Java type for the first source.
+   * @param <S> Input Java type for the second source.
+   * @param <T> Output Java type for the storage.
+   * @return a built ColumnStorage from sealing the builder.
+   */
+  public static <R, S, T> ColumnStorage<T> zipOverStorages(
+      ColumnStorage<R> source1,
+      ColumnStorage<S> source2,
+      LongFunction<BuilderForType<T>> builderConstructor,
+      boolean skipNothing,
+      ZipOperation<R, S, T> operation) {
+    var iterator1 = source1.iterator();
+    var iterator2 = source2.iterator();
+
+    long size = Math.max(source1.getSize(), source2.getSize());
+    var builder = builderConstructor.apply(size);
+
+    Context context = Context.getCurrent();
+    for (long idx = 0; idx < size; idx++) {
+      R value1 = iterator1.hasNext() ? iterator1.next() : null;
+      S value2 = iterator2.hasNext() ? iterator2.next() : null;
+      if (skipNothing && (value1 == null || value2 == null)) {
+        builder.appendNulls(1);
+      } else {
+        var result = operation.apply(idx, value1, value2);
+        builder.append(result);
+      }
+      context.safepoint();
+    }
+
+    return builder.seal();
+  }
+
+  /**
+   * Zips two long storages together, applying an operation to each pair of values. The operation's
+   * result is appended to the builder. The builderConstructor will be passed the expected size to
+   * create a new builder. If skipNothing is true, then if either value is Nothing, the result will
+   * be Nothing and appended automatically.
+   *
+   * @param source1 the first source storage to read from and iterate over.
+   * @param source2 the second source storage to read from and iterate over.
+   * @param builderConstructor a function to create a new builder of the correct type.
+   * @param skipNothing if true, then if either value is Nothing, the result will be Nothing.
+   * @param operation a callback to process a pair of values.
+   * @param <T> Output Java type for the storage.
+   * @return a built ColumnStorage from sealing the builder.
+   */
+  public static <T> ColumnStorage<T> zipOverLongStorages(
+      ColumnLongStorage source1,
+      ColumnLongStorage source2,
+      LongFunction<BuilderForType<T>> builderConstructor,
+      boolean skipNothing,
+      LongZipOperation<T> operation) {
+    long size = Math.max(source1.getSize(), source2.getSize());
+    var builder = builderConstructor.apply(size);
+
+    source1
+        .iterator()
+        .zip(
+            source2,
+            (idx, value1, isNothing1, value2, isNothing2) -> {
+              if (skipNothing && (isNothing1 || isNothing2)) {
+                builder.appendNulls(1);
+              } else {
+                var result = operation.apply(idx, value1, isNothing1, value2, isNothing2);
+                builder.append(result);
+              }
+            });
+
+    return builder.seal();
+  }
+
+  /**
+   * Zips a long and a double storages together, applying an operation to each pair of values. The
+   * operation's result is appended to the builder. The builderConstructor will be passed the
+   * expected size to create a new builder. If skipNothing is true, then if either value is Nothing,
+   * the result will be Nothing and appended automatically.
+   *
+   * @param source1 the first source storage to read from and iterate over.
+   * @param source2 the second source storage to read from and iterate over.
+   * @param builderConstructor a function to create a new builder of the correct type.
+   * @param skipNothing if true, then if either value is Nothing, the result will be Nothing.
+   * @param operation a callback to process a pair of values.
+   * @param <T> Output Java type for the storage.
+   * @return a built ColumnStorage from sealing the builder.
+   */
+  public static <T> ColumnStorage<T> zipOverLongDoubleStorages(
+      ColumnLongStorage source1,
+      ColumnDoubleStorage source2,
+      LongFunction<BuilderForType<T>> builderConstructor,
+      boolean skipNothing,
+      LongDoubleZipOperation<T> operation) {
+    long size = Math.max(source1.getSize(), source2.getSize());
+    var builder = builderConstructor.apply(size);
+
+    source1
+        .iterator()
+        .zip(
+            source2,
+            (idx, value1, isNothing1, value2, isNothing2) -> {
+              if (skipNothing && (isNothing1 || isNothing2)) {
+                builder.appendNulls(1);
+              } else {
+                var result = operation.apply(idx, value1, isNothing1, value2, isNothing2);
+                builder.append(result);
+              }
+            });
+
+    return builder.seal();
+  }
+
+  /**
+   * Zips a long and a double storages together, applying an operation to each pair of values. The
+   * operation's result is appended to the builder. The builderConstructor will be passed the
+   * expected size to create a new builder. If skipNothing is true, then if either value is Nothing,
+   * the result will be Nothing and appended automatically.
+   *
+   * @param source1 the first source storage to read from and iterate over.
+   * @param source2 the second source storage to read from and iterate over.
+   * @param builderConstructor a function to create a new builder of the correct type.
+   * @param skipNothing if true, then if either value is Nothing, the result will be Nothing.
+   * @param operation a callback to process a pair of values.
+   * @param <T> Output Java type for the storage.
+   * @return a built ColumnStorage from sealing the builder.
+   */
+  public static <T> ColumnStorage<T> zipOverDoubleLongStorages(
+      ColumnDoubleStorage source1,
+      ColumnLongStorage source2,
+      LongFunction<BuilderForType<T>> builderConstructor,
+      boolean skipNothing,
+      DoubleLongZipOperation<T> operation) {
+    long size = Math.max(source1.getSize(), source2.getSize());
+    var builder = builderConstructor.apply(size);
+
+    source1
+        .iterator()
+        .zip(
+            source2,
+            (idx, value1, isNothing1, value2, isNothing2) -> {
+              if (skipNothing && (isNothing1 || isNothing2)) {
+                builder.appendNulls(1);
+              } else {
+                var result = operation.apply(idx, value1, isNothing1, value2, isNothing2);
+                builder.append(result);
+              }
+            });
+
+    return builder.seal();
+  }
+
+  /**
+   * Zips two double storages together, applying an operation to each pair of values. The
+   * operation's result is appended to the builder. The builderConstructor will be passed the
+   * expected size to create a new builder. If skipNothing is true, then if either value is Nothing,
+   * the result will be Nothing and appended automatically.
+   *
+   * @param source1 the first source storage to read from and iterate over.
+   * @param source2 the second source storage to read from and iterate over.
+   * @param builderConstructor a function to create a new builder of the correct type.
+   * @param skipNothing if true, then if either value is Nothing, the result will be Nothing.
+   * @param operation a callback to process a pair of values.
+   * @param <T> Output Java type for the storage.
+   * @return a built ColumnStorage from sealing the builder.
+   */
+  public static <T> ColumnStorage<T> zipOverDoubleStorages(
+      ColumnDoubleStorage source1,
+      ColumnDoubleStorage source2,
+      LongFunction<BuilderForType<T>> builderConstructor,
+      boolean skipNothing,
+      DoubleZipOperation<T> operation) {
+    long size = Math.max(source1.getSize(), source2.getSize());
+    var builder = builderConstructor.apply(size);
+
+    source1
+        .iterator()
+        .zip(
+            source2,
+            (idx, value1, isNothing1, value2, isNothing2) -> {
+              if (skipNothing && (isNothing1 || isNothing2)) {
+                builder.appendNulls(1);
+              } else {
+                var result = operation.apply(idx, value1, isNothing1, value2, isNothing2);
+                builder.append(result);
+              }
+            });
+
     return builder.seal();
   }
 }

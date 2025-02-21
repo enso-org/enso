@@ -123,7 +123,7 @@ public final class EqualsNode extends Node {
       var node =
           InvokeFunctionNode.build(
               argSchema, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE);
-      var state = State.create(ctx);
+      var state = ctx.currentState();
       var by =
           node.execute(convFn, null, state, new Object[] {ctx.getBuiltins().comparable(), value});
       if (by instanceof Atom atom

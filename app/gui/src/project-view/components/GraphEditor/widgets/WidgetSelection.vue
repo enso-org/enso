@@ -299,7 +299,8 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
     if (
       targetIsOutside(e, unrefElement(dropdownElement)) &&
       targetIsOutside(e, unrefElement(activityElement)) &&
-      targetIsOutside(e, unrefElement(widgetRoot))
+      targetIsOutside(e, unrefElement(widgetRoot)) &&
+      targetIsOutside(e, document.getElementById('floatingLayer'))
     ) {
       dropDownInteraction.end()
       if (editedWidget.value)
@@ -523,7 +524,7 @@ declare module '@/providers/widgetRegistry' {
             <KeepAlive v-if="keepActivityAlive">
               <component :is="dropDownInteraction.isActive() && activity && toValue(activity)" />
             </KeepAlive>
-            <comopnent
+            <component
               :is="dropDownInteraction.isActive() && activity && toValue(activity)"
               v-else
             />

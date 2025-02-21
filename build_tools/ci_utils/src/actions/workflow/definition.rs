@@ -1068,11 +1068,13 @@ pub mod step {
                 skip_serializing_if = "Option::is_none",
                 with = "crate::serde::via_string_opt"
             )]
-            repository: Option<github::Repo>,
+            repository:  Option<github::Repo>,
             #[serde(skip_serializing_if = "Option::is_none")]
-            clean:      Option<bool>,
+            clean:       Option<bool>,
             #[serde(skip_serializing_if = "Option::is_none")]
-            submodules: Option<CheckoutArgumentSubmodules>,
+            submodules:  Option<CheckoutArgumentSubmodules>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            fetch_depth: Option<u32>,
         },
         #[serde(rename_all = "kebab-case")]
         GitHubScript {
@@ -1120,14 +1122,15 @@ pub enum RunnerLabel {
     MatrixOs,
 }
 
-pub fn checkout_repo_step() -> Step {
+pub fn checkout_repo_step(fetch_depth: Option<u32>) -> Step {
     Step {
         name: Some("Checking out the repository".into()),
         uses: Some("actions/checkout@v4".into()),
         with: Some(step::Argument::Checkout {
             repository: None,
-            clean:      Some(false),
+            clean: Some(false),
             submodules: None,
+            fetch_depth,
         }),
         ..default()
     }

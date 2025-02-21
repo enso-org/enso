@@ -38,7 +38,10 @@ public class BuiltinsInvocationTest {
     } catch (PolyglotException e) {
       var panic = e.getGuestObject();
       assertThat("Should be panic", panic.isException());
-      assertThat("Should have Type error as payload", e.getMessage(), containsString("Type error"));
+      assertThat(
+          "Should have Not_Invokable error as payload",
+          e.getMessage(),
+          containsString("Type error"));
     }
   }
 }

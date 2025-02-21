@@ -2,6 +2,7 @@ package org.enso.logging.service;
 
 import java.net.URI;
 import java.nio.file.Path;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.enso.logger.masking.Masking;
@@ -155,6 +156,10 @@ public abstract class LoggingSetupHelper {
   public void waitForSetup() throws InterruptedException, TimeoutException {
     Await.ready(
         loggingServiceEndpointPromise.future(), Duration$.MODULE$.apply(5, TimeUnit.SECONDS));
+  }
+
+  public void tearDown(UUID projectId) {
+    LoggingServiceManager.teardown(projectId);
   }
 
   public void tearDown() {

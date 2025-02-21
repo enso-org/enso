@@ -6,8 +6,8 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.control.ThreadInterruptedException;
-import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Thread",
@@ -19,8 +19,9 @@ public class WithInterruptHandlerNode extends Node {
   private @Child ThunkExecutorNode actExecutorNode = ThunkExecutorNode.build();
   private @Child ThunkExecutorNode handlerExecutorNode = ThunkExecutorNode.build();
 
-  Object execute(
-      VirtualFrame frame, State state, @Suspend Object action, @Suspend Object interrupt_handler) {
+  Object execute(VirtualFrame frame, @Suspend Object action, @Suspend Object interrupt_handler) {
+    var ctx = EnsoContext.get(this);
+    var state = ctx.currentState();
     try {
       return actExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.NOT_TAIL);
     } catch (ThreadInterruptedException e) {
