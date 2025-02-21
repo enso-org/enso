@@ -47,6 +47,18 @@ const flankedCursorCases: FormattableCase[] = [
     italicToggled: 'Some *te|xt*',
   },
   {
+    source: 'Node removal, cursor inside *delimiters|*',
+    italic: true,
+    italicToggled: 'Node removal, cursor inside delimiters|',
+  },
+  {
+    source: 'Node removal, cursor outside *delimiters*|',
+    // FIXME
+    //italic: true,
+    //italicToggled: 'Node removal, cursor outside delimiters|',
+    italicToggled: 'Node removal, cursor outside *delimiters|*',
+  },
+  {
     source: 'Some *|*text**',
     bold: true,
     italicToggled: 'Some **|*text***',
