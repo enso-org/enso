@@ -381,6 +381,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         {repeatTimes.map((dateTime, i) => (
           <Text key={i}>{zonedDateTimeToReadableIsoString(dateTime)}</Text>
         ))}
+        <Text>{getText('ellipsis')}</Text>
       </div>
       {enableAdvancedProjectExecutionOptions && (
         <details className="w-full">
