@@ -8,7 +8,7 @@ import org.enso.interpreter.runtime.EnsoContext;
  * Represents a <em>thread local</em> state associated with execution of the program. Use nodes:
  *
  * <ul>
- *   <li>{@link RunStateNode} to state execution with some state
+*   <li>{@link RunStateNode} to run execution with some state
  *   <li>{@link GetStateNode} to read value in a state
  *   <li>{@link PutStateNode} to change value in a state
  * </ul>
