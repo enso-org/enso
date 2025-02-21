@@ -310,12 +310,32 @@ type Not_Invokable
 
        Arguments:
        - target: The called object.
-    Error target
+       - cause: Additional information about what may have caused the error.
+    Error target cause
 
     ## PRIVATE
        Convert the Not_Invokable error to a human-readable format.
     to_display_text : Text
-    to_display_text self = "Type error: expected a function, but got "+self.target.to_display_text+"."
+    to_display_text self =
+        suffix = case self.cause of
+            Nothing -> ""
+            _ -> " Caused by: "+self.cause.to_display_text
+        "Type error: expected a function, but got "+self.target.to_display_text+"."+suffix
+
+@Builtin_Type
+type No_Such_Argument
+    ## PRIVATE
+       Indicates that an argument was passed by name, but the function being
+       called did not take any argument that matched that name.
+
+       Arguments:
+       - argument_name: The name of the argument that was not found.
+    Error argument_name
+
+    ## PRIVATE
+       Convert the No_Such_Argument error to a human-readable format.
+    to_display_text : Text
+    to_display_text self = "The named argument `"+self.argument_name.to_text+"` did not match any argument names. Perhaps it is misspelled?"
 
 @Builtin_Type
 type Private_Access

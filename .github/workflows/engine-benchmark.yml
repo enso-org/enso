@@ -7,6 +7,10 @@ on:
     - cron: 0 0 * * *
   workflow_dispatch:
     inputs:
+      bench-name:
+        description: Name (regex) of the benchmark to run.
+        required: false
+        type: string
       just-check:
         description: If set, benchmarks will be only checked to run correctly, not to measure actual performance.
         required: true
@@ -68,5 +72,6 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     timeout-minutes: 240
 env:
+  ENSO_BUILD_BENCH_NAME: ${{ inputs.bench-name }}
   ENSO_BUILD_MINIMAL_RUN: ${{ true == inputs.just-check }}
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"

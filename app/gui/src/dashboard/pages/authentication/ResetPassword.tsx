@@ -2,34 +2,37 @@
  * @file Container responsible for rendering and interactions in second half of forgot password
  * flow.
  */
-import * as React from 'react'
 import * as router from 'react-router-dom'
-
-import isEmail from 'validator/lib/isEmail'
 import * as z from 'zod'
 
 import { LOGIN_PATH } from '#/appUtils'
-import ArrowRightIcon from '#/assets/arrow_right.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
-import { Form, Input, Password } from '#/components/AriaComponents'
+import { Button, Form, Input, Password } from '#/components/AriaComponents'
 import Link from '#/components/Link'
+import { Result } from '#/components/Result'
+import { Stepper } from '#/components/Stepper'
+import { useMount } from '#/hooks/mountHooks'
+import { useTimeoutAPI } from '#/hooks/timeoutHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import { useLocalBackend } from '#/providers/BackendProvider'
+import { useSessionAPI } from '#/providers/SessionProvider'
 import { type GetText, useText } from '#/providers/TextProvider'
+import { noop } from '#/utilities/functions'
 import { PASSWORD_REGEX } from '#/utilities/validation'
-import { useSessionAPI } from '../../providers/SessionProvider'
+import { unsafeWriteValue } from '#/utilities/write'
+import { toast } from 'react-toastify'
 
 /** Create the schema for this form. */
 function createResetPasswordFormSchema(getText: GetText) {
   return z
     .object({
-      email: z.string().refine(isEmail, getText('invalidEmailValidationError')),
+      email: z.string().email(getText('invalidEmailValidationError')),
       verificationCode: z.string(),
       newPassword: passwordWithPatternSchema(getText),
-      confirmNewPassword: z.string(),
+      confirmNewPassword: z.string().trim(),
     })
     .superRefine((object, context) => {
       if (
@@ -45,6 +48,8 @@ function createResetPasswordFormSchema(getText: GetText) {
     })
 }
 
+const REDIRECT_TIMEOUT = 3000
+
 // =====================
 // === ResetPassword ===
 // =====================
@@ -53,25 +58,33 @@ function createResetPasswordFormSchema(getText: GetText) {
 export default function ResetPassword() {
   const { resetPassword } = useSessionAPI()
   const { getText } = useText()
-  const location = router.useLocation()
   const navigate = router.useNavigate()
+
+  const [searchParams] = router.useSearchParams()
+
   const toastAndLog = useToastAndLog()
   const localBackend = useLocalBackend()
   const supportsOffline = localBackend != null
 
-  const query = new URLSearchParams(location.search)
-  const defaultEmail = query.get('email')
-  const defaultVerificationCode = query.get('verification_code')
+  const defaultEmail = searchParams.get('email')
+  const defaultVerificationCode = searchParams.get('verification_code')
+  const redirectUrl = searchParams.get('redirect_url') ?? 'enso://auth/login'
 
-  React.useEffect(() => {
+  const { startTimer } = useTimeoutAPI({ ms: REDIRECT_TIMEOUT })
+
+  useMount(() => {
     if (defaultEmail == null) {
       toastAndLog('missingEmailError')
       navigate(LOGIN_PATH)
-    } else if (defaultVerificationCode == null) {
+    }
+
+    if (defaultVerificationCode == null) {
       toastAndLog('missingVerificationCodeError')
       navigate(LOGIN_PATH)
     }
-  }, [defaultEmail, navigate, defaultVerificationCode, getText, toastAndLog])
+  })
+
+  const { stepperState } = Stepper.useStepperState({ steps: 2, defaultStep: 0 })
 
   return (
     <AuthenticationPage
@@ -87,57 +100,87 @@ export default function ResetPassword() {
       }
       onSubmit={({ email, verificationCode, newPassword }) =>
         resetPassword(email, verificationCode, newPassword).then(() => {
-          navigate(LOGIN_PATH)
+          toast.success(getText('resetPasswordSuccess'))
+
+          stepperState.nextStep()
+
+          void startTimer()
+            .then(() => {
+              unsafeWriteValue(window.location, 'href', redirectUrl)
+            })
+            .catch(noop)
         })
       }
     >
-      <Input
-        required
-        readOnly
-        hidden
-        data-testid="email-input"
-        name="email"
-        type="email"
-        autoComplete="email"
-        placeholder={getText('emailPlaceholder')}
-        value={defaultEmail ?? ''}
-      />
-      <Input
-        required
-        readOnly
-        hidden
-        data-testid="verification-code-input"
-        name="verificationCode"
-        type="text"
-        autoComplete="one-time-code"
-        placeholder={getText('confirmationCodePlaceholder')}
-        value={defaultVerificationCode ?? ''}
-      />
-      <Password
-        autoFocus
-        required
-        data-testid="new-password-input"
-        name="newPassword"
-        label={getText('newPasswordLabel')}
-        autoComplete="new-password"
-        icon={LockIcon}
-        placeholder={getText('newPasswordPlaceholder')}
-        description={getText('passwordValidationMessage')}
-      />
-      <Password
-        required
-        data-testid="confirm-new-password-input"
-        name="confirmNewPassword"
-        label={getText('confirmNewPasswordLabel')}
-        autoComplete="new-password"
-        icon={LockIcon}
-        placeholder={getText('confirmNewPasswordPlaceholder')}
-      />
+      <Stepper state={stepperState}>
+        <Stepper.StepContent index={0}>
+          <Input
+            required
+            readOnly
+            hidden
+            data-testid="email-input"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder={getText('emailPlaceholder')}
+            value={defaultEmail ?? ''}
+          />
 
-      <Form.FormError />
-      <Form.Submit size="large" icon={ArrowRightIcon} className="w-full">
-        {getText('reset')}
-      </Form.Submit>
+          <Input
+            required
+            readOnly
+            hidden
+            data-testid="verification-code-input"
+            name="verificationCode"
+            type="text"
+            autoComplete="one-time-code"
+            placeholder={getText('confirmationCodePlaceholder')}
+            value={defaultVerificationCode ?? ''}
+          />
+
+          <Password
+            autoFocus
+            required
+            data-testid="new-password-input"
+            name="newPassword"
+            label={getText('newPasswordLabel')}
+            autoComplete="new-password"
+            icon={LockIcon}
+            placeholder={getText('newPasswordPlaceholder')}
+            description={getText('passwordValidationMessage')}
+          />
+
+          <Password
+            required
+            data-testid="confirm-new-password-input"
+            name="confirmNewPassword"
+            label={getText('confirmNewPasswordLabel')}
+            autoComplete="new-password"
+            icon={LockIcon}
+            placeholder={getText('confirmNewPasswordPlaceholder')}
+          />
+
+          <Form.Submit size="large" icon="arrow_right" fullWidth>
+            {getText('reset')}
+          </Form.Submit>
+
+          <Form.FormError />
+        </Stepper.StepContent>
+
+        <Stepper.StepContent index={1}>
+          <Result
+            title={getText('resetPasswordSuccess')}
+            status="success"
+            subtitle={getText('resetPasswordSuccessSubtitle')}
+          >
+            <Button.Group align="center">
+              <Button href={redirectUrl} size="large" variant="submit" icon="arrow_right" fullWidth>
+                {getText('openInDesktop')}
+              </Button>
+            </Button.Group>
+          </Result>
+        </Stepper.StepContent>
+      </Stepper>
     </AuthenticationPage>
   )
 }

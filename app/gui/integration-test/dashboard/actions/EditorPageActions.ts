@@ -14,4 +14,19 @@ export default class EditorPageActions<Context> extends PageActions<Context> {
       await this.page.waitForSelector('[data-testid=editor]', { state: 'visible' })
     })
   }
+
+  /**
+   * Close all toast notifications.
+   */
+  closeToastNotifications() {
+    return this.step('close toast notifications', async () => {
+      await Promise.all(
+        await this.page
+          .locator('.Toastify__toast')
+          .getByRole('button')
+          .all()
+          .then((buttons) => buttons.map((button) => button.click())),
+      )
+    })
+  }
 }

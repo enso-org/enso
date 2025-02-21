@@ -1,6 +1,7 @@
 package org.enso.table.data.column.storage.type;
 
 import org.enso.base.Text_Utils;
+import org.enso.table.data.column.storage.ColumnStorage;
 
 public record TextType(long maxLength, boolean fixedLength) implements StorageType {
   public TextType {
@@ -117,5 +118,14 @@ public record TextType(long maxLength, boolean fixedLength) implements StorageTy
     }
 
     return new TextType(lengthSum, bothFixed);
+  }
+
+  public ColumnStorage<String> asTypedStorage(ColumnStorage<?> storage) {
+    if (storage.getType() instanceof TextType) {
+      @SuppressWarnings("unchecked")
+      var output = (ColumnStorage<String>) storage;
+      return output;
+    }
+    throw new IllegalArgumentException("Storage is not of TextType");
   }
 }
