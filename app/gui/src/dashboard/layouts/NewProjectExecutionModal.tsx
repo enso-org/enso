@@ -317,7 +317,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         name="timeZone"
         label={getText('timeZoneLabel')}
         items={WHITELISTED_TIME_ZONES}
-        className="w-60"
+        className="w-full"
       >
         {(otherTimeZone) => {
           const offsetMin = toZoned(date, otherTimeZone).offset / MINUTE_MS
@@ -338,7 +338,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         hideTimeZone
         label={getText('firstOccurrenceLabel')}
         minValue={minFirstOccurrence}
-        className="w-60"
+        className="w-full"
       />
       <FormDropdown
         form={form}
@@ -347,7 +347,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         label={getText('repeatIntervalLabel')}
         items={validRepeatTypes}
         size="medium"
-        className="w-60"
+        className="w-full"
       >
         {({ item: otherItem }) => repeatText(otherItem)}
       </FormDropdown>
