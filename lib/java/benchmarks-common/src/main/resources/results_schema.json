@@ -22,7 +22,7 @@
           "description": "Operating system architecture, as reported by the `os.arch` system property"
         },
         "osVersion": {
-          "type": "number"
+          "type": "string"
         },
         "vmName": {
           "type": "string",
