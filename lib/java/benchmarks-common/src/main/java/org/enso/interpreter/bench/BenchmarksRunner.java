@@ -75,6 +75,12 @@ public class BenchmarksRunner {
 
       Collection<RunResult> results;
       results = jmhRunner.run();
+      if (results.isEmpty()) {
+        System.err.println(
+            "No results from the JMH runner. This means that either "
+                + "no benchmarks were run, or an error occurred.");
+        System.exit(1);
+      }
 
       for (RunResult result : results) {
         try {
