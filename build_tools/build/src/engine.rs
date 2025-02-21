@@ -159,13 +159,15 @@ impl Benchmarks {
         match &self.bench_type {
             BenchmarkType::All => Some("bench".to_string()),
             BenchmarkType::Runtime => match &self.bench_name {
-                None => Some("runtime-benchmarks/bench".to_string()),
-                Some(name) => Some(format!("runtime-benchmarks/benchOnly {}", name)),
+                Some(name) if !name.is_empty() =>
+                    Some(format!("runtime-benchmarks/benchOnly {}", name)),
+                _ => Some("runtime-benchmarks/bench".to_string()),
             },
             BenchmarkType::Enso => None,
             BenchmarkType::EnsoJMH => match &self.bench_name {
-                None => Some("std-benchmarks/bench".to_string()),
-                Some(name) => Some(format!("std-benchmarks/benchOnly {}", name)),
+                Some(name) if !name.is_empty() =>
+                    Some(format!("std-benchmarks/benchOnly {}", name)),
+                _ => Some("std-benchmarks/bench".to_string()),
             },
         }
     }

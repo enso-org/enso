@@ -5,10 +5,12 @@ export default {
 </script>
 
 <script setup lang="ts">
+import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useBackend } from '@/composables/backend'
+import { Action } from '@/providers/action'
 import { injectBackend } from '@/providers/backend'
 import { assert } from '@/util/assert'
 import type { ToValue } from '@/util/reactivity'
@@ -167,21 +169,29 @@ const currentFilePath = computed(
 // === Creating and Renaming Directories ===
 
 const editedAsset = ref<{
-  asset: Directory | typeof newDirPlaceholder
+  asset?: Directory
   name: string
   state: 'editing' | 'pending' | 'just created'
   createdId?: DirectoryId
 }>()
+
+// Don't await invalidates, because we want `createDirectory` to return first, to fill
+// `keyOverride` property before getting update from backend.
 const createDir = mutation('createDirectory', { meta: { awaitInvalidates: false } })
 const updateDir = mutation('updateDirectory')
 
 function addNewDirectory() {
   assert(editedAsset.value == null)
   keyOverride.set(newDirPlaceholder, nextKeyForNewDir++)
-  editedAsset.value = { asset: newDirPlaceholder, name: 'New Folder', state: 'editing' }
+  editedAsset.value = { name: 'New Folder', state: 'editing' }
 }
 
-function acceptName(name: string, actionDescription: string) {
+function renameDirectory(dir: DirectoryAsset) {
+  assert(editedAsset.value == null)
+  editedAsset.value = { asset: dir, name: dir.title, state: 'editing' }
+}
+
+async function acceptName(name: string) {
   if (editedAsset.value?.state !== 'editing') {
     console.error('Accepting edited name without editing')
     return
@@ -194,37 +204,53 @@ function acceptName(name: string, actionDescription: string) {
     console.error('Cannot rename directory without parentId')
     return
   }
-  const requestBody = { title: edited.name, parentId }
   const action =
-    edited.asset === newDirPlaceholder ?
-      createDir.mutateAsync([requestBody, false])
-    : updateDir.mutateAsync([edited.asset.id, requestBody, edited.asset.title])
-  action
-    .then((result) => {
+    edited.asset == null ? createDir.mutateAsync([{ title: edited.name, parentId }, false])
+    : edited.asset.title != edited.name ?
+      updateDir.mutateAsync([edited.asset.id, { title: edited.name }, edited.asset.title])
+    : Promise.resolve(undefined)
+  action.then(
+    (result) => {
       assert(edited === editedAsset.value)
-      if (result?.id) {
-        editedAsset.value.createdId = result.id
-        editedAsset.value.state = 'just created'
+      // Editing existing asset does not require 'just created' state, because we await
+      // invalidates there
+      if (edited.asset == null && result != null) {
+        edited.createdId = result.id
+        edited.state = 'just created'
         const key = keyOverride.get(newDirPlaceholder)
         if (key != null) {
           keyOverride.set(result.id, key)
         }
+      } else {
+        editedAsset.value = undefined
       }
-    })
-    .catch((error) => {
+    },
+    (error) => {
+      const actionDescription = edited.asset == null ? 'create folder' : 'rename folder'
       errorToast.show(`Failed to ${actionDescription}: ${error}`)
       editedAsset.value = undefined
-    })
+    },
+  )
 }
 
 watch(
   directories,
   (dirs) => {
-    // Remove placeholder once received an actual directory.
-    if (dirs?.find((dir) => dir.id === editedAsset.value?.createdId)) editedAsset.value = undefined
+    // Finish editing once received an updated directory.
+    if (dirs?.find((dir) => dir.id === editedAsset.value?.createdId)) {
+      editedAsset.value = undefined
+    }
   },
   { flush: 'sync' },
 )
+// Currently, the only way to "focus" on an element is by context menu.
+const focusedDirectory = ref<DirectoryAsset>()
+const renameAction: Action = {
+  icon: 'edit',
+  description: 'Rename directory',
+  disabled: computed(() => focusedDirectory.value == null || editedAsset.value != null),
+  action: () => focusedDirectory.value && renameDirectory(focusedDirectory.value),
+}
 
 // === Initialization ===
 
@@ -289,32 +315,35 @@ onMounted(() => {
     <div v-else-if="anyError" class="centerContent contents">Error: {{ anyError }}</div>
     <div v-else-if="isEmpty" class="centerContent contents">Directory is empty</div>
     <div v-else :key="currentDirectory?.id ?? 'root'" class="listing contents">
-      <TransitionGroup>
-        <FileBrowserEntry
-          v-if="editedAsset?.asset === newDirPlaceholder"
-          :key="keyOverride.get(newDirPlaceholder) ?? newDirPlaceholder"
-          icon="folder"
-          :title="editedAsset.name"
-          :editingState="editedAsset.state"
-          @nameAccepted="acceptName($event, 'create folder')"
-        />
-        <FileBrowserEntry
-          v-for="entry in directories"
-          :key="keyOverride.get(entry.id) ?? entry.id"
-          icon="folder"
-          :title="editedAsset?.asset === entry ? editedAsset.name : entry.title"
-          :editingState="editedAsset?.asset === entry ? editedAsset.state : undefined"
-          @click="enterDir(entry)"
-          @nameAccepted="acceptName($event, 'rename folder')"
-        />
-        <FileBrowserEntry
-          v-for="entry in files"
-          :key="entry.id"
-          icon="text2"
-          :title="entry.title"
-          @click="chooseFile(entry)"
-        />
-      </TransitionGroup>
+      <ContextMenuTrigger :actions="[renameAction]" @hidden="focusedDirectory = undefined">
+        <TransitionGroup>
+          <FileBrowserEntry
+            v-if="editedAsset && editedAsset.asset == null"
+            :key="keyOverride.get(newDirPlaceholder) ?? newDirPlaceholder"
+            icon="folder"
+            :title="editedAsset.name"
+            :editingState="editedAsset.state"
+            @nameAccepted="acceptName($event)"
+          />
+          <FileBrowserEntry
+            v-for="entry in directories"
+            :key="keyOverride.get(entry.id) ?? entry.id"
+            icon="folder"
+            :title="editedAsset?.asset?.id === entry.id ? editedAsset.name : entry.title"
+            :editingState="editedAsset?.asset?.id === entry.id ? editedAsset.state : undefined"
+            @click="enterDir(entry)"
+            @nameAccepted="acceptName($event)"
+            @contextmenu="focusedDirectory = entry"
+          />
+          <FileBrowserEntry
+            v-for="entry in files"
+            :key="entry.id"
+            icon="text2"
+            :title="entry.title"
+            @click="chooseFile(entry)"
+          />
+        </TransitionGroup>
+      </ContextMenuTrigger>
     </div>
     <div v-if="writeMode" class="fileNameBar">
       <input

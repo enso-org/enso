@@ -38,7 +38,7 @@ GREATER_THAN : '>';
 WHITESPACE : [ \t\r\n]+ -> skip;
 
 REGEX_LITERAL : 'r/' REGEX_BODY '/' ;
-fragment REGEX_BODY : (~[/\r\n])+ ; // Match everything except '/' and newlines
+fragment REGEX_BODY : ( '\\/' | ~[/\r\n] )+ ; 
 
 fragment A:[aA];
 fragment B:[bB];
