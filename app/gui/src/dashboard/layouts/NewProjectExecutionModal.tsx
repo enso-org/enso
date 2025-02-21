@@ -1,14 +1,7 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as z from 'zod'
 
-import {
-  endOfMonth,
-  getLocalTimeZone,
-  now,
-  parseZonedDateTime,
-  toZoned,
-  ZonedDateTime,
-} from '@internationalized/date'
+import { endOfMonth, getLocalTimeZone, now, toZoned, ZonedDateTime } from '@internationalized/date'
 import { useMutation } from '@tanstack/react-query'
 
 import type Backend from '#/services/Backend'
@@ -120,9 +113,7 @@ const UPSERT_EXECUTION_SCHEMA = z
       timeZone,
     }): ProjectExecutionInfo => {
       startDate ??= now(timeZone)
-      const startDateTime = toRfc3339(
-        parseZonedDateTime(startDate.toAbsoluteString().replace(/Z$/, `[${timeZone}]`)).toDate(),
-      )
+      const startDateTime = toRfc3339(new Date(startDate.toAbsoluteString()))
       const repeat = ((): ProjectExecutionRepeatInfo => {
         switch (repeatType) {
           case 'none': {
@@ -278,10 +269,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
     if (!projectExecution) {
       return []
     }
-    let nextDate: ZonedDateTime | null = firstProjectExecutionOnOrAfter(
-      projectExecution,
-      toZoned(date, formTimeZone),
-    )
+    let nextDate: ZonedDateTime | null = firstProjectExecutionOnOrAfter(projectExecution, date)
     const dates = [nextDate]
     nextDate = nextProjectExecutionDate(projectExecution, nextDate)
     while (nextDate && dates.length < REPEAT_TIMES_COUNT) {
