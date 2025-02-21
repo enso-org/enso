@@ -31,7 +31,6 @@ import org.openjdk.jmh.runner.options.TimeValue;
 /** Runner class for the benchmarks. Discovers, runs and reports benchmark results. */
 public class BenchmarksRunner {
   private final File resultsFile;
-  private static final String schemaFileName = "results_schema.json";
   private static final URI SCHEMA_URI =
       URI.create(
           "https://raw.githubusercontent.com/enso-org/enso/97f204bf1627cfba84f21b16660567982b1477b5/lib/java/benchmarks-common/src/main/resources/results_schema.json");
@@ -147,21 +146,19 @@ public class BenchmarksRunner {
     var schemaFactory = JsonSchemaFactory.getInstance(VersionFlag.V7);
     var mapper = new ObjectMapper();
     var resultsJson = mapper.readTree(resultsFile);
-    try (var schemaStream = getClass().getClassLoader().getResourceAsStream(schemaFileName)) {
-      var schema = schemaFactory.getSchema(schemaStream);
-      var validationMsgs = schema.validate(resultsJson);
-      if (!validationMsgs.isEmpty()) {
-        System.err.println(
-            "Schema validation of "
-                + resultsFile.getAbsolutePath()
-                + " failed. "
-                + "Used schema: "
-                + schema.getSchemaLocation());
-        for (var validationMsg : validationMsgs) {
-          System.err.println("  " + validationMsg);
-        }
-        System.exit(1);
+    var schema = schemaFactory.getSchema(SCHEMA_URI);
+    var validationMsgs = schema.validate(resultsJson);
+    if (!validationMsgs.isEmpty()) {
+      System.err.println(
+          "Schema validation of "
+              + resultsFile.getAbsolutePath()
+              + " failed. "
+              + "Used schema: "
+              + schema.getSchemaLocation());
+      for (var validationMsg : validationMsgs) {
+        System.err.println("  " + validationMsg);
       }
+      System.exit(1);
     }
   }
 
