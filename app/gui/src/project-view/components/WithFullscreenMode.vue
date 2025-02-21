@@ -1,7 +1,6 @@
 <script setup lang="ts">
 /** @file Provides a fullscreen mode to its slot, based on conditional teleport and conditional styling. */
 
-import { useGraphEditorLayers } from '@/providers/graphEditorLayers'
 import { Rect } from '@/util/data/rect'
 import { computed, ref, toRef, watch } from 'vue'
 
@@ -43,8 +42,6 @@ const emit = defineEmits<{
 
 const content = ref<HTMLElement>()
 
-const { fullscreen: fullscreenContainer } = useGraphEditorLayers()
-
 const fullscreenSize: Keyframe = {
   top: 0,
   left: 0,
@@ -68,27 +65,25 @@ function animate(start: Keyframe, end: Keyframe) {
   )
 }
 
-watch(
-  [toRef(props, 'fullscreen'), content, fullscreenContainer],
-  ([fullscreen, el, fullscreenContainer]) => {
-    if (!el || !fullscreenContainer) return
-    const container = fullscreenContainer.getBoundingClientRect()
-    if (fullscreen && !savedSize.value) {
-      const inner = Rect.FromDomRect(el.getBoundingClientRect())
-      const startSize = {
-        top: `${inner.top - container.top}px`,
-        left: `${inner.left - container.left}px`,
-        height: `${inner.height}px`,
-        width: `${inner.width}px`,
-      }
-      animate(startSize, fullscreenSize)
-      savedSize.value = startSize
-    } else if (!fullscreen && savedSize.value) {
-      animate(fullscreenSize, savedSize.value)
-      savedSize.value = undefined
+watch([toRef(props, 'fullscreen'), content], ([fullscreen, el]) => {
+  const fullscreenContainer = document.getElementById('graphEditorRoot')
+  if (!el || !fullscreenContainer) return
+  const container = fullscreenContainer.getBoundingClientRect()
+  if (fullscreen && !savedSize.value) {
+    const inner = Rect.FromDomRect(el.getBoundingClientRect())
+    const startSize = {
+      top: `${inner.top - container.top}px`,
+      left: `${inner.left - container.left}px`,
+      height: `${inner.height}px`,
+      width: `${inner.width}px`,
     }
-  },
-)
+    animate(startSize, fullscreenSize)
+    savedSize.value = startSize
+  } else if (!fullscreen && savedSize.value) {
+    animate(fullscreenSize, savedSize.value)
+    savedSize.value = undefined
+  }
+})
 
 const active = computed(() => props.fullscreen || animating.value)
 </script>
@@ -97,7 +92,7 @@ const active = computed(() => props.fullscreen || animating.value)
 or used with `unrefElement`. -->
 <template>
   <div class="WithFullscreenMode fullsize">
-    <Teleport defer :disabled="!active" :to="fullscreenContainer">
+    <Teleport defer :disabled="!active" to="#graphEditorRoot">
       <div ref="content" class="fullsize" :class="{ active }">
         <slot />
       </div>

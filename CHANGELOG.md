@@ -28,6 +28,8 @@
   components][12275]
 - [In the documentation panel, text can now be made bold or italic using
   buttons][12341]
+- [Cloud File Browser allows renaming existing directories in "writing"
+  components][12323]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -46,6 +48,7 @@
 [12217]: https://github.com/enso-org/enso/pull/12217
 [12275]: https://github.com/enso-org/enso/pull/12275
 [12341]: https://github.com/enso-org/enso/pull/12341
+[12323]: https://github.com/enso-org/enso/pull/12323
 
 #### Enso Standard Library
 
