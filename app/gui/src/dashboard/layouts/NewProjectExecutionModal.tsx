@@ -42,6 +42,7 @@ import {
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useGetOrdinal } from '#/hooks/ordinalHooks'
+import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
@@ -65,7 +66,7 @@ import {
   WHITELISTED_TIME_ZONES,
   zonedDateTimeToReadableIsoString,
 } from 'enso-common/src/utilities/data/dateTime'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 // This is a SAFE upcast.
 // eslint-disable-next-line no-restricted-syntax
@@ -214,7 +215,8 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   )
   const valueJson = useRef('')
 
-  const minFirstOccurrence = now('UTC')
+  // Only initialize `minFirstOccurrence` once.
+  const [minFirstOccurrence] = useState(() => now(timeZone))
   const defaultStartDate = defaultDate ?? minFirstOccurrence
   const form = Form.useForm({
     method: 'dialog',
@@ -246,15 +248,22 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       PROJECT_EXECUTION_REPEAT_TYPES.filter((type) => type !== 'monthlyLastWeekday')
     : PROJECT_EXECUTION_REPEAT_TYPES
 
+  const changeTimezoneDeps = useSyncRef({ date, form })
   useEffect(() => {
-    if (onChange) {
-      const parsed = form.schema.safeParse(form.getValues())
-      if (parsed.success) {
-        const newJson = JSON.stringify(parsed)
-        if (newJson !== valueJson.current) {
-          onChange(parsed.data)
-          valueJson.current = newJson
-        }
+    const deps = changeTimezoneDeps.current
+    deps.form.setValue('startDate', toZoned(deps.date, formTimeZone))
+  }, [formTimeZone, changeTimezoneDeps])
+
+  useEffect(() => {
+    if (!onChange) {
+      return
+    }
+    const parsed = form.schema.safeParse(form.getValues())
+    if (parsed.success) {
+      const newJson = JSON.stringify(parsed)
+      if (newJson !== valueJson.current) {
+        onChange(parsed.data)
+        valueJson.current = newJson
       }
     }
   })
