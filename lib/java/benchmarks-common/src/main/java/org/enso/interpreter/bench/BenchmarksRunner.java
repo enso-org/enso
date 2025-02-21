@@ -150,11 +150,17 @@ public class BenchmarksRunner {
     try (var schemaStream = getClass().getClassLoader().getResourceAsStream(schemaFileName)) {
       var schema = schemaFactory.getSchema(schemaStream);
       var validationMsgs = schema.validate(resultsJson);
-      for (var validationMsg : validationMsgs) {
-        if (!validationMsg.isValid()) {
-          System.err.println("Schema validation failed: " + validationMsg);
-          System.exit(1);
+      if (!validationMsgs.isEmpty()) {
+        System.err.println(
+            "Schema validation of "
+                + resultsFile.getAbsolutePath()
+                + " failed. "
+                + "Used schema: "
+                + schema.getSchemaLocation());
+        for (var validationMsg : validationMsgs) {
+          System.err.println("  " + validationMsg);
         }
+        System.exit(1);
       }
     }
   }
