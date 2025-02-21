@@ -7,6 +7,7 @@ import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.NullType;
 
 public abstract class GenericComparators<T> implements Comparators {
   protected final BiPredicate<T, T> comparator;
@@ -30,7 +31,7 @@ public abstract class GenericComparators<T> implements Comparators {
 
   @Override
   public ColumnStorage<Boolean> applyMap(ColumnStorage<?> left, Object rightValue) {
-    if (rightValue == null) {
+    if (left.getType() instanceof NullType || rightValue == null) {
       return BoolStorage.makeEmpty(left.getSize());
     }
 
@@ -60,11 +61,16 @@ public abstract class GenericComparators<T> implements Comparators {
   }
 
   @Override
-  public abstract boolean canApply(ColumnStorage<?> left, ColumnStorage<?> right);
+  public abstract boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right);
 
   @Override
-  public ColumnStorage<Boolean> apply(ColumnStorage<?> left, ColumnStorage<?> right) {
-    assert canApply(left, right);
+  public ColumnStorage<Boolean> applyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
+    if (left.getType() instanceof NullType || right.getType() instanceof NullType) {
+      var size = Math.max(left.getSize(), right.getSize());
+      return BoolStorage.makeEmpty(size);
+    }
+
+    assert canApplyZip(left, right);
 
     var typedLeft = asTypedStorage(left);
     if (right.getType() instanceof AnyObjectType) {

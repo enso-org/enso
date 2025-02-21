@@ -46,7 +46,7 @@ public final class DateTimeComparators extends GenericComparators<ZonedDateTime>
   }
 
   @Override
-  public boolean canApply(ColumnStorage<?> left, ColumnStorage<?> right) {
+  public boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
     return left.getType() instanceof DateTimeType
         && (right.getType() instanceof DateTimeType || right.getType() instanceof AnyObjectType);
   }

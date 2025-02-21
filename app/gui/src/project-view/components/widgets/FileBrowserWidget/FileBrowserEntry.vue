@@ -39,6 +39,13 @@ watch(input, (newInput) => {
       v-model="currentTitle"
       @blur="emit('nameAccepted', currentTitle)"
       @keydown.enter.stop="input?.blur()"
+      @pointerdown.stop
+      @click.stop
+      @contextmenu.stop
+      @keydown.backspace.stop
+      @keydown.delete.stop
+      @keydown.arrow-left.stop
+      @keydown.arrow-right.stop
     />
     <div v-else>{{ title }}</div>
   </div>
