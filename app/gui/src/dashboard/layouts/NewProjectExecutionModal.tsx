@@ -55,9 +55,8 @@ import {
   DAYS,
   DAYS_PER_WEEK,
   getDay,
+  getTimeZoneOffsetStringWithGMT,
   getWeekOfMonth,
-  HOUR_MINUTES,
-  MINUTE_MS,
   MONTH_3_LETTER_TEXT_IDS,
   MONTHS,
   MONTHS_PER_YEAR,
@@ -317,17 +316,17 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         name="timeZone"
         label={getText('timeZoneLabel')}
         items={WHITELISTED_TIME_ZONES}
+        addonStart={
+          <Text className="w-20">{getTimeZoneOffsetStringWithGMT(toZoned(date, timeZone))}</Text>
+        }
+        toTextValue={(otherTimeZone) => otherTimeZone}
         className="w-full"
       >
         {(otherTimeZone) => {
-          const offsetMin = toZoned(date, otherTimeZone).offset / MINUTE_MS
-          const offsetNegative = offsetMin < 0
-          const absoluteOffsetMin = Math.abs(offsetMin)
-          const offsetHours = Math.floor(absoluteOffsetMin / HOUR_MINUTES)
-          const offsetMinutes = absoluteOffsetMin % HOUR_MINUTES
+          const timezoneOffsetString = getTimeZoneOffsetStringWithGMT(toZoned(date, otherTimeZone))
           const description =
             WHITELISTED_TIME_ZONE_MAP.get(otherTimeZone)?.timeZone ?? otherTimeZone
-          return `(GMT${offsetNegative ? '-' : '+'}${`${offsetHours}`.padStart(2, '0')}:${`${offsetMinutes}`.padStart(2, '0')}) ${description}`
+          return `${timezoneOffsetString} ${description}`
         }}
       </ComboBox>
       <DatePicker

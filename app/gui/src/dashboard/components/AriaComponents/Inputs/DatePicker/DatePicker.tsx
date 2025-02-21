@@ -57,7 +57,7 @@ const DATE_PICKER_STYLES = tv({
   },
   slots: {
     inputContainer: 'flex items-center gap-2 rounded-full border-0.5 border-primary/20',
-    dateInput: 'flex justify-center grow order-2',
+    dateInput: 'flex justify-start grow order-2',
     dateSegment: 'rounded placeholder-shown:text-primary/30 focus:bg-primary/10 px-[0.5px]',
     calendarButton: 'order-1 rotate-90',
     resetButton: '',
@@ -187,7 +187,7 @@ export const DatePicker = forwardRef(function DatePicker<
               {!noResetButton && <DatePickerResetButton className={styles.resetButton()} />}
             </Group>
             {props.description != null && <Text slot="description" />}
-            <Popover size="auto" placement="bottom" className={styles.calendarPopover()}>
+            <Popover size="auto" className={styles.calendarPopover()}>
               <Dialog className={styles.calendarDialog()}>
                 <Calendar className={styles.calendarContainer()}>
                   <header className={styles.calendarHeader()}>

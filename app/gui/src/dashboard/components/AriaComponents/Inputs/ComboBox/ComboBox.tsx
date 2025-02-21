@@ -1,5 +1,5 @@
 /** @file A combo box with a list of items that can be filtered. */
-import { useContext, type ForwardedRef } from 'react'
+import { useContext, useRef, type ForwardedRef } from 'react'
 
 import CrossIcon from '#/assets/cross.svg'
 import ArrowIcon from '#/assets/folder_arrow.svg'
@@ -29,8 +29,6 @@ import { useText } from '#/providers/TextProvider'
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
-
-const POPOVER_CROSS_OFFSET_PX = -32
 
 const COMBO_BOX_STYLES = tv({
   base: 'w-full',
@@ -73,7 +71,7 @@ export interface ComboBoxProps<Schema extends TSchema, TFieldName extends FieldP
     FieldProps,
     Pick<FieldComponentProps<Schema>, 'className' | 'style'>,
     VariantProps<typeof COMBO_BOX_STYLES>,
-    Pick<InputProps<Schema, TFieldName, string>, 'placeholder'> {
+    Pick<InputProps<Schema, TFieldName, string>, 'addonEnd' | 'addonStart' | 'placeholder'> {
   /** This may change as the user types in the input. */
   readonly items: readonly FieldValues<Schema>[TFieldName][]
   /** A text representation of the item to be shown on each option. */
@@ -82,7 +80,7 @@ export interface ComboBoxProps<Schema extends TSchema, TFieldName extends FieldP
    * Convert an item to a unique text id, if the default text format returned by
    * `children` is not guaranteed (or not supposed) to be unique.
    */
-  readonly toId?: (item: FieldValues<Schema>[TFieldName]) => string
+  readonly toTextValue?: (item: FieldValues<Schema>[TFieldName]) => string
   /** Hide the `x` button to disable resetting the input. */
   readonly noResetButton?: boolean
 }
@@ -102,6 +100,8 @@ export const ComboBox = forwardRef(function ComboBox<
     isDisabled,
     form,
     defaultValue,
+    defaultInputValue,
+    defaultSelectedKey,
     label,
     isRequired,
     className,
@@ -109,14 +109,17 @@ export const ComboBox = forwardRef(function ComboBox<
     size,
     rounded,
     children,
-    toId,
+    toTextValue,
     noResetButton = false,
     variants = COMBO_BOX_STYLES,
+    addonStart,
+    addonEnd,
   } = props
   const itemsAreStrings = typeof items[0] === 'string'
   const effectiveItems = itemsAreStrings ? items.map((id) => ({ id })) : items
-  const toIdOrText = toId ?? children
-  const reverseMapping = new Map(items.map((item) => [toIdOrText(item), item]))
+  const toTextValueOrText = toTextValue ?? children
+  const reverseMapping = new Map(items.map((item) => [toTextValueOrText(item), item]))
+  const popoverTriggerRef = useRef<HTMLDivElement>(null)
 
   const { fieldState, formInstance } = useStringField({
     name,
@@ -145,57 +148,59 @@ export const ComboBox = forwardRef(function ComboBox<
       <Form.Controller
         control={formInstance.control}
         name={name}
-        render={(renderProps) => {
-          return (
-            <AriaComboBox
-              aria-label={props['aria-label'] ?? 'Combo box'}
-              className={styles.base({ className })}
-              // @ts-expect-error Items must not be strings; this is a limitation of `react-aria`.
-              defaultItems={effectiveItems}
-              {...renderProps.field}
-              defaultInputValue={renderProps.field.value}
-              onSelectionChange={(key) => {
-                renderProps.field.onChange(typeof key === 'string' ? reverseMapping.get(key) : null)
-              }}
-            >
-              <div className={styles.inputContainer()}>
-                <Button variant="icon" icon={ArrowIcon} className="rotate-90" />
-                <UncontrolledInput
-                  name={name}
-                  placeholder={placeholder}
-                  size="custom"
-                  variant="custom"
-                />
-                {!noResetButton && <ComboBoxResetButton className={styles.resetButton()} />}
-              </div>
-              <Popover crossOffset={POPOVER_CROSS_OFFSET_PX} className={styles.popover()}>
-                <ListBox
-                  aria-label={props['aria-label'] ?? 'Combo box'}
-                  className={styles.listBox()}
-                >
-                  {(item) => {
-                    // eslint-disable-next-line no-restricted-syntax
-                    const fieldValue = (
-                      itemsAreStrings ?
-                        // @ts-expect-error When items are strings, they are mapped to
-                        // `{ id: item }`.
-                        item.id
-                      : item) as FieldValues<Schema>[TFieldName]
-                    const text = children(fieldValue)
-                    const id = toId?.(fieldValue) ?? text
-                    return (
-                      <ListBoxItem id={id} textValue={text} className={styles.listBoxItem()}>
-                        <Text truncate="1" className="w-full" tooltipPlacement="left">
-                          {text}
-                        </Text>
-                      </ListBoxItem>
-                    )
-                  }}
-                </ListBox>
-              </Popover>
-            </AriaComboBox>
-          )
-        }}
+        render={(renderProps) => (
+          <AriaComboBox
+            aria-label={props['aria-label'] ?? 'Combo box'}
+            className={styles.base({ className })}
+            // @ts-expect-error Items must not be strings; this is a limitation of `react-aria`.
+            defaultItems={effectiveItems}
+            {...renderProps.field}
+            defaultInputValue={defaultInputValue}
+            defaultSelectedKey={defaultSelectedKey ?? renderProps.field.value}
+            onSelectionChange={(key) => {
+              renderProps.field.onChange(typeof key === 'string' ? reverseMapping.get(key) : null)
+            }}
+          >
+            <div ref={popoverTriggerRef} className={styles.inputContainer()}>
+              <Button variant="icon" icon={ArrowIcon} className="rotate-90" />
+              <UncontrolledInput
+                name={name}
+                placeholder={placeholder}
+                addonStart={addonStart}
+                addonEnd={addonEnd}
+                size="custom"
+                variant="custom"
+              />
+              {!noResetButton && <ComboBoxResetButton className={styles.resetButton()} />}
+            </div>
+            <Popover triggerRef={popoverTriggerRef} className={styles.popover()}>
+              <ListBox aria-label={props['aria-label'] ?? 'Combo box'} className={styles.listBox()}>
+                {(item) => {
+                  // eslint-disable-next-line no-restricted-syntax
+                  const fieldValue = (
+                    itemsAreStrings ?
+                      // @ts-expect-error When items are strings, they are mapped to
+                      // `{ id: item }`.
+                      item.id
+                    : item) as FieldValues<Schema>[TFieldName]
+                  const text = children(fieldValue)
+                  const textValue = toTextValue?.(fieldValue) ?? text
+                  return (
+                    <ListBoxItem
+                      id={textValue}
+                      textValue={textValue}
+                      className={styles.listBoxItem()}
+                    >
+                      <Text truncate="1" className="w-full" tooltipPlacement="left">
+                        {text}
+                      </Text>
+                    </ListBoxItem>
+                  )
+                }}
+              </ListBox>
+            </Popover>
+          </AriaComboBox>
+        )}
       />
     </Form.Field>
   )

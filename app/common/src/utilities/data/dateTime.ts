@@ -551,3 +551,18 @@ export function getDay(date: ZonedDateTime) {
 export function getWeekOfMonth(day: number) {
   return Math.floor((day - 1) / DAYS_PER_WEEK) + 1
 }
+
+/** Get a string representing the timezone offset of a date. */
+export function getTimeZoneOffsetString(date: ZonedDateTime) {
+  const offsetMin = date.offset / MINUTE_MS
+  const offsetNegative = offsetMin < 0
+  const absoluteOffsetMin = Math.abs(offsetMin)
+  const offsetHours = Math.floor(absoluteOffsetMin / HOUR_MINUTES)
+  const offsetMinutes = absoluteOffsetMin % HOUR_MINUTES
+  return `${offsetNegative ? '-' : '+'}${`${offsetHours}`.padStart(2, '0')}:${`${offsetMinutes}`.padStart(2, '0')}`
+}
+
+/** Get a string representing the timezone offset of a date, wrapped in `(GMT` and `)`. */
+export function getTimeZoneOffsetStringWithGMT(date: ZonedDateTime) {
+  return `(GMT${getTimeZoneOffsetString(date)})`
+}

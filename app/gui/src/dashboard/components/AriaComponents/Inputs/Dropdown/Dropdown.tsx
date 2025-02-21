@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState, type ForwardedRef, type ReactNode } from 'react'
 
 import CheckMarkIcon from '#/assets/check_mark.svg'
-import FolderArrowIcon from '#/assets/folder_arrow.svg'
+import ArrowIcon from '#/assets/folder_arrow.svg'
 import {
   FieldError,
   ListBox,
@@ -12,6 +12,7 @@ import {
   useFocusWithin,
   type InputProps,
 } from '#/components/aria'
+import { Button } from '#/components/AriaComponents/Button'
 import { makeRoundedStyles } from '#/components/AriaComponents/utilities'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
@@ -43,7 +44,7 @@ const DROPDOWN_STYLES = tv({
       },
       false: {
         container: 'overflow-hidden',
-        options: 'before:h-full group-hover:before:bg-hover-bg',
+        options: 'before:h-full',
         optionsContainer: 'grid-rows-0fr',
       },
     },
@@ -60,15 +61,15 @@ const DROPDOWN_STYLES = tv({
     rounded: makeRoundedStyles('options', (classes) => `before:${classes}`),
     size: {
       medium: {
-        input: 'px-[11px] pb-[6.5px] pt-[8.5px]',
-        optionsItem: 'px-[11px]',
-        hiddenOption: 'px-[11px]',
+        input: 'px-4 pb-[6.5px] pt-[8.5px]',
+        optionsItem: 'px-4',
+        hiddenOption: 'px-4',
         icon: 'size-4',
       },
       small: {
-        input: 'px-[11px] pb-0.5 pt-1',
-        optionsItem: 'px-[11px]',
-        hiddenOption: 'px-[11px]',
+        input: 'px-4 pb-0.5 pt-1',
+        optionsItem: 'px-4',
+        hiddenOption: 'px-4',
         icon: 'size-3',
       },
       custom: {},
@@ -84,11 +85,11 @@ const DROPDOWN_STYLES = tv({
       'relative grid max-h-60 w-full overflow-auto rounded-input transition-grid-template-rows',
     optionsList: 'overflow-hidden',
     optionsItem:
-      'flex min-h-6 items-center gap-dropdown-arrow rounded-input transition-colors focus:cursor-default focus:bg-frame focus:font-bold focus:focus-ring not-focus:hover:bg-hover-bg not-selected:hover:bg-hover-bg',
-    input: 'relative flex items-center gap-dropdown-arrow',
+      'flex min-h-6 items-center gap-2 rounded-input transition-colors focus:cursor-default focus:bg-frame focus:font-bold focus:focus-ring not-focus:hover:bg-hover-bg not-selected:hover:bg-hover-bg',
+    input: 'relative flex items-center gap-2',
     inputDisplay: 'grow select-none',
     hiddenOptions: 'flex h-0 flex-col overflow-hidden',
-    hiddenOption: 'flex gap-dropdown-arrow font-bold',
+    hiddenOption: 'flex gap-2 font-bold',
   },
   defaultVariants: {
     rounded: 'xlarge',
@@ -297,7 +298,7 @@ export const Dropdown = forwardRef(function Dropdown<T>(
           </div>
         </div>
         <div className={styles.input()}>
-          <SvgMask src={FolderArrowIcon} className="rotate-90" />
+          <Button variant="icon" icon={ArrowIcon} className="rotate-180" />
           <div className={styles.inputDisplay()}>
             {isMouseFocused && !multiple ?
               '\u00a0'
