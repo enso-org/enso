@@ -1,6 +1,7 @@
 package org.enso.interpreter.bench.result;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 import org.enso.version.BuildVersion;
@@ -24,7 +25,7 @@ public record Result(
   public static Result fromJMHResult(RunResult result) {
     var params = result.getParams();
     var benchName = params.getBenchmark();
-    var timestamp = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+    var timestamp = createTimestamp();
     var measureIterations = result.getParams().getMeasurement().getCount();
     var warmupIterations = result.getParams().getWarmup().getCount();
     var measureMillis =
@@ -47,5 +48,12 @@ public record Result(
         commitId,
         branch,
         stats);
+  }
+
+  private static String createTimestamp() {
+    var localDateTime = LocalDateTime.now();
+    var zonedDateTime = localDateTime.atZone(ZoneOffset.UTC);
+    var formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
+    return zonedDateTime.format(formatter);
   }
 }
