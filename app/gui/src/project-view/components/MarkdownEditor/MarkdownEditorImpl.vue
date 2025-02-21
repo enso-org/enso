@@ -36,8 +36,7 @@ const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
   ],
   vueHost: () => vueHost,
 })
-const { toggleHeader, toggleQuote, toggleList, italic, bold, strikethrough } =
-  useMarkdownFormatting(editorView)
+const { toggleHeader, toggleQuote, toggleList, italic, bold } = useMarkdownFormatting(editorView)
 
 useLinkTitles(editorView, { readonly })
 
