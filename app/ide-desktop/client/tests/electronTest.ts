@@ -25,7 +25,7 @@ const electronExecutablePath = await (async () => {
   } catch {
     throw Error('Cannot find Enso package')
   }
-})();
+})()
 
 /**
  * Tests run on electron executable.
@@ -33,12 +33,12 @@ const electronExecutablePath = await (async () => {
  * Similar to playwright's test, but launches electron, and passes Page of the main window.
  */
 export const test = base.extend<{
-  testRunId: string,
+  testRunId: string
   projectsDir: string
   app: ElectronApplication
   page: Page
 }>({
-  testRunId: async function({}, use, testInfo) {
+  testRunId: async function ({}, use, testInfo) {
     await use(`${testInfo.testId}-${new Date().toISOString()}`)
   },
   projectsDir: async function ({ testRunId }, use) {
