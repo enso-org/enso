@@ -319,7 +319,10 @@ export default function DriveBar(props: DriveBarProps) {
                     id={null}
                     name={null}
                     doCreate={async (name, type, value) => {
-                      await newSecret(name, '', { credential: { type, value } })
+                      await newSecret(name, '', {
+                        subtype: 'credential',
+                        credential: { type, value },
+                      })
                     }}
                   />
                 </DialogTrigger>
