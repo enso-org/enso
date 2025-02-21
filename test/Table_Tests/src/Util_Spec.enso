@@ -12,33 +12,37 @@ from project.Util import all
 
 add_specs suite_builder =
     suite_builder.group "Table/Column.should_equal helpers" group_builder->
+        this_file = case Platform.os of
+            Platform.OS.Windows -> "Table_Tests\src\Util_Spec.enso"
+            _ -> "Table_Tests/src/Util_Spec.enso"
+
         group_builder.specify "should report correct location for Table" <|
             r1 = expect_test_failure <|
                 (Table.new [["X", [1]]]) . should_equal (Table.new [["X", [2]]])
-            r1.message.should_contain "Util_Spec.enso:17"
+            r1.message.should_contain "Util_Spec.enso:21"
 
             r2 = expect_test_failure <|
                 (Table.new [["X", [1]]]) . should_equal (Table.new [["A", [1]]])
-            r2.message.should_contain "Util_Spec.enso:21"
+            r2.message.should_contain "Util_Spec.enso:25"
 
         group_builder.specify "should report correct location for Column" <|
             r1 = expect_test_failure <|
                 Column.from_vector "X" [1] . should_equal (Column.from_vector "X" [2])
-            r1.message.should_contain "Util_Spec.enso:26"
+            r1.message.should_contain "Util_Spec.enso:30"
 
             r2 = expect_test_failure <|
                 Column.from_vector "X" [1] . should_equal (Column.from_vector "A" [1])
-            r2.message.should_contain "Util_Spec.enso:30"
+            r2.message.should_contain "Util_Spec.enso:34"
 
         group_builder.specify "should report correct location for DB_Table" <|
             tables = DB_Tables.make
             r1 = expect_test_failure <|
                 tables.t1 . should_equal tables.t2
-            r1.message.should_contain "Util_Spec.enso:36"
+            r1.message.should_contain "Util_Spec.enso:40"
 
             r2 = expect_test_failure <|
                 tables.t1 . should_equal tables.tA
-            r2.message.should_contain "Util_Spec.enso:40"
+            r2.message.should_contain "Util_Spec.enso:44"
 
         group_builder.specify "should report correct location for DB_Column" <|
             tables = DB_Tables.make
@@ -48,11 +52,11 @@ add_specs suite_builder =
 
             r1 = expect_test_failure <|
                 c1 . should_equal c2
-            r1.message.should_contain "Util_Spec.enso:50"
+            r1.message.should_contain "Util_Spec.enso:54"
 
             r2 = expect_test_failure <|
                 c1 . should_equal cA
-            r2.message.should_contain "Util_Spec.enso:54"
+            r2.message.should_contain "Util_Spec.enso:58"
 
         group_builder.specify "Two Columns Are Equal" <|
             expected_column = Column.from_vector "Col" ["Quis", "custodiet", "ipsos", "custodes?"]
@@ -62,32 +66,32 @@ add_specs suite_builder =
             expected_column = Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"]
             actual_column = Column.from_vector "Col2" ["Quis", "custodiet", "ipsos", "custodes?"]
             res = Panic.recover Test_Failure_Error (column_should_equal_impl actual_column expected_column)
-            res.catch.message.should_equal "Expected column name Col1, but got Col2 (at Table_Tests/src/Util_Spec.enso:64:53-106)."
+            res.catch.message.should_equal "Expected column name Col1, but got Col2 (at "+this_file+":68:53-106)."
         group_builder.specify "Two Columns With Different Lengths are Not Equal" <|
             expected_column = Column.from_vector "Col" ["Quis", "custodiet", "ipsos", "custodes?"]
             actual_column = Column.from_vector "Col" ["Quis", "custodiet", "ipsos"]
             res = Panic.recover Test_Failure_Error (column_should_equal_impl actual_column expected_column)
-            res.catch.message.should_equal "Expected column length 4, but got 3 (at Table_Tests/src/Util_Spec.enso:69:53-106)."
+            res.catch.message.should_equal "Expected column length 4, but got 3 (at "+this_file+":73:53-106)."
         group_builder.specify "Two Columns with different content Are Not Equal" <|
             expected_column = Column.from_vector "Col" ["Quis", "custodiet", "ipsos", "custodes?"]
             actual_column = Column.from_vector "Col" ["Who", "guards", "the", "guards?"]
             res = Panic.recover Test_Failure_Error (column_should_equal_impl actual_column expected_column)
-            res.catch.message.should_equal 'Column: Col differs at row 0.\n\t  Actual  : Who\n\t  Expected: Quis\n\t (at Table_Tests/src/Util_Spec.enso:74:53-106).'
+            res.catch.message.should_equal 'Column: Col differs at row 0.\n\t  Actual  : Who\n\t  Expected: Quis\n\t (at '+this_file+':78:53-106).'
         group_builder.specify "Two Columns Are Not Equal in Row 3" <|
             expected_column = Column.from_vector "My Column" ["Quis", "custodiet", "ipsos", "custodes?"]
             actual_column = Column.from_vector "My Column" ["Quis", "custodiet", "ipsos", "guards?"]
             res = Panic.recover Test_Failure_Error (column_should_equal_impl actual_column expected_column)
-            res.catch.message.should_equal 'Column: My Column differs at row 3.\n\t  Actual  : guards?\n\t  Expected: custodes?\n\t (at Table_Tests/src/Util_Spec.enso:79:53-106).'
+            res.catch.message.should_equal 'Column: My Column differs at row 3.\n\t  Actual  : guards?\n\t  Expected: custodes?\n\t (at '+this_file+':83:53-106).'
         group_builder.specify "Two Columns with different types Are Not Equal" <|
             expected_column = Column.from_vector "Col" ["1", "2", "3", "4"]
             actual_column = Column.from_vector "Col" [1, 2, 3, 4]
             res = Panic.recover Test_Failure_Error (column_should_equal_impl actual_column expected_column)
-            res.catch.message.should_equal "Expected column type (Char Nothing True), but got (Integer 64 bits) (at Table_Tests/src/Util_Spec.enso:84:53-106)."
+            res.catch.message.should_equal "Expected column type (Char Nothing True), but got (Integer 64 bits) (at "+this_file+":88:53-106)."
         group_builder.specify "Comparing a Column to non column" <|
             expected_column = 42
             actual_column = Column.from_vector "Col" [1, 2, 3, 4]
             res = Panic.recover Test_Failure_Error (column_should_equal_impl actual_column expected_column)
-            res.catch.message.should_equal "Got a Column, but expected a 42 (at Table_Tests/src/Util_Spec.enso:89:53-106)."
+            res.catch.message.should_equal "Got a Column, but expected a 42 (at "+this_file+":93:53-106)."
         group_builder.specify "Two Columns Containing NaNs Are Equal" <|
             # This is somewhat of a special case, as NaN != NaN but for the purposes of testing we consider them equal
             expected_column = Column.from_vector "Col" [1.0, 2.0, Number.nan]
@@ -101,22 +105,22 @@ add_specs suite_builder =
             expected_column = Column.from_vector "Col" [1.0, 2.0, 3.0]
             actual_column = Column.from_vector "Col" [1.0, 2.0, Nothing]
             res = Panic.recover Test_Failure_Error (column_should_equal_impl actual_column expected_column)
-            res.catch.message.should_equal 'Column: Col differs at row 2.\n\t  Actual  : Nothing\n\t  Expected: 3.0\n\t (at Table_Tests/src/Util_Spec.enso:103:53-106).'
+            res.catch.message.should_equal 'Column: Col differs at row 2.\n\t  Actual  : Nothing\n\t  Expected: 3.0\n\t (at '+this_file+':107:53-106).'
         group_builder.specify "Comparing to Expected Nothing Value should fail" <|
             expected_column = Column.from_vector "Col" [1.0, 2.0, Nothing]
             actual_column = Column.from_vector "Col" [1.0, 2.0, 3.0]
             res = Panic.recover Test_Failure_Error (column_should_equal_impl actual_column expected_column)
-            res.catch.message.should_equal 'Column: Col differs at row 2.\n\t  Actual  : 3.0\n\t  Expected: Nothing\n\t (at Table_Tests/src/Util_Spec.enso:108:53-106).'
+            res.catch.message.should_equal 'Column: Col differs at row 2.\n\t  Actual  : 3.0\n\t  Expected: Nothing\n\t (at '+this_file+':112:53-106).'
         group_builder.specify "Comparing to Actual Nothing Value to Expected NaN Value should fail" <|
             expected_column = Column.from_vector "Col" [1.0, 2.0, Number.nan]
             actual_column = Column.from_vector "Col" [1.0, 2.0, Nothing]
             res = Panic.recover Test_Failure_Error (column_should_equal_impl actual_column expected_column)
-            res.catch.message.should_equal 'Column: Col differs at row 2.\n\t  Actual  : Nothing\n\t  Expected: NaN\n\t (at Table_Tests/src/Util_Spec.enso:113:53-106).'
+            res.catch.message.should_equal 'Column: Col differs at row 2.\n\t  Actual  : Nothing\n\t  Expected: NaN\n\t (at '+this_file+':117:53-106).'
         group_builder.specify "Comparing to Actual NaN Value to Expected Nothing Value should fail" <|
             expected_column = Column.from_vector "Col" [1.0, 2.0, Nothing]
             actual_column = Column.from_vector "Col" [1.0, 2.0, Number.nan]
             res = Panic.recover Test_Failure_Error (column_should_equal_impl actual_column expected_column)
-            res.catch.message.should_equal 'Column: Col differs at row 2.\n\t  Actual  : NaN\n\t  Expected: Nothing\n\t (at Table_Tests/src/Util_Spec.enso:118:53-106).'
+            res.catch.message.should_equal 'Column: Col differs at row 2.\n\t  Actual  : NaN\n\t  Expected: Nothing\n\t (at '+this_file+':122:53-106).'
 
         group_builder.specify "Two Tables Are Equal" <|
             expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
@@ -135,13 +139,13 @@ add_specs suite_builder =
             actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "teh", "guards?"]]
             res = Panic.recover Test_Failure_Error (table_should_equal_impl actual_table expected_table False)
             res.catch.message.should_end_with 'Column: Col2 differs at row 2.\n\t  Actual  : teh\n\t  Expected: the\n\t.'
-            res.catch.message.should_start_with 'Tables differ at Table_Tests/src/Util_Spec.enso:136:53-109.\nActual:'
+            res.catch.message.should_start_with 'Tables differ at '+this_file+':140:53-109.\nActual:'
         group_builder.specify "Two Tables With Different Values Ignoring Order" <|
             expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
             actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "teh", "guards?"]]
             res = Panic.recover Test_Failure_Error (table_should_equal_impl actual_table expected_table True)
             res.catch.message.should_end_with 'Column: Col2 differs at row 3.\n\t  Actual  : teh\n\t  Expected: the\n\t.'
-            res.catch.message.should_start_with 'Tables differ at Table_Tests/src/Util_Spec.enso:142:53-108.\nActual (sorted):'
+            res.catch.message.should_start_with 'Tables differ at '+this_file+':146:53-108.\nActual (sorted):'
         group_builder.specify "Tables different number of columns" <|
             expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"]]
             actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
@@ -161,7 +165,7 @@ add_specs suite_builder =
             expected_table = 42
             actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"]]
             res = Panic.recover Test_Failure_Error (table_should_equal_impl actual_table expected_table False)
-            res.catch.message.should_equal "Got a Table, but expected a 42 (at Table_Tests/src/Util_Spec.enso:163:53-109)."
+                res.catch.message.should_equal "Got a Table, but expected a 42 (at "+this_file+":167:53-109)."
 
 type DB_Tables
     Value t1 t2 tA
