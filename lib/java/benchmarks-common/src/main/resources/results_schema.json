@@ -99,8 +99,9 @@
             "description": "Measurement statistics from the JMH's primary result",
             "properties": {
               "stddev": {
-                "type": "number",
-                "description": "Standard deviation of the primary result"
+                "type": ["number", "string"],
+                "description": "Standard deviation of the primary result",
+                "enum": ["NaN"]
               },
               "mean": {
                 "type": "number",
@@ -115,12 +116,14 @@
                 "description": "Maximum value of the primary result"
               },
               "error50": {
-                "type": "number",
-                "description": "Error margin at 50% confidence level"
+                "type": ["number", "string"],
+                "description": "Error margin at 50% confidence level",
+                "enum": ["NaN"]
               },
               "error95": {
-                "type": "number",
-                "description": "Error margin at 95% confidence level"
+                "type": ["number", "string"],
+                "description": "Error margin at 95% confidence level",
+                "enum": ["NaN"]
               },
               "percentiles": {
                 "type": "array",
