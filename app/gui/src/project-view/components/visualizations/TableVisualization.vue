@@ -318,17 +318,23 @@ function createServer() {
       })
 
       const valueList = valueMap.map(value => {
+        if(value) {
+          return `${value}`
+        }
         if(typeof value === 'object') {
           return `${value.fromValue}`
         }
         return `${value}`
       })
+
       const toValueList = valueMap.map(value => {
         if(typeof value === 'object') {
           return `${value.toValue}`
         }
         return 'Nothing'
       })
+
+      console.log({valueList})
       const response = await config.executeExpression(
         'Standard.Visualization.Table.Visualization',
         'get_rows_for_table',
