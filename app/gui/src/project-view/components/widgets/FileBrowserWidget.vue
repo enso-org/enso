@@ -11,6 +11,7 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import { useBackend } from '@/composables/backend'
 import { injectBackend } from '@/providers/backend'
 import { assert } from '@/util/assert'
+import { findDifferenceIndex } from '@/util/data/array'
 import type { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import type {
@@ -18,6 +19,7 @@ import type {
   DirectoryAsset,
   DirectoryId,
   FileAsset,
+  User,
 } from 'enso-common/src/services/Backend'
 import Backend, {
   assetIsDatalink,
@@ -25,10 +27,13 @@ import Backend, {
   assetIsFile,
 } from 'enso-common/src/services/Backend'
 import { computed, onMounted, reactive, ref, toValue, watch } from 'vue'
-import { Err, Ok, Result } from 'ydoc-shared/util/data/result'
+import { Err, Ok, Result, unwrapOr, unwrapOrWithLog } from 'ydoc-shared/util/data/result'
 import FileBrowserEntry from './FileBrowserWidget/FileBrowserEntry.vue'
 
-const { writeMode = false } = defineProps<{ writeMode?: boolean }>()
+const { writeMode = false, initialPath = '' } = defineProps<{
+  writeMode?: boolean
+  initialPath?: string
+}>()
 
 const emit = defineEmits<{
   pathAccepted: [path: string]
@@ -50,6 +55,12 @@ let nextKeyForNewDir = 0
  */
 const keyOverride: Map<DirectoryId | symbol, number> = reactive(new Map())
 
+function pathToSegments(path: string) {
+  const withProtocol = path.split('/')
+  if (withProtocol[0] !== 'enso:') return Err(`${path} is not an enso path`)
+  return Ok(withProtocol.slice(1).filter((segment) => segment))
+}
+
 // === Current Directory ===
 
 interface Directory {
@@ -63,11 +74,15 @@ const directoryStack = ref<Directory[]>([])
 const isDirectoryStackInitializing = computed(() => directoryStack.value.length === 0)
 const currentDirectory = computed(() => directoryStack.value[directoryStack.value.length - 1])
 
-const currentPath = computed(() => {
+const rootSegments = computed(() => {
   if (!currentUser.data.value) return
-  let root = backend?.rootPath(currentUser.data.value) ?? 'enso://'
-  if (!root.endsWith('/')) root += '/'
-  return `${root}${directoryStack.value
+  const root = backend?.rootPath(currentUser.data.value) ?? 'enso://'
+  return pathToSegments(root)
+})
+
+const currentPath = computed(() => {
+  if (rootSegments.value == null || !rootSegments.value.ok) return
+  return `enso://${rootSegments.value.value.join('/')}/${directoryStack.value
     .slice(1)
     .map((dir) => `${dir.title}/`)
     .join('')}`
@@ -125,11 +140,21 @@ function enterDir(dir: DirectoryAsset) {
   directoryStack.value.push(dir)
 }
 
-class DirNotFoundError {
-  constructor(public dirName: string) {}
+class CannotEnterDir {
+  constructor(
+    public reason: 'emptyStack' | 'notFound' | 'notDir',
+    public name: string,
+  ) {}
 
   toString() {
-    return `Directory "${this.dirName}" not found`
+    switch (this.reason) {
+      case 'emptyStack':
+        return 'Stack is empty'
+      case 'notFound':
+        return `Directory "${this.name}" not found`
+      case 'notDir':
+        return `"${this.name}" is not a directory`
+    }
   }
 }
 
@@ -228,15 +253,28 @@ watch(
 
 // === Initialization ===
 
-async function enterDirByName(name: string, stack: Directory[]): Promise<Result> {
+function dirsToEnterOnInit(user: User) {
+  const initialSegments = unwrapOr(pathToSegments(initialPath), ['Users', user.name])
+  const rootSegs = unwrapOrWithLog(rootSegments.value ?? Err('cannot load root directory'), [])
+  const afterRootIndex = findDifferenceIndex(initialSegments, rootSegs)
+  if (afterRootIndex < rootSegs.length) {
+    return []
+  } else {
+    return initialSegments.slice(afterRootIndex)
+  }
+}
+
+async function enterDirByName(
+  name: string,
+  stack: Directory[],
+): Promise<Result<void, CannotEnterDir>> {
   const currentDir = stack[stack.length - 1]
-  if (currentDir == null) return Err('Stack is empty')
+  if (currentDir == null) return Err(new CannotEnterDir('emptyStack', name))
   const content = await fetch('listDirectory', listDirectoryArgs(currentDir))
-  const nextDir = content.find(
-    (asset): asset is DirectoryAsset => assetIsDirectory(asset) && asset.title === name,
-  )
-  if (!nextDir) return Err(new DirNotFoundError(name))
-  stack.push(nextDir)
+  const nextAsset = content.find((asset) => asset.title === name)
+  if (!nextAsset) return Err(new CannotEnterDir('notFound', name))
+  if (!assetIsDirectory(nextAsset)) return Err(new CannotEnterDir('notDir', name))
+  stack.push(nextAsset)
   return Ok()
 }
 
@@ -249,11 +287,17 @@ onMounted(() => {
       }
       const rootDirectoryId =
         backend?.rootDirectoryId(user, organization, null) ?? user.rootDirectoryId
+
       const stack = [{ id: rootDirectoryId, title: 'Cloud' }]
-      if (rootDirectoryId != user.rootDirectoryId) {
-        let result = await enterDirByName('Users', stack)
-        result = result.ok ? await enterDirByName(user.name, stack) : result
-        if (!result.ok) errorToast.reportError(result.error, 'Cannot enter home directory')
+      for (const name of dirsToEnterOnInit(user)) {
+        const result = await enterDirByName(name, stack)
+        if (result.ok) continue
+        if (result.error.payload.reason === 'notDir') {
+          fileName.value = name
+        } else if (result.error.payload.reason !== 'notFound') {
+          errorToast.reportError(result.error, 'Cannot enter home directory')
+        }
+        break
       }
       directoryStack.value = stack
     },
@@ -312,6 +356,7 @@ onMounted(() => {
           :key="entry.id"
           icon="text2"
           :title="entry.title"
+          :highlighted="entry.title === fileName"
           @click="chooseFile(entry)"
         />
       </TransitionGroup>
