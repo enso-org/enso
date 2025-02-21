@@ -2,7 +2,7 @@ import { registerHandlers, toggledAction } from '@/providers/action'
 import { type Node } from '@/stores/graph'
 import { type ToValue } from '@/util/reactivity'
 import * as iter from 'enso-common/src/utilities/data/iter'
-import { computed, type ComputedRef, ref, toValue } from 'vue'
+import { computed, type ComputedRef, toValue } from 'vue'
 
 /**
  * Register handlers of actions for many selected components.

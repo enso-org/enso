@@ -4,7 +4,7 @@ import { assert } from '@/util/assert'
 import { Icon } from '@/util/iconMetadata/iconName'
 import { ToValue } from '@/util/reactivity'
 import { BindingInfo } from '@/util/shortcuts'
-import { ref, Ref } from 'vue'
+import { ref } from 'vue'
 import { ForbidExcessProps } from 'ydoc-shared/util/types'
 
 /**
@@ -143,11 +143,11 @@ export function registerHandlers<Handlers extends Partial<Record<keyof Actions, 
   return newActions as Actions & Handlers
 }
 
+/** A helper function for making ActionHandler toggling a boolean ref. */
 export function toggledAction(toggleState = ref(false)) {
   return {
     action: () => {
       toggleState.value = !toggleState.value
-      console.log('toggled to', toggleState.value)
     },
     toggled: toggleState,
   }
