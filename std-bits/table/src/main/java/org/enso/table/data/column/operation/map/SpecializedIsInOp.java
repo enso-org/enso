@@ -6,6 +6,7 @@ import java.util.List;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.StorageListView;
 import org.graalvm.polyglot.Context;
 
 /**
@@ -85,7 +86,7 @@ public abstract class SpecializedIsInOp<T, S extends Storage<T>> extends BinaryM
   @Override
   public Storage<?> runZip(
       S storage, Storage<?> arg, MapOperationProblemAggregator problemAggregator) {
-    return runMap(storage, arg.toList());
+    return runMap(storage, new StorageListView(arg));
   }
 
   @Override

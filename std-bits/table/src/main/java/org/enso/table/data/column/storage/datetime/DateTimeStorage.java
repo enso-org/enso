@@ -2,12 +2,10 @@ package org.enso.table.data.column.storage.datetime;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
-import org.enso.base.CompareException;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
-import org.enso.table.data.column.operation.map.datetime.TimeLikeBinaryOpReturningBoolean;
 import org.enso.table.data.column.operation.map.datetime.TimeLikeCoalescingOperation;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
@@ -24,46 +22,6 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
     MapOperationStorage<ZonedDateTime, SpecializedStorage<ZonedDateTime>> t =
         new MapOperationStorage<>();
     t.add(new DateTimeIsInOp<>(ZonedDateTime.class));
-    t.add(
-        new TimeLikeBinaryOpReturningBoolean<>(Maps.EQ, ZonedDateTime.class) {
-          @Override
-          protected boolean doOperation(ZonedDateTime a, ZonedDateTime b) {
-            return a.isEqual(b);
-          }
-
-          @Override
-          protected boolean doOther(ZonedDateTime a, Object b) {
-            return false;
-          }
-        });
-    t.add(
-        new DateTimeComparisonOp(Maps.LT) {
-          @Override
-          protected boolean doOperation(ZonedDateTime a, ZonedDateTime b) {
-            return a.compareTo(b) < 0;
-          }
-        });
-    t.add(
-        new DateTimeComparisonOp(Maps.LTE) {
-          @Override
-          protected boolean doOperation(ZonedDateTime a, ZonedDateTime b) {
-            return a.compareTo(b) <= 0;
-          }
-        });
-    t.add(
-        new DateTimeComparisonOp(Maps.GT) {
-          @Override
-          protected boolean doOperation(ZonedDateTime a, ZonedDateTime b) {
-            return a.compareTo(b) > 0;
-          }
-        });
-    t.add(
-        new DateTimeComparisonOp(Maps.GTE) {
-          @Override
-          protected boolean doOperation(ZonedDateTime a, ZonedDateTime b) {
-            return a.compareTo(b) >= 0;
-          }
-        });
     t.add(
         new GenericBinaryObjectMapOperation<
             ZonedDateTime, SpecializedStorage<ZonedDateTime>, Duration>(
@@ -113,17 +71,5 @@ public final class DateTimeStorage extends SpecializedStorage<ZonedDateTime> {
   @Override
   protected ZonedDateTime[] newUnderlyingArray(int size) {
     return new ZonedDateTime[size];
-  }
-
-  private abstract static class DateTimeComparisonOp
-      extends TimeLikeBinaryOpReturningBoolean<ZonedDateTime> {
-    public DateTimeComparisonOp(String name) {
-      super(name, ZonedDateTime.class);
-    }
-
-    @Override
-    protected boolean doOther(ZonedDateTime a, Object b) {
-      throw new CompareException(a, b);
-    }
   }
 }
