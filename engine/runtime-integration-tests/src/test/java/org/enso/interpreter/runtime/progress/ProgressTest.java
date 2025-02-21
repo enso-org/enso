@@ -5,8 +5,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.stream.Collectors;
 import org.enso.common.MethodNames;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.logger.test.TestLogMessage;
-import org.enso.logger.test.TestLogger;
+import org.enso.logger.LoggerMessage;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -61,7 +60,7 @@ public class ProgressTest {
     var geom = ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "geom");
 
     var oneTimeLog =
-        TestLogger.apply(
+        LoggerMessage.collect(
             log,
             () -> {
               var r1 = geom.execute(1, 2.0, 0.5);
@@ -80,7 +79,7 @@ public class ProgressTest {
     assertEquals("Three and half", 3.5, r3.asDouble(), 0.001);
 
     var fiftyTimes =
-        TestLogger.apply(
+        LoggerMessage.collect(
             log,
             () -> {
               var r4 = geom.execute(50, 2.0, 0.5);
@@ -123,7 +122,7 @@ public class ProgressTest {
     var log = LoggerFactory.getLogger("Standard.Base.Logging.Progress");
 
     var msgs =
-        TestLogger.apply(
+        LoggerMessage.collect(
             log,
             () -> {
               var fac5 = upTo.execute(5, acc);
@@ -131,7 +130,7 @@ public class ProgressTest {
             });
 
     assertEquals("Seven messsages " + msgs, 7, msgs.size());
-    var txt = msgs.stream().map(TestLogMessage::msg).collect(Collectors.joining("\n"));
+    var txt = msgs.stream().map(LoggerMessage::msg).collect(Collectors.joining("\n"));
     assertEquals(
         "Initialize five steps. Then five `advance` calls and finally advance to finish.",
         """

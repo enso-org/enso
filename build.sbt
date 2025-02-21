@@ -337,7 +337,6 @@ lazy val enso = (project in file("."))
     `logging-config`,
     `logging-service`,
     `logging-service-logback`,
-    `logging-test-utils`,
     `logging-truffle-connector`,
     `logging-utils`,
     `logging-utils-akka`,
@@ -1061,24 +1060,6 @@ lazy val `logging-utils` = project
       )
   )
 
-lazy val `logging-test-utils` = project
-  .in(file("lib/scala/logging-test-utils"))
-  .enablePlugins(JPMSPlugin)
-  .settings(
-    frgaalJavaCompilerSetting,
-    scalaModuleDependencySetting,
-    compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
-    version := "0.1",
-    libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % scalatestVersion,
-      "org.slf4j"      % "slf4j-api" % slf4jVersion
-    ) ++ logbackPkg,
-    Compile / moduleDependencies ++=
-      Seq(
-        "org.slf4j" % "slf4j-api" % slf4jVersion
-      )
-  )
-
 lazy val `logging-service` = project
   .in(file("lib/scala/logging-service"))
   .enablePlugins(JPMSPlugin)
@@ -1140,7 +1121,8 @@ lazy val `logging-service-logback` = project
     Compile / shouldCompileModuleInfoManually := true,
     Compile / internalModuleDependencies := Seq(
       (`logging-service` / Compile / exportedModule).value,
-      (`logging-config` / Compile / exportedModule).value
+      (`logging-config` / Compile / exportedModule).value,
+      (`logging-utils` / Compile / exportedModule).value
     ),
     Test / shouldCompileModuleInfoManually := true,
     Test / javaModuleName := "org.enso.logging.service.logback.test.provider",
@@ -3081,7 +3063,7 @@ lazy val `runtime-integration-tests` =
     .dependsOn(`runtime`)
     .dependsOn(`runtime-test-instruments`)
     .dependsOn(`logging-service-logback` % "test->test")
-    .dependsOn(`logging-test-utils` % Test)
+    .dependsOn(`logging-utils` % Test)
     .dependsOn(testkit % Test)
     .dependsOn(`connected-lock-manager-server`)
     .dependsOn(`test-utils`)
@@ -3582,9 +3564,11 @@ lazy val `runtime-instrument-id-execution` =
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "collections" % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
-        "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion
+        "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
+        "org.slf4j"            % "slf4j-api"   % slf4jVersion
       ),
       Compile / internalModuleDependencies := Seq(
+        (`logging-utils` / Compile / exportedModule).value,
         (`runtime` / Compile / exportedModule).value,
         (`runtime-compiler` / Compile / exportedModule).value,
         (`runtime-compiler-dump` / Compile / exportedModule).value,
@@ -4575,7 +4559,7 @@ lazy val `library-manager-test` = project
   )
   .dependsOn(`library-manager`)
   .dependsOn(`process-utils`)
-  .dependsOn(`logging-test-utils`)
+  .dependsOn(`logging-utils`)
   .dependsOn(testkit)
   .dependsOn(`logging-service-logback` % "test->test")
 
