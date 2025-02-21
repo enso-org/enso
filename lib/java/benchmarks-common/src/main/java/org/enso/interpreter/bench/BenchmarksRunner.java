@@ -36,7 +36,7 @@ public class BenchmarksRunner {
           "https://raw.githubusercontent.com/enso-org/enso/d9a6478419472ce7c1fd58cc0108e8b904346fda/lib/java/benchmarks-common/src/main/resources/results_schema.json");
 
   public BenchmarksRunner() {
-    this.resultsFile = new File("./bench-results.json");
+    this.resultsFile = new File("./bench-report.json");
   }
 
   public void run(String[] args) throws RunnerException {

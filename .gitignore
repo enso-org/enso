@@ -97,7 +97,7 @@ distribution/docs-js
 #######################
 
 bench-report*.xml
-bench-result*.json
+bench-report*.json
 
 ##############
 ## Binaries ##
