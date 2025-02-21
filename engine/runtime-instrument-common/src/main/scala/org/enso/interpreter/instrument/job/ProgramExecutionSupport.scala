@@ -409,7 +409,7 @@ object ProgramExecutionSupport {
       val payload =
         Api.ExpressionUpdate.Payload.Pending(
           None,
-          Some(0.05),
+          None,
           wasInterrupted = true
         )
       ctx.endpoint.sendToClient(
@@ -447,7 +447,32 @@ object ProgramExecutionSupport {
     value: ExpressionValue
   )(implicit ctx: RuntimeContext): Unit = {
     val expressionId = value.getExpressionId
-    val methodCall   = toMethodCall(value)
+    if (value.getValue == null && value.getProfilingInfo() == null) {
+      val p = Api.ExpressionUpdate.Payload.Pending(
+        None,
+        Some(0.00000000001)
+      )
+      ctx.endpoint.sendToClient(
+        Api.Response(
+          Api.ExpressionUpdates(
+            contextId,
+            Set(
+              Api.ExpressionUpdate(
+                value.getExpressionId,
+                Option(value.getType).map(toExpressionType),
+                None,
+                Vector(),
+                false,
+                false,
+                p
+              )
+            )
+          )
+        )
+      )
+      return
+    }
+    val methodCall = toMethodCall(value)
     if (
       !syncState.isExpressionSync(expressionId) ||
       (

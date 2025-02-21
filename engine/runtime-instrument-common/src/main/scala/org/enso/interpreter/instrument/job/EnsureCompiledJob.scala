@@ -502,7 +502,7 @@ class EnsureCompiledJob(
         Vector.empty,
         true,
         false,
-        Api.ExpressionUpdate.Payload.Pending(None, Some(0.30))
+        Api.ExpressionUpdate.Payload.Pending(None, None)
       )
     }
     if (updates.nonEmpty) {

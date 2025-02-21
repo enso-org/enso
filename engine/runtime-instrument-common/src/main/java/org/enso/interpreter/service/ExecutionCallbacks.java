@@ -92,6 +92,8 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     if (result != null && !nodeId.equals(nextExecutionItem)) {
       callOnCachedCallback(nodeId, result);
       return result;
+    } else {
+      callOnNotCachedCallback(nodeId);
     }
 
     return null;
@@ -173,6 +175,14 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
             cache.getCall(nodeId),
             new ProfilingInfo[] {ExecutionTime.empty()},
             true);
+
+    onCachedCallback.accept(expressionValue);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private void callOnNotCachedCallback(UUID nodeId) {
+    ExpressionValue expressionValue =
+        new ExpressionValue(nodeId, null, null, null, null, null, null, false);
 
     onCachedCallback.accept(expressionValue);
   }
