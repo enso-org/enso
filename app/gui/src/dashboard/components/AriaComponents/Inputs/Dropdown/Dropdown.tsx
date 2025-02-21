@@ -12,8 +12,6 @@ import {
   useFocusWithin,
   type InputProps,
 } from '#/components/aria'
-import { Button } from '#/components/AriaComponents/Button'
-import { makeRoundedStyles } from '#/components/AriaComponents/utilities'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 import { useSyncRef } from '#/hooks/syncRefHooks'
@@ -22,6 +20,7 @@ import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import {
   Form,
+  makeRoundedStyles,
   type FieldComponentProps,
   type FieldPath,
   type FieldProps,
@@ -30,7 +29,7 @@ import {
   type FieldVariantProps,
   type FormInstance,
   type TSchema,
-} from '../../Form'
+} from '../..'
 
 const DROPDOWN_STYLES = tv({
   base: 'focus-child group relative flex w-max cursor-pointer flex-col items-start whitespace-nowrap rounded-input leading-cozy',
@@ -86,7 +85,8 @@ const DROPDOWN_STYLES = tv({
     optionsList: 'overflow-hidden',
     optionsItem:
       'flex min-h-6 items-center gap-2 rounded-input transition-colors focus:cursor-default focus:bg-frame focus:font-bold focus:focus-ring not-focus:hover:bg-hover-bg not-selected:hover:bg-hover-bg',
-    input: 'relative flex items-center gap-2',
+    input: 'group relative flex items-center gap-2',
+    dropdownArrow: 'rotate-90 opacity-80 group-hover:opacity-100',
     inputDisplay: 'grow select-none',
     hiddenOptions: 'flex h-0 flex-col overflow-hidden',
     hiddenOption: 'flex gap-2 font-bold',
@@ -298,7 +298,7 @@ export const Dropdown = forwardRef(function Dropdown<T>(
           </div>
         </div>
         <div className={styles.input()}>
-          <Button variant="icon" icon={ArrowIcon} className="rotate-180" />
+          <SvgMask src={ArrowIcon} className={styles.dropdownArrow()} />
           <div className={styles.inputDisplay()}>
             {isMouseFocused && !multiple ?
               '\u00a0'

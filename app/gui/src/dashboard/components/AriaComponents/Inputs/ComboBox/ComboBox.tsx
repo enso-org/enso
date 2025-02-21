@@ -10,9 +10,14 @@ import {
   ListBoxItem,
   type ComboBoxProps as AriaComboBoxProps,
 } from '#/components/aria'
+import { useText } from '#/providers/TextProvider'
+import { forwardRef } from '#/utilities/react'
+import type { VariantProps } from '#/utilities/tailwindVariants'
+import { tv } from '#/utilities/tailwindVariants'
 import {
   Button,
   Form,
+  makeRoundedStyles,
   Popover,
   Text,
   UncontrolledInput,
@@ -23,12 +28,7 @@ import {
   type FieldValues,
   type InputProps,
   type TSchema,
-} from '#/components/AriaComponents'
-import { makeRoundedStyles } from '#/components/AriaComponents/utilities'
-import { useText } from '#/providers/TextProvider'
-import { forwardRef } from '#/utilities/react'
-import type { VariantProps } from '#/utilities/tailwindVariants'
-import { tv } from '#/utilities/tailwindVariants'
+} from '../..'
 
 const COMBO_BOX_STYLES = tv({
   base: 'w-full',
