@@ -13,18 +13,14 @@ public record Result(
     String label,
     String timestamp,
     double score,
-    double scoreError,
     long samples,
-    double min,
-    double max,
-    double mean,
-    double stdDev,
     int warmupIterations,
     long warmupMillis,
     int measureIterations,
     long measureMillis,
     String commitId,
-    String branch) {
+    String branch,
+    MeasurementStatistics measurementStatistics) {
   public static Result fromJMHResult(RunResult result) {
     var params = result.getParams();
     var benchName = params.getBenchmark();
@@ -35,29 +31,21 @@ public record Result(
         result.getParams().getMeasurement().getTime().convertTo(TimeUnit.MILLISECONDS);
     var warmupMillis = result.getParams().getWarmup().getTime().convertTo(TimeUnit.MILLISECONDS);
     var score = result.getPrimaryResult().getScore();
-    var scoreError = result.getPrimaryResult().getScoreError();
-    var min = result.getPrimaryResult().getStatistics().getMin();
-    var max = result.getPrimaryResult().getStatistics().getMax();
-    var mean = result.getPrimaryResult().getStatistics().getMean();
-    var stdDev = result.getPrimaryResult().getStatistics().getStandardDeviation();
     var samples = result.getPrimaryResult().getStatistics().getN();
     var commitId = BuildVersion.commit();
     var branch = BuildVersion.ref();
+    var stats = MeasurementStatistics.fromJMH(result.getPrimaryResult().getStatistics());
     return new Result(
         benchName,
         timestamp,
         score,
-        scoreError,
         samples,
-        min,
-        max,
-        mean,
-        stdDev,
         warmupIterations,
         warmupMillis,
         measureIterations,
         measureMillis,
         commitId,
-        branch);
+        branch,
+        stats);
   }
 }
