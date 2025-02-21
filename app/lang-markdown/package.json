@@ -1,6 +1,7 @@
 {
   "name": "@codemirror/lang-markdown",
   "version": "6.3.2",
+  "private": true,
   "description": "Markdown language support for the CodeMirror code editor",
   "scripts": {
     "test": "cm-runtests",
@@ -31,7 +32,7 @@
     "@codemirror/language": "^6.3.0",
     "@codemirror/state": "^6.0.0",
     "@codemirror/view": "^6.0.0",
-    "@lezer/markdown": "^1.0.0",
+    "@lezer/markdown": "workspace:*",
     "@lezer/common": "^1.2.1"
   },
   "devDependencies": {

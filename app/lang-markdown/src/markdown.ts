@@ -1,7 +1,7 @@
 import {Language, defineLanguageFacet, languageDataProp, foldNodeProp, indentNodeProp, foldService,
         syntaxTree, LanguageDescription, ParseContext} from "@codemirror/language"
 import {parser as baseParser, MarkdownParser, GFM, Subscript, Superscript, Emoji} from "@lezer/markdown"
-import {SyntaxNode, NodeType, NodeProp} from "@lezer/common"
+import {SyntaxNode, NodeType, NodeProp, Parser} from "@lezer/common"
 
 const data = defineLanguageFacet({commentTokens: {block: {open: "<!--", close: "-->"}}})
 
@@ -25,7 +25,7 @@ const commonmark = baseParser.configure({
 
 function isHeading(type: NodeType) {
   let match = /^(?:ATX|Setext)Heading(\d)$/.exec(type.name)
-  return match ? +match[1] : undefined
+  return match ? +match[1]! : undefined
 }
 
 function isList(type: NodeType) {
@@ -75,7 +75,7 @@ export const markdownLanguage = mkLang(extended)
 export function getCodeParser(
   languages: readonly LanguageDescription[] | ((info: string) => Language | LanguageDescription | null) | undefined,
   defaultLanguage?: Language
-) {
+): (info: string) => Parser | null {
   return (info: string) => {
     if (info && languages) {
       let found = null

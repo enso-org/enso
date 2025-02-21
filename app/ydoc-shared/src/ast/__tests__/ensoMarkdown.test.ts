@@ -1,44 +1,152 @@
 import { expect, test } from 'vitest'
-import { type DebugTree, debugTree, ensoMarkdownParser } from '../ensoMarkdown'
+import { type DebugTree, debugTree } from '../../util/lezer'
+import { ensoMarkdownParser } from '../ensoMarkdown'
 
-const miscCases = [
+function checkTree({ source, expected }: { source: string; expected: DebugTree }) {
+  expect(debugTree(ensoMarkdownParser.parse(source), source)).toEqual(expected)
+}
+
+// === Prerendered newlines ===
+
+// Test cases for prerendered newlines. In order to support live-preview editing, our working representation differs
+// from standard Markdown in its treatment of newlines. These tests cover the modifications to the parser to operate on
+// this internal representation.
+
+test.each([
   {
-    source: 'some text',
-    expected: ['Document', ['Paragraph', 'some text']],
+    source: 'Newline\nstarts new paragraph',
+    expected: ['Document', ['Paragraph', 'Newline'], ['Paragraph', 'starts new paragraph']],
   },
   {
-    source: '[Link without URL]',
-    expected: ['Document', ['Paragraph', ['Link', ['LinkMark', '['], ['LinkMark', ']']]]],
+    source: '*No multiline\nitalic*',
+    expected: ['Document', ['Paragraph', '*No multiline'], ['Paragraph', 'italic*']],
   },
   {
-    source: '[Link text](https://url)',
+    source: '- List\n  Non-list child',
     expected: [
       'Document',
       [
-        'Paragraph',
+        'BulletList',
+        ['ListItem', ['ListMark', '- '], ['Paragraph', 'List'], ['Paragraph', 'Non-list child']],
+      ],
+    ],
+  },
+  {
+    source: '- List\n  - Sublist\n  Non-list child',
+    expected: [
+      'Document',
+      [
+        'BulletList',
         [
-          'Link',
-          ['LinkMark', '['],
-          ['LinkMark', ']'],
-          ['LinkMark', '('],
-          ['URL', 'https://url'],
-          ['LinkMark', ')'],
+          'ListItem',
+          ['ListMark', '- '],
+          ['Paragraph', 'List'],
+          ['BulletList', ['ListItem', ['ListMark', '- '], ['Paragraph', 'Sublist']]],
+          ['Paragraph', 'Non-list child'],
         ],
       ],
     ],
   },
+])('Syntax nonstandardism: Prerendered newlines: $source', checkTree)
+
+// === Whitespace handling ===
+
+// To support live-preview editing, we treat "syntactic" spaces as part of the delimiters so that they can be hidden or
+// shown together.
+
+test.each([
   {
-    source: '[Link text](https://url*bold here prevents the parens from being a URL*)',
+    source: '# Header',
+    expected: ['Document', ['ATXHeading1', ['HeaderMark', '# ']]],
+    not: ['Document', ['ATXHeading1', ['HeaderMark', '#']]],
+  },
+  {
+    source: '## Header',
+    expected: ['Document', ['ATXHeading2', ['HeaderMark', '## ']]],
+    not: ['Document', ['ATXHeading2', ['HeaderMark', '##']]],
+  },
+  {
+    source: '### Header',
+    expected: ['Document', ['ATXHeading3', ['HeaderMark', '### ']]],
+    not: ['Document', ['ATXHeading3', ['HeaderMark', '###']]],
+  },
+  {
+    source: '> Quoted',
+    expected: ['Document', ['Blockquote', ['QuoteMark', '> '], ['Paragraph', 'Quoted']]],
+    not: ['Document', ['Blockquote', ['QuoteMark', '>'], ['Paragraph', 'Quoted']]],
+  },
+  {
+    source: '- Bullet',
     expected: [
       'Document',
-      [
-        'Paragraph',
-        ['Link', ['LinkMark', '['], ['LinkMark', ']']],
-        ['Emphasis', ['EmphasisMark', '*'], ['EmphasisMark', '*']],
-      ],
+      ['BulletList', ['ListItem', ['ListMark', '- '], ['Paragraph', 'Bullet']]],
+    ],
+    not: ['Document', ['BulletList', ['ListItem', ['ListMark', '-'], ['Paragraph', 'Bullet']]]],
+  },
+  {
+    source: '1. Numbered',
+    expected: [
+      'Document',
+      ['OrderedList', ['ListItem', ['ListMark', '1. '], ['Paragraph', 'Numbered']]],
+    ],
+    not: ['Document', ['OrderedList', ['ListItem', ['ListMark', '1.'], ['Paragraph', 'Numbered']]]],
+  },
+])('Syntax extension: Delimiter tokens include syntactic spaces: $source', checkTree)
+
+// === "Incomplete" syntax special cases ===
+
+// These cases cover modifications to the parser that improve the editing experience by improving the parsing of
+// "incomplete" syntax cases. Some constructs that may occur while editing a document are interpreted by the standard
+// parser as a different syntax than the syntax that will be recognized when the edit is completed. In a
+// syntax-highlighting editor, or especially in a live-preview editor, these intermediate states can be distracting.
+// These tests cover customizations to the parser to either not recognize these cases as a secondary syntax, or to
+// recognize the case as the same syntax that will likely be present when the edit is completed.
+
+test.each([
+  {
+    description: 'Empty bullet not parsed as setext heading',
+    source: '-\nEmpty bullet, not a setext heading',
+    expected: [
+      'Document',
+      ['BulletList', ['ListItem', ['ListMark', '-'], ['Paragraph', '']]],
+      ['Paragraph', 'Empty bullet, not a setext heading'],
+    ],
+    not: [
+      /* TODO */
     ],
   },
   {
+    description: 'Empty bold not parsed as HorizontalRule',
+    source: '****',
+    // TODO
+    expected: ['Document', ['HorizontalRule', '****']],
+    not: ['Document', ['HorizontalRule', '****']],
+  },
+  {
+    description: 'Empty bold+italic not parsed as HorizontalRule',
+    source: '******',
+    // TODO
+    expected: ['Document', ['HorizontalRule', '******']],
+    not: ['Document', ['HorizontalRule', '******']],
+  },
+  {
+    description: 'Empty strikethrough not parsed as FencedCode',
+    source: '~~~~',
+    // TODO
+    // expected: ['Document', ['Paragraph', '~~~~']],
+    expected: ['Document', ['FencedCode', ['CodeMark', '~~~~']]],
+    not: ['Document', ['FencedCode', ['CodeMark', '~~~~']]],
+  },
+])('Syntax extensions: Special cases: $description', checkTree)
+
+// === Generic parser improvements ===
+
+// These cases cover improvements to the parser that are not specific to our use case; they may be considered for
+// upstream PR, although AST changes are generally compatibility-breaking.
+
+test.each([
+  {
+    description: 'LinkMarks distinguished from URL content',
     source: '[Link text](<https://url>)',
     expected: [
       'Document',
@@ -56,10 +164,7 @@ const miscCases = [
         ],
       ],
     ],
-  },
-  {
-    source: '[Link text](<https://url/*not bold*>)',
-    expected: [
+    not: [
       'Document',
       [
         'Paragraph',
@@ -68,111 +173,52 @@ const miscCases = [
           ['LinkMark', '['],
           ['LinkMark', ']'],
           ['LinkMark', '('],
+          ['URL', '<https://url>'],
+          ['LinkMark', ')'],
+        ],
+      ],
+    ],
+  },
+  {
+    description: 'LinkMarks distinguished from URL content in image',
+    source: '![Image](<https://url>)',
+    expected: [
+      'Document',
+      [
+        'Paragraph',
+        [
+          'Image',
+          ['LinkMark', '!['],
+          ['LinkMark', ']'],
+          ['LinkMark', '('],
           ['LinkMark', '<'],
-          ['URL', 'https://url/*not bold*'],
+          ['URL', 'https://url'],
           ['LinkMark', '>'],
           ['LinkMark', ')'],
         ],
       ],
     ],
-  },
-  {
-    source: '[*Italic link text*](https://url)',
-    expected: [
+    not: [
       'Document',
       [
         'Paragraph',
         [
-          'Link',
-          ['LinkMark', '['],
-          ['Emphasis', ['EmphasisMark', '*'], ['EmphasisMark', '*']],
+          'Image',
+          ['LinkMark', '!['],
           ['LinkMark', ']'],
           ['LinkMark', '('],
-          ['URL', 'https://url'],
+          ['URL', '<https://url>'],
           ['LinkMark', ')'],
         ],
       ],
     ],
   },
-  {
-    source: '<https://url>',
-    expected: [
-      'Document',
-      ['Paragraph', ['Autolink', ['LinkMark', '<'], ['URL', 'https://url'], ['LinkMark', '>']]],
-    ],
-  },
-  {
-    source: '<https://url/*bold here prevents the brackets from forming a URL*>',
-    expected: [
-      'Document',
-      ['Paragraph', ['Emphasis', ['EmphasisMark', '*'], ['EmphasisMark', '*']]],
-    ],
-  },
-  {
-    source: '1. List',
-    expected: [
-      'Document',
-      ['OrderedList', ['ListItem', ['ListMark', '1. '], ['Paragraph', 'List']]],
-    ],
-  },
-  {
-    source: '1. List\n   1. Sublist',
-    expected: [
-      'Document',
-      [
-        'OrderedList',
-        [
-          'ListItem',
-          ['ListMark', '1. '],
-          ['Paragraph', 'List'],
-          ['OrderedList', ['ListItem', ['ListMark', '1. '], ['Paragraph', 'Sublist']]],
-        ],
-      ],
-    ],
-  },
-  {
-    source: '- List',
-    expected: ['Document', ['BulletList', ['ListItem', ['ListMark', '- '], ['Paragraph', 'List']]]],
-  },
-  {
-    source: '- List\n  - Sublist',
-    expected: [
-      'Document',
-      [
-        'BulletList',
-        [
-          'ListItem',
-          ['ListMark', '- '],
-          ['Paragraph', 'List'],
-          ['BulletList', ['ListItem', ['ListMark', '- '], ['Paragraph', 'Sublist']]],
-        ],
-      ],
-    ],
-  },
-  {
-    source: '```enso\nmain = 42\n```',
-    expected: [
-      'Document',
-      [
-        'FencedCode',
-        ['CodeMark', '```'],
-        ['CodeInfo', 'enso'],
-        ['CodeText', 'main = 42'],
-        ['CodeMark', '```'],
-      ],
-    ],
-  },
-  {
-    source: '    main = 42',
-    expected: ['Document', ['CodeBlock', ['CodeText', 'main = 42']]],
-  },
-]
+])('Standards-compatible AST refinements: $description', checkTree)
 
-function checkTree({ source, expected }: { source: string; expected: DebugTree }) {
-  expect(debugTree(ensoMarkdownParser.parse(source), source)).toEqual(expected)
-}
+// === Standard syntax cases ===
 
-test.each(miscCases)('Enso Markdown tree structure: $source', checkTree)
+// These cases are not affected by our parser customizations (except for inclusion of extensions, like Strikethrough).
+// They are included here mainly as a reference for lezer-markdown's syntax trees.
 
 test.each([
   {
@@ -186,22 +232,6 @@ test.each([
   {
     source: 'Not emphasis without content: ******',
     expected: ['Document', ['Paragraph', 'Not emphasis without content: ******']],
-  },
-  {
-    // TODO: We should stop the horizontal rule parser from handling this, because it conflicts with cursor-formatting.
-    source: '****',
-    expected: ['Document', ['HorizontalRule', '****']],
-  },
-  {
-    // TODO: We should stop the horizontal rule parser from handling this, because it conflicts with cursor-formatting.
-    source: '******',
-    expected: ['Document', ['HorizontalRule', '******']],
-  },
-  {
-    // TODO: We should stop the code block parser from handling this, because it conflicts with cursor-formatting case.
-    source: '~~~~',
-    expected: ['Document', ['FencedCode', ['CodeMark', '~~~~']]],
-    // expected: ['Document', ['Paragraph', '~~~~']],
   },
   {
     source: 'Empty strikethrough: ~~~~',
@@ -519,25 +549,101 @@ test.each([
 
 test.each([
   {
-    source: 'Newline\nstarts new paragraph',
-    expected: ['Document', ['Paragraph', 'Newline'], ['Paragraph', 'starts new paragraph']],
+    source: 'some text',
+    expected: ['Document', ['Paragraph', 'some text']],
   },
   {
-    source: '*No multiline\nitalic*',
-    expected: ['Document', ['Paragraph', '*No multiline'], ['Paragraph', 'italic*']],
+    source: '[Link without URL]',
+    expected: ['Document', ['Paragraph', ['Link', ['LinkMark', '['], ['LinkMark', ']']]]],
   },
   {
-    source: '- List\n  Non-list child',
+    source: '[Link text](https://url)',
     expected: [
       'Document',
       [
-        'BulletList',
-        ['ListItem', ['ListMark', '- '], ['Paragraph', 'List'], ['Paragraph', 'Non-list child']],
+        'Paragraph',
+        [
+          'Link',
+          ['LinkMark', '['],
+          ['LinkMark', ']'],
+          ['LinkMark', '('],
+          ['URL', 'https://url'],
+          ['LinkMark', ')'],
+        ],
       ],
     ],
   },
   {
-    source: '- List\n  - Sublist\n  Non-list child',
+    source: '[Link text](https://url*bold here prevents the parens from being a URL*)',
+    expected: [
+      'Document',
+      [
+        'Paragraph',
+        ['Link', ['LinkMark', '['], ['LinkMark', ']']],
+        ['Emphasis', ['EmphasisMark', '*'], ['EmphasisMark', '*']],
+      ],
+    ],
+  },
+  {
+    source: '[*Italic link text*](https://url)',
+    expected: [
+      'Document',
+      [
+        'Paragraph',
+        [
+          'Link',
+          ['LinkMark', '['],
+          ['Emphasis', ['EmphasisMark', '*'], ['EmphasisMark', '*']],
+          ['LinkMark', ']'],
+          ['LinkMark', '('],
+          ['URL', 'https://url'],
+          ['LinkMark', ')'],
+        ],
+      ],
+    ],
+  },
+  {
+    source: '<https://url>',
+    expected: [
+      'Document',
+      ['Paragraph', ['Autolink', ['LinkMark', '<'], ['URL', 'https://url'], ['LinkMark', '>']]],
+    ],
+  },
+  {
+    source: '<https://url/*bold here prevents the brackets from forming a URL*>',
+    expected: [
+      'Document',
+      ['Paragraph', ['Emphasis', ['EmphasisMark', '*'], ['EmphasisMark', '*']]],
+    ],
+  },
+  {
+    source: '1. List',
+    expected: [
+      'Document',
+      ['OrderedList', ['ListItem', ['ListMark', '1. '], ['Paragraph', 'List']]],
+    ],
+  },
+  {
+    source: '1. List\n   1. Sublist',
+    expected: [
+      'Document',
+      [
+        'OrderedList',
+        [
+          'ListItem',
+          ['ListMark', '1. '],
+          ['Paragraph', 'List'],
+          ['OrderedList', ['ListItem', ['ListMark', '1. '], ['Paragraph', 'Sublist']]],
+        ],
+      ],
+    ],
+  },
+  {
+    source: '- List',
+    expected: ['Document', ['BulletList', ['ListItem', ['ListMark', '- '], ['Paragraph', 'List']]]],
+  },
+  {
+    source: '- List\n  - Sublist',
     expected: [
       'Document',
       [
@@ -547,9 +653,25 @@ test.each([
           ['ListMark', '- '],
           ['Paragraph', 'List'],
           ['BulletList', ['ListItem', ['ListMark', '- '], ['Paragraph', 'Sublist']]],
-          ['Paragraph', 'Non-list child'],
         ],
       ],
     ],
   },
-])('Prerendered newlines: $source', checkTree)
+  {
+    source: '```enso\nmain = 42\n```',
+    expected: [
+      'Document',
+      [
+        'FencedCode',
+        ['CodeMark', '```'],
+        ['CodeInfo', 'enso'],
+        ['CodeText', 'main = 42'],
+        ['CodeMark', '```'],
+      ],
+    ],
+  },
+  {
+    source: '    main = 42',
+    expected: ['Document', ['CodeBlock', ['CodeText', 'main = 42']]],
+  },
+])('Markdown syntax tree: $source', checkTree)
