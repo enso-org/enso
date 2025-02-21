@@ -707,6 +707,46 @@ export function useNewSecret(backend: Backend, category: Category) {
   )
 }
 
+/** A function to create a new credential. */
+export function useNewCredential(backend: Backend, category: Category) {
+  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
+  const { user } = useFullUserSession()
+  const { data: users } = useBackendQuery(backend, 'listUsers', [])
+  const createCredentialMutation = useMutation(backendMutationOptions(backend, 'createCredential'))
+
+  return useEventCallback(
+    async (
+      name: string,
+      type: string,
+      value: unknown,
+      parentId: DirectoryId,
+      parentPath: string | null | undefined,
+    ) => {
+      toggleDirectoryExpansion(parentId, true)
+      const placeholderItem = backendModule.createPlaceholderSecretAsset(
+        name,
+        parentId,
+        tryCreateOwnerPermission(
+          `${parentPath ?? ''}/${name}`,
+          category,
+          user,
+          users ?? [],
+          user.groups ?? [],
+        ),
+      )
+
+      return await createCredentialMutation.mutateAsync([
+        {
+          parentDirectoryId: placeholderItem.parentId,
+          name: placeholderItem.title,
+          type,
+          value,
+        },
+      ])
+    },
+  )
+}
+
 /** A function to create a new Datalink. */
 export function useNewDatalink(backend: Backend, category: Category) {
   const toggleDirectoryExpansion = useToggleDirectoryExpansion()

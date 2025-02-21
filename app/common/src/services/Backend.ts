@@ -1453,6 +1453,14 @@ export interface CreateSecretRequestBody {
   readonly parentDirectoryId: DirectoryId | null
 }
 
+/** HTTP request body for the "create credential" endpoint. */
+export interface CreateCredentialRequestBody {
+  readonly name: string
+  readonly type: string
+  readonly value: unknown
+  readonly parentDirectoryId: DirectoryId | null
+}
+
 /** HTTP request body for the "update secret" endpoint. */
 export interface UpdateSecretRequestBody {
   readonly title: string | null
@@ -1906,6 +1914,8 @@ export default abstract class Backend {
   abstract deleteDatalink(datalinkId: DatalinkId, title: string | null): Promise<void>
   /** Create a secret environment variable. */
   abstract createSecret(body: CreateSecretRequestBody): Promise<SecretId>
+  /** Create an OAuth credential. */
+  abstract createCredential(body: CreateCredentialRequestBody): Promise<SecretId>
   /** Return a secret environment variable. */
   abstract getSecret(secretId: SecretId, title: string): Promise<Secret>
   /** Change the value of a secret. */

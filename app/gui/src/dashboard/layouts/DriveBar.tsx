@@ -25,6 +25,7 @@ import {
   getAllTrashedItems,
 } from '#/hooks/backendBatchedHooks'
 import {
+  useNewCredential,
   useNewDatalink,
   useNewFolder,
   useNewProject,
@@ -138,6 +139,19 @@ export default function DriveBar(props: DriveBarProps) {
       parent?.path,
     )
   })
+  const newCredentialRaw = useNewCredential(backend, category)
+  const newCredential = useEventCallback(
+    async (name: string, value: string, metadata?: unknown) => {
+      const parent = getTargetDirectory()
+      return await newCredentialRaw(
+        name,
+        value,
+        metadata,
+        parent?.item.parentId ?? rootDirectoryId,
+        parent?.path,
+      )
+    },
+  )
   const newDatalinkRaw = useNewDatalink(backend, category)
   const newDatalink = useEventCallback(async (name: string, value: unknown) => {
     const parent = getTargetDirectory()
@@ -319,10 +333,7 @@ export default function DriveBar(props: DriveBarProps) {
                     id={null}
                     name={null}
                     doCreate={async (name, type, value) => {
-                      await newSecret(name, '', {
-                        subtype: 'credential',
-                        credential: { type, value },
-                      })
+                      await newCredential(name, type, value)
                     }}
                   />
                 </DialogTrigger>

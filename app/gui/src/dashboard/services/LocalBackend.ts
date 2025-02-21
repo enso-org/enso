@@ -868,6 +868,11 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
+  override createCredential() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   override updateSecret() {
     return this.invalidOperation()
   }
