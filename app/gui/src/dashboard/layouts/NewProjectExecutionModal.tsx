@@ -311,16 +311,6 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
 
   return (
     <Form form={form} className="w-full">
-      <DatePicker
-        form={form}
-        isRequired
-        noCalendarHeader
-        name="startDate"
-        hideTimeZone
-        label={getText('firstOccurrenceLabel')}
-        minValue={minFirstOccurrence}
-        className="w-60"
-      />
       <ComboBox
         form={form}
         isRequired
@@ -340,6 +330,16 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
           return `(GMT${offsetNegative ? '-' : '+'}${`${offsetHours}`.padStart(2, '0')}:${`${offsetMinutes}`.padStart(2, '0')}) ${description}`
         }}
       </ComboBox>
+      <DatePicker
+        form={form}
+        isRequired
+        noCalendarHeader
+        name="startDate"
+        hideTimeZone
+        label={getText('firstOccurrenceLabel')}
+        minValue={minFirstOccurrence}
+        className="w-60"
+      />
       <FormDropdown
         form={form}
         isRequired
