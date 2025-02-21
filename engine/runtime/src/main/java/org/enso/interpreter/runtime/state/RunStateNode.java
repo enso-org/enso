@@ -19,6 +19,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
 
+/** Use this node to manipulate {@link State}. */
 @BuiltinMethod(
     type = "State",
     name = "run",
@@ -38,8 +39,18 @@ public abstract class RunStateNode extends Node {
     return RunStateNodeGen.getUncached();
   }
 
+  /**
+   * Defines new value in {@link State}. Use {@link PutStateNode} to change the value inside of the
+   * {@code computation} and {@link GetStateNode} to read the value.
+   *
+   * @param frame the execution frame to pass to {@code computation}
+   * @param key the key to define in the {@link State}
+   * @param value the value to assign to the state
+   * @param computation the computation to perform the the {@code key} being in the {@link State}
+   * @return result of {@code computation}
+   */
   public abstract Object execute(
-      VirtualFrame frame, Object key, Object local_state, @Suspend Object computation);
+      VirtualFrame frame, Object key, Object value, @Suspend Object computation);
 
   final State state() {
     return EnsoContext.get(this).currentState();

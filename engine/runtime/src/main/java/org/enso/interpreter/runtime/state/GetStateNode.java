@@ -12,6 +12,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.PanicException;
 
+/** Use this node to manipulate {@link State}. */
 @BuiltinMethod(
     type = "State",
     name = "get",
@@ -34,6 +35,13 @@ public abstract class GetStateNode extends Node {
     return executeGet(key);
   }
 
+  /**
+   * Reads value associated with a key from the {@link State}.
+   *
+   * @param key the key to read the value for
+   * @return the value associated with the key
+   * @throws {@link PanicException} when there is no such key in the {@link State}
+   */
   public abstract Object executeGet(Object key);
 
   final State state() {

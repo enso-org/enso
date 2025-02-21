@@ -11,6 +11,7 @@ import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.PanicException;
 
+/** Use this node to manipulate {@link State}. */
 @BuiltinMethod(
     type = "State",
     name = "put",
@@ -28,6 +29,14 @@ public abstract class PutStateNode extends Node {
     return executePut(key, newState);
   }
 
+  /**
+   * Updates a value in the {@link State}. The node never defines new state key!
+   *
+   * @param key the key in the state as defined by the {@link RunStateNode#execute}
+   * @param newState new value to associate with the key
+   * @return the {@code newState} value
+   * @throws {@link PanicException} if the key hasn't been defined in the {@link State} yet
+   */
   public abstract Object executePut(Object key, Object newState);
 
   final State state() {
