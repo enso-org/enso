@@ -85,12 +85,6 @@ defineExpose({
           :modelValue="!!bold.value"
           @update:modelValue="bold.set"
         />
-        <ToggleIcon
-          icon="strike-through"
-          :disabled="!editing || strikethrough.value == null"
-          :modelValue="!!strikethrough.value"
-          @update:modelValue="strikethrough.set"
-        />
       </template>
       <slot name="toolbarRight" />
     </div>
