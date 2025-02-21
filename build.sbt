@@ -3564,11 +3564,9 @@ lazy val `runtime-instrument-id-execution` =
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "collections" % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
-        "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
-        "org.slf4j"            % "slf4j-api"   % slf4jVersion
+        "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion
       ),
       Compile / internalModuleDependencies := Seq(
-        (`logging-utils` / Compile / exportedModule).value,
         (`runtime` / Compile / exportedModule).value,
         (`runtime-compiler` / Compile / exportedModule).value,
         (`runtime-compiler-dump` / Compile / exportedModule).value,

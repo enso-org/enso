@@ -39,6 +39,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   private final Consumer<ExpressionValue> onComputedCallback;
   private final Consumer<ExpressionCall> functionCallCallback;
   private final Consumer<ExecutedVisualization> onExecutedVisualizationCallback;
+  private final ExecutionProgressObserver progressObserver = new ExecutionProgressObserver();
 
   /**
    * Creates callbacks instance.
@@ -93,7 +94,12 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       callOnCachedCallback(nodeId, result);
       return result;
     } else {
-      callOnNotCachedCallback(nodeId);
+      callOnNotCachedCallback(nodeId, -1.0);
+      progressObserver.startComputation(
+          nodeId,
+          (progress) -> {
+            callOnNotCachedCallback(nodeId, progress);
+          });
     }
 
     return null;
@@ -180,7 +186,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private void callOnNotCachedCallback(UUID nodeId) {
+  private void callOnNotCachedCallback(UUID nodeId, double amount) {
     ExpressionValue expressionValue =
         new ExpressionValue(nodeId, null, null, null, null, null, null, false);
 
