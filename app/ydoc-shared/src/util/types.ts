@@ -8,3 +8,27 @@ export function allKeys<T>(keys: { [P in keyof T]-?: any }): ReadonlySet<string>
 
 /** Static check that type `T` extends type `U`. */
 export function mustExtend<T extends U, U>() {} // eslint-disable-line @typescript-eslint/no-unused-vars
+
+/**
+ * A transformation of function's generic parameter `T` to a type which will forbid properties
+ * not belonging to `S` if object literal is passed.
+ *
+ * Example:
+ * ```js
+ * interface Options {
+ *   a?: boolean
+ *   b?: number
+ * }
+ *
+ * function specifyOptions<T extends Options>(x: ForbidExcessProps<T, Options>): T {
+ *   // something something
+ *   return x
+ * }
+ *
+ * // This works, and type sytstem knows that `a` exists in `works`
+ * const works = specifyOptions({ a: true })
+ * // But this still raises a compile error
+ * const dont = specifyOptions({ c: true })
+ * ```
+ */
+export type ForbidExcessProps<T, S> = { [K in keyof T]: K extends keyof S ? T[K] : never }
