@@ -23,6 +23,7 @@ import com.oracle.truffle.api.source.SourceSection;
 import org.enso.common.MethodNames;
 import org.enso.interpreter.node.callable.InteropApplicationNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
+import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.CallerInfo;
@@ -85,6 +86,25 @@ public final class Function extends EnsoObject {
 
   public static Function thunk(RootCallTarget callTarget, MaterializedFrame scope) {
     return new Function(callTarget, scope, FunctionSchema.THUNK);
+  }
+
+  /**
+   * Helper method to construct a function with pre-applied arguments from any call target.
+   *
+   * @param callTarget the call target to invoke
+   * @param args the arguments to pass to the call target
+   * @return fully saturated function ready to be processed by {@link ThunkExecutorNode}
+   */
+  public static Function fullyApplied(RootCallTarget callTarget, Object... args) {
+    var defs = new ArgumentDefinition[args.length];
+    var appl = new boolean[args.length];
+    for (var i = 0; i < args.length; i++) {
+      defs[i] =
+          new ArgumentDefinition(i, null, null, null, ArgumentDefinition.ExecutionMode.EXECUTE);
+      appl[i] = true;
+    }
+    var schema = FunctionSchema.newBuilder().argumentDefinitions(defs).hasPreapplied(appl).build();
+    return new Function(callTarget, null, schema, args, new Object[0]);
   }
 
   /**
@@ -226,7 +246,7 @@ public final class Function extends EnsoObject {
         @Cached InlinedBranchProfile panicProfile) {
       try {
         return interopApplicationNode.execute(
-            function, EnsoContext.get(thisLib).emptyState(), arguments);
+            function, EnsoContext.get(thisLib).currentState(), arguments);
       } catch (StackOverflowError err) {
         CompilerDirectives.transferToInterpreter();
         var asserts = false;

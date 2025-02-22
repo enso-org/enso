@@ -661,9 +661,11 @@ enso$ corepack pnpm i
 enso$ corepack pnpm dev:gui
 ```
 
-To build the `project-manager` one needs to launch `sbt` - one way to do it is
-to execute `./run backend sbt`. When in the _sbt prompt_ one can request
-compilation of the `project-manager`:
+To assemble and run the `project-manager` one needs to launch `sbt` - one way to
+do it is to execute `./run backend sbt`. When in the _sbt prompt_ one can
+request execution of the `project-manager`:
+
+<!--
 
 ```bash
 sbt:enso> buildProjectManagerDistribution
@@ -694,15 +696,18 @@ orchestration. One can pass following environment variables to
 
 One doesn't need to deal with these options directly, there is an _sbt command_
 to orchestrate them all:
+-->
 
 ```bash
 sbt:enso> runProjectManagerDistribution
 ```
 
+<!--
 The above command invokes `buildProjectManagerDistribution`,
 `buildEngineDistribution` and then defines `ENSO_ENGINE_PATH` to connect them
 together and also specifies the `ENSO_JVM_PATH` to the JVM `sbt` process runs
 on.
+-->
 
 There also is a simple way to [debug](debugger/README.md). When adding `--debug`
 option to the _sbt command_:
@@ -711,25 +716,15 @@ option to the _sbt command_:
 sbt:enso> runProjectManagerDistribution --debug
 ```
 
-the system also sets
-`ENSO_JVM_OPTS=-agentlib:jdwp=transport=dt_socket,address=5005`. Just
-[configure your Java IDE](debugger/README.md) to listen on port 5005 before
+the system sets `ENSO_JVM_OPTS=-agentlib:jdwp=transport=dt_socket,address=5005`.
+Just [configure your Java IDE](debugger/README.md) to listen on port 5005 before
 invoking the command and you'll be able to debug the engine launched by the
 project manager.
 
-To summarize, these are the steps required to run IDE with the development
-version of the language server:
-
-```bash
-enso$ ./run gui watch --skip-wasm-opt
-```
-
-together with that also (after launching `./run backend sbt`) following _sbt
-command_:
-
-```bash
-sbt:enso> runProjectManagerDistribution
-```
+By default the `runProjectManagerDistribution` command is useful for
+development, but it differs from the binary used during production. To work with
+a system closer to production one specify `ENSO_LAUNCHER=native` environment
+variable before starting `sbt` and use the same commands as described above.
 
 #### Language Server Mode
 

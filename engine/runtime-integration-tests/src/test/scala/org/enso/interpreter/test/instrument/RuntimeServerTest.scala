@@ -1256,6 +1256,10 @@ class RuntimeServerTest
     )
   }
 
+  it should "accessRuntimeCache" in {
+    RuntimeServerTesting.accessRuntimeCache(context)
+  }
+
   it should "send error updates for partially applied autoscope constructors" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()

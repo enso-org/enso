@@ -123,6 +123,7 @@ public final class Builtins {
   private final NoWrap noWrap;
   private final ProblemBehavior problemBehavior;
   private final AdditionalWarnings additionalWarnings;
+  private final Builtin instrumentor;
 
   /**
    * Creates an instance with builtin methods installed.
@@ -178,6 +179,7 @@ public final class Builtins {
     noWrap = getBuiltinType(NoWrap.class);
     problemBehavior = getBuiltinType(ProblemBehavior.class);
     additionalWarnings = getBuiltinType(AdditionalWarnings.class);
+    instrumentor = builtins.get(org.enso.interpreter.node.expression.builtin.Instrumentor.class);
 
     error = new Error(this, context);
     system = new System(this);
@@ -776,6 +778,13 @@ public final class Builtins {
    */
   public Type dataflowError() {
     return dataflowError.getType();
+  }
+
+  /**
+   * @return represents the Instrumentor type
+   */
+  public Type instrumentor() {
+    return instrumentor.getType();
   }
 
   /**
