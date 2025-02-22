@@ -20,8 +20,7 @@ const rangeNormalizationCases: RangeNormalizationCase[] = [
   { unnormalized: '*|Some text|*', normalized: '|*Some text*|' },
   { unnormalized: '***|Very emphasized|***', normalized: '|***Very emphasized***|' },
   { unnormalized: 'Very ***|emphasized|***', normalized: 'Very |***emphasized***|' },
-  // FIXME: Normalization bug.
-  // { unnormalized: '***~~|Very formatted|~~***', normalized: '|***~~Very formatted~~***|' },
+  { unnormalized: '***~~|Very formatted|~~***', normalized: '|***~~Very formatted~~***|' },
   { unnormalized: '*Some |text*|', normalized: '*Some |text|*', denormalized: '*Some |text*|' },
   { unnormalized: '|*Some| text*', normalized: '*|Some| text*', denormalized: '|*Some| text*' },
   { unnormalized: '|Some *text|*', normalized: '|Some *text*|' },

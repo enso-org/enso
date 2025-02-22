@@ -348,10 +348,10 @@ export function normalizeRange(
   const currentRange = { ...range }
   const cursor = tree.cursor()
 
-  normalizeDelimiter.from(currentRange, cursor)
-  normalizeDelimiter.to(currentRange, cursor)
-  // FIXME: `normalizeDelimiter` doesn't fully normalize one end while the other is completely unnormalized.
-  normalizeDelimiter.from(currentRange, cursor)
+  includeWrappingDelimiters.from(currentRange, cursor)
+  includeWrappingDelimiters.to(currentRange, cursor)
+  excludeExcessDelimiters.from(currentRange, cursor)
+  excludeExcessDelimiters.to(currentRange, cursor)
 
   if (insideInlineUnformattable(currentRange, cursor)) return
 
@@ -359,23 +359,28 @@ export function normalizeRange(
   // the result will be a {@link NormalizedRange}.
   return currentRange.from < currentRange.to ? (currentRange as TrimmedRange) : undefined
 }
-const normalizeDelimiter = sides(
-  ({ fromOrTo, inside, innermost, outermost }) =>
+/** Expand the range to include delimiters of nodes that it contains part of. */
+const includeWrappingDelimiters = sides(
+  ({ fromOrTo, outside }) =>
     (range: Range, cursor: TreeCursor) => {
-      cursor.moveTo(range[fromOrTo], inside)
-      do {
-        if (isDelimiter(cursor.name)) continue
-        const node = nodeRefCurrentRange(cursor)
-        const content = delimitedContent(cursor)
-        if (content) {
-          if (containsInclusive(range, content)) {
-            range[fromOrTo] = outermost(range[fromOrTo], node[fromOrTo])
-          } else {
-            range[fromOrTo] = innermost(range[fromOrTo], content[fromOrTo])
-            break
-          }
-        } else if (!containsInclusive(range, node)) break
-      } while (cursor.parent())
+      while (cursor.moveTo(range[fromOrTo], outside) && isDelimiter(cursor.name)) {
+        const expanded = cursor[fromOrTo]
+        cursor.parent()
+        if (expanded !== cursor[fromOrTo] || expanded === range[fromOrTo]) break
+        range[fromOrTo] = expanded
+      }
+    },
+)
+/** Contract the range to exclude delimiters of nodes that it doesn't contain all of. */
+const excludeExcessDelimiters = sides(
+  ({ fromOrTo, toOrFrom, inside }) =>
+    (range: Range, cursor: TreeCursor) => {
+      while (cursor.moveTo(range[fromOrTo], inside) && isDelimiter(cursor.name)) {
+        const contracted = cursor[toOrFrom]
+        cursor.parent()
+        if (containsInclusive(range, cursor)) break
+        range[fromOrTo] = contracted
+      }
     },
 )
 function insideInlineUnformattable(range: Range, cursor: TreeCursor) {
@@ -417,11 +422,6 @@ const denormalize = sides(({ fromOrTo, inside }) => (pos: number, cursor: TreeCu
  * If the cursor's current node starts and ends with a delimiter, returns the range between them. In any case upon
  * return, `cursor` will be in its original position.
  */
-function delimitedContent(cursor: TreeCursor): Range | undefined {
-  const from = delimiter.from(cursor)
-  const to = delimiter.to(cursor)
-  return from != null && to != null ? { from, to } : undefined
-}
 const delimiter = sides(
   ({ fromOrTo, toOrFrom, delimiterChild }) =>
     (cursor: TreeCursor): number | undefined => {
