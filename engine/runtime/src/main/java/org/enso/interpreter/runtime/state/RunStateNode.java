@@ -1,8 +1,10 @@
-package org.enso.interpreter.node.expression.builtin.state;
+package org.enso.interpreter.runtime.state;
 
 import com.oracle.truffle.api.dsl.Bind;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -16,8 +18,8 @@ import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.state.State;
 
+/** Use this node to manipulate {@link State}. */
 @BuiltinMethod(
     type = "State",
     name = "run",
@@ -25,15 +27,30 @@ import org.enso.interpreter.runtime.state.State;
     autoRegister = false,
     inlineable = true)
 @ReportPolymorphism
+@GenerateUncached
 public abstract class RunStateNode extends Node {
-  static RunStateNode build() {
+  RunStateNode() {}
+
+  public static RunStateNode build() {
     return RunStateNodeGen.create();
   }
 
-  private @Child ThunkExecutorNode thunkExecutorNode = ThunkExecutorNode.build();
+  public static RunStateNode getUncached() {
+    return RunStateNodeGen.getUncached();
+  }
 
-  abstract Object execute(
-      VirtualFrame frame, Object key, Object local_state, @Suspend Object computation);
+  /**
+   * Defines new value in {@link State}. Use {@link PutStateNode} to change the value inside of the
+   * {@code computation} and {@link GetStateNode} to read the value.
+   *
+   * @param frame the execution frame to pass to {@code computation}
+   * @param key the key to define in the {@link State}
+   * @param value the value to assign to the state
+   * @param computation the computation to perform the the {@code key} being in the {@link State}
+   * @return result of {@code computation}
+   */
+  public abstract Object execute(
+      VirtualFrame frame, Object key, Object value, @Suspend Object computation);
 
   final State state() {
     return EnsoContext.get(this).currentState();
@@ -46,6 +63,7 @@ public abstract class RunStateNode extends Node {
       Object local,
       Object computation,
       @Bind("state().getContainer()") State.Container data,
+      @Shared("thunkNode") @Cached ThunkExecutorNode thunkExecutorNode,
       @Shared("dynamicObjectLib") @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
     var old = objects.getOrDefault(data, key, null);
     objects.put(data, key, local);
@@ -64,6 +82,7 @@ public abstract class RunStateNode extends Node {
       Object local,
       Object computation,
       @Bind("state().getContainer()") State.Container data,
+      @Shared("thunkNode") @Cached ThunkExecutorNode thunkExecutorNode,
       @Shared("dynamicObjectLib") @CachedLibrary(limit = "10") DynamicObjectLibrary objects) {
     objects.put(data, key, local);
     try {

@@ -62,6 +62,7 @@ function onClick() {
   }
   &.disabled {
     cursor: default;
+    opacity: 0.4;
     &:hover {
       background-color: unset;
     }

@@ -43,7 +43,7 @@ public final class DateComparators extends GenericComparators<LocalDate> {
   }
 
   @Override
-  public boolean canApply(ColumnStorage<?> left, ColumnStorage<?> right) {
+  public boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
     return left.getType() instanceof DateType
         && (right.getType() instanceof DateType || right.getType() instanceof AnyObjectType);
   }
