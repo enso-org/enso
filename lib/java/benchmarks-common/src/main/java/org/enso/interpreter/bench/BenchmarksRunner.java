@@ -89,12 +89,14 @@ public class BenchmarksRunner {
           throw new IllegalStateException("Benchmark result report writing failed", e);
         }
       }
+      System.out.println("Benchmark results reported into " + resultsFile.getAbsolutePath());
+
       try {
         validateResultsSchema();
       } catch (IOException e) {
         throw new IllegalStateException("Benchmark results schema validation failed", e);
       }
-      System.out.println("Benchmark results reported into " + resultsFile.getAbsolutePath());
+      System.out.println("Benchmark results schema validated successfully");
     }
   }
 
