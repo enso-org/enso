@@ -1,5 +1,6 @@
 import project.Any.Any
 import project.Data.Text.Text
+import project.Data.Vector.Vector
 import project.Data.Numbers.Integer
 import project.Meta
 import project.Nothing.Nothing
@@ -14,12 +15,7 @@ Any.log_message : Text -> Log_Level -> Any
 Any.log_message self ~message:Text level:Log_Level=Log_Level.Info =
     type_name = self.to Meta.Type . qualified_name
     logger = LoggerFactory.getLogger type_name
-    case level of
-        Log_Level.Finest -> logger.trace message
-        Log_Level.Fine -> logger.debug message
-        Log_Level.Info -> logger.info message
-        Log_Level.Warning -> logger.warn message
-        Log_Level.Severe -> logger.error message
+    log_impl logger message level []
     self
 
 ## Infrastructure for reporting logs and progress of computations.
@@ -33,7 +29,7 @@ Any.log_message self ~message:Text level:Log_Level=Log_Level.Info =
    together and will report it as a whole to a
    [progress displaying facility](https://github.com/enso-org/enso/pull/12126).
 type Progress
-    private Running label:Text max:Integer
+    private Running label:Text max:Integer logger
 
     ## Performs provided `action` while reporting its progress.
 
@@ -49,8 +45,9 @@ type Progress
        - action: function performing the computation while reporting its `Progress`
 
     run label:Text up_to:Integer action:(Progress->Any) -> Any =
-        progress = Progress.Running label (up_to.max 1)
-        progress.log_message progress.label+"@"+up_to.to_text Log_Level.Finest # TBD
+        logger = LoggerFactory.getLogger (Progress.to Meta.Type . qualified_name)
+        progress = Progress.Running label (up_to.max 1) logger
+        log_impl logger "INIT {}:{}@{}" Log_Level.Finest [progress, progress.label, progress.max]
         res = action progress
         progress.advance up_to
         res
@@ -68,7 +65,7 @@ type Progress
 
     advance self amount:Integer=1 -> Progress =
         add = if amount>=0 then amount else 0
-        self.log_message self.label+"+"+add.to_text Log_Level.Finest # TBD
+        log_impl self.logger "ADVANCE {}+{}" Log_Level.Finest [self, add]
         self
 
     ## Provides additional human readable detail of the status of the computation.
@@ -80,8 +77,11 @@ type Progress
        The self value.
 
     log self detail:Text -> Progress =
-        self.log_message self.label+":"+detail Log_Level.Finest #TBD
+        log_impl self.logger "LOG {}:{}" Log_Level.Finest [self, detail]
         self
+
+    ## Simple name of the progress
+    to_text self = "Progress"
 
 ## PRIVATE
 type Log_Level
@@ -99,3 +99,17 @@ type Log_Level
 
     ## Severe level log message.
     Severe
+
+private log_impl logger ~message:Text level:Log_Level args:Vector =
+    builder = case level of
+        Log_Level.Finest -> logger.atTrace
+        Log_Level.Fine -> logger.atDebug
+        Log_Level.Info -> logger.atInfo
+        Log_Level.Warning -> logger.atWarn
+        Log_Level.Severe -> logger.atError
+
+    builder.setMessage message
+    args.each a->
+        builder.addArgument a
+
+    builder.log

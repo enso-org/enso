@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.progress;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.stream.Collectors;
 import org.enso.common.MethodNames;
@@ -67,12 +68,20 @@ public class ProgressTest {
               assertEquals("Only two", 2.0, r1.asDouble(), 0.001);
             });
     assertEquals("One time: " + oneTimeLog, 4, oneTimeLog.size());
-    assertEquals("geometric sequence@1", oneTimeLog.get(0).getMessage());
+    assertEquals("INIT {}:{}@{}", oneTimeLog.get(0).getMessage());
+    var progressHandle = oneTimeLog.get(0).getArguments().get(0);
+    assertEquals("geometric sequence", oneTimeLog.get(0).getArguments().get(1));
+    assertEquals(1L, oneTimeLog.get(0).getArguments().get(2));
+    assertEquals("LOG {}:{}", oneTimeLog.get(1).getMessage());
+    assertEquals(progressHandle, oneTimeLog.get(0).getArguments().get(0));
     assertEquals(
-        "geometric sequence:About to compute geometric sequence for 1",
-        oneTimeLog.get(1).getMessage());
-    assertEquals("geometric sequence:We have the result 2.0", oneTimeLog.get(2).getMessage());
-    assertEquals("geometric sequence+1", oneTimeLog.get(3).getMessage());
+        "About to compute geometric sequence for 1", oneTimeLog.get(1).getArguments().get(1));
+    assertEquals("LOG {}:{}", oneTimeLog.get(2).getMessage());
+    assertEquals(progressHandle, oneTimeLog.get(2).getArguments().get(0));
+    assertEquals("We have the result 2.0", oneTimeLog.get(2).getArguments().get(1));
+    assertEquals("ADVANCE {}+{}", oneTimeLog.get(3).getMessage());
+    assertEquals(progressHandle, oneTimeLog.get(0).getArguments().get(0));
+    assertEquals(1L, oneTimeLog.get(3).getArguments().get(1));
 
     var r2 = geom.execute(2, 2.0, 0.5);
     assertEquals("Three", 3.0, r2.asDouble(), 0.001);
@@ -131,17 +140,21 @@ public class ProgressTest {
             });
 
     assertEquals("Seven messsages " + msgs, 7, msgs.size());
-    var txt = msgs.stream().map(ObservedMessage::getMessage).collect(Collectors.joining("\n"));
+    var txt =
+        msgs.stream().map(ObservedMessage::getFormattedMessage).collect(Collectors.joining("\n"));
+
+    assertTrue("Initialization first", msgs.get(0).getMessage().startsWith("INIT "));
+
     assertEquals(
         "Initialize five steps. Then five `advance` calls and finally advance to finish.",
         """
-        from 0 to 5@5
-        from 0 to 5+1
-        from 0 to 5+1
-        from 0 to 5+1
-        from 0 to 5+1
-        from 0 to 5+1
-        from 0 to 5+5""",
+        INIT Progress:from 0 to 5@5
+        ADVANCE Progress+1
+        ADVANCE Progress+1
+        ADVANCE Progress+1
+        ADVANCE Progress+1
+        ADVANCE Progress+1
+        ADVANCE Progress+5""",
         txt);
   }
 
