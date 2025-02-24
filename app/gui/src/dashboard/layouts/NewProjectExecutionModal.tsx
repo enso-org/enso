@@ -237,7 +237,6 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const formTimeZoneDescription = form.watch('timeZone', timeZoneDescription) ?? timeZoneDescription
   const formTimeZone = getTimeZoneFromDescription(formTimeZoneDescription)
-  console.log(formTimeZone)
   // Reactively watch for `days` and `months` so that repeat dates are kept up to date.
   form.watch('days')
   form.watch('months')
