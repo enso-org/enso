@@ -337,38 +337,22 @@ function getFilterType(valueType: string) {
 }
 
 function getFilterOptions(valueType: string) {
-  if(valueType === 'Date') {
-    return [
-        'equals',
-        'notEqual',
-        'greaterThan',
-        'lessThan',
-        'inRange',
-        'blank',
-        'notBlank',
-      ]
+  if (valueType === 'Date') {
+    return ['equals', 'notEqual', 'greaterThan', 'lessThan', 'inRange', 'blank', 'notBlank']
   } else if (isNumericType(valueType)) {
     return [
-        'equals',
-        'notEqual',
-        'greaterThan',
-        'greaterThanOrEqual',
-        'lessThan',
-        'lessThanOrEqual',
-        'inRange',
-        'blank',
-        'notBlank',
-      ]
+      'equals',
+      'notEqual',
+      'greaterThan',
+      'greaterThanOrEqual',
+      'lessThan',
+      'lessThanOrEqual',
+      'inRange',
+      'blank',
+      'notBlank',
+    ]
   } else if (valueType === 'Char') {
-    return [
-        'equals',
-        'notEqual',
-        'blank',
-        'notBlank',
-        'contains',
-        'startsWith',
-        'endsWith',
-      ]
+    return ['equals', 'notEqual', 'blank', 'notBlank', 'contains', 'startsWith', 'endsWith']
   } else {
     return null
   }
@@ -430,7 +414,7 @@ function toField(
     filter: filterType,
     filterParams: {
       maxNumConditions: 1,
-      filterOptions: filterOptions
+      filterOptions: filterOptions,
     },
     headerComponentParams: {
       template,
