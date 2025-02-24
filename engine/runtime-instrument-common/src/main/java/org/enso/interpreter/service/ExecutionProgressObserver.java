@@ -12,16 +12,15 @@ final class ExecutionProgressObserver implements Consumer<ObservedMessage> {
   private final UUID nodeId;
   private final Thread thread;
   private final AutoCloseable handle;
-  private final Consumer<Double> consumer;
+  private final ProgressAggregator aggregate;
 
   ExecutionProgressObserver(UUID nodeId, Consumer<Double> c) {
     this.nodeId = nodeId;
     this.handle = ObservedMessage.observe(PROGRESS, this);
     this.thread = Thread.currentThread();
-    this.consumer = c;
-    // indeterminate computation has just started
+    this.aggregate = new ProgressAggregator(c);
+    // start by notifying indeterminate computation
     c.accept(-1.0);
-    System.err.println("Observing for " + nodeId);
   }
 
   UUID nodeId() {
@@ -35,12 +34,29 @@ final class ExecutionProgressObserver implements Consumer<ObservedMessage> {
   @Override
   public void accept(ObservedMessage t) {
     if (Thread.currentThread() == thread) {
-      System.err.println("  seeing " + t.getMessage() + " for " + nodeId);
+      switch (t.getMessage()) {
+        case "INIT {}:{}@{}" -> {
+          if (t.getArguments().size() >= 3
+              && t.getArguments().get(1) instanceof String msg
+              && t.getArguments().get(2) instanceof Number max) {
+            var key = t.getArguments().get(0);
+            aggregate.create(key, max.longValue());
+          }
+        }
+        case "ADVANCE {}+{}" -> {
+          if (t.getArguments().size() >= 2 && t.getArguments().get(1) instanceof Number by) {
+            var key = t.getArguments().get(0);
+            aggregate.advanceBy(key, by.longValue());
+          }
+        }
+        default -> {
+          System.err.println("  seeing " + t.getMessage() + " for " + nodeId);
+        }
+      }
     }
   }
 
   final void finishComputation() {
-    System.err.println("Finished computing " + nodeId);
     try {
       handle.close();
     } catch (Exception ex) {

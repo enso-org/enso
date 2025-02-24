@@ -1,7 +1,9 @@
-package org.enso.interpreter.runtime.progress;
+package org.enso.interpreter.service;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.function.Consumer;
 
 /**
@@ -9,6 +11,11 @@ import java.util.function.Consumer;
  * progress.
  */
 public final class ProgressAggregator {
+  /**
+   * @GuardedBy("this")
+   */
+  private final Map<Object, Progress> map = new WeakHashMap<>();
+
   private final Consumer<Double> updateStatus;
   private final Deque<Progress> stack = new ArrayDeque<>();
   private double current;
@@ -24,13 +31,12 @@ public final class ProgressAggregator {
   }
 
   /**
-   * Starts new progress in the current aggregator's stack.Nests the current progress in the
+   * Starts new progress in the current aggregator's stack. Nests the current progress in the
    * currently executing step of current progress.
    *
    * @param max maximum number of steps the progress can "advance to"
-   * @return new instance of a progress to {@link Progress#advance}
    */
-  public synchronized Progress create(long max) {
+  public synchronized void create(Object key, long max) {
     Progress p;
     if (stack.isEmpty()) {
       p = new Progress(max, 0.0, 1.0);
@@ -40,11 +46,24 @@ public final class ProgressAggregator {
       p = new Progress(max, current, current + previous.singleStep());
     }
     stack.addFirst(p);
-    return p;
+    map.put(key, p);
   }
 
-  private synchronized void closeProgress(Progress p) {
-    stack.remove(p);
+  public void closeProgress(Object key) {
+    if (findBy(key) instanceof Progress p) {
+      p.advance(p.max);
+      stack.remove(p);
+    }
+  }
+
+  public void advanceBy(Object key, long steps) {
+    if (findBy(key) instanceof Progress p) {
+      p.advance(steps);
+    }
+  }
+
+  private synchronized Progress findBy(Object key) {
+    return map.get(key);
   }
 
   private void advanceTo(double now) {
