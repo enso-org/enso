@@ -18,7 +18,6 @@ import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.io.TruffleProcessBuilder;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.object.Shape;
 import com.oracle.truffle.api.profiles.ValueProfile;
 import com.oracle.truffle.api.source.Source;
 import java.io.BufferedReader;
@@ -37,8 +36,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.RuntimeOptions;
@@ -108,7 +109,9 @@ public final class EnsoContext {
   private final LockManager lockManager;
   private final AtomicLong clock = new AtomicLong();
 
-  private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
+  @CompilationFinal(dimensions = 1)
+  private Object[] extraValues = new Object[0];
+
   private ExecutionEnvironment globalExecutionEnvironment;
 
   private final int warningsLimit;
@@ -925,14 +928,6 @@ public final class EnsoContext {
     return this.warningsLimit;
   }
 
-  public Shape getRootStateShape() {
-    return rootStateShape;
-  }
-
-  public State emptyState() {
-    return State.create(this);
-  }
-
   /**
    * @return the notification handler.
    */
@@ -1040,5 +1035,57 @@ public final class EnsoContext {
   /** Access to state associated with this context and current thread. */
   public State currentState() {
     return singleStateProfile.profile(language.currentState());
+  }
+
+  private Object extraValues(int index, Supplier<?> init) {
+    if (index >= extraValues.length || extraValues[index] == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      extraValues = Arrays.copyOf(extraValues, Extra.COUNTER.get());
+      extraValues[index] = init.get();
+      assert extraValues[index] != null;
+    }
+    return extraValues[index];
+  }
+
+  /**
+   * Key to associate additional value with {@link EnsoContext}. Create a {@code private static
+   * final} instance in any class and then use it <em>"as a key"</em> to access value of the
+   * specified type associated with the context.
+   *
+   * @param <T> the type of the value to access
+   */
+  public static final class Extra<T> {
+    private static final AtomicInteger COUNTER = new AtomicInteger();
+    private final int index;
+    private final Class<T> type;
+    private final Supplier<T> init;
+
+    /**
+     * Defines new value associated with the context.Use as:
+     *
+     * <pre>
+     * private static final ValueKey&lt;Integer&gt; MY_COUNTER = new Value<>(Integer.class);
+     * </pre>
+     *
+     * @param type the type of the value to {@link #set} and {@link #get}.
+     * @param initialValue function to use to compute initial value
+     */
+    public Extra(Class<T> type, Supplier<T> initialValue) {
+      this.type = type;
+      this.index = COUNTER.getAndIncrement();
+      this.init = initialValue;
+    }
+
+    /**
+     * Obtains (readily for <em>fast path</em>) value associated with this key stored in this
+     * context. Creates initial value, if it hasn't yet been created.
+     *
+     * @param ctx the context
+     * @return the value associated with this key in the given context
+     */
+    public T get(EnsoContext ctx) {
+      var value = ctx.extraValues(index, init);
+      return type.cast(value);
+    }
   }
 }

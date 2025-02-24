@@ -1,7 +1,8 @@
-package org.enso.interpreter.node.expression.builtin.state;
+package org.enso.interpreter.runtime.state;
 
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.library.CachedLibrary;
@@ -10,20 +11,38 @@ import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.state.State;
 
+/** Use this node to manipulate {@link State}. */
 @BuiltinMethod(
     type = "State",
     name = "get",
     description = "Returns the current value of monadic state.",
     autoRegister = false)
 @ReportPolymorphism
+@GenerateUncached
 public abstract class GetStateNode extends Node {
-  static GetStateNode build() {
+  public static GetStateNode build() {
     return GetStateNodeGen.create();
   }
 
-  abstract Object execute(Object key);
+  public static GetStateNode getUncached() {
+    return GetStateNodeGen.getUncached();
+  }
+
+  GetStateNode() {}
+
+  final Object execute(Object key) {
+    return executeGet(key);
+  }
+
+  /**
+   * Reads value associated with a key from the {@link State}.
+   *
+   * @param key the key to read the value for
+   * @return the value associated with the key
+   * @throws {@link PanicException} when there is no such key in the {@link State}
+   */
+  public abstract Object executeGet(Object key);
 
   final State state() {
     return EnsoContext.get(this).currentState();

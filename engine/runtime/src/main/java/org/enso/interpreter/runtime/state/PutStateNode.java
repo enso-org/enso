@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin.state;
+package org.enso.interpreter.runtime.state;
 
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Fallback;
@@ -10,8 +10,8 @@ import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.state.State;
 
+/** Use this node to manipulate {@link State}. */
 @BuiltinMethod(
     type = "State",
     name = "put",
@@ -19,11 +19,25 @@ import org.enso.interpreter.runtime.state.State;
     autoRegister = false)
 @ReportPolymorphism
 public abstract class PutStateNode extends Node {
-  static PutStateNode build() {
+  public static PutStateNode build() {
     return PutStateNodeGen.create();
   }
 
-  abstract Object execute(Object key, Object new_state);
+  PutStateNode() {}
+
+  final Object execute(Object key, Object newState) {
+    return executePut(key, newState);
+  }
+
+  /**
+   * Updates a value in the {@link State}. The node never defines new state key!
+   *
+   * @param key the key in the state as defined by the {@link RunStateNode#execute}
+   * @param newState new value to associate with the key
+   * @return the {@code newState} value
+   * @throws {@link PanicException} if the key hasn't been defined in the {@link State} yet
+   */
+  public abstract Object executePut(Object key, Object newState);
 
   final State state() {
     return EnsoContext.get(this).currentState();
