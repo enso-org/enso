@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import math
+import json
 import os
 import shutil
 import zipfile
@@ -9,12 +10,13 @@ from os import path
 from typing import List, Dict, Optional, Any
 from xml.etree import ElementTree as ET
 
-from bench_tool import JobRun, DATE_FORMAT, ENSO_REPO, JobReport, Source
+from bench_tool import JobRun, DATE_FORMAT, ENSO_REPO, JobReport, JsonJobReport, Source
 from bench_tool.gh import invoke_gh_api
 from bench_tool.remote_cache import RemoteCache
 from bench_tool.utils import WithTempDir
 
 ARTIFACT_ID = "Runtime Benchmark Report"
+SCHEMA_URL = "https://raw.githubusercontent.com/enso-org/enso/6732a5e7e94ad3395c49627fa2d3417d4a7fcd68/lib/java/benchmarks-common/src/main/resources/results_schema.json"
 
 _logger = logging.getLogger(__name__)
 
@@ -152,8 +154,8 @@ async def get_bench_report(bench_run: JobRun, temp_dir: str, remote_cache: Remot
     artifact_ret = await invoke_gh_api(ENSO_REPO, f"/actions/artifacts/{artifact_id}/zip", result_as_json=False)
     zip_file_name = os.path.join(temp_dir, artifact_id + ".zip")
     _logger.debug(f"Writing artifact ZIP content into {zip_file_name}")
-    with open(zip_file_name, "wb") as zip_file:
-        zip_file.write(artifact_ret)
+    with open(zip_file_name, "wb") as zf:
+        zf.write(artifact_ret)
 
     extracted_dirname = os.path.join(temp_dir, artifact_id)
     if os.path.exists(extracted_dirname):
@@ -164,14 +166,22 @@ async def get_bench_report(bench_run: JobRun, temp_dir: str, remote_cache: Remot
     zip_file = zipfile.ZipFile(zip_file_name, "r")
     zip_file.extractall(extracted_dirname)
     bench_report_xml = path.join(extracted_dirname, "bench-report.xml")
-    assert path.exists(bench_report_xml)
+    bench_report_json = path.join(extracted_dirname, "bench-report.json")
+    if path.exists(bench_report_xml):
+        bench_report_parsed = _parse_bench_report_from_xml(bench_report_xml, bench_run)
+    elif path.exists(bench_report_json):
+        bench_report_parsed = _parse_bench_report_from_json(bench_report_json, bench_run)
+    else:
+        raise RuntimeError(f"Neither bench-report.xml nor bench-report.json found in {extracted_dirname}")
 
-    bench_report_parsed = _parse_bench_report_from_xml(bench_report_xml, bench_run)
     await remote_cache.put(bench_run.id, bench_report_parsed)
     return bench_report_parsed
 
 
-def _parse_bench_report_from_xml(bench_report_xml_path: str, bench_run: JobRun) -> "JobReport":
+def _parse_bench_report_from_xml(bench_report_xml_path: str, bench_run: JobRun) -> JobReport:
+    """
+    Parsing bench report from older artifacts that contain single XML file.
+    """
     _logger.debug(f"Parsing BenchReport from {bench_report_xml_path}")
     tree = ET.parse(bench_report_xml_path)
     root = tree.getroot()
@@ -192,3 +202,63 @@ def _parse_bench_report_from_xml(bench_report_xml_path: str, bench_run: JobRun) 
         bench_run=bench_run
     )
 
+
+def _parse_bench_report_from_json(bench_report_json_path: str, bench_run: JobRun) -> JsonJobReport:
+    assert path.exists(bench_report_json_path)
+    with open(bench_report_json_path, "r") as f:
+        obj = json.load(f)
+    assert "$schema" in obj, f"Json expected to have $schema, but is: {obj}"
+    schema = obj["$schema"]
+    if schema == SCHEMA_URL:
+        results: List[JsonJobReport.Result] = []
+        label_score_dict: Dict[str, float] = {}
+        for res in obj["results"]:
+            percentiles: List[JsonJobReport.Percentile] = []
+            for perc in res["measurementStatistics"]["percentiles"]:
+                percentiles.append(
+                    JsonJobReport.Percentile(
+                        value=float(perc["value"]),
+                        percentile=float(perc["percentile"])
+                    )
+                )
+            result = JsonJobReport.Result(
+                label=res["label"],
+                timestamp=datetime.fromisoformat(res["timestamp"]),
+                score=float(res["score"]),
+                samples=int(res["samples"]),
+                warmup_iterations=int(res["warmupIterations"]),
+                warmup_millis=int(res["warmupMillis"]),
+                measure_iterations=int(res["measureIterations"]),
+                measure_millis=int(res["measureMillis"]),
+                commit_id=res["commitId"],
+                branch=res["branch"],
+                measurement_statistics=JsonJobReport.MeasurementStatistics(
+                    stddev=float(res["measurementStatistics"]["stddev"]),
+                    mean=float(res["measurementStatistics"]["mean"]),
+                    min=float(res["measurementStatistics"]["min"]),
+                    max=float(res["measurementStatistics"]["max"]),
+                    error_50=float(res["measurementStatistics"]["error50"]),
+                    error_95=float(res["measurementStatistics"]["error95"]),
+                    percentiles=percentiles
+                )
+            )
+            label_score_dict[result.label] = result.score
+            results.append(result)
+
+        return JsonJobReport(
+            label_score_dict=label_score_dict,
+            bench_run=bench_run,
+            schema=obj["$schema"],
+            configuration=JsonJobReport.Configuration(
+                os_name=obj["configuration"]["osName"],
+                os_arch=obj["configuration"]["osArch"],
+                os_version=obj["configuration"]["osVersion"],
+                vm_name=obj["configuration"]["vmName"],
+                vm_version=obj["configuration"]["vmVersion"],
+                vm_vendor=obj["configuration"]["vmVendor"],
+                jdk_version=obj["configuration"]["jdkVersion"]
+            ),
+            results=results
+        )
+    else:
+        raise RuntimeError(f"Unknown schema: {schema}")
