@@ -215,14 +215,6 @@ impl RunContext {
             // change its version might break the caches.
             // See (private): https://discord.com/channels/401396655599124480/407883082310352928/939618590158630922
             ide_ci::fs::remove_dir_if_exists(cache_directory())?;
-
-            // Remove the benchmark reports. They are not meant currently to be incrementally
-            // updated.
-
-            // We remove all "bench-report.xml" files across the repo, as they confuse the
-            // benchmark reporter. See the request: https://github.com/enso-org/enso/pull/8707#issuecomment-1882512361
-            let bench_report_xml = "**/bench-report.xml";
-            ide_ci::fs::remove_glob(bench_report_xml)?;
         }
 
         if self.config.test_jvm || self.config.test_standard_library.is_some() {
