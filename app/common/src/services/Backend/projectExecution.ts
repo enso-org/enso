@@ -33,7 +33,7 @@ export function firstProjectExecutionOnOrAfter(
   switch (repeat.type) {
     case 'monthlyDate':
     case 'monthlyWeekday': {
-      const currentMonth = nextDate.month
+      const currentMonth = nextDate.month - 1
       const month = repeat.months.find((month) => month >= currentMonth) ?? repeat.months[0] ?? 0
       const monthOffset = remainder(month - currentMonth, MONTHS_PER_YEAR)
       nextDate = nextDate.add({ months: monthOffset })
@@ -72,15 +72,14 @@ export function firstProjectExecutionOnOrAfter(
     case 'monthlyDate': {
       const currentDate = nextDate.day
       const date = repeat.date
-      const goToNextMonth = date < currentDate
-      nextDate = nextDate.set({ day: date })
+      const goToNextMonth = repeat.date < currentDate
       if (goToNextMonth) {
         const startMonth = nextDate.month
-        nextDate = nextDate.add({ months: 1 })
-        if (remainder(nextDate.month - startMonth, MONTHS_PER_YEAR) > 1) {
-          nextDate = nextDate.set({ day: 1 })
-        }
+        const month = repeat.months.find((month) => month > startMonth) ?? repeat.months[0] ?? 0
+        const monthOffset = remainder(month - startMonth, MONTHS_PER_YEAR)
+        nextDate = nextDate.add({ months: monthOffset })
       }
+      nextDate = nextDate.set({ day: date })
       break
     }
   }
@@ -97,7 +96,7 @@ export function nextProjectExecutionDate(
   switch (repeat.type) {
     case 'monthlyDate':
     case 'monthlyWeekday': {
-      const currentMonth = nextDate.month
+      const currentMonth = nextDate.month - 1
       const month = repeat.months.find((month) => month > currentMonth) ?? repeat.months[0] ?? 0
       const monthOffset = remainder(month - currentMonth, MONTHS_PER_YEAR)
       nextDate = nextDate.add({ months: monthOffset })
