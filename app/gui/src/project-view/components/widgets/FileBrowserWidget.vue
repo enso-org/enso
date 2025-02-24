@@ -26,12 +26,15 @@ import Backend, {
   assetIsDirectory,
   assetIsFile,
 } from 'enso-common/src/services/Backend'
-import { computed, onMounted, reactive, ref, toValue, watch } from 'vue'
+import { computed, onMounted, reactive, ref, toRef, toValue, watch } from 'vue'
 
-const { writeMode = false, initialPath = '' } = defineProps<{
-  writeMode?: boolean
-  initialPath?: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    writeMode?: boolean
+    initialPath?: string
+  }>(),
+  { writeMode: false, initialPath: '' },
+)
 
 const emit = defineEmits<{
   pathAccepted: [path: string]
@@ -64,8 +67,12 @@ const {
   highlightedName,
   initializeStack,
   isDirectoryStackInitializing,
-} = useFileBrowserStack(backend, initialPath, currentUser.data, writeMode, (dir) =>
-  fetch('listDirectory', listDirectoryArgs(dir)),
+} = useFileBrowserStack(
+  backend,
+  toRef(props, 'initialPath'),
+  currentUser.data,
+  toRef(props, 'writeMode'),
+  (dir) => fetch('listDirectory', listDirectoryArgs(dir)),
 )
 
 // === Directory Contents ===
@@ -126,7 +133,7 @@ function popTo(index: number) {
 
 function chooseFile(file: FileAsset | DatalinkAsset) {
   filenameInputContents.value = file.title
-  if (!writeMode) {
+  if (!props.writeMode) {
     acceptCurrentFile()
   }
 }
@@ -144,6 +151,7 @@ const isBusy = computed(() => isDirectoryStackInitializing.value || isPending.va
 const anyError = computed(() =>
   isError.value ? error
   : currentUser.isError.value ? currentUser.error
+  : currentOrganization.isError.value ? currentOrganization.error
   : undefined,
 )
 
@@ -244,8 +252,8 @@ onMounted(() => {
       />
     </div>
 
-    <div v-if="isBusy" class="centerContent contents"><LoadingSpinner /></div>
-    <div v-else-if="anyError" class="centerContent contents">Error: {{ anyError }}</div>
+    <div v-if="anyError" class="centerContent contents">Error: {{ anyError }}</div>
+    <div v-else-if="isBusy" class="centerContent contents"><LoadingSpinner /></div>
     <div v-else-if="isEmpty" class="centerContent contents">Directory is empty</div>
     <div v-else :key="currentDirectory?.id ?? 'root'" class="listing contents">
       <TransitionGroup>
