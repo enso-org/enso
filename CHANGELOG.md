@@ -28,6 +28,8 @@
   components][12275]
 - [Cloud File Browser allows renaming existing directories in "writing"
   components][12323]
+- [Cloud File Browser, when opened first time after opening project, shows and
+  highlights the currently set file][12184]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -46,6 +48,7 @@
 [12217]: https://github.com/enso-org/enso/pull/12217
 [12275]: https://github.com/enso-org/enso/pull/12275
 [12323]: https://github.com/enso-org/enso/pull/12323
+[12184]: https://github.com/enso-org/enso/pull/12184
 
 #### Enso Standard Library
 
