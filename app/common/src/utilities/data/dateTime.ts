@@ -469,10 +469,48 @@ export const WHITELISTED_TIME_ZONE_INFO = [
 ]
 
 export const WHITELISTED_TIME_ZONES = WHITELISTED_TIME_ZONE_INFO.map(({ timeZone }) => timeZone)
+export const WHITELISTED_TIME_ZONE_DESCRIPTIONS = WHITELISTED_TIME_ZONE_INFO.map(
+  ({ description }) => description,
+)
 
 export const WHITELISTED_TIME_ZONE_MAP = new Map(
   WHITELISTED_TIME_ZONE_INFO.map((info) => [info.timeZone, info]),
 )
+
+export const WHITELISTED_TIME_ZONE_DESCRIPTION_MAP = new Map(
+  WHITELISTED_TIME_ZONE_INFO.map((info) => [info.description, info]),
+)
+
+/** A time zone in the IANA time zone database. */
+export type IanaTimeZone = Newtype<string, 'IanaTimeZone'>
+/** Create a {@link IanaTimeZone}. */
+export const IanaTimeZone = newtypeConstructor<IanaTimeZone>()
+
+/**
+ * Get the corresponding timezone given its description.
+ * @throws {Error} when the description does not correspond to the description for
+ * one of the whitelisted timezones.
+ */
+export function getDescriptionForTimeZone(timeZone: IanaTimeZone): string {
+  const description = WHITELISTED_TIME_ZONE_MAP.get(timeZone)?.description
+  if (!description) {
+    throw new Error(`Unknown timezone description for IANA identifier '${timeZone}'.`)
+  }
+  return description
+}
+
+/**
+ * Get the corresponding timezone given its description.
+ * @throws {Error} when the description does not correspond to the description for
+ * one of the whitelisted timezones.
+ */
+export function getTimeZoneFromDescription(description: string): IanaTimeZone {
+  const timeZone = WHITELISTED_TIME_ZONE_DESCRIPTION_MAP.get(description)?.timeZone
+  if (!timeZone) {
+    throw new Error(`Unknown IANA identifier for timezone '${description}'.`)
+  }
+  return IanaTimeZone(timeZone)
+}
 
 /** A string with date and time, following the RFC3339 specification. */
 export type Rfc3339DateTime = Newtype<string, 'Rfc3339DateTime'>

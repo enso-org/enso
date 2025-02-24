@@ -49,14 +49,16 @@ import {
   DAYS,
   DAYS_PER_WEEK,
   getDay,
+  getDescriptionForTimeZone,
+  getTimeZoneFromDescription,
   getTimeZoneOffsetStringWithGMT,
   getWeekOfMonth,
+  IanaTimeZone,
   MONTH_3_LETTER_TEXT_IDS,
   MONTHS,
   MONTHS_PER_YEAR,
   toRfc3339,
-  WHITELISTED_TIME_ZONE_MAP,
-  WHITELISTED_TIME_ZONES,
+  WHITELISTED_TIME_ZONE_DESCRIPTIONS,
   zonedDateTimeToReadableIsoString,
 } from 'enso-common/src/utilities/data/dateTime'
 import { useEffect, useRef, useState } from 'react'
@@ -110,8 +112,9 @@ const UPSERT_EXECUTION_SCHEMA = z
       parallelMode,
       days,
       months,
-      timeZone,
+      timeZone: description,
     }): ProjectExecutionInfo => {
+      const timeZone = getTimeZoneFromDescription(description)
       startDate ??= now(timeZone)
       const startDateTime = toRfc3339(new Date(startDate.toAbsoluteString()))
       const repeat = ((): ProjectExecutionRepeatInfo => {
@@ -200,7 +203,8 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   const { getText } = useText()
   const [preferredTimeZone] = useLocalStorageState('preferredTimeZone')
   const getOrdinal = useGetOrdinal()
-  const timeZone = preferredTimeZone ?? getLocalTimeZone()
+  const timeZone = IanaTimeZone(preferredTimeZone ?? getLocalTimeZone())
+  const timeZoneDescription = getDescriptionForTimeZone(timeZone)
   const enableAdvancedProjectExecutionOptions = useFeatureFlag(
     'enableAdvancedProjectExecutionOptions',
   )
@@ -220,7 +224,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       maxDurationMinutes: MAX_DURATION_DEFAULT_MINUTES,
       days: DAYS,
       months: MONTHS,
-      timeZone,
+      timeZone: timeZoneDescription,
     },
     onSubmit: async (values) => {
       await createProjectExecution([values, item.title])
@@ -229,7 +233,11 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   const repeatType = form.watch('repeatType', 'daily')
   const parallelMode = form.watch('parallelMode', 'restart')
   const date = form.watch('startDate', defaultStartDate) ?? defaultStartDate
-  const formTimeZone = form.watch('timeZone', timeZone)
+  // `timeZone` may be `null`.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const formTimeZoneDescription = form.watch('timeZone', timeZoneDescription) ?? timeZoneDescription
+  const formTimeZone = getTimeZoneFromDescription(formTimeZoneDescription)
+  console.log(formTimeZone)
   // Reactively watch for `days` and `months` so that repeat dates are kept up to date.
   form.watch('days')
   form.watch('months')
@@ -312,17 +320,18 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         isRequired
         name="timeZone"
         label={getText('timeZoneLabel')}
-        items={WHITELISTED_TIME_ZONES}
+        items={WHITELISTED_TIME_ZONE_DESCRIPTIONS}
         addonStart={
-          <Text className="w-20">{getTimeZoneOffsetStringWithGMT(toZoned(date, timeZone))}</Text>
+          <Text className="w-20">
+            {getTimeZoneOffsetStringWithGMT(toZoned(date, formTimeZone))}
+          </Text>
         }
         toTextValue={(otherTimeZone) => otherTimeZone}
         className="w-full"
       >
-        {(otherTimeZone) => {
+        {(description) => {
+          const otherTimeZone = getTimeZoneFromDescription(description)
           const timezoneOffsetString = getTimeZoneOffsetStringWithGMT(toZoned(date, otherTimeZone))
-          const description =
-            WHITELISTED_TIME_ZONE_MAP.get(otherTimeZone)?.timeZone ?? otherTimeZone
           return `${timezoneOffsetString} ${description}`
         }}
       </ComboBox>
