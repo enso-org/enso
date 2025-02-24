@@ -1,9 +1,9 @@
 import {
   type DelimitersTrimmedRange,
-  type Range,
   type TrimmedRange,
 } from '@/components/MarkdownEditor/markdown/types'
 import { type Text } from '@codemirror/state'
+import { Range } from 'ydoc-shared/util/data/range'
 
 /** Provides text-level operations for a Markdown document. */
 export class TextDocument {
@@ -12,27 +12,27 @@ export class TextDocument {
 
   /** Trim leading/trailing spaces from the input. */
   trimRangeSpaces(range: Readonly<DelimitersTrimmedRange>): TrimmedRange {
-    return {
-      from: range.from + spacesAfter(this.lineContentAfter(range.from)),
-      to: range.to - spacesBefore(this.lineContentBefore(range.to)),
-    } as TrimmedRange
+    return (range.tryContract(
+      spacesAfter(this.lineContentAfter(range.from)),
+      spacesBefore(this.lineContentBefore(range.to)),
+    ) ?? Range.emptyAt(range.from)) as TrimmedRange
   }
 
   /** Add leading/trailing spaces to the input. */
   expandRangeSpaces(range: Readonly<Range>): Range {
-    return {
-      from: range.from - spacesBefore(this.lineContentBefore(range.from)),
-      to: range.to + spacesAfter(this.lineContentAfter(range.to)),
-    } as TrimmedRange
+    return range.expand(
+      spacesBefore(this.lineContentBefore(range.from)),
+      spacesAfter(this.lineContentAfter(range.to)),
+    )
   }
 
   /** Return the largest possible range of non-whitespace characters containing the point. */
   wordAt(pos: number): TrimmedRange {
     const [textBefore, textAfter] = this.splitLine(pos)
-    return {
-      from: pos - nonSpacesBefore(textBefore),
-      to: pos + nonSpacesAfter(textAfter),
-    } as TrimmedRange
+    return Range.emptyAt(pos).expand(
+      nonSpacesBefore(textBefore),
+      nonSpacesAfter(textAfter),
+    ) as TrimmedRange
   }
 
   /**

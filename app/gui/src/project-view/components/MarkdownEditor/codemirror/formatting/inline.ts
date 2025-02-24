@@ -14,10 +14,15 @@ import {
   type FormatNode,
   type FormatStates,
   type NormalizedRange,
-  type Range,
 } from '@/components/MarkdownEditor/markdown/types'
 import { syntaxTree } from '@codemirror/language'
-import { type ChangeSpec, type EditorState, type TransactionSpec } from '@codemirror/state'
+import {
+  type ChangeSpec,
+  type EditorState,
+  type SelectionRange,
+  type TransactionSpec,
+} from '@codemirror/state'
+import { Range } from 'ydoc-shared/util/data/range'
 export { type FormatNode as InlineFormattingNode } from '@/components/MarkdownEditor/markdown/types'
 
 /**
@@ -28,7 +33,9 @@ export { type FormatNode as InlineFormattingNode } from '@/components/MarkdownEd
 export function getInlineFormatting(state: EditorState): FormatStates | undefined {
   const range = state.selection.main
   const md = new MarkdownDocument(state.doc, syntaxTree(state))
-  return range.to === range.from ? md.pointFormatInfo(range.from) : md.rangeFormatInfo(range)
+  return range.to === range.from ?
+      md.pointFormatInfo(range.from)
+    : md.rangeFormatInfo(selectionRange(range))
 }
 
 /** Add or remove a format type to the current selection. */
@@ -38,7 +45,7 @@ export function setInlineFormatting(
   value: boolean,
 ): TransactionSpec {
   const changeBuilder = new MDChangeBuilder(state.doc, syntaxTree(state))
-  changeBuilder.visitFormattableRanges(state.selection.main, (range) =>
+  changeBuilder.visitFormattableRanges(selectionRange(state.selection.main), (range) =>
     setRangeFormatting(changeBuilder, range, nodeType, value),
   )
   const changes = state.changes(changeBuilder.changes)
@@ -47,6 +54,10 @@ export function setInlineFormatting(
     // TODO SelectionMapping
     selection: state.selection.main.map(changes),
   }
+}
+
+function selectionRange(selection: SelectionRange): Range {
+  return Range.tryFromBounds(selection.from, selection.to)!
 }
 
 class MDChangeBuilder extends MarkdownDocument {

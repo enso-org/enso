@@ -15,11 +15,11 @@ import {
   type FormatStates,
   nodeMarkToken,
   type NormalizedRange,
-  type Range,
 } from '@/components/MarkdownEditor/markdown/types'
 import { type Text } from '@codemirror/state'
 import { type Tree } from '@lezer/common'
 import { type DeepReadonly } from 'vue'
+import { Range } from 'ydoc-shared/util/data/range'
 
 function sides<T>(f: (fromOrTo: 'from' | 'to') => T): { from: T; to: T } {
   return {
@@ -114,7 +114,7 @@ export class MarkdownDocument extends TextDocument {
     return inInlineUnformattableNode ? getUnformattableAncestor(pos, this.tree) : this.wordAt(pos)
   }
 
-  private checkRangeFormat(range: Readonly<Range>, nodeType: string): boolean | undefined {
+  private checkRangeFormat(range: Range, nodeType: string): boolean | undefined {
     let foundDelimiters = false
     let foundContentOutsideDelimiters = false
     const visitor = new RangeGapVisitor(range.from, range.to, (range) => {
@@ -266,7 +266,7 @@ function parseCursorDelimiters(
   }
 }
 
-/** Accepts a sequence of ranges, and applies a visitor to the gap between them. */
+/** Accepts a sequence of ranges, and applies a visitor to the gaps between them. */
 class RangeGapVisitor {
   private prevEnd: number
   constructor(
@@ -284,6 +284,6 @@ class RangeGapVisitor {
     this.flush(this.to)
   }
   private flush(to: number) {
-    if (this.prevEnd < to) this.emit({ from: this.prevEnd, to })
+    if (this.prevEnd < to) this.emit(Range.tryFromBounds(this.prevEnd, to)!)
   }
 }

@@ -1,35 +1,6 @@
 /** @file Inline formatting types and their basic operations. */
 import * as objects from 'enso-common/src/utilities/data/object'
-
-export type Range = { from: number; to: number }
-
-/** @returns True if `inner` does not extend outside `outer`. */
-export function containsInclusive(outer: Range, inner: Range): boolean {
-  return outer.from <= inner.from && inner.to <= outer.to
-}
-
-/** @returns True if `inner` does not extend outside `outer`, and `inner` is smaller than `outer`. */
-export function containsStrict(outer: Range, inner: Range): boolean {
-  return (
-    (outer.from < inner.from && inner.to <= outer.to) ||
-    (outer.from <= inner.from && inner.to < outer.to)
-  )
-}
-
-/**
- * @returns The part of the given ranges that is contained within both of them (which may be zero-length if they just
- * meet), or `undefined` if they do not meet.
- */
-export function rangeIntersection(a: Range, b: Range): Range | undefined {
-  const from = Math.max(a.from, b.from)
-  const to = Math.min(a.to, b.to)
-  return from <= to ?
-      {
-        from,
-        to,
-      }
-    : undefined
-}
+import { Range } from 'ydoc-shared/util/data/range'
 
 declare const brandDelimitersTrimmed: unique symbol
 /** A {@link Range} that doesn't start with an end delimiter or end with a start delimiter. */

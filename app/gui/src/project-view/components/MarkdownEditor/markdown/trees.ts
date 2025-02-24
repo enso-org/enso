@@ -1,18 +1,15 @@
 /** @file Lezer Tree operations for reading and writing inline formatting state. */
 import {
-  containsInclusive,
-  containsStrict,
-  rangeIntersection,
   zeroFormatDepths,
   type FormatDepths,
   type FormatNode,
   type NormalizedRange,
-  type Range,
   type SeminormalizedRange,
   type TrimmedRange,
 } from '@/components/MarkdownEditor/markdown/types'
 import { type SyntaxNodeRef, type Tree, type TreeCursor } from '@lezer/common'
 import { identity } from '@vueuse/core'
+import { Range } from 'ydoc-shared/util/data/range'
 
 function reversed<T>(elements: ReadonlyArray<T>): T[] {
   return elements.slice().reverse()
@@ -63,7 +60,7 @@ const MARK_NODE: Readonly<Record<FormatNode, string>> = {
 }
 
 abstract class TreeRangeVisitor {
-  protected constructor(protected readonly range: Readonly<Range>) {}
+  protected constructor(protected readonly range: Range) {}
 
   protected abstract enter(node: SyntaxNodeRef): boolean | void
   protected leave(_node: SyntaxNodeRef): boolean | void {}
@@ -157,14 +154,14 @@ export function getUnformattableAncestor(pos: number, tree: Tree): Range {
         break
     }
   } while (cursor.parent())
-  return nodeRefCurrentRange(cursor)
+  return nodeRange(cursor)
 }
 
 class AnalyzeContainedDelimiters extends ContainedNodeVisitor {
   private ancestorIsNodeType: number = 0
 
   constructor(
-    range: Readonly<Range>,
+    range: Range,
     private readonly nodeType: FormatNode,
     private readonly emit: (range: Range) => void,
   ) {
@@ -173,7 +170,7 @@ class AnalyzeContainedDelimiters extends ContainedNodeVisitor {
 
   enter(node: SyntaxNodeRef) {
     if (this.ancestorIsNodeType & 1 && node.name === MARK_NODE[this.nodeType])
-      this.emit(nodeRefCurrentRange(node))
+      this.emit(nodeRange(node))
     this.ancestorIsNodeType = (this.ancestorIsNodeType << 1) | +(node.name === this.nodeType)
   }
   override leave() {
@@ -183,7 +180,7 @@ class AnalyzeContainedDelimiters extends ContainedNodeVisitor {
 
 /** For each node of the specified type fully-contained in the given range, apply the visitor to its delimiters. */
 export function visitContainedDelimiters(
-  range: Readonly<Range>,
+  range: Range,
   tree: Tree,
   nodeType: FormatNode,
   visit: (range: Range) => void,
@@ -192,11 +189,10 @@ export function visitContainedDelimiters(
 }
 
 /**
- * Extract the current range from the given node. It's important not to use a {@link SyntaxNodeRef} as a range directly,
- * because they are mutated, e.g. by cursors.
+ * Extract the current range from the given node.
  */
-function nodeRefCurrentRange(node: Readonly<SyntaxNodeRef>): Range {
-  return { from: node.from, to: node.to }
+function nodeRange(node: Readonly<SyntaxNodeRef>): Range {
+  return Range.tryFromBounds(node.from, node.to)!
 }
 
 /** Returns whether the node is formatting markup. */
@@ -213,12 +209,12 @@ export function isDelimiter(nodeName: string) {
 }
 
 /** Contract the range to exclude any delimiters that are oriented the wrong way. */
-export function trimRangeDelimiters(range: Readonly<Range>, tree: Tree): TrimmedRange {
+export function trimRangeDelimiters(range: Range, tree: Tree): TrimmedRange {
   const cursor = tree.cursor()
-  return {
-    from: trimDelimiter.from(range.from, cursor),
-    to: trimDelimiter.to(range.to, cursor),
-  } as TrimmedRange
+  return Range.tryFromBounds(
+    trimDelimiter.from(range.from, cursor),
+    trimDelimiter.to(range.to, cursor),
+  )! as TrimmedRange
 }
 const trimDelimiter = sides(({ toOrFrom, inside }) => (pos: number, cursor: TreeCursor) => {
   while (cursor.moveTo(pos, inside) && isDelimiter(cursor.name)) {
@@ -235,7 +231,7 @@ const trimDelimiter = sides(({ toOrFrom, inside }) => (pos: number, cursor: Tree
  * visitors. Note that ranges will not necessarily be yielded in document order.
  */
 export function splitRange(
-  range: Readonly<TrimmedRange>,
+  range: TrimmedRange,
   tree: Tree,
   visit: (range: NormalizedRange) => void,
   trimRange: (range: Range) => Range,
@@ -256,7 +252,7 @@ class RangeSplitter extends ExclusiveTreeVisitor {
   private currentRange: Range | undefined = undefined
 
   constructor(
-    range: Readonly<TrimmedRange>,
+    range: TrimmedRange,
     private readonly tree: Tree,
     private readonly emit: (range: NormalizedRange) => void,
     private readonly trimRange: (range: Range) => Range,
@@ -270,7 +266,7 @@ class RangeSplitter extends ExclusiveTreeVisitor {
     if (this.depth === 1) {
       if (!this.enterBlock(node, !nodeFromOutside && !nodeToOutside)) return false
     } else if (this.depth && nodeFromOutside !== nodeToOutside) {
-      if (!this.enterPartialInline(node, nodeFromOutside ? 'from' : 'to')) return false
+      if (!this.enterPartialInline(node, this.range.tryIntersect(nodeRange(node))!)) return false
     }
     this.depth += 1
     return true
@@ -278,7 +274,7 @@ class RangeSplitter extends ExclusiveTreeVisitor {
 
   private enterBlock(node: SyntaxNodeRef, nodeFullyInRange: boolean): boolean {
     // TODO: Exclude block delimiter
-    const blockRange = nodeRefCurrentRange(node)
+    const blockRange = nodeRange(node)
     if (nodeFullyInRange) {
       if (blockRange.to !== blockRange.from) {
         switch (node.name) {
@@ -291,21 +287,18 @@ class RangeSplitter extends ExclusiveTreeVisitor {
       }
       return false
     }
-    this.currentRange = rangeIntersection(this.range, blockRange)!
+    this.currentRange = this.range.tryIntersect(blockRange)!
     return true
   }
 
-  private enterPartialInline(node: SyntaxNodeRef, nodeEndOutside: 'from' | 'to'): boolean {
+  private enterPartialInline(node: SyntaxNodeRef, clippedNode: Range): boolean {
     switch (node.name) {
       case 'Link':
       // TODO: Yield the intersection of the range with the link text.
       /* fallthrough */
       case 'Autolink':
       case 'InlineCode': {
-        // Subtract the node from the range.
-        if (nodeEndOutside === 'from') this.currentRange!.from = node.to
-        else this.currentRange!.to = node.from
-        this.currentRange = this.trimRange(this.currentRange!)
+        this.currentRange = this.trimRange(clippedNode)
         return false
       }
       // FIXME: Maybe the default should be unformattable?
@@ -325,36 +318,32 @@ class RangeSplitter extends ExclusiveTreeVisitor {
 }
 
 export function normalizeRange(
-  { from, to }: Readonly<SeminormalizedRange>,
+  { from, to }: SeminormalizedRange,
   tree: Tree,
 ): NormalizedRange | undefined
 // This delimiter operation can be applied to any trimmed range (i.e. before range splitting); in that case the result
 // won't be a fully normalized range.
-export function normalizeRange(
-  { from, to }: Readonly<TrimmedRange>,
-  tree: Tree,
-): TrimmedRange | undefined
+export function normalizeRange({ from, to }: TrimmedRange, tree: Tree): TrimmedRange | undefined
 /**
  * Adjust the ends of the range to include/exclude delimiters based on tree structure (see {@link NormalizedRange});
  * returns `undefined` if the resulting range contains no formattable content.
  */
-export function normalizeRange(
-  range: Readonly<TrimmedRange>,
-  tree: Tree,
-): TrimmedRange | undefined {
-  const currentRange = { ...range }
+export function normalizeRange(range: TrimmedRange, tree: Tree): TrimmedRange | undefined {
   const cursor = tree.cursor()
 
-  currentRange.from = includeWrappingDelimiters.from(currentRange.from, cursor)
-  currentRange.to = includeWrappingDelimiters.to(currentRange.to, cursor)
-  excludeExcessDelimiters.from(currentRange, cursor)
-  excludeExcessDelimiters.to(currentRange, cursor)
+  const expandedRange = Range.tryFromBounds(
+    includeWrappingDelimiters.from(range.from, cursor),
+    includeWrappingDelimiters.to(range.to, cursor),
+  )!
 
-  if (insideInlineUnformattable(currentRange, cursor)) return
+  if (insideInlineUnformattable(expandedRange, cursor)) return
 
   // For any allowed input, the result will be a {@link TrimmedRange}; if the input is a {@link SeminormalizedRange},
   // the result will be a {@link NormalizedRange}.
-  return currentRange.from < currentRange.to ? (currentRange as TrimmedRange) : undefined
+  return Range.tryFromBounds(
+    excludeExcessDelimiters.from(expandedRange, cursor),
+    excludeExcessDelimiters.to(expandedRange, cursor),
+  ) as TrimmedRange | undefined
 }
 /** Expand the range to include delimiters of nodes that it contains part of. */
 const includeWrappingDelimiters = sides(
@@ -373,17 +362,23 @@ const includeWrappingDelimiters = sides(
 const excludeExcessDelimiters = sides(
   ({ fromOrTo, toOrFrom, inside }) =>
     (range: Range, cursor: TreeCursor) => {
-      while (cursor.moveTo(range[fromOrTo], inside) && isDelimiter(cursor.name)) {
+      let pos = range[fromOrTo]
+      while (cursor.moveTo(pos, inside) && isDelimiter(cursor.name)) {
         const contracted = cursor[toOrFrom]
         cursor.parent()
-        if (containsInclusive(range, cursor)) break
-        range[fromOrTo] = contracted
+        const currentRange =
+          fromOrTo === 'from' ?
+            Range.tryFromBounds(pos, range.to)!
+          : Range.tryFromBounds(range.from, pos)!
+        if (currentRange.contains(nodeRange(cursor))) break
+        pos = contracted
       }
+      return pos
     },
 )
 function insideInlineUnformattable(range: Range, cursor: TreeCursor) {
   cursor.moveTo(range.from, 0)
-  while (!containsStrict(cursor, range)) if (!cursor.parent()) return false
+  while (!nodeRange(cursor).encloses(range)) if (!cursor.parent()) return false
   do {
     switch (cursor.name) {
       case 'Link': // TODO: AllowFormattingLinkText
@@ -397,12 +392,12 @@ function insideInlineUnformattable(range: Range, cursor: TreeCursor) {
 }
 
 /** Expand each end of the range to the outermost node that it includes that end of the non-delimiter content of. */
-export function denormalizeRange(range: Readonly<NormalizedRange>, tree: Tree): Range {
+export function denormalizeRange(range: NormalizedRange, tree: Tree): Range {
   const cursor = tree.cursor()
-  return {
-    from: includeWrappingDelimiters.from(range.from, cursor),
-    to: includeWrappingDelimiters.to(range.to, cursor),
-  }
+  return Range.tryFromBounds(
+    includeWrappingDelimiters.from(range.from, cursor),
+    includeWrappingDelimiters.to(range.to, cursor),
+  )!
 }
 
 /**
@@ -425,7 +420,7 @@ export function analyzeMerges(
 const merge = sides(({ outside }) => (pos: number, cursor: TreeCursor, nodeType: FormatNode) => {
   cursor.moveTo(pos, outside)
   if (!isDelimiter(cursor.name)) return
-  const mark = nodeRefCurrentRange(cursor)
+  const mark = nodeRange(cursor)
   cursor.parent()
   return cursor.name === nodeType ? mark : undefined
 })
@@ -448,7 +443,7 @@ class AnalyzeSplits extends ExclusiveTreeVisitor {
     to: { name: string; delimiter: Range }[]
   } = { from: [], to: [] }
 
-  constructor(range: Readonly<NormalizedRange>) {
+  constructor(range: NormalizedRange) {
     super(range)
   }
 
@@ -466,12 +461,12 @@ class AnalyzeSplits extends ExclusiveTreeVisitor {
           if (fromOutside) {
             this.partlyOutside.from.push({
               name: node.name,
-              delimiter: nodeRefCurrentRange(node.node.lastChild!),
+              delimiter: nodeRange(node.node.lastChild!),
             })
           } else {
             this.partlyOutside.to.push({
               name: node.name,
-              delimiter: nodeRefCurrentRange(node.node.firstChild!),
+              delimiter: nodeRange(node.node.firstChild!),
             })
           }
           break
@@ -516,7 +511,7 @@ class AnalyzeRemoval extends AnalyzeSplits {
   private insideNodeType = false
 
   constructor(
-    range: Readonly<NormalizedRange>,
+    range: NormalizedRange,
     private readonly extended: Range,
     private readonly nodeType: string,
   ) {
@@ -531,17 +526,17 @@ class AnalyzeRemoval extends AnalyzeSplits {
         if (this.extended.from <= node.from) {
           this.contractAtFrom.push({
             name: node.name,
-            delimiter: nodeRefCurrentRange(node.node.firstChild!),
+            delimiter: nodeRange(node.node.firstChild!),
           })
         } else if (node.to <= this.extended.to) {
           this.contractAtTo.push({
             name: node.name,
-            delimiter: nodeRefCurrentRange(node.node.lastChild!),
+            delimiter: nodeRange(node.node.lastChild!),
           })
         } else {
           this.outerNodesToClose.push({
             name: node.name,
-            delimiter: nodeRefCurrentRange(node.node.firstChild!),
+            delimiter: nodeRange(node.node.firstChild!),
           })
         }
       }
