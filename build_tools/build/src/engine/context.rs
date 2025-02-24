@@ -545,7 +545,7 @@ impl RunContext {
 
     fn ensure_runtime_bench_report_exist(&self) {
         let runtime_bench_report =
-            &self.paths.repo_root.engine.runtime_benchmarks.bench_report_json;
+            &self.paths.repo_root.engine.join("runtime-benchmarks").join("bench-report.xml");
         if !runtime_bench_report.exists() {
             warn!(
                 "No Runtime Benchmark Report file found at {}, nothing to upload.",
@@ -555,7 +555,7 @@ impl RunContext {
     }
 
     fn ensure_stdlib_bench_report_exist(&self) {
-        let enso_jmh_report = &self.paths.repo_root.std_bits.benchmarks.bench_report_json;
+        let enso_jmh_report = &self.paths.repo_root.std_bits.benchmarks.bench_report_xml;
         if !enso_jmh_report.exists() {
             warn!(
                 "No Enso JMH Benchmark Report file found at {}, nothing to upload.",
