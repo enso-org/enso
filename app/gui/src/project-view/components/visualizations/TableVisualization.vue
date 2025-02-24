@@ -635,7 +635,10 @@ watchEffect(() => {
               (h: string) => h === col.headerName,
             )
             const needsGrouping =
-              dataHeaderIndex ? data_.requires_number_format[dataHeaderIndex] : false
+              dataHeaderIndex !== null && dataHeaderIndex !== undefined ?
+                data_.requires_number_format[dataHeaderIndex]
+              : false
+
             headerGroupingMap.set(col.headerName, needsGrouping)
           }
         })
