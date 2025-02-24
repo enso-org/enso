@@ -20,6 +20,7 @@ import * as object from '#/utilities/object'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import * as validation from '#/utilities/validation'
 import { useTransition } from 'react'
+import { useSetAssetPanelProps } from '../../layouts/AssetPanel'
 
 // =====================
 // === DirectoryName ===

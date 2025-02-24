@@ -112,7 +112,6 @@ import {
   BackendType,
   getAssetPermissionName,
   IS_OPENING_OR_OPENED,
-  Plan,
   type AnyAsset,
   type DirectoryId,
 } from '#/services/Backend'
@@ -257,8 +256,6 @@ function AssetsTable(props: AssetsTableProps) {
   const setVisuallySelectedKeys = useSetVisuallySelectedKeys()
   const setPasteData = useSetPasteData()
 
-  const nameOfProjectToImmediatelyOpenRef = useRef(initialProjectName)
-
   const uploadFiles = useUploadFiles(backend, category)
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
   const cutAndPaste = useCutAndPaste(backend, category)
@@ -281,9 +278,6 @@ function AssetsTable(props: AssetsTableProps) {
     expandedDirectoryIds: [currentDirectoryId],
   })
 
-  // eslint-disable-next-line no-restricted-syntax
-  const isError = false as boolean
-
   const [isDraggingFiles, setIsDraggingFiles] = useState(false)
   const [droppedFilesCount, setDroppedFilesCount] = useState(0)
   const isCloud = backend.type === BackendType.remote
@@ -295,8 +289,6 @@ function AssetsTable(props: AssetsTableProps) {
   const getPasteData = useEventCallback(() => driveStore.getState().pasteData)
   const nodeMapRef = useNodeMap()
   const setNodeMap = useSetNodeMap()
-  const isAssetContextMenuVisible =
-    category.type !== 'cloud' || user.plan == null || user.plan === Plan.solo
 
   const isMainDropzoneVisible = useIntersectionRatio(
     rootRef,
@@ -595,33 +587,29 @@ function AssetsTable(props: AssetsTableProps) {
   const initialProjectNameDeps = useSyncRef({
     assetTree,
     doOpenProject,
-    isLoading: false,
     toastAndLog,
   })
+
   useEffect(() => {
     const deps = initialProjectNameDeps.current
-    if (deps.isLoading) {
-      nameOfProjectToImmediatelyOpenRef.current = initialProjectName
-    } else {
-      // The project name here might also be a string with project id, e.g. when opening
-      // a project file from explorer on Windows.
-      const isInitialProject = (asset: AnyAsset) =>
-        asset.title === initialProjectName || asset.id === initialProjectName
-      const projectToLoad = deps.assetTree
-        .preorderTraversal()
-        .map((node) => node.item)
-        .filter(assetIsProject)
-        .find(isInitialProject)
-      if (projectToLoad != null) {
-        deps.doOpenProject({
-          type: BackendType.local,
-          id: projectToLoad.id,
-          title: projectToLoad.title,
-          parentId: projectToLoad.parentId,
-        })
-      } else if (initialProjectName != null) {
-        deps.toastAndLog('findProjectError', null, initialProjectName)
-      }
+    // The project name here might also be a string with project id, e.g. when opening
+    // a project file from explorer on Windows.
+    const isInitialProject = (asset: AnyAsset) =>
+      asset.title === initialProjectName || asset.id === initialProjectName
+    const projectToLoad = deps.assetTree
+      .preorderTraversal()
+      .map((node) => node.item)
+      .filter(assetIsProject)
+      .find(isInitialProject)
+    if (projectToLoad != null) {
+      deps.doOpenProject({
+        type: BackendType.local,
+        id: projectToLoad.id,
+        title: projectToLoad.title,
+        parentId: projectToLoad.parentId,
+      })
+    } else if (initialProjectName != null) {
+      deps.toastAndLog('findProjectError', null, initialProjectName)
     }
   }, [initialProjectName, initialProjectNameDeps])
 
@@ -894,7 +882,6 @@ function AssetsTable(props: AssetsTableProps) {
       category={category}
       currentDirectoryId={currentDirectoryId}
       nodeMapRef={nodeMapRef}
-      rootDirectoryId={rootDirectoryId}
       event={{ pageX: 0, pageY: 0 }}
       doCopy={doCopy}
       doCut={doCut}
@@ -1337,23 +1324,20 @@ function AssetsTable(props: AssetsTableProps) {
     <div
       className="flex flex-none flex-col"
       onContextMenu={(event) => {
-        if (isAssetContextMenuVisible) {
-          event.preventDefault()
-          event.stopPropagation()
-          setModal(
-            <AssetsTableContextMenu
-              backend={backend}
-              category={category}
-              nodeMapRef={nodeMapRef}
-              event={event}
-              rootDirectoryId={rootDirectoryId}
-              doCopy={doCopy}
-              doCut={doCut}
-              currentDirectoryId={currentDirectoryId}
-              doPaste={doPaste}
-            />,
-          )
-        }
+        event.preventDefault()
+        event.stopPropagation()
+        setModal(
+          <AssetsTableContextMenu
+            backend={backend}
+            category={category}
+            nodeMapRef={nodeMapRef}
+            event={event}
+            doCopy={doCopy}
+            doCut={doCut}
+            currentDirectoryId={currentDirectoryId}
+            doPaste={doPaste}
+          />,
+        )
       }}
       onDragLeave={(event) => {
         const payload = LABELS.lookup(event)
@@ -1371,17 +1355,13 @@ function AssetsTable(props: AssetsTableProps) {
         <thead className="sticky top-0 isolate z-1 bg-dashboard before:absolute before:-inset-1 before:bottom-0 before:bg-dashboard">
           {headerRow}
         </thead>
+
         <tbody ref={bodyRef} className="isolate">
           {itemRows}
           <tr className="hidden h-row first:table-row">
             <td colSpan={columns.length} className="bg-transparent">
-              <Text
-                className={twJoin('px-cell-x placeholder', isError && 'text-danger')}
-                disableLineHeightCompensation
-              >
-                {isError ?
-                  getText('thisFolderFailedToFetch')
-                : category.type === 'trash' ?
+              <Text className={twJoin('px-cell-x placeholder')} disableLineHeightCompensation>
+                {category.type === 'trash' ?
                   query.query !== '' ?
                     getText('noFilesMatchTheCurrentFilters')
                   : getText('yourTrashIsEmpty')

@@ -46,7 +46,6 @@ export interface AssetsTableContextMenuProps {
   readonly backend: Backend
   readonly category: Category
   readonly currentDirectoryId: backendModule.DirectoryId
-  readonly rootDirectoryId: backendModule.DirectoryId
   readonly nodeMapRef: React.MutableRefObject<
     ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>
   >
@@ -201,65 +200,67 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
         </ContextMenu>
       )
     )
-  } else if (category.type === 'recent') {
+  }
+
+  if (category.type === 'recent') {
+    return null
+  }
+
+  const shouldShowAssetMenu = selectedAssets.length !== 0 || pasteAllMenuEntry !== false
+  const shouldShowGlobalMenu =
+    category.type !== 'cloud' || user.plan == null || user.plan === backendModule.Plan.solo
+  if (!shouldShowAssetMenu && !shouldShowGlobalMenu) {
     return null
   } else {
-    const shouldShowAssetMenu = selectedAssets.length !== 0 || pasteAllMenuEntry !== false
-    const shouldShowGlobalMenu =
-      category.type !== 'cloud' || user.plan == null || user.plan === backendModule.Plan.solo
-    if (!shouldShowAssetMenu && !shouldShowGlobalMenu) {
-      return null
-    } else {
-      return (
-        <ContextMenu
-          aria-label={getText('assetsTableContextMenuLabel')}
-          hidden={hidden}
-          event={event}
-        >
-          {shouldShowAssetMenu && (
-            <>
-              {selectedAssets.length !== 0 && ownsAllSelectedAssets && (
-                <ContextMenuEntry
-                  hidden={hidden}
-                  action="delete"
-                  label={isCloud ? getText('moveAllToTrashShortcut') : getText('deleteAllShortcut')}
-                  doAction={doDeleteAll}
-                />
-              )}
-              {selectedAssets.length !== 0 && isCloud && (
-                <ContextMenuEntry
-                  hidden={hidden}
-                  action="copy"
-                  label={getText('copyAllShortcut')}
-                  doAction={doCopy}
-                />
-              )}
-              {selectedAssets.length !== 0 && ownsAllSelectedAssets && (
-                <ContextMenuEntry
-                  hidden={hidden}
-                  action="cut"
-                  label={getText('cutAllShortcut')}
-                  doAction={doCut}
-                />
-              )}
-              {pasteAllMenuEntry}
-            </>
-          )}
-          {shouldShowAssetMenu && shouldShowGlobalMenu && <Separator hidden={hidden} />}
-          {shouldShowGlobalMenu && (
-            <GlobalContextMenu
-              noWrapper
-              hidden={hidden}
-              backend={backend}
-              category={category}
-              rootDirectoryId={rootDirectoryId}
-              directoryId={null}
-              doPaste={doPaste}
-              event={event}
-            />
-          )}
-        </ContextMenu>
-      )
-    }
+    return (
+      <ContextMenu
+        aria-label={getText('assetsTableContextMenuLabel')}
+        hidden={hidden}
+        event={event}
+      >
+        {shouldShowAssetMenu && (
+          <>
+            {selectedAssets.length !== 0 && ownsAllSelectedAssets && (
+              <ContextMenuEntry
+                hidden={hidden}
+                action="delete"
+                label={isCloud ? getText('moveAllToTrashShortcut') : getText('deleteAllShortcut')}
+                doAction={doDeleteAll}
+              />
+            )}
+            {selectedAssets.length !== 0 && isCloud && (
+              <ContextMenuEntry
+                hidden={hidden}
+                action="copy"
+                label={getText('copyAllShortcut')}
+                doAction={doCopy}
+              />
+            )}
+            {selectedAssets.length !== 0 && ownsAllSelectedAssets && (
+              <ContextMenuEntry
+                hidden={hidden}
+                action="cut"
+                label={getText('cutAllShortcut')}
+                doAction={doCut}
+              />
+            )}
+            {pasteAllMenuEntry}
+          </>
+        )}
+        {shouldShowAssetMenu && shouldShowGlobalMenu && <Separator hidden={hidden} />}
+        {shouldShowGlobalMenu && (
+          <GlobalContextMenu
+            noWrapper
+            hidden={hidden}
+            backend={backend}
+            category={category}
+            currentDirectoryId={currentDirectoryId}
+            directoryId={null}
+            doPaste={doPaste}
+            event={event}
+          />
+        )}
+      </ContextMenu>
+    )
   }
 }
