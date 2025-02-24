@@ -11,7 +11,7 @@ from bench_tool.bench_results import _parse_bench_report_from_json
 
 SAMPLE_REPORT = """
 {
-  "$schema" : "https://raw.githubusercontent.com/enso-org/enso/6732a5e7e94ad3395c49627fa2d3417d4a7fcd68/lib/java/benchmarks-common/src/main/resources/results_schema.json",
+  "$schema" : "https://raw.githubusercontent.com/enso-org/engine-benchmark-results/fef8b37881580512435cfa9bb2b867e6b97e147a/schema/cache-v2.json",
   "configuration" : {
     "osName" : "Linux",
     "osArch" : "amd64",
@@ -21,73 +21,39 @@ SAMPLE_REPORT = """
     "vmVendor" : "GraalVM Community",
     "jdkVersion" : "21.0.2"
   },
+  "ghActionRun" : null,
   "results" : [ {
-    "label" : "org.enso.benchmarks.generated.Vector_Operations.Sum",
-    "timestamp" : "2025-02-24T12:26:58Z",
-    "score" : 0.9694779908879411,
+    "label" : "org.enso.interpreter.bench.benchmarks.semantic.WarningBenchmarks.sameWarningVecSum",
+    "timestamp" : "2025-02-24T18:04:13Z",
+    "score" : 212.37731426666667,
     "samples" : 1,
     "warmupIterations" : 1,
-    "warmupMillis" : 5000,
+    "warmupMillis" : 1000,
     "measureIterations" : 1,
-    "measureMillis" : 5000,
-    "commitId" : "cd7a3cec11d4105afb106b7b1c781e3bdedf4236",
+    "measureMillis" : 3000,
+    "commitId" : "a2e241baac3cd4566e0e243ae72ce015848744c4",
     "branch" : "wip/akirathan/9355-bench-res-json",
     "measurementStatistics" : {
       "stddev" : "NaN",
-      "mean" : 0.9694779908879411,
-      "min" : 0.9694779908879411,
-      "max" : 0.9694779908879411,
+      "mean" : 212.37731426666667,
+      "min" : 212.37731426666667,
+      "max" : 212.37731426666667,
       "error50" : "NaN",
       "error95" : "NaN",
       "percentiles" : [ {
-        "value" : 0.9694779908879411,
+        "value" : 212.37731426666667,
         "percentile" : 10.0
       }, {
-        "value" : 0.9694779908879411,
+        "value" : 212.37731426666667,
         "percentile" : 25.0
       }, {
-        "value" : 0.9694779908879411,
+        "value" : 212.37731426666667,
         "percentile" : 50.0
       }, {
-        "value" : 0.9694779908879411,
+        "value" : 212.37731426666667,
         "percentile" : 75.0
       }, {
-        "value" : 0.9694779908879411,
-        "percentile" : 90.0
-      } ]
-    }
-  }, {
-    "label" : "org.enso.benchmarks.generated.Vector_Operations.Sum_Stats",
-    "timestamp" : "2025-02-24T12:26:58Z",
-    "score" : 392.2233642307692,
-    "samples" : 1,
-    "warmupIterations" : 1,
-    "warmupMillis" : 5000,
-    "measureIterations" : 1,
-    "measureMillis" : 5000,
-    "commitId" : "cd7a3cec11d4105afb106b7b1c781e3bdedf4236",
-    "branch" : "wip/akirathan/9355-bench-res-json",
-    "measurementStatistics" : {
-      "stddev" : "NaN",
-      "mean" : 392.2233642307692,
-      "min" : 392.2233642307692,
-      "max" : 392.2233642307692,
-      "error50" : "NaN",
-      "error95" : "NaN",
-      "percentiles" : [ {
-        "value" : 392.2233642307692,
-        "percentile" : 10.0
-      }, {
-        "value" : 392.2233642307692,
-        "percentile" : 25.0
-      }, {
-        "value" : 392.2233642307692,
-        "percentile" : 50.0
-      }, {
-        "value" : 392.2233642307692,
-        "percentile" : 75.0
-      }, {
-        "value" : 392.2233642307692,
+        "value" : 212.37731426666667,
         "percentile" : 90.0
       } ]
     }
@@ -125,12 +91,12 @@ class TestJsonBenchResult(unittest.TestCase):
         with open(tmpfile, "w") as f:
             f.write(SAMPLE_REPORT)
         bench_report = _parse_bench_report_from_json(tmpfile, DUMMY_BENCH_RUN)
-        expected_label = "org.enso.benchmarks.generated.Vector_Operations.Sum_Stats"
+        expected_label = "org.enso.interpreter.bench.benchmarks.semantic.WarningBenchmarks.sameWarningVecSum"
         score_dict = bench_report.label_score_dict
         self.assertIsNotNone(score_dict)
         self.assertTrue(expected_label in score_dict)
-        self.assertEqual(2, len(score_dict.keys()))
-        self.assertEqual(392, int(score_dict[expected_label]))
+        self.assertEqual(1, len(score_dict.keys()))
+        self.assertEqual(212, int(score_dict[expected_label]))
 
         self.assertIsNotNone(bench_report.bench_run)
         self.assertEqual("push", bench_report.bench_run.event)

@@ -16,7 +16,7 @@ from bench_tool.remote_cache import RemoteCache
 from bench_tool.utils import WithTempDir
 
 ARTIFACT_ID = "Runtime Benchmark Report"
-SCHEMA_URL = "https://raw.githubusercontent.com/enso-org/enso/6732a5e7e94ad3395c49627fa2d3417d4a7fcd68/lib/java/benchmarks-common/src/main/resources/results_schema.json"
+SCHEMA_URL = "https://raw.githubusercontent.com/enso-org/engine-benchmark-results/fef8b37881580512435cfa9bb2b867e6b97e147a/schema/cache-v2.json"
 
 _logger = logging.getLogger(__name__)
 
@@ -212,6 +212,12 @@ def _parse_bench_report_from_json(bench_report_json_path: str, bench_run: JobRun
     if schema == SCHEMA_URL:
         results: List[JsonJobReport.Result] = []
         label_score_dict: Dict[str, float] = {}
+
+        if obj["ghActionRun"] is not None:
+            raise RuntimeError("ghActionRun is not None, but it should be None. "
+                               "The benchmark runner should not fill this property, "
+                               "it should be filled by this script.")
+
         for res in obj["results"]:
             percentiles: List[JsonJobReport.Percentile] = []
             for perc in res["measurementStatistics"]["percentiles"]:
