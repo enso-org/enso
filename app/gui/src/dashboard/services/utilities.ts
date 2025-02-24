@@ -3,8 +3,9 @@
  */
 import FolderIcon from '#/assets/folder.svg'
 import type { AnyCategory } from '../layouts/Drive/Categories/Category'
-import { isDirectoryId, type DirectoryId } from './Backend'
-
+import type { DirectoryId } from './Backend'
+import { Path } from './Backend'
+import { DIRECTORY_ID_PREFIX, newDirectoryId } from './LocalBackend'
 /**
  * Options for the parseDirectoriesPath function.
  */
@@ -29,9 +30,10 @@ export interface PathItem {
 export function parseDirectoriesPath(options: ParsedDirectoriesPathOptions) {
   const { getCategoryByDirectoryId, parentsPath, rootDirectoryId, virtualParentsPath } = options
 
-  // Parents path is a string of directory ids separated by slashes.
+  // Split the path using the helper function
+  // Parents path is a string of directory ids separated by slashes, but the ids are not escaped, so we need to split them manually.
   // e.g: parentsPath = 'directory-id1adsf/directory-id2adsf/directory-id3adsf'
-  const splitPath = parentsPath.split('/').filter(isDirectoryId)
+  const splitPath = splitDirectoryPath(parentsPath)
   const rootDirectoryInPath = splitPath[0] ?? rootDirectoryId
 
   const splitVirtualParentsPath = virtualParentsPath.split('/')
@@ -62,9 +64,9 @@ export function parseDirectoriesPath(options: ParsedDirectoriesPathOptions) {
 
     result.push({
       id: rootDirectoryId,
-      categoryId: rootCategory.id,
-      label: rootCategory.label,
       icon: rootCategory.icon,
+      label: rootCategory.label,
+      categoryId: rootCategory.id,
     })
 
     for (const [index, id] of virtualParentsIds.entries()) {
@@ -86,4 +88,29 @@ export function parseDirectoriesPath(options: ParsedDirectoriesPathOptions) {
   })()
 
   return { finalPath } as const
+}
+
+/**
+ * Splits a path string containing directory IDs into an array of individual directory IDs.
+ * Handles cases where directory IDs themselves may contain forward slashes.
+ */
+function splitDirectoryPath(path: string): DirectoryId[] {
+  if (path === '') {
+    return []
+  }
+
+  const result: DirectoryId[] = []
+
+  const directories = path.split(DIRECTORY_ID_PREFIX)
+
+  // Iterate through each character
+  for (const directory of directories) {
+    if (directory === '') {
+      continue
+    }
+
+    result.push(newDirectoryId(Path(directory.replace(/\/$/, ''))))
+  }
+
+  return result
 }

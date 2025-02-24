@@ -4,6 +4,7 @@
  * Scroller is a component that
  */
 
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useEventListener } from '#/hooks/eventListenerHooks'
 import { useMeasureCallback } from '#/hooks/measureHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
@@ -16,7 +17,6 @@ import {
   type HTMLAttributes,
   type PropsWithChildren,
 } from 'react'
-import { useEventCallback } from '../../hooks/eventCallbackHooks'
 import type { TestIdProps } from '../AriaComponents'
 
 export const SCROLLER_STYLES = tv({
@@ -145,8 +145,8 @@ export function Scroller(props: ScrollerProps) {
 
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const [startHidden, setStartHidden] = useState(false)
-  const [endHidden, setEndHidden] = useState(false)
+  const [startHidden, setStartHidden] = useState(true)
+  const [endHidden, setEndHidden] = useState(true)
 
   const setHidden = useEventCallback((start: boolean, end: boolean) => {
     startTransition(() => {

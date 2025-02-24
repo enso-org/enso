@@ -262,7 +262,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   const { nodeMap, doCopy, doCut, doPaste } = state
   const { category, rootDirectoryId, backend } = state
 
-  const [isLoading, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
 
   const driveStore = useDriveStore()
   const { user } = useFullUserSession()

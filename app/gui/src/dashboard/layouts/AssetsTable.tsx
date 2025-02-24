@@ -1201,9 +1201,6 @@ function AssetsTable(props: AssetsTableProps) {
               isOpened={false}
               backendType={backend.type}
               state={state}
-              // Default states.
-              isSoleSelected={false}
-              selected={false}
               rowState={INITIAL_ROW_STATE}
               // The drag placeholder cannot be interacted with.
               setSelected={noop}

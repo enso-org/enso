@@ -220,6 +220,7 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
     : <Button
         {...linkProps}
         loading={dropMutation.isPending}
+        loaderPosition="icon"
         onPress={onPress}
         icon={iconComponent}
       >

@@ -166,6 +166,8 @@ export function useLocalCategoryList() {
     id: 'local',
     label: getText('localCategory'),
     icon: ComputerIcon,
+    homeDirectoryId: newDirectoryId(localBackend?.rootPath() ?? Path('')),
+    rootPath: localBackend?.rootPath() ?? Path(''),
   }
 
   const predefinedLocalCategories: AnyLocalCategory[] = [localCategory]
@@ -203,10 +205,17 @@ export function useLocalCategoryList() {
     (id: CategoryId) => categories.find((category) => category.id === id) ?? null,
   )
 
-  const getCategoryByDirectoryId = useEventCallback(
-    (id: DirectoryId): AnyLocalCategory | null =>
-      categories.find((category) => category.id === id) ?? null,
-  )
+  const getCategoryByDirectoryId = useEventCallback((id: DirectoryId): AnyLocalCategory | null => {
+    return (
+      categories.find((category) => {
+        if ('homeDirectoryId' in category) {
+          return category.homeDirectoryId === id
+        }
+
+        return false
+      }) ?? null
+    )
+  })
 
   const getCategoriesByType = useEventCallback(
     <T extends AnyLocalCategory['type']>(type: T) =>

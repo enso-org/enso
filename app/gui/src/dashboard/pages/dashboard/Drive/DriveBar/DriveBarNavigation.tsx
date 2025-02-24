@@ -12,36 +12,26 @@ import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { listDirectoryQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { AssetPanelToggle } from '#/layouts/AssetPanel'
-import { type Category } from '#/layouts/CategorySwitcher/Category'
 import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { useText } from '#/providers/TextProvider'
-import type Backend from '#/services/Backend'
 import { isDirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import { useState, useTransition } from 'react'
 import { toast } from 'react-toastify'
 
-/** Props for a {@link DriveBarNavigation}. */
-export interface DriveBarNavigationProps {
-  readonly backend: Backend
-  readonly category: Category
-}
-
 /**
  * Displays the current directory path and permissions, upload and download buttons,
  * and a column display mode switcher.
  */
-export function DriveBarNavigation(props: DriveBarNavigationProps) {
-  const { backend, category } = props
-
+export function DriveBarNavigation() {
   const { getText } = useText()
   const { user } = useFullUserSession()
   const { getCategoryByDirectoryId } = useCategories()
-  const { associatedBackend } = useCategoriesAPI()
+  const { associatedBackend, category } = useCategoriesAPI()
   const [isTransitioning, startTransition] = useTransition()
   const [navigatingKey, setNavigatingKey] = useState<React.Key | null>(null)
 
@@ -67,7 +57,7 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
 
   const { data: directoryData } = useSuspenseQuery({
     ...listDirectoryQueryOptions({
-      backend,
+      backend: associatedBackend,
       parentId: parentDirectoryId,
       category,
     }),
@@ -91,7 +81,7 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
       }
 
       return {
-        parentsPath: directory.parentsPath + '/' + currentDirectoryId,
+        parentsPath: directory.parentsPath + '/' + directory.id,
         virtualParentsPath: virtualParentsPath(),
       }
     },
@@ -104,11 +94,11 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
       return
     }
 
-    setNavigatingKey(id)
     startTransition(() => {
+      setNavigatingKey(id)
       setCurrentDirectoryId({
         current: id,
-        // This is safe, because we know the index is present in the array.
+        // This is safe, because we know the index presents in the array.
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         parent: parentId < 0 ? null : finalPath[parentId]!.id,
       })
@@ -141,10 +131,21 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
   })
 
   switch (category.type) {
-    case 'recent':
     case 'trash': {
-      return null
+      return (
+        <div className="py-2">
+          <Button
+            icon={BackIcon}
+            aria-label={getText('back')}
+            isDisabled={currentDirectoryId === user.rootDirectoryId}
+            onPress={navigateToParent}
+            variant="icon"
+          />
+        </div>
+      )
     }
+    case 'recent':
+      return null
     case 'cloud':
     case 'local':
     case 'user':
@@ -152,40 +153,41 @@ export function DriveBarNavigation(props: DriveBarNavigationProps) {
     case 'local-directory': {
       return (
         <div className="flex w-full flex-none items-center">
-          <ButtonGroup
-            className="mr-2 w-auto flex-none"
-            buttonVariants={{ variant: 'icon', size: 'small' }}
-          >
+          <ButtonGroup className="mr-2 w-auto flex-none">
             <Menu.Trigger trigger="longPress">
               <Button
                 icon={BackIcon}
                 aria-label={getText('back')}
                 isDisabled={currentDirectoryId === user.rootDirectoryId}
                 onPress={navigateToParent}
+                variant="icon"
               />
 
               <Menu items={[...finalPath].reverse()} onAction={navigateToDirectory}>
-                {(item) => (
-                  <Menu.Item
-                    key={item.id}
-                    id={item.id}
-                    icon={item.icon}
-                    isDisabled={item.id === currentDirectoryId}
-                  >
-                    {item.label}
-                  </Menu.Item>
-                )}
+                {(item) => {
+                  const index = finalPath.findIndex((pathItem) => pathItem.id === item.id)
+                  return (
+                    <Menu.Item
+                      key={item.id + index}
+                      id={item.id}
+                      icon={item.icon}
+                      isDisabled={item.id === currentDirectoryId}
+                    >
+                      {item.label}
+                    </Menu.Item>
+                  )
+                }}
               </Menu>
             </Menu.Trigger>
           </ButtonGroup>
 
           <Scroller orientation="horizontal">
             <Breadcrumbs onAction={navigateToDirectory} onDrop={onDrop}>
-              {finalPath.map((pathItem) => {
+              {finalPath.map((pathItem, index) => {
                 const isLoading = isTransitioning && pathItem.id === navigatingKey
                 return (
                   <Breadcrumbs.Item
-                    key={pathItem.id}
+                    key={pathItem.id + index}
                     id={pathItem.id}
                     icon={pathItem.icon}
                     isLoading={isLoading}
