@@ -140,20 +140,20 @@
             },
             "required": ["stddev", "mean", "min", "max", "error50", "error95", "percentiles"]
           }
-        }
-      },
-      "required": [
-        "label",
-        "timestamp",
-        "score",
-        "samples",
-        "warmupIterations",
-        "warmupMillis",
-        "measureMillis",
-        "commitId",
-        "branch",
-        "measurementStatistics"
-      ]
+        },
+        "required": [
+          "label",
+          "timestamp",
+          "score",
+          "samples",
+          "warmupIterations",
+          "warmupMillis",
+          "measureMillis",
+          "commitId",
+          "branch",
+          "measurementStatistics"
+        ]
+      }
     }
   },
   "required": ["$schema", "configuration", "results"]
