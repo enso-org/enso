@@ -40,14 +40,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "osName",
-        "osArch",
-        "vmName",
-        "vmVersion",
-        "vmVendor",
-        "jdkVersion"
-      ]
+      "required": ["osName", "osArch", "vmName", "vmVersion", "vmVendor", "jdkVersion"]
     },
     "results": {
       "type": "array",
@@ -142,21 +135,10 @@
                     }
                   }
                 },
-                "required": [
-                  "value",
-                  "percentile"
-                ]
+                "required": ["value", "percentile"]
               }
             },
-            "required": [
-              "stddev",
-              "mean",
-              "min",
-              "max",
-              "error50",
-              "error95",
-              "percentiles"
-            ]
+            "required": ["stddev", "mean", "min", "max", "error50", "error95", "percentiles"]
           }
         }
       },
@@ -174,9 +156,5 @@
       ]
     }
   },
-  "required": [
-    "$schema",
-    "configuration",
-    "results"
-  ]
+  "required": ["$schema", "configuration", "results"]
 }
