@@ -90,11 +90,7 @@ public final class Text extends BuiltinObject {
       case UNKNOWN -> {
         Normalizer2 normalizer = Normalizer2.getNFDInstance();
         boolean isNormalized = normalizer.isNormalized(toString());
-        if (isNormalized) {
-          fcdNormalized = FcdNormalized.YES;
-        } else {
-          fcdNormalized = FcdNormalized.NO;
-        }
+        fcdNormalized = isNormalized ? FcdNormalized.YES : FcdNormalized.NO;
         return isNormalized;
       }
     }
