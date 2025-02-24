@@ -53,6 +53,7 @@ pub struct Gui;
 pub enum BuildMode {
     Staging,
     Production,
+    Pbuchu
 }
 
 impl Display for BuildMode {
@@ -60,6 +61,7 @@ impl Display for BuildMode {
         match self {
             Self::Staging => write!(f, "staging"),
             Self::Production => write!(f, "production"),
+            Self::Pbuchu => write!(f, "pbuchu")
         }
     }
 }
