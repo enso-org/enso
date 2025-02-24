@@ -307,29 +307,36 @@ function createServer() {
       const filterColumnIndexList = filterColumnNames.map(
         (colName) => `${props.data.header.findIndex((h: string) => colName === h)}`,
       )
-      const filterActions =
-        filterColumnNames.length ?
-          filterColumnNames.map((name) => `${actionMap[request.filterModel[name]?.type]}`)
+      const getFilterAction = (name) => {
+        if(request.filterModel[name]?.filterType === 'set') {
+          return '..Is_In'
+        }
+        return `${actionMap[request.filterModel[name]?.type]}`
+      }
+
+      const filterActions = filterColumnNames.length ?
+          filterColumnNames.map((name) => getFilterAction(name))
         : 'Nothing'
 
       const valueMap = filterColumnNames.map(colName => {
         const filterModel = request.filterModel[colName]
-        return getFilterValue(filterModel, filterModel.type)
+        const filterAction = getFilterAction(colName)
+        return {acion: filterAction, value: getFilterValue(filterModel, filterModel.type)}
       })
 
       const valueList = valueMap.map(value => {
-        if(value) {
-          return `${value}`
+        if(value.action === '..Is_In'){
+          return value.value
         }
-        if(typeof value === 'object') {
-          return `${value.fromValue}`
+        if(value.action === '..Between') {
+          return `${value.value.fromValue}`
         }
-        return `${value}`
+        return `${value.value}`
       })
 
       const toValueList = valueMap.map(value => {
-        if(typeof value === 'object') {
-          return `${value.toValue}`
+        if(value.action === '..Between') {
+          return `${value.value.toValue}`
         }
         return 'Nothing'
       })
@@ -350,7 +357,7 @@ function createServer() {
         // To Values
         toValueList.length ? toValueList : 'Nothing',
       )
-      console.log({ response })
+      console.log({response})
       return {
         success: true,
         data: response.value.rows,
