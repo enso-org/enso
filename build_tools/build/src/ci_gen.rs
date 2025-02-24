@@ -852,12 +852,12 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
 }
 
 pub fn engine_benchmark() -> Result<Workflow> {
-    let report_path = "engine/runtime-benchmarks/bench-report.xml";
+    let report_path = "engine/runtime-benchmarks/bench-report.json";
     benchmark_workflow("Benchmark Engine", "backend benchmark runtime", report_path, Some(4 * 60))
 }
 
 pub fn std_libs_benchmark() -> Result<Workflow> {
-    let report_path = "std-bits/benchmarks/bench-report.xml";
+    let report_path = "std-bits/benchmarks/bench-report.json";
     benchmark_workflow(
         "Benchmark Standard Libraries",
         "backend benchmark enso-jmh",
@@ -922,7 +922,7 @@ fn benchmark_job(
     graal_edition: graalvm::Edition,
 ) -> Job {
     let upload_artifact_step = step::upload_artifact("Upload benchmark results")
-        .with_custom_argument("name", "benchmark-results.xml")
+        .with_custom_argument("name", "benchmark-report.json")
         .with_custom_argument("path", artifact_to_upload);
     let mut job = RunStepsBuilder::new(command_line)
         .cleaning(CleaningCondition::Always)
