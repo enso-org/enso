@@ -84,7 +84,7 @@
       target/:
         native-image-args.txt:
     runtime-benchmarks/:
-      bench-report.xml:
+      bench-report.json:
   lib/:
     java/:
       ydoc-server/:
@@ -120,7 +120,7 @@
     simple-library-server/:
   std-bits/:
     benchmarks/:
-      bench-report.xml:
+      bench-report.json:
   build.sbt:
   run:
   CHANGELOG.md:
