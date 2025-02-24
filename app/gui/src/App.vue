@@ -2,8 +2,10 @@
 import '@/assets/base.css'
 import TooltipDisplayer from '@/components/TooltipDisplayer.vue'
 import ProjectView from '@/ProjectView.vue'
+import { initializeActions } from '@/providers/action'
 import { provideAppClassSet } from '@/providers/appClass'
 import { provideGuiConfig } from '@/providers/guiConfig'
+import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideTooltipRegistry } from '@/providers/tooltipRegistry'
 import { registerAutoBlurHandler, registerGlobalBlurHandler } from '@/util/autoBlur'
 import { baseConfig, configValue, mergeConfig, type ApplicationConfigValue } from '@/util/config'
@@ -36,6 +38,8 @@ const ReactRootWrapper = applyPureReactInVue(ReactRoot)
 const queryClient = useQueryClient()
 
 provideGuiConfig(appConfigValue)
+provideInteractionHandler()
+initializeActions()
 
 registerAutoBlurHandler()
 registerGlobalBlurHandler()
@@ -57,6 +61,7 @@ onMounted(() => {
       @authenticated="onAuthenticated ?? (() => {})"
     />
   </div>
+  <div id="floatingLayer" />
   <TooltipDisplayer :registry="appTooltips" />
 </template>
 
@@ -66,6 +71,29 @@ onMounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+#floatingLayer {
+  position: absolute;
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 11.5px;
+  line-height: 20px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  top: 0;
+  left: 0;
+  /* The size isn't important, except it must be non-zero for `floating-ui` to calculate the scale factor. */
+  width: 1px;
+  height: 1px;
+  contain: layout size style;
+  will-change: transform;
+  pointer-events: none;
+  > * {
+    pointer-events: auto;
+  }
 }
 
 /*
