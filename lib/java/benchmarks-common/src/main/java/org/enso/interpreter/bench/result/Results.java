@@ -6,10 +6,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public record Results(
-    @JsonProperty("$schema") URI schema, Configuration configuration, List<Result> results) {
+    @JsonProperty("$schema") URI schema, Configuration configuration, Object ghActionRun, List<Result> results) {
 
   public static Results createEmpty(URI schemaUri) {
     var conf = Configuration.fromSystemProperties();
-    return new Results(schemaUri, conf, new ArrayList<>());
+    return new Results(schemaUri, conf, null, new ArrayList<>());
   }
 }
