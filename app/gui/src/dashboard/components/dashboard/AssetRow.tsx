@@ -260,7 +260,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   } = props
   const { path, hidden: hiddenRaw, grabKeyboardFocus, visibility: visibilityRaw, depth } = props
   const { nodeMap, doCopy, doCut, doPaste } = state
-  const { category, rootDirectoryId, backend } = state
+  const { category, backend, currentDirectoryId } = state
 
   const [, startTransition] = useTransition()
 
@@ -526,7 +526,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                 setModal(
                   <AssetContextMenu
                     innerProps={innerProps}
-                    rootDirectoryId={rootDirectoryId}
+                    currentDirectoryId={currentDirectoryId}
                     triggerRef={rootRef}
                     event={event}
                     eventTarget={
@@ -651,7 +651,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
             <AssetContextMenu
               hidden
               innerProps={innerProps}
-              rootDirectoryId={rootDirectoryId}
+              currentDirectoryId={currentDirectoryId}
               triggerRef={rootRef}
               event={{ pageX: 0, pageY: 0 }}
               eventTarget={null}

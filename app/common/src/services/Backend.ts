@@ -1474,6 +1474,12 @@ export interface ListDirectoryRequestParams {
   readonly filterBy: FilterBy | null
   readonly labels: LabelName[] | null
   readonly recentProjects: boolean
+  /**
+   * The root path of the directory to list.
+   * This is used to list a subdirectory of a local root directory,
+   * because a root could be any local folder on the machine.
+   */
+  readonly rootPath?: Path | undefined
 }
 
 /** URL query string parameters for the "upload file" endpoint. */

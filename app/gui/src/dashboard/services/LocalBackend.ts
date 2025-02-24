@@ -159,6 +159,7 @@ export default class LocalBackend extends Backend {
   override async listDirectory(
     query: backend.ListDirectoryRequestParams,
   ): Promise<readonly backend.AnyAsset[]> {
+    const { rootPath = this.rootPath() } = query
     const parentIdRaw = query.parentId == null ? null : extractTypeAndId(query.parentId).id
     const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
 
@@ -173,7 +174,7 @@ export default class LocalBackend extends Backend {
               const id = newDirectoryId(entry.path)
 
               const virtualParentsPath = (() => {
-                let path = entry.path.replace(this.projectManager.rootDirectory, '')
+                let path = entry.path.replace(rootPath, '')
 
                 if (path.startsWith('/')) {
                   path = path.slice(1)
@@ -187,7 +188,7 @@ export default class LocalBackend extends Backend {
               })()
 
               const parentsPath = (() => {
-                const parentsPathArray: backend.DirectoryId[] = [newDirectoryId(this.rootPath())]
+                const parentsPathArray: backend.DirectoryId[] = [newDirectoryId(rootPath)]
                 const splitPath = virtualParentsPath.split('/')
 
                 let previousPath = ''
@@ -203,7 +204,7 @@ export default class LocalBackend extends Backend {
                     previousPath = previousPath.slice(0, -1)
                   }
 
-                  parentsPathArray.push(newDirectoryId(Path(this.rootPath() + previousPath)))
+                  parentsPathArray.push(newDirectoryId(Path(rootPath + previousPath)))
                 }
 
                 return parentsPathArray.slice(0, -1).join('/')

@@ -174,6 +174,7 @@ interface DragSelectionInfo {
 export interface AssetsTableState {
   readonly backend: Backend
   readonly rootDirectoryId: DirectoryId
+  readonly currentDirectoryId: DirectoryId
   readonly scrollContainerRef: RefObject<HTMLElement>
   readonly category: Category
   readonly sortInfo: SortInfo<SortableColumn> | null
@@ -927,6 +928,7 @@ function AssetsTable(props: AssetsTableProps) {
     () => ({
       backend,
       rootDirectoryId,
+      currentDirectoryId,
       scrollContainerRef: rootRef,
       category,
       sortInfo,
@@ -943,6 +945,7 @@ function AssetsTable(props: AssetsTableProps) {
     [
       backend,
       category,
+      currentDirectoryId,
       doCopy,
       doCut,
       doPaste,

@@ -32,7 +32,6 @@ import {
   copyAssetsMutationOptions,
   deleteAssetsMutationOptions,
   downloadAssetsMutationOptions,
-  moveAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
 import { useNewProject } from '#/hooks/backendHooks'
@@ -49,8 +48,8 @@ import { useSetAssetPanelProps, useSetIsAssetPanelTemporarilyVisible } from './A
 export interface AssetContextMenuProps {
   readonly hidden?: boolean
   readonly innerProps: assetRow.AssetRowInnerProps
-  readonly rootDirectoryId: backendModule.DirectoryId
   readonly triggerRef: React.MutableRefObject<HTMLElement | null>
+  readonly currentDirectoryId: backendModule.DirectoryId
   readonly event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
   readonly eventTarget: HTMLElement | null
   readonly doCopy: () => void
@@ -63,7 +62,7 @@ export interface AssetContextMenuProps {
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
-  const { innerProps, rootDirectoryId, event, hidden = false, triggerRef } = props
+  const { innerProps, event, hidden = false, triggerRef, currentDirectoryId } = props
   const { doCopy, doCut, doPaste } = props
   const { asset, path: pathRaw, state, setRowState } = innerProps
   const { backend, category, nodeMap } = state
@@ -170,15 +169,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     backendModule.assetIsProject(asset) &&
     asset.projectState.openedBy != null &&
     asset.projectState.openedBy !== user.email
-
-  console.log('asset', {
-    canManageThisAsset,
-    canEditThisAsset,
-    canAddToThisDirectory,
-    canPaste,
-    hasPasteData,
-    isCloud,
-  })
 
   const pasteMenuEntry = hasPasteData && canPaste && (
     <ContextMenuEntry
@@ -481,7 +471,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             hidden={hidden}
             backend={backend}
             category={category}
-            rootDirectoryId={rootDirectoryId}
+            currentDirectoryId={currentDirectoryId}
             directoryId={asset.id}
             doPaste={doPaste}
             event={event}

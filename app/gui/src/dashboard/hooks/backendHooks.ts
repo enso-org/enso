@@ -320,12 +320,15 @@ export interface ListDirectoryQueryOptions {
 export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
   const { backend, parentId, category } = options
 
+  const rootPath = 'rootPath' in category ? category.rootPath : undefined
+
   return queryOptions({
     queryKey: [
       backend.type,
       'listDirectory',
       parentId,
       {
+        rootPath,
         labels: null,
         filterBy: CATEGORY_TO_FILTER_BY[category.type],
         recentProjects: category.type === 'recent',
@@ -340,6 +343,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
         return await backend.listDirectory(
           {
             parentId,
+            rootPath,
             filterBy: CATEGORY_TO_FILTER_BY[category.type],
             labels: null,
             recentProjects: category.type === 'recent',
