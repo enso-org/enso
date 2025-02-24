@@ -1,5 +1,12 @@
 package org.enso.interpreter.runtime.data.text;
 
+import java.util.ArrayDeque;
+
+import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
+import org.enso.interpreter.runtime.builtin.BuiltinObject;
+import org.enso.polyglot.common_utils.Core_Text_Utils;
+
 import com.ibm.icu.text.Normalizer2;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
@@ -8,12 +15,6 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.strings.TruffleString;
 import com.oracle.truffle.api.strings.TruffleString.Encoding;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import org.enso.interpreter.dsl.Builtin;
-import org.enso.interpreter.node.expression.builtin.text.util.ToJavaStringNode;
-import org.enso.interpreter.runtime.builtin.BuiltinObject;
-import org.enso.polyglot.common_utils.Core_Text_Utils;
 
 /** Runtime representation of Enso's Text. */
 @ExportLibrary(InteropLibrary.class)
@@ -21,13 +22,7 @@ public final class Text extends BuiltinObject {
   private static final Text EMPTY = new Text("");
   private Object contents;
   private int length = -1;
-  private FcdNormalized fcdNormalized = FcdNormalized.UNKNOWN;
-
-  private enum FcdNormalized {
-    YES,
-    NO,
-    UNKNOWN
-  }
+  private byte fcdNormalized;
 
   private Text(String string) {
     assert string != null;
@@ -78,23 +73,19 @@ public final class Text extends BuiltinObject {
 
         "14.95€".is_normalized
   """)
-  @CompilerDirectives.TruffleBoundary
   public boolean is_normalized() {
-    switch (fcdNormalized) {
-      case YES -> {
-        return true;
-      }
-      case NO -> {
-        return false;
-      }
-      case UNKNOWN -> {
+    return switch (fcdNormalized) {
+      case 1 -> true;
+      case -1 -> false;
+      case 0 -> {
+        CompilerDirectives.transferToInterpreter();
         Normalizer2 normalizer = Normalizer2.getNFDInstance();
         boolean isNormalized = normalizer.isNormalized(toString());
-        fcdNormalized = isNormalized ? FcdNormalized.YES : FcdNormalized.NO;
-        return isNormalized;
+        fcdNormalized = (byte) (isNormalized ? 1 : -1);
+        yield isNormalized;
       }
-    }
-    return false;
+      default -> false;
+    };
   }
 
   public static Text empty() {
