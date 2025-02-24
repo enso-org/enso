@@ -127,7 +127,9 @@ public class StaticModuleScopeAnalysis implements IRPass {
 
       TypeScopeReference toType = getTypeResolution(toTypePointer.get());
       TypeScopeReference fromType = getTypeResolution(conversion.sourceTypeName());
-      scopeBuilder.registerConversionMethod(toType, fromType);
+      if (toType != null && fromType != null) {
+        scopeBuilder.registerConversionMethod(toType, fromType);
+      }
     }
 
     // TODO make common logic with IrToTruffle?
@@ -135,11 +137,11 @@ public class StaticModuleScopeAnalysis implements IRPass {
       var resolution =
           MetadataInteropHelpers.getMetadataOrNull(expr, MethodDefinitions.INSTANCE, BindingsMap.Resolution.class);
       if (resolution == null) {
-        throw new IllegalStateException("Missing method resolution data in " + expr.showCode());
+        return null;
       }
 
       if (!(resolution.target() instanceof BindingsMap.ResolvedType resolved)) {
-        throw new IllegalStateException("Method resolution metadata for from conversion should be ResolvedType but was " + resolution.target());
+        return null;
       }
 
       return TypeScopeReference.atomType(resolved.qualifiedName());

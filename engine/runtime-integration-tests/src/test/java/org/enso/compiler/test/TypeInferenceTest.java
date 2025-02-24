@@ -852,7 +852,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                         Value v
                     type Other_Type
                         Value o
-                    Other_type.from (that : My_Type) = Other_Type.Value that.v+1000
+                    Other_Type.from (that : My_Type) = Other_Type.Value that.v+1000
                     
                     function_taking_other o:Other_Type =
                         o.o

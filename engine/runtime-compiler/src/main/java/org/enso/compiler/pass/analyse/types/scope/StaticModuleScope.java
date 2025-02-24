@@ -197,8 +197,17 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
   }
 
   public TypeRepresentation getConversionFor(TypeScopeReference target, TypeScopeReference source) {
-    // TODO conversions in static analysis
-    return null;
+    var conversionsOnType = conversions.get(target);
+    boolean conversionExists = conversionsOnType.contains(source);
+    if (!conversionExists) {
+      return null;
+    }
+
+    // TODO conversions can contain optional arguments
+    // so we cannot really return a function type until we are capable of returning types with optional arguments
+    // then we'll need to change the conversions data structure to store these arguments too
+    // For now let's just return an unknown non-null type.
+    return TypeRepresentation.UNKNOWN;
   }
 
   public AtomTypeDefinition getType(String name) {
