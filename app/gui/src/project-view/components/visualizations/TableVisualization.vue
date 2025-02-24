@@ -22,9 +22,9 @@ import type {
 } from 'ag-grid-enterprise'
 import { computed, ref, shallowRef, watchEffect, type Ref } from 'vue'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
+import { actionMap, getFilterValue } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
 import { getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
-import { actionMap, getFilterValue } from './TableVisualization/tableVizFilterUtils'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -308,40 +308,41 @@ function createServer() {
         (colName) => `${props.data.header.findIndex((h: string) => colName === h)}`,
       )
       const getFilterAction = (name) => {
-        if(request.filterModel[name]?.filterType === 'set') {
+        if (request.filterModel[name]?.filterType === 'set') {
           return '..Is_In'
         }
         return `${actionMap[request.filterModel[name]?.type]}`
       }
 
-      const filterActions = filterColumnNames.length ?
+      const filterActions =
+        filterColumnNames.length ?
           filterColumnNames.map((name) => getFilterAction(name))
         : 'Nothing'
 
-      const valueMap = filterColumnNames.map(colName => {
+      const valueMap = filterColumnNames.map((colName) => {
         const filterModel = request.filterModel[colName]
         const filterAction = getFilterAction(colName)
-        return {acion: filterAction, value: getFilterValue(filterModel, filterModel.type)}
+        return {
+          valType: colTypeMap.value.get(colName) ?? '',
+          action: filterAction,
+          value: getFilterValue(filterModel, filterModel.type),
+        }
       })
 
-      const valueList = valueMap.map(value => {
-        if(value.action === '..Is_In'){
-          return value.value
+      const valueList = valueMap.map((value) => {
+        if (value.action === '..Between') {
+          return { valueType: value.valType, value: `${value.value.fromValue}` }
         }
-        if(value.action === '..Between') {
-          return `${value.value.fromValue}`
-        }
-        return `${value.value}`
+        return { valueType: value.valType, value: `${value.value}` }
       })
 
-      const toValueList = valueMap.map(value => {
-        if(value.action === '..Between') {
+      const toValueList = valueMap.map((value) => {
+        if (value.action === '..Between') {
           return `${value.value.toValue}`
         }
         return 'Nothing'
       })
 
-      console.log({valueList})
       const response = await config.executeExpression(
         'Standard.Visualization.Table.Visualization',
         'get_rows_for_table',
@@ -357,7 +358,6 @@ function createServer() {
         // To Values
         toValueList.length ? toValueList : 'Nothing',
       )
-      console.log({response})
       return {
         success: true,
         data: response.value.rows,

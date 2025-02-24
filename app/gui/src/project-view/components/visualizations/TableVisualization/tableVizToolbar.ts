@@ -6,7 +6,15 @@ import type { ToValue } from '@/util/reactivity'
 import { computed, type ComputedRef, type Ref, toValue } from 'vue'
 import { Expression, MutableExpression } from 'ydoc-shared/ast'
 import { TextFormatOptions } from '../TableVisualization.vue'
-import { actionMap, FilterAction, FilterType, FilterValue, FilterValueRange, getFilterValue, GridFilterModel } from './tableVizFilterUtils'
+import {
+  actionMap,
+  FilterAction,
+  FilterType,
+  FilterValue,
+  FilterValueRange,
+  getFilterValue,
+  GridFilterModel,
+} from './tableVizFilterUtils'
 
 type SortDirection = 'asc' | 'desc'
 export type SortModel = {

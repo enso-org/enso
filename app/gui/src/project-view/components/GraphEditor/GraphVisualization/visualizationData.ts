@@ -13,6 +13,7 @@ import {
 } from '@/stores/visualization'
 import type { Visualization } from '@/stores/visualization/runtimeTypes'
 import { Ast } from '@/util/ast'
+import { Pattern } from '@/util/ast/match'
 import { toError } from '@/util/data/error'
 import type { ToValue } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
@@ -97,7 +98,25 @@ export function useVisualizationData({
 
   const parseArgument = (arg: any, tempModule: Ast.MutableModule) => {
     if (Array.isArray(arg)) {
-      const itemList = arg.map((i) => Ast.parseExpression(i, tempModule))
+      const itemList = arg.map((i) => {
+        if (i.valueType === 'Date') {
+          const dateOrTimePattern = Pattern.parseExpression('(Date.new __ __ __)')
+          const dateTimeParts = i.value
+            .match(/\d+/g)!
+            .filter((part, i) => i < 3)
+            .map((part) => Ast.tryNumberToEnso(Number(part), tempModule)!)
+          return dateOrTimePattern.instantiateCopied([...dateTimeParts])
+        }
+        if (i.valueType === 'Time') {
+          const pattern = Pattern.parseExpression('Time_Of_Day.parse (__)')!
+          return pattern.instantiateCopied([Ast.TextLiteral.new(i.value, tempModule)])
+        }
+        if (i.valueType === 'Date_Time') {
+          const pattern = Pattern.parseExpression('Date_Time.parse (__)')!
+          return pattern.instantiateCopied([Ast.TextLiteral.new(i.value, tempModule)])
+        }
+        return Ast.parseExpression(i, tempModule)
+      })
       return Ast.Vector.new(tempModule, itemList)
     }
     return Ast.parseExpression(arg, tempModule)!

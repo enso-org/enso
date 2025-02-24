@@ -36,26 +36,24 @@ export type FilterValueRange = {
   fromValue: string
 }
 
-
 export const getFilterValue = (filterModel: GridFilterModel, filterAction?: string) => {
-    const filterType = filterModel.filterType
-    let value: FilterValue
-    switch (filterType) {
-      case 'number':
-        value =
-          filterAction === 'inRange' ?
-            { toValue: filterModel.filterTo!, fromValue: filterModel.filter! }
-          : (filterModel.filter as FilterValue)
-        break
-      case 'date':
-        value =
-          filterAction === 'inRange' ?
-            { toValue: filterModel.dateTo!, fromValue: filterModel.dateFrom! }
-          : (filterModel.dateFrom as FilterValue)
-        break
-      default:
-        value = filterModel.values as FilterValue
-    }
-    return value
+  const filterType = filterModel.filterType
+  let value: FilterValue
+  switch (filterType) {
+    case 'number':
+      value =
+        filterAction === 'inRange' ?
+          { toValue: filterModel.filterTo!, fromValue: filterModel.filter! }
+        : (filterModel.filter as FilterValue)
+      break
+    case 'date':
+      value =
+        filterAction === 'inRange' ?
+          { toValue: filterModel.dateTo!, fromValue: filterModel.dateFrom! }
+        : (filterModel.dateFrom as FilterValue)
+      break
+    default:
+      value = filterModel.values as FilterValue
   }
-  
+  return value
+}
