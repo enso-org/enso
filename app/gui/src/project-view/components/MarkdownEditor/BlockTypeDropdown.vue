@@ -3,7 +3,7 @@ import DropdownMenu from '@/components/DropdownMenu.vue'
 import {
   type HeaderLevel,
   type ListType,
-} from '@/components/MarkdownEditor/markdown/blockFormatting'
+} from '@/components/MarkdownEditor/codemirror/formatting/block'
 import MenuButton from '@/components/MenuButton.vue'
 import MenuPanel from '@/components/MenuPanel.vue'
 import SvgIcon from '@/components/SvgIcon.vue'

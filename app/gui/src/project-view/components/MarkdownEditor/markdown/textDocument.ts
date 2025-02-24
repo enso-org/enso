@@ -2,7 +2,7 @@ import {
   type DelimitersTrimmedRange,
   type Range,
   type TrimmedRange,
-} from '@/components/MarkdownEditor/markdown/inlineFormatting/types'
+} from '@/components/MarkdownEditor/markdown/types'
 import { type Text } from '@codemirror/state'
 
 /** Provides text-level operations for a Markdown document. */

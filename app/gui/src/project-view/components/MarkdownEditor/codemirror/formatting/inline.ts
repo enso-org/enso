@@ -3,22 +3,22 @@ import {
   MarkdownDocument,
   nodeExtensionOrExpansions,
   nodeSplitDelimiters,
-} from '@/components/MarkdownEditor/markdown/inlineFormatting/markdownDocument'
+} from '@/components/MarkdownEditor/markdown/markdownDocument'
 import {
   analyzeMerges,
   analyzeRangeFormattingRemoval,
   analyzeSplits,
   visitContainedDelimiters,
-} from '@/components/MarkdownEditor/markdown/inlineFormatting/trees'
+} from '@/components/MarkdownEditor/markdown/trees'
 import {
   type FormatNode,
   type FormatStates,
   type NormalizedRange,
   type Range,
-} from '@/components/MarkdownEditor/markdown/inlineFormatting/types'
+} from '@/components/MarkdownEditor/markdown/types'
 import { syntaxTree } from '@codemirror/language'
 import { type ChangeSpec, type EditorState, type TransactionSpec } from '@codemirror/state'
-export { type FormatNode as InlineFormattingNode } from '@/components/MarkdownEditor/markdown/inlineFormatting/types'
+export { type FormatNode as InlineFormattingNode } from '@/components/MarkdownEditor/markdown/types'
 
 /**
  * @returns `undefined` if it is not possible to apply formatting to the given range. Otherwise, for each inline

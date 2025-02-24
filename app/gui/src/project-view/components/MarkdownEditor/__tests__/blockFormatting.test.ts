@@ -4,7 +4,7 @@ import {
   toggleHeader,
   toggleList,
   toggleQuote,
-} from '@/components/MarkdownEditor/markdown/blockFormatting'
+} from '@/components/MarkdownEditor/codemirror/formatting/block'
 import { expect, test } from 'vitest'
 
 interface TestCase {

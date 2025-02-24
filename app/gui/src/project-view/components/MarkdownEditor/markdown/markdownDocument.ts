@@ -1,4 +1,4 @@
-import { TextDocument } from '@/components/MarkdownEditor/markdown/inlineFormatting/textDocument'
+import { TextDocument } from '@/components/MarkdownEditor/markdown/textDocument'
 import {
   getUnformattableAncestor,
   isDelimiter,
@@ -6,7 +6,7 @@ import {
   splitNodesAt,
   splitRange,
   trimRangeDelimiters,
-} from '@/components/MarkdownEditor/markdown/inlineFormatting/trees'
+} from '@/components/MarkdownEditor/markdown/trees'
 import {
   andFormatting,
   depthsToStates,
@@ -16,7 +16,7 @@ import {
   nodeMarkToken,
   type NormalizedRange,
   type Range,
-} from '@/components/MarkdownEditor/markdown/inlineFormatting/types'
+} from '@/components/MarkdownEditor/markdown/types'
 import { type Text } from '@codemirror/state'
 import { type Tree } from '@lezer/common'
 import { type DeepReadonly } from 'vue'

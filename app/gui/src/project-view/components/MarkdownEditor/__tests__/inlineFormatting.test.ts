@@ -7,7 +7,7 @@ import {
   getInlineFormatting,
   type InlineFormattingNode,
   setInlineFormatting,
-} from '@/components/MarkdownEditor/markdown/inlineFormatting'
+} from '@/components/MarkdownEditor/codemirror/formatting/inline'
 import { expect, test } from 'vitest'
 
 interface BaseTestCase {

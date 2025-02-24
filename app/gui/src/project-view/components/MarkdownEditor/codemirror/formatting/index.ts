@@ -5,12 +5,12 @@ import {
   toggleHeader,
   toggleList,
   toggleQuote,
-} from '@/components/MarkdownEditor/markdown/blockFormatting'
+} from '@/components/MarkdownEditor/codemirror/formatting/block'
 import {
   getInlineFormatting,
   type InlineFormattingNode,
   setInlineFormatting,
-} from '@/components/MarkdownEditor/markdown/inlineFormatting'
+} from '@/components/MarkdownEditor/codemirror/formatting/inline'
 import { type Extension, Facet, Prec } from '@codemirror/state'
 import { type EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view'
 import * as objects from 'enso-common/src/utilities/data/object'

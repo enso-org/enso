@@ -10,7 +10,7 @@ import {
   type Range,
   type SeminormalizedRange,
   type TrimmedRange,
-} from '@/components/MarkdownEditor/markdown/inlineFormatting/types'
+} from '@/components/MarkdownEditor/markdown/types'
 import { type SyntaxNodeRef, type Tree, type TreeCursor } from '@lezer/common'
 import { identity } from '@vueuse/core'
 

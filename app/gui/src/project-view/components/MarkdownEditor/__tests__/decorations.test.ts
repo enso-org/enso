@@ -1,4 +1,4 @@
-import { ensoMarkdown } from '@/components/MarkdownEditor/markdown'
+import { ensoMarkdown } from '@/components/MarkdownEditor/codemirror'
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { EditorState } from '@codemirror/state'
 import { Decoration, EditorView } from '@codemirror/view'

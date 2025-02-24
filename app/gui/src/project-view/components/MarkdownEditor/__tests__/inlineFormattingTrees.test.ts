@@ -1,12 +1,9 @@
 import { parseTestInput, printTestInput } from '@/components/MarkdownEditor/__tests__/testInput'
-import {
-  denormalizeRange,
-  normalizeRange,
-} from '@/components/MarkdownEditor/markdown/inlineFormatting/trees'
+import { denormalizeRange, normalizeRange } from '@/components/MarkdownEditor/markdown/trees'
 import {
   type NormalizedRange,
   type SeminormalizedRange,
-} from '@/components/MarkdownEditor/markdown/inlineFormatting/types'
+} from '@/components/MarkdownEditor/markdown/types'
 import { expect, test } from 'vitest'
 import { ensoMarkdownParser } from 'ydoc-shared/ast/ensoMarkdown'
 
