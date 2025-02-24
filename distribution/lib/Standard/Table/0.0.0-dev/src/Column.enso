@@ -48,6 +48,7 @@ polyglot java import org.enso.table.data.column.operation.CountNothing
 polyglot java import org.enso.table.data.column.operation.CountUntrimmed
 polyglot java import org.enso.table.data.column.operation.SampleOperation
 polyglot java import org.enso.table.data.column.operation.comparators.Comparators
+polyglot java import org.enso.table.data.column.operation.text.TextPredicates
 polyglot java import org.enso.table.data.column.operation.unary.DatePartOperation
 polyglot java import org.enso.table.data.column.operation.unary.DateTruncateOperation
 polyglot java import org.enso.table.data.column.operation.unary.DoubleIsOperation
@@ -245,7 +246,7 @@ type Column
             if (a.is_a Float) || (b.is_a Float) then
                 problem_builder.reportFloatingPointEquality -1
             a == b
-        _call_comparator self other new_name (l->r->n-> Comparators.eq l r n) <|
+        _call_comparator self other new_name (Comparators.eq self.java_column) <|
             run_vectorized_binary_op_with_fallback_problem_handling self Java_Storage.Maps.EQ other fallback_fn=fallback new_name=new_name expected_result_type=Value_Type.Boolean skip_nulls=True
 
     ## GROUP Standard.Base.Logical
@@ -308,7 +309,7 @@ type Column
              example_neq = Examples.integer_column != 1
     != self (other : Column | Any) -> Column =
         new_name = naming_helper.binary_operation_name "!=" self other
-        _call_comparator self other new_name (l->r->n-> Comparators.notEq l r n) <|
+        _call_comparator self other new_name (Comparators.notEq self.java_column) <|
             (self == other).not . rename new_name
 
     ## ALIAS greater than or equal
@@ -339,7 +340,7 @@ type Column
              example_geq = Examples.integer_column >= 1
     >= self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <| Incomparable_Values.handle_errors <|
         new_name = naming_helper.binary_operation_name ">=" self other
-        _call_comparator self other new_name (l->r->n-> Comparators.greaterThanEq l r n) <|
+        _call_comparator self other new_name (Comparators.greaterThanEq self.java_column) <|
             run_vectorized_binary_op self Java_Storage.Maps.GTE new_name=new_name fallback_fn=(>=) other expected_result_type=Value_Type.Boolean
 
     ## ALIAS less than or equal
@@ -370,7 +371,7 @@ type Column
              example_leq = Examples.integer_column <= 1
     <= self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <| Incomparable_Values.handle_errors <|
         new_name = naming_helper.binary_operation_name "<=" self other
-        _call_comparator self other new_name (l->r->n-> Comparators.lessThanEq l r n) <|
+        _call_comparator self other new_name (Comparators.lessThanEq self.java_column) <|
             run_vectorized_binary_op self Java_Storage.Maps.LTE new_name=new_name fallback_fn=(<=) other expected_result_type=Value_Type.Boolean
 
     ## ALIAS greater than
@@ -401,7 +402,7 @@ type Column
              example_gt = Examples.integer_column > 1
     > self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <| Incomparable_Values.handle_errors <|
         new_name = naming_helper.binary_operation_name ">" self other
-        _call_comparator self other new_name (l->r->n-> Comparators.greaterThan l r n) <|
+        _call_comparator self other new_name (Comparators.greaterThan self.java_column) <|
             run_vectorized_binary_op self Java_Storage.Maps.GT new_name=new_name fallback_fn=(>) other expected_result_type=Value_Type.Boolean
 
     ## ALIAS less than
@@ -432,7 +433,7 @@ type Column
              example_lt = Examples.integer_column < 1
     < self (other : Column | Any) -> Column = Value_Type.expect_comparable self other <| Incomparable_Values.handle_errors <|
         new_name = naming_helper.binary_operation_name "<" self other
-        _call_comparator self other new_name (l->r->n-> Comparators.lessThan l r n) <|
+        _call_comparator self other new_name (Comparators.lessThan self.java_column) <|
             run_vectorized_binary_op self Java_Storage.Maps.LT new_name=new_name fallback_fn=(<) other expected_result_type=Value_Type.Boolean
 
     ## GROUP Standard.Base.Logical
@@ -449,13 +450,13 @@ type Column
 
        Returns a column with boolean values indicating whether values of this
        column fit between the lower and upper bounds (both ends inclusive).
-    between self (lower : Column | Any) (upper : Column | Any) -> Column =
-        Value_Type.expect_comparable self lower <|
-            Value_Type.expect_comparable self upper <|
-                new_name = naming_helper.concat <|
-                    [naming_helper.to_expression_text self, "between", naming_helper.to_expression_text lower, "and", naming_helper.to_expression_text upper]
-                result = (self >= lower) && (self <= upper)
-                result.rename new_name
+    between self (lower : Column | Any) (upper : Column | Any) -> Column = Value_Type.expect_comparable self lower <| Value_Type.expect_comparable self upper <|
+        new_name = naming_helper.concat <|
+            [naming_helper.to_expression_text self, "between", naming_helper.to_expression_text lower, "and", naming_helper.to_expression_text upper]
+        lower_check = (self >= lower)
+        upper_check = (self <= upper)
+        result = lower_check && upper_check
+        result.rename new_name
 
     ## ALIAS add, concatenate, plus
        GROUP Standard.Base.Operators
@@ -1250,9 +1251,9 @@ type Column
              import Standard.Examples
 
              example_starts_with = Examples.text_column_1.starts_with "hell" Case_Sensitivity.Insensitive
-    starts_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column =
+    starts_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column = Value_Type.expect_text self <| Value_Type.expect_text other <|
         new_name = naming_helper.function_name "starts_with" [self, other]
-        run_vectorized_binary_case_text_op self Java_Storage.Maps.STARTS_WITH other case_sensitivity (a -> b -> a.starts_with b case_sensitivity) new_name
+        _apply_case_sensitive_text_operation self other case_sensitivity TextPredicates.STARTS_WITH (a -> b -> a.starts_with b case_sensitivity) new_name
 
     ## GROUP Standard.Base.Text
        ICON preparation
@@ -1280,9 +1281,9 @@ type Column
              import Standard.Examples
 
              example_ends_with = Examples.text_column_1.ends_with "hell"
-    ends_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column =
+    ends_with self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column = Value_Type.expect_text self <| Value_Type.expect_text other <|
         new_name = naming_helper.function_name "ends_with" [self, other]
-        run_vectorized_binary_case_text_op self Java_Storage.Maps.ENDS_WITH other case_sensitivity (a -> b -> a.ends_with b case_sensitivity) new_name
+        _apply_case_sensitive_text_operation self other case_sensitivity TextPredicates.ENDS_WITH (a -> b -> a.ends_with b case_sensitivity) new_name
 
     ## GROUP Standard.Base.Text
        ICON preparation
@@ -1368,9 +1369,9 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.contains "hell"
-    contains self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column =
+    contains self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column = Value_Type.expect_text self <| Value_Type.expect_text other <|
         new_name = naming_helper.function_name "contains" [self, other]
-        run_vectorized_binary_case_text_op self Java_Storage.Maps.CONTAINS other case_sensitivity (a -> b -> a.contains b case_sensitivity) new_name
+        _apply_case_sensitive_text_operation self other case_sensitivity TextPredicates.CONTAINS (a -> b -> a.contains b case_sensitivity) new_name
 
     ## GROUP Standard.Base.Logical
        ICON preparation
@@ -1389,10 +1390,12 @@ type Column
              import Standard.Examples
 
              example_contains = Examples.text_column_1.like "F%."
-    like self (pattern : Column | Text | Any) -> Column =
-        Value_Type.expect_text self <|
-            Value_Type.expect_text pattern <|
-                run_vectorized_binary_op self Java_Storage.Maps.LIKE pattern expected_result_type=Value_Type.Boolean
+    like self (pattern : Column | Text | Any) -> Column = Value_Type.expect_text self <| Value_Type.expect_text pattern <|
+        new_name = naming_helper.binary_operation_name "like" self pattern
+        fallback x y =
+            _ = [x, y]
+            Error.throw (Illegal_Argument.Error "LIKE operation is not supported for the given types.")
+        _apply_case_sensitive_text_operation self pattern ..Default TextPredicates.LIKE fallback new_name
 
     ## GROUP Standard.Base.Text
        ICON text
@@ -2896,6 +2899,18 @@ Many_Files_List.from (that : Column) =
 
 ## PRIVATE
    Temporary function to determine if to use the Comparators statics or embedded operations.
-private _call_comparator left other new_name ~java_static ~enso_action =
-    if Comparators.isSupported left.java_column then Column.from_java_column (java_static left.java_column (if other.is_a Column then other.java_column else other) new_name) else
+private _call_comparator left other new_name ~comparator ~enso_action =
+    if Comparators.isSupported left.java_column then Column.from_java_column (comparator.apply left.java_column (if other.is_a Column then other.java_column else other) new_name) else
         enso_action
+
+## PRIVATE
+private _apply_case_sensitive_text_operation left:Column (other : Column | Text | Any) case_sensitivity:Case_Sensitivity operation fallback_fn new_name:Text -> Column =
+    java_other = (if other.is_a Column then other.java_column else other)
+    use_fallback = case case_sensitivity of
+        Case_Sensitivity.Insensitive _ -> True
+        _ -> operation.canApply left.java_column java_other . not
+    case use_fallback of
+        True -> run_binary_op left fallback_fn other new_name=new_name skip_nulls=True expected_result_type=Value_Type.Boolean
+        _ ->
+            java_column = operation.apply left.java_column java_other new_name
+            Column.from_java_column java_column

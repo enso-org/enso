@@ -1,0 +1,115 @@
+## Enso Signatures 1.0
+## module Standard.Database.DB_Column
+- type DB_Column
+    - != self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
+    - % self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
+    - && self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
+    - * self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
+    - + self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
+    - - self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
+    - / self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
+    - < self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
+    - <= self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
+    - == self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
+    - > self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
+    - >= self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
+    - ^ self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
+    - as_internal self -> Standard.Base.Any.Any
+    - at self index:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - auto_cast self shrink_types:Standard.Base.Data.Boolean.Boolean= -> Standard.Database.DB_Column.DB_Column
+    - between self lower:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) upper:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
+    - cast self value_type:Standard.Table.Value_Type.Value_Type on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+    - ceil self -> Standard.Base.Any.Any
+    - coalesce self values:(Standard.Base.Any.Any|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
+    - const self value:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - contains self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Text.Text|Standard.Base.Any.Any) case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Database.DB_Column.DB_Column
+    - count self -> Standard.Base.Data.Numbers.Integer
+    - count_nothing self -> Standard.Base.Data.Numbers.Integer
+    - date_add self amount:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Numbers.Integer) period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)= -> Standard.Base.Any.Any
+    - date_diff self end:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Time.Date.Date|Standard.Base.Data.Time.Date_Time.Date_Time|Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day) period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)= -> Standard.Base.Any.Any
+    - date_part self period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period) -> Standard.Base.Any.Any
+    - day self -> Standard.Base.Any.Any
+    - day_of_week self -> Standard.Base.Any.Any
+    - day_of_year self -> Standard.Base.Any.Any
+    - decimal_div self other:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - decimal_mod self other:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - dialect_name self -> Standard.Base.Data.Text.Text
+    - display self show_rows:Standard.Base.Any.Any= format_terminal:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - drop self range:(Standard.Base.Data.Index_Sub_Range.Index_Sub_Range|Standard.Base.Data.Range.Range|Standard.Base.Data.Numbers.Integer)= -> Standard.Database.DB_Column.DB_Column
+    - ends_with self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Text.Text|Standard.Base.Any.Any) case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Database.DB_Column.DB_Column
+    - equals_ignore_case self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) locale:Standard.Base.Data.Locale.Locale= -> Standard.Database.DB_Column.DB_Column
+    - fill_empty self default:(Standard.Database.DB_Column.DB_Column|Standard.Table.Constants.Previous_Value|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
+    - fill_nothing self default:(Standard.Database.DB_Column.DB_Column|Standard.Table.Constants.Previous_Value|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
+    - first self -> Standard.Base.Any.Any
+    - floor self -> Standard.Base.Any.Any
+    - format self format:(Standard.Base.Data.Text.Text|Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter|Standard.Database.DB_Column.DB_Column)= locale:Standard.Base.Data.Locale.Locale= -> Standard.Base.Any.Any
+    - get self index:Standard.Base.Data.Numbers.Integer= ~default:Standard.Base.Any.Any= -> (Standard.Base.Any.Any|Standard.Base.Nothing.Nothing)
+    - hour self -> Standard.Base.Any.Any
+    - iif self when_true:Standard.Base.Any.Any when_false:Standard.Base.Any.Any -> Standard.Database.DB_Column.DB_Column
+    - inferred_precise_value_type self -> Standard.Base.Any.Any
+    - info self -> Standard.Table.Table.Table
+    - internal_do_cast self value_type:Standard.Base.Any.Any on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
+    - is_blank self treat_nans_as_blank:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - is_empty self -> Standard.Base.Any.Any
+    - is_finite self -> Standard.Database.DB_Column.DB_Column
+    - is_in self vector:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Vector.Vector|Standard.Base.Data.Array.Array) -> Standard.Database.DB_Column.DB_Column
+    - is_infinite self -> Standard.Database.DB_Column.DB_Column
+    - is_nan self -> Standard.Database.DB_Column.DB_Column
+    - is_nothing self -> Standard.Database.DB_Column.DB_Column
+    - is_present self -> Standard.Database.DB_Column.DB_Column
+    - length self -> Standard.Base.Data.Numbers.Integer
+    - let self name:Standard.Base.Data.Text.Text callback:Standard.Base.Any.Any -> Standard.Database.DB_Column.DB_Column
+    - like self pattern:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Text.Text|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
+    - make_binary_op self op_kind:Standard.Base.Any.Any operand:Standard.Base.Any.Any new_name:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - make_op self op_kind:Standard.Base.Any.Any operands:Standard.Base.Any.Any new_name:Standard.Base.Any.Any metadata:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - make_unary_op self op_kind:Standard.Base.Any.Any new_name:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - map self function:Standard.Base.Any.Any skip_nothing:Standard.Base.Data.Boolean.Boolean= expected_value_type:(Standard.Table.Value_Type.Value_Type|Standard.Table.Value_Type.Auto)= -> Standard.Base.Any.Any
+    - max self values:(Standard.Base.Any.Any|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
+    - min self values:(Standard.Base.Any.Any|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
+    - minute self -> Standard.Base.Any.Any
+    - month self -> Standard.Base.Any.Any
+    - name self -> Standard.Base.Data.Text.Text
+    - naming_helper self -> Standard.Base.Any.Any
+    - not self -> Standard.Database.DB_Column.DB_Column
+    - offset self n:Standard.Base.Any.Any= fill_with:Standard.Table.Fill_With.Fill_With= -> Standard.Database.DB_Column.DB_Column
+    - parse self type:(Standard.Table.Value_Type.Value_Type|Standard.Table.Value_Type.Auto) format:(Standard.Base.Data.Text.Text|Standard.Table.Data_Formatter.Data_Formatter)= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Database.DB_Column.DB_Column
+    - print self show_rows:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - read self max_rows:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Table.Column.Column
+    - rename self name:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - round self decimal_places:Standard.Base.Data.Numbers.Integer= use_bankers:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - round_builtin self decimal_places:Standard.Base.Any.Any use_bankers:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - round_decimal self decimal_places:Standard.Base.Any.Any use_bankers:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - round_float self decimal_places:Standard.Base.Any.Any use_bankers:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - round_integer self decimal_places:Standard.Base.Any.Any use_bankers:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - second self -> Standard.Base.Any.Any
+    - short_circuit_special_floating_point self exp:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - should_be_selected_by_type self value_type:Standard.Table.Value_Type.Value_Type -> Standard.Base.Data.Boolean.Boolean
+    - should_use_builtin_round self decimal_places:Standard.Base.Any.Any use_bankers:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - sort self order:Standard.Base.Data.Sort_Direction.Sort_Direction= -> Standard.Database.DB_Column.DB_Column
+    - sql_type self -> Standard.Base.Any.Any
+    - starts_with self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Text.Text|Standard.Base.Any.Any) case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Database.DB_Column.DB_Column
+    - take self range:(Standard.Base.Data.Index_Sub_Range.Index_Sub_Range|Standard.Base.Data.Range.Range|Standard.Base.Data.Numbers.Integer)= -> Standard.Database.DB_Column.DB_Column
+    - text_cleanse self remove:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Regex.Named_Pattern.Named_Pattern) -> Standard.Base.Any.Any
+    - text_left self n:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Numbers.Integer) -> Standard.Database.DB_Column.DB_Column
+    - text_length self -> Standard.Database.DB_Column.DB_Column
+    - text_replace self term:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex|Standard.Database.DB_Column.DB_Column)= new_text:(Standard.Base.Data.Text.Text|Standard.Database.DB_Column.DB_Column)= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= only_first:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - text_right self n:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Numbers.Integer) -> Standard.Database.DB_Column.DB_Column
+    - to_js_object self -> Standard.Base.Any.Any
+    - to_sql self -> Standard.Database.SQL_Statement.SQL_Statement
+    - to_table self -> Standard.Database.DB_Table.DB_Table
+    - to_text self -> Standard.Base.Any.Any
+    - to_vector self -> (Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)
+    - trim self where:Standard.Base.Data.Text.Location.Location= what:(Standard.Database.DB_Column.DB_Column|Standard.Base.Data.Text.Text)= -> Standard.Database.DB_Column.DB_Column
+    - truncate self -> Standard.Base.Any.Any
+    - value_type self -> Standard.Table.Value_Type.Value_Type
+    - var_args_functions -> Standard.Base.Any.Any
+    - year self -> Standard.Base.Any.Any
+    - zip self that:Standard.Database.DB_Column.DB_Column function:Standard.Base.Any.Any skip_nothing:Standard.Base.Data.Boolean.Boolean= expected_value_type:(Standard.Table.Value_Type.Value_Type|Standard.Table.Value_Type.Auto)= -> Standard.Base.Any.Any
+    - || self other:(Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any) -> Standard.Database.DB_Column.DB_Column
+- adapt_unified_column column:Standard.Base.Any.Any expected_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_equality_check_with_floating_point_handling column:Standard.Base.Any.Any other:Standard.Base.Any.Any op:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_text_case_op left:Standard.Base.Any.Any op:Standard.Base.Any.Any other:Standard.Base.Any.Any case_sensitivity:Standard.Base.Any.Any new_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Table.Column.Column.from that:Standard.Database.DB_Column.DB_Column -> Standard.Table.Column.Column
+- Standard.Base.Data.Vector.Vector.from that:Standard.Database.DB_Column.DB_Column -> Standard.Base.Data.Vector.Vector
+- Standard.Base.Data.Text.Text_Cleanse.Cleansable_Text.from that:Standard.Database.DB_Column.DB_Column -> Standard.Base.Data.Text.Text_Cleanse.Cleansable_Text
+- Standard.Base.Data.Read.Many_Files_List.Many_Files_List.from that:Standard.Database.DB_Column.DB_Column -> Standard.Base.Data.Read.Many_Files_List.Many_Files_List
