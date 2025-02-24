@@ -1,12 +1,14 @@
 package org.enso.table.data.column.operation;
 
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.MixedStorage;
+import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.table.Column;
 import org.graalvm.polyglot.Context;
 
 public class RequiresNumberFormatting {
-  /** Indicates whether a  column contains numbers greater than 1000000, and require formatting in viz*/
+  /**
+   * Indicates whether a column contains numbers greater than 1000000, and require formatting in viz
+   */
   public static boolean apply(Column column) throws InterruptedException {
     ColumnStorage storage = column.getStorage();
     return applyToStorage(storage);
@@ -15,11 +17,11 @@ public class RequiresNumberFormatting {
   /**
    * Indicates whether a column contains numbers greater than 1000000
    *
-   * @return true/false if the column contains large numbers 
+   * @return true/false if the column contains large numbers
    */
   public static boolean applyToStorage(ColumnStorage storage) throws InterruptedException {
-    return (storage instanceof MixedStorage mixedStorage)
-        ? mixedStorage.cachedNumericFormatCheck()
+    return (storage instanceof LongStorage longStorage)
+        ? longStorage.cachedNumericFormatCheck()
         : (boolean) compute(storage, Context.getCurrent());
   }
 

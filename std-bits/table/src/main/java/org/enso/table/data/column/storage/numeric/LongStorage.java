@@ -4,8 +4,12 @@ import java.math.BigInteger;
 import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.RequiresNumberFormatting;
 import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -15,14 +19,19 @@ import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
+import org.slf4j.Logger;
 
 /** A column storing 64-bit integers. */
 public final class LongStorage extends AbstractLongStorage implements ColumnStorageWithNothingMap {
+
+  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(StringStorage.class);
+
   // TODO [RW] at some point we will want to add separate storage classes for byte, short and int,
   // for more compact storage and more efficient handling of smaller integers; for now we will be
   // handling this just by checking the bounds
   final long[] data;
   final BitSet isNothing;
+  private Future<Boolean> isNumericFormatRequired;
 
   /**
    * @param data the underlying data
@@ -35,6 +44,9 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
     super(size, type);
     this.data = data;
     this.isNothing = isNothing;
+
+    isNumericFormatRequired =
+        CompletableFuture.supplyAsync(() -> RequiresNumberFormatting.compute(this, null));
   }
 
   public static LongStorage makeEmpty(long size, IntegerType type) {
@@ -333,6 +345,26 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
           context.safepoint();
         }
       }
+    }
+  }
+
+  /**
+   * Checks if any numbers are large enough for the column to require formatin in the table viz.
+   *
+   * @return true/false if formatting is required
+   */
+  public Boolean cachedNumericFormatCheck() throws InterruptedException {
+    if (isNumericFormatRequired.isCancelled()) {
+      // Need to recompute the value, as was cancelled.
+      isNumericFormatRequired =
+          CompletableFuture.completedFuture(RequiresNumberFormatting.compute(this, null));
+    }
+
+    try {
+      return isNumericFormatRequired.get();
+    } catch (ExecutionException e) {
+      LOGGER.error("Failed to compute if numeric formatting was required", e);
+      return false;
     }
   }
 }
