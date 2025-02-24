@@ -153,6 +153,56 @@ class JobReport:
 
 
 @dataclass
+class JsonJobReport(JobReport):
+    """
+    The "new" type of job report according to the schema in "https://raw.githubusercontent.com/enso-org/enso/6732a5e7e94ad3395c49627fa2d3417d4a7fcd68/lib/java/benchmarks-common/src/main/resources/results_schema.json".
+    Introduced in https://github.com/enso-org/enso/pull/10224.
+    """
+    @dataclass
+    class Configuration:
+        os_name: str
+        os_arch: str
+        os_version: str
+        vm_name: str
+        vm_version: str
+        vm_vendor: str
+        jdk_version: str
+    
+    @dataclass
+    class Percentile:
+        value: float
+        percentile: float
+
+    @dataclass
+    class MeasurementStatistics:
+        stddev: float
+        mean: float
+        min: float
+        max: float
+        error_50: float
+        error_95: float
+        percentiles: List["JsonJobReport.Percentile"]
+    
+    @dataclass
+    class Result:
+        label: str
+        timestamp: datetime
+        score: float
+        samples: int
+        warmup_iterations: int
+        warmup_millis: int
+        measure_iterations: int
+        measure_millis: int
+        commit_id: str
+        branch: str
+        measurement_statistics: "JsonJobReport.MeasurementStatistics"
+
+    schema: str
+    configuration: Configuration
+    results: List[Result]
+
+
+@dataclass
 class BenchmarkData:
     """
     Data for a single benchmark compiled from all the job reports.
