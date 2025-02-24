@@ -704,6 +704,14 @@ public final class ExecutionService {
       this.wasCached = wasCached;
     }
 
+    static ExpressionValue progress(UUID nodeId, double amount) {
+      return new ExpressionValue(nodeId, amount, null, null, null, null, null, false);
+    }
+
+    public boolean isProgressUpdate() {
+      return profilingInfo == null;
+    }
+
     @Override
     public String toString() {
       String profilingInfo = Arrays.toString(this.profilingInfo);

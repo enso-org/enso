@@ -447,10 +447,10 @@ object ProgramExecutionSupport {
     value: ExpressionValue
   )(implicit ctx: RuntimeContext): Unit = {
     val expressionId = value.getExpressionId
-    if (value.getValue == null && value.getProfilingInfo() == null) {
+    if (value.isProgressUpdate()) {
       val p = Api.ExpressionUpdate.Payload.Pending(
         None,
-        Some(-1.0)
+        Some(value.getValue().asInstanceOf[Double])
       )
       ctx.endpoint.sendToClient(
         Api.Response(

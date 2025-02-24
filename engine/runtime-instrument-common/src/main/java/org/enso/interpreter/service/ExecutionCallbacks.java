@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
+import org.enso.common.CachePreferences;
 import org.enso.interpreter.instrument.ExpressionExecutionState;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.OneshotExpression;
@@ -39,7 +40,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   private final Consumer<ExpressionValue> onComputedCallback;
   private final Consumer<ExpressionCall> functionCallCallback;
   private final Consumer<ExecutedVisualization> onExecutedVisualizationCallback;
-  private final ExecutionProgressObserver progressObserver = new ExecutionProgressObserver();
+  private ExecutionProgressObserver progressObserver;
 
   /**
    * Creates callbacks instance.
@@ -94,15 +95,25 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       callOnCachedCallback(nodeId, result);
       return result;
     } else {
-      callOnNotCachedCallback(nodeId, -1.0);
-      progressObserver.startComputation(
-          nodeId,
-          (progress) -> {
-            callOnNotCachedCallback(nodeId, progress);
-          });
+      if (cache.getPreferences().get(nodeId) == CachePreferences.Kind.BINDING_EXPRESSION) {
+        refreshObserver(
+            ExecutionProgressObserver.startComputation(
+                nodeId,
+                (progress) -> {
+                  callOnNotCachedCallback(nodeId, progress);
+                }));
+      }
     }
 
     return null;
+  }
+
+  private void refreshObserver(ExecutionProgressObserver newObserverOrNull) {
+    var o = progressObserver;
+    if (o != null) {
+      o.finishComputation();
+    }
+    this.progressObserver = newObserverOrNull;
   }
 
   @Override
@@ -110,6 +121,11 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     Object result = info.getResult();
     TypeInfo resultType = typeOf(result);
     UUID nodeId = info.getId();
+
+    if (progressObserver instanceof ExecutionProgressObserver o && nodeId.equals(o.nodeId())) {
+      refreshObserver(null);
+    }
+
     TypeInfo cachedType = cache.getType(nodeId);
     FunctionCallInfo call = functionCallInfoById(nodeId);
     FunctionCallInfo cachedCall = cache.getCall(nodeId);
@@ -187,9 +203,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
   @CompilerDirectives.TruffleBoundary
   private void callOnNotCachedCallback(UUID nodeId, double amount) {
-    ExpressionValue expressionValue =
-        new ExpressionValue(nodeId, null, null, null, null, null, null, false);
-
+    var expressionValue = ExpressionValue.progress(nodeId, amount);
     onCachedCallback.accept(expressionValue);
   }
 
