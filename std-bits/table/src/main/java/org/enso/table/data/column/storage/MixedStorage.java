@@ -19,7 +19,6 @@ import org.graalvm.polyglot.Context;
  * specific type.
  */
 public final class MixedStorage extends ObjectStorage implements ColumnStorageWithInferredStorage {
-
   private StorageType inferredType;
 
   /**
