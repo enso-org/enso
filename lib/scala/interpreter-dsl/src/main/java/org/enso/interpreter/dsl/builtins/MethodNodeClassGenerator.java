@@ -56,7 +56,7 @@ public abstract class MethodNodeClassGenerator {
         moduleOwnerInfo = ", autoRegister = " + isAutoRegister;
       }
       if (needsFrame != null) {
-        moduleOwnerInfo = moduleOwnerInfo + ", needsFrame = " + needsFrame;
+        moduleOwnerInfo = moduleOwnerInfo + ", inlineable = " + !needsFrame;
       }
       out.println("/**");
       out.println(

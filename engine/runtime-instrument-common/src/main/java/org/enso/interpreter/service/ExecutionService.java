@@ -15,7 +15,6 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
-import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.io.IOException;
@@ -50,6 +49,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.state.RunStateNode;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.service.error.FailedToApplyEditsException;
 import org.enso.interpreter.service.error.MethodNotFoundException;
@@ -203,12 +203,10 @@ public final class ExecutionService {
             service ->
                 service.bind(module, call.getFunction().getCallTarget(), callbacks, this.timer));
 
-    DynamicObjectLibrary.getUncached()
-        .put(call.getState().getContainer(), IdExecutionService.class, cache);
-
     Object p = context.getThreadManager().enter();
     try {
-      execute.getCallTarget().call(substituteMissingArguments(call));
+      var callFn = Function.fullyApplied(execute.getCallTarget(), substituteMissingArguments(call));
+      RunStateNode.getUncached().execute(null, cacheKey(), cache, callFn);
     } finally {
       context.getThreadManager().leave(p);
       eventNodeFactory.ifPresent(EventBinding::dispose);
@@ -335,7 +333,9 @@ public final class ExecutionService {
   public Object callFunction(Object fn, Object argument) {
     Object p = context.getThreadManager().enter();
     try {
-      return call.getCallTarget().call(fn, new Object[] {argument});
+      var callArgs =
+          Function.ArgumentsHelper.buildArguments(null, new Object[] {fn, new Object[] {argument}});
+      return call.getCallTarget().call(callArgs);
     } finally {
       context.getThreadManager().leave(p);
     }
@@ -398,17 +398,18 @@ public final class ExecutionService {
         state = State.create(context);
         function = new FunctionCallInstrumentationNode.FunctionCall(fn, state, new Object[0]);
       }
-      if (executionCache != null) {
-        DynamicObjectLibrary.getUncached()
-            .put(state.getContainer(), IdExecutionService.class, executionCache);
-      }
-
-      ret[0] = call.getCallTarget().call(function, arguments);
+      var callArgs = new Object[] {function, arguments};
+      var callFn = Function.fullyApplied(call.getCallTarget(), callArgs);
+      ret[0] = RunStateNode.getUncached().execute(null, cacheKey(), executionCache, callFn);
     } finally {
       context.getThreadManager().leave(p);
       eventNodeFactory.ifPresent(EventBinding::dispose);
     }
     return ret[0];
+  }
+
+  private Type cacheKey() {
+    return context.getBuiltins().instrumentor();
   }
 
   /**
@@ -576,10 +577,11 @@ public final class ExecutionService {
     @Override
     public Object execute(VirtualFrame frame) {
       try {
-        if (frame.getArguments()[0] instanceof FunctionCallInstrumentationNode.FunctionCall call) {
+        var args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
+        if (args[0] instanceof FunctionCallInstrumentationNode.FunctionCall call) {
           return iop.execute(call);
         }
-        throw ArityException.create(1, 1, frame.getArguments().length);
+        throw ArityException.create(1, 1, args.length);
       } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException ex) {
         throw raise(RuntimeException.class, ex);
       }
@@ -596,9 +598,10 @@ public final class ExecutionService {
     @Override
     public Object execute(VirtualFrame frame) {
       try {
-        var self = frame.getArguments()[0];
-        var args = (Object[]) frame.getArguments()[1];
-        return iop.execute(self, args);
+        var callArgs = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
+        var fn = callArgs[0];
+        var args = (Object[]) callArgs[1];
+        return iop.execute(fn, args);
       } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException ex) {
         throw raise(RuntimeException.class, ex);
       }
