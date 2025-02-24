@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
 import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.core.CompilerStub;
 import org.enso.compiler.core.ir.Module;

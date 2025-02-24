@@ -26,6 +26,7 @@ import org.enso.compiler.pass.analyse.types.TypeRepresentation;
 import org.enso.compiler.pass.analyse.types.TypeResolver;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames$;
 import org.enso.compiler.pass.resolve.GlobalNames$;
+import org.enso.compiler.pass.resolve.MethodDefinitions;
 import org.enso.compiler.pass.resolve.TypeNames$;
 import org.enso.pkg.QualifiedName;
 import org.enso.scala.wrapper.ScalaConversions;
@@ -55,6 +56,7 @@ public class StaticModuleScopeAnalysis implements IRPass {
             BindingAnalysis$.MODULE$,
             FullyQualifiedNames$.MODULE$,
             TypeNames$.MODULE$,
+            MethodDefinitions.INSTANCE,
             TypeInferenceSignatures.INSTANCE);
     return ScalaConversions.seq(passes);
   }
@@ -117,10 +119,30 @@ public class StaticModuleScopeAnalysis implements IRPass {
 
     @Override
     protected void processConversion(Method.Conversion conversion) {
-      TypeScopeReference toType;
-      TypeScopeReference fromType;
-      // TODO extract to and from types from IR
+      var toTypePointer = conversion.methodReference().typePointer();
+      if (toTypePointer.isEmpty()) {
+        // TODO IrToTruffle allows this and replaces with scope associated type but that seems wrong for conversion
+        throw new IllegalStateException("Conversion method "+conversion.showCode() + " has no defined target type.");
+      }
+
+      TypeScopeReference toType = getTypeResolution(toTypePointer.get());
+      TypeScopeReference fromType = getTypeResolution(conversion.sourceTypeName());
       scopeBuilder.registerConversionMethod(toType, fromType);
+    }
+
+    // TODO make common logic with IrToTruffle?
+    private TypeScopeReference getTypeResolution(IR expr) {
+      var resolution =
+          MetadataInteropHelpers.getMetadataOrNull(expr, MethodDefinitions.INSTANCE, BindingsMap.Resolution.class);
+      if (resolution == null) {
+        throw new IllegalStateException("Missing method resolution data in " + expr.showCode());
+      }
+
+      if (!(resolution.target() instanceof BindingsMap.ResolvedType resolved)) {
+        throw new IllegalStateException("Method resolution metadata for from conversion should be ResolvedType but was " + resolution.target());
+      }
+
+      return TypeScopeReference.atomType(resolved.qualifiedName());
     }
 
     @Override
