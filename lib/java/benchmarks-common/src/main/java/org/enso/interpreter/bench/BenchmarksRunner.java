@@ -164,6 +164,8 @@ public class BenchmarksRunner {
       for (var validationMsg : validationMsgs) {
         System.err.println("  " + validationMsg);
       }
+      System.err.println("Contents of the JSON file:");
+      System.err.println(resultsJson.toPrettyString());
       System.exit(1);
     }
   }
