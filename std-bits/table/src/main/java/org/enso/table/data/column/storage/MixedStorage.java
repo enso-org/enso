@@ -265,7 +265,7 @@ public final class MixedStorage extends ObjectStorage implements ColumnStorageWi
     if (isNumericFormatRequired.isCancelled()) {
       // Need to recompute the value, as was cancelled.
       isNumericFormatRequired =
-          CompletableFuture.supplyAsync(() -> RequiresNumberFormatting.compute(this, null));
+          CompletableFuture.completedFuture(RequiresNumberFormatting.compute(this, null));
     }
 
     try {
