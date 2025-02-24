@@ -21,20 +21,10 @@ import { type Text } from '@codemirror/state'
 import { type Tree } from '@lezer/common'
 import { type DeepReadonly } from 'vue'
 
-interface Side {
-  fromOrTo: 'from' | 'to'
-}
-const FROM: Side = {
-  fromOrTo: 'from',
-}
-const TO: Side = {
-  fromOrTo: 'to',
-}
-
-function sides<T>(f: (side: Side) => T): { from: T; to: T } {
+function sides<T>(f: (fromOrTo: 'from' | 'to') => T): { from: T; to: T } {
   return {
-    from: f(FROM),
-    to: f(TO),
+    from: f('from'),
+    to: f('to'),
   }
 }
 
@@ -238,7 +228,7 @@ function expandDelimiter(
 }
 
 export const nodeSplitDelimiters = sides(
-  ({ fromOrTo }) =>
+  (fromOrTo) =>
     (
       md: MarkdownDocument,
       splittable: DeepReadonly<{ name: string; delimiter: Range }>[],
