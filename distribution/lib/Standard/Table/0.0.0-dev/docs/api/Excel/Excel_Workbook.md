@@ -1,0 +1,34 @@
+## Enso Signatures 1.0
+## module Standard.Table.Excel.Excel_Workbook
+- type Excel_Workbook
+    - close self -> Standard.Base.Any.Any
+    - database self -> Standard.Base.Any.Any
+    - databases self -> Standard.Base.Any.Any
+    - from_stream stream:Standard.Base.Any.Any xls_format:Standard.Base.Data.Boolean.Boolean= file:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - named_ranges self -> Standard.Base.Any.Any
+    - named_ranges_count self -> Standard.Base.Any.Any
+    - new file:(Standard.Base.System.File.File|Standard.Base.System.File.Advanced.Temporary_File.Temporary_File) xls_format:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - query self query:Standard.Base.Data.Text.Text alias:Standard.Base.Data.Text.Text= headers:Standard.Table.Headers.Headers= -> Standard.Base.Any.Any
+    - read self query:(Standard.Base.Data.Text.Text|Standard.Table.Excel.Excel_Range.Excel_Range|Standard.Base.Data.Numbers.Integer) headers:Standard.Table.Headers.Headers= limit:Standard.Table.Rows_To_Read.Rows_To_Read= skip_rows:Standard.Base.Data.Numbers.Integer= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+    - read_many self sheet_names:Standard.Base.Data.Vector.Vector= headers:Standard.Table.Headers.Headers= return:Standard.Base.Any.Any= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+    - read_section self section:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - schema self -> Standard.Base.Any.Any
+    - schemas self -> Standard.Base.Any.Any
+    - set_database self database:(Standard.Base.Data.Text.Text|Standard.Base.System.File.File) -> Standard.Base.Any.Any
+    - set_schema self schema:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - sheet self name:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer) headers:Standard.Table.Headers.Headers= -> Standard.Base.Any.Any
+    - sheet_count self -> Standard.Base.Any.Any
+    - sheet_names self -> Standard.Base.Any.Any
+    - table_types self -> Standard.Base.Any.Any
+    - tables self name_like:Standard.Base.Any.Any= database:Standard.Base.Any.Any= schema:Standard.Base.Any.Any= types:Standard.Base.Any.Any= all_fields:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+    - with_java_workbook self f:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - xls_format self -> Standard.Base.Any.Any
+- type Return_As
+    - Merged_Table columns_to_keep:Standard.Table.Columns_To_Keep.Columns_To_Keep= match:Standard.Table.Match_Columns.Match_Columns=
+    - Table_Of_Tables
+- build_sheet_selector workbook:Standard.Table.Excel.Excel_Workbook.Excel_Workbook display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
+- close_connection c:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Table.Internal.Read_Many_As_Merged_Table_Strategy.Read_Many_As_Merged_Table_Strategy.from that:Standard.Table.Excel.Excel_Workbook.Excel_Workbook -> Standard.Table.Internal.Read_Many_As_Merged_Table_Strategy.Read_Many_As_Merged_Table_Strategy
