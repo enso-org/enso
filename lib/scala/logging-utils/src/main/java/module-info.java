@@ -6,5 +6,5 @@ module org.enso.logging.utils {
   exports org.enso.logger;
   exports org.enso.logger.masking;
 
-  uses org.enso.logger.LoggerMessage.ObservingService;
+  uses org.enso.logger.ObservedMessage.Service;
 }

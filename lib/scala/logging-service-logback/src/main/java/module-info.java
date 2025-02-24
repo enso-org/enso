@@ -1,4 +1,4 @@
-import org.enso.logger.LoggerMessage.ObservingService;
+import org.enso.logger.ObservedMessage.Service;
 import org.enso.logging.config.LoggerSetup;
 import org.enso.logging.service.logback.LogbackObservingImpl;
 import org.enso.logging.service.logback.LogbackSetup;
@@ -18,6 +18,6 @@ module org.enso.logging.service.logback {
 
   provides LoggerSetup with
       LogbackSetup;
-  provides ObservingService with
+  provides Service with
       LogbackObservingImpl;
 }

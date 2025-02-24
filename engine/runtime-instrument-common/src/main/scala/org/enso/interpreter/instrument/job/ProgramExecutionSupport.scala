@@ -450,7 +450,7 @@ object ProgramExecutionSupport {
     if (value.getValue == null && value.getProfilingInfo() == null) {
       val p = Api.ExpressionUpdate.Payload.Pending(
         None,
-        Some(0.00000000001)
+        Some(-1.0)
       )
       ctx.endpoint.sendToClient(
         Api.Response(
