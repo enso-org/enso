@@ -901,15 +901,10 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var foo = ModuleUtils.findStaticMethod(module, "foo");
 
     var y = ModuleUtils.findAssignment(foo, "y");
-    var typeError1 =
-        new Warning.TypeMismatch(y.expression().identifiedLocation(), "My_Type", "(Any -> Any)");
-    assertEquals(List.of(typeError1), ModuleUtils.getDescendantsDiagnostics(y.expression()));
+    assertTypeMismatch(y.expression(), "My_Type", "(Any -> Any)");
 
     var z = ModuleUtils.findAssignment(foo, "z");
-    var typeError2 =
-        new Warning.TypeMismatch(
-            z.expression().identifiedLocation(), "My_Type", "My_Type -> My_Type");
-    assertEquals(List.of(typeError2), ModuleUtils.getDescendantsDiagnostics(z.expression()));
+    assertTypeMismatch(z.expression(), "My_Type", "My_Type -> My_Type");
   }
 
 
@@ -970,9 +965,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var foo = ModuleUtils.findStaticMethod(module, "foo");
 
     var x = ModuleUtils.findAssignment(foo, "x");
-    var typeError =
-        new Warning.TypeMismatch(x.expression().identifiedLocation(), "My_Type", "Integer");
-    assertEquals(List.of(typeError), ModuleUtils.getDescendantsDiagnostics(x.expression()));
+    assertTypeMismatch(x.expression(), "My_Type", "Integer");
   }
 
   @Test
@@ -1139,9 +1132,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var foo = ModuleUtils.findStaticMethod(module, "foo");
 
     var x1 = ModuleUtils.findAssignment(foo, "x1");
-    var typeError =
-        new Warning.TypeMismatch(x1.expression().identifiedLocation(), "My_Type", "Other_Type");
-    assertEquals(List.of(typeError), ModuleUtils.getDescendantsDiagnostics(x1.expression()));
+    assertTypeMismatch(x1.expression(), "My_Type", "Other_Type");
   }
 
   @Test
@@ -1603,5 +1594,18 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     } else {
       fail("Expected " + ir.showCode() + " to have a SumType, but got " + type);
     }
+  }
+
+  private void assertTypeMismatch(IR ir, String expectedType, String gotType) {
+    var diagnostics = ModuleUtils.getDescendantsDiagnostics(ir);
+    assertThat("exactly 1 diagnostic expected: " + diagnostics, diagnostics.size() == 1);
+
+    var diagnostic = diagnostics.get(0);
+    if (!(diagnostic instanceof Warning.TypeMismatch typeMismatch)) {
+      throw new AssertionError("Expected Warning.TypeMismatch but got " + diagnostic);
+    }
+
+    assertEquals(expectedType, typeMismatch.expectedType());
+    assertEquals(gotType, typeMismatch.actualType());
   }
 }

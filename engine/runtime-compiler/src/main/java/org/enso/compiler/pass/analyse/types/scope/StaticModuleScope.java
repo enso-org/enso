@@ -198,6 +198,10 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
 
   public TypeRepresentation getConversionFor(TypeScopeReference target, TypeScopeReference source) {
     var conversionsOnType = conversions.get(target);
+    if (conversionsOnType == null) {
+      return null;
+    }
+
     boolean conversionExists = conversionsOnType.contains(source);
     if (!conversionExists) {
       return null;
