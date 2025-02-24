@@ -16,7 +16,6 @@ from bench_tool.remote_cache import RemoteCache
 from bench_tool.utils import WithTempDir
 
 ARTIFACT_ID = "Runtime Benchmark Report"
-SCHEMA_URL = "https://raw.githubusercontent.com/enso-org/engine-benchmark-results/fef8b37881580512435cfa9bb2b867e6b97e147a/schema/cache-v2.json"
 
 _logger = logging.getLogger(__name__)
 
@@ -207,64 +206,4 @@ def _parse_bench_report_from_json(bench_report_json_path: str, bench_run: JobRun
     assert path.exists(bench_report_json_path)
     with open(bench_report_json_path, "r") as f:
         obj = json.load(f)
-    assert "$schema" in obj, f"Json expected to have $schema, but is: {obj}"
-    schema = obj["$schema"]
-    if schema == SCHEMA_URL:
-        results: List[JsonJobReport.Result] = []
-        label_score_dict: Dict[str, float] = {}
-
-        if obj["ghActionRun"] is not None:
-            raise RuntimeError("ghActionRun is not None, but it should be None. "
-                               "The benchmark runner should not fill this property, "
-                               "it should be filled by this script.")
-
-        for res in obj["results"]:
-            percentiles: List[JsonJobReport.Percentile] = []
-            for perc in res["measurementStatistics"]["percentiles"]:
-                percentiles.append(
-                    JsonJobReport.Percentile(
-                        value=float(perc["value"]),
-                        percentile=float(perc["percentile"])
-                    )
-                )
-            result = JsonJobReport.Result(
-                label=res["label"],
-                timestamp=datetime.fromisoformat(res["timestamp"]),
-                score=float(res["score"]),
-                samples=int(res["samples"]),
-                warmup_iterations=int(res["warmupIterations"]),
-                warmup_millis=int(res["warmupMillis"]),
-                measure_iterations=int(res["measureIterations"]),
-                measure_millis=int(res["measureMillis"]),
-                commit_id=res["commitId"],
-                branch=res["branch"],
-                measurement_statistics=JsonJobReport.MeasurementStatistics(
-                    stddev=float(res["measurementStatistics"]["stddev"]),
-                    mean=float(res["measurementStatistics"]["mean"]),
-                    min=float(res["measurementStatistics"]["min"]),
-                    max=float(res["measurementStatistics"]["max"]),
-                    error_50=float(res["measurementStatistics"]["error50"]),
-                    error_95=float(res["measurementStatistics"]["error95"]),
-                    percentiles=percentiles
-                )
-            )
-            label_score_dict[result.label] = result.score
-            results.append(result)
-
-        return JsonJobReport(
-            label_score_dict=label_score_dict,
-            bench_run=bench_run,
-            schema=obj["$schema"],
-            configuration=JsonJobReport.Configuration(
-                os_name=obj["configuration"]["osName"],
-                os_arch=obj["configuration"]["osArch"],
-                os_version=obj["configuration"]["osVersion"],
-                vm_name=obj["configuration"]["vmName"],
-                vm_version=obj["configuration"]["vmVersion"],
-                vm_vendor=obj["configuration"]["vmVendor"],
-                jdk_version=obj["configuration"]["jdkVersion"]
-            ),
-            results=results
-        )
-    else:
-        raise RuntimeError(f"Unknown schema: {schema}")
+    return JsonJobReport.from_dict_with_run(obj, bench_run)

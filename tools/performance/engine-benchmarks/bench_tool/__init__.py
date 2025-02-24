@@ -155,9 +155,15 @@ class JobReport:
 @dataclass
 class JsonJobReport(JobReport):
     """
-    The "new" type of job report according to the schema in "https://raw.githubusercontent.com/enso-org/enso/6732a5e7e94ad3395c49627fa2d3417d4a7fcd68/lib/java/benchmarks-common/src/main/resources/results_schema.json".
-    Introduced in https://github.com/enso-org/enso/pull/10224.
+    The "new" type of job report according to the schema in `SCHEMA_URL`.
+    Introduced in https://github.com/enso-org/engine-benchmark-results/pull/3.
+
+    `ghActionRun` property is is not present in this class, but can be fetched via `bench_run` from
+    the base class.
     """
+
+    SCHEMA_URL = "https://raw.githubusercontent.com/enso-org/engine-benchmark-results/fef8b37881580512435cfa9bb2b867e6b97e147a/schema/cache-v2.json"
+
     @dataclass
     class Configuration:
         os_name: str
@@ -200,6 +206,74 @@ class JsonJobReport(JobReport):
     schema: str
     configuration: Configuration
     results: List[Result]
+
+    @staticmethod
+    def from_dict_with_run(dict: Dict[Any, Any], bench_run: JobRun) -> "JsonJobReport":
+        """
+        :param dict Dictionary gathered from parsing a JSON file.
+        :param bench_run JobRun object that is not present in the JSON file.
+        """
+        if dict["$schema"] != JsonJobReport.SCHEMA_URL:
+            raise RuntimeError(f"Invalid schema: {dict['$schema']}")
+        results: List[JsonJobReport.Result] = []
+        label_score_dict: Dict[str, float] = {}
+
+        if dict["ghActionRun"] is not None:
+            raise RuntimeError("ghActionRun is not None, but it should be None. "
+                               "The benchmark runner should not fill this property, "
+                               "it should be filled by this script.")
+
+        for res in dict["results"]:
+            percentiles: List[JsonJobReport.Percentile] = []
+            for perc in res["measurementStatistics"]["percentiles"]:
+                percentiles.append(
+                    JsonJobReport.Percentile(
+                        value=float(perc["value"]),
+                        percentile=float(perc["percentile"])
+                    )
+                )
+            result = JsonJobReport.Result(
+                label=res["label"],
+                timestamp=datetime.fromisoformat(res["timestamp"]),
+                score=float(res["score"]),
+                samples=int(res["samples"]),
+                warmup_iterations=int(res["warmupIterations"]),
+                warmup_millis=int(res["warmupMillis"]),
+                measure_iterations=int(res["measureIterations"]),
+                measure_millis=int(res["measureMillis"]),
+                commit_id=res["commitId"],
+                branch=res["branch"],
+                measurement_statistics=JsonJobReport.MeasurementStatistics(
+                    stddev=float(res["measurementStatistics"]["stddev"]),
+                    mean=float(res["measurementStatistics"]["mean"]),
+                    min=float(res["measurementStatistics"]["min"]),
+                    max=float(res["measurementStatistics"]["max"]),
+                    error_50=float(res["measurementStatistics"]["error50"]),
+                    error_95=float(res["measurementStatistics"]["error95"]),
+                    percentiles=percentiles
+                )
+            )
+            label_score_dict[result.label] = result.score
+            results.append(result)
+
+        return JsonJobReport(
+            label_score_dict=label_score_dict,
+            bench_run=bench_run,
+            schema=dict["$schema"],
+            configuration=JsonJobReport.Configuration(
+                os_name=dict["configuration"]["osName"],
+                os_arch=dict["configuration"]["osArch"],
+                os_version=dict["configuration"]["osVersion"],
+                vm_name=dict["configuration"]["vmName"],
+                vm_version=dict["configuration"]["vmVersion"],
+                vm_vendor=dict["configuration"]["vmVendor"],
+                jdk_version=dict["configuration"]["jdkVersion"]
+            ),
+            results=results
+        )
+
+    def to_dict(self) -> Dict[Any, Any]:
+        pass
 
 
 @dataclass
