@@ -238,15 +238,16 @@ class IrToTruffle(
         "Method definition missing frame information."
       )
 
-      val toOpt =
+      val toType =
         conversion.methodReference.typePointer match {
-          case Some(tpePointer) =>
-            Option(getTypeResolution(tpePointer))
+          case Some(tpePointer) => getTypeResolution(tpePointer)
           case None =>
-            Some(scopeAssociatedType)
+            throw new CompilerError(
+              s"Conversion (${where()}) missing type pointer."
+            )
         }
-      val fromOpt = Option(getTypeResolution(conversion.sourceTypeName))
-      toOpt.zip(fromOpt).foreach { case (toType, fromType) =>
+      val fromType = getTypeResolution(conversion.sourceTypeName)
+      if (fromType != null && toType != null) {
         val expressionProcessor = new ExpressionProcessor(
           toType.getName ++ Constants.SCOPE_SEPARATOR ++ conversion.methodName.name,
           () => scopeInfo().graph,
