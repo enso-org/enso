@@ -1552,13 +1552,19 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                         B_Value
                     type C
                         C_Value
+                    type D
+                        D_Value
+                    type E
+                        E_Value
 
                     Any.method self -> A = A.A_Value
+                    Any.static_method -> D = D.D_Value
 
                     type My_Type
                         Value
 
                         method self -> B = B.B_Value
+                        static_method -> E = E.E_Value
 
                     type Other_Type
                         Value
@@ -1571,7 +1577,9 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                         x3 = method
                         x4 = My_Type.method
                         x5 = Any.method My_Type.Value
-                        [x1, x2, x3, x4, x5]
+                        x6 = Any.static_method
+                        x7 = My_Type.static_method
+                        [x1, x2, x3, x4, x5, x6, x7]
                     """,
                 uri.getAuthority())
             .uri(uri)
@@ -1632,6 +1640,12 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     // method explicitly
     var x5 = ModuleUtils.findAssignment(foo, "x5");
     assertAtomType("local.Project1.modA.A", x5);
+
+    var x6 = ModuleUtils.findAssignment(foo, "x6");
+    assertAtomType("local.Project1.modA.D", x6);
+
+    var x7 = ModuleUtils.findAssignment(foo, "x7");
+    assertAtomType("local.Project1.modA.E", x7);
   }
 
   @Test
