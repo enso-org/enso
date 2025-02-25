@@ -1,5 +1,7 @@
 package org.enso.interpreter.test.interop;
 
+import static org.enso.test.utils.ContextUtils.executeInContext;
+import static org.enso.test.utils.ContextUtils.unwrapValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -204,7 +206,7 @@ public class AtomInteropTest {
 
         main = My_Type.Cons "a"
         """);
-    ContextUtils.executeInContext(
+    executeInContext(
         ctx,
         () -> {
           var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
@@ -374,7 +376,7 @@ public class AtomInteropTest {
 
         main = My_Type.Cons 1 2
         """);
-    ContextUtils.executeInContext(
+    executeInContext(
         ctx,
         () -> {
           var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
@@ -398,7 +400,7 @@ public class AtomInteropTest {
 
         main = My_Type.Cons 1
         """);
-    ContextUtils.executeInContext(
+    executeInContext(
         ctx,
         () -> {
           var atom = ContextUtils.unwrapValue(ctx, myTypeAtom);
@@ -466,6 +468,35 @@ public class AtomInteropTest {
         "Constructor (type member) is instantiable",
         myType.getMember("Cons_1").canInstantiate(),
         is(true));
+  }
+
+  @Test
+  public void invokeLazyField_DoesNotCauseStackOverflow() {
+    var atom =
+        ContextUtils.evalModule(
+            ctx,
+            """
+        from Standard.Base.Any import all
+
+        type Generator
+            Value n ~next
+
+        natural =
+            gen n = Generator.Value n (gen n+1)
+            gen 2
+
+        main =
+            natural
+        """);
+    executeInContext(
+        ctx,
+        () -> {
+          var atomUnwrapped = unwrapValue(ctx, atom);
+          var interop = InteropLibrary.getUncached();
+          var next = interop.invokeMember(atomUnwrapped, "next");
+          assertThat("Returns next atom", interop.hasMembers(next), is(true));
+          return null;
+        });
   }
 
   /**

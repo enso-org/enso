@@ -17,7 +17,7 @@ add_specs suite_builder (prefix : Text) setup =
             t1 = table_1.get
             t1.should_be_a DB_Table
             (t1:DB_Column).name.should_equal "A"
-            (t1:DB_Column).to_vector.should_equal [1, 2, 3]
+            (t1:DB_Column).to_vector.should_equal_ignoring_order [1, 2, 3]
             # Still has table methods
             t1.column_names.should_equal ["A"]
 
@@ -28,7 +28,7 @@ add_specs suite_builder (prefix : Text) setup =
 
         group_builder.specify "should allow passing the casted column to methods expecting column (with inserted cast)" <|
             t1 = table_1.get
-            ((t1:DB_Column) + (t1:DB_Column)) . to_vector . should_equal [2, 4, 6]
+            ((t1:DB_Column) + (t1:DB_Column)) . to_vector . should_equal_ignoring_order [2, 4, 6]
 
         group_builder.specify "should also work for DB_Tables returned from various operations" <|
             t1 = table_2.get

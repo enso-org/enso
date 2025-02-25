@@ -1,0 +1,20 @@
+from Standard.Base import all
+from Standard.Database.Errors import Unsupported_Database_Operation
+from Standard.Table import Fill_With
+
+import project.Internal.IR.Operation_Metadata
+import project.Internal.IR.Order_Descriptor.Order_Descriptor
+import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.IR.Internal_Column.Internal_Column
+
+## PRIVATE
+make_offset (n : Integer) (colName: Internal_Column) (order_descriptors : Vector Order_Descriptor) (grouping_expressions : Vector SQL_Expression) fill_with:Fill_With -> SQL_Expression =
+    lead_lag = if n<0 then "LAG" else "LEAD"
+    case fill_with of
+        Fill_With.Nothing -> SQL_Expression.Operation lead_lag [SQL_Expression.Literal n.abs.to_text, colName.expression, SQL_Expression.List grouping_expressions, SQL_Expression.List order_descriptors]
+        Fill_With.Closest_Value -> 
+            order_descriptors_for_row_number = if n<0 then order_descriptors else order_descriptors.map o->o.reverse
+            params = [SQL_Expression.Literal n.abs.to_text, colName.expression, SQL_Expression.List grouping_expressions, SQL_Expression.List order_descriptors, SQL_Expression.List order_descriptors_for_row_number]
+            SQL_Expression.Operation lead_lag+"_CLOSEST" params
+        Fill_With.Wrap_Around -> Error.throw (Unsupported_Database_Operation.Error "offset with Fill_With.Wrap_Around")
+

@@ -10,7 +10,7 @@ import NewDataLinkModalActions from './NewDataLinkModalActions'
 import PageActions from './PageActions'
 import StartModalActions from './StartModalActions'
 
-const ASSET_ROW_SAFE_POSITION = { x: 300, y: 16 }
+const ASSET_ROW_SAFE_POSITION = { x: 150, y: 16 }
 
 /** Find the context menu. */
 function locateContextMenu(page: Page) {
@@ -385,12 +385,9 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
 
   /** Create a new empty project. */
   newEmptyProject() {
-    return this.step(
-      'Create empty project',
-      (page) => page.getByText(TEXT.newEmptyProject, { exact: true }).click(),
-      // FIXME[sb]: https://github.com/enso-org/cloud-v2/issues/1615
-      // Uncomment once cloud execution in the browser is re-enabled.
-    ) /* .into(EditorPageActions<Context>) */
+    return this.step('Create empty project', (page) =>
+      page.getByText(TEXT.newEmptyProject, { exact: true }).click(),
+    ).into(EditorPageActions<Context>)
   }
 
   // FIXME[sb]: https://github.com/enso-org/cloud-v2/issues/1615

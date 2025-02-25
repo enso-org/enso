@@ -1,0 +1,35 @@
+## Enso Signatures 1.0
+## module Standard.AWS.Database.Redshift.Internal.Redshift_Dialect
+- type Redshift_Dialect
+    - Value dialect_operations:Standard.Base.Any.Any
+    - adapt_unified_column self column:Standard.Base.Any.Any approximate_result_type:Standard.Base.Any.Any infer_result_type_from_database_callback:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - cast_aggregate_columns self op_kind:Standard.Base.Data.Text.Text columns:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.Internal_Column.Internal_Column) -> Standard.Base.Any.Any
+    - cast_op_type self op_kind:Standard.Base.Data.Text.Text args:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.Internal_Column.Internal_Column) expression:Standard.Database.Internal.IR.SQL_Expression.SQL_Expression -> Standard.Base.Any.Any
+    - check_aggregate_support self aggregate:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - default_table_types self -> Standard.Base.Any.Any
+    - ensure_query_has_no_holes self jdbc:Standard.Database.Internal.JDBC_Connection.JDBC_Connection raw_sql:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - fetch_primary_key self connection:Standard.Base.Any.Any table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - flagged self flag:Standard.Database.Dialect_Flag.Dialect_Flag -> Standard.Base.Data.Boolean.Boolean
+    - generate_collate self collation_name:Standard.Base.Data.Text.Text -> Standard.Base.Data.Text.Text
+    - generate_expression self base_gen:Standard.Base.Any.Any expr:(Standard.Database.Internal.IR.SQL_Expression.SQL_Expression|Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor|Standard.Database.Internal.IR.Query.Query) for_select:Standard.Base.Data.Boolean.Boolean -> Standard.Database.SQL.SQL_Builder
+    - generate_sql self query:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - generate_truncate_table_sql self table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - get_error_mapper self -> Standard.Base.Any.Any
+    - get_limit_sql_modifier self limit:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - get_part_order self part:Standard.Database.Internal.SQL_Part.SQL_Part -> Standard.Base.Data.Numbers.Integer
+    - get_statement_setter self -> Standard.Base.Any.Any
+    - get_type_mapping self -> Standard.Base.Any.Any
+    - is_feature_supported self feature:Standard.Database.Feature.Feature -> Standard.Base.Data.Boolean.Boolean
+    - is_operation_supported self operation:Standard.Base.Data.Text.Text -> Standard.Base.Data.Boolean.Boolean
+    - make_cast self column:Standard.Base.Any.Any target_type:Standard.Base.Any.Any infer_result_type_from_database_callback:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - make_table_literal self vecs:Standard.Base.Any.Any column_names:Standard.Base.Any.Any as_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - name self -> Standard.Base.Any.Any
+    - needs_execute_query_for_type_inference self statement:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - needs_literal_table_cast self value_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - prepare_fetch_types_query self expression:Standard.Base.Any.Any context:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - prepare_order_descriptor self internal_column:Standard.Base.Any.Any sort_direction:Standard.Base.Any.Any text_ordering:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - temp_table_style self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+    - value_type_for_upload_of_existing_column self column:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - wrap_identifier self identifier:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- redshift -> Standard.Base.Any.Any

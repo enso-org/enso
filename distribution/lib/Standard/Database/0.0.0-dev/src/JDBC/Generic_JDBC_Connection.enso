@@ -1,0 +1,301 @@
+from Standard.Base import all
+
+import Standard.Base.Errors.Common.Forbidden_Operation
+import Standard.Base.Errors.Common.Missing_Argument
+import Standard.Base.Runtime.Context
+
+from Standard.Table import Table
+
+import project.Internal.Column_Fetcher as Column_Fetcher_Module
+import project.Internal.JDBC_Connection
+import project.Internal.SQL_Warning_Helper
+import project.Internal.Statement_Setter.Statement_Setter
+import project.SQL_Query.SQL_Query
+from project.Internal.Result_Set import read_column, result_set_to_table
+
+polyglot java import java.sql.DatabaseMetaData
+
+type Generic_JDBC_Connection
+    private Value jdbc_connection:JDBC_Connection.JDBC_Connection
+
+    ## ADVANCED
+       GROUP Standard.Base.Input
+       ICON data_input
+
+       Connect to a database specified by a JDBC URL.
+
+       Generic_JDBC_Connection is a wrapper around a JDBC Connection. This can
+       be used to access any JDBC-compliant database backend, including ones
+       that do not have full support via `Connection`s. It provides schema
+       information, and the ability to execute SQL queries and commands.
+
+       Unlike regular fully-supported `Connection`s, query results are returned
+       as in-memory `Table`s, rather than as `DB_Table`s.
+
+       The JDBC driver must be available on the JVM classpath (for example, in a
+       `polyglot/java` folder within the project).
+
+       Arguments:
+       - url: The JDBC URL describing the database to connect to.
+
+       > Example
+         Connect to an H2 database instance. (This requires that you have the H2
+         JDBC driver in your classpath.)
+
+             connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
+    connect (url : Text = (Missing_Argument.throw "url")) -> Generic_JDBC_Connection =
+        jdbc_connection = JDBC_Connection.create url []
+        Generic_JDBC_Connection.Value jdbc_connection
+
+    ## ADVANCED
+       GROUP Standard.Base.Input
+       ICON data_input
+
+       Close the underlying JDBC connection.
+
+       > Example
+         Connect to an H2 database instance, then close the connection.
+
+             connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
+             connection.close
+    close self -> Nothing =
+        self.jdbc_connection.close
+
+    ## ALIAS query, insert, update, delete
+       GROUP Standard.Base.Output
+       ICON data_output
+
+       Execute a raw SQL query or statement. `execute` does not execute the SQL
+       unless the output context is enabled.
+
+       Returns the row count for a SQL DML statement, or 0 for SQL statements
+       that return nothing.
+
+       Arguments:
+       - sql: The SQL query or statement to execute.
+
+       > Example
+         Create a table.
+
+             connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
+             connection.execute "create table foo (a int)"
+    execute self (sql : Text = (Missing_Argument.throw "sql")) -> Integer =
+        when_output_enabled_ <|
+            self.jdbc_connection.with_prepared_statement sql Statement_Setter.default stmt->
+                stmt.executeUpdate
+
+    ## ALIAS import, load
+       GROUP Standard.Base.Input
+       ICON data_input
+
+       Execute a raw SQL query or read the contents of a table by name.
+
+       Returns the resulting rows as an in-memory table.
+
+       Arguments:
+       - sql_query: Either a table name or a raw SQL query.
+
+       > Example
+         Run a raw SQL query.
+
+             connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
+             table = connection.read (SQL_Query.Raw_SQL "select a, b, c from foo")
+
+       > Example
+         Read the contents of a table.
+
+             connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
+             table = connection.read (SQL_Query.Table_name "foo")
+    read self (sql_query : SQL_Query = (Missing_Argument.throw "sql_query")) -> Table =
+        resolved_sql = case sql_query of
+            SQL_Query.Raw_SQL raw_sql -> raw_sql
+            SQL_Query.Table_Name table_name -> "select * from "+(self.quote_identifier table_name)
+
+        self.jdbc_connection.with_prepared_statement resolved_sql Statement_Setter.default stmt->
+            rs = stmt.executeQuery
+            make_fallback_fetcher _ =
+                Column_Fetcher_Module.fallback_fetcher
+            table = result_set_to_table rs make_fallback_fetcher
+            SQL_Warning_Helper.process_warnings stmt <|
+                table
+
+    ## ALIAS catalog schema database
+       GROUP Standard.Base.Metadata
+       ICON metadata
+
+       Returns a `Vector` of the available catalogs.
+
+       > Example
+         Get the available catalogs.
+
+             connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
+             connection.get_catalogs
+    get_catalogs self -> Vector =
+        self.with_metadata metadata->
+            read_column metadata.getCatalogs "TABLE_CAT"
+
+    ## ALIAS catalog schema database
+       GROUP Standard.Base.Metadata
+       ICON metadata
+
+       Returns a `Vector` of the available schemas.
+
+       Arguments:
+       - catalog: A pattern specifying the catalog or catalogs to get schemas
+         for. If `catalog` is "", returns schemas that do not have a catalog. If
+         `catalog` is Nothing, return scheams for all catalogs.
+       - schema_pattern: A pattern specifying the schemas to return. If
+         `schema_pattern` is Nothing, return all schemas.
+
+       ! Patterns
+
+         Patterns can be literal strings, or can include wildcard characters.
+         The wildcard characters are the same ones that are used in SQL `LIKE`
+         clauses.
+
+         Examples:
+         - "A": matches the table "A"
+         - "A_": matches the tables "AB" and "AC"
+         - "A%": matches the tables "ABC" and "ADEF"
+
+       > Example
+         Get the available schemas.
+
+             connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
+             connection.get_schemas
+    get_schemas self catalog:(Text | Nothing)=Nothing schema_pattern:(Text | Nothing)=Nothing -> Vector =
+        self.with_metadata metadata->
+            read_column (metadata.getSchemas catalog schema_pattern) "TABLE_SCHEM"
+
+    ## ALIAS catalog schema database table
+       GROUP Standard.Base.Metadata
+       ICON metadata
+
+       Returns a `Vector` of the available tables.
+
+       Arguments:
+       - catalog: A pattern specifying the catalog or catalogs to get tables
+         for. If `catalog` is "", returns tables that do not have a catalog. If
+         `catalog` is Nothing, return tables for all catalogs.
+       - schema_pattern: A pattern specifying the schemas to get tables for. If
+         `schema_pattern` is Nothing, return tables for all schemas.
+       - table_name_pattern: A pattern specifying the tables to return. If
+         `table_name_pattern` is Nothing, return all tables.
+       - table_types: A `Vector` of table type names to include.  If
+         `table_types` is Nothing, return all types of tables.
+
+       ! Patterns
+
+         Patterns can be literal strings, or can include wildcard characters.
+         The wildcard characters are the same ones that are used in SQL `LIKE`
+         clauses.
+
+         Examples:
+         - "A": matches the table "A"
+         - "A_": matches the tables "AB" and "AC"
+         - "A%": matches the tables "ABC" and "ADEF"
+
+       > Example
+         Get the available schemas.
+
+             connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
+             connection.get_tables
+    get_tables self catalog:(Text | Nothing)=Nothing schema_pattern:(Text | Nothing)="" table_name_pattern:(Text | Nothing)=Nothing table_types:(Vector | Nothing)=Nothing -> Vector =
+        self.with_metadata metadata->
+            read_column (metadata.getTables catalog schema_pattern table_name_pattern table_types) "TABLE_NAME"
+
+    ## ALIAS catalog schema database table
+       GROUP Standard.Base.Metadata
+       ICON metadata
+
+       Returns a `Table` containing metadata about tables. The table contains
+       columns for table catalog, schema, name, type and more. See
+       `jdbc.sql.DatabaseMetaData` for a full list of columns.
+
+       Arguments:
+       - catalog: A pattern specifying the catalog or catalogs to get tables
+         for. If `catalog` is "", returns tables that do not have a catalog. If
+         `catalog` is Nothing, return tables for all catalogs.
+       - schema_pattern: A pattern specifying the schemas to get tables for. If
+         `schema_pattern` is Nothing, return tables for all schemas.
+       - table_name_pattern: A pattern specifying the tables to return. If
+         `table_name_pattern` is Nothing, return all tables.
+       - table_types: A `Vector` of table type names to include.  If
+         `table_types` is Nothing, return all types of tables.
+
+       ! Patterns
+
+         Patterns can be literal strings, or can include wildcard characters.
+         The wildcard characters are the same ones that are used in SQL `LIKE`
+         clauses.
+
+         Examples:
+         - "A": matches the table "A"
+         - "A_": matches the tables "AB" and "AC"
+         - "A%": matches the tables "ABC" and "ADEF"
+
+       > Example
+         Get the available schemas.
+
+             connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
+             connection.get_table_info
+    get_table_info self catalog:(Text | Nothing)=Nothing schema_pattern:(Text | Nothing)="" table_name_pattern:(Text | Nothing)=Nothing table_types:(Text | Nothing)=Nothing -> Table =
+        rs_to_table_ (self.with_metadata (m-> m.getTables catalog schema_pattern table_name_pattern table_types))
+
+    ## ALIAS enquote escape
+       Execute the function with the database metadata.
+    with_metadata self f:(DatabaseMetaData -> Any) -> Any =
+        self.jdbc_connection.with_metadata f
+
+    ## PRIVATE
+       GROUP Standard.Base.Input
+       ICON data_input
+
+       Quote an identifier using the driver's quoting convention. Only performs
+       the quoting if the identifier requires it; otherwise, returns the
+       identifier unchanged.
+
+       Arguments:
+       - identifier: The identifier to quote.
+
+       > Example
+         Quote an identifier.
+
+         connection.quote_identifier 'abc-def'
+         # => '"abc-def"'
+    quote_identifier self identifier:Text -> Text =
+        self.jdbc_connection.with_connection connection->
+            connection.createStatement.enquoteIdentifier identifier True
+
+    ## PRIVATE
+       GROUP Standard.Base.Input
+       ICON data_input
+
+       Quote a literal using the driver's quoting convention. Only performs
+       the quoting if the literal requires it; otherwise, returns the
+       literal unchanged.
+
+       Arguments:
+       - literal: The literal to quote.
+
+       > Example
+         Quote a literal.
+
+         connection.quote_identifier 'abc-def'
+         # => '\'abc-def\''
+    quote_literal self literal:Text -> Text =
+        self.jdbc_connection.with_connection connection->
+            connection.createStatement.enquoteLiteral literal
+
+## PRVIATE
+   Convert a JDBC ResultSet to a Table using the fallback fetcher.
+private rs_to_table_ rs =
+    make_fallback_fetcher _ =
+        Column_Fetcher_Module.fallback_fetcher
+    result_set_to_table rs make_fallback_fetcher
+
+## PRIVATE
+   Run the action if Output is enabled, otherwise raise a dataflow error
+private when_output_enabled_ ~action =
+    if Context.Output.is_enabled then action else
+        Error.throw (Forbidden_Operation.Error ("As writing is disabled, this operation was not executed. Press the Write button ▶ to execute it."))

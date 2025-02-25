@@ -1,6 +1,7 @@
 package org.enso.table.data.column.operation.unary;
 
-import org.enso.table.data.column.builder.BuilderForBoolean;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -10,13 +11,16 @@ import org.enso.table.data.column.storage.NullStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.NullType;
 
-public class NotOperation extends AbstractUnaryBooleanOperation {
+public class NotOperation implements UnaryOperation {
   public static final String NAME = "not";
 
   public static final UnaryOperation INSTANCE = new NotOperation();
 
-  private NotOperation() {
-    super(NAME, false);
+  private NotOperation() {}
+
+  @Override
+  public String getName() {
+    return NAME;
   }
 
   @Override
@@ -35,16 +39,16 @@ public class NotOperation extends AbstractUnaryBooleanOperation {
       return new NullStorage(Math.toIntExact(storage.getSize()));
     }
 
-    var builder = createBuilder(storage, problemAggregator);
     if (storage instanceof ColumnBooleanStorage booleanStorage) {
-      UnaryOperation.applyOverBooleanStorage(
-          booleanStorage, true, builder, (isNothing, value) -> builder.appendBoolean(!value));
+      return StorageIterators.buildOverBooleanStorage(
+          booleanStorage,
+          Builder.getForBoolean(storage.getSize()),
+          (builder, index, value, isNothing) -> builder.appendBoolean(!value));
     } else {
-      UnaryOperation.applyOverObjectStorage(
+      return StorageIterators.buildOverStorage(
           storage,
-          true,
-          builder,
-          (value) -> {
+          Builder.getForBoolean(storage.getSize()),
+          (builder, index, value) -> {
             if (value instanceof Boolean b) {
               builder.appendBoolean(!b);
             } else {
@@ -53,13 +57,5 @@ public class NotOperation extends AbstractUnaryBooleanOperation {
             }
           });
     }
-
-    return builder.seal();
-  }
-
-  @Override
-  protected void applyObjectRow(
-      Object value, BuilderForBoolean builder, MapOperationProblemAggregator problemAggregator) {
-    throw new UnsupportedOperationException();
   }
 }

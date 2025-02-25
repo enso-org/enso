@@ -1060,7 +1060,7 @@ class RuntimeErrorsTest
             "div"
           )
         ),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
       ),
       TestMessages.error(
         contextId,
@@ -1072,7 +1072,7 @@ class RuntimeErrorsTest
             "-"
           )
         ),
-        Api.ExpressionUpdate.Payload.DataflowError(Seq(xId))
+        Api.ExpressionUpdate.Payload.DataflowError(Seq())
       ),
       context.executionComplete(contextId)
     )

@@ -9,6 +9,10 @@ import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 public abstract class UniquelyConstructibleBuiltin extends Builtin {
   private @CompilerDirectives.CompilationFinal AtomConstructor uniqueConstructor;
 
+  protected UniquelyConstructibleBuiltin() {
+    super(Object.class);
+  }
+
   public final AtomConstructor getUniqueConstructor() {
     return uniqueConstructor;
   }

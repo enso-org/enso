@@ -3,11 +3,10 @@ package org.enso.table.data.column.storage;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.function.BiFunction;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.operation.cast.CastProblemAggregator;
-import org.enso.table.data.column.operation.cast.StorageConverter;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.numeric.LongConstantStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -80,12 +79,8 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     public static final String ROUND = "round";
     public static final String AND = "&&";
     public static final String OR = "||";
-    public static final String STARTS_WITH = "starts_with";
-    public static final String ENDS_WITH = "ends_with";
     public static final String TEXT_LEFT = "text_left";
     public static final String TEXT_RIGHT = "text_right";
-    public static final String CONTAINS = "contains";
-    public static final String LIKE = "like";
     public static final String IS_IN = "is_in";
     public static final String MIN = "min";
     public static final String MAX = "max";
@@ -388,10 +383,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
    */
   public abstract Storage<T> slice(List<SliceRange> ranges);
 
-  public List<Object> toList() {
-    return new StorageListView(this);
-  }
-
   /**
    * Counts the number of times each value has been seen before in this storage.
    *
@@ -410,12 +401,6 @@ public abstract class Storage<T> implements ColumnStorage<T> {
       context.safepoint();
     }
     return builder.seal();
-  }
-
-  public final Storage<?> cast(
-      StorageType targetType, CastProblemAggregator castProblemAggregator) {
-    StorageConverter<?> converter = StorageConverter.fromStorageType(targetType);
-    return converter.cast(this, castProblemAggregator);
   }
 
   /** Creates a storage containing a single repeated item. */
@@ -444,5 +429,56 @@ public abstract class Storage<T> implements ColumnStorage<T> {
     }
 
     return builder.seal();
+  }
+
+  @Override
+  public ColumnStorageIterator<T> iterator() {
+    return new StorageIterator<>(this);
+  }
+
+  public static class StorageIterator<T> implements ColumnStorageIterator<T> {
+    protected final ColumnStorage<T> parent;
+    protected long index = -1;
+
+    public StorageIterator(ColumnStorage<T> parent) {
+      this.parent = parent;
+    }
+
+    @Override
+    public T getItemBoxed() {
+      return parent.getItemBoxed(index);
+    }
+
+    @Override
+    public boolean isNothing() {
+      return parent.isNothing(index);
+    }
+
+    @Override
+    public boolean hasNext() {
+      return index + 1 < parent.getSize();
+    }
+
+    @Override
+    public T next() {
+      if (!hasNext()) {
+        throw new NoSuchElementException();
+      }
+      return parent.getItemBoxed(++index);
+    }
+
+    @Override
+    public long getIndex() {
+      return index;
+    }
+
+    @Override
+    public boolean moveNext() {
+      if (!hasNext()) {
+        return false;
+      }
+      index++;
+      return true;
+    }
   }
 }

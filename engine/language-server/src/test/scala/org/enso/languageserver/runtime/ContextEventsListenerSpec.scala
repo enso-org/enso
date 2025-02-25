@@ -64,7 +64,12 @@ class ContextEventsListenerSpec
           Set(
             Api.ExpressionUpdate(
               Suggestions.method.externalId.get,
-              Some(Vector(Suggestions.method.returnType)),
+              Some(
+                Api.ExpressionType(
+                  Vector(Suggestions.method.returnType),
+                  Vector(Suggestions.method.selfType)
+                )
+              ),
               Some(methodCall),
               Vector(),
               false,
@@ -87,6 +92,7 @@ class ContextEventsListenerSpec
                 ContextRegistryProtocol.ExpressionUpdate(
                   Suggestions.method.externalId.get,
                   Vector(Suggestions.method.returnType),
+                  Vector(Suggestions.method.selfType),
                   Some(toProtocolMethodCall(methodCall)),
                   Vector(),
                   false,
@@ -136,6 +142,7 @@ class ContextEventsListenerSpec
                 ContextRegistryProtocol.ExpressionUpdate(
                   Suggestions.method.externalId.get,
                   Vector(),
+                  Vector(),
                   None,
                   Vector(),
                   false,
@@ -173,6 +180,7 @@ class ContextEventsListenerSpec
               Vector(
                 ContextRegistryProtocol.ExpressionUpdate(
                   Suggestions.method.externalId.get,
+                  Vector(),
                   Vector(),
                   None,
                   Vector(),
@@ -230,6 +238,7 @@ class ContextEventsListenerSpec
               ContextRegistryProtocol.ExpressionUpdate(
                 Suggestions.method.externalId.get,
                 Vector(),
+                Vector(),
                 None,
                 Vector(),
                 false,
@@ -238,6 +247,7 @@ class ContextEventsListenerSpec
               ),
               ContextRegistryProtocol.ExpressionUpdate(
                 Suggestions.local.externalId.get,
+                Vector(),
                 Vector(),
                 None,
                 Vector(),
