@@ -140,7 +140,6 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
           conversions.computeIfAbsent(toType, k -> new HashSet<>());
       boolean isNew = sourcesSet.add(fromType);
       if (!isNew) {
-        // TODO redefined conversion in same scope?
         throw new IllegalStateException(
             "Conversion already defined: " + fromType + " -> " + toType);
       }

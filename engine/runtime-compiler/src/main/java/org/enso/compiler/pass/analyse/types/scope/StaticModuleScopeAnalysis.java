@@ -121,8 +121,6 @@ public class StaticModuleScopeAnalysis implements IRPass {
     protected void processConversion(Method.Conversion conversion) {
       var toTypePointer = conversion.methodReference().typePointer();
       if (toTypePointer.isEmpty()) {
-        // TODO IrToTruffle allows this and replaces with scope associated type but that seems wrong
-        // for conversion
         throw new IllegalStateException(
             "Conversion method " + conversion.showCode() + " has no defined target type.");
       }
