@@ -1,7 +1,4 @@
-/**
- * @file Breadcrumbs component implementation.
- */
-
+/** @file A single breadcrumb item. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { noop } from '#/utilities/functions'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
@@ -48,17 +45,13 @@ export const BREADCRUMB_ITEM_STYLES = tv({
   },
 })
 
-/**
- * Render props for {@link BreadcrumbItem}
- */
+/** Render props for {@link BreadcrumbItem}. */
 export interface BreadcrumbItemRenderProps {
   readonly isCurrent: boolean
   readonly isDisabled: boolean
 }
 
-/**
- * Props for {@link BreadcrumbItem}
- */
+/** Props for {@link BreadcrumbItem}. */
 export interface BreadcrumbItemProps<IconType extends string>
   extends Omit<AriaBreadcrumbItemProps, 'id'>,
     Omit<aria.LinkProps, 'children' | 'className' | 'style'>,
@@ -107,18 +100,14 @@ export const BreadcrumbItemContext = createContext<BreadcrumbItemContextType>({
   onDrop: noop,
 })
 
-/**
- * Provider for the breadcrumb item context.
- */
+/** Provider for the breadcrumb item context. */
 export function BreadcrumbItemProvider(props: PropsWithChildren<BreadcrumbItemContextType>) {
   return (
     <BreadcrumbItemContext.Provider value={props}>{props.children}</BreadcrumbItemContext.Provider>
   )
 }
 
-/**
- * A single breadcrumb item.
- */
+/** A single breadcrumb item. */
 export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemProps<IconType>) {
   const {
     children,
@@ -157,6 +146,8 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
     },
   })
 
+  // `dropProps` is type-safe, ESLint is being silly.
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const { dropProps, isDropTarget } = useDrop({
     isDisabled: !onDropSpecified && (isDisabled || isCurrent),
     ref,

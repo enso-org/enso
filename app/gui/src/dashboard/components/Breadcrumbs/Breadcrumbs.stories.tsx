@@ -1,10 +1,6 @@
-/**
- * @file Stories for the Breadcrumbs component.
- */
+/** @file Stories for the Breadcrumbs component. */
 
 import ArrowDown from '#/assets/expand_arrow.svg'
-import Folder from '#/assets/folder_filled.svg'
-import Add from '#/assets/plus.svg'
 import { Button, Menu } from '#/components/AriaComponents'
 import type { Meta, StoryObj } from '@storybook/react'
 import { expect, fn, userEvent, within } from '@storybook/test'
