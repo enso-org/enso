@@ -1,10 +1,8 @@
 package org.enso.table.data.column.storage.numeric;
 
 import java.math.BigDecimal;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.RequiresNumberFormatting;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.BigDecimalRoundOp;
@@ -25,11 +23,12 @@ import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.slf4j.Logger;
 
-public final class BigDecimalStorage extends SpecializedStorage<BigDecimal> {
+public final class BigDecimalStorage extends SpecializedStorage<BigDecimal>
+    implements NumericFormattingStorage {
 
   private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(BigDecimalStorage.class);
 
-  private Future<Boolean> isNumericFormatRequired;
+  private CachedPropertyCheck<Boolean> isNumericFormatRequired;
 
   /**
    * @param data the underlying data
@@ -37,7 +36,7 @@ public final class BigDecimalStorage extends SpecializedStorage<BigDecimal> {
   public BigDecimalStorage(BigDecimal[] data) {
     super(BigDecimalType.INSTANCE, data, buildOps());
     isNumericFormatRequired =
-        CompletableFuture.supplyAsync(() -> RequiresNumberFormatting.compute(this, null));
+        new CachedPropertyCheck<>(() -> RequiresNumberFormatting.compute(this, null), false);
   }
 
   public static BigDecimalStorage makeEmpty(long size) {
@@ -79,18 +78,8 @@ public final class BigDecimalStorage extends SpecializedStorage<BigDecimal> {
    *
    * @return true/false if formatting is required
    */
+  @Override
   public Boolean cachedNumericFormatCheck() throws InterruptedException {
-    if (isNumericFormatRequired.isCancelled()) {
-      // Need to recompute the value, as was cancelled.
-      isNumericFormatRequired =
-          CompletableFuture.completedFuture(RequiresNumberFormatting.compute(this, null));
-    }
-
-    try {
-      return isNumericFormatRequired.get();
-    } catch (ExecutionException e) {
-      LOGGER.error("Failed to compute if numeric formatting was required", e);
-      return false;
-    }
+    return isNumericFormatRequired.get();
   }
 }

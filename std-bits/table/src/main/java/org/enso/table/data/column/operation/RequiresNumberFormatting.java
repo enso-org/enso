@@ -2,9 +2,8 @@ package org.enso.table.data.column.operation;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
+import org.enso.table.data.column.storage.numeric.NumericFormattingStorage;
 import org.enso.table.data.table.Column;
 import org.graalvm.polyglot.Context;
 
@@ -23,9 +22,10 @@ public class RequiresNumberFormatting {
    * @return true/false if the column contains large numbers
    */
   public static boolean applyToStorage(ColumnStorage storage) throws InterruptedException {
-    return (storage instanceof LongStorage longStorage)
-        ? longStorage.cachedNumericFormatCheck()
-        : (boolean) compute(storage, Context.getCurrent());
+    if (storage instanceof NumericFormattingStorage numericStorage) {
+      return numericStorage.cachedNumericFormatCheck();
+    }
+    return (boolean) compute(storage, Context.getCurrent());
   }
 
   /** Internal method performing the calculation on a storage. */

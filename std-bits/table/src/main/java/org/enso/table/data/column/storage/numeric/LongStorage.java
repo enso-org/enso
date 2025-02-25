@@ -4,13 +4,15 @@ import java.math.BigInteger;
 import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.RequiresNumberFormatting;
-import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnLongStorageIterator;
+import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -22,7 +24,8 @@ import org.graalvm.polyglot.Value;
 import org.slf4j.Logger;
 
 /** A column storing 64-bit integers. */
-public final class LongStorage extends AbstractLongStorage implements ColumnStorageWithNothingMap {
+public final class LongStorage extends AbstractLongStorage
+    implements ColumnStorageWithNothingMap, NumericFormattingStorage {
 
   private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(LongStorage.class);
 
@@ -31,7 +34,7 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   // handling this just by checking the bounds
   final long[] data;
   final BitSet isNothing;
-  private Future<Boolean> isNumericFormatRequired;
+  private CachedPropertyCheck<Boolean> isNumericFormatRequired;
 
   /**
    * @param data the underlying data
@@ -46,7 +49,7 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
     this.isNothing = isNothing;
 
     isNumericFormatRequired =
-        CompletableFuture.supplyAsync(() -> RequiresNumberFormatting.compute(this, null));
+        new CachedPropertyCheck<>(() -> RequiresNumberFormatting.compute(this, null), false);
   }
 
   public static LongStorage makeEmpty(long size, IntegerType type) {
@@ -353,18 +356,8 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
    *
    * @return true/false if formatting is required
    */
+  @Override
   public Boolean cachedNumericFormatCheck() throws InterruptedException {
-    if (isNumericFormatRequired.isCancelled()) {
-      // Need to recompute the value, as was cancelled.
-      isNumericFormatRequired =
-          CompletableFuture.completedFuture(RequiresNumberFormatting.compute(this, null));
-    }
-
-    try {
-      return isNumericFormatRequired.get();
-    } catch (ExecutionException e) {
-      LOGGER.error("Failed to compute if numeric formatting was required", e);
-      return false;
-    }
+    return isNumericFormatRequired.get();
   }
 }

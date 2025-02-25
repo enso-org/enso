@@ -4,10 +4,8 @@ import java.math.BigInteger;
 import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.CachedPropertyCheck;
 import org.enso.table.data.column.operation.RequiresNumberFormatting;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
@@ -26,7 +24,13 @@ import org.enso.table.data.column.operation.map.numeric.comparisons.GreaterOrEqu
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessComparison;
 import org.enso.table.data.column.operation.map.numeric.comparisons.LessOrEqualComparison;
 import org.enso.table.data.column.operation.map.numeric.isin.DoubleIsInOp;
-import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorageIterator;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
+import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -41,7 +45,7 @@ import org.slf4j.Logger;
 
 /** A column containing floating point numbers. */
 public final class DoubleStorage extends Storage<Double>
-    implements ColumnDoubleStorage, ColumnStorageWithNothingMap {
+    implements ColumnDoubleStorage, ColumnStorageWithNothingMap, NumericFormattingStorage {
 
   private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(DoubleStorage.class);
 
@@ -49,7 +53,7 @@ public final class DoubleStorage extends Storage<Double>
   final BitSet isNothing;
   private final int size;
   private static final MapOperationStorage<Double, DoubleStorage> ops = buildOps();
-  private Future<Boolean> isNumericFormatRequired;
+  private CachedPropertyCheck<Boolean> isNumericFormatRequired;
 
   /**
    * @param data the underlying data
@@ -63,7 +67,7 @@ public final class DoubleStorage extends Storage<Double>
     this.size = size;
 
     isNumericFormatRequired =
-        CompletableFuture.supplyAsync(() -> RequiresNumberFormatting.compute(this, null));
+        new CachedPropertyCheck<>(() -> RequiresNumberFormatting.compute(this, null), false);
   }
 
   public static DoubleStorage makeEmpty(long size) {
@@ -559,18 +563,8 @@ public final class DoubleStorage extends Storage<Double>
    *
    * @return true/false if formatting is required
    */
+  @Override
   public Boolean cachedNumericFormatCheck() throws InterruptedException {
-    if (isNumericFormatRequired.isCancelled()) {
-      // Need to recompute the value, as was cancelled.
-      isNumericFormatRequired =
-          CompletableFuture.completedFuture(RequiresNumberFormatting.compute(this, null));
-    }
-
-    try {
-      return isNumericFormatRequired.get();
-    } catch (ExecutionException e) {
-      LOGGER.error("Failed to compute if numeric formatting was required", e);
-      return false;
-    }
+    return isNumericFormatRequired.get();
   }
 }
