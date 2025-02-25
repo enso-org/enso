@@ -81,6 +81,7 @@ function makeExpressionFilter(pattern: Ast.Ast | string): ExpressionFilter | und
 
 const staticTags = computed<ExpressionTag[]>(() => {
   const tags = props.input[ArgumentInfoKey]?.info?.tagValues
+  const reprType = props.input[ArgumentInfoKey]?.info?.reprType
   if (tags == null) return []
   return tags.map((t) => ExpressionTag.FromExpression(suggestions, projectNames, t))
 })
@@ -124,6 +125,7 @@ const entries = computed<Entry[]>(() => {
   return filteredTags.value.map((tag) => ({
     value: tag.label,
     selected: tag instanceof ExpressionTag && selectedExpressions.value.has(tag.expression),
+    icon: tag.icon,
     tag,
   }))
 })
