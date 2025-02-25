@@ -205,10 +205,14 @@ abstract class TypePropagation {
   }
 
   /**
-   * Drives the `canBeDiscarded` method. If true, then only a not-fully-applied function will raise
-   * discarded value warnings. If false, any non-Nothing value will raise a warning.
+   * Drives the `canBeDiscarded` method.
+   *
+   * <ol>
+   *   <li>If true, then only a not-fully-applied function will raise discarded value warnings.
+   *   <li>If false, any non-Nothing value will raise a warning.
+   * </ol>
    */
-  protected boolean canNonFunctionsBeDiscarded = false;
+  protected boolean canNonFunctionsBeDiscarded = true;
 
   private TypeRepresentation processCaseExpression(
       Case.Expr caseExpr, LocalBindingsTyping localBindingsTyping) {
