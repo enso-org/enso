@@ -224,4 +224,9 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
   public AtomTypeDefinition getType(String name) {
     return typesDefinedHere.get(name);
   }
+
+  @Override
+  public String toString() {
+    return "StaticModuleScope{" + moduleName + "}";
+  }
 }
