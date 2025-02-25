@@ -840,7 +840,6 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertEquals(List.of(), ModuleUtils.getDescendantsDiagnostics(module));
   }
 
-
   @Test
   public void noTypeErrorIfConversionExists() throws Exception {
     final URI uri = new URI("memory://noTypeErrorIfConversionExists.enso");
@@ -853,10 +852,10 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                     type Other_Type
                         Value o
                     Other_Type.from (that : My_Type) = Other_Type.Value that.v+1000
-                    
+
                     function_taking_other o:Other_Type =
                         o.o
-                    
+
                     foo =
                         x = My_Type.Value 12
                         y = function_taking_other x
@@ -923,7 +922,6 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertEquals(List.of(), ModuleUtils.getDescendantsDiagnostics(y5));
   }
 
-
   @Test
   public void typeErrorInLocalCall() throws Exception {
     final URI uri = new URI("memory://typeErrorInLocalCall.enso");
@@ -958,7 +956,6 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var typeError = new Warning.TypeMismatch(arg.identifiedLocation(), "Other_Type", "My_Type");
     assertEquals(List.of(typeError), ModuleUtils.getImmediateDiagnostics(arg));
   }
-
 
   @Ignore("TODO: distinguish return type ascription (no conversions) from regular one: #12292")
   @Test

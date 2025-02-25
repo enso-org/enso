@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.core.CompilerStub;
 import org.enso.compiler.core.ir.Module;
@@ -39,7 +38,8 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
   private final Map<TypeScopeReference, Map<String, TypeRepresentation>> methods;
 
   // The Map maps target types to a set of source types that can be converted to it.
-  // TODO conversions can also have optional arguments, we should include this (so no longer a Set but Map)
+  // TODO conversions can also have optional arguments, we should include this (so no longer a Set
+  // but Map)
   private final Map<TypeScopeReference, Set<TypeScopeReference>> conversions;
 
   private StaticModuleScope(
@@ -92,8 +92,7 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
           Collections.unmodifiableList(exports),
           Collections.unmodifiableMap(typesDefinedHere),
           unmodifiableNestedMap(methods),
-          unmodifiableNestedSet(conversions)
-      );
+          unmodifiableNestedSet(conversions));
     }
 
     private <A, B, C> Map<A, Map<B, C>> unmodifiableNestedMap(Map<A, Map<B, C>> m) {
@@ -131,11 +130,13 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
     void registerConversionMethod(TypeScopeReference toType, TypeScopeReference fromType) {
       assert toType.getKind() == TypeScopeReference.Kind.ATOM_TYPE;
       assert fromType.getKind() == TypeScopeReference.Kind.ATOM_TYPE;
-      Set<TypeScopeReference> sourcesSet = conversions.computeIfAbsent(toType, k -> new HashSet<>());
+      Set<TypeScopeReference> sourcesSet =
+          conversions.computeIfAbsent(toType, k -> new HashSet<>());
       boolean isNew = sourcesSet.add(fromType);
       if (!isNew) {
         // TODO redefined conversion in same scope?
-        throw new IllegalStateException("Conversion already defined: " + fromType + " -> " + toType);
+        throw new IllegalStateException(
+            "Conversion already defined: " + fromType + " -> " + toType);
       }
     }
 
@@ -208,7 +209,8 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
     }
 
     // TODO conversions can contain optional arguments
-    // so we cannot really return a function type until we are capable of returning types with optional arguments
+    // so we cannot really return a function type until we are capable of returning types with
+    // optional arguments
     // then we'll need to change the conversions data structure to store these arguments too
     // For now let's just return an unknown non-null type.
     return TypeRepresentation.UNKNOWN;

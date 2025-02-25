@@ -46,10 +46,7 @@ abstract class TypePropagation {
   private final ModuleResolver moduleResolver;
   private final MethodTypeResolver methodTypeResolver;
 
-  TypePropagation(
-      TypeResolver typeResolver,
-      Module currentModule,
-      ModuleResolver moduleResolver) {
+  TypePropagation(TypeResolver typeResolver, Module currentModule, ModuleResolver moduleResolver) {
     this.typeResolver = typeResolver;
     this.moduleResolver = moduleResolver;
 
@@ -568,8 +565,10 @@ abstract class TypePropagation {
       // If the inferred type implies the ascription will fail at runtime, we can report a warning
       // here.
       // checkTypeCompatibility(ir, ascribedType, inferredType);
-      // Probably not anymore as now ascriptions serve as casts that can uncover hidden parts of intersection types.
-      // So they may always succeed at runtime depending on the runtime value. Thus no reporting here for now.
+      // Probably not anymore as now ascriptions serve as casts that can uncover hidden parts of
+      // intersection types.
+      // So they may always succeed at runtime depending on the runtime value. Thus no reporting
+      // here for now.
     }
   }
 }

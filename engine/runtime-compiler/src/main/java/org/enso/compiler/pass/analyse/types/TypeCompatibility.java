@@ -88,9 +88,13 @@ class TypeCompatibility {
 
     if (expected instanceof TypeRepresentation.AtomType expectedAtom
         && provided instanceof TypeRepresentation.AtomType providedAtom) {
-      assert !expected.equals(provided) : "Equal types should already have been handled by one of conditions above.";
-      boolean existsConversionInScope = conversionResolver.findConversion(providedAtom, expectedAtom);
-      return existsConversionInScope ? Compatibility.ALWAYS_COMPATIBLE : Compatibility.NEVER_COMPATIBLE;
+      assert !expected.equals(provided)
+          : "Equal types should already have been handled by one of conditions above.";
+      boolean existsConversionInScope =
+          conversionResolver.findConversion(providedAtom, expectedAtom);
+      return existsConversionInScope
+          ? Compatibility.ALWAYS_COMPATIBLE
+          : Compatibility.NEVER_COMPATIBLE;
     }
 
     if (isFunctionLike(expected) != isFunctionLike(provided)) {

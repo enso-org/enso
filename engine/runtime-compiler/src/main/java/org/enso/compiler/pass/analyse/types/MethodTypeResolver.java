@@ -35,6 +35,8 @@ class MethodTypeResolver {
   boolean findConversion(TypeRepresentation.AtomType source, TypeRepresentation.AtomType target) {
     TypeScopeReference sourceRef = TypeScopeReference.atomType(source.fqn());
     TypeScopeReference targetRef = TypeScopeReference.atomType(target.fqn());
-    return methodResolutionAlgorithm.lookupConversionDefinition(currentModuleScope, sourceRef, targetRef) != null;
+    return methodResolutionAlgorithm.lookupConversionDefinition(
+            currentModuleScope, sourceRef, targetRef)
+        != null;
   }
 }

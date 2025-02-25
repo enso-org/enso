@@ -121,8 +121,10 @@ public class StaticModuleScopeAnalysis implements IRPass {
     protected void processConversion(Method.Conversion conversion) {
       var toTypePointer = conversion.methodReference().typePointer();
       if (toTypePointer.isEmpty()) {
-        // TODO IrToTruffle allows this and replaces with scope associated type but that seems wrong for conversion
-        throw new IllegalStateException("Conversion method "+conversion.showCode() + " has no defined target type.");
+        // TODO IrToTruffle allows this and replaces with scope associated type but that seems wrong
+        // for conversion
+        throw new IllegalStateException(
+            "Conversion method " + conversion.showCode() + " has no defined target type.");
       }
 
       TypeScopeReference toType = getTypeResolution(toTypePointer.get());
@@ -135,7 +137,8 @@ public class StaticModuleScopeAnalysis implements IRPass {
     // TODO make common logic with IrToTruffle?
     private TypeScopeReference getTypeResolution(IR expr) {
       var resolution =
-          MetadataInteropHelpers.getMetadataOrNull(expr, MethodDefinitions.INSTANCE, BindingsMap.Resolution.class);
+          MetadataInteropHelpers.getMetadataOrNull(
+              expr, MethodDefinitions.INSTANCE, BindingsMap.Resolution.class);
       if (resolution == null) {
         return null;
       }
