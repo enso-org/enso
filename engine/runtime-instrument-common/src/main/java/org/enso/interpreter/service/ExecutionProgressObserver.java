@@ -49,8 +49,14 @@ final class ExecutionProgressObserver implements Consumer<ObservedMessage> {
             aggregate.advanceBy(key, by.longValue());
           }
         }
+        case "LOG {}:{}" -> {
+          if (t.getArguments().size() >= 2 && t.getArguments().get(1) instanceof String msg) {
+            var key = t.getArguments().get(0);
+            // TBD: now what?
+          }
+        }
         default -> {
-          System.err.println("  seeing " + t.getMessage() + " for " + nodeId);
+          assert false : "Unexpected progress message: " + t.getMessage();
         }
       }
     }
