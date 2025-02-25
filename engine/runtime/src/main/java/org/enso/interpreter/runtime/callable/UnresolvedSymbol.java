@@ -124,7 +124,7 @@ public final class UnresolvedSymbol extends EnsoObject {
         @CachedLibrary("symbol") InteropLibrary thisLib)
         throws ArityException {
       return interopMethodCallNode.execute(
-          symbol, EnsoContext.get(thisLib).emptyState(), arguments);
+          symbol, EnsoContext.get(thisLib).currentState(), arguments);
     }
   }
 
