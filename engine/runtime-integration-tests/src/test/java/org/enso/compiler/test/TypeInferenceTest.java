@@ -944,6 +944,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Source.newBuilder(
                 "enso",
                 """
+                    from local.Project1.typeDef import My_Type, Other_Type
                     Other_Type.from (that : My_Type) = Other_Type.Value that.v+1000
                     """,
                 uriB.getAuthority())
@@ -982,7 +983,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
                 "enso",
                 """
                     from local.Project1.typeDef import My_Type, Other_Type
-                    import local.Project1.conversionDef.from
+                    from local.Project1.conversionDef import all
 
                     function_taking_other o:Other_Type =
                         o.o
