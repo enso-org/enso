@@ -28,9 +28,10 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 /**
- * TODO[pm]: Ignored - https://github.com/enso-org/enso/pull/12099#issuecomment-2654281345 Tests
- * consistency between invocation of methods on types via pure enso, and invocation of methods on
- * {@link org.enso.interpreter.runtime.data.Type} via {@link
+ * TODO[pm]: Ignored - https://github.com/enso-org/enso/pull/12099#issuecomment-2654281345
+ *
+ * <p>Tests consistency between invocation of methods on types via pure enso, and invocation of
+ * methods on {@link org.enso.interpreter.runtime.data.Type} via {@link
  * com.oracle.truffle.api.interop.InteropLibrary#invokeMember(Object, String, Object...) interop
  * protocol}.
  */
