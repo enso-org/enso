@@ -116,6 +116,14 @@ const flankedCursorCases: FormattableCase[] = [
     source: '`Inline *|* code`',
     italicToggled: '*`Inline *|* code`*',
   },
+  {
+    source: '`Inline | code` in paragraph',
+    italicToggled: '*`Inline | code`* in paragraph',
+  },
+  {
+    source: 'Paragraph contains `inline | code`',
+    italicToggled: 'Paragraph contains *`inline | code`*',
+  },
 ]
 
 /**

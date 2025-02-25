@@ -74,6 +74,7 @@ abstract class ExclusiveTreeVisitor extends TreeRangeVisitor {
       from: this.range.from,
       to: this.range.to,
       enter: (node) => {
+        // `iterate` is inclusive of nodes that just-meet the specified range
         if (node.to === this.range.from || node.from === this.range.to) return false
         return this.enter(node)
       },
@@ -83,20 +84,17 @@ abstract class ExclusiveTreeVisitor extends TreeRangeVisitor {
 }
 
 abstract class ContainedNodeVisitor extends TreeRangeVisitor {
-  private isFullyContained(node: SyntaxNodeRef): boolean {
-    return this.range.from <= node.from && node.from <= this.range.to
-  }
-
   visit(tree: Tree) {
     tree.iterate({
       from: this.range.from,
       to: this.range.to,
       enter: (node) => {
+        // `iterate` is inclusive of nodes that just-meet the specified range (see {@link ExclusiveTreeVisitor}).
         if (node.to === this.range.from || node.from === this.range.to) return false
-        if (this.isFullyContained(node)) return this.enter(node)
+        if (this.range.contains(nodeRange(node))) return this.enter(node)
       },
       leave: (node) => {
-        if (this.isFullyContained(node)) this.leave(node)
+        if (this.range.contains(nodeRange(node))) this.leave(node)
       },
     })
   }
@@ -144,14 +142,14 @@ export function pointFormatAncestorInfo(
 /** @returns The containing unformattable inline node. The caller should first determine that such a node is present. */
 export function getUnformattableAncestor(pos: number, tree: Tree): Range {
   const cursor = tree.cursorAt(pos, 0)
-  do {
+  LOOP: do {
     switch (cursor.name) {
       case 'InlineCode':
       case 'Autolink':
-        break
+        break LOOP
       case 'Link':
         // TODO: AllowFormattingLinkText
-        break
+        break LOOP
     }
   } while (cursor.parent())
   return nodeRange(cursor)
@@ -266,7 +264,7 @@ class RangeSplitter extends ExclusiveTreeVisitor {
     if (this.depth === 1) {
       if (!this.enterBlock(node, !nodeFromOutside && !nodeToOutside)) return false
     } else if (this.depth && nodeFromOutside !== nodeToOutside) {
-      if (!this.enterPartialInline(node, this.range.tryIntersect(nodeRange(node))!)) return false
+      if (!this.enterPartialInline(node, nodeFromOutside)) return false
     }
     this.depth += 1
     return true
@@ -291,14 +289,19 @@ class RangeSplitter extends ExclusiveTreeVisitor {
     return true
   }
 
-  private enterPartialInline(node: SyntaxNodeRef, clippedNode: Range): boolean {
+  private enterPartialInline(node: SyntaxNodeRef, nodeFromOutside: boolean): boolean {
     switch (node.name) {
       case 'Link':
       // TODO: Yield the intersection of the range with the link text.
       /* fallthrough */
       case 'Autolink':
       case 'InlineCode': {
-        this.currentRange = this.trimRange(clippedNode)
+        // Exclude the node from the range.
+        this.currentRange = this.trimRange(
+          nodeFromOutside ?
+            Range.tryFromBounds(node.to, this.currentRange!.to)!
+          : Range.tryFromBounds(this.currentRange!.from, node.from)!,
+        )
         return false
       }
       // FIXME: Maybe the default should be unformattable?

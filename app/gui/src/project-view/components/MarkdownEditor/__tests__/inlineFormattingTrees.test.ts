@@ -1,11 +1,19 @@
 import { parseTestInput, printTestInput } from '@/components/MarkdownEditor/__tests__/testInput'
-import { denormalizeRange, normalizeRange } from '@/components/MarkdownEditor/markdown/trees'
+import { MarkdownDocument } from '@/components/MarkdownEditor/markdown/markdownDocument'
+import {
+  denormalizeRange,
+  normalizeRange,
+  splitRange,
+  trimRangeDelimiters,
+} from '@/components/MarkdownEditor/markdown/trees'
 import {
   type NormalizedRange,
   type SeminormalizedRange,
 } from '@/components/MarkdownEditor/markdown/types'
+import { Text } from '@codemirror/state'
 import { expect, test } from 'vitest'
 import { ensoMarkdownParser } from 'ydoc-shared/ast/ensoMarkdown'
+import { Range } from 'ydoc-shared/util/data/range'
 
 interface RangeNormalizationCase {
   unnormalized?: string
@@ -68,3 +76,36 @@ test.each(rangeNormalizationCases)(
     expect(printTestInput(input.doc, { anchor: result.from, head: result.to })).toBe(normalized)
   },
 )
+
+test.each([
+  {
+    source: 'Some text |with *normal*| formatting',
+    ranges: ['Some text |with *normal*| formatting'],
+  },
+  {
+    source: 'Some text |with `inline-unformattable`| formatting',
+    ranges: ['Some text |with `inline-unformattable`| formatting'],
+  },
+  {
+    source: 'Partially-|selected `inline| unformattable`',
+    ranges: ['Partially-|selected| `inline unformattable`'],
+  },
+  {
+    source: '`Inline |unformattable` partially|-selected',
+    ranges: ['`Inline unformattable` |partially|-selected'],
+  },
+  {
+    source: '`Inline unformattable parts |before` and `after| selection`',
+    ranges: ['`Inline unformattable parts before` |and| `after selection`'],
+  },
+])('Range-splitting', ({ source, ranges }) => {
+  const input = parseTestInput(source)
+  const md = new MarkdownDocument(Text.of([input.doc]), ensoMarkdownParser.parse(input.doc))
+  const trim = (range: Range) => md.trimRangeSpaces(trimRangeDelimiters(range, md.tree))
+  const selection = trim(Range.tryFromBounds(input.selection.anchor, input.selection.head)!)
+  const rangesFound: Range[] = []
+  splitRange(selection, md.tree, rangesFound.push.bind(rangesFound), trim)
+  expect(
+    rangesFound.map((range) => printTestInput(input.doc, { anchor: range.from, head: range.to })),
+  ).toEqual(ranges)
+})
