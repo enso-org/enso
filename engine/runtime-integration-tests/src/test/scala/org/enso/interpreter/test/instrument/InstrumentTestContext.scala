@@ -115,7 +115,7 @@ abstract class InstrumentTestContext(packageName: String) {
   ): List[Api.Response] = {
     var count: Int                     = n
     var lastSeen: Option[Api.Response] = None
-    Iterator
+    val collected = Iterator
       .continually(receiveWithTimeout(timeoutSeconds))
       .filter(f)
       .takeWhile {
@@ -130,7 +130,13 @@ abstract class InstrumentTestContext(packageName: String) {
       }
       .flatten
       .filter(excludeLibraryLoadingPayload)
-      .toList ++ lastSeen
+      .toList
+
+    if (lastSeen.isEmpty || lastSeen.get == collected.last) {
+      collected
+    } else {
+      collected ++ lastSeen
+    }
   }
 
   private def excludeLibraryLoadingPayload(response: Api.Response): Boolean =
