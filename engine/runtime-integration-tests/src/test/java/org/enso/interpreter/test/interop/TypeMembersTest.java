@@ -119,6 +119,22 @@ public class TypeMembersTest {
   }
 
   @Test
+  public void builtinMethodIsPresent() {
+    var refType =
+        ContextUtils.evalModule(
+            ctx, """
+        import Standard.Base.Runtime.Ref.Ref
+        main = Ref
+        """);
+    ContextUtils.executeInContext(
+        ctx,
+        () -> {
+          assertThat(refType.hasMember("new"), is(true));
+          return null;
+        });
+  }
+
+  @Test
   public void inheritedMembersFromAnyAreIncluded() {
     var type =
         ContextUtils.evalModule(
