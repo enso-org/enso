@@ -100,21 +100,26 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       return result;
     } else {
       if (onProgressCallbackOrNull != null) {
-        if (cache.getPreferences().get(nodeId) == CachePreferences.Kind.BINDING_EXPRESSION) {
-          var newObserver =
-              ExecutionProgressObserver.startComputation(
-                  nodeId,
-                  (progress) -> {
-                    CompilerDirectives.transferToInterpreter();
-                    var expressionValue = ExpressionValue.progress(nodeId, progress, null);
-                    onProgressCallbackOrNull.accept(expressionValue);
-                  });
-          refreshObserver(newObserver);
-        }
+        reportEvaluationProgress(nodeId);
       }
     }
 
     return null;
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private void reportEvaluationProgress(UUID nodeId) {
+    if (cache.getPreferences().get(nodeId) == CachePreferences.Kind.BINDING_EXPRESSION) {
+      var newObserver =
+          ExecutionProgressObserver.startComputation(
+              nodeId,
+              (progress) -> {
+                CompilerDirectives.transferToInterpreter();
+                var expressionValue = ExpressionValue.progress(nodeId, progress, null);
+                onProgressCallbackOrNull.accept(expressionValue);
+              });
+      refreshObserver(newObserver);
+    }
   }
 
   private void refreshObserver(ExecutionProgressObserver newObserverOrNull) {
