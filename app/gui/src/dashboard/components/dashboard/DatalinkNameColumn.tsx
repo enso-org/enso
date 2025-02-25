@@ -53,9 +53,7 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
         }
       }}
       onClick={(event) => {
-        if (eventModule.isSingleClick(event)) {
-          setIsEditing(true)
-        } else if (eventModule.isDoubleClick(event)) {
+        if (eventModule.isDoubleClick(event)) {
           event.stopPropagation()
           setIsAssetPanelTemporarilyVisible(true)
         }
