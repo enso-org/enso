@@ -132,7 +132,7 @@ abstract class InstrumentTestContext(packageName: String) {
       .filter(excludeLibraryLoadingPayload)
       .toList
 
-    if (lastSeen.isEmpty || lastSeen.get == collected.last) {
+    if (lastSeen.isEmpty || lastSeen == collected.lastOption) {
       collected
     } else {
       collected ++ lastSeen
