@@ -1019,6 +1019,88 @@ class RuntimeServerTest
     )
   }
 
+  it should "deal with polyglot values having no type info" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata = new Metadata
+    val nodeId   = metadata.addItem(58, 6, "a")
+
+    val code =
+      """polyglot java import java.lang.Object
+        |
+        |main =
+        |    node1 = Object
+        |    42
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    metadata.assertInCode(nodeId, code, "Object")
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+    context.receiveN(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      Api.Response(
+        Api.ExecutionUpdate(
+          contextId,
+          Seq(
+            Api.ExecutionResult.Diagnostic.warning(
+              "Unused variable node1.",
+              Some(mainFile),
+              Some(model.Range(model.Position(3, 4), model.Position(3, 9)))
+            )
+          )
+        )
+      ),
+      Api.Response(
+        Api.ExpressionUpdates(
+          contextId,
+          Set(
+            Api.ExpressionUpdate(
+              nodeId,
+              None,
+              None,
+              Vector(Api.ProfilingInfo.ExecutionTime(0)),
+              false,
+              false,
+              Api.ExpressionUpdate.Payload.Value(None, None)
+            )
+          )
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+  }
+
   it should "send method pointer updates of builtin operators" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()

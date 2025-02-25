@@ -815,12 +815,13 @@ object ProgramExecutionSupport {
     // displaying widgets on child nodes even after those nodes become errors.
     def notCachedAndNotDataflowError: Boolean =
       !value.wasCached() && !value.getValue.isInstanceOf[DataflowError]
+
+    val isPanicType =
+      value.getType != null && Types.isPanic(value.getType.visibleType())
     for {
       call <-
-        if (
-          Types.isPanic(value.getType.visibleType()) ||
-          notCachedAndNotDataflowError
-        ) Option(value.getCallInfo)
+        if (isPanicType || notCachedAndNotDataflowError)
+          Option(value.getCallInfo)
         else Option(value.getCallInfo).orElse(Option(value.getCachedCallInfo))
       methodPointer <- toMethodPointer(call.functionPointer)
     } yield {
