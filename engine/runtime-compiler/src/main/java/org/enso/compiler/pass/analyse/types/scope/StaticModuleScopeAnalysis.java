@@ -132,22 +132,6 @@ public class StaticModuleScopeAnalysis implements IRPass {
       }
     }
 
-    // TODO make common logic with IrToTruffle?
-    private TypeScopeReference getTypeResolution(IR expr) {
-      var resolution =
-          MetadataInteropHelpers.getMetadataOrNull(
-              expr, MethodDefinitions.INSTANCE, BindingsMap.Resolution.class);
-      if (resolution == null) {
-        return null;
-      }
-
-      if (!(resolution.target() instanceof BindingsMap.ResolvedType resolved)) {
-        return null;
-      }
-
-      return TypeScopeReference.atomType(resolved.qualifiedName());
-    }
-
     @Override
     protected void processMethodDefinition(Method.Explicit method) {
       var typeScope = getTypeDefiningMethod(method);
