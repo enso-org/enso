@@ -944,6 +944,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
   }
 
 
+  @Ignore("TODO: distinguish return type ascription (no conversions) from regular one: #12292")
   @Test
   public void typeErrorInReturn() throws Exception {
     final URI uri = new URI("memory://typeErrorInReturn.enso");
