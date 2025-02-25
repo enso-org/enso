@@ -444,16 +444,30 @@ object DistributionPackage {
   def runProjectManagerPackage(
     engineRoot: File,
     distributionRoot: File,
+    projectManagerJar: File,
     args: Seq[String],
     log: Logger
   ): Boolean = {
     import scala.collection.JavaConverters._
 
+    val pb   = new java.lang.ProcessBuilder()
+    val all  = new java.util.ArrayList[String]()
     val enso = distributionRoot / "bin" / "project-manager"
-    log.info(s"Executing $enso ${args.mkString(" ")}")
-    val pb  = new java.lang.ProcessBuilder()
-    val all = new java.util.ArrayList[String]()
-    all.add(enso.getAbsolutePath())
+    if (enso.canExecute()) {
+      log.info(s"Executing $enso ${args.mkString(" ")}")
+      all.add(enso.getAbsolutePath())
+    } else {
+      val java =
+        new File(System.getProperty("java.home")) / "bin" / executableName(
+          "java"
+        )
+      log.info(
+        s"Cannot find $enso, trying to execute $java -jar $projectManagerJar with ${args.mkString(" ")}"
+      )
+      all.add(java.getPath())
+      all.add("-jar")
+      all.add(projectManagerJar.getPath())
+    }
     all.addAll(args.asJava)
     pb.command(all)
     pb.environment().put("ENSO_ENGINE_PATH", engineRoot.toString())
