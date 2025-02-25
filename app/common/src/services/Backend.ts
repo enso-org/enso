@@ -10,10 +10,6 @@ import * as uniqueString from '../utilities/uniqueString'
 /** The size, in bytes, of the chunks which the backend accepts. */
 export const S3_CHUNK_SIZE_BYTES = 10_000_000
 
-// ================
-// === Newtypes ===
-// ================
-
 /** Unique identifier for an organization. */
 export type OrganizationId = newtype.Newtype<`organization-${string}`, 'OrganizationId'>
 export const OrganizationId = newtype.newtypeConstructor<OrganizationId>()
@@ -140,6 +136,14 @@ export type UserPermissionIdentifier = UserGroupId | UserId
 export type Path = newtype.Newtype<string, 'Path'>
 export const Path = newtype.newtypeConstructor<Path>()
 
+/** The path of ids to this asset. */
+export type ParentsPath = newtype.Newtype<string, 'ParentsPath'>
+export const ParentsPath = newtype.newtypeConstructor<ParentsPath>()
+
+/** The path of directory names to this asset, excluding the root directory. */
+export type VirtualParentsPath = newtype.Newtype<string, 'VirtualParentsPath'>
+export const VirtualParentsPath = newtype.newtypeConstructor<VirtualParentsPath>()
+
 const PLACEHOLDER_USER_GROUP_PREFIX = 'usergroup-placeholder-'
 
 /**
@@ -157,10 +161,6 @@ export function isPlaceholderUserGroupId(id: string) {
 export function newPlaceholderUserGroupId() {
   return UserGroupId(`${PLACEHOLDER_USER_GROUP_PREFIX}${uniqueString.uniqueString()}` as const)
 }
-
-// =============
-// === Types ===
-// =============
 
 /** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
 export enum BackendType {
@@ -922,8 +922,8 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly description: string | null
   readonly projectState: Type extends AssetType.project ? ProjectStateType : null
   readonly extension: Type extends AssetType.file ? string : null
-  readonly parentsPath: string
-  readonly virtualParentsPath: string
+  readonly parentsPath: ParentsPath
+  readonly virtualParentsPath: VirtualParentsPath
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
@@ -971,27 +971,6 @@ export function isPlaceholderId(id: AssetId) {
   return typeof id !== 'string' && PLACEHOLDER_SIGNATURE in id
 }
 
-/**
- * Creates a {@link DirectoryAsset} representing the root directory for the organization,
- * with all irrelevant fields initialized to default values.
- */
-export function createRootDirectoryAsset(directoryId: DirectoryId): DirectoryAsset {
-  return {
-    type: AssetType.directory,
-    title: '(root)',
-    id: directoryId,
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    parentId: DirectoryId('directory-'),
-    permissions: [],
-    projectState: null,
-    extension: null,
-    labels: [],
-    description: null,
-    parentsPath: '',
-    virtualParentsPath: '',
-  }
-}
-
 /** Extract the file extension from a file name. */
 function fileExtension(fileNameOrPath: string) {
   return fileNameOrPath.match(/[.]([^.]+?)$/)?.[1] ?? ''
@@ -1010,8 +989,8 @@ export function createPlaceholderFileAsset(title: string, parentId: DirectoryId)
     extension: fileExtension(title),
     labels: [],
     description: null,
-    parentsPath: '',
-    virtualParentsPath: '',
+    parentsPath: ParentsPath(''),
+    virtualParentsPath: VirtualParentsPath(''),
   }
 }
 
@@ -1031,8 +1010,8 @@ export function createPlaceholderProjectAsset(title: string, parentId: Directory
     extension: null,
     labels: [],
     description: null,
-    parentsPath: '',
-    virtualParentsPath: '',
+    parentsPath: ParentsPath(''),
+    virtualParentsPath: VirtualParentsPath(''),
   }
 }
 
@@ -1052,8 +1031,8 @@ export function createPlaceholderDirectoryAsset(
     extension: null,
     labels: [],
     description: null,
-    parentsPath: '',
-    virtualParentsPath: '',
+    parentsPath: ParentsPath(''),
+    virtualParentsPath: VirtualParentsPath(''),
   }
 }
 
@@ -1070,8 +1049,8 @@ export function createPlaceholderSecretAsset(title: string, parentId: DirectoryI
     extension: null,
     labels: [],
     description: null,
-    parentsPath: '',
-    virtualParentsPath: '',
+    parentsPath: ParentsPath(''),
+    virtualParentsPath: VirtualParentsPath(''),
   }
 }
 
@@ -1091,8 +1070,8 @@ export function createPlaceholderDatalinkAsset(
     extension: null,
     labels: [],
     description: null,
-    parentsPath: '',
-    virtualParentsPath: '',
+    parentsPath: ParentsPath(''),
+    virtualParentsPath: VirtualParentsPath(''),
   }
 }
 
@@ -1112,8 +1091,8 @@ export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoad
     extension: null,
     labels: [],
     description: null,
-    parentsPath: '',
-    virtualParentsPath: '',
+    parentsPath: ParentsPath(''),
+    virtualParentsPath: VirtualParentsPath(''),
   }
 }
 
@@ -1138,8 +1117,8 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
     extension: null,
     labels: [],
     description: null,
-    parentsPath: '',
-    virtualParentsPath: '',
+    parentsPath: ParentsPath(''),
+    virtualParentsPath: VirtualParentsPath(''),
   }
 }
 
@@ -1164,8 +1143,8 @@ export function createSpecialErrorAsset(directoryId: DirectoryId): SpecialErrorA
     extension: null,
     labels: [],
     description: null,
-    parentsPath: '',
-    virtualParentsPath: '',
+    parentsPath: ParentsPath(''),
+    virtualParentsPath: VirtualParentsPath(''),
   }
 }
 
@@ -1280,10 +1259,6 @@ export interface AssetVersions {
   readonly versions: S3ObjectVersion[]
 }
 
-// ===============================
-// === compareAssetPermissions ===
-// ===============================
-
 /**
  * Return a positive number when `a > b`, a negative number when `a < b`, and `0`
  * when `a === b`.
@@ -1310,10 +1285,6 @@ export function compareAssetPermissions(a: AssetPermission, b: AssetPermission) 
     )
   }
 }
-
-// =================
-// === Endpoints ===
-// =================
 
 /** HTTP request body for the "set username" endpoint. */
 export interface CreateUserRequestBody {
@@ -1539,10 +1510,6 @@ export interface UploadPictureRequestParams {
   readonly fileName: string | null
 }
 
-// ==============================
-// === detectVersionLifecycle ===
-// ==============================
-
 /** Extract the {@link VersionLifecycle} from a version string. */
 export function detectVersionLifecycle(version: string) {
   if (/rc/i.test(version)) {
@@ -1555,10 +1522,6 @@ export function detectVersionLifecycle(version: string) {
     return VersionLifecycle.stable
   }
 }
-
-// =====================
-// === compareAssets ===
-// =====================
 
 /** Return a positive number if `a > b`, a negative number if `a < b`, and zero if `a === b`. */
 export function compareAssets(a: AnyAsset, b: AnyAsset) {
@@ -1589,10 +1552,6 @@ export function compareAssets(a: AnyAsset, b: AnyAsset) {
   }
 }
 
-// ==================
-// === getAssetId ===
-// ==================
-
 /**
  * A convenience function to get the `id` of an {@link Asset}.
  * This is useful to avoid React re-renders as it is not re-created on each function call.
@@ -1600,10 +1559,6 @@ export function compareAssets(a: AnyAsset, b: AnyAsset) {
 export function getAssetId<Type extends AssetType>(asset: Asset<Type>) {
   return asset.id
 }
-
-// ================================
-// === userHasUserAndTeamSpaces ===
-// ================================
 
 /** Whether a user's root directory has the "Users" and "Teams" subdirectories. */
 export function userHasUserAndTeamSpaces(user: User | null) {
@@ -1619,10 +1574,6 @@ export function userHasUserAndTeamSpaces(user: User | null) {
     }
   }
 }
-
-// =====================
-// === fileIsProject ===
-// =====================
 
 /** A subset of properties of the JS `File` type. */
 interface JSFile {
@@ -1642,10 +1593,6 @@ export function fileIsProject(file: JSFile) {
 export function fileIsNotProject(file: JSFile) {
   return !fileIsProject(file)
 }
-
-// =============================
-// === stripProjectExtension ===
-// =============================
 
 /** Remove the extension of the project file name (if any). */
 export function stripProjectExtension(name: string) {
@@ -1704,10 +1651,6 @@ export class NetworkError extends Error {
 }
 /** Error class for when the user is not authorized to access a resource. */
 export class NotAuthorizedError extends NetworkError {}
-
-// ===============
-// === Backend ===
-// ===============
 
 /** Interface for sending requests to a backend that manages assets and runs projects. */
 export default abstract class Backend {
@@ -1947,10 +1890,6 @@ export default abstract class Backend {
   /** Resolve the path of an asset relative to a project. */
   abstract resolveProjectAssetPath(projectId: ProjectId, relativePath: string): Promise<string>
 }
-
-// ==============================
-// ====== Custom Errors =========
-// ==============================
 
 /** Error thrown when a directory does not exist. */
 export class DirectoryDoesNotExistError extends Error {

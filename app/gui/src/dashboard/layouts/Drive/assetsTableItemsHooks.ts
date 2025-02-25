@@ -4,12 +4,11 @@ import { AssetType, getAssetPermissionName } from 'enso-common/src/services/Back
 import { PermissionAction } from 'enso-common/src/utilities/permissions'
 
 import type { SortableColumn } from '#/components/dashboard/column/columnUtils'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { assetCompareFunction } from '#/layouts/Drive/compareAssets'
 import { useText } from '#/providers/TextProvider'
 import type { DirectoryId } from '#/services/ProjectManager'
 import type AssetQuery from '#/utilities/AssetQuery'
-import type { AnyAssetTreeNode } from '#/utilities/AssetTreeNode'
-import Visibility from '#/utilities/Visibility'
 import { fileExtension } from '#/utilities/fileInfo'
 import type { SortInfo } from '#/utilities/sorting'
 import { regexEscape } from '#/utilities/string'
@@ -19,36 +18,47 @@ import invariant from 'tiny-invariant'
 
 /** Options for {@link useAssetsTableItems}. */
 export interface UseAssetsTableOptions {
-  readonly assetTree: AnyAssetTreeNode
-  readonly query: AssetQuery
+  readonly parentId: DirectoryId
+  readonly assets: readonly AnyAsset[]
   readonly sortInfo: SortInfo<SortableColumn> | null
-  readonly expandedDirectoryIds: readonly DirectoryId[]
+  readonly query: AssetQuery
 }
 
 export const ASSET_ITEMS_STORE = createStore<{
-  readonly items: AnyAsset[]
-  readonly setItems: (items: AnyAsset[]) => void
+  readonly items: ReadonlyMap<AssetId, AnyAsset>
+  readonly setItems: (parentId: DirectoryId, items: readonly AnyAsset[]) => void
 }>((set) => ({
-  items: [],
-  setItems: (items) => {
-    set({ items })
+  items: new Map(),
+  setItems: (parentId, items) => {
+    set(({ items: oldItems }) => ({
+      items: new Map([
+        ...[...oldItems.entries()].filter(([, item]) => item.parentId !== parentId),
+        ...items.map((item) => [item.parentId, item] as const),
+      ]),
+    }))
   },
 }))
 
-/**
- * Return the asset with the given id.
- */
+/** Return the asset with the given id. */
 export function useAsset(id: AssetId) {
-  return useStore(
-    ASSET_ITEMS_STORE,
-    (store) => store.items.find((item) => item.id === id) ?? null,
-    { unsafeEnableTransition: true },
+  return useStore(ASSET_ITEMS_STORE, (store) => store.items.get(id) ?? null, {
+    unsafeEnableTransition: true,
+  })
+}
+
+/** Return a function to retrieve an arbitrary asset. */
+export function useGetAsset() {
+  return useEventCallback((id: AssetId) => ASSET_ITEMS_STORE.getState().items.get(id))
+}
+
+/** Return a function to retrieve an arbitrary asset. */
+export function useGetAssetChildren() {
+  return useEventCallback((parentId: DirectoryId) =>
+    [...ASSET_ITEMS_STORE.getState().items.values()].filter((asset) => asset.parentId === parentId),
   )
 }
 
-/**
- * Return the asset with the given id, or throw an error if it is undefined.
- */
+/** Return the asset with the given id, or throw an error if it is `undefined`. */
 export function useAssetStrict(id: AssetId) {
   const asset = useAsset(id)
   invariant(
@@ -60,7 +70,7 @@ export function useAssetStrict(id: AssetId) {
 
 /** A hook to return the items in the assets table. */
 export function useAssetsTableItems(options: UseAssetsTableOptions) {
-  const { assetTree, sortInfo, query, expandedDirectoryIds } = options
+  const { parentId, assets: items, sortInfo, query } = options
 
   const { locale } = useText()
   const setAssetItems = useStore(ASSET_ITEMS_STORE, (store) => store.setItems)
@@ -70,25 +80,22 @@ export function useAssetsTableItems(options: UseAssetsTableOptions) {
     if (/^\s*$/.test(query.query)) {
       return null
     } else {
-      return (node: AnyAssetTreeNode) => {
-        if (
-          node.item.type === AssetType.specialEmpty ||
-          node.item.type === AssetType.specialLoading
-        ) {
+      return (asset: AnyAsset) => {
+        if (asset.type === AssetType.specialEmpty || asset.type === AssetType.specialLoading) {
           return false
         }
         const assetType =
-          node.item.type === AssetType.directory ? 'folder'
-          : node.item.type === AssetType.datalink ? 'datalink'
-          : String(node.item.type)
+          asset.type === AssetType.directory ? 'folder'
+          : asset.type === AssetType.datalink ? 'datalink'
+          : String(asset.type)
         const assetExtension =
-          node.item.type !== AssetType.file ? null : fileExtension(node.item.title).toLowerCase()
-        const assetModifiedAt = new Date(node.item.modifiedAt)
-        const nodeLabels: readonly string[] = node.item.labels ?? []
-        const lowercaseName = node.item.title.toLowerCase()
-        const lowercaseDescription = node.item.description?.toLowerCase() ?? ''
+          asset.type !== AssetType.file ? null : fileExtension(asset.title).toLowerCase()
+        const assetModifiedAt = new Date(asset.modifiedAt)
+        const nodeLabels: readonly string[] = asset.labels ?? []
+        const lowercaseName = asset.title.toLowerCase()
+        const lowercaseDescription = asset.description?.toLowerCase() ?? ''
         const owners =
-          node.item.permissions
+          asset.permissions
             ?.filter((permission) => permission.permission === PermissionAction.own)
             .map(getAssetPermissionName) ?? []
         const globMatch = (glob: string, match: string) => {
@@ -173,66 +180,13 @@ export function useAssetsTableItems(options: UseAssetsTableOptions) {
     }
   })()
 
-  const visibilities = (() => {
-    const map = new Map<AssetId, Visibility>()
-
-    const processNode = (node: AnyAssetTreeNode) => {
-      let displayState = Visibility.hidden
-      const visible = filter?.(node) ?? true
-
-      for (const child of node.children ?? []) {
-        if (visible && child.item.type === AssetType.specialEmpty) {
-          map.set(child.item.id, Visibility.visible)
-        } else {
-          processNode(child)
-        }
-
-        if (map.get(child.item.id) !== Visibility.hidden) {
-          displayState = Visibility.faded
-        }
-      }
-
-      if (visible) {
-        displayState = Visibility.visible
-      }
-
-      map.set(node.item.id, displayState)
-
-      return displayState
-    }
-
-    processNode(assetTree)
-
-    return map
-  })()
-
-  const displayItems = (() => {
-    if (sortInfo == null) {
-      const flatTree = assetTree.preorderTraversal((children) =>
-        children.filter((child) => expandedDirectoryIds.includes(child.item.parentId)),
-      )
-
-      return flatTree
-    } else {
-      const compareAssets = assetCompareFunction(sortInfo, locale)
-      const compare = (a: AnyAssetTreeNode, b: AnyAssetTreeNode) => compareAssets(a.item, b.item)
-      const flatTree = assetTree.preorderTraversal((tree) =>
-        [...tree]
-          .filter((child) => expandedDirectoryIds.includes(child.item.parentId))
-          .sort(compare),
-      )
-
-      return flatTree
-    }
-  })()
-
   useEffect(() => {
-    setAssetItems(displayItems.map((item) => item.item))
-  }, [displayItems, setAssetItems])
+    setAssetItems(parentId, items)
+  }, [items, parentId, setAssetItems])
 
-  const visibleItems = displayItems.filter(
-    (item) => visibilities.get(item.item.id) !== Visibility.hidden,
-  )
+  const compare = sortInfo ? assetCompareFunction(sortInfo, locale) : null
+  const sortedItems = compare ? [...items].sort(compare) : items
+  const visibleItems = filter ? sortedItems.filter(filter) : sortedItems
 
-  return { visibilities, displayItems, visibleItems } as const
+  return { visibleItems } as const
 }

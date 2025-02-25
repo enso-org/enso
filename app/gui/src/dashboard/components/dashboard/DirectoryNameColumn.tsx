@@ -1,56 +1,46 @@
-/** @file The icon and name of a {@link backendModule.DirectoryAsset}. */
-import { useMutation } from '@tanstack/react-query'
-
+/** @file The icon and name of a {@link DirectoryAsset}. */
 import FolderIcon from '#/assets/folder.svg'
-
-import { backendMutationOptions } from '#/hooks/backendHooks'
-
-import { useDriveStore, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import type * as column from '#/components/dashboard/column'
-import EditableSpan from '#/components/EditableSpan'
-
-import * as backendModule from '#/services/Backend'
-
 import { Button } from '#/components/AriaComponents'
-import * as eventModule from '#/utilities/event'
-import * as indent from '#/utilities/indent'
-import * as object from '#/utilities/object'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
-import * as validation from '#/utilities/validation'
+import type { AssetColumnProps } from '#/components/dashboard/column'
+import EditableSpan from '#/components/EditableSpan'
+import { backendMutationOptions } from '#/hooks/backendHooks'
+import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useDriveStore, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
+import { useText } from '#/providers/TextProvider'
+import { isNewTitleUnique, type DirectoryAsset } from '#/services/Backend'
+import { isSingleClick } from '#/utilities/event'
+import { merger } from '#/utilities/object'
+import { twMerge } from '#/utilities/tailwindMerge'
+import { isDirectoryNameContainInvalidCharacters } from '#/utilities/validation'
+import { useMutation } from '@tanstack/react-query'
 import { useTransition } from 'react'
-import { useSetAssetPanelProps } from '../../layouts/AssetPanel'
-
-// =====================
-// === DirectoryName ===
-// =====================
 
 /** Props for a {@link DirectoryNameColumn}. */
-export interface DirectoryNameColumnProps extends column.AssetColumnProps {
-  readonly item: backendModule.DirectoryAsset
+export interface DirectoryNameColumnProps extends AssetColumnProps {
+  readonly item: DirectoryAsset
 }
 
 /**
- * The icon and name of a {@link backendModule.DirectoryAsset}.
- * @throws {Error} when the asset is not a {@link backendModule.DirectoryAsset}.
+ * The icon and name of a {@link DirectoryAsset}.
+ * @throws {Error} when the asset is not a {@link DirectoryAsset}.
  * This should never happen.
  */
 export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
-  const { item, depth, state, rowState, setRowState, isEditable } = props
+  const { item, state, rowState, setRowState, isEditable } = props
+  const { backend } = state
 
   const [isLoading, startTransition] = useTransition()
 
-  const { backend, nodeMap } = state
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const driveStore = useDriveStore()
   const setCurrentDirectoryId = useSetCurrentDirectoryId()
+  const getAssetChildren = useGetAssetChildren()
 
   const updateDirectoryMutation = useMutation(backendMutationOptions(backend, 'updateDirectory'))
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
-      setRowState(object.merger({ isEditingName }))
+      setRowState(merger({ isEditingName }))
     }
 
     if (!isEditingName) {
@@ -65,17 +55,14 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
 
   return (
     <div
-      className={tailwindMerge.twJoin(
-        'group flex h-table-row w-auto min-w-48 max-w-full items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child',
-        indent.indentClass(depth),
-      )}
+      className="group flex h-table-row w-auto min-w-48 max-w-full items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y"
       onKeyDown={(event) => {
         if (rowState.isEditingName && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
       onClick={(event) => {
-        if (eventModule.isSingleClick(event) && driveStore.getState().selectedKeys.size === 1) {
+        if (isSingleClick(event) && driveStore.getState().selectedIds.size === 1) {
           event.stopPropagation()
           setIsEditing(true)
         }
@@ -100,24 +87,18 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       <EditableSpan
         data-testid="asset-row-name"
         editable={rowState.isEditingName}
-        className={tailwindMerge.twMerge(
+        className={twMerge(
           'cursor-pointer bg-transparent font-naming',
           rowState.isEditingName ? 'cursor-text' : 'cursor-pointer',
         )}
         schema={(z) =>
           z
-            .refine((value) => !validation.isDirectoryNameContainInvalidCharacters(value), {
+            .refine((value) => !isDirectoryNameContainInvalidCharacters(value), {
               message: getText('nameShouldNotContainInvalidCharacters'),
             })
-            .refine(
-              (value) =>
-                backendModule.isNewTitleUnique(
-                  item,
-                  value,
-                  nodeMap.current.get(item.parentId)?.children?.map((child) => child.item),
-                ),
-              { message: getText('nameShouldBeUnique') },
-            )
+            .refine((value) => isNewTitleUnique(item, value, getAssetChildren(item.parentId)), {
+              message: getText('nameShouldBeUnique'),
+            })
         }
         onSubmit={doRename}
         onCancel={() => {

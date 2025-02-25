@@ -49,16 +49,11 @@ describe('<DriveProvider />', () => {
       const store = useDriveStore()
       return useStore(
         store,
-        ({
-          setExpandedDirectoryIds,
-          expandedDirectoryIds,
-          selectedKeys,
-          visuallySelectedKeys,
-        }) => ({
+        ({ setExpandedDirectoryIds, expandedDirectoryIds, selectedIds, visuallySelectedKeys }) => ({
           expandedDirectoryIds,
           setExpandedDirectoryIds,
           setCategoryId,
-          selectedKeys,
+          selectedIds,
           visuallySelectedKeys,
         }),
       )
@@ -77,7 +72,7 @@ describe('<DriveProvider />', () => {
     })
 
     expect(driveAPI.result.current.expandedDirectoryIds).toEqual([])
-    expect(driveAPI.result.current.selectedKeys).toEqual(new Set())
+    expect(driveAPI.result.current.selectedIds).toEqual(new Set())
     expect(driveAPI.result.current.visuallySelectedKeys).toEqual(null)
   })
 })

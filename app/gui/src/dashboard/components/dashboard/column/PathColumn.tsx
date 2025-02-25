@@ -149,9 +149,7 @@ export default function PathColumn(props: AssetColumnProps) {
   )
 }
 
-/**
- * Props for the {@link PathItem} component.
- */
+/** Props for the {@link PathItem} component. */
 interface PathItemProps {
   readonly id: DirectoryId
   readonly label: AnyCloudCategory['label']
@@ -159,9 +157,7 @@ interface PathItemProps {
   readonly onNavigate: (targetDirectory: DirectoryId) => void
 }
 
-/**
- * Individual item in the path.
- */
+/** Individual item in the path. */
 function PathItem(props: PathItemProps) {
   const { id, label, icon, onNavigate } = props
   const [transition, startTransition] = useTransition()

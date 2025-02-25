@@ -43,7 +43,7 @@ export function DriveBarNavigation() {
   const moveAssetsMutation = useMutation({
     ...moveAssetsMutationOptions(associatedBackend),
     onSuccess: () => {
-      driveStore.setState({ selectedKeys: new Set(), visuallySelectedKeys: new Set() })
+      driveStore.setState({ selectedIds: new Set(), visuallySelectedKeys: new Set() })
     },
     onError: (error) => {
       if ('failed' in error && error.failed !== 0) {
@@ -106,9 +106,9 @@ export function DriveBarNavigation() {
   })
 
   const onDrop = useEventCallback<OnDrop>(async (id) => {
-    const { selectedKeys } = driveStore.getState()
+    const { selectedIds } = driveStore.getState()
 
-    if (selectedKeys.size === 0) {
+    if (selectedIds.size === 0) {
       return
     }
 
@@ -116,7 +116,7 @@ export function DriveBarNavigation() {
       return
     }
 
-    await moveAssetsMutation.mutateAsync([[...selectedKeys], id])
+    await moveAssetsMutation.mutateAsync([[...selectedIds], id])
   })
 
   const navigateToParent = useEventCallback(() => {

@@ -221,8 +221,8 @@ export default class LocalBackend extends Backend {
                 extension: null,
                 labels: [],
                 description: null,
-                parentsPath,
-                virtualParentsPath,
+                parentsPath: backend.ParentsPath(parentsPath),
+                virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
               } satisfies backend.DirectoryAsset
             }
             case projectManager.FileSystemEntryType.ProjectEntry: {
@@ -242,8 +242,8 @@ export default class LocalBackend extends Backend {
                 extension: null,
                 labels: [],
                 description: null,
-                parentsPath: '',
-                virtualParentsPath: '',
+                parentsPath: backend.ParentsPath(''),
+                virtualParentsPath: backend.VirtualParentsPath(''),
               } satisfies backend.ProjectAsset
             }
             case projectManager.FileSystemEntryType.FileEntry: {
@@ -258,8 +258,8 @@ export default class LocalBackend extends Backend {
                 extension: fileExtension(entry.path),
                 labels: [],
                 description: null,
-                parentsPath: '',
-                virtualParentsPath: '',
+                parentsPath: backend.ParentsPath(''),
+                virtualParentsPath: backend.VirtualParentsPath(''),
               } satisfies backend.FileAsset
             }
           }

@@ -82,7 +82,7 @@ export function DriveBar(props: DriveBarProps) {
 
   return (
     <div className="flex flex-col gap-2">
-      <DriveBarNavigation backend={backend} category={category} />
+      <DriveBarNavigation />
 
       <DriveBarToolbar
         backend={backend}

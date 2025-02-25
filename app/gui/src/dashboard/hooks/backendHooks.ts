@@ -390,9 +390,9 @@ export function useAsset(options: UseAssetOptions) {
     modifiedAt: toRfc3339(new Date()),
     permissions: [],
     labels: [],
-    parentsPath: '',
-    virtualParentsPath: '',
-  }
+    parentsPath: backendModule.ParentsPath(''),
+    virtualParentsPath: backendModule.VirtualParentsPath(''),
+  } satisfies Partial<DirectoryAsset>
   // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (true) {
     case assetId === USERS_DIRECTORY_ID: {

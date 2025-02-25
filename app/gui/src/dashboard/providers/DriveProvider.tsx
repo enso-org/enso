@@ -6,7 +6,6 @@ import invariant from 'tiny-invariant'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import type { AnyAssetTreeNode } from '#/utilities/AssetTreeNode'
 import type { PasteData } from '#/utilities/pasteData'
 import { EMPTY_SET } from '#/utilities/set'
 import {
@@ -17,12 +16,7 @@ import {
   type LabelName,
 } from 'enso-common/src/services/Backend'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
-import { unsafeMutable } from 'enso-common/src/utilities/data/object'
 import { useSearchParamsState } from '../hooks/searchParamsStateHooks'
-
-// ==================
-// === DriveStore ===
-// ==================
 
 /** Attached data for a paste payload. */
 export interface DrivePastePayload {
@@ -45,9 +39,7 @@ export interface LabelsDragPayload {
   readonly labels: readonly LabelName[]
 }
 
-/**
- * This interface is used to represent a single directory in the breadcrumbs.
- */
+/** A single directory in the breadcrumbs. */
 export interface DirectoryPath {
   readonly id: DirectoryId
   readonly name: string
@@ -63,8 +55,8 @@ interface DriveStore {
   readonly pasteData: PasteData<DrivePastePayload> | null
   readonly setPasteData: (pasteData: PasteData<DrivePastePayload> | null) => void
   readonly expandedDirectoryIds: readonly DirectoryId[]
-  readonly setExpandedDirectoryIds: (selectedKeys: readonly DirectoryId[]) => void
-  readonly selectedKeys: ReadonlySet<AssetId>
+  readonly setExpandedDirectoryIds: (selectedIds: readonly DirectoryId[]) => void
+  readonly selectedIds: ReadonlySet<AssetId>
   readonly selectedAssets: readonly SelectedAssetInfo[]
   readonly setSelectedAssets: (selectedAssets: readonly SelectedAssetInfo[]) => void
   readonly visuallySelectedKeys: ReadonlySet<AssetId> | null
@@ -75,8 +67,6 @@ interface DriveStore {
   readonly setIsDraggingOverSelectedRow: (isDraggingOverSelectedRow: boolean) => void
   readonly dragTargetAssetId: AssetId | null
   readonly setDragTargetAssetId: (dragTargetAssetId: AssetId | null) => void
-  readonly nodeMap: { readonly current: ReadonlyMap<AssetId, AnyAssetTreeNode> }
-  readonly setNodeMap: (nodeMap: ReadonlyMap<AssetId, AnyAssetTreeNode>) => void
 }
 
 // =======================
@@ -112,10 +102,6 @@ export interface ProjectsProviderProps {
       }) => React.ReactNode)
 }
 
-// ========================
-// === ProjectsProvider ===
-// ========================
-
 /** A React provider for Drive-specific metadata. */
 export default function DriveProvider(props: ProjectsProviderProps) {
   const { children } = props
@@ -127,7 +113,7 @@ export default function DriveProvider(props: ProjectsProviderProps) {
   const [store] = React.useState(() =>
     createStore<DriveStore>((set, get) => ({
       removeSelection: () => {
-        set({ selectedKeys: EMPTY_SET, visuallySelectedKeys: null })
+        set({ selectedIds: EMPTY_SET, visuallySelectedKeys: null })
       },
       newestFolderId: null,
       setNewestFolderId: (newestFolderId) => {
@@ -153,7 +139,7 @@ export default function DriveProvider(props: ProjectsProviderProps) {
           set({ expandedDirectoryIds })
         }
       },
-      selectedKeys: EMPTY_SET,
+      selectedIds: EMPTY_SET,
       selectedAssets: EMPTY_ARRAY,
       setSelectedAssets: (selectedAssets) => {
         if (selectedAssets.length === 0) {
@@ -162,7 +148,7 @@ export default function DriveProvider(props: ProjectsProviderProps) {
         if (get().selectedAssets !== selectedAssets) {
           set({
             selectedAssets,
-            selectedKeys:
+            selectedIds:
               selectedAssets.length === 0 ?
                 EMPTY_SET
               : new Set(selectedAssets.map((asset) => asset.id)),
@@ -189,12 +175,6 @@ export default function DriveProvider(props: ProjectsProviderProps) {
       setDragTargetAssetId: (dragTargetAssetId) => {
         if (get().dragTargetAssetId !== dragTargetAssetId) {
           set({ dragTargetAssetId })
-        }
-      },
-      nodeMap: { current: new Map() },
-      setNodeMap: (nodeMap) => {
-        if (get().nodeMap.current !== nodeMap) {
-          unsafeMutable(get().nodeMap).current = nodeMap
         }
       },
     })),
@@ -283,7 +263,7 @@ export function useSetExpandedDirectoryIds() {
 /** The selected keys in the Asset Table. */
 export function useSelectedKeys() {
   const store = useDriveStore()
-  return useStore(store, (state) => state.selectedKeys)
+  return useStore(store, (state) => state.selectedIds)
 }
 
 /** The selected assets in the Asset Table. */
@@ -301,7 +281,7 @@ export function useSetSelectedAssets() {
 /** The visually selected keys in the Asset Table. */
 export function useVisuallySelectedKeys() {
   const store = useDriveStore()
-  return useStore(store, (state) => state.selectedKeys, { unsafeEnableTransition: true })
+  return useStore(store, (state) => state.selectedIds, { unsafeEnableTransition: true })
 }
 
 /** A function to set the visually selected keys in the Asset Table. */
@@ -320,18 +300,6 @@ export function useLabelsDragPayload() {
 export function useSetLabelsDragPayload() {
   const store = useDriveStore()
   return useStore(store, (state) => state.setLabelsDragPayload)
-}
-
-/** The map of keys to {@link AssetTreeNode}s. */
-export function useNodeMap() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.nodeMap)
-}
-
-/** A function to set the map of keys to {@link AssetTreeNode}s. */
-export function useSetNodeMap() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.setNodeMap)
 }
 
 /**

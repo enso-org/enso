@@ -2,7 +2,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 
-import { Path, createRootDirectoryAsset } from 'enso-common/src/services/Backend'
+import { Path } from 'enso-common/src/services/Backend'
 
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
@@ -46,8 +46,6 @@ export function useDirectoryIds(options: UseDirectoryIdsOptions) {
     return id
   })()
 
-  const rootDirectory = createRootDirectoryAsset(rootDirectoryId)
-
   const currentDirectoryId = useCurrentDirectoryId().current ?? rootDirectoryId
   const parentDirectoryId = useCurrentDirectoryId().parent ?? rootDirectoryId
   const setCurrentDirectoryId = useSetCurrentDirectoryId()
@@ -56,7 +54,6 @@ export function useDirectoryIds(options: UseDirectoryIdsOptions) {
     setExpandedDirectoryIds,
     setCurrentDirectoryId,
     rootDirectoryId,
-    rootDirectory,
     currentDirectoryId,
     parentDirectoryId,
   } as const

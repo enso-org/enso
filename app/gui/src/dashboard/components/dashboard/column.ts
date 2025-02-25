@@ -19,7 +19,6 @@ import SharedWithColumn from './column/SharedWithColumn'
 export interface AssetColumnProps {
   readonly isOpened: boolean
   readonly item: AnyAsset
-  readonly depth: number
   readonly backendType: BackendType
   readonly setSelected: (selected: boolean) => void
   readonly state: AssetsTableState

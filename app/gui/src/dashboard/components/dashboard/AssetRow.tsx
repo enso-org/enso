@@ -38,19 +38,25 @@ import {
   useDeleteAssetsMutationState,
   useRestoreAssetsMutationState,
 } from '#/hooks/backendBatchedHooks'
-import { backendMutationOptions, useBackendMutationState } from '#/hooks/backendHooks'
+import {
+  backendMutationOptions,
+  useBackendMutationState,
+  useBackendQuery,
+} from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useCutAndPaste } from '#/hooks/cutAndPasteHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
-import { useAsset } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useAsset, useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import type * as assetTreeNode from '#/utilities/AssetTreeNode'
 import * as drag from '#/utilities/drag'
 import * as eventModule from '#/utilities/event'
-import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import * as permissions from '#/utilities/permissions'
+import {
+  canPermissionModifyDirectoryContents,
+  isTeamParentsPath,
+  tryFindSelfPermission,
+} from '#/utilities/permissions'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
@@ -65,7 +71,7 @@ const DRAG_EXPAND_DELAY_MS = 1_500
 /** Common properties for state and setters passed to event handlers on an {@link AssetRow}. */
 export interface AssetRowInnerProps {
   readonly asset: backendModule.AnyAsset
-  readonly path: string
+  // readonly path: string
   readonly state: assetsTable.AssetsTableState
   readonly rowState: assetsTable.AssetRowState
   readonly setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
@@ -74,15 +80,10 @@ export interface AssetRowInnerProps {
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps {
   readonly isOpened: boolean
-
   readonly isPlaceholder: boolean
-  readonly visibility: Visibility | undefined
   readonly id: backendModule.AssetId
   readonly parentId: backendModule.DirectoryId
   readonly type: backendModule.AssetType
-  readonly hidden: boolean
-  readonly path: string
-  readonly depth: number
   readonly state: assetsTable.AssetsTableState
   readonly columns: columnUtils.Column[]
   readonly isKeyboardSelected: boolean
@@ -109,20 +110,19 @@ export interface AssetRowProps {
     newParentKey: backendModule.DirectoryId,
     newParentId: backendModule.DirectoryId,
     pasteData: DrivePastePayload,
-    nodeMap: ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>,
   ) => void
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
 
 export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
-  const { type, columns, depth, id } = props
+  const { type, columns, id } = props
 
   switch (type) {
     case backendModule.AssetType.specialLoading:
     case backendModule.AssetType.specialEmpty:
     case backendModule.AssetType.specialError: {
-      return <AssetSpecialRow columnsLength={columns.length} depth={depth} type={type} />
+      return <AssetSpecialRow columnsLength={columns.length} type={type} />
     }
     case backendModule.AssetType.project:
     case backendModule.AssetType.file:
@@ -141,13 +141,12 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
 export interface AssetSpecialRowProps {
   readonly type: backendModule.AssetType
   readonly columnsLength: number
-  readonly depth: number
 }
 
 /** Renders a special asset row. */
 
 const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialRowProps) {
-  const { type, columnsLength, depth } = props
+  const { type, columnsLength } = props
 
   const { getText } = textProvider.useText()
 
@@ -155,13 +154,8 @@ const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialR
     case backendModule.AssetType.specialLoading: {
       return (
         <tr>
-          <td colSpan={columnsLength} className="border-r p-0 rounded-rows-skip-level">
-            <div
-              className={tailwindMerge.twJoin(
-                'flex h-table-row w-container items-center justify-center rounded-full rounded-rows-child',
-                indent.indentClass(depth),
-              )}
-            >
+          <td colSpan={columnsLength} className="border-r p-0">
+            <div className="flex h-table-row w-container items-center justify-center rounded-full">
               <IndefiniteSpinner size={24} />
             </div>
           </td>
@@ -171,13 +165,8 @@ const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialR
     case backendModule.AssetType.specialEmpty: {
       return (
         <tr>
-          <td colSpan={columnsLength} className="border-r p-0 rounded-rows-skip-level">
-            <div
-              className={tailwindMerge.twJoin(
-                'flex h-table-row items-center rounded-full rounded-rows-child',
-                indent.indentClass(depth),
-              )}
-            >
+          <td colSpan={columnsLength} className="border-r p-0">
+            <div className="flex h-table-row items-center rounded-full">
               <img src={BlankIcon} />
               <Text className="px-name-column-x placeholder" disableLineHeightCompensation>
                 {getText('thisFolderIsEmpty')}
@@ -190,13 +179,8 @@ const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialR
     case backendModule.AssetType.specialError: {
       return (
         <tr>
-          <td colSpan={columnsLength} className="border-r p-0 rounded-rows-skip-level">
-            <div
-              className={tailwindMerge.twJoin(
-                'flex h-table-row items-center rounded-full rounded-rows-child',
-                indent.indentClass(depth),
-              )}
-            >
+          <td colSpan={columnsLength} className="border-r p-0">
+            <div className="flex h-table-row items-center rounded-full">
               <img src={BlankIcon} />
               <Text
                 className="px-name-column-x text-danger placeholder"
@@ -258,25 +242,27 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
     type,
     asset,
   } = props
-  const { path, hidden: hiddenRaw, grabKeyboardFocus, visibility: visibilityRaw, depth } = props
-  const { nodeMap, doCopy, doCut, doPaste } = state
-  const { category, backend, currentDirectoryId } = state
+  const { grabKeyboardFocus } = props
+  const { category, backend, currentDirectoryId, doCopy, doCut, doPaste } = state
 
   const [, startTransition] = useTransition()
+
+  const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
 
   const driveStore = useDriveStore()
   const { user } = useFullUserSession()
   const setSelectedAssets = useSetSelectedAssets()
-  const selected = useStore(driveStore, ({ visuallySelectedKeys, selectedKeys }) =>
-    (visuallySelectedKeys ?? selectedKeys).has(id),
+  const getAsset = useGetAsset()
+  const selected = useStore(driveStore, ({ visuallySelectedKeys, selectedIds }) =>
+    (visuallySelectedKeys ?? selectedIds).has(id),
   )
   const isSoleSelected = useStore(
     driveStore,
-    ({ selectedKeys }) => selected && selectedKeys.size === 1,
+    ({ selectedIds }) => selected && selectedIds.size === 1,
   )
   const allowContextMenu = useStore(
     driveStore,
-    ({ selectedKeys }) => selectedKeys.size === 0 || !selected || isSoleSelected,
+    ({ selectedIds }) => selectedIds.size === 0 || !selected || isSoleSelected,
   )
   const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const draggableProps = dragAndDropHooks.useDraggable({ isDisabled: !selected })
@@ -300,11 +286,6 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   const rowState = React.useMemo(() => {
     return object.merge(innerRowState, { isEditingName })
   }, [isEditingName, innerRowState])
-
-  const nodeParentKeysRef = React.useRef<{
-    readonly nodeMap: WeakRef<ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>>
-    readonly parentKeys: Map<backendModule.AssetId, backendModule.DirectoryId>
-  } | null>(null)
 
   const isDeletingSingleAsset =
     useBackendMutationState(backend, 'deleteAsset', {
@@ -364,9 +345,8 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   const visibility =
     isDeleting || isRestoring ? Visibility.faded
     : isRemovingSelf ? Visibility.hidden
-    : visibilityRaw === Visibility.visible ? insertionVisibility
-    : (visibilityRaw ?? insertionVisibility)
-  const hidden = hiddenRaw || visibility === Visibility.hidden
+    : insertionVisibility
+  const hidden = visibility === Visibility.hidden
 
   const setSelected = useEventCallback((newSelected: boolean) => {
     const { selectedAssets } = driveStore.getState()
@@ -410,34 +390,23 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
       if (!isPayloadMatch) {
         return false
       } else {
-        if (nodeMap.current !== nodeParentKeysRef.current?.nodeMap.deref()) {
-          const parentKeys = new Map(
-            Array.from(nodeMap.current.entries()).map(([otherId, otherAsset]) => [
-              otherId,
-              otherAsset.item.parentId,
-            ]),
-          )
-          nodeParentKeysRef.current = { nodeMap: new WeakRef(nodeMap.current), parentKeys }
-        }
-
         if (isLocalCategory(category)) {
           return true
         }
 
         return payload.every((payloadItem) => {
-          const parentKey = nodeParentKeysRef.current?.parentKeys.get(payloadItem.key)
-          const parent = parentKey == null ? null : nodeMap.current.get(parentKey)
+          const payloadParentId = getAsset(payloadItem.key)?.parentId
+          const parent = payloadParentId == null ? null : getAsset(payloadParentId)
           if (!parent) {
             return false
-          } else if (permissions.isTeamPath(parent.path)) {
+          } else if (
+            isTeamParentsPath(parent.parentsPath, userGroups?.map((team) => team.id) ?? [])
+          ) {
             return true
           } else {
             // Assume user path; check permissions
-            const permission = permissions.tryFindSelfPermission(user, asset.permissions)
-            return (
-              permission != null &&
-              permissions.canPermissionModifyDirectoryContents(permission.permission)
-            )
+            const permission = tryFindSelfPermission(user, asset.permissions)
+            return permission != null && canPermissionModifyDirectoryContents(permission.permission)
           }
         })
       }
@@ -459,7 +428,6 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
     case backendModule.AssetType.secret: {
       const innerProps: AssetRowInnerProps = {
         asset,
-        path,
         state,
         rowState,
         setRowState,
@@ -608,12 +576,11 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                   const ids = payload
                     .filter((payloadItem) => payloadItem.asset.parentId !== directoryId)
                     .map((dragItem) => dragItem.key)
-                  cutAndPaste(
-                    directoryId,
-                    directoryId,
-                    { backendType: backend.type, ids: new Set(ids), category },
-                    nodeMap.current,
-                  )
+                  cutAndPaste(directoryId, directoryId, {
+                    backendType: backend.type,
+                    ids: new Set(ids),
+                    category,
+                  })
                 } else if (event.dataTransfer.types.includes('Files')) {
                   event.preventDefault()
                   event.stopPropagation()
@@ -632,7 +599,6 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                     isOpened={isOpened}
                     backendType={backend.type}
                     item={asset}
-                    depth={depth}
                     setSelected={setSelected}
                     state={state}
                     rowState={rowState}
