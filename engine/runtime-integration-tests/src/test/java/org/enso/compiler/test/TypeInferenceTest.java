@@ -888,10 +888,16 @@ public class TypeInferenceTest extends StaticAnalysisTest {
 
                     foo =
                         f x = x
-                        y = (f : My_Type)
+                        takes_my_type (m : My_Type) = m
+                        y1 = takes_my_type f
                         g (x : My_Type) -> My_Type = x
-                        z = (g : My_Type)
-                        [y, z]
+                        y2 = takes_my_type g
+
+                        takes_function (f : Any -> Any) = f
+                        y3 = takes_function (My_Type.Value 123)
+                        y4 = takes_function My_Type.Value
+                        y5 = takes_function f
+                        [y1, y2, y3, y4, y5]
                     """,
                 uri.getAuthority())
             .uri(uri)
@@ -900,11 +906,21 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var module = compile(src);
     var foo = ModuleUtils.findStaticMethod(module, "foo");
 
-    var y = ModuleUtils.findAssignment(foo, "y");
-    assertTypeMismatch(y.expression(), "My_Type", "(Any -> Any)");
+    var y1 = ModuleUtils.findAssignment(foo, "y1");
+    assertTypeMismatch(y1.expression(), "My_Type", "Any -> Any");
 
-    var z = ModuleUtils.findAssignment(foo, "z");
-    assertTypeMismatch(z.expression(), "My_Type", "My_Type -> My_Type");
+    var y2 = ModuleUtils.findAssignment(foo, "y2");
+    assertTypeMismatch(y2.expression(), "My_Type", "My_Type -> My_Type");
+
+    var y3 = ModuleUtils.findAssignment(foo, "y3");
+    assertTypeMismatch(y3.expression(), "Any -> Any", "My_Type");
+
+    // Not-applied constructor _is_ a function
+    var y4 = ModuleUtils.findAssignment(foo, "y4");
+    assertEquals(List.of(), ModuleUtils.getDescendantsDiagnostics(y4));
+
+    var y5 = ModuleUtils.findAssignment(foo, "y5");
+    assertEquals(List.of(), ModuleUtils.getDescendantsDiagnostics(y5));
   }
 
 
@@ -1599,7 +1615,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
 
   private void assertTypeMismatch(IR ir, String expectedType, String gotType) {
     var diagnostics = ModuleUtils.getDescendantsDiagnostics(ir);
-    assertThat("exactly 1 diagnostic expected: " + diagnostics, diagnostics.size() == 1);
+    assertThat("exactly 1 diagnostic expected but got " + diagnostics, diagnostics.size() == 1);
 
     var diagnostic = diagnostics.get(0);
     if (!(diagnostic instanceof Warning.TypeMismatch typeMismatch)) {
