@@ -1,15 +1,17 @@
+import { nodeRange } from '@/components/MarkdownEditor/markdown/trees'
 import TableEditor from '@/components/MarkdownEditor/TableEditor.vue'
 import { type VueHost } from '@/components/VueHostRender.vue'
 import type { Text } from '@codemirror/state'
 import { Decoration, WidgetType } from '@codemirror/view'
 import type { SyntaxNode, SyntaxNodeRef } from '@lezer/common'
 import { h, markRaw } from 'vue'
+import { Range } from 'ydoc-shared/util/data/range'
 
 /** Extension that uses a Vue component CodeMirror widget to render Markdown tables. */
 export function decorateTable(
   nodeRef: SyntaxNodeRef,
   doc: Text,
-  emitDecoration: (from: number, to: number, deco: Decoration) => void,
+  emitDecoration: (range: Range, deco: Decoration) => void,
   vueHost: VueHost,
 ) {
   if (nodeRef.name === 'Table') {
@@ -17,8 +19,7 @@ export function decorateTable(
     const parsed = nodeRef.node
     const widget = new TableWidget({ source, parsed }, vueHost)
     emitDecoration(
-      nodeRef.from,
-      nodeRef.to,
+      nodeRange(nodeRef),
       Decoration.replace({
         widget,
         // Ensure the cursor is drawn relative to the content before the widget.
