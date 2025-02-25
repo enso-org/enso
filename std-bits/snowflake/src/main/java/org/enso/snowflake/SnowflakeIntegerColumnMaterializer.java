@@ -58,21 +58,21 @@ public class SnowflakeIntegerColumnMaterializer implements Builder {
   @Override
   public void append(Object o) {
     ensureSpaceToAppend();
-    switch (o) {
-      case BigInteger bigInteger -> {
-        switch (mode) {
-          case BIG_INTEGER -> bigInts[currentSize++] = bigInteger;
-          case LONG -> {
-            if (fitsInLong(bigInteger)) {
-              ints[currentSize++] = bigInteger.longValue();
-            } else {
-              retypeToBigIntegers();
-              bigInts[currentSize++] = bigInteger;
-            }
+
+    if (o instanceof BigInteger bigInteger) {
+      switch (mode) {
+        case BIG_INTEGER -> bigInts[currentSize++] = bigInteger;
+        case LONG -> {
+          if (fitsInLong(bigInteger)) {
+            ints[currentSize++] = bigInteger.longValue();
+          } else {
+            retypeToBigIntegers();
+            bigInts[currentSize++] = bigInteger;
           }
         }
       }
-      default -> throw new ValueTypeMismatchException(BigIntegerType.INSTANCE, o);
+    } else {
+      throw new ValueTypeMismatchException(BigIntegerType.INSTANCE, o);
     }
   }
 

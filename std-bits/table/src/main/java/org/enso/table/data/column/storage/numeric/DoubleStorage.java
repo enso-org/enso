@@ -101,7 +101,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public StorageType<?> getType() {
+  public StorageType<Double> getType() {
     return FloatType.FLOAT_64;
   }
 
