@@ -96,18 +96,38 @@ class TypeCompatibility {
           : Compatibility.NEVER_COMPATIBLE;
     }
 
-    if (isFunctionLike(expected) != isFunctionLike(provided)) {
+    boolean gotFunction = isFunctionLike(provided);
+    boolean expectingFunction = isFunctionLike(expected);
+    if (expectingFunction != gotFunction) {
       // If we are matching a function-like type with a non-function-like type, they are not
       // compatible.
       // TODO later check: this may not work well with a function that has all-default arguments
-      // TODO also here we have to check if there exists a conversion (TypeOf{expected}.from (that :
-      // Function) = ...) if {provided} is a function
+
+      if (gotFunction && expected instanceof TypeRepresentation.AtomType expectedAtom) {
+        return isConvertibleToFunction(expectedAtom)
+            ? Compatibility.ALWAYS_COMPATIBLE
+            : Compatibility.NEVER_COMPATIBLE;
+      }
+
+      if (expectingFunction && provided instanceof TypeRepresentation.AtomType providedAtom) {
+        // TODO for later: can we return ALWAYS_COMPATIBLE here?
+        return isConvertibleFromFunction(providedAtom)
+            ? Compatibility.UNKNOWN
+            : Compatibility.NEVER_COMPATIBLE;
+      }
+
       return Compatibility.NEVER_COMPATIBLE;
-      // return Compatibility.UNKNOWN;
-      // FIXME ensure that T.from Function is not allowed.
     }
 
     return Compatibility.UNKNOWN;
+  }
+
+  private boolean isConvertibleToFunction(TypeRepresentation.AtomType type) {
+    return conversionResolver.findConversion(type, BuiltinTypes.functionTypeAsAtomType);
+  }
+
+  private boolean isConvertibleFromFunction(TypeRepresentation.AtomType type) {
+    return conversionResolver.findConversion(BuiltinTypes.functionTypeAsAtomType, type);
   }
 
   /** Checks if a given type is function-like, i.e. it can be used as a target of an application. */
