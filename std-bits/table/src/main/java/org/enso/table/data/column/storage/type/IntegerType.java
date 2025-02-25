@@ -1,7 +1,11 @@
 package org.enso.table.data.column.storage.type;
 
 import java.math.BigInteger;
+
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.problems.ProblemAggregator;
 
 public record IntegerType(Bits bits) implements StorageType<Long> {
   public static final IntegerType INT_64 = new IntegerType(Bits.BITS_64);
@@ -83,6 +87,16 @@ public record IntegerType(Bits bits) implements StorageType<Long> {
     if (INT_16.fits(value)) return INT_16;
     if (INT_32.fits(value)) return INT_32;
     return INT_64;
+  }
+
+  @Override
+  public boolean isOfType(StorageType<?> other) {
+    return other instanceof IntegerType;
+  }
+
+  @Override
+  public BuilderForType<Long> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
+    return Builder.getForLong(this, initialCapacity, problemAggregator);
   }
 
   @Override

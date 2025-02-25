@@ -1,6 +1,9 @@
 package org.enso.table.data.column.storage.type;
 
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.problems.ProblemAggregator;
 
 import java.math.BigInteger;
 
@@ -20,6 +23,16 @@ public record BigIntegerType() implements StorageType<BigInteger> {
   @Override
   public boolean hasTime() {
     return false;
+  }
+
+  @Override
+  public boolean isOfType(StorageType<?> other) {
+    return other instanceof BigIntegerType;
+  }
+
+  @Override
+  public BuilderForType<BigInteger> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
+    return Builder.getForBigInteger(initialCapacity, problemAggregator);
   }
 
   @Override

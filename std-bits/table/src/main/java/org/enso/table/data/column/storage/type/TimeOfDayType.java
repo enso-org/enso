@@ -1,7 +1,11 @@
 package org.enso.table.data.column.storage.type;
 
 import java.time.LocalTime;
+
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.problems.ProblemAggregator;
 
 public record TimeOfDayType() implements StorageType<LocalTime> {
   public static final TimeOfDayType INSTANCE = new TimeOfDayType();
@@ -19,6 +23,16 @@ public record TimeOfDayType() implements StorageType<LocalTime> {
   @Override
   public boolean hasTime() {
     return true;
+  }
+
+  @Override
+  public boolean isOfType(StorageType<?> other) {
+    return other instanceof TimeOfDayType;
+  }
+
+  @Override
+  public BuilderForType<LocalTime> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
+    return Builder.getForTime(initialCapacity);
   }
 
   @Override

@@ -1,7 +1,11 @@
 package org.enso.table.data.column.storage.type;
 
 import java.time.ZonedDateTime;
+
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.problems.ProblemAggregator;
 
 public record DateTimeType() implements StorageType<ZonedDateTime> {
   public static final DateTimeType INSTANCE = new DateTimeType();
@@ -19,6 +23,16 @@ public record DateTimeType() implements StorageType<ZonedDateTime> {
   @Override
   public boolean hasTime() {
     return true;
+  }
+
+  @Override
+  public boolean isOfType(StorageType<?> other) {
+    return other instanceof DateTimeType;
+  }
+
+  @Override
+  public BuilderForType<ZonedDateTime> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
+    return Builder.getForDateTime(initialCapacity);
   }
 
   @Override

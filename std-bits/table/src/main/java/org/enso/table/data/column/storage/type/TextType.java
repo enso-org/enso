@@ -1,7 +1,10 @@
 package org.enso.table.data.column.storage.type;
 
 import org.enso.base.Text_Utils;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.problems.ProblemAggregator;
 
 public record TextType(long maxLength, boolean fixedLength) implements StorageType<String> {
   public TextType {
@@ -118,6 +121,16 @@ public record TextType(long maxLength, boolean fixedLength) implements StorageTy
     }
 
     return new TextType(lengthSum, bothFixed);
+  }
+
+  @Override
+  public boolean isOfType(StorageType<?> other) {
+    return other instanceof TextType;
+  }
+
+  @Override
+  public BuilderForType<String> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
+    return Builder.getForText(this, initialCapacity);
   }
 
   @Override

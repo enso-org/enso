@@ -1,6 +1,9 @@
 package org.enso.table.data.column.storage.type;
 
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.problems.ProblemAggregator;
 
 public record AnyObjectType() implements StorageType<Object> {
   public static final AnyObjectType INSTANCE = new AnyObjectType();
@@ -18,6 +21,16 @@ public record AnyObjectType() implements StorageType<Object> {
   @Override
   public boolean hasTime() {
     return false;
+  }
+
+  @Override
+  public boolean isOfType(StorageType<?> other) {
+    return other instanceof AnyObjectType;
+  }
+
+  @Override
+  public BuilderForType<Object> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
+    return Builder.getForAnyObject(initialCapacity);
   }
 
   @Override

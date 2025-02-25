@@ -1,6 +1,8 @@
 package org.enso.table.data.column.storage.type;
 
+import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.problems.ProblemAggregator;
 
 public record NullType() implements StorageType<Void> {
   public static final NullType INSTANCE = new NullType();
@@ -18,6 +20,16 @@ public record NullType() implements StorageType<Void> {
   @Override
   public boolean hasTime() {
     return true;
+  }
+
+  @Override
+  public boolean isOfType(StorageType<?> other) {
+    return other instanceof NullType;
+  }
+
+  @Override
+  public BuilderForType<Void> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
+    throw new UnsupportedOperationException("Cannot make a builder for NullType");
   }
 
   @Override

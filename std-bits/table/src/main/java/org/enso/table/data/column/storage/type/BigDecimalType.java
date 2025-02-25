@@ -1,6 +1,9 @@
 package org.enso.table.data.column.storage.type;
 
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.problems.ProblemAggregator;
 
 import java.math.BigDecimal;
 
@@ -21,6 +24,17 @@ public record BigDecimalType() implements StorageType<BigDecimal> {
   public boolean hasTime() {
     return false;
   }
+
+  @Override
+  public boolean isOfType(StorageType<?> other) {
+    return other instanceof BigDecimalType;
+  }
+
+  @Override
+  public BuilderForType<BigDecimal> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
+    return Builder.getForBigDecimal(initialCapacity);
+  }
+
 
   @Override
   public ColumnStorage<BigDecimal> asTypedStorage(ColumnStorage<?> storage) {

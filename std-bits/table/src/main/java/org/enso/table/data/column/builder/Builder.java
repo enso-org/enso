@@ -50,7 +50,7 @@ public interface Builder {
   static Builder getForType(StorageType<?> type, long size, ProblemAggregator problemAggregator) {
     Builder builder =
         switch (type) {
-          case AnyObjectType _ -> new MixedBuilder(checkSize(size));
+          case AnyObjectType _ -> getForAnyObject(size);
           case BooleanType _ -> getForBoolean(size);
           case DateType _ -> getForDate(size);
           case DateTimeType _ -> getForDateTime(size);
@@ -129,6 +129,11 @@ public interface Builder {
   static Builder getObjectBuilder(long size) {
     int checkedSize = checkSize(size);
     return new ObjectBuilder(checkedSize);
+  }
+
+  static BuilderForType<Object> getForAnyObject(long size) {
+    int checkedSize = checkSize(size);
+    return new MixedBuilder(checkedSize);
   }
 
   static BuilderForType<BigDecimal> getForBigDecimal(long size) {

@@ -7,7 +7,9 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import org.enso.base.polyglot.NumericConverter;
+import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.problems.ProblemAggregator;
 
 /**
  * Represents an underlying internal storage type that can be mapped to the Value Type that is
@@ -70,6 +72,17 @@ public sealed interface StorageType<T>
    * @return true if the storage type has a time part.
    */
   boolean hasTime();
+
+  /**
+   * @return true if the storage type is of the same type as the other.
+   */
+  boolean isOfType(StorageType<?> other);
+
+  /**
+   * Creates a builder for the StorageType.
+   * @return a builder for the given type.
+   */
+  BuilderForType<T> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator);
 
   /**
    * Types the Storage as a specific generic type.
