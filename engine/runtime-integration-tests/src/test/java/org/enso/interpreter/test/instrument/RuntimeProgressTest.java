@@ -102,16 +102,17 @@ public class RuntimeProgressTest {
                     Option.empty(),
                     new Vector1<>(new String[] {"0"})))));
 
-    var reply1 = context.receiveNIgnoreStdLib(8, 60);
-    assertEquals(8, reply1.size());
+    var reply1 = context.receiveNIgnoreStdLib(9, 60);
+    assertEquals(9, reply1.size());
     assertSameElements(
         reply1,
         Response(requestId, new Runtime$Api$PushContextResponse(contextId)),
-        progressPayload(contextId, mainRes, -1.0),
-        progressPayload(contextId, mainRes, -1.0),
-        progressPayload(contextId, mainRes, 1.0 / 6.0), // one sixth of work
-        progressPayload(contextId, mainRes, 0.5), // half of work
-        progressPayload(contextId, mainRes, 1.0), // all of work
+        progressPayload(contextId, mainRes, -1.0, null),
+        progressPayload(contextId, mainRes, -1.0, null),
+        progressPayload(contextId, mainRes, 0.0, "Six steps"),
+        progressPayload(contextId, mainRes, 1.0 / 6.0, "Six steps"), // one sixth of work
+        progressPayload(contextId, mainRes, 0.5, "Six steps"), // half of work
+        progressPayload(contextId, mainRes, 1.0, "Six steps"), // all of work
         TestMessages.update(
             contextId,
             mainRes,
@@ -132,10 +133,11 @@ public class RuntimeProgressTest {
     }
   }
 
-  private static Runtime$Api$Response progressPayload(UUID contextId, UUID id, double amount) {
+  private static Runtime$Api$Response progressPayload(
+      UUID contextId, UUID id, double amount, String msg) {
     var pending =
         new Runtime$Api$ExpressionUpdate$Payload$Pending(
-            Option.empty(), Option.apply(amount), false);
+            Option.apply(msg), Option.apply(amount), false);
     var up =
         new Runtime$Api$ExpressionUpdate(
             id, Option.empty(), Option.empty(), Vector$.MODULE$.empty(), false, false, pending);

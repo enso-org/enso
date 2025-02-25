@@ -2,10 +2,10 @@ package org.enso.interpreter.service;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import org.junit.Test;
 
-public class ProgressAggregatorTest implements Consumer<Double> {
+public class ProgressAggregatorTest implements BiConsumer<Double, String> {
   private double current;
 
   public ProgressAggregatorTest() {}
@@ -56,7 +56,7 @@ public class ProgressAggregatorTest implements Consumer<Double> {
   }
 
   @Override
-  public void accept(Double t) {
+  public void accept(Double t, String msg) {
     this.current = t;
   }
 

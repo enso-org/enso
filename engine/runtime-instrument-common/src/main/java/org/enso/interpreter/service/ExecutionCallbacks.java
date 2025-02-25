@@ -113,9 +113,9 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       var newObserver =
           ExecutionProgressObserver.startComputation(
               nodeId,
-              (progress) -> {
+              (progress, msg) -> {
                 CompilerDirectives.transferToInterpreter();
-                var expressionValue = ExpressionValue.progress(nodeId, progress, null);
+                var expressionValue = ExpressionValue.progress(nodeId, progress, msg);
                 onProgressCallbackOrNull.accept(expressionValue);
               });
       refreshObserver(newObserver);
@@ -125,7 +125,11 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   private void refreshObserver(ExecutionProgressObserver newObserverOrNull) {
     var o = progressObserver;
     if (o != null) {
-      o.finishComputation();
+      try {
+        o.close();
+      } catch (Exception ex) {
+        throw ExecutionService.raise(RuntimeException.class, ex);
+      }
     }
     this.progressObserver = newObserverOrNull;
   }
@@ -147,7 +151,16 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
     ExpressionValue expressionValue =
         new ExpressionValue(
-            nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false);
+            nodeId,
+            result,
+            resultType,
+            cachedType,
+            call,
+            cachedCall,
+            profilingInfo,
+            false,
+            -1.0,
+            null);
     syncState.setExpressionUnsync(nodeId);
     syncState.setVisualizationUnsync(nodeId);
 
@@ -210,7 +223,9 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
             calls.get(nodeId),
             cache.getCall(nodeId),
             new ProfilingInfo[] {ExecutionTime.empty()},
-            true);
+            true,
+            -1.0,
+            null);
 
     onCachedCallback.accept(expressionValue);
   }

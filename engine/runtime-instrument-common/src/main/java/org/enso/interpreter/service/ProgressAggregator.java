@@ -4,21 +4,22 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
 import java.util.WeakHashMap;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 /**
  * Example of a progress aggregator able to nest multiple Progress and compute % of aggregated
  * progress.
  */
-public final class ProgressAggregator {
+final class ProgressAggregator {
   /**
    * @GuardedBy("this")
    */
   private final Map<Object, Progress> map = new WeakHashMap<>();
 
-  private final Consumer<Double> updateStatus;
+  private final BiConsumer<Double, String> updateStatus;
   private final Deque<Progress> stack = new ArrayDeque<>();
   private double current;
+  private String message;
 
   /**
    * New aggregator with associated callback.
@@ -26,14 +27,15 @@ public final class ProgressAggregator {
    * @param updateStatus called whenever percentage of the aggregated progress updates (is
    *     increased)
    */
-  public ProgressAggregator(Consumer<Double> updateStatus) {
+  public ProgressAggregator(BiConsumer<Double, String> updateStatus) {
     this.updateStatus = updateStatus;
   }
 
   /**
-   * Starts new progress in the current aggregator's stack. Nests the current progress in the
+   * Starts new progress in the current aggregator's stack.Nests the current progress in the
    * currently executing step of current progress.
    *
+   * @param key
    * @param max maximum number of steps the progress can "advance to"
    */
   public synchronized void create(Object key, long max) {
@@ -62,6 +64,13 @@ public final class ProgressAggregator {
     }
   }
 
+  public void log(Object key, String msg) {
+    if (findBy(key) instanceof Progress p) {
+      message = msg;
+      updateStatus.accept(this.current, msg);
+    }
+  }
+
   private synchronized Progress findBy(Object key) {
     return map.get(key);
   }
@@ -77,7 +86,7 @@ public final class ProgressAggregator {
     }
     if (notify) {
       assert !Thread.holdsLock(this);
-      updateStatus.accept(now);
+      updateStatus.accept(now, message);
     }
   }
 
