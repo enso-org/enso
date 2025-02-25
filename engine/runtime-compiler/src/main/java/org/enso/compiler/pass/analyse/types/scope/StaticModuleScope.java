@@ -96,13 +96,19 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
     }
 
     private <A, B, C> Map<A, Map<B, C>> unmodifiableNestedMap(Map<A, Map<B, C>> m) {
-      // FIXME
-      return m;
+      var result = new HashMap<A, Map<B, C>>();
+      for (var entry : m.entrySet()) {
+        result.put(entry.getKey(), Collections.unmodifiableMap(entry.getValue()));
+      }
+      return Collections.unmodifiableMap(result);
     }
 
     private <A, B> Map<A, Set<B>> unmodifiableNestedSet(Map<A, Set<B>> m) {
-      // FIXME
-      return m;
+      var result = new HashMap<A, Set<B>>();
+      for (var entry : m.entrySet()) {
+        result.put(entry.getKey(), Collections.unmodifiableSet(entry.getValue()));
+      }
+      return Collections.unmodifiableMap(result);
     }
 
     QualifiedName getModuleName() {
