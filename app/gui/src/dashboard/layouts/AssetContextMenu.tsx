@@ -262,17 +262,12 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={async () => {
               invariant(localBackend != null, 'Local Backend is null')
               const parentId = await remoteBackend.downloadProject(asset.id)
-              const assets = await queryClient.ensureQueryData(
-                backendHooks.backendQueryOptions(localBackend, 'listDirectory', [
-                  {
-                    parentId: parentId,
-                    filterBy: null,
-                    labels: null,
-                    recentProjects: false,
-                  },
-                  '(unknown)',
-                ]),
-              )
+              const assets = await localBackend.listDirectory({
+                parentId: parentId,
+                filterBy: null,
+                labels: null,
+                recentProjects: false,
+              })
               const project = assets
                 .filter((item) => item.type === backendModule.AssetType.project)
                 .at(0)

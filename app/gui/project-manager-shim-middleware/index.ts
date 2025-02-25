@@ -197,18 +197,25 @@ export default function projectManagerShimMiddleware(
         projectManagement
           .createBundle(projectDir)
           .then((projectBundle) => {
-            const uploadRequest = https.request(uploadUrl, { method: 'POST' }, (actualResponse) => {
-              if (!response.writableFinished) {
-                response.writeHead(
-                  // This is SAFE. The documentation says:
-                  // Only valid for response obtained from ClientRequest.
-                  actualResponse.statusCode!,
-                  actualResponse.statusMessage,
-                  actualResponse.headers,
-                )
-                actualResponse.pipe(response, { end: true })
-              }
-            })
+            const headers = {
+              authorization: request.headers.authorization,
+            }
+            const uploadRequest = https.request(
+              uploadUrl,
+              { method: 'POST', headers },
+              (actualResponse) => {
+                if (!response.writableFinished) {
+                  response.writeHead(
+                    // This is SAFE. The documentation says:
+                    // Only valid for response obtained from ClientRequest.
+                    actualResponse.statusCode!,
+                    actualResponse.statusMessage,
+                    actualResponse.headers,
+                  )
+                  actualResponse.pipe(response, { end: true })
+                }
+              },
+            )
             uploadRequest.write(projectBundle, (err) => {
               if (err) {
                 console.error(err)
