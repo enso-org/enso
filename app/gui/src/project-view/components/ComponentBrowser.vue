@@ -165,6 +165,7 @@ const transform = computed(() => {
 // === Selection ===
 
 const selected = ref<Component | null>(null)
+const selectedGroup = ref<number | null>(null)
 
 const selectedSuggestionId = computed(() => selected.value?.suggestionId)
 const selectedSuggestion = computed(() => {
@@ -180,7 +181,13 @@ const input = useComponentBrowserInput()
 const currentFiltering = computed(() => {
   if (input.mode.mode === 'componentBrowsing') {
     const currentModule = projectStore.moduleProjectPath
-    return new Filtering(input.mode.filter, currentModule?.ok ? currentModule.value : undefined)
+    return new Filtering(
+      {
+        ...(selectedGroup.value != null ? { groupIndex: selectedGroup.value } : {}),
+        ...input.mode.filter,
+      },
+      currentModule?.ok ? currentModule.value : undefined,
+    )
   } else {
     return undefined
   }
@@ -347,12 +354,12 @@ const handler = componentBrowserBindings.handler({
     if (input.mode.mode == 'aiPrompt') input.applyAIPrompt()
     else return false
   },
-  moveUp() {
-    componentList.value?.moveUp()
-  },
-  moveDown() {
-    componentList.value?.moveDown()
-  },
+  // moveUp() {
+  //   componentList.value?.moveUp()
+  // },
+  // moveDown() {
+  //   componentList.value?.moveDown()
+  // },
 })
 </script>
 
@@ -436,6 +443,7 @@ const handler = componentBrowserBindings.handler({
       :autoSelectFirstComponent="true"
       @acceptSuggestion="acceptSuggestion($event)"
       @update:selectedComponent="selected = $event"
+      @update:selectedGroup="selectedGroup = $event"
     />
   </div>
 </template>
@@ -443,7 +451,7 @@ const handler = componentBrowserBindings.handler({
 <style scoped>
 .ComponentBrowser {
   --radius-default: 20px;
-  --background-color: #eaeaea;
+  --background-color: #fff;
   --doc-panel-bottom-clip: 4px;
   min-width: 295px;
   width: min-content;
