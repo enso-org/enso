@@ -561,14 +561,6 @@ abstract class TypePropagation {
         logger.trace(
             "type ascription: {} - overwriting inferred type {}", ir.showCode(), inferredType);
       }
-
-      // If the inferred type implies the ascription will fail at runtime, we can report a warning
-      // here.
-      // checkTypeCompatibility(ir, ascribedType, inferredType);
-      // Probably not anymore as now ascriptions serve as casts that can uncover hidden parts of
-      // intersection types.
-      // So they may always succeed at runtime depending on the runtime value. Thus no reporting
-      // here for now.
     }
   }
 }
