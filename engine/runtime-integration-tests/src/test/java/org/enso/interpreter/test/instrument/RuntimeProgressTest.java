@@ -124,6 +124,78 @@ public class RuntimeProgressTest {
         context.executionComplete(contextId));
   }
 
+  @Test
+  public void reportAbitOfProgressAndMessage() {
+
+    var contextId = UUID.randomUUID();
+    var requestId = UUID.randomUUID();
+    var metadata = new Metadata("");
+    var mainRes = metadata.addItem(56, 5, "eeee");
+
+    var code =
+        """
+      import Standard.Base.Logging.Progress
+
+      main =
+          res = steps
+          res
+
+      steps = Progress.run "Few steps" 5 progress->
+          progress.advance
+          progress.log "I've just finished 1st step"
+          progress.advance 3
+          progress.log "Returning a value"
+          42
+      """;
+
+    metadata.assertInCode(mainRes, code, "steps");
+    var contents = metadata.appendToCode(code);
+    this.mainFile = context.writeMain(contents);
+
+    // create context
+    var request = Request(requestId, new Runtime$Api$CreateContextRequest(contextId));
+    context.send(request);
+    var response = context.receive().get();
+    assertEquals(response, Response(requestId, new Runtime$Api$CreateContextResponse(contextId)));
+    // Open the new file
+    context.send(Request(requestId, new Runtime$Api$OpenFileRequest(mainFile, contents)));
+    response = context.receive().get();
+    assertEquals(response, Response(requestId, Runtime$Api$OpenFileResponse$.MODULE$));
+
+    context.send(
+        Request(
+            requestId,
+            new Runtime$Api$PushContextRequest(
+                contextId,
+                new Runtime$Api$StackItem$ExplicitCall(
+                    new Runtime$Api$MethodPointer(MODULE_NAME, "Enso_Test.Test.Main", "main"),
+                    Option.empty(),
+                    new Vector1<>(new String[] {"0"})))));
+
+    var reply1 = context.receiveNIgnoreStdLib(11, 60);
+    assertEquals(11, reply1.size());
+    assertSameElements(
+        reply1,
+        Response(requestId, new Runtime$Api$PushContextResponse(contextId)),
+        progressPayload(contextId, mainRes, -1.0, null),
+        progressPayload(contextId, mainRes, -1.0, null),
+        progressPayload(contextId, mainRes, 0.0, "Few steps"),
+        progressPayload(contextId, mainRes, 0.2, "Few steps"), // 20% of work
+        progressPayload(contextId, mainRes, 0.2, "I've just finished 1st step"), // new message
+        progressPayload(contextId, mainRes, 0.8, "I've just finished 1st step"), // 80 % of work
+        progressPayload(contextId, mainRes, 0.8, "Returning a value"), // another message
+        progressPayload(contextId, mainRes, 1.0, "Returning a value"), // all of work at the end
+        TestMessages.update(
+            contextId,
+            mainRes,
+            ConstantsGen.INTEGER,
+            new Runtime$Api$MethodCall(
+                new Runtime$Api$MethodPointer(
+                    "Enso_Test.Test.Main", "Enso_Test.Test.Main", "steps"),
+                Vector$.MODULE$.empty())),
+        context.executionComplete(contextId));
+  }
+
   private static void assertSameElements(
       List<Runtime$Api$Response> actual, Runtime$Api$Response... seq) {
     assertEquals("Same size: " + actual, seq.length, actual.size());
