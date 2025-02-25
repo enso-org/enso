@@ -1,0 +1,34 @@
+## Enso Signatures 1.0
+## module Standard.Table.Internal.Table_Helpers
+- type Column_Transform_Element
+    - Value column:Standard.Base.Any.Any associated_selector:Standard.Base.Any.Any
+- type Not_Renamed
+- type Table_Column_Helper
+    - Value columns:Standard.Base.Any.Any internal_columns:Standard.Base.Any.Any make_column:Standard.Base.Any.Any table:Standard.Base.Any.Any materialize:Standard.Base.Any.Any
+    - remove_by_type self types:Standard.Base.Data.Vector.Vector strict:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - remove_columns self selectors:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Text.Regex.Regex|Standard.Base.Data.Vector.Vector) case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity error_on_missing_columns:Standard.Base.Data.Boolean.Boolean on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
+    - reorder_columns self selectors:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Text.Regex.Regex|Standard.Base.Data.Vector.Vector) position:Standard.Table.Position.Position case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity error_on_missing_columns:Standard.Base.Data.Boolean.Boolean on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
+    - resolve_column_or_expression self selector:Standard.Base.Any.Any problem_builder:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - select_blank_columns_helper self when:Standard.Table.Blank_Selector.Blank_Selector= treat_nans_as_blank:Standard.Base.Data.Boolean.Boolean invert_selection:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - select_by_type self types:Standard.Base.Data.Vector.Vector strict:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - select_columns self selectors:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Text.Regex.Regex|Standard.Table.Value_Type.By_Type|Standard.Base.Data.Vector.Vector) case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity reorder:Standard.Base.Data.Boolean.Boolean error_on_missing_columns:Standard.Base.Data.Boolean.Boolean on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior error_on_empty:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - select_columns_helper self selectors:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Text.Regex.Regex|Standard.Table.Value_Type.By_Type|Standard.Base.Data.Vector.Vector) case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity reorder:Standard.Base.Data.Boolean.Boolean problem_builder:Standard.Table.Internal.Problem_Builder.Problem_Builder -> Standard.Base.Any.Any
+- type Union_Result_Type
+    - Common_Type value_type:Standard.Table.Value_Type.Value_Type
+    - Fallback_To_Text
+    - No_Types_To_Unify
+- duplicate_rows table:Standard.Table.Table.Table counts:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer) -> Standard.Table.Table.Table
+- filter_blank_rows table:Standard.Base.Any.Any when:Standard.Base.Any.Any treat_nans_as_blank:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- is_column obj:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- is_index_valid length:Standard.Base.Any.Any ix:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- match_columns name:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex) case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity columns:Standard.Base.Data.Vector.Vector -> Standard.Base.Any.Any
+- prepare_order_by internal_columns:Standard.Base.Any.Any column_selectors:Standard.Base.Any.Any problem_builder:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- read_name_mapping_from_table column_map:Standard.Table.Table.Table -> Standard.Base.Any.Any
+- rename_columns naming_helper:Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper internal_columns:Standard.Base.Data.Vector.Vector mapping:(Standard.Base.Data.Dictionary.Dictionary|Standard.Base.Data.Vector.Vector) case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity error_on_missing_columns:Standard.Base.Data.Boolean.Boolean on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
+- replace_columns_with_columns table:Standard.Base.Any.Any old_columns:Standard.Base.Any.Any new_columns:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- replace_columns_with_transformed_columns table:Standard.Base.Any.Any selectors:Standard.Base.Any.Any transformer:Standard.Base.Any.Any error_on_missing_columns:Standard.Base.Any.Any= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+- resolve_order_by internal_columns:Standard.Base.Any.Any column_selectors:Standard.Base.Any.Any problem_builder:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- select_indices_preserving_order vector:Standard.Base.Any.Any indices:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- select_indices_reordering vector:Standard.Base.Any.Any indices:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- sort_columns internal_columns:Standard.Base.Any.Any order:Standard.Base.Any.Any text_ordering:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- unify_result_type_for_union column_set:Standard.Table.Internal.Match_Columns_Helpers.Column_Set all_tables:Standard.Base.Data.Vector.Vector problem_builder:Standard.Table.Internal.Problem_Builder.Problem_Builder -> Standard.Table.Internal.Table_Helpers.Union_Result_Type
