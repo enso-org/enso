@@ -2,7 +2,11 @@ package org.enso.table.data.column.storage.numeric;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.RequiresNumberFormatting;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
@@ -22,13 +26,22 @@ import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.slf4j.Logger;
 
 public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
+
+  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(BigIntegerStorage.class);
+
+  private Future<Boolean> isNumericFormatRequired;
+
   /**
    * @param data the underlying data
    */
   public BigIntegerStorage(BigInteger[] data) {
     super(BigIntegerType.INSTANCE, data, makeOps());
+
+    isNumericFormatRequired =
+        CompletableFuture.supplyAsync(() -> RequiresNumberFormatting.compute(this, null));
   }
 
   protected static MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> makeOps() {
@@ -151,5 +164,25 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
 
     // And rely on its shrinking logic.
     return longAdapter.inferPreciseTypeShrunk();
+  }
+
+  /**
+   * Checks if any numbers are large enough for the column to require formatin in the table viz.
+   *
+   * @return true/false if formatting is required
+   */
+  public Boolean cachedNumericFormatCheck() throws InterruptedException {
+    if (isNumericFormatRequired.isCancelled()) {
+      // Need to recompute the value, as was cancelled.
+      isNumericFormatRequired =
+          CompletableFuture.completedFuture(RequiresNumberFormatting.compute(this, null));
+    }
+
+    try {
+      return isNumericFormatRequired.get();
+    } catch (ExecutionException e) {
+      LOGGER.error("Failed to compute if numeric formatting was required", e);
+      return false;
+    }
   }
 }

@@ -1,5 +1,8 @@
 package org.enso.table.data.column.operation;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.table.Column;
@@ -35,7 +38,19 @@ public class RequiresNumberFormatting {
       if (val instanceof Long n && (n > 999999 || n < -999999)) {
         return true;
       }
-
+      if (val instanceof Double n && (n > 999999 || n < -999999)) {
+        return true;
+      }
+      if (val instanceof BigInteger n
+          && (n.compareTo(BigInteger.valueOf(999999)) > 0
+              || n.compareTo(BigInteger.valueOf(-999999)) < 0)) {
+        return true;
+      }
+      if (val instanceof BigDecimal n
+          && (n.compareTo(BigDecimal.valueOf(999999)) > 0
+              || n.compareTo(BigDecimal.valueOf(-999999)) < 0)) {
+        return true;
+      }
       if (context != null) {
         context.safepoint();
       }

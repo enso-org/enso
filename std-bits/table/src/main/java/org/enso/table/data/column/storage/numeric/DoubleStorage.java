@@ -4,7 +4,11 @@ import java.math.BigInteger;
 import java.util.BitSet;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.RequiresNumberFormatting;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.DoubleRoundOp;
@@ -33,14 +37,19 @@ import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
+import org.slf4j.Logger;
 
 /** A column containing floating point numbers. */
 public final class DoubleStorage extends Storage<Double>
     implements ColumnDoubleStorage, ColumnStorageWithNothingMap {
+
+  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(DoubleStorage.class);
+
   final double[] data;
   final BitSet isNothing;
   private final int size;
   private static final MapOperationStorage<Double, DoubleStorage> ops = buildOps();
+  private Future<Boolean> isNumericFormatRequired;
 
   /**
    * @param data the underlying data
@@ -52,6 +61,9 @@ public final class DoubleStorage extends Storage<Double>
     this.data = data;
     this.isNothing = isNothing;
     this.size = size;
+
+    isNumericFormatRequired =
+        CompletableFuture.supplyAsync(() -> RequiresNumberFormatting.compute(this, null));
   }
 
   public static DoubleStorage makeEmpty(long size) {
@@ -539,6 +551,26 @@ public final class DoubleStorage extends Storage<Double>
           context.safepoint();
         }
       }
+    }
+  }
+
+  /**
+   * Checks if any numbers are large enough for the column to require formatin in the table viz.
+   *
+   * @return true/false if formatting is required
+   */
+  public Boolean cachedNumericFormatCheck() throws InterruptedException {
+    if (isNumericFormatRequired.isCancelled()) {
+      // Need to recompute the value, as was cancelled.
+      isNumericFormatRequired =
+          CompletableFuture.completedFuture(RequiresNumberFormatting.compute(this, null));
+    }
+
+    try {
+      return isNumericFormatRequired.get();
+    } catch (ExecutionException e) {
+      LOGGER.error("Failed to compute if numeric formatting was required", e);
+      return false;
     }
   }
 }
