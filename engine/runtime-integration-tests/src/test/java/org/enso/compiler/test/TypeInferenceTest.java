@@ -876,6 +876,135 @@ public class TypeInferenceTest extends StaticAnalysisTest {
   }
 
   @Test
+  public void noTypeErrorIfConversionExistsInTypeScope() throws Exception {
+    final URI uriA = new URI("memory://local.Project1.typeDef.enso");
+    final Source srcA =
+        Source.newBuilder(
+                "enso",
+                """
+                    type My_Type
+                        Value v
+                    type Other_Type
+                        Value o
+                    Other_Type.from (that : My_Type) = Other_Type.Value that.v+1000
+                    """,
+                uriA.getAuthority())
+            .uri(uriA)
+            .buildLiteral();
+    compile(srcA);
+
+    final URI uriB = new URI("memory://noTypeErrorIfConversionExistsInTypeScope.enso");
+    final Source srcB =
+        Source.newBuilder(
+                "enso",
+                """
+                    from local.Project1.typeDef import My_Type, Other_Type
+
+                    function_taking_other o:Other_Type =
+                        o.o
+
+                    foo =
+                        x = My_Type.Value 12
+                        y = function_taking_other x
+                        y
+                    """,
+                uriB.getAuthority())
+            .uri(uriB)
+            .buildLiteral();
+
+    var moduleB = compile(srcB);
+    var foo = ModuleUtils.findStaticMethod(moduleB, "foo");
+
+    var y = ModuleUtils.findAssignment(foo, "y");
+    assertEquals(
+        "valid conversion should ensure there is no type error",
+        List.of(),
+        ModuleUtils.getDescendantsDiagnostics(y.expression()));
+  }
+
+  @Test
+  public void noTypeErrorIfConversionIsImported() throws Exception {
+    final URI uriA = new URI("memory://local.Project1.typeDef.enso");
+    final Source srcA =
+        Source.newBuilder(
+                "enso",
+                """
+                    type My_Type
+                        Value v
+                    type Other_Type
+                        Value o
+                    """,
+                uriA.getAuthority())
+            .uri(uriA)
+            .buildLiteral();
+    compile(srcA);
+
+    final URI uriB = new URI("memory://local.Project1.conversionDef.enso");
+    final Source srcB =
+        Source.newBuilder(
+                "enso",
+                """
+                    Other_Type.from (that : My_Type) = Other_Type.Value that.v+1000
+                    """,
+                uriB.getAuthority())
+            .uri(uriB)
+            .buildLiteral();
+    compile(srcB);
+
+    final URI uriC = new URI("memory://errorIfNotImported.enso");
+    final Source srcC =
+        Source.newBuilder(
+                "enso",
+                """
+                    from local.Project1.typeDef import My_Type, Other_Type
+
+                    function_taking_other o:Other_Type =
+                        o.o
+
+                    foo =
+                        x = My_Type.Value 12
+                        y = function_taking_other x
+                        y
+                    """,
+                uriC.getAuthority())
+            .uri(uriC)
+            .buildLiteral();
+
+    var moduleC = compile(srcC);
+    var fooC = ModuleUtils.findStaticMethod(moduleC, "foo");
+    var yC = ModuleUtils.findAssignment(fooC, "y");
+    // Conversion is not imported, so there should be a type error
+    assertTypeMismatch(yC.expression(), "Other_Type", "My_Type");
+
+    var uriD = new URI("memory://noTypeErrorIfConversionIsImported.enso");
+    var srcD =
+        Source.newBuilder(
+                "enso",
+                """
+                    from local.Project1.typeDef import My_Type, Other_Type
+                    import local.Project1.conversionDef.from
+
+                    function_taking_other o:Other_Type =
+                        o.o
+
+                    foo =
+                        x = My_Type.Value 12
+                        y = function_taking_other x
+                        y
+                    """,
+                uriD.getAuthority())
+            .uri(uriD)
+            .buildLiteral();
+    var moduleD = compile(srcD);
+    var fooD = ModuleUtils.findStaticMethod(moduleD, "foo");
+    var yD = ModuleUtils.findAssignment(fooD, "y");
+    assertEquals(
+        "valid conversion should ensure there is no type error",
+        List.of(),
+        ModuleUtils.getDescendantsDiagnostics(yD.expression()));
+  }
+
+  @Test
   public void typeErrorFunctionToObject() throws Exception {
     final URI uri = new URI("memory://typeErrorFunctionToObject.enso");
     final Source src =
