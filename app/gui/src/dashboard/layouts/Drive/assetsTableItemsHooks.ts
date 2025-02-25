@@ -33,7 +33,7 @@ export const ASSET_ITEMS_STORE = createStore<{
     set(({ items: oldItems }) => ({
       items: new Map([
         ...[...oldItems.entries()].filter(([, item]) => item.parentId !== parentId),
-        ...items.map((item) => [item.parentId, item] as const),
+        ...items.map((item) => [item.id, item] as const),
       ]),
     }))
   },
