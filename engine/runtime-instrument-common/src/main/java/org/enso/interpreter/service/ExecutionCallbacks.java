@@ -40,6 +40,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   private final Consumer<ExpressionValue> onComputedCallback;
   private final Consumer<ExpressionCall> functionCallCallback;
   private final Consumer<ExecutedVisualization> onExecutedVisualizationCallback;
+  private final Consumer<ExpressionValue> onProgressCallbackOrNull;
   private ExecutionProgressObserver progressObserver;
 
   /**
@@ -55,6 +56,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
    * @param onCachedCallback the consumer of the cached value events.
    * @param functionCallCallback the consumer of function call events.
    * @param onExecutedVisualizationCallback the consumer of an executed visualization result.
+   * @param onProgressCallbackOrNull the consumer of progress events
    */
   ExecutionCallbacks(
       VisualizationHolder visualizationHolder,
@@ -66,7 +68,8 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       Consumer<ExpressionValue> onCachedCallback,
       Consumer<ExpressionValue> onComputedCallback,
       Consumer<ExpressionCall> functionCallCallback,
-      Consumer<ExecutedVisualization> onExecutedVisualizationCallback) {
+      Consumer<ExecutedVisualization> onExecutedVisualizationCallback,
+      Consumer<ExpressionValue> onProgressCallbackOrNull) {
     this.visualizationHolder = visualizationHolder;
     this.nextExecutionItem = nextExecutionItem;
     this.cache = cache;
@@ -77,6 +80,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     this.onComputedCallback = onComputedCallback;
     this.functionCallCallback = functionCallCallback;
     this.onExecutedVisualizationCallback = onExecutedVisualizationCallback;
+    this.onProgressCallbackOrNull = onProgressCallbackOrNull;
   }
 
   @Override
@@ -95,13 +99,18 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       callOnCachedCallback(nodeId, result);
       return result;
     } else {
-      if (cache.getPreferences().get(nodeId) == CachePreferences.Kind.BINDING_EXPRESSION) {
-        refreshObserver(
-            ExecutionProgressObserver.startComputation(
-                nodeId,
-                (progress) -> {
-                  callOnNotCachedCallback(nodeId, progress);
-                }));
+      if (onProgressCallbackOrNull != null) {
+        if (cache.getPreferences().get(nodeId) == CachePreferences.Kind.BINDING_EXPRESSION) {
+          var newObserver =
+              ExecutionProgressObserver.startComputation(
+                  nodeId,
+                  (progress) -> {
+                    CompilerDirectives.transferToInterpreter();
+                    var expressionValue = ExpressionValue.progress(nodeId, progress, null);
+                    onProgressCallbackOrNull.accept(expressionValue);
+                  });
+          refreshObserver(newObserver);
+        }
       }
     }
 
@@ -198,12 +207,6 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
             new ProfilingInfo[] {ExecutionTime.empty()},
             true);
 
-    onCachedCallback.accept(expressionValue);
-  }
-
-  @CompilerDirectives.TruffleBoundary
-  private void callOnNotCachedCallback(UUID nodeId, double amount) {
-    var expressionValue = ExpressionValue.progress(nodeId, amount);
     onCachedCallback.accept(expressionValue);
   }
 

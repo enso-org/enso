@@ -448,8 +448,9 @@ object ProgramExecutionSupport {
   )(implicit ctx: RuntimeContext): Unit = {
     val expressionId = value.getExpressionId
     if (value.isProgressUpdate()) {
+      val msg = null;
       val p = Api.ExpressionUpdate.Payload.Pending(
-        None,
+        Option(msg),
         Some(value.getValue().asInstanceOf[Double])
       )
       ctx.endpoint.sendToClient(
