@@ -40,6 +40,9 @@ abstract class InstrumentTestContext(packageName: String) {
   protected val runtimeServerEmulator: RuntimeServerEmulator =
     new RuntimeServerEmulator(messageQueue, lockManager)
 
+  final def send(msg: Api.Request): Unit =
+    runtimeServerEmulator.sendToRuntime(msg)
+
   def receiveNone: Option[Api.Response] = {
     Option(messageQueue.poll())
   }
@@ -137,6 +140,12 @@ abstract class InstrumentTestContext(packageName: String) {
       case _ =>
         true
     }
+
+  final def writeMain(contents: String): File =
+    Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
+
+  final def executionComplete(contextId: java.util.UUID): Api.Response =
+    Api.Response(Api.ExecutionComplete(contextId))
 
   def close(): Unit = {
     if (context != null) {
