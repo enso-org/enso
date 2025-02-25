@@ -3,7 +3,7 @@ package org.enso.table.data.column.storage.type;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.storage.ColumnStorage;
 
-public record TextType(long maxLength, boolean fixedLength) implements StorageType {
+public record TextType(long maxLength, boolean fixedLength) implements StorageType<String> {
   public TextType {
     if (maxLength == 0) {
       throw new IllegalArgumentException(
@@ -120,6 +120,7 @@ public record TextType(long maxLength, boolean fixedLength) implements StorageTy
     return new TextType(lengthSum, bothFixed);
   }
 
+  @Override
   public ColumnStorage<String> asTypedStorage(ColumnStorage<?> storage) {
     if (storage.getType() instanceof TextType) {
       @SuppressWarnings("unchecked")

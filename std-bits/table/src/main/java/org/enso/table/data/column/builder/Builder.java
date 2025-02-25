@@ -47,7 +47,7 @@ public interface Builder {
    * <p>If {@code type} is {@code null}, it will return an {@link InferredBuilder} that will infer
    * the type from the data.
    */
-  static Builder getForType(StorageType type, long size, ProblemAggregator problemAggregator) {
+  static Builder getForType(StorageType<?> type, long size, ProblemAggregator problemAggregator) {
     Builder builder =
         switch (type) {
           case AnyObjectType _ -> new MixedBuilder(checkSize(size));
@@ -203,7 +203,7 @@ public interface Builder {
   /**
    * @return the current storage type of this builder
    */
-  StorageType getType();
+  StorageType<?> getType();
 
   /**
    * Fills the given buffer with the data from this builder.

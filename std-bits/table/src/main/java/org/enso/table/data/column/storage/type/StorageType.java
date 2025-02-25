@@ -7,12 +7,13 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import org.enso.base.polyglot.NumericConverter;
+import org.enso.table.data.column.storage.ColumnStorage;
 
 /**
  * Represents an underlying internal storage type that can be mapped to the Value Type that is
  * exposed to users.
  */
-public sealed interface StorageType
+public sealed interface StorageType<T>
     permits AnyObjectType,
         BigDecimalType,
         BigIntegerType,
@@ -28,7 +29,7 @@ public sealed interface StorageType
    * @return the StorageType that represents a given boxed item. This has special handling for
    *     floating-point values - if they represent a whole number, they will be treated as integers.
    */
-  static StorageType forBoxedItem(Object item) {
+  static StorageType<?> forBoxedItem(Object item) {
     if (NumericConverter.isCoercibleToLong(item)) {
       return IntegerType.INT_64;
     }
@@ -69,4 +70,14 @@ public sealed interface StorageType
    * @return true if the storage type has a time part.
    */
   boolean hasTime();
+
+  /**
+   * Types the Storage as a specific generic type.
+   * Allows for using the storage as a specific type in the code.
+   * @param storage the storage to type.
+   *                Must be of the same type as the StorageType.
+   *                If it is not, an IllegalArgumentException will be thrown.
+   * @return the storage as a typed storage.
+   */
+  ColumnStorage<T> asTypedStorage(ColumnStorage<?> storage);
 }

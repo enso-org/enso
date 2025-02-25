@@ -40,7 +40,7 @@ public final class DoubleStorageFacade<T> implements ColumnDoubleStorage {
   }
 
   @Override
-  public StorageType getType() {
+  public StorageType<?> getType() {
     return FloatType.FLOAT_64;
   }
 

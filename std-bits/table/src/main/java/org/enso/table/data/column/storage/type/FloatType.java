@@ -1,6 +1,8 @@
 package org.enso.table.data.column.storage.type;
 
-public record FloatType(Bits bits) implements StorageType {
+import org.enso.table.data.column.storage.ColumnStorage;
+
+public record FloatType(Bits bits) implements StorageType<Double> {
   public static final FloatType FLOAT_64 = new FloatType(Bits.BITS_64);
 
   public FloatType {
@@ -22,5 +24,15 @@ public record FloatType(Bits bits) implements StorageType {
   @Override
   public boolean hasTime() {
     return false;
+  }
+
+  @Override
+  public ColumnStorage<Double> asTypedStorage(ColumnStorage<?> storage) {
+    if (storage.getType() instanceof FloatType) {
+      @SuppressWarnings("unchecked")
+      var output = (ColumnStorage<Double>) storage;
+      return output;
+    }
+    throw new IllegalArgumentException("Storage is not of FloatType");
   }
 }

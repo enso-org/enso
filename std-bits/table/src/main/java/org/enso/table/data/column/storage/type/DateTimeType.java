@@ -3,7 +3,7 @@ package org.enso.table.data.column.storage.type;
 import java.time.ZonedDateTime;
 import org.enso.table.data.column.storage.ColumnStorage;
 
-public record DateTimeType() implements StorageType {
+public record DateTimeType() implements StorageType<ZonedDateTime> {
   public static final DateTimeType INSTANCE = new DateTimeType();
 
   @Override
@@ -21,6 +21,7 @@ public record DateTimeType() implements StorageType {
     return true;
   }
 
+  @Override
   public ColumnStorage<ZonedDateTime> asTypedStorage(ColumnStorage<?> storage) {
     if (storage.getType() instanceof DateTimeType) {
       @SuppressWarnings("unchecked")

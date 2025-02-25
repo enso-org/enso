@@ -1,6 +1,8 @@
 package org.enso.table.data.column.storage.type;
 
-public record BooleanType() implements StorageType {
+import org.enso.table.data.column.storage.ColumnStorage;
+
+public record BooleanType() implements StorageType<Boolean> {
   public static final BooleanType INSTANCE = new BooleanType();
 
   @Override
@@ -16,5 +18,15 @@ public record BooleanType() implements StorageType {
   @Override
   public boolean hasTime() {
     return false;
+  }
+
+  @Override
+  public ColumnStorage<Boolean> asTypedStorage(ColumnStorage<?> storage) {
+    if (storage.getType() instanceof BooleanType) {
+      @SuppressWarnings("unchecked")
+      var output = (ColumnStorage<Boolean>) storage;
+      return output;
+    }
+    throw new IllegalArgumentException("Storage is not of BooleanType");
   }
 }

@@ -33,7 +33,7 @@ public class LongStorageFacade<T> implements ColumnLongStorage {
   }
 
   @Override
-  public StorageType getType() {
+  public StorageType<?> getType() {
     return IntegerType.INT_64;
   }
 

@@ -3,7 +3,7 @@ package org.enso.table.data.column.storage.type;
 import java.math.BigInteger;
 import org.enso.table.data.column.storage.ColumnStorage;
 
-public record IntegerType(Bits bits) implements StorageType {
+public record IntegerType(Bits bits) implements StorageType<Long> {
   public static final IntegerType INT_64 = new IntegerType(Bits.BITS_64);
   public static final IntegerType INT_32 = new IntegerType(Bits.BITS_32);
   public static final IntegerType INT_16 = new IntegerType(Bits.BITS_16);
@@ -85,6 +85,7 @@ public record IntegerType(Bits bits) implements StorageType {
     return INT_64;
   }
 
+  @Override
   public ColumnStorage<Long> asTypedStorage(ColumnStorage<?> storage) {
     if (storage.getType() instanceof IntegerType) {
       @SuppressWarnings("unchecked")

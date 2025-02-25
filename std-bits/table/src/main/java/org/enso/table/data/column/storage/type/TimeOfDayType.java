@@ -3,7 +3,7 @@ package org.enso.table.data.column.storage.type;
 import java.time.LocalTime;
 import org.enso.table.data.column.storage.ColumnStorage;
 
-public record TimeOfDayType() implements StorageType {
+public record TimeOfDayType() implements StorageType<LocalTime> {
   public static final TimeOfDayType INSTANCE = new TimeOfDayType();
 
   @Override
@@ -21,6 +21,7 @@ public record TimeOfDayType() implements StorageType {
     return true;
   }
 
+  @Override
   public ColumnStorage<LocalTime> asTypedStorage(ColumnStorage<?> storage) {
     if (storage.getType() instanceof TimeOfDayType) {
       @SuppressWarnings("unchecked")

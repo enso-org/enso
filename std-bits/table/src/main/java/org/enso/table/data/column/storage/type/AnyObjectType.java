@@ -1,6 +1,8 @@
 package org.enso.table.data.column.storage.type;
 
-public record AnyObjectType() implements StorageType {
+import org.enso.table.data.column.storage.ColumnStorage;
+
+public record AnyObjectType() implements StorageType<Object> {
   public static final AnyObjectType INSTANCE = new AnyObjectType();
 
   @Override
@@ -16,5 +18,15 @@ public record AnyObjectType() implements StorageType {
   @Override
   public boolean hasTime() {
     return false;
+  }
+
+  @Override
+  public ColumnStorage<Object> asTypedStorage(ColumnStorage<?> storage) {
+    if (storage.getType() instanceof AnyObjectType) {
+      @SuppressWarnings("unchecked")
+      var output = (ColumnStorage<Object>) storage;
+      return output;
+    }
+    throw new IllegalArgumentException("Storage is not of AnyObjectType");
   }
 }
