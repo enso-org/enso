@@ -1,0 +1,61 @@
+## Enso Signatures 1.0
+## module Standard.Database.Internal.Base_Generator
+- type Dialect_Operations
+    - Value operations_dict:(Standard.Base.Data.Dictionary.Dictionary Standard.Base.Data.Text.Text Standard.Base.Any.Any)
+    - extend_with self mappings:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - is_operation_supported self operation:Standard.Base.Data.Text.Text -> Standard.Base.Data.Boolean.Boolean
+- type Let_Binder_Renamer
+    - Value existing_tables:(Standard.Base.Data.Hashset.Hashset Standard.Base.Data.Text.Text) binders_ref:(Standard.Base.Runtime.Ref.Ref Standard.Base.Data.Dictionary.Dictionary) serial_ref:(Standard.Base.Runtime.Ref.Ref Standard.Base.Data.Numbers.Integer)
+    - new existing_tables:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text) -> Standard.Database.Internal.Base_Generator.Let_Binder_Renamer
+    - rename self name:Standard.Base.Data.Text.Text binder:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+- type SQL_Generator
+    - apply_op_generator_with_metadata self op:Standard.Base.Any.Any arguments:Standard.Base.Any.Any metadata:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - generate_expression self dialect:Standard.Base.Any.Any expr:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - generate_from_part self dialect:Standard.Base.Any.Any from_spec:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - generate_insert_query self dialect:Standard.Base.Any.Any table_name:Standard.Base.Any.Any pairs:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - generate_order self dialect:Standard.Base.Any.Any order_descriptor:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - generate_select_query_sql self dialect:Standard.Base.Any.Any columns:Standard.Base.Any.Any ctx:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - generate_sub_query self dialect:Standard.Base.Any.Any query:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - new -> Standard.Database.Internal.Base_Generator.SQL_Generator
+- _build_lead_lag_sql lead_lag:Standard.Base.Data.Text.Text n:Standard.Database.SQL.SQL_Builder colName:Standard.Database.SQL.SQL_Builder grouping:Standard.Database.SQL.SQL_Builder ordering:Standard.Database.SQL.SQL_Builder -> Standard.Database.SQL.SQL_Builder
+- _build_partition_sql grouping:Standard.Database.SQL.SQL_Builder ordering:Standard.Database.SQL.SQL_Builder -> Standard.Database.SQL.SQL_Builder
+- _make_lead_lag lead_lag:Standard.Base.Data.Text.Text arguments:Standard.Base.Data.Vector.Vector -> Standard.Database.SQL.SQL_Builder
+- _make_lead_lag_closest_value lead_lag:Standard.Base.Data.Text.Text arguments:Standard.Base.Data.Vector.Vector -> Standard.Database.SQL.SQL_Builder
+- alias dialect:Standard.Base.Any.Any name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- base_dialect_operations -> Standard.Base.Any.Any
+- case_when arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- collect_table_names query:Standard.Database.Internal.IR.Query.Query -> (Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)
+- default_fetch_types_query dialect:Standard.Base.Any.Any expression:Standard.Base.Any.Any context:Standard.Base.Any.Any where_filter_always_false_literal:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- default_generate_collate collation_name:Standard.Base.Data.Text.Text quote_char:Standard.Base.Data.Text.Text= -> Standard.Base.Data.Text.Text
+- default_get_part_order part:Standard.Database.Internal.SQL_Part.SQL_Part -> Standard.Base.Data.Numbers.Integer
+- default_make_table_literal wrap_identifier:Standard.Base.Any.Any vecs:Standard.Base.Any.Any column_names:Standard.Base.Any.Any as_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- fold_case -> Standard.Base.Any.Any
+- generate_column_description dialect:Standard.Base.Any.Any descriptor:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- generate_create_table dialect:Standard.Base.Any.Any name:Standard.Base.Any.Any columns:Standard.Base.Any.Any primary_key:Standard.Base.Any.Any temporary:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- generate_query dialect:Standard.Base.Any.Any query:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- is_empty -> Standard.Base.Any.Any
+- length -> Standard.Base.Any.Any
+- lift_binary_op name:Standard.Base.Any.Any function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- lift_binary_sql_function name:Standard.Base.Data.Text.Text sql_function:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+- lift_unary_op name:Standard.Base.Any.Any function:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_between arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_binary_op name:Standard.Base.Any.Any arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_case_sensitive -> Standard.Base.Any.Any
+- make_concat make_raw_concat_expr:Standard.Base.Any.Any make_contains_expr:Standard.Base.Any.Any has_quote:Standard.Base.Any.Any args:Standard.Base.Any.Any append_char:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- make_constant sql_code:Standard.Base.Any.Any arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_equals a:Standard.Base.Any.Any b:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_function name:Standard.Base.Any.Any arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_iif arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_is_in arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_is_in_column arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_not_equals a:Standard.Base.Any.Any b:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_right_unary_op name:Standard.Base.Any.Any arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_row_number arguments:Standard.Base.Data.Vector.Vector metadata:Standard.Database.Internal.IR.Operation_Metadata.Row_Number_Metadata -> Standard.Base.Any.Any
+- make_row_number_in_group arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_unary_op name:Standard.Base.Any.Any arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- preprocess_query query:Standard.Database.Internal.IR.Query.Query -> Standard.Database.Internal.IR.Query.Query
+- simple_cast -> Standard.Base.Any.Any
+- simple_equals_ignore_case -> Standard.Base.Any.Any
+- truncate_table_delete_from_style dialect:Standard.Base.Any.Any table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- truncate_table_truncate_table_style dialect:Standard.Base.Any.Any table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- wrap_in_quotes identifier:Standard.Base.Any.Any -> Standard.Base.Any.Any

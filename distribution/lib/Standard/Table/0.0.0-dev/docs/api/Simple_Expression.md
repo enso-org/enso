@@ -1,0 +1,79 @@
+## Enso Signatures 1.0
+## module Standard.Table.Simple_Expression
+- type Date_Operation
+    - Add length:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Integer)= period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)=
+    - Day
+    - Diff end:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Time.Date_Time.Date_Time|Standard.Base.Data.Time.Date.Date|Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day)= period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)=
+    - Hour
+    - Minute
+    - Month
+    - Part period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)=
+    - Second
+    - Truncate
+    - Year
+    - create_widget table:Standard.Table.Internal.Table_Ref.Table_Ref display:Standard.Base.Metadata.Display= -> Standard.Base.Any.Any
+    - evaluate self column:Standard.Base.Any.Any table:Standard.Table.Internal.Table_Ref.Table_Ref -> Standard.Base.Any.Any
+- type Logical_Operation
+    - And rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Boolean.Boolean)=
+    - Not
+    - Or rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Boolean.Boolean)=
+    - create_widget table:Standard.Table.Internal.Table_Ref.Table_Ref display:Standard.Base.Metadata.Display= -> Standard.Base.Any.Any
+    - evaluate self column:Standard.Base.Any.Any table:Standard.Table.Internal.Table_Ref.Table_Ref -> Standard.Base.Any.Any
+- type Math_Operation
+    - Ceil
+    - Divide rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number)=
+    - Floor
+    - Mod rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number)=
+    - Multiply rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number)=
+    - Negate
+    - Power rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number)=
+    - Round precision:Standard.Base.Data.Numbers.Integer= use_bankers:Standard.Base.Data.Boolean.Boolean=
+    - Subtract rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number)=
+    - Truncate
+    - create_widget table:Standard.Table.Internal.Table_Ref.Table_Ref display:Standard.Base.Metadata.Display= -> Standard.Base.Any.Any
+    - evaluate self column:Standard.Base.Any.Any table:Standard.Table.Internal.Table_Ref.Table_Ref -> Standard.Base.Any.Any
+- type Simple_Calculation
+    - Add rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number|Standard.Base.Data.Text.Text)=
+    - And rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Boolean.Boolean)=
+    - Ceil
+    - Copy
+    - Date operation:Standard.Table.Simple_Expression.Date_Operation=
+    - Date_Add length:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Integer)= period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)=
+    - Date_Diff end:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Time.Date_Time.Date_Time|Standard.Base.Data.Time.Date.Date|Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day)= period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)=
+    - Date_Part period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)=
+    - Divide rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number)=
+    - Floor
+    - Format format:Standard.Base.Data.Text.Text=
+    - If condition:Standard.Base.Data.Filter_Condition.Filter_Condition= true_value:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Any.Any)= false_value:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Any.Any)=
+    - Logical operation:Standard.Table.Simple_Expression.Logical_Operation=
+    - Math operation:Standard.Table.Simple_Expression.Math_Operation=
+    - Max rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Any.Any)=
+    - Min rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Any.Any)=
+    - Mod rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number)=
+    - Multiply rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number)=
+    - Not
+    - Or rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Boolean.Boolean)=
+    - Power rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number)=
+    - Round precision:Standard.Base.Data.Numbers.Integer= use_bankers:Standard.Base.Data.Boolean.Boolean=
+    - Subtract rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number)=
+    - Text operation:Standard.Table.Simple_Expression.Text_Operation=
+    - Text_Left length:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Integer)=
+    - Text_Length
+    - Text_Right length:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Integer)=
+    - Trim where:Standard.Base.Data.Text.Location.Location= what:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text)=
+    - Truncate
+- type Simple_Expression
+    - From input:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Any.Any)= operation:Standard.Table.Simple_Expression.Simple_Calculation=
+    - Simple_Expr input:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Any.Any)= operation:Standard.Table.Simple_Expression.Simple_Calculation=
+    - default_widget table:Standard.Table.Internal.Table_Ref.Table_Ref display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
+    - evaluate self table:Standard.Table.Internal.Table_Ref.Table_Ref use_input_name:Standard.Base.Data.Boolean.Boolean on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
+- type Text_Operation
+    - Contains substring:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text)=
+    - Ends_With suffix:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text)=
+    - Left length:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Integer)=
+    - Length
+    - Right length:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Integer)=
+    - Starts_With prefix:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text)=
+    - Trim where:Standard.Base.Data.Text.Location.Location= what:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text)=
+    - create_widget table:Standard.Table.Internal.Table_Ref.Table_Ref display:Standard.Base.Metadata.Display= -> Standard.Base.Any.Any
+    - evaluate self column:Standard.Base.Any.Any table:Standard.Table.Internal.Table_Ref.Table_Ref -> Standard.Base.Any.Any
