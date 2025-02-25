@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
+import { GroupId, makeComponentList, type Component } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
 import LazyList from '@/components/LazyList.vue'
 
 import { groupColorStyle } from '@/composables/nodeColors'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { tryGetIndex } from '@/util/data/array'
-import { allRanges } from '@/util/data/range'
-import { computed } from 'vue'
+import { iteratorMap } from 'lib0/iterator.js'
+import { computed, ref } from 'vue'
 import ComponentEntry from './ComponentEntry.vue'
 
 const ITEM_SIZE = 36
@@ -19,11 +19,23 @@ const props = defineProps<{
 const emit = defineEmits<{
   acceptSuggestion: [suggestion: Component]
   'update:selectedComponent': [selected: Component | null]
-  'update:selectedGroup': [selected: number | null]
 }>()
 
+const selectedGroup = ref<GroupId | null>(null)
 const suggestionDbStore = useSuggestionDbStore()
 const components = computed(() => makeComponentList(suggestionDbStore.entries, props.filtering))
+const currentComponents = computed(() => {
+  if (selectedGroup.value == null) return components.value.get('all') ?? []
+  else return components.value.get(selectedGroup.value) ?? []
+})
+const currentGroups = computed(() => {
+  return Array.from(components.value.keys(), (id) => ({
+    id,
+    ...(id === 'all' ? { name: 'all' }
+    : id === 'suggestions' ? { name: 'suggestions' }
+    : (suggestionDbStore.groups[id] ?? { name: 'unknown' })),
+  }))
+})
 /** Group colors are populated in `GraphEditor`, and for each group in suggestion database a CSS variable is created. */
 function componentColor(component: Component): string {
   return groupColorStyle(tryGetIndex(suggestionDbStore.groups, component.group))
@@ -35,16 +47,16 @@ function componentColor(component: Component): string {
     <LazyList
       v-slot="{ item: group }"
       class="groups"
-      :items="suggestionDbStore.groups"
+      :items="currentGroups"
       :itemHeight="ITEM_SIZE"
       :autoSelectFirst="true"
-      @update:selectedItem="(_, index) => emit('update:selectedGroup', index)"
+      @update:selectedItem="(group) => (selectedGroup = group?.id ?? null)"
     >
       <div class="groupEntry">{{ group.name }}</div>
     </LazyList>
     <LazyList
       class="components"
-      :items="components"
+      :items="currentComponents"
       :itemHeight="ITEM_SIZE"
       :autoSelectFirst="autoSelectFirstComponent"
       @itemAccepted="emit('acceptSuggestion', $event)"

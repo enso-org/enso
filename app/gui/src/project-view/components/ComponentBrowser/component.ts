@@ -1,5 +1,5 @@
 import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
-import { SuggestionDb } from '@/stores/suggestionDatabase'
+import { GroupInfo, SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   entryDisplayPath,
   entryIsStatic,
@@ -31,6 +31,8 @@ export interface Component extends ComponentLabel {
   icon: Icon
   group?: number | undefined
 }
+
+export type GroupId = 'all' | 'suggestions' | number
 
 /** @returns the displayed label of given suggestion entry with information of highlighted ranges. */
 export function labelOfEntry(entry: SuggestionEntry, match: MatchResult): ComponentLabelInfo {
@@ -110,8 +112,11 @@ export function makeComponent({ id, entry, match }: ComponentInfo): Component {
   }
 }
 
-/** Create {@link Component} list from filtered suggestions. */
-export function makeComponentList(db: SuggestionDb, filtering: Filtering): Component[] {
+/** Create {@link Component} list for each displayed group from filtered suggestions. */
+export function makeComponentList(
+  db: SuggestionDb,
+  filtering: Filtering,
+): Map<GroupId, Component[]> {
   function* matchSuggestions() {
     const additionalSelfTypes: ProjectPath[] = []
     if (filtering.selfArg?.type === 'known') {
@@ -120,6 +125,7 @@ export function makeComponentList(db: SuggestionDb, filtering: Filtering): Compo
     }
 
     for (const [id, entry] of db.entries()) {
+      if (!entry) continue
       const match = filtering.filter(entry, additionalSelfTypes)
       if (isSome(match)) {
         yield { id, entry, match }
@@ -127,5 +133,20 @@ export function makeComponentList(db: SuggestionDb, filtering: Filtering): Compo
     }
   }
   const matched = Array.from(matchSuggestions()).sort(compareSuggestions)
-  return Array.from(matched, (info) => makeComponent(info))
+  const groups = new Map<GroupId, Component[]>()
+  const addToGroup = (group: GroupId, entry: ComponentInfo) => {
+    const list = groups.get(group)
+    if (list != null) {
+      list.push(makeComponent(entry))
+    } else {
+      groups.set(group, [makeComponent(entry)])
+    }
+  }
+  for (const entry of matched) {
+    addToGroup('all', entry)
+    if (entry.entry.groupIndex != null) {
+      addToGroup(entry.entry.groupIndex, entry)
+    }
+  }
+  return groups
 }

@@ -15,7 +15,6 @@ export type SelfArg =
 export interface Filter {
   pattern?: string
   selfArg?: SelfArg
-  groupIndex?: number
 }
 
 export enum MatchTypeScore {
@@ -236,17 +235,15 @@ class FilteringWithPattern {
 export class Filtering {
   pattern: FilteringWithPattern | undefined
   selfArg: SelfArg | undefined
-  groupIndex: number | undefined
 
   /** TODO: Add docs */
   constructor(
     filter: Filter,
     public currentModule: ProjectPath | undefined = undefined,
   ) {
-    const { pattern, selfArg, groupIndex } = filter
+    const { pattern, selfArg } = filter
     this.pattern = pattern != null ? new FilteringWithPattern(pattern) : undefined
     this.selfArg = selfArg
-    this.groupIndex = groupIndex
   }
 
   private selfTypeMatches(entry: SuggestionEntry, additionalSelfTypes: ProjectPath[]): boolean {
@@ -259,10 +256,6 @@ export class Filtering {
       entrySelfType.equals(ANY_TYPE) ||
       additionalSelfTypes.some((t) => entrySelfType.equals(t))
     )
-  }
-
-  private groupMatches(entry: SuggestionEntry): boolean {
-    return this.groupIndex == null || entry.groupIndex === this.groupIndex
   }
 
   /** TODO: Add docs */
@@ -284,7 +277,6 @@ export class Filtering {
   /** TODO: Add docs */
   filter(entry: SuggestionEntry, additionalSelfTypes: ProjectPath[]): MatchResult | null {
     if (entry.isPrivate || entry.kind != SuggestionKind.Method) return null
-    if (!this.groupMatches(entry)) return null
     if (this.selfArg == null && isInternal(entry)) return null
     if (!this.selfTypeMatches(entry, additionalSelfTypes)) return null
     if (this.pattern) {

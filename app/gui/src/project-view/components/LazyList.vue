@@ -63,7 +63,9 @@ function itemAtY(pos: number) {
 }
 
 function itemStyle(index: number) {
-  return { transform: `translateY(${ItemPos(index)}px)` }
+  // TODO[ao]: for some reason, position: absolute must be set here,
+  //  because it sometimes is not set (.item class is not sufficient). To investigate.
+  return { position: 'absolute', transform: `translateY(${ItemPos(index)}px)` }
 }
 
 // === Highlight ===

@@ -165,7 +165,6 @@ const transform = computed(() => {
 // === Selection ===
 
 const selected = ref<Component | null>(null)
-const selectedGroup = ref<number | null>(null)
 
 const selectedSuggestionId = computed(() => selected.value?.suggestionId)
 const selectedSuggestion = computed(() => {
@@ -181,13 +180,7 @@ const input = useComponentBrowserInput()
 const currentFiltering = computed(() => {
   if (input.mode.mode === 'componentBrowsing') {
     const currentModule = projectStore.moduleProjectPath
-    return new Filtering(
-      {
-        ...(selectedGroup.value != null ? { groupIndex: selectedGroup.value } : {}),
-        ...input.mode.filter,
-      },
-      currentModule?.ok ? currentModule.value : undefined,
-    )
+    return new Filtering(input.mode.filter, currentModule?.ok ? currentModule.value : undefined)
   } else {
     return undefined
   }
@@ -443,7 +436,6 @@ const handler = componentBrowserBindings.handler({
       :autoSelectFirstComponent="true"
       @acceptSuggestion="acceptSuggestion($event)"
       @update:selectedComponent="selected = $event"
-      @update:selectedGroup="selectedGroup = $event"
     />
   </div>
 </template>

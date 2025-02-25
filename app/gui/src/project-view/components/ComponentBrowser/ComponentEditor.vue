@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
 import AutoSizedInput, { type Range } from '@/components/widgets/AutoSizedInput.vue'
-import type { useNavigator } from '@/composables/navigator'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { computed, ref, watch, type DeepReadonly } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
@@ -10,7 +9,6 @@ const content = defineModel<DeepReadonly<{ text: string; selection: Range | unde
   required: true,
 })
 const props = defineProps<{
-  navigator: ReturnType<typeof useNavigator>
   icon: Icon | undefined
   nodeColor: string
 }>()
@@ -43,7 +41,6 @@ defineExpose({
 const rootStyle = computed(() => {
   return {
     '--node-group-color': props.nodeColor,
-    '--port-edge-width': `${4 * props.navigator.scale}px`,
   }
 })
 </script>
@@ -53,6 +50,7 @@ const rootStyle = computed(() => {
     <div v-if="props.icon" class="iconPort">
       <SvgIcon :name="props.icon" class="nodeIcon" />
     </div>
+    <span 
     <AutoSizedInput
       ref="inputField"
       v-model="fieldContent.text"
@@ -64,9 +62,6 @@ const rootStyle = computed(() => {
       @pointerup.stop
       @click.stop
     />
-    <div class="buttonPanel">
-      <slot></slot>
-    </div>
   </div>
 </template>
 
@@ -75,10 +70,10 @@ const rootStyle = computed(() => {
   --port-padding: 6px;
   --icon-height: 16px;
   --icon-text-gap: 6px;
-  border-radius: var(--radius-default);
+  border-radius: 50%;
   background-color: var(--background-color);
   padding: 0 var(--component-editor-padding);
-  height: 40px;
+  height: 44px;
   display: flex;
   flex-direction: row;
   gap: 8px;
