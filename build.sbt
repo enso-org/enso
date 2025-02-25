@@ -4056,7 +4056,7 @@ lazy val launcher = project
   .dependsOn(pkg)
   .dependsOn(`logging-utils` % "test->test")
   .dependsOn(`logging-service`)
-  .dependsOn(`logging-service-logback` % "test->test;runtime->runtime")
+  .dependsOn(`logging-service-logback` % Test)
   .dependsOn(`distribution-manager` % Test)
   .dependsOn(`runtime-version-manager-test` % Test)
 
