@@ -1564,7 +1564,7 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertTrue(
         "The DiscardedWarning should be found among " + allDiagnostics, diagnostic.isPresent());
     Warning.DiscardedValue discardedWarning = (Warning.DiscardedValue) diagnostic.get();
-    assertEquals(discardedWarning.discardedType(), "Any -> (Any -> Any)");
+    assertEquals("Any -> (Any -> Any)", discardedWarning.discardedType());
   }
 
   @Test
