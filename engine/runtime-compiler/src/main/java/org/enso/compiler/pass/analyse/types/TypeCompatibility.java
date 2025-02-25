@@ -6,7 +6,6 @@ class TypeCompatibility {
     this.conversionResolver = methodTypeResolver;
   }
 
-  // FIXME maybe separate into separate class? but both functionality is related, maybe rename...
   private final MethodTypeResolver conversionResolver;
 
   /** Denotes if a given provided type can fit into an expected type. */
