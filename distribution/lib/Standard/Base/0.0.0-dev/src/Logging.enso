@@ -100,7 +100,7 @@ type Log_Level
     ## Severe level log message.
     Severe
 
-private log_impl logger ~message:Text level:Log_Level args:Vector =
+private log_impl logger ~message level args =
     builder = case level of
         Log_Level.Finest -> logger.atTrace
         Log_Level.Fine -> logger.atDebug
