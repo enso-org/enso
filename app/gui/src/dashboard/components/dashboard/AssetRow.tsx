@@ -36,6 +36,7 @@ import { Text } from '#/components/AriaComponents'
 import { IndefiniteSpinner } from '#/components/Spinner'
 import {
   useDeleteAssetsMutationState,
+  useMoveAssetsMutationState,
   useRestoreAssetsMutationState,
 } from '#/hooks/backendBatchedHooks'
 import {
@@ -59,7 +60,6 @@ import {
 } from '#/utilities/permissions'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
-import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 import { useTransition } from 'react'
 
 /**
@@ -289,27 +289,37 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
 
   const isDeletingSingleAsset =
     useBackendMutationState(backend, 'deleteAsset', {
-      predicate: ({ state: { variables = EMPTY_ARRAY } }) => variables[0] === asset.id,
+      predicate: ({ state: { variables: [assetId] = [] } }) => assetId === asset.id,
       select: () => null,
     }).length !== 0
   const isDeletingMultipleAssets =
     useDeleteAssetsMutationState(backend, {
-      predicate: ({ state: { variables: [assetIds = EMPTY_ARRAY] = EMPTY_ARRAY } }) =>
-        assetIds.includes(asset.id),
+      predicate: ({ state: { variables: [assetIds = []] = [] } }) => assetIds.includes(asset.id),
       select: () => null,
     }).length !== 0
   const isDeleting = isDeletingSingleAsset || isDeletingMultipleAssets
   const isRestoringSingleAsset =
     useBackendMutationState(backend, 'undoDeleteAsset', {
-      predicate: ({ state: { variables = EMPTY_ARRAY } }) => variables[0] === asset.id,
+      predicate: ({ state: { variables: [assetId] = [] } }) => assetId === asset.id,
       select: () => null,
     }).length !== 0
   const isRestoringMultipleAssets =
     useRestoreAssetsMutationState(backend, {
-      predicate: ({ state: { variables: assetIds = EMPTY_ARRAY } }) => assetIds.includes(asset.id),
+      predicate: ({ state: { variables: assetIds = [] } }) => assetIds.includes(asset.id),
       select: () => null,
     }).length !== 0
   const isRestoring = isRestoringSingleAsset || isRestoringMultipleAssets
+  const isUpdatingSingleAsset =
+    useBackendMutationState(backend, 'updateAsset', {
+      predicate: ({ state: { variables: [assetId] = [] } }) => assetId === asset.id,
+      select: () => null,
+    }).length !== 0
+  const isMovingMultipleAssets =
+    useMoveAssetsMutationState(backend, {
+      predicate: ({ state: { variables: [assetIds = []] = [] } }) => assetIds.includes(asset.id),
+      select: () => null,
+    }).length !== 0
+  const isUpdating = isUpdatingSingleAsset || isMovingMultipleAssets
 
   const { data: projectState } = useQuery({
     ...createGetProjectDetailsQuery({
@@ -343,7 +353,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
     createPermissionVariables?.actorsIds[0] === user.userId &&
     createPermissionVariables.action == null
   const visibility =
-    isDeleting || isRestoring ? Visibility.faded
+    isDeleting || isRestoring || isUpdating ? Visibility.faded
     : isRemovingSelf ? Visibility.hidden
     : insertionVisibility
   const hidden = visibility === Visibility.hidden
