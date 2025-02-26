@@ -10,6 +10,7 @@ import org.enso.logger.ObservedMessage;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.proxy.ProxyExecutable;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -182,7 +183,9 @@ public class ProgressTest {
   }
 
   public static final class AccumulatorWithProgress {
-    // implements BiConsumer<Long, Progress>, Supplier<Long> {
+    // ideally this class would
+    // implement BiConsumer<Long, Progress>, Supplier<Long>
+    // but that isn't working well with Truffle builtin host interop
     private long mul;
 
     private AccumulatorWithProgress(long mul) {
@@ -197,5 +200,81 @@ public class ProgressTest {
     public Long result() {
       return mul;
     }
+  }
+
+  /**
+   * Demonstrates logging fully managed from Java code.
+   *
+   * <p>Because the underlaying <em>progress reporting</em> infrastructure relies on logging, it is
+   * possible to perform whole progress manipulation just from Java. All that is needed is to
+   * simulate the same messages and send them to {@code Standard.Base.Logging.Progress} logger as
+   * this method shows.
+   */
+  private static int showHowToLogDirectlyFromJavaWhileComputingFactorial(int n) {
+    var log = LoggerFactory.getLogger("Standard.Base.Logging.Progress");
+    var progressHandle =
+        new Object() {
+          @Override
+          public String toString() {
+            return "JavaProgress";
+          }
+        };
+    log.trace("INIT {}:{}@{}", progressHandle, "Logging progress fully from Java", 5);
+
+    var mul = 1;
+    for (var i = 1; i <= n; i++) {
+      log.trace("ADVANCE {}+{}", progressHandle, 1);
+      mul *= i;
+    }
+
+    log.trace("ADVANCE {}+{}", progressHandle, 5);
+    return mul;
+  }
+
+  @Test
+  public void createNewProgressInJava() {
+    var code =
+        """
+    from Standard.Base import Integer, Float
+    from Standard.Base.Logging import Progress
+
+    up_to n host =
+        host n
+    """;
+    var upTo = ctx.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "up_to");
+
+    var log = LoggerFactory.getLogger("Standard.Base.Logging.Progress");
+
+    var javaMethod =
+        (ProxyExecutable)
+            (Value... arguments) -> {
+              return showHowToLogDirectlyFromJavaWhileComputingFactorial(arguments[0].asInt());
+            };
+
+    var msgs =
+        ObservedMessage.collect(
+            log,
+            () -> {
+              var fac5 = upTo.execute(5, javaMethod);
+              assertEquals(120, fac5.asInt());
+            });
+
+    assertEquals("Seven messsages " + msgs, 7, msgs.size());
+    var txt =
+        msgs.stream().map(ObservedMessage::getFormattedMessage).collect(Collectors.joining("\n"));
+
+    assertTrue("Initialization first", msgs.get(0).getMessage().startsWith("INIT "));
+
+    assertEquals(
+        "Initialize five steps. Then five `advance` calls and finally advance to finish.",
+        """
+        INIT JavaProgress:Logging progress fully from Java@5
+        ADVANCE JavaProgress+1
+        ADVANCE JavaProgress+1
+        ADVANCE JavaProgress+1
+        ADVANCE JavaProgress+1
+        ADVANCE JavaProgress+1
+        ADVANCE JavaProgress+5""",
+        txt);
   }
 }
