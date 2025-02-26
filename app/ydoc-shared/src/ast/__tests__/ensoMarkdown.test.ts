@@ -76,6 +76,19 @@ test.each([
     not: ['Document', ['Blockquote', ['QuoteMark', '>'], ['Paragraph', 'Quoted']]],
   },
   {
+    source: '> Quoted\n> multiline',
+    expected: [
+      'Document',
+      [
+        'Blockquote',
+        ['QuoteMark', '> '],
+        ['Paragraph', 'Quoted'],
+        ['QuoteMark', '> '],
+        ['Paragraph', 'multiline'],
+      ],
+    ],
+  },
+  {
     source: '- Bullet',
     expected: [
       'Document',
@@ -91,6 +104,19 @@ test.each([
     ],
     not: ['Document', ['OrderedList', ['ListItem', ['ListMark', '1.'], ['Paragraph', 'Numbered']]]],
   },
+  /*
+  { // FIXME
+    source: '# *Formatted header*',
+    expected: [
+      'Document',
+      [
+        'ATXHeading1',
+        ['HeaderMark', '# '],
+        ['Emphasis', ['EmphasisMark', '*'], ['EmphasisMark', '*']],
+      ],
+    ],
+  },
+   */
 ])('Syntax extension: Delimiter tokens include syntactic spaces: $source', checkTree)
 
 // === "Incomplete" syntax special cases ===
@@ -673,5 +699,29 @@ test.each([
   {
     source: '    main = 42',
     expected: ['Document', ['CodeBlock', ['CodeText', 'main = 42']]],
+  },
+  {
+    source: '',
+    expected: ['Document', ''],
+  },
+  {
+    source: 'Text\n```\nCode\n```',
+    expected: [
+      'Document',
+      ['Paragraph', 'Text'],
+      ['FencedCode', ['CodeMark', '```'], ['CodeText', 'Code'], ['CodeMark', '```']],
+    ],
+  },
+  {
+    source: '```\nCode\n```\n```\nCode\n```',
+    expected: [
+      'Document',
+      ['FencedCode', ['CodeMark', '```'], ['CodeText', 'Code'], ['CodeMark', '```']],
+      ['FencedCode', ['CodeMark', '```'], ['CodeText', 'Code'], ['CodeMark', '```']],
+    ],
+  },
+  {
+    source: '```\nCode',
+    expected: ['Document', ['FencedCode', ['CodeMark', '```'], ['CodeText', 'Code']]],
   },
 ])('Markdown syntax tree: $source', checkTree)

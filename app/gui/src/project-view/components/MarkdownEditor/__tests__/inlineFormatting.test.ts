@@ -389,6 +389,26 @@ const selectionCases: TestCase[] = [
     italicToggled: '*~~Node extension i~~|nsid|~~e word~~*',
   },
    */
+  {
+    source: [
+      'Block |types',
+      '# Block types',
+      '## Block types',
+      '### Block types',
+      '> Block types',
+      '1. Block types',
+      '- Block| types',
+    ].join('\n'),
+    italicToggled: [
+      'Block |*types*',
+      '# *Block types*',
+      '## *Block types*',
+      '### *Block types*',
+      '> *Block types*',
+      '1. *Block types*',
+      '- *Block*| types',
+    ].join('\n'),
+  },
 ]
 
 function checkGetFormat(input: TestCase) {

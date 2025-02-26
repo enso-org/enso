@@ -217,8 +217,9 @@ function skipForList(bl: CompositeBlock, cx: BlockContext, line: Line) {
 const DefaultSkipMarkup: {[type: number]: (bl: CompositeBlock, cx: BlockContext, line: Line) => boolean} = {
   [Type.Blockquote](bl, cx, line) {
     if (line.next != 62 /* '>' */) return false
-    line.markers.push(elt(Type.QuoteMark, cx.lineStart + line.pos, cx.lineStart + line.pos + 1))
-    line.moveBase(line.pos + (space(line.text.charCodeAt(line.pos + 1)) ? 2 : 1))
+    let sAfter = space(line.text.charCodeAt(line.pos + 1)), size = sAfter ? 2 : 1
+    line.markers.push(elt(Type.QuoteMark, cx.lineStart + line.pos, cx.lineStart + line.pos + (includeSpaceInDelimiterNode ? size : 1)))
+    line.moveBase(line.pos + size)
     bl.end = cx.lineStart + line.text.length
     return true
   },
