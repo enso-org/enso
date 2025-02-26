@@ -201,7 +201,7 @@ abstract class TypePropagation {
       return false;
     }
 
-    return canNonFunctionsBeDiscarded;
+    return canNonFunctionsBeDiscarded();
   }
 
   /**
@@ -212,7 +212,9 @@ abstract class TypePropagation {
    *   <li>If false, any non-Nothing value will raise a warning.
    * </ol>
    */
-  protected boolean canNonFunctionsBeDiscarded = true;
+  protected boolean canNonFunctionsBeDiscarded() {
+    return true;
+  }
 
   private TypeRepresentation processCaseExpression(
       Case.Expr caseExpr, LocalBindingsTyping localBindingsTyping) {
