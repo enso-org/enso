@@ -6,7 +6,11 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useCategoriesAPI, useCloudCategoryList } from '#/layouts/Drive/Categories/categoriesHooks'
 import type { AnyCloudCategory } from '#/layouts/Drive/Categories/Category'
 import { useUser } from '#/providers/AuthProvider'
-import { useSetExpandedDirectoryIds, useSetSelectedAssets } from '#/providers/DriveProvider'
+import {
+  useSetCurrentDirectoryId,
+  useSetExpandedDirectoryIds,
+  useSetSelectedAssets,
+} from '#/providers/DriveProvider'
 import { AssetType, DirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { Fragment, useTransition } from 'react'
@@ -24,6 +28,7 @@ export default function PathColumn(props: AssetColumnProps) {
   const { setCategory } = useCategoriesAPI()
   const setSelectedAssets = useSetSelectedAssets()
   const setExpandedDirectoryIds = useSetExpandedDirectoryIds()
+  const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const { rootDirectoryId } = useUser()
 
   // Path navigation exist only for cloud categories.
@@ -48,7 +53,7 @@ export default function PathColumn(props: AssetColumnProps) {
       .slice(0, targetDirectoryIndex + 1)
       .map(({ id, categoryId }) => ({ id, categoryId }))
 
-    const rootDirectoryInThePath = pathToDirectory.at(0)
+    const rootDirectoryInThePath = pathToDirectory[0]
 
     // This should never happen, as we always have the root directory in the path.
     // If it happens, it means you've skrewed up
@@ -66,14 +71,10 @@ export default function PathColumn(props: AssetColumnProps) {
       setExpandedDirectoryIds(pathToDirectory.map(({ id }) => id).concat(targetDirectory))
     }
 
-    setSelectedAssets([
-      {
-        type: AssetType.directory,
-        id: targetDirectory,
-        parentId: pathToDirectory.at(-1)?.id ?? DirectoryId('directory-'),
-        title: targetDirectoryInfo.label,
-      },
-    ])
+    setCurrentDirectoryId({
+      current: targetDirectory,
+      parent: finalPath[targetDirectoryIndex - 1]?.id ?? null,
+    })
   })
 
   if (finalPath.length === 0) {
