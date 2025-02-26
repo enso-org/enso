@@ -171,7 +171,6 @@ interface DragSelectionInfo {
 /** State passed through from a {@link AssetsTable} to every cell. */
 export interface AssetsTableState {
   readonly backend: Backend
-  readonly rootDirectoryId: DirectoryId
   readonly currentDirectoryId: DirectoryId
   readonly scrollContainerRef: RefObject<HTMLElement>
   readonly category: Category
@@ -263,7 +262,7 @@ function AssetsTable(props: AssetsTableProps) {
   const addAssetsLabelsMutation = useMutation(addAssetsLabelsMutationOptions(backend))
   const removeAssetsLabelsMutation = useMutation(removeAssetsLabelsMutationOptions(backend))
 
-  const { rootDirectoryId, currentDirectoryId, setCurrentDirectoryId } = useDirectoryIds({
+  const { currentDirectoryId, setCurrentDirectoryId } = useDirectoryIds({
     category,
   })
   const { data: assets = [] } = useQuery(
@@ -845,7 +844,7 @@ function AssetsTable(props: AssetsTableProps) {
 
   const onDropzoneDragOver = (event: DragEvent<Element>) => {
     const payload = ASSET_ROWS.lookup(event)
-    const filtered = payload?.filter((item) => item.asset.parentId !== rootDirectoryId)
+    const filtered = payload?.filter((item) => item.asset.parentId !== currentDirectoryId)
     if (filtered != null && filtered.length > 0) {
       event.preventDefault()
     } else if (event.dataTransfer.types.includes('Files')) {
@@ -865,7 +864,7 @@ function AssetsTable(props: AssetsTableProps) {
     if (event.dataTransfer.types.includes('Files')) {
       event.preventDefault()
       event.stopPropagation()
-      void uploadFiles(Array.from(event.dataTransfer.files), rootDirectoryId)
+      void uploadFiles(Array.from(event.dataTransfer.files), currentDirectoryId)
     }
   }
 
@@ -877,10 +876,9 @@ function AssetsTable(props: AssetsTableProps) {
     setEnabledColumns((currentColumns) => withPresence(currentColumns, column, false))
   })
 
-  const state: AssetsTableState = useMemo(
+  const state = useMemo<AssetsTableState>(
     () => ({
       backend,
-      rootDirectoryId,
       currentDirectoryId,
       scrollContainerRef: rootRef,
       category,
@@ -904,7 +902,6 @@ function AssetsTable(props: AssetsTableProps) {
       getAssetNodeById,
       hideColumn,
       query,
-      rootDirectoryId,
       setQuery,
       sortInfo,
     ],
@@ -1334,7 +1331,7 @@ function AssetsTable(props: AssetsTableProps) {
           }}
           onDrop={(event) => {
             const payload = ASSET_ROWS.lookup(event)
-            const filtered = payload?.filter((item) => item.asset.parentId !== rootDirectoryId)
+            const filtered = payload?.filter((item) => item.asset.parentId !== currentDirectoryId)
             if (filtered != null && filtered.length > 0) {
               event.preventDefault()
               event.stopPropagation()
@@ -1342,7 +1339,7 @@ function AssetsTable(props: AssetsTableProps) {
 
               moveAssetsMutation.mutate([
                 filtered.map((dragItem) => dragItem.asset.id),
-                rootDirectoryId,
+                currentDirectoryId,
               ])
             }
             handleFileDrop(event)
@@ -1353,7 +1350,7 @@ function AssetsTable(props: AssetsTableProps) {
         >
           <FileTrigger
             onSelect={(event) => {
-              void uploadFiles(Array.from(event ?? []), rootDirectoryId)
+              void uploadFiles(Array.from(event ?? []), currentDirectoryId)
             }}
           >
             <Button

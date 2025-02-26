@@ -289,7 +289,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
 
   const isDeletingSingleAsset =
     useBackendMutationState(backend, 'deleteAsset', {
-      predicate: ({ state: { variables: [assetId] = [] } }) => assetId === asset.id,
+      predicate: ({ state: { variables } }) => variables?.[0] === asset.id,
       select: () => null,
     }).length !== 0
   const isDeletingMultipleAssets =
@@ -300,7 +300,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   const isDeleting = isDeletingSingleAsset || isDeletingMultipleAssets
   const isRestoringSingleAsset =
     useBackendMutationState(backend, 'undoDeleteAsset', {
-      predicate: ({ state: { variables: [assetId] = [] } }) => assetId === asset.id,
+      predicate: ({ state: { variables } }) => variables?.[0] === asset.id,
       select: () => null,
     }).length !== 0
   const isRestoringMultipleAssets =
@@ -311,7 +311,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   const isRestoring = isRestoringSingleAsset || isRestoringMultipleAssets
   const isUpdatingSingleAsset =
     useBackendMutationState(backend, 'updateAsset', {
-      predicate: ({ state: { variables: [assetId] = [] } }) => assetId === asset.id,
+      predicate: ({ state: { variables } }) => variables?.[0] === asset.id,
       select: () => null,
     }).length !== 0
   const isMovingMultipleAssets =
