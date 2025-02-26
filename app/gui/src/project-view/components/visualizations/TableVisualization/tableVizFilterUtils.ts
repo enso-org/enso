@@ -1,4 +1,4 @@
-export type FilterType = 'number' | 'date' | 'set'
+export type FilterType = 'number' | 'date' | 'set' | 'text'
 
 /**
  * Represents the value used for filtering.
@@ -19,6 +19,9 @@ export const actionMap = {
   inRange: '..Between',
   blank: '..Is_Nothing',
   notBlank: '..Not_Nothing',
+  contains: '..Contains',
+  startsWith: '..Starts_With',
+  endsWith: '..Ends_With',
 }
 export type FilterAction = keyof typeof actionMap
 export type GridFilterModel = {
@@ -51,6 +54,9 @@ export const getFilterValue = (filterModel: GridFilterModel, filterAction?: stri
         filterAction === 'inRange' ?
           { toValue: filterModel.dateTo!, fromValue: filterModel.dateFrom! }
         : (filterModel.dateFrom as FilterValue)
+      break
+    case 'text':
+      value = filterModel.filter as FilterValue
       break
     default:
       value = filterModel.values as FilterValue

@@ -22,46 +22,6 @@ export type SortModel = {
   sortDirection: SortDirection
   sortIndex: number
 }
-type FilterType = 'number' | 'date' | 'set' | 'text'
-
-/**
- * Represents the value used for filtering.
- *
- * - For comparisons such as 'equals' or 'greater than,' the filter value is a single value (string).
- * - For 'is in' filtering, the filter value is a list of strings.
- * - For range filtering, the filter value consists of two values that define the range.
- */
-type FilterValue = string | string[] | FilterValueRange
-
-const actionMap = {
-  equals: '..Equal',
-  notEqual: '..Not_Equal',
-  greaterThan: '..Greater',
-  greaterThanOrEqual: '..Equal_Or_Greater',
-  lessThan: '..Less',
-  lessThanOrEqual: '..Equal_Or_Less',
-  inRange: '..Between',
-  blank: '..Is_Nothing',
-  notBlank: '..Not_Nothing',
-  contains: '..Contains',
-  startsWith: '..Starts_With',
-  endsWith: '..Ends_With',
-}
-type FilterAction = keyof typeof actionMap
-export type GridFilterModel = {
-  columnName: string
-  filterType: FilterType
-  filter?: string
-  filterTo?: string
-  dateFrom?: string
-  dateTo?: string
-  values?: string[]
-  filterAction?: FilterAction
-}
-type FilterValueRange = {
-  toValue: string
-  fromValue: string
-}
 
 export interface SortFilterNodesButtonOptions {
   filterModel: ToValue<GridFilterModel[]>
