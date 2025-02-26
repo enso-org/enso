@@ -43,8 +43,21 @@ public class CachedPropertyCheck<T> {
    * @throws InterruptedException if the current thread was interrupted while waiting
    */
   public T get() throws InterruptedException {
+    CompletableFuture<T> future = cachedFuture;
+    if (future.isCancelled()) {
+      // Recompute if the previous computation was cancelled.
+      future =
+          CompletableFuture.supplyAsync(
+              () -> {
+                try {
+                  return computation.compute();
+                } catch (Exception e) {
+                  throw new RuntimeException(e);
+                }
+              });
+    }
     try {
-      return cachedFuture.get();
+      return future.get();
     } catch (ExecutionException e) {
       LOGGER.error("Failed to compute cached value", e);
       return defaultValue;
