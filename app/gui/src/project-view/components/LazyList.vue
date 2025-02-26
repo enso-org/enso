@@ -210,7 +210,7 @@ defineExpose({
   width: 100%;
   height: 100%;
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: scroll;
   position: relative;
 }
 

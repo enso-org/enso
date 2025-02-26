@@ -8,7 +8,7 @@ import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { tryGetIndex } from '@/util/data/array'
 import { computed, ref, type ComponentInstance } from 'vue'
 
-const ITEM_SIZE = 36
+const ITEM_SIZE = 24
 
 const props = defineProps<{
   filtering: Filtering
@@ -94,7 +94,7 @@ defineExpose({
 <style scoped>
 .ComponentList {
   width: 661px;
-  height: 380px;
+  height: 370px;
   border: none;
   border-radius: var(--radius-default);
   background-color: var(--background-color);
@@ -113,9 +113,9 @@ defineExpose({
 
 .groupEntry {
   width: 100%;
-  height: 36px;
+  height: 24px;
   align-content: center;
-  padding: 9px;
+  padding: 7px;
   line-height: 1;
   font-family: var(--font-code);
 
@@ -126,6 +126,6 @@ defineExpose({
 
 .components {
   flex-grow: 1;
-  padding: 13px;
+  padding: 9px;
 }
 </style>

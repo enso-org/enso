@@ -9,6 +9,7 @@ import { computed, ref, watch, type DeepReadonly } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import ActionMenu from '../ActionMenu.vue'
 import DropdownMenu from '../DropdownMenu.vue'
+import SvgButton from '../SvgButton.vue'
 
 const content = defineModel<DeepReadonly<{ text: string; selection: Range | undefined }>>({
   required: true,
@@ -77,25 +78,7 @@ const rootStyle = computed(() => {
 
 <template>
   <div class="ComponentEditor define-node-colors" :style="rootStyle">
-    <DropdownMenu v-if="mode.mode === 'componentBrowsing'" :interaction="false">
-      <template #button>
-        <SvgIcon name="find" />
-      </template>
-      <template #menu>
-        <ActionMenu
-          :actions="[
-            'componentBrowser.acceptSuggestion',
-            'componentBrowser.editSuggestion',
-            'componentBrowser.acceptInputAsCode',
-            'componentBrowser.switchToCodeEditMode',
-          ]"
-        />
-      </template>
-    </DropdownMenu>
-    <div
-      v-else
-      :class="{ componentEditorIcon: true, port: props.mode.mode !== 'componentBrowsing' }"
-    >
+    <div :class="{ componentEditorIcon: true, port: props.mode.mode !== 'componentBrowsing' }">
       <SvgIcon :name="icon" />
     </div>
     <span v-if="selfTypeName != null" class="selfArgInfo">{{ selfTypeName }} Components</span>

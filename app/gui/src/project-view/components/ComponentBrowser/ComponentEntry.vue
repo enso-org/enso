@@ -26,11 +26,11 @@ const { component, color } = defineProps<{ component: Component; color: string }
 <style scoped>
 .ComponentEntry {
   width: 100%;
-  height: 36px;
+  height: 24px;
   flex-direction: row;
   align-items: center;
   gap: 8px;
-  padding: 9px;
+  padding: 5px;
   display: flex;
   line-height: 1;
   font-family: var(--font-code);
