@@ -354,6 +354,17 @@ abstract class TypePropagation {
         if (isConstructorOrType(function.name())) {
           return resolveConstructorOnType(typeObject, function.name(), relatedWholeApplicationIR);
         } else {
+          // Calling `Type.method` - first we check if `method` is defined on `Any` and call that as
+          // member method on _value_ `Type`.
+          if (!BuiltinTypes.isAny(typeObject.name())) {
+            var resolvedAnyMethod =
+                methodTypeResolver.resolveMethod(TypeScopeReference.ANY, function.name());
+            if (resolvedAnyMethod != null) {
+              return resolvedAnyMethod;
+            }
+          }
+
+          // Then we resolve the _static_ `method` on the `Type` - by looking at the eigen type.
           // We resolve static calls on the eigen type. It should also contain registrations of the
           // static variants of member methods, so we don't need to inspect member scope.
           var staticScope = TypeScopeReference.atomEigenType(typeObject.name());

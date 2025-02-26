@@ -11,6 +11,7 @@ import static org.junit.Assert.fail;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -1535,6 +1536,116 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     var foo = ModuleUtils.findStaticMethod(module, "foo");
     var x1 = ModuleUtils.findAssignment(foo, "x1");
     assertAtomType("local.Project1.modA.My_Type", x1);
+  }
+
+  public static Source anyPrecedenceTestSource() throws URISyntaxException {
+    final URI uri = new URI("memory://local.Project1.modA.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    import Standard.Base.Any.Any
+
+                    type A
+                        A_Value
+                    type B
+                        B_Value
+                    type C
+                        C_Value
+                    type D
+                        D_Value
+                    type E
+                        E_Value
+
+                    Any.method self -> A = A.A_Value
+                    Any.static_method -> D = D.D_Value
+
+                    type My_Type
+                        Value
+
+                        method self -> B = B.B_Value
+                        static_method -> E = E.E_Value
+
+                    type Other_Type
+                        Value
+
+                    method -> C = C.C_Value
+
+                    foo =
+                        x1 = Other_Type.Value.method
+                        x2 = My_Type.Value.method
+                        x3 = method
+                        x4 = My_Type.method
+                        x5 = Any.method My_Type.Value
+                        x6 = Any.static_method
+                        x7 = My_Type.static_method
+                        [x1, x2, x3, x4, x5, x6, x7]
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+    return src;
+  }
+
+  @Ignore("TODO: missing IR on Numbers")
+  @Test
+  public void overrideMethodOnNumberThroughAny() throws URISyntaxException {
+    final URI uri = new URI("memory://local.Project1.modA.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                    type A
+                        A_Value
+
+                    Any.method self -> A = A.A_Value
+
+                    foo =
+                        x1 = 42.method
+                        x1
+                    """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = ModuleUtils.findStaticMethod(module, "foo");
+    var x1 = ModuleUtils.findAssignment(foo, "x1");
+    assertAtomType("local.Project1.modA.A", x1);
+  }
+
+  @Test
+  public void precedenceOfMethodsOnAny() throws URISyntaxException {
+    var module = compile(anyPrecedenceTestSource());
+    var foo = ModuleUtils.findStaticMethod(module, "foo");
+
+    // Other_Type dispatches to parent - Any and gets A
+    var x1 = ModuleUtils.findAssignment(foo, "x1");
+    assertAtomType("local.Project1.modA.A", x1);
+
+    // My_Type dispatches to overridden and gets B
+    var x2 = ModuleUtils.findAssignment(foo, "x2");
+    assertAtomType("local.Project1.modA.B", x2);
+
+    // module method overrides Any method - we get C
+    var x3 = ModuleUtils.findAssignment(foo, "x3");
+    assertAtomType("local.Project1.modA.C", x3);
+
+    // Calling the Any method statically on a type calls the Any implementation (it's not a static
+    // syntax for the override)
+    var x4 = ModuleUtils.findAssignment(foo, "x4");
+    assertAtomType("local.Project1.modA.A", x4);
+
+    // Calling the Any method statically on a value calls ignores the override because we select the
+    // method explicitly
+    var x5 = ModuleUtils.findAssignment(foo, "x5");
+    assertAtomType("local.Project1.modA.A", x5);
+
+    var x6 = ModuleUtils.findAssignment(foo, "x6");
+    assertAtomType("local.Project1.modA.D", x6);
+
+    var x7 = ModuleUtils.findAssignment(foo, "x7");
+    assertAtomType("local.Project1.modA.E", x7);
   }
 
   @Test

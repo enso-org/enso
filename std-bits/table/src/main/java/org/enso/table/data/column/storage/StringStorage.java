@@ -9,7 +9,6 @@ import org.enso.table.data.column.operation.SampleOperation;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.text.CoalescingStringStringOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
-import org.enso.table.data.column.operation.map.text.StringLongToStringOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
@@ -21,7 +20,6 @@ public final class StringStorage extends SpecializedStorage<String> {
   private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(StringStorage.class);
 
   record DataQualityMetrics(Long untrimmedCount, Long whitespaceCount) {}
-  ;
 
   private CachedPropertyCheck<DataQualityMetrics> dataQualityMetricsValues;
 
@@ -85,20 +83,6 @@ public final class StringStorage extends SpecializedStorage<String> {
 
   private static MapOperationStorage<String, SpecializedStorage<String>> buildOps() {
     MapOperationStorage<String, SpecializedStorage<String>> t = new MapOperationStorage<>();
-    t.add(
-        new StringLongToStringOp(Maps.TEXT_LEFT) {
-          @Override
-          protected String doOperation(String a, long b) {
-            return Text_Utils.take_prefix(a, b);
-          }
-        });
-    t.add(
-        new StringLongToStringOp(Maps.TEXT_RIGHT) {
-          @Override
-          protected String doOperation(String a, long b) {
-            return Text_Utils.take_suffix(a, b);
-          }
-        });
     t.add(new StringIsInOp<>());
     t.add(
         new StringStringOp(Maps.ADD) {
