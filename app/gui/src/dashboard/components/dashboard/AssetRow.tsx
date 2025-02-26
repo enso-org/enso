@@ -389,27 +389,24 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
     const canPaste = (() => {
       if (!isPayloadMatch) {
         return false
-      } else {
-        if (isLocalCategory(category)) {
+      }
+      if (isLocalCategory(category)) {
+        return true
+      }
+      return payload.every((payloadItem) => {
+        const payloadParentId = getAsset(payloadItem.key)?.parentId
+        const parent = payloadParentId == null ? null : getAsset(payloadParentId)
+        if (!parent) {
+          // Assume the parent is the root directory.
           return true
         }
-
-        return payload.every((payloadItem) => {
-          const payloadParentId = getAsset(payloadItem.key)?.parentId
-          const parent = payloadParentId == null ? null : getAsset(payloadParentId)
-          if (!parent) {
-            return false
-          } else if (
-            isTeamParentsPath(parent.parentsPath, userGroups?.map((team) => team.id) ?? [])
-          ) {
-            return true
-          } else {
-            // Assume user path; check permissions
-            const permission = tryFindSelfPermission(user, asset.permissions)
-            return permission != null && canPermissionModifyDirectoryContents(permission.permission)
-          }
-        })
-      }
+        if (isTeamParentsPath(parent.parentsPath, userGroups?.map((team) => team.id) ?? [])) {
+          return true
+        }
+        // Assume user path; check permissions
+        const permission = tryFindSelfPermission(user, asset.permissions)
+        return permission != null && canPermissionModifyDirectoryContents(permission.permission)
+      })
     })()
 
     if ((isPayloadMatch && canPaste) || event.dataTransfer.types.includes('Files')) {
