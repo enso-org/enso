@@ -26,6 +26,8 @@
   (new) files.][12228]
 - [Cloud File Browser allows adding new directory in "writing"
   components][12275]
+- [In the documentation panel, text can now be made bold or italic using
+  buttons][12341]
 - [Cloud File Browser allows renaming existing directories in "writing"
   components][12323]
 
@@ -45,6 +47,7 @@
 [12228]: https://github.com/enso-org/enso/pull/12228
 [12217]: https://github.com/enso-org/enso/pull/12217
 [12275]: https://github.com/enso-org/enso/pull/12275
+[12341]: https://github.com/enso-org/enso/pull/12341
 [12323]: https://github.com/enso-org/enso/pull/12323
 
 #### Enso Standard Library
