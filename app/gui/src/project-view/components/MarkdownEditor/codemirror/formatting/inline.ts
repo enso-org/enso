@@ -64,7 +64,7 @@ export function setInlineFormatting(
 /** @returns Whether a link can be inserted. */
 export function canInsertLink(state: EditorState): boolean {
   const md = new MDChangeBuilder(state.doc, syntaxTree(state))
-  const range = firstFormattableRange(md, selectionRange(state.selection.main))
+  const range = lastFormattableRange(md, selectionRange(state.selection.main))
   // Note: Once formatting link text is allowed, we will have to check that we aren't already inside a link here.
   return range !== undefined
 }
@@ -72,7 +72,7 @@ export function canInsertLink(state: EditorState): boolean {
 /** Insert a link at the selection. */
 export function insertLink(state: EditorState): TransactionSpec {
   const md = new MDChangeBuilder(state.doc, syntaxTree(state))
-  const range = firstFormattableRange(md, selectionRange(state.selection.main))
+  const range = lastFormattableRange(md, selectionRange(state.selection.main))
   if (range === undefined) {
     console.error('Cannot insert link: No formattable range')
     return {}
@@ -99,7 +99,7 @@ export function insertLink(state: EditorState): TransactionSpec {
   }
 }
 
-function firstFormattableRange(
+function lastFormattableRange(
   md: MarkdownDocument,
   selection: Range,
 ): NormalizedRange | undefined {
