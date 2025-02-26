@@ -136,14 +136,8 @@ test.each`
 
 function matchedText(ownerName: string, name: string, matchResult: MatchResult) {
   name = matchResult.matchedAlias ?? name
-  const ownerPart = matchResult.ownerNameRanges?.reduce(
-    (acc, range) => acc + ownerName.slice(range.start, range.end),
-    '',
-  )
-  const namePart = matchResult.nameRanges?.reduce(
-    (acc, range) => acc + name.slice(range.start, range.end),
-    '',
-  )
+  const ownerPart = matchResult.ownerNameRanges?.map((range) => range.slice(ownerName)).join('')
+  const namePart = matchResult.nameRanges?.map((range) => range.slice(name)).join('')
   return ownerPart ? `${ownerPart}.${namePart}` : `${namePart}`
 }
 

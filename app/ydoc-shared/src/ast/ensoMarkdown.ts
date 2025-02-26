@@ -1,5 +1,9 @@
 import { Tree, TreeBuffer, TreeCursor } from '@lezer/common'
+import { tags } from '@lezer/highlight'
 import {
+  parser as commonmarkParser,
+  Element,
+  Table,
   type BlockContext,
   type BlockParser,
   type DelimiterType,
@@ -7,11 +11,9 @@ import {
   type InlineDelimiter,
   type InlineParser,
   type Line,
+  type MarkdownConfig,
   type MarkdownParser,
   type NodeSpec,
-  parser as commonmarkParser,
-  Element,
-  Table,
 } from '@lezer/markdown'
 import { assertDefined } from '../util/assert'
 
@@ -59,6 +61,8 @@ declare module '@lezer/markdown' {
     parts: (Element | InlineDelimiter | null)[]
   }
 }
+
+const Punctuation = /[\p{S}|\p{P}]/u
 
 function getType({ parser }: { parser: MarkdownParser }, name: string) {
   const ty = parser.nodeSet.types.find((ty) => ty.name === name)
@@ -146,6 +150,16 @@ const blockquoteParser: BlockParser = {
     return null
   },
   before: 'Blockquote',
+}
+
+/**
+ * End any element when a newline is encountered. This parser operates on preprocessed Markdown that has "prerendered"
+ * newlines: Before parsing, hard-wrapped lines within any block element are concatenated, and the extra newlines
+ * between block elements are removed.
+ */
+const newlineEndsBlock: BlockParser = {
+  name: 'NewlineEndsBlock',
+  endLeaf: () => true,
 }
 
 /**
@@ -485,10 +499,84 @@ function isSpace(ch: number) {
   return ch == 32 || ch == 9 || ch == 10 || ch == 13
 }
 
+/*
+// FIXME: We can't override this parser because lezer-markdown doesn't expose its versions of `EmphasisUnderscore` and
+//  `EmphasisAsterisk`, which are special-cased in `resolveMarkers`.
+const EmphasisUnderscore: DelimiterType = {resolve: "Emphasis", mark: "EmphasisMark"}
+const EmphasisAsterisk: DelimiterType = {resolve: "Emphasis", mark: "EmphasisMark"}
+const emphasisParser: InlineParser = {
+  name: 'Emphasis',
+  parse: (cx, next, start) => {
+    if (next != 95 && next != 42) return -1
+    let pos = start + 1
+    while (cx.char(pos) == next) pos++
+    const before = cx.slice(start - 1, start), after = cx.slice(pos, pos + 1)
+    const pBefore = Punctuation.test(before), pAfter = Punctuation.test(after)
+    const sBefore = /\s|^$/.test(before), sAfter = /\s|^$/.test(after)
+    const leftFlanking = !sAfter && (!pAfter || sBefore || pBefore)
+    const rightFlanking = !sBefore && (!pBefore || sAfter || pAfter)
+    const canOpen = leftFlanking && (next == 42 || !rightFlanking || pBefore)
+    const canClose = rightFlanking && (next == 42 || !leftFlanking || pAfter)
+    return cx.addDelimiter(next == 95 ? EmphasisUnderscore : EmphasisAsterisk, start, pos, canOpen, canClose)
+  }
+}
+ */
+
 const ensoMarkdownLanguageExtension = {
-  parseBlock: [headerParser, bulletList, orderedList, blockquoteParser, disableSetextHeading],
+  parseBlock: [
+    headerParser,
+    bulletList,
+    orderedList,
+    blockquoteParser,
+    disableSetextHeading,
+    newlineEndsBlock,
+  ],
   parseInline: [linkParser, imageParser, linkEndParser],
   defineNodes: [blockquoteNode],
+}
+
+const StrikethroughDelim = { resolve: 'Strikethrough', mark: 'StrikethroughMark' }
+
+/**
+ * GFM-style strikethrough delimiters, with slightly relaxed syntax:
+ * - Empty format nodes are allowed.
+ * - A closing strikethrough mark is allowed to be preceded by a space if it isn't followed by a letter after zero or
+ *   more punctuation characters.
+ */
+export const Strikethrough: MarkdownConfig = {
+  defineNodes: [
+    {
+      name: 'Strikethrough',
+      style: { 'Strikethrough/...': tags.strikethrough },
+    },
+    {
+      name: 'StrikethroughMark',
+      style: tags.processingInstruction,
+    },
+  ],
+  parseInline: [
+    {
+      name: 'Strikethrough',
+      parse(cx, next, pos) {
+        if (next != 126 /* '~' */ || cx.char(pos + 1) != 126) return -1
+        const before = cx.slice(pos - 1, pos),
+          after = cx.slice(pos + 2, cx.end)
+        const sBefore = /\s|^$/.test(before),
+          sAfter = /^(?:\s|$)/.test(after)
+        const pBefore = Punctuation.test(before),
+          pAfter = Punctuation.test(after)
+        const wAfter = /^[\p{S}|\p{P}]*\p{L}/u.test(after)
+        return cx.addDelimiter(
+          StrikethroughDelim,
+          pos,
+          pos + 2,
+          !sAfter && (!pAfter || sBefore || pBefore),
+          (!sBefore && (!pBefore || sAfter || pAfter)) || (sBefore && !wAfter),
+        )
+      },
+      after: 'Emphasis',
+    },
+  ],
 }
 
 /**
@@ -499,7 +587,8 @@ const ensoMarkdownLanguageExtension = {
  * - Many of the parsers differ from the `@lezer/markdown` parsers in their treatment of whitespace, in order to support
  *   a rendering mode where markup (and some associated spacing) is hidden.
  */
-export const markdownParser: MarkdownParser = commonmarkParser.configure([
+export const ensoMarkdownParser = commonmarkParser.configure([
   Table,
+  Strikethrough,
   ensoMarkdownLanguageExtension,
 ])
