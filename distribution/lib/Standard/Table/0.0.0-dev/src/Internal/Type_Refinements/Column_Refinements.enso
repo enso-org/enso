@@ -6,6 +6,7 @@ import project.Column.Column
 import project.Internal.Value_Type_Helpers
 import project.Value_Type.Value_Type
 from project.Internal.Type_Refinements.Single_Value_Column_Conversions import all
+from project.Internal.Type_Refinements.Typed_Column_Conversions import all
 
 refine_column (column : Column) =
     ## We treat a column as single value if it contains a single not-nothing value.
@@ -18,10 +19,10 @@ refine_column (column : Column) =
                 value = column.at 0
                 case value of
                     # If the value was really a float, we preserve that.
-                    _ : Float -> (column : Column & Float)
+                    _ : Float -> (column : Column & Numeric_Column & Float)
                     # Otherwise we treat it as an integer.
-                    _ -> (column : Column & Integer)
-            Value_Type.Float _ -> (column : Column & Float)
+                    _ -> (column : Column & Numeric_Column & Integer)
+            Value_Type.Float _ -> (column : Column & Numeric_Column & Float)
             Value_Type.Char _ _ -> (column : Column & Text)
             Value_Type.Boolean -> (column : Column & Boolean)
             Value_Type.Date -> (column : Column & Date)
@@ -29,7 +30,7 @@ refine_column (column : Column) =
             Value_Type.Date_Time True -> (column : Column & Date_Time)
             Value_Type.Decimal _ _ ->
                 is_integer = Value_Type_Helpers.is_decimal_integer inferred_value_type
-                if is_integer then (column : Column & Integer) else (column : Column & Decimal)
+                if is_integer then (column : Column & Numeric_Column & Integer) else (column : Column & Numeric_Column & Decimal)
             # Other types (e.g. Mixed) are not supported.
             _ -> column
 

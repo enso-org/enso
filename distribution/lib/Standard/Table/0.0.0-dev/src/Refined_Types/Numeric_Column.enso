@@ -1,0 +1,8 @@
+type Numeric_Column
+    private Value column operations_implementation
+
+    abs self -> Numeric_Column =
+        "TODO"
+
+    signum self -> Numeric_Column =
+        "TODO"

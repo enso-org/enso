@@ -1,0 +1,5 @@
+private
+
+## This conversion is internal and should never be exported.
+Numeric_Column.from (that : Column) =
+    ...

@@ -22,10 +22,10 @@ refine_table (table : Table) =
                     value = column.at 0
                     case value of
                         # If the value was really a float, we preserve that.
-                        _ : Float -> (table : Table & Column & Float)
+                        _ : Float -> (table : Table & Column & Numeric_Column & Float)
                         # Otherwise we treat it as an integer.
-                        _ -> (table : Table & Column & Integer)
-                Value_Type.Float _ -> (table : Table & Column & Float)
+                        _ -> (table : Table & Column & Numeric_Column & Integer)
+                Value_Type.Float _ -> (table : Table & Column & Numeric_Column & Float)
                 Value_Type.Char _ _ -> (table : Table & Column & Text)
                 Value_Type.Boolean -> (table : Table & Column & Boolean)
                 Value_Type.Date -> (table : Table & Column & Date)
@@ -33,7 +33,7 @@ refine_table (table : Table) =
                 Value_Type.Date_Time True -> (table : Table & Column & Date_Time)
                 Value_Type.Decimal _ _ ->
                     is_integer = Value_Type_Helpers.is_decimal_integer inferred_value_type
-                    if is_integer then (table : Table & Column & Integer) else (table : Table & Column & Decimal)
+                    if is_integer then (table : Table & Column & Numeric_Column & Integer) else (table : Table & Column & Numeric_Column & Decimal)
                 # Other types (e.g. Mixed) are not supported.
                 _ -> (table : Table & Column)
 
