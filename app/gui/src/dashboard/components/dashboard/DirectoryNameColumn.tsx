@@ -63,8 +63,12 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       }}
       onClick={(event) => {
         if (isSingleClick(event) && driveStore.getState().selectedIds.size === 1) {
-          event.stopPropagation()
-          setIsEditing(true)
+          const [id] = driveStore.getState().selectedIds
+          if (item.id === id) {
+            event.stopPropagation()
+            setIsEditing(true)
+            return
+          }
         }
       }}
     >

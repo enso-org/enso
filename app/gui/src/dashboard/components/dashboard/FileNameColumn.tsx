@@ -4,6 +4,7 @@ import EditableSpan from '#/components/EditableSpan'
 import SvgMask from '#/components/SvgMask'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useDriveStore } from '#/providers/DriveProvider'
 import { useText } from '#/providers/TextProvider'
 import { BackendType, isNewTitleUnique, type FileAsset } from '#/services/Backend'
 import { isSingleClick } from '#/utilities/event'
@@ -27,6 +28,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
   const isCloud = backend.type === BackendType.remote
 
   const getAssetChildren = useGetAssetChildren()
+  const driveStore = useDriveStore()
   const { getText } = useText()
   const updateFileMutation = useMutation(backendMutationOptions(backend, 'updateFile'))
 
@@ -50,9 +52,12 @@ export default function FileNameColumn(props: FileNameColumnProps) {
         }
       }}
       onClick={(event) => {
-        if (isSingleClick(event)) {
-          if (!isCloud) {
+        if (!isCloud && isSingleClick(event) && driveStore.getState().selectedIds.size === 1) {
+          const [id] = driveStore.getState().selectedIds
+          if (item.id === id) {
+            event.stopPropagation()
             setIsEditing(true)
+            return
           }
         }
       }}

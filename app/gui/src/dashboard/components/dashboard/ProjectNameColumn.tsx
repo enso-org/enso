@@ -85,7 +85,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
           isSingleClick(event) &&
           driveStore.getState().selectedIds.size === 1
         ) {
-          setIsEditing(true)
+          const [id] = driveStore.getState().selectedIds
+          if (item.id === id) {
+            event.stopPropagation()
+            setIsEditing(true)
+            return
+          }
         } else if (isDoubleClick(event) && canExecute) {
           doOpenProject({
             id: item.id,

@@ -7,6 +7,7 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
+import { useDriveStore } from '#/providers/DriveProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import { isNewTitleUnique, type SecretAsset } from '#/services/Backend'
@@ -27,6 +28,7 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
   const { getText } = useText()
   const { setModal } = useSetModal()
   const getAssetChildren = useGetAssetChildren()
+  const driveStore = useDriveStore()
 
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
 
@@ -50,8 +52,13 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
         }
       }}
       onClick={(event) => {
-        if (isSingleClick(event)) {
-          setIsEditing(true)
+        if (isSingleClick(event) && driveStore.getState().selectedIds.size === 1) {
+          const [id] = driveStore.getState().selectedIds
+          if (item.id === id) {
+            event.stopPropagation()
+            setIsEditing(true)
+            return
+          }
         } else if (isDoubleClick(event) && isEditable) {
           event.stopPropagation()
           setModal(
