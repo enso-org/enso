@@ -7,10 +7,17 @@ import ContextMenuEntry from '#/components/ContextMenuEntry'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 
-import { useNewDatalink, useNewFolder, useNewProject, useNewSecret } from '#/hooks/backendHooks'
+import {
+  useNewCredential,
+  useNewDatalink,
+  useNewFolder,
+  useNewProject,
+  useNewSecret,
+} from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
+import UpsertCredentialModal from '#/modals/UpsertCredentialModal'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
@@ -66,7 +73,11 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
   })
   const newSecretRaw = useNewSecret(backend, category)
   const newSecret = useEventCallback(async (name: string, value: string) => {
-    return await newSecretRaw(name, value, directoryId ?? rootDirectoryId, path)
+    return await newSecretRaw(name, value, null, directoryId ?? rootDirectoryId, path)
+  })
+  const newCredentialRaw = useNewCredential(backend, category)
+  const newCredential = useEventCallback(async (name: string, type: string, value: unknown) => {
+    return await newCredentialRaw(name, type, value, directoryId ?? rootDirectoryId, path)
   })
   const newProjectRaw = useNewProject(backend, category)
   const newProject = useEventCallback(
@@ -120,6 +131,23 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
                 name={null}
                 doCreate={async (name, value) => {
                   await newSecret(name, value)
+                }}
+              />,
+            )
+          }}
+        />
+      )}
+      {isCloud && (
+        <ContextMenuEntry
+          hidden={hidden}
+          action="newCredential"
+          doAction={() => {
+            setModal(
+              <UpsertCredentialModal
+                id={null}
+                name={null}
+                doCreate={async (name, type, value) => {
+                  await newCredential(name, type, value)
                 }}
               />,
             )

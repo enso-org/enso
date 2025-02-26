@@ -87,6 +87,11 @@ export const BINDINGS = inputBindings.defineBindings({
     bindings: !detect.isOnMacOS() ? ['Mod+Alt+N'] : ['Mod+Alt+N', 'Mod+Alt+~'],
     icon: AddKeyIcon,
   },
+  newCredential: {
+    name: 'New Credential',
+    bindings: [],
+    icon: AddKeyIcon,
+  },
   newDatalink: {
     name: 'New Datalink',
     bindings: !detect.isOnMacOS() ? ['Mod+Alt+Shift+N'] : ['Mod+Alt+Shift+N', 'Mod+Alt+Shift+~'],
