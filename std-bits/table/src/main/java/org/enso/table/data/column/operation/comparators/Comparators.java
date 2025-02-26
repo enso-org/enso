@@ -12,7 +12,7 @@ import org.enso.table.data.table.Column;
  * Entry point for calling Comparators. Calls the appropriate comparator based on the type of the
  * left columns.
  */
-public interface Comparators extends BinaryOperation {
+public interface Comparators extends BinaryOperation<Boolean> {
   static boolean isSupported(Column left) {
     var storage = BinaryOperation.getInferredStorage(left);
     var storageType = storage.getType();
