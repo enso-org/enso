@@ -330,6 +330,13 @@ function createServer() {
       })
 
       const valueList = valueMap.map((value) => {
+        if(value.valType === 'Mixed') {
+          const parseValues = value.value.map(val => {
+            return { valueType: getCellValueType(val), value: val }
+          }
+          )
+          return { valueType: value.valType, value: parseValues }
+        }
         if (value.action === '..Between') {
           return { valueType: value.valType, value: `${value.value.fromValue}` }
         }

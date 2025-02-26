@@ -96,37 +96,45 @@ export function useVisualizationData({
     },
   )
 
+  const parseSingleArgument = (i: any, tempModule: Ast.MutableModule) => {
+    switch (i.valueType) {
+      case 'Date': {
+        const datePattern = Pattern.parseExpression('(Date.new __ __ __)');
+        const dateParts = i.value
+          .match(/\d+/g)!
+          .slice(0, 3)
+          .map((part) => Ast.tryNumberToEnso(Number(part), tempModule)!);
+        return datePattern.instantiateCopied(dateParts);
+      }
+      case 'Time': {
+        const pattern = Pattern.parseExpression('Time_Of_Day.parse (__)')!;
+        return pattern.instantiateCopied([Ast.TextLiteral.new(i.value, tempModule)]);
+      }
+      case 'Date_Time': {
+        const pattern = Pattern.parseExpression('Date_Time.parse (__)')!;
+        return pattern.instantiateCopied([Ast.TextLiteral.new(i.value, tempModule)]);
+      }
+      case 'Integer':
+        return Ast.parseExpression(i.value, tempModule);
+      case 'Char':
+        return Ast.TextLiteral.new(i.value);
+      case 'Mixed': {
+        const items = i.value.map((val: any) => parseSingleArgument(val, tempModule));
+        return Ast.Vector.new(tempModule, items);
+      }
+      default:
+        return Ast.parseExpression(i, tempModule);
+    }
+  };
+  
   const parseArgument = (arg: any, tempModule: Ast.MutableModule) => {
     if (Array.isArray(arg)) {
-      const itemList = arg.map((i) => {
-        if (i.valueType === 'Date') {
-          const dateOrTimePattern = Pattern.parseExpression('(Date.new __ __ __)')
-          const dateTimeParts = i.value
-            .match(/\d+/g)!
-            .filter((part, i) => i < 3)
-            .map((part) => Ast.tryNumberToEnso(Number(part), tempModule)!)
-          return dateOrTimePattern.instantiateCopied([...dateTimeParts])
-        }
-        if (i.valueType === 'Time') {
-          const pattern = Pattern.parseExpression('Time_Of_Day.parse (__)')!
-          return pattern.instantiateCopied([Ast.TextLiteral.new(i.value, tempModule)])
-        }
-        if (i.valueType === 'Date_Time') {
-          const pattern = Pattern.parseExpression('Date_Time.parse (__)')!
-          return pattern.instantiateCopied([Ast.TextLiteral.new(i.value, tempModule)])
-        }
-        if(i.valueType === 'Integer' ){
-          return Ast.parseExpression(i.value, tempModule)
-        }
-        if(i.valueType === 'Char'){
-          return Ast.TextLiteral.new(i.value) 
-        }
-        return Ast.parseExpression(i, tempModule)
-      })
-      return Ast.Vector.new(tempModule, itemList)
+      const itemList = arg.map((i) => parseSingleArgument(i, tempModule));
+      return Ast.Vector.new(tempModule, itemList);
     }
-    return Ast.parseExpression(arg, tempModule)!
-  }
+    return Ast.parseExpression(arg, tempModule)!;
+  };
+  
 
   const executeExpression = async (
     visulizationModule: string,
