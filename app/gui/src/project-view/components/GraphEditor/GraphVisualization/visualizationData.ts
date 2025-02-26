@@ -115,6 +115,12 @@ export function useVisualizationData({
           const pattern = Pattern.parseExpression('Date_Time.parse (__)')!
           return pattern.instantiateCopied([Ast.TextLiteral.new(i.value, tempModule)])
         }
+        if(i.valueType === 'Integer' ){
+          return Ast.parseExpression(i.value, tempModule)
+        }
+        if(i.valueType === 'Char'){
+          return Ast.TextLiteral.new(i.value) 
+        }
         return Ast.parseExpression(i, tempModule)
       })
       return Ast.Vector.new(tempModule, itemList)
