@@ -274,15 +274,15 @@ apply__single_filter_to_table table filter_col filter_action filter_val filter_t
    - filter_action: list of filter actions 
    - filter_val: values to filter
 
-apply_filter_to_table : Table -> List -> List -> List -> List -> Integer -> Table
-apply_filter_to_table table filter_col filter_action filter_val filter_to_val i = 
-    col = filter_col.get i
-    action = filter_action.get i 
-    val = filter_val.get i 
-    to_val = filter_to_val.get i
-    filtered_table = apply__single_filter_to_table table col action val to_val
-    filtered_table
-
+apply_filter_to_table : Table -> Integer -> List -> List -> List -> List -> Table
+apply_filter_to_table table i filter_col filter_action filter_val filter_to_val = 
+    if i == filter_col.length then table else
+        col = filter_col.get i
+        action = filter_action.get i
+        val = filter_val.get i
+        to_val = filter_to_val.get i
+        filtered_table = apply__single_filter_to_table table col action val to_val
+        @Tail_Call apply_filter_to_table filtered_table i+1 filter_col filter_action filter_val filter_to_val
 
 ## PRIVATE
 
@@ -295,7 +295,7 @@ get_rows_for_table : Any -> Integer -> List -> List -> List -> List -> List -> L
 get_rows_for_table x start_number sort_col_index_list=Nothing sort_direction_list=Nothing filter_col=Nothing filter_action=Nothing filter_val=Nothing filter_extra_val=Nothing =
     max_rows=100
     all_rows_count = x.row_count
-    filtered_table = if filter_col.is_nothing then x else apply_filter_to_table x filter_col filter_action filter_val filter_extra_val 0
+    filtered_table = if filter_col.is_nothing then x else apply_filter_to_table x 0 filter_col filter_action filter_val filter_extra_val
     sorted_table = if sort_col_index_list.is_nothing then filtered_table else apply_sort_to_table filtered_table sort_col_index_list sort_direction_list
     bucket_size = if max_rows < all_rows_count then max_rows else all_rows_count
     get_vector c         = Warning.set (Vector.new bucket_size i-> make_json_for_value (c.get (i + start_number))) []
