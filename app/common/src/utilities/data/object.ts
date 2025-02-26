@@ -116,7 +116,7 @@ export function unsafeRemoveUndefined<T extends object>(
 export function mapEntries<K extends PropertyKey, V, W>(
   object: Record<K, V>,
   map: (key: K, value: V) => W,
-): Readonly<Record<K, W>> {
+): Record<K, W> {
   // @ts-expect-error It is known that the set of keys is the same for the input and the output,
   // because the output is dynamically generated based on the input.
   return Object.fromEntries(

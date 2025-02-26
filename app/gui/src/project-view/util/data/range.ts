@@ -1,11 +1,21 @@
 /** @file Ranges between two numbers, and sets of multiple ranges with gaps between. */
-
 import { partitionPoint } from '@/util/data/array'
+import { Range } from 'ydoc-shared/util/data/range'
 
-export interface RangeWithMatch {
-  readonly start: number
-  readonly end: number
-  readonly isMatch: boolean
+/** A {@link Range} with an associated `isMatch` flag. */
+export class RangeWithMatch extends Range {
+  protected constructor(
+    from: number,
+    to: number,
+    readonly isMatch: boolean,
+  ) {
+    super(from, to)
+  }
+
+  /** @returns A value associating the given `isMatch` value with the specified {@link Range}. */
+  static fromRange(range: Range, isMatch: boolean): RangeWithMatch {
+    return new RangeWithMatch(range.from, range.to, isMatch)
+  }
 }
 
 /**
@@ -31,64 +41,12 @@ export function* allRanges(
   }
   let lastEndIndex = start
   for (const range of ranges) {
-    yield { start: lastEndIndex, end: range.start, isMatch: false }
-    yield { ...range, isMatch: true }
-    lastEndIndex = range.end
+    yield RangeWithMatch.fromRange(Range.tryFromBounds(lastEndIndex, range.from)!, false)
+    yield RangeWithMatch.fromRange(range, true)
+    lastEndIndex = range.to
   }
   if (lastEndIndex !== end) {
-    yield { start: lastEndIndex, end, isMatch: false }
-  }
-}
-
-/** TODO: Add docs */
-export class Range {
-  /** TODO: Add docs */
-  constructor(
-    readonly start: number,
-    readonly end: number,
-  ) {}
-
-  /**
-   * Create the smallest possible {@link Range} that contains both {@link Range}s.
-   * It is not necessary for the two {@link Range}s to overlap.
-   */
-  merge(other: Range): Range {
-    return new Range(Math.min(this.start, other.start), Math.max(this.end, other.end))
-  }
-
-  /**
-   * Create a new {@link Range} representing *exactly* the sub-ranges that are present in this
-   * {@link Range} but not the other.
-   *
-   * Specifically:
-   * - If the other {@link Range} overlaps this one on the left or right, return the single segment
-   *   of this {@link Range} that is not overlapped.
-   * - If the other {@link Range} is fully within this range, return the two non-overlapped portions
-   *   (both left and right) of this {@link Range}.
-   * - If the other {@link Range} fully contains this {@link Range}, return an empty array.
-   */
-  exclude(other: Range): Range[] {
-    if (this.start < other.start) {
-      const before = new Range(this.start, other.start)
-      if (this.end > other.end) return [before, new Range(other.end, this.end)]
-      else return [before]
-    } else if (this.end > other.end) return [new Range(other.end, this.end)]
-    else return []
-  }
-
-  /** TODO: Add docs */
-  intersects(other: Range) {
-    return this.start < other.end && this.end > other.start
-  }
-
-  /** TODO: Add docs */
-  expand(by: number) {
-    return new Range(this.start - by, this.end + by)
-  }
-
-  /** TODO: Add docs */
-  shift(offset: number) {
-    return new Range(this.start + offset, this.end + offset)
+    yield RangeWithMatch.fromRange(Range.tryFromBounds(lastEndIndex, end)!, false)
   }
 }
 
@@ -111,8 +69,8 @@ export class MultiRange {
 
   /** TODO: Add docs */
   insert(range: Range, effectiveRange = range) {
-    const start = partitionPoint(this._ranges, (r) => r.end < effectiveRange.start)
-    const end = partitionPoint(this._ranges, (r) => r.start <= effectiveRange.end, start)
+    const start = partitionPoint(this._ranges, (r) => r.to < effectiveRange.from)
+    const end = partitionPoint(this._ranges, (r) => r.from <= effectiveRange.to, start)
     let finalRange = range
     if (end !== start) {
       const startRange = this._ranges[start]
@@ -127,8 +85,8 @@ export class MultiRange {
 
   /** TODO: Add docs */
   remove(range: Range, effectiveRange = range) {
-    const start = partitionPoint(this._ranges, (r) => r.end < effectiveRange.start)
-    const end = partitionPoint(this._ranges, (r) => r.start <= effectiveRange.end, start)
+    const start = partitionPoint(this._ranges, (r) => r.to < effectiveRange.from)
+    const end = partitionPoint(this._ranges, (r) => r.from <= effectiveRange.to, start)
     const finalRanges: Range[] = []
     if (end !== start) {
       const startRange = this._ranges[start]

@@ -28,6 +28,7 @@
   "dependencies": {
     "@lezer/common": "^1.2.3",
     "@lezer/markdown": "^1.3.2",
+    "@lezer/highlight": "^1.2.1",
     "@noble/hashes": "^1.6.1",
     "@open-rpc/client-js": "^1.8.1",
     "@types/debug": "^4.1.12",

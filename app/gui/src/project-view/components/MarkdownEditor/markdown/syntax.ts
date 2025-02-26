@@ -10,17 +10,7 @@ import {
 } from '@codemirror/language'
 import { type Extension } from '@codemirror/state'
 import { NodeProp, type NodeType, type Parser, type SyntaxNode } from '@lezer/common'
-import { markdownParser } from 'ydoc-shared/ast/ensoMarkdown'
-
-export const ensoMarkdownSyntax: () => Extension = () =>
-  markdownExtension({
-    base: mkLang(
-      markdownParser.configure([
-        commonmarkCodemirrorLanguageExtension,
-        tableCodemirrorLanguageExtension,
-      ]),
-    ),
-  })
+import { ensoMarkdownParser } from 'ydoc-shared/ast/ensoMarkdown'
 
 function mkLang(parser: Parser) {
   return new Language(data, parser, [headerIndent], 'markdown')
@@ -89,3 +79,14 @@ const tableCodemirrorLanguageExtension = {
     }),
   ],
 }
+
+const extension = markdownExtension({
+  base: mkLang(
+    ensoMarkdownParser.configure([
+      commonmarkCodemirrorLanguageExtension,
+      tableCodemirrorLanguageExtension,
+    ]),
+  ),
+})
+
+export const ensoMarkdownSyntax = (): Extension => extension
