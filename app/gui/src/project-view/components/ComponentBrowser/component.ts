@@ -1,5 +1,5 @@
 import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
-import { GroupInfo, SuggestionDb } from '@/stores/suggestionDatabase'
+import { SuggestionDb } from '@/stores/suggestionDatabase'
 import {
   entryDisplayPath,
   entryIsStatic,

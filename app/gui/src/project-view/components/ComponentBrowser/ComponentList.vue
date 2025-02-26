@@ -1,25 +1,29 @@
 <script setup lang="ts">
 import { GroupId, makeComponentList, type Component } from '@/components/ComponentBrowser/component'
+import ComponentEntry from '@/components/ComponentBrowser/ComponentEntry.vue'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
 import LazyList from '@/components/LazyList.vue'
-
 import { groupColorStyle } from '@/composables/nodeColors'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { tryGetIndex } from '@/util/data/array'
-import { iteratorMap } from 'lib0/iterator.js'
-import { computed, ref } from 'vue'
-import ComponentEntry from './ComponentEntry.vue'
+import { computed, ref, type ComponentInstance } from 'vue'
 
 const ITEM_SIZE = 36
 
 const props = defineProps<{
   filtering: Filtering
   autoSelectFirstComponent: boolean
+  focusedPanel: ComponentListPanel
 }>()
 const emit = defineEmits<{
   acceptSuggestion: [suggestion: Component]
   'update:selectedComponent': [selected: Component | null]
 }>()
+
+const groupsPanel = ref<ComponentInstance<typeof LazyList>>()
+const componentsPanel = ref<ComponentInstance<typeof LazyList>>()
+const panels = { groupsPanel, componentsPanel }
+export type ComponentListPanel = keyof typeof panels
 
 const selectedGroup = ref<GroupId | null>(null)
 const suggestionDbStore = useSuggestionDbStore()
@@ -40,12 +44,22 @@ const currentGroups = computed(() => {
 function componentColor(component: Component): string {
   return groupColorStyle(tryGetIndex(suggestionDbStore.groups, component.group))
 }
+
+defineExpose({
+  moveUp: () => {
+    panels[props.focusedPanel].value?.moveUp()
+  },
+  moveDown: () => {
+    panels[props.focusedPanel].value?.moveDown()
+  },
+})
 </script>
 
 <template>
   <div class="ComponentList">
     <LazyList
       v-slot="{ item: group }"
+      ref="groupsPanel"
       class="groups"
       :items="currentGroups"
       :itemHeight="ITEM_SIZE"
@@ -55,6 +69,7 @@ function componentColor(component: Component): string {
       <div class="groupEntry">{{ group.name }}</div>
     </LazyList>
     <LazyList
+      ref="componentsPanel"
       class="components"
       :items="currentComponents"
       :itemHeight="ITEM_SIZE"

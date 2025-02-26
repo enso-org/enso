@@ -1,15 +1,21 @@
 <script setup lang="ts">
+import type { ComponentBrowserMode, Usage } from '@/components/ComponentBrowser/input'
 import SvgIcon from '@/components/SvgIcon.vue'
 import AutoSizedInput, { type Range } from '@/components/widgets/AutoSizedInput.vue'
-import type { Icon } from '@/util/iconMetadata/iconName'
+import { useGraphStore } from '@/stores/graph'
+import { DEFAULT_ICON, iconOfNode, suggestionEntryToIcon } from '@/util/getIconName'
+import { qnLastSegment } from '@/util/qualifiedName'
 import { computed, ref, watch, type DeepReadonly } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
+import ActionMenu from '../ActionMenu.vue'
+import DropdownMenu from '../DropdownMenu.vue'
 
 const content = defineModel<DeepReadonly<{ text: string; selection: Range | undefined }>>({
   required: true,
 })
 const props = defineProps<{
-  icon: Icon | undefined
+  usage: Usage
+  mode: ComponentBrowserMode
   nodeColor: string
 }>()
 
@@ -33,6 +39,30 @@ watch(
   },
 )
 
+const graphStore = useGraphStore()
+
+const icon = computed(() => {
+  if (props.mode.mode === 'componentBrowsing') return 'find'
+  if (props.usage.type === 'editNode') {
+    return iconOfNode(props.usage.node, graphStore.db)
+  }
+  if (props.mode.mode === 'codeEditing' && props.mode.appliedSuggestion) {
+    return suggestionEntryToIcon(props.mode.appliedSuggestion)
+  }
+  return DEFAULT_ICON
+})
+
+const selfTypeName = computed(() => {
+  if (
+    props.mode.mode === 'componentBrowsing' &&
+    props.mode.filter.selfArg?.type === 'known' &&
+    props.mode.filter.selfArg.typename.path
+  ) {
+    return qnLastSegment(props.mode.filter.selfArg.typename.path)
+  }
+  return undefined
+})
+
 defineExpose({
   blur: () => inputField.value?.blur(),
   focus: () => inputField.value?.focus(),
@@ -47,10 +77,29 @@ const rootStyle = computed(() => {
 
 <template>
   <div class="ComponentEditor define-node-colors" :style="rootStyle">
-    <div v-if="props.icon" class="iconPort">
-      <SvgIcon :name="props.icon" class="nodeIcon" />
+    <DropdownMenu v-if="mode.mode === 'componentBrowsing'" :interaction="false">
+      <template #button>
+        <SvgIcon name="find" />
+      </template>
+      <template #menu>
+        <ActionMenu
+          :actions="[
+            'componentBrowser.acceptSuggestion',
+            'componentBrowser.editSuggestion',
+            'componentBrowser.acceptInputAsCode',
+            'componentBrowser.switchToCodeEditMode',
+          ]"
+        />
+      </template>
+    </DropdownMenu>
+    <div
+      v-else
+      :class="{ componentEditorIcon: true, port: props.mode.mode !== 'componentBrowsing' }"
+    >
+      <SvgIcon :name="icon" />
     </div>
-    <span 
+    <span v-if="selfTypeName != null" class="selfArgInfo">{{ selfTypeName }} Components</span>
+    <SvgIcon v-if="selfTypeName != null" class="selfArgInfoArrow" name="folder_closed" />
     <AutoSizedInput
       ref="inputField"
       v-model="fieldContent.text"
@@ -68,9 +117,9 @@ const rootStyle = computed(() => {
 <style scoped>
 .ComponentEditor {
   --port-padding: 6px;
-  --icon-height: 16px;
+  --icon-size: 16px;
   --icon-text-gap: 6px;
-  border-radius: 50%;
+  border-radius: 22px;
   background-color: var(--background-color);
   padding: 0 var(--component-editor-padding);
   height: 44px;
@@ -89,26 +138,20 @@ const rootStyle = computed(() => {
   flex-grow: 1;
 }
 
-.iconPort {
+.componentEditorIcon {
   position: relative;
   text-align: center;
   border-radius: var(--radius-full);
   padding: var(--port-padding);
   margin: 0 var(--icon-text-gap) 0 calc(0px - var(--port-padding));
-  background-color: var(--color-node-port);
   isolation: isolate;
+  &.port {
+    background-color: var(--color-node-port);
+    color: white;
+  }
 }
 
-.nodeIcon {
-  color: white;
-  width: var(--icon-height);
-  height: var(--icon-height);
-}
-
-.buttonPanel {
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
-  flex-grow: 0;
+.selfArgInfoArrow {
+  margin: 0 -4px;
 }
 </style>

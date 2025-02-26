@@ -35,7 +35,7 @@ export type ComponentBrowserMode =
   | {
       mode: 'codeEditing'
       code: string
-      appliedSuggestion?: SuggestionId
+      appliedSuggestion?: SuggestionEntry
     }
   | {
       mode: 'aiPrompt'
@@ -55,7 +55,7 @@ export function useComponentBrowserInput(
   const processingAIPrompt = ref(false)
   const toastError = useToast.error()
   const sourceNodeIdentifier = ref<Identifier>()
-  const switchedToCodeMode = ref<{ appliedSuggestion?: SuggestionId }>()
+  const switchedToCodeMode = ref<{ appliedSuggestion?: SuggestionEntry }>()
 
   // Text Model to being edited externally (by user).
   //
@@ -134,7 +134,7 @@ export function useComponentBrowserInput(
   function applySuggestion(id: SuggestionId): Result {
     const entry = suggestionDb.get(id)
     if (!entry) return Err(`No entry with id ${id}`)
-    switchedToCodeMode.value = { appliedSuggestion: id }
+    switchedToCodeMode.value = { appliedSuggestion: entry }
     const { newText, requiredImport } = inputAfterApplyingSuggestion(entry)
     const newCursorPos = newText.length
     text.value = newText

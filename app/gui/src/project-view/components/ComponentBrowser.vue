@@ -2,7 +2,7 @@
 import { componentBrowserBindings } from '@/bindings'
 import { type Component } from '@/components/ComponentBrowser/component'
 import ComponentEditor from '@/components/ComponentBrowser/ComponentEditor.vue'
-import ComponentList from '@/components/ComponentBrowser/ComponentList.vue'
+import ComponentList, { ComponentListPanel } from '@/components/ComponentBrowser/ComponentList.vue'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
 import { useComponentBrowserInput, type Usage } from '@/components/ComponentBrowser/input'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
@@ -10,6 +10,7 @@ import SvgButton from '@/components/SvgButton.vue'
 import { useResizeObserver } from '@/composables/events'
 import type { useNavigator } from '@/composables/navigator'
 import { groupColorStyle } from '@/composables/nodeColors'
+import { Action, registerHandlers } from '@/providers/action'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { useGraphStore } from '@/stores/graph'
@@ -24,10 +25,9 @@ import { tryGetIndex } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { DEFAULT_ICON, iconOfNode, suggestionEntryToIcon } from '@/util/getIconName'
 import { debouncedGetter } from '@/util/reactivity'
 import type { ComponentInstance } from 'vue'
-import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
+import { computed, onMounted, onUnmounted, ref, toValue, watch, watchEffect } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
@@ -40,10 +40,10 @@ const PAN_MARGINS = {
   left: 80,
   right: 40,
 }
-const COMPONENT_EDITOR_PADDING = 12
+const COMPONENT_EDITOR_PADDING = 14
 const ICON_WIDTH = 16
 // Component editor is larger than a typical node, so the edge should touch it a bit higher.
-const EDGE_Y_OFFSET = -6
+const EDGE_Y_OFFSET = -8
 
 const cssComponentEditorPadding = `${COMPONENT_EDITOR_PADDING}px`
 
@@ -73,6 +73,7 @@ const emit = defineEmits<{
 
 const cbRoot = ref<HTMLElement>()
 const componentList = ref<ComponentInstance<typeof ComponentList>>()
+const focusedPanel = ref<ComponentListPanel>('componentsPanel')
 
 const clickOutsideAssociatedElements = (e: PointerEvent) => {
   return props.associatedElements.length === 0 ?
@@ -241,27 +242,12 @@ const nodeColor = computed(() => {
   return 'var(--node-color-no-type)'
 })
 
-const selectedSuggestionIcon = computed(() => {
-  return selectedSuggestion.value ? suggestionEntryToIcon(selectedSuggestion.value) : undefined
-})
-
-const icon = computed(() => {
-  if (!input.selfArgument) return undefined
-  if (input.mode.mode === 'componentBrowsing' && selectedSuggestionIcon.value)
-    return selectedSuggestionIcon.value
-  if (props.usage.type === 'editNode') {
-    return iconOfNode(props.usage.node, graphStore.db)
-  }
-  return DEFAULT_ICON
-})
-
 // === Preview ===
 
 const previewedCode = debouncedGetter<string>(() => input.code, 200)
 
 const previewedSuggestionReturnType = computed(() => {
-  const id = input.mode.mode === 'codeEditing' ? input.mode.appliedSuggestion : undefined
-  const appliedEntry = id != null ? suggestionDbStore.entries.get(id) : undefined
+  const appliedEntry = input.mode.mode === 'codeEditing' ? input.mode.appliedSuggestion : undefined
   const entry =
     appliedEntry ? appliedEntry
     : props.usage.type === 'editNode' ? graphStore.db.getNodeMainSuggestion(props.usage.node)
@@ -317,42 +303,71 @@ function applySuggestion(component: Opt<Component> = null) {
 
 function acceptInput() {
   const appliedReturnType =
-    input.mode.mode === 'codeEditing' && input.mode.appliedSuggestion != null ?
-      suggestionDbStore.entries.get(input.mode.appliedSuggestion)?.returnType(projectNames)
+    input.mode.mode === 'codeEditing' ?
+      input.mode.appliedSuggestion?.returnType(projectNames)
     : undefined
   emit('accepted', input.code.trim(), input.importsToAdd(), appliedReturnType)
   interaction.ended(cbOpen)
 }
 
-// === Key Events Handler ===
+// === Action Handlers ===
+
+const actions = registerHandlers({
+  'componentBrowser.editSuggestion': {
+    action: applySuggestion,
+    disabled: computed(() => input.mode.mode != 'componentBrowsing'),
+  },
+  'componentBrowser.acceptSuggestion': {
+    action: acceptSuggestion,
+    disabled: computed(() => input.mode.mode != 'componentBrowsing'),
+  },
+  'componentBrowser.acceptInputAsCode': {
+    action: acceptInput,
+    disabled: computed(() => input.mode.mode != 'componentBrowsing'),
+  },
+  'componentBrowser.switchToCodeEditMode': {
+    action: input.switchToCodeEditMode,
+    disabled: computed(() => input.mode.mode != 'componentBrowsing'),
+  },
+})
+
+function performActionIfNotDisabled(action: Action & { action: () => void }) {
+  if (toValue(action.hidden) || toValue(action.disabled)) return false
+  else return action.action()
+}
 
 const handler = componentBrowserBindings.handler({
   applySuggestion() {
-    if (input.mode.mode != 'componentBrowsing') return false
-    applySuggestion()
+    return performActionIfNotDisabled(actions['componentBrowser.editSuggestion'])
   },
   acceptSuggestion() {
-    if (input.mode.mode != 'componentBrowsing') return false
-    acceptSuggestion()
+    return performActionIfNotDisabled(actions['componentBrowser.acceptSuggestion'])
   },
   acceptCode() {
     if (input.mode.mode != 'codeEditing') return false
     acceptInput()
   },
-  acceptInput() {
-    if (input.mode.mode != 'componentBrowsing' && input.mode.mode != 'codeEditing') return false
-    acceptInput()
-  },
+  acceptInput,
   acceptAIPrompt() {
     if (input.mode.mode == 'aiPrompt') input.applyAIPrompt()
     else return false
   },
-  // moveUp() {
-  //   componentList.value?.moveUp()
-  // },
-  // moveDown() {
-  //   componentList.value?.moveDown()
-  // },
+  moveUp() {
+    componentList.value?.moveUp()
+  },
+  moveDown() {
+    componentList.value?.moveDown()
+  },
+  switchPanelFocus() {
+    switch (focusedPanel.value) {
+      case 'componentsPanel':
+        focusedPanel.value = 'groupsPanel'
+        break
+      case 'groupsPanel':
+        focusedPanel.value = 'componentsPanel'
+        break
+    }
+  },
 })
 </script>
 
@@ -397,28 +412,11 @@ const handler = componentBrowserBindings.handler({
       ref="inputElement"
       v-model="input.content"
       class="component-editor"
-      :navigator="props.navigator"
-      :icon="icon"
+      :usage="usage"
+      :mode="input.mode"
       :nodeColor="nodeColor"
       :style="{ '--component-editor-padding': cssComponentEditorPadding }"
-    >
-      <SvgButton
-        name="add_to_graph_editor"
-        :title="
-          input.mode.mode === 'componentBrowsing' && selected != null ?
-            'Accept Suggested Component'
-          : 'Accept'
-        "
-        @click.stop="input.mode.mode === 'componentBrowsing' ? acceptSuggestion() : acceptInput()"
-      />
-      <SvgButton
-        name="edit"
-        :disabled="input.mode.mode === 'codeEditing'"
-        :title="selected != null ? 'Edit Suggested Component' : 'Code Edit Mode'"
-        data-testid="switchToEditMode"
-        @click.stop="applySuggestion()"
-      />
-    </ComponentEditor>
+    />
     <div
       v-if="input.mode.mode === 'codeEditing' && !isVisualizationVisible"
       class="show-visualization"
@@ -434,6 +432,7 @@ const handler = componentBrowserBindings.handler({
       ref="componentList"
       :filtering="currentFiltering"
       :autoSelectFirstComponent="true"
+      :focusedPanel="focusedPanel"
       @acceptSuggestion="acceptSuggestion($event)"
       @update:selectedComponent="selected = $event"
     />
@@ -463,6 +462,7 @@ const handler = componentBrowserBindings.handler({
 
 .component-editor {
   position: relative;
+  z-index: 1;
 }
 
 .visualization-preview {

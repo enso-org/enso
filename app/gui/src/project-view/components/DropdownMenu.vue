@@ -2,28 +2,40 @@
 import MenuButton from '@/components/MenuButton.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { useEventConditional } from '@/composables/events'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
 import { endOnClickOutside } from '@/util/autoBlur'
 import { shift, useFloating, type Placement } from '@floating-ui/vue'
-import { ref, shallowRef } from 'vue'
+import { ref, shallowRef, toRef } from 'vue'
 
 const open = defineModel<boolean>('open', { default: false })
 const props = defineProps<{
   title?: string | undefined
   placement?: Placement
   alwaysShowArrow?: boolean | undefined
+  interaction?: boolean
 }>()
 
 const rootElement = shallowRef<HTMLElement>()
 const floatElement = shallowRef<HTMLElement>()
 const hovered = ref(false)
 
+const dropDownInteraction = endOnClickOutside(rootElement, {
+  cancel: () => (open.value = false),
+  end: () => (open.value = false),
+})
+
 injectInteractionHandler().setWhen(
-  open,
-  endOnClickOutside(rootElement, {
-    cancel: () => (open.value = false),
-    end: () => (open.value = false),
-  }),
+  () => open.value && props.interaction !== false,
+  dropDownInteraction,
+)
+
+useEventConditional(
+  window,
+  'pointerdown',
+  toRef(props, 'interaction'),
+  dropDownInteraction.pointerdown!.bind(dropDownInteraction),
+  { capture: true },
 )
 
 const { floatingStyles } = useFloating(rootElement, floatElement, {
