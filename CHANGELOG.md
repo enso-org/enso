@@ -30,6 +30,7 @@
   buttons][12341]
 - [Cloud File Browser allows renaming existing directories in "writing"
   components][12323]
+- ["Insert link" button added to documentation panel][12365]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -49,6 +50,7 @@
 [12275]: https://github.com/enso-org/enso/pull/12275
 [12341]: https://github.com/enso-org/enso/pull/12341
 [12323]: https://github.com/enso-org/enso/pull/12323
+[12365]: https://github.com/enso-org/enso/pull/12365
 
 #### Enso Standard Library
 
