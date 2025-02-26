@@ -33,9 +33,9 @@ import { computed, onMounted, reactive, ref, toRef, toValue, watch } from 'vue'
 const props = withDefaults(
   defineProps<{
     writeMode?: boolean
-    initialPath?: string
+    choosenPath?: string
   }>(),
-  { writeMode: false, initialPath: '' },
+  { writeMode: false, choosenPath: '' },
 )
 
 const emit = defineEmits<{
@@ -71,7 +71,7 @@ const {
   isDirectoryStackInitializing,
 } = useFileBrowserStack(
   backend,
-  toRef(props, 'initialPath'),
+  toRef(props, 'choosenPath'),
   currentUser.data,
   toRef(props, 'writeMode'),
   (dir) => fetch('listDirectory', listDirectoryArgs(dir)),

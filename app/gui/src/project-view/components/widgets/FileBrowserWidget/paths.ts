@@ -58,7 +58,7 @@ export function useFileBrowserStack(
       ): DirectoryId | null
     }>
   >,
-  initialPath: ToValue<string>,
+  choosenPath: ToValue<string>,
   currentUser: ToValue<Opt<User>>,
   writeMode: ToValue<boolean>,
   listDirectory: (dir: Directory) => Promise<readonly AnyAsset<AssetType>[]>,
@@ -67,7 +67,7 @@ export function useFileBrowserStack(
   const directoryStack = ref<Directory[]>([])
   const isDirectoryStackInitializing = computed(() => directoryStack.value.length === 0)
   const currentDirectory = computed(() => directoryStack.value[directoryStack.value.length - 1])
-  const initialPathSegments = computed(() => pathToSegments(toValue(initialPath)))
+  const choosenPathSegments = computed(() => pathToSegments(toValue(choosenPath)))
 
   const rootSegments = computed(() => {
     const user = toValue(currentUser)
@@ -90,11 +90,11 @@ export function useFileBrowserStack(
     else {
       if (
         currentDirSegments.value != null &&
-        initialPathSegments.value?.ok &&
-        initialPathSegments.value.value.length === currentDirSegments.value.length + 1 &&
-        arrayEquals(currentDirSegments.value, initialPathSegments.value.value.slice(0, -1))
+        choosenPathSegments.value?.ok &&
+        choosenPathSegments.value.value.length === currentDirSegments.value.length + 1 &&
+        arrayEquals(currentDirSegments.value, choosenPathSegments.value.value.slice(0, -1))
       ) {
-        return initialPathSegments.value.value[initialPathSegments.value.value.length - 1]
+        return choosenPathSegments.value.value[choosenPathSegments.value.value.length - 1]
       } else {
         return undefined
       }
@@ -123,7 +123,7 @@ export function useFileBrowserStack(
   }
 
   function dirsToEnterOnInit(user: User) {
-    const initialSegments = unwrapOr(initialPathSegments.value, ['Users', user.name])
+    const initialSegments = unwrapOr(choosenPathSegments.value, ['Users', user.name])
     const rootSegs = unwrapOrWithLog(rootSegments.value ?? Err('cannot load root directory'), [])
     const afterRootIndex = findDifferenceIndex(initialSegments, rootSegs)
     if (afterRootIndex < rootSegs.length) {
