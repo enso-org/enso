@@ -9,6 +9,7 @@ import project.Table.Table
 import project.Value_Type.Value_Type
 from project.Internal.Type_Refinements.Column_Refinements import is_single_value
 from project.Internal.Type_Refinements.Single_Column_Table_Conversions import all
+from project.Internal.Type_Refinements.Single_Column_Typed_Table_Conversions import all
 
 refine_table (table : Table) =
     if is_single_column table . not then table else

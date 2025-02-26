@@ -53,5 +53,9 @@ add_numeric_columns_specs suite_builder setup =
             signum_column.to_vector . should_equal [-1, 0, 0, 1, 1]
 
         group_builder.specify "a single value column can also be Numeric_Column" <|
-            column = table_builder [["X", [1]]] . at "X"
+            table = table_builder [["X", [1]]]
+            column = table . at "X"
             column:Numeric_Column
+
+            # But a single column table can also be converted
+            table:Numeric_Column
