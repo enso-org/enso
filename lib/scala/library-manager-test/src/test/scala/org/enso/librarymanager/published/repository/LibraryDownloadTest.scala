@@ -72,7 +72,7 @@ class LibraryDownloadTest
             .filter(m => {
               val expMsg =
                 "License file for library [Foo.Bar:1.0.0] was missing."
-              m.getLevel() == Level.WARN && m.getMessage() == expMsg
+              m.getLevel() == Level.WARN && m.getFormattedMessage() == expMsg
             })
             .findAny
           found.isPresent() shouldBe true
