@@ -364,13 +364,13 @@ class RuntimeTypesTest
       TestMessages.panic(
         contextId,
         id_x,
-        Api.ExpressionUpdate.Payload.Panic("Compile_Error", List(id_x)),
+        Api.ExpressionUpdate.Payload.Panic("Compile_Error.Error", List(id_x)),
         builtin = true
       ),
       TestMessages.panic(
         contextId,
         id_y,
-        Api.ExpressionUpdate.Payload.Panic("Compile_Error", List(id_x)),
+        Api.ExpressionUpdate.Payload.Panic("Compile_Error.Error", List(id_x)),
         builtin = true
       ),
       context.executionComplete(contextId)
@@ -499,7 +499,7 @@ class RuntimeTypesTest
       TestMessages.panic(
         contextId,
         id_x,
-        Api.ExpressionUpdate.Payload.Panic("Compile_Error", List(id_x)),
+        Api.ExpressionUpdate.Payload.Panic("Compile_Error.Error", List(id_x)),
         builtin = true
       ),
       context.executionComplete(contextId)

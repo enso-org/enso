@@ -1,0 +1,84 @@
+## Enso Signatures 1.0
+## module Standard.Database.Internal.Postgres.Postgres_Dialect
+- type Postgres_Dialect
+    - Value dialect_operations:Standard.Base.Any.Any
+    - adapt_unified_column self column:Standard.Base.Any.Any approximate_result_type:Standard.Base.Any.Any infer_result_type_from_database_callback:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - cast_aggregate_columns self op_kind:Standard.Base.Data.Text.Text columns:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.Internal_Column.Internal_Column) -> Standard.Base.Any.Any
+    - cast_op_type self op_kind:Standard.Base.Data.Text.Text args:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.Internal_Column.Internal_Column) expression:Standard.Database.Internal.IR.SQL_Expression.SQL_Expression -> Standard.Base.Any.Any
+    - check_aggregate_support self aggregate:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - default_table_types self -> Standard.Base.Any.Any
+    - ensure_query_has_no_holes self jdbc:Standard.Database.Internal.JDBC_Connection.JDBC_Connection raw_sql:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - fetch_primary_key self connection:Standard.Base.Any.Any table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - flagged self flag:Standard.Database.Dialect_Flag.Dialect_Flag -> Standard.Base.Data.Boolean.Boolean
+    - generate_collate self collation_name:Standard.Base.Data.Text.Text -> Standard.Base.Data.Text.Text
+    - generate_expression self base_gen:Standard.Base.Any.Any expr:(Standard.Database.Internal.IR.SQL_Expression.SQL_Expression|Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor|Standard.Database.Internal.IR.Query.Query) for_select:Standard.Base.Data.Boolean.Boolean -> Standard.Database.SQL.SQL_Builder
+    - generate_sql self query:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - generate_truncate_table_sql self table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - get_error_mapper self -> Standard.Base.Any.Any
+    - get_limit_sql_modifier self limit:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - get_part_order self part:Standard.Database.Internal.SQL_Part.SQL_Part -> Standard.Base.Data.Numbers.Integer
+    - get_statement_setter self -> Standard.Base.Any.Any
+    - get_type_mapping self -> Standard.Base.Any.Any
+    - if_replace_params_supports self replace_params:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - is_feature_supported self feature:Standard.Database.Feature.Feature -> Standard.Base.Data.Boolean.Boolean
+    - is_operation_supported self operation:Standard.Base.Data.Text.Text -> Standard.Base.Data.Boolean.Boolean
+    - make_cast self column:Standard.Database.Internal.IR.Internal_Column.Internal_Column target_type:Standard.Database.SQL_Type.SQL_Type infer_result_type_from_database_callback:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - make_table_literal self vecs:Standard.Base.Any.Any column_names:Standard.Base.Any.Any as_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - name self -> Standard.Base.Any.Any
+    - needs_execute_query_for_type_inference self statement:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - needs_literal_table_cast self value_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - prepare_distinct self table:Standard.Base.Any.Any key_columns:Standard.Base.Any.Any case_sensitivity:Standard.Base.Any.Any problem_builder:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - prepare_fetch_types_query self expression:Standard.Base.Any.Any context:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - prepare_metadata_for_period self period:Standard.Base.Any.Any operation_input_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - prepare_order_descriptor self internal_column:Standard.Base.Any.Any sort_direction:Standard.Base.Any.Any text_ordering:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - temp_table_style self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+    - value_type_for_upload_of_existing_column self column:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - wrap_identifier self identifier:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- agg_count_distinct args:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- agg_count_distinct_include_null args:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- agg_count_empty -> Standard.Base.Any.Any
+- agg_count_is_null -> Standard.Base.Any.Any
+- agg_count_not_empty -> Standard.Base.Any.Any
+- agg_longest -> Standard.Base.Any.Any
+- agg_median -> Standard.Base.Any.Any
+- agg_mode -> Standard.Base.Any.Any
+- agg_percentile -> Standard.Base.Any.Any
+- agg_shortest -> Standard.Base.Any.Any
+- as_int32 expr:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- as_int64 expr:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- bool_or -> Standard.Base.Any.Any
+- concat_ops -> Standard.Base.Any.Any
+- contains -> Standard.Base.Any.Any
+- decimal_div -> Standard.Base.Any.Any
+- decimal_mod -> Standard.Base.Any.Any
+- ends_with -> Standard.Base.Any.Any
+- first_last_aggregators -> Standard.Base.Any.Any
+- floating_point_div -> Standard.Base.Any.Any
+- is_empty -> Standard.Base.Any.Any
+- is_finite -> Standard.Base.Any.Any
+- is_inf -> Standard.Base.Any.Any
+- is_nan -> Standard.Base.Any.Any
+- is_null -> Standard.Base.Any.Any
+- left -> Standard.Base.Any.Any
+- make_case_sensitive -> Standard.Base.Any.Any
+- make_contains_expr expr:Standard.Base.Any.Any substring:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_date_add arguments:Standard.Base.Any.Any metadata:Standard.Database.Internal.IR.Operation_Metadata.Date_Period_Metadata -> Standard.Base.Any.Any
+- make_date_diff arguments:Standard.Base.Any.Any metadata:Standard.Database.Internal.IR.Operation_Metadata.Date_Period_Metadata -> Standard.Base.Any.Any
+- make_date_trunc_to_day arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_dialect_operations -> Standard.Base.Any.Any
+- make_distinct_extension expressions:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_extract_as_int enso_name:Standard.Base.Any.Any sql_name:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- make_extract_fractional_as_int enso_name:Standard.Base.Any.Any sql_name:Standard.Base.Any.Any= modulus:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- make_first_aggregator reverse:Standard.Base.Any.Any ignore_null:Standard.Base.Any.Any args:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_order_descriptor internal_column:Standard.Base.Any.Any sort_direction:Standard.Base.Any.Any text_ordering:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_runtime_error_op arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- mod_op -> Standard.Base.Any.Any
+- postgres -> Standard.Base.Any.Any
+- postgres_dialect_name -> Standard.Base.Any.Any
+- replace args:Standard.Base.Any.Any metadata:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- represents_an_untyped_null_expression arg:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- right -> Standard.Base.Any.Any
+- starts_with -> Standard.Base.Any.Any
+- supported_replace_params -> Standard.Base.Any.Any
+- trim_ops -> Standard.Base.Any.Any
