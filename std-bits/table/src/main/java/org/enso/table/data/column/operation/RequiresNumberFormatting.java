@@ -8,6 +8,9 @@ import org.enso.table.data.table.Column;
 import org.graalvm.polyglot.Context;
 
 public class RequiresNumberFormatting {
+
+  private static final int FORMAT_NUMBER_LIMIT = 999999;
+
   /**
    * Indicates whether a column contains numbers greater than 1000000, and require formatting in viz
    */
@@ -35,24 +38,24 @@ public class RequiresNumberFormatting {
     long count = 0;
     for (long i = 0; i < storage.getSize(); i++) {
       var val = storage.getItemBoxed(i);
-      if (val instanceof Long n && (n > 999999 || n < -999999)) {
-        return true;
-      }
-      if (val instanceof Double n && (n > 999999 || n < -999999)) {
-        return true;
-      }
-      if (val instanceof BigInteger n
-          && (n.compareTo(BigInteger.valueOf(999999)) > 0
-              || n.compareTo(BigInteger.valueOf(-999999)) < 0)) {
-        return true;
-      }
-      if (val instanceof BigDecimal n
-          && (n.compareTo(BigDecimal.valueOf(999999)) > 0
-              || n.compareTo(BigDecimal.valueOf(-999999)) < 0)) {
-        return true;
-      }
-      if (context != null) {
-        context.safepoint();
+      switch (val) {
+        case Long n -> {
+          return (n > FORMAT_NUMBER_LIMIT || n < -FORMAT_NUMBER_LIMIT);
+        }
+        case Double n -> {
+          return (n > FORMAT_NUMBER_LIMIT || n < -FORMAT_NUMBER_LIMIT);
+        }
+        case BigInteger n -> {
+          return (n.compareTo(BigInteger.valueOf(FORMAT_NUMBER_LIMIT)) > 0
+              || n.compareTo(BigInteger.valueOf(-FORMAT_NUMBER_LIMIT)) < 0);
+        }
+        case BigDecimal n -> {
+          return (n.compareTo(BigDecimal.valueOf(FORMAT_NUMBER_LIMIT)) > 0
+              || n.compareTo(BigDecimal.valueOf(-FORMAT_NUMBER_LIMIT)) < 0);
+        }
+        default -> {
+          return false;
+        }
       }
     }
 
