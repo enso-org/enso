@@ -1,5 +1,5 @@
 import DocumentationImage from '@/components/MarkdownEditor/DocumentationImage.vue'
-import { TreeViewDecorator } from '@/components/MarkdownEditor/markdown/decoration/treeViewDecorator'
+import { TreeViewDecorator } from '@/components/MarkdownEditor/codemirror/decoration/treeViewDecorator'
 import { type VueHost } from '@/components/VueHostRender.vue'
 import { linkEditPopup } from '@/util/codemirror/linkEditPopup'
 import { linkAttributesFactory, linkAttributesFactoryChanged } from '@/util/codemirror/links'

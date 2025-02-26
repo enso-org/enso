@@ -11,7 +11,7 @@
 import { ChangeSpec, Line } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { SyntaxNode, Tree } from '@lezer/common'
-import { markdownParser } from 'ydoc-shared/ast/ensoMarkdown'
+import { ensoMarkdownParser } from 'ydoc-shared/ast/ensoMarkdown'
 
 // ===============
 // === Helpers ===
@@ -114,7 +114,7 @@ export function toggleHeader(view: EditorView, level: HeaderLevel) {
   const startLine = view.state.doc.lineAt(selection.from)
   const endLine = view.state.doc.lineAt(selection.to)
   const src = view.state.doc.toString()
-  const tree = markdownParser.parse(src)
+  const tree = ensoMarkdownParser.parse(src)
   const changeSet = new MutableChangeSet(0)
   for (let lineIndex = startLine.number; lineIndex <= endLine.number; lineIndex++) {
     const line = view.state.doc.line(lineIndex)
@@ -131,7 +131,7 @@ function toggleHeaderInner(context: Context, level: number): MutableChangeSet {
   const changeSet = context.makeChangeSet()
   if (isCodeText(node)) {
     const codeText = context.src.slice(node.from, node.to)
-    const codeTree = markdownParser.parse(codeText)
+    const codeTree = ensoMarkdownParser.parse(codeText)
     const codeContext = new Context(codeTree, codeText, context.line).withOffset(node.from)
     const codeChanges = toggleHeaderInner(codeContext, level)
     changeSet.merge(codeChanges)
@@ -170,7 +170,7 @@ export type ListType = 'unordered' | 'ordered'
 
 /** Toggle list items of specified type at each of the selected lines. */
 export function toggleList(view: EditorView, type: ListType) {
-  const tree = markdownParser.parse(view.state.doc.toString())
+  const tree = ensoMarkdownParser.parse(view.state.doc.toString())
   const startLine = view.state.doc.lineAt(view.state.selection.main.from)
   const endLine = view.state.doc.lineAt(view.state.selection.main.to)
   const changeSet = new MutableChangeSet(0)
@@ -191,7 +191,7 @@ function toggleListInner(context: Context, listIndex: number, type: ListType): M
   const changeSet = context.makeChangeSet()
   if (isCodeText(node)) {
     const codeText = context.src.slice(node.from, node.to)
-    const codeTree = markdownParser.parse(codeText)
+    const codeTree = ensoMarkdownParser.parse(codeText)
     const codeContext = new Context(codeTree, codeText, context.line).withOffset(node.from)
     const codeChanges = toggleListInner(codeContext, listIndex, type)
     changeSet.merge(codeChanges)
@@ -241,13 +241,13 @@ function detectList(
 export function toggleQuote(view: EditorView) {
   const changeSet = new MutableChangeSet(0)
   const src = view.state.doc.toString()
-  const tree = markdownParser.parse(src)
+  const tree = ensoMarkdownParser.parse(src)
   const selectionPos = view.state.selection.main.from
   const lineStart = view.state.doc.lineAt(selectionPos).from
   const node = resolveNodeAtPos(tree, selectionPos)
   if (isCodeText(node)) {
     const codeText = src.slice(node.from, node.to)
-    const codeTree = markdownParser.parse(codeText)
+    const codeTree = ensoMarkdownParser.parse(codeText)
     const codeChanges = new MutableChangeSet(node.from)
     toggleQuoteInner(codeTree, selectionPos - node.from, lineStart - node.from, codeChanges)
     changeSet.merge(codeChanges)

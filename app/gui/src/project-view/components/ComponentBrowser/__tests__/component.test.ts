@@ -97,7 +97,7 @@ test.each`
     if (!component.matchedRanges) return component.label
     const parts: string[] = []
     for (const range of allRanges(component.matchedRanges, component.label.length)) {
-      const text = component.label.slice(range.start, range.end)
+      const text = range.slice(component.label)
       parts.push(range.isMatch ? `<${text}>` : text)
     }
     return parts.join('')
