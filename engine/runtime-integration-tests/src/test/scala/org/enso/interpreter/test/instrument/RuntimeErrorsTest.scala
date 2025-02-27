@@ -179,7 +179,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error",
+          "Compile_Error.Error",
           Seq(xId)
         ),
         builtin = true
@@ -188,7 +188,7 @@ class RuntimeErrorsTest
         contextId,
         yId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error",
+          "Compile_Error.Error",
           Seq(xId)
         ),
         builtin = true
@@ -197,7 +197,7 @@ class RuntimeErrorsTest
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error",
+          "Compile_Error.Error",
           Seq(xId)
         ),
         builtin = true
@@ -373,7 +373,7 @@ class RuntimeErrorsTest
           Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")
         ),
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error",
+          "Compile_Error.Error",
           Seq(mainBodyId)
         ),
         builtin = true
@@ -2499,7 +2499,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error",
+          "Compile_Error.Error",
           Seq(xId)
         ),
         builtin = true
@@ -2508,7 +2508,7 @@ class RuntimeErrorsTest
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error",
+          "Compile_Error.Error",
           Seq(xId)
         ),
         builtin = true

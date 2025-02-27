@@ -1,5 +1,5 @@
 import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
-import { markdownParser } from './ensoMarkdown'
+import { ensoMarkdownParser } from './ensoMarkdown'
 import { xxHash128 } from './ffi'
 import type { ConcreteChild, RawConcreteChild } from './print'
 import { ensureUnspaced, firstChild, preferUnspaced, unspaced } from './print'
@@ -121,7 +121,7 @@ export function normalizeMarkdown(rawMarkdown: string): string {
   let normalized = ''
   let prevTo = 0
   let prevName: string | undefined = undefined
-  const cursor = markdownParser.parse(rawMarkdown).cursor()
+  const cursor = ensoMarkdownParser.parse(rawMarkdown).cursor()
   cursor.firstChild()
   do {
     if (prevTo < cursor.from) {
@@ -163,7 +163,7 @@ export function normalizedMarkdownToStandard(normalizedMarkdown: string) {
  */
 function standardizeMarkdown(normalizedMarkdown: string, textConsumer: TextConsumer) {
   let printingTags = true
-  const cursor = markdownParser.parse(normalizedMarkdown).cursor()
+  const cursor = ensoMarkdownParser.parse(normalizedMarkdown).cursor()
 
   function standardizeDocument() {
     let prevTo = 0

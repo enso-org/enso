@@ -198,15 +198,12 @@ public abstract class Atom extends EnsoObject {
   private Set<Function> getInstanceMethods() {
     var methodsFromCtorScope =
         constructor.getDefinitionScope().getMethodsForType(constructor.getType());
-    var methodsFromTypeScope =
-        constructor.getType().getDefinitionScope().getMethodsForType(constructor.getType());
     var allMethods = new HashSet<Function>();
     if (methodsFromCtorScope != null) {
       allMethods.addAll(methodsFromCtorScope);
     }
-    if (methodsFromTypeScope != null) {
-      allMethods.addAll(methodsFromTypeScope);
-    }
+    var methodsFromType = constructor.getType().getMethods(false);
+    allMethods.addAll(methodsFromType.values());
     return allMethods.stream()
         .filter(method -> !isFieldGetter(method))
         .collect(Collectors.toUnmodifiableSet());

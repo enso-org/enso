@@ -1,6 +1,7 @@
 package org.enso.table.data.column.storage.type;
 
 import java.math.BigInteger;
+import org.enso.table.data.column.storage.ColumnStorage;
 
 public record IntegerType(Bits bits) implements StorageType {
   public static final IntegerType INT_64 = new IntegerType(Bits.BITS_64);
@@ -82,5 +83,14 @@ public record IntegerType(Bits bits) implements StorageType {
     if (INT_16.fits(value)) return INT_16;
     if (INT_32.fits(value)) return INT_32;
     return INT_64;
+  }
+
+  public ColumnStorage<Long> asTypedStorage(ColumnStorage<?> storage) {
+    if (storage.getType() instanceof IntegerType) {
+      @SuppressWarnings("unchecked")
+      var output = (ColumnStorage<Long>) storage;
+      return output;
+    }
+    throw new IllegalArgumentException("Storage is not of IntegerType");
   }
 }

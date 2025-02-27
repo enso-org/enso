@@ -15,6 +15,7 @@ import { type ProjectPath } from '@/util/projectPath'
 import { qnJoin, qnLastSegment } from '@/util/qualifiedName'
 import { useToast } from '@/util/toast'
 import { computed, proxyRefs, readonly, ref, shallowRef, type ComputedRef } from 'vue'
+import { Range } from 'ydoc-shared/util/data/range'
 
 /** Information how the component browser is used, needed for proper input initializing. */
 export type Usage =
@@ -50,7 +51,7 @@ export function useComponentBrowserInput(
 ) {
   const text = ref('')
   const cbUsage = ref<Usage>()
-  const selection = ref({ start: 0, end: 0 })
+  const selection = ref(Range.empty)
   const imports = shallowRef<RequiredImport[]>([])
   const processingAIPrompt = ref(false)
   const toastError = useToast.error()
@@ -88,12 +89,9 @@ export function useComponentBrowserInput(
 
   function alterInput(newText: string, prefixLengthChange: number) {
     text.value = newText
-    const adjustPoint = (point: number) =>
-      Math.min(newText.length, Math.max(0, point + prefixLengthChange))
-    selection.value = {
-      start: adjustPoint(selection.value.start),
-      end: adjustPoint(selection.value.end),
-    }
+    selection.value = selection.value
+      .shift(prefixLengthChange)
+      .clip(Range.fromStartAndLength(0, newText.length))
   }
 
   const mode: ComputedRef<ComponentBrowserMode> = computed(() => {
@@ -136,9 +134,8 @@ export function useComponentBrowserInput(
     if (!entry) return Err(`No entry with id ${id}`)
     switchedToCodeMode.value = { appliedSuggestion: id }
     const { newText, requiredImport } = inputAfterApplyingSuggestion(entry)
-    const newCursorPos = newText.length
     text.value = newText
-    selection.value = { start: newCursorPos, end: newCursorPos }
+    selection.value = Range.emptyAt(newText.length)
     if (requiredImport) {
       const importId = suggestionDb.findByProjectPath(requiredImport)
       if (importId) {
@@ -215,7 +212,7 @@ export function useComponentBrowserInput(
           sourceNodeIdentifier.value = undefined
         }
         text.value = ''
-        selection.value = { start: 0, end: 0 }
+        selection.value = Range.empty
         break
       case 'editNode': {
         const parsed = extractSourceNode(
@@ -223,7 +220,7 @@ export function useComponentBrowserInput(
         )
         text.value = parsed.text
         sourceNodeIdentifier.value = parsed.sourceNodeIdentifier
-        selection.value = { start: usage.cursorPos, end: usage.cursorPos }
+        selection.value = Range.emptyAt(usage.cursorPos)
         break
       }
     }

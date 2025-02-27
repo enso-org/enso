@@ -1,7 +1,7 @@
 import * as RawAst from 'ydoc-shared/ast/generated/ast'
 import { rawParseModule } from 'ydoc-shared/ast/parse'
 import { LazyObject } from 'ydoc-shared/ast/parserSupport'
-import { type SourceRange } from 'ydoc-shared/util/data/text'
+import { SourceRange } from 'ydoc-shared/util/data/text'
 
 export { RawAst, rawParseModule }
 
@@ -11,7 +11,7 @@ export type HasAstRange = SourceRange | RawAst.Tree | RawAst.Token
  * Read span of code represented by given AST node, not including left whitespace offset.
  *
  * The AST is assumed to be generated from `code` and not modified sice then.
- * Otherwise an unspecified fragment of `code` may be returned.
+ * Otherwise, an unspecified fragment of `code` may be returned.
  */
 export function readAstOrTokenSpan(node: RawAst.Tree | RawAst.Token, code: string): string {
   const range = parsedTreeOrTokenRange(node)
@@ -83,16 +83,15 @@ export function visitRecursive(
  *   and first character _not_ being in the `node`.
  */
 export function parsedTreeRange(tree: RawAst.Tree): SourceRange {
-  const from = tree.whitespaceStartInCodeParsed + tree.whitespaceLengthInCodeParsed
-  const to = from + tree.childrenLengthInCodeParsed
-  return { from, to }
+  return SourceRange.fromStartAndLength(
+    tree.whitespaceStartInCodeParsed + tree.whitespaceLengthInCodeParsed,
+    tree.childrenLengthInCodeParsed,
+  )
 }
 
 /** TODO: Add docs */
 function parsedTokenRange(token: RawAst.Token): SourceRange {
-  const from = token.startInCodeBuffer
-  const to = from + token.lengthInCodeBuffer
-  return { from, to }
+  return SourceRange.fromStartAndLength(token.startInCodeBuffer, token.lengthInCodeBuffer)
 }
 
 /** TODO: Add docs */

@@ -6,10 +6,10 @@ import { useRaf } from '@/composables/animation'
 import { useEvent } from '@/composables/events'
 import { useAppClass } from '@/providers/appClass'
 import { injectWidgetTree } from '@/providers/widgetTree'
-import { Range } from '@/util/data/range'
 import { Vec2 } from '@/util/data/vec2'
 import { uuidv4 } from 'lib0/random'
 import { computed, type Ref, ref, shallowReactive, watchEffect, watchPostEffect } from 'vue'
+import { Range } from 'ydoc-shared/util/data/range'
 
 const props = defineProps<{
   modelValue: T[]
@@ -249,10 +249,10 @@ function updateItemBounds() {
       continue
     }
     const rect = originalBoundingClientRect.call(item)
-    const start = props.toDragPosition(new Vec2(rect.left, rect.top)).x
-    const end = props.toDragPosition(new Vec2(rect.right, rect.bottom)).x
-    if (currentRange?.start !== start || currentRange?.end !== end) {
-      itemHorizontalBounds[i] = new Range(start, end)
+    const from = props.toDragPosition(new Vec2(rect.left, rect.top)).x
+    const to = props.toDragPosition(new Vec2(rect.right, rect.bottom)).x
+    if (currentRange?.from !== from || currentRange?.to !== to) {
+      itemHorizontalBounds[i] = Range.tryFromBounds(from, to)
     }
   }
 }
@@ -260,7 +260,7 @@ function updateItemBounds() {
 function getDropIndex(info: DropHoverInfo, bounds: (Range | undefined)[]): number {
   const pos = info.position
   const insertIndex = bounds.findIndex(
-    (range) => range != null && (range.start + range.end) / 2 > pos.x,
+    (range) => range != null && (range.from + range.to) / 2 > pos.x,
   )
   return insertIndex >= 0 ? insertIndex : bounds.length
 }
