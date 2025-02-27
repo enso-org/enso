@@ -51,7 +51,7 @@ const PROJECT_EXECUTION_STYLES = tv({
     time: '',
     timeButtons: 'opacity-0 group-hover:opacity-100 transition-[opacity]',
     infoContainer: 'flex flex-col grow-0 gap-1',
-    info: 'cursor-default hover:bg-transparent',
+    info: 'cursor-default max-w-48 hover:bg-transparent',
   },
 })
 

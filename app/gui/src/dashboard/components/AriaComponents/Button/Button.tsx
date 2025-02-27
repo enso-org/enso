@@ -10,7 +10,7 @@ import {
 } from 'react'
 
 import * as aria from '#/components/aria'
-import { useVisualTooltip } from '#/components/AriaComponents/Text'
+import { Text, useVisualTooltip } from '#/components/AriaComponents/Text'
 import { Tooltip, TooltipTrigger } from '#/components/AriaComponents/Tooltip'
 import { Icon as IconComponent } from '#/components/Icon'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
@@ -266,9 +266,7 @@ export const Button = memo(
 Button.Group = ButtonGroup
 Button.GroupJoin = ButtonGroupJoin
 
-/**
- * Props for {@link ButtonContent}.
- */
+/** Props for {@link ButtonContent}. */
 interface ButtonContentProps {
   readonly hideLoader: boolean
   readonly isIconOnly: boolean
@@ -281,16 +279,12 @@ interface ButtonContentProps {
   readonly addonEnd?: ReactElement | string | false | null | undefined
 }
 
-/**
- * Checks if an addon is present.
- */
+/** Checks if an addon is present. */
 function hasAddon(addon: ButtonContentProps['addonEnd']): boolean {
   return addon != null && addon !== false && addon !== ''
 }
 
-/**
- * Renders the content of a button.
- */
+/** Renders the content of a button. */
 // eslint-disable-next-line no-restricted-syntax
 const ButtonContent = memo(function ButtonContent(props: ButtonContentProps) {
   const {
@@ -333,15 +327,15 @@ const ButtonContent = memo(function ButtonContent(props: ButtonContentProps) {
         styles={styles}
         hideLoader={hideLoader}
       />
-      <span className={styles.text()}>{children}</span>
+      <Text color="inherit" truncate="1" className={styles.text()}>
+        {children}
+      </Text>
       {hasAddon(addonEnd) && <div className={styles.addonEnd()}>{addonEnd}</div>}
     </>
   )
 })
 
-/**
- * Props for {@link Icon}.
- */
+/** Props for {@link Icon}. */
 interface IconProps {
   readonly isLoading: boolean
   readonly loaderPosition: 'full' | 'icon'
@@ -350,9 +344,7 @@ interface IconProps {
   readonly hideLoader: boolean
 }
 
-/**
- * Renders an icon for a button.
- */
+/** Renders an icon for a button. */
 const Icon = memo(function Icon(props: IconProps) {
   const { isLoading, loaderPosition, icon, styles, hideLoader } = props
 
