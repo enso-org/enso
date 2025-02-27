@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage.type;
 
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -32,6 +33,14 @@ public record FloatType(Bits bits) implements StorageType<Double> {
   @Override
   public boolean isOfType(StorageType<?> other) {
     return other instanceof FloatType;
+  }
+
+  @Override
+  public Double valueAsType(Object value) {
+    if (NumericConverter.isCoercibleToDouble(value)) {
+      return NumericConverter.coerceToDouble(value);
+    }
+    return null;
   }
 
   @Override

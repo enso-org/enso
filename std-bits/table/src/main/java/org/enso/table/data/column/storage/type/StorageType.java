@@ -79,6 +79,11 @@ public sealed interface StorageType<T>
   boolean isOfType(StorageType<?> other);
 
   /**
+   * Convert the value to the type if possible or return null if not.
+   */
+  T valueAsType(Object value);
+
+  /**
    * Creates a builder for the StorageType.
    * @return a builder for the given type.
    */

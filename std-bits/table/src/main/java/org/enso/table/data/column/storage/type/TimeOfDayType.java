@@ -31,6 +31,11 @@ public record TimeOfDayType() implements StorageType<LocalTime> {
   }
 
   @Override
+  public LocalTime valueAsType(Object value) {
+    return (value instanceof LocalTime time) ? time : null;
+  }
+
+  @Override
   public BuilderForType<LocalTime> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
     return Builder.getForTime(initialCapacity);
   }

@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage.type;
 
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -28,6 +29,14 @@ public record BigIntegerType() implements StorageType<BigInteger> {
   @Override
   public boolean isOfType(StorageType<?> other) {
     return other instanceof BigIntegerType;
+  }
+
+  @Override
+  public BigInteger valueAsType(Object value) {
+    if (NumericConverter.isCoercibleToBigInteger(value)) {
+      return NumericConverter.coerceToBigInteger(value);
+    }
+    return null;
   }
 
   @Override

@@ -31,6 +31,11 @@ public record DateTimeType() implements StorageType<ZonedDateTime> {
   }
 
   @Override
+  public ZonedDateTime valueAsType(Object value) {
+    return value instanceof ZonedDateTime zonedDateTime ? zonedDateTime : null;
+  }
+
+  @Override
   public BuilderForType<ZonedDateTime> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
     return Builder.getForDateTime(initialCapacity);
   }

@@ -29,6 +29,11 @@ public record AnyObjectType() implements StorageType<Object> {
   }
 
   @Override
+  public Object valueAsType(Object value) {
+    return value;
+  }
+
+  @Override
   public BuilderForType<Object> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
     return Builder.getForAnyObject(initialCapacity);
   }

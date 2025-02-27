@@ -2,6 +2,7 @@ package org.enso.table.data.column.storage.type;
 
 import java.math.BigInteger;
 
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -92,6 +93,14 @@ public record IntegerType(Bits bits) implements StorageType<Long> {
   @Override
   public boolean isOfType(StorageType<?> other) {
     return other instanceof IntegerType;
+  }
+
+  @Override
+  public Long valueAsType(Object value) {
+    if (NumericConverter.isCoercibleToLong(value)) {
+      return NumericConverter.coerceToLong(value);
+    }
+    return null;
   }
 
   @Override

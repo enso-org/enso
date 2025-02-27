@@ -29,6 +29,11 @@ public record BooleanType() implements StorageType<Boolean> {
   }
 
   @Override
+  public Boolean valueAsType(Object value) {
+    return value instanceof Boolean bool ? bool : null;
+  }
+
+  @Override
   public BuilderForType<Boolean> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
     return Builder.getForBoolean(initialCapacity);
   }

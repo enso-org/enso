@@ -31,10 +31,14 @@ public record BigDecimalType() implements StorageType<BigDecimal> {
   }
 
   @Override
+  public BigDecimal valueAsType(Object value) {
+    return (value instanceof BigDecimal bigDecimal) ? bigDecimal : null;
+  }
+
+  @Override
   public BuilderForType<BigDecimal> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
     return Builder.getForBigDecimal(initialCapacity);
   }
-
 
   @Override
   public ColumnStorage<BigDecimal> asTypedStorage(ColumnStorage<?> storage) {

@@ -31,6 +31,11 @@ public record DateType() implements StorageType<LocalDate> {
   }
 
   @Override
+  public LocalDate valueAsType(Object value) {
+    return value instanceof LocalDate localDate ? localDate : null;
+  }
+
+  @Override
   public BuilderForType<LocalDate> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
     return Builder.getForDate(initialCapacity);
   }
