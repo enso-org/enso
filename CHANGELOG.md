@@ -69,6 +69,7 @@
 - [Support for key-pair authentication in Snowflake connector.][12247]
 - [Support for basic arithmetic operations as numbers in Expressions.][12297]
 - [Support for Regular Expressions in Enso Expressions.][12320]
+- [Support for pi() and e() in Enso Expressions.][12367]
 - [xlsx reader now does not read empty rows from the end of a worksheet][12345]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
@@ -83,6 +84,7 @@
 [12247]: https://github.com/enso-org/enso/pull/12247
 [12297]: https://github.com/enso-org/enso/pull/12297
 [12320]: https://github.com/enso-org/enso/pull/12320
+[12367]: https://github.com/enso-org/enso/pull/12367
 [12345]: https://github.com/enso-org/enso/pull/12345
 
 #### Enso Language & Runtime
