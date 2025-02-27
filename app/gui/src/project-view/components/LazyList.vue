@@ -1,15 +1,18 @@
 <script setup lang="ts" generic="T">
-import { useScrolling } from '@/components/ComponentBrowser/scrolling'
 import { useApproach } from '@/composables/animation'
 import { useResizeObserver } from '@/composables/events'
 import { cloneVNode, computed, h, ref, VNode, watch } from 'vue'
 
-// const ITEM_SIZE = 32
-
-const props = defineProps<{
+const {
+  items,
+  itemHeight,
+  scrollToSelectionMargin = 0.0,
+  autoSelectFirst = false,
+} = defineProps<{
   items: readonly T[]
   itemHeight: number
-  autoSelectFirst: boolean
+  scrollToSelectionMargin?: number
+  autoSelectFirst?: boolean
 }>()
 const emit = defineEmits<{
   itemAccepted: [item: T, index: number]
@@ -17,7 +20,6 @@ const emit = defineEmits<{
 }>()
 const slots = defineSlots<{
   default(props: { item: T }): any
-  selected(props: { item: T }): any
 }>()
 
 const scroller = ref<HTMLElement>()
@@ -26,22 +28,24 @@ const scroller = ref<HTMLElement>()
 
 const visibleComponents = computed(() => {
   if (scroller.value == null) return []
-  const scrollPos = scrolling.scrollPosition.value
+  const scrollPos = scrollPosition.value
   const topmostVisible = itemAtY(scrollPos)
   const bottommostVisible = Math.max(0, itemAtY(scrollPos + scrollerSize.value.y))
-  return props.items.slice(topmostVisible, bottommostVisible + 1).map((item, i) => {
+  return items.slice(topmostVisible, bottommostVisible + 1).map((item, i) => {
     return { item, index: i + topmostVisible }
   })
 })
 
-function createVNodes(slot: typeof slots.default, extraProperties: Record<string, unknown> = {}) {
+function createVNodes(slot: typeof slots.default) {
   if (!slot) return undefined
   return visibleComponents.value.map(({ item, index }) => {
     return {
       node: h(
         'div',
         { class: 'item', style: itemStyle(index) },
-        slot({ item }).map((node: VNode<unknown, unknown>) => cloneVNode(node, extraProperties)),
+        slot({ item }).map((node: VNode<unknown, unknown>) =>
+          cloneVNode(node, { class: { selected: index === selected.value } }),
+        ),
       ),
       item,
       index,
@@ -50,92 +54,77 @@ function createVNodes(slot: typeof slots.default, extraProperties: Record<string
 }
 
 const nodes = computed(() => createVNodes(slots.default))
-const selectionNodes = computed(() =>
-  createVNodes(slots.selected ?? slots.default, { class: 'selected' }),
-)
 
 function ItemPos(index: number) {
-  return index * props.itemHeight
+  return index * itemHeight
 }
 
 function itemAtY(pos: number) {
-  return Math.floor(pos / props.itemHeight)
+  return Math.floor(pos / itemHeight)
 }
 
 function itemStyle(index: number) {
-  // TODO[ao]: for some reason, position: absolute must be set here,
-  //  because it sometimes is not set (.item class is not sufficient). To investigate.
-  return { position: 'absolute', transform: `translateY(${ItemPos(index)}px)` }
+  // TODO[ao]: for some reason, .item class style must be repeated here,
+  //  because the class has no effect otherwise. To investigate.
+  return {
+    position: 'absolute',
+    width: '100%',
+    height: 'var(--item-height)',
+    minHeight: 'var(--item-height)',
+    maxHeight: 'var(--item-height)',
+    transform: `translateY(${ItemPos(index)}px)`,
+  }
 }
 
 // === Highlight ===
 
 const selected = ref<number | null>(null)
-const highlightPosition = ref(0)
 const selectedPosition = computed(() => (selected.value != null ? ItemPos(selected.value) : null))
-const highlightHeight = computed(() => (selected.value != null ? props.itemHeight : 0))
-const animatedHighlightPosition = useApproach(highlightPosition)
-const animatedHighlightHeight = useApproach(highlightHeight)
 
 const selectedItem = computed(() => {
   if (selected.value === null) return null
-  return props.items[selected.value] ?? null
+  return items[selected.value] ?? null
 })
 
 watch(selectedItem, (item) => emit('update:selectedItem', item, selected.value))
 
-watch(selectedPosition, (newPos) => {
-  if (newPos == null) return
-  highlightPosition.value = newPos
-})
-
-const highlightClipPath = computed(() => {
-  const height = animatedHighlightHeight.value
-  const position = animatedHighlightPosition.value
-  const top = position + props.itemHeight - height
-  const bottom = listContentHeight.value - position - props.itemHeight
-  return `inset(${top}px 0px ${bottom}px 0px round 18px)`
-})
-
-function selectWithoutScrolling(index: number) {
-  const scrollPos = scrolling.scrollPosition.value
-  scrolling.targetScroll.value = { type: 'offset', offset: scrollPos }
-  selected.value = index
-}
-
 // === Scrolling ===
 
 const scrollerSize = useResizeObserver(scroller)
-const listContentHeight = computed(() =>
-  Math.max(props.items.length * props.itemHeight, scrollerSize.value.y),
-)
-const scrolling = useScrolling(() =>
-  Math.min(animatedHighlightPosition.value, listContentHeight.value - scrollerSize.value.y),
-)
-
+const listContentHeight = computed(() => Math.max(items.length * itemHeight, scrollerSize.value.y))
+const scrollTarget = ref(0.0)
+const scrollPosition = useApproach(scrollTarget)
 const listContentHeightPx = computed(() => `${listContentHeight.value}px`)
+
+function showSelectedItem() {
+  if (selectedPosition.value == null) return
+  const maxScrollPos = Math.max(selectedPosition.value - scrollToSelectionMargin, 0.0)
+  const minScrollPos = Math.min(
+    selectedPosition.value + itemHeight + scrollToSelectionMargin - scrollerSize.value.y,
+    listContentHeight.value - scrollerSize.value.y,
+  )
+  if (scrollPosition.value > maxScrollPos) {
+    scrollTarget.value = maxScrollPos
+  } else if (scrollPosition.value < minScrollPos) {
+    scrollTarget.value = minScrollPos
+  }
+}
 
 function updateScroll() {
   // If the scrollTop value changed significantly, that means the user is scrolling.
-  if (scroller.value && Math.abs(scroller.value.scrollTop - scrolling.scrollPosition.value) > 1.0) {
-    scrolling.targetScroll.value = { type: 'offset', offset: scroller.value.scrollTop }
+  if (scroller.value && Math.abs(scroller.value.scrollTop - scrollPosition.value) > 1.0) {
+    scrollTarget.value = scroller.value.scrollTop
+    scrollPosition.skip()
   }
 }
 
 // === Filtering Changes ===
 
 watch(
-  () => props.items,
+  () => items,
   () => {
-    selected.value = props.autoSelectFirst ? 0 : null
-    scrolling.targetScroll.value = { type: 'top' }
-
-    // Update `highlightPosition` synchronously, so the subsequent animation `skip` have an effect.
-    if (selectedPosition.value != null) {
-      highlightPosition.value = selectedPosition.value
-    }
-    animatedHighlightPosition.skip()
-    animatedHighlightHeight.skip()
+    selected.value = autoSelectFirst ? 0 : null
+    scrollTarget.value = 0.0
   },
 )
 
@@ -146,15 +135,15 @@ defineExpose({
     if (selected.value != null && selected.value > 0) {
       selected.value -= 1
     }
-    scrolling.scrollWithTransition({ type: 'selected' })
+    showSelectedItem()
   },
   moveDown() {
     if (selected.value == null) {
       selected.value = 0
-    } else if (selected.value < props.items.length - 1) {
+    } else if (selected.value < items.length - 1) {
       selected.value += 1
     }
-    scrolling.scrollWithTransition({ type: 'selected' })
+    showSelectedItem()
   },
 })
 </script>
@@ -167,24 +156,17 @@ defineExpose({
     <div
       ref="scroller"
       class="list"
-      :scrollTop.prop="scrolling.scrollPosition.value"
+      :scrollTop.prop="scrollPosition.value"
       @wheel.stop.passive
       @scroll="updateScroll"
     >
-      <div class="list-variant">
+      <div class="list-content">
         <component
           :is="node"
           v-for="{ node, item, index } in nodes"
           :key="index"
-          @mousemove="selectWithoutScrolling(index)"
-          @click="emit('itemAccepted', item, index)"
-        />
-      </div>
-      <div class="list-variant selected" :style="{ clipPath: highlightClipPath }">
-        <component
-          :is="node"
-          v-for="{ node, item, index } in selectionNodes"
-          :key="index"
+          class="item"
+          @mousemove="selected = index"
           @click="emit('itemAccepted', item, index)"
         />
       </div>
@@ -214,7 +196,7 @@ defineExpose({
   position: relative;
 }
 
-.list-variant {
+.list-content {
   top: 0px;
   width: 100%;
   height: var(--list-height);

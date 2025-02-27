@@ -9,6 +9,7 @@ import { tryGetIndex } from '@/util/data/array'
 import { computed, ref, type ComponentInstance } from 'vue'
 
 const ITEM_SIZE = 24
+const SCROLL_TO_SELECTION_MARGIN = ITEM_SIZE / 2
 
 const props = defineProps<{
   filtering: Filtering
@@ -63,6 +64,7 @@ defineExpose({
       class="groups"
       :items="currentGroups"
       :itemHeight="ITEM_SIZE"
+      :scrollToSelectionMargin="SCROLL_TO_SELECTION_MARGIN"
       :autoSelectFirst="true"
       @update:selectedItem="(group) => (selectedGroup = group?.id ?? null)"
     >
@@ -70,23 +72,16 @@ defineExpose({
     </LazyList>
     <LazyList
       ref="componentsPanel"
+      v-slot="{ item: component }"
       class="components"
       :items="currentComponents"
       :itemHeight="ITEM_SIZE"
+      :scrollToSelectionMargin="SCROLL_TO_SELECTION_MARGIN"
       :autoSelectFirst="autoSelectFirstComponent"
       @itemAccepted="emit('acceptSuggestion', $event)"
       @update:selectedItem="emit('update:selectedComponent', $event)"
     >
-      <template #default="{ item: component }">
-        <ComponentEntry :component="component" :color="componentColor(component)" />
-      </template>
-      <template #selected="{ item: component }">
-        <ComponentEntry
-          class="selected"
-          :component="component"
-          :color="componentColor(component)"
-        />
-      </template>
+      <ComponentEntry :component="component" :color="componentColor(component)" />
     </LazyList>
   </div>
 </template>
@@ -114,6 +109,7 @@ defineExpose({
 .groupEntry {
   width: 100%;
   height: 24px;
+  border-radius: 12px;
   align-content: center;
   padding: 7px;
   line-height: 1;

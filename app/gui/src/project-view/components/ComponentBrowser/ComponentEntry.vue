@@ -27,6 +27,7 @@ const { component, color } = defineProps<{ component: Component; color: string }
 .ComponentEntry {
   width: 100%;
   height: 24px;
+  border-radius: 12px;
   flex-direction: row;
   align-items: center;
   gap: 8px;
