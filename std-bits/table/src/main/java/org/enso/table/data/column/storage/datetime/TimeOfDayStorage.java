@@ -34,30 +34,6 @@ public final class TimeOfDayStorage extends SpecializedStorage<LocalTime> {
             return Duration.between(other, value);
           }
         });
-    t.add(
-        new TimeLikeCoalescingOperation<>(Maps.MIN, LocalTime.class) {
-          @Override
-          protected Builder createOutputBuilder(long size) {
-            return Builder.getForTime(size);
-          }
-
-          @Override
-          protected LocalTime doOperation(LocalTime a, LocalTime b) {
-            return a.isBefore(b) ? a : b;
-          }
-        });
-    t.add(
-        new TimeLikeCoalescingOperation<>(Maps.MAX, LocalTime.class) {
-          @Override
-          protected Builder createOutputBuilder(long size) {
-            return Builder.getForTime(size);
-          }
-
-          @Override
-          protected LocalTime doOperation(LocalTime a, LocalTime b) {
-            return a.isAfter(b) ? a : b;
-          }
-        });
     return t;
   }
 

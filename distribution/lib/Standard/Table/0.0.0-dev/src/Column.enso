@@ -48,6 +48,7 @@ polyglot java import org.enso.table.data.column.operation.CountNothing
 polyglot java import org.enso.table.data.column.operation.CountUntrimmed
 polyglot java import org.enso.table.data.column.operation.RequiresNumberFormatting
 polyglot java import org.enso.table.data.column.operation.SampleOperation
+polyglot java import org.enso.table.data.column.operation.BinaryCoalescingOperation
 polyglot java import org.enso.table.data.column.operation.comparators.Comparators
 polyglot java import org.enso.table.data.column.operation.text.TextPartOperation
 polyglot java import org.enso.table.data.column.operation.text.TextPredicates
@@ -1020,12 +1021,15 @@ type Column
              import Standard.Examples
 
              example_min = Examples.decimal_column.min Examples.integer_column
-    min self (values : Any | Vector Any) -> Column =
-        fallback a b = if a.is_nothing then b else
-            if b.is_nothing then a else
-                if b < a then b else a
-        Value_Type_Helpers.check_multi_argument_comparable_op self values <|
-            run_vectorized_many_op self "min" fallback values
+    min self (values : Any | Vector Any) -> Column = Value_Type_Helpers.check_multi_argument_comparable_op self values <|
+        binary_op = BinaryCoalescingOperation.min self.java_column
+        case binary_op.is_nothing of
+            False ->
+            True ->
+                fallback a b = if a.is_nothing then b else
+                    if b.is_nothing then a else
+                        if b < a then b else a
+                run_vectorized_many_op self "min" fallback values
 
     ## GROUP Standard.Base.Math
        ICON transform4
