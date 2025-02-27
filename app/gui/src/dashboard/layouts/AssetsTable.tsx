@@ -132,7 +132,7 @@ import { PermissionAction } from '#/utilities/permissions'
 import { withPresence } from '#/utilities/set'
 import invariant from 'tiny-invariant'
 import type { SortInfo } from '../utilities/sorting'
-import { twJoin, twMerge } from '../utilities/tailwindMerge'
+import { twMerge } from '../utilities/tailwindMerge'
 import {
   SUGGESTIONS_FOR_HAS,
   SUGGESTIONS_FOR_NEGATIVE_TYPE,

@@ -182,7 +182,7 @@ export function parentsPathsToPath(
 
 /** Convert a {@link backend.ParentsPath} and a {@link backend.VirtualParentsPath} to a full path. */
 export function computeFullRemotePath(
-  asset: Pick<backend.AnyAsset, 'title' | 'type' | 'parentsPath' | 'virtualParentsPath'>,
+  asset: Pick<backend.AnyAsset, 'parentsPath' | 'title' | 'type' | 'virtualParentsPath'>,
   users: readonly backend.UserInfo[],
   userGroups: readonly backend.UserGroupInfo[],
 ) {
