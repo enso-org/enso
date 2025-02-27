@@ -206,7 +206,7 @@ export const WHITELISTED_TIME_ZONE_INFO = [
   { timeZone: 'Etc/GMT+2', description: 'Coordinated Universal Time-02' },
   { timeZone: 'Atlantic/Azores', description: 'Azores' },
   { timeZone: 'Atlantic/Cape_Verde', description: 'Cape Verde' },
-  { timeZone: 'UTC', description: 'Default' },
+  { timeZone: 'UTC', description: 'UTC' },
   { timeZone: 'America/Danmarkshavn', description: 'Danmarkshavn' },
   { timeZone: 'America/Scoresbysund', description: 'Scoresbysund' },
   { timeZone: 'Africa/Accra', description: 'Accra' },
