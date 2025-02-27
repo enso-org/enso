@@ -277,7 +277,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       return []
     }
     let nextDate: ZonedDateTime | null = firstProjectExecutionOnOrAfter(projectExecution, date)
-    const dates = [nextDate]
+    const dates = date.compare(nextDate) !== 0 ? [nextDate] : []
     nextDate = nextProjectExecutionDate(projectExecution, nextDate)
     while (nextDate && dates.length < REPEAT_TIMES_COUNT) {
       dates.push(nextDate)
