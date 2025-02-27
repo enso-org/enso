@@ -3,6 +3,7 @@ package org.enso.table.data.column.storage.type;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
@@ -50,10 +51,9 @@ public record FloatType(Bits bits) implements StorageType<Double> {
 
 
   @Override
-  public ColumnStorage<Double> asTypedStorage(ColumnStorage<?> storage) {
+  public ColumnDoubleStorage asTypedStorage(ColumnStorage<?> storage) {
     if (storage.getType() instanceof FloatType) {
-      @SuppressWarnings("unchecked")
-      var output = (ColumnStorage<Double>) storage;
+      var output = (ColumnDoubleStorage) storage;
       return output;
     }
     throw new IllegalArgumentException("Storage is not of FloatType");

@@ -5,6 +5,7 @@ import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
+import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
@@ -109,10 +110,9 @@ public record IntegerType(Bits bits) implements StorageType<Long> {
   }
 
   @Override
-  public ColumnStorage<Long> asTypedStorage(ColumnStorage<?> storage) {
+  public ColumnLongStorage asTypedStorage(ColumnStorage<?> storage) {
     if (storage.getType() instanceof IntegerType) {
-      @SuppressWarnings("unchecked")
-      var output = (ColumnStorage<Long>) storage;
+      var output = (ColumnLongStorage) storage;
       return output;
     }
     throw new IllegalArgumentException("Storage is not of IntegerType");
