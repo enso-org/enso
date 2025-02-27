@@ -84,6 +84,12 @@
         "name": "org.enso.base.enso_cloud.AuthenticationProvider"
     },
     {
+        "name": "org.enso.base.enso_cloud.AuthenticationProvider$AuthenticationService"
+    },
+    {
+        "name": "org.enso.base.enso_cloud.AuthenticationProvider.AuthenticationService"
+    },
+    {
         "name": "org.enso.base.enso_cloud.CacheSettings"
     },
     {

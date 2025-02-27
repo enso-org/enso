@@ -9,7 +9,7 @@ import org.enso.text.Sha3_224VersionCalculator
 import java.util
 import java.util.{Collections, UUID}
 import java.util.concurrent.atomic.AtomicReference
-import java.util.concurrent.{ExecutorService, TimeUnit}
+import java.util.concurrent.{CancellationException, ExecutorService, TimeUnit}
 import java.util.logging.Level
 import scala.concurrent.{Future, Promise, TimeoutException}
 import scala.util.control.NonFatal
@@ -131,6 +131,12 @@ final class JobExecutionEngine(
               }
               logger.log(Level.WARNING, sb.toString())
               runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
+            case _: CancellationException =>
+              logger.log(
+                Level.FINE,
+                "Job `{}` was cancelled by an external task",
+                runningJob.id
+              )
             case e: Throwable =>
               logger.log(
                 Level.WARNING,
