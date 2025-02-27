@@ -38,7 +38,7 @@ import { useBackendQuery, useNewProject } from '#/hooks/backendHooks'
 import { useUploadFileWithToastMutation } from '#/hooks/backendUploadFilesHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { usePasteData } from '#/providers/DriveProvider'
-import { parentsPathsToPath } from '#/services/RemoteBackend'
+import { computeFullRemotePath } from '#/services/RemoteBackend'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 import { normalizePath } from '#/utilities/fileInfo'
 import { mapNonNullish } from '#/utilities/nullable'
@@ -92,8 +92,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const isCloud = categoryModule.isCloudCategory(category)
   const pathComputed =
     category.type === 'recent' || category.type === 'trash' ? null
-    : isCloud ?
-      `${parentsPathsToPath(asset.parentsPath, asset.virtualParentsPath, users, userGroups)}${asset.type === backendModule.AssetType.datalink ? '.datalink' : ''}`
+    : isCloud ? computeFullRemotePath(asset, users, userGroups)
     : asset.type === backendModule.AssetType.project ?
       mapNonNullish(localBackend?.getProjectPath(asset.id) ?? null, normalizePath)
     : normalizePath(localBackendModule.extractTypeAndId(asset.id).id)

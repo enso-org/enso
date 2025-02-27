@@ -31,7 +31,7 @@ import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { AssetType, BackendType, Plan, type AnyAsset, type DatalinkId } from '#/services/Backend'
 import { extractTypeAndId } from '#/services/LocalBackend'
-import { parentsPathsToPath } from '#/services/RemoteBackend'
+import { computeFullRemotePath } from '#/services/RemoteBackend'
 import { normalizePath } from '#/utilities/fileInfo'
 import { mapNonNullish } from '#/utilities/nullable'
 import * as permissions from '#/utilities/permissions'
@@ -161,8 +161,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const isCloud = backend.type === BackendType.remote
   const pathComputed =
     category.type === 'recent' || category.type === 'trash' ? null
-    : isCloud ?
-      `${parentsPathsToPath(item.parentsPath, item.virtualParentsPath, users, userGroups)}${item.type === AssetType.datalink ? '.datalink' : ''}`
+    : isCloud ? computeFullRemotePath(item, users, userGroups)
     : item.type === AssetType.project ?
       mapNonNullish(localBackend?.getProjectPath(item.id) ?? null, normalizePath)
     : normalizePath(extractTypeAndId(item.id).id)

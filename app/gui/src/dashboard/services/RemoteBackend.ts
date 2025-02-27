@@ -32,6 +32,16 @@ const STATUS_SERVER_ERROR = 500
 const STATUS_NOT_AUTHORIZED = 401
 /** HTTP status indicating that authorized user doesn't have access to the given resource */
 const STATUS_NOT_ALLOWED = 403
+const TYPE_TO_EXTENSION: Record<backend.AssetType, string> = {
+  directory: '/',
+  project: '.project',
+  secret: '.secret',
+  datalink: '.datalink',
+  file: '',
+  specialEmpty: '',
+  specialError: '',
+  specialLoading: '',
+}
 
 /** The format of all errors returned by the backend. */
 interface RemoteBackendError {
@@ -154,19 +164,35 @@ export function parentsPathsToPath(
   users: readonly backend.UserInfo[],
   userGroups: readonly backend.UserGroupInfo[],
 ) {
+  const virtualParentsPathWithPrefix = virtualParentsPath === '' ? '' : `/${virtualParentsPath}`
   // This is SAFE as `parentsPath` is guaranteed to be composed only of valid path segments.
   // eslint-disable-next-line no-restricted-syntax
   const firstPathSegment = DirectoryId(parentsPath.split('/')[0] as never)
   const possibleUserId = directoryIdToUserId(firstPathSegment)
   const user = users.find((otherUser) => otherUser.userId === possibleUserId)
   if (user) {
-    return `enso://Users/${user.name}/${virtualParentsPath}`
+    return `enso://Users/${user.name}${virtualParentsPathWithPrefix}`
   }
   const possibleUserGroupId = directoryIdToUserGroupId(firstPathSegment)
   const userGroup = userGroups.find((otherUserGroup) => otherUserGroup.id === possibleUserGroupId)
   if (userGroup) {
-    return `enso://Teams/${userGroup.groupName}/${virtualParentsPath}`
+    return `enso://Teams/${userGroup.groupName}${virtualParentsPathWithPrefix}`
   }
+}
+
+/** Convert a {@link backend.ParentsPath} and a {@link backend.VirtualParentsPath} to a full path. */
+export function computeFullRemotePath(
+  asset: Pick<backend.AnyAsset, 'title' | 'type' | 'parentsPath' | 'virtualParentsPath'>,
+  users: readonly backend.UserInfo[],
+  userGroups: readonly backend.UserGroupInfo[],
+) {
+  const { title, type, parentsPath, virtualParentsPath } = asset
+  const directoryPath = parentsPathsToPath(parentsPath, virtualParentsPath, users, userGroups)
+  if (directoryPath == null) {
+    return
+  }
+  console.log(directoryPath, title, asset.parentsPath, asset.virtualParentsPath)
+  return `${directoryPath}/${title}${TYPE_TO_EXTENSION[type]}`
 }
 
 /** HTTP response body for the "list users" endpoint. */
