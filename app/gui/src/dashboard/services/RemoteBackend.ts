@@ -191,7 +191,6 @@ export function computeFullRemotePath(
   if (directoryPath == null) {
     return
   }
-  console.log(directoryPath, title, asset.parentsPath, asset.virtualParentsPath)
   return `${directoryPath}/${title}${TYPE_TO_EXTENSION[type]}`
 }
 
