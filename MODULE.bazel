@@ -78,6 +78,7 @@ crate.from_cargo(
         "//:tools/language-server/wstest/Cargo.toml",
         "//app/rust-ffi:Cargo.toml",
     ],
+    isolated = False,
 )
 use_repo(crate, "crates")
 
@@ -94,6 +95,7 @@ wb_crates.from_cargo(
     cargo_config = "//:.cargo/config.toml",
     cargo_lockfile = "@wasm_bindgen_cli_crate//:Cargo.lock",
     manifests = ["@wasm_bindgen_cli_crate//:Cargo.toml"],
+    isolated = False,
 )
 use_repo(wb_crates, "wb_crates")
 

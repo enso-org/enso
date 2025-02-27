@@ -126,6 +126,7 @@ public class MetaObjectTest {
       }
     }
     expecting.remove(ConstantsGen.ARRAY_LIKE_HELPERS);
+    expecting.remove(ConstantsGen.INSTRUMENTOR);
     var w = new StringBuilder();
     var f = new StringWriter();
     var err = new PrintWriter(f);

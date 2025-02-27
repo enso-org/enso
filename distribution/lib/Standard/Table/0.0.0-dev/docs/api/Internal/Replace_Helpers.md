@@ -1,0 +1,3 @@
+## Enso Signatures 1.0
+## module Standard.Table.Internal.Replace_Helpers
+- replace base_table:Standard.Base.Any.Any lookup_table:Standard.Base.Any.Any columns:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Table.Value_Type.By_Type|Standard.Base.Any.Any) from_column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)= to_column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)= allow_unmatched_rows:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any

@@ -76,7 +76,10 @@ public class SocketLoggingNode implements Runnable {
         event = (ILoggingEvent) hardenedLoggingEventInputStream.readObject();
         if (projectId == null) {
           try {
-            projectId = UUID.fromString(event.getMDCPropertyMap().get("project.id"));
+            var property = event.getMDCPropertyMap().get("project.id");
+            if (property != null) {
+              projectId = UUID.fromString(property);
+            }
           } catch (IllegalArgumentException e) {
             // ignore
           }

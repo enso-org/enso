@@ -3227,9 +3227,13 @@ lazy val `runtime-benchmarks` =
           case List(name) => name
           case _          => throw new IllegalArgumentException("Expected one argument.")
         }
-        Def.task {
-          (Compile / run).toTask(" " + name).value
-        }
+        Def
+          .task {
+            (Compile / run).toTask(" " + name).value
+          }
+          .dependsOn(
+            buildEngineDistribution
+          )
       }.evaluated
     )
     .dependsOn(`benchmarks-common`)
@@ -4293,13 +4297,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
         "org.slf4j.nop/org.slf4j.nop" -> Seq("org.slf4j")
       )
     },
-    javaOptions ++= {
-      Seq(
-        // To enable logging in benchmarks, add ch.qos.logback module on the modulePath
-        //"-Dslf4j.provider=org.slf4j.nop.NOPServiceProvider"
-        "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider"
-      )
-    },
+    javaOptions ++= testLogProviderOptions,
     javaOptions ++= benchOnlyOptions
   )
   .settings(
@@ -4317,9 +4315,13 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
         case List(name) => name
         case _          => throw new IllegalArgumentException("Expected one argument.")
       }
-      Def.task {
-        (Compile / run).toTask(" " + name).value
-      }
+      Def
+        .task {
+          (Compile / run).toTask(" " + name).value
+        }
+        .dependsOn(
+          buildEngineDistribution
+        )
     }.evaluated
   )
   .dependsOn(`bench-processor`)
@@ -5485,17 +5487,31 @@ runEngineDistribution := {
   )
 }
 
+lazy val buildProjectManagerDistributionCond =
+  taskKey[Unit](
+    "Builds the project manager distribution either via NativeImage, or just assembly Jar"
+  )
+buildProjectManagerDistributionCond := Def.taskIf {
+  if (shouldBuildNativeImage.value) {
+    buildProjectManagerDistribution.value
+  } else {
+    (`project-manager` / assembly).value
+  }
+}.value
+
 lazy val runProjectManagerDistribution =
   inputKey[Unit](
     "Run or --debug the project manager distribution with arguments"
   )
 runProjectManagerDistribution := {
-  buildEngineDistribution.value
-  buildProjectManagerDistribution.value
+  buildEngineDistributionNoIndex.value
+  buildProjectManagerDistributionCond.value
+  val projectManagerJar = (`project-manager` / assembly).value.getAbsoluteFile()
   val args: Seq[String] = spaceDelimited("<arg>").parsed
   DistributionPackage.runProjectManagerPackage(
     engineDistributionRoot.value,
     projectManagerDistributionRoot.value,
+    projectManagerJar,
     args,
     streams.value.log
   )

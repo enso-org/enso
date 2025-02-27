@@ -381,7 +381,7 @@ add_column_operation_specs suite_builder setup =
     suite_builder.group prefix+"(Column_Operations_Spec) Column Operations - Equality & Null Handling" group_builder->
         table_builder = setup.light_table_builder
 
-        group_builder.specify "should provide basic == and != comparisons" pending="TODO figure out proper null handling" <|
+        group_builder.specify "should provide basic == and != comparisons" <|
             with_mixed_columns_if_supported [["x", [1, 4, 5, Nothing]], ["y", [2.0, 3.25, 5.0, Nothing]]] t2->
                 x = t2.at "x"
                 y = t2.at "y"
@@ -398,7 +398,7 @@ add_column_operation_specs suite_builder setup =
                 x.is_present.to_vector . should_equal [True, True, True, False]
                 (x + Nothing).is_present.to_vector . should_equal [False, False, False, False]
 
-        group_builder.specify "Column equality should handle nulls correctly" pending="TODO" <|
+        group_builder.specify "Column equality should handle nulls correctly" <|
             a = [2, 3, Nothing, Nothing]
             b = [2, 4, Nothing, 5]
             r = [True, False, True, False]
@@ -406,7 +406,7 @@ add_column_operation_specs suite_builder setup =
 
             t = table_builder [["A", a], ["B", b]]
             c = (t.at "A") == (t.at "B")
-            c.to_vector . should_equal r
+            c.to_vector . should_equal [True, False, Nothing, Nothing]
             c.value_type.should_equal Value_Type.Boolean
 
         group_builder.specify "equals_ignore_case for ASCII strings" <|
@@ -434,7 +434,7 @@ add_column_operation_specs suite_builder setup =
             r3 = (t.at "Y") . equals_ignore_case 42 . to_vector
             r3.should_fail_with Invalid_Value_Type
 
-        group_builder.specify "Text Column equality (including case-insensitive) should handle nulls correctly" pending="TODO" <|
+        group_builder.specify "Text Column equality (including case-insensitive) should handle nulls correctly" <|
             a = ["Z", "a", "b", Nothing, Nothing]
             b = ["Z", "A", "C", Nothing, "d"]
             r_sensitive   = [True, False, False, True, False]
@@ -444,8 +444,8 @@ add_column_operation_specs suite_builder setup =
             a.zip b (x-> y-> if x.is_nothing || y.is_nothing then x == y else x.equals_ignore_case y) . should_equal r_insensitive
 
             t = table_builder [["A", a], ["B", b]]
-            ((t.at "A") == (t.at "B")) . to_vector . should_equal r_sensitive
-            ((t.at "A").equals_ignore_case (t.at "B")) . to_vector . should_equal r_insensitive
+            ((t.at "A") == (t.at "B")) . to_vector . should_equal [True, False, False, Nothing, Nothing]
+            ((t.at "A").equals_ignore_case (t.at "B")) . to_vector . should_equal [True, True, False, Nothing, Nothing]
 
         group_builder.specify "should report a warning if checking equality on floating point columns" <|
             t = table_builder [["X", [1.0, 2.1, 3.2]], ["Y", [1.0, 2.0, 3.2]]]
@@ -832,11 +832,11 @@ add_column_operation_specs suite_builder setup =
                 ((t7.at "X") <= (t7.at "Y")) . to_vector . should_fail_with Incomparable_Values
                 ((t7.at "Y") > (t7.at "X")) . to_vector . should_fail_with Incomparable_Values
 
-        group_builder.specify "Between should return null if any of the values are null" pending="TODO" <|
-            a = [2, 3, Nothing, 7,       5,       Nothing]
-            b = [0, 5, 7,       Nothing, 7,       Nothing]
-            c = [9, 8, 7,       7,       Nothing, Nothing]
-            r = [True, False, Nothing, Nothing, Nothing, Nothing]
+        group_builder.specify "Between should return null if any of the values are null" <|
+            a = [2, 3, Nothing, 7,       5,       Nothing,      11]
+            b = [0, 5, 7,       Nothing, 7,       Nothing, Nothing]
+            c = [9, 8, 7,       7,       Nothing, Nothing,       9]
+            r = [True, False, Nothing, Nothing, False, Nothing, False]
 
             t = table_builder [["A", a], ["B", b], ["C", c]]
             ((t.at "A").between (t.at "B") (t.at "C")) . to_vector . should_equal r

@@ -17,6 +17,7 @@
       promote.yml:
       release.yml:
       std-libs-benchmark.yml:
+      std-libs-labels.yml:
       wasm-checks.yml:
   app/:
     gui/: # GUI.

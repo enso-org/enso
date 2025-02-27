@@ -1,4 +1,4 @@
-import { ensoMarkdown } from '@/components/MarkdownEditor/markdown'
+import { ensoMarkdown } from '@/components/MarkdownEditor/codemirror'
 import { setVueHost } from '@/util/codemirror/vueHostExt'
 import { EditorState } from '@codemirror/state'
 import { Decoration, EditorView } from '@codemirror/view'
@@ -67,6 +67,33 @@ test.each([
     expectedLinks: [
       {
         text: 'Link text',
+        href: 'https://www.example.com/index.html',
+      },
+    ],
+  },
+  {
+    markdown: '[*Emphasized link text*](https://www.example.com/index.html)',
+    expectedLinks: [
+      {
+        text: '*Emphasized link text*',
+        href: 'https://www.example.com/index.html',
+      },
+    ],
+  },
+  {
+    markdown: '[*Emphasized* link text](https://www.example.com/index.html)',
+    expectedLinks: [
+      {
+        text: '*Emphasized* link text',
+        href: 'https://www.example.com/index.html',
+      },
+    ],
+  },
+  {
+    markdown: '[Link text **with emphasis**](https://www.example.com/index.html)',
+    expectedLinks: [
+      {
+        text: 'Link text **with emphasis**',
         href: 'https://www.example.com/index.html',
       },
     ],

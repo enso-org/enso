@@ -4,16 +4,17 @@ import { useState } from 'react'
 import {
   CalendarDate,
   getLocalTimeZone,
-  parseAbsolute,
   startOfMonth,
   toCalendarDate,
   today,
   toZoned,
+  type ZonedDateTime,
 } from '@internationalized/date'
 import { useSuspenseQuery } from '@tanstack/react-query'
 
 import { getProjectExecutionRepetitionsForDateRange } from 'enso-common/src/services/Backend/projectExecution'
 
+import CalendarIcon from '#/assets/calendar_repeat_outline.svg'
 import ArrowIcon from '#/assets/folder_arrow.svg'
 import {
   Calendar,
@@ -25,6 +26,7 @@ import {
   Heading,
 } from '#/components/aria'
 import { Button, DialogTrigger, Form, Text } from '#/components/AriaComponents'
+import { listProjectExecutionsQueryOptions } from '#/hooks/backendHooks'
 import { useStore } from '#/hooks/storeHooks'
 import { assetPanelStore } from '#/layouts/AssetPanel/AssetPanelState'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
@@ -108,30 +110,27 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
     defaultValue: todayDate,
   })
 
-  const projectExecutionsQuery = useSuspenseQuery({
-    queryKey: [backend.type, 'listProjectExecutions', item.id, item.title],
-    queryFn: async () => {
-      const executions = await backend.listProjectExecutions(item.id, item.title)
-      return [...executions].reverse()
-    },
-  })
+  const projectExecutionsQuery = useSuspenseQuery(
+    listProjectExecutionsQueryOptions(backend, item.id, item.title),
+  )
   const projectExecutions = projectExecutionsQuery.data
 
   const start = startOfMonth(focusedMonth)
-  const startDate = start.toDate(timeZone)
+  const startDate = toZoned(start, timeZone)
   const end = startOfMonth(focusedMonth.add({ months: 1 }))
-  const endDate = end.toDate(timeZone)
+  const endDate = toZoned(end, timeZone)
   const projectExecutionsByDate: Record<
     string,
-    { readonly date: Date; readonly projectExecution: BackendProjectExecution }[]
+    { readonly date: ZonedDateTime; readonly projectExecution: BackendProjectExecution }[]
   > = {}
+
   for (const projectExecution of projectExecutions) {
     for (const date of getProjectExecutionRepetitionsForDateRange(
       projectExecution,
       startDate,
       endDate,
     )) {
-      const dateString = toCalendarDate(parseAbsolute(date.toISOString(), timeZone)).toString()
+      const dateString = toCalendarDate(date).toString()
       ;(projectExecutionsByDate[dateString] ??= []).push({ date, projectExecution })
     }
   }
@@ -143,8 +142,8 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
     .flatMap((projectExecution) =>
       getProjectExecutionRepetitionsForDateRange(
         projectExecution,
-        selectedDate.toDate(timeZone),
-        selectedDate.add({ days: 1 }).toDate(timeZone),
+        toZoned(selectedDate, timeZone),
+        toZoned(selectedDate.add({ days: 1 }), timeZone),
       ).flatMap((date) => ({ date, projectExecution })),
     )
     .sort((a, b) => Number(a.date) - Number(b.date))
@@ -178,8 +177,13 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
               <CalendarGridBody className={styles.calendarGridBody()}>
                 {(date) => {
                   const isToday = date.compare(todayDate) === 0
+                  const todaysExecutions = projectExecutionsByDate[date.toString()]
                   return (
-                    <CalendarCell date={date} className={styles.calendarGridCell()}>
+                    <CalendarCell
+                      key={date.toString()}
+                      date={date}
+                      className={styles.calendarGridCell()}
+                    >
                       <div className="flex flex-col items-center">
                         <Text
                           weight={isToday ? 'bold' : 'medium'}
@@ -187,9 +191,23 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
                         >
                           {date.day}
                         </Text>
-                        {projectExecutionsByDate[date.toString()]?.map((data) => (
-                          <Text color="disabled">{`${data.date.getHours().toString().padStart(2, '0')}:${data.date.getMinutes().toString().padStart(2, '0')}`}</Text>
-                        ))}
+                        {todaysExecutions && (
+                          <Button
+                            slot={null}
+                            isDisabled
+                            tooltip={getText(
+                              'xExecutionsScheduledOnX',
+                              todaysExecutions.length,
+                              date.toString(),
+                            )}
+                            size="xxsmall"
+                            variant="custom"
+                            className="disabled:opacity-100"
+                            icon={CalendarIcon}
+                          >
+                            {todaysExecutions.length}
+                          </Button>
+                        )}
                       </div>
                     </CalendarCell>
                   )
@@ -207,26 +225,19 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
           defaultDate={toZoned(selectedDate, timeZone)}
         />
       </DialogTrigger>
-      <>
-        <Text>
-          {getText(
-            'projectSessionsOnX',
-            Intl.DateTimeFormat().format(selectedDate.toDate(timeZone)),
-          )}
-        </Text>
-        {projectExecutionsForToday.length === 0 ?
-          <Text color="disabled">{getText('noProjectExecutions')}</Text>
-        : projectExecutionsForToday.map(({ projectExecution, date }) => (
-            <ProjectExecution
-              hideDay
-              backend={backend}
-              item={item}
-              projectExecution={projectExecution}
-              date={date}
-            />
-          ))
-        }
-      </>
+      <Text>{getText('projectSessionsOnX', selectedDate.toString())}</Text>
+      {projectExecutionsForToday.length === 0 ?
+        <Text color="disabled">{getText('noProjectExecutions')}</Text>
+      : projectExecutionsForToday.map(({ projectExecution, date }) => (
+          <ProjectExecution
+            compact
+            backend={backend}
+            item={item}
+            projectExecution={projectExecution}
+            date={date}
+          />
+        ))
+      }
     </Form>
   )
 }
