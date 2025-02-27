@@ -56,6 +56,8 @@ import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/object'
 import { useMemo } from 'react'
 
+const PROJECT_EXECUTIONS_STALE_TIME = 60_000
+
 export function backendQueryOptions<Method extends BackendQueryMethod>(
   backend: Backend,
   method: Method,
@@ -821,5 +823,30 @@ export function duplicateProjectMutationOptions(
         })
       })
     },
+  })
+}
+
+/** Build a query options object to list executions for a project. */
+export function listProjectExecutionsQueryOptions(
+  backend: Backend,
+  id: backendModule.ProjectId,
+  title: string,
+) {
+  return queryOptions({
+    ...backendQueryOptions(backend, 'listProjectExecutions', [id, title]),
+    select: (executions) => [...executions].reverse(),
+    staleTime: PROJECT_EXECUTIONS_STALE_TIME,
+  })
+}
+
+/** Build a query options object to get details for a project execution. */
+export function getProjectExecutionDetailsQueryOptions(
+  backend: Backend,
+  id: backendModule.ProjectExecutionId,
+  title: string,
+) {
+  return queryOptions({
+    ...backendQueryOptions(backend, 'getProjectExecutionDetails', [id, title]),
+    staleTime: PROJECT_EXECUTIONS_STALE_TIME,
   })
 }

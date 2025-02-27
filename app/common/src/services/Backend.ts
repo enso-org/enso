@@ -381,20 +381,20 @@ export type ProjectParallelMode = (typeof PROJECT_PARALLEL_MODES)[number]
 
 export const PROJECT_EXECUTION_REPEAT_TYPES = [
   'none',
-  'hourly',
   'daily',
-  'monthly-date',
-  'monthly-weekday',
-  'monthly-last-weekday',
+  'weekly',
+  'monthlyDate',
+  'monthlyWeekday',
+  'monthlyLastWeekday',
 ] as const
 
 export const PROJECT_EXECUTION_REPEAT_TYPE_TO_TEXT_ID = {
   none: 'noneProjectExecutionRepeatType',
-  hourly: 'hourlyProjectExecutionRepeatType',
   daily: 'dailyProjectExecutionRepeatType',
-  'monthly-date': 'monthlyProjectExecutionRepeatType',
-  'monthly-weekday': 'monthlyProjectExecutionRepeatType',
-  'monthly-last-weekday': 'monthlyProjectExecutionRepeatType',
+  weekly: 'weeklyProjectExecutionRepeatType',
+  monthlyDate: 'monthlyProjectExecutionRepeatType',
+  monthlyWeekday: 'monthlyProjectExecutionRepeatType',
+  monthlyLastWeekday: 'monthlyProjectExecutionRepeatType',
 } satisfies {
   readonly [K in ProjectExecutionRepeatType]: TextId & `${string}ProjectExecutionRepeatType`
 }
@@ -407,22 +407,20 @@ export interface ProjectExecutionNoneRepeatInfo {
   readonly type: 'none'
 }
 
-/** Details for a project execution that repeats hourly. */
-export interface ProjectExecutionHourlyRepeatInfo {
-  readonly type: 'hourly'
-  readonly startHour: number
-  readonly endHour: number
-}
-
 /** Details for a project execution that repeats daily. */
 export interface ProjectExecutionDailyRepeatInfo {
   readonly type: 'daily'
+}
+
+/** Details for a project execution that repeats weekly on one or more days. */
+export interface ProjectExecutionWeeklyRepeatInfo {
+  readonly type: 'weekly'
   readonly daysOfWeek: readonly number[]
 }
 
 /** Details for a project execution that repeats monthly on a specific date. */
 export interface ProjectExecutionMonthlyDateRepeatInfo {
-  readonly type: 'monthly-date'
+  readonly type: 'monthlyDate'
   readonly date: number
   readonly months: readonly number[]
 }
@@ -432,7 +430,7 @@ export interface ProjectExecutionMonthlyDateRepeatInfo {
  * of a specific month.
  */
 export interface ProjectExecutionMonthlyWeekdayRepeatInfo {
-  readonly type: 'monthly-weekday'
+  readonly type: 'monthlyWeekday'
   readonly weekNumber: number
   readonly dayOfWeek: number
   readonly months: readonly number[]
@@ -443,14 +441,14 @@ export interface ProjectExecutionMonthlyWeekdayRepeatInfo {
  * of a specific month.
  */
 export interface ProjectExecutionMonthlyLastWeekdayRepeatInfo {
-  readonly type: 'monthly-last-weekday'
+  readonly type: 'monthlyLastWeekday'
   readonly dayOfWeek: number
   readonly months: readonly number[]
 }
 
 export type ProjectExecutionRepeatInfo =
-  | ProjectExecutionHourlyRepeatInfo
   | ProjectExecutionDailyRepeatInfo
+  | ProjectExecutionWeeklyRepeatInfo
   | ProjectExecutionMonthlyDateRepeatInfo
   | ProjectExecutionMonthlyWeekdayRepeatInfo
   | ProjectExecutionMonthlyLastWeekdayRepeatInfo
@@ -459,18 +457,21 @@ export type ProjectExecutionRepeatInfo =
 /** Metadata for a {@link ProjectExecution}. */
 export interface ProjectExecutionInfo {
   readonly projectId: ProjectId
-  readonly timeZone: string
   readonly repeat: ProjectExecutionRepeatInfo
-  readonly parallelMode: ProjectParallelMode
-  readonly maxDurationMinutes: number
   readonly startDate: dateTime.Rfc3339DateTime
+  readonly endDate: dateTime.Rfc3339DateTime | null
+  readonly timeZone: dateTime.IanaTimeZone
+  readonly maxDurationMinutes: number
+  readonly parallelMode: ProjectParallelMode
 }
 
 /** A specific execution schedule of a project. */
 export interface ProjectExecution extends ProjectExecutionInfo {
-  readonly enabled: boolean
   readonly executionId: ProjectExecutionId
+  readonly organizationId: OrganizationId
   readonly versionId: S3ObjectVersionId
+  readonly nextExecution: dateTime.Rfc3339DateTime
+  readonly projectSessions?: readonly ProjectSession[]
 }
 
 /** Metadata describing the location of an uploaded file. */
@@ -1822,6 +1823,10 @@ export default abstract class Backend {
   /** Create a project execution. */
   abstract createProjectExecution(
     body: CreateProjectExecutionRequestBody,
+    title: string,
+  ): Promise<ProjectExecution>
+  abstract getProjectExecutionDetails(
+    executionId: ProjectExecutionId,
     title: string,
   ): Promise<ProjectExecution>
   abstract updateProjectExecution(

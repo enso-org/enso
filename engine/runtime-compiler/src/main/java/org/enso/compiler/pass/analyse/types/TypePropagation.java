@@ -92,6 +92,8 @@ abstract class TypePropagation {
   protected abstract void encounteredNoSuchConstructor(
       IR relatedIr, TypeRepresentation type, String constructorName);
 
+  protected abstract void encounteredDiscardedValue(IR relatedIr, TypeRepresentation type);
+
   enum MethodCallKind {
     MEMBER,
     STATIC,
@@ -142,7 +144,16 @@ abstract class TypePropagation {
           case Expression.Block b -> {
             // Even though we discard the result, we run the type inference on each expression to
             // ensure any bindings inside of it get registered:
-            b.expressions().foreach((expr) -> tryInferringType(expr, localBindingsTyping));
+            b.expressions()
+                .foreach(
+                    (expr) -> {
+                      var exprType = tryInferringType(expr, localBindingsTyping);
+                      boolean isDiscarded = !(expr instanceof Expression.Binding);
+                      if (isDiscarded && !canBeDiscarded(exprType)) {
+                        encounteredDiscardedValue(expr, exprType);
+                      }
+                      return exprType;
+                    });
             yield tryInferringType(b.returnValue(), localBindingsTyping);
           }
           case Function.Lambda f -> processLambda(f, localBindingsTyping);
@@ -162,6 +173,47 @@ abstract class TypePropagation {
     // We now override the inferred type on the expression, preferring the ascribed type if it is
     // present.
     return ascribedType != null ? ascribedType : inferredType;
+  }
+
+  private boolean canBeDiscarded(TypeRepresentation type) {
+    if (type == null || type instanceof TypeRepresentation.TopType) {
+      // If the type is unknown then we allow it to be discarded as we don't know enough yet
+      return true;
+    }
+
+    if (type.equals(BuiltinTypes.NOTHING)) {
+      // Nothing is the type that side-effectful functions should return - it is most often meant to
+      // be discarded.
+      return true;
+    }
+
+    // Sometimes Nothing is inferred as `type Nothing`. Maybe we should fix it, but for now:
+    if (type instanceof TypeRepresentation.TypeObject typeObject) {
+      if (typeObject.instanceType().equals(BuiltinTypes.NOTHING)) {
+        return true;
+      }
+    }
+
+    if (type instanceof TypeRepresentation.ArrowType) {
+      // Under all scenarios, discarding a not-fully applied function is an error - such an
+      // operation is essentially a no-op.
+      // (in fact there are exceptions due to currying, but in 99% cases this is an error)
+      return false;
+    }
+
+    return canNonFunctionsBeDiscarded();
+  }
+
+  /**
+   * Drives the `canBeDiscarded` method.
+   *
+   * <ol>
+   *   <li>If true, then only a not-fully-applied function will raise discarded value warnings.
+   *   <li>If false, any non-Nothing value will raise a warning.
+   * </ol>
+   */
+  protected boolean canNonFunctionsBeDiscarded() {
+    return true;
   }
 
   private TypeRepresentation processCaseExpression(
