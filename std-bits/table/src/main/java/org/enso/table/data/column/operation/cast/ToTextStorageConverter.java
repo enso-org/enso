@@ -107,7 +107,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
         (index, value) -> adapt(converter.apply(value), problemAggregator));
   }
 
-  private ColumnStorage<String> adaptStringStorage(StringStorage stringStorage) {
+  private ColumnStorage<String> adaptStringStorage(ColumnStorage<String> stringStorage) {
     // Adapting an existing string storage into a new type is done without warnings.
     return StorageIterators.mapOverStorage(
         stringStorage,
@@ -153,8 +153,9 @@ public class ToTextStorageConverter implements StorageConverter<String> {
     return targetType.adapt(value);
   }
 
-  private boolean canAvoidCopying(StringStorage stringStorage) {
-    if (targetType.fitsExactly(stringStorage.getType())) {
+  private boolean canAvoidCopying(ColumnStorage<String> stringStorage) {
+    var type = stringStorage.getType();
+    if (type instanceof TextType textType && targetType.fitsExactly(textType)) {
       return true;
     }
 

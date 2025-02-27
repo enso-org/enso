@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import DropdownMenu from '@/components/DropdownMenu.vue'
+import {
+  type HeaderLevel,
+  type ListType,
+} from '@/components/MarkdownEditor/codemirror/formatting/block'
 import MenuButton from '@/components/MenuButton.vue'
 import MenuPanel from '@/components/MenuPanel.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { HeaderLevel, ListType } from '@/util/codemirror/markdownEditing'
-import { Icon } from '@/util/iconMetadata/iconName'
+import { type Icon } from '@/util/iconMetadata/iconName'
 import { ref } from 'vue'
 
 const emit = defineEmits<{

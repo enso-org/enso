@@ -5,7 +5,7 @@ import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.table.Column;
 
-public interface BinaryOperation {
+public interface BinaryOperation<T> {
   static ColumnStorage<?> getInferredStorage(Column input) {
     var storage = input.getStorage();
     if (storage instanceof ColumnStorageWithInferredStorage withInferredStorage) {
@@ -74,8 +74,8 @@ public interface BinaryOperation {
   boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right);
 
   /** Apply the map to the pair of ColumnStorage and constant. */
-  ColumnStorage<Boolean> applyMap(ColumnStorage<?> left, Object rightValue);
+  ColumnStorage<T> applyMap(ColumnStorage<?> left, Object rightValue);
 
   /** Apply the map to the pair of ColumnStorage. */
-  ColumnStorage<Boolean> applyZip(ColumnStorage<?> left, ColumnStorage<?> right);
+  ColumnStorage<T> applyZip(ColumnStorage<?> left, ColumnStorage<?> right);
 }

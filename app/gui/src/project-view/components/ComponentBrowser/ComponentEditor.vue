@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import SvgIcon from '@/components/SvgIcon.vue'
-import AutoSizedInput, { type Range } from '@/components/widgets/AutoSizedInput.vue'
+import AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
 import type { useNavigator } from '@/composables/navigator'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { computed, ref, watch, type DeepReadonly } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
+import { type Range } from 'ydoc-shared/util/data/range'
 
 const content = defineModel<DeepReadonly<{ text: string; selection: Range | undefined }>>({
   required: true,

@@ -51,3 +51,10 @@ type Expression_Statics
 
     ## Compares if this is greater than or equal to that
     >= this that = this >= that
+
+    ## The mathematical constant pi, equal to the ratio of a circle circumference
+       to its diameter.
+    pi -> Float = Math.pi
+
+    ## The mathematical constant e, the base of the natural logarithm.
+    e -> Float = Math.e
