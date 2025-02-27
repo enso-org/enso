@@ -136,7 +136,6 @@ export interface AssetSpecialRowProps {
 }
 
 /** Renders a special asset row. */
-
 const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialRowProps) {
   const { type, columnsLength } = props
 

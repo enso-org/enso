@@ -110,10 +110,11 @@ import {
   assetIsProject,
   AssetType,
   BackendType,
+  createSpecialLoadingAsset,
+  DirectoryId,
   getAssetPermissionName,
   IS_OPENING_OR_OPENED,
   type AnyAsset,
-  type DirectoryId,
 } from '#/services/Backend'
 import type { AssetQueryKey } from '#/utilities/AssetQuery'
 import AssetQuery from '#/utilities/AssetQuery'
@@ -160,6 +161,8 @@ const MINIMUM_DROPZONE_INTERSECTION_RATIO = 0.5
  * Tailwind styling.
  */
 const ROW_HEIGHT_PX = 36
+
+const LOADING_ASSET_LIST = [createSpecialLoadingAsset(DirectoryId('directory-'))]
 
 /** Information related to a drag selection. */
 interface DragSelectionInfo {
@@ -265,9 +268,10 @@ function AssetsTable(props: AssetsTableProps) {
   const { currentDirectoryId, setCurrentDirectoryId } = useDirectoryIds({
     category,
   })
-  const { data: assets = [] } = useQuery(
+  const { data: assets = [], status: fetchStatus } = useQuery(
     listDirectoryQueryOptions({ backend, parentId: currentDirectoryId, category }),
   )
+  const isLoading = fetchStatus === 'pending'
   const { visibleItems } = useAssetsTableItems({
     parentId: currentDirectoryId,
     assets,
@@ -1222,7 +1226,7 @@ function AssetsTable(props: AssetsTableProps) {
     </tr>
   )
 
-  const itemRows = visibleItems.map((item) => {
+  const itemRows = (!isLoading ? visibleItems : LOADING_ASSET_LIST).map((item) => {
     const isOpenedByYou = openedProjects.some(({ id }) => item.id === id)
     const isOpenedOnTheBackend =
       item.projectState?.type != null ? IS_OPENING_OR_OPENED[item.projectState.type] : false
@@ -1295,8 +1299,8 @@ function AssetsTable(props: AssetsTableProps) {
         <tbody ref={bodyRef} className="isolate">
           {itemRows}
           <tr className="hidden h-row first:table-row">
-            <td colSpan={columns.length} className="bg-transparent">
-              <Text className={twJoin('px-cell-x placeholder')} disableLineHeightCompensation>
+            <td colSpan={columns.length} className="h-table-row bg-transparent">
+              <Text className="px-cell-x placeholder" disableLineHeightCompensation>
                 {category.type === 'trash' ?
                   query.query !== '' ?
                     getText('noFilesMatchTheCurrentFilters')
