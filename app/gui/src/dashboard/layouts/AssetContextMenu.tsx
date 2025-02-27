@@ -5,7 +5,6 @@ import invariant from 'tiny-invariant'
 import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
 
-import * as backendHooks from '#/hooks/backendHooks'
 import * as copyHooks from '#/hooks/copyHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
@@ -81,7 +80,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const setAssetPanelProps = useSetAssetPanelProps()
   const openProject = projectHooks.useOpenProject()
   const closeProject = projectHooks.useCloseProject()
-  const queryClient = reactQuery.useQueryClient()
   const deleteAssetsMutation = reactQuery.useMutation(deleteAssetsMutationOptions(backend))
   const restoreAssetsMutation = reactQuery.useMutation(restoreAssetsMutationOptions(backend))
   const copyAssetsMutation = reactQuery.useMutation(copyAssetsMutationOptions(backend))
