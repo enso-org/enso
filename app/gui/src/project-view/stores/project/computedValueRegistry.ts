@@ -56,7 +56,7 @@ export class ComputedValueRegistry {
   processUpdates(updates: ExpressionUpdate[]) {
     for (const update of updates) {
       const info = this.db.get(update.expressionId)
-      if (update.payload.type == 'Pending' && update.payload.progress) {
+      if (update.payload.type == 'Pending' && update.payload.progress == -1.0) {
         // just update the payload
         if (info) {
           info.payload = update.payload
