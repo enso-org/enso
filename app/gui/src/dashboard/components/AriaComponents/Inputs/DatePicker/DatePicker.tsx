@@ -33,7 +33,6 @@ import {
   Form,
   Popover,
   Text,
-  makeRoundedStyles,
   type FieldComponentProps,
   type FieldPath,
   type FieldProps,
@@ -41,6 +40,8 @@ import {
   type FieldValues,
   type TSchema,
 } from '../..'
+// This cannot be added to the import above or else it is `undefined` due to a circular import.
+import { makeRoundedStyles } from '../../utilities'
 
 const DATE_PICKER_STYLES = tv({
   base: '',

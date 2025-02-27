@@ -20,7 +20,6 @@ import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import {
   Form,
-  makeRoundedStyles,
   type FieldComponentProps,
   type FieldPath,
   type FieldProps,
@@ -30,6 +29,8 @@ import {
   type FormInstance,
   type TSchema,
 } from '../..'
+// This cannot be added to the import above or else it is `undefined` due to a circular import.
+import { makeRoundedStyles } from '../../utilities'
 
 const DROPDOWN_STYLES = tv({
   base: 'focus-child group relative flex w-max cursor-pointer flex-col items-start whitespace-nowrap rounded-input leading-cozy',

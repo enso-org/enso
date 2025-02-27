@@ -17,7 +17,6 @@ import { tv } from '#/utilities/tailwindVariants'
 import {
   Button,
   Form,
-  makeRoundedStyles,
   Popover,
   Text,
   UncontrolledInput,
@@ -29,6 +28,8 @@ import {
   type InputProps,
   type TSchema,
 } from '../..'
+// This cannot be added to the import above or else it is `undefined` due to a circular import.
+import { makeRoundedStyles } from '../../utilities'
 
 const COMBO_BOX_STYLES = tv({
   base: 'w-full',
