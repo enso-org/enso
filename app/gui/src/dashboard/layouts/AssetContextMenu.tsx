@@ -256,6 +256,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             tooltip={disabledTooltip}
             doAction={async () => {
               invariant(localBackend != null, 'Local Backend is null')
+              await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
               const parentId = await remoteBackend.downloadProject(asset.id)
               const assets = await localBackend.listDirectory({
                 parentId: parentId,
@@ -272,7 +273,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 title: project.title,
                 parentId: project.parentId,
                 type: backendModule.BackendType.local,
-                cloudProjectId: asset.id,
+                hybrid: { cloudProjectId: asset.id },
               })
             }}
           />
