@@ -25,6 +25,7 @@ import {
   type TransactionSpec,
 } from '@codemirror/state'
 import { type Tree } from '@lezer/common'
+import * as iter from 'enso-common/src/utilities/data/iter'
 import { Range } from 'ydoc-shared/util/data/range'
 export { type FormatNode as InlineFormattingNode } from '@/components/MarkdownEditor/markdown/types'
 
@@ -56,6 +57,10 @@ export function setInlineFormatting(
   return {
     changes,
     // TODO SelectionMapping
+    //  `SelectionRange.map` produces a "valid" new selection based on the old selection and the
+    //  changes, but it isn't perfect. Once MDChangeBuilder's selection-adjusting logic is
+    //  consistently better than that sane default, we should switch to it and enable the checks of
+    //  after-edit selection boundaries `inlineFormatting.test.ts`.
     // selection: rangeToSelection(md.adjustedSelection),
     selection: state.selection.main.map(changes),
   }
@@ -99,10 +104,7 @@ export function insertLink(state: EditorState): TransactionSpec {
   }
 }
 
-function lastFormattableRange(
-  md: MarkdownDocument,
-  selection: Range,
-): NormalizedRange | undefined {
+function lastFormattableRange(md: MarkdownDocument, selection: Range): NormalizedRange | undefined {
   let range: NormalizedRange | undefined
   md.visitFormattableRanges(
     selection,
@@ -113,8 +115,9 @@ function lastFormattableRange(
 }
 
 /**
- * Insert the given strings around the specified text, splitting any inlining formatting nodes as needed. If the range
- * touches the boundary of the selection, the given strings will be inserted outside it.
+ * Insert the given strings around the specified text, splitting any inlining formatting nodes as
+ * needed. If the range touches the boundary of the selection, the given strings will be inserted
+ * outside it.
  */
 function insertAround(md: MDChangeBuilder, range: NormalizedRange, before: string, after: string) {
   const partlyOutside = analyzeSplits(md.tree, range)
@@ -256,9 +259,8 @@ function addFormat(
     md.insert(reopenOutside, outsideRange.to)
     md.insert(closeInside + mark, range.to)
   }
-  ;[...partlyOutside.from, ...partlyOutside.to]
-    .filter(({ name }) => name === nodeType)
-    .forEach(({ delimiter }) => md.remove(delimiter))
+  for (const { name, delimiter } of iter.chain(partlyOutside.from, partlyOutside.to))
+    if (name === nodeType) md.remove(delimiter)
 }
 
 function removeFormat(
@@ -286,8 +288,7 @@ function removeFormat(
   md.insert(reopenInside, range.from)
   md.insert(closeInside, range.to)
   md.insert(reopenOutside, outsideRange.to)
-  ;[...fromOutside, ...toOutside]
-    .filter(({ name }) => name === nodeType)
-    .forEach(({ delimiter }) => md.remove(delimiter))
-  remove.forEach(md.remove.bind(md))
+  for (const { name, delimiter } of iter.chain(fromOutside, toOutside))
+    if (name === nodeType) md.remove(delimiter)
+  for (const r of remove) md.remove(r)
 }
