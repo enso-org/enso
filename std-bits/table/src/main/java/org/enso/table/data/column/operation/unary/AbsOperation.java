@@ -1,9 +1,13 @@
 package org.enso.table.data.column.operation.unary;
 
+import org.enso.table.data.column.operation.UnaryOperation;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
 public class AbsOperation extends NumericUnaryOperation {
+  public static final UnaryOperation INSTANCE = new AbsOperation();
+
   @Override
   public String getName() {
     return "abs";

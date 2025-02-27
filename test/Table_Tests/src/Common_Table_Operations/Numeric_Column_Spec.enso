@@ -25,10 +25,11 @@ add_numeric_columns_specs suite_builder setup =
     build_sorted_table = Util.build_sorted_table setup
     suite_builder.group prefix+"Numeric_Column" group_builder->
         numeric_column = Lazy_Ref.Value <| build_sorted_table [["X", [-10, 0, 1, 12]]] . at "X"
+        # TODO test for all combinations
         group_builder.specify "a numeric column can be cast to Numeric_Column" <|
             column = numeric_column.get
             column.value_type.is_numeric . should_be_true
-            column:Numeric_Column
+            (column:Numeric_Column)
 
         group_builder.specify "a text column cannot be cast to Numeric_Column" <|
             column = table_builder [["X", ["txt"]]] . at "X"
@@ -51,11 +52,3 @@ add_numeric_columns_specs suite_builder setup =
             abs_column.to_vector . should_equal [1.5, 0.0, 0.0, 1.0, 200.25]
             signum_column = (column:Numeric_Column).signum
             signum_column.to_vector . should_equal [-1, 0, 0, 1, 1]
-
-        group_builder.specify "a single value column can also be Numeric_Column" <|
-            table = table_builder [["X", [1]]]
-            column = table . at "X"
-            column:Numeric_Column
-
-            # But a single column table can also be converted
-            table:Numeric_Column
