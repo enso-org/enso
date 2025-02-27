@@ -1,3 +1,5 @@
+import { FilterModel } from 'ag-grid-community'
+
 export type FilterType = 'number' | 'date' | 'set' | 'text'
 
 /**
@@ -39,8 +41,9 @@ export type FilterValueRange = {
   fromValue: string
 }
 
-export const getFilterValue = (filterModel: GridFilterModel, filterAction?: string) => {
+export const getFilterValue = (filterModel: GridFilterModel) => {
   const filterType = filterModel.filterType
+  const filterAction = filterModel.filterAction
   let value: FilterValue
   switch (filterType) {
     case 'number':
@@ -63,3 +66,17 @@ export const getFilterValue = (filterModel: GridFilterModel, filterAction?: stri
   }
   return value
 }
+
+export const makeFilterModelList = (gridFilterModel: FilterModel) =>
+  Object.entries(gridFilterModel).map(([key, value]) => {
+    return {
+      columnName: key,
+      filterType: value.filterType,
+      filterAction: value.type,
+      filter: value.filter,
+      filterTo: value.filterTo,
+      dateFrom: value.dateFrom,
+      dateTo: value.dateTo,
+      values: value.values,
+    }
+  })

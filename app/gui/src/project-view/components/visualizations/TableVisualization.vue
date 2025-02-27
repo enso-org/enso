@@ -2,7 +2,6 @@
 import icons from '@/assets/icons.svg'
 import AgGridTableView, { commonContextMenuActions } from '@/components/shared/AgGridTableView.vue'
 import {
-  GridFilterModel,
   useTableVizToolbar,
   type SortModel,
 } from '@/components/visualizations/TableVisualization/tableVizToolbar'
@@ -10,6 +9,7 @@ import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { LINKABLE_URL_REGEX } from '@/util/link'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
+import { captureConsoleIntegration } from '@sentry/react'
 import type {
   CellClassParams,
   CellDoubleClickedEvent,
@@ -18,11 +18,19 @@ import type {
   IServerSideDatasource,
   IServerSideGetRowsRequest,
   ITooltipParams,
+  SetFilterValuesFuncParams,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
 import { computed, ref, shallowRef, watchEffect, type Ref } from 'vue'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
-import { actionMap, getFilterValue } from './TableVisualization/tableVizFilterUtils'
+import {
+  actionMap,
+  FilterAction,
+  FilterValueRange,
+  getFilterValue,
+  GridFilterModel,
+  makeFilterModelList,
+} from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
 import { getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
 
@@ -259,19 +267,18 @@ const createRowsForTable = (data: unknown[][], startIndex: number, shift: number
   })
 }
 
-async function getFilterValues(params) {
+async function getFilterValues(params: SetFilterValuesFuncParams) {
   const colName = params.colDef.field
-  const index = props.data.header.findIndex((h: string) => colName === h)
-  const server = createServer()
-  const response: Response = await server.getSetFilterValues(index)
-
-  setTimeout(() => {
-    if (response.success) {
-      params.success(response.data)
-    } else {
-      params.fail()
-    }
-  }, 500)
+  if (typeof props.data === 'object' && 'header' in props.data) {
+    const index = props.data.header?.findIndex((h: string) => colName === h)
+    const server = createServer()
+    const response = await server.getSetFilterValues(index)
+    setTimeout(() => {
+      if (response.success) {
+        params.success(response.data)
+      }
+    }, 500)
+  }
 }
 
 type SortDirection = 'asc' | 'desc'
@@ -282,7 +289,7 @@ const sortDirectionMap = computed(() => ({
 
 function createServer() {
   return {
-    getSetFilterValues: async (columnIndex: number) => {
+    getSetFilterValues: async (columnIndex?: number) => {
       const response = await config.executeExpression(
         'Standard.Visualization.Table.Visualization',
         'get_distinct_values_for_column',
@@ -294,61 +301,86 @@ function createServer() {
       }
     },
     getData: async (request: IServerSideGetRowsRequest) => {
+      const columnHeaders =
+        typeof props.data === 'object' && 'header' in props.data ?
+          props.data.header ?
+            props.data.header
+          : []
+        : []
+
       const sortColIndexesMap = request.sortModel.map((sortCol) => {
-        return `${props.data.header.findIndex((h: string) => sortCol.colId === h)}`
+        return `${columnHeaders.findIndex((h: string) => sortCol.colId === h)}`
       })
       const sortColIndexes = sortColIndexesMap.length ? sortColIndexesMap : 'Nothing'
-      const sortDirectionsMap = request.sortModel.map((sortCol) => {
-        return sortDirectionMap.value[sortCol.sort as SortDirection]
-      })
-      const sortDirections = sortDirectionsMap.length ? sortDirectionsMap : 'Nothing'
-      const filterColumnNames = Object.keys(request.filterModel)
+      const sortDirections =
+        sortColIndexesMap.length ?
+          request.sortModel.map((sortCol) => {
+            return sortDirectionMap.value[sortCol.sort as SortDirection]
+          })
+        : 'Nothing'
 
-      const filterColumnIndexList = filterColumnNames.map(
-        (colName) => `${props.data.header.findIndex((h: string) => colName === h)}`,
-      )
-      const getFilterAction = (name) => {
-        if (request.filterModel[name]?.filterType === 'set') {
-          return '..Is_In'
-        }
-        return `${actionMap[request.filterModel[name]?.type]}`
-      }
+      const gridFilterModelList: Array<GridFilterModel> =
+        request.filterModel ? makeFilterModelList(request.filterModel) : []
+
+      const filterColumnNames = gridFilterModelList.map((filter) => filter.columnName)
+
+      const filterColumnIndexList =
+        filterColumnNames.length ?
+          filterColumnNames.map(
+            (colName) => `${columnHeaders.findIndex((h: string) => colName === h)}`,
+          )
+        : 'Nothing'
 
       const filterActions =
         filterColumnNames.length ?
-          filterColumnNames.map((name) => getFilterAction(name))
+          gridFilterModelList.map((filter) => {
+            return filter.filterType === 'set' ? '..Is_In' : actionMap[filter.filterAction as FilterAction]
+          })
         : 'Nothing'
 
-      const valueMap = filterColumnNames.map((colName) => {
-        const filterModel = request.filterModel[colName]
-        const filterAction = getFilterAction(colName)
+      const valueMap = gridFilterModelList.map((filter) => {
         return {
-          valType: colTypeMap.value.get(colName) ?? '',
-          action: filterAction,
-          value: getFilterValue(filterModel, filterModel.type),
+          valType: colTypeMap.value.get(filter.columnName),
+          action: actionMap[filter.filterAction as FilterAction],
+          value: getFilterValue(filter),
         }
       })
 
-      const valueList = valueMap.map((value) => {
-        if(value.valType === 'Mixed') {
-          const parseValues = value.value.map(val => {
-            return { valueType: getCellValueType(val), value: val }
-          }
-          )
-          return { valueType: value.valType, value: parseValues }
-        }
-        if (value.action === '..Between') {
-          return { valueType: value.valType, value: `${value.value.fromValue}` }
-        }
-        return { valueType: value.valType, value: `${value.value}` }
-      })
+      const valueList =
+        valueMap.length ?
+          valueMap.map((value) => {
+            if (value.valType === 'Mixed' && Array.isArray(value.value)) {
+              const parseValues = value.value.map((val) => {
+                return { valueType: getCellValueType(val), value: val }
+              })
+              return { valueType: value.valType, value: parseValues }
+            }
 
-      const toValueList = valueMap.map((value) => {
-        if (value.action === '..Between') {
-          return `${value.value.toValue}`
-        }
-        return 'Nothing'
-      })
+            if (
+              value.action === '..Between' &&
+              typeof value.value === 'object' &&
+              'fromValue' in value.value
+            ) {
+              return { valueType: value.valType, value: `${value.value.fromValue}` }
+            }
+
+            return { valueType: value.valType, value: `${value.value}` }
+          })
+        : 'Nothing'
+
+      const toValueList =
+        valueMap.length ?
+          valueMap.map((value) => {
+            if (
+              value.action === '..Between' &&
+              typeof value.value === 'object' &&
+              'fromValue' in value.value
+            ) {
+              return `${value.value.toValue}`
+            }
+            return 'Nothing'
+          })
+        : 'Nothing'
 
       const response = await config.executeExpression(
         'Standard.Visualization.Table.Visualization',
@@ -357,13 +389,13 @@ function createServer() {
         sortColIndexes,
         sortDirections,
         //column indexes for filtering
-        filterColumnIndexList.length ? filterColumnIndexList : 'Nothing',
+        filterColumnIndexList,
         //column actions i.e Greater Than, Between...
         filterActions,
         //column values, or From Values
-        valueList.length ? valueList : 'Nothing',
+        valueList,
         // To Values
-        toValueList.length ? toValueList : 'Nothing',
+        toValueList,
       )
       return {
         success: true,
@@ -869,18 +901,7 @@ function checkSortAndFilter(e: SortChangedEvent) {
       }
     })
     .filter((sort) => sort)
-  const filter = Object.entries(gridFilterModel).map(([key, value]) => {
-    return {
-      columnName: key,
-      filterType: value.filterType,
-      filterAction: value.type,
-      filter: value.filter,
-      filterTo: value.filterTo,
-      dateFrom: value.dateFrom,
-      dateTo: value.dateTo,
-      values: value.values,
-    }
-  })
+  const filter = makeFilterModelList(gridFilterModel)
   if (sort.length || filter.length) {
     isCreateNodeEnabled.value = true
     sortModel.value = sort as SortModel[]
