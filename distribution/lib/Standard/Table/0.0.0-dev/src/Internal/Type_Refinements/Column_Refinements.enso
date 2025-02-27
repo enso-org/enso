@@ -17,6 +17,7 @@ private _refine_column column =
     inferred_value_type = column.inferred_precise_value_type
     case inferred_value_type of
         Value_Type.Integer _ -> (column : Column & Numeric_Column)
+        Value_Type.Byte -> (column : Column & Numeric_Column)
         Value_Type.Float _ -> (column : Column & Numeric_Column)
         Value_Type.Decimal _ _ -> (column : Column & Numeric_Column)
         _ -> column
