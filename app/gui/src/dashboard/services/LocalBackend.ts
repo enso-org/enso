@@ -810,6 +810,11 @@ export default class LocalBackend extends Backend {
   }
 
   /** Invalid operation. */
+  override getProjectExecutionDetails() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
   override updateProjectExecution() {
     return this.invalidOperation()
   }

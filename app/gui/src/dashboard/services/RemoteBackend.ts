@@ -862,6 +862,23 @@ export default class RemoteBackend extends Backend {
   }
 
   /**
+   * Create a project execution.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async getProjectExecutionDetails(
+    executionId: backend.ProjectExecutionId,
+    title: string,
+  ): Promise<backend.ProjectExecution> {
+    const path = remoteBackendPaths.getProjectExecutionDetailsPath(executionId)
+    const response = await this.get<backend.ProjectExecution>(path)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'getProjectExecutionDetailsBackendError', title)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
    * Update a project execution.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */

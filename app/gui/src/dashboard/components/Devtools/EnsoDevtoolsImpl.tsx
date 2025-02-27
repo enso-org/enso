@@ -222,7 +222,6 @@ export function EnsoDevtools() {
                       setFeatureFlag('enableMultitabs', value)
                     }}
                   />
-
                   <div>
                     <ariaComponents.Switch
                       form={form}
@@ -254,7 +253,6 @@ export function EnsoDevtools() {
                       }}
                     />
                   </div>
-
                   <ariaComponents.Switch
                     form={form}
                     name="enableCloudExecution"
@@ -264,7 +262,6 @@ export function EnsoDevtools() {
                       setFeatureFlag('enableCloudExecution', value)
                     }}
                   />
-
                   <ariaComponents.Switch
                     form={form}
                     name="enableAsyncExecution"
@@ -274,7 +271,15 @@ export function EnsoDevtools() {
                       setFeatureFlag('enableAsyncExecution', value)
                     }}
                   />
-
+                  <ariaComponents.Switch
+                    form={form}
+                    name="enableAdvancedProjectExecutionOptions"
+                    label="Enable Advanced Project Excecution Options"
+                    description="Enable Advanced Project Excecution Options"
+                    onChange={(value) => {
+                      setFeatureFlag('enableAdvancedProjectExecutionOptions', value)
+                    }}
+                  />
                   <ariaComponents.Switch
                     form={form}
                     name="enableHybridExecution"
@@ -284,6 +289,16 @@ export function EnsoDevtools() {
                       setFeatureFlag('enableHybridExecution', value)
                     }}
                   />
+                </>
+              )}
+            </ariaComponents.Form>
+          </ariaComponents.Text>
+
+          <ariaComponents.Separator orientation="horizontal" className="my-3" />
+
+          <ariaComponents.Text variant="subtitle" className="mb-2">
+            {getText('ensoDevtoolsPaywallFeaturesToggles')}
+          </ariaComponents.Text>
                 </>
               )}
             </ariaComponents.Form>

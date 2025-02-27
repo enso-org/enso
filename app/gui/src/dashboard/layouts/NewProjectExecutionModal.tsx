@@ -1,20 +1,13 @@
 /** @file Modal for confirming delete of any type of asset. */
 import * as z from 'zod'
 
-import {
-  ZonedDateTime,
-  endOfMonth,
-  getDayOfWeek,
-  getLocalTimeZone,
-  now,
-} from '@internationalized/date'
+import { endOfMonth, getLocalTimeZone, now, toZoned, ZonedDateTime } from '@internationalized/date'
 import { useMutation } from '@tanstack/react-query'
 
 import type Backend from '#/services/Backend'
 import type {
   ProjectExecutionInfo,
   ProjectExecutionRepeatInfo,
-  ProjectExecutionRepeatType,
   ProjectId,
 } from '#/services/Backend'
 import {
@@ -28,6 +21,7 @@ import {
 import {
   Button,
   ButtonGroup,
+  ComboBox,
   DatePicker,
   Dialog,
   DialogDismiss,
@@ -41,6 +35,7 @@ import {
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useGetOrdinal } from '#/hooks/ordinalHooks'
+import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
@@ -51,134 +46,130 @@ import {
 import {
   DAY_3_LETTER_TEXT_IDS,
   DAY_TEXT_IDS,
+  DAYS,
+  DAYS_PER_WEEK,
+  getDay,
+  getDescriptionForTimeZone,
+  getTimeZoneFromDescription,
+  getTimeZoneOffsetStringWithGMT,
+  getWeekOfMonth,
+  IanaTimeZone,
   MONTH_3_LETTER_TEXT_IDS,
+  MONTHS,
+  MONTHS_PER_YEAR,
   toRfc3339,
+  WHITELISTED_TIME_ZONE_DESCRIPTIONS,
+  zonedDateTimeToReadableIsoString,
 } from 'enso-common/src/utilities/data/dateTime'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
+// This is a SAFE upcast.
+// eslint-disable-next-line no-restricted-syntax
+const DISABLE_LAST_WEEKDAY_REPEAT_TYPE = true as boolean
 const MAX_DURATION_DEFAULT_MINUTES = 60
 const MAX_DURATION_MINIMUM_MINUTES = 1
 const MAX_DURATION_MAXIMUM_MINUTES = 180
-const REPEAT_TIMES_COUNT = 5
-const DAYS_PER_WEEK = 7
-const HOURS_PER_DAY = 24
-const MONTHS_PER_YEAR = 12
+const REPEAT_TIMES_COUNT = 3
 
-const DAYS = [...Array(DAYS_PER_WEEK).keys()] as const
-const MONTHS = [...Array(MONTHS_PER_YEAR).keys()] as const
-
-/** Create the form schema for this page. */
-function createUpsertExecutionSchema(timeZone: string | undefined) {
-  return z
-    .object({
-      projectId: z.string().refine((x: unknown): x is ProjectId => true),
-      repeatType: z.enum(PROJECT_EXECUTION_REPEAT_TYPES),
-      days: z
-        .number()
-        .int()
-        .min(0)
-        .max(DAYS_PER_WEEK - 1)
-        .array()
-        .min(1)
-        .transform((arr) => arr.sort((a, b) => a - b))
-        .readonly(),
-      months: z
-        .number()
-        .int()
-        .min(0)
-        .max(MONTHS_PER_YEAR - 1)
-        .array()
-        .min(1)
-        .transform((arr) => arr.sort((a, b) => a - b))
-        .readonly(),
-      startHour: z
-        .number()
-        .int()
-        .min(0)
-        .max(HOURS_PER_DAY - 1),
-      endHour: z
-        .number()
-        .int()
-        .min(0)
-        .max(HOURS_PER_DAY - 1),
-      startDate: z.instanceof(ZonedDateTime).or(z.null()).optional(),
-      maxDurationMinutes: z
-        .number()
-        .int()
-        .min(MAX_DURATION_MINIMUM_MINUTES)
-        .max(MAX_DURATION_MAXIMUM_MINUTES),
-      parallelMode: z.enum(PROJECT_PARALLEL_MODES),
-    })
-    .transform(
-      ({
-        projectId,
-        startDate = null,
-        repeatType,
-        maxDurationMinutes,
-        parallelMode,
-        days,
-        months,
-        startHour,
-        endHour,
-      }): ProjectExecutionInfo => {
-        timeZone ??= getLocalTimeZone()
-        startDate ??= now(timeZone)
-        const startDateTime = toRfc3339(startDate.toDate())
-        const repeat = ((): ProjectExecutionRepeatInfo => {
-          switch (repeatType) {
-            case 'none': {
-              return {
-                type: repeatType,
-              }
-            }
-            case 'hourly': {
-              return {
-                type: repeatType,
-                startHour: startHour,
-                endHour: endHour,
-              }
-            }
-            case 'daily': {
-              return {
-                type: repeatType,
-                daysOfWeek: days,
-              }
-            }
-            case 'monthly-date': {
-              return {
-                type: repeatType,
-                date: startDate.day,
-                months,
-              }
-            }
-            case 'monthly-weekday': {
-              return {
-                type: repeatType,
-                dayOfWeek: getDayOfWeek(startDate, 'en-US'),
-                weekNumber: Math.floor(startDate.day / DAYS_PER_WEEK) + 1,
-                months,
-              }
-            }
-            case 'monthly-last-weekday': {
-              return {
-                type: repeatType,
-                dayOfWeek: getDayOfWeek(startDate, 'en-US'),
-                months,
-              }
+/** The form schema for this page. */
+const UPSERT_EXECUTION_SCHEMA = z
+  .object({
+    projectId: z.string().refine((x: unknown): x is ProjectId => true),
+    repeatType: z.enum(PROJECT_EXECUTION_REPEAT_TYPES),
+    days: z
+      .number()
+      .int()
+      .min(0)
+      .max(DAYS_PER_WEEK - 1)
+      .array()
+      .min(1)
+      .transform((arr) => arr.sort((a, b) => a - b))
+      .readonly(),
+    months: z
+      .number()
+      .int()
+      .min(0)
+      .max(MONTHS_PER_YEAR - 1)
+      .array()
+      .min(1)
+      .transform((arr) => arr.sort((a, b) => a - b))
+      .readonly(),
+    startDate: z.instanceof(ZonedDateTime).or(z.null()).optional(),
+    timeZone: z.string(),
+    maxDurationMinutes: z
+      .number()
+      .int()
+      .min(MAX_DURATION_MINIMUM_MINUTES)
+      .max(MAX_DURATION_MAXIMUM_MINUTES),
+    parallelMode: z.enum(PROJECT_PARALLEL_MODES),
+  })
+  .transform(
+    ({
+      projectId,
+      startDate = null,
+      repeatType,
+      maxDurationMinutes,
+      parallelMode,
+      days,
+      months,
+      timeZone: description,
+    }): ProjectExecutionInfo => {
+      const timeZone = getTimeZoneFromDescription(description)
+      startDate ??= now(timeZone)
+      const startDateTime = toRfc3339(new Date(startDate.toAbsoluteString()))
+      const repeat = ((): ProjectExecutionRepeatInfo => {
+        switch (repeatType) {
+          case 'none': {
+            return {
+              type: repeatType,
             }
           }
-        })()
-        return {
-          projectId,
-          timeZone: timeZone,
-          repeat,
-          maxDurationMinutes,
-          parallelMode,
-          startDate: startDateTime,
+          case 'daily': {
+            return {
+              type: repeatType,
+            }
+          }
+          case 'weekly': {
+            return {
+              type: repeatType,
+              daysOfWeek: days,
+            }
+          }
+          case 'monthlyDate': {
+            return {
+              type: repeatType,
+              date: startDate.day,
+              months,
+            }
+          }
+          case 'monthlyWeekday': {
+            return {
+              type: repeatType,
+              dayOfWeek: getDay(startDate),
+              weekNumber: getWeekOfMonth(startDate.day),
+              months,
+            }
+          }
+          case 'monthlyLastWeekday': {
+            return {
+              type: repeatType,
+              dayOfWeek: getDay(startDate),
+              months,
+            }
+          }
         }
-      },
-    )
-}
+      })()
+      return {
+        projectId,
+        timeZone,
+        repeat,
+        maxDurationMinutes,
+        parallelMode,
+        startDate: startDateTime,
+        endDate: null,
+      }
+    },
+  )
 
 /** Props for a {@link NewProjectExecutionModal}. */
 export interface NewProjectExecutionModalProps {
@@ -212,28 +203,28 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   const { getText } = useText()
   const [preferredTimeZone] = useLocalStorageState('preferredTimeZone')
   const getOrdinal = useGetOrdinal()
-  const timeZone = preferredTimeZone ?? getLocalTimeZone()
+  const timeZone = IanaTimeZone(preferredTimeZone ?? getLocalTimeZone())
+  const timeZoneDescription = getDescriptionForTimeZone(timeZone)
   const enableAdvancedProjectExecutionOptions = useFeatureFlag(
     'enableAdvancedProjectExecutionOptions',
   )
   const valueJson = useRef('')
 
-  const nowZonedDateTime = now(timeZone)
-  const minFirstOccurrence = nowZonedDateTime
+  // Only initialize `minFirstOccurrence` once.
+  const [minFirstOccurrence] = useState(() => now(timeZone))
+  const defaultStartDate = defaultDate ?? minFirstOccurrence
   const form = Form.useForm({
     method: 'dialog',
-    schema: createUpsertExecutionSchema(preferredTimeZone),
+    schema: UPSERT_EXECUTION_SCHEMA,
     defaultValues: {
       projectId: item.id,
       repeatType: 'daily',
       parallelMode: 'restart',
-      startDate: defaultDate ?? minFirstOccurrence,
+      startDate: defaultStartDate,
       maxDurationMinutes: MAX_DURATION_DEFAULT_MINUTES,
-      // Use `en-US` locale because it matches JavaScript conventions.
-      days: [getDayOfWeek(minFirstOccurrence, 'en-US')],
-      months: [minFirstOccurrence.month - 1],
-      startHour: 0,
-      endHour: HOURS_PER_DAY - 1,
+      days: DAYS,
+      months: MONTHS,
+      timeZone: timeZoneDescription,
     },
     onSubmit: async (values) => {
       await createProjectExecution([values, item.title])
@@ -241,25 +232,36 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   })
   const repeatType = form.watch('repeatType', 'daily')
   const parallelMode = form.watch('parallelMode', 'restart')
-  const date = form.watch('startDate', nowZonedDateTime) ?? nowZonedDateTime
+  const date = form.watch('startDate', defaultStartDate) ?? defaultStartDate
+  // `timeZone` may be `null`.
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  const formTimeZoneDescription = form.watch('timeZone', timeZoneDescription) ?? timeZoneDescription
+  const formTimeZone = getTimeZoneFromDescription(formTimeZoneDescription)
   // Reactively watch for `days` and `months` so that repeat dates are kept up to date.
   form.watch('days')
   form.watch('months')
   const daysToEndOfMonth = endOfMonth(date).day - date.day
   const validRepeatTypes =
-    daysToEndOfMonth >= DAYS_PER_WEEK ?
-      PROJECT_EXECUTION_REPEAT_TYPES.filter((type) => type !== 'monthly-last-weekday')
+    DISABLE_LAST_WEEKDAY_REPEAT_TYPE || daysToEndOfMonth >= DAYS_PER_WEEK ?
+      PROJECT_EXECUTION_REPEAT_TYPES.filter((type) => type !== 'monthlyLastWeekday')
     : PROJECT_EXECUTION_REPEAT_TYPES
 
+  const changeTimezoneDeps = useSyncRef({ date, form })
   useEffect(() => {
-    if (onChange) {
-      const parsed = form.schema.safeParse(form.getValues())
-      if (parsed.success) {
-        const newJson = JSON.stringify(parsed)
-        if (newJson !== valueJson.current) {
-          onChange(parsed.data)
-          valueJson.current = newJson
-        }
+    const deps = changeTimezoneDeps.current
+    deps.form.setValue('startDate', toZoned(deps.date, formTimeZone))
+  }, [formTimeZone, changeTimezoneDeps])
+
+  useEffect(() => {
+    if (!onChange) {
+      return
+    }
+    const parsed = form.schema.safeParse(form.getValues())
+    if (parsed.success) {
+      const newJson = JSON.stringify(parsed)
+      if (newJson !== valueJson.current) {
+        onChange(parsed.data)
+        valueJson.current = newJson
       }
     }
   })
@@ -274,106 +276,98 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
     if (!projectExecution) {
       return []
     }
-    let nextDate = firstProjectExecutionOnOrAfter(projectExecution, date.toDate())
-    const dates = [nextDate]
-    while (dates.length < REPEAT_TIMES_COUNT) {
-      nextDate = nextProjectExecutionDate(projectExecution, nextDate)
+    let nextDate: ZonedDateTime | null = firstProjectExecutionOnOrAfter(projectExecution, date)
+    const dates = date.compare(nextDate) !== 0 ? [nextDate] : []
+    nextDate = nextProjectExecutionDate(projectExecution, nextDate)
+    while (nextDate && dates.length < REPEAT_TIMES_COUNT) {
       dates.push(nextDate)
+      nextDate = nextProjectExecutionDate(projectExecution, nextDate)
     }
     return dates
   })()
 
-  const repeatText = useEventCallback((otherRepeatType: ProjectExecutionRepeatType) => {
+  const repeatText = useEventCallback((otherRepeatType: typeof repeatType) => {
     // Use `en-US` locale because it matches JavaScript conventions.
-    const dayOfWeekNumber = getDayOfWeek(date, 'en-US')
+    const dayOfWeekNumber = getDay(date)
     const dayOfWeek = getText(DAY_TEXT_IDS[dayOfWeekNumber] ?? 'monday')
     switch (otherRepeatType) {
       case 'none': {
         return getText('doesNotRepeat')
       }
-      case 'hourly': {
-        return getText('hourly')
-      }
       case 'daily': {
         return getText('daily')
       }
-      case 'monthly-date': {
-        return getText('xthDayOfMonth', getOrdinal(date.day))
+      case 'weekly': {
+        return getText('weekly')
       }
-      case 'monthly-weekday': {
-        return getText(
-          'xthXDayOfMonth',
-          getOrdinal(Math.floor(date.day / DAYS_PER_WEEK) + 1),
-          dayOfWeek,
-        )
+      case 'monthlyDate': {
+        return getText('monthlyXthDay', getOrdinal(date.day))
       }
-      case 'monthly-last-weekday': {
-        return getText('lastXDayOfMonth', dayOfWeek)
+      case 'monthlyWeekday': {
+        return getText('monthlyXthXDay', getOrdinal(getWeekOfMonth(date.day)), dayOfWeek)
+      }
+      case 'monthlyLastWeekday': {
+        return getText('monthlyLastXDay', dayOfWeek)
       }
     }
   })
 
   return (
     <Form form={form} className="w-full">
-      <div className="flex flex-col">
-        <DatePicker
-          form={form}
-          isRequired
-          noCalendarHeader
-          name="startDate"
-          granularity="minute"
-          label={getText('firstOccurrenceLabel')}
-          minValue={minFirstOccurrence}
-        />
-        <Text>
-          {getText(
-            'repeatsAtX',
-            (repeatType === 'hourly' ?
-              // eslint-disable-next-line @typescript-eslint/unbound-method
-              repeatTimes.map(Intl.DateTimeFormat(undefined, { timeStyle: 'short' }).format)
-              // eslint-disable-next-line @typescript-eslint/unbound-method
-            : repeatTimes.map(Intl.DateTimeFormat(undefined, { dateStyle: 'short' }).format)
-            ).join(', '),
-          )}
-        </Text>
-      </div>
+      <ComboBox
+        form={form}
+        isRequired
+        name="timeZone"
+        label={getText('timeZoneLabel')}
+        items={WHITELISTED_TIME_ZONE_DESCRIPTIONS}
+        addonStart={
+          <Text className="w-20">
+            {getTimeZoneOffsetStringWithGMT(toZoned(date, formTimeZone))}
+          </Text>
+        }
+        toTextValue={(otherTimeZone) => otherTimeZone}
+        className="w-full"
+      >
+        {(description) => {
+          const otherTimeZone = getTimeZoneFromDescription(description)
+          const timezoneOffsetString = getTimeZoneOffsetStringWithGMT(toZoned(date, otherTimeZone))
+          return `${timezoneOffsetString} ${description}`
+        }}
+      </ComboBox>
+      <DatePicker
+        form={form}
+        isRequired
+        noCalendarHeader
+        name="startDate"
+        hideTimeZone
+        label={getText('firstOccurrenceLabel')}
+        minValue={minFirstOccurrence}
+        className="w-full"
+      />
       <FormDropdown
         form={form}
         isRequired
         name="repeatType"
         label={getText('repeatIntervalLabel')}
         items={validRepeatTypes}
+        size="medium"
+        className="w-full"
       >
         {({ item: otherItem }) => repeatText(otherItem)}
       </FormDropdown>
-      {repeatType === 'hourly' && (
-        <Input
+      {repeatType === 'weekly' && (
+        <MultiSelector
           form={form}
           isRequired
-          name="startHour"
-          label={getText('startHourLabel')}
-          type="number"
-          min={0}
-          max={HOURS_PER_DAY - 1}
-        />
-      )}
-      {repeatType === 'hourly' && (
-        <Input
-          form={form}
-          isRequired
-          name="endHour"
-          label={getText('endHourLabel')}
-          type="number"
-          min={0}
-          max={HOURS_PER_DAY - 1}
-        />
-      )}
-      {repeatType === 'daily' && (
-        <MultiSelector form={form} isRequired name="days" label={getText('daysLabel')} items={DAYS}>
+          name="days"
+          label={getText('daysLabel')}
+          items={DAYS}
+          variant="separate-outline"
+        >
           {(n) => getText(DAY_3_LETTER_TEXT_IDS[n] ?? 'monday3')}
         </MultiSelector>
       )}
-      {(repeatType === 'monthly-date' || repeatType === 'monthly-weekday') && (
+      {(repeatType === 'monthlyDate' || repeatType === 'monthlyWeekday') && (
         <MultiSelector
           form={form}
           isRequired
@@ -381,10 +375,18 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
           label={getText('monthsLabel')}
           items={MONTHS}
           columns={6}
+          variant="separate-outline"
         >
           {(n) => getText(MONTH_3_LETTER_TEXT_IDS[n] ?? 'january3')}
         </MultiSelector>
       )}
+      <div className={repeatType === 'none' ? 'hidden' : ''}>
+        <Text>{getText('repeatsAt')}</Text>
+        {repeatTimes.map((dateTime, i) => (
+          <Text key={i}>{zonedDateTimeToReadableIsoString(dateTime)}</Text>
+        ))}
+        <Text>{getText('ellipsis')}</Text>
+      </div>
       {enableAdvancedProjectExecutionOptions && (
         <details className="w-full">
           <summary className="cursor-pointer">{getText('advancedOptions')}</summary>
