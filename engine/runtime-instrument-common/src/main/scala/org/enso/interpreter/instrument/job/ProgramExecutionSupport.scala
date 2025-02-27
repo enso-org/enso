@@ -450,7 +450,7 @@ object ProgramExecutionSupport {
   )(implicit ctx: RuntimeContext): Unit = {
     val expressionId = value.getExpressionId
     if (value.isProgressUpdate()) {
-      val p = Api.ExpressionUpdate.Payload.Pending(
+      val progressPayload = Api.ExpressionUpdate.Payload.Pending(
         Option(value.getProgressMessage()),
         Some(value.getProgress())
       )
@@ -461,12 +461,12 @@ object ProgramExecutionSupport {
             Set(
               Api.ExpressionUpdate(
                 value.getExpressionId,
-                Option(value.getType).map(toExpressionType),
+                None,
                 None,
                 Vector(),
                 false,
                 false,
-                p
+                progressPayload
               )
             )
           )
