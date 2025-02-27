@@ -4294,12 +4294,10 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
       )
     },
     javaOptions ++= {
-      val logbackConfFile = (Compile / resourceDirectory).value / "logback.xml"
       Seq(
         // To enable logging in benchmarks, add ch.qos.logback module on the modulePath
         //"-Dslf4j.provider=org.slf4j.nop.NOPServiceProvider"
-        "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider",
-        "-Dlogback.configurationFile=" + logbackConfFile.getAbsolutePath
+        "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider"
       )
     },
     javaOptions ++= benchOnlyOptions
