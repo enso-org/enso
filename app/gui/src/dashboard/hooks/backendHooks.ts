@@ -30,11 +30,7 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProject } from '#/hooks/projectHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import {
-  useSetNewestFolderId,
-  useSetSelectedAssets,
-  useToggleDirectoryExpansion,
-} from '#/providers/DriveProvider'
+import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type Backend from '#/services/Backend'
@@ -581,7 +577,6 @@ export function useNewProject(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
   const doOpenProject = useOpenProject()
   const deleteAsset = useDeleteAsset(backend, category)
-  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
 
   const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
 
@@ -598,8 +593,6 @@ export function useNewProject(backend: Backend, category: Category) {
       },
       parentId: DirectoryId,
     ) => {
-      toggleDirectoryExpansion(parentId, true)
-
       const siblings = await ensureListDirectory(parentId)
       const projectName = (() => {
         const prefix = `${templateName ?? 'New Project'} `
@@ -642,11 +635,9 @@ export function useNewProject(backend: Backend, category: Category) {
 
 /** A function to create a new secret. */
 export function useNewSecret(backend: Backend) {
-  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
   const createSecretMutation = useMutation(backendMutationOptions(backend, 'createSecret'))
 
   return useEventCallback(async (name: string, value: string, parentId: DirectoryId) => {
-    toggleDirectoryExpansion(parentId, true)
     const placeholderItem = backendModule.createPlaceholderSecretAsset(name, parentId)
 
     return await createSecretMutation.mutateAsync([

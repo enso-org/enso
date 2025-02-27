@@ -18,7 +18,6 @@ import {
   useSetIsDraggingOverSelectedRow,
   useSetLabelsDragPayload,
   useSetSelectedAssets,
-  useToggleDirectoryExpansion,
 } from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -62,16 +61,9 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { useTransition } from 'react'
 
-/**
- * The amount of time (in milliseconds) the drag item must be held over this component
- * to make a directory row expand.
- */
-const DRAG_EXPAND_DELAY_MS = 1_500
-
 /** Common properties for state and setters passed to event handlers on an {@link AssetRow}. */
 export interface AssetRowInnerProps {
   readonly asset: backendModule.AnyAsset
-  // readonly path: string
   readonly state: assetsTable.AssetsTableState
   readonly rowState: assetsTable.AssetRowState
   readonly setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
@@ -277,7 +269,6 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
     assetRowUtils.INITIAL_ROW_STATE,
   )
   const cutAndPaste = useCutAndPaste(backend, category)
-  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
   const setLabelsDragPayload = useSetLabelsDragPayload()
 
   const isNewlyCreated = useStore(driveStore, ({ newestFolderId }) => newestFolderId === asset.id)
@@ -488,7 +479,6 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                 window.setTimeout(() => {
                   setSelected(false)
                 })
-                toggleDirectoryExpansion(asset.id)
               }
             }}
             onContextMenu={(event) => {
@@ -529,11 +519,6 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
             onDragEnter={(event) => {
               if (dragOverTimeoutHandle.current != null) {
                 window.clearTimeout(dragOverTimeoutHandle.current)
-              }
-              if (asset.type === backendModule.AssetType.directory) {
-                dragOverTimeoutHandle.current = window.setTimeout(() => {
-                  toggleDirectoryExpansion(asset.id, true)
-                }, DRAG_EXPAND_DELAY_MS)
               }
               // Required because `dragover` does not fire on `mouseenter`.
               onDragOver(event)
@@ -579,7 +564,6 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                   event.preventDefault()
                   event.stopPropagation()
                   unsetModal()
-                  toggleDirectoryExpansion(directoryId, true)
                   const ids = payload
                     .filter((payloadItem) => payloadItem.asset.parentId !== directoryId)
                     .map((dragItem) => dragItem.key)
@@ -591,7 +575,6 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                 } else if (event.dataTransfer.types.includes('Files')) {
                   event.preventDefault()
                   event.stopPropagation()
-                  toggleDirectoryExpansion(directoryId, true)
                   void uploadFiles(Array.from(event.dataTransfer.files), directoryId)
                 }
               }

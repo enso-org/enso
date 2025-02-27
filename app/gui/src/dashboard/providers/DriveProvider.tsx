@@ -54,8 +54,6 @@ interface DriveStore {
   readonly setCanDownload: (canDownload: boolean) => void
   readonly pasteData: PasteData<DrivePastePayload> | null
   readonly setPasteData: (pasteData: PasteData<DrivePastePayload> | null) => void
-  readonly expandedDirectoryIds: readonly DirectoryId[]
-  readonly setExpandedDirectoryIds: (selectedIds: readonly DirectoryId[]) => void
   readonly selectedIds: ReadonlySet<AssetId>
   readonly selectedAssets: readonly SelectedAssetInfo[]
   readonly setSelectedAssets: (selectedAssets: readonly SelectedAssetInfo[]) => void
@@ -131,12 +129,6 @@ export default function DriveProvider(props: ProjectsProviderProps) {
       setPasteData: (pasteData) => {
         if (get().pasteData !== pasteData) {
           set({ pasteData })
-        }
-      },
-      expandedDirectoryIds: EMPTY_ARRAY,
-      setExpandedDirectoryIds: (expandedDirectoryIds) => {
-        if (get().expandedDirectoryIds !== expandedDirectoryIds) {
-          set({ expandedDirectoryIds })
         }
       },
       selectedIds: EMPTY_SET,
@@ -246,20 +238,6 @@ export function useSetPasteData() {
   return useStore(store, (state) => state.setPasteData)
 }
 
-/** The expanded directories in the Asset Table. */
-export function useExpandedDirectoryIds() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.expandedDirectoryIds)
-}
-
-/** A function to set the expanded directoyIds in the Asset Table. */
-export function useSetExpandedDirectoryIds() {
-  const store = useDriveStore()
-  return useStore(store, (state) => state.setExpandedDirectoryIds, {
-    unsafeEnableTransition: true,
-  })
-}
-
 /** The selected keys in the Asset Table. */
 export function useSelectedKeys() {
   const store = useDriveStore()
@@ -327,28 +305,6 @@ export function useIsDragTargetAssetId(assetId: AssetId) {
 export function useSetDragTargetAssetId() {
   const store = useDriveStore()
   return useStore(store, (state) => state.setDragTargetAssetId)
-}
-
-/** Toggle whether a specific directory is expanded. */
-export function useToggleDirectoryExpansion() {
-  const driveStore = useDriveStore()
-  const setExpandedDirectoryIds = useSetExpandedDirectoryIds()
-
-  return useEventCallback((directoryId: DirectoryId, override?: boolean) => {
-    const expandedDirectoryIds = driveStore.getState().expandedDirectoryIds
-    const isExpanded = expandedDirectoryIds.includes(directoryId)
-    const shouldExpand = override ?? !isExpanded
-
-    if (shouldExpand !== isExpanded) {
-      React.startTransition(() => {
-        if (shouldExpand) {
-          setExpandedDirectoryIds([...expandedDirectoryIds, directoryId])
-        } else {
-          setExpandedDirectoryIds(expandedDirectoryIds.filter((id) => id !== directoryId))
-        }
-      })
-    }
-  })
 }
 
 /** The current directory ID. */

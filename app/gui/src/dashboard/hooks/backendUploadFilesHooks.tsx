@@ -5,11 +5,7 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useToastAndLog, useToastAndLogWithId } from '#/hooks/toastAndLogHooks'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
-import {
-  useSetSelectedAssets,
-  useToggleDirectoryExpansion,
-  type SelectedAssetInfo,
-} from '#/providers/DriveProvider'
+import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import { usePreventNavigation } from '#/utilities/preventNavigation'
@@ -50,7 +46,6 @@ const FILE_UPLOAD_CONCURRENCY = 5
 export function useUploadFiles(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
   const toastAndLog = useToastAndLog()
-  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
   const { setModal } = useSetModal()
   const uploadFileMutation = useUploadFileWithToastMutation(backend)
   const setSelectedAssets = useSetSelectedAssets()
@@ -146,7 +141,6 @@ export function useUploadFiles(backend: Backend, category: Category) {
     }
 
     if (duplicateFiles.length === 0 && duplicateProjects.length === 0) {
-      toggleDirectoryExpansion(parentId, true)
       const assets = [...files, ...projects].map(({ asset }) => asset)
       void Promise.all(assets.map((asset) => doUploadFile(asset, 'new')))
     } else {
@@ -184,8 +178,6 @@ export function useUploadFiles(backend: Backend, category: Category) {
           nonConflictingFileCount={files.length - conflictingFiles.length}
           nonConflictingProjectCount={projects.length - conflictingProjects.length}
           doUpdateConflicting={async (resolvedConflicts) => {
-            toggleDirectoryExpansion(parentId, true)
-
             await Promise.allSettled(
               resolvedConflicts.map((conflict) => {
                 const isUpdating = conflict.current.title === conflict.new.title
@@ -196,8 +188,6 @@ export function useUploadFiles(backend: Backend, category: Category) {
             )
           }}
           doUploadNonConflicting={async () => {
-            toggleDirectoryExpansion(parentId, true)
-
             const newFiles = files
               .filter((file) => !siblingFileTitles.has(file.asset.title))
               .map((file) => {

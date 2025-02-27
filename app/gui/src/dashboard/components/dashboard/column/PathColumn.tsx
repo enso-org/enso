@@ -6,12 +6,8 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useCategoriesAPI, useCloudCategoryList } from '#/layouts/Drive/Categories/categoriesHooks'
 import type { AnyCloudCategory } from '#/layouts/Drive/Categories/Category'
 import { useUser } from '#/providers/AuthProvider'
-import {
-  useSetCurrentDirectoryId,
-  useSetExpandedDirectoryIds,
-  useSetSelectedAssets,
-} from '#/providers/DriveProvider'
-import { AssetType, DirectoryId } from '#/services/Backend'
+import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
+import type { DirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { Fragment, useTransition } from 'react'
 import invariant from 'tiny-invariant'
@@ -26,8 +22,6 @@ export default function PathColumn(props: AssetColumnProps) {
   const { getAssetNodeById } = state
 
   const { setCategory } = useCategoriesAPI()
-  const setSelectedAssets = useSetSelectedAssets()
-  const setExpandedDirectoryIds = useSetExpandedDirectoryIds()
   const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const { rootDirectoryId } = useUser()
 
@@ -68,7 +62,6 @@ export default function PathColumn(props: AssetColumnProps) {
 
     if (targetDirectoryNode == null && rootDirectoryInThePath.categoryId != null) {
       setCategory(rootDirectoryInThePath.categoryId)
-      setExpandedDirectoryIds(pathToDirectory.map(({ id }) => id).concat(targetDirectory))
     }
 
     setCurrentDirectoryId({
