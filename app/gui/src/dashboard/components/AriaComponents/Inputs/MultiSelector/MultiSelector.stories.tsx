@@ -2,8 +2,8 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { userEvent, within } from '@storybook/test'
 import { z } from 'zod'
 import { Form } from '../../Form'
-import type { MultiSelectorProps } from './MultiSelector.tsx'
-import { MultiSelector } from './MultiSelector.tsx'
+import type { MultiSelectorProps } from './MultiSelector'
+import { MultiSelector } from './MultiSelector'
 
 type Props = MultiSelectorProps<typeof schema, 'value', unknown>
 type Story = StoryObj<Props>

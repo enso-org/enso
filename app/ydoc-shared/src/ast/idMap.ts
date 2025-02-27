@@ -1,6 +1,6 @@
 import * as random from 'lib0/random'
 import {
-  type SourceRange,
+  SourceRange,
   type SourceRangeKey,
   sourceRangeFromKey,
   sourceRangeKey,
@@ -17,11 +17,11 @@ declare const tokenKeyBrand: unique symbol
 export type TokenKey = SourceRangeKey & { [tokenKeyBrand]: never }
 /** Create a source-range key for an `Ast`. */
 export function nodeKey(start: number, length: number): NodeKey {
-  return sourceRangeKey({ from: start, to: start + length }) as NodeKey
+  return sourceRangeKey(SourceRange.fromStartAndLength(start, length)) as NodeKey
 }
 /** Create a source-range key for a `Token`. */
 export function tokenKey(start: number, length: number): TokenKey {
-  return sourceRangeKey({ from: start, to: start + length }) as TokenKey
+  return sourceRangeKey(SourceRange.fromStartAndLength(start, length)) as TokenKey
 }
 
 /** Maps from source ranges to `Ast`s. */

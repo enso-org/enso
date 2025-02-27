@@ -38,11 +38,11 @@ public class RefTest {
   }
 
   private static Value getRef(Value ref) {
-    return refType.invokeMember("get", ref);
+    return refType.invokeMember("get", refType, ref);
   }
 
   private static Value newRef(Object object) {
-    return refType.invokeMember("new", object);
+    return refType.invokeMember("new", refType, object);
   }
 
   @Test

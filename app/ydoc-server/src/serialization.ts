@@ -1,7 +1,6 @@
-/** Translation of `yjsModel` types to and from the `fileFormat` representation. */
-
+/** @file Translation of `yjsModel` types to and from the `fileFormat` representation. */
 import * as json from 'lib0/json'
-import { sourceRangeFromKey } from 'ydoc-shared/util/data/text'
+import { SourceRange, sourceRangeFromKey } from 'ydoc-shared/util/data/text'
 import { type ExternalId, IdMap } from 'ydoc-shared/yjsModel'
 import * as fileFormat from './fileFormat'
 
@@ -15,7 +14,7 @@ export function deserializeIdMap(idMapJson: string): IdMap {
       console.error(`Invalid range for id ${id}:`, range)
       continue
     }
-    idMap.insertKnownId({ from: index.value, to: index.value + size.value }, id as ExternalId)
+    idMap.insertKnownId(SourceRange.fromStartAndLength(index.value, size.value), id as ExternalId)
   }
   return idMap
 }

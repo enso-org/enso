@@ -8,11 +8,9 @@ import java.util.regex.Pattern;
 import org.enso.base.Regex_Utils;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.operation.comparators.GenericComparators;
-import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.TextType;
-import org.enso.table.data.table.Column;
 import org.enso.table.error.UnexpectedTypeException;
 
 public final class TextPredicates extends GenericComparators<String> {
@@ -23,15 +21,6 @@ public final class TextPredicates extends GenericComparators<String> {
 
   private TextPredicates(BiPredicate<String, String> predicate) {
     super(predicate, true);
-  }
-
-  @Override
-  public Column apply(Column left, Object right, String newName) {
-    var leftStorage = getStorage(left);
-    if (leftStorage.getType() instanceof NullType) {
-      return new Column(newName, BoolStorage.makeEmpty(leftStorage.getSize()));
-    }
-    return super.apply(left, right, newName);
   }
 
   @Override

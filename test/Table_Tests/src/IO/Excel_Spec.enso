@@ -1304,6 +1304,13 @@ add_specs suite_builder =
             table.at "Date13" . to_vector . should_equal [Date_Time.new 1903 12 28 13, Date_Time.new 1903 12 29 13, Date_Time.new 1903 12 30 13, Date_Time.new 1903 12 31 13, Date_Time.new 1904 1 1 13, Date_Time.new 1904 1 2 13, Date_Time.new 1904 1 3 13, Date_Time.new 1904 1 4 13, Date_Time.new 1904 1 5 13, Date_Time.new 1904 2 29 13, Date_Time.new 1904 3 1 13, Date_Time.new 1904 3 2 13, Date_Time.new 1904 3 3 13, Date_Time.new 1904 3 4 13, Date_Time.new 1904 3 5 13]
             table.at "Times" . to_vector . should_equal [Time_Of_Day.new 14 55 52, Time_Of_Day.new 10 30 2, Time_Of_Day.new 23 6 58, Time_Of_Day.new 15 39, Time_Of_Day.new 1 37 21, Time_Of_Day.new 17 16 34, Time_Of_Day.new 10 21 53, Time_Of_Day.new 2 29 9, Time_Of_Day.new 10 20 55, Time_Of_Day.new 2 10 52, Time_Of_Day.new 7 50 24, Time_Of_Day.new 5 46 13, Time_Of_Day.new 18 36 38, Time_Of_Day.new 15 34 42, Time_Of_Day.new 8 25 35]
 
+        group_builder.specify "should remove blank rows from the end of a worksheet" <|
+            ## This worksheet has a header row, a data row and a third blank row. We should not read the blank row from the end.
+            table = (enso_project.data / "WorkbookWithEmptyLastRow.xlsx") . read ..Sheet
+            table.row_count . should_equal 1
+            table.column_names . should_equal ["A"]
+            table.at "A" . to_vector . should_equal [1]
+
         group_builder.specify "should be able to write dates In Excel 1904 format in legacy spreadsheet" <|
             xlsx_copy = enso_project.data / "transient" / "OlderDates1904Copy.xlsx"
             xlsx_copy.delete_if_exists . should_succeed
