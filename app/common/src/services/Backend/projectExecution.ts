@@ -1,159 +1,133 @@
+import { ZonedDateTime, parseAbsolute } from '@internationalized/date'
 import { EMPTY_ARRAY } from '../../utilities/data/array'
+import { DAYS_PER_WEEK, MONTHS_PER_YEAR, getDay } from '../../utilities/data/dateTime'
 import { ProjectExecutionInfo } from '../Backend'
 
-const DAYS_PER_WEEK = 7
-const MONTHS_PER_YEAR = 12
+/** Positive modulo of the number with respect to the base. */
+function remainder(n: number, mod: number) {
+  return ((n % mod) + mod) % mod
+}
 
 /** The first execution date of the given {@link ProjectExecution} on or after the given date. */
 export function firstProjectExecutionOnOrAfter(
   projectExecution: ProjectExecutionInfo,
-  startDate: Date,
-): Date {
-  // TODO: Account for timezone.
-  let nextDate = new Date(startDate)
+  startDate: ZonedDateTime,
+): ZonedDateTime {
+  let nextDate = startDate
   const { repeat } = projectExecution
-  const executionStartDate = new Date(projectExecution.startDate)
-  if (nextDate < executionStartDate) {
-    nextDate = new Date(executionStartDate)
+  const executionStartDate = parseAbsolute(
+    new Date(projectExecution.startDate).toISOString(),
+    startDate.timeZone,
+  )
+  if (nextDate.compare(executionStartDate) < 0) {
+    nextDate = executionStartDate
   }
-  nextDate.setMinutes(executionStartDate.getMinutes())
-  if (repeat.type !== 'hourly') {
-    nextDate.setHours(executionStartDate.getHours())
-  }
-  switch (repeat.type) {
-    case 'hourly': {
-      while (nextDate < startDate) {
-        nextDate.setHours(nextDate.getHours() + 1)
-      }
-      const currentHours = nextDate.getHours()
-      if (repeat.startHour < repeat.endHour) {
-        if (currentHours < repeat.startHour) {
-          nextDate.setHours(repeat.startHour)
-        } else if (currentHours > repeat.endHour) {
-          nextDate.setHours(repeat.startHour)
-          nextDate.setDate(nextDate.getDate() + 1)
-        }
-      } else {
-        if (currentHours > repeat.endHour && currentHours < repeat.startHour) {
-          nextDate.setHours(repeat.startHour)
-        }
-      }
-      break
-    }
-    case 'daily': {
-      const currentDay = nextDate.getDay()
-      const day = repeat.daysOfWeek.find((day) => day >= currentDay) ?? repeat.daysOfWeek[0] ?? 0
-      const dayOffset = (day - currentDay + DAYS_PER_WEEK) % DAYS_PER_WEEK
-      nextDate.setDate(nextDate.getDate() + dayOffset)
-      break
-    }
-    case 'monthly-weekday': {
-      const currentDate = nextDate.getDate()
-      nextDate.setDate(1)
-      nextDate.setDate(1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK)
-      const currentDay = nextDate.getDay()
-      const dayOffset = (repeat.dayOfWeek - currentDay + 7) % 7
-      nextDate.setDate(nextDate.getDate() + dayOffset)
-      if (nextDate.getDate() < currentDate) {
-        nextDate.setDate(1)
-        nextDate.setMonth(nextDate.getMonth() + 1)
-        nextDate.setDate(1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK)
-        const currentDay = nextDate.getDay()
-        const dayOffset = (repeat.dayOfWeek - currentDay + 7) % 7
-        nextDate.setDate(nextDate.getDate() + dayOffset)
-      }
-      break
-    }
-    case 'monthly-date': {
-      const currentDate = nextDate.getDate()
-      const date = repeat.date
-      const goToNextMonth = date < currentDate
-      nextDate.setDate(date)
-      if (goToNextMonth) {
-        const startMonth = nextDate.getMonth()
-        nextDate.setMonth(startMonth + 1)
-        if ((nextDate.getMonth() + MONTHS_PER_YEAR - startMonth) % MONTHS_PER_YEAR > 1) {
-          nextDate.setDate(0)
-        }
-      }
-      break
-    }
+  nextDate = nextDate.set({
+    hour: executionStartDate.hour,
+    minute: executionStartDate.minute,
+    second: executionStartDate.second,
+  })
+  if (nextDate.compare(startDate) < 0) {
+    nextDate = nextDate.add({ days: 1 })
   }
   switch (repeat.type) {
-    case 'hourly':
-    case 'daily': {
-      break
-    }
-    case 'monthly-date':
-    case 'monthly-weekday': {
-      const currentMonth = nextDate.getMonth()
+    case 'monthlyDate':
+    case 'monthlyWeekday': {
+      const currentMonth = nextDate.month - 1
       const month = repeat.months.find((month) => month >= currentMonth) ?? repeat.months[0] ?? 0
-      const monthOffset = (month - currentMonth + MONTHS_PER_YEAR) % MONTHS_PER_YEAR
-      nextDate.setMonth(nextDate.getMonth() + monthOffset)
+      const monthOffset = remainder(month - currentMonth, MONTHS_PER_YEAR)
+      nextDate = nextDate.add({ months: monthOffset })
+    }
+  }
+  switch (repeat.type) {
+    case 'none': {
+      return parseAbsolute(projectExecution.startDate, startDate.timeZone)
+    }
+    case 'daily': {
+      break
+    }
+    case 'weekly': {
+      const currentDay = getDay(nextDate)
+      const day = repeat.daysOfWeek.find((day) => day >= currentDay) ?? repeat.daysOfWeek[0] ?? 0
+      const dayOffset = remainder(day - currentDay, DAYS_PER_WEEK)
+      nextDate = nextDate.add({ days: dayOffset })
+      break
+    }
+    case 'monthlyWeekday': {
+      const currentDate = nextDate.day
+      nextDate = nextDate.set({ day: 1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK })
+      const currentDay = getDay(nextDate)
+      const dayOffset = (repeat.dayOfWeek - currentDay + 7) % 7
+      nextDate = nextDate.add({ days: dayOffset })
+      if (nextDate.day < currentDate) {
+        nextDate = nextDate.set({ day: 1 })
+        nextDate = nextDate.add({ months: 1 })
+        nextDate = nextDate.set({ day: 1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK })
+        const currentDay = getDay(nextDate)
+        const dayOffset = (repeat.dayOfWeek - currentDay + 7) % 7
+        nextDate = nextDate.add({ days: dayOffset })
+      }
+      break
+    }
+    case 'monthlyDate': {
+      const currentDate = nextDate.day
+      const date = repeat.date
+      const goToNextMonth = repeat.date < currentDate
+      if (goToNextMonth) {
+        const startMonth = nextDate.month
+        const month = repeat.months.find((month) => month > startMonth) ?? repeat.months[0] ?? 0
+        const monthOffset = remainder(month - startMonth, MONTHS_PER_YEAR)
+        nextDate = nextDate.add({ months: monthOffset })
+      }
+      nextDate = nextDate.set({ day: date })
+      break
     }
   }
   return nextDate
 }
 
 /** The next scheduled execution date of given {@link ProjectExecution}. */
-export function nextProjectExecutionDate(projectExecution: ProjectExecutionInfo, date: Date): Date {
-  // TODO: Account for timezone.
-  const nextDate = new Date(date)
+export function nextProjectExecutionDate(
+  projectExecution: ProjectExecutionInfo,
+  date: ZonedDateTime,
+): ZonedDateTime | null {
+  let nextDate = date
   const { repeat } = projectExecution
   switch (repeat.type) {
-    case 'hourly': {
-      nextDate.setHours(nextDate.getHours() + 1)
-      const currentHours = nextDate.getHours()
-      if (repeat.startHour < repeat.endHour) {
-        if (currentHours < repeat.startHour) {
-          nextDate.setHours(repeat.startHour)
-        } else if (currentHours > repeat.endHour) {
-          nextDate.setDate(nextDate.getDate() + 1)
-          nextDate.setHours(repeat.startHour)
-        }
-      } else {
-        if (currentHours > repeat.endHour && currentHours < repeat.startHour) {
-          nextDate.setHours(repeat.startHour)
-        }
-      }
-      break
-    }
-    case 'daily': {
-      const currentDay = nextDate.getDay()
-      const day = repeat.daysOfWeek.find((day) => day > currentDay) ?? repeat.daysOfWeek[0] ?? 0
-      const dayOffset = ((day - currentDay + 6) % 7) + 1
-      nextDate.setDate(nextDate.getDate() + dayOffset)
-      break
-    }
-    case 'monthly-weekday': {
-      nextDate.setDate(1)
-      nextDate.setMonth(nextDate.getMonth() + 1)
-      nextDate.setDate(1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK)
-      const currentDay = nextDate.getDay()
-      const dayOffset = ((repeat.dayOfWeek - currentDay + 6) % 7) + 1
-      nextDate.setDate(nextDate.getDate() + dayOffset)
-      break
-    }
-    case 'monthly-date': {
-      const startMonth = nextDate.getMonth()
-      nextDate.setMonth(startMonth + 1)
-      if ((nextDate.getMonth() + MONTHS_PER_YEAR - startMonth) % MONTHS_PER_YEAR > 1) {
-        nextDate.setDate(0)
-      }
-      break
+    case 'monthlyDate':
+    case 'monthlyWeekday': {
+      const currentMonth = nextDate.month - 1
+      const month = repeat.months.find((month) => month > currentMonth) ?? repeat.months[0] ?? 0
+      const monthOffset = remainder(month - currentMonth, MONTHS_PER_YEAR)
+      nextDate = nextDate.add({ months: monthOffset })
     }
   }
   switch (repeat.type) {
-    case 'hourly':
+    case 'none':
+    default: {
+      return null
+    }
     case 'daily': {
+      nextDate = nextDate.add({ days: 1 })
       break
     }
-    case 'monthly-date':
-    case 'monthly-weekday': {
-      const currentMonth = nextDate.getMonth()
-      const month = repeat.months.find((month) => month >= currentMonth) ?? repeat.months[0] ?? 0
-      const monthOffset = (month - currentMonth + MONTHS_PER_YEAR) % MONTHS_PER_YEAR
-      nextDate.setMonth(nextDate.getMonth() + monthOffset)
+    case 'weekly': {
+      const currentDay = getDay(nextDate)
+      const day = repeat.daysOfWeek.find((day) => day > currentDay) ?? repeat.daysOfWeek[0] ?? 0
+      const dayOffset = ((day - currentDay + 6) % 7) + 1
+      nextDate = nextDate.add({ days: dayOffset })
+      break
+    }
+    case 'monthlyWeekday': {
+      nextDate = nextDate.set({ day: 1 + (repeat.weekNumber - 1) * DAYS_PER_WEEK })
+      const currentDay = getDay(nextDate)
+      const dayOffset = remainder(repeat.dayOfWeek - currentDay - 1, DAYS_PER_WEEK) + 1
+      nextDate = nextDate.add({ days: dayOffset })
+      break
+    }
+    case 'monthlyDate': {
+      nextDate = nextDate.set({ day: repeat.date })
+      break
     }
   }
   return nextDate
@@ -166,17 +140,22 @@ export function nextProjectExecutionDate(projectExecution: ProjectExecutionInfo,
  */
 export function getProjectExecutionRepetitionsForDateRange(
   projectExecution: ProjectExecutionInfo,
-  startDate: Date,
-  endDate: Date,
-): readonly Date[] {
+  startDate: ZonedDateTime,
+  endDate: ZonedDateTime,
+): readonly ZonedDateTime[] {
+  if (projectExecution.repeat.type === 'none') {
+    const soleExecutionDate = parseAbsolute(projectExecution.startDate, startDate.timeZone)
+    const isSoleExecutionWithinRange =
+      startDate.compare(soleExecutionDate) < 0 && endDate.compare(soleExecutionDate) > 0
+    return isSoleExecutionWithinRange ? [soleExecutionDate] : []
+  }
   const firstDate = firstProjectExecutionOnOrAfter(projectExecution, startDate)
-  if (firstDate >= endDate) {
+  if (firstDate.compare(endDate) > 0) {
     return EMPTY_ARRAY
   }
-  const repetitions: Date[] = [firstDate]
-  let currentDate = firstDate
-  currentDate = nextProjectExecutionDate(projectExecution, currentDate)
-  while (currentDate < endDate) {
+  const repetitions: ZonedDateTime[] = [firstDate]
+  let currentDate = nextProjectExecutionDate(projectExecution, firstDate)
+  while (currentDate != null && currentDate.compare(endDate) < 0) {
     repetitions.push(currentDate)
     currentDate = nextProjectExecutionDate(projectExecution, currentDate)
   }
