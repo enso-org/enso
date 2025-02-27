@@ -9,10 +9,10 @@ import {
 } from '@/stores/suggestionDatabase/entry'
 import { compareOpt } from '@/util/compare'
 import { isSome } from '@/util/data/opt'
-import { Range } from '@/util/data/range'
 import { displayedIconOf } from '@/util/getIconName'
 import { type Icon } from '@/util/iconMetadata/iconName'
 import { type ProjectPath } from '@/util/projectPath'
+import { Range } from 'ydoc-shared/util/data/range'
 
 interface ComponentLabelInfo {
   label: string
@@ -49,9 +49,7 @@ export function labelOfEntry(entry: SuggestionEntry, match: MatchResult): Compon
       matchedAlias: match.matchedAlias,
       matchedRanges: [
         ...(match.ownerNameRanges ?? []),
-        ...(match.nameRanges ?? []).map(
-          (range) => new Range(range.start + nameOffset, range.end + nameOffset),
-        ),
+        ...(match.nameRanges ?? []).map((range) => range.shift(nameOffset)),
       ],
     }
   } else
@@ -62,7 +60,7 @@ export function labelOfEntry(entry: SuggestionEntry, match: MatchResult): Compon
 
 function formatLabel(labelInfo: ComponentLabelInfo): ComponentLabel {
   const shift = labelInfo.label.length + 2
-  const shiftRange = (range: Range) => new Range(range.start + shift, range.end + shift)
+  const shiftRange = (range: Range) => range.shift(shift)
   return !labelInfo.matchedAlias ?
       { label: labelInfo.label, matchedRanges: labelInfo.matchedRanges }
     : {

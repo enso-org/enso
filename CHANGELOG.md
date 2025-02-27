@@ -26,6 +26,8 @@
   (new) files.][12228]
 - [Cloud File Browser allows adding new directory in "writing"
   components][12275]
+- [In the documentation panel, text can now be made bold or italic using
+  buttons][12341]
 - [Cloud File Browser allows renaming existing directories in "writing"
   components][12323]
 
@@ -45,6 +47,7 @@
 [12228]: https://github.com/enso-org/enso/pull/12228
 [12217]: https://github.com/enso-org/enso/pull/12217
 [12275]: https://github.com/enso-org/enso/pull/12275
+[12341]: https://github.com/enso-org/enso/pull/12341
 [12323]: https://github.com/enso-org/enso/pull/12323
 
 #### Enso Standard Library
@@ -65,6 +68,8 @@
 - [Support for key-pair authentication in Snowflake connector.][12247]
 - [Support for basic arithmetic operations as numbers in Expressions.][12297]
 - [Support for Regular Expressions in Enso Expressions.][12320]
+- [Support for pi() and e() in Enso Expressions.][12367]
+- [xlsx reader now does not read empty rows from the end of a worksheet][12345]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
@@ -77,6 +82,8 @@
 [12247]: https://github.com/enso-org/enso/pull/12247
 [12297]: https://github.com/enso-org/enso/pull/12297
 [12320]: https://github.com/enso-org/enso/pull/12320
+[12367]: https://github.com/enso-org/enso/pull/12367
+[12345]: https://github.com/enso-org/enso/pull/12345
 
 #### Enso Language & Runtime
 

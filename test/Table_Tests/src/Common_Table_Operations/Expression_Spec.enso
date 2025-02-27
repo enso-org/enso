@@ -427,7 +427,11 @@ add_expression_specs suite_builder detailed setup =
 
         if setup.flagged ..Date_Time then specify_test "should be able to call static expression methods" group_builder expression_test->
             expression_test "today()" Date.today
-
+        
+        specify_test "should be able to call math constant static expression methods" group_builder expression_test->
+            expression_test "pi()" Math.pi
+            expression_test "e()" Math.e
+            
         specify_test "should be able to perform arithmetic and get integer results" group_builder expression_test->
             # This requires column offset which is not available in databases due to ordering
             if setup.is_database.not then

@@ -1,11 +1,21 @@
 package org.enso.interpreter.test.interop;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
@@ -102,7 +112,115 @@ public class TypeMembersTest {
 
     var module = ctx.eval(src);
     var compileError = module.invokeMember("eval_expression", "v");
-    assertEquals("all members", Set.of("to_display_text", "message"), compileError.getMemberKeys());
+    assertEquals(
+        "all members",
+        Set.of("to_display_text", "message", "to_text", "==", "catch_primitive", "pretty"),
+        compileError.getMemberKeys());
+  }
+
+  @Test
+  public void builtinMethodIsPresent() {
+    var refType =
+        ContextUtils.evalModule(
+            ctx, """
+        import Standard.Base.Runtime.Ref.Ref
+        main = Ref
+        """);
+    ContextUtils.executeInContext(
+        ctx,
+        () -> {
+          assertThat(refType.hasMember("new"), is(true));
+          return null;
+        });
+  }
+
+  @Test
+  public void inheritedMembersFromAnyAreIncluded() {
+    var type =
+        ContextUtils.evalModule(
+            ctx,
+            """
+        from Standard.Base.Any import all
+
+        type My_Type
+            method self = 42
+
+        main = My_Type
+        """);
+    ContextUtils.executeInContext(
+        ctx,
+        () -> {
+          var typeUnwrapped = ContextUtils.unwrapValue(ctx, type);
+          var memberNames = getAllMemberNames(typeUnwrapped);
+          var anyMethods = ContextUtils.allMethodsFromAny(ctx);
+          for (var anyMethod : anyMethods) {
+            assertThat("Has method from Any", memberNames, hasItem(containsString(anyMethod)));
+          }
+          return null;
+        });
+  }
+
+  @Test
+  public void typeMemberNames_AreNotQualified() {
+    var type =
+        ContextUtils.evalModule(
+            ctx,
+            """
+        from Standard.Base.Any import all
+
+        type My_Type
+            method self = 42
+
+        main = My_Type
+        """);
+    ContextUtils.executeInContext(
+        ctx,
+        () -> {
+          var typeUnwrapped = ContextUtils.unwrapValue(ctx, type);
+          var memberNames = getAllMemberNames(typeUnwrapped);
+          assertThat(
+              "Member names are not qualified", memberNames, not(hasItem(containsString("."))));
+          return null;
+        });
+  }
+
+  @Test
+  public void canInvokeInheritedStaticMethod_OnType() {
+    var myType =
+        ContextUtils.evalModule(
+            ctx,
+            """
+        from Standard.Base.Any import all
+
+        type My_Type
+            method self = 42
+
+        main = My_Type
+        """);
+    ContextUtils.executeInContext(
+        ctx,
+        () -> {
+          var displayTextRes = myType.invokeMember("to_display_text");
+          assertThat("Has correct result type", displayTextRes.isString(), is(true));
+          assertThat("Has correct result value", displayTextRes.asString(), is("My_Type"));
+          return null;
+        });
+  }
+
+  /**
+   * @param obj {@link ContextUtils#unwrapValue(Context, Value) unwrapped} {@link Value value}.
+   */
+  private List<String> getAllMemberNames(Object obj)
+      throws UnsupportedMessageException, InvalidArrayIndexException {
+    var interop = InteropLibrary.getUncached();
+    var allMembers = interop.getMembers(obj, true);
+    var memberNames = new ArrayList<String>();
+    for (var i = 0; i < interop.getArraySize(allMembers); i++) {
+      var member = interop.readArrayElement(allMembers, i);
+      var memberName = interop.asString(member);
+      memberNames.add(memberName);
+    }
+    return memberNames;
   }
 
   private static void assertMembers(String msg, Value v, String... keys) {
