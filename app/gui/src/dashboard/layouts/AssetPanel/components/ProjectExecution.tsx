@@ -4,6 +4,8 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   DAY_3_LETTER_TEXT_IDS,
   DAY_TEXT_IDS,
+  getDescriptionForTimeZone,
+  getTimeZoneOffsetStringWithGMT,
   MONTH_3_LETTER_TEXT_IDS,
 } from 'enso-common/src/utilities/data/dateTime'
 
@@ -31,7 +33,7 @@ import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
-import { getLocalTimeZone, parseAbsolute, type ZonedDateTime } from '@internationalized/date'
+import { getLocalTimeZone, now, parseAbsolute, type ZonedDateTime } from '@internationalized/date'
 
 /** The maximum duration, in milliseconds, between two dates to be considered the same project execution. */
 const EXECUTION_TIME_DIFFERENCE_THRESHOLD_MS = 60_000
@@ -40,7 +42,7 @@ const MONTHS_IN_YEAR = 12
 const PROJECT_EXECUTION_STYLES = tv({
   base: 'group flex flex-row gap-1 w-full rounded-default items-center odd:bg-primary/5 p-2',
   variants: {
-    isEnabled: { false: { time: 'opacity-50', optionContainer: 'opacity-50' } },
+    isEnabled: { false: { time: 'opacity-50', infoContainer: 'opacity-50' } },
     compact: { true: { base: 'px-2' } },
   },
   slots: {
@@ -48,10 +50,8 @@ const PROJECT_EXECUTION_STYLES = tv({
     times: 'flex flex-col max-h-[10lh] overflow-auto grow',
     time: '',
     timeButtons: 'opacity-0 group-hover:opacity-100 transition-[opacity]',
-    optionContainer: 'flex flex-col grow-0 gap-1',
-    maximumDuration: 'cursor-default hover:bg-transparent',
-    repeatInterval: 'cursor-default',
-    parallelMode: 'cursor-default',
+    infoContainer: 'flex flex-col grow-0 gap-1',
+    info: 'cursor-default hover:bg-transparent',
   },
 })
 
@@ -176,6 +176,8 @@ export function ProjectExecution(props: ProjectExecutionProps) {
   const repeatIntervalDescription = getText(
     backendModule.PROJECT_EXECUTION_REPEAT_TYPE_TO_TEXT_ID[projectExecution.repeat.type],
   )
+  const timeZoneLabel = getText('timeZoneLabel')
+  const timeZoneDescription = `${getTimeZoneOffsetStringWithGMT(now(projectExecution.timeZone))} ${getDescriptionForTimeZone(projectExecution.timeZone)}`
 
   return (
     <div className={styles.base()}>
@@ -189,6 +191,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
                   <Text color="inherit">{`${maxDurationLabel}: ${maxDurationDescription}`}</Text>
                 )}
                 <Text color="inherit">{`${repeatIntervalLabel}: ${repeatIntervalDescription}`}</Text>
+                <Text color="inherit">{`${timeZoneLabel}: ${timeZoneDescription}`}</Text>
               </div>
             }
             tooltipPlacement="left"
@@ -223,7 +226,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
         </DialogTrigger>
       </div>
       {!compact && (
-        <ButtonGroup className={styles.optionContainer()}>
+        <ButtonGroup className={styles.infoContainer()}>
           {enableAdvancedProjectExecutionOptions && (
             <Button
               size="xsmall"
@@ -231,7 +234,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
               icon={TimeIcon}
               tooltip={maxDurationLabel}
               tooltipPlacement="left"
-              className={styles.maximumDuration()}
+              className={styles.info()}
             >
               {maxDurationDescription}
             </Button>
@@ -242,9 +245,19 @@ export function ProjectExecution(props: ProjectExecutionProps) {
             icon={RepeatIcon}
             tooltip={repeatIntervalLabel}
             tooltipPlacement="left"
-            className={styles.repeatInterval()}
+            className={styles.info()}
           >
             {repeatIntervalDescription}
+          </Button>
+          <Button
+            size="xsmall"
+            variant="outline"
+            icon="time"
+            tooltip={timeZoneLabel}
+            tooltipPlacement="left"
+            className={styles.info()}
+          >
+            {timeZoneDescription}
           </Button>
         </ButtonGroup>
       )}

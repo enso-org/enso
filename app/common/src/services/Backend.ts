@@ -460,7 +460,7 @@ export interface ProjectExecutionInfo {
   readonly repeat: ProjectExecutionRepeatInfo
   readonly startDate: dateTime.Rfc3339DateTime
   readonly endDate: dateTime.Rfc3339DateTime | null
-  readonly timeZone: string
+  readonly timeZone: dateTime.IanaTimeZone
   readonly maxDurationMinutes: number
   readonly parallelMode: ProjectParallelMode
 }
