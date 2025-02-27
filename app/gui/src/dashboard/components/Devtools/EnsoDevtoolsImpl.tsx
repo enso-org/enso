@@ -222,7 +222,6 @@ export function EnsoDevtools() {
                       setFeatureFlag('enableMultitabs', value)
                     }}
                   />
-
                   <div>
                     <ariaComponents.Switch
                       form={form}
@@ -254,7 +253,6 @@ export function EnsoDevtools() {
                       }}
                     />
                   </div>
-
                   <ariaComponents.Switch
                     form={form}
                     name="enableCloudExecution"
@@ -264,7 +262,6 @@ export function EnsoDevtools() {
                       setFeatureFlag('enableCloudExecution', value)
                     }}
                   />
-
                   <ariaComponents.Switch
                     form={form}
                     name="enableAsyncExecution"
@@ -272,6 +269,15 @@ export function EnsoDevtools() {
                     description="Enable Async Execution"
                     onChange={(value) => {
                       setFeatureFlag('enableAsyncExecution', value)
+                    }}
+                  />
+                  <ariaComponents.Switch
+                    form={form}
+                    name="enableAdvancedProjectExecutionOptions"
+                    label="Enable Advanced Project Excecution Options"
+                    description="Enable Advanced Project Excecution Options"
+                    onChange={(value) => {
+                      setFeatureFlag('enableAdvancedProjectExecutionOptions', value)
                     }}
                   />
                 </>

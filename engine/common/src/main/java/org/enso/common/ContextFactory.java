@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Handler;
 import org.enso.logger.Converter;
 import org.enso.logger.JulHandler;
 import org.enso.logging.config.LoggerSetup;
@@ -42,6 +43,7 @@ public final class ContextFactory {
   private MessageTransport messageTransport;
   private Level logLevel = Level.INFO;
   private boolean logMasking;
+  private Handler logHandler = JulHandler.get();
   private boolean enableIrCaches;
   private boolean disablePrivateCheck;
   private boolean enableStaticAnalysis;
@@ -94,6 +96,12 @@ public final class ContextFactory {
 
   public ContextFactory logMasking(boolean logMasking) {
     this.logMasking = logMasking;
+    return this;
+  }
+
+  /** Overwrites the {@link JulHandler default} logging handler. */
+  public ContextFactory logHandler(Handler handler) {
+    this.logHandler = handler;
     return this;
   }
 
@@ -207,7 +215,6 @@ public final class ContextFactory {
       builder.option(DebugServerInfo.ENABLE_OPTION, "true");
     }
     builder.option(RuntimeOptions.LOG_LEVEL, logLevelName);
-    var logHandler = JulHandler.get();
     var logLevels = LoggerSetup.get().getConfig().getLoggers();
     if (logLevels.hasEnsoLoggers()) {
       logLevels

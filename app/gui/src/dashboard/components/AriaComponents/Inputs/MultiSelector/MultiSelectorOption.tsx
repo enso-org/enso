@@ -34,15 +34,20 @@ export const MULTI_SELECTOR_OPTION_STYLES = tv({
       medium: { base: 'px-[11px] pb-1.5 pt-2' },
       small: { base: 'px-[11px] pb-0.5 pt-1' },
     },
-    variant: {
+    color: {
       primary:
         'selected:bg-primary selected:text-white hover:bg-primary/5 pressed:bg-primary/10 outline outline-2 outline-transparent outline-offset-[-2px] focus-visible:outline-primary focus-visible:outline-offset-0',
+    },
+    variant: {
+      default: '',
+      outline: 'border-[0.5px] border-primary/20',
     },
   },
   defaultVariants: {
     size: 'medium',
     rounded: 'xxxlarge',
-    variant: 'primary',
+    color: 'primary',
+    variant: 'default',
   },
 })
 
@@ -50,7 +55,7 @@ export const MultiSelectorOption = forwardRef(function MultiSelectorOption(
   props: MultiSelectorOptionProps,
   ref: React.ForwardedRef<HTMLDivElement>,
 ) {
-  const { label, ...radioProps } = props
+  const { label, size, rounded, color, variant, ...radioProps } = props
   const { className } = props
 
   return (
@@ -60,6 +65,10 @@ export const MultiSelectorOption = forwardRef(function MultiSelectorOption(
       className={(renderProps) =>
         MULTI_SELECTOR_OPTION_STYLES({
           className: typeof className === 'function' ? className(renderProps) : className,
+          size,
+          rounded,
+          color,
+          variant,
         })
       }
     >

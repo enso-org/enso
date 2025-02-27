@@ -77,15 +77,17 @@ public final class Text extends BuiltinObject {
     return switch (fcdNormalized) {
       case 1 -> true;
       case -1 -> false;
-      case 0 -> {
-        CompilerDirectives.transferToInterpreter();
-        Normalizer2 normalizer = Normalizer2.getNFDInstance();
-        boolean isNormalized = normalizer.isNormalized(toString());
-        fcdNormalized = (byte) (isNormalized ? 1 : -1);
-        yield isNormalized;
-      }
+      case 0 -> computeAndSetFcd();
       default -> false;
     };
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private boolean computeAndSetFcd() {
+    var normalizer = Normalizer2.getNFDInstance();
+    var isNormalized = normalizer.isNormalized(toString());
+    fcdNormalized = (byte) (isNormalized ? 1 : -1);
+    return isNormalized;
   }
 
   public static Text empty() {
