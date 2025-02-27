@@ -20,7 +20,7 @@ export function featureFlagsForInternalTesting() {
   return {
     enableCloudExecution: true,
     enableAsyncExecution: true,
-    enableAdvancedProjectExecutionOptions: true,
+    enableAdvancedProjectExecutionOptions: false,
   }
 }
 
@@ -54,8 +54,8 @@ const flagsStore = createStore<FeatureFlagsStore>()(
         enableAssetsTableBackgroundRefresh: true,
         assetsTableBackgroundRefreshInterval: DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
         enableCloudExecution: IS_DEV_MODE || isOnElectron(),
-        enableAsyncExecution: false,
-        enableAdvancedProjectExecutionOptions: true,
+        enableAsyncExecution: true,
+        enableAdvancedProjectExecutionOptions: false,
       },
       setFeatureFlag: (key, value) => {
         set(({ featureFlags }) => ({ featureFlags: { ...featureFlags, [key]: value } }))

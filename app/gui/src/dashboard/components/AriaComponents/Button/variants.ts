@@ -201,10 +201,10 @@ export const BUTTON_STYLES = tv({
   slots: {
     extraClickZone:
       'flex relative after:absolute after:cursor-pointer group-disabled:after:cursor-not-allowed',
-    wrapper: 'relative block',
+    wrapper: 'relative block max-w-full',
     loader: 'absolute inset-0 flex items-center justify-center',
     content: 'flex items-center',
-    text: 'inline-flex items-center justify-center gap-1 w-full',
+    text: 'w-full max-w-full',
     icon: 'h-[1.906cap] w-[1.906cap] flex-none aspect-square flex items-center justify-center',
     addonStart: 'flex items-center justify-center macos:-mb-0.5',
     addonEnd: 'flex items-center justify-center macos:-mb-0.5',

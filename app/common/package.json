@@ -26,6 +26,7 @@
     "@tanstack/vue-query": "5.59.20"
   },
   "dependencies": {
+    "@internationalized/date": "3.7.0",
     "@tanstack/query-persist-client-core": "5.59.20",
     "@tanstack/vue-query": "5.59.20",
     "@types/node": "^20.11.21",
