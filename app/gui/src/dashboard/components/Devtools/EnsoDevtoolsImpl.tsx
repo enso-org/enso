@@ -299,16 +299,6 @@ export function EnsoDevtools() {
           <ariaComponents.Text variant="subtitle" className="mb-2">
             {getText('ensoDevtoolsPaywallFeaturesToggles')}
           </ariaComponents.Text>
-                </>
-              )}
-            </ariaComponents.Form>
-          </ariaComponents.Text>
-
-          <ariaComponents.Separator orientation="horizontal" className="my-3" />
-
-          <ariaComponents.Text variant="subtitle" className="mb-2">
-            {getText('ensoDevtoolsPaywallFeaturesToggles')}
-          </ariaComponents.Text>
 
           <ariaComponents.Form
             gap="small"
