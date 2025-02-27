@@ -1,6 +1,6 @@
 import { ZonedDateTime } from '@internationalized/date'
 import * as v from 'vitest'
-import { toRfc3339 } from '../../../utilities/data/dateTime'
+import { IanaTimeZone, toRfc3339 } from '../../../utilities/data/dateTime'
 import { ProjectExecutionInfo, ProjectId } from '../../Backend'
 import { firstProjectExecutionOnOrAfter, nextProjectExecutionDate } from '../projectExecution'
 
@@ -18,7 +18,7 @@ const WEEKLY_EXECUTION: ProjectExecutionInfo = {
     new ZonedDateTime(2000, 1, 1, TIME_ZONE, TIME_ZONE_WINTER_OFFSET, 7, 3).toDate(),
   ),
   endDate: null,
-  timeZone: 'UTC',
+  timeZone: IanaTimeZone('UTC'),
   maxDurationMinutes: 60,
   parallelMode: 'ignore',
 }
