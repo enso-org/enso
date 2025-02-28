@@ -18,13 +18,13 @@ public final class AuditLog {
 
   /** Schedules the log message to be sent in the next batch, and returns immediately. */
   public static void logAsync(String type, String message, ObjectNode metadata) {
-    var event = new AuditLogMessage(type, message, metadata);
+    var event = AuditLogMessage.create(type, message, metadata);
     LogApiAccess.INSTANCE.logWithoutConfirmation(event);
   }
 
   /** Schedules the log message to be sent in the next batch, and waits until it has been sent. */
   public static void logSynchronously(String type, String message, ObjectNode metadata) {
-    var event = new AuditLogMessage(type, message, metadata);
+    var event = AuditLogMessage.create(type, message, metadata);
     Future<Void> future = LogApiAccess.INSTANCE.logWithConfirmation(event);
     try {
       future.get();
