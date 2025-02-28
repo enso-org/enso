@@ -138,6 +138,12 @@ public final class ResourceManager {
   @CompilerDirectives.TruffleBoundary
   public synchronized ManagedResource register(
       Object object, Object function, boolean systemResource) {
+    if (context.isAssertionsEnabled() && alreadyRegistered(object)) {
+      throw EnsoContext.get(null)
+          .raiseAssertionPanic(
+              null, "Object is already registered as a ManagedResource: " + object, null);
+    }
+
     if (CLOSED == processor) {
       throw EnsoContext.get(null)
           .raiseAssertionPanic(
@@ -391,6 +397,15 @@ public final class ResourceManager {
     }
   }
 
+  private synchronized boolean alreadyRegistered(Object resource) {
+    for (var it : pendingItems) {
+      if (it.hasReferent(resource)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** A storage representation of a finalizable object handled by this system. */
   private static final class Item extends PhantomReference<ManagedResource> {
     private final boolean systemResource;
@@ -433,6 +448,10 @@ public final class ResourceManager {
       this.underlying = underlying;
       this.finalizer = finalizer;
       this.systemResource = systemResource;
+    }
+
+    public boolean hasReferent(Object resource) {
+      return resource == underlying;
     }
 
     /**

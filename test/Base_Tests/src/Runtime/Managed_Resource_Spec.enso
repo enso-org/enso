@@ -3,12 +3,21 @@ import Standard.Base.Data.Vector.Builder
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
-import project.Runtime.GC_Example
+from Standard.Base.Errors.Common import Assertion_Error
 
 from Standard.Test import all
 
+import project.Runtime.GC_Example
+
+polyglot java import org.enso.interpreter.runtime.error.PanicException
+
+
+type My_Value
+    Value value
 
 add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
+    assertions_are_disabled = if Runtime.assertions_enabled then Nothing else "assertions disabled"
+
     group_builder.specify "should call the destructor even if the action fails" <|
         log_1 = Builder.new
         r_1 = Managed_Resource.bracket 42 log_1.append x->
@@ -125,8 +134,22 @@ add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
         if msg_text != exp_text then
             Test.fail (msg_text)
 
+    group_builder.specify "should not allow a resource to be registered more than once at the same time" pending=assertions_are_disabled <|
+        v = My_Value.Value 10
+        cleanup _ = Nothing
+        mr0 = Managed_Resource.register v cleanup
+        Test.expect_panic Assertion_Error (Managed_Resource.register v cleanup)
+        mr0 . should_succeed
+
+    group_builder.specify "should allow a resource to be registered more than once, but not at the same time" <|
+        v = My_Value.Value 10
+        cleanup _ = Nothing
+        mr0 = Managed_Resource.register v cleanup
+        mr0.take
+        Managed_Resource.register v cleanup . should_succeed
+        mr0 . should_succeed
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-
