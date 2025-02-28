@@ -1,5 +1,4 @@
 /** @file A column displaying the path of the asset. */
-import FolderIcon from '#/assets/folder.svg'
 import FolderArrowIcon from '#/assets/folder_arrow.svg'
 import { Button, Popover, Text } from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
@@ -7,8 +6,9 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useCategoriesAPI, useCloudCategoryList } from '#/layouts/Drive/Categories/categoriesHooks'
 import type { AnyCloudCategory } from '#/layouts/Drive/Categories/Category'
 import { useUser } from '#/providers/AuthProvider'
-import { useSetExpandedDirectoryIds, useSetSelectedAssets } from '#/providers/DriveProvider'
-import { AssetType, DirectoryId, isDirectoryId } from '#/services/Backend'
+import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
+import type { DirectoryId } from '#/services/Backend'
+import { parseDirectoriesPath } from '#/services/utilities'
 import { Fragment, useTransition } from 'react'
 import invariant from 'tiny-invariant'
 import type { AssetColumnProps } from '../column'
@@ -22,23 +22,18 @@ export default function PathColumn(props: AssetColumnProps) {
   const { getAssetNodeById } = state
 
   const { setCategory } = useCategoriesAPI()
-  const setSelectedAssets = useSetSelectedAssets()
-  const setExpandedDirectoryIds = useSetExpandedDirectoryIds()
+  const setCurrentDirectoryId = useSetCurrentDirectoryId()
+  const { rootDirectoryId } = useUser()
 
   // Path navigation exist only for cloud categories.
   const { getCategoryByDirectoryId } = useCloudCategoryList()
 
-  // Parents path is a string of directory ids separated by slashes.
-  const splitPath = parentsPath.split('/').filter(isDirectoryId)
-  const rootDirectoryInPath = splitPath[0]
-
-  const splitVirtualParentsPath = virtualParentsPath.split('/')
-  // Virtual parents path is a string of directory names separated by slashes.
-  // To match the ids with the names, we need to remove the first element of the split path.
-  // As the first element is the root directory, which is not a virtual parent.
-  const virtualParentsIds = splitPath.slice(1)
-
-  const { rootDirectoryId } = useUser()
+  const { finalPath } = parseDirectoriesPath({
+    parentsPath,
+    virtualParentsPath,
+    rootDirectoryId,
+    getCategoryByDirectoryId,
+  })
 
   const navigateToDirectory = useEventCallback((targetDirectory: DirectoryId) => {
     const targetDirectoryIndex = finalPath.findIndex(({ id }) => id === targetDirectory)
@@ -52,7 +47,7 @@ export default function PathColumn(props: AssetColumnProps) {
       .slice(0, targetDirectoryIndex + 1)
       .map(({ id, categoryId }) => ({ id, categoryId }))
 
-    const rootDirectoryInThePath = pathToDirectory.at(0)
+    const rootDirectoryInThePath = pathToDirectory[0]
 
     // This should never happen, as we always have the root directory in the path.
     // If it happens, it means you've skrewed up
@@ -67,67 +62,13 @@ export default function PathColumn(props: AssetColumnProps) {
 
     if (targetDirectoryNode == null && rootDirectoryInThePath.categoryId != null) {
       setCategory(rootDirectoryInThePath.categoryId)
-      setExpandedDirectoryIds(pathToDirectory.map(({ id }) => id).concat(targetDirectory))
     }
 
-    setSelectedAssets([
-      {
-        type: AssetType.directory,
-        id: targetDirectory,
-        parentId: pathToDirectory.at(-1)?.id ?? DirectoryId('directory-'),
-        title: targetDirectoryInfo.label,
-      },
-    ])
-  })
-
-  const finalPath = (() => {
-    const result: {
-      id: DirectoryId
-      categoryId: AnyCloudCategory['id'] | null
-      label: AnyCloudCategory['label']
-      icon: AnyCloudCategory['icon']
-    }[] = []
-
-    if (rootDirectoryInPath == null) {
-      return result
-    }
-
-    const rootCategory = getCategoryByDirectoryId(rootDirectoryInPath)
-
-    // If the root category is not found it might mean
-    // that user is no longer have access to this root directory.
-    // Usually this could happen if the user was removed from the organization
-    // or user group.
-    // This shouldn't happen though and these files should be filtered out
-    // by the backend. But we need to handle this case anyway.
-    if (rootCategory == null) {
-      return result
-    }
-
-    result.push({
-      id: rootDirectoryId,
-      categoryId: rootCategory.id,
-      label: rootCategory.label,
-      icon: rootCategory.icon,
+    setCurrentDirectoryId({
+      current: targetDirectory,
+      parent: finalPath[targetDirectoryIndex - 1]?.id ?? null,
     })
-
-    for (const [index, id] of virtualParentsIds.entries()) {
-      const name = splitVirtualParentsPath.at(index)
-
-      if (name == null) {
-        continue
-      }
-
-      result.push({
-        id,
-        label: name,
-        icon: FolderIcon,
-        categoryId: null,
-      })
-    }
-
-    return result
-  })()
+  })
 
   if (finalPath.length === 0) {
     return <></>
@@ -202,9 +143,7 @@ export default function PathColumn(props: AssetColumnProps) {
   )
 }
 
-/**
- * Props for the {@link PathItem} component.
- */
+/** Props for the {@link PathItem} component. */
 interface PathItemProps {
   readonly id: DirectoryId
   readonly label: AnyCloudCategory['label']
@@ -212,9 +151,7 @@ interface PathItemProps {
   readonly onNavigate: (targetDirectory: DirectoryId) => void
 }
 
-/**
- * Individual item in the path.
- */
+/** Individual item in the path. */
 function PathItem(props: PathItemProps) {
   const { id, label, icon, onNavigate } = props
   const [transition, startTransition] = useTransition()

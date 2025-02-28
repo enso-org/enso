@@ -29,6 +29,7 @@ import { twJoin } from 'tailwind-merge'
 import { AnimatedBackground } from '../components/AnimatedBackground'
 import { useEventCallback } from '../hooks/eventCallbackHooks'
 
+import { useSetCurrentDirectoryId } from '../providers/DriveProvider'
 import { useCloudCategoryList, useLocalCategoryList } from './Drive/Categories/categoriesHooks'
 
 /** Metadata for a categoryModule.categoryType. */
@@ -72,6 +73,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { getText } = textProvider.useText()
   const localBackend = backendProvider.useLocalBackend()
   const { isOffline } = offlineHooks.useOffline()
+  const setCurrentDirectoryId = useSetCurrentDirectoryId()
 
   const isCurrent = areCategoriesEqual(currentCategory, category)
 
@@ -112,11 +114,15 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const acceptedDragTypes = isDropTarget ? [mimeTypes.ASSETS_MIME_TYPE] : []
 
   const onPress = useEventCallback(() => {
-    if (error == null && !areCategoriesEqual(category, currentCategory)) {
+    if (error == null) {
       // We use startTransition to trigger a background transition between categories.
       // and to not invoke the Suspense boundary.
       // This makes the transition feel more responsive and natural.
       startTransition(() => {
+        setCurrentDirectoryId({
+          current: null,
+          parent: null,
+        })
         setCategoryId(category.id)
       })
     }
@@ -226,12 +232,11 @@ function CategorySwitcher(props: CategorySwitcherProps) {
 
   const itemProps = { currentCategory: category, setCategoryId }
 
-  const { cloudCategory, recentCategory, trashCategory, userCategory, teamCategories } =
-    cloudCategories
+  const { cloudCategory, recentCategory, trashCategory, teamCategories } = cloudCategories
   const { localCategory, directories, addDirectory, removeDirectory } = localCategories
 
   return (
-    <div className="flex flex-col gap-2 py-1">
+    <div className="flex flex-col gap-3">
       <AnimatedBackground>
         <ariaComponents.Text variant="subtitle" weight="semibold" className="px-2">
           {getText('category')}
@@ -253,20 +258,6 @@ function CategorySwitcher(props: CategorySwitcherProps) {
             dropZoneLabel={getText('cloudCategoryDropZoneLabel')}
             badgeContent={getText('cloudCategoryBadgeContent')}
           />
-
-          {/* Self user space */}
-          {userCategory != null && (
-            <CategorySwitcherItem
-              {...itemProps}
-              isNested
-              category={userCategory}
-              icon={userCategory.icon}
-              label={userCategory.label}
-              isDisabled={isOffline}
-              buttonLabel={getText('myFilesCategoryButtonLabel')}
-              dropZoneLabel={getText('myFilesCategoryDropZoneLabel')}
-            />
-          )}
 
           {teamCategories.map((teamCategory) => (
             <CategorySwitcherItem

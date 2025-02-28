@@ -34,9 +34,11 @@ import {
   downloadAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import { useNewProject } from '#/hooks/backendHooks'
+import { useBackendQuery, useNewProject } from '#/hooks/backendHooks'
 import { useUploadFileWithToastMutation } from '#/hooks/backendUploadFilesHooks'
+import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { usePasteData } from '#/providers/DriveProvider'
+import { computeFullRemotePath } from '#/services/RemoteBackend'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 import { normalizePath } from '#/utilities/fileInfo'
 import { mapNonNullish } from '#/utilities/nullable'
@@ -48,8 +50,8 @@ import { useSetAssetPanelProps, useSetIsAssetPanelTemporarilyVisible } from './A
 export interface AssetContextMenuProps {
   readonly hidden?: boolean
   readonly innerProps: assetRow.AssetRowInnerProps
-  readonly rootDirectoryId: backendModule.DirectoryId
   readonly triggerRef: React.MutableRefObject<HTMLElement | null>
+  readonly currentDirectoryId: backendModule.DirectoryId
   readonly event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
   readonly eventTarget: HTMLElement | null
   readonly doCopy: () => void
@@ -62,11 +64,14 @@ export interface AssetContextMenuProps {
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
 export default function AssetContextMenu(props: AssetContextMenuProps) {
-  const { innerProps, rootDirectoryId, event, hidden = false, triggerRef } = props
+  const { innerProps, event, hidden = false, triggerRef, currentDirectoryId } = props
   const { doCopy, doCut, doPaste } = props
-  const { asset, path: pathRaw, state, setRowState } = innerProps
-  const { backend, category, nodeMap } = state
+  const { asset, state, setRowState } = innerProps
+  const { backend, category } = state
 
+  const { data: users = [] } = useBackendQuery(backend, 'listUsers', [])
+  const { data: userGroups = [] } = useBackendQuery(backend, 'listUserGroups', [])
+  const getAsset = useGetAsset()
   const canOpenProjects = projectHooks.useCanOpenProjects()
   const { user } = authProvider.useFullUserSession()
   const { setModal } = modalProvider.useSetModal()
@@ -87,7 +92,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const isCloud = categoryModule.isCloudCategory(category)
   const pathComputed =
     category.type === 'recent' || category.type === 'trash' ? null
-    : isCloud ? `${pathRaw}${asset.type === backendModule.AssetType.datalink ? '.datalink' : ''}`
+    : isCloud ? computeFullRemotePath(asset, users, userGroups)
     : asset.type === backendModule.AssetType.project ?
       mapNonNullish(localBackend?.getProjectPath(asset.id) ?? null, normalizePath)
     : normalizePath(localBackendModule.extractTypeAndId(asset.id).id)
@@ -113,33 +118,29 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     canEditThisAsset
   const pasteData = usePasteData()
   const hasPasteData = (pasteData?.data.ids.size ?? 0) > 0
-  const pasteDataParentKeys =
-    !pasteData ? null : (
-      new Map(
-        Array.from(nodeMap.current.entries()).map(([id, otherAsset]) => [
-          id,
-          otherAsset.item.parentId,
-        ]),
-      )
-    )
+  const [firstPasteDataId] = pasteData?.data.ids ?? []
+  const pasteDataParentId = firstPasteDataId != null ? getAsset(firstPasteDataId)?.parentId : null
+  const pasteDataParent = pasteDataParentId != null ? getAsset(pasteDataParentId) : null
+
   const canPaste =
-    !pasteData || !pasteDataParentKeys || !isCloud ?
+    (
+      !pasteDataParent ||
+      !pasteData ||
+      !isCloud ||
+      permissions.isTeamPath(pasteDataParent.virtualParentsPath)
+    ) ?
       true
-    : Array.from(pasteData.data.ids).every((key) => {
-        const parentKey = pasteDataParentKeys.get(key)
-        const parent = parentKey == null ? null : nodeMap.current.get(parentKey)
-        if (!parent) {
+    : Array.from(pasteData.data.ids).every((id) => {
+        const otherAsset = getAsset(id)
+        if (!otherAsset) {
           return false
-        } else if (permissions.isTeamPath(parent.path)) {
-          return true
-        } else {
-          // Assume user path; check permissions
-          const permission = permissions.tryFindSelfPermission(user, asset.permissions)
-          return (
-            permission != null &&
-            permissions.canPermissionModifyDirectoryContents(permission.permission)
-          )
         }
+        // Assume user path; check permissions
+        const permission = permissions.tryFindSelfPermission(user, otherAsset.permissions)
+        return (
+          permission != null &&
+          permissions.canPermissionModifyDirectoryContents(permission.permission)
+        )
       })
 
   const { data } = reactQuery.useQuery({
@@ -221,11 +222,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             hidden={hidden}
             action="useInNewProject"
             doAction={() => {
-              void newProject(
-                { templateName: asset.title, datalinkId: asset.id },
-                asset.parentId,
-                path,
-              )
+              void newProject({ templateName: asset.title, datalinkId: asset.id }, asset.parentId)
             }}
           />
         )}
@@ -345,7 +342,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                   case backendModule.AssetType.secret: {
                     setAssetPanelProps({
                       ...assetPanelProps,
-                      path: pathRaw,
                       spotlightOn: 'secret',
                     })
                     break
@@ -353,7 +349,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                   case backendModule.AssetType.datalink: {
                     setAssetPanelProps({
                       ...assetPanelProps,
-                      path: pathRaw,
                       spotlightOn: 'datalink',
                     })
                     break
@@ -372,7 +367,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               setAssetPanelProps({
                 backend,
                 item: asset,
-                path: pathRaw,
                 spotlightOn: 'description',
               })
             }}
@@ -474,9 +468,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             hidden={hidden}
             backend={backend}
             category={category}
-            rootDirectoryId={rootDirectoryId}
+            currentDirectoryId={currentDirectoryId}
             directoryId={asset.id}
-            path={path}
             doPaste={doPaste}
             event={event}
           />

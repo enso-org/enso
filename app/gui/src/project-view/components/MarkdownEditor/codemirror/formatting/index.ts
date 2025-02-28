@@ -7,14 +7,16 @@ import {
   toggleQuote,
 } from '@/components/MarkdownEditor/codemirror/formatting/block'
 import {
+  canInsertLink,
   getInlineFormatting,
   type InlineFormattingNode,
+  insertLink,
   setInlineFormatting,
 } from '@/components/MarkdownEditor/codemirror/formatting/inline'
 import { type Extension, Facet, Prec } from '@codemirror/state'
 import { type EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view'
 import * as objects from 'enso-common/src/utilities/data/object'
-import { proxyRefs, readonly, type Ref, ref } from 'vue'
+import { computed, proxyRefs, readonly, type Ref, ref } from 'vue'
 
 type ReactiveFormatting = Record<InlineFormattingNode, Ref<boolean | undefined>>
 const reactiveFormattingFacet = Facet.define<ReactiveFormatting, ReactiveFormatting>({
@@ -37,6 +39,9 @@ export function useMarkdownFormatting(view: EditorView) {
     italic: inlineFormat('Emphasis'),
     bold: inlineFormat('StrongEmphasis'),
     strikethrough: inlineFormat('Strikethrough'),
+    insertLink: computed(
+      () => canInsertLink(view.state) && (() => view.dispatch(insertLink(view.state))),
+    ),
   }
 }
 

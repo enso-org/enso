@@ -1,38 +1,29 @@
-/** @file The icon and name of a {@link backendModule.SecretAsset}. */
+/** @file The icon and name of a {@link SecretAsset}. */
 import DatalinkIcon from '#/assets/datalink.svg'
-
-import type * as column from '#/components/dashboard/column'
+import type { AssetColumnProps } from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
-
-import type * as backendModule from '#/services/Backend'
-
 import { useSetIsAssetPanelTemporarilyVisible } from '#/layouts/AssetPanel'
-import * as eventModule from '#/utilities/event'
-import * as indent from '#/utilities/indent'
-import * as object from '#/utilities/object'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
-
-// ====================
-// === DatalinkName ===
-// ====================
+import type { DatalinkAsset } from '#/services/Backend'
+import { isDoubleClick } from '#/utilities/event'
+import { merger } from '#/utilities/object'
 
 /** Props for a {@link DatalinkNameColumn}. */
-export interface DatalinkNameColumnProps extends column.AssetColumnProps {
-  readonly item: backendModule.DatalinkAsset
+export interface DatalinkNameColumnProps extends AssetColumnProps {
+  readonly item: DatalinkAsset
 }
 
 /**
- * The icon and name of a {@link backendModule.DatalinkAsset}.
- * @throws {Error} when the asset is not a {@link backendModule.DatalinkAsset}.
+ * The icon and name of a {@link DatalinkAsset}.
+ * @throws {Error} when the asset is not a {@link DatalinkAsset}.
  * This should never happen.
  */
 export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
-  const { item, selected, rowState, setRowState, isEditable, depth } = props
+  const { item, rowState, setRowState, isEditable } = props
   const setIsAssetPanelTemporarilyVisible = useSetIsAssetPanelTemporarilyVisible()
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
-      setRowState(object.merger({ isEditingName }))
+      setRowState(merger({ isEditingName }))
     }
   }
 
@@ -43,19 +34,14 @@ export default function DatalinkNameColumn(props: DatalinkNameColumnProps) {
 
   return (
     <div
-      className={tailwindMerge.twJoin(
-        'flex h-table-row w-auto min-w-48 max-w-full items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child',
-        indent.indentClass(depth),
-      )}
+      className="flex h-table-row w-auto min-w-48 max-w-full items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child"
       onKeyDown={(event) => {
         if (rowState.isEditingName && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
       onClick={(event) => {
-        if (eventModule.isSingleClick(event) && selected) {
-          setIsEditing(true)
-        } else if (eventModule.isDoubleClick(event)) {
+        if (isDoubleClick(event)) {
           event.stopPropagation()
           setIsAssetPanelTemporarilyVisible(true)
         }

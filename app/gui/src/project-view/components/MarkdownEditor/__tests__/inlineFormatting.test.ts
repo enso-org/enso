@@ -4,8 +4,10 @@ import {
   setupEditor,
 } from '@/components/MarkdownEditor/__tests__/testInput'
 import {
+  canInsertLink,
   getInlineFormatting,
   type InlineFormattingNode,
+  insertLink,
   setInlineFormatting,
 } from '@/components/MarkdownEditor/codemirror/formatting/inline'
 import { expect, test } from 'vitest'
@@ -153,8 +155,8 @@ const selectionCases: TestCase[] = [
     source: 'Node ***|removal|***',
     italic: true,
     bold: true,
-    italicToggled: 'Node |**removal**|',
-    boldToggled: 'Node |*removal*|',
+    italicToggled: 'Node **|removal|**',
+    boldToggled: 'Node *|removal|*',
   },
   {
     source: '|Node insertion *removing inner*|',
@@ -441,3 +443,48 @@ test.each(flankedCursorCases.filter(isToggleCase))(
   checkSetFormat,
 )
 test.each(selectionCases.filter(isToggleCase))('Set format of selection: $source', checkSetFormat)
+
+const url = '(|https://|)'
+test.each([
+  {
+    source: 'Insert link at cursor: |',
+    expected: `Insert link at cursor: [Link]${url}`,
+  },
+  {
+    source: 'Linkify |selected text|',
+    expected: `Linkify [selected text]${url}`,
+  },
+  {
+    source: 'Linkify word| at cursor',
+    expected: `Linkify [word]${url} at cursor`,
+  },
+  {
+    source: 'Linkify **word|** at cursor',
+    expected: `Linkify [**word**]${url} at cursor`,
+  },
+  {
+    source: 'Linkify |selected *partly-emphasized| text*',
+    expected: `Linkify [selected *partly-emphasized*]${url} *text*`,
+  },
+  {
+    source: 'Linkify `inline-unformattable|` text',
+    expected: `Linkify [\`inline-unformattable\`]${url} text`,
+  },
+  {
+    source: 'Linkify `partly |unformattable` text|',
+    expected: `Linkify \`partly unformattable\` [text]${url}`,
+  },
+  {
+    source: 'Linkify `inside |unformattable| text`',
+    expected: undefined,
+  },
+])('Insert link: $source', ({ source, expected }) => {
+  const view = setupEditor(source)
+  if (expected === undefined) {
+    expect(canInsertLink(view.state)).toBe(false)
+  } else {
+    expect(canInsertLink(view.state)).toBe(true)
+    view.dispatch(insertLink(view.state))
+    expect(printTestInput(view.state.doc.toString(), view.state.selection.main)).toEqual(expected)
+  }
+})

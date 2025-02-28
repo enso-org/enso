@@ -17,13 +17,8 @@ import type { IconProp, TestIdProps } from '../types'
 export const MENU_ITEM_STYLES = tv({
   base: 'group flex w-full cursor-default gap-3 rounded-3xl px-[14px] py-1 outline-none transition-colors duration-75 text-left',
   variants: {
-    isDisabled: {
-      true: 'cursor-not-allowed',
-      false: '',
-    },
-    isPressed: {
-      true: 'bg-primary/5',
-    },
+    isDisabled: { true: 'cursor-not-allowed', false: '' },
+    isPressed: { true: 'bg-primary/5' },
   },
   slots: {
     checkContainer: 'block',
@@ -37,12 +32,7 @@ export const MENU_ITEM_STYLES = tv({
       className: 'flex flex-1 min-w-0 w-full text-primary',
     }),
   },
-  compoundSlots: [
-    {
-      slots: ['checkContainer', 'icon'],
-      className: 'mt-[3.5px] text-primary',
-    },
-  ],
+  compoundSlots: [{ slots: ['checkContainer', 'icon'], className: 'mt-[3.5px] text-primary' }],
   defaultVariants: { isDisabled: false, isSelected: false },
 })
 
@@ -162,7 +152,7 @@ interface MenuItemIconProps<IconType extends string> extends MenuItemRenderProps
 }
 
 /** Renders the icon for the menu item */
-// eslint-disable-next-line no-restricted-syntax
+
 const MenuItemIcon = memo(function MenuItemIcon<IconType extends string>(
   props: MenuItemIconProps<IconType>,
 ) {
@@ -176,7 +166,7 @@ const MenuItemIcon = memo(function MenuItemIcon<IconType extends string>(
 })
 
 /** Renders the selection indicator for the menu item */
-// eslint-disable-next-line no-restricted-syntax
+
 const SelectionIndicator = memo(function SelectionIndicator(
   props: MenuItemRenderProps & { className?: string },
 ) {
@@ -192,7 +182,7 @@ const SelectionIndicator = memo(function SelectionIndicator(
 })
 
 /** Renders the shortcut text for the menu item */
-// eslint-disable-next-line no-restricted-syntax
+
 const ShortcutText = memo(function ShortcutText(props: {
   shortcut?: string | undefined
   className?: string
@@ -211,7 +201,7 @@ const ShortcutText = memo(function ShortcutText(props: {
 })
 
 /** Renders the submenu indicator */
-// eslint-disable-next-line no-restricted-syntax
+
 const SubmenuIndicator = memo(function SubmenuIndicator(props: {
   hasSubmenu: boolean
   className?: string
@@ -234,7 +224,6 @@ interface MenuItemContentProps extends MenuItemRenderProps {
 /**
  * Renders the content of the menu item.
  */
-// eslint-disable-next-line no-restricted-syntax
 const MenuItemContent = memo(function MenuItemContent(props: MenuItemContentProps) {
   const { title, description, ...renderProps } = props
 
