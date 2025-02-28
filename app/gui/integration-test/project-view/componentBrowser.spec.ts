@@ -204,6 +204,32 @@ test('Filtering list', async ({ page }) => {
   await expect(highlighted).toHaveText(['re', '_te'])
 })
 
+test('Navigating groups', async ({ page }) => {
+  await actions.goToGraph(page)
+  await locate.addNewNodeButton(page).click()
+  await expect(locate.componentBrowserSelectedEntry(page)).toExist()
+  await expect(page.locator('.groupEntry')).toHaveText(['all', 'Input', 'Output'])
+  await expect(locate.componentBrowserEntryByLabel(page, 'Data.read')).toExist()
+  await expect(locate.componentBrowserEntryByLabel(page, 'Data.every_tag')).toExist()
+
+  // Hover first group: `Data.read` is filtered out
+  await page.locator('.groupEntry').nth(1).hover()
+  await expect(locate.componentBrowserEntryByLabel(page, 'Data.read')).toExist()
+  await expect(locate.componentBrowserEntryByLabel(page, 'Data.every_tag')).toHaveCount(0)
+  await expect(locate.componentBrowserSelectedEntry(page)).toExist() // component list didn't lose focus.
+
+  // Navigate to second group using arrows.
+  await page.keyboard.press('Tab')
+  await expect(locate.componentBrowserSelectedEntry(page)).toHaveCount(0)
+  await page.keyboard.press('ArrowDown')
+  await expect(locate.componentBrowserSelectedEntry(page)).toHaveCount(0)
+  await expect(page.locator('.groupEntry.selected')).toHaveText('Output')
+  await expect(locate.componentBrowserEntryByLabel(page, 'Data.read')).toHaveCount(0)
+  await expect(locate.componentBrowserEntryByLabel(page, 'Data.every_tag')).toExist()
+  await page.keyboard.press('Tab')
+  await expect(locate.componentBrowserSelectedEntry(page)).toExist()
+})
+
 test('Editing existing nodes', async ({ page }) => {
   await actions.goToGraph(page)
   const node = locate.graphNodeByBinding(page, 'data')

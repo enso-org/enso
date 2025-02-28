@@ -134,7 +134,7 @@ function updateScroll() {
 
 watch(
   () => items,
-  (i) => {
+  () => {
     selected.value = autoSelectFirst && items.length > 0 ? 0 : null
     scrollTarget.value = 0.0
   },

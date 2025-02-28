@@ -6,7 +6,7 @@ import LazyList from '@/components/LazyList.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { tryGetIndex } from '@/util/data/array'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, toRef, watch, watchEffect } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 
 const ITEM_SIZE = 24
@@ -29,9 +29,10 @@ export type ComponentListPanel = keyof typeof panels
 
 const selectedGroupIndex = ref<number | null>(0)
 const selectedComponentIndex = ref<number | null>(0)
-const focusedPanel = computed<ComponentListPanel>(() =>
-  selectedComponentIndex.value != null ? 'componentsPanel' : 'groupsPanel',
-)
+const focusedPanel = ref<ComponentListPanel>('componentsPanel')
+
+// When filtering updates, force componentList to be focused.
+watch(toRef(props, 'filtering'), () => (selectedComponentIndex.value = 0))
 
 const suggestionDbStore = useSuggestionDbStore()
 const components = computed(() => makeComponentList(suggestionDbStore.entries, props.filtering))
@@ -52,6 +53,22 @@ const currentComponents = computed(() => {
   else return components.value.get(displayedGroupId.value) ?? []
 })
 
+watchEffect(() => {
+  if (focusedPanel.value === 'groupsPanel') {
+    selectedComponentIndex.value = null
+  } else if (currentComponents.value.length > 0) {
+    selectedComponentIndex.value = 0
+  }
+})
+
+watch(
+  () => suggestionDbStore.entries,
+  (x) => console.log('suggestionDbStore.entries', x),
+  { flush: 'sync' },
+)
+watch(components, (x) => console.log('components', x), { flush: 'sync' })
+watch(currentComponents, (x) => console.log('currentComponents', x), { flush: 'sync' })
+
 /** Group colors are populated in `GraphEditor`, and for each group in suggestion database a CSS variable is created. */
 function componentColor(component: Component): string {
   return groupColorStyle(tryGetIndex(suggestionDbStore.groups, component.group))
@@ -71,10 +88,10 @@ defineExpose({
   switchPanelFocus: () => {
     switch (focusedPanel.value) {
       case 'componentsPanel':
-        selectedComponentIndex.value = null
+        focusedPanel.value = 'groupsPanel'
         break
       case 'groupsPanel':
-        selectedComponentIndex.value = 0
+        focusedPanel.value = 'componentsPanel'
         break
     }
   },
@@ -106,7 +123,7 @@ defineExpose({
       :items="currentComponents"
       :itemHeight="ITEM_SIZE"
       :scrollToSelectionMargin="SCROLL_TO_SELECTION_MARGIN"
-      :autoSelectFirst="true"
+      :autoSelectFirst="focusedPanel === 'componentsPanel'"
       :debounceMouseSelection="MOUSE_SELECTION_DEBOUNCE"
       @itemAccepted="emit('acceptSuggestion', $event)"
     >
