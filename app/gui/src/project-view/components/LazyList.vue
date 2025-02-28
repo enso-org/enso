@@ -1,4 +1,11 @@
 <script setup lang="ts" generic="T">
+/**
+ *  @file A list component which instantiates visible elements only.
+ *
+ * The element provided by default slot is used for rendering elements. Only visible elements
+ * are instantiated. See usage in ComponentList as an example.
+ */
+
 import { listBindings } from '@/bindings'
 import { useApproach } from '@/composables/animation'
 import { useResizeObserver } from '@/composables/events'
@@ -12,10 +19,18 @@ const {
   autoSelectFirst = false,
   debounceMouseSelection,
 } = defineProps<{
+  /** List of models for an item. */
   items: readonly T[]
   itemHeight: number
+  /** A margin kept when scrolling while navigating with arrows */
   scrollToSelectionMargin?: number
+  /** When set to true, on every `list` prop update first element will be selecetd (if any) */
   autoSelectFirst?: boolean
+  /**
+   * Debounce time for selecting with mouse hover, expressed in milliseconds.
+   *
+   * Navigating with arrows will still update `selected` model immediately.
+   */
   debounceMouseSelection?: number
 }>()
 const emit = defineEmits<{
