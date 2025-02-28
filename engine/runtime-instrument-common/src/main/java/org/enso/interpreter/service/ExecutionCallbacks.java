@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
+import org.enso.common.CachePreferences;
 import org.enso.interpreter.instrument.ExpressionExecutionState;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.OneshotExpression;
@@ -39,6 +40,8 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   private final Consumer<ExpressionValue> onComputedCallback;
   private final Consumer<ExpressionCall> functionCallCallback;
   private final Consumer<ExecutedVisualization> onExecutedVisualizationCallback;
+  private final Consumer<ExpressionValue> onProgressCallbackOrNull;
+  private ExecutionProgressObserver progressObserver;
 
   /**
    * Creates callbacks instance.
@@ -53,6 +56,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
    * @param onCachedCallback the consumer of the cached value events.
    * @param functionCallCallback the consumer of function call events.
    * @param onExecutedVisualizationCallback the consumer of an executed visualization result.
+   * @param onProgressCallbackOrNull the consumer of progress events
    */
   ExecutionCallbacks(
       VisualizationHolder visualizationHolder,
@@ -64,7 +68,8 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       Consumer<ExpressionValue> onCachedCallback,
       Consumer<ExpressionValue> onComputedCallback,
       Consumer<ExpressionCall> functionCallCallback,
-      Consumer<ExecutedVisualization> onExecutedVisualizationCallback) {
+      Consumer<ExecutedVisualization> onExecutedVisualizationCallback,
+      Consumer<ExpressionValue> onProgressCallbackOrNull) {
     this.visualizationHolder = visualizationHolder;
     this.nextExecutionItem = nextExecutionItem;
     this.cache = cache;
@@ -75,6 +80,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     this.onComputedCallback = onComputedCallback;
     this.functionCallCallback = functionCallCallback;
     this.onExecutedVisualizationCallback = onExecutedVisualizationCallback;
+    this.onProgressCallbackOrNull = onProgressCallbackOrNull;
   }
 
   @Override
@@ -92,9 +98,40 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     if (result != null && !nodeId.equals(nextExecutionItem)) {
       callOnCachedCallback(nodeId, result);
       return result;
+    } else {
+      if (onProgressCallbackOrNull != null) {
+        reportEvaluationProgress(nodeId);
+      }
     }
 
     return null;
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  private void reportEvaluationProgress(UUID nodeId) {
+    if (cache.getPreferences().get(nodeId) == CachePreferences.Kind.BINDING_EXPRESSION) {
+      var newObserver =
+          ExecutionProgressObserver.startComputation(
+              nodeId,
+              (progress, msg) -> {
+                CompilerDirectives.transferToInterpreter();
+                var expressionValue = ExpressionValue.progress(nodeId, progress, msg);
+                onProgressCallbackOrNull.accept(expressionValue);
+              });
+      refreshObserver(newObserver);
+    }
+  }
+
+  private void refreshObserver(ExecutionProgressObserver newObserverOrNull) {
+    var o = progressObserver;
+    if (o != null) {
+      try {
+        o.close();
+      } catch (Exception ex) {
+        throw ExecutionService.raise(RuntimeException.class, ex);
+      }
+    }
+    this.progressObserver = newObserverOrNull;
   }
 
   @Override
@@ -102,6 +139,11 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     Object result = info.getResult();
     TypeInfo resultType = typeOf(result);
     UUID nodeId = info.getId();
+
+    if (progressObserver instanceof ExecutionProgressObserver o && nodeId.equals(o.nodeId())) {
+      refreshObserver(null);
+    }
+
     TypeInfo cachedType = cache.getType(nodeId);
     FunctionCallInfo call = functionCallInfoById(nodeId);
     FunctionCallInfo cachedCall = cache.getCall(nodeId);
@@ -109,7 +151,16 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
     ExpressionValue expressionValue =
         new ExpressionValue(
-            nodeId, result, resultType, cachedType, call, cachedCall, profilingInfo, false);
+            nodeId,
+            result,
+            resultType,
+            cachedType,
+            call,
+            cachedCall,
+            profilingInfo,
+            false,
+            -1.0,
+            null);
     syncState.setExpressionUnsync(nodeId);
     syncState.setVisualizationUnsync(nodeId);
 
@@ -172,7 +223,9 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
             calls.get(nodeId),
             cache.getCall(nodeId),
             new ProfilingInfo[] {ExecutionTime.empty()},
-            true);
+            true,
+            -1.0,
+            null);
 
     onCachedCallback.accept(expressionValue);
   }

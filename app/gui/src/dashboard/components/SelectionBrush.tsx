@@ -97,7 +97,7 @@ const enum DIRECTION {
 /**
  * A selection brush to indicate the area being selected by the mouse drag action.
  */
-export function SelectionBrush(props: SelectionBrushV2Props) {
+export const SelectionBrush = React.memo(function SelectionBrush(props: SelectionBrushV2Props) {
   const {
     targetRef,
     preventDrag = () => false,
@@ -381,7 +381,7 @@ export function SelectionBrush(props: SelectionBrushV2Props) {
       />
     </Portal>
   )
-}
+})
 
 /**
  * Whether the current position is in the dead zone.

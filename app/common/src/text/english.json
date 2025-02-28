@@ -1,6 +1,7 @@
 {
   "ellipsis": "...",
 
+  "arbitraryMutationError": "An error occurred while performing an action. Please try again.",
   "arbitraryFetchError": "An error occurred while fetching data",
   "arbitraryFetchImageError": "An error occurred while fetching an image",
 
@@ -17,6 +18,7 @@
   "restoreProjectError": "Could not restore project '$0'",
   "copyAssetError": "Could not copy '$0'",
   "moveAssetError": "Could not move '$0'",
+  "moveMultipleAssetsError": "Some assets could not be moved, please try again.",
   "deleteAssetError": "Could not delete '$0'",
   "restoreAssetError": "Could not restore '$0'",
 
@@ -298,6 +300,8 @@
   "submit": "Submit",
   "retry": "Retry",
   "hide": "Hide",
+  "open": "Open",
+  "forward": "Forward",
   "more": "More",
   "close": "Close",
 

@@ -61,7 +61,6 @@ export const FIELD_STYLES = tv({
 })
 
 /** Field component */
-// eslint-disable-next-line no-restricted-syntax
 export const Field = forwardRef(function Field<Schema extends types.TSchema>(
   props: FieldComponentProps<Schema>,
   ref: React.ForwardedRef<HTMLDivElement>,

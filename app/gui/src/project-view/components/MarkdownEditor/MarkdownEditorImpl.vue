@@ -3,6 +3,7 @@ import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
 import BlockTypeDropdown from '@/components/MarkdownEditor/BlockTypeDropdown.vue'
 import { ensoMarkdown, useMarkdownFormatting } from '@/components/MarkdownEditor/codemirror'
+import SvgButton from '@/components/SvgButton.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { useCodeMirror } from '@/util/codemirror'
@@ -35,7 +36,8 @@ const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
   ],
   vueHost: () => vueHost,
 })
-const { toggleHeader, toggleQuote, toggleList, italic, bold } = useMarkdownFormatting(editorView)
+const { toggleHeader, toggleQuote, toggleList, italic, bold, insertLink } =
+  useMarkdownFormatting(editorView)
 
 useLinkTitles(editorView, { readonly })
 
@@ -82,6 +84,12 @@ defineExpose({
           :disabled="!editing || bold.value == null"
           :modelValue="!!bold.value"
           @update:modelValue="bold.set"
+        />
+        <SvgButton
+          name="connector_add"
+          :disabled="!editing || !insertLink"
+          title="Insert link"
+          @click.stop="insertLink!"
         />
       </template>
       <slot name="toolbarRight" />

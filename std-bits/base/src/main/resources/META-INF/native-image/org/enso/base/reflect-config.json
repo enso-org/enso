@@ -321,5 +321,41 @@
                 ]
             }
         ]
+    },
+    {
+        "name": "org.slf4j.Logger",
+        "methods": [
+            {
+                "name": "info",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            },
+            {
+                "name": "debug",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            },
+            {
+                "name": "error",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            },
+            {
+                "name": "warn",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            },
+            {
+                "name": "trace",
+                "parameterTypes": [
+                    "java.lang.String"
+                ]
+            }
+
+        ]
     }
 ]

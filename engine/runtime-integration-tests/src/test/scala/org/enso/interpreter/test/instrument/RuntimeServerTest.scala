@@ -50,6 +50,7 @@ class RuntimeServerTest
         )
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
+        .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
         .option(RuntimeOptions.STRICT_ERRORS, "false")
@@ -93,9 +94,6 @@ class RuntimeServerTest
 
     ensureInstrumentsAvailable()
 
-    def writeMain(contents: String): File =
-      Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
-
     def writeFile(file: File, contents: String): File =
       Files.write(file.toPath, contents.getBytes).toFile
 
@@ -104,16 +102,11 @@ class RuntimeServerTest
       Files.write(file.toPath, contents.getBytes).toFile
     }
 
-    def send(msg: Api.Request): Unit = runtimeServerEmulator.sendToRuntime(msg)
-
     def consumeOut: List[String] = {
       val result = out.toString
       out.reset()
       result.linesIterator.toList
     }
-
-    def executionComplete(contextId: UUID): Api.Response =
-      Api.Response(Api.ExecutionComplete(contextId))
   }
 
   override protected def beforeEach(): Unit = {

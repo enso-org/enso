@@ -10,6 +10,7 @@ import {
 import { type SyntaxNodeRef, type Tree, type TreeCursor } from '@lezer/common'
 import { identity } from '@vueuse/core'
 import { Range } from 'ydoc-shared/util/data/range'
+import { isNodeType } from 'ydoc-shared/util/lezer'
 
 function reversed<T>(elements: ReadonlyArray<T>): T[] {
   return elements.slice().reverse()
@@ -189,7 +190,7 @@ export function visitContainedDelimiters(
 /**
  * Extract the current range from the given node.
  */
-function nodeRange(node: Readonly<SyntaxNodeRef>): Range {
+export function nodeRange(node: Readonly<SyntaxNodeRef>): Range {
   return Range.tryFromBounds(node.from, node.to)!
 }
 
@@ -551,9 +552,63 @@ export const splitNodesAt = sides(
   ({ insideOrder, outsideOrder }) =>
     <T extends { readonly name: string }>(
       nodes: T[],
-      nodeType: string,
+      nodeType?: string | undefined,
     ): { inside: T[]; outside: T[] } => ({
       inside: insideOrder(nodes.filter(({ name }) => name !== nodeType)),
       outside: outsideOrder(nodes),
     }),
 )
+
+export interface LinkOrImage {
+  linkOrImage: Range
+  text: Range
+  url: Range
+  title: Range | undefined
+}
+
+export interface Autolink extends LinkOrImage {
+  linkOrImage: Range
+  text: Range
+  url: Range
+  title: undefined
+}
+
+/** Given a {@link SyntaxNodeRef} of type `Link` or `Image`, returns information about its contents. */
+export function analyzeLinkOrImage(nodeRef: SyntaxNodeRef): LinkOrImage | undefined {
+  const cursor = nodeRef.node.cursor()
+  const linkOrImage = nodeRange(nodeRef)
+  if (!cursor.firstChild()) return // [ or ![
+  const textFrom = cursor.to
+  do {
+    if (!cursor.nextSibling()) return
+  } while (!isNodeType(cursor, 'LinkMark'))
+  const textTo = cursor.from // ]
+  do {
+    if (!cursor.nextSibling()) return
+  } while (!isNodeType(cursor, 'URL'))
+  const url = nodeRange(cursor)
+  cursor.nextSibling()
+  const title = isNodeType(cursor, 'LinkTitle') ? nodeRange(cursor) : undefined
+  return {
+    linkOrImage,
+    text: Range.tryFromBounds(textFrom, textTo)!,
+    url,
+    title,
+  }
+}
+
+/** Given a {@link SyntaxNodeRef} of type `Autolink`, returns information about its contents. */
+export function analyzeAutolink(nodeRef: SyntaxNodeRef): Autolink | undefined {
+  const cursor = nodeRef.node.cursor()
+  const linkOrImage = nodeRange(nodeRef)
+  if (!cursor.firstChild()) return // <
+  if (!cursor.nextSibling()) return
+  if (!isNodeType(cursor, 'URL')) return
+  const text = nodeRange(cursor)
+  return {
+    linkOrImage,
+    text,
+    url: text,
+    title: undefined,
+  }
+}

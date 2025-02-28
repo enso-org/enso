@@ -87,43 +87,68 @@ export const ICON_STYLES = tv({
  */
 // eslint-disable-next-line no-restricted-syntax
 export const Icon = memo(function Icon<Render = never>(props: IconProps<Render>) {
-  const { className, variants = ICON_STYLES, size, testId, renderProps = {}, color } = props
+  const { className, variants = ICON_STYLES, size, testId, renderProps, color } = props
 
-  const styles = variants({
-    size,
-    className,
-    color,
-  })
+  const styles = variants({ size, className, color })
 
-  const getIconJsx = (ic: IconType<string, Render>) => {
-    // eslint-disable-next-line no-restricted-syntax
-    const renderedIcon = typeof ic === 'function' ? ic(renderProps as Render) : ic
-
-    if (renderedIcon == null || renderedIcon === false) {
-      return null
-    }
-
-    if (typeof renderedIcon === 'string') {
-      if (isIconName(renderedIcon)) {
-        return <SvgUse icon={renderedIcon} testId={testId} className={styles} />
-      }
-
-      return <SvgMask src={renderedIcon} className={styles} testId={testId} />
-    }
-
+  if ('children' in props) {
     return (
-      <span className={styles} data-testid={testId}>
-        {renderedIcon}
-      </span>
+      <IconInternal<Render>
+        icon={props.children}
+        className={styles}
+        testId={testId}
+        renderProps={renderProps}
+      />
     )
   }
 
-  if ('children' in props) {
-    return <>{getIconJsx(props.children)}</>
+  return (
+    <IconInternal<Render>
+      icon={props.icon}
+      className={styles}
+      testId={testId}
+      renderProps={renderProps}
+    />
+  )
+}) as <Render = never>(props: IconProps<Render>) => React.JSX.Element
+
+/**
+ * Props for {@link IconInternal}.
+ */
+interface IconInternalProps<Render = never> extends TestIdProps {
+  readonly className?: string | undefined
+  readonly icon: IconType<string, Render>
+  readonly renderProps?: Render | undefined
+}
+
+/**
+ * Internal icon component that displays an icon based on different input.
+ * @internal
+ */
+function IconInternal<Render = never>(props: IconInternalProps<Render>) {
+  const { className, testId, renderProps, icon } = props
+
+  // eslint-disable-next-line no-restricted-syntax
+  const renderedIcon = typeof icon === 'function' ? icon(renderProps as never) : icon
+
+  if (renderedIcon == null || renderedIcon === false) {
+    return null
   }
 
-  return <>{getIconJsx(props.icon)}</>
-}) as <Render = never>(props: IconProps<Render>) => React.JSX.Element
+  if (typeof renderedIcon === 'string') {
+    if (isIconName(renderedIcon)) {
+      return <SvgUse icon={renderedIcon} testId={testId} className={className} />
+    }
+
+    return <SvgMask src={renderedIcon} className={className} testId={testId} />
+  }
+
+  return (
+    <span className={className} data-testid={testId}>
+      {renderedIcon}
+    </span>
+  )
+}
 
 /**
  * Props for {@link SvgUse}.
@@ -136,6 +161,8 @@ export interface SvgUseProps extends TestIdProps {
 /**
  * A component that displays an SVG from the icons bundle file.
  * Please refer to Figma for the list of available icons.
+ * Prefer using {@link Icon} instead.
+ * @internal
  */
 export function SvgUse(props: SvgUseProps) {
   const { icon, testId = 'svg-use', className } = props
@@ -143,11 +170,16 @@ export function SvgUse(props: SvgUseProps) {
   return (
     <svg
       className={className}
+      data-testid={testId}
+      role="presentation"
       viewBox="0 0 16 16"
       preserveAspectRatio="xMidYMid slice"
-      data-testid={testId}
     >
-      <use href={icon.includes(':') ? icon : `${icons}#${icon}`} data-icon={icon} />
+      <use
+        href={icon.includes(':') ? icon : `${icons}#${icon}`}
+        aria-hidden="true"
+        data-icon={icon}
+      />
     </svg>
   )
 }

@@ -67,7 +67,7 @@ export interface LoaderProps extends twv.VariantProps<typeof STYLES> {
 }
 
 /** A full-screen loading spinner. */
-// eslint-disable-next-line no-restricted-syntax
+
 export const Loader = memo(function Loader(props: LoaderProps) {
   const {
     className,

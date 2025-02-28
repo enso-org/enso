@@ -30,6 +30,7 @@
   buttons][12341]
 - [Cloud File Browser allows renaming existing directories in "writing"
   components][12323]
+- ["Insert link" button added to documentation panel][12365]
 - [Cloud File Browser, when opened first time after opening project, shows and
   highlights the currently set file][12184]
 
@@ -51,6 +52,7 @@
 [12275]: https://github.com/enso-org/enso/pull/12275
 [12341]: https://github.com/enso-org/enso/pull/12341
 [12323]: https://github.com/enso-org/enso/pull/12323
+[12365]: https://github.com/enso-org/enso/pull/12365
 [12184]: https://github.com/enso-org/enso/pull/12184
 
 #### Enso Standard Library
@@ -61,6 +63,7 @@
 - [Added Table.Offset][12071]
 - [Implemented Generic JDBC connections.][12073]
 - [Added Column.Offset][12092]
+- [Progress API][12163]
 - [When reading a Delimited file, if a row with more columns than expected is
   encountered, extra columns can be added to the result.][12231]
   - In `Delimited` format, the `keep_invalid_rows` setting has been renamed to
@@ -69,6 +72,7 @@
 - [Added DB_Table.Offset for SQLServer][12206]
 - [Added DB_Table.Offset for Snowflake, Postgres, SQLite][12251]
 - [Support for key-pair authentication in Snowflake connector.][12247]
+- [Support for generic JDBC connections through external drivers.][12300]
 - [Support for basic arithmetic operations as numbers in Expressions.][12297]
 - [Support for Regular Expressions in Enso Expressions.][12320]
 - [Support for pi() and e() in Enso Expressions.][12367]
@@ -79,10 +83,12 @@
 [12071]: https://github.com/enso-org/enso/pull/12071
 [12073]: https://github.com/enso-org/enso/pull/12073
 [12092]: https://github.com/enso-org/enso/pull/12092
+[12163]: https://github.com/enso-org/enso/pull/12163
 [12231]: https://github.com/enso-org/enso/pull/12231
 [12206]: https://github.com/enso-org/enso/pull/12206
 [12251]: https://github.com/enso-org/enso/pull/12251
 [12247]: https://github.com/enso-org/enso/pull/12247
+[12300]: https://github.com/enso-org/enso/pull/12300
 [12297]: https://github.com/enso-org/enso/pull/12297
 [12320]: https://github.com/enso-org/enso/pull/12320
 [12367]: https://github.com/enso-org/enso/pull/12367

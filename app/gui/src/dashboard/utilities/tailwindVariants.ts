@@ -30,5 +30,29 @@ export type VariantProps<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Component extends (...args: any) => any,
 > = Omit<OmitUndefined<Parameters<Component>[0]>, 'class' | 'className'> & {
+  /**
+   * Custom styles for a component.
+   *
+   * You can use this to override the default styles for a component.
+   * @example
+   * ```tsx
+   * const COMPONENT_STYLES = tv({
+   *   base: 'block',
+   *   slots: {
+   *     root: 'bg-red-500',
+   *   },
+   * })
+   *
+   * const OVERRIDES = tv({
+   *   extend: COMPONENT_STYLES,
+   *   slots: {
+   *     // overrides the slot bg, but keeps the base styles
+   *     root: 'bg-blue-500',
+   *   },
+   * })
+   *
+   * <MyComponent variants={OVERRIDES} />
+   * ```
+   */
   variants?: ExtractFunction<Component> | undefined
 }
