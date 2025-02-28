@@ -7,8 +7,9 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import java.util.Objects;
 import org.enso.base.CurrentEnsoProject;
 import org.enso.base.enso_cloud.CloudAPI;
+import org.enso.base.enso_cloud.logging.LogMessage;
 
-class AuditLogMessage implements AuditLogApiAccess.LogMessage {
+class AuditLogMessage implements LogMessage {
 
   /**
    * A reserved field that is currently added by the cloud backend. Duplicating it will lead to
