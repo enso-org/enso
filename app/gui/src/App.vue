@@ -28,7 +28,13 @@ const appTooltips = provideTooltipRegistry()
 
 const appConfig = computed(() => {
   const config = mergeConfig(baseConfig, urlParams(), {
-    onUnrecognizedOption: (p) => console.warn('Unrecognized option:', p),
+    onUnrecognizedOption: (p) => {
+      const filtered = p.filter((p) => !p.startsWith('cloud-ide'))
+
+      if (filtered.length > 0) {
+        console.warn('Unrecognized option:', filtered)
+      }
+    },
   })
   return config
 })

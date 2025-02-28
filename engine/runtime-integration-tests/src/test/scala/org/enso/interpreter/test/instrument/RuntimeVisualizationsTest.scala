@@ -43,6 +43,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           (!sequentialExecution).toString
         )
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
+        .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
         .option(RuntimeServerInfo.ENABLE_OPTION, "true")
@@ -61,9 +62,6 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
 
-    def writeMain(contents: String): File =
-      Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
-
     def writeFile(file: File, contents: String): File =
       Files.write(file.toPath, contents.getBytes).toFile
 
@@ -72,16 +70,11 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       Files.write(file.toPath, contents.getBytes).toFile
     }
 
-    def send(msg: Api.Request): Unit = runtimeServerEmulator.sendToRuntime(msg)
-
     def consumeOut: List[String] = {
       val result = out.toString
       out.reset()
       result.linesIterator.toList
     }
-
-    def executionComplete(contextId: UUID): Api.Response =
-      Api.Response(Api.ExecutionComplete(contextId))
 
     // === The Tests ==========================================================
 

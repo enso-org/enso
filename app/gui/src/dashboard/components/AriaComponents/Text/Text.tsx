@@ -58,7 +58,7 @@ export const TEXT_STYLE = twv.tv({
         'text-[10.5px] leading-[16px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-medium',
       h1: 'text-xl leading-[29px] before:h-0.5 after:h-[5px] macos:before:h-[3px] macos:after:h-[3px] font-bold',
       subtitle:
-        'text-[13.5px] leading-[19px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-bold',
+        'text-[13.5px] leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-bold',
       caption:
         'text-[8.5px] leading-[12px] before:h-[1px] after:h-[1px] macos:before:h-[0.5px] macos:after:h-[1.5px]',
       overline:
@@ -246,7 +246,6 @@ export interface HeadingProps extends Omit<TextProps, 'elementType'> {
 }
 
 /** Heading component */
-// eslint-disable-next-line no-restricted-syntax
 const Heading = memo(
   forwardRef(function Heading(props: HeadingProps, ref: React.Ref<HTMLHeadingElement>) {
     const { level = 1, ...textProps } = props

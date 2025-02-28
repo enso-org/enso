@@ -1,5 +1,10 @@
 import DocumentationImage from '@/components/MarkdownEditor/DocumentationImage.vue'
 import { TreeViewDecorator } from '@/components/MarkdownEditor/codemirror/decoration/treeViewDecorator'
+import {
+  analyzeAutolink,
+  analyzeLinkOrImage,
+  nodeRange,
+} from '@/components/MarkdownEditor/markdown/trees'
 import { type VueHost } from '@/components/VueHostRender.vue'
 import { linkEditPopup } from '@/util/codemirror/linkEditPopup'
 import { linkAttributesFactory, linkAttributesFactoryChanged } from '@/util/codemirror/links'
@@ -8,7 +13,7 @@ import { type EditorState, Extension, Prec, type Text } from '@codemirror/state'
 import { Decoration, ViewPlugin, WidgetType } from '@codemirror/view'
 import { type SyntaxNodeRef } from '@lezer/common'
 import { h, markRaw } from 'vue'
-import { isNodeType } from 'ydoc-shared/util/lezer'
+import { Range } from 'ydoc-shared/util/data/range'
 
 // === Links ===
 
@@ -39,30 +44,21 @@ export function markdownLinkEditPopup(): Extension {
 }
 
 function parseAutolink(nodeRef: SyntaxNodeRef, doc: Text): LinkLikeInfo | undefined {
-  const cursor = nodeRef.node.cursor()
-  if (!cursor.firstChild()) return // <
-  const linkFrom = cursor.from
-  if (!cursor.nextSibling()) return
-  if (!isNodeType(cursor, 'URL')) return
-  const textFrom = cursor.from
-  const textTo = cursor.to
-  const url = doc.sliceString(cursor.from, cursor.to)
-  let linkTo = cursor.to
-  cursor.nextSibling()
-  if (isNodeType(cursor, 'LinkMark')) linkTo = cursor.to
+  const parsed = analyzeAutolink(nodeRef)
+  if (!parsed) return
+  const { linkOrImage, text, url, title } = parsed
   return {
-    linkFrom,
-    linkTo,
-    textFrom,
-    textTo,
-    url,
+    linkOrImage,
+    text,
+    url: doc.sliceString(url.from, url.to),
+    title,
   }
 }
 
 function decorateLink(
   nodeRef: SyntaxNodeRef,
   doc: Text,
-  emitDecoration: (from: number, to: number, deco: Decoration) => void,
+  emitDecoration: (range: Range, deco: Decoration) => void,
   _vueHost: VueHost,
   state: EditorState,
 ) {
@@ -73,11 +69,10 @@ function decorateLink(
     : nodeRef.name === 'Autolink' ? parseAutolink(nodeRef, doc)
     : undefined
   if (!parsed) return
-  const { linkFrom, linkTo, textFrom, textTo, url, title } = parsed
-  if (textFrom === textTo) return
+  const { linkOrImage: link, text, url, title } = parsed
+  if (text.length === 0) return
   emitDecoration(
-    linkFrom,
-    linkTo,
+    link,
     Decoration.mark({
       tagName: 'span',
       attributes: { 'data-href': url },
@@ -85,8 +80,7 @@ function decorateLink(
   )
   const attributes = makeAttributes(url)
   emitDecoration(
-    textFrom,
-    textTo,
+    text,
     Decoration.mark({
       tagName: 'a',
       attributes: title ? { title, ...attributes } : attributes,
@@ -100,12 +94,11 @@ function decorateLink(
 export function decorateImageWithClass(
   nodeRef: SyntaxNodeRef,
   _doc: Text,
-  emitDecoration: (from: number, to: number, deco: Decoration) => void,
+  emitDecoration: (range: Range, deco: Decoration) => void,
 ) {
   if (nodeRef.name === 'Image') {
     emitDecoration(
-      nodeRef.from,
-      nodeRef.to,
+      nodeRange(nodeRef),
       Decoration.mark({
         class: 'cm-image-markup',
       }),
@@ -117,18 +110,17 @@ export function decorateImageWithClass(
 export function decorateImageWithRendered(
   nodeRef: SyntaxNodeRef,
   doc: Text,
-  emitDecoration: (from: number, to: number, deco: Decoration) => void,
+  emitDecoration: (range: Range, deco: Decoration) => void,
   vueHost: VueHost,
 ) {
   if (nodeRef.name === 'Image') {
     const parsed = parseLinkLike(nodeRef, doc)
     if (!parsed) return
-    const { textFrom, textTo, url } = parsed
-    const text = doc.sliceString(textFrom, textTo)
-    const widget = new ImageWidget({ alt: text, src: url }, vueHost)
+    const { text, url } = parsed
+    const alt = doc.sliceString(text.from, text.to)
+    const widget = new ImageWidget({ alt, src: url }, vueHost)
     emitDecoration(
-      nodeRef.to,
-      nodeRef.to,
+      Range.emptyAt(nodeRef.to),
       Decoration.widget({
         widget,
         // Ensure the cursor is drawn relative to the content before the widget.
@@ -190,43 +182,21 @@ class ImageWidget extends WidgetType {
 // === Common ===
 
 interface LinkLikeInfo {
-  linkFrom: number
-  linkTo: number
-  textFrom: number
-  textTo: number
+  linkOrImage: Range
+  text: Range
   url: string
   title?: string | undefined
 }
 
 /** Parse a link or image */
 function parseLinkLike(nodeRef: SyntaxNodeRef, doc: Text): LinkLikeInfo | undefined {
-  const cursor = nodeRef.node.cursor()
-  if (!cursor.firstChild()) return
-  const linkFrom = cursor.from // [ or ![
-  const textFrom = cursor.to
-  if (!cursor.nextSibling()) return
-  const textTo = cursor.from // ]
-  do {
-    if (!cursor.nextSibling()) return
-  } while (!isNodeType(cursor, 'URL'))
-  const url = doc.sliceString(cursor.from, cursor.to)
-  cursor.nextSibling()
-  let title: string | undefined = undefined
-  if (isNodeType(cursor, 'LinkTitle')) {
-    title = doc.sliceString(cursor.from, cursor.to)
-    cursor.nextSibling()
-  }
-  let linkTo: number
-  do {
-    linkTo = cursor.to
-    if (!cursor.nextSibling()) break
-  } while (isNodeType(cursor, 'LinkMark'))
+  const parsed = analyzeLinkOrImage(nodeRef)
+  if (!parsed) return
+  const { linkOrImage, text, url, title } = parsed
   return {
-    linkFrom,
-    linkTo,
-    textFrom,
-    textTo,
-    url,
-    title,
+    linkOrImage,
+    text,
+    url: doc.sliceString(url.from, url.to),
+    title: title && doc.sliceString(title.from, title.to),
   }
 }

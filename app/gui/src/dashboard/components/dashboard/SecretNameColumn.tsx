@@ -1,47 +1,34 @@
-/** @file The icon and name of a {@link backendModule.SecretAsset}. */
+/** @file The icon and name of a {@link SecretAsset}. */
+import KeyIcon from '#/assets/key.svg'
+import type { AssetColumnProps } from '#/components/dashboard/column'
+import EditableSpan from '#/components/EditableSpan'
+import SvgMask from '#/components/SvgMask'
+import { backendMutationOptions } from '#/hooks/backendHooks'
+import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
+import UpsertSecretModal from '#/modals/UpsertSecretModal'
+import { useDriveStore } from '#/providers/DriveProvider'
+import { useSetModal } from '#/providers/ModalProvider'
+import { useText } from '#/providers/TextProvider'
+import { isNewTitleUnique, type SecretAsset } from '#/services/Backend'
+import { isDoubleClick, isSingleClick } from '#/utilities/event'
+import { merger } from '#/utilities/object'
 import { useMutation } from '@tanstack/react-query'
 
-import KeyIcon from '#/assets/key.svg'
-
-import { backendMutationOptions } from '#/hooks/backendHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-
-import * as modalProvider from '#/providers/ModalProvider'
-
-import type * as column from '#/components/dashboard/column'
-import SvgMask from '#/components/SvgMask'
-
-import UpsertSecretModal from '#/modals/UpsertSecretModal'
-
-import * as backendModule from '#/services/Backend'
-
-import EditableSpan from '#/components/EditableSpan'
-import { useText } from '#/providers/TextProvider'
-import * as eventModule from '#/utilities/event'
-import * as indent from '#/utilities/indent'
-import * as object from '#/utilities/object'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
-
-// =====================
-// === ConnectorName ===
-// =====================
-
 /** Props for a {@link SecretNameColumn}. */
-export interface SecretNameColumnProps extends column.AssetColumnProps {
-  readonly item: backendModule.SecretAsset
+export interface SecretNameColumnProps extends AssetColumnProps {
+  readonly item: SecretAsset
 }
 
-/**
- * The icon and name of a {@link backendModule.SecretAsset}.
- * @throws {Error} when the asset is not a {@link backendModule.SecretAsset}.
- * This should never happen.
- */
+/** The icon and name of a {@link SecretAsset}. */
 export default function SecretNameColumn(props: SecretNameColumnProps) {
-  const { item, selected, state, rowState, setRowState, isEditable, depth } = props
-  const { backend, nodeMap } = state
-  const toastAndLog = toastAndLogHooks.useToastAndLog()
+  const { item, state, rowState, setRowState, isEditable } = props
+  const { backend } = state
+  const toastAndLog = useToastAndLog()
   const { getText } = useText()
-  const { setModal } = modalProvider.useSetModal()
+  const { setModal } = useSetModal()
+  const getAssetChildren = useGetAssetChildren()
+  const driveStore = useDriveStore()
 
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
 
@@ -52,25 +39,27 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
 
   const setIsEditing = (isEditingName: boolean) => {
     if (isEditable) {
-      setRowState(object.merger({ isEditingName }))
+      setRowState(merger({ isEditingName }))
     }
   }
 
   return (
     <div
-      className={tailwindMerge.twMerge(
-        'flex h-table-row w-auto min-w-48 max-w-full items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child',
-        indent.indentClass(depth),
-      )}
+      className="flex h-table-row w-auto min-w-48 max-w-full items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child"
       onKeyDown={(event) => {
         if (rowState.isEditingName && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
       onClick={(event) => {
-        if (eventModule.isSingleClick(event) && selected) {
-          setIsEditing(true)
-        } else if (eventModule.isDoubleClick(event) && isEditable) {
+        if (isSingleClick(event) && driveStore.getState().selectedIds.size === 1) {
+          const [id] = driveStore.getState().selectedIds
+          if (item.id === id) {
+            event.stopPropagation()
+            setIsEditing(true)
+            return
+          }
+        } else if (isDoubleClick(event) && isEditable) {
           event.stopPropagation()
           setModal(
             <UpsertSecretModal
@@ -98,15 +87,9 @@ export default function SecretNameColumn(props: SecretNameColumnProps) {
           setIsEditing(false)
         }}
         schema={(z) =>
-          z.refine(
-            (value) =>
-              backendModule.isNewTitleUnique(
-                item,
-                value,
-                nodeMap.current.get(item.parentId)?.children?.map((child) => child.item),
-              ),
-            { message: getText('nameShouldBeUnique') },
-          )
+          z.refine((value) => isNewTitleUnique(item, value, getAssetChildren(item.parentId)), {
+            message: getText('nameShouldBeUnique'),
+          })
         }
       >
         {item.title}
