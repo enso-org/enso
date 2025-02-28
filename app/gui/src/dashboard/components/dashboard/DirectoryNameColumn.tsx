@@ -79,7 +79,7 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
         loading={isLoading}
         aria-label={getText('open')}
         tooltipPlacement="left"
-        testId="directory-row-expand-button"
+        testId="directory-row-navigate-button"
         className="mx-1 transition-transform duration-arrow"
         onPress={() => {
           startTransition(() => {

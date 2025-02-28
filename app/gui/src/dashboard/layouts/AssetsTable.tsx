@@ -272,6 +272,7 @@ function AssetsTable(props: AssetsTableProps) {
     listDirectoryQueryOptions({ backend, parentId: currentDirectoryId, category }),
   )
   const isLoading = fetchStatus === 'pending'
+
   const { visibleItems } = useAssetsTableItems({
     parentId: currentDirectoryId,
     assets,

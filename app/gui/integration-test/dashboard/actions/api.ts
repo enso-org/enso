@@ -19,10 +19,6 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import invariant from 'tiny-invariant'
 
-// =================
-// === Constants ===
-// =================
-
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const MOCK_SVG = `
@@ -59,6 +55,17 @@ const GLOB_TAG_ID = backend.TagId('*')
 const GLOB_CHECKOUT_SESSION_ID = backend.CheckoutSessionId('*')
 const BASE_URL = 'https://mock/'
 const MOCK_S3_BUCKET_URL = 'https://mock-s3-bucket.com/'
+
+const lastDate = new Date(0)
+
+function newDate() {
+  let date = new Date()
+  while (Number(date) === Number(lastDate)) {
+    // Busy loop until date is different.
+    date = new Date()
+  }
+  return dateTime.toRfc3339(date)
+}
 
 function array<T>(): Readonly<T>[] {
   return []
@@ -337,17 +344,10 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     )
 
   const createUserGroupPermission = (
-    userGroup: backend.UserGroupInfo,
+    userGroup: backend.UserGroup,
     permission: permissions.PermissionAction = permissions.PermissionAction.own,
     rest: Partial<backend.UserGroupPermission> = {},
-  ): backend.UserGroupPermission =>
-    object.merge(
-      {
-        userGroup,
-        permission,
-      },
-      rest,
-    )
+  ): backend.UserGroupPermission => object.merge({ userGroup, permission }, rest)
 
   const createDirectory = (rest: Partial<backend.DirectoryAsset> = {}): backend.DirectoryAsset => {
     const parentId = rest.parentId ?? defaultDirectoryId
@@ -367,13 +367,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         projectState: null,
         extension: null,
         title,
-        modifiedAt: dateTime.toRfc3339(new Date()),
+        modifiedAt: newDate(),
         description: rest.description ?? '',
         labels: [],
         parentId,
         permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
-        parentsPath: '',
-        virtualParentsPath: '',
+        parentsPath: backend.ParentsPath(''),
+        virtualParentsPath: backend.VirtualParentsPath(''),
       },
       rest,
     )
@@ -420,13 +420,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         },
         extension: null,
         title,
-        modifiedAt: dateTime.toRfc3339(new Date()),
+        modifiedAt: newDate(),
         description: rest.description ?? '',
         labels: [],
         parentId: defaultDirectoryId,
         permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
-        parentsPath: '',
-        virtualParentsPath: '',
+        parentsPath: backend.ParentsPath(''),
+        virtualParentsPath: backend.VirtualParentsPath(''),
       },
       rest,
     )
@@ -461,13 +461,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         projectState: null,
         extension: '',
         title: rest.title ?? '',
-        modifiedAt: dateTime.toRfc3339(new Date()),
+        modifiedAt: newDate(),
         description: rest.description ?? '',
         labels: [],
         parentId: defaultDirectoryId,
         permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
-        parentsPath: '',
-        virtualParentsPath: '',
+        parentsPath: backend.ParentsPath(''),
+        virtualParentsPath: backend.VirtualParentsPath(''),
       },
       rest,
     )
@@ -503,13 +503,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         projectState: null,
         extension: null,
         title: rest.title ?? '',
-        modifiedAt: dateTime.toRfc3339(new Date()),
+        modifiedAt: newDate(),
         description: rest.description ?? '',
         labels: [],
         parentId: defaultDirectoryId,
         permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
-        parentsPath: '',
-        virtualParentsPath: '',
+        parentsPath: backend.ParentsPath(''),
+        virtualParentsPath: backend.VirtualParentsPath(''),
       },
       rest,
     )
@@ -545,13 +545,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         projectState: null,
         extension: null,
         title: rest.title ?? '',
-        modifiedAt: dateTime.toRfc3339(new Date()),
+        modifiedAt: newDate(),
         description: rest.description ?? '',
         labels: [],
         parentId: defaultDirectoryId,
         permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
-        parentsPath: '',
-        virtualParentsPath: '',
+        parentsPath: backend.ParentsPath(''),
+        virtualParentsPath: backend.VirtualParentsPath(''),
       },
       rest,
     )
@@ -1333,7 +1333,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         description: null,
         id,
         labels: [],
-        modifiedAt: dateTime.toRfc3339(new Date()),
+        modifiedAt: newDate(),
         parentId,
         permissions: [
           {
