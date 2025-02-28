@@ -36,6 +36,7 @@ export const componentBrowserBindings = defineKeybinds('component-browser', {
   acceptInput: ['Mod+Enter'],
   acceptAIPrompt: ['Enter'],
   switchPanelFocus: ['Tab'],
+  switchToCodeEditMode: ['Mod+Tab'],
 })
 
 export const graphBindings = defineKeybinds('graph-editor', {

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { componentBrowserBindings } from '@/bindings'
 import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
 import ComponentEntry from '@/components/ComponentBrowser/ComponentEntry.vue'
 import type { Filtering } from '@/components/ComponentBrowser/filtering'
@@ -7,7 +6,8 @@ import LazyList from '@/components/LazyList.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { tryGetIndex } from '@/util/data/array'
-import { computed, ref, type ComponentInstance } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import type { ComponentExposed } from 'vue-component-type-helpers'
 
 const ITEM_SIZE = 24
 const SCROLL_TO_SELECTION_MARGIN = ITEM_SIZE / 2
@@ -22,15 +22,15 @@ const emit = defineEmits<{
 }>()
 
 const root = ref<HTMLElement>()
-const groupsPanel = ref<ComponentInstance<typeof LazyList>>()
-const componentsPanel = ref<ComponentInstance<typeof LazyList>>()
+const groupsPanel = ref<ComponentExposed<typeof LazyList>>()
+const componentsPanel = ref<ComponentExposed<typeof LazyList>>()
 const panels = { groupsPanel, componentsPanel }
 export type ComponentListPanel = keyof typeof panels
 
 const selectedGroupIndex = ref<number | null>(0)
-const selectedComponent = ref<number | null>(0)
+const selectedComponentIndex = ref<number | null>(0)
 const focusedPanel = computed<ComponentListPanel>(() =>
-  selectedComponent.value != null ? 'componentsPanel' : 'groupsPanel',
+  selectedComponentIndex.value != null ? 'componentsPanel' : 'groupsPanel',
 )
 
 const suggestionDbStore = useSuggestionDbStore()
@@ -57,39 +57,34 @@ function componentColor(component: Component): string {
   return groupColorStyle(tryGetIndex(suggestionDbStore.groups, component.group))
 }
 
-function componentSelectionChanged(index: number | null) {
-  emit('update:selectedComponent', index == null ? null : (currentComponents.value[index] ?? null))
-}
+const selectedComponent = computed(() =>
+  selectedComponentIndex.value == null ?
+    null
+  : (currentComponents.value[selectedComponentIndex.value] ?? null),
+)
 
-const handler = componentBrowserBindings.handler({
+watch(selectedComponent, (component) => emit('update:selectedComponent', component), {
+  immediate: true,
+})
+
+defineExpose({
   switchPanelFocus: () => {
     switch (focusedPanel.value) {
       case 'componentsPanel':
-        selectedComponent.value = null
+        selectedComponentIndex.value = null
         break
       case 'groupsPanel':
-        selectedComponent.value = 0
+        selectedComponentIndex.value = 0
         break
     }
   },
+  moveUp: () => panels[focusedPanel.value].value?.moveUp(),
+  moveDown: () => panels[focusedPanel.value].value?.moveDown(),
 })
-
-function onKeyDown(event: KeyboardEvent) {
-  const handled = handler(event)
-  if (!handled && event.target === root.value) {
-    // In Component Browser, the "officially" focused element is always text input.
-    // but we want other panels handle the keyboard events as well.
-    event.stopImmediatePropagation()
-    event.preventDefault()
-    ;(panels[focusedPanel.value].value as any)?.$el.dispatchEvent(
-      new KeyboardEvent(event.type, event),
-    )
-  }
-}
 </script>
 
 <template>
-  <div ref="root" class="ComponentList" @keydown="onKeyDown">
+  <div ref="root" class="ComponentList">
     <LazyList
       v-slot="{ item: group }"
       ref="groupsPanel"
@@ -106,15 +101,14 @@ function onKeyDown(event: KeyboardEvent) {
     <LazyList
       ref="componentsPanel"
       v-slot="{ item: component }"
-      v-model:selected="selectedComponent"
+      v-model:selected="selectedComponentIndex"
       class="components"
       :items="currentComponents"
       :itemHeight="ITEM_SIZE"
       :scrollToSelectionMargin="SCROLL_TO_SELECTION_MARGIN"
-      :autoSelectFirst="focusedPanel === 'componentsPanel'"
+      :autoSelectFirst="true"
       :debounceMouseSelection="MOUSE_SELECTION_DEBOUNCE"
       @itemAccepted="emit('acceptSuggestion', $event)"
-      @update:selected="componentSelectionChanged"
     >
       <ComponentEntry :component="component" :color="componentColor(component)" />
     </LazyList>

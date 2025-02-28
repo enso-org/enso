@@ -134,7 +134,7 @@ function updateScroll() {
 
 watch(
   () => items,
-  () => {
+  (i) => {
     selected.value = autoSelectFirst && items.length > 0 ? 0 : null
     scrollTarget.value = 0.0
   },
@@ -142,29 +142,32 @@ watch(
 
 // === Expose ===
 
-const handler = listBindings.handler({
-  moveUp() {
-    if (selected.value != null && selected.value > 0) {
-      selected.value -= 1
-    }
-    showSelectedItem()
-  },
-  moveDown() {
-    if (selected.value == null) {
-      selected.value = 0
-    } else if (selected.value < items.length - 1) {
-      selected.value += 1
-    }
-    showSelectedItem()
-  },
-  accept() {
-    updateSelectionToHighlight()
-    if (selected.value == null) return false
-    const item = items[selected.value]
-    if (item == null) return false
-    emit('itemAccepted', item, selected.value)
-  },
-})
+function moveUp() {
+  if (selected.value != null && selected.value > 0) {
+    selected.value -= 1
+  }
+  showSelectedItem()
+}
+
+function moveDown() {
+  if (selected.value == null) {
+    selected.value = 0
+  } else if (selected.value < items.length - 1) {
+    selected.value += 1
+  }
+  showSelectedItem()
+}
+
+function accept() {
+  updateSelectionToHighlight()
+  if (selected.value == null) return false
+  const item = items[selected.value]
+  if (item == null) return false
+  emit('itemAccepted', item, selected.value)
+}
+
+const handler = listBindings.handler({ moveUp, moveDown, accept })
+defineExpose({ moveUp, moveDown, accept })
 </script>
 
 <template>

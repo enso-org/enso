@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { componentBrowserBindings } from '@/bindings'
+import { componentBrowserBindings, listBindings } from '@/bindings'
 import { type Component } from '@/components/ComponentBrowser/component'
 import ComponentEditor from '@/components/ComponentBrowser/ComponentEditor.vue'
 import ComponentList from '@/components/ComponentBrowser/ComponentList.vue'
@@ -325,8 +325,8 @@ const actions = registerHandlers({
     disabled: computed(() => input.mode.mode != 'componentBrowsing'),
   },
   'componentBrowser.switchToCodeEditMode': {
-    action: input.switchToCodeEditMode,
     disabled: computed(() => input.mode.mode != 'componentBrowsing'),
+    action: input.switchToCodeEditMode,
   },
 })
 
@@ -351,18 +351,22 @@ const handler = componentBrowserBindings.handler({
     if (input.mode.mode == 'aiPrompt') input.applyAIPrompt()
     else return false
   },
+  switchToCodeEditMode() {
+    return performActionIfNotDisabled(actions['componentBrowser.switchToCodeEditMode'])
+  },
+  switchPanelFocus() {
+    componentList.value?.switchPanelFocus()
+  },
 })
 
-function onKeyDown(event: KeyboardEvent) {
-  const handled = handler(event)
-  if (!handled && (event.target === cbRoot.value || event.target instanceof HTMLInputElement)) {
-    // In Component Browser, the "officially" focused element is always text input.
-    // but we want other panels handle the keyboard events as well.
-    event.stopImmediatePropagation()
-    event.preventDefault()
-    componentList.value?.$el.dispatchEvent(new KeyboardEvent(event.type, event))
-  }
-}
+const listsHandler = listBindings.handler({
+  moveUp() {
+    componentList.value?.moveUp()
+  },
+  moveDown() {
+    componentList.value?.moveDown()
+  },
+})
 </script>
 
 <template>
@@ -373,7 +377,7 @@ function onKeyDown(event: KeyboardEvent) {
     :data-self-argument="input.selfArgument"
     tabindex="-1"
     @focusout="handleDefocus"
-    @keydown="onKeyDown"
+    @keydown="handler($event) !== false || listsHandler($event)"
     @pointerdown.stop.prevent
     @pointerup.stop.prevent
     @click.stop.prevent

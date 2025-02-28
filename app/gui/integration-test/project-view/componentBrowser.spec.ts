@@ -189,7 +189,7 @@ test('Filling input with suggestion', async ({ page }) => {
   await expect(locate.componentBrowserEntry(page)).toExist()
 
   // Applying suggestion
-  await page.keyboard.press('Tab')
+  await page.keyboard.press('Shift+Enter')
   await expect(locate.componentBrowser(page)).toExist()
   await expect(locate.componentBrowserInput(page).locator('input')).toHaveValue('Data.read ')
 })
@@ -247,7 +247,7 @@ test('Visualization preview: type-based visualization selection', async ({ page 
   const input = locate.componentBrowserInput(page).locator('input')
   await input.fill('Table.ne')
   await expect(input).toHaveValue('Table.ne')
-  await locate.componentBrowser(page).getByTestId('switchToEditMode').click()
+  await page.keyboard.press(`Shift+Enter`)
   await expect(locate.tableVisualization(page)).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(locate.componentBrowser(page)).toBeHidden()
@@ -262,7 +262,7 @@ test('Visualization preview: user visualization selection', async ({ page }) => 
   const input = locate.componentBrowserInput(page).locator('input')
   await input.fill('4')
   await expect(input).toHaveValue('4')
-  await locate.componentBrowser(page).getByTestId('switchToEditMode').click()
+  await page.keyboard.press(`Shift+Enter`)
   await expect(locate.jsonVisualization(page)).toBeVisible()
   await expect(locate.jsonVisualization(page)).toContainText('"visualizedExpr": "4"')
   await locate.toggleVisualizationSelectorButton(page).click()

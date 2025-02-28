@@ -99,6 +99,7 @@ const actions = {
   'componentBrowser.switchToCodeEditMode': {
     icon: 'edit',
     description: 'Swtich to Code Edit Mode',
+    shortcut: componentBrowserBindings.bindings.switchToCodeEditMode,
   },
 } satisfies Record<string, Action>
 
