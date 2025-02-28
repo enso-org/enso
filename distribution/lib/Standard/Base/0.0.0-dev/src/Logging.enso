@@ -96,7 +96,6 @@ type Telemetry
     log self name:Text message:Text (metadata:Dictionary Text Any = Dictionary.empty) =
         logger_name = Telemetry.logger_root + "." + name
         metadata_js = JS_Object.from_pairs <| metadata.to_vector
-        Standard.Base.IO.println <| "Telemetry.log: name=" + logger_name + ", message=" + message + ", metadata_js=" + metadata_js.to_text
         Illegal_Argument.handle_java_exception <|
             Telemetry_Log_Error.handle_java_exception <|
                 TelemetryLog.logAsync logger_name message metadata_js.object_node
