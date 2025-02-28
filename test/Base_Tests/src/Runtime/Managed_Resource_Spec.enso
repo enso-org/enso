@@ -135,19 +135,40 @@ add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
             Test.fail (msg_text)
 
     group_builder.specify "should not allow a resource to be registered more than once at the same time" pending=assertions_are_disabled <|
-        v = My_Value.Value 10
+        values = [My_Value.Value 10, 2]
+        values.map v->
+            cleanup _ = Nothing
+            mr0 = Managed_Resource.register v cleanup
+            Test.expect_panic Assertion_Error (Managed_Resource.register v cleanup)
+            mr0 . should_succeed  # Here to prevent collection
+            mr0.take
+
+    group_builder.specify "should not allow two atomic (integer) resources that are equal to be registered at the same time" pending=assertions_are_disabled <|
         cleanup _ = Nothing
-        mr0 = Managed_Resource.register v cleanup
-        Test.expect_panic Assertion_Error (Managed_Resource.register v cleanup)
-        mr0 . should_succeed
+        mr0 = Managed_Resource.register 2 cleanup
+        Test.expect_panic Assertion_Error (Managed_Resource.register 2 cleanup)
+        mr0 . should_succeed  # Here to prevent collection
+
+    group_builder.specify "should allow two object resources that are equal but not the same instance to be registered at the same time" pending=assertions_are_disabled <|
+        value = My_Value.Value 10
+        value2 = My_Value.Value 10
+        cleanup _ = Nothing
+        mr0 = Managed_Resource.register value cleanup
+        mr1 = Managed_Resource.register value2 cleanup
+        mr0 . should_succeed  # Here to prevent collection
+        mr1 . should_succeed  # Here to prevent collection
+        mr0.take
+        mr1.take
 
     group_builder.specify "should allow a resource to be registered more than once, but not at the same time" <|
         v = My_Value.Value 10
         cleanup _ = Nothing
         mr0 = Managed_Resource.register v cleanup
         mr0.take
-        Managed_Resource.register v cleanup . should_succeed
+        mr1 = Managed_Resource.register v cleanup
         mr0 . should_succeed
+        mr1 . should_succeed
+        mr1.take
 
 main filter=Nothing =
     suite = Test.build suite_builder->
