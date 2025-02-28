@@ -67,12 +67,12 @@ test('can navigate to parent directory of an asset in the Trash category', ({ pa
     },
   })
     // Project in the root (a)
-    .driveTable.rightClickRow(1)
+    .driveTable.rightClickRow('a')
     .contextMenu.moveNonFolderToTrash()
-    .driveTable.openDirectory(0)
-    .driveTable.openDirectory(0)
+    .driveTable.openDirectory('d')
+    .driveTable.openDirectory('e')
     // Project in the nested directory (c)
-    .driveTable.rightClickRow(0)
+    .driveTable.rightClickRow('c')
     .contextMenu.moveNonFolderToTrash()
     .goToCategory.trash()
     .driveTable.withPathColumnCell('a', async (cell) => {

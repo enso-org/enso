@@ -274,11 +274,14 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
             }),
         )
       },
-      openDirectory(index: number) {
-        return self.step(`Open directory on drive table row #${index}`, async (page) => {
-          const navigateButton = locateAssetRows(page)
-            .nth(index)
-            .getByTestId('directory-row-navigate-button')
+      openDirectory(indexOrName: number | string) {
+        return self.step(`Open directory on drive table row ${indexOrName}`, async (page) => {
+          const rows = locateAssetRows(page)
+          const row =
+            typeof indexOrName === 'number' ?
+              rows.nth(indexOrName)
+            : rows.filter({ hasText: indexOrName })
+          const navigateButton = row.getByTestId('directory-row-navigate-button')
 
           await expect(navigateButton).toHaveAttribute('aria-label', TEXT.open)
 
