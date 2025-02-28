@@ -17,12 +17,13 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import org.enso.base.enso_cloud.AuthenticationProvider;
+import org.enso.base.enso_cloud.CloudAPI;
 
 /**
  * Gives access to the low-level log event API in the Cloud and manages asynchronously submitting
  * the logs.
  */
-public abstract class LogApiAccess {
+public final class LogApiAccess {
   /**
    * We still want to limit the batch size to some reasonable number - sending too many logs in one
    * request could also be problematic.
@@ -31,20 +32,19 @@ public abstract class LogApiAccess {
 
   private static final int MAX_RETRIES = 5;
   private static final Logger LOGGER = Logger.getLogger(LogApiAccess.class.getName());
+  public static final LogApiAccess INSTANCE = new LogApiAccess();
 
   private HttpClient httpClient;
   private final LogJobsQueue logQueue = new LogJobsQueue();
   private final ThreadPoolExecutor backgroundThreadService;
   private RequestConfig cachedRequestConfig = null;
 
-  protected LogApiAccess() {
+  private LogApiAccess() {
     // We set-up a thread 'pool' that will contain at most one thread.
     // If the thread is idle for 60 seconds, it will be shut down.
     backgroundThreadService =
         new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
   }
-
-  public abstract URI endpoint();
 
   public Future<Void> logWithConfirmation(LogMessage message) {
     var currentRequestConfig = getRequestConfig();
@@ -194,7 +194,7 @@ public abstract class LogApiAccess {
     if (cachedRequestConfig != null) {
       return cachedRequestConfig;
     }
-    var uri = endpoint();
+    var uri = URI.create(CloudAPI.getAPIRootURI() + "logs");
     var config = new RequestConfig(uri, AuthenticationProvider.getAccessToken());
     cachedRequestConfig = config;
     return config;

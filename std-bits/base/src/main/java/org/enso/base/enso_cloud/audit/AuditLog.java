@@ -3,6 +3,7 @@ package org.enso.base.enso_cloud.audit;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import org.enso.base.enso_cloud.logging.LogApiAccess;
 
 /**
  * The high-level API for logging audit events.
@@ -15,25 +16,16 @@ import java.util.concurrent.Future;
 public final class AuditLog {
   private AuditLog() {}
 
-  private static AuditLogApiAccess apiAccess;
-
-  private static AuditLogApiAccess apiAccess() {
-    if (apiAccess == null) {
-      apiAccess = new AuditLogApiAccess();
-    }
-    return apiAccess;
-  }
-
   /** Schedules the log message to be sent in the next batch, and returns immediately. */
   public static void logAsync(String type, String message, ObjectNode metadata) {
     var event = new AuditLogMessage(type, message, metadata);
-    apiAccess().logWithoutConfirmation(event);
+    LogApiAccess.INSTANCE.logWithoutConfirmation(event);
   }
 
   /** Schedules the log message to be sent in the next batch, and waits until it has been sent. */
   public static void logSynchronously(String type, String message, ObjectNode metadata) {
     var event = new AuditLogMessage(type, message, metadata);
-    Future<Void> future = apiAccess().logWithConfirmation(event);
+    Future<Void> future = LogApiAccess.INSTANCE.logWithConfirmation(event);
     try {
       future.get();
     } catch (ExecutionException | InterruptedException e) {
@@ -48,6 +40,6 @@ public final class AuditLog {
   }
 
   public static void resetCache() {
-    apiAccess().resetCache();
+    LogApiAccess.INSTANCE.resetCache();
   }
 }
