@@ -22,11 +22,12 @@ import type {
 } from 'ag-grid-enterprise'
 import { computed, ref, shallowRef, watchEffect, type Ref } from 'vue'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
-import { parseArgument } from './TableVisualization/TableVizDataSource'
 import {
-  actionMap,
-  FilterAction,
-  getFilterValue,
+  convertFilterModel,
+  convertSortModel,
+  parseArgument,
+} from './TableVisualization/TableVizDataSource'
+import {
   GridFilterModel,
   makeFilterModelList,
 } from './TableVisualization/tableVizFilterUtils'
@@ -280,18 +281,13 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
   }
 }
 
-type SortDirection = 'asc' | 'desc'
-const sortDirectionMap = computed(() => ({
-  asc: '1',
-  desc: '-1',
-}))
-
 function createServer() {
   return {
     getSetFilterValues: async (columnIndex?: number) => {
       const response = await config.executeExpression(
         'Standard.Visualization.Table.Visualization',
         'get_distinct_values_for_column',
+        //null as values dont need parsing
         null,
         `${columnIndex}`,
       )
@@ -308,96 +304,32 @@ function createServer() {
           : []
         : []
 
-      const sortColIndexesMap = request.sortModel.map((sortCol) => {
-        return `${columnHeaders.findIndex((h: string) => sortCol.colId === h)}`
-      })
-      const sortColIndexes = sortColIndexesMap.length ? sortColIndexesMap : 'Nothing'
-      const sortDirections =
-        sortColIndexesMap.length ?
-          request.sortModel.map((sortCol) => {
-            return sortDirectionMap.value[sortCol.sort as SortDirection]
-          })
-        : 'Nothing'
+      const { sortColIndexes, sortDirections } = convertSortModel(request, columnHeaders)
 
-      const gridFilterModelList: Array<GridFilterModel> =
-        request.filterModel ? makeFilterModelList(request.filterModel) : []
-
-      const filterColumnNames = gridFilterModelList.map((filter) => filter.columnName)
-
-      const filterColumnIndexList =
-        filterColumnNames.length ?
-          filterColumnNames.map(
-            (colName) => `${columnHeaders.findIndex((h: string) => colName === h)}`,
-          )
-        : 'Nothing'
-
-      const filterActions =
-        filterColumnNames.length ?
-          gridFilterModelList.map((filter) => {
-            return filter.filterType === 'set' ?
-                '..Is_In'
-              : actionMap[filter.filterAction as FilterAction]
-          })
-        : 'Nothing'
-
-      const valueMap = gridFilterModelList.map((filter) => {
-        return {
-          valType: colTypeMap.value.get(filter.columnName),
-          action: actionMap[filter.filterAction as FilterAction],
-          value: getFilterValue(filter),
-        }
-      })
-
-      const valueList =
-        valueMap.length ?
-          valueMap.map((value) => {
-            if (value.valType === 'Mixed' && Array.isArray(value.value)) {
-              const parseValues = value.value.map((val) => {
-                return { valueType: getCellValueType(val), value: val }
-              })
-              return { valueType: value.valType, value: parseValues }
-            }
-
-            if (
-              value.action === '..Between' &&
-              typeof value.value === 'object' &&
-              'fromValue' in value.value
-            ) {
-              return { valueType: value.valType, value: `${value.value.fromValue}` }
-            }
-
-            return { valueType: value.valType, value: `${value.value}` }
-          })
-        : 'Nothing'
-
-      const toValueList =
-        valueMap.length ?
-          valueMap.map((value) => {
-            if (
-              value.action === '..Between' &&
-              typeof value.value === 'object' &&
-              'fromValue' in value.value
-            ) {
-              return `${value.value.toValue}`
-            }
-            return 'Nothing'
-          })
-        : 'Nothing'
+      const { filterColumnIndexList, filterActions, valueList, toValueList } = convertFilterModel(
+        request,
+        columnHeaders,
+        colTypeMap.value
+      )
 
       const response = await config.executeExpression(
         'Standard.Visualization.Table.Visualization',
         'get_rows_for_table',
+        // function that will parse filter values to enso compaible 
         parseArgument,
+        //the index of the next bucket of rows to get 
         `${request.startRow}`,
+        //column indexes that require a sort
         sortColIndexes,
+        //direction (Ascending/Descending) for the sorts
         sortDirections,
-        //column indexes for filtering
+        //column indexes that require a filter
         filterColumnIndexList,
         //column actions i.e Greater Than, Between...
         filterActions,
-        //column values, or From Values
+        //column values, or From Values if using a Between filter
         valueList,
-        // To Values
+        // To Values (only used in Between filters will be 'Nothing' for any other filter)
         toValueList,
       )
       return {
@@ -407,6 +339,7 @@ function createServer() {
     },
   }
 }
+
 interface Response {
   data: unknown[][]
   success: boolean
