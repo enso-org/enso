@@ -1,22 +1,25 @@
 <script setup lang="ts" generic="T">
+import { listBindings } from '@/bindings'
 import { useApproach } from '@/composables/animation'
 import { useResizeObserver } from '@/composables/events'
 import { cloneVNode, computed, h, ref, VNode, watch } from 'vue'
 
+const selected = defineModel<number | null>('selected', { required: false, default: null })
 const {
   items,
   itemHeight,
   scrollToSelectionMargin = 0.0,
   autoSelectFirst = false,
+  debounceMouseSelection,
 } = defineProps<{
   items: readonly T[]
   itemHeight: number
   scrollToSelectionMargin?: number
   autoSelectFirst?: boolean
+  debounceMouseSelection?: number
 }>()
 const emit = defineEmits<{
   itemAccepted: [item: T, index: number]
-  'update:selectedItem': [selected: T | null, index: number | null]
 }>()
 const slots = defineSlots<{
   default(props: { item: T }): any
@@ -44,7 +47,7 @@ function createVNodes(slot: typeof slots.default) {
         'div',
         { class: 'item', style: itemStyle(index) },
         slot({ item }).map((node: VNode<unknown, unknown>) =>
-          cloneVNode(node, { class: { selected: index === selected.value } }),
+          cloneVNode(node, { class: { selected: index === highlighted.value } }),
         ),
       ),
       item,
@@ -55,7 +58,7 @@ function createVNodes(slot: typeof slots.default) {
 
 const nodes = computed(() => createVNodes(slots.default))
 
-function ItemPos(index: number) {
+function itemPos(index: number) {
   return index * itemHeight
 }
 
@@ -72,21 +75,29 @@ function itemStyle(index: number) {
     height: 'var(--item-height)',
     minHeight: 'var(--item-height)',
     maxHeight: 'var(--item-height)',
-    transform: `translateY(${ItemPos(index)}px)`,
+    transform: `translateY(${itemPos(index)}px)`,
   }
 }
 
-// === Highlight ===
+// === Selection ===
 
-const selected = ref<number | null>(null)
-const selectedPosition = computed(() => (selected.value != null ? ItemPos(selected.value) : null))
+const highlighted = ref<number | null>(selected.value)
+let mouseSelectionDebounce: ReturnType<typeof setTimeout> | undefined
+function updateSelectionToHighlight() {
+  clearTimeout(mouseSelectionDebounce)
+  mouseSelectionDebounce = undefined
+  selected.value = highlighted.value
+}
 
-const selectedItem = computed(() => {
-  if (selected.value === null) return null
-  return items[selected.value] ?? null
+watch(selected, (x) => (highlighted.value = x))
+watch(highlighted, () => {
+  clearTimeout(mouseSelectionDebounce)
+  if (debounceMouseSelection == null) {
+    updateSelectionToHighlight()
+  } else {
+    mouseSelectionDebounce = setTimeout(updateSelectionToHighlight, debounceMouseSelection)
+  }
 })
-
-watch(selectedItem, (item) => emit('update:selectedItem', item, selected.value))
 
 // === Scrolling ===
 
@@ -97,10 +108,11 @@ const scrollPosition = useApproach(scrollTarget)
 const listContentHeightPx = computed(() => `${listContentHeight.value}px`)
 
 function showSelectedItem() {
-  if (selectedPosition.value == null) return
-  const maxScrollPos = Math.max(selectedPosition.value - scrollToSelectionMargin, 0.0)
+  if (selected.value == null) return
+  const selectedPosition = itemPos(selected.value)
+  const maxScrollPos = Math.max(selectedPosition - scrollToSelectionMargin, 0.0)
   const minScrollPos = Math.min(
-    selectedPosition.value + itemHeight + scrollToSelectionMargin - scrollerSize.value.y,
+    selectedPosition + itemHeight + scrollToSelectionMargin - scrollerSize.value.y,
     listContentHeight.value - scrollerSize.value.y,
   )
   if (scrollPosition.value > maxScrollPos) {
@@ -123,14 +135,14 @@ function updateScroll() {
 watch(
   () => items,
   () => {
-    selected.value = autoSelectFirst ? 0 : null
+    selected.value = autoSelectFirst && items.length > 0 ? 0 : null
     scrollTarget.value = 0.0
   },
 )
 
 // === Expose ===
 
-defineExpose({
+const handler = listBindings.handler({
   moveUp() {
     if (selected.value != null && selected.value > 0) {
       selected.value -= 1
@@ -145,6 +157,13 @@ defineExpose({
     }
     showSelectedItem()
   },
+  accept() {
+    updateSelectionToHighlight()
+    if (selected.value == null) return false
+    const item = items[selected.value]
+    if (item == null) return false
+    emit('itemAccepted', item, selected.value)
+  },
 })
 </script>
 
@@ -152,6 +171,7 @@ defineExpose({
   <div
     class="LazyList"
     :style="{ '--list-height': listContentHeightPx, '--item-height': itemHeight }"
+    @keydown="handler"
   >
     <div
       ref="scroller"
@@ -166,7 +186,7 @@ defineExpose({
           v-for="{ node, item, index } in nodes"
           :key="index"
           class="item"
-          @mousemove="selected = index"
+          @mousemove="highlighted = index"
           @click="emit('itemAccepted', item, index)"
         />
       </div>

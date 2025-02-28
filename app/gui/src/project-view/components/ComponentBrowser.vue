@@ -2,7 +2,7 @@
 import { componentBrowserBindings } from '@/bindings'
 import { type Component } from '@/components/ComponentBrowser/component'
 import ComponentEditor from '@/components/ComponentBrowser/ComponentEditor.vue'
-import ComponentList, { ComponentListPanel } from '@/components/ComponentBrowser/ComponentList.vue'
+import ComponentList from '@/components/ComponentBrowser/ComponentList.vue'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
 import { useComponentBrowserInput, type Usage } from '@/components/ComponentBrowser/input'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
@@ -73,7 +73,6 @@ const emit = defineEmits<{
 
 const cbRoot = ref<HTMLElement>()
 const componentList = ref<ComponentInstance<typeof ComponentList>>()
-const focusedPanel = ref<ComponentListPanel>('componentsPanel')
 
 const clickOutsideAssociatedElements = (e: PointerEvent) => {
   return props.associatedElements.length === 0 ?
@@ -352,23 +351,18 @@ const handler = componentBrowserBindings.handler({
     if (input.mode.mode == 'aiPrompt') input.applyAIPrompt()
     else return false
   },
-  moveUp() {
-    componentList.value?.moveUp()
-  },
-  moveDown() {
-    componentList.value?.moveDown()
-  },
-  switchPanelFocus() {
-    switch (focusedPanel.value) {
-      case 'componentsPanel':
-        focusedPanel.value = 'groupsPanel'
-        break
-      case 'groupsPanel':
-        focusedPanel.value = 'componentsPanel'
-        break
-    }
-  },
 })
+
+function onKeyDown(event: KeyboardEvent) {
+  const handled = handler(event)
+  if (!handled && (event.target === cbRoot.value || event.target instanceof HTMLInputElement)) {
+    // In Component Browser, the "officially" focused element is always text input.
+    // but we want other panels handle the keyboard events as well.
+    event.stopImmediatePropagation()
+    event.preventDefault()
+    componentList.value?.$el.dispatchEvent(new KeyboardEvent(event.type, event))
+  }
+}
 </script>
 
 <template>
@@ -379,7 +373,7 @@ const handler = componentBrowserBindings.handler({
     :data-self-argument="input.selfArgument"
     tabindex="-1"
     @focusout="handleDefocus"
-    @keydown="handler"
+    @keydown="onKeyDown"
     @pointerdown.stop.prevent
     @pointerup.stop.prevent
     @click.stop.prevent
@@ -431,8 +425,6 @@ const handler = componentBrowserBindings.handler({
       v-if="input.mode.mode === 'componentBrowsing' && currentFiltering"
       ref="componentList"
       :filtering="currentFiltering"
-      :autoSelectFirstComponent="true"
-      :focusedPanel="focusedPanel"
       @acceptSuggestion="acceptSuggestion($event)"
       @update:selectedComponent="selected = $event"
     />

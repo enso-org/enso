@@ -19,6 +19,12 @@ export const textEditorsBindings = defineKeybinds('text-editors', {
   openLink: ['Mod+PointerMain'],
 })
 
+export const listBindings = defineKeybinds('list', {
+  moveUp: ['ArrowUp'],
+  moveDown: ['ArrowDown'],
+  accept: ['Enter'],
+})
+
 export const interactionBindings = defineKeybinds('current-interaction', {
   cancel: ['Escape'],
 })
@@ -29,8 +35,6 @@ export const componentBrowserBindings = defineKeybinds('component-browser', {
   acceptCode: ['Enter'],
   acceptInput: ['Mod+Enter'],
   acceptAIPrompt: ['Enter'],
-  moveUp: ['ArrowUp'],
-  moveDown: ['ArrowDown'],
   switchPanelFocus: ['Tab'],
 })
 

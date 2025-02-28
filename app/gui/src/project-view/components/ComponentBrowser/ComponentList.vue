@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { GroupId, makeComponentList, type Component } from '@/components/ComponentBrowser/component'
+import { componentBrowserBindings } from '@/bindings'
+import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
 import ComponentEntry from '@/components/ComponentBrowser/ComponentEntry.vue'
-import { Filtering } from '@/components/ComponentBrowser/filtering'
+import type { Filtering } from '@/components/ComponentBrowser/filtering'
 import LazyList from '@/components/LazyList.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
@@ -10,29 +11,30 @@ import { computed, ref, type ComponentInstance } from 'vue'
 
 const ITEM_SIZE = 24
 const SCROLL_TO_SELECTION_MARGIN = ITEM_SIZE / 2
+const MOUSE_SELECTION_DEBOUNCE = 200
 
 const props = defineProps<{
   filtering: Filtering
-  autoSelectFirstComponent: boolean
-  focusedPanel: ComponentListPanel
 }>()
 const emit = defineEmits<{
   acceptSuggestion: [suggestion: Component]
   'update:selectedComponent': [selected: Component | null]
 }>()
 
+const root = ref<HTMLElement>()
 const groupsPanel = ref<ComponentInstance<typeof LazyList>>()
 const componentsPanel = ref<ComponentInstance<typeof LazyList>>()
 const panels = { groupsPanel, componentsPanel }
 export type ComponentListPanel = keyof typeof panels
 
-const selectedGroup = ref<GroupId | null>(null)
+const selectedGroupIndex = ref<number | null>(0)
+const selectedComponent = ref<number | null>(0)
+const focusedPanel = computed<ComponentListPanel>(() =>
+  selectedComponent.value != null ? 'componentsPanel' : 'groupsPanel',
+)
+
 const suggestionDbStore = useSuggestionDbStore()
 const components = computed(() => makeComponentList(suggestionDbStore.entries, props.filtering))
-const currentComponents = computed(() => {
-  if (selectedGroup.value == null) return components.value.get('all') ?? []
-  else return components.value.get(selectedGroup.value) ?? []
-})
 const currentGroups = computed(() => {
   return Array.from(components.value.keys(), (id) => ({
     id,
@@ -41,45 +43,78 @@ const currentGroups = computed(() => {
     : (suggestionDbStore.groups[id] ?? { name: 'unknown' })),
   }))
 })
+const displayedGroupId = computed(() =>
+  selectedGroupIndex.value != null ? currentGroups.value[selectedGroupIndex.value]?.id : null,
+)
+
+const currentComponents = computed(() => {
+  if (displayedGroupId.value == null) return components.value.get('all') ?? []
+  else return components.value.get(displayedGroupId.value) ?? []
+})
+
 /** Group colors are populated in `GraphEditor`, and for each group in suggestion database a CSS variable is created. */
 function componentColor(component: Component): string {
   return groupColorStyle(tryGetIndex(suggestionDbStore.groups, component.group))
 }
 
-defineExpose({
-  moveUp: () => {
-    panels[props.focusedPanel].value?.moveUp()
-  },
-  moveDown: () => {
-    panels[props.focusedPanel].value?.moveDown()
+function componentSelectionChanged(index: number | null) {
+  emit('update:selectedComponent', index == null ? null : (currentComponents.value[index] ?? null))
+}
+
+const handler = componentBrowserBindings.handler({
+  switchPanelFocus: () => {
+    switch (focusedPanel.value) {
+      case 'componentsPanel':
+        selectedComponent.value = null
+        break
+      case 'groupsPanel':
+        selectedComponent.value = 0
+        break
+    }
   },
 })
+
+function onKeyDown(event: KeyboardEvent) {
+  const handled = handler(event)
+  if (!handled && event.target === root.value) {
+    // In Component Browser, the "officially" focused element is always text input.
+    // but we want other panels handle the keyboard events as well.
+    event.stopImmediatePropagation()
+    event.preventDefault()
+    ;(panels[focusedPanel.value].value as any)?.$el.dispatchEvent(
+      new KeyboardEvent(event.type, event),
+    )
+  }
+}
 </script>
 
 <template>
-  <div class="ComponentList">
+  <div ref="root" class="ComponentList" @keydown="onKeyDown">
     <LazyList
       v-slot="{ item: group }"
       ref="groupsPanel"
+      v-model:selected="selectedGroupIndex"
       class="groups"
       :items="currentGroups"
       :itemHeight="ITEM_SIZE"
       :scrollToSelectionMargin="SCROLL_TO_SELECTION_MARGIN"
       :autoSelectFirst="true"
-      @update:selectedItem="(group) => (selectedGroup = group?.id ?? null)"
+      :debounceMouseSelection="MOUSE_SELECTION_DEBOUNCE"
     >
       <div class="groupEntry">{{ group.name }}</div>
     </LazyList>
     <LazyList
       ref="componentsPanel"
       v-slot="{ item: component }"
+      v-model:selected="selectedComponent"
       class="components"
       :items="currentComponents"
       :itemHeight="ITEM_SIZE"
       :scrollToSelectionMargin="SCROLL_TO_SELECTION_MARGIN"
-      :autoSelectFirst="autoSelectFirstComponent"
+      :autoSelectFirst="focusedPanel === 'componentsPanel'"
+      :debounceMouseSelection="MOUSE_SELECTION_DEBOUNCE"
       @itemAccepted="emit('acceptSuggestion', $event)"
-      @update:selectedItem="emit('update:selectedComponent', $event)"
+      @update:selected="componentSelectionChanged"
     >
       <ComponentEntry :component="component" :color="componentColor(component)" />
     </LazyList>
