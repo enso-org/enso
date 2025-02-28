@@ -1022,14 +1022,10 @@ type Column
 
              example_min = Examples.decimal_column.min Examples.integer_column
     min self (values : Any | Vector Any) -> Column = Value_Type_Helpers.check_multi_argument_comparable_op self values <|
-        binary_op = BinaryCoalescingOperation.min self.java_column
-        case binary_op.is_nothing of
-            False ->
-            True ->
-                fallback a b = if a.is_nothing then b else
-                    if b.is_nothing then a else
-                        if b < a then b else a
-                run_vectorized_many_op self "min" fallback values
+        fallback a b = if a.is_nothing then b else
+            if b.is_nothing then a else
+                if b < a then b else a
+        _run_vectorized_many_op self "min" fallback values
 
     ## GROUP Standard.Base.Math
        ICON transform4
@@ -1045,12 +1041,11 @@ type Column
              import Standard.Examples
 
              example_max = Examples.decimal_column.max Examples.integer_column
-    max self (values : Any | Vector Any) -> Column =
+    max self (values : Any | Vector Any) -> Column = Value_Type_Helpers.check_multi_argument_comparable_op self values <|
         fallback a b = if a.is_nothing then b else
             if b.is_nothing then a else
                 if b > a then b else a
-        Value_Type_Helpers.check_multi_argument_comparable_op self values <|
-            run_vectorized_many_op self "max" fallback values
+        _run_vectorized_many_op self "max" fallback values
 
     ## GROUP Standard.Base.Logical
        ICON preparation
@@ -2600,7 +2595,6 @@ type Column
         "Column.from_vector " + name + " " + data
 
 ## PRIVATE
-
    Folds the vectorized operation over the provided column and values. When more
    than one value to is provided, the result is folded with subsequent values.
 
@@ -2611,27 +2605,20 @@ type Column
      It should never raise dataflow errors.
    - operands: The vector of operands to apply to the function after `column`.
    - new_name: The name of the column created as the result of this operation.
-   - skip_nulls: Specifies if nulls should be skipped. If set to `True`, a null
-     value results in null without passing it to the function. If set to
-     `False`, the null values are passed as any other value and can have custom
-     handling logic.
-run_vectorized_many_op : Column -> Text -> (Any -> Any -> Any) -> Vector -> Text|Nothing -> Boolean -> Column
-run_vectorized_many_op column name fallback_fn operands new_name=Nothing skip_nulls=False =
+private _run_vectorized_many_op column:Column name:Text fallback_fn:(Any -> Any -> Any) operands:Vector new_name:(Text | Nothing)=Nothing -> Column =
     effective_operands = Vector.unify_vector_or_element operands
     all_operands = [column]+effective_operands
-    effective_new_name = new_name.if_nothing <|
-        naming_helper.function_name name all_operands
+    effective_new_name = new_name.if_nothing (naming_helper.function_name name all_operands)
     common_type = Value_Type_Helpers.find_common_type_for_arguments all_operands
     common_type.if_not_error <|
         Java_Problems.with_map_operation_problem_aggregator effective_new_name Problem_Behavior.Report_Warning problem_builder->
             storage_type = resolve_storage_type common_type
-            folded = effective_operands.fold column.java_column.getStorage current-> operand->
-                case operand of
-                    _ : Column -> Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                        current.vectorizedOrFallbackZip name problem_builder fallback_fn operand.java_column.getStorage skip_nulls storage_type
-                    _ -> Polyglot_Helpers.handle_polyglot_dataflow_errors <|
-                        current.vectorizedOrFallbackBinaryMap name problem_builder fallback_fn operand skip_nulls storage_type
-            Column.from_storage effective_new_name folded
+            folded = effective_operands.fold column.java_column current-> operand-> if Nothing == operand then current else
+                java_object = if operand.is_a Column then operand.java_column else operand
+                Polyglot_Helpers.handle_polyglot_dataflow_errors <| case name of
+                    "min" -> BinaryCoalescingOperation.min current java_object fallback_fn effective_new_name problem_builder
+                    "max" -> BinaryCoalescingOperation.max current java_object fallback_fn effective_new_name problem_builder
+            Column.from_java_column effective_new_name folded
 
 ## PRIVATE
 
