@@ -7,9 +7,6 @@ import { DEFAULT_ICON, iconOfNode, suggestionEntryToIcon } from '@/util/getIconN
 import { qnLastSegment } from '@/util/qualifiedName'
 import { computed, ref, watch, type DeepReadonly } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
-import ActionMenu from '../ActionMenu.vue'
-import DropdownMenu from '../DropdownMenu.vue'
-import SvgButton from '../SvgButton.vue'
 
 const content = defineModel<DeepReadonly<{ text: string; selection: Range | undefined }>>({
   required: true,
