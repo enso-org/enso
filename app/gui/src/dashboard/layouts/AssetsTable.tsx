@@ -1387,13 +1387,13 @@ function AssetsTable(props: AssetsTableProps) {
     <div className="relative grow contain-strict">
       <div
         data-testid="extra-columns"
-        className="absolute right-3 top-0.5 isolate z-1 flex self-end p-2"
+        className="absolute right-2 top-0.5 isolate z-1 flex self-end bg-dashboard p-2 pr-3"
       >
         <FocusArea direction="horizontal">
           {(columnsBarProps) => (
             <div
+              className="inline-flex gap-icons"
               {...mergeProps<JSX.IntrinsicElements['div']>()(columnsBarProps, {
-                className: 'inline-flex gap-icons',
                 onFocus: () => {
                   setKeyboardSelectedIndex(null)
                 },
