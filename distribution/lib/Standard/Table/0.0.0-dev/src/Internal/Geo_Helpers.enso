@@ -1,0 +1,62 @@
+from Standard.Base import all
+
+import project.Table.Table
+
+## PRIVATE
+private compute_distance table:Table lat1:(Text | Integer | Float) lng1:(Text | Integer | Float) lat2:(Text | Integer | Float) lng2:(Text | Integer | Float) units:Distance_Units as:Text =
+    lat1_col = if lat1.is_a Float then table.make_constant_column lat1 else table.at lat1
+    lng1_col = if lng1.is_a Float then table.make_constant_column lng1 else table.at lng1
+    lat2_col = if lat2.is_a Float then table.make_constant_column lat2 else table.at lat2
+    lng2_col = if lng2.is_a Float then table.make_constant_column lng2 else table.at lng2
+
+    rLat1 = lat1_col.map _to_radians
+    rLat2 = lat2_col.map _to_radians
+    rLng1 = lng1_col.map _to_radians
+    rLng2 = lng2_col.map _to_radians
+
+    dLat = rLat2 - rLat1
+    sinDLat = dLat.map v-> ((v/2).sin)^2
+    dLng = rLng2 - rLng1
+    sinDLng = dLng.map v-> ((v/2).sin)^2
+
+    cosLat1 = rLat1.map .cos
+    cosLat2 = rLat2.map .cos
+
+    product = cosLat1 * cosLat2 * sinDLng + sinDLat
+    haversine_distance = product.map v-> units.to_unit (v.sqrt.asin*2*6371000)
+
+    table.set haversine_distance as
+
+private _to_radians degrees =
+    degrees * Math.pi / 180
+
+## A type of distance units.
+type Distance_Units
+    ## Use meters as the unit.
+    Meters
+
+    ## Use kilometers as the unit.
+    Kilometers
+
+    ## Use feet as the unit.
+    Feet
+
+    ## Use yards as the unit.
+    Yards
+
+    ## Use miles as the unit.
+    Miles
+
+    ## Use smoots as the unit.
+       https://en.wikipedia.org/wiki/Smoot
+    Smoots
+
+    ## PRIVATE
+       Converts meters to the unit.
+    from_meters self meters:Float = case self of
+        Distance_Units.Meters -> meters
+        Distance_Units.Kilometers -> meters / 1000
+        Distance_Units.Feet -> meters * 3.280839895
+        Distance_Units.Yards -> meters * 1.0936132983
+        Distance_Units.Miles -> meters * 0.0006213712
+        Distance_Units.Smoots -> meters / 1.7018
