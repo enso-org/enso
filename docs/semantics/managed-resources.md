@@ -92,12 +92,14 @@ which thread will perform the finalization.
 
 ### Multiple Managed Resources Wrapping The Same Underlying Resource
 
-In case the same underlying resource is used in multiple managed resources, it
-will be finalized as soon as the first managed resource is garbage collected.
+If the same underlying resource is used in multiple managed resources, it would
+be finalized as soon as the first managed resource is garbage collected.
 Moreover, the finalizer will be called for each garbage collected managed
-resource, possibly leading to multiple-finalization of the underlying object.
-Therefore, using the same underlying resource with multiple managed resource
-instances should be considered an error.
+resource, leading to multiple-finalization of the underlying object.  Therefore,
+using the same underlying resource with multiple managed resource instances
+should be considered an error. When assertions are enabled, the
+`ResourceManager` will detect such duplicates and throw a `PanicException`. From
+Enso, an `Assertion_Error` panic is raised.
 
 ### Thread Safety
 

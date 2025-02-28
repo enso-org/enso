@@ -44,6 +44,12 @@ type Managed_Resource
        e.g. using `Managed_Resource.register cache cleanup_fn True` is useful
        for creating user managed caches.
 
+       ! Multiple `Managed_Resource`s for the same resource
+
+       It is considered an error to use the same resource in multiple
+       `Managed_Resource`s, since each `Managed_Resource` has its own, possibly
+       different, finalizer.
+
        Arguments:
        - resource: The resource to register.
        - function: The action to be executed on resource to clean it up when

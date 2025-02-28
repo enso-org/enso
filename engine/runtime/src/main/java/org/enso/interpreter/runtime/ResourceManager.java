@@ -15,7 +15,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import org.enso.interpreter.runtime.data.ManagedResource;
 
-/** Allows the context to attach garbage collection hooks on the removal of certain objects. */
+/**
+ * Allows the context to attach garbage collection hooks on the removal of certain objects.
+ * 
+ * It is considered an error to use the same resource in multiple
+ * `Managed_Resource`s, since each `Managed_Resource` has its own, possibly
+ * different, finalizer.
+ */
 public final class ResourceManager {
   /** Amount of milliseconds to wait for another resource when none is pending. */
   private static final long KEEP_ALIVE = 1000;

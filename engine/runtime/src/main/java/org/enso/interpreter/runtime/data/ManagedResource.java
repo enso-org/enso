@@ -33,6 +33,10 @@ import org.enso.interpreter.runtime.callable.function.Function;
  * {@link ManagedResource}</b>, the {@code Item} is put into {@link ResourceManager} {@code
  * referenceQueue} and process by the intricate machinery of {@link ResourceManager} and its {@code
  * ProcessItems} processor.
+ *
+ * It is considered an error to use the same resource in multiple
+ * `Managed_Resource`s, since each `Managed_Resource` has its own, possibly
+ * different, finalizer.
  */
 @ExportLibrary(InteropLibrary.class)
 @Builtin(pkg = "resource", stdlibName = "Standard.Base.Runtime.Managed_Resource.Managed_Resource")
