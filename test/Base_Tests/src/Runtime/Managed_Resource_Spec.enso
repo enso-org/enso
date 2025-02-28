@@ -160,7 +160,7 @@ add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
         mr0.take
         mr1.take
 
-    group_builder.specify "should allow a resource to be registered more than once, but not at the same time" <|
+    group_builder.specify "should allow a resource to be registered more than once, but not at the same time" pending=assertions_are_disabled <|
         v = My_Value.Value 10
         cleanup _ = Nothing
         mr0 = Managed_Resource.register v cleanup
