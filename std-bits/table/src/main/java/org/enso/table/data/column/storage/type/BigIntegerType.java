@@ -1,12 +1,11 @@
 package org.enso.table.data.column.storage.type;
 
+import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
-
-import java.math.BigInteger;
 
 public record BigIntegerType() implements StorageType<BigInteger> {
   public static final BigIntegerType INSTANCE = new BigIntegerType();
@@ -40,7 +39,8 @@ public record BigIntegerType() implements StorageType<BigInteger> {
   }
 
   @Override
-  public BuilderForType<BigInteger> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
+  public BuilderForType<BigInteger> makeBuilder(
+      long initialCapacity, ProblemAggregator problemAggregator) {
     return Builder.getForBigInteger(initialCapacity, problemAggregator);
   }
 

@@ -1,21 +1,20 @@
 package org.enso.table.data.column.operation;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
+import java.util.function.BiFunction;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.BlackholeProblemAggregator;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZonedDateTime;
-import java.util.function.BiFunction;
-
 public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
-  private final static BinaryOperation<LocalDate> DATE_MIN =
+  private static final BinaryOperation<LocalDate> DATE_MIN =
       new BinaryCoalescingOperation<>(DateType.INSTANCE, (a, b) -> a.isBefore(b) ? a : b);
-  private final static BinaryOperation<ZonedDateTime> DATE_TIME_MIN =
+  private static final BinaryOperation<ZonedDateTime> DATE_TIME_MIN =
       new BinaryCoalescingOperation<>(DateTimeType.INSTANCE, (a, b) -> a.isBefore(b) ? a : b);
-  private final static BinaryOperation<LocalTime> TIME_MIN =
+  private static final BinaryOperation<LocalTime> TIME_MIN =
       new BinaryCoalescingOperation<>(TimeOfDayType.INSTANCE, (a, b) -> a.isBefore(b) ? a : b);
 
   public static BinaryOperation<?> min(Column left) {
@@ -28,11 +27,11 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
     };
   }
 
-  private final static BinaryOperation<LocalDate> DATE_MAX =
+  private static final BinaryOperation<LocalDate> DATE_MAX =
       new BinaryCoalescingOperation<>(DateType.INSTANCE, (a, b) -> a.isAfter(b) ? a : b);
-  private final static BinaryOperation<ZonedDateTime> DATE_TIME_MAX =
+  private static final BinaryOperation<ZonedDateTime> DATE_TIME_MAX =
       new BinaryCoalescingOperation<>(DateTimeType.INSTANCE, (a, b) -> a.isAfter(b) ? a : b);
-  private final static BinaryOperation<LocalTime> TIME_MAX =
+  private static final BinaryOperation<LocalTime> TIME_MAX =
       new BinaryCoalescingOperation<>(TimeOfDayType.INSTANCE, (a, b) -> a.isBefore(b) ? a : b);
 
   public static BinaryOperation<?> max(Column left) {
@@ -60,7 +59,8 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
 
   @Override
   public boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
-    return canApplyMap(left, null) && (NullType.INSTANCE.isOfType(right.getType()) || canApplyMap(right, null));
+    return canApplyMap(left, null)
+        && (NullType.INSTANCE.isOfType(right.getType()) || canApplyMap(right, null));
   }
 
   @Override
@@ -78,8 +78,7 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
         validType.asTypedStorage(left),
         false,
         validType.makeBuilder(left.getSize(), BlackholeProblemAggregator.INSTANCE),
-        (idx, value) -> zipOperation.apply(value, rightValueTyped)
-        );
+        (idx, value) -> zipOperation.apply(value, rightValueTyped));
   }
 
   @Override
@@ -93,7 +92,6 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
         validType.asTypedStorage(right),
         size -> validType.makeBuilder(size, BlackholeProblemAggregator.INSTANCE),
         false,
-        (index, l, r) -> l == null ? r : (r == null ? l : zipOperation.apply(l, r))
-    );
+        (index, l, r) -> l == null ? r : (r == null ? l : zipOperation.apply(l, r)));
   }
 }

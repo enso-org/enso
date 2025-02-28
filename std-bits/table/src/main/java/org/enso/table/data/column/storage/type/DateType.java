@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage.type;
 
 import java.time.LocalDate;
-
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -36,10 +35,10 @@ public record DateType() implements StorageType<LocalDate> {
   }
 
   @Override
-  public BuilderForType<LocalDate> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
+  public BuilderForType<LocalDate> makeBuilder(
+      long initialCapacity, ProblemAggregator problemAggregator) {
     return Builder.getForDate(initialCapacity);
   }
-
 
   @Override
   public ColumnStorage<LocalDate> asTypedStorage(ColumnStorage<?> storage) {

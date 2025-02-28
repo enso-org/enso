@@ -45,10 +45,10 @@ public record FloatType(Bits bits) implements StorageType<Double> {
   }
 
   @Override
-  public BuilderForType<Double> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
+  public BuilderForType<Double> makeBuilder(
+      long initialCapacity, ProblemAggregator problemAggregator) {
     return Builder.getForDouble(this, initialCapacity, problemAggregator);
   }
-
 
   @Override
   public ColumnDoubleStorage asTypedStorage(ColumnStorage<?> storage) {

@@ -103,7 +103,10 @@ public class Column {
 
   /** Creates a column from an Enso array, ensuring Enso dates are converted to Java dates. */
   public static Column fromItems(
-      String name, List<Value> items, StorageType<?> expectedType, ProblemAggregator problemAggregator)
+      String name,
+      List<Value> items,
+      StorageType<?> expectedType,
+      ProblemAggregator problemAggregator)
       throws ClassCastException {
     Context context = Context.getCurrent();
     int n = items.size();

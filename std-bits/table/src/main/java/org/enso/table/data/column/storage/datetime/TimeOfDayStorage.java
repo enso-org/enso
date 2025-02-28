@@ -6,7 +6,6 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.GenericBinaryObjectMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.datetime.DateTimeIsInOp;
-import org.enso.table.data.column.operation.map.datetime.TimeLikeCoalescingOperation;
 import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 

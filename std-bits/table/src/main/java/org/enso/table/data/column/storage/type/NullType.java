@@ -33,7 +33,8 @@ public record NullType() implements StorageType<Void> {
   }
 
   @Override
-  public BuilderForType<Void> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
+  public BuilderForType<Void> makeBuilder(
+      long initialCapacity, ProblemAggregator problemAggregator) {
     throw new UnsupportedOperationException("Cannot make a builder for NullType");
   }
 

@@ -1,11 +1,10 @@
 package org.enso.table.data.column.storage.type;
 
+import java.math.BigDecimal;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
-
-import java.math.BigDecimal;
 
 public record BigDecimalType() implements StorageType<BigDecimal> {
   public static final BigDecimalType INSTANCE = new BigDecimalType();
@@ -36,7 +35,8 @@ public record BigDecimalType() implements StorageType<BigDecimal> {
   }
 
   @Override
-  public BuilderForType<BigDecimal> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
+  public BuilderForType<BigDecimal> makeBuilder(
+      long initialCapacity, ProblemAggregator problemAggregator) {
     return Builder.getForBigDecimal(initialCapacity);
   }
 

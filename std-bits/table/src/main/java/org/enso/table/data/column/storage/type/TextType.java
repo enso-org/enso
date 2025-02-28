@@ -134,7 +134,8 @@ public record TextType(long maxLength, boolean fixedLength) implements StorageTy
   }
 
   @Override
-  public BuilderForType<String> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
+  public BuilderForType<String> makeBuilder(
+      long initialCapacity, ProblemAggregator problemAggregator) {
     return Builder.getForText(this, initialCapacity);
   }
 

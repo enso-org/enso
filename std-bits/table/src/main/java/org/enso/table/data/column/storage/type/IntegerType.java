@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage.type;
 
 import java.math.BigInteger;
-
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
@@ -105,7 +104,8 @@ public record IntegerType(Bits bits) implements StorageType<Long> {
   }
 
   @Override
-  public BuilderForType<Long> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator) {
+  public BuilderForType<Long> makeBuilder(
+      long initialCapacity, ProblemAggregator problemAggregator) {
     return Builder.getForLong(this, initialCapacity, problemAggregator);
   }
 

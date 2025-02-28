@@ -78,23 +78,22 @@ public sealed interface StorageType<T>
    */
   boolean isOfType(StorageType<?> other);
 
-  /**
-   * Convert the value to the type if possible or return null if not.
-   */
+  /** Convert the value to the type if possible or return null if not. */
   T valueAsType(Object value);
 
   /**
    * Creates a builder for the StorageType.
+   *
    * @return a builder for the given type.
    */
   BuilderForType<T> makeBuilder(long initialCapacity, ProblemAggregator problemAggregator);
 
   /**
-   * Types the Storage as a specific generic type.
-   * Allows for using the storage as a specific type in the code.
-   * @param storage the storage to type.
-   *                Must be of the same type as the StorageType.
-   *                If it is not, an IllegalArgumentException will be thrown.
+   * Types the Storage as a specific generic type. Allows for using the storage as a specific type
+   * in the code.
+   *
+   * @param storage the storage to type. Must be of the same type as the StorageType. If it is not,
+   *     an IllegalArgumentException will be thrown.
    * @return the storage as a typed storage.
    */
   ColumnStorage<T> asTypedStorage(ColumnStorage<?> storage);
