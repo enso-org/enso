@@ -98,4 +98,9 @@ public abstract class LogMessage {
   }
 
   protected abstract String kind();
+
+  @Override
+  public String toString() {
+    return payload();
+  }
 }
