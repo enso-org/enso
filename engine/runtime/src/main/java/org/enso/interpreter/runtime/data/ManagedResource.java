@@ -37,6 +37,11 @@ import org.enso.interpreter.runtime.callable.function.Function;
  * It is considered an error to use the same resource in multiple
  * `Managed_Resource`s, since each `Managed_Resource` has its own, possibly
  * different, finalizer.
+ *
+ * Note that for truly atomic values such as integer `2`, all instances will be
+ * considered equal, and so it is not possible to register two "different"
+ * instances as two separate managed resources. Since such values do not need
+ * any cleanup, this is not a significant limitation.
  */
 @ExportLibrary(InteropLibrary.class)
 @Builtin(pkg = "resource", stdlibName = "Standard.Base.Runtime.Managed_Resource.Managed_Resource")

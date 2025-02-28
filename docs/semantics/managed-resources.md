@@ -101,6 +101,11 @@ should be considered an error. When assertions are enabled, the
 `ResourceManager` will detect such duplicates and throw a `PanicException`. From
 Enso, an `Assertion_Error` panic is raised.
 
+Note that for truly atomic values such as integer `2`, all instances will be
+considered equal, and so it is not possible to register two "different"
+instances as two separate managed resources. Since such values do not need any
+cleanup, this is not a significant limitation.
+
 ### Thread Safety
 
 Operations on managed resources are thread safe. Therefore, the safety
