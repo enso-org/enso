@@ -9,7 +9,6 @@ import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { LINKABLE_URL_REGEX } from '@/util/link'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
-import { captureConsoleIntegration } from '@sentry/react'
 import type {
   CellClassParams,
   CellDoubleClickedEvent,
@@ -27,7 +26,6 @@ import { parseArgument } from './TableVisualization/TableVizDataSource'
 import {
   actionMap,
   FilterAction,
-  FilterValueRange,
   getFilterValue,
   GridFilterModel,
   makeFilterModelList,
