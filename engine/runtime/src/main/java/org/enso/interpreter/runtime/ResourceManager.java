@@ -409,6 +409,7 @@ public final class ResourceManager {
   }
 
   private synchronized boolean alreadyRegistered(Object resource) {
+    System.out.println("alreadyRegistered: " + pendingItems.size());
     for (var it : pendingItems) {
       if (it.hasReferent(resource)) {
         return true;
