@@ -445,10 +445,12 @@ public final class ResourceManager {
     /**
      * Creates a new finalizable item.
      *
+     * @param referent the ManagedResource that wraps the underlying object
      * @param underlying the underlying object that should be finalized
      * @param finalizer the finalizer to run on the underlying object
-     * @param reference a phantom reference used for tracking the reachability status of the
-     *     resource.
+     * @param systemResource resource is subject to finalization when {@link
+     *     #scheduleFinalizationOfSystemReferences} is called
+     * @param queue the reference queue used to register this PhantomResource
      */
     private Item(
         ManagedResource referent,
