@@ -1,6 +1,7 @@
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import type { ToolbarItem } from '@/components/visualizations/toolbar'
 import { createContextStore } from '@/providers'
+import { Ast } from '@/util/ast'
 import type { Vec2 } from '@/util/data/vec2'
 import type { ToValue } from '@/util/reactivity'
 import { reactive } from 'vue'
@@ -28,6 +29,9 @@ export interface VisualizationConfig {
   executeExpression: (
     visulizationModule: string,
     expressionString: string,
+    formatFunction:
+      | ((arg: any, tempModule: Ast.MutableModule) => Ast.Owned<Ast.MutableExpression>)
+      | null,
     ...positionalArgumentsExpressions: any[]
   ) => any
 }

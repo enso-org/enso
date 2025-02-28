@@ -23,6 +23,7 @@ import type {
 } from 'ag-grid-enterprise'
 import { computed, ref, shallowRef, watchEffect, type Ref } from 'vue'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
+import { parseArgument } from './TableVisualization/TableVizDataSource'
 import {
   actionMap,
   FilterAction,
@@ -293,6 +294,7 @@ function createServer() {
       const response = await config.executeExpression(
         'Standard.Visualization.Table.Visualization',
         'get_distinct_values_for_column',
+        null,
         `${columnIndex}`,
       )
       return {
@@ -334,7 +336,9 @@ function createServer() {
       const filterActions =
         filterColumnNames.length ?
           gridFilterModelList.map((filter) => {
-            return filter.filterType === 'set' ? '..Is_In' : actionMap[filter.filterAction as FilterAction]
+            return filter.filterType === 'set' ?
+                '..Is_In'
+              : actionMap[filter.filterAction as FilterAction]
           })
         : 'Nothing'
 
@@ -385,6 +389,7 @@ function createServer() {
       const response = await config.executeExpression(
         'Standard.Visualization.Table.Visualization',
         'get_rows_for_table',
+        parseArgument,
         `${request.startRow}`,
         sortColIndexes,
         sortDirections,
