@@ -98,10 +98,16 @@ function itemStyle(index: number) {
 
 const highlighted = ref<number | null>(selected.value)
 let mouseSelectionDebounce: ReturnType<typeof setTimeout> | undefined
+
 function updateSelectionToHighlight() {
   clearTimeout(mouseSelectionDebounce)
   mouseSelectionDebounce = undefined
   selected.value = highlighted.value
+}
+
+function cancelMouseHoverSelection() {
+  clearTimeout(mouseSelectionDebounce)
+  highlighted.value = selected.value
 }
 
 watch(selected, (x) => (highlighted.value = x))
@@ -205,6 +211,7 @@ defineExpose({ moveUp, moveDown, accept })
           :key="index"
           class="item"
           @mousemove="highlighted = index"
+          @mouseleave="cancelMouseHoverSelection"
           @click="emit('itemAccepted', item, index)"
         />
       </div>
