@@ -1,13 +1,14 @@
 from Standard.Base import all
 
+import project.Column.Column
 import project.Table.Table
 
 ## PRIVATE
-private compute_distance table:Table lat1:(Text | Integer | Float) lng1:(Text | Integer | Float) lat2:(Text | Integer | Float) lng2:(Text | Integer | Float) units:Distance_Units as:Text =
-    lat1_col = if lat1.is_a Float then table.make_constant_column lat1 else table.at lat1
-    lng1_col = if lng1.is_a Float then table.make_constant_column lng1 else table.at lng1
-    lat2_col = if lat2.is_a Float then table.make_constant_column lat2 else table.at lat2
-    lng2_col = if lng2.is_a Float then table.make_constant_column lng2 else table.at lng2
+private compute_distance table:Table lat1:(Column | Float) lng1:(Column | Float) lat2:(Column | Float) lng2:(Column | Float) units:Distance_Units as:Text =
+    lat1_col = if lat1.is_a Float then table.make_constant_column lat1 else lat1
+    lng1_col = if lng1.is_a Float then table.make_constant_column lng1 else lng1
+    lat2_col = if lat2.is_a Float then table.make_constant_column lat2 else lat2
+    lng2_col = if lng2.is_a Float then table.make_constant_column lng2 else lng2
 
     rLat1 = lat1_col.map _to_radians
     rLat2 = lat2_col.map _to_radians
@@ -23,7 +24,7 @@ private compute_distance table:Table lat1:(Text | Integer | Float) lng1:(Text | 
     cosLat2 = rLat2.map .cos
 
     product = cosLat1 * cosLat2 * sinDLng + sinDLat
-    haversine_distance = product.map v-> units.to_unit (v.sqrt.asin*2*6371000)
+    haversine_distance = product.map v-> units.from_meters (v.sqrt.asin*2*6371000)
 
     table.set haversine_distance as
 

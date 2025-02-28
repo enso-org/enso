@@ -3784,10 +3784,10 @@ type Table
        ICON geo_map_distance
 
        Computes the distance between two points on each row of the table.
-    @lat1 (Widget_Helpers.make_column_ref_by_name_selector_for_type value_type=Value_Type.Float)
-    @long1 (Widget_Helpers.make_column_ref_by_name_selector_for_type value_type=Value_Type.Float)
-    @lat2 (Widget_Helpers.make_column_ref_by_name_selector_for_type value_type=Value_Type.Float)
-    @long2 (Widget_Helpers.make_column_ref_by_name_selector_for_type value_type=Value_Type.Float)
+    @lat1 (Widget_Helpers.make_column_ref_by_name_selector_for_type display=..Always value_type=Value_Type.Float)
+    @long1 (Widget_Helpers.make_column_ref_by_name_selector_for_type display=..Always value_type=Value_Type.Float)
+    @lat2 (Widget_Helpers.make_column_ref_by_name_selector_for_type display=..Always value_type=Value_Type.Float)
+    @long2 (Widget_Helpers.make_column_ref_by_name_selector_for_type display=..Always value_type=Value_Type.Float)
     distance self lat1:(Float | Column | Column_Ref)=(_ref_by_name self "latitude" "lat" (Missing_Argument.throw "lat1")) long1:(Float | Column | Column_Ref)=(_ref_by_name self "longitude" "long" (Missing_Argument.throw "long1")) lat2:(Float | Column | Column_Ref)=(Missing_Argument.throw "lat2") long2:(Float | Column | Column_Ref)=(Missing_Argument.throw "long2") units:Distance_Units=..Meters as:Text="distance" -> Table =
         table_ref = (self:Table_Ref)
         resolved_lat1 = table_ref.resolve lat1
