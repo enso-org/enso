@@ -225,7 +225,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     getText('stopSortingByName')
                   : getText('sortByNameDescending')
                 }
-                className="group flex h-table-row w-full items-center justify-start gap-icon-with-text border-0 px-name-column-x"
+                className="group flex h-table-row w-full items-center justify-start gap-2 border-0 px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.type ?
@@ -270,7 +270,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     getText('stopSortingByEmail')
                   : getText('sortByEmailDescending')
                 }
-                className="group flex h-table-row w-full items-center justify-start gap-icon-with-text border-0 px-name-column-x"
+                className="group flex h-table-row w-full items-center justify-start gap-2 border-0 px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.email ?
@@ -316,7 +316,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     getText('stopSortingByTimestamp')
                   : getText('sortByTimestampDescending')
                 }
-                className="group flex h-table-row w-full items-center justify-start gap-icon-with-text border-0 px-name-column-x"
+                className="group flex h-table-row w-full items-center justify-start gap-2 border-0 px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.timestamp ?

@@ -33,7 +33,7 @@ export default function AssetSummary(props: AssetSummaryProps) {
   return (
     <div
       className={tailwindMerge.twMerge(
-        'flex min-h-row items-center gap-icon-with-text rounded-default bg-frame px-button-x',
+        'flex min-h-row items-center gap-2 rounded-default bg-frame px-button-x',
         className,
       )}
     >
@@ -41,7 +41,7 @@ export default function AssetSummary(props: AssetSummaryProps) {
         <AssetIcon asset={asset} />
       </div>
       <div className="flex flex-col">
-        <aria.Text className="flex items-center gap-icon-with-text font-semibold">
+        <aria.Text className="flex items-center gap-2 font-semibold">
           {asset.title}
           {newName != null && (
             <>
