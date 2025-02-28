@@ -296,7 +296,7 @@ join vector separator prefix suffix =
 
 partition vector condition =
     predicate = unify_condition_or_predicate condition
-    vecs = Vector.build_multiple 2 builders->
+    vecs = Vector.build_multiple 2 initial_capacity=(vector.length.div 2) function=builders->
         vector.map elem->
             case predicate elem of
                 True -> builders.at 0 . append elem

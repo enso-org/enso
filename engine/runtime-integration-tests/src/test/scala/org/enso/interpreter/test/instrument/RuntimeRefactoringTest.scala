@@ -15,7 +15,7 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import java.io.{ByteArrayOutputStream, File}
+import java.io.ByteArrayOutputStream
 import java.nio.file.{Files, Paths}
 import java.util.UUID
 import java.util.logging.Level
@@ -44,6 +44,7 @@ class RuntimeRefactoringTest
         .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
+        .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
         .option(
@@ -65,13 +66,8 @@ class RuntimeRefactoringTest
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
 
-    def writeMain(contents: String): File =
-      Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
-
     def readMain: String =
       Files.readString(pkg.mainFile.toPath)
-
-    def send(msg: Api.Request): Unit = runtimeServerEmulator.sendToRuntime(msg)
 
     def consumeOut: List[String] = {
       val result = out.toString
@@ -79,8 +75,6 @@ class RuntimeRefactoringTest
       result.linesIterator.toList
     }
 
-    def executionComplete(contextId: UUID): Api.Response =
-      Api.Response(Api.ExecutionComplete(contextId))
   }
 
   val versionCalculator: ContentBasedVersioning = Sha3_224VersionCalculator

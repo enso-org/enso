@@ -712,6 +712,16 @@ public final class EnsoContext {
   }
 
   /**
+   * Gather information about progress. Should execution observe events from Enso Progress API and
+   * report them?
+   *
+   * @return true if progress reporting is on
+   */
+  public boolean isProgressReportEnabled() {
+    return getOption(RuntimeOptions.ENABLE_PROGRESS_REPORT_KEY);
+  }
+
+  /**
    * Checks whether global caches are to be used.
    *
    * @return true if so

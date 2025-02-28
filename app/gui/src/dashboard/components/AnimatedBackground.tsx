@@ -132,7 +132,7 @@ const VARIANTS: Variants = {
 }
 
 /** Underlay for {@link AnimatedBackground.Item}. */
-// eslint-disable-next-line no-restricted-syntax
+
 const AnimatedBackgroundItemUnderlay = memo(function AnimatedBackgroundItemUnderlay(
   props: AnimatedBackgroundItemUnderlayProps,
 ) {

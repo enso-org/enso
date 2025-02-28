@@ -2,12 +2,12 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 
-import { Path, createRootDirectoryAsset } from 'enso-common/src/services/Backend'
+import { Path } from 'enso-common/src/services/Backend'
 
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useBackend } from '#/providers/BackendProvider'
-import { useExpandedDirectoryIds, useSetExpandedDirectoryIds } from '#/providers/DriveProvider'
+import { useCurrentDirectoryId, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 
 /** Options for {@link useDirectoryIds}. */
@@ -28,14 +28,6 @@ export function useDirectoryIds(options: UseDirectoryIdsOptions) {
 
   const organization = organizationQuery.data
 
-  /**
-   * The expanded directories in the asset tree.
-   * The root directory is not included as it might change when a user switches
-   * between items in sidebar and we don't want to reset the expanded state using `useEffect`.
-   */
-  const privateExpandedDirectoryIds = useExpandedDirectoryIds()
-  const setExpandedDirectoryIds = useSetExpandedDirectoryIds()
-
   const [localRootDirectory] = useLocalStorageState('localRootDirectory')
 
   const rootDirectoryId = (() => {
@@ -48,11 +40,14 @@ export function useDirectoryIds(options: UseDirectoryIdsOptions) {
     return id
   })()
 
-  const rootDirectory = createRootDirectoryAsset(rootDirectoryId)
+  const currentDirectoryId = useCurrentDirectoryId().current ?? rootDirectoryId
+  const parentDirectoryId = useCurrentDirectoryId().parent ?? rootDirectoryId
+  const setCurrentDirectoryId = useSetCurrentDirectoryId()
 
-  const expandedDirectoryIds = [rootDirectoryId].concat(
-    privateExpandedDirectoryIds.filter((id) => id !== rootDirectoryId),
-  )
-
-  return { setExpandedDirectoryIds, rootDirectoryId, rootDirectory, expandedDirectoryIds } as const
+  return {
+    setCurrentDirectoryId,
+    rootDirectoryId,
+    currentDirectoryId,
+    parentDirectoryId,
+  } as const
 }

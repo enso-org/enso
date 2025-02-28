@@ -3,10 +3,15 @@ from Standard.Base import all
 import Standard.Test.Spec_Result.Spec_Result
 from Standard.Test import all
 
+<<<<<<< HEAD
 import Standard.Database.Connection.Database
 import Standard.Database.Errors.SQL_Error
 import Standard.Database.JDBC.Generic_JDBC_Connection.Generic_JDBC_Connection
 import Standard.Database.JDBC.Generic_JDBC_Connection.Generic_JDBC_Details
+=======
+import Standard.Database.Errors.SQL_Error
+import Standard.Database.JDBC.Generic_JDBC_Connection.Generic_JDBC_Connection
+>>>>>>> develop
 import Standard.Database.SQL_Query.SQL_Query
 
 import project.Generic_JDBC_Connection_Spec
@@ -61,11 +66,14 @@ add_specs suite_builder =
 
         lower x = x.to_case ..Lower
 
+<<<<<<< HEAD
         group_builder.specify "should be able to create a connection via Database.connect" <|
             config.with_database url->
                 conn = Database.connect (Generic_JDBC_Details.Value url)
                 conn.should_be_a Generic_JDBC_Connection
 
+=======
+>>>>>>> develop
         group_builder.specify "should be able to get table info" <|
             with_connection conn-> cleanup_tables conn ["foo", "bar"] <|
                 conn.execute "create table foo (a int, b text)"

@@ -10,14 +10,20 @@ import {
 } from 'react'
 
 import * as aria from '#/components/aria'
-import { useVisualTooltip } from '#/components/AriaComponents/Text'
+import { Text, useVisualTooltip } from '#/components/AriaComponents/Text'
 import { Tooltip, TooltipTrigger } from '#/components/AriaComponents/Tooltip'
 import { Icon as IconComponent } from '#/components/Icon'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { forwardRef } from '#/utilities/react'
+import { useContextProps } from '../../hooks/useContextProps'
 import { ButtonGroup, ButtonGroupJoin } from './ButtonGroup'
-import { useJoinedButtonPrivateContext, useMergedButtonStyles } from './shared'
+import {
+  ButtonContext,
+  ButtonGroupProvider,
+  useJoinedButtonPrivateContext,
+  useMergedButtonStyles,
+} from './shared'
 import type { ButtonProps } from './types'
 import { BUTTON_STYLES } from './variants'
 
@@ -31,7 +37,10 @@ export const Button = memo(
     props: ButtonProps<IconType>,
     ref: ForwardedRef<HTMLButtonElement>,
   ) {
+    // @ts-expect-error ts errors are expected here because we are merging props with different types
+    ;[props, ref] = useContextProps(props, ref, ButtonContext)
     props = useMergedButtonStyles(props)
+
     const {
       className,
       contentClassName,
@@ -257,18 +266,18 @@ export const Button = memo(
 ) as unknown as (<IconType extends string>(
   props: ButtonProps<IconType> & { ref?: ForwardedRef<HTMLButtonElement> },
 ) => ReactNode) & {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+  /* eslint-disable @typescript-eslint/naming-convention */
   Group: typeof ButtonGroup
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   GroupJoin: typeof ButtonGroupJoin
+  GroupProvider: typeof ButtonGroupProvider
+  /* eslint-enable @typescript-eslint/naming-convention */
 }
 
 Button.Group = ButtonGroup
 Button.GroupJoin = ButtonGroupJoin
+Button.GroupProvider = ButtonGroupProvider
 
-/**
- * Props for {@link ButtonContent}.
- */
+/** Props for {@link ButtonContent}. */
 interface ButtonContentProps {
   readonly hideLoader: boolean
   readonly isIconOnly: boolean
@@ -281,17 +290,12 @@ interface ButtonContentProps {
   readonly addonEnd?: ReactElement | string | false | null | undefined
 }
 
-/**
- * Checks if an addon is present.
- */
+/** Check if an addon is present. */
 function hasAddon(addon: ButtonContentProps['addonEnd']): boolean {
   return addon != null && addon !== false && addon !== ''
 }
 
-/**
- * Renders the content of a button.
- */
-// eslint-disable-next-line no-restricted-syntax
+/** Render the content of a button. */
 const ButtonContent = memo(function ButtonContent(props: ButtonContentProps) {
   const {
     isIconOnly,
@@ -333,15 +337,15 @@ const ButtonContent = memo(function ButtonContent(props: ButtonContentProps) {
         styles={styles}
         hideLoader={hideLoader}
       />
-      <span className={styles.text()}>{children}</span>
+      <Text color="inherit" truncate="1" className={styles.text()}>
+        {children}
+      </Text>
       {hasAddon(addonEnd) && <div className={styles.addonEnd()}>{addonEnd}</div>}
     </>
   )
 })
 
-/**
- * Props for {@link Icon}.
- */
+/** Props for {@link Icon}. */
 interface IconProps {
   readonly isLoading: boolean
   readonly loaderPosition: 'full' | 'icon'
@@ -350,9 +354,7 @@ interface IconProps {
   readonly hideLoader: boolean
 }
 
-/**
- * Renders an icon for a button.
- */
+/** Renders an icon for a button. */
 const Icon = memo(function Icon(props: IconProps) {
   const { isLoading, loaderPosition, icon, styles, hideLoader } = props
 

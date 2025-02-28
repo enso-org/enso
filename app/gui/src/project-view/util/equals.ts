@@ -15,6 +15,7 @@ export function arrayEquals<T>(
   b: Array<T>,
   eq: (a: T, b: T) => boolean = defaultEquality,
 ) {
+  if (a === b) return true
   if (a.length !== b.length) return false
   for (let i = 0; i < a.length; ++i) {
     const aVal = a[i]

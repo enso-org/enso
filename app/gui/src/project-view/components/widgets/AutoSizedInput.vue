@@ -1,12 +1,9 @@
-<script lang="ts">
-export type Range = { start: number; end: number }
-</script>
-
 <script setup lang="ts">
 import { useEvent } from '@/composables/events'
 import { useAutoBlur } from '@/util/autoBlur'
 import { getTextWidthByFont } from '@/util/measurement'
 import { computed, ref, watch, type StyleValue } from 'vue'
+import { Range } from 'ydoc-shared/util/data/range'
 
 const [model, modifiers] = defineModel<string>()
 const [selection] = defineModel<Range | undefined>('selection')
@@ -66,10 +63,10 @@ function onEnterDown(event: KeyboardEvent) {
 
 function readInputFieldSelection() {
   if (inputNode.value?.selectionStart != null && inputNode.value.selectionEnd != null) {
-    selection.value = {
-      start: inputNode.value.selectionStart,
-      end: inputNode.value.selectionEnd,
-    }
+    selection.value = Range.tryFromBounds(
+      inputNode.value.selectionStart,
+      inputNode.value.selectionEnd,
+    )
   } else {
     selection.value = undefined
   }
@@ -85,10 +82,10 @@ useEvent(document, 'selectionchange', readInputFieldSelection)
 watch(selection, (newPos) => {
   // If boundaries didn't change, don't overwrite selection dir.
   if (
-    inputNode.value?.selectionStart !== newPos?.start ||
-    inputNode.value?.selectionEnd !== newPos?.end
+    inputNode.value?.selectionStart !== newPos?.from ||
+    inputNode.value?.selectionEnd !== newPos?.to
   ) {
-    inputNode.value?.setSelectionRange(newPos?.start ?? null, newPos?.end ?? null)
+    inputNode.value?.setSelectionRange(newPos?.from ?? null, newPos?.to ?? null)
   }
 })
 

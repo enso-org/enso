@@ -225,7 +225,9 @@ object ProgramExecutionSupport {
               expressionCall,
               expressionCall,
               Array(ExecutionTime.empty()),
-              true
+              true,
+              -1.0,
+              null
             )
           )
         }
@@ -407,7 +409,11 @@ object ProgramExecutionSupport {
       ))
     ) {
       val payload =
-        Api.ExpressionUpdate.Payload.Pending(None, None, wasInterrupted = true)
+        Api.ExpressionUpdate.Payload.Pending(
+          None,
+          None,
+          wasInterrupted = true
+        )
       ctx.endpoint.sendToClient(
         Api.Response(
           Api.ExpressionUpdates(
@@ -443,7 +449,32 @@ object ProgramExecutionSupport {
     value: ExpressionValue
   )(implicit ctx: RuntimeContext): Unit = {
     val expressionId = value.getExpressionId
-    val methodCall   = toMethodCall(value)
+    if (value.isProgressUpdate()) {
+      val progressPayload = Api.ExpressionUpdate.Payload.Pending(
+        Option(value.getProgressMessage()),
+        Some(value.getProgress())
+      )
+      ctx.endpoint.sendToClient(
+        Api.Response(
+          Api.ExpressionUpdates(
+            contextId,
+            Set(
+              Api.ExpressionUpdate(
+                value.getExpressionId,
+                None,
+                None,
+                Vector(),
+                false,
+                false,
+                progressPayload
+              )
+            )
+          )
+        )
+      )
+      return
+    }
+    val methodCall = toMethodCall(value)
     if (
       !syncState.isExpressionSync(expressionId) ||
       (

@@ -93,6 +93,17 @@ object Warning {
     override def diagnosticKeys(): Array[Any] = Array()
   }
 
+  case class DiscardedValue(
+    override val identifiedLocation: IdentifiedLocation,
+    discardedType: String
+  ) extends Warning {
+    override def message(source: (IdentifiedLocation => String)): String = {
+      s"A value of type $discardedType is discarded."
+    }
+
+    override def diagnosticKeys(): Array[Any] = Array()
+  }
+
   /** A warning about a `@Builtin_Method` annotation placed in a method
     * with unexpected body.
     *

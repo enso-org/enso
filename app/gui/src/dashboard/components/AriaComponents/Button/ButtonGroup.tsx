@@ -1,5 +1,5 @@
 /** @file A group of buttons. */
-import { forwardRef, type PropsWithChildren } from 'react'
+import { forwardRef, Fragment, type PropsWithChildren, type ReactElement } from 'react'
 import flattenChildren from 'react-keyed-flatten-children'
 
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
@@ -73,7 +73,7 @@ interface ButtonGroupProps
 }
 
 /** A group of buttons. */
-// eslint-disable-next-line no-restricted-syntax
+
 export const ButtonGroup = forwardRef(function ButtonGroup(
   props: ButtonGroupProps,
   ref: React.ForwardedRef<HTMLDivElement>,
@@ -128,27 +128,29 @@ export const ButtonGroup = forwardRef(function ButtonGroup(
 function JoinedButtons(props: PropsWithChildren) {
   const { children } = props
 
-  return flattenChildren(children).map((child, index, array) => {
-    if (array.length === 1) {
-      return <>{child}</>
-    }
+  return flattenChildren(children).map(
+    (child: ReactElement, index: number, array: ReactElement[]) => {
+      if (array.length === 1) {
+        return <Fragment key={child.key}>{child}</Fragment>
+      }
 
-    let position: PrivateJoinedButtonPosition = 'middle'
+      let position: PrivateJoinedButtonPosition = 'middle'
 
-    if (index === 0) {
-      position = 'first'
-    }
+      if (index === 0) {
+        position = 'first'
+      }
 
-    if (index === array.length - 1) {
-      position = 'last'
-    }
+      if (index === array.length - 1) {
+        position = 'last'
+      }
 
-    return (
-      <JoinedButtonPrivateContextProvider isJoined position={position}>
-        {child}
-      </JoinedButtonPrivateContextProvider>
-    )
-  })
+      return (
+        <JoinedButtonPrivateContextProvider key={child.key} isJoined position={position}>
+          {child}
+        </JoinedButtonPrivateContextProvider>
+      )
+    },
+  )
 }
 
 /**

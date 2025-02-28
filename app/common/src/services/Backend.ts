@@ -10,40 +10,37 @@ import * as uniqueString from '../utilities/uniqueString'
 /** The size, in bytes, of the chunks which the backend accepts. */
 export const S3_CHUNK_SIZE_BYTES = 10_000_000
 
-// ================
-// === Newtypes ===
-// ================
-
 /** Unique identifier for an organization. */
 export type OrganizationId = newtype.Newtype<`organization-${string}`, 'OrganizationId'>
 export const OrganizationId = newtype.newtypeConstructor<OrganizationId>()
 /** Whether a given {@link string} is an {@link OrganizationId}. */
-export function isOrganizationId(id: string): id is OrganizationId {
-  return id.startsWith('organization-')
+export function isOrganizationId(id: unknown): id is OrganizationId {
+  return typeof id === 'string' && id.startsWith('organization-')
 }
 
 /** Unique identifier for a user in an organization. */
 export type UserId = newtype.Newtype<string, 'UserId'>
 export const UserId = newtype.newtypeConstructor<UserId>()
 /** Whether a given {@link string} is an {@link UserId}. */
-export function isUserId(id: string): id is UserId {
-  return id.startsWith('user-')
+export function isUserId(id: unknown): id is UserId {
+  return typeof id === 'string' && id.startsWith('user-')
 }
 
 /** Unique identifier for a user group. */
 export type UserGroupId = newtype.Newtype<`usergroup-${string}`, 'UserGroupId'>
 export const UserGroupId = newtype.newtypeConstructor<UserGroupId>()
 /** Whether a given {@link string} is an {@link UserGroupId}. */
-export function isUserGroupId(id: string): id is UserGroupId {
-  return id.startsWith('usergroup-')
+export function isUserGroupId(id: unknown): id is UserGroupId {
+  return typeof id === 'string' && id.startsWith('usergroup-')
 }
 
 /** Unique identifier for a directory. */
 export type DirectoryId = newtype.Newtype<`directory-${string}`, 'DirectoryId'>
 export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
-/** Whether a given {@link string} is an {@link DirectoryId}. */
-export function isDirectoryId(id: string): id is DirectoryId {
-  return id.startsWith('directory-')
+
+/** Whether a given {@link unknown} is an {@link DirectoryId}. */
+export function isDirectoryId(id: unknown): id is DirectoryId {
+  return typeof id === 'string' && id.startsWith('directory-')
 }
 
 /**
@@ -139,6 +136,14 @@ export type UserPermissionIdentifier = UserGroupId | UserId
 export type Path = newtype.Newtype<string, 'Path'>
 export const Path = newtype.newtypeConstructor<Path>()
 
+/** The path of ids to this asset. */
+export type ParentsPath = newtype.Newtype<string, 'ParentsPath'>
+export const ParentsPath = newtype.newtypeConstructor<ParentsPath>()
+
+/** The path of directory names to this asset, excluding the root directory. */
+export type VirtualParentsPath = newtype.Newtype<string, 'VirtualParentsPath'>
+export const VirtualParentsPath = newtype.newtypeConstructor<VirtualParentsPath>()
+
 const PLACEHOLDER_USER_GROUP_PREFIX = 'usergroup-placeholder-'
 
 /**
@@ -156,10 +161,6 @@ export function isPlaceholderUserGroupId(id: string) {
 export function newPlaceholderUserGroupId() {
   return UserGroupId(`${PLACEHOLDER_USER_GROUP_PREFIX}${uniqueString.uniqueString()}` as const)
 }
-
-// =============
-// === Types ===
-// =============
 
 /** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
 export enum BackendType {
@@ -381,20 +382,20 @@ export type ProjectParallelMode = (typeof PROJECT_PARALLEL_MODES)[number]
 
 export const PROJECT_EXECUTION_REPEAT_TYPES = [
   'none',
-  'hourly',
   'daily',
-  'monthly-date',
-  'monthly-weekday',
-  'monthly-last-weekday',
+  'weekly',
+  'monthlyDate',
+  'monthlyWeekday',
+  'monthlyLastWeekday',
 ] as const
 
 export const PROJECT_EXECUTION_REPEAT_TYPE_TO_TEXT_ID = {
   none: 'noneProjectExecutionRepeatType',
-  hourly: 'hourlyProjectExecutionRepeatType',
   daily: 'dailyProjectExecutionRepeatType',
-  'monthly-date': 'monthlyProjectExecutionRepeatType',
-  'monthly-weekday': 'monthlyProjectExecutionRepeatType',
-  'monthly-last-weekday': 'monthlyProjectExecutionRepeatType',
+  weekly: 'weeklyProjectExecutionRepeatType',
+  monthlyDate: 'monthlyProjectExecutionRepeatType',
+  monthlyWeekday: 'monthlyProjectExecutionRepeatType',
+  monthlyLastWeekday: 'monthlyProjectExecutionRepeatType',
 } satisfies {
   readonly [K in ProjectExecutionRepeatType]: TextId & `${string}ProjectExecutionRepeatType`
 }
@@ -407,22 +408,20 @@ export interface ProjectExecutionNoneRepeatInfo {
   readonly type: 'none'
 }
 
-/** Details for a project execution that repeats hourly. */
-export interface ProjectExecutionHourlyRepeatInfo {
-  readonly type: 'hourly'
-  readonly startHour: number
-  readonly endHour: number
-}
-
 /** Details for a project execution that repeats daily. */
 export interface ProjectExecutionDailyRepeatInfo {
   readonly type: 'daily'
+}
+
+/** Details for a project execution that repeats weekly on one or more days. */
+export interface ProjectExecutionWeeklyRepeatInfo {
+  readonly type: 'weekly'
   readonly daysOfWeek: readonly number[]
 }
 
 /** Details for a project execution that repeats monthly on a specific date. */
 export interface ProjectExecutionMonthlyDateRepeatInfo {
-  readonly type: 'monthly-date'
+  readonly type: 'monthlyDate'
   readonly date: number
   readonly months: readonly number[]
 }
@@ -432,7 +431,7 @@ export interface ProjectExecutionMonthlyDateRepeatInfo {
  * of a specific month.
  */
 export interface ProjectExecutionMonthlyWeekdayRepeatInfo {
-  readonly type: 'monthly-weekday'
+  readonly type: 'monthlyWeekday'
   readonly weekNumber: number
   readonly dayOfWeek: number
   readonly months: readonly number[]
@@ -443,14 +442,14 @@ export interface ProjectExecutionMonthlyWeekdayRepeatInfo {
  * of a specific month.
  */
 export interface ProjectExecutionMonthlyLastWeekdayRepeatInfo {
-  readonly type: 'monthly-last-weekday'
+  readonly type: 'monthlyLastWeekday'
   readonly dayOfWeek: number
   readonly months: readonly number[]
 }
 
 export type ProjectExecutionRepeatInfo =
-  | ProjectExecutionHourlyRepeatInfo
   | ProjectExecutionDailyRepeatInfo
+  | ProjectExecutionWeeklyRepeatInfo
   | ProjectExecutionMonthlyDateRepeatInfo
   | ProjectExecutionMonthlyWeekdayRepeatInfo
   | ProjectExecutionMonthlyLastWeekdayRepeatInfo
@@ -459,18 +458,21 @@ export type ProjectExecutionRepeatInfo =
 /** Metadata for a {@link ProjectExecution}. */
 export interface ProjectExecutionInfo {
   readonly projectId: ProjectId
-  readonly timeZone: string
   readonly repeat: ProjectExecutionRepeatInfo
-  readonly parallelMode: ProjectParallelMode
-  readonly maxDurationMinutes: number
   readonly startDate: dateTime.Rfc3339DateTime
+  readonly endDate: dateTime.Rfc3339DateTime | null
+  readonly timeZone: dateTime.IanaTimeZone
+  readonly maxDurationMinutes: number
+  readonly parallelMode: ProjectParallelMode
 }
 
 /** A specific execution schedule of a project. */
 export interface ProjectExecution extends ProjectExecutionInfo {
-  readonly enabled: boolean
   readonly executionId: ProjectExecutionId
+  readonly organizationId: OrganizationId
   readonly versionId: S3ObjectVersionId
+  readonly nextExecution: dateTime.Rfc3339DateTime
+  readonly projectSessions?: readonly ProjectSession[]
 }
 
 /** Metadata describing the location of an uploaded file. */
@@ -921,8 +923,8 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly description: string | null
   readonly projectState: Type extends AssetType.project ? ProjectStateType : null
   readonly extension: Type extends AssetType.file ? string : null
-  readonly parentsPath: string
-  readonly virtualParentsPath: string
+  readonly parentsPath: ParentsPath
+  readonly virtualParentsPath: VirtualParentsPath
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
@@ -970,80 +972,47 @@ export function isPlaceholderId(id: AssetId) {
   return typeof id !== 'string' && PLACEHOLDER_SIGNATURE in id
 }
 
-/**
- * Creates a {@link DirectoryAsset} representing the root directory for the organization,
- * with all irrelevant fields initialized to default values.
- */
-export function createRootDirectoryAsset(directoryId: DirectoryId): DirectoryAsset {
-  return {
-    type: AssetType.directory,
-    title: '(root)',
-    id: directoryId,
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    parentId: DirectoryId('directory-'),
-    permissions: [],
-    projectState: null,
-    extension: null,
-    labels: [],
-    description: null,
-    parentsPath: '',
-    virtualParentsPath: '',
-  }
-}
-
 /** Extract the file extension from a file name. */
 function fileExtension(fileNameOrPath: string) {
   return fileNameOrPath.match(/[.]([^.]+?)$/)?.[1] ?? ''
 }
 
 /** Creates a {@link FileAsset} using the given values. */
-export function createPlaceholderFileAsset(
-  title: string,
-  parentId: DirectoryId,
-  assetPermissions: readonly AssetPermission[],
-): FileAsset {
+export function createPlaceholderFileAsset(title: string, parentId: DirectoryId): FileAsset {
   return {
     type: AssetType.file,
     id: FileId(createPlaceholderId()),
     title,
     parentId,
-    permissions: assetPermissions,
+    permissions: [],
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: fileExtension(title),
     labels: [],
     description: null,
-    parentsPath: '',
-    virtualParentsPath: '',
+    parentsPath: ParentsPath(''),
+    virtualParentsPath: VirtualParentsPath(''),
   }
 }
 
 /** Creates a {@link ProjectAsset} using the given values. */
-export function createPlaceholderProjectAsset(
-  title: string,
-  parentId: DirectoryId,
-  assetPermissions: readonly AssetPermission[],
-  user: User | null,
-  path: Path | null,
-): ProjectAsset {
+export function createPlaceholderProjectAsset(title: string, parentId: DirectoryId): ProjectAsset {
   return {
     type: AssetType.project,
     id: ProjectId(createPlaceholderId()),
     title,
     parentId,
-    permissions: assetPermissions,
+    permissions: [],
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: {
       type: ProjectState.new,
       volumeId: '',
-      ...(user != null ? { openedBy: user.email } : {}),
-      ...(path != null ? { path } : {}),
     },
     extension: null,
     labels: [],
     description: null,
-    parentsPath: '',
-    virtualParentsPath: '',
+    parentsPath: ParentsPath(''),
+    virtualParentsPath: VirtualParentsPath(''),
   }
 }
 
@@ -1051,43 +1020,38 @@ export function createPlaceholderProjectAsset(
 export function createPlaceholderDirectoryAsset(
   title: string,
   parentId: DirectoryId,
-  assetPermissions: readonly AssetPermission[],
 ): DirectoryAsset {
   return {
     type: AssetType.directory,
     id: DirectoryId(`directory-${createPlaceholderId()}` as const),
     title,
     parentId,
-    permissions: assetPermissions,
+    permissions: [],
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
     labels: [],
     description: null,
-    parentsPath: '',
-    virtualParentsPath: '',
+    parentsPath: ParentsPath(''),
+    virtualParentsPath: VirtualParentsPath(''),
   }
 }
 
 /** Creates a {@link SecretAsset} using the given values. */
-export function createPlaceholderSecretAsset(
-  title: string,
-  parentId: DirectoryId,
-  assetPermissions: readonly AssetPermission[],
-): SecretAsset {
+export function createPlaceholderSecretAsset(title: string, parentId: DirectoryId): SecretAsset {
   return {
     type: AssetType.secret,
     id: SecretId(createPlaceholderId()),
     title,
     parentId,
-    permissions: assetPermissions,
+    permissions: [],
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
     labels: [],
     description: null,
-    parentsPath: '',
-    virtualParentsPath: '',
+    parentsPath: ParentsPath(''),
+    virtualParentsPath: VirtualParentsPath(''),
   }
 }
 
@@ -1095,21 +1059,20 @@ export function createPlaceholderSecretAsset(
 export function createPlaceholderDatalinkAsset(
   title: string,
   parentId: DirectoryId,
-  assetPermissions: readonly AssetPermission[],
 ): DatalinkAsset {
   return {
     type: AssetType.datalink,
     id: DatalinkId(createPlaceholderId()),
     title,
     parentId,
-    permissions: assetPermissions,
+    permissions: [],
     modifiedAt: dateTime.toRfc3339(new Date()),
     projectState: null,
     extension: null,
     labels: [],
     description: null,
-    parentsPath: '',
-    virtualParentsPath: '',
+    parentsPath: ParentsPath(''),
+    virtualParentsPath: VirtualParentsPath(''),
   }
 }
 
@@ -1129,8 +1092,8 @@ export function createSpecialLoadingAsset(directoryId: DirectoryId): SpecialLoad
     extension: null,
     labels: [],
     description: null,
-    parentsPath: '',
-    virtualParentsPath: '',
+    parentsPath: ParentsPath(''),
+    virtualParentsPath: VirtualParentsPath(''),
   }
 }
 
@@ -1155,8 +1118,8 @@ export function createSpecialEmptyAsset(directoryId: DirectoryId): SpecialEmptyA
     extension: null,
     labels: [],
     description: null,
-    parentsPath: '',
-    virtualParentsPath: '',
+    parentsPath: ParentsPath(''),
+    virtualParentsPath: VirtualParentsPath(''),
   }
 }
 
@@ -1181,8 +1144,8 @@ export function createSpecialErrorAsset(directoryId: DirectoryId): SpecialErrorA
     extension: null,
     labels: [],
     description: null,
-    parentsPath: '',
-    virtualParentsPath: '',
+    parentsPath: ParentsPath(''),
+    virtualParentsPath: VirtualParentsPath(''),
   }
 }
 
@@ -1297,10 +1260,6 @@ export interface AssetVersions {
   readonly versions: S3ObjectVersion[]
 }
 
-// ===============================
-// === compareAssetPermissions ===
-// ===============================
-
 /**
  * Return a positive number when `a > b`, a negative number when `a < b`, and `0`
  * when `a === b`.
@@ -1327,10 +1286,6 @@ export function compareAssetPermissions(a: AssetPermission, b: AssetPermission) 
     )
   }
 }
-
-// =================
-// === Endpoints ===
-// =================
 
 /** HTTP request body for the "set username" endpoint. */
 export interface CreateUserRequestBody {
@@ -1491,6 +1446,12 @@ export interface ListDirectoryRequestParams {
   readonly filterBy: FilterBy | null
   readonly labels: LabelName[] | null
   readonly recentProjects: boolean
+  /**
+   * The root path of the directory to list.
+   * This is used to list a subdirectory of a local root directory,
+   * because a root could be any local folder on the machine.
+   */
+  readonly rootPath?: Path | undefined
 }
 
 /** URL query string parameters for the "upload file" endpoint. */
@@ -1550,10 +1511,6 @@ export interface UploadPictureRequestParams {
   readonly fileName: string | null
 }
 
-// ==============================
-// === detectVersionLifecycle ===
-// ==============================
-
 /** Extract the {@link VersionLifecycle} from a version string. */
 export function detectVersionLifecycle(version: string) {
   if (/rc/i.test(version)) {
@@ -1566,10 +1523,6 @@ export function detectVersionLifecycle(version: string) {
     return VersionLifecycle.stable
   }
 }
-
-// =====================
-// === compareAssets ===
-// =====================
 
 /** Return a positive number if `a > b`, a negative number if `a < b`, and zero if `a === b`. */
 export function compareAssets(a: AnyAsset, b: AnyAsset) {
@@ -1600,10 +1553,6 @@ export function compareAssets(a: AnyAsset, b: AnyAsset) {
   }
 }
 
-// ==================
-// === getAssetId ===
-// ==================
-
 /**
  * A convenience function to get the `id` of an {@link Asset}.
  * This is useful to avoid React re-renders as it is not re-created on each function call.
@@ -1611,10 +1560,6 @@ export function compareAssets(a: AnyAsset, b: AnyAsset) {
 export function getAssetId<Type extends AssetType>(asset: Asset<Type>) {
   return asset.id
 }
-
-// ================================
-// === userHasUserAndTeamSpaces ===
-// ================================
 
 /** Whether a user's root directory has the "Users" and "Teams" subdirectories. */
 export function userHasUserAndTeamSpaces(user: User | null) {
@@ -1630,10 +1575,6 @@ export function userHasUserAndTeamSpaces(user: User | null) {
     }
   }
 }
-
-// =====================
-// === fileIsProject ===
-// =====================
 
 /** A subset of properties of the JS `File` type. */
 interface JSFile {
@@ -1653,10 +1594,6 @@ export function fileIsProject(file: JSFile) {
 export function fileIsNotProject(file: JSFile) {
   return !fileIsProject(file)
 }
-
-// =============================
-// === stripProjectExtension ===
-// =============================
 
 /** Remove the extension of the project file name (if any). */
 export function stripProjectExtension(name: string) {
@@ -1715,10 +1652,6 @@ export class NetworkError extends Error {
 }
 /** Error class for when the user is not authorized to access a resource. */
 export class NotAuthorizedError extends NetworkError {}
-
-// ===============
-// === Backend ===
-// ===============
 
 /** Interface for sending requests to a backend that manages assets and runs projects. */
 export default abstract class Backend {
@@ -1822,6 +1755,10 @@ export default abstract class Backend {
   /** Create a project execution. */
   abstract createProjectExecution(
     body: CreateProjectExecutionRequestBody,
+    title: string,
+  ): Promise<ProjectExecution>
+  abstract getProjectExecutionDetails(
+    executionId: ProjectExecutionId,
     title: string,
   ): Promise<ProjectExecution>
   abstract updateProjectExecution(
@@ -1958,10 +1895,6 @@ export default abstract class Backend {
   /** Resolve the path of an asset relative to a project. */
   abstract resolveProjectAssetPath(projectId: ProjectId, relativePath: string): Promise<string>
 }
-
-// ==============================
-// ====== Custom Errors =========
-// ==============================
 
 /** Error thrown when a directory does not exist. */
 export class DirectoryDoesNotExistError extends Error {
