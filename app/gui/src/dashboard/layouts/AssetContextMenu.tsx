@@ -123,8 +123,13 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const pasteDataParent = pasteDataParentId != null ? getAsset(pasteDataParentId) : null
 
   const canPaste =
-    !pasteDataParent ? false
-    : !pasteData || !isCloud || permissions.isTeamPath(pasteDataParent.virtualParentsPath) ? true
+    (
+      !pasteDataParent ||
+      !pasteData ||
+      !isCloud ||
+      permissions.isTeamPath(pasteDataParent.virtualParentsPath)
+    ) ?
+      true
     : Array.from(pasteData.data.ids).every((id) => {
         const otherAsset = getAsset(id)
         if (!otherAsset) {

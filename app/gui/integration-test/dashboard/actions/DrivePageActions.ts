@@ -209,17 +209,22 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
         )
       },
       /** Click to select a specific row. */
-      clickRow(index: number) {
-        return self.step(`Click drive table row #${index}`, (page) =>
-          locateAssetRows(page).nth(index).click({ position: ASSET_ROW_SAFE_POSITION }),
-        )
+      clickRow(indexOrName: number | string) {
+        return self.step(`Click drive table row '${indexOrName}'`, async (page) => {
+          const rows = locateAssetRows(page)
+          const row =
+            typeof indexOrName === 'number' ?
+              rows.nth(indexOrName)
+            : rows.filter({ hasText: indexOrName })
+          await row.click({ position: ASSET_ROW_SAFE_POSITION })
+        })
       },
       /**
        * Right click a specific row to bring up its context menu, or the context menu for multiple
        * assets when right clicking on a selected asset when multiple assets are selected.
        */
       rightClickRow(indexOrName: number | string) {
-        return self.step(`Right click drive table row ${indexOrName}`, async (page) => {
+        return self.step(`Right click drive table row '${indexOrName}'`, async (page) => {
           const rows = locateAssetRows(page)
           const row =
             typeof indexOrName === 'number' ?
@@ -229,10 +234,15 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
         })
       },
       /** Double click a row. */
-      doubleClickRow(index: number) {
-        return self.step(`Double dlick drive table row #${index}`, (page) =>
-          locateAssetRows(page).nth(index).dblclick({ position: ASSET_ROW_SAFE_POSITION }),
-        )
+      doubleClickRow(indexOrName: number | string) {
+        return self.step(`Double dlick drive table row '${indexOrName}'`, async (page) => {
+          const rows = locateAssetRows(page)
+          const row =
+            typeof indexOrName === 'number' ?
+              rows.nth(indexOrName)
+            : rows.filter({ hasText: indexOrName })
+          await row.dblclick({ position: ASSET_ROW_SAFE_POSITION })
+        })
       },
       /** Interact with the set of all rows in the Drive table. */
       withRows(
@@ -253,26 +263,28 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
         })
       },
       /** Drag a row onto another row. */
-      dragRowToRow(from: number, to: number) {
-        return self.step(`Drag drive table row #${from} to row #${to}`, async (page) => {
+      dragRowToRow(from: number | string, to: number | string) {
+        return self.step(`Drag drive table row '${from}' to row '${to}'`, async (page) => {
           const rows = locateAssetRows(page)
-          rows.nth(from).click()
-          await rows.nth(from).dragTo(rows.nth(to), {
+          const fromRow = typeof from === 'number' ? rows.nth(from) : rows.filter({ hasText: from })
+          const toRow = typeof to === 'number' ? rows.nth(to) : rows.filter({ hasText: to })
+          await fromRow.click()
+          await fromRow.dragTo(toRow, {
             sourcePosition: ASSET_ROW_SAFE_POSITION,
             targetPosition: ASSET_ROW_SAFE_POSITION,
           })
         })
       },
       /** Drag a row onto another row. */
-      dragRow(from: number, to: Locator, force?: boolean) {
-        return self.step(`Drag drive table row #${from} to custom locator`, (page) =>
-          locateAssetRows(page)
-            .nth(from)
-            .dragTo(to, {
-              sourcePosition: ASSET_ROW_SAFE_POSITION,
-              ...(force == null ? {} : { force }),
-            }),
-        )
+      dragRow(from: number | string, to: Locator, force?: boolean) {
+        return self.step(`Drag drive table row '${from}' to custom locator`, async (page) => {
+          const rows = locateAssetRows(page)
+          const fromRow = typeof from === 'number' ? rows.nth(from) : rows.filter({ hasText: from })
+          await fromRow.dragTo(to, {
+            sourcePosition: ASSET_ROW_SAFE_POSITION,
+            ...(force == null ? {} : { force }),
+          })
+        })
       },
       openDirectory(indexOrName: number | string) {
         return self.step(`Open directory on drive table row ${indexOrName}`, async (page) => {
