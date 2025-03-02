@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
@@ -12,6 +13,7 @@ import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.BuiltinObject;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.error.PanicException;
 
 /**
  * An Enso runtime representation of a managed resource.
@@ -44,7 +46,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 @ExportLibrary(InteropLibrary.class)
 @Builtin(pkg = "resource", stdlibName = "Standard.Base.Runtime.Managed_Resource.Managed_Resource")
 public final class ManagedResource extends BuiltinObject {
-  private final Object resource;
+  private final TruffleObject resource;
   private final PhantomReference<ManagedResource> phantomReference;
 
   /**
@@ -54,7 +56,7 @@ public final class ManagedResource extends BuiltinObject {
    * @param factory factory to create reference
    */
   public ManagedResource(
-      Object resource,
+      TruffleObject resource,
       java.util.function.Function<ManagedResource, PhantomReference<ManagedResource>> factory) {
     this.resource = resource;
     this.phantomReference = factory.apply(this);
@@ -85,8 +87,15 @@ public final class ManagedResource extends BuiltinObject {
               + " object is garbage collected.")
   @Builtin.Specialize
   public static ManagedResource register_builtin(
-      EnsoContext context, Object resource, Function function, boolean systemCanFinalize) {
-    return context.getResourceManager().register(resource, function, systemCanFinalize);
+      EnsoContext context, Object obj, Function function, boolean systemCanFinalize) {
+    if (obj instanceof TruffleObject resource) {
+      return context.getResourceManager().register(resource, function, systemCanFinalize);
+    } else {
+      var error = context.getBuiltins().error();
+      var msg = "Cannot manage non-resource object";
+      var payload = error.makeUnsupportedArgumentsError(new Object[] {obj}, msg);
+      throw new PanicException(payload, null);
+    }
   }
 
   @Builtin.Method(

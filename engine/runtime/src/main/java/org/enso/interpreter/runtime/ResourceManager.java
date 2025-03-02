@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.ThreadLocalAction;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
@@ -130,7 +131,7 @@ public final class ResourceManager {
    * @return a wrapper object, containing the resource and serving as a reachability probe
    */
   @CompilerDirectives.TruffleBoundary
-  public ManagedResource register(Object object, Object function) {
+  public ManagedResource register(TruffleObject object, Object function) {
     return register(object, function, false);
   }
 
@@ -146,7 +147,7 @@ public final class ResourceManager {
    */
   @CompilerDirectives.TruffleBoundary
   public synchronized ManagedResource register(
-      Object object, Object function, boolean systemResource) {
+      TruffleObject object, Object function, boolean systemResource) {
     if (context.isAssertionsEnabled() && alreadyRegistered(object)) {
       throw EnsoContext.get(null)
           .raiseAssertionPanic(
