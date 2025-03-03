@@ -114,8 +114,6 @@ import {
   DirectoryId,
   getAssetPermissionName,
   IS_OPENING_OR_OPENED,
-  isSpecialAssetId,
-  Plan,
   type AnyAsset,
 } from '#/services/Backend'
 import type { AssetQueryKey } from '#/utilities/AssetQuery'
