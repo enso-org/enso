@@ -1,6 +1,6 @@
 /** @file A heading for the "Name" column. */
 import SortAscendingIcon from '#/assets/sort_ascending.svg'
-import { Button, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/AriaComponents'
 import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
 import { Column } from '#/components/dashboard/column/columnUtils'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -33,29 +33,31 @@ export default function NameColumnHeading(props: AssetColumnHeadingProps) {
 
   return (
     <Button
+      fullWidth
       size="custom"
       variant="custom"
+      weight="bold"
       aria-label={
         !isSortActive ? getText('sortByName')
         : isDescending ?
           getText('stopSortingByName')
         : getText('sortByNameDescending')
       }
-      className="group sticky left-0 flex h-table-row w-full items-center justify-start gap-2 bg-dashboard px-name-column-x"
+      addonEnd={
+        <img
+          alt={isDescending ? getText('sortDescending') : getText('sortAscending')}
+          src={SortAscendingIcon}
+          className={twJoin(
+            'ml-1 transition-all duration-arrow',
+            isSortActive ? 'selectable active' : 'opacity-0 group-hover:selectable',
+            isDescending && 'rotate-180',
+          )}
+        />
+      }
+      className="group sticky left-0 flex h-table-row justify-start bg-dashboard px-name-column-x"
       onPress={cycleSortDirection}
     >
-      <Text weight="bold" truncate="1" color="custom">
-        {getText('nameColumnName')}
-      </Text>
-      <img
-        alt={isDescending ? getText('sortDescending') : getText('sortAscending')}
-        src={SortAscendingIcon}
-        className={twJoin(
-          'transition-all duration-arrow',
-          isSortActive ? 'selectable active' : 'opacity-0 group-hover:selectable',
-          isDescending && 'rotate-180',
-        )}
-      />
+      {getText('nameColumnName')}
     </Button>
   )
 }

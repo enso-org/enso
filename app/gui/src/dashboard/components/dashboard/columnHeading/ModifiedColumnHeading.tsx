@@ -1,7 +1,7 @@
 /** @file A heading for the "Modified" column. */
 import SortAscendingIcon from '#/assets/sort_ascending.svg'
 import TimeIcon from '#/assets/time.svg'
-import { Button, Text } from '#/components/AriaComponents'
+import { Button } from '#/components/AriaComponents'
 import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
 import { Column } from '#/components/dashboard/column/columnUtils'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
@@ -56,24 +56,25 @@ export default function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
         onPress={hideThisColumn}
       />
       <Button
+        fullWidth
         size="custom"
         variant="custom"
-        className="flex grow justify-start gap-2"
+        weight="bold"
+        addonEnd={
+          <img
+            alt={isDescending ? getText('sortDescending') : getText('sortAscending')}
+            src={SortAscendingIcon}
+            className={twJoin(
+              'ml-1 mr-auto transition-all duration-arrow',
+              isSortActive ? 'selectable active' : 'opacity-0 group-hover:selectable',
+              isDescending && 'rotate-180',
+            )}
+          />
+        }
+        className="flex justify-start"
         onPress={cycleSortDirection}
       >
-        <Text weight="bold" truncate="1" color="custom">
-          {getText('modifiedColumnName')}
-        </Text>
-
-        <img
-          alt={isDescending ? getText('sortDescending') : getText('sortAscending')}
-          src={SortAscendingIcon}
-          className={twJoin(
-            'transition-all duration-arrow',
-            isSortActive ? 'selectable active' : 'opacity-0 group-hover:selectable',
-            isDescending && 'rotate-180',
-          )}
-        />
+        {getText('modifiedColumnName')}
       </Button>
     </div>
   )
