@@ -209,7 +209,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
       </AnimatePresence>
 
       <div
-        className="absolute bottom-0 right-0 top-0 bg-dashboard pt-2.5"
+        className="absolute bottom-0 right-0 top-0 bg-dashboard pt-2"
         style={{ width: ASSET_SIDEBAR_COLLAPSED_WIDTH }}
       >
         <AssetPanelToggle

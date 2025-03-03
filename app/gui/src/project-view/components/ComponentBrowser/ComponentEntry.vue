@@ -2,6 +2,7 @@
 import { type Component } from '@/components/ComponentBrowser/component'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { allRanges } from '@/util/data/range'
+import { sourceRangeKey } from 'ydoc-shared/util/data/text'
 
 const { component, color } = defineProps<{ component: Component; color: string }>()
 </script>
@@ -14,10 +15,10 @@ const { component, color } = defineProps<{ component: Component; color: string }
       <span
         v-for="range in allRanges(component.matchedRanges, component.label.length)"
         v-else
-        :key="`${range.start},${range.end}`"
+        :key="sourceRangeKey(range)"
         class="component-label-segment"
         :class="{ match: range.isMatch }"
-        v-text="component.label.slice(range.start, range.end)"
+        v-text="range.slice(component.label)"
       ></span>
     </span>
   </div>

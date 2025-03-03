@@ -19,17 +19,13 @@ import SharedWithColumn from './column/SharedWithColumn'
 export interface AssetColumnProps {
   readonly isOpened: boolean
   readonly item: AnyAsset
-  readonly depth: number
   readonly backendType: BackendType
-  readonly selected: boolean
   readonly setSelected: (selected: boolean) => void
-  readonly isSoleSelected: boolean
   readonly state: AssetsTableState
   readonly rowState: AssetRowState
   readonly setRowState: Dispatch<SetStateAction<AssetRowState>>
   readonly isEditable: boolean
   readonly isPlaceholder: boolean
-  readonly isExpanded: boolean
 }
 
 /** Props for a {@link AssetColumn}. */

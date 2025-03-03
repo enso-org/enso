@@ -193,7 +193,7 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
         if ('url' in item) {
           if ('menu' in item) {
             return (
-              <Button.GroupJoin buttonVariants={{ variant: 'icon' }}>
+              <Button.GroupJoin key={item.name} buttonVariants={{ variant: 'icon' }}>
                 <Button href={item.url} {...getSafetyProps(item.url)}>
                   {getText(item.name)}
                 </Button>
@@ -203,7 +203,11 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
 
                   <Menu>
                     {item.menu.map((menuItem) => (
-                      <Menu.Item href={menuItem.url} {...getSafetyProps(menuItem.url)}>
+                      <Menu.Item
+                        key={menuItem.name}
+                        href={menuItem.url}
+                        {...getSafetyProps(menuItem.url)}
+                      >
                         {getText(menuItem.name)}
                       </Menu.Item>
                     ))}
@@ -214,12 +218,16 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
           }
         } else {
           return (
-            <Menu.Trigger>
+            <Menu.Trigger key={item.name}>
               <Button icon={ArrowDownIcon}>{getText(item.name)}</Button>
 
               <Menu>
                 {item.menu.map((menuItem) => (
-                  <Menu.Item href={menuItem.url} {...getSafetyProps(menuItem.url)}>
+                  <Menu.Item
+                    key={menuItem.name}
+                    href={menuItem.url}
+                    {...getSafetyProps(menuItem.url)}
+                  >
                     {getText(menuItem.name)}
                   </Menu.Item>
                 ))}
@@ -229,7 +237,7 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
         }
 
         return (
-          <Button href={item.url} {...getSafetyProps(item.url)}>
+          <Button key={item.name} href={item.url} {...getSafetyProps(item.url)}>
             {getText(item.name)}
           </Button>
         )

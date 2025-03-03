@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import type { ComponentBrowserMode, Usage } from '@/components/ComponentBrowser/input'
 import SvgIcon from '@/components/SvgIcon.vue'
-import AutoSizedInput, { type Range } from '@/components/widgets/AutoSizedInput.vue'
+import AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
 import { useGraphStore } from '@/stores/graph'
 import { DEFAULT_ICON, iconOfNode, suggestionEntryToIcon } from '@/util/getIconName'
 import { qnLastSegment } from '@/util/qualifiedName'
 import { computed, ref, watch, type DeepReadonly } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
+import { type Range } from 'ydoc-shared/util/data/range'
 
 const content = defineModel<DeepReadonly<{ text: string; selection: Range | undefined }>>({
   required: true,

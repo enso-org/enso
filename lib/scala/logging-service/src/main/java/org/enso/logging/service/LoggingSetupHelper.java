@@ -77,12 +77,12 @@ public abstract class LoggingSetupHelper {
                   if (result.isFailure()) {
                     setup(Option.apply(logLevel), Option.empty(), logMasking, loggerSetup);
                   } else {
-                    URI uri = result.get();
                     Masking.setup(logMasking);
                     if (!loggerSetup.setup(logLevel)) {
                       LoggingServiceManager.teardown();
                       loggingServiceEndpointPromise.failure(new LoggerInitializationFailed());
                     } else {
+                      URI uri = result.get();
                       loggingServiceEndpointPromise.success(Option.apply(uri));
                     }
                   }

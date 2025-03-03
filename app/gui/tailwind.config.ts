@@ -186,7 +186,6 @@ export default {
         'chat-thread-list': 'var(--chat-thread-list-height)',
         'payment-form': 'var(--payment-form-height)',
         'paragraph-input': 'var(--paragraph-input-height)',
-        'dropdown-items': 'var(--dropdown-items-height)',
         'manage-permissions-modal-permissions-list':
           'var(--manage-permissions-modal-permissions-list-height)',
         'manage-labels-list': 'var(--manage-labels-list-height)',
@@ -234,7 +233,6 @@ export default {
         'name-column-icon': 'var(--name-column-icon-gap)',
         'permission-type-button': 'var(--permission-type-button-gap)',
         'modal-tabs': 'var(--modal-tabs-gap)',
-        'dropdown-arrow': 'var(--dropdown-arrow-gap)',
         'context-menus': 'var(--context-menus-gap)',
         'asset-panel': 'var(--asset-panel-gap)',
         'search-suggestions': 'var(--search-suggestions-gap)',

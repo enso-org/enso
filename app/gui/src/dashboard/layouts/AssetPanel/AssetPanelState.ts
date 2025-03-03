@@ -127,7 +127,6 @@ export interface AssetPanelContextProps {
   readonly backend: Backend | null
   readonly selectedTab: AssetPanelTab
   readonly item: AnyAsset | null
-  readonly path: string | null
   readonly spotlightOn: AssetPropertiesSpotlight | null
 }
 
@@ -216,7 +215,6 @@ export function useResetAssetPanelProps() {
           backend: null,
           item: null,
           spotlightOn: null,
-          path: null,
         },
       })
     }

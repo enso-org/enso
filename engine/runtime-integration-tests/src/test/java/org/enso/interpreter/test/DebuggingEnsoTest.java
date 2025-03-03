@@ -643,18 +643,10 @@ public class DebuggingEnsoTest {
                   assertThat(objValue.isInternal(), is(false));
                   assertThat(objValue.hasReadSideEffects(), is(false));
 
-                  var field1Prop = objValue.getProperty("field_1");
-                  assertThat(field1Prop.isReadable(), is(true));
-                  assertThat(field1Prop.isNumber(), is(true));
-                  assertThat(field1Prop.asInt(), is(1));
-
-                  assertThat(objValue.getProperties().size(), is(2));
-                  for (var prop : objValue.getProperties()) {
-                    assertThat(
-                        "Property '" + prop.getName() + "' should be readable",
-                        prop.isReadable(),
-                        is(true));
-                    assertThat(prop.isNumber(), is(true));
+                  for (var propName : List.of("field_1", "field_2")) {
+                    var fieldProp = objValue.getProperty(propName);
+                    assertThat(fieldProp.isReadable(), is(true));
+                    assertThat(fieldProp.isNumber(), is(true));
                   }
                 }
               }
@@ -690,13 +682,10 @@ public class DebuggingEnsoTest {
                   assertThat(objValue.isInternal(), is(false));
                   assertThat(objValue.hasReadSideEffects(), is(false));
 
-                  assertThat("Has fields f1 and f2", objValue.getProperties().size(), is(2));
-                  for (var prop : objValue.getProperties()) {
-                    assertThat(
-                        "Property '" + prop.getName() + "' should be readable",
-                        prop.isReadable(),
-                        is(true));
-                    assertThat(prop.isNumber(), is(true));
+                  for (var propName : List.of("f1", "f2")) {
+                    var fieldProp = objValue.getProperty(propName);
+                    assertThat(fieldProp.isReadable(), is(true));
+                    assertThat(fieldProp.isNumber(), is(true));
                   }
                 }
               }

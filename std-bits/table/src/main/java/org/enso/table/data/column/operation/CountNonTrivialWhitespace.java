@@ -13,7 +13,7 @@ import org.graalvm.polyglot.Context;
 public class CountNonTrivialWhitespace {
   /** Counts the number of cells in the columns with non trivial whitespace */
   public static Long apply(Column column, long sampleSize) throws InterruptedException {
-    ColumnStorage storage = column.getStorage();
+    ColumnStorage<?> storage = column.getStorage();
     return applyToStorage(storage, sampleSize);
   }
 
@@ -22,7 +22,7 @@ public class CountNonTrivialWhitespace {
    *
    * @return
    */
-  public static Long applyToStorage(ColumnStorage storage, long sampleSize)
+  public static Long applyToStorage(ColumnStorage<?> storage, long sampleSize)
       throws InterruptedException {
     return (sampleSize == DEFAULT_SAMPLE_SIZE && storage instanceof StringStorage stringStorage)
         ? stringStorage.cachedWhitespaceCount()
@@ -30,7 +30,7 @@ public class CountNonTrivialWhitespace {
   }
 
   /** Internal method performing the calculation on a storage. */
-  public static long compute(ColumnStorage storage, long sampleSize, Context context) {
+  public static long compute(ColumnStorage<?> storage, long sampleSize, Context context) {
     long size = storage.getSize();
 
     long count = 0;
