@@ -37,7 +37,7 @@ export function DriveBar(props: DriveBarProps) {
   const { showBoundary } = useErrorBoundary()
 
   const queryClient = useQueryClient()
-  const rootDirectoryQuery = listDirectoryQueryOptions({
+  const rootDirectoryQueryOptions = listDirectoryQueryOptions({
     backend,
     category,
     parentId: rootDirectoryId,
@@ -48,7 +48,8 @@ export function DriveBar(props: DriveBarProps) {
     error,
     isFetching,
   } = useSuspenseQuery({
-    ...rootDirectoryQuery,
+    ...rootDirectoryQueryOptions,
+    staleTime: Infinity,
     select: (data) => data.length === 0,
   })
 
@@ -57,7 +58,7 @@ export function DriveBar(props: DriveBarProps) {
     showBoundary(error)
     // Remove the query from the cache.
     // This will force the query to be refetched when the user navigates again.
-    queryClient.removeQueries({ queryKey: rootDirectoryQuery.queryKey })
+    queryClient.removeQueries({ queryKey: rootDirectoryQueryOptions.queryKey })
   }
 
   // When the directory is no longer empty, we need to hide the start modal.
