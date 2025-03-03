@@ -606,7 +606,7 @@ val googleApiClientVersion         = "2.7.1"
 val googleApiServicesSheetsVersion = "v4-rev20250106-2.0.0"
 val googleAnalyticsAdminVersion    = "0.66.0"
 val googleAnalyticsDataVersion     = "0.67.0"
-val grpcVersion                    = "1.67.1"
+val grpcVersion                    = "1.69.0"
 
 // === Other ==================================================================
 
