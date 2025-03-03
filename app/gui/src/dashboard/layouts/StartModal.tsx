@@ -1,16 +1,8 @@
 /** @file A modal containing project templates and news. */
-import * as React from 'react'
-
-import * as textProvider from '#/providers/TextProvider'
-
-import Samples from '#/layouts/Samples'
-import WhatsNew from '#/layouts/WhatsNew'
-
-import * as ariaComponents from '#/components/AriaComponents'
-
-// ==================
-// === StartModal ===
-// ==================
+import { Dialog } from '#/components/AriaComponents'
+import { Samples } from '#/layouts/Samples'
+import { WhatsNew } from '#/layouts/WhatsNew'
+import { useText } from '#/providers/TextProvider'
 
 /** Props for a {@link StartModal}. */
 export interface StartModalProps {
@@ -20,10 +12,10 @@ export interface StartModalProps {
 /** A modal containing project templates and news. */
 export default function StartModal(props: StartModalProps) {
   const { createProject } = props
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
 
   return (
-    <ariaComponents.Dialog type="fullscreen" title={getText('selectTemplate')} testId="start-modal">
+    <Dialog type="fullscreen" title={getText('selectTemplate')} testId="start-modal">
       {(opts) => (
         <div className="mb-4 flex flex-1 flex-col gap-home text-xs text-primary">
           <WhatsNew />
@@ -53,6 +45,6 @@ export default function StartModal(props: StartModalProps) {
           />
         </div>
       )}
-    </ariaComponents.Dialog>
+    </Dialog>
   )
 }

@@ -1,6 +1,4 @@
 /** @file A button that copies text to the clipboard. */
-import * as React from 'react'
-
 import Error from '#/assets/cross.svg'
 import CopyIcon from '#/assets/duplicate.svg'
 import Done from '#/assets/tick.svg'
@@ -11,10 +9,6 @@ import * as textProvider from '#/providers/TextProvider'
 
 import { Button } from './Button'
 import type { ButtonProps } from './types'
-
-// ==================
-// === CopyButton ===
-// ==================
 
 /** Props for a {@link CopyButton}. */
 export interface CopyButtonProps<IconType extends string>

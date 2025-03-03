@@ -1,6 +1,4 @@
 /** @file Displays a few details of an asset. */
-import * as React from 'react'
-
 import BreadcrumbArrowIcon from '#/assets/breadcrumb_arrow.svg'
 
 import * as textProvider from '#/providers/TextProvider'
@@ -12,10 +10,6 @@ import type * as backend from '#/services/Backend'
 
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
-
-// ====================
-// === AssetSummary ===
-// ====================
 
 /** Props for an {@link AssetSummary}. */
 export interface AssetSummaryProps {
