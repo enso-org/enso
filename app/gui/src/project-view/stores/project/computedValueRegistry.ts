@@ -83,6 +83,14 @@ function updateInfo(
   if (newInfo.methodCall !== info.methodCall) info.methodCall = newInfo.methodCall
   if (newInfo.payload !== info.payload) info.payload = newInfo.payload
   if (newInfo.profilingInfo !== info.profilingInfo) info.profilingInfo = update.profilingInfo
+  // Ensure new fields can't be added to `ExpressionInfo` without this code being updated. 
+  const _allFieldsHandled = { 
+    typename,
+    rawTypename,
+    methodCall,
+    payload,
+    profilingInfo, 
+  } satisfies ExpressionInfo 
 }
 
 /**
