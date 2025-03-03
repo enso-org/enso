@@ -80,6 +80,40 @@ const DATE_PICKER_STYLES = tv({
   },
 })
 
+/** Return the date segment using English placeholders. */
+function normalizeDateSegment(segment: DateSegmentType): DateSegmentType {
+  switch (segment.type) {
+    case 'era': {
+      return { ...segment, text: 'AD', placeholder: 'AD' }
+    }
+    case 'year': {
+      return { ...segment, text: 'yyyy', placeholder: 'yyyy' }
+    }
+    case 'month': {
+      return { ...segment, text: 'mm', placeholder: 'mm' }
+    }
+    case 'day': {
+      return { ...segment, text: 'dd', placeholder: 'dd' }
+    }
+    case 'hour': {
+      return { ...segment, text: 'HH', placeholder: 'HH' }
+    }
+    case 'minute': {
+      return { ...segment, text: 'MM', placeholder: 'MM' }
+    }
+    case 'second': {
+      return { ...segment, text: 'SS', placeholder: 'SS' }
+    }
+    case 'timeZoneName': {
+      return { ...segment, text: 'UTC+XX', placeholder: 'UTC+XX' }
+    }
+    case 'dayPeriod':
+    case 'literal': {
+      return segment
+    }
+  }
+}
+
 /** Props for a {@link DatePicker}. */
 export interface DatePickerProps<
   Schema extends TSchema,
@@ -175,7 +209,7 @@ export const DatePicker = forwardRef(function DatePicker<
                     segments[segment.type] === false ?
                       <></>
                     : <DateSegment
-                        segment={segment}
+                        segment={normalizeDateSegment(segment)}
                         className={styles.dateSegment({
                           className:
                             segment.type === 'literal' && segment.text === ' ' ? 'w-1.5' : '',
