@@ -7,6 +7,7 @@ import {
   getDescriptionForTimeZone,
   getTimeZoneOffsetStringWithGMT,
   MONTH_3_LETTER_TEXT_IDS,
+  zonedDateTimeToReadableIsoString,
 } from 'enso-common/src/utilities/data/dateTime'
 
 import LogsIcon from '#/assets/logs.svg'
@@ -107,7 +108,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
       )
       switch (repeat.type) {
         case 'none': {
-          return getText('doesNotRepeat')
+          return zonedDateTimeToReadableIsoString(zonedStartDate)
         }
         case 'daily': {
           return `${startDateDailyRepeat} ${getText('everyDaySuffix')}`
