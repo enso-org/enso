@@ -311,21 +311,22 @@ function acceptInput() {
 
 // === Action Handlers ===
 
+const outsideComponentBrowsing = computed(() => input.mode.mode != 'componentBrowsing')
 const actions = registerHandlers({
   'componentBrowser.editSuggestion': {
     action: applySuggestion,
-    disabled: computed(() => input.mode.mode != 'componentBrowsing'),
+    disabled: outsideComponentBrowsing,
   },
   'componentBrowser.acceptSuggestion': {
     action: acceptSuggestion,
-    disabled: computed(() => input.mode.mode != 'componentBrowsing'),
+    disabled: outsideComponentBrowsing,
   },
   'componentBrowser.acceptInputAsCode': {
     action: acceptInput,
-    disabled: computed(() => input.mode.mode != 'componentBrowsing'),
+    disabled: outsideComponentBrowsing,
   },
   'componentBrowser.switchToCodeEditMode': {
-    disabled: computed(() => input.mode.mode != 'componentBrowsing'),
+    disabled: outsideComponentBrowsing,
     action: input.switchToCodeEditMode,
   },
 })

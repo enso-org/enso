@@ -82,16 +82,7 @@ function itemAtY(pos: number) {
 }
 
 function itemStyle(index: number) {
-  // TODO[ao]: for some reason, .item class style must be repeated here,
-  //  because the class has no effect otherwise. To investigate.
-  return {
-    position: 'absolute',
-    width: '100%',
-    height: 'var(--item-height)',
-    minHeight: 'var(--item-height)',
-    maxHeight: 'var(--item-height)',
-    transform: `translateY(${itemPos(index)}px)`,
-  }
+  return { transform: `translateY(${itemPos(index)}px)` }
 }
 
 // === Selection ===
@@ -225,14 +216,6 @@ defineExpose({ moveUp, moveDown, accept })
   --item-height: 32px;
 }
 
-.item {
-  position: absolute;
-  width: 100%;
-  height: var(--item-height);
-  min-height: var(--item-height);
-  max-height: var(--item-height);
-}
-
 .list {
   width: 100%;
   height: 100%;
@@ -246,5 +229,14 @@ defineExpose({ moveUp, moveDown, accept })
   width: 100%;
   height: var(--list-height);
   position: absolute;
+}
+</style>
+<style module>
+.item {
+  position: absolute;
+  width: 100%;
+  height: var(--item-height);
+  min-height: var(--item-height);
+  max-height: var(--item-height);
 }
 </style>

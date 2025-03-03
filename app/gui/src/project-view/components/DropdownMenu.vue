@@ -6,10 +6,15 @@ import { useEventConditional } from '@/composables/events'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
 import { endOnClickOutside } from '@/util/autoBlur'
 import { shift, useFloating, type Placement } from '@floating-ui/vue'
-import { ref, shallowRef, toRef } from 'vue'
+import { ref, shallowRef } from 'vue'
 
 const open = defineModel<boolean>('open', { default: false })
-const props = defineProps<{
+const {
+  title,
+  placement = 'bottom-start',
+  alwaysShowArrow = false,
+  interaction = true,
+} = defineProps<{
   title?: string | undefined
   placement?: Placement
   alwaysShowArrow?: boolean | undefined
@@ -25,21 +30,18 @@ const dropDownInteraction = endOnClickOutside(rootElement, {
   end: () => (open.value = false),
 })
 
-injectInteractionHandler().setWhen(
-  () => open.value && props.interaction !== false,
-  dropDownInteraction,
-)
+injectInteractionHandler().setWhen(() => open.value && interaction, dropDownInteraction)
 
 useEventConditional(
   window,
   'pointerdown',
-  toRef(props, 'interaction'),
+  () => interaction,
   dropDownInteraction.pointerdown!.bind(dropDownInteraction),
   { capture: true },
 )
 
 const { floatingStyles } = useFloating(rootElement, floatElement, {
-  placement: props.placement ?? 'bottom-start',
+  placement: () => placement,
   middleware: [shift()],
 })
 </script>
@@ -49,7 +51,7 @@ const { floatingStyles } = useFloating(rootElement, floatElement, {
     <MenuButton
       v-model="open"
       class="DropdownMenuButton"
-      :title="props.title"
+      :title="title"
       @pointerenter="hovered = true"
       @pointerleave="hovered = false"
     >

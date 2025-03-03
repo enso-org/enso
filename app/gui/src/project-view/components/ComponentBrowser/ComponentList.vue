@@ -2,11 +2,11 @@
 import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
 import ComponentEntry from '@/components/ComponentBrowser/ComponentEntry.vue'
 import type { Filtering } from '@/components/ComponentBrowser/filtering'
-import LazyList from '@/components/LazyList.vue'
+import LazyList from '@/components/VirtualizedList.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { tryGetIndex } from '@/util/data/array'
-import { computed, ref, toRef, watch, watchEffect } from 'vue'
+import { computed, ref, toRef, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 
 const ITEM_SIZE = 24
@@ -31,8 +31,19 @@ const selectedGroupIndex = ref<number | null>(0)
 const selectedComponentIndex = ref<number | null>(0)
 const focusedPanel = ref<ComponentListPanel>('componentsPanel')
 
-// When filtering updates, force componentList to be focused.
-watch(toRef(props, 'filtering'), () => (selectedComponentIndex.value = 0))
+const displayedSelectedComponentIndex = computed({
+  get: () => (focusedPanel.value === 'groupsPanel' ? null : selectedComponentIndex.value),
+  set: (index) => {
+    focusedPanel.value = 'componentsPanel'
+    selectedComponentIndex.value = index
+  },
+})
+
+watch(toRef(props, 'filtering'), () => {
+  selectedComponentIndex.value = 0
+  focusedPanel.value = 'componentsPanel'
+})
+watch(selectedGroupIndex, () => (selectedComponentIndex.value = 0))
 
 const suggestionDbStore = useSuggestionDbStore()
 const components = computed(() => makeComponentList(suggestionDbStore.entries, props.filtering))
@@ -52,22 +63,6 @@ const currentComponents = computed(() => {
   if (displayedGroupId.value == null) return components.value.get('all') ?? []
   else return components.value.get(displayedGroupId.value) ?? []
 })
-
-watchEffect(() => {
-  if (focusedPanel.value === 'groupsPanel') {
-    selectedComponentIndex.value = null
-  } else if (currentComponents.value.length > 0) {
-    selectedComponentIndex.value = 0
-  }
-})
-
-watch(
-  () => suggestionDbStore.entries,
-  (x) => console.log('suggestionDbStore.entries', x),
-  { flush: 'sync' },
-)
-watch(components, (x) => console.log('components', x), { flush: 'sync' })
-watch(currentComponents, (x) => console.log('currentComponents', x), { flush: 'sync' })
 
 /** Group colors are populated in `GraphEditor`, and for each group in suggestion database a CSS variable is created. */
 function componentColor(component: Component): string {
@@ -118,7 +113,7 @@ defineExpose({
     <LazyList
       ref="componentsPanel"
       v-slot="{ item: component }"
-      v-model:selected="selectedComponentIndex"
+      v-model:selected="displayedSelectedComponentIndex"
       class="components"
       :items="currentComponents"
       :itemHeight="ITEM_SIZE"

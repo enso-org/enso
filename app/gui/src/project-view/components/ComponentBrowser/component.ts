@@ -13,6 +13,7 @@ import { Range } from '@/util/data/range'
 import { displayedIconOf } from '@/util/getIconName'
 import { type Icon } from '@/util/iconMetadata/iconName'
 import { type ProjectPath } from '@/util/projectPath'
+import * as map from 'lib0/map'
 
 interface ComponentLabelInfo {
   label: string
@@ -135,12 +136,8 @@ export function makeComponentList(
   const matched = Array.from(matchSuggestions()).sort(compareSuggestions)
   const groups = new Map<GroupId, Component[]>()
   const addToGroup = (group: GroupId, entry: ComponentInfo) => {
-    const list = groups.get(group)
-    if (list != null) {
-      list.push(makeComponent(entry))
-    } else {
-      groups.set(group, [makeComponent(entry)])
-    }
+    const list = map.setIfUndefined(groups, group, (): Component[] => [])
+    list.push(makeComponent(entry))
   }
   for (const entry of matched) {
     addToGroup('all', entry)
