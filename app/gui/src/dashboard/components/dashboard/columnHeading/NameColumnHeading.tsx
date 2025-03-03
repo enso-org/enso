@@ -36,7 +36,6 @@ export default function NameColumnHeading(props: AssetColumnHeadingProps) {
       fullWidth
       size="custom"
       variant="custom"
-      weight="bold"
       aria-label={
         !isSortActive ? getText('sortByName')
         : isDescending ?
@@ -52,7 +51,7 @@ export default function NameColumnHeading(props: AssetColumnHeadingProps) {
           )}
         />
       }
-      className="group sticky left-0 flex h-table-row justify-start bg-dashboard px-name-column-x"
+      className="group sticky left-0 flex h-table-row justify-start bg-dashboard px-name-column-x font-bold"
       onPress={cycleSortDirection}
     >
       {getText('nameColumnName')}

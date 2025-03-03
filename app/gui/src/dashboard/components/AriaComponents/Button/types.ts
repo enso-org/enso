@@ -7,7 +7,6 @@ import type {
   Placement,
   PressEvent,
 } from '#/components/aria'
-import type { TextProps } from '#/components/AriaComponents/Text'
 import type { ExtractFunction } from '#/utilities/tailwindVariants'
 import type { ReactElement, ReactNode } from 'react'
 import type { Addon, IconProp, TestIdProps } from '../types'
@@ -86,8 +85,6 @@ export interface BaseButtonProps<IconType extends string, Render>
    * When `icon`, only the icon will be replaced with the loader.
    */
   readonly loaderPosition?: 'full' | 'icon'
-  /** The font weight of the button label. */
-  readonly weight?: TextProps['weight']
   readonly styles?: ExtractFunction<typeof BUTTON_STYLES> | undefined
 
   readonly children?: ReactNode | ((render: Render) => ReactNode)

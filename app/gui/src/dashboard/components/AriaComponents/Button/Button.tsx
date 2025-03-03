@@ -10,7 +10,7 @@ import {
 } from 'react'
 
 import * as aria from '#/components/aria'
-import { Text, useVisualTooltip, type TextProps } from '#/components/AriaComponents/Text'
+import { Text, useVisualTooltip } from '#/components/AriaComponents/Text'
 import { Tooltip, TooltipTrigger } from '#/components/AriaComponents/Tooltip'
 import { Icon as IconComponent } from '#/components/Icon'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
@@ -64,7 +64,6 @@ export const Button = memo(
       addonStart,
       addonEnd,
       hideLoader = false,
-      weight,
       ...ariaProps
     } = props
 
@@ -228,7 +227,6 @@ export const Button = memo(
                     addonStart={typeof addonStart === 'function' ? addonStart(render) : addonStart}
                     /* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */
                     addonEnd={typeof addonEnd === 'function' ? addonEnd(render) : addonEnd}
-                    weight={weight}
                   >
                     {/* @ts-expect-error any here is safe because we transparently pass it to the children, and ts infer the type outside correctly */}
                     {typeof children === 'function' ? children(render) : children}
@@ -288,8 +286,6 @@ interface ButtonContentProps {
   readonly icon: ReactElement | string | null | undefined
   readonly styles: ReturnType<typeof BUTTON_STYLES>
   readonly children: ReactNode
-  /** The font weight of the button label. */
-  readonly weight?: TextProps['weight']
   readonly addonStart?: ReactElement | string | false | null | undefined
   readonly addonEnd?: ReactElement | string | false | null | undefined
 }
@@ -311,7 +307,6 @@ const ButtonContent = memo(function ButtonContent(props: ButtonContentProps) {
     addonStart,
     addonEnd,
     hideLoader,
-    weight,
   } = props
 
   // Icon only button
@@ -342,7 +337,7 @@ const ButtonContent = memo(function ButtonContent(props: ButtonContentProps) {
         styles={styles}
         hideLoader={hideLoader}
       />
-      <Text weight={weight} color="inherit" truncate="1" className={styles.text()}>
+      <Text weight="custom" color="inherit" truncate="1" className={styles.text()}>
         {children}
       </Text>
       {hasAddon(addonEnd) && <div className={styles.addonEnd()}>{addonEnd}</div>}

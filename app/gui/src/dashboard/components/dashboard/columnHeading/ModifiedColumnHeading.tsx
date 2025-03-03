@@ -59,7 +59,6 @@ export default function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
         fullWidth
         size="custom"
         variant="custom"
-        weight="bold"
         addonEnd={
           <Icon
             icon={iconIdFor(sortInfo?.direction, isSortActive)}
@@ -69,7 +68,7 @@ export default function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
             )}
           />
         }
-        className="flex justify-start"
+        className="flex justify-start font-bold"
         onPress={cycleSortDirection}
       >
         {getText('modifiedColumnName')}
