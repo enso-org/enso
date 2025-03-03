@@ -80,7 +80,6 @@ import project.Value_Type.By_Type
 import project.Value_Type.Value_Type
 from project.Errors import all
 from project.Internal.Filter_Condition_Helpers import make_filter_column
-from project.Internal.Geo_Helpers import compute_distance, Distance_Units
 from project.Internal.Lookup_Helpers import make_java_lookup_column_description
 from project.Internal.Rows_View import Rows_View
 
@@ -3780,33 +3779,6 @@ type Table
     offset self (columns : Vector (Integer | Text | Regex | By_Type) = Missing_Argument.throw "columns") n:Integer=-1 fill_with:Fill_With=..Nothing (group_by : Vector | Text | Integer | Regex = []) (order_by : Vector | Text = []) set_mode:Set_Mode=..Add on_problems:Problem_Behavior=..Report_Warning -> Table =
         Offset_Helper.table_offset_impl self columns n fill_with group_by order_by set_mode on_problems
 
-    ## UNSTABLE
-       ICON geo_map_distance
-
-       Computes the distance between two latitude/longitude points on each row of the table.
-
-       Arguments:
-       - lat1: The latitude of the first point, either a Column or single value.
-       - long1: The longitude of the first point, either a Column or single value.
-       - lat2: The latitude of the second point, either a Column or single value.
-       - long2: The longitude of the second point, either a Column or single value.
-       - units: The unit to return the result in.
-       - as: The name of the resulting column to add.
-    @lat1 (Widget_Helpers.make_column_ref_by_name_selector_for_type display=..Always value_type=Value_Type.Float)
-    @long1 (Widget_Helpers.make_column_ref_by_name_selector_for_type display=..Always value_type=Value_Type.Float)
-    @lat2 (Widget_Helpers.make_column_ref_by_name_selector_for_type display=..Always value_type=Value_Type.Float)
-    @long2 (Widget_Helpers.make_column_ref_by_name_selector_for_type display=..Always value_type=Value_Type.Float)
-    geo_distance self lat1:(Float | Column | Column_Ref)=(_column_ref_if_name self "latitude" "lat" (Missing_Argument.throw "lat1")) long1:(Float | Column | Column_Ref)=(_column_ref_if_name self "longitude" "long" (Missing_Argument.throw "long1")) lat2:(Float | Column | Column_Ref)=(Missing_Argument.throw "lat2") long2:(Float | Column | Column_Ref)=(Missing_Argument.throw "long2") units:Distance_Units=..Meters as:Text="" -> Table =
-        table_ref = (self:Table_Ref)
-        resolved_lat1 = table_ref.resolve lat1
-        resolved_long1 = table_ref.resolve long1
-        resolved_lat2 = table_ref.resolve lat2
-        resolved_long2 = table_ref.resolve long2
-        used_name = if as != "" then as else
-            name_arg x = if x.is_a Column then "["+x.name+"]" else x.to_text
-            "distance(" + (name_arg resolved_lat1) + ", " + (name_arg resolved_long1) + ", " + (name_arg resolved_lat2) + ", " + (name_arg resolved_long2) + ")"
-        compute_distance self resolved_lat1 resolved_long1 resolved_lat2 resolved_long2 units used_name
-
     ## PRIVATE
     column_naming_helper : Column_Naming_Helper
     column_naming_helper self = Column_Naming_Helper.in_memory
@@ -4019,10 +3991,3 @@ from_java_table java_table -> Table =
 ## PRIVATE
 Many_Files_List.from (that : Table) =
     Read_Many_Helpers.find_files_list_in_table that
-
-## PRIVATE
-private _column_ref_if_name table:Table column_name:Text prefix:Text=column_name ~on_fail=(Missing_Argument.throw column_name) =
-    names = table.column_names
-    cond = [Filter_Condition.Equal column_name, Filter_Condition.Equal_Ignore_Case column_name, Filter_Condition.Equal prefix, Filter_Condition.Equal_Ignore_Case prefix, Filter_Condition.Starts_With prefix ..Insensitive]
-    name = names.find (cond.find names.any if_missing=on_fail)
-    Column_Ref.Name name
