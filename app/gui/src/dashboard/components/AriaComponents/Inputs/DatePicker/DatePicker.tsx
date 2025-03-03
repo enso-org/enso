@@ -61,7 +61,7 @@ const DATE_PICKER_STYLES = tv({
     dateInput: 'flex justify-start grow order-2',
     dateSegment: 'rounded placeholder-shown:text-primary/30 focus:bg-primary/10 px-[0.5px]',
     calendarButton: 'order-1 rotate-90',
-    resetButton: '',
+    resetButton: 'order-2',
     calendarPopover: '',
     calendarDialog: 'text-primary text-xs mx-2',
     calendarContainer: '',
