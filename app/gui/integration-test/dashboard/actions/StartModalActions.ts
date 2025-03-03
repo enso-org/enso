@@ -21,10 +21,7 @@ export default class StartModalActions<Context> extends BaseActions<Context> {
   /** Close this modal and go back to the Drive page. */
   close() {
     return this.step('Close start modal', async (page) => {
-      const isOnScreen = await this.isStartModalShown(page)
-      if (isOnScreen) {
-        await this.locateStartModal(page).getByTestId('close-button').click()
-      }
+      await this.locateStartModal(page).getByTestId('close-button').click()
     }).into(DrivePageActions<Context>)
   }
 

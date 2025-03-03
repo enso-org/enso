@@ -166,7 +166,10 @@ export function mockAllAndLogin({ page, setupAPI }: MockParams) {
       // @ts-expect-error This is the only place in which the private member `.context`
       // should be accessed.
       const context = actions.context
-      await new StartModalActions(page, context).close()
+      const isStartModalShown = context.api.listRootDirectory().length === 0
+      if (isStartModalShown) {
+        await new StartModalActions(page, context).close()
+      }
     })
     .into(DrivePageActions<Context>)
 }

@@ -11,6 +11,7 @@
     "integration-test/**/*",
     "src/dashboard/hooks/eventCallbackHooks.ts",
     "src/dashboard/modules/payments/constants.ts",
+    "src/dashboard/providers/FeatureFlagsProvider.tsx",
     "src/dashboard/services/Backend.ts",
     "src/dashboard/utilities/**/*",
     "node.env.d.ts"
