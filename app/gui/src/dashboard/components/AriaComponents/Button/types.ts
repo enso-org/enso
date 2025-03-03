@@ -1,5 +1,12 @@
 /** @file Types for a `Button`. */
-import type * as aria from '#/components/aria'
+import type {
+  ButtonProps as AriaButtonProps,
+  ButtonRenderProps as AriaButtonRenderProps,
+  LinkRenderProps as AriaLinkRenderProps,
+  LinkProps,
+  Placement,
+  PressEvent,
+} from '#/components/aria'
 import type { TextProps } from '#/components/AriaComponents/Text'
 import type { ExtractFunction } from '#/utilities/tailwindVariants'
 import type { ReactElement, ReactNode } from 'react'
@@ -19,22 +26,22 @@ export interface PrivateJoinedButtonProps {
 }
 
 /** Render props for a button. */
-export interface ButtonRenderProps extends aria.ButtonRenderProps {
+export interface ButtonRenderProps extends AriaButtonRenderProps {
   readonly isLoading: boolean
 }
 
 /** Render props for a link. */
-export interface LinkRenderProps extends aria.LinkRenderProps {
+export interface LinkRenderProps extends AriaLinkRenderProps {
   readonly isLoading: boolean
 }
 
 /** Props for a Button. */
 export type ButtonProps<IconType extends string = string> =
   | (BaseButtonProps<IconType, ButtonRenderProps> &
-      Omit<aria.ButtonProps, 'children' | 'isPending' | 'onPress'> &
+      Omit<AriaButtonProps, 'children' | 'isPending' | 'onPress'> &
       PropsWithoutHref)
   | (BaseButtonProps<IconType, LinkRenderProps> &
-      Omit<aria.LinkProps, 'children' | 'onPress'> &
+      Omit<LinkProps, 'children' | 'onPress'> &
       PropsWithHref)
 
 /** Props for a button with an href. */
@@ -55,7 +62,7 @@ export interface BaseButtonProps<IconType extends string, Render>
   readonly hideLoader?: boolean
   /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
   readonly tooltip?: ReactElement | string | false | null
-  readonly tooltipPlacement?: aria.Placement
+  readonly tooltipPlacement?: Placement
   /** The icon to display in the button */
   readonly icon?: IconProp<IconType, Render>
   /** When `true`, icon will be shown only when hovered. */
@@ -68,7 +75,7 @@ export interface BaseButtonProps<IconType extends string, Render>
   // prettier-ignore
   readonly onPress?:
     // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-    | ((event: aria.PressEvent) => Promise<unknown> | unknown)
+    | ((event: PressEvent) => Promise<unknown> | unknown)
     | null
     | undefined
   readonly contentClassName?: string
