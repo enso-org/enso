@@ -164,7 +164,6 @@ interface PlaceholderOverrides {
     totalMb: string,
   ]
   readonly dateXTimeX: [date: string, time: string]
-  readonly hourlyBetweenX: [startTime: string, endTime: string]
   readonly projectSessionsOnX: [date: string]
   readonly monthlyXthDay: [dateOrdinal: string]
   readonly monthlyXthXDay: [weekOrdinal: string, dayOfWeek: string]
@@ -192,10 +191,6 @@ export interface Replacements
   extends PlaceholderOverrides,
     Record<Exclude<TextId, keyof PlaceholderOverrides>, []> {}
 
-// =================
-// === Constants ===
-// =================
-
 export const TEXTS: Readonly<Record<Language, Texts>> = {
   [Language.english]: ENGLISH,
 }
@@ -212,9 +207,7 @@ export type GetText = <K extends TextId>(
   ...replacements: Replacements[K]
 ) => string
 
-/**
- * Resolves the language texts based on the user's preferred language.
- */
+/** Resolves the language texts based on the user's preferred language. */
 export function resolveUserLanguage() {
   const locale = navigator.language
   const language =
