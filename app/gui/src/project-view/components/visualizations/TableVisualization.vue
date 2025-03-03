@@ -195,9 +195,9 @@ function formatNumber(params: ICellRendererParams) {
 
 function formatText(params: ICellRendererParams) {
   const htmlEscaped = params.value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
+    .replaceAll('&', '&amp')
+    .replaceAll('<', '&lt')
+    .replaceAll('>', '&gt')
 
   if (textFormatterSelected.value === 'off') {
     const replaceLinks = replaceLinksWithTag(htmlEscaped)
