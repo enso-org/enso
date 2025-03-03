@@ -40,7 +40,7 @@ type Response
          response.
        - body_object: The body of the response. If nothing will be read from the
          internal_http_response. Allows for materialization.
-    Value internal_http_response:Enso_Http_Response body_object=Nothing
+    private Value internal_http_response:Enso_Http_Response body_object=Nothing
 
     ## PRIVATE
     new java_http_response:EnsoHttpResponse =
@@ -244,7 +244,7 @@ filename_from_content_disposition content_disposition =
         match.if_not_nothing <| match.get 1
 
 ## PRIVATE
-   After an `EnsoHttpResponse` has been returned from Java to Enos, it should be
+   After an `EnsoHttpResponse` has been returned from Java to Enso, it should be
    converted to this, which takes care of ensuring that the body `InputStream`
    is wrapped as a `Managed_Resource`.
 type Enso_Http_Response
