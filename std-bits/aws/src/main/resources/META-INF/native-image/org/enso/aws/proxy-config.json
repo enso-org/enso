@@ -3,8 +3,5 @@
     "interfaces": [
       "java.util.function.Consumer"
     ]
-  },
-  {
-    "interfaces": ["software.amazon.awssdk.services.s3.model.PutObjectAclRequest"]
   }
 ]
