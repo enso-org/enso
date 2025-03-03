@@ -126,7 +126,7 @@ public class SocketServer extends Thread {
     if (projectId != null) {
       synchronized (socketNodeList) {
         for (SocketLoggingNode sn : socketNodeList) {
-          if (sn.projectId.equals(projectId)) sn.closing();
+          if (sn.projectId != null && sn.projectId.equals(projectId)) sn.closing();
         }
       }
     }

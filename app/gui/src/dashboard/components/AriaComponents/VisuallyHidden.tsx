@@ -14,7 +14,6 @@ export type VisuallyHiddenProps = React.HTMLProps<HTMLElement>
 export const VISUALLY_HIDDEN_STYLES = twv.tv({ base: 'sr-only' })
 
 /** A component visually hides its children from the screen, but keeps them accessible to screen readers. */
-// eslint-disable-next-line no-restricted-syntax
 export const VisuallyHidden = forwardRef(function VisuallyHidden(
   props: VisuallyHiddenProps,
   ref: React.ForwardedRef<HTMLSpanElement>,

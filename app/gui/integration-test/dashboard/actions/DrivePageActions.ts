@@ -94,6 +94,7 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
       cloud() {
         return self.step('Go to "Cloud" category', (page) =>
           page
+            .getByLabel(TEXT.categorySwitcherMenuLabel)
             .getByRole('button', { name: TEXT.cloudCategory, exact: true })
             .getByText(TEXT.cloudCategory)
             .click(),
@@ -103,6 +104,7 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
       local() {
         return self.step('Go to "Local" category', (page) =>
           page
+            .getByLabel(TEXT.categorySwitcherMenuLabel)
             .getByRole('button', { name: TEXT.localCategory, exact: true })
             .getByText(TEXT.localCategory)
             .click(),
@@ -112,6 +114,7 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
       recent() {
         return self.step('Go to "Recent" category', (page) =>
           page
+            .getByLabel(TEXT.categorySwitcherMenuLabel)
             .getByRole('button', { name: TEXT.recentCategory, exact: true })
             .getByText(TEXT.recentCategory)
             .click(),
@@ -133,24 +136,21 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
     )
   }
 
-  /**
-   * Expect the category to be selected.
-   */
+  /** Expect the category to be selected. */
   expectCategory(category: string) {
     return this.step(`Expect category '${category}'`, (page) =>
-      expect(page.getByRole('button', { name: category })).toHaveAttribute('data-selected', 'true'),
+      expect(
+        page.getByLabel(TEXT.categorySwitcherMenuLabel).getByRole('button', { name: category }),
+      ).toHaveAttribute('data-selected', 'true'),
     )
   }
 
-  /**
-   * Expect the category to be not selected.
-   */
+  /** Expect the category to be not selected. */
   expectCategoryNotSelected(category: string) {
     return this.step(`Expect category '${category}' not selected`, (page) =>
-      expect(page.getByRole('button', { name: category })).toHaveAttribute(
-        'data-selected',
-        'false',
-      ),
+      expect(
+        page.getByLabel(TEXT.categorySwitcherMenuLabel).getByRole('button', { name: category }),
+      ).toHaveAttribute('data-selected', 'false'),
     )
   }
 
@@ -192,7 +192,7 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
         )
       },
       withPathColumnCell(title: string, callback: LocatorCallback<Context>) {
-        return self.step(`Interact with "path" column cell '${title}'`, (page, context) =>
+        return self.step(`Interact with "path" column of asset '${title}'`, (page, context) =>
           callback(locatePathColumnCell(page, title), context),
         )
       },
@@ -209,27 +209,40 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
         )
       },
       /** Click to select a specific row. */
-      clickRow(index: number) {
-        return self.step(`Click drive table row #${index}`, (page) =>
-          locateAssetRows(page).nth(index).click({ position: ASSET_ROW_SAFE_POSITION }),
-        )
+      clickRow(indexOrName: number | string) {
+        return self.step(`Click drive table row '${indexOrName}'`, async (page) => {
+          const rows = locateAssetRows(page)
+          const row =
+            typeof indexOrName === 'number' ?
+              rows.nth(indexOrName)
+            : rows.filter({ hasText: indexOrName })
+          await row.click({ position: ASSET_ROW_SAFE_POSITION })
+        })
       },
       /**
        * Right click a specific row to bring up its context menu, or the context menu for multiple
        * assets when right clicking on a selected asset when multiple assets are selected.
        */
-      rightClickRow(index: number) {
-        return self.step(`Right click drive table row #${index}`, (page) =>
-          locateAssetRows(page)
-            .nth(index)
-            .click({ button: 'right', position: ASSET_ROW_SAFE_POSITION }),
-        )
+      rightClickRow(indexOrName: number | string) {
+        return self.step(`Right click drive table row '${indexOrName}'`, async (page) => {
+          const rows = locateAssetRows(page)
+          const row =
+            typeof indexOrName === 'number' ?
+              rows.nth(indexOrName)
+            : rows.filter({ hasText: indexOrName })
+          await row.click({ button: 'right', position: ASSET_ROW_SAFE_POSITION })
+        })
       },
       /** Double click a row. */
-      doubleClickRow(index: number) {
-        return self.step(`Double dlick drive table row #${index}`, (page) =>
-          locateAssetRows(page).nth(index).dblclick({ position: ASSET_ROW_SAFE_POSITION }),
-        )
+      doubleClickRow(indexOrName: number | string) {
+        return self.step(`Double dlick drive table row '${indexOrName}'`, async (page) => {
+          const rows = locateAssetRows(page)
+          const row =
+            typeof indexOrName === 'number' ?
+              rows.nth(indexOrName)
+            : rows.filter({ hasText: indexOrName })
+          await row.dblclick({ position: ASSET_ROW_SAFE_POSITION })
+        })
       },
       /** Interact with the set of all rows in the Drive table. */
       withRows(
@@ -250,47 +263,41 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
         })
       },
       /** Drag a row onto another row. */
-      dragRowToRow(from: number, to: number) {
-        return self.step(`Drag drive table row #${from} to row #${to}`, async (page) => {
+      dragRowToRow(from: number | string, to: number | string) {
+        return self.step(`Drag drive table row '${from}' to row '${to}'`, async (page) => {
           const rows = locateAssetRows(page)
-          rows.nth(from).click()
-          await rows.nth(from).dragTo(rows.nth(to), {
+          const fromRow = typeof from === 'number' ? rows.nth(from) : rows.filter({ hasText: from })
+          const toRow = typeof to === 'number' ? rows.nth(to) : rows.filter({ hasText: to })
+          await fromRow.click()
+          await fromRow.dragTo(toRow, {
             sourcePosition: ASSET_ROW_SAFE_POSITION,
             targetPosition: ASSET_ROW_SAFE_POSITION,
           })
         })
       },
       /** Drag a row onto another row. */
-      dragRow(from: number, to: Locator, force?: boolean) {
-        return self.step(`Drag drive table row #${from} to custom locator`, (page) =>
-          locateAssetRows(page)
-            .nth(from)
-            .dragTo(to, {
-              sourcePosition: ASSET_ROW_SAFE_POSITION,
-              ...(force == null ? {} : { force }),
-            }),
-        )
-      },
-      expandDirectory(index: number) {
-        return self.step(`Expand drive table row #${index}`, async (page) => {
-          const expandButton = locateAssetRows(page)
-            .nth(index)
-            .getByTestId('directory-row-expand-button')
-
-          await expect(expandButton).toHaveAttribute('aria-label', TEXT.expand)
-
-          await expandButton.click()
+      dragRow(from: number | string, to: Locator, force?: boolean) {
+        return self.step(`Drag drive table row '${from}' to custom locator`, async (page) => {
+          const rows = locateAssetRows(page)
+          const fromRow = typeof from === 'number' ? rows.nth(from) : rows.filter({ hasText: from })
+          await fromRow.dragTo(to, {
+            sourcePosition: ASSET_ROW_SAFE_POSITION,
+            ...(force == null ? {} : { force }),
+          })
         })
       },
-      collapseDirectory(index: number) {
-        return self.step(`Collapse drive table row #${index}`, async (page) => {
-          const collapseButton = locateAssetRows(page)
-            .nth(index)
-            .getByTestId('directory-row-expand-button')
+      openDirectory(indexOrName: number | string) {
+        return self.step(`Open directory on drive table row ${indexOrName}`, async (page) => {
+          const rows = locateAssetRows(page)
+          const row =
+            typeof indexOrName === 'number' ?
+              rows.nth(indexOrName)
+            : rows.filter({ hasText: indexOrName })
+          const navigateButton = row.getByTestId('directory-row-navigate-button')
 
-          await expect(collapseButton).toHaveAttribute('aria-label', TEXT.collapse)
+          await expect(navigateButton).toHaveAttribute('aria-label', TEXT.open)
 
-          return collapseButton.click()
+          await navigateButton.dblclick()
         })
       },
       /**

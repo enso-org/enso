@@ -408,6 +408,16 @@
   --toastify-icon-color-error: var(--color-danger);
 }
 
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+}
+
 /* These styles MUST still be copied
  * as `.enso-app body` and `.enso-app html` make no sense. */
 :where(.enso-app, .enso-chat, .enso-portal-root) {

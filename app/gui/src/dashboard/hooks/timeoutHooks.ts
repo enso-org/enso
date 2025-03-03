@@ -44,10 +44,13 @@ export class AbortError extends Error {
 }
 
 /**
- * Hook that executes a callback after a timeout.
+ * Hook that provides imperative API for timeouts
+ * Keeps only one timeout active at a time, cancelling the previous, and cleaning up on unmount
  */
-export function useTimeoutCallback(options: UseTimeoutCallbackOptions) {
-  const { callback, ms, deps = STABLE_DEPS_ARRAY, isDisabled = false } = options
+export function useTimeoutApi(
+  options: Pick<UseTimeoutCallbackOptions, 'callback' | 'ms'>,
+): [start: () => void, stop: () => void, restart: () => void] {
+  const { callback, ms } = options
 
   const stableCallback = useEventCallback(callback)
 
@@ -74,6 +77,23 @@ export function useTimeoutCallback(options: UseTimeoutCallbackOptions) {
     timeoutAPI.stopTimer()
   })
 
+  useUnmount(() => {
+    stopTimer()
+  })
+
+  return [startTimer, stopTimer, restartTimer]
+}
+
+/**
+ * Hook that executes a callback after a timeout.
+ */
+export function useTimeoutCallback(
+  options: UseTimeoutCallbackOptions,
+): [restart: () => void, stop: () => void, start: () => void] {
+  const { callback, ms, deps = STABLE_DEPS_ARRAY, isDisabled = false } = options
+
+  const [startTimer, stopTimer, restartTimer] = useTimeoutApi({ callback, ms })
+
   useEffect(() => {
     if (isDisabled) {
       return
@@ -90,11 +110,7 @@ export function useTimeoutCallback(options: UseTimeoutCallbackOptions) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ms, isDisabled, ...deps])
 
-  useUnmount(() => {
-    stopTimer()
-  })
-
-  return [restartTimer, stopTimer, startTimer] as const
+  return [restartTimer, stopTimer, startTimer]
 }
 
 /**

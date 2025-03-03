@@ -31,6 +31,7 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   enableCloudExecution: z.boolean(),
   enableAsyncExecution: z.boolean(),
   enableAdvancedProjectExecutionOptions: z.boolean(),
+  enableHybridExecution: z.boolean(),
 })
 
 /** Feature flags. */
@@ -56,6 +57,7 @@ const flagsStore = createStore<FeatureFlagsStore>()(
         enableCloudExecution: IS_DEV_MODE || isOnElectron(),
         enableAsyncExecution: true,
         enableAdvancedProjectExecutionOptions: false,
+        enableHybridExecution: IS_DEV_MODE,
       },
       setFeatureFlag: (key, value) => {
         set(({ featureFlags }) => ({ featureFlags: { ...featureFlags, [key]: value } }))

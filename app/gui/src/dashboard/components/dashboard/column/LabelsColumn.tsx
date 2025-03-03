@@ -24,10 +24,6 @@ import { useDriveStore } from '#/providers/DriveProvider'
 import * as permissions from '#/utilities/permissions'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 
-// ====================
-// === LabelsColumn ===
-// ====================
-
 /** A column listing the labels on this asset. */
 export default function LabelsColumn(props: column.AssetColumnProps) {
   const { item, state } = props
@@ -39,8 +35,8 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
   const driveStore = useDriveStore()
   const showDraggedLabelsFallback = useStore(
     driveStore,
-    ({ selectedKeys, isDraggingOverSelectedRow }) =>
-      isDraggingOverSelectedRow && selectedKeys.has(item.id),
+    ({ selectedIds, isDraggingOverSelectedRow }) =>
+      isDraggingOverSelectedRow && selectedIds.has(item.id),
   )
   const labelsByName = React.useMemo(() => {
     return new Map(labels?.map((label) => [label.value, label]))

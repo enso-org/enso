@@ -26,7 +26,7 @@ const $config = {
   YDOC_SERVER_URL: import.meta.env.ENSO_IDE_YDOC_SERVER_URL,
   CLOUD_BUILD: import.meta.env.ENSO_IDE_CLOUD_BUILD,
   AG_GRID_LICENSE_KEY: import.meta.env.ENSO_IDE_AG_GRID_LICENSE_KEY,
-  MAPBOX_API_TOKEN: import.meta.env.ENSO_IDE_MAPBOX_API_TOKEN || window.mapBoxApiToken?.(),
+  MAPBOX_API_TOKEN: window.mapBoxApiToken?.() || import.meta.env.ENSO_IDE_MAPBOX_API_TOKEN,
 } as const
 
 // Undefined env variables are typed as `any`, but we want them to be `string | undefined`.
