@@ -172,17 +172,19 @@ type Excel_Range
     ## ICON data_input
        Convert an index (1-based) to a column name
     column_name_for_index index:Integer -> Text =
-        if index < 0 || index > excel_2007_column_limit then Error.throw (Illegal_Argument.Error "Invalid column index.") else
-            a = index % 26 + 64
-            b = if index > 26 then (index.div 26) % 26 + 64 else 0
-            c = if index > 676 then (index.div 676) % 26 + 64 else 0
-            Text.from_bytes [c, b, a]
+        if index <= 0 || index > excel_2007_column_limit then Error.throw (Illegal_Argument.Error "Invalid column index.") else
+            shift = index - 1
+            a = (shift % 26) + 65
+            b = if index > 26 then ((shift.div 26) - 1) % 26 + 65 else 0
+            c = if index > 702 then (shift.div 676) + 64 else 0
+            bytes = if c > 0 then [c,b,a] else (if b > 0 then [b,a] else [a])
+            Text.from_bytes bytes
 
     ## ICON data_input
        Convert a column name to an index (1-based)
     column_index_for_name name:Text -> Integer =
         bytes = name.bytes
-        if bytes.length < 1 || bytes.length > 3 then Error.throw (Illegal_Argument.Error "Invalid column name.") else
+        if bytes.length < 1 || bytes.length > 3 then Error.throw (Illegal_Argument.Error "Invalid column name "+name.pretty+".") else
             bytes.fold 0 current->value->
-                if value < 65 || value > 90 then Error.throw (Illegal_Argument.Error "Invalid column name.") else
+                if value < 65 || value > 90 then Error.throw (Illegal_Argument.Error "Invalid column name "+name.pretty+".") else
                     current * 26 + (value - 64)
