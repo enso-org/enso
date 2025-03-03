@@ -236,7 +236,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
               tooltipPlacement="left"
               className={styles.info()}
             >
-              {maxDurationDescription}
+              <Text truncate="1">{maxDurationDescription}</Text>
             </Button>
           )}
           <Button
@@ -247,7 +247,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
             tooltipPlacement="left"
             className={styles.info()}
           >
-            {repeatIntervalDescription}
+            <Text truncate="1">{repeatIntervalDescription}</Text>
           </Button>
           <Button
             size="xsmall"
@@ -257,7 +257,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
             tooltipPlacement="left"
             className={styles.info()}
           >
-            {timeZoneDescription}
+            <Text truncate="1">{timeZoneDescription}</Text>
           </Button>
         </ButtonGroup>
       )}
