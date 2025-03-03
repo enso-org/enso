@@ -82,6 +82,9 @@ const DATE_PICKER_STYLES = tv({
 
 /** Return the date segment using English placeholders. */
 function normalizeDateSegment(segment: DateSegmentType): DateSegmentType {
+  if (segment.text !== segment.placeholder) {
+    return segment
+  }
   switch (segment.type) {
     case 'era': {
       return { ...segment, text: 'AD', placeholder: 'AD' }
