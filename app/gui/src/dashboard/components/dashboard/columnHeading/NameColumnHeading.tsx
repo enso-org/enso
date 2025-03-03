@@ -1,5 +1,5 @@
 /** @file A heading for the "Name" column. */
-import { Button } from '#/components/AriaComponents'
+import { Button, Text } from '#/components/AriaComponents'
 import { Icon } from '#/components/Icon'
 import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
 import { Column } from '#/components/dashboard/column/columnUtils'
@@ -51,10 +51,10 @@ export default function NameColumnHeading(props: AssetColumnHeadingProps) {
           )}
         />
       }
-      className="group sticky left-0 flex h-table-row justify-start bg-dashboard px-name-column-x font-bold"
+      className="group sticky left-0 flex h-table-row justify-start bg-dashboard px-name-column-x"
       onPress={cycleSortDirection}
     >
-      {getText('nameColumnName')}
+      <Text weight="bold">{getText('nameColumnName')}</Text>
     </Button>
   )
 }

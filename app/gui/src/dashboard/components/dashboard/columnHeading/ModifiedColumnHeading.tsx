@@ -1,6 +1,6 @@
 /** @file A heading for the "Modified" column. */
 import TimeIcon from '#/assets/time.svg'
-import { Button } from '#/components/AriaComponents'
+import { Button, Text } from '#/components/AriaComponents'
 import { Icon } from '#/components/Icon'
 import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
 import { Column } from '#/components/dashboard/column/columnUtils'
@@ -68,10 +68,10 @@ export default function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
             )}
           />
         }
-        className="flex justify-start font-bold"
+        className="flex justify-start"
         onPress={cycleSortDirection}
       >
-        {getText('modifiedColumnName')}
+        <Text weight="bold">{getText('modifiedColumnName')}</Text>
       </Button>
     </div>
   )

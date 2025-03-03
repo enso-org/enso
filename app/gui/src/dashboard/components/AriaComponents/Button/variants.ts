@@ -204,7 +204,6 @@ export const BUTTON_STYLES = tv({
     wrapper: 'relative block max-w-full',
     loader: 'absolute inset-0 flex items-center justify-center',
     content: 'flex items-center',
-    text: 'w-full max-w-full',
     icon: 'h-[1.906cap] w-[1.906cap] flex-none aspect-square flex items-center justify-center',
     addonStart: 'flex items-center justify-center macos:-mb-0.5',
     addonEnd: 'flex items-center justify-center macos:-mb-0.5',

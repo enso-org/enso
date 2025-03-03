@@ -242,7 +242,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   }
                 }}
               >
-                {getText('type')}
+                <Text weight="bold">{getText('type')}</Text>
               </Button>
             </ActivityLogHeaderCell>
             <ActivityLogHeaderCell className="w-48">
@@ -284,7 +284,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   }
                 }}
               >
-                {getText('email')}
+                <Text weight="bold">{getText('email')}</Text>
               </Button>
             </ActivityLogHeaderCell>
             <ActivityLogHeaderCell className="w-36">
@@ -327,7 +327,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   }
                 }}
               >
-                {getText('timestamp')}
+                <Text weight="bold">{getText('timestamp')}</Text>
               </Button>
             </ActivityLogHeaderCell>
           </tr>

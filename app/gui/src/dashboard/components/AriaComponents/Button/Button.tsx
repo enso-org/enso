@@ -10,7 +10,7 @@ import {
 } from 'react'
 
 import * as aria from '#/components/aria'
-import { Text, useVisualTooltip } from '#/components/AriaComponents/Text'
+import { useVisualTooltip } from '#/components/AriaComponents/Text'
 import { Tooltip, TooltipTrigger } from '#/components/AriaComponents/Tooltip'
 import { Icon as IconComponent } from '#/components/Icon'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
@@ -337,9 +337,7 @@ const ButtonContent = memo(function ButtonContent(props: ButtonContentProps) {
         styles={styles}
         hideLoader={hideLoader}
       />
-      <Text weight="custom" color="inherit" truncate="1" className={styles.text()}>
-        {children}
-      </Text>
+      {children}
       {hasAddon(addonEnd) && <div className={styles.addonEnd()}>{addonEnd}</div>}
     </>
   )
