@@ -26,6 +26,7 @@ import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;
@@ -62,7 +63,7 @@ abstract class IndirectInvokeConversionNode extends Node {
   @Specialization(guards = {"hasType(typeOfNode, that)"})
   Object doConvertFrom(
       MaterializedFrame frame,
-      Object state,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       Object that,
@@ -96,7 +97,7 @@ abstract class IndirectInvokeConversionNode extends Node {
   @Specialization
   Object doDataflowError(
       MaterializedFrame frame,
-      Object state,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       DataflowError that,
@@ -187,7 +188,7 @@ abstract class IndirectInvokeConversionNode extends Node {
   @Specialization(guards = "interop.isString(that)")
   Object doConvertText(
       MaterializedFrame frame,
-      Object state,
+      State state,
       UnresolvedConversion conversion,
       Object self,
       Object that,

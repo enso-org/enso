@@ -27,7 +27,8 @@ public final class ModuleResolver {
     }
 
     var moduleIr = compilerModuleOpt.get().getIr();
-    assert moduleIr != null : "Once a module is found, its IR should be present.";
+    assert moduleIr != null
+        : "Once a module is found, its IR should be present but got missing IR for " + name;
     return moduleIr;
   }
 

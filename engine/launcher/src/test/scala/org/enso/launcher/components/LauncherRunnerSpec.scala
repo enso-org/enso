@@ -10,12 +10,13 @@ import org.enso.runtimeversionmanager.config.GlobalRunnerConfigurationManager
 import org.enso.runtimeversionmanager.runner._
 import org.enso.runtimeversionmanager.test.RuntimeVersionManagerTest
 import org.enso.launcher.project.ProjectManager
-import org.enso.logger.TestLogger
+import org.enso.logger.ObservedMessage
 import org.slf4j.event.Level
 
 import org.enso.testkit.FlakySpec
 
 import scala.concurrent.Future
+import org.slf4j.LoggerFactory
 
 /** We test integration of both the underlying [[Runner]] and the
   * [[LauncherRunner]] in a single suite.
@@ -176,28 +177,34 @@ class LauncherRunnerSpec extends RuntimeVersionManagerTest with FlakySpec {
       val runner         = makeFakeRunner()
       val projectPath    = getTestDirectory / "project2"
       val nightlyVersion = SemVer.of(0, 0, 0, "SNAPSHOT.2000-01-01")
-      val (_, logs) = TestLogger.gather[Any, Runner](
-        classOf[Runner], {
-          runner
-            .newProject(
-              path                = projectPath,
-              name                = "ProjectName2",
-              engineVersion       = nightlyVersion,
-              normalizedName      = None,
-              projectTemplate     = None,
-              authorName          = None,
-              authorEmail         = None,
-              additionalArguments = Seq()
-            )
-            .get
-        }
+      val logger         = LoggerFactory.getLogger(classOf[Runner])
+      val action: Runnable = () => {
+        runner
+          .newProject(
+            path                = projectPath,
+            name                = "ProjectName2",
+            engineVersion       = nightlyVersion,
+            normalizedName      = None,
+            projectTemplate     = None,
+            authorName          = None,
+            authorEmail         = None,
+            additionalArguments = Seq()
+          )
+          .get
+      }
+      val logs = ObservedMessage.collect(
+        logger,
+        action
       )
       assert(
-        logs.exists(msg =>
-          msg.level == Level.WARN && msg.msg.contains(
-            "Consider using a stable version."
+        logs.stream
+          .filter(msg =>
+            msg.getLevel == Level.WARN && msg.getMessage.contains(
+              "Consider using a stable version."
+            )
           )
-        )
+          .findAny
+          .isPresent
       )
     }
 

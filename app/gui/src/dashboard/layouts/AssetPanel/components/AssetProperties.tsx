@@ -31,6 +31,7 @@ import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { AssetType, BackendType, Plan, type AnyAsset, type DatalinkId } from '#/services/Backend'
 import { extractTypeAndId } from '#/services/LocalBackend'
+import { computeFullRemotePath } from '#/services/RemoteBackend'
 import { normalizePath } from '#/utilities/fileInfo'
 import { mapNonNullish } from '#/utilities/nullable'
 import * as permissions from '#/utilities/permissions'
@@ -59,15 +60,9 @@ export interface AssetPropertiesProps {
 export function AssetProperties(props: AssetPropertiesProps) {
   const { isReadonly = false, backend, category } = props
 
-  const { item, spotlightOn, path } = useStore(
-    assetPanelStore,
-    (state) => ({
-      item: state.assetPanelProps.item,
-      spotlightOn: state.assetPanelProps.spotlightOn ?? null,
-      path: state.assetPanelProps.path,
-    }),
-    { unsafeEnableTransition: true },
-  )
+  const { item, spotlightOn } = useStore(assetPanelStore, (state) => state.assetPanelProps, {
+    unsafeEnableTransition: true,
+  })
 
   const { getText } = useText()
 
@@ -75,7 +70,7 @@ export function AssetProperties(props: AssetPropertiesProps) {
     return <Result status="info" centered title={getText('assetProperties.localBackend')} />
   }
 
-  if (item == null || path == null) {
+  if (item == null) {
     return <Result status="info" title={getText('assetProperties.notSelected')} centered />
   }
 
@@ -86,7 +81,6 @@ export function AssetProperties(props: AssetPropertiesProps) {
       isReadonly={isReadonly}
       category={category}
       spotlightOn={spotlightOn}
-      path={path}
     />
   )
 }
@@ -94,13 +88,12 @@ export function AssetProperties(props: AssetPropertiesProps) {
 /** Props for an {@link AssetPropertiesInternal}. */
 export interface AssetPropertiesInternalProps extends AssetPropertiesProps {
   readonly item: AnyAsset
-  readonly path: string | null
   readonly spotlightOn: AssetPropertiesSpotlight | null
 }
 
 /** Display and modify the properties of an asset. */
 function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
-  const { backend, item, category, spotlightOn, isReadonly = false, path: pathRaw } = props
+  const { backend, item, category, spotlightOn, isReadonly = false } = props
   const styles = ASSET_PROPERTIES_VARIANTS({})
 
   const setAssetPanelProps = useSetAssetPanelProps()
@@ -154,7 +147,9 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
     close: closeSpotlight,
   })
 
-  const labels = useBackendQuery(backend, 'listTags', []).data ?? []
+  const { data: labels = [] } = useBackendQuery(backend, 'listTags', [])
+  const { data: users = [] } = useBackendQuery(backend, 'listUsers', [])
+  const { data: userGroups = [] } = useBackendQuery(backend, 'listUserGroups', [])
   const self = permissions.tryFindSelfPermission(user, item.permissions)
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =
@@ -166,7 +161,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const isCloud = backend.type === BackendType.remote
   const pathComputed =
     category.type === 'recent' || category.type === 'trash' ? null
-    : isCloud ? `${pathRaw}${item.type === AssetType.datalink ? '.datalink' : ''}`
+    : isCloud ? computeFullRemotePath(item, users, userGroups)
     : item.type === AssetType.project ?
       mapNonNullish(localBackend?.getProjectPath(item.id) ?? null, normalizePath)
     : normalizePath(extractTypeAndId(item.id).id)

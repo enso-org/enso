@@ -3,24 +3,17 @@ package org.enso.table.data.column.storage;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import org.enso.base.CompareException;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.CountNonTrivialWhitespace;
 import org.enso.table.data.column.operation.CountUntrimmed;
 import org.enso.table.data.column.operation.SampleOperation;
-import org.enso.table.data.column.operation.map.BinaryMapOperation;
-import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.text.CoalescingStringStringOp;
-import org.enso.table.data.column.operation.map.text.LikeOp;
-import org.enso.table.data.column.operation.map.text.StringBooleanOp;
 import org.enso.table.data.column.operation.map.text.StringIsInOp;
-import org.enso.table.data.column.operation.map.text.StringLongToStringOp;
 import org.enso.table.data.column.operation.map.text.StringStringOp;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
-import org.graalvm.polyglot.Context;
 import org.slf4j.Logger;
 
 /** A column storing strings. */
@@ -29,7 +22,6 @@ public final class StringStorage extends SpecializedStorage<String> {
   private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(StringStorage.class);
 
   record DataQualityMetrics(Long untrimmedCount, Long whitespaceCount) {}
-  ;
 
   private Future<DataQualityMetrics> dataQualityMetricsValues;
 
@@ -41,7 +33,7 @@ public final class StringStorage extends SpecializedStorage<String> {
     super(type, data, buildOps());
 
     dataQualityMetricsValues =
-        CompletableFuture.supplyAsync(() -> createDataQualityMetricsWitDefaultSize());
+        CompletableFuture.supplyAsync(this::createDataQualityMetricsWitDefaultSize);
   }
 
   public static StringStorage makeEmpty(TextType type, long size) {
@@ -115,113 +107,6 @@ public final class StringStorage extends SpecializedStorage<String> {
 
   private static MapOperationStorage<String, SpecializedStorage<String>> buildOps() {
     MapOperationStorage<String, SpecializedStorage<String>> t = new MapOperationStorage<>();
-    t.add(
-        new BinaryMapOperation<>(Maps.EQ) {
-          @Override
-          public Storage<Boolean> runBinaryMap(
-              SpecializedStorage<String> storage,
-              Object arg,
-              MapOperationProblemAggregator problemAggregator) {
-            long size = storage.getSize();
-            var builder = Builder.getForBoolean(size);
-            Context context = Context.getCurrent();
-            for (long i = 0; i < size; i++) {
-              if (storage.getItemBoxed(i) == null || arg == null) {
-                builder.appendNulls(1);
-              } else {
-                builder.appendBoolean(
-                    arg instanceof String s && Text_Utils.equals(storage.getItemBoxed(i), s));
-              }
-              context.safepoint();
-            }
-            return builder.seal();
-          }
-
-          @Override
-          public Storage<Boolean> runZip(
-              SpecializedStorage<String> storage,
-              Storage<?> arg,
-              MapOperationProblemAggregator problemAggregator) {
-            long size = storage.getSize();
-            var builder = Builder.getForBoolean(size);
-            Context context = Context.getCurrent();
-            for (long i = 0; i < size; i++) {
-              if (storage.getItemBoxed(i) == null || i >= arg.getSize() || arg.isNothing(i)) {
-                builder.appendNulls(1);
-              } else {
-                builder.appendBoolean(
-                    arg.getItemBoxed(i) instanceof String s
-                        && Text_Utils.equals(storage.getItemBoxed(i), s));
-              }
-              context.safepoint();
-            }
-            return builder.seal();
-          }
-        });
-    t.add(
-        new StringBooleanOp(Maps.STARTS_WITH) {
-          @Override
-          protected boolean doString(String a, String b) {
-            return Text_Utils.starts_with(a, b);
-          }
-        });
-    t.add(
-        new StringBooleanOp(Maps.ENDS_WITH) {
-          @Override
-          protected boolean doString(String a, String b) {
-            return Text_Utils.ends_with(a, b);
-          }
-        });
-    t.add(
-        new StringLongToStringOp(Maps.TEXT_LEFT) {
-          @Override
-          protected String doOperation(String a, long b) {
-            return Text_Utils.take_prefix(a, b);
-          }
-        });
-    t.add(
-        new StringLongToStringOp(Maps.TEXT_RIGHT) {
-          @Override
-          protected String doOperation(String a, long b) {
-            return Text_Utils.take_suffix(a, b);
-          }
-        });
-    t.add(
-        new StringBooleanOp(Maps.CONTAINS) {
-          @Override
-          protected boolean doString(String a, String b) {
-            return Text_Utils.contains(a, b);
-          }
-        });
-    t.add(
-        new StringComparisonOp(Maps.LT) {
-          @Override
-          protected boolean doString(String a, String b) {
-            return Text_Utils.compare_normalized(a, b) < 0;
-          }
-        });
-    t.add(
-        new StringComparisonOp(Maps.LTE) {
-          @Override
-          protected boolean doString(String a, String b) {
-            return Text_Utils.compare_normalized(a, b) <= 0;
-          }
-        });
-    t.add(
-        new StringComparisonOp(Maps.GT) {
-          @Override
-          protected boolean doString(String a, String b) {
-            return Text_Utils.compare_normalized(a, b) > 0;
-          }
-        });
-    t.add(
-        new StringComparisonOp(Maps.GTE) {
-          @Override
-          protected boolean doString(String a, String b) {
-            return Text_Utils.compare_normalized(a, b) >= 0;
-          }
-        });
-    t.add(new LikeOp());
     t.add(new StringIsInOp<>());
     t.add(
         new StringStringOp(Maps.ADD) {
@@ -307,18 +192,6 @@ public final class StringStorage extends SpecializedStorage<String> {
       // bound, or the
       // existing elements to do not fit into the 255 bound).
       return getType();
-    }
-  }
-
-  private abstract static class StringComparisonOp extends StringBooleanOp {
-
-    public StringComparisonOp(String name) {
-      super(name);
-    }
-
-    @Override
-    protected boolean doObject(String a, Object o) {
-      throw new CompareException(a, o);
     }
   }
 }

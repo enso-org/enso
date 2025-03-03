@@ -158,6 +158,8 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     lexer.addErrorListener(ThrowOnErrorListener.INSTANCE);
 
     var tokens = new CommonTokenStream(lexer);
+    checkTokenLimit(tokens, 1024);
+
     var parser = new ExpressionParser(tokens);
     parser.removeErrorListeners();
     parser.addErrorListener(ThrowOnErrorListener.INSTANCE);
@@ -169,6 +171,25 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
     var expr = parser.prog();
     var result = visitor.visit(expr);
     return makeConstantColumn.apply(result);
+  }
+
+  private static void checkTokenLimit(CommonTokenStream tokens, int tokenLimit) {
+    tokens.fill(); // Ensure the token stream is fully populated
+    int tokenCount = 0;
+    for (var token : tokens.getTokens()) {
+      tokenCount++;
+      if (tokenCount > tokenLimit) {
+        throw new SyntaxErrorException(
+            "Expression is too complex: "
+                + tokens.size()
+                + " tokens (exceeds "
+                + tokenLimit
+                + "). "
+                + "Consider splitting into multiple expressions.",
+            token.getLine(),
+            token.getCharPositionInLine());
+      }
+    }
   }
 
   private final Function<String, Value> getColumn;
@@ -422,6 +443,14 @@ public class ExpressionVisitorImpl extends ExpressionBaseVisitor<Value> {
         "Invalid Date_Time format: " + text,
         ctx.getStart().getLine(),
         ctx.getStart().getCharPositionInLine());
+  }
+
+  @Override
+  public Value visitRegexLiteral(ExpressionParser.RegexLiteralContext ctx) {
+    String regexPattern = ctx.REGEX_LITERAL().getText();
+    // Remove leading 'r/' and trailing '/'
+    regexPattern = regexPattern.substring(2, regexPattern.length() - 1);
+    return executeMethod("regex", Value.asValue(regexPattern));
   }
 
   @Override

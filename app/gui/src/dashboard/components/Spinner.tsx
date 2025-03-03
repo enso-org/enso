@@ -28,7 +28,7 @@ export interface SpinnerProps {
 }
 
 /** A spinning arc that animates using the `dasharray-<percentage>` custom Tailwind classes. */
-// eslint-disable-next-line no-restricted-syntax
+
 export const Spinner = React.memo(function Spinner(props: SpinnerProps) {
   const { size, padding, className, state } = props
 

@@ -2,6 +2,8 @@
 
 import type { Opt } from '@/util/data/opt'
 
+export { arrayEquals } from '@/util/equals'
+
 /** An array that has at least one element present at all times. */
 export type NonEmptyArray<T> = [T, ...T[]]
 
@@ -54,11 +56,6 @@ export function tryGetIndex<T>(arr: Opt<readonly T[]>, index: Opt<number>): T | 
  */
 export function byteArraysEqual(a: Opt<Uint8Array>, b: Opt<Uint8Array>): boolean {
   return a === b || (a != null && b != null && indexedDB.cmp(a, b) === 0)
-}
-
-/** TODO: Add docs */
-export function arrayEquals<T>(a: T[], b: T[]): boolean {
-  return a === b || (a.length === b.length && a.every((v, i) => v === b[i]))
 }
 
 /**

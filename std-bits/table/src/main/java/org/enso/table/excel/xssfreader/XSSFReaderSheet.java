@@ -81,10 +81,33 @@ public class XSSFReaderSheet implements ExcelSheet {
         throw new RuntimeException(e);
       }
 
+      lastRow = findLastNonEmptyRow();
       hasReadSheetData = true;
     } catch (SAXException | ParserConfigurationException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  private int findLastNonEmptyRow() {
+    // Walk backwards to find the first row with actual data
+    for (int i = lastRow; i >= 0; i--) {
+      if (!isRowEmpty(rowData.get(i))) {
+        return i; // Found the last row with data
+      }
+    }
+    return lastRow; // Fallback case (shouldn't happen)
+  }
+
+  private boolean isRowEmpty(SortedMap<Short, XSSFReaderSheetXMLHandler.CellValue> cells) {
+    if (cells == null || cells.isEmpty()) {
+      return true;
+    }
+    for (XSSFReaderSheetXMLHandler.CellValue value : cells.values()) {
+      if (value != null && !value.strValue().isEmpty()) {
+        return false; // Found a non-empty cell
+      }
+    }
+    return true; // No non-empty cells found
   }
 
   @Override

@@ -276,12 +276,22 @@ export function useCloseProjectMutation() {
 
       void client.cancelQueries({ queryKey })
     },
-    onSuccess: async (_, { type, id, parentId }) => {
+    onSuccess: async (_, { type, id, parentId, cloudProjectId }) => {
       await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       setProjectAsset(type, id, parentId, (asset) => ({
         ...asset,
         projectState: { ...asset.projectState, type: backendModule.ProjectState.closed },
       }))
+
+      // If the project runs in hybrid execution mode
+      // TODO: implement proper handling of upload failures
+      if (cloudProjectId) {
+        invariant(localBackend != null, 'LocalBackend is null')
+
+        await remoteBackend.uploadProject(cloudProjectId, parentId)
+
+        await localBackend.deleteAsset(parentId, { force: true }, null)
+      }
     },
     onError: async (_, { type, id, parentId }) => {
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })

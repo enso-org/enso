@@ -15,7 +15,6 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
-import com.oracle.truffle.api.object.DynamicObjectLibrary;
 import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.io.IOException;
@@ -50,6 +49,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.state.RunStateNode;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.service.error.FailedToApplyEditsException;
 import org.enso.interpreter.service.error.MethodNotFoundException;
@@ -186,6 +186,7 @@ public final class ExecutionService {
     if (src == null) {
       throw new SourceNotFoundException(call.getFunction().getName());
     }
+
     var callbacks =
         new ExecutionCallbacks(
             visualizationHolder,
@@ -197,18 +198,17 @@ public final class ExecutionService {
             onCachedCallback,
             onComputedCallback,
             funCallCallback,
-            onExecutedVisualizationCallback);
+            onExecutedVisualizationCallback,
+            this.context.isProgressReportEnabled() ? onComputedCallback : null);
     Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
         idExecutionInstrument.map(
             service ->
                 service.bind(module, call.getFunction().getCallTarget(), callbacks, this.timer));
 
-    DynamicObjectLibrary.getUncached()
-        .put(call.getState().getContainer(), IdExecutionService.class, cache);
-
     Object p = context.getThreadManager().enter();
     try {
-      execute.getCallTarget().call(substituteMissingArguments(call));
+      var callFn = Function.fullyApplied(execute.getCallTarget(), substituteMissingArguments(call));
+      RunStateNode.getUncached().execute(null, cacheKey(), cache, callFn);
     } finally {
       context.getThreadManager().leave(p);
       eventNodeFactory.ifPresent(EventBinding::dispose);
@@ -335,7 +335,9 @@ public final class ExecutionService {
   public Object callFunction(Object fn, Object argument) {
     Object p = context.getThreadManager().enter();
     try {
-      return call.getCallTarget().call(fn, new Object[] {argument});
+      var callArgs =
+          Function.ArgumentsHelper.buildArguments(null, new Object[] {fn, new Object[] {argument}});
+      return call.getCallTarget().call(callArgs);
     } finally {
       context.getThreadManager().leave(p);
     }
@@ -371,6 +373,8 @@ public final class ExecutionService {
         (value) -> context.getLogger().finest("_ON_CACHED_VALUE " + value.getExpressionId());
     Consumer<ExecutedVisualization> onExecutedVisualizationCallback = (value) -> {};
     ExpressionExecutionState expressionExecutionState = new ExpressionExecutionState();
+    Consumer<ExpressionValue> onProgressCallback =
+        (value) -> context.getLogger().finest("_ON_PROGRESS " + value.getExpressionId());
 
     var callbacks =
         new ExecutionCallbacks(
@@ -383,7 +387,8 @@ public final class ExecutionService {
             onCachedCallback,
             onComputedCallback,
             funCallCallback,
-            onExecutedVisualizationCallback);
+            onExecutedVisualizationCallback,
+            onProgressCallback);
     Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
         idExecutionInstrument.map(
             service -> service.bind(module, entryCallTarget, callbacks, this.timer));
@@ -398,17 +403,18 @@ public final class ExecutionService {
         state = State.create(context);
         function = new FunctionCallInstrumentationNode.FunctionCall(fn, state, new Object[0]);
       }
-      if (executionCache != null) {
-        DynamicObjectLibrary.getUncached()
-            .put(state.getContainer(), IdExecutionService.class, executionCache);
-      }
-
-      ret[0] = call.getCallTarget().call(function, arguments);
+      var callArgs = new Object[] {function, arguments};
+      var callFn = Function.fullyApplied(call.getCallTarget(), callArgs);
+      ret[0] = RunStateNode.getUncached().execute(null, cacheKey(), executionCache, callFn);
     } finally {
       context.getThreadManager().leave(p);
       eventNodeFactory.ifPresent(EventBinding::dispose);
     }
     return ret[0];
+  }
+
+  private Type cacheKey() {
+    return context.getBuiltins().instrumentor();
   }
 
   /**
@@ -562,7 +568,7 @@ public final class ExecutionService {
   }
 
   @SuppressWarnings("unchecked")
-  private static <E extends Exception> E raise(Class<E> type, Exception ex) throws E {
+  static <E extends Exception> E raise(Class<E> type, Exception ex) throws E {
     throw (E) ex;
   }
 
@@ -576,10 +582,11 @@ public final class ExecutionService {
     @Override
     public Object execute(VirtualFrame frame) {
       try {
-        if (frame.getArguments()[0] instanceof FunctionCallInstrumentationNode.FunctionCall call) {
+        var args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
+        if (args[0] instanceof FunctionCallInstrumentationNode.FunctionCall call) {
           return iop.execute(call);
         }
-        throw ArityException.create(1, 1, frame.getArguments().length);
+        throw ArityException.create(1, 1, args.length);
       } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException ex) {
         throw raise(RuntimeException.class, ex);
       }
@@ -596,9 +603,10 @@ public final class ExecutionService {
     @Override
     public Object execute(VirtualFrame frame) {
       try {
-        var self = frame.getArguments()[0];
-        var args = (Object[]) frame.getArguments()[1];
-        return iop.execute(self, args);
+        var callArgs = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
+        var fn = callArgs[0];
+        var args = (Object[]) callArgs[1];
+        return iop.execute(fn, args);
       } catch (UnsupportedTypeException | ArityException | UnsupportedMessageException ex) {
         throw raise(RuntimeException.class, ex);
       }
@@ -669,6 +677,8 @@ public final class ExecutionService {
     private final FunctionCallInfo cachedCallInfo;
     private final ProfilingInfo[] profilingInfo;
     private final boolean wasCached;
+    private final double progress;
+    private final String progressMessage;
 
     /**
      * Creates a new instance of this class.
@@ -681,6 +691,9 @@ public final class ExecutionService {
      * @param cachedCallInfo the cached call data.
      * @param profilingInfo the profiling information associated with this node
      * @param wasCached whether or not the value was obtained from the cache
+     * @param progress identification of progress (either less than zero - e.g. indeterminate) or
+     *     value between 0.0 and 1.0 as a percentage of finished work
+     * @param progressMessage text describing progress of the computation
      */
     public ExpressionValue(
         UUID expressionId,
@@ -690,7 +703,9 @@ public final class ExecutionService {
         FunctionCallInfo callInfo,
         FunctionCallInfo cachedCallInfo,
         ProfilingInfo[] profilingInfo,
-        boolean wasCached) {
+        boolean wasCached,
+        double progress,
+        String progressMessage) {
       this.expressionId = expressionId;
       this.value = value;
       this.typeInfo = typeInfo;
@@ -699,6 +714,38 @@ public final class ExecutionService {
       this.cachedCallInfo = cachedCallInfo;
       this.profilingInfo = profilingInfo;
       this.wasCached = wasCached;
+      this.progress = progress;
+      this.progressMessage = progressMessage;
+    }
+
+    /**
+     * Creates new progress update event.
+     *
+     * @param nodeId identification of the node
+     * @param amount identification of progress (either less than zero - e.g. indeterminate) or
+     *     value between 0.0 and 1.0 as a percentage of finished work
+     * @param msg either {@code null} or description of the current operation in progress
+     * @return value that returns true from its {@link #isProgressUpdate()} method
+     */
+    static ExpressionValue progress(UUID nodeId, double amount, String msg) {
+      return new ExpressionValue(nodeId, null, null, null, null, null, null, false, amount, msg);
+    }
+
+    /**
+     * Does this value represent progress update?
+     *
+     * @return
+     */
+    public boolean isProgressUpdate() {
+      return value == null && profilingInfo == null;
+    }
+
+    public double getProgress() {
+      return progress;
+    }
+
+    public String getProgressMessage() {
+      return progressMessage;
     }
 
     @Override

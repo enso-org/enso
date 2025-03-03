@@ -1,0 +1,293 @@
+# This file is auto-generated. Do not edit it manually!
+# Edit the enso_build::ci_gen module instead and run `cargo run --package enso-build-ci-gen`.
+
+name: 🏷 Standard Library Labels
+description: Check if the API signature files in any of the standard libraries changed and if so, append a corresponding label to the PR.
+on:
+  push:
+    branches:
+      - develop
+  pull_request: {}
+  workflow_dispatch: {}
+  workflow_call: {}
+permissions:
+  checks: write
+  pull-requests: write
+jobs:
+  stdlib-api-check-AWS-linux-amd64:
+    name: AWS-change-labels
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          fetch-depth: 2
+      - id: AWS-changed-files
+        name: AWS-changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: distribution/lib/Standard/AWS/**/docs/api/**.md
+      - name: List all changed files in AWS
+        run: "\n        if [[ \"${{ steps.AWS-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
+        env:
+          ALL_CHANGED_FILES: ${{ steps.AWS-changed-files.outputs.all_changed_files }}
+      - if: steps.AWS-changed-files.outputs.any_changed == 'true'
+        name: Append -libs-API-change-AWS label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: -libs-API-change-AWS
+  stdlib-api-check-Base-linux-amd64:
+    name: Base-change-labels
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          fetch-depth: 2
+      - id: Base-changed-files
+        name: Base-changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: distribution/lib/Standard/Base/**/docs/api/**.md
+      - name: List all changed files in Base
+        run: "\n        if [[ \"${{ steps.Base-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
+        env:
+          ALL_CHANGED_FILES: ${{ steps.Base-changed-files.outputs.all_changed_files }}
+      - if: steps.Base-changed-files.outputs.any_changed == 'true'
+        name: Append -libs-API-change-Base label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: -libs-API-change-Base
+  stdlib-api-check-Database-linux-amd64:
+    name: Database-change-labels
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          fetch-depth: 2
+      - id: Database-changed-files
+        name: Database-changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: distribution/lib/Standard/Database/**/docs/api/**.md
+      - name: List all changed files in Database
+        run: "\n        if [[ \"${{ steps.Database-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
+        env:
+          ALL_CHANGED_FILES: ${{ steps.Database-changed-files.outputs.all_changed_files }}
+      - if: steps.Database-changed-files.outputs.any_changed == 'true'
+        name: Append -libs-API-change-Database label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: -libs-API-change-Database
+  stdlib-api-check-Google_Api-linux-amd64:
+    name: Google_Api-change-labels
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          fetch-depth: 2
+      - id: Google_Api-changed-files
+        name: Google_Api-changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: distribution/lib/Standard/Google_Api/**/docs/api/**.md
+      - name: List all changed files in Google_Api
+        run: "\n        if [[ \"${{ steps.Google_Api-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
+        env:
+          ALL_CHANGED_FILES: ${{ steps.Google_Api-changed-files.outputs.all_changed_files }}
+      - if: steps.Google_Api-changed-files.outputs.any_changed == 'true'
+        name: Append -libs-API-change-Google_Api label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: -libs-API-change-Google_Api
+  stdlib-api-check-Image-linux-amd64:
+    name: Image-change-labels
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          fetch-depth: 2
+      - id: Image-changed-files
+        name: Image-changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: distribution/lib/Standard/Image/**/docs/api/**.md
+      - name: List all changed files in Image
+        run: "\n        if [[ \"${{ steps.Image-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
+        env:
+          ALL_CHANGED_FILES: ${{ steps.Image-changed-files.outputs.all_changed_files }}
+      - if: steps.Image-changed-files.outputs.any_changed == 'true'
+        name: Append -libs-API-change-Image label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: -libs-API-change-Image
+  stdlib-api-check-Microsoft-linux-amd64:
+    name: Microsoft-change-labels
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          fetch-depth: 2
+      - id: Microsoft-changed-files
+        name: Microsoft-changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: distribution/lib/Standard/Microsoft/**/docs/api/**.md
+      - name: List all changed files in Microsoft
+        run: "\n        if [[ \"${{ steps.Microsoft-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
+        env:
+          ALL_CHANGED_FILES: ${{ steps.Microsoft-changed-files.outputs.all_changed_files }}
+      - if: steps.Microsoft-changed-files.outputs.any_changed == 'true'
+        name: Append -libs-API-change-Microsoft label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: -libs-API-change-Microsoft
+  stdlib-api-check-Snowflake-linux-amd64:
+    name: Snowflake-change-labels
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          fetch-depth: 2
+      - id: Snowflake-changed-files
+        name: Snowflake-changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: distribution/lib/Standard/Snowflake/**/docs/api/**.md
+      - name: List all changed files in Snowflake
+        run: "\n        if [[ \"${{ steps.Snowflake-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
+        env:
+          ALL_CHANGED_FILES: ${{ steps.Snowflake-changed-files.outputs.all_changed_files }}
+      - if: steps.Snowflake-changed-files.outputs.any_changed == 'true'
+        name: Append -libs-API-change-Snowflake label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: -libs-API-change-Snowflake
+  stdlib-api-check-Table-linux-amd64:
+    name: Table-change-labels
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          fetch-depth: 2
+      - id: Table-changed-files
+        name: Table-changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: distribution/lib/Standard/Table/**/docs/api/**.md
+      - name: List all changed files in Table
+        run: "\n        if [[ \"${{ steps.Table-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
+        env:
+          ALL_CHANGED_FILES: ${{ steps.Table-changed-files.outputs.all_changed_files }}
+      - if: steps.Table-changed-files.outputs.any_changed == 'true'
+        name: Append -libs-API-change-Table label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: -libs-API-change-Table
+  stdlib-api-check-Tableau-linux-amd64:
+    name: Tableau-change-labels
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          fetch-depth: 2
+      - id: Tableau-changed-files
+        name: Tableau-changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: distribution/lib/Standard/Tableau/**/docs/api/**.md
+      - name: List all changed files in Tableau
+        run: "\n        if [[ \"${{ steps.Tableau-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
+        env:
+          ALL_CHANGED_FILES: ${{ steps.Tableau-changed-files.outputs.all_changed_files }}
+      - if: steps.Tableau-changed-files.outputs.any_changed == 'true'
+        name: Append -libs-API-change-Tableau label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: -libs-API-change-Tableau
+  stdlib-api-check-Test-linux-amd64:
+    name: Test-change-labels
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          fetch-depth: 2
+      - id: Test-changed-files
+        name: Test-changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: distribution/lib/Standard/Test/**/docs/api/**.md
+      - name: List all changed files in Test
+        run: "\n        if [[ \"${{ steps.Test-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
+        env:
+          ALL_CHANGED_FILES: ${{ steps.Test-changed-files.outputs.all_changed_files }}
+      - if: steps.Test-changed-files.outputs.any_changed == 'true'
+        name: Append -libs-API-change-Test label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: -libs-API-change-Test
+  stdlib-api-check-Visualization-linux-amd64:
+    name: Visualization-change-labels
+    runs-on:
+      - ubuntu-latest
+    steps:
+      - name: Checking out the repository
+        uses: actions/checkout@v4
+        with:
+          clean: false
+          fetch-depth: 2
+      - id: Visualization-changed-files
+        name: Visualization-changed-files
+        uses: tj-actions/changed-files@v45
+        with:
+          files: distribution/lib/Standard/Visualization/**/docs/api/**.md
+      - name: List all changed files in Visualization
+        run: "\n        if [[ \"${{ steps.Visualization-changed-files.outputs.any_changed }}\" == \"true\" ]]; then\n            echo \"Files changed:\"\n        fi\n        for file in ${ALL_CHANGED_FILES}; do\n            echo \"$file\"\n        done\n        "
+        env:
+          ALL_CHANGED_FILES: ${{ steps.Visualization-changed-files.outputs.all_changed_files }}
+      - if: steps.Visualization-changed-files.outputs.any_changed == 'true'
+        name: Append -libs-API-change-Visualization label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: -libs-API-change-Visualization
+env:
+  ENSO_BUILD_SKIP_VERSION_CHECK: "true"

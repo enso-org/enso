@@ -186,6 +186,35 @@ export function copyAssetsMutationOptions(backend: Backend) {
   })
 }
 
+/** The type of a "copy assets" mutation. */
+type CopyAssetsMutation = Mutation<
+  null,
+  Error,
+  readonly [ids: readonly AssetId[], parentId: DirectoryId]
+>
+
+/** Return matching in-flight "copy assets" mutations. */
+export function useCopyAssetsMutationState<Result>(
+  backend: Backend,
+  options: {
+    predicate?: (mutation: CopyAssetsMutation) => boolean
+    select?: (mutation: CopyAssetsMutation) => Result
+  } = {},
+) {
+  const { predicate, select } = options
+  return useMutationState({
+    filters: {
+      ...copyAssetsMutationOptions(backend),
+      predicate: (mutation: CopyAssetsMutation) =>
+        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true),
+    },
+    // This is UNSAFE when the `Result` parameter is explicitly specified in the
+    // generic parameter list.
+    // eslint-disable-next-line no-restricted-syntax
+    select: select as (mutation: Mutation<unknown, Error, unknown, unknown>) => Result,
+  })
+}
+
 export const MOVE_ASSETS_MUTATION_METHOD = 'moveAssets'
 
 /** A key for {@link moveAssetsMutationOptions}. */
@@ -222,6 +251,35 @@ export function moveAssetsMutationOptions(backend: Backend) {
       ],
       awaitInvalidates: true,
     },
+  })
+}
+
+/** The type of a "move assets" mutation. */
+type MoveAssetsMutation = Mutation<
+  null,
+  Error,
+  readonly [ids: readonly AssetId[], parentId: DirectoryId]
+>
+
+/** Return matching in-flight "move assets" mutations. */
+export function useMoveAssetsMutationState<Result>(
+  backend: Backend,
+  options: {
+    predicate?: (mutation: MoveAssetsMutation) => boolean
+    select?: (mutation: MoveAssetsMutation) => Result
+  } = {},
+) {
+  const { predicate, select } = options
+  return useMutationState({
+    filters: {
+      ...moveAssetsMutationOptions(backend),
+      predicate: (mutation: MoveAssetsMutation) =>
+        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true),
+    },
+    // This is UNSAFE when the `Result` parameter is explicitly specified in the
+    // generic parameter list.
+    // eslint-disable-next-line no-restricted-syntax
+    select: select as (mutation: Mutation<unknown, Error, unknown, unknown>) => Result,
   })
 }
 

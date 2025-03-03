@@ -197,7 +197,11 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
 
                   <Menu>
                     {item.menu.map((menuItem) => (
-                      <Menu.Item href={menuItem.url} {...getSafetyProps(menuItem.url)}>
+                      <Menu.Item
+                        key={menuItem.name}
+                        href={menuItem.url}
+                        {...getSafetyProps(menuItem.url)}
+                      >
                         {getText(menuItem.name)}
                       </Menu.Item>
                     ))}
@@ -213,7 +217,11 @@ export function UserBarHelpSection(props: UserBarHelpSectionProps) {
 
               <Menu>
                 {item.menu.map((menuItem) => (
-                  <Menu.Item href={menuItem.url} {...getSafetyProps(menuItem.url)}>
+                  <Menu.Item
+                    key={menuItem.name}
+                    href={menuItem.url}
+                    {...getSafetyProps(menuItem.url)}
+                  >
                     {getText(menuItem.name)}
                   </Menu.Item>
                 ))}

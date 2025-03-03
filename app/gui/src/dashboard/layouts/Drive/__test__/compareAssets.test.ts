@@ -33,9 +33,7 @@ fc.test.prop({
   numbers: fc.fc.array(fc.fc.integer({ min: 0 })),
 })('numbers should be sorted with dictionary sort', ({ prefix, numbers }) => {
   const names = numbers.map((number) => `${prefix} ${number}`)
-  const assets = names.map((name) =>
-    createPlaceholderFileAsset(name, DirectoryId('directory-'), []),
-  )
+  const assets = names.map((name) => createPlaceholderFileAsset(name, DirectoryId('directory-')))
   const compareByNameAscending = assetCompareFunction(SORT_BY_NAME_ASCENDING, 'en')
   const sorted = assets.sort(compareByNameAscending)
   const sortedNames = sorted.map((asset) => asset.title)
@@ -54,9 +52,7 @@ fc.test.prop({
 fc.test.prop({
   names: fc.fc.array(fc.fc.string().map((s) => s.replace(/\d+/g, ''))),
 })('sort by name', ({ names }) => {
-  const assets = names.map((name) =>
-    createPlaceholderFileAsset(name, DirectoryId('directory-'), []),
-  )
+  const assets = names.map((name) => createPlaceholderFileAsset(name, DirectoryId('directory-')))
 
   const compareByModifiedAscending = assetCompareFunction(SORT_BY_NAME_ASCENDING, 'en')
   const sorted = assets.sort(compareByModifiedAscending)
@@ -75,7 +71,7 @@ fc.test.prop({
   dates: fc.fc.array(fc.fc.integer({ min: 0 })).map((numbers) => numbers.map((n) => new Date(n))),
 })('sort by modified', ({ dates }) => {
   const assets = dates.map((date) =>
-    merge(createPlaceholderFileAsset('', DirectoryId('directory-'), []), {
+    merge(createPlaceholderFileAsset('', DirectoryId('directory-')), {
       modifiedAt: toRfc3339(date),
     }),
   )

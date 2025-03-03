@@ -79,7 +79,7 @@ export const INVALIDATION_MAP: Partial<
   uploadOrganizationPicture: ['getOrganization'],
   createUserGroup: ['listUserGroups'],
   deleteUserGroup: ['listUserGroups'],
-  changeUserGroup: ['listUsers'],
+  changeUserGroup: ['listUsers', 'listUserGroups'],
   createTag: ['listTags'],
   deleteTag: ['listTags'],
   associateTag: ['listDirectory'],

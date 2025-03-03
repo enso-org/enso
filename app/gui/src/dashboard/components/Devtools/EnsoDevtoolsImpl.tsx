@@ -1,8 +1,4 @@
-/**
- * @file
- *
- * A component that provides a UI for toggling paywall features.
- */
+/** @file A list of toggles for paywall features. */
 import * as React from 'react'
 
 import * as reactQuery from '@tanstack/react-query'
@@ -234,7 +230,6 @@ export function EnsoDevtools() {
                       setFeatureFlag('enableMultitabs', value)
                     }}
                   />
-
                   <div>
                     <ariaComponents.Switch
                       form={form}
@@ -266,7 +261,6 @@ export function EnsoDevtools() {
                       }}
                     />
                   </div>
-
                   <ariaComponents.Switch
                     form={form}
                     name="enableCloudExecution"
@@ -276,7 +270,6 @@ export function EnsoDevtools() {
                       setFeatureFlag('enableCloudExecution', value)
                     }}
                   />
-
                   <ariaComponents.Switch
                     form={form}
                     name="enableAsyncExecution"
@@ -286,7 +279,24 @@ export function EnsoDevtools() {
                       setFeatureFlag('enableAsyncExecution', value)
                     }}
                   />
-
+                  <ariaComponents.Switch
+                    form={form}
+                    name="enableAdvancedProjectExecutionOptions"
+                    label="Enable Advanced Project Excecution Options"
+                    description="Enable Advanced Project Excecution Options"
+                    onChange={(value) => {
+                      setFeatureFlag('enableAdvancedProjectExecutionOptions', value)
+                    }}
+                  />
+                  <ariaComponents.Switch
+                    form={form}
+                    name="enableHybridExecution"
+                    label="Enable Hybrid Execution"
+                    description="Enable Hybrid Execution"
+                    onChange={(value) => {
+                      setFeatureFlag('enableHybridExecution', value)
+                    }}
+                  />
                   <ariaComponents.Switch
                     form={form}
                     name="moreComputedNotifications"

@@ -41,7 +41,7 @@ object NativeExecCommand {
     } else if (ensoLauncher.map(_.equals("native")).getOrElse(false)) {
       val component =
         engine.componentDirPath.resolve("..").toAbsolutePath.normalize
-      val fallbackExecPath = component.resolve("bin").resolve("enso")
+      val fallbackExecPath = component.resolve("bin").resolve(execName)
       if (
         fallbackExecPath.toFile.exists() && isBinary(fallbackExecPath, logger)
       ) {

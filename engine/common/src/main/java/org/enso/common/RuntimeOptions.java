@@ -92,6 +92,11 @@ public final class RuntimeOptions {
   private static final OptionDescriptor ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR =
       OptionDescriptor.newBuilder(ENABLE_GLOBAL_SUGGESTIONS_KEY, ENABLE_GLOBAL_SUGGESTIONS).build();
 
+  public static final String ENABLE_PROGRESS_REPORT = optionName("enableProgressReport");
+  public static final OptionKey<Boolean> ENABLE_PROGRESS_REPORT_KEY = new OptionKey<>(true);
+  private static final OptionDescriptor ENABLE_PROGRESS_REPORT_DESCRIPTOR =
+      OptionDescriptor.newBuilder(ENABLE_PROGRESS_REPORT_KEY, ENABLE_PROGRESS_REPORT).build();
+
   public static final String LANGUAGE_HOME_OVERRIDE = optionName("languageHomeOverride");
   public static final OptionKey<String> LANGUAGE_HOME_OVERRIDE_KEY = new OptionKey<>("");
   private static final OptionDescriptor LANGUAGE_HOME_OVERRIDE_DESCRIPTOR =
@@ -156,6 +161,7 @@ public final class RuntimeOptions {
               ENABLE_AUTO_PARALLELISM_DESCRIPTOR,
               ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR,
               ENABLE_GLOBAL_SUGGESTIONS_DESCRIPTOR,
+              ENABLE_PROGRESS_REPORT_DESCRIPTOR,
               INTERACTIVE_MODE_DESCRIPTOR,
               DISABLE_LINTING_DESCRIPTOR,
               LANGUAGE_HOME_OVERRIDE_DESCRIPTOR,

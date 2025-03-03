@@ -20,7 +20,7 @@ export function featureFlagsForInternalTesting() {
   return {
     enableCloudExecution: true,
     enableAsyncExecution: true,
-    enableAdvancedProjectExecutionOptions: true,
+    enableAdvancedProjectExecutionOptions: false,
   }
 }
 
@@ -31,6 +31,7 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   enableCloudExecution: z.boolean(),
   enableAsyncExecution: z.boolean(),
   enableAdvancedProjectExecutionOptions: z.boolean(),
+  enableHybridExecution: z.boolean(),
   moreComputedNotifications: z.boolean(),
 })
 
@@ -55,8 +56,9 @@ const flagsStore = createStore<FeatureFlagsStore>()(
         enableAssetsTableBackgroundRefresh: true,
         assetsTableBackgroundRefreshInterval: DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
         enableCloudExecution: IS_DEV_MODE || isOnElectron(),
-        enableAsyncExecution: false,
-        enableAdvancedProjectExecutionOptions: true,
+        enableAsyncExecution: true,
+        enableAdvancedProjectExecutionOptions: false,
+        enableHybridExecution: IS_DEV_MODE,
         moreComputedNotifications: false,
       },
       setFeatureFlag: (key, value) => {
