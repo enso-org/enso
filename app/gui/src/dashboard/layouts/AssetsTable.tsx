@@ -279,7 +279,8 @@ function AssetsTable(props: AssetsTableProps) {
       parentId: currentDirectoryId,
       category,
     }),
-    staleTime: enableAssetsTableBackgroundRefresh ? assetsTableBackgroundRefreshInterval : Infinity,
+    refetchInterval:
+      enableAssetsTableBackgroundRefresh ? assetsTableBackgroundRefreshInterval : Infinity,
   })
   const isLoading = fetchStatus === 'pending'
 

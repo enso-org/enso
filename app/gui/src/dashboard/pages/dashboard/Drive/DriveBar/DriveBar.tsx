@@ -49,7 +49,6 @@ export function DriveBar(props: DriveBarProps) {
     isFetching,
   } = useSuspenseQuery({
     ...rootDirectoryQueryOptions,
-    staleTime: Infinity,
     select: (data) => data.length === 0,
   })
 

@@ -61,7 +61,6 @@ export function DriveBarNavigation() {
       parentId: parentDirectoryId,
       category,
     }),
-    staleTime: Infinity,
     select: (data) => {
       if (parentDirectoryId === currentDirectoryId) {
         return null
