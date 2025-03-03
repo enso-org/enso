@@ -99,7 +99,9 @@ class App {
         this.setChromeOptions(chromeOptions)
         security.enableAll()
 
-        this.onStart()
+        this.onStart().catch((err) => {
+          logger.error(err)
+        })
 
         electron.app.on('before-quit', () => {
           this.isQuitting = true
@@ -177,7 +179,7 @@ class App {
     )
     const downloadSamplesPromise = projectManagement.downloadSamples()
 
-    return Promise.allSettled([writeVersionInfoPromise, downloadSamplesPromise]).then(() => {})
+    return Promise.allSettled([writeVersionInfoPromise, downloadSamplesPromise])
   }
 
   /** Process the command line arguments. */
