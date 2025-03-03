@@ -1,136 +1,117 @@
 /**
  * @file Breadcrumbs component implementation.
  */
-
-import ArrowRight from '#/assets/expand_arrow_right.svg'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import { createLeafComponent } from '@react-aria/collections'
-import { Fragment, type ReactElement } from 'react'
-import * as aria from 'react-aria-components'
+import {
+  Fragment,
+  memo,
+  type Key,
+  type PropsWithChildren,
+  type ReactElement,
+  type ReactNode,
+} from 'react'
 import flattenChildren from 'react-keyed-flatten-children'
-import { Button, type TestIdProps } from '../AriaComponents'
+import { useBreadcrumbs, type AriaBreadcrumbsProps, type DropEvent } from '../aria'
+import { Button, type IconProp, type TestIdProps } from '../AriaComponents'
 import { Icon } from '../Icon'
-import { BreadcrumbCollapsedItem, BreadcrumbItem } from './BreadcrumbItem'
-import { getItemsWithCollapsedItem, isCollapsedItem } from './utilities'
+import { BreadcrumbItem, BreadcrumbItemProvider } from './BreadcrumbItem'
 
 export const BREADCRUMBS_STYLES = tv({
-  base: 'flex items-center gap-2 w-full',
-  slots: {
-    separator: 'text-primary last:hidden',
-  },
+  base: 'flex items-center w-full',
+  slots: { separator: 'text-primary last:hidden w-2.5 h-2.5 mt-[0.5px]' },
 })
+
+/**
+ * The type of the `onDrop` callback.
+ */
+export type OnDrop = (key: Key, e: DropEvent) => Promise<void> | void
 
 /**
  * Props for {@link Breadcrumbs}
  */
-export interface BreadcrumbsProps<T>
-  extends aria.BreadcrumbsProps<T>,
+export interface BreadcrumbsProps
+  extends AriaBreadcrumbsProps,
     VariantProps<typeof BREADCRUMBS_STYLES>,
-    TestIdProps {}
+    TestIdProps {
+  /** The breadcrumb items. */
+  readonly children: ReactNode
+  /** Called when an item is acted upon (usually selection via press). */
+  readonly onAction?: (key: Key) => Promise<void> | void
+  readonly className?: string
+  readonly onDrop?: OnDrop
+}
 
 /**
  * A breadcrumb navigation component.
  */
-export function Breadcrumbs<T extends object>(props: BreadcrumbsProps<T>) {
-  const { children, items, className, variants = BREADCRUMBS_STYLES, testId } = props
+export function Breadcrumbs(props: BreadcrumbsProps) {
+  const {
+    children,
+    className,
+    variants = BREADCRUMBS_STYLES,
+    testId,
+    onAction = () => {},
+    onDrop = () => {},
+    ...breadcrumbsProps
+  } = props
 
   const styles = variants()
 
-  if (items != null && typeof children === 'function') {
-    return (
-      <Button.Group gap="none" buttonVariants={{ variant: 'icon' }}>
-        <BreadcrumbsItemsCollection<T> {...props} items={items} children={children} />
-      </Button.Group>
-    )
-  }
-
-  const itemsWithCollapsedItem = getItemsWithCollapsedItem<ReactElement>(flattenChildren(children))
+  const onActionStableCallback = useEventCallback(onAction)
+  const onDropStableCallback = useEventCallback(onDrop)
 
   return (
-    <Button.Group gap="none" buttonVariants={{ variant: 'icon' }}>
-      <aria.Breadcrumbs {...props} className={styles.base({ className })} data-testid={testId}>
-        {itemsWithCollapsedItem.map((item, index) => {
-          const isLastItem = index === itemsWithCollapsedItem.length - 1
+    <Button.GroupProvider variant="icon">
+      <BreadcrumbInner {...breadcrumbsProps} className={styles.base({ className })} testId={testId}>
+        {flattenChildren(children).map((item: ReactElement, i: number, array: ReactElement[]) => (
+          <Fragment key={item.key}>
+            <BreadcrumbItemProvider
+              isCurrent={i === array.length - 1}
+              onAction={onActionStableCallback}
+              onActionSpecified={props.onAction != null}
+              onDrop={onDropStableCallback}
+              onDropSpecified={props.onDrop != null}
+            >
+              {item}
+            </BreadcrumbItemProvider>
 
-          const element =
-            isCollapsedItem(item) ?
-              <BreadcrumbCollapsedItem
-                key="collapsed-item"
-                items={item.items}
-                children={(menuItem) => menuItem}
-              />
-            : item
-
-          return (
-            <>
-              {element}
-              {!isLastItem ?
-                <BreadcrumbSeparator className={styles.separator()} />
-              : null}
-            </>
-          )
-        })}
-      </aria.Breadcrumbs>
-    </Button.Group>
+            <BreadcrumbSeparator className={styles.separator()} />
+          </Fragment>
+        ))}
+      </BreadcrumbInner>
+    </Button.GroupProvider>
   )
 }
 
 /**
- * Props for {@link BreadcrumbsItemsCollection}
+ * Props for {@link BreadcrumbInner}
  */
-interface BreadcrumbsCollectionProps<T>
-  extends aria.BreadcrumbsProps<T>,
-    VariantProps<typeof BREADCRUMBS_STYLES>,
-    TestIdProps {
-  /** The children to render */
-  readonly children: (item: T) => React.ReactNode
-  /** The items to render */
-  readonly items: Iterable<T>
+interface BreadcrumbInnerProps extends TestIdProps, AriaBreadcrumbsProps, PropsWithChildren {
+  readonly className?: string
 }
 
 /**
- * A lazy collection of breadcrumb items.
+ * Internal component for rendering the breadcrumbs.
+ * @internal
  */
-function BreadcrumbsItemsCollection<T extends object>(props: BreadcrumbsCollectionProps<T>) {
-  const { items, children, variants = BREADCRUMBS_STYLES, className } = props
+function BreadcrumbInner(props: BreadcrumbInnerProps) {
+  const { children, className, testId } = props
 
-  const styles = variants()
-
-  const itemsWithCollapsedItem = getItemsWithCollapsedItem(items)
+  const { navProps } = useBreadcrumbs(props)
 
   return (
-    <aria.Breadcrumbs
-      {...props}
-      items={itemsWithCollapsedItem}
-      className={styles.base({ className })}
-    >
-      {(item) => {
-        const separator = <BreadcrumbSeparator className={styles.separator()} />
-        if (isCollapsedItem(item)) {
-          return (
-            <Fragment key="collapsed-item">
-              <BreadcrumbCollapsedItem id={item.id} items={item.items} children={children} />
-              {separator}
-            </Fragment>
-          )
-        }
-
-        return (
-          <>
-            {children(item)}
-            {separator}
-          </>
-        )
-      }}
-    </aria.Breadcrumbs>
+    <ol {...navProps} className={className} data-testid={testId}>
+      {children}
+    </ol>
   )
 }
 
 /**
  * Props for {@link BreadcrumbSeparator}
  */
-interface BreadcrumbSeparatorProps {
-  readonly icon: string
+interface BreadcrumbSeparatorProps<Icon extends string> {
+  readonly icon?: IconProp<Icon, never>
   readonly className?: string
 }
 
@@ -138,13 +119,12 @@ interface BreadcrumbSeparatorProps {
  * A separator between breadcrumb items.
  */
 // eslint-disable-next-line no-restricted-syntax
-const BreadcrumbSeparator = createLeafComponent(
-  'BreadcrumbSeparator',
-  function BreadcrumbSeparator(props: BreadcrumbSeparatorProps) {
-    const { icon = ArrowRight, className } = props
+const BreadcrumbSeparator = memo(function BreadcrumbSeparator<Icon extends string>(
+  props: BreadcrumbSeparatorProps<Icon>,
+) {
+  const { icon = 'folder_closed', className } = props
 
-    return <Icon className={className}>{icon}</Icon>
-  },
-)
+  return <Icon className={className}>{icon}</Icon>
+}) as <Icon extends string>(props: BreadcrumbSeparatorProps<Icon>) => ReactElement
 
 Breadcrumbs.Item = BreadcrumbItem

@@ -266,7 +266,11 @@ export default function App(props: AppProps) {
         transition={toastify.Slide}
         limit={3}
       />
-      <router.BrowserRouter basename={getMainPageUrl().pathname}>
+      <router.BrowserRouter
+        basename={getMainPageUrl().pathname}
+        // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <LocalStorageProvider>
           <ModalProvider>
             <AppRouter

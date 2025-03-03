@@ -4,10 +4,6 @@ import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
 import { getAssetPermissionId, getAssetPermissionName } from '#/services/Backend'
 import { PermissionAction } from '#/utilities/permissions'
 
-// ========================
-// === SharedWithColumn ===
-// ========================
-
 /** The type of the `state` prop of a {@link SharedWithColumn}. */
 interface SharedWithColumnStateProp
   extends Pick<AssetColumnProps['state'], 'backend' | 'category'> {

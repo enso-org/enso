@@ -186,6 +186,7 @@ public final class ExecutionService {
     if (src == null) {
       throw new SourceNotFoundException(call.getFunction().getName());
     }
+
     var callbacks =
         new ExecutionCallbacks(
             visualizationHolder,
@@ -197,7 +198,8 @@ public final class ExecutionService {
             onCachedCallback,
             onComputedCallback,
             funCallCallback,
-            onExecutedVisualizationCallback);
+            onExecutedVisualizationCallback,
+            this.context.isProgressReportEnabled() ? onComputedCallback : null);
     Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
         idExecutionInstrument.map(
             service ->
@@ -371,6 +373,8 @@ public final class ExecutionService {
         (value) -> context.getLogger().finest("_ON_CACHED_VALUE " + value.getExpressionId());
     Consumer<ExecutedVisualization> onExecutedVisualizationCallback = (value) -> {};
     ExpressionExecutionState expressionExecutionState = new ExpressionExecutionState();
+    Consumer<ExpressionValue> onProgressCallback =
+        (value) -> context.getLogger().finest("_ON_PROGRESS " + value.getExpressionId());
 
     var callbacks =
         new ExecutionCallbacks(
@@ -383,7 +387,8 @@ public final class ExecutionService {
             onCachedCallback,
             onComputedCallback,
             funCallCallback,
-            onExecutedVisualizationCallback);
+            onExecutedVisualizationCallback,
+            onProgressCallback);
     Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
         idExecutionInstrument.map(
             service -> service.bind(module, entryCallTarget, callbacks, this.timer));
@@ -563,7 +568,7 @@ public final class ExecutionService {
   }
 
   @SuppressWarnings("unchecked")
-  private static <E extends Exception> E raise(Class<E> type, Exception ex) throws E {
+  static <E extends Exception> E raise(Class<E> type, Exception ex) throws E {
     throw (E) ex;
   }
 
@@ -672,6 +677,8 @@ public final class ExecutionService {
     private final FunctionCallInfo cachedCallInfo;
     private final ProfilingInfo[] profilingInfo;
     private final boolean wasCached;
+    private final double progress;
+    private final String progressMessage;
 
     /**
      * Creates a new instance of this class.
@@ -684,6 +691,9 @@ public final class ExecutionService {
      * @param cachedCallInfo the cached call data.
      * @param profilingInfo the profiling information associated with this node
      * @param wasCached whether or not the value was obtained from the cache
+     * @param progress identification of progress (either less than zero - e.g. indeterminate) or
+     *     value between 0.0 and 1.0 as a percentage of finished work
+     * @param progressMessage text describing progress of the computation
      */
     public ExpressionValue(
         UUID expressionId,
@@ -693,7 +703,9 @@ public final class ExecutionService {
         FunctionCallInfo callInfo,
         FunctionCallInfo cachedCallInfo,
         ProfilingInfo[] profilingInfo,
-        boolean wasCached) {
+        boolean wasCached,
+        double progress,
+        String progressMessage) {
       this.expressionId = expressionId;
       this.value = value;
       this.typeInfo = typeInfo;
@@ -702,6 +714,38 @@ public final class ExecutionService {
       this.cachedCallInfo = cachedCallInfo;
       this.profilingInfo = profilingInfo;
       this.wasCached = wasCached;
+      this.progress = progress;
+      this.progressMessage = progressMessage;
+    }
+
+    /**
+     * Creates new progress update event.
+     *
+     * @param nodeId identification of the node
+     * @param amount identification of progress (either less than zero - e.g. indeterminate) or
+     *     value between 0.0 and 1.0 as a percentage of finished work
+     * @param msg either {@code null} or description of the current operation in progress
+     * @return value that returns true from its {@link #isProgressUpdate()} method
+     */
+    static ExpressionValue progress(UUID nodeId, double amount, String msg) {
+      return new ExpressionValue(nodeId, null, null, null, null, null, null, false, amount, msg);
+    }
+
+    /**
+     * Does this value represent progress update?
+     *
+     * @return
+     */
+    public boolean isProgressUpdate() {
+      return value == null && profilingInfo == null;
+    }
+
+    public double getProgress() {
+      return progress;
+    }
+
+    public String getProgressMessage() {
+      return progressMessage;
     }
 
     @Override

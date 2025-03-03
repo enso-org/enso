@@ -77,6 +77,7 @@ export class MarkdownDocument extends TextDocument {
     range: Range,
     /** Callback that will be applied to each inline-formattable subrange of the input. */
     visitRange: (range: NormalizedRange) => void,
+    visitPos?: (pos: number) => void,
   ) {
     if (range.to === range.from) {
       const formatInfo = pointFormatAncestorInfo(range.from, this.tree)
@@ -84,7 +85,7 @@ export class MarkdownDocument extends TextDocument {
       const { unformattable } = formatInfo
       const interpreted = this.interpretCursor(range.from, unformattable)
       if (typeof interpreted === 'number') {
-        // TODO: Cursor formatting
+        visitPos?.(interpreted)
         return
       }
       range = interpreted
@@ -232,7 +233,7 @@ export const nodeSplitDelimiters = sides(
     (
       md: MarkdownDocument,
       splittable: DeepReadonly<{ name: string; delimiter: Range }>[],
-      nodeType: string,
+      nodeType?: string | undefined,
     ): { outside: string; inside: string } => {
       const { outside, inside } = splitNodesAt[fromOrTo](splittable, nodeType)
       const token = ({ delimiter }: { delimiter: Range }) => md.token(delimiter)

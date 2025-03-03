@@ -10,6 +10,7 @@ import {
   type ViewUpdate,
 } from '@codemirror/view'
 import { type SyntaxNodeRef, type Tree } from '@lezer/common'
+import { type Range } from 'ydoc-shared/util/data/range'
 
 /** Maintains a set of decorations based on the tree, lazily-constructed for the visible range of the document. */
 export class TreeViewDecorator implements PluginValue {
@@ -41,8 +42,8 @@ export class TreeViewDecorator implements PluginValue {
     if (!vueHost) return Decoration.none
     const builder = new RangeSetBuilder<Decoration>()
     const doc = view.state.doc
-    const emit = (from: number, to: number, value: Decoration) => {
-      builder.add(from, to, value)
+    const emit = (range: Range, value: Decoration) => {
+      builder.add(range.from, range.to, value)
     }
     for (const { from, to } of view.visibleRanges) {
       tree.iterate({
@@ -63,7 +64,7 @@ export interface NodeStateDecorator {
   (
     nodeRef: SyntaxNodeRef,
     doc: Text,
-    emitDecoration: (from: number, to: number, deco: Decoration) => void,
+    emitDecoration: (range: Range, deco: Decoration) => void,
     vueHost: VueHost,
     state: EditorState,
   ): void

@@ -15,13 +15,17 @@ import {
   type FormatStates,
   type NormalizedRange,
 } from '@/components/MarkdownEditor/markdown/types'
+import { assert } from '@/util/assert'
 import { syntaxTree } from '@codemirror/language'
 import {
   type ChangeSpec,
   type EditorState,
   type SelectionRange,
+  type Text,
   type TransactionSpec,
 } from '@codemirror/state'
+import { type Tree } from '@lezer/common'
+import * as iter from 'enso-common/src/utilities/data/iter'
 import { Range } from 'ydoc-shared/util/data/range'
 export { type FormatNode as InlineFormattingNode } from '@/components/MarkdownEditor/markdown/types'
 
@@ -44,15 +48,96 @@ export function setInlineFormatting(
   nodeType: FormatNode,
   value: boolean,
 ): TransactionSpec {
-  const changeBuilder = new MDChangeBuilder(state.doc, syntaxTree(state))
-  changeBuilder.visitFormattableRanges(selectionRange(state.selection.main), (range) =>
-    setRangeFormatting(changeBuilder, range, nodeType, value),
+  const md = new MDChangeBuilder(state.doc, syntaxTree(state))
+  md.select(selectionRange(state.selection.main))
+  md.visitFormattableRanges(selectionRange(state.selection.main), (range) =>
+    setRangeFormatting(md, range, nodeType, value),
   )
-  const changes = state.changes(changeBuilder.changes)
+  const changes = state.changes(md.changes)
   return {
     changes,
     // TODO SelectionMapping
+    //  `SelectionRange.map` produces a "valid" new selection based on the old selection and the
+    //  changes, but it isn't perfect. Once MDChangeBuilder's selection-adjusting logic is
+    //  consistently better than that sane default, we should switch to it and enable the checks of
+    //  after-edit selection boundaries `inlineFormatting.test.ts`.
+    // selection: rangeToSelection(md.adjustedSelection),
     selection: state.selection.main.map(changes),
+  }
+}
+
+/** @returns Whether a link can be inserted. */
+export function canInsertLink(state: EditorState): boolean {
+  const md = new MDChangeBuilder(state.doc, syntaxTree(state))
+  const range = lastFormattableRange(md, selectionRange(state.selection.main))
+  // Note: Once formatting link text is allowed, we will have to check that we aren't already inside a link here.
+  return range !== undefined
+}
+
+/** Insert a link at the selection. */
+export function insertLink(state: EditorState): TransactionSpec {
+  const md = new MDChangeBuilder(state.doc, syntaxTree(state))
+  const range = lastFormattableRange(md, selectionRange(state.selection.main))
+  if (range === undefined) {
+    console.error('Cannot insert link: No formattable range')
+    return {}
+  }
+  const beforeText = '['
+  const afterText = '](https://)'
+  const afterTextSelection = Range.tryFromBounds(
+    afterText.indexOf('(') + 1,
+    afterText.indexOf(')'),
+  )!
+  let afterTextPos: number
+  if (range.length > 0) {
+    md.select(Range.emptyAt(range.to))
+    insertAround(md, range, beforeText, afterText)
+    afterTextPos = md.adjustedSelection.to
+  } else {
+    const defaultText = 'Link'
+    md.insert(`${beforeText}${defaultText}${afterText}`, range.to)
+    afterTextPos = range.to + beforeText.length + defaultText.length
+  }
+  return {
+    changes: md.changes,
+    selection: rangeToSelection(afterTextSelection.shift(afterTextPos)),
+  }
+}
+
+function lastFormattableRange(md: MarkdownDocument, selection: Range): NormalizedRange | undefined {
+  let range: NormalizedRange | undefined
+  md.visitFormattableRanges(
+    selection,
+    (r) => (range = r),
+    (pos) => (range = Range.emptyAt(pos) as NormalizedRange),
+  )
+  return range
+}
+
+/**
+ * Insert the given strings around the specified text, splitting any inlining formatting nodes as
+ * needed. If the range touches the boundary of the selection, the given strings will be inserted
+ * outside it.
+ */
+function insertAround(md: MDChangeBuilder, range: NormalizedRange, before: string, after: string) {
+  const partlyOutside = analyzeSplits(md.tree, range)
+  const { outside: closeBefore, inside: reopenInside } = nodeSplitDelimiters.from(
+    md,
+    partlyOutside.from,
+  )
+  const { outside: reopenAfter, inside: closeInside } = nodeSplitDelimiters.to(md, partlyOutside.to)
+  const outsideRange = md.expandRangeSpaces(range)
+  md.insert(closeBefore, outsideRange.from)
+  md.insert(closeInside, range.to)
+  md.insertAroundRangeOutsideSelection(before, after, range)
+  md.insert(reopenInside, range.from)
+  md.insert(reopenAfter, outsideRange.to)
+}
+
+function rangeToSelection(range: Range): { anchor: number; head: number } {
+  return {
+    anchor: range.from,
+    head: range.to,
   }
 }
 
@@ -62,13 +147,67 @@ function selectionRange(selection: SelectionRange): Range {
 
 class MDChangeBuilder extends MarkdownDocument {
   readonly changes: ChangeSpec[] = []
+  adjustedSelection: Range
 
-  insert(insert: string, from: number) {
-    if (insert) this.changes.push({ from, to: from, insert })
+  constructor(
+    text: Text,
+    tree: Tree,
+    public selection: Range = Range.empty,
+  ) {
+    super(text, tree)
+    this.adjustedSelection = selection
   }
 
-  remove(range: Range | Range[]) {
+  insertAroundRangeOutsideSelection(before: string, after: string, range: Range) {
+    this.insert(before, range.from, 'outside-before')
+    this.insert(after, range.to, 'outside-after')
+  }
+
+  /**
+   * @param insert Text to insert.
+   * @param from Position for inserted text to start, relative to document before any uncommitted changes.
+   * @param positionRelativeToSelection Determines the result when the insertion position is at the boundary of the
+   * selection.
+   * - 'inside': The selection will be expanded to include the inserted text.
+   * - 'outside-before': The selection will not be expanded to include the inserted text. If the selection is 0-length,
+   *   the insertion will be before it.
+   * - 'outside-after': The selection will not be expanded to include the inserted text. If the selection is 0-length,
+   *   the insertion will be after it.
+   */
+  insert(
+    insert: string,
+    from: number,
+    positionRelativeToSelection: 'outside-before' | 'outside-after' | 'inside' = 'inside',
+  ) {
+    if (!insert) return
+    this.changes.push({ from, to: from, insert })
+    const atFrom = from === this.selection.from
+    const atTo = from === this.selection.to
+    const shiftFrom =
+      from < this.selection.from ||
+      (atFrom && !(positionRelativeToSelection !== 'outside-before' || !atTo))
+    const shiftTo =
+      from < this.selection.to ||
+      (atTo && (positionRelativeToSelection !== 'outside-after' || !atFrom))
+    assert(shiftTo || !shiftFrom)
+    this.adjustedSelection = Range.tryFromBounds(
+      this.adjustedSelection.from + (shiftFrom ? insert.length : 0),
+      this.adjustedSelection.to + (shiftTo ? insert.length : 0),
+    )!
+  }
+
+  remove(range: Range) {
+    if (!range.length) return
     this.changes.push(range)
+    this.adjustedSelection = Range.tryFromBounds(
+      this.adjustedSelection.from - (range.from <= this.selection.from ? range.length : 0),
+      this.adjustedSelection.to - (this.selection.to <= range.from ? range.length : 0),
+    )!
+  }
+
+  select(range: Range) {
+    this.selection = range
+    this.adjustedSelection = range
   }
 }
 
@@ -120,11 +259,8 @@ function addFormat(
     md.insert(reopenOutside, outsideRange.to)
     md.insert(closeInside + mark, range.to)
   }
-  md.remove(
-    [...partlyOutside.from, ...partlyOutside.to]
-      .filter(({ name }) => name === nodeType)
-      .map(({ delimiter }) => delimiter),
-  )
+  for (const { name, delimiter } of iter.chain(partlyOutside.from, partlyOutside.to))
+    if (name === nodeType) md.remove(delimiter)
 }
 
 function removeFormat(
@@ -152,10 +288,7 @@ function removeFormat(
   md.insert(reopenInside, range.from)
   md.insert(closeInside, range.to)
   md.insert(reopenOutside, outsideRange.to)
-  md.remove(
-    [...fromOutside, ...toOutside]
-      .filter(({ name }) => name === nodeType)
-      .map(({ delimiter }) => delimiter),
-  )
-  md.remove(remove)
+  for (const { name, delimiter } of iter.chain(fromOutside, toOutside))
+    if (name === nodeType) md.remove(delimiter)
+  for (const r of remove) md.remove(r)
 }

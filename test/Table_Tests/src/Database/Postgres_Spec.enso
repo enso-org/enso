@@ -26,10 +26,11 @@ import project.Database.Common.Audit_Spec
 import project.Database.Common.Common_Spec
 import project.Database.Common.IR_Spec
 import project.Database.Common.Save_Connection_Data_Link
-import project.Database.Transaction_Spec
-import project.Database.Upload_Spec
 import project.Database.Helpers.Name_Generator
+import project.Database.JDBC.Generic_JDBC_Postgres_Spec
+import project.Database.Transaction_Spec
 import project.Database.Types.Postgres_Type_Mapping_Spec
+import project.Database.Upload_Spec
 import project.Common_Table_Operations
 from project.Common_Table_Operations.Util import all
 from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
@@ -37,6 +38,8 @@ from project.Database.Types.Postgres_Type_Mapping_Spec import default_text
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
 import enso_dev.Base_Tests.Network.Http.Http_Test_Setup
+import enso_dev.Generic_JDBC_Tests.Generic_JDBC_Connection_Spec
+import enso_dev.Table_Tests
 
 
 type Basic_Test_Data
@@ -806,6 +809,7 @@ add_table_specs suite_builder =
         connection_builder ->
             add_postgres_specs suite_builder connection_builder db_name
             Postgres_Type_Mapping_Spec.add_specs suite_builder connection_builder
+            Generic_JDBC_Postgres_Spec.add_specs suite_builder get_configured_connection_details
 
             Transaction_Spec.add_specs suite_builder connection_builder "[PostgreSQL] "
 
@@ -1088,7 +1092,6 @@ add_data_link_specs suite_builder =
     prefix = "[PostgreSQL] "
     Audit_Spec.add_specs suite_builder prefix data_link_file.get database_pending=pending
     Save_Connection_Data_Link.add_specs suite_builder prefix connection_details pending
-
 
 add_specs suite_builder =
     add_table_specs suite_builder

@@ -30,11 +30,7 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProject } from '#/hooks/projectHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import {
-  useSetNewestFolderId,
-  useSetSelectedAssets,
-  useToggleDirectoryExpansion,
-} from '#/providers/DriveProvider'
+import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import type Backend from '#/services/Backend'
@@ -49,9 +45,7 @@ import {
   type User,
   type UserGroupInfo,
 } from '#/services/Backend'
-import LocalBackend from '#/services/LocalBackend'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
-import { tryCreateOwnerPermission } from '#/utilities/permissions'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/object'
 import { useMemo } from 'react'
@@ -324,12 +318,15 @@ export interface ListDirectoryQueryOptions {
 export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
   const { backend, parentId, category } = options
 
+  const rootPath = 'rootPath' in category ? category.rootPath : undefined
+
   return queryOptions({
     queryKey: [
       backend.type,
       'listDirectory',
       parentId,
       {
+        rootPath,
         labels: null,
         filterBy: CATEGORY_TO_FILTER_BY[category.type],
         recentProjects: category.type === 'recent',
@@ -344,6 +341,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
         return await backend.listDirectory(
           {
             parentId,
+            rootPath,
             filterBy: CATEGORY_TO_FILTER_BY[category.type],
             labels: null,
             recentProjects: category.type === 'recent',
@@ -390,9 +388,9 @@ export function useAsset(options: UseAssetOptions) {
     modifiedAt: toRfc3339(new Date()),
     permissions: [],
     labels: [],
-    parentsPath: '',
-    virtualParentsPath: '',
-  }
+    parentsPath: backendModule.ParentsPath(''),
+    virtualParentsPath: backendModule.VirtualParentsPath(''),
+  } satisfies Partial<DirectoryAsset>
   // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
   switch (true) {
     case assetId === USERS_DIRECTORY_ID: {
@@ -550,33 +548,21 @@ function useDeleteAsset(backend: Backend, category: Category) {
 /** A function to create a new folder. */
 export function useNewFolder(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
-  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
   const setNewestFolderId = useSetNewestFolderId()
   const setSelectedAssets = useSetSelectedAssets()
-  const { user } = useFullUserSession()
-  const { data: users } = useBackendQuery(backend, 'listUsers', [])
   const createDirectoryMutation = useMutation(backendMutationOptions(backend, 'createDirectory'))
 
-  return useEventCallback(async (parentId: DirectoryId, parentPath: string | null | undefined) => {
-    toggleDirectoryExpansion(parentId, true)
+  return useEventCallback(async (parentId: DirectoryId) => {
     const siblings = await ensureListDirectory(parentId)
+
     const directoryIndices = siblings
       .filter(backendModule.assetIsDirectory)
       .map((item) => /^New Folder (?<directoryIndex>\d+)$/.exec(item.title))
       .map((match) => match?.groups?.directoryIndex)
       .map((maybeIndex) => (maybeIndex != null ? parseInt(maybeIndex, 10) : 0))
+
     const title = `New Folder ${Math.max(0, ...directoryIndices) + 1}`
-    const placeholderItem = backendModule.createPlaceholderDirectoryAsset(
-      title,
-      parentId,
-      tryCreateOwnerPermission(
-        `${parentPath ?? ''}/${title}`,
-        category,
-        user,
-        users ?? [],
-        user.groups ?? [],
-      ),
-    )
+    const placeholderItem = backendModule.createPlaceholderDirectoryAsset(title, parentId)
 
     return await createDirectoryMutation
       .mutateAsync([{ parentId: placeholderItem.parentId, title: placeholderItem.title }])
@@ -593,10 +579,7 @@ export function useNewProject(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
   const doOpenProject = useOpenProject()
   const deleteAsset = useDeleteAsset(backend, category)
-  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
 
-  const { user } = useFullUserSession()
-  const { data: users } = useBackendQuery(backend, 'listUsers', [])
   const createProjectMutation = useMutation(backendMutationOptions(backend, 'createProject'))
 
   return useEventCallback(
@@ -611,10 +594,7 @@ export function useNewProject(backend: Backend, category: Category) {
         datalinkId?: backendModule.DatalinkId | null | undefined
       },
       parentId: DirectoryId,
-      parentPath: string | null | undefined,
     ) => {
-      toggleDirectoryExpansion(parentId, true)
-
       const siblings = await ensureListDirectory(parentId)
       const projectName = (() => {
         const prefix = `${templateName ?? 'New Project'} `
@@ -626,21 +606,7 @@ export function useNewProject(backend: Backend, category: Category) {
         return `${prefix}${Math.max(0, ...projectIndices) + 1}`
       })()
 
-      const path = backend instanceof LocalBackend ? backend.joinPath(parentId, projectName) : null
-
-      const placeholderItem = backendModule.createPlaceholderProjectAsset(
-        projectName,
-        parentId,
-        tryCreateOwnerPermission(
-          `${parentPath ?? ''}/${projectName}`,
-          category,
-          user,
-          users ?? [],
-          user.groups ?? [],
-        ),
-        user,
-        path,
-      )
+      const placeholderItem = backendModule.createPlaceholderProjectAsset(projectName, parentId)
 
       return await createProjectMutation
         .mutateAsync([
@@ -670,80 +636,38 @@ export function useNewProject(backend: Backend, category: Category) {
 }
 
 /** A function to create a new secret. */
-export function useNewSecret(backend: Backend, category: Category) {
-  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
-  const { user } = useFullUserSession()
-  const { data: users } = useBackendQuery(backend, 'listUsers', [])
+export function useNewSecret(backend: Backend) {
   const createSecretMutation = useMutation(backendMutationOptions(backend, 'createSecret'))
 
-  return useEventCallback(
-    async (
-      name: string,
-      value: string,
-      parentId: DirectoryId,
-      parentPath: string | null | undefined,
-    ) => {
-      toggleDirectoryExpansion(parentId, true)
-      const placeholderItem = backendModule.createPlaceholderSecretAsset(
-        name,
-        parentId,
-        tryCreateOwnerPermission(
-          `${parentPath ?? ''}/${name}`,
-          category,
-          user,
-          users ?? [],
-          user.groups ?? [],
-        ),
-      )
+  return useEventCallback(async (name: string, value: string, parentId: DirectoryId) => {
+    const placeholderItem = backendModule.createPlaceholderSecretAsset(name, parentId)
 
-      return await createSecretMutation.mutateAsync([
-        {
-          parentDirectoryId: placeholderItem.parentId,
-          name: placeholderItem.title,
-          value: value,
-        },
-      ])
-    },
-  )
+    return await createSecretMutation.mutateAsync([
+      {
+        parentDirectoryId: placeholderItem.parentId,
+        name: placeholderItem.title,
+        value: value,
+      },
+    ])
+  })
 }
 
 /** A function to create a new Datalink. */
-export function useNewDatalink(backend: Backend, category: Category) {
-  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
-  const { user } = useFullUserSession()
-  const { data: users } = useBackendQuery(backend, 'listUsers', [])
+export function useNewDatalink(backend: Backend) {
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
 
-  return useEventCallback(
-    async (
-      name: string,
-      value: unknown,
-      parentId: DirectoryId,
-      parentPath: string | null | undefined,
-    ) => {
-      toggleDirectoryExpansion(parentId, true)
-      const placeholderItem = backendModule.createPlaceholderDatalinkAsset(
-        name,
-        parentId,
-        tryCreateOwnerPermission(
-          `${parentPath ?? ''}/${name}`,
-          category,
-          user,
-          users ?? [],
-          user.groups ?? [],
-        ),
-      )
+  return useEventCallback(async (name: string, value: unknown, parentId: DirectoryId) => {
+    const placeholderItem = backendModule.createPlaceholderDatalinkAsset(name, parentId)
 
-      return await createDatalinkMutation.mutateAsync([
-        {
-          parentDirectoryId: placeholderItem.parentId,
-          datalinkId: null,
-          name: placeholderItem.title,
-          value,
-        },
-      ])
-    },
-  )
+    return await createDatalinkMutation.mutateAsync([
+      {
+        parentDirectoryId: placeholderItem.parentId,
+        datalinkId: null,
+        name: placeholderItem.title,
+        value,
+      },
+    ])
+  })
 }
 
 /** Remove the user's own permission from an asset. */

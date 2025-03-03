@@ -199,7 +199,6 @@ export interface MenuSeparatorProps
 /**
  * A separator in a menu.
  */
-// eslint-disable-next-line no-restricted-syntax
 export const MenuSeparator = memo(function MenuSeparator(props: MenuSeparatorProps) {
   const { variants = MENU_SEPARATOR_STYLES, ...rest } = props
 

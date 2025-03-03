@@ -10,6 +10,7 @@ import {
 } from '@codemirror/state'
 import { Decoration, DecorationSet, EditorView } from '@codemirror/view'
 import type { SyntaxNodeRef, Tree } from '@lezer/common'
+import { type Range } from 'ydoc-shared/util/data/range'
 
 /** @returns a CodeMirror extension that maintains a set of decorations based on the syntax tree. */
 export function treeStateDecorator(nodeDecorators: NodeDecorator[]): Extension {
@@ -37,8 +38,8 @@ class TreeStateDecorator {
 
   decorate(tree: Tree, doc: Text, vueHost: VueHost): DecorationSet {
     const builder = new RangeSetBuilder<Decoration>()
-    const emit = (from: number, to: number, value: Decoration) => {
-      builder.add(from, to, value)
+    const emit = (range: Range, value: Decoration) => {
+      builder.add(range.from, range.to, value)
     }
     tree.iterate({
       enter: (nodeRef) => {
@@ -54,7 +55,7 @@ export interface NodeDecorator {
   (
     nodeRef: SyntaxNodeRef,
     doc: Text,
-    emitDecoration: (from: number, to: number, deco: Decoration) => void,
+    emitDecoration: (range: Range, deco: Decoration) => void,
     vueHost: VueHost,
   ): void
 }

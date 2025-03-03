@@ -43,8 +43,8 @@ type Generic_JDBC_Connection
          JDBC driver in your classpath.)
 
              connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
-    connect (url : Text = (Missing_Argument.throw "url")) -> Generic_JDBC_Connection =
-        jdbc_connection = JDBC_Connection.create url []
+    connect (url : Text = (Missing_Argument.throw "url")) properties:Vector=[] -> Generic_JDBC_Connection =
+        jdbc_connection = JDBC_Connection.create url properties
         Generic_JDBC_Connection.Value jdbc_connection
 
     ## ADVANCED
