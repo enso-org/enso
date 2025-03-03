@@ -2,6 +2,7 @@
 import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
 import ComponentEntry from '@/components/ComponentBrowser/ComponentEntry.vue'
 import type { Filtering } from '@/components/ComponentBrowser/filtering'
+import SvgIcon from '@/components/SvgIcon.vue'
 import LazyList from '@/components/VirtualizedList.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
@@ -98,7 +99,7 @@ defineExpose({
 <template>
   <div ref="root" class="ComponentList">
     <LazyList
-      v-slot="{ item: group }"
+      v-slot="{ item: group, selected }"
       ref="groupsPanel"
       v-model:selected="selectedGroupIndex"
       class="groups"
@@ -108,7 +109,10 @@ defineExpose({
       :autoSelectFirst="true"
       :debounceMouseSelection="MOUSE_SELECTION_DEBOUNCE"
     >
-      <div class="groupEntry">{{ group.name }}</div>
+      <div class="groupEntry">
+        <span class="groupEntryLabel">{{ group.name }}</span>
+        <SvgIcon v-if="selected" class="groupEntryIcon" name="folder_closed" />
+      </div>
     </LazyList>
     <LazyList
       ref="componentsPanel"
@@ -155,10 +159,21 @@ defineExpose({
   padding: 7px;
   line-height: 1;
   font-family: var(--font-code);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 
   &.selected {
     background-color: white;
   }
+}
+
+.groupEntryLabel {
+  flex-grow: 1;
+}
+
+.groupEntryIcon {
+  --icon-size: 12px;
 }
 
 .components {

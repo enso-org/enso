@@ -37,7 +37,7 @@ const emit = defineEmits<{
   itemAccepted: [item: T, index: number]
 }>()
 const slots = defineSlots<{
-  default(props: { item: T }): any
+  default(props: { item: T; selected: boolean }): any
 }>()
 const style = useCssModule()
 
@@ -58,12 +58,13 @@ const visibleComponents = computed(() => {
 function createVNodes(slot: typeof slots.default) {
   if (!slot) return undefined
   return visibleComponents.value.map(({ item, index }) => {
+    const selected = index === highlighted.value
     return {
       node: h(
         'div',
         { class: style.item, style: itemStyle(index) },
-        slot({ item }).map((node: VNode<unknown, unknown>) =>
-          cloneVNode(node, { class: { selected: index === highlighted.value } }),
+        slot({ item, selected }).map((node: VNode<unknown, unknown>) =>
+          cloneVNode(node, { class: { selected } }),
         ),
       ),
       item,
