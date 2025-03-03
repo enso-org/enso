@@ -253,14 +253,16 @@ function formatText(params: ICellRendererParams) {
   return `<span > ${newString} <span>`
 }
 
-const createRowsForTable = (data: unknown[][], startIndex: number, shift: number) => {
+const createRowsForTable = (data: unknown[][], shift: number, isSSrm: boolean) => {
   const rows = data && data.length > 0 ? (data[0]?.length ?? 0) : 0
+  console.log({rows})
+  console.log({data})
   return Array.from({ length: rows }, (_, i) => {
     return Object.fromEntries(
       columnDefs.value.map((h, j) => {
         return [
           h.field,
-          toRender(h.field === INDEX_FIELD_NAME ? i + startIndex : data?.[j - shift]?.[i]),
+          toRender(data?.[j - shift]?.[i]),
         ]
       }),
     )
@@ -272,6 +274,7 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
   if (typeof props.data === 'object' && 'header' in props.data) {
     const index = props.data.header?.findIndex((h: string) => colName === h)
     const server = createServer()
+    console.log({params})
     const response = await server.getSetFilterValues(index)
     setTimeout(() => {
       if (response.success) {
@@ -284,12 +287,26 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
 function createServer() {
   return {
     getSetFilterValues: async (columnIndex?: number) => {
+
+      // const { filterColumnIndexList, filterActions, valueList, toValueList } = convertFilterModel(
+      //   request,
+      //   columnHeaders,
+      //   colTypeMap.value
+      // )
       const response = await config.executeExpression(
         'Standard.Visualization.Table.Visualization',
         'get_distinct_values_for_column',
         //null as values dont need parsing
         null,
         `${columnIndex}`,
+        //send the filter model to get relevant distinct values,
+        // filterColumnIndexList,
+        // //column actions i.e Greater Than, Between...
+        // filterActions,
+        // //column values, or From Values if using a Between filter
+        // valueList,
+        // // To Values (only used in Between filters will be 'Nothing' for any other filter)
+        // toValueList,
       )
       return {
         success: true,
@@ -332,6 +349,7 @@ function createServer() {
         // To Values (only used in Between filters will be 'Nothing' for any other filter)
         toValueList,
       )
+      console.log({response})
       return {
         success: true,
         data: response.value.rows,
@@ -350,7 +368,7 @@ function createServerSideDatasource(): IServerSideDatasource {
       const server = createServer()
       const response: Response = await server.getData(params.request)
       const startIndex = params.request.startRow ? params.request.startRow : 0
-      const rows = createRowsForTable(response.data, startIndex, 1)
+      const rows = createRowsForTable(response.data, 0, true)
       setTimeout(() => {
         if (response.success) {
           params.success({ rowData: rows })
@@ -731,7 +749,7 @@ watchEffect(() => {
       }) ?? []
 
     columnDefs.value =
-      data_.has_index_col ?
+     data_.has_index_col ?
         [
           toLinkField(INDEX_FIELD_NAME, {
             tooltipValue: data_.child_label,
@@ -743,7 +761,7 @@ watchEffect(() => {
       : dataHeader
     if (!data_.is_ssrm) {
       const shift = data_.is_ssrm ? 1 : 0
-      rowData.value = data_.data ? createRowsForTable(data_.data, 0, shift) : []
+      rowData.value = data_.data ? createRowsForTable(data_.data, shift, data_.is_ssrm) : []
     }
   }
 })
