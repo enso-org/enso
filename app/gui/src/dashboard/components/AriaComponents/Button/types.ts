@@ -1,8 +1,4 @@
-/**
- * @file
- *
- * Reusable types for the Button component
- */
+/** @file Types for a `Button`. */
 import type * as aria from '#/components/aria'
 import type { TextProps } from '#/components/AriaComponents/Text'
 import type { ExtractFunction } from '#/utilities/tailwindVariants'
@@ -10,34 +6,24 @@ import type { ReactElement, ReactNode } from 'react'
 import type { Addon, IconProp, TestIdProps } from '../types'
 import type { BUTTON_STYLES, ButtonVariants } from './variants'
 
-/**
- * Position of a joined button
- */
+/** Position of a joined button. */
 export type PrivateJoinedButtonPosition = ButtonVariants['position']
 
-/**
- * Whether the button is joined
- */
+/** Whether the button is joined. */
 export type PrivateJoinedButton = ButtonVariants['isJoined']
 
-/**
- * Props for a joined button unlike other button props,
- */
+/** Props for a joined button unlike other button props. */
 export interface PrivateJoinedButtonProps {
   readonly position: PrivateJoinedButtonPosition
   readonly isJoined: NonNullable<PrivateJoinedButton>
 }
 
-/**
- * Render props for a button.
- */
+/** Render props for a button. */
 export interface ButtonRenderProps extends aria.ButtonRenderProps {
   readonly isLoading: boolean
 }
 
-/**
- * Render props for a link.
- */
+/** Render props for a link. */
 export interface LinkRenderProps extends aria.LinkRenderProps {
   readonly isLoading: boolean
 }
@@ -103,16 +89,12 @@ export interface BaseButtonProps<IconType extends string, Render>
   readonly addonEnd?: Addon<Render>
 }
 
-/**
- * A type that makes all properties of a type optional
- */
+/** A new type `undefined` added to all properties of a type. */
 type WithUndefined<T> = {
   [K in keyof T]: T[K] | undefined
 }
 
-/**
- * Props that are shared between buttons in a button group.
- */
+/** Props that are shared between buttons in a button group. */
 export interface ButtonGroupSharedButtonProps extends WithUndefined<ButtonVariants> {
   readonly isDisabled?: boolean | undefined
   readonly isLoading?: boolean | undefined
