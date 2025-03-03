@@ -7,9 +7,9 @@ import * as z from 'zod'
 import DataUploadIcon from '#/assets/data_upload.svg'
 import KeyIcon from '#/assets/key.svg'
 import Play2Icon from '#/assets/play2.svg'
-import SortAscendingIcon from '#/assets/sort_ascending.svg'
 import TrashIcon from '#/assets/trash.svg'
 import { Button, DatePicker, Dropdown, Form, Text } from '#/components/AriaComponents'
+import { Icon } from '#/components/Icon'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import FocusArea from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
@@ -17,13 +17,9 @@ import { useBackendQuery } from '#/hooks/backendHooks'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { EVENT_TYPES, EventType, type Event } from '#/services/Backend'
-import { nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sorting'
+import { iconIdFor, nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { formatDateTime } from 'enso-common/src/utilities/data/dateTime'
-
-// =================
-// === Constants ===
-// =================
 
 const EVENT_TYPE_ICON: Record<EventType, string> = {
   [EventType.GetSecret]: KeyIcon,
@@ -49,20 +45,12 @@ function createActivityLogSchema() {
   })
 }
 
-// =================================
-// === ActivityLogSortableColumn ===
-// =================================
-
 /** Sortable columns in an activity log table. */
 enum ActivityLogSortableColumn {
   type = 'type',
   email = 'email',
   timestamp = 'timestamp',
 }
-
-// ==================================
-// === ActivityLogSettingsSection ===
-// ==================================
 
 /** Props for a {@link ActivityLogSettingsSection}. */
 export interface ActivityLogSettingsSectionProps {
@@ -225,6 +213,19 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     getText('stopSortingByName')
                   : getText('sortByNameDescending')
                 }
+                addonEnd={
+                  <Icon
+                    icon={iconIdFor(
+                      sortInfo?.direction,
+                      sortInfo?.field === ActivityLogSortableColumn.type,
+                    )}
+                    className={twMerge(
+                      'transition-all duration-arrow',
+                      sortInfo?.field !== ActivityLogSortableColumn.type &&
+                        'opacity-0 group-hover:opacity-50',
+                    )}
+                  />
+                }
                 className="group flex h-table-row w-full items-center justify-start gap-2 border-0 px-name-column-x"
                 onPress={() => {
                   const nextDirection =
@@ -241,23 +242,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   }
                 }}
               >
-                <Text className="text-sm">{getText('type')}</Text>
-                <img
-                  alt={
-                    sortInfo?.field === ActivityLogSortableColumn.type && isDescending ?
-                      getText('sortDescending')
-                    : getText('sortAscending')
-                  }
-                  src={SortAscendingIcon}
-                  className={twMerge(
-                    'transition-all duration-arrow',
-                    sortInfo?.field !== ActivityLogSortableColumn.type &&
-                      'opacity-0 group-hover:opacity-50',
-                    sortInfo?.field === ActivityLogSortableColumn.type &&
-                      isDescending &&
-                      'rotate-180',
-                  )}
-                />
+                {getText('type')}
               </Button>
             </ActivityLogHeaderCell>
             <ActivityLogHeaderCell className="w-48">
@@ -269,6 +254,19 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   : isDescending ?
                     getText('stopSortingByEmail')
                   : getText('sortByEmailDescending')
+                }
+                addonEnd={
+                  <Icon
+                    icon={iconIdFor(
+                      sortInfo?.direction,
+                      sortInfo?.field === ActivityLogSortableColumn.email,
+                    )}
+                    className={twMerge(
+                      'transition-all duration-arrow',
+                      sortInfo?.field !== ActivityLogSortableColumn.email &&
+                        'opacity-0 group-hover:opacity-50',
+                    )}
+                  />
                 }
                 className="group flex h-table-row w-full items-center justify-start gap-2 border-0 px-name-column-x"
                 onPress={() => {
@@ -286,23 +284,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   }
                 }}
               >
-                <Text className="text-sm">{getText('email')}</Text>
-                <img
-                  alt={
-                    sortInfo?.field === ActivityLogSortableColumn.email && isDescending ?
-                      getText('sortDescending')
-                    : getText('sortAscending')
-                  }
-                  src={SortAscendingIcon}
-                  className={twMerge(
-                    'transition-all duration-arrow',
-                    sortInfo?.field !== ActivityLogSortableColumn.email &&
-                      'opacity-0 group-hover:opacity-50',
-                    sortInfo?.field === ActivityLogSortableColumn.email &&
-                      isDescending &&
-                      'rotate-180',
-                  )}
-                />
+                {getText('email')}
               </Button>
             </ActivityLogHeaderCell>
             <ActivityLogHeaderCell className="w-36">
@@ -315,6 +297,19 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   : isDescending ?
                     getText('stopSortingByTimestamp')
                   : getText('sortByTimestampDescending')
+                }
+                addonEnd={
+                  <Icon
+                    icon={iconIdFor(
+                      sortInfo?.direction,
+                      sortInfo?.field === ActivityLogSortableColumn.timestamp,
+                    )}
+                    className={twMerge(
+                      'transition-all duration-arrow',
+                      sortInfo?.field !== ActivityLogSortableColumn.timestamp &&
+                        'opacity-0 group-hover:opacity-50',
+                    )}
+                  />
                 }
                 className="group flex h-table-row w-full items-center justify-start gap-2 border-0 px-name-column-x"
                 onPress={() => {
@@ -332,23 +327,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                   }
                 }}
               >
-                <Text className="text-sm">{getText('timestamp')}</Text>
-                <img
-                  alt={
-                    sortInfo?.field === ActivityLogSortableColumn.timestamp && isDescending ?
-                      getText('sortDescending')
-                    : getText('sortAscending')
-                  }
-                  src={SortAscendingIcon}
-                  className={twMerge(
-                    'transition-all duration-arrow',
-                    sortInfo?.field !== ActivityLogSortableColumn.timestamp &&
-                      'opacity-0 group-hover:opacity-50',
-                    sortInfo?.field === ActivityLogSortableColumn.timestamp &&
-                      isDescending &&
-                      'rotate-180',
-                  )}
-                />
+                {getText('timestamp')}
               </Button>
             </ActivityLogHeaderCell>
           </tr>
@@ -383,10 +362,6 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   )
 }
 
-// =============================
-// === ActivityLogHeaderCell ===
-// =============================
-
 /** Props for a {@link ActivityLogHeaderCell}. */
 export interface ActivityLogHeaderCellProps extends Readonly<React.PropsWithChildren> {
   readonly className?: string
@@ -407,10 +382,6 @@ function ActivityLogHeaderCell(props: ActivityLogHeaderCellProps) {
     </td>
   )
 }
-
-// ============================
-// === ActivityLogTableCell ===
-// ============================
 
 /** Props for a {@link ActivityLogTableCell}. */
 export type ActivityLogTableCellProps = Readonly<React.PropsWithChildren>

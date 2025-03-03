@@ -41,9 +41,7 @@ export interface LegacyIconProps<Icon extends string, Render = never>
   readonly icon?: never
 }
 
-/**
- * Generic type for imported from figma icons
- */
+/** Generic type for icons imported from Figma. */
 export interface SvgUseIconProps<Render = never> {
   readonly children?: never
   readonly icon: IconTypeSvgUse<Render>

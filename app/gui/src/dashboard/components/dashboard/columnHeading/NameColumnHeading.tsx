@@ -1,11 +1,11 @@
 /** @file A heading for the "Name" column. */
-import SortAscendingIcon from '#/assets/sort_ascending.svg'
 import { Button } from '#/components/AriaComponents'
+import { Icon } from '#/components/Icon'
 import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
 import { Column } from '#/components/dashboard/column/columnUtils'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useText } from '#/providers/TextProvider'
-import { SortDirection, nextSortDirection } from '#/utilities/sorting'
+import { SortDirection, iconIdFor, nextSortDirection } from '#/utilities/sorting'
 import { twJoin } from '#/utilities/tailwindMerge'
 
 /** A heading for the "Name" column. */
@@ -44,13 +44,11 @@ export default function NameColumnHeading(props: AssetColumnHeadingProps) {
         : getText('sortByNameDescending')
       }
       addonEnd={
-        <img
-          alt={isDescending ? getText('sortDescending') : getText('sortAscending')}
-          src={SortAscendingIcon}
+        <Icon
+          icon={iconIdFor(sortInfo?.direction, isSortActive)}
           className={twJoin(
             'ml-1 transition-all duration-arrow',
             isSortActive ? 'selectable active' : 'opacity-0 group-hover:selectable',
-            isDescending && 'rotate-180',
           )}
         />
       }
