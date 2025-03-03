@@ -24,7 +24,7 @@ private compute_distance table:Table lat1:(Column | Float) lng1:(Column | Float)
     cosLat2 = rLat2.map .cos
 
     product = cosLat1 * cosLat2 * sinDLng + sinDLat
-    haversine_distance = product.map v-> units.from_meters (v.sqrt.asin*2*6371000)
+    haversine_distance = product.map v-> (units.from_meters (v.sqrt.asin*2*6371000)).round 1
 
     table.set haversine_distance as
 
@@ -54,7 +54,7 @@ type Distance_Units
 
     ## PRIVATE
        Converts meters to the unit.
-    from_meters self meters:Float = case self of
+    from_meters self meters:Float -> Float = case self of
         Distance_Units.Meters -> meters
         Distance_Units.Kilometers -> meters / 1000
         Distance_Units.Feet -> meters * 3.280839895
