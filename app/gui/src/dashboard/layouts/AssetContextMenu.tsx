@@ -1,5 +1,6 @@
 /** @file The context menu for an arbitrary {@link backendModule.Asset}. */
 import * as React from 'react'
+import invariant from 'tiny-invariant'
 
 import * as reactQuery from '@tanstack/react-query'
 import * as toast from 'react-toastify'
@@ -38,6 +39,7 @@ import { useBackendQuery, useNewProject } from '#/hooks/backendHooks'
 import { useUploadFileWithToastMutation } from '#/hooks/backendUploadFilesHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { usePasteData } from '#/providers/DriveProvider'
+import * as featureFlagsProvider from '#/providers/FeatureFlagsProvider'
 import { computeFullRemotePath } from '#/services/RemoteBackend'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 import { normalizePath } from '#/utilities/fileInfo'
@@ -87,7 +89,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const restoreAssetsMutation = reactQuery.useMutation(restoreAssetsMutationOptions(backend))
   const copyAssetsMutation = reactQuery.useMutation(copyAssetsMutationOptions(backend))
   const downloadAssetsMutation = reactQuery.useMutation(downloadAssetsMutationOptions(backend))
-  const openProjectMutation = projectHooks.useOpenProjectMutation()
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const isCloud = categoryModule.isCloudCategory(category)
   const pathComputed =
@@ -170,6 +171,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
     asset.projectState.openedBy != null &&
     asset.projectState.openedBy !== user.email
 
+  const enableHybridExecution = featureFlagsProvider.useFeatureFlag('enableHybridExecution')
+
   const pasteMenuEntry = hasPasteData && canPaste && (
     <ContextMenuEntry
       hidden={hidden}
@@ -245,19 +248,31 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               }}
             />
           )}
-        {asset.type === backendModule.AssetType.project && isCloud && (
+        {asset.type === backendModule.AssetType.project && isCloud && enableHybridExecution && (
           <ContextMenuEntry
-            hidden={hidden}
+            hidden={hidden || localBackend == null}
             action="run"
             isDisabled={!canOpenProjects}
             tooltip={disabledTooltip}
-            doAction={() => {
-              openProjectMutation.mutate({
-                id: asset.id,
-                title: asset.title,
-                parentId: asset.parentId,
-                type: state.backend.type,
-                inBackground: true,
+            doAction={async () => {
+              invariant(localBackend != null, 'Local Backend is null')
+              const parentId = await remoteBackend.downloadProject(asset.id)
+              const assets = await localBackend.listDirectory({
+                parentId: parentId,
+                filterBy: null,
+                labels: null,
+                recentProjects: false,
+              })
+              const project = assets
+                .filter((item) => item.type === backendModule.AssetType.project)
+                .at(0)
+              invariant(project, 'Downloaded cloud project does not exist.')
+              openProject({
+                id: project.id,
+                title: project.title,
+                parentId: project.parentId,
+                type: backendModule.BackendType.local,
+                cloudProjectId: asset.id,
               })
             }}
           />
