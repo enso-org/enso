@@ -63,7 +63,7 @@ export default function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
           <Icon
             icon={iconIdFor(sortInfo?.direction, isSortActive)}
             className={twJoin(
-              'ml-1 mr-auto transition-all duration-arrow',
+              'ml-1 transition-all duration-arrow',
               isSortActive ? 'selectable active' : 'opacity-0 group-hover:selectable',
             )}
           />

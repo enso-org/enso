@@ -220,7 +220,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                       sortInfo?.field === ActivityLogSortableColumn.type,
                     )}
                     className={twMerge(
-                      'transition-all duration-arrow',
+                      'ml-1 transition-all duration-arrow',
                       sortInfo?.field !== ActivityLogSortableColumn.type &&
                         'opacity-0 group-hover:opacity-50',
                     )}
@@ -262,7 +262,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                       sortInfo?.field === ActivityLogSortableColumn.email,
                     )}
                     className={twMerge(
-                      'transition-all duration-arrow',
+                      'ml-1 transition-all duration-arrow',
                       sortInfo?.field !== ActivityLogSortableColumn.email &&
                         'opacity-0 group-hover:opacity-50',
                     )}
@@ -305,7 +305,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                       sortInfo?.field === ActivityLogSortableColumn.timestamp,
                     )}
                     className={twMerge(
-                      'transition-all duration-arrow',
+                      'ml-1 transition-all duration-arrow',
                       sortInfo?.field !== ActivityLogSortableColumn.timestamp &&
                         'opacity-0 group-hover:opacity-50',
                     )}
