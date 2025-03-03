@@ -9,7 +9,7 @@
 import { listBindings } from '@/bindings'
 import { useApproach } from '@/composables/animation'
 import { useResizeObserver } from '@/composables/events'
-import { cloneVNode, computed, h, ref, VNode, watch } from 'vue'
+import { cloneVNode, computed, h, ref, useCssModule, VNode, watch } from 'vue'
 
 const selected = defineModel<number | null>('selected', { required: false, default: null })
 const {
@@ -39,6 +39,7 @@ const emit = defineEmits<{
 const slots = defineSlots<{
   default(props: { item: T }): any
 }>()
+const style = useCssModule()
 
 const scroller = ref<HTMLElement>()
 
@@ -60,7 +61,7 @@ function createVNodes(slot: typeof slots.default) {
     return {
       node: h(
         'div',
-        { class: 'item', style: itemStyle(index) },
+        { class: style.item, style: itemStyle(index) },
         slot({ item }).map((node: VNode<unknown, unknown>) =>
           cloneVNode(node, { class: { selected: index === highlighted.value } }),
         ),
