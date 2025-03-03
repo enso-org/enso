@@ -20,7 +20,7 @@ import {
   type SetStateAction,
 } from 'react'
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { toast } from 'react-toastify'
 import * as z from 'zod'
 
@@ -105,13 +105,11 @@ import { useNavigator2D } from '#/providers/Navigator2DProvider'
 import { useLaunchedProjects } from '#/providers/ProjectsProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import type { AssetId } from '#/services/Backend'
+import type { AssetId, DirectoryId } from '#/services/Backend'
 import {
   assetIsProject,
   AssetType,
   BackendType,
-  createSpecialLoadingAsset,
-  DirectoryId,
   getAssetPermissionName,
   IS_OPENING_OR_OPENED,
   type AnyAsset,
@@ -161,8 +159,6 @@ const MINIMUM_DROPZONE_INTERSECTION_RATIO = 0.5
  * Tailwind styling.
  */
 const ROW_HEIGHT_PX = 36
-
-const LOADING_ASSET_LIST = [createSpecialLoadingAsset(DirectoryId('directory-'))]
 
 /** Information related to a drag selection. */
 interface DragSelectionInfo {
@@ -268,10 +264,9 @@ function AssetsTable(props: AssetsTableProps) {
   const { currentDirectoryId, setCurrentDirectoryId } = useDirectoryIds({
     category,
   })
-  const { data: assets = [], status: fetchStatus } = useQuery(
+  const { data: assets = [] } = useSuspenseQuery(
     listDirectoryQueryOptions({ backend, parentId: currentDirectoryId, category }),
   )
-  const isLoading = fetchStatus === 'pending'
 
   const { visibleItems } = useAssetsTableItems({
     parentId: currentDirectoryId,
@@ -1130,6 +1125,7 @@ function AssetsTable(props: AssetsTableProps) {
         >
           {nodes.map((node) => (
             <NameColumn
+              isNavigating={false}
               key={node.id}
               item={node}
               isOpened={false}
@@ -1227,7 +1223,7 @@ function AssetsTable(props: AssetsTableProps) {
     </tr>
   )
 
-  const itemRows = (!isLoading ? visibleItems : LOADING_ASSET_LIST).map((item) => {
+  const itemRows = visibleItems.map((item) => {
     const isOpenedByYou = openedProjects.some(({ id }) => item.id === id)
     const isOpenedOnTheBackend =
       item.projectState?.type != null ? IS_OPENING_OR_OPENED[item.projectState.type] : false

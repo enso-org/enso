@@ -236,7 +236,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   const { grabKeyboardFocus } = props
   const { category, backend, currentDirectoryId, doCopy, doCut, doPaste } = state
 
-  const [, startTransition] = useTransition()
+  const [isNavigating, startNavigation] = useTransition()
 
   const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
 
@@ -443,7 +443,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
             data-id={asset.id}
             onDoubleClick={() => {
               if (asset.type === backendModule.AssetType.directory) {
-                startTransition(() => {
+                startNavigation(() => {
                   setCurrentDirectoryId({
                     current: asset.id,
                     parent: parentId,
@@ -584,6 +584,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
               return (
                 <td key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>
                   <Render
+                    isNavigating={isNavigating}
                     isPlaceholder={isPlaceholder}
                     isOpened={isOpened}
                     backendType={backend.type}
