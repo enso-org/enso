@@ -3,7 +3,7 @@ import { makeComponentList, type Component } from '@/components/ComponentBrowser
 import ComponentEntry from '@/components/ComponentBrowser/ComponentEntry.vue'
 import type { Filtering } from '@/components/ComponentBrowser/filtering'
 import SvgIcon from '@/components/SvgIcon.vue'
-import LazyList from '@/components/VirtualizedList.vue'
+import VirtualizedList from '@/components/VirtualizedList.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { tryGetIndex } from '@/util/data/array'
@@ -23,8 +23,8 @@ const emit = defineEmits<{
 }>()
 
 const root = ref<HTMLElement>()
-const groupsPanel = ref<ComponentExposed<typeof LazyList>>()
-const componentsPanel = ref<ComponentExposed<typeof LazyList>>()
+const groupsPanel = ref<ComponentExposed<typeof VirtualizedList>>()
+const componentsPanel = ref<ComponentExposed<typeof VirtualizedList>>()
 const panels = { groupsPanel, componentsPanel }
 export type ComponentListPanel = keyof typeof panels
 
@@ -35,15 +35,14 @@ const focusedPanel = ref<ComponentListPanel>('componentsPanel')
 const displayedSelectedComponentIndex = computed({
   get: () => (focusedPanel.value === 'groupsPanel' ? null : selectedComponentIndex.value),
   set: (index) => {
-    focusedPanel.value = 'componentsPanel'
     selectedComponentIndex.value = index
+    if (index != null) {
+      focusedPanel.value = 'componentsPanel'
+    }
   },
 })
 
-watch(toRef(props, 'filtering'), () => {
-  selectedComponentIndex.value = 0
-  focusedPanel.value = 'componentsPanel'
-})
+watch(toRef(props, 'filtering'), () => (displayedSelectedComponentIndex.value = 0))
 watch(selectedGroupIndex, () => (selectedComponentIndex.value = 0))
 
 const suggestionDbStore = useSuggestionDbStore()
@@ -88,6 +87,8 @@ defineExpose({
         break
       case 'groupsPanel':
         focusedPanel.value = 'componentsPanel'
+        // VirtualizedList component may have set selection to null on item list update.
+        selectedComponentIndex.value = 0
         break
     }
   },
@@ -98,7 +99,7 @@ defineExpose({
 
 <template>
   <div ref="root" class="ComponentList">
-    <LazyList
+    <VirtualizedList
       v-slot="{ item: group, selected }"
       ref="groupsPanel"
       v-model:selected="selectedGroupIndex"
@@ -113,8 +114,8 @@ defineExpose({
         <span class="groupEntryLabel">{{ group.name }}</span>
         <SvgIcon v-if="selected" class="groupEntryIcon" name="folder_closed" />
       </div>
-    </LazyList>
-    <LazyList
+    </VirtualizedList>
+    <VirtualizedList
       ref="componentsPanel"
       v-slot="{ item: component }"
       v-model:selected="displayedSelectedComponentIndex"
@@ -127,7 +128,7 @@ defineExpose({
       @itemAccepted="emit('acceptSuggestion', $event)"
     >
       <ComponentEntry :component="component" :color="componentColor(component)" />
-    </LazyList>
+    </VirtualizedList>
   </div>
 </template>
 
