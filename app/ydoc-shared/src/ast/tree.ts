@@ -1893,6 +1893,16 @@ export class MutableTextLiteral extends TextLiteral implements MutableExpression
     this.fields.set('close', unspaced(Token.new(code)))
   }
 
+  fixBoundaries() {
+    const open = this.open
+    const close = this.close
+    if (open != null && close == null) {
+      this.fields.set('close', unspaced(Token.new(open.code())))
+    } else if (open == null && close != null) {
+      this.fields.set('open', unspaced(Token.new(close.code())))
+    }
+  }
+
   setElements(elements: TextElement<OwnedRefs>[]) {
     this.fields.set(
       'elements',
