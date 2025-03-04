@@ -1,4 +1,4 @@
 /** @file Barrel file for credentials forms. */
 export * from './constants'
-export * from './SnowflakeCredentialsDialog'
+export * from './SnowflakeCredentialsForm'
 export * from './types'

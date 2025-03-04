@@ -1,8 +1,8 @@
 /** @file Types common to all credentials dialogs. */
 import type { TextId } from 'enso-common/src/text'
 
-/** Props for a credentials dialog. */
-export interface CredentialsDialogProps {
+/** Props for a credentials form. */
+export interface CredentialsFormProps {
   readonly value?: unknown
   readonly upsertCredential: (value: unknown) => Promise<void>
   readonly isCreating: boolean
@@ -17,5 +17,5 @@ export interface CredentialInfo {
   readonly credentialType: string
   /** A SVG data url. */
   readonly icon: string | undefined
-  readonly component: (props: CredentialsDialogProps) => JSX.Element
+  readonly component: (props: CredentialsFormProps) => JSX.Element
 }

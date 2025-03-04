@@ -8,10 +8,10 @@ import { Form as FormComponent } from '#/components/AriaComponents'
 import { CredentialsFormButtons } from '#/data/serviceCredentials/CredentialsFormButtons'
 import { useSynchronizeCredentialsValue } from '#/data/serviceCredentials/hooks'
 import { useText } from '#/providers/TextProvider'
-import type { CredentialsDialogProps } from './types'
+import type { CredentialsFormProps } from './types'
 
 /** Dialog for a Snowflake credential. */
-export function SnowflakeCredentialsDialog(props: CredentialsDialogProps) {
+export function SnowflakeCredentialsForm(props: CredentialsFormProps) {
   const { value, upsertCredential, ...buttonsProps } = props
 
   const { getText } = useText()
