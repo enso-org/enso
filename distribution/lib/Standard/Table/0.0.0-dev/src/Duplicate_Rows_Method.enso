@@ -24,7 +24,7 @@ type Duplicate_Rows_Method
 
     @from Widget_Helpers.make_column_name_selector
     @to Widget_Helpers.make_column_name_selector
-    Integer_Range from to step:Integer=1
+    Integer_Range from:(Integer | Column_Ref) to:(Integer | Column_Ref) step:Integer=1
 
     @from Widget_Helpers.make_column_name_selector
     @to Widget_Helpers.make_column_name_selector

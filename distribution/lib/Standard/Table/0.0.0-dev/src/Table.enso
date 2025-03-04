@@ -3783,11 +3783,10 @@ type Table
     @n Duplicate_Rows_Method.default_widget
     generate_rows self n:Duplicate_Rows_Method =
         x = case n of
-          Duplicate_Rows_Method.Constant _ -> 
-              range_col = self.make_constant_column (0.up_to n.n)
-              self.set range_col as="generate_rows_id"
           Duplicate_Rows_Method.Integer_Range from to step ->
-              range_col = self.make_constant_column (from.up_to to step=step)
+              range_col = case to of
+                  _ : Integer -> self.make_constant_column (from.up_to to step=step)
+                  _ : Column_Ref -> ((self:Table_Ref).resolve to).map (x->0.up_to x)
               self.set range_col as="generate_rows_id"
         x.expand_to_rows "generate_rows_id"
 

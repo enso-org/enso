@@ -38,6 +38,6 @@ add_offset_specs suite_builder setup =
             t1.generate_rows (..Integer_Range 0 4 2) . should_equal ignore_order=setup.is_database
                 Table.new [["Text Values", ["A", "A", "B", "B", "C", "C"]], ["generate_rows_id", [0, 2, 0, 2, 0, 2]]]
         group_builder.specify "Works with Integer_Range constant and column value" <|
-            t1.generate_rows (..Integer_Range 0 (..Name 'NumRows')) . should_equal ignore_order=setup.is_database
+            t2.generate_rows (..Integer_Range 0 (..Name 'NumRows')) . should_equal ignore_order=setup.is_database
                 Table.new [["Text Values", ["A", "C", "C"]], ["NumRows", [1, 2, 2]], ["generate_rows_id", [0, 0, 1]]]
 
