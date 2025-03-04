@@ -256,8 +256,8 @@ apply_sort_to_table x sort_col_index_list sort_direction_list =
    - filter_action: list of filter actions 
    - filter_val: values to filter
 
-apply__single_filter_to_table : Table -> Text -> Filter_Condition -> Any -> Any -> Table
-apply__single_filter_to_table table filter_col filter_action filter_val filter_to_val = 
+apply_single_filter_to_table : Table -> Text -> Filter_Condition -> Any -> Any -> Table
+apply_single_filter_to_table table filter_col filter_action filter_val filter_to_val = 
     result = case filter_action of
       Filter_Condition.Between _ _ _ -> table.filter (filter_col+1) (Filter_Condition.Between filter_val filter_to_val)
       Filter_Condition.Is_In _ _ -> if filter_val.length > 0 then table.filter (filter_col+1) (Filter_Condition.Is_In filter_val) else table.filter filter_col (Filter_Condition.Is_In [""])
@@ -281,7 +281,7 @@ apply_filter_to_table table i filter_col filter_action filter_val filter_to_val 
         action = filter_action.get i
         val = filter_val.get i
         to_val = filter_to_val.get i
-        filtered_table = apply__single_filter_to_table table col action val to_val
+        filtered_table = apply_single_filter_to_table table col action val to_val
         @Tail_Call apply_filter_to_table filtered_table i+1 filter_col filter_action filter_val filter_to_val
 
 ## PRIVATE
@@ -294,8 +294,9 @@ apply_filter_to_table table i filter_col filter_action filter_val filter_to_val 
 get_rows_for_table : Any -> Integer -> List -> List -> List -> List -> List -> List -> JS_Object
 get_rows_for_table x start_number sort_col_index_list=Nothing sort_direction_list=Nothing filter_col=Nothing filter_action=Nothing filter_val=Nothing filter_extra_val=Nothing =
     max_rows=100
-    table_with_index = x.add_row_number '#'
-    table_with_index_ordered = table_with_index.reorder_columns ['#'] ..Before_Other_Columns
+    col_name = x.make_temp_column_name
+    table_with_index = x.add_row_number col_name
+    table_with_index_ordered = table_with_index.reorder_columns [col_name] ..Before_Other_Columns
     filtered_table = if filter_col.is_nothing then table_with_index_ordered else apply_filter_to_table table_with_index_ordered 0 filter_col filter_action filter_val filter_extra_val
     sorted_table = if sort_col_index_list.is_nothing then filtered_table else apply_sort_to_table filtered_table sort_col_index_list sort_direction_list
     all_rows_count = filtered_table.row_count

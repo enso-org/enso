@@ -255,14 +255,15 @@ function formatText(params: ICellRendererParams) {
 
 const createRowsForTable = (data: unknown[][], shift: number, isSSrm: boolean) => {
   const rows = data && data.length > 0 ? (data[0]?.length ?? 0) : 0
-  console.log({rows})
-  console.log({data})
+  const getIndexInfo = (i : number) => {
+    return isSSrm ? data?.[0]?.[i] : i
+  }
   return Array.from({ length: rows }, (_, i) => {
     return Object.fromEntries(
       columnDefs.value.map((h, j) => {
         return [
           h.field,
-          toRender(data?.[j - shift]?.[i]),
+          h.field === INDEX_FIELD_NAME ? getIndexInfo(i) : toRender(data?.[j - shift]?.[i]),
         ]
       }),
     )
