@@ -216,7 +216,7 @@ make_json_for_table dataframe max_rows all_rows_count is_db_table =
 
 ## PRIVATE
 
-   applies the sprt model to the table.
+   applies the sort model to the table.
 
    Arguments:
    - start_number: the start index of the next 100 rows to get

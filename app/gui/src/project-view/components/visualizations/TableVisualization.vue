@@ -26,7 +26,7 @@ import {
   convertFilterModel,
   convertSortModel,
   parseArgument,
-} from './TableVisualization/TableVizDataSource'
+} from './TableVisualization/TableVizDataSourceUtils'
 import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
 import { getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
@@ -307,7 +307,6 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
   if (typeof props.data === 'object' && 'header' in props.data) {
     const index = props.data.header?.findIndex((h: string) => colName === h)
     const server = createServer()
-    console.log({ params })
     const response = await server.getSetFilterValues(index)
     setTimeout(() => {
       if (response.success) {
@@ -368,7 +367,6 @@ function createServer() {
         // To Values (only used in Between filters will be 'Nothing' for any other filter)
         toValueList,
       )
-      console.log({ response })
       return {
         success: true,
         data: response.value.rows,
