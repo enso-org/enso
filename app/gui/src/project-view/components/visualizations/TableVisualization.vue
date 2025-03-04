@@ -794,6 +794,10 @@ watchEffect(() => {
   if (page.value > newPageLimit) {
     page.value = newPageLimit
   }
+
+  // If data is truncated, we cannot rely on sorting/filtering so will disable.
+  defaultColDef.value.filter = !isTruncated.value
+  defaultColDef.value.sortable = !isTruncated.value
 })
 
 const colTypeMap = computed(() => {
