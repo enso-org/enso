@@ -2,8 +2,18 @@ import { expect, test } from 'vitest'
 import { type DebugTree, debugTree } from '../../util/lezer'
 import { ensoMarkdownParser } from '../ensoMarkdown'
 
-function checkTree({ source, expected }: { source: string; expected: DebugTree }) {
-  expect(debugTree(ensoMarkdownParser.parse(source), source)).toEqual(expected)
+function checkTree({
+  source,
+  expected,
+  not,
+}: {
+  source: string
+  expected: DebugTree
+  not?: DebugTree
+}) {
+  const result = debugTree(ensoMarkdownParser.parse(source), source)
+  if (not) expect(result).not.toEqual(not)
+  expect(result).toEqual(expected)
 }
 
 // === Prerendered newlines ===
@@ -144,22 +154,18 @@ test.each([
     source: '****',
     // TODO
     expected: ['Document', ['HorizontalRule', '****']],
-    not: ['Document', ['HorizontalRule', '****']],
   },
   {
     description: 'Empty bold+italic not parsed as HorizontalRule',
     source: '******',
     // TODO
     expected: ['Document', ['HorizontalRule', '******']],
-    not: ['Document', ['HorizontalRule', '******']],
   },
   {
     description: 'Empty strikethrough not parsed as FencedCode',
     source: '~~~~',
     // TODO
-    // expected: ['Document', ['Paragraph', '~~~~']],
     expected: ['Document', ['FencedCode', ['CodeMark', '~~~~']]],
-    not: ['Document', ['FencedCode', ['CodeMark', '~~~~']]],
   },
 ])('Syntax extensions: Special cases: $description', checkTree)
 
@@ -238,6 +244,44 @@ test.each([
     ],
   },
 ])('Standards-compatible AST refinements: $description', checkTree)
+
+// === Standard extensions ===
+
+test.each([
+  {
+    extension: 'Tables',
+    source: '| foo | bar |\n| --- | --- |\n| baz | bim |',
+    expected: [
+      'Document',
+      [
+        'Table',
+        [
+          'TableHeader',
+          ['TableDelimiter', '|'],
+          ['TableCell', 'foo'],
+          ['TableDelimiter', '|'],
+          ['TableCell', 'bar'],
+          ['TableDelimiter', '|'],
+        ],
+        ['TableDelimiter', '| --- | --- |'],
+        [
+          'TableRow',
+          ['TableDelimiter', '|'],
+          ['TableCell', 'baz'],
+          ['TableDelimiter', '|'],
+          ['TableCell', 'bim'],
+          ['TableDelimiter', '|'],
+        ],
+      ],
+    ],
+    not: [
+      'Document',
+      ['Paragraph', '| foo | bar |'],
+      ['Paragraph', '| --- | --- |'],
+      ['Paragraph', '| baz | bim |'],
+    ],
+  },
+])('Markdown extensions: $extension', checkTree)
 
 // === Standard syntax cases ===
 

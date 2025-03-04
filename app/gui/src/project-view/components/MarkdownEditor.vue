@@ -7,10 +7,14 @@ import { Vec2 } from '@/util/data/vec2'
 import { ComponentInstance, computed, defineAsyncComponent, ref, toRef } from 'vue'
 import * as Y from 'yjs'
 
-const props = defineProps<{
-  content: Y.Text | string
-  transformImageUrl?: UrlTransformer
-}>()
+const props = withDefaults(
+  defineProps<{
+    content: Y.Text | string
+    transformImageUrl?: UrlTransformer
+    toolbar?: boolean
+  }>(),
+  { toolbar: true },
+)
 
 const inner = ref<ComponentInstance<typeof LazyMarkdownEditor>>()
 
@@ -33,7 +37,7 @@ defineExpose({
 
 <template>
   <Suspense>
-    <LazyMarkdownEditor ref="inner" v-bind="props">
+    <LazyMarkdownEditor ref="inner" :content="props.content" :toolbar="props.toolbar">
       <template #toolbarLeft>
         <slot name="toolbarLeft" />
       </template>

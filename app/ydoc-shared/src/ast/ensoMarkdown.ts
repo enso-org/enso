@@ -12,13 +12,14 @@ import {
 } from '@lezer/markdown'
 
 /**
- * End any element when a newline is encountered. This parser operates on preprocessed Markdown that has "prerendered"
- * newlines: Before parsing, hard-wrapped lines within any block element are concatenated, and the extra newlines
- * between block elements are removed.
+ * End any element when a newline is encountered. This parser operates on preprocessed Markdown that
+ * has "prerendered" newlines: Before parsing, hard-wrapped lines within any block element are
+ * concatenated, and the extra newlines between block elements are removed.
  */
 const newlineEndsBlock: BlockParser = {
   name: 'NewlineEndsBlock',
-  endLeaf: () => true,
+  endLeaf: (_cx, line) =>
+    !(line.text.startsWith('|') && line.text.length > 2 && line.text.endsWith('|')),
 }
 
 /** @lezer/markdown extension for the Markdown dialect used in the Enso documentation editor. */

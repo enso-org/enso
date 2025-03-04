@@ -16,9 +16,9 @@ import { minimalSetup } from 'codemirror'
 import { computed, onMounted, ref, useCssModule, useTemplateRef, type ComponentInstance } from 'vue'
 import * as Y from 'yjs'
 
-const { content } = defineProps<{
+const { content, toolbar } = defineProps<{
   content: Y.Text | string
-  toolbarContainer?: HTMLElement | undefined
+  toolbar: boolean
 }>()
 
 const focused = ref(false)
@@ -65,7 +65,7 @@ defineExpose({
 
 <template>
   <div class="MarkdownEditorRoot">
-    <div class="toolbar" @pointerdown.prevent>
+    <div v-if="toolbar" class="toolbar" @pointerdown.prevent>
       <slot name="toolbarLeft" />
       <template v-if="!readonly">
         <BlockTypeDropdown
