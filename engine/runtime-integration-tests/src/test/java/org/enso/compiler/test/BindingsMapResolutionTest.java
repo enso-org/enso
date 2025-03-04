@@ -56,7 +56,7 @@ public class BindingsMapResolutionTest {
     testBindingsMap(
         projDir,
         bindingsMap -> {
-          assertSingleResolvedType(bindingsMap, "My_Vector");
+          assertSingleResolvedType(bindingsMap, "local.Proj.My_Vector.My_Vector");
         });
   }
 
@@ -80,7 +80,7 @@ public class BindingsMapResolutionTest {
     testBindingsMap(
         projDir,
         bindingsMap -> {
-          assertSingleResolvedType(bindingsMap, "My_Vector");
+          assertSingleResolvedType(bindingsMap, "local.Proj.My_Vector.My_Vector");
         });
   }
 
