@@ -10,13 +10,14 @@ import {
 } from 'react'
 
 import * as aria from '#/components/aria'
-import { Text, useVisualTooltip } from '#/components/AriaComponents/Text'
-import { Tooltip, TooltipTrigger } from '#/components/AriaComponents/Tooltip'
-import { Icon as IconComponent } from '#/components/Icon'
-import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { forwardRef } from '#/utilities/react'
 import { useContextProps } from '../../hooks/useContextProps'
+import { Icon as IconComponent } from '../../Icon'
+import { StatelessSpinner } from '../../StatelessSpinner'
+import { Text } from '../Text'
+import { Tooltip, TooltipTrigger } from '../Tooltip'
+import { useVisualTooltip } from '../VisualTooltip'
 import { ButtonGroup, ButtonGroupJoin } from './ButtonGroup'
 import {
   ButtonContext,

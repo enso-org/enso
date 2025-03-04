@@ -40,7 +40,7 @@ import {
   RadioGroup,
   Separator,
   Text,
-  WithVisualTooltip,
+  VisualTooltip,
 } from '#/components/AriaComponents'
 import {
   FEATURE_FLAGS_SCHEMA,
@@ -370,11 +370,11 @@ export function EnsoDevtools() {
                   <div className="flex items-center gap-1">
                     <Text variant="body">{title}</Text>
 
-                    <WithVisualTooltip tooltip="User specific storage item">
+                    <VisualTooltip tooltip="User specific storage item">
                       {metadata.isUserSpecific === true && (
                         <Icon icon="default_user" size="small" />
                       )}
-                    </WithVisualTooltip>
+                    </VisualTooltip>
                   </div>
 
                   <Button.Group

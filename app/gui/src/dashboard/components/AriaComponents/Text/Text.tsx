@@ -10,8 +10,8 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { forwardRef } from '#/utilities/react'
 import { memo } from 'react'
 import type { TestIdProps } from '../types'
+import * as visualTooltip from '../VisualTooltip'
 import * as textProvider from './TextProvider'
-import * as visualTooltip from './useVisualTooltip'
 
 /** Props for the Text component */
 export interface TextProps
