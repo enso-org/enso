@@ -10,10 +10,10 @@ import * as Y from 'yjs'
 const props = withDefaults(
   defineProps<{
     content: Y.Text | string
-    transformImageUrl?: UrlTransformer
+    transformImageUrl?: UrlTransformer | undefined
     toolbar?: boolean
   }>(),
-  { toolbar: true },
+  { transformImageUrl: undefined, toolbar: true },
 )
 
 const inner = ref<ComponentInstance<typeof LazyMarkdownEditor>>()
