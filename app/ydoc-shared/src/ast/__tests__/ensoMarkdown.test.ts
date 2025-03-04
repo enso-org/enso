@@ -104,8 +104,7 @@ test.each([
     ],
     not: ['Document', ['OrderedList', ['ListItem', ['ListMark', '1.'], ['Paragraph', 'Numbered']]]],
   },
-  /*
-  { // FIXME
+  {
     source: '# *Formatted header*',
     expected: [
       'Document',
@@ -116,7 +115,6 @@ test.each([
       ],
     ],
   },
-   */
 ])('Syntax extension: Delimiter tokens include syntactic spaces: $source', checkTree)
 
 // === "Incomplete" syntax special cases ===

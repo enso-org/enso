@@ -87,15 +87,6 @@ export function setBlockType(
 }
 
 /**
- * @returns Whether {@link insertCodeBlock} is supported for the current cursor location or
- * selected range.
- */
-export function canInsertCodeBlock(_state: EditorState): boolean {
-  // TODO: Disable button when the cursor is already inside an unformattable block.
-  return true
-}
-
-/**
  * Insert a code block after the cursor, or if there is a selection convert the selected lines to a
  * code block.
  */

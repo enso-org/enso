@@ -52,9 +52,9 @@ export function setInlineFormatting(
     changes,
     // TODO SelectionMapping
     //  `SelectionRange.map` produces a "valid" new selection based on the old selection and the
-    //  changes, but it isn't perfect. Once MDChangeBuilder's selection-adjusting logic is
-    //  consistently better than that sane default, we should switch to it and enable the checks of
-    //  after-edit selection boundaries `inlineFormatting.test.ts`.
+    //  changes, but it isn't perfect. Once MarkdownEdit's selection-adjusting logic is consistently
+    //  better than that sane default, we should switch to it and enable the checks of after-edit
+    //  selection boundaries `inlineFormatting.test.ts`.
     // selection: rangeToSelection(md.adjustedSelection),
     selection: state.selection.main.map(changes),
   }

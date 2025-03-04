@@ -1,6 +1,5 @@
 import { printTestInput, setupEditor } from '@/components/MarkdownEditor/__tests__/testInput'
 import {
-  canInsertCodeBlock,
   getBlockType,
   insertCodeBlock,
   removeCodeBlock,
@@ -387,7 +386,6 @@ test.each([
   },
 ])('Insert code block: $source', ({ source, expected }) => {
   const view = setupEditor(source)
-  expect(canInsertCodeBlock(view.state)).toBe(true)
   view.dispatch(insertCodeBlock(view.state))
   expect(getBlockType(view.state)).toBe('FencedCode')
   expect(printTestInput(view.state.doc.toString(), view.state.selection.main)).toEqual(expected)

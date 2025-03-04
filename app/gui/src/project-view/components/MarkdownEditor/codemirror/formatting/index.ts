@@ -1,6 +1,5 @@
 /** @file Provides a Vue reactive API for Markdown formatting in CodeMirror. */
 import {
-  canInsertCodeBlock,
   getBlockType,
   insertCodeBlock,
   removeCodeBlock,
@@ -24,6 +23,7 @@ export { type BlockType }
 interface ReactiveFormatting {
   inline: Record<InlineFormattingNode, Ref<boolean | undefined>>
   blockType: Ref<BlockType | undefined>
+  unformattable: Ref<boolean>
 }
 
 const reactiveFormattingFacet = Facet.define<ReactiveFormatting, ReactiveFormatting>({
@@ -47,8 +47,10 @@ export function useMarkdownFormatting(view: EditorView) {
     insertLink: computed(
       () => canInsertLink(view.state) && (() => view.dispatch(insertLink(view.state))),
     ),
-    insertCodeBlock: computed(
-      () => canInsertCodeBlock(view.state) && (() => view.dispatch(insertCodeBlock(view.state))),
+    insertCodeBlock: computed(() =>
+      reactiveFormatting.unformattable.value ?
+        undefined
+      : () => view.dispatch(insertCodeBlock(view.state)),
     ),
     blockType: proxyRefs({
       value: readonly(reactiveFormatting.blockType),
@@ -68,13 +70,14 @@ export function useMarkdownFormatting(view: EditorView) {
 
 /** Returns an extension that supports reactively watch the formatting of the selected text. */
 export function markdownFormatting(): Extension {
-  const reactiveFormatting = {
+  const reactiveFormatting: ReactiveFormatting = {
     inline: {
-      Emphasis: ref<boolean>(),
-      StrongEmphasis: ref<boolean>(),
-      Strikethrough: ref<boolean>(),
+      Emphasis: ref(),
+      StrongEmphasis: ref(),
+      Strikethrough: ref(),
     },
-    blockType: ref<BlockType | undefined>(),
+    blockType: ref(),
+    unformattable: ref(false),
   }
   const reactiveFormattingFacetExt = reactiveFormattingFacet.of(reactiveFormatting)
   return [
@@ -85,6 +88,7 @@ export function markdownFormatting(): Extension {
       for (const key of objects.unsafeKeys(reactiveFormatting.inline))
         reactiveFormatting.inline[key].value = formatting?.[key]
       reactiveFormatting.blockType.value = getBlockType(update.view.state)
+      reactiveFormatting.unformattable.value = formatting === undefined
     }),
   ]
 }
