@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import org.enso.interpreter.runtime.data.ManagedResource;
+import org.enso.interpreter.runtime.error.PanicException;
 
 /**
  * Allows the context to attach garbage collection hooks on the removal of certain objects.
@@ -152,9 +153,10 @@ public final class ResourceManager {
   public synchronized ManagedResource register(
       TruffleObject object, Object function, boolean systemResource) {
     if (context.isAssertionsEnabled() && alreadyRegistered(object)) {
-      throw EnsoContext.get(null)
-          .raiseAssertionPanic(
-              null, "Object is already registered as a ManagedResource: " + object, null);
+      var error = context.getBuiltins().error();
+      var msg = "Object is already registered as a ManagedResource: " + object;
+      var payload = error.makeForbiddenOperation(msg);
+      throw new PanicException(payload, null);
     }
 
     if (CLOSED == processor) {

@@ -3,7 +3,7 @@ import Standard.Base.Data.Vector.Builder
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
-from Standard.Base.Errors.Common import Assertion_Error, Unsupported_Argument_Types
+from Standard.Base.Errors.Common import Assertion_Error, Forbidden_Operation, Unsupported_Argument_Types
 
 from Standard.Test import all
 
@@ -142,7 +142,7 @@ add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
         value = My_Value.Value 10
         cleanup _ = Nothing
         mr0 = Managed_Resource.register value cleanup
-        Test.expect_panic Assertion_Error (Managed_Resource.register value cleanup)
+        Test.expect_panic Forbidden_Operation (Managed_Resource.register value cleanup)
         mr0 . should_succeed  # Here to prevent collection
         mr0.take
 
