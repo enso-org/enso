@@ -140,6 +140,10 @@ const tabStyle = {
   }
 }
 
+.tab .ToggleIcon svg {
+  opacity: 1 !important;
+}
+
 .toggleDock {
   --icon-margin: 16px; /* Must match `--icon-margin` defined above, which is not in scope because of the teleport. */
   z-index: 1;
