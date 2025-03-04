@@ -82,7 +82,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const { user } = useFullUserSession()
   const canDownload = useCanDownload()
 
-  const { currentDirectoryId } = useDirectoryIds({ category })
+  const { currentDirectoryId, rootDirectoryId } = useDirectoryIds({ category })
 
   const shouldBeDisabled = isCloud && isOffline
 
@@ -187,7 +187,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
             shouldBeDisabled={shouldBeDisabled}
             backend={backend}
             category={category}
-            rootDirectoryId={currentDirectoryId}
+            rootDirectoryId={rootDirectoryId}
           >
             {pasteDataStatus}
             {searchBar}
