@@ -213,6 +213,7 @@
 [11695]: https://github.com/enso-org/enso/pull/11695
 [11715]: https://github.com/enso-org/enso/pull/11715
 [11753]: https://github.com/enso-org/enso/pull/11753
+[11755]: https://github.com/enso-org/enso/pull/11755
 [11761]: https://github.com/enso-org/enso/pull/11761
 [11768]: https://github.com/enso-org/enso/pull/11768
 [11810]: https://github.com/enso-org/enso/pull/11810
@@ -236,6 +237,8 @@
 - [The reload button clears the HTTP cache.][11673]
 - [SQL Server Support for Aggregate][11811]
 - [Added `Download_Mode` parameter to `Data.download`.][12017]
+- [Added `Table.geo_distance` to calculate the distance between two
+  points.][12393]
 
 [11235]: https://github.com/enso-org/enso/pull/11235
 [11255]: https://github.com/enso-org/enso/pull/11255
@@ -248,6 +251,7 @@
 [11673]: https://github.com/enso-org/enso/pull/11673
 [11811]: https://github.com/enso-org/enso/pull/11811
 [12017]: https://github.com/enso-org/enso/pull/12017
+[12393]: https://github.com/enso-org/enso/pull/12393
 
 #### Enso Language & Runtime
 

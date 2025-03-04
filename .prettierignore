@@ -48,6 +48,10 @@ build.json
 app/gui/playwright-report/
 maven_install.json
 
+# Git-subtree, upstream doesn't use prettier
+app/lang-markdown
+app/lezer-markdown
+
 # Engine Builds can leave these nested working copies.
 # TODO [mwu]: Adjust Engine build to not leave them.
 ci-build/
