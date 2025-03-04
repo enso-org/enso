@@ -202,6 +202,8 @@ test('Filtering list', async ({ page }) => {
   await expect(segments).toHaveText(['Data.', 're', 'ad', '_te', 'xt'])
   const highlighted = locate.componentBrowserEntry(page).locator('.component-label-segment.match')
   await expect(highlighted).toHaveText(['re', '_te'])
+  // Filtered-out group are hidden, and the rest displays number of matched elements.
+  await expect(page.locator('.groupEntry')).toHaveText(['all (1)', 'Input (1)'])
 })
 
 test('Navigating groups', async ({ page }) => {

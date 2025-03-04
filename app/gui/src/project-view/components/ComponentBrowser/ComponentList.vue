@@ -5,7 +5,7 @@ import type { Filtering } from '@/components/ComponentBrowser/filtering'
 import SvgIcon from '@/components/SvgIcon.vue'
 import VirtualizedList from '@/components/VirtualizedList.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
-import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { GroupInfo, useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { tryGetIndex } from '@/util/data/array'
 import { computed, ref, toRef, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
@@ -48,11 +48,12 @@ watch(selectedGroupIndex, () => (selectedComponentIndex.value = 0))
 const suggestionDbStore = useSuggestionDbStore()
 const components = computed(() => makeComponentList(suggestionDbStore.entries, props.filtering))
 const currentGroups = computed(() => {
-  return Array.from(components.value.keys(), (id) => ({
+  return Array.from(components.value.entries(), ([id, components]) => ({
     id,
     ...(id === 'all' ? { name: 'all' }
     : id === 'suggestions' ? { name: 'suggestions' }
     : (suggestionDbStore.groups[id] ?? { name: 'unknown' })),
+    ...(props.filtering.pattern != null ? { displayedNumber: components.length } : {}),
   }))
 })
 const displayedGroupId = computed(() =>
@@ -111,7 +112,9 @@ defineExpose({
       :debounceMouseSelection="MOUSE_SELECTION_DEBOUNCE"
     >
       <div class="groupEntry">
-        <span class="groupEntryLabel">{{ group.name }}</span>
+        <span class="groupEntryLabel">
+          {{ group.name }}{{ group.displayedNumber ? ` (${group.displayedNumber})` : '' }}
+        </span>
         <SvgIcon v-if="selected" class="groupEntryIcon" name="folder_closed" />
       </div>
     </VirtualizedList>

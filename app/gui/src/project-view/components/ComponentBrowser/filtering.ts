@@ -244,7 +244,7 @@ export class Filtering {
     public currentModule: ProjectPath | undefined = undefined,
   ) {
     const { pattern, selfArg } = filter
-    this.pattern = pattern != null ? new FilteringWithPattern(pattern) : undefined
+    this.pattern = pattern ? new FilteringWithPattern(pattern) : undefined
     this.selfArg = selfArg
   }
 
