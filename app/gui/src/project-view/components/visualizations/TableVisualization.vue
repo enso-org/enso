@@ -156,7 +156,7 @@ const allRowCount = computed(() =>
   typeof props.data === 'object' && 'all_rows_count' in props.data ? props.data.all_rows_count : 0,
 )
 const isSSRM = computed(() =>
-  typeof props.data === 'object' && 'is_ssrm' in props.data ? true : false,
+  typeof props.data === 'object' && 'is_ssrm' in props.data && props.data.is_ssrm
 )
 const statusBar = computed(() =>
   allRowCount.value ?
@@ -165,7 +165,7 @@ const statusBar = computed(() =>
         {
           statusPanel: TableVizStatusBar,
           statusPanelParams: {
-            total: allRowCount.value,
+            total: allRowCount.value
           },
         },
       ],
