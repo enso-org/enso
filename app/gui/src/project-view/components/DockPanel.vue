@@ -66,10 +66,10 @@ const tabStyle = {
               v-for="{ tab, title, icon } in props.tabButtons"
               :key="tab"
               class="tab"
+              :class="{ activeTab: currentTab === tab }"
               :style="tabStyle"
             >
               <SvgButton
-                :modelValue="currentTab == tab"
                 :title="title"
                 :name="icon"
                 @click="currentTab = tab"
@@ -136,9 +136,10 @@ const tabStyle = {
   display: flex;
   align-items: center;
   justify-content: center;
-  &:has(.toggledOn) {
-    background-color: #fff;
-  }
+}
+
+.activeTab {
+  background-color: #fff;
 }
 
 .toggleDock {
