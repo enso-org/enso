@@ -3786,8 +3786,8 @@ type Table
           Duplicate_Rows_Method.Constant _ -> 
               range_col = self.make_constant_column (0.up_to n.n)
               self.set range_col as="generate_rows_id"
-          Duplicate_Rows_Method.Integer_Range from to _ ->
-              range_col = self.make_constant_column (from.up_to to)
+          Duplicate_Rows_Method.Integer_Range from to step ->
+              range_col = self.make_constant_column (from.up_to to step=step)
               self.set range_col as="generate_rows_id"
         x.expand_to_rows "generate_rows_id"
 
