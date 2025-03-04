@@ -1,25 +1,21 @@
-/**
- * @file Stories for the Breadcrumbs component.
- */
+/** @file Stories for the Breadcrumbs component. */
 
 import ArrowDown from '#/assets/expand_arrow.svg'
-import Folder from '#/assets/folder.svg'
-import Add from '#/assets/plus.svg'
 import { Button, Menu } from '#/components/AriaComponents'
 import type { Meta, StoryObj } from '@storybook/react'
-import { expect, userEvent, within } from '@storybook/test'
+import { expect, fn, userEvent, within } from '@storybook/test'
 import { useState } from 'react'
+import type { BreadcrumbsProps } from '.'
 import { Breadcrumbs } from '.'
 
 export default {
   title: 'Components/Breadcrumbs',
   component: Breadcrumbs,
-  parameters: {
-    layout: 'centered',
-  },
-} satisfies Meta<typeof Breadcrumbs>
+  parameters: { layout: 'centered' },
+  render: (args) => <Breadcrumbs {...args} />,
+} satisfies Meta<BreadcrumbsProps>
 
-type Story = StoryObj<typeof Breadcrumbs>
+type Story = StoryObj<BreadcrumbsProps>
 
 export const Default: Story = {
   render: () => (
@@ -103,21 +99,16 @@ export const WithManyItems: Story = {
         <Breadcrumbs.Item onPress={() => {}} href="https://google.com">
           Documents
         </Breadcrumbs.Item>
+        <Breadcrumbs.Item onPress={() => {}}>2024</Breadcrumbs.Item>
+        <Breadcrumbs.Item onPress={() => {}}>September</Breadcrumbs.Item>
+        <Breadcrumbs.Item onPress={() => {}}>Twenty-First</Breadcrumbs.Item>
         <Breadcrumbs.Item onPress={() => {}}>Reports</Breadcrumbs.Item>
-        <Breadcrumbs.Item onPress={() => {}} isDisabled>
+        <Breadcrumbs.Item onPress={() => {}} isCurrent>
           Current Report
         </Breadcrumbs.Item>
       </Breadcrumbs>
     </div>
   ),
-
-  play: async ({ canvasElement }) => {
-    const { getByLabelText, findAllByRole } = within(canvasElement)
-    await userEvent.click(getByLabelText('More'))
-
-    const menuItems = await findAllByRole('menuitem')
-    await expect(menuItems).toHaveLength(3)
-  },
 }
 
 export const SingleItem: Story = {
@@ -130,7 +121,6 @@ export const SingleItem: Story = {
 
 export const Dynamic: Story = {
   render: () => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     const [items, setItems] = useState<
       {
         id: number
@@ -151,31 +141,28 @@ export const Dynamic: Story = {
       const nextItem = {
         id: items.length + 1,
         name: `Item ${items.length + 1}`,
-        href: `https://google.com/${items.length + 1}`,
+        href: `https://google.com/search?q=${items.length + 1}`,
         isCurrent: true,
       }
       setItems([...items.map((item) => ({ ...item, isCurrent: false })), nextItem])
     }
 
     return (
-      <Breadcrumbs items={items}>
-        {(item) => (
+      <Breadcrumbs>
+        {items.map((item) => (
           <Breadcrumbs.Item
-            id={item.id}
             href={item.href}
-            icon={Folder}
-            isCurrent={item.isCurrent}
-            addonEnd={
-              item.isCurrent ? <Button icon={Add} aria-label="Add" onPress={addItem} /> : null
+            icon="folder"
+            addonEnd={({ isCurrent }) =>
+              isCurrent ? <Button icon="add" aria-label="Add" onPress={addItem} /> : null
             }
           >
             {item.name}
           </Breadcrumbs.Item>
-        )}
+        ))}
       </Breadcrumbs>
     )
   },
-
   play: async ({ canvasElement, step }) => {
     const { findAllByRole, getByLabelText } = within(canvasElement)
     function getLastItem() {
@@ -199,18 +186,13 @@ export const Dynamic: Story = {
       await expect(items).toHaveLength(2)
     })
 
-    await step('add 3 more items', async () => {
-      await addItems(3)
+    await step('add 10 more items', async () => {
+      await addItems(10)
     })
 
     await step('Check if the new items are added', async () => {
       const items = await findAllByRole('listitem')
-      await expect(items).toHaveLength(3)
-      await expect(getByLabelText('More')).toBeInTheDocument()
-
-      await userEvent.click(getByLabelText('More'))
-      const menuItems = await findAllByRole('menuitem')
-      await expect(menuItems).toHaveLength(2)
+      await expect(items).toHaveLength(12)
     })
   },
 }
@@ -553,4 +535,55 @@ export const WithCustomIcon: Story = {
       </Breadcrumbs>
     </div>
   ),
+}
+
+export const WithOnAction: Story = {
+  args: { onAction: fn() },
+  render: (args) => (
+    <Breadcrumbs {...args}>
+      <Breadcrumbs.Item id="Home">Home</Breadcrumbs.Item>
+      <Breadcrumbs.Item id="Projects">Projects</Breadcrumbs.Item>
+      <Breadcrumbs.Item id="Team">Team</Breadcrumbs.Item>
+      <Breadcrumbs.Item id="Documents">Documents</Breadcrumbs.Item>
+      <Breadcrumbs.Item id="Reports">Reports</Breadcrumbs.Item>
+      <Breadcrumbs.Item id="March 2025">March 2025</Breadcrumbs.Item>
+    </Breadcrumbs>
+  ),
+  play: async ({ canvasElement, args }) => {
+    const { onAction } = args as BreadcrumbsProps
+
+    const { getByText, getByLabelText } = within(canvasElement)
+    await userEvent.click(getByText('Reports'))
+    await expect(onAction).toHaveBeenCalledWith('Reports')
+
+    await userEvent.click(getByLabelText('More'))
+    await userEvent.click(getByText('Team'))
+    await expect(onAction).toHaveBeenCalledWith('Team')
+  },
+}
+
+export const WithDnD: Story = {
+  args: {
+    onDrop: fn(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      return true
+    }),
+  },
+  render: (args) => {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex rounded-3xl border border-primary p-4" draggable>
+          Drop me over a Breadcrumb
+        </div>
+        <Breadcrumbs {...args}>
+          <Breadcrumbs.Item id="Home">Home</Breadcrumbs.Item>
+          <Breadcrumbs.Item id="Projects">Projects</Breadcrumbs.Item>
+          <Breadcrumbs.Item id="Team">Team</Breadcrumbs.Item>
+          <Breadcrumbs.Item id="Documents">Documents</Breadcrumbs.Item>
+          <Breadcrumbs.Item id="Reports">Reports</Breadcrumbs.Item>
+          <Breadcrumbs.Item id="March 2025">March 2025</Breadcrumbs.Item>
+        </Breadcrumbs>
+      </div>
+    )
+  },
 }

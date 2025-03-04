@@ -10,6 +10,7 @@ import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { tryGetIndex } from '@/util/data/array'
 import { allRanges } from '@/util/data/range'
 import { computed, ref, watch } from 'vue'
+import { sourceRangeKey } from 'ydoc-shared/util/data/text'
 
 const ITEM_SIZE = 32
 
@@ -173,10 +174,10 @@ defineExpose({
             <span
               v-for="range in allRanges(item.component.matchedRanges, item.component.label.length)"
               v-else
-              :key="`${range.start},${range.end}`"
+              :key="sourceRangeKey(range)"
               class="component-label-segment"
               :class="{ match: range.isMatch }"
-              v-text="item.component.label.slice(range.start, range.end)"
+              v-text="range.slice(item.component.label)"
             ></span>
           </span>
         </div>
@@ -198,10 +199,10 @@ defineExpose({
             <span
               v-for="range in allRanges(item.component.matchedRanges, item.component.label.length)"
               v-else
-              :key="`${range.start},${range.end}`"
+              :key="sourceRangeKey(range)"
               class="component-label-segment"
               :class="{ match: range.isMatch }"
-              v-text="item.component.label.slice(range.start, range.end)"
+              v-text="range.slice(item.component.label)"
             ></span>
           </span>
         </div>

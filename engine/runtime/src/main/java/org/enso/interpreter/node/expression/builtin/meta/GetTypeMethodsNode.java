@@ -19,22 +19,18 @@ import org.enso.interpreter.runtime.error.PanicException;
     description = "Gets the method names of a type.",
     autoRegister = false)
 public abstract class GetTypeMethodsNode extends Node {
-  static GetTypeMethodsNode build() {
+  public static GetTypeMethodsNode build() {
     return GetTypeMethodsNodeGen.create();
   }
 
-  abstract EnsoObject execute(Object type);
+  public abstract EnsoObject execute(Object type);
 
   @Specialization
   @CompilerDirectives.TruffleBoundary
   EnsoObject allMethods(Type type) {
-    var methods = type.getDefinitionScope().getMethodNamesForType(type);
-    if (methods == null) {
-      return ArrayLikeHelpers.asVectorEmpty();
-    } else {
-      var names = methods.stream().map(Text::create).toArray(Text[]::new);
-      return ArrayLikeHelpers.asVectorEnsoObjects(names);
-    }
+    var methods = type.getMethods(true);
+    var methodNames = methods.keySet().stream().map(Text::create).toArray(Text[]::new);
+    return ArrayLikeHelpers.asVectorEnsoObjects(methodNames);
   }
 
   @Fallback

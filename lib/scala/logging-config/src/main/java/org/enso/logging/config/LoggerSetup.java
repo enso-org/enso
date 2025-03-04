@@ -7,12 +7,11 @@ import org.slf4j.event.Level;
 /** Base class to be implemented by the underlying logging implementation. */
 public abstract class LoggerSetup {
   private static volatile LoggerSetup _instance;
-  private static Object _lock = new Object();
 
   public static LoggerSetup get() {
     LoggerSetup result = _instance;
     if (result == null) {
-      synchronized (_lock) {
+      synchronized (LoggerSetup.class) {
         result = _instance;
         if (result == null) {
           // Can't initialize in static initializer because Config has to be able to read runtime

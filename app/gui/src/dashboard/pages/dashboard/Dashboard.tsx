@@ -37,6 +37,7 @@ import * as localBackendModule from '#/services/LocalBackend'
 import * as projectManager from '#/services/ProjectManager'
 
 import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
+import { useRefetchDirectories } from '#/layouts/Drive/fetchDirectoriesHooks'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
@@ -103,6 +104,9 @@ function DashboardInner(props: DashboardProps) {
   const initialProjectName = initialLocalProjectPath != null ? null : initialProjectNameRaw
 
   const categoriesAPI = useCategoriesAPI()
+
+  useRefetchDirectories(backendModule.BackendType.local)
+  useRefetchDirectories(backendModule.BackendType.remote)
 
   const projectsStore = useProjectsStore()
   const page = usePage()

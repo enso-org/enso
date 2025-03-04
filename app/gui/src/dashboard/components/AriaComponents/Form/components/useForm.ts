@@ -15,6 +15,7 @@ import { useOffline, useOfflineChange } from '#/hooks/offlineHooks'
 import { useText } from '#/providers/TextProvider'
 import * as errorUtils from '#/utilities/error'
 import { useMutation } from '@tanstack/react-query'
+import { IS_DEV_MODE } from 'enso-common/src/detect'
 import * as schemaModule from './schema'
 import type * as types from './types'
 
@@ -84,6 +85,10 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
         {
           async: true,
           errorMap: (issue) => {
+            if (IS_DEV_MODE) {
+              // eslint-disable-next-line no-restricted-properties
+              console.error('(Development only) Form validation error:', issue)
+            }
             switch (issue.code) {
               case 'too_small':
                 if (issue.minimum === 1 && issue.type === 'string') {

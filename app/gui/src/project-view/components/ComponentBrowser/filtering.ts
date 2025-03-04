@@ -1,9 +1,9 @@
 import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
-import { Range } from '@/util/data/range'
 import { ANY_TYPE } from '@/util/ensoTypes'
 import { type ProjectPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
 import escapeStringRegexp from '@/util/regexp'
+import { Range } from 'ydoc-shared/util/data/range'
 
 export type SelfArg =
   | {
@@ -102,7 +102,7 @@ class FilteringName {
     for (let i = 1, pos = 0; i < wordMatch.length; i += 1) {
       // Matches come in groups of three, and the first matched part is `match[2]`.
       if (i % 3 === 2) {
-        result.push(new Range(pos, pos + wordMatch[i]!.length))
+        result.push(Range.fromStartAndLength(pos, wordMatch[i]!.length))
       }
       pos += wordMatch[i]!.length
     }
@@ -114,7 +114,7 @@ class FilteringName {
     for (let i = 1, pos = 0; i < initialsMatch.length; i += 1) {
       // Matches come in groups of two, and the first matched part is `match[2]` (= 0 mod 2).
       if (i % 2 === 0) {
-        result.push(new Range(pos, pos + initialsMatch[i]!.length))
+        result.push(Range.fromStartAndLength(pos, initialsMatch[i]!.length))
       }
       pos += initialsMatch[i]!.length
     }

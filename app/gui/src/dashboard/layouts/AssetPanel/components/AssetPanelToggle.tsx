@@ -63,7 +63,7 @@ export const AssetPanelToggle = memo(function AssetPanelToggle(props: AssetPanel
         >
           <Button
             size="medium"
-            variant="custom"
+            variant="icon"
             isActive={!isAssetPanelHidden}
             icon={RightPanelIcon}
             aria-label={getText('openAssetPanel')}
