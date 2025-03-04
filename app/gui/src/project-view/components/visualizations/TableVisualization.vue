@@ -20,17 +20,14 @@ import type {
   SetFilterValuesFuncParams,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
-import { computed, ref, shallowRef, watchEffect, type Ref } from 'vue'
+import { computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import {
   convertFilterModel,
   convertSortModel,
   parseArgument,
 } from './TableVisualization/TableVizDataSource'
-import {
-  GridFilterModel,
-  makeFilterModelList,
-} from './TableVisualization/tableVizFilterUtils'
+import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
 import { getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
 
@@ -130,6 +127,12 @@ const VECTOR_NODE_TYPE = 'Standard.Base.Data.Vector.Vector'
 const COLUMN_NODE_TYPE = 'Standard.Table.Column.Column'
 const ROW_NODE_TYPE = 'Standard.Table.Row.Row'
 
+const rowLimit = ref(0)
+const page = ref(0)
+const pageLimit = ref(0)
+const rowCount = ref(0)
+const showRowCount = ref(true)
+const isTruncated = ref(false)
 const isCreateNodeEnabled = ref(false)
 const filterModel = ref<GridFilterModel[]>([])
 const sortModel = ref<SortModel[]>([])
@@ -155,25 +158,54 @@ const columnDefs: Ref<ColDef[]> = ref([])
 const allRowCount = computed(() =>
   typeof props.data === 'object' && 'all_rows_count' in props.data ? props.data.all_rows_count : 0,
 )
-const isSSRM = computed(() =>
-  typeof props.data === 'object' && 'is_ssrm' in props.data && props.data.is_ssrm
+const isSSRM = computed(
+  () => typeof props.data === 'object' && 'is_ssrm' in props.data && props.data.is_ssrm,
 )
 const statusBar = computed(() =>
   allRowCount.value ?
     {
-      statusPanels: [
-        {
-          statusPanel: TableVizStatusBar,
-          statusPanelParams: {
-            total: allRowCount.value
-          },
-        },
-      ],
+      statusPanels:
+        isSSRM.value ?
+          [
+            {
+              statusPanel: TableVizStatusBar,
+              statusPanelParams: {
+                total: allRowCount.value,
+              },
+            },
+          ]
+        : [],
     }
   : null,
 )
 
 const textFormatterSelected = ref<TextFormatOptions>('partial')
+
+const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
+
+const selectableRowLimits = computed(() => {
+  const defaults = [1000, 2500, 5000, 10000, 25000, 50000, 100000].filter(
+    (r) => r <= rowCount.value,
+  )
+  if (rowCount.value < 100000 && !defaults.includes(rowCount.value)) {
+    defaults.push(rowCount.value)
+  }
+  if (!defaults.includes(rowLimit.value)) {
+    defaults.push(rowLimit.value)
+  }
+  return defaults
+})
+
+function setRowLimit(newRowLimit: number) {
+  if (newRowLimit !== rowLimit.value) {
+    rowLimit.value = newRowLimit
+    config.setPreprocessor(
+      'Standard.Visualization.Table.Visualization',
+      'prepare_visualization',
+      newRowLimit.toString(),
+    )
+  }
+}
 
 const isFilterSortNodeEnabled = computed(
   () => config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE,
@@ -255,7 +287,7 @@ function formatText(params: ICellRendererParams) {
 
 const createRowsForTable = (data: unknown[][], shift: number, isSSrm: boolean) => {
   const rows = data && data.length > 0 ? (data[0]?.length ?? 0) : 0
-  const getIndexInfo = (i : number) => {
+  const getIndexInfo = (i: number) => {
     return isSSrm ? data?.[0]?.[i] : i
   }
   return Array.from({ length: rows }, (_, i) => {
@@ -275,7 +307,7 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
   if (typeof props.data === 'object' && 'header' in props.data) {
     const index = props.data.header?.findIndex((h: string) => colName === h)
     const server = createServer()
-    console.log({params})
+    console.log({ params })
     const response = await server.getSetFilterValues(index)
     setTimeout(() => {
       if (response.success) {
@@ -288,26 +320,12 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
 function createServer() {
   return {
     getSetFilterValues: async (columnIndex?: number) => {
-
-      // const { filterColumnIndexList, filterActions, valueList, toValueList } = convertFilterModel(
-      //   request,
-      //   columnHeaders,
-      //   colTypeMap.value
-      // )
       const response = await config.executeExpression(
         'Standard.Visualization.Table.Visualization',
         'get_distinct_values_for_column',
         //null as values dont need parsing
         null,
         `${columnIndex}`,
-        //send the filter model to get relevant distinct values,
-        // filterColumnIndexList,
-        // //column actions i.e Greater Than, Between...
-        // filterActions,
-        // //column values, or From Values if using a Between filter
-        // valueList,
-        // // To Values (only used in Between filters will be 'Nothing' for any other filter)
-        // toValueList,
       )
       return {
         success: true,
@@ -327,15 +345,15 @@ function createServer() {
       const { filterColumnIndexList, filterActions, valueList, toValueList } = convertFilterModel(
         request,
         columnHeaders,
-        colTypeMap.value
+        colTypeMap.value,
       )
 
       const response = await config.executeExpression(
         'Standard.Visualization.Table.Visualization',
         'get_rows_for_table',
-        // function that will parse filter values to enso compaible 
+        // function that will parse filter values to enso compaible
         parseArgument,
-        //the index of the next bucket of rows to get 
+        //the index of the next bucket of rows to get
         `${request.startRow}`,
         //column indexes that require a sort
         sortColIndexes,
@@ -350,7 +368,7 @@ function createServer() {
         // To Values (only used in Between filters will be 'Nothing' for any other filter)
         toValueList,
       )
-      console.log({response})
+      console.log({ response })
       return {
         success: true,
         data: response.value.rows,
@@ -675,6 +693,7 @@ watchEffect(() => {
       columnDefs.value.push(toField(i.toString()))
     }
     rowData.value = addRowIndex(data_.json)
+    isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Object_Matrix') {
     columnDefs.value = [
       toLinkField(INDEX_FIELD_NAME, {
@@ -695,6 +714,7 @@ watchEffect(() => {
       }
     }
     rowData.value = addRowIndex(data_.json)
+    isTruncated.value = data_.all_rows_count !== data_.json.length
   } else if (data_.type === 'Excel_Workbook') {
     columnDefs.value = [
       toLinkField('Value', {
@@ -714,6 +734,7 @@ watchEffect(() => {
       toField('Value'),
     ]
     rowData.value = data_.json.map((row, i) => ({ [INDEX_FIELD_NAME]: i, Value: toRender(row) }))
+    isTruncated.value = data_.all_rows_count ? data_.all_rows_count !== data_.json.length : false
   } else if (data_.json !== undefined) {
     columnDefs.value =
       data_.links ?
@@ -750,7 +771,7 @@ watchEffect(() => {
       }) ?? []
 
     columnDefs.value =
-     data_.has_index_col ?
+      data_.has_index_col ?
         [
           toLinkField(INDEX_FIELD_NAME, {
             tooltipValue: data_.child_label,
@@ -761,8 +782,17 @@ watchEffect(() => {
         ]
       : dataHeader
     if (!data_.is_ssrm) {
-      const shift = data_.is_ssrm ? 1 : 0
-      rowData.value = data_.data ? createRowsForTable(data_.data, shift, data_.is_ssrm) : []
+      rowData.value = data_.data ? createRowsForTable(data_.data, 0, data_.is_ssrm) : []
+
+      // Update paging
+      const newRowCount = data_.all_rows_count == null ? 1 : data_.all_rows_count
+      showRowCount.value = !(data_.all_rows_count == null)
+      rowCount.value = newRowCount
+      const newPageLimit = Math.ceil(newRowCount / rowLimit.value)
+      pageLimit.value = newPageLimit
+      if (page.value > newPageLimit) {
+        page.value = newPageLimit
+      }
     }
   }
 })
@@ -869,6 +899,13 @@ function checkSortAndFilter(e: SortChangedEvent) {
 }
 
 // ===============
+// === Updates ===
+// ===============
+onMounted(() => {
+  setRowLimit(1000)
+})
+
+// ===============
 // === Toolbar ===
 // ===============
 
@@ -887,6 +924,30 @@ config.setToolbar(
 
 <template>
   <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
+    <template v-if="!isSSRM">
+      <div class="table-visualization-status-bar">
+        <select
+          v-if="isRowCountSelectorVisible"
+          @change="setRowLimit(Number(($event.target as HTMLOptionElement).value))"
+        >
+          <option
+            v-for="limit in selectableRowLimits"
+            :key="limit"
+            :value="limit"
+            v-text="limit"
+          ></option>
+        </select>
+        <template v-if="showRowCount">
+          <span
+            v-if="isRowCountSelectorVisible && isTruncated"
+            v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
+          ></span>
+          <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
+          <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
+          <span v-else v-text="`${rowCount} rows.`"></span>
+        </template>
+      </div>
+    </template>
     <!-- TODO[ao]: Suspence in theory is not needed here (the entire visualization is inside
      suspense), but for some reason it causes reactivity loop - see https://github.com/enso-org/enso/issues/10782 -->
     <Suspense>
