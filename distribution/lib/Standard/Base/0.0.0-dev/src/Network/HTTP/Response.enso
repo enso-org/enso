@@ -9,6 +9,7 @@ import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.File_Error.File_Error
 import project.Network.HTTP.Header.Header
+import project.Network.HTTP.HTTP_Error.HTTP_Error
 import project.Network.HTTP.HTTP_Status_Code.HTTP_Status_Code
 import project.Network.HTTP.Response_Body.Response_Body
 import project.Network.URI.URI
@@ -20,6 +21,7 @@ import project.System.File_Format.Auto_Detect
 import project.System.File_Format.File_Format
 import project.System.File_Format.Infer
 import project.System.File_Format_Metadata.File_Format_Metadata
+import project.System.Input_Stream.Input_Stream
 from project.Data.Text.Extensions import all
 from project.Metadata import Display, Widget
 from project.Network.HTTP.Response_Body import decode_format_selector
@@ -38,7 +40,11 @@ type Response
          response.
        - body_object: The body of the response. If nothing will be read from the
          internal_http_response. Allows for materialization.
-    Value internal_http_response body_object=Nothing
+    private Value internal_http_response:Enso_Http_Response body_object=Nothing
+
+    ## PRIVATE
+    new java_http_response:EnsoHttpResponse =
+        Response.Value (Enso_Http_Response.new java_http_response)
 
     ## PRIVATE
        Creates a new Response with the body materialized.
@@ -50,9 +56,7 @@ type Response
        ICON metadata
        Get the uri for the response.
     uri : URI
-    uri self =
-        uri_string = self.internal_http_response.uri.toString
-        URI.parse uri_string
+    uri self = self.internal_http_response.uri
 
     ## GROUP Metadata
        ICON metadata
@@ -126,7 +130,7 @@ type Response
 
              example_code = Examples.get_response.code
     code : HTTP_Status_Code
-    code self = HTTP_Status_Code.Value self.internal_http_response.statusCode
+    code self = HTTP_Status_Code.Value self.internal_http_response.status_code
 
     ## ALIAS parse
        GROUP Conversions
@@ -238,3 +242,15 @@ filename_from_content_disposition content_disposition =
     content_disposition.if_not_nothing <|
         match = 'filename="(.*)"'.to_regex.match content_disposition
         match.if_not_nothing <| match.get 1
+
+## PRIVATE
+   After an `EnsoHttpResponse` has been returned from Java to Enso, it should be
+   converted to this, which takes care of ensuring that the body `InputStream`
+   is wrapped as a `Managed_Resource`.
+type Enso_Http_Response
+    private Value uri:URI (headers:HttpHeaders) body:Input_Stream status_code:Integer
+
+    new java_response:EnsoHttpResponse -> Enso_Http_Response =
+        uri = URI.parse java_response.uri.toString
+        error_handler = (HTTP_Error.handle_java_exceptions uri)
+        Enso_Http_Response.Value uri java_response.headers (Input_Stream.new java_response.body error_handler) java_response.statusCode

@@ -275,7 +275,7 @@ function toggleQuoteInner(
 function findQuoteMark(node: SyntaxNode): { from: number; to: number } | null {
   const cursor = node.cursor()
   do {
-    if (cursor.type.name === 'EnsoBlockquote') {
+    if (cursor.type.name === 'Blockquote') {
       const quoteMark = cursor.node.getChild('QuoteMark')
       if (quoteMark == null) return null
       return { from: quoteMark.from, to: quoteMark.to }

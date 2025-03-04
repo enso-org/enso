@@ -117,7 +117,7 @@ make_column_ref_by_name_selector_for_type table display:Display=..Always value_t
     expression = if table.is_nothing then [] else [Option "<Expression>" "(expr '["+table.column_names.first+"]')"]
 
     col_names = if table.is_nothing then [] else
-        names = if is_all then table.column_names else (table.select_columns [..By_Type value_type, ..By_Type Value_Type.Mixed] . column_names)
+        names = if is_all then table.column_names else (table.columns_helper.select_columns [..By_Type value_type, ..By_Type Value_Type.Mixed] case_sensitivity=..Default reorder=False error_on_missing_columns=False on_problems=..Ignore error_on_empty=False . map .name)
         names.map (name -> Option name "(..Name "+name.pretty+")")
 
     values = constants + expression + col_names
