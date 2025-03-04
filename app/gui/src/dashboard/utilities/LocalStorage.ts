@@ -113,6 +113,13 @@ export default class LocalStorage {
     }
   }
 
+  /**
+   * Get the metadata for a key.
+   */
+  static getKeyMetadata<K extends LocalStorageKey>(key: K) {
+    return LocalStorage.keyMetadata[key]
+  }
+
   /** Retrieve an entry from the stored data. */
   get<K extends LocalStorageKey>(key: K) {
     this.assertRegisteredKey(key)
