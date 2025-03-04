@@ -139,8 +139,8 @@ export const Input = forwardRef(function Input<
       name={name}
       data-testid={testId}
     >
-      <UncontrolledInput
-        {...aria.mergeProps<UncontrolledInputProps>()(
+      <BasicInput
+        {...aria.mergeProps<BasicInputProps>()(
           {
             className: (classNameStates) =>
               classes.textArea({ className: computedClassName(classNameStates) }),
@@ -148,6 +148,10 @@ export const Input = forwardRef(function Input<
             name,
             isInvalid: invalid,
             isDisabled: disabled,
+            variant,
+            size,
+            rounded,
+            variants,
           },
           omit(inputProps, 'isInvalid', 'isRequired', 'isDisabled'),
           omit(fieldProps, 'isInvalid', 'isRequired', 'isDisabled', 'invalid'),
@@ -160,8 +164,8 @@ export const Input = forwardRef(function Input<
   )
 })
 
-/** Props for an {@link UncontrolledInput}. */
-export interface UncontrolledInputProps
+/** Props for an {@link BasicInput}. */
+export interface BasicInputProps
   extends Omit<aria.InputProps, 'children' | 'size'>,
     Omit<VariantProps<typeof INPUT_STYLES>, 'disabled' | 'invalid'>,
     TestIdProps {
@@ -178,8 +182,8 @@ export interface UncontrolledInputProps
 }
 
 /** An input without a {@link Form.Field}. */
-export const UncontrolledInput = forwardRef(function UncontrolledInput(
-  props: UncontrolledInputProps,
+export const BasicInput = forwardRef(function BasicInput(
+  props: BasicInputProps,
   ref?: Ref<HTMLInputElement>,
 ) {
   const {

@@ -13,10 +13,12 @@ import * as textProvider from '#/providers/TextProvider'
 import * as ariaComponents from '#/components/AriaComponents'
 import * as result from '#/components/Result'
 
+import { Button, Text, type SvgUseIcon } from '#/components/AriaComponents'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as errorUtils from '#/utilities/error'
 import { OfflineError } from '#/utilities/HttpClient'
 import type { FallbackProps } from 'react-error-boundary'
+import { Icon } from './Icon'
 import SvgMask from './SvgMask'
 
 // =====================
@@ -196,6 +198,37 @@ export function ErrorDisplay(props: ErrorDisplayProps): React.JSX.Element {
         </div>
       )}
     </result.Result>
+  )
+
+  return <>{render ?? defaultRender}</>
+}
+
+/** Props for an {@link InlineErrorDisplay}. */
+export interface InlineErrorDisplayProps extends Omit<ErrorDisplayProps, 'status' | 'subtitle'> {}
+
+/** Displays an error inline. */
+export function InlineErrorDisplay(props: InlineErrorDisplayProps) {
+  const { error, resetErrorBoundary, onBeforeFallbackShown, title, resetQueries = () => {} } = props
+
+  const { getText } = textProvider.useText()
+
+  const render = onBeforeFallbackShown?.({ error, resetErrorBoundary, resetQueries })
+
+  const onReset = useEventCallback(() => {
+    resetErrorBoundary()
+  })
+
+  const finalTitle = title ?? getText('somethingWentWrong')
+  const finalIcon: SvgUseIcon = 'error'
+
+  const defaultRender = (
+    <div className="flex items-center gap-1">
+      <Icon icon={finalIcon} />
+      <Text>{finalTitle}</Text>
+      <Button variant="outline" size="xsmall" onPress={onReset} className="ml-3">
+        {getText('tryAgain')}
+      </Button>
+    </div>
   )
 
   return <>{render ?? defaultRender}</>

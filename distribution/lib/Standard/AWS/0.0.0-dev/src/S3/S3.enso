@@ -18,16 +18,10 @@ import project.S3.S3_File.S3_File
 polyglot java import java.io.IOException
 polyglot java import org.enso.aws.BucketLocator
 polyglot java import org.enso.aws.ClientBuilder
+polyglot java import org.enso.aws.file_system.S3Utils
 polyglot java import software.amazon.awssdk.core.exception.SdkClientException
-polyglot java import software.amazon.awssdk.services.s3.model.CopyObjectRequest
-polyglot java import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
-polyglot java import software.amazon.awssdk.services.s3.model.GetObjectRequest
-polyglot java import software.amazon.awssdk.services.s3.model.HeadBucketRequest
-polyglot java import software.amazon.awssdk.services.s3.model.HeadObjectRequest
-polyglot java import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
 polyglot java import software.amazon.awssdk.services.s3.model.NoSuchBucketException
 polyglot java import software.amazon.awssdk.services.s3.model.NoSuchKeyException
-polyglot java import software.amazon.awssdk.services.s3.model.PutObjectRequest
 polyglot java import software.amazon.awssdk.services.s3.model.S3Exception
 polyglot java import software.amazon.awssdk.services.s3.S3Client
 
@@ -94,7 +88,7 @@ list_objects (bucket : Text = Missing_Argument.throw "bucket") prefix:Text="" cr
    - delimiter: The delimiter to use for deducing the filename from the path.
 get_object : Text -> Text -> AWS_Credential -> Text -> Response_Body ! S3_Error
 get_object bucket key credentials:AWS_Credential=AWS_Credential.Default delimiter="/" = handle_s3_errors bucket=bucket key=key <|
-    request = GetObjectRequest.builder.bucket bucket . key key . build
+    request = S3Utils.get_object_request bucket key
 
     client = make_client_for_bucket bucket credentials
     response = client.getObject request
@@ -148,10 +142,10 @@ raw_head bucket key credentials =
     client = make_client_for_bucket bucket credentials
     case key == "" of
         True ->
-            request = HeadBucketRequest.builder.bucket bucket . build
+            request = S3Utils.head_bucket_request bucket
             handle_s3_errors bucket=bucket <| client.headBucket request
         False ->
-            request = HeadObjectRequest.builder.bucket bucket . key key . build
+            request = S3Utils.head_object_request bucket key
             handle_s3_errors bucket=bucket key=key <| client.headObject request
 
 ## PRIVATE
@@ -168,7 +162,7 @@ read_bucket bucket prefix="" credentials:AWS_Credential=AWS_Credential.Default d
     client = make_client_for_bucket bucket credentials
 
     per_request = Math.min max_count 1000
-    request = ListObjectsV2Request.builder.bucket bucket . maxKeys per_request . delimiter delimiter . prefix prefix . build
+    request = S3Utils.list_objects_request bucket per_request delimiter prefix
 
     iterator request count current prefixes first =
         response = client.listObjectsV2 request
@@ -190,7 +184,7 @@ read_bucket bucket prefix="" credentials:AWS_Credential=AWS_Credential.Default d
 ## PRIVATE
 put_object (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Credential.Default request_body = handle_s3_errors bucket=bucket key=key <|
     client = make_client_for_bucket bucket credentials
-    request = PutObjectRequest.builder.bucket bucket . key key . build
+    request = S3Utils.put_object_request bucket key
     client.putObject request request_body . if_not_error Nothing
 
 ## PRIVATE
@@ -203,18 +197,13 @@ upload_file (local_file : File) (bucket : Text) (key : Text) credentials:AWS_Cre
    It will not raise any errors if the object does not exist.
 delete_object (bucket : Text) (key : Text) credentials:AWS_Credential=AWS_Credential.Default = handle_s3_errors bucket=bucket key=key <|
     client = make_client_for_bucket bucket credentials
-    request = DeleteObjectRequest.builder . bucket bucket . key key . build
+    request = S3Utils.delete_object_request bucket key
     client.deleteObject request . if_not_error Nothing
 
 ## PRIVATE
 copy_object (source_bucket : Text) (source_key : Text) (target_bucket : Text) (target_key : Text) credentials:AWS_Credential=AWS_Credential.Default = handle_s3_errors bucket=source_bucket key=source_key <|
     client = make_client_for_bucket source_bucket credentials
-    request = CopyObjectRequest.builder
-        . destinationBucket target_bucket
-        . destinationKey target_key
-        . sourceBucket source_bucket
-        . sourceKey source_key
-        . build
+    request = S3Utils.copy_object_request target_bucket target_key source_bucket source_key
     client.copyObject request . if_not_error Nothing
 
 ## PRIVATE
