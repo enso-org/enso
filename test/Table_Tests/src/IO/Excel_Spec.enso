@@ -839,6 +839,36 @@ add_specs suite_builder =
             Excel_Range.for_rows "Test" 55 20000000 . should_fail_with Illegal_Argument
             Excel_Range.for_rows "Test" 55 0 . should_fail_with Illegal_Argument
 
+        group_builder.specify 'should allow creating column name from index' <|
+            Excel_Range.column_name_for_index 1 . should_equal "A"
+            Excel_Range.column_name_for_index 26 . should_equal "Z"
+            Excel_Range.column_name_for_index 27 . should_equal "AA"
+            Excel_Range.column_name_for_index 52 . should_equal "AZ"
+            Excel_Range.column_name_for_index 53 . should_equal "BA"
+            Excel_Range.column_name_for_index 78 . should_equal "BZ"
+            Excel_Range.column_name_for_index 186 . should_equal "GD"
+            Excel_Range.column_name_for_index 702 . should_equal "ZZ"
+            Excel_Range.column_name_for_index 703 . should_equal "AAA"
+            Excel_Range.column_name_for_index 728 . should_equal "AAZ"
+            Excel_Range.column_name_for_index 1234 . should_equal "AUL"
+            Excel_Range.column_name_for_index 6383 . should_equal "IKM"
+            Excel_Range.column_name_for_index 16384 . should_equal "XFD"
+
+        group_builder.specify 'should allow creating column index from name' <|
+            Excel_Range.column_index_for_name "A" . should_equal 1
+            Excel_Range.column_index_for_name "Z" . should_equal 26
+            Excel_Range.column_index_for_name "AA" . should_equal 27
+            Excel_Range.column_index_for_name "AZ" . should_equal 52
+            Excel_Range.column_index_for_name "BA" . should_equal 53
+            Excel_Range.column_index_for_name "BZ" . should_equal 78
+            Excel_Range.column_index_for_name "GD" . should_equal 186
+            Excel_Range.column_index_for_name "ZZ" . should_equal 702
+            Excel_Range.column_index_for_name "AAA" . should_equal 703
+            Excel_Range.column_index_for_name "AAZ" . should_equal 728
+            Excel_Range.column_index_for_name "AUL" . should_equal 1234
+            Excel_Range.column_index_for_name "IKM" . should_equal 6383
+            Excel_Range.column_index_for_name "XFD" . should_equal 16384
+
     xlsx_sheet = enso_project.data / "TestSheet.xlsx"
     xlsx_path = xlsx_sheet.path
 

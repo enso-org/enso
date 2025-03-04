@@ -15,11 +15,11 @@ import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import {
+  BasicInput,
   Button,
   Form,
   Popover,
   Text,
-  UncontrolledInput,
   type FieldComponentProps,
   type FieldPath,
   type FieldProps,
@@ -164,7 +164,7 @@ export const ComboBox = forwardRef(function ComboBox<
           >
             <div ref={popoverTriggerRef} className={styles.inputContainer()}>
               <Button variant="icon" icon={ArrowIcon} className="rotate-90" />
-              <UncontrolledInput
+              <BasicInput
                 name={name}
                 placeholder={placeholder}
                 addonStart={addonStart}
