@@ -10,10 +10,11 @@ import * as Y from 'yjs'
 const props = withDefaults(
   defineProps<{
     content: Y.Text | string
+    // eslint-disable-next-line vue/require-default-prop
     transformImageUrl?: UrlTransformer | undefined
     toolbar?: boolean
   }>(),
-  { transformImageUrl: undefined, toolbar: true },
+  { toolbar: true },
 )
 
 const inner = ref<ComponentInstance<typeof LazyMarkdownEditor>>()
