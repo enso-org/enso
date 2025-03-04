@@ -3,7 +3,7 @@ import Standard.Base.Data.Vector.Builder
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
-from Standard.Base.Errors.Common import Assertion_Error
+from Standard.Base.Errors.Common import Assertion_Error, Unsupported_Argument_Types
 
 from Standard.Test import all
 
@@ -68,7 +68,7 @@ add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
         r_3 = Panic.recover Any <| Managed_Resource.bracket 42 (_-> Nothing) (_-> Panic.throw "action")
         r_3.catch . should_equal "action"
 
-    group_builder.specify "allocate lots of resources at once" pending="temporary" <|
+    group_builder.specify "allocate lots of resources at once" <|
         messages = Vector.build builder->
             builder.append '\n'
             remaining = GC_Example.perform_test 100000 builder.append
@@ -134,20 +134,17 @@ add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
         if msg_text != exp_text then
             Test.fail (msg_text)
 
-    group_builder.specify "should not allow a resource to be registered more than once at the same time" pending=assertions_are_disabled <|
-        values = [My_Value.Value 10, 2]
-        values.map v->
-            cleanup _ = Nothing
-            mr0 = Managed_Resource.register v cleanup
-            Test.expect_panic Assertion_Error (Managed_Resource.register v cleanup)
-            mr0 . should_succeed  # Here to prevent collection
-            mr0.take
-
-    group_builder.specify "should not allow two atomic (integer) resources that are equal to be registered at the same time" pending=assertions_are_disabled <|
+    group_builder.specify "should not allow non-truffle objects to be registered" pending=assertions_are_disabled <|
         cleanup _ = Nothing
-        mr0 = Managed_Resource.register 2 cleanup
-        Test.expect_panic Assertion_Error (Managed_Resource.register 2 cleanup)
+        Test.expect_panic Unsupported_Argument_Types (Managed_Resource.register 2 cleanup)
+
+    group_builder.specify "should not allow a resource to be registered more than once at the same time" pending=assertions_are_disabled <|
+        value = My_Value.Value 10
+        cleanup _ = Nothing
+        mr0 = Managed_Resource.register value cleanup
+        Test.expect_panic Assertion_Error (Managed_Resource.register value cleanup)
         mr0 . should_succeed  # Here to prevent collection
+        mr0.take
 
     group_builder.specify "should allow two object resources that are equal but not the same instance to be registered at the same time" pending=assertions_are_disabled <|
         value = My_Value.Value 10

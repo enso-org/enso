@@ -9,7 +9,9 @@ import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -40,6 +42,7 @@ public final class ResourceManager {
    * <p>@GuardedBy("this")
    */
   private final List<Item> pendingItems = new ArrayList<>();
+  private final Set<Object> registeredObjects = new HashSet<>();
 
   private final EnsoContext context;
 
@@ -208,12 +211,14 @@ public final class ResourceManager {
       processor = new ProcessItems(r -> context.createThread(true, r));
     }
     pendingItems.add(item);
+    registeredObjects.add(item.getUnderlyingObject());
   }
 
   @CompilerDirectives.TruffleBoundary
   private synchronized void removeFromItems(PhantomReference<ManagedResource> it) {
     if (it instanceof Item item) {
       pendingItems.remove(item);
+      registeredObjects.remove(item.getUnderlyingObject());
       if (pendingItems.isEmpty() && processor != null) {
         processor.awake();
       }
@@ -408,13 +413,7 @@ public final class ResourceManager {
   }
 
   private synchronized boolean alreadyRegistered(Object resource) {
-    System.out.println("alreadyRegistered: " + pendingItems.size());
-    for (var it : pendingItems) {
-      if (it.hasReferent(resource)) {
-        return true;
-      }
-    }
-    return false;
+    return registeredObjects.contains(resource);
   }
 
   /** A storage representation of a finalizable object handled by this system. */
@@ -463,8 +462,8 @@ public final class ResourceManager {
       this.systemResource = systemResource;
     }
 
-    public boolean hasReferent(Object resource) {
-      return resource == underlying;
+    private Object getUnderlyingObject() {
+      return underlying;
     }
 
     /**
