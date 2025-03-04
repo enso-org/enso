@@ -31,6 +31,7 @@ import project.Columns_To_Keep.Columns_To_Keep
 import project.Constants.Previous_Value
 import project.Constants.Report_Unmatched
 import project.Data_Formatter.Data_Formatter
+import project.Duplicate_Rows_Method.Duplicate_Rows_Method
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Expression.Expression
 import project.Expression.Expression_Error
@@ -3778,6 +3779,17 @@ type Table
     @order_by Widget_Helpers.make_order_by_selector
     offset self (columns : Vector (Integer | Text | Regex | By_Type) = Missing_Argument.throw "columns") n:Integer=-1 fill_with:Fill_With=..Nothing (group_by : Vector | Text | Integer | Regex = []) (order_by : Vector | Text = []) set_mode:Set_Mode=..Add on_problems:Problem_Behavior=..Report_Warning -> Table =
         Offset_Helper.table_offset_impl self columns n fill_with group_by order_by set_mode on_problems
+
+    @n Duplicate_Rows_Method.default_widget
+    generate_rows self n:Duplicate_Rows_Method =
+        x = case n of
+          Duplicate_Rows_Method.Constant _ -> 
+              range_col = self.make_constant_column (0.up_to n.n)
+              self.set range_col as="generate_rows_id"
+          Duplicate_Rows_Method.Integer_Range from to _ ->
+              range_col = self.make_constant_column (from.up_to to)
+              self.set range_col as="generate_rows_id"
+        x.expand_to_rows "generate_rows_id"
 
     ## PRIVATE
     column_naming_helper : Column_Naming_Helper

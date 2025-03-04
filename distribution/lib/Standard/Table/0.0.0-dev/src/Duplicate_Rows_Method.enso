@@ -1,0 +1,55 @@
+from Standard.Base import all
+import project.Internal.Widget_Helpers
+import Standard.Base.Errors.Common.Missing_Argument
+import Standard.Base.Errors.Deprecated.Deprecated
+import Standard.Base.Metadata.Display
+import Standard.Base.Metadata.Widget
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Widget_Helpers import make_any_selector, make_format_chooser
+
+import project.Column_Ref.Column_Ref
+import project.Expression.Expression
+import project.Internal.Table_Ref.Table_Ref
+import project.Internal.Widget_Helpers
+from project.Internal.Filter_Condition_Helpers import make_filter_column
+
+type Duplicate_Rows_Method
+
+    ## TODO
+    Constant n:Integer
+
+    @col Widget_Helpers.make_column_name_selector
+    Per_Column col
+
+    @from Widget_Helpers.make_column_name_selector
+    @to Widget_Helpers.make_column_name_selector
+    Integer_Range from to step:Integer
+
+    @from Widget_Helpers.make_column_name_selector
+    @to Widget_Helpers.make_column_name_selector
+    Date_Range from to step:(Date_Period | Time_Period)
+
+    ## PRIVATE
+       Create a widget for operation
+    default_widget table:Table_Ref display:Display=..Always -> Widget =
+        with_everything = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True add_nothing=True
+        with_number_text = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True
+        filter_cond = Widget_Helpers.make_filter_condition_selector table
+
+        options = Vector.build builder->
+            builder.append (Option "copy" "..Copy")
+            builder.append (Option "add" "..Add" [["rhs", with_number_text]])
+            builder.append (Option "format" "..Format" [["format", make_format_chooser include_number=True]])
+            builder.append (Option "if" "..If" [["condition", filter_cond], ["true_value", with_everything], ["false_value", with_everything]])
+            builder.append (Option "min" "..Min" [["rhs", with_number_text]])
+            builder.append (Option "max" "..Max" [["rhs", with_number_text]])
+
+        ## Constants
+        constants = make_any_selector add_number=True . values
+        expression = Option "<Expression>" "(expr '["+table.column_names.first+"]')"
+
+        integer_input_column = Widget_Helpers.make_column_ref_by_name_selector table add_number=True
+        integer_range = Option "<Integer Range>" "..Integer_Range" [["from", integer_input_column], ["to", integer_input_column]]
+        date_range = Option "<Date Range>" "..Date_Range" [["from", integer_input_column], ["to", integer_input_column]]
+        Single_Choice [integer_range, date_range] display=display

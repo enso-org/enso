@@ -1,0 +1,37 @@
+from Standard.Base import all
+from Standard.Test import all
+from Standard.Table import all
+
+from Standard.Database.Errors import Unsupported_Database_Operation
+import Standard.Database.Feature.Feature
+from Standard.Base.Errors.Common import Missing_Argument, Floating_Point_Equality
+from Standard.Table.Errors import Missing_Input_Columns
+
+from project.Common_Table_Operations.Util import run_default_backend
+import project.Common_Table_Operations.Util
+import project.Util as Test_Utils
+
+main filter=Nothing = run_default_backend add_specs filter
+
+add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Offset then (add_offset_specs suite_builder setup) else
+        suite_builder.group setup.prefix+"Table.offset" group_builder->
+            group_builder.specify "offset should report unsupported" <|
+                table_builder = setup.light_table_builder
+                t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
+                t2 = t.offset ["X"]
+                t2.should_fail_with (Unsupported_Database_Operation.Error "offset")
+                c = t.at 0
+                c2 = c.offset
+                c2.should_fail_with (Unsupported_Database_Operation.Error "offset")
+
+add_offset_specs suite_builder setup =
+    prefix = setup.prefix
+    build_sorted_table = Util.build_sorted_table setup
+    suite_builder.group prefix+"Table.Offset with default fill strategy (Text Values)" group_builder->
+        colText = ["Text Values", ["A", "B", "C"]]
+        t1 = build_sorted_table [colText]
+        group_builder.specify "Works with default values" <|
+            t1.generate_rows (..Integer_Range 0 2 1) . should_equal ignore_order=setup.is_database
+                Table.new [["Text Values", ["A", "A", "B", "B", "C", "C"]], ["generate_rows_id", [0, 1, 0, 1, 0, 1]]]
+
