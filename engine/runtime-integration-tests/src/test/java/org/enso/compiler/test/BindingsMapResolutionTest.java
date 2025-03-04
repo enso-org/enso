@@ -142,6 +142,60 @@ public class BindingsMapResolutionTest {
         });
   }
 
+  @Test
+  public void resolveExportedType() throws IOException {
+    var projDir = TMP_DIR.newFolder().toPath();
+    ProjectUtils.createProject(
+        "Proj",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("My_Module"),
+                """
+                type My_Type
+                    Cons
+                """),
+            new SourceModule(
+                QualifiedName.fromString("Main"),
+                """
+                export project.My_Module.My_Type
+                """)),
+        projDir);
+    testBindingsMap(
+        projDir,
+        bindingsMap -> {
+          assertSingleResolvedType(bindingsMap, "My_Type");
+        });
+  }
+
+  @Test
+  public void resolveReexportedType() throws IOException {
+    var tmpDir = TMP_DIR.newFolder();
+    var libDir = tmpDir.toPath().resolve("Lib");
+    var projDir = tmpDir.toPath().resolve("Proj");
+    libDir.toFile().mkdir();
+    projDir.toFile().mkdir();
+    ProjectUtils.createProject(
+        "Lib",
+        Set.of(
+            new SourceModule(QualifiedName.fromString("Main"), "export project.My_Module.My_Type"),
+            new SourceModule(
+                QualifiedName.fromString("My_Module"),
+                """
+                type My_Type
+                    Cons
+                """)),
+        libDir);
+    ProjectUtils.createProject(
+        "Proj",
+        Set.of(new SourceModule(QualifiedName.fromString("Main"), "from local.Lib import all")),
+        projDir);
+    testBindingsMap(
+        projDir,
+        bindingsMap -> {
+          assertSingleResolvedType(bindingsMap, "local.Lib.My_Module.My_Type");
+        });
+  }
+
   private Path createProject(String mainModuleSrc) throws IOException {
     var projDir = TMP_DIR.newFolder().toPath();
     var modules =
@@ -189,9 +243,14 @@ public class BindingsMapResolutionTest {
   }
 
   private static void testBindingsMap(Path projDir, Consumer<BindingsMap> callback) {
+    testBindingsMap(projDir, "local.Proj.Main", callback);
+  }
+
+  private static void testBindingsMap(
+      Path projDir, String moduleName, Consumer<BindingsMap> callback) {
     try (var ctx = createCtx(projDir)) {
       compile(ctx);
-      var bm = getBindingsMap(ctx, "local.Proj.Main");
+      var bm = getBindingsMap(ctx, moduleName);
       assertThat(bm, is(notNullValue()));
       callback.accept(bm);
     }
