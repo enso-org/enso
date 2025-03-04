@@ -2,6 +2,9 @@ import {InlineContext, BlockContext, MarkdownConfig,
         LeafBlockParser, LeafBlock, Line, Element, space, Punctuation} from "./markdown"
 import {tags as t} from "@lezer/highlight"
 
+const allowEmptyFormatNodes = true
+const allowSpaceBeforeCloseDelimiter = true
+
 const StrikethroughDelim = {resolve: "Strikethrough", mark: "StrikethroughMark"}
 
 /// An extension that implements
@@ -18,13 +21,16 @@ export const Strikethrough: MarkdownConfig = {
   parseInline: [{
     name: "Strikethrough",
     parse(cx, next, pos) {
-      if (next != 126 /* '~' */ || cx.char(pos + 1) != 126 || cx.char(pos + 2) == 126) return -1
-      let before = cx.slice(pos - 1, pos), after = cx.slice(pos + 2, pos + 3)
-      let sBefore = /\s|^$/.test(before), sAfter = /\s|^$/.test(after)
+      if (next != 126 /* '~' */ || cx.char(pos + 1) != 126 ||
+          (!allowEmptyFormatNodes && cx.char(pos + 2) == 126)) return -1
+      let before = cx.slice(pos - 1, pos), after = cx.slice(pos + 2, cx.end)
+      let sBefore = /\s|^$/.test(before), sAfter = /^(?:\s|$)/.test(after)
       let pBefore = Punctuation.test(before), pAfter = Punctuation.test(after)
+      let wAfter = /^[\p{S}|\p{P}]*\p{L}/u.test(after)
       return cx.addDelimiter(StrikethroughDelim, pos, pos + 2,
                              !sAfter && (!pAfter || sBefore || pBefore),
-                             !sBefore && (!pBefore || sAfter || pAfter))
+                             (!sBefore && (!pBefore || sAfter || pAfter)) ||
+                              (allowSpaceBeforeCloseDelimiter && sBefore && !wAfter))
     },
     after: "Emphasis"
   }]
