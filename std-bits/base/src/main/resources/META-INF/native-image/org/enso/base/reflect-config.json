@@ -357,5 +357,52 @@
             }
 
         ]
+    },
+    {
+        "name": "org.slf4j.Logger",
+        "methods": [
+            {
+                "name": "atInfo",
+                "parameterTypes": []
+            },
+            {
+                "name": "atDebug",
+                "parameterTypes": []
+            },
+            {
+                "name": "atError",
+                "parameterTypes": []
+            },
+            {
+                "name": "atWarn",
+                "parameterTypes": []
+            },
+            {
+                "name": "atTrace",
+                "parameterTypes": []
+            }
+
+        ]
+    },
+    {
+        "name": "org.slf4j.spi.LoggingEventBuilder",
+        "methods": [
+            {
+                "name": "setMessage",
+                "parameterTypes": ["java.lang.String"]
+            },
+            {
+                "name": "setMessage",
+                "parameterTypes": ["java.util.function.Supplier"]
+            },
+            {
+                "name": "addArgument",
+                "parameterTypes": ["java.lang.Object"]
+            },
+            {
+                "name": "log",
+                "parameterTypes": []
+            }
+        ]
     }
 ]
