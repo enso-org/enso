@@ -783,17 +783,16 @@ watchEffect(() => {
       : dataHeader
     if (!data_.is_ssrm) {
       rowData.value = data_.data ? createRowsForTable(data_.data, 0, data_.is_ssrm) : []
-
-      // Update paging
-      const newRowCount = data_.all_rows_count == null ? 1 : data_.all_rows_count
-      showRowCount.value = !(data_.all_rows_count == null)
-      rowCount.value = newRowCount
-      const newPageLimit = Math.ceil(newRowCount / rowLimit.value)
-      pageLimit.value = newPageLimit
-      if (page.value > newPageLimit) {
-        page.value = newPageLimit
-      }
     }
+  }
+  // Update paging
+  const newRowCount = data_.all_rows_count == null ? 1 : data_.all_rows_count
+  showRowCount.value = !(data_.all_rows_count == null)
+  rowCount.value = newRowCount
+  const newPageLimit = Math.ceil(newRowCount / rowLimit.value)
+  pageLimit.value = newPageLimit
+  if (page.value > newPageLimit) {
+    page.value = newPageLimit
   }
 })
 
