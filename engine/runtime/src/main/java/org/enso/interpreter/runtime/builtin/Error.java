@@ -357,7 +357,7 @@ public final class Error {
         thisProjName, targetProjName, Text.create(targetMethodName));
   }
 
-    public Atom makeForbiddenOperation(String message) {
+  public Atom makeForbiddenOperation(String message) {
     return forbiddenOperation.newInstance(Text.create(message));
   }
 

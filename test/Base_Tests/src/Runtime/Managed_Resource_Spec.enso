@@ -3,7 +3,7 @@ import Standard.Base.Data.Vector.Builder
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
-from Standard.Base.Errors.Common import Assertion_Error, Forbidden_Operation, Unsupported_Argument_Types
+from Standard.Base.Errors.Common import Forbidden_Operation, Unsupported_Argument_Types
 
 from Standard.Test import all
 
@@ -16,8 +16,6 @@ type My_Value
     Value value
 
 add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
-    assertions_are_disabled = if Runtime.assertions_enabled then Nothing else "assertions disabled"
-
     group_builder.specify "should call the destructor even if the action fails" <|
         log_1 = Builder.new
         r_1 = Managed_Resource.bracket 42 log_1.append x->
@@ -134,11 +132,11 @@ add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
         if msg_text != exp_text then
             Test.fail (msg_text)
 
-    group_builder.specify "should not allow non-truffle objects to be registered" pending=assertions_are_disabled <|
+    group_builder.specify "should not allow non-truffle objects to be registered" <|
         cleanup _ = Nothing
         Test.expect_panic Unsupported_Argument_Types (Managed_Resource.register 2 cleanup)
 
-    group_builder.specify "should not allow a resource to be registered more than once at the same time" pending=assertions_are_disabled <|
+    group_builder.specify "should not allow a resource to be registered more than once at the same time" <|
         value = My_Value.Value 10
         cleanup _ = Nothing
         mr0 = Managed_Resource.register value cleanup
@@ -146,7 +144,7 @@ add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
         mr0 . should_succeed  # Here to prevent collection
         mr0.take
 
-    group_builder.specify "should allow two object resources that are equal but not the same instance to be registered at the same time" pending=assertions_are_disabled <|
+    group_builder.specify "should allow two object resources that are equal but not the same instance to be registered at the same time" <|
         value = My_Value.Value 10
         value2 = My_Value.Value 10
         cleanup _ = Nothing
@@ -157,7 +155,7 @@ add_specs suite_builder = suite_builder.group "Managed_Resource" group_builder->
         mr0.take
         mr1.take
 
-    group_builder.specify "should allow a resource to be registered more than once, but not at the same time" pending=assertions_are_disabled <|
+    group_builder.specify "should allow a resource to be registered more than once, but not at the same time" <|
         v = My_Value.Value 10
         cleanup _ = Nothing
         mr0 = Managed_Resource.register v cleanup

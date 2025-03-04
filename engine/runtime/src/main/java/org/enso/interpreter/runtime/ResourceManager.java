@@ -22,12 +22,10 @@ import org.enso.interpreter.runtime.error.PanicException;
 /**
  * Allows the context to attach garbage collection hooks on the removal of certain objects.
  *
- * <p>It is considered an error to use the same resource in multiple `Managed_Resource`s, since each
- * `Managed_Resource` has its own, possibly different, finalizer.
+ * <p><Using the same underlying resource with multiple managed resource instances is an error and
+ * will result in a `Forbidden_Operation` panic.
  *
- * <p>Note that for truly atomic values such as integer `2`, all instances will be considered equal,
- * and so it is not possible to register two "different" instances as two separate managed
- * resources. Since such values do not need any cleanup, this is not a significant limitation.
+ * <p>Truly atomic values such as integer `2` cannot be managed resources.
  */
 public final class ResourceManager {
   /** Amount of milliseconds to wait for another resource when none is pending. */
@@ -43,6 +41,7 @@ public final class ResourceManager {
    * <p>@GuardedBy("this")
    */
   private final List<Item> pendingItems = new ArrayList<>();
+
   private final Set<Object> registeredObjects = new HashSet<>();
 
   private final EnsoContext context;
@@ -152,7 +151,7 @@ public final class ResourceManager {
   @CompilerDirectives.TruffleBoundary
   public synchronized ManagedResource register(
       TruffleObject object, Object function, boolean systemResource) {
-    if (context.isAssertionsEnabled() && alreadyRegistered(object)) {
+    if (alreadyRegistered(object)) {
       var error = context.getBuiltins().error();
       var msg = "Object is already registered as a ManagedResource: " + object;
       var payload = error.makeForbiddenOperation(msg);

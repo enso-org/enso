@@ -97,14 +97,11 @@ be finalized as soon as the first managed resource is garbage collected.
 Moreover, the finalizer will be called for each garbage collected managed
 resource, leading to multiple-finalization of the underlying object.  Therefore,
 using the same underlying resource with multiple managed resource instances
-should be considered an error. When assertions are enabled, the
-`ResourceManager` will detect such duplicates and throw a `PanicException`. From
-Enso, an `Assertion_Error` panic is raised.
+is an error and will result in a `Forbidden_Operation` panic.
 
-Note that for truly atomic values such as integer `2`, all instances will be
-considered equal, and so it is not possible to register two "different"
-instances as two separate managed resources. Since such values do not need any
-cleanup, this is not a significant limitation.
+### Objects Eligible to be a Managed Resource
+
+Truly atomic values such as integer `2` cannot be managed resources.
 
 ### Thread Safety
 
