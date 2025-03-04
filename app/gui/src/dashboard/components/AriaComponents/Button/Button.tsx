@@ -343,9 +343,7 @@ const ButtonContent = memo(function ButtonContent(props: ButtonContentProps) {
         styles={styles}
         hideLoader={hideLoader}
       />
-      <Text color="inherit" truncate="1" className={styles.text()}>
-        {children}
-      </Text>
+      <span className={styles.text()}>{children}</span>
       {hasAddon(addonEnd) && <div className={styles.addonEnd()}>{addonEnd}</div>}
     </>
   )
