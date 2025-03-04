@@ -40,14 +40,15 @@ public class VectorSortTest {
     equalsFunc = ContextUtils.getMethodFromModule(context, code, "equals");
 
     values = new ArrayList<>();
-    var valuesGenerator = ValuesGenerator.create(context, Language.ENSO, Language.JAVA);
-    values.addAll(valuesGenerator.numbers());
-    values.addAll(valuesGenerator.vectors());
-    values.addAll(valuesGenerator.arrayLike());
-    values.addAll(valuesGenerator.booleans());
-    values.addAll(valuesGenerator.durations());
-    values.addAll(valuesGenerator.maps());
-    valuesGenerator.dispose();
+    try (ValuesGenerator valuesGenerator =
+        ValuesGenerator.create(context, Language.ENSO, Language.JAVA)) {
+      values.addAll(valuesGenerator.numbers());
+      values.addAll(valuesGenerator.vectors());
+      values.addAll(valuesGenerator.arrayLike());
+      values.addAll(valuesGenerator.booleans());
+      values.addAll(valuesGenerator.durations());
+      values.addAll(valuesGenerator.maps());
+    }
   }
 
   @AfterClass
@@ -55,6 +56,8 @@ public class VectorSortTest {
     values.clear();
     context.close();
     context = null;
+    sortFunc = null;
+    equalsFunc = null;
   }
 
   @DataPoints public static List<Value> values;

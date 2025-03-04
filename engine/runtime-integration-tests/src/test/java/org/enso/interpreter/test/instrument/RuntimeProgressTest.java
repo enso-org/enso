@@ -53,6 +53,7 @@ public class RuntimeProgressTest {
   public void teardownContext() {
     context.close();
     context = null;
+    mainFile = null;
   }
 
   @Test
@@ -241,32 +242,47 @@ public class RuntimeProgressTest {
 
   private static final class TestContext extends InstrumentTestContext {
 
+    private Context _context;
+
     TestContext(String packageName) {
       super(packageName);
     }
 
     @Override
     public Context context() {
-      return Context.newBuilder(LanguageInfo.ID)
-          .allowExperimentalOptions(true)
-          .allowAllAccess(true)
-          .option(RuntimeOptions.PROJECT_ROOT, pkg().root().getAbsolutePath())
-          .option(RuntimeOptions.LOG_LEVEL, java.util.logging.Level.WARNING.getName())
-          .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
-          .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
-          .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "true")
-          .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
-          .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
-          .option(RuntimeOptions.STRICT_ERRORS, "false")
-          .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
-          .option(RuntimeServerInfo.ENABLE_OPTION, "true")
-          .option(RuntimeOptions.INTERACTIVE_MODE, "true")
-          .option(
-              RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-              Paths.get("../../distribution/component").toFile().getAbsolutePath())
-          .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
-          .serverTransport(runtimeServerEmulator().makeServerTransport())
-          .build();
+      if (_context == null) {
+        _context =
+            Context.newBuilder(LanguageInfo.ID)
+                .allowExperimentalOptions(true)
+                .allowAllAccess(true)
+                .option(RuntimeOptions.PROJECT_ROOT, pkg().root().getAbsolutePath())
+                .option(RuntimeOptions.LOG_LEVEL, java.util.logging.Level.WARNING.getName())
+                .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
+                .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
+                .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "true")
+                .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
+                .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
+                .option(RuntimeOptions.STRICT_ERRORS, "false")
+                .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
+                .option(RuntimeServerInfo.ENABLE_OPTION, "true")
+                .option(RuntimeOptions.INTERACTIVE_MODE, "true")
+                .option(
+                    RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+                    Paths.get("../../distribution/component").toFile().getAbsolutePath())
+                .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
+                .serverTransport(runtimeServerEmulator().makeServerTransport())
+                .build();
+      }
+      return _context;
+    }
+
+    @Override
+    public void close() {
+      super.close();
+      if (_context != null) {
+        _context.close();
+        _context = null;
+      }
     }
   }
 }

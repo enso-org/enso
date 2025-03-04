@@ -55,20 +55,21 @@ public class TypesExposeConstructorsTest {
     ContextUtils.executeInContext(
         ctx(),
         () -> {
-          var valuesGenerator = ValuesGenerator.create(ctx(), Language.ENSO);
-          valuesGenerator.allTypes().stream()
-              .map(
-                  tp -> {
-                    var unwrappedTp = ContextUtils.unwrapValue(ctx(), tp);
-                    if (unwrappedTp instanceof Type type) {
-                      return new TypeWithWrapper(type, tp);
-                    } else {
-                      return null;
-                    }
-                  })
-              .filter(Objects::nonNull)
-              .filter(tp -> !tp.type.getConstructors().isEmpty())
-              .forEach(collectedTypes::add);
+          try (ValuesGenerator valuesGenerator = ValuesGenerator.create(ctx(), Language.ENSO)) {
+            valuesGenerator.allTypes().stream()
+                .map(
+                    tp -> {
+                      var unwrappedTp = ContextUtils.unwrapValue(ctx(), tp);
+                      if (unwrappedTp instanceof Type type) {
+                        return new TypeWithWrapper(type, tp);
+                      } else {
+                        return null;
+                      }
+                    })
+                .filter(Objects::nonNull)
+                .filter(tp -> !tp.type.getConstructors().isEmpty())
+                .forEach(collectedTypes::add);
+          }
           return null;
         });
     return collectedTypes;

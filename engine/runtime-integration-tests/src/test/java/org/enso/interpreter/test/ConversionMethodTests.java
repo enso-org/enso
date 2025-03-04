@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
@@ -17,7 +18,6 @@ import org.junit.Test;
 
 public class ConversionMethodTests {
   private static Context ctx;
-
   private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
 
   @BeforeClass
@@ -26,9 +26,10 @@ public class ConversionMethodTests {
   }
 
   @AfterClass
-  public static void disposeCtx() {
+  public static void disposeCtx() throws IOException {
     ctx.close();
     ctx = null;
+    out.close();
   }
 
   @After

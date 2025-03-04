@@ -41,6 +41,13 @@ public class NodeCountingTestInstrument extends TruffleInstrument {
     this.env = env;
   }
 
+  @Override
+  protected void onDispose(Env env) {
+    all.clear();
+    counter.clear();
+    calls.clear();
+  }
+
   public void enable() {
     this.env
         .getInstrumenter()

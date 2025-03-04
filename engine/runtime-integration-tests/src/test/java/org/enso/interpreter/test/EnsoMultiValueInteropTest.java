@@ -29,20 +29,21 @@ public class EnsoMultiValueInteropTest {
 
   @Parameterized.Parameters
   public static Object[][] allEnsoMultiValuePairs() throws Exception {
-    var g = ValuesGenerator.create(ctx());
     var typeOf =
         ContextUtils.evalModule(
             ctx(),
             """
-    from Standard.Base import all
+            from Standard.Base import all
 
-    typ obj = Meta.type_of obj
-    main = typ
-    """);
+            typ obj = Meta.type_of obj
+            main = typ
+            """);
     var data = new ArrayList<Object[]>();
-    for (var v1 : g.allValues()) {
-      for (var v2 : g.allValues()) {
-        registerValue(g, typeOf, v1, v2, data);
+    try (ValuesGenerator g = ValuesGenerator.create(ctx())) {
+      for (var v1 : g.allValues()) {
+        for (var v2 : g.allValues()) {
+          registerValue(g, typeOf, v1, v2, data);
+        }
       }
     }
     return data.toArray(new Object[0][]);
