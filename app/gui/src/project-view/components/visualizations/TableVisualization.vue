@@ -231,7 +231,8 @@ function cellRenderer(params: ICellRendererParams) {
   else if (params.value === undefined) return ''
   else if (params.value === '') return '<span style="color:grey; font-style: italic;">Empty</span>'
   else if (typeof params.value === 'number') return formatNumber(params)
-  else if (typeof params.value === 'string') return formatText(params.value, textFormatterSelected.value)
+  else if (typeof params.value === 'string')
+    return formatText(params.value, textFormatterSelected.value)
   else if (Array.isArray(params.value)) return `[Vector ${params.value.length} items]`
   else if (typeof params.value === 'object') {
     const valueType = params.value?.type

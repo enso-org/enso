@@ -42,9 +42,13 @@ test('isNumericType (Char Type)', () => {
 })
 
 test('formatText (text with link, full formatting)', () => {
-  expect(formatText('https://www.google.com/search?q=rock&roll', 'full')).toEqual('<span > <a href="https://www.google.com/search?q=rock&roll" target="_blank" class="link">https://www.google.com/search?q=rock&roll</a> <span>')
+  expect(formatText('https://www.google.com/search?q=rock&roll', 'full')).toEqual(
+    '<span > <a href="https://www.google.com/search?q=rock&roll" target="_blank" class="link">https://www.google.com/search?q=rock&roll</a> <span>',
+  )
 })
 
 test('formatText (text, full formatting)', () => {
-  expect(formatText('rock & roll', 'full')).toEqual('<span > rock<span style="color: #df8800">&#183;</span>&<span style="color: #df8800">&#183;</span>roll <span>')
+  expect(formatText('rock & roll', 'full')).toEqual(
+    '<span > rock<span style="color: #df8800">&#183;</span>&<span style="color: #df8800">&#183;</span>roll <span>',
+  )
 })
