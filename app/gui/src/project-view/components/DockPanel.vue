@@ -2,6 +2,7 @@
 import { documentationEditorBindings } from '@/bindings'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useResizeObserver } from '@/composables/events'
 import { Rect } from '@/util/data/rect'
@@ -67,11 +68,11 @@ const tabStyle = {
               class="tab"
               :style="tabStyle"
             >
-              <ToggleIcon
+              <SvgButton
                 :modelValue="currentTab == tab"
                 :title="title"
-                :icon="icon"
-                @update:modelValue="currentTab = tab"
+                :name="icon"
+                @click="currentTab = tab"
               />
             </div>
           </div>
@@ -138,10 +139,6 @@ const tabStyle = {
   &:has(.toggledOn) {
     background-color: #fff;
   }
-}
-
-.tab .ToggleIcon svg {
-  opacity: 1 !important;
 }
 
 .toggleDock {
