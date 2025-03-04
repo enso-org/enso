@@ -32,11 +32,6 @@ export function GoogleCredentialsDialog(props: CredentialsDialogProps) {
         <Checkbox value="https://www.googleapis.com/auth/spreadsheets">
           {getText('googleCredentialSheetsScope')}
         </Checkbox>
-        <Checkbox value="https://www.googleapis.com/auth/spreadsheets.readonly">
-          {getText('googleCredentialSheetsReadScope')}
-        </Checkbox>
-        <Checkbox value="">{getText('googleCredentialSheetsWriteScope')}</Checkbox>
-        <Checkbox value="">{getText('googleCredentialSheetsDriveBrowseScope')}</Checkbox>
         <Checkbox value="https://www.googleapis.com/auth/analytics">
           {getText('googleCredentialAnalyticsScope')}
         </Checkbox>
