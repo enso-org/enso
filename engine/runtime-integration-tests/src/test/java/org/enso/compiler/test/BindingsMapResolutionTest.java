@@ -27,6 +27,7 @@ import scala.jdk.CollectionConverters;
 import scala.util.Either;
 
 public class BindingsMapResolutionTest {
+
   @ClassRule public static final TemporaryFolder TMP_DIR = new TemporaryFolder();
 
   @Test
@@ -55,7 +56,31 @@ public class BindingsMapResolutionTest {
     testBindingsMap(
         projDir,
         bindingsMap -> {
-          assertSingleResolvedType(bindingsMap, "local.Proj.My_Vector.My_Vector");
+          assertSingleResolvedType(bindingsMap, "My_Vector");
+        });
+  }
+
+  @Test
+  public void resolveQualifiedName_FromSingleImport_TwoProjects() throws IOException {
+    var tmpDir = TMP_DIR.newFolder();
+    var libDir = tmpDir.toPath().resolve("Lib");
+    var projDir = tmpDir.toPath().resolve("Proj");
+    libDir.toFile().mkdir();
+    projDir.toFile().mkdir();
+    ProjectUtils.createProject(
+        "Lib",
+        Set.of(new SourceModule(QualifiedName.fromString("My_Vector"), "type My_Vector")),
+        libDir);
+    ProjectUtils.createProject(
+        "Proj",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("Main"), "import local.Lib.My_Vector.My_Vector")),
+        projDir);
+    testBindingsMap(
+        projDir,
+        bindingsMap -> {
+          assertSingleResolvedType(bindingsMap, "My_Vector");
         });
   }
 
@@ -67,8 +92,8 @@ public class BindingsMapResolutionTest {
             new SourceModule(
                 QualifiedName.fromString("My_Vector"),
                 """
-            type My_Vector
-            """));
+                    type My_Vector
+                    """));
     ProjectUtils.createProject("Proj", modules, projDir);
     return projDir;
   }
