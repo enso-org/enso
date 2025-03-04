@@ -236,9 +236,9 @@ function CategorySwitcher(props: CategorySwitcherProps) {
   const { localCategory, directories, addDirectory, removeDirectory } = localCategories
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2">
       <AnimatedBackground>
-        <ariaComponents.Text variant="subtitle" weight="semibold" className="px-2">
+        <ariaComponents.Text variant="subtitle" weight="semibold">
           {getText('category')}
         </ariaComponents.Text>
 

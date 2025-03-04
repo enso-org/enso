@@ -8,7 +8,6 @@ import EditorPageActions from './EditorPageActions'
 import { goToPageActions, type GoToPageActions } from './goToPageActions'
 import NewDataLinkModalActions from './NewDataLinkModalActions'
 import PageActions from './PageActions'
-import StartModalActions from './StartModalActions'
 
 const ASSET_ROW_SAFE_POSITION = { x: 150, y: 16 }
 
@@ -366,20 +365,6 @@ export default class DrivePageActions<Context> extends PageActions<Context> {
         }
       },
     }
-  }
-
-  /** Open the "start" modal. */
-  openStartModal() {
-    return this.step('Open "start" modal', (page) =>
-      page.getByText(TEXT.startWithATemplate).click(),
-    ).into(StartModalActions<Context>)
-  }
-
-  /** Expect the "start" modal to be visible. */
-  expectStartModal() {
-    return this.into(StartModalActions<Context>).withStartModal(async (startModal) => {
-      await expect(startModal).toBeVisible()
-    })
   }
 
   /** Clear trash. */

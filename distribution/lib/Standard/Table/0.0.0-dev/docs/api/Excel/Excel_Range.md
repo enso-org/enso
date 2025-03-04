@@ -4,6 +4,8 @@
     - address self -> Standard.Base.Any.Any
     - bottom_row self -> Standard.Base.Any.Any
     - column_index column:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - column_index_for_name name:Standard.Base.Data.Text.Text -> Standard.Base.Data.Numbers.Integer
+    - column_name_for_index index:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Text.Text
     - for_cell sheet:Standard.Base.Any.Any column:Standard.Base.Any.Any row:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - for_columns sheet:Standard.Base.Any.Any left:Standard.Base.Any.Any right:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - for_range sheet:Standard.Base.Any.Any left:Standard.Base.Any.Any top:Standard.Base.Any.Any right:Standard.Base.Any.Any bottom:Standard.Base.Any.Any -> Standard.Base.Any.Any
