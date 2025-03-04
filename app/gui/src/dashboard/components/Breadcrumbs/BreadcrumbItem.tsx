@@ -17,6 +17,7 @@ import {
   useDrop,
   type AriaBreadcrumbItemProps,
   type DropEvent,
+  type PressEvent,
 } from 'react-aria'
 import type * as aria from 'react-aria-components'
 import invariant from 'tiny-invariant'
@@ -125,6 +126,7 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
     rel,
     ping,
     referrerPolicy,
+    onPress: onPressRaw,
   } = props
   const { id, ...breadcrumbItemProps } = props
 
@@ -156,12 +158,12 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
     },
   })
 
-  const onPress = useEventCallback(async () => {
+  const onPress = useEventCallback(async (event: PressEvent) => {
     if (id == null) {
       return
     }
 
-    await onAction(id)
+    await Promise.all([onAction(id), onPressRaw?.(event) ?? Promise.resolve()])
   })
 
   const iconComponent = (() => {

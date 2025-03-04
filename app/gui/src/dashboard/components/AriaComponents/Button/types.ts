@@ -62,7 +62,7 @@ interface PropsWithoutHref {
 
 /** Base props for a button. */
 export interface BaseButtonProps<IconType extends string, Render>
-  extends Omit<ButtonVariants, 'iconOnly' | 'isJoined' | 'position'>,
+  extends Omit<ButtonVariants, 'iconOnly' | 'isJoined' | 'loading' | 'position'>,
     TestIdProps {
   /** If `true`, the loader will not be shown. */
   readonly hideLoader?: boolean
@@ -87,6 +87,11 @@ export interface BaseButtonProps<IconType extends string, Render>
   readonly contentClassName?: string
   readonly isDisabled?: boolean
   readonly formnovalidate?: boolean
+  readonly isLoading?: boolean
+  /**
+   * @deprecated Use `isLoading` instead.
+   */
+  readonly loading?: boolean
   /**
    * Defaults to `full`. When `full`, the entire button will be replaced with the loader.
    * When `icon`, only the icon will be replaced with the loader.
