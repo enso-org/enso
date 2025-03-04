@@ -12,6 +12,7 @@ import java.util.function.Consumer;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.ResolutionError;
+import org.enso.compiler.data.BindingsMap.ResolvedConstructor;
 import org.enso.compiler.data.BindingsMap.ResolvedName;
 import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.pkg.QualifiedName;
@@ -80,7 +81,64 @@ public class BindingsMapResolutionTest {
     testBindingsMap(
         projDir,
         bindingsMap -> {
-          assertSingleResolvedType(bindingsMap, "local.Proj.My_Vector.My_Vector");
+          assertSingleResolvedType(bindingsMap, "local.Lib.My_Vector.My_Vector");
+        });
+  }
+
+  @Test
+  public void resolveConstructor_ImportWithFrom() throws IOException {
+    var projDir = createProject("from local.Proj.My_Vector.My_Vector import Cons");
+    testBindingsMap(
+        projDir,
+        bindingsMap -> {
+          assertResolvedNames(
+              bindingsMap,
+              "Cons",
+              resolvedNames -> {
+                assertThat("single Cons resolved", resolvedNames.size(), is(1));
+                assertThat(
+                    "is ResolvedConstructor",
+                    resolvedNames.head() instanceof ResolvedConstructor,
+                    is(true));
+              });
+        });
+  }
+
+  @Test
+  public void resolveConstructor_ImportFQN() throws IOException {
+    var projDir = createProject("import local.Proj.My_Vector.My_Vector.Cons");
+    testBindingsMap(
+        projDir,
+        bindingsMap -> {
+          assertResolvedNames(
+              bindingsMap,
+              "Cons",
+              resolvedNames -> {
+                assertThat("single Cons resolved", resolvedNames.size(), is(1));
+                assertThat(
+                    "is ResolvedConstructor",
+                    resolvedNames.head() instanceof ResolvedConstructor,
+                    is(true));
+              });
+        });
+  }
+
+  @Test
+  public void resolveConstructor_ViaFQN_ImportFQN() throws IOException {
+    var projDir = createProject("import local.Proj.My_Vector.My_Vector.Cons");
+    testBindingsMap(
+        projDir,
+        bindingsMap -> {
+          assertResolvedNames(
+              bindingsMap,
+              "local.Proj.My_Vector.My_Vector.Cons",
+              resolvedNames -> {
+                assertThat("single Cons resolved", resolvedNames.size(), is(1));
+                assertThat(
+                    "is ResolvedConstructor",
+                    resolvedNames.head() instanceof ResolvedConstructor,
+                    is(true));
+              });
         });
   }
 
@@ -93,6 +151,7 @@ public class BindingsMapResolutionTest {
                 QualifiedName.fromString("My_Vector"),
                 """
                     type My_Vector
+                        Cons data
                     """));
     ProjectUtils.createProject("Proj", modules, projDir);
     return projDir;
@@ -111,6 +170,22 @@ public class BindingsMapResolutionTest {
     var resolvedNames = resolution.toOption().get();
     assertThat("single resolution found", resolvedNames.size(), is(1));
     assertThat("is ResolvedType", resolvedNames.head() instanceof ResolvedType, is(true));
+  }
+
+  private static void assertResolvedNames(
+      BindingsMap bindingsMap,
+      String name,
+      Consumer<scala.collection.immutable.List<ResolvedName>> callback) {
+    Either<ResolutionError, scala.collection.immutable.List<ResolvedName>> resolution;
+    if (name.contains(".")) {
+      var fqn = Arrays.stream(name.split("\\.")).toList();
+      resolution = bindingsMap.resolveQualifiedName(toScalaList(fqn));
+    } else {
+      resolution = bindingsMap.resolveName(name);
+    }
+    assertThat("Name '" + name + "' is resolved", resolution.isRight(), is(true));
+    var resolvedNames = resolution.toOption().get();
+    callback.accept(resolvedNames);
   }
 
   private static void testBindingsMap(Path projDir, Consumer<BindingsMap> callback) {
