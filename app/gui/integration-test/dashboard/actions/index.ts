@@ -17,7 +17,6 @@ import {
 import DrivePageActions from './DrivePageActions'
 import LATEST_GITHUB_RELEASES from './latestGithubReleases.json' with { type: 'json' }
 import LoginPageActions from './LoginPageActions'
-import StartModalActions from './StartModalActions'
 
 /** An example password that does not meet validation requirements. */
 export const INVALID_PASSWORD = 'password'
@@ -156,25 +155,15 @@ export function mockAll({ page, setupAPI }: MockParams) {
     })
 }
 
-export interface MockAllAndLoginParams extends MockParams {
-  readonly hideStartModal?: boolean | undefined
-}
+export interface MockAllAndLoginParams extends MockParams {}
 
 /** Set up all mocks, and log in with dummy credentials. */
-export function mockAllAndLogin({ page, setupAPI, hideStartModal = true }: MockAllAndLoginParams) {
+export function mockAllAndLogin({ page, setupAPI }: MockAllAndLoginParams) {
   const actions = mockAll({ page, setupAPI })
 
   return actions
     .step('Login', (page) => login({ page }))
     .step('Wait for dashboard to load', waitForDashboardToLoad)
-    .step('Check if start modal is shown', async (page) => {
-      if (hideStartModal) {
-        // @ts-expect-error This is the only place in which the private member `.context`
-        // should be accessed.
-        const context = actions.context
-        await new StartModalActions(page, context).close()
-      }
-    })
     .into(DrivePageActions<Context>)
 }
 
