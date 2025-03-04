@@ -122,7 +122,6 @@ defineExpose({
 
 .toolbar {
   height: 48px;
-  padding-left: 18px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -134,7 +133,6 @@ defineExpose({
 .scrollArea {
   width: 100%;
   overflow-y: auto;
-  padding-left: 10px;
   /* Prevent touchpad back gesture, which can be triggered while panning. */
   overscroll-behavior-x: none;
   flex-grow: 1;
@@ -143,6 +141,12 @@ defineExpose({
 :deep(.cm-content) {
   /*noinspection CssUnresolvedCustomProperty,CssNoGenericFontName*/
   font-family: var(--font-sans);
+}
+
+/*noinspection CssUnusedSymbol*/
+:deep(.cm-line) {
+  padding-left: 0;
+  padding-right: 0;
 }
 
 /*noinspection CssUnusedSymbol*/

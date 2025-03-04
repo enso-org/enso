@@ -1,5 +1,5 @@
 /** @file Tests for the asset panel. */
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 
 import { EmailAddress, UserId } from '#/services/Backend'
 
@@ -17,6 +17,11 @@ function locateAssetPanel(page: Page) {
 function locateAssetPanelDescription(page: Page) {
   // This has no identifying features.
   return locateAssetPanel(page).getByTestId('asset-panel-description')
+}
+
+/** Find the contents of the Markdown editor within the given {@link Locator}. */
+function locateMarkdownContent(locator: Locator) {
+  return locator.locator('.cm-content')
 }
 
 /** An example description for the asset selected in the asset panel. */
@@ -78,8 +83,12 @@ test('Asset Panel documentation view', ({ page }) =>
     .toggleDocsAssetPanel()
     .withAssetPanel(async (assetPanel) => {
       await expect(assetPanel.getByTestId('asset-panel-tab-panel-docs')).toBeVisible()
-      await expect(assetPanel.getByTestId('asset-docs-content')).toBeVisible()
-      await expect(assetPanel.getByTestId('asset-docs-content')).toHaveText(/Project Goal/)
+      await expect(
+        locateMarkdownContent(assetPanel.getByTestId('asset-panel-tab-panel-docs')),
+      ).toBeVisible()
+      await expect(
+        locateMarkdownContent(assetPanel.getByTestId('asset-panel-tab-panel-docs')),
+      ).toHaveText(/Project Goal/)
       await expect(assetPanel.getByText(TEXT.arbitraryFetchImageError)).not.toBeVisible()
     }))
 
@@ -94,7 +103,9 @@ test('Assets Panel docs images', ({ page }) => {
     .driveTable.clickRow(0)
     .toggleDocsAssetPanel()
     .withAssetPanel(async (assetPanel) => {
-      await expect(assetPanel.getByTestId('asset-docs-content')).toBeVisible()
+      await expect(
+        locateMarkdownContent(assetPanel.getByTestId('asset-panel-tab-panel-docs')),
+      ).toBeVisible()
 
       for (const image of await assetPanel.getByRole('img').all()) {
         await expect(image).toBeVisible()
