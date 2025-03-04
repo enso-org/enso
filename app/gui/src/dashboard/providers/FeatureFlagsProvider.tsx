@@ -21,6 +21,7 @@ export function featureFlagsForInternalTesting() {
     enableCloudExecution: true,
     enableAsyncExecution: true,
     enableAdvancedProjectExecutionOptions: false,
+    enableHybridExecution: true,
   }
 }
 
