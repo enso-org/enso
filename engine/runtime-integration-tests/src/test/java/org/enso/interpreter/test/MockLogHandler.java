@@ -26,7 +26,6 @@ public final class MockLogHandler extends Handler {
 
   @Override
   public void close() throws SecurityException {
-    super.close();
     logs.clear();
   }
 
