@@ -3789,7 +3789,7 @@ type Table
                       _ : Integer ->  self.make_constant_column (from.up_to to step=step)
                       _ : Column_Ref -> ((self:Table_Ref).resolve from).map x->(x.up_to to)
                   _ : Column_Ref -> case from of
-                      _ : Integer -> ((self:Table_Ref).resolve to).map x->(0.up_to x)
+                      _ : Integer -> ((self:Table_Ref).resolve to).map x->(from.up_to x step=step)
                       _ : Column_Ref -> ((self:Table_Ref).resolve from).zip ((self:Table_Ref).resolve to) f->t->(f.up_to t)
               self.set range_col as="generate_rows_id"
         x.expand_to_rows "generate_rows_id"
