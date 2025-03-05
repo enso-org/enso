@@ -6,6 +6,7 @@ import * as aria from '#/components/aria'
 import * as mergeRefs from '#/utilities/mergeRefs'
 import * as twv from '#/utilities/tailwindVariants'
 
+import type { TooltipElementType } from '#/components/AriaComponents'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { forwardRef } from '#/utilities/react'
 import { memo } from 'react'
@@ -20,7 +21,7 @@ export interface TextProps
     TestIdProps {
   readonly elementType?: keyof HTMLElementTagNameMap
   readonly lineClamp?: number
-  readonly tooltip?: React.ReactElement | string | false | null
+  readonly tooltip?: TooltipElementType
   readonly tooltipTriggerRef?: React.RefObject<HTMLElement>
   readonly tooltipDisplay?: visualTooltip.VisualTooltipProps['display']
   readonly tooltipPlacement?: aria.Placement
@@ -86,16 +87,16 @@ export const TEXT_STYLE = twv.tv({
     },
     truncate: {
       /* eslint-disable @typescript-eslint/naming-convention */
-      '1': 'block truncate ellipsis',
-      '2': 'line-clamp-2 ellipsis',
-      '3': 'line-clamp-3 ellipsis',
-      '4': 'line-clamp-4 ellipsis',
-      '5': 'line-clamp-5 ellipsis',
-      '6': 'line-clamp-6 ellipsis',
-      '7': 'line-clamp-7 ellipsis',
-      '8': 'line-clamp-8 ellipsis',
-      '9': 'line-clamp-9 ellipsis',
-      custom: 'line-clamp-[var(--line-clamp)] ellipsis',
+      '1': 'block truncate',
+      '2': 'line-clamp-2 text-ellipsis',
+      '3': 'line-clamp-3 text-ellipsis',
+      '4': 'line-clamp-4 text-ellipsis',
+      '5': 'line-clamp-5 text-ellipsis',
+      '6': 'line-clamp-6 text-ellipsis',
+      '7': 'line-clamp-7 text-ellipsis',
+      '8': 'line-clamp-8 text-ellipsis',
+      '9': 'line-clamp-9 text-ellipsis',
+      custom: 'line-clamp-[var(--line-clamp)] text-ellipsis',
       /* eslint-enable @typescript-eslint/naming-convention */
     },
     monospace: { true: 'font-mono' },

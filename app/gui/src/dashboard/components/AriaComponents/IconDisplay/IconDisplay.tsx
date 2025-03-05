@@ -1,14 +1,15 @@
 /** @file A text display with an icon. */
 import { Icon } from '#/components/Icon'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import type { ReactNode } from 'react'
-import { Text, type IconProp, type TextProps } from '..'
+import { Text, WithVisualTooltip, type IconProp, type TextProps, type TooltipElementType } from '..'
 
 const ICON_DISPLAY_STYLES = tv({
-  base: 'block max-w-48 min-w-4 w-auto',
+  base: 'flex items-center gap-2 max-w-48 min-w-4 px-1',
   slots: {
-    container: 'flex items-center gap-2',
     icon: '-mb-0.5',
+    // For some reason `min-w-0` is required for the ellipsis to appear.
+    container: 'flex mx-auto min-w-0',
+    text: 'block truncate',
   },
   variants: {
     variant: {
@@ -18,8 +19,11 @@ const ICON_DISPLAY_STYLES = tv({
       accent: 'bg-accent text-white',
       ghost: 'text-primary',
       submit: 'bg-invite text-white opacity-80',
-      outline: 'border-primary/20 text-primary',
+      outline: 'border-0.5 rounded-full border-primary/20 text-primary',
     },
+  },
+  defaultVariants: {
+    variant: 'custom',
   },
 })
 
@@ -36,33 +40,44 @@ export interface IconDisplayProps<IconType extends string>
   extends Omit<TextProps, 'children' | 'variant' | 'variants'>,
     IconDisplayRenderProps,
     VariantProps<typeof ICON_DISPLAY_STYLES> {
+  readonly showTooltip?: boolean
   readonly icon: IconProp<IconType, Required<IconDisplayRenderProps>>
-  readonly children: ReactNode | ((renderProps: Required<IconDisplayRenderProps>) => ReactNode)
+  readonly children:
+    | TooltipElementType
+    | ((renderProps: Required<IconDisplayRenderProps>) => TooltipElementType)
 }
 
 /** A text display with an icon. */
 export function IconDisplay<IconType extends string>(props: IconDisplayProps<IconType>) {
   const {
+    showTooltip = false,
     icon,
     isCurrent = true,
     isDisabled = false,
     children,
     variant,
     variants = ICON_DISPLAY_STYLES,
+    tooltip,
     ...textProps
   } = props
   const renderProps = { isCurrent, isDisabled }
 
   const styles = variants({ variant })
 
+  const renderedChildren = typeof children === 'function' ? children(renderProps) : children
+
   return (
-    <Text className={styles.base()} nowrap truncate="1" {...textProps}>
-      <span className={styles.container()}>
+    <div className={styles.base()}>
+      <WithVisualTooltip tooltip={showTooltip ? tooltip : null} tooltipPlacement="left">
         <Icon className={styles.icon()} size="medium" renderProps={renderProps}>
           {icon}
         </Icon>
-        {typeof children === 'function' ? children(renderProps) : children}
-      </span>
-    </Text>
+      </WithVisualTooltip>
+      <div className={styles.container()}>
+        <Text className={styles.text()} truncate="1" {...textProps} tooltip={renderedChildren}>
+          {renderedChildren}
+        </Text>
+      </div>
+    </div>
   )
 }

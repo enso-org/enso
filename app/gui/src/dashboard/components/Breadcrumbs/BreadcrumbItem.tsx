@@ -10,7 +10,6 @@ import {
   type CSSProperties,
   type Key,
   type PropsWithChildren,
-  type ReactNode,
 } from 'react'
 import {
   useBreadcrumbItem,
@@ -27,6 +26,7 @@ import {
   type Addon,
   type IconProp,
   type TestIdProps,
+  type TooltipElementType,
 } from '../AriaComponents'
 
 export const BREADCRUMB_ITEM_STYLES = tv({
@@ -71,7 +71,9 @@ export interface BreadcrumbItemProps<IconType extends string>
   readonly isDisabled?: boolean
   readonly className?: string | ((renderProps: BreadcrumbItemRenderProps) => string)
   readonly style?: CSSProperties | ((renderProps: BreadcrumbItemRenderProps) => CSSProperties)
-  readonly children: ReactNode | ((renderProps: BreadcrumbItemRenderProps) => ReactNode)
+  readonly children:
+    | TooltipElementType
+    | ((renderProps: BreadcrumbItemRenderProps) => TooltipElementType)
   readonly isLoading?: boolean
 }
 

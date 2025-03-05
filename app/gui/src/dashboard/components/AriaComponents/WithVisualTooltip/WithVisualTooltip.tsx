@@ -4,10 +4,13 @@ import { useRef, type PropsWithChildren, type ReactElement } from 'react'
 import type { Placement } from '#/components/aria'
 import { useVisualTooltip } from '#/components/AriaComponents/Text'
 
+/** Valid types of a tooltip. */
+export type TooltipElementType = ReactElement | string | false | null | undefined
+
 /** Props for a {@link WithVisualTooltip}. */
 export interface WithVisualTooltipProps extends Readonly<PropsWithChildren> {
   /** Falls back to `aria-label`. Pass `false` to explicitly disable the tooltip. */
-  readonly tooltip?: ReactElement | string | false | null | undefined
+  readonly tooltip?: TooltipElementType
   readonly tooltipPlacement?: Placement | undefined
   readonly className?: string | undefined
 }
