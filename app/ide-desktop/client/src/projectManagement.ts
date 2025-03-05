@@ -414,6 +414,40 @@ export function isProjectInstalled(
   return pathModule.resolve(projectRootParent) === pathModule.resolve(directory)
 }
 
+/** Create a .tar.gz enso-project bundle. */
+export function createBundle(directory: string): Promise<Buffer> {
+  const readableStream = tar.c(
+    {
+      z: true,
+      C: directory,
+    },
+    ['.'],
+  )
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = []
+    readableStream.on('data', (data) => chunks.push(data))
+    readableStream.on('end', () => resolve(Buffer.concat(chunks)))
+    readableStream.on('error', reject)
+  })
+}
+
+/** Unpack a .tar.gz enso-project bundle into a temporary directory */
+export async function unpackBundle(
+  bundle: stream.Readable,
+  targetDirectory: string,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    bundle
+      .pipe(
+        tar.x({
+          C: targetDirectory,
+        }),
+      )
+      .on('end', () => resolve(targetDirectory))
+      .on('error', (err) => reject(err))
+  })
+}
+
 // ==================
 // === Project ID ===
 // ==================

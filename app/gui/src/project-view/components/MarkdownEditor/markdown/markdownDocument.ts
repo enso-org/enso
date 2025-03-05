@@ -285,6 +285,6 @@ class RangeGapVisitor {
     this.flush(this.to)
   }
   private flush(to: number) {
-    if (this.prevEnd < to) this.emit(Range.tryFromBounds(this.prevEnd, to)!)
+    if (this.prevEnd < to) this.emit(Range.unsafeFromBounds(this.prevEnd, to))
   }
 }

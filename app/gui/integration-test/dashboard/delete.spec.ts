@@ -83,11 +83,6 @@ test('clear trash', ({ page }) =>
     .clearTrash()
     .driveTable.expectTrashPlaceholderRow()
     .goToCategory.cloud()
-    .expectStartModal()
-    .withStartModal(async (startModal) => {
-      await expect(startModal).toBeVisible()
-    })
-    .close()
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(0)
     }))

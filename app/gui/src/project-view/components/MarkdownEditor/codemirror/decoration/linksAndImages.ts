@@ -70,7 +70,7 @@ function decorateLink(
     : undefined
   if (!parsed) return
   const { linkOrImage: link, text, url, title } = parsed
-  if (text.length === 0) return
+  if (text.empty) return
   emitDecoration(
     link,
     Decoration.mark({

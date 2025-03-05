@@ -17,12 +17,19 @@ import {
   Text,
   useVisualTooltip,
 } from '#/components/AriaComponents'
+import { ErrorBoundary, InlineErrorDisplay } from '#/components/ErrorBoundary'
 import {
   deleteAssetsMutationOptions,
   downloadAssetsMutationOptions,
   getAllTrashedItems,
 } from '#/hooks/backendBatchedHooks'
-import { useNewDatalink, useNewFolder, useNewProject, useNewSecret } from '#/hooks/backendHooks'
+import {
+  listDirectoryQueryOptions,
+  useNewDatalink,
+  useNewFolder,
+  useNewProject,
+  useNewSecret,
+} from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
@@ -34,7 +41,6 @@ import {
   type Category,
 } from '#/layouts/CategorySwitcher/Category'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
-import StartModal from '#/layouts/StartModal'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
@@ -44,10 +50,12 @@ import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
+import type { DirectoryId } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
+import type { PropsWithChildren } from 'react'
 
 /** Props for a {@link DriveBar}. */
 export interface DriveBarToolbarProps {
@@ -55,8 +63,6 @@ export interface DriveBarToolbarProps {
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
   readonly category: Category
-  readonly isEmpty: boolean
-  readonly shouldDisplayStartModal: boolean
 }
 
 /**
@@ -64,9 +70,8 @@ export interface DriveBarToolbarProps {
  * and a column display mode switcher.
  */
 export function DriveBarToolbar(props: DriveBarToolbarProps) {
-  const { backend, query, setQuery, category, isEmpty, shouldDisplayStartModal } = props
+  const { backend, query, setQuery, category } = props
 
-  const queryClient = useQueryClient()
   const { unsetModal } = useSetModal()
   const { getText } = useText()
   const driveStore = useDriveStore()
@@ -77,7 +82,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const { user } = useFullUserSession()
   const canDownload = useCanDownload()
 
-  const { currentDirectoryId } = useDirectoryIds({ category })
+  const { currentDirectoryId, rootDirectoryId } = useDirectoryIds({ category })
 
   const shouldBeDisabled = isCloud && isOffline
 
@@ -100,7 +105,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     : null
 
   const downloadAssetsMutation = useMutation(downloadAssetsMutationOptions(backend))
-  const deleteAssetsMutation = useMutation(deleteAssetsMutationOptions(backend))
   const newFolder = useNewFolder(backend, category)
   const uploadFilesRaw = useUploadFiles(backend, category)
   const uploadFiles = useEventCallback(async (files: readonly File[]) => {
@@ -122,13 +126,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
       templateId: string | null | undefined,
       templateName: string | null | undefined,
     ]) => await newProjectRaw({ templateName, templateId }, currentDirectoryId),
-  })
-
-  const isCreatingProject = newProjectMutation.isPending
-
-  const clearTrash = useEventCallback(async () => {
-    const allTrashedItems = await getAllTrashedItems(queryClient, backend)
-    await deleteAssetsMutation.mutateAsync([allTrashedItems.map((item) => item.id), true])
   })
 
   const attachEventListeners = useEventCallback(() =>
@@ -185,23 +182,18 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     }
     case 'trash': {
       return (
-        <ButtonGroup className="grow-0" buttonVariants={{ isDisabled: shouldBeDisabled }}>
-          <DialogTrigger>
-            <Button size="medium" variant="outline" isDisabled={isEmpty}>
-              {getText('clearTrash')}
-            </Button>
-
-            <ConfirmDeleteModal
-              actionText={getText('allTrashedItemsForever')}
-              doDelete={async () => {
-                await clearTrash()
-              }}
-            />
-          </DialogTrigger>
-          {pasteDataStatus}
-          {searchBar}
-          {assetPanelToggle}
-        </ButtonGroup>
+        <ErrorBoundary FallbackComponent={InlineErrorDisplay}>
+          <TrashFolderToolbar
+            shouldBeDisabled={shouldBeDisabled}
+            backend={backend}
+            category={category}
+            rootDirectoryId={rootDirectoryId}
+          >
+            {pasteDataStatus}
+            {searchBar}
+            {assetPanelToggle}
+          </TrashFolderToolbar>
+        </ErrorBoundary>
       )
     }
     case 'cloud':
@@ -217,26 +209,8 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
             buttonVariants={{ isDisabled: shouldBeDisabled }}
             {...createAssetsVisualTooltip.targetProps}
           >
-            <DialogTrigger defaultOpen={shouldDisplayStartModal}>
-              <Button
-                size="medium"
-                variant="accent"
-                isDisabled={isCreatingProject}
-                icon={Plus2Icon}
-                loaderPosition="icon"
-              >
-                {getText('startWithATemplate')}
-              </Button>
-
-              <StartModal
-                createProject={(templateId, templateName) => {
-                  void newProjectMutation.mutateAsync([templateId, templateName])
-                }}
-              />
-            </DialogTrigger>
             <Button
-              size="medium"
-              variant="outline"
+              variant="accent"
               icon={Plus2Icon}
               loaderPosition="icon"
               onPress={() => newProjectMutation.mutateAsync([null, null])}
@@ -317,4 +291,60 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
       )
     }
   }
+}
+
+/**
+ * Props for a {@link TrashFolderToolbar}.
+ */
+interface TrashFolderToolbarProps extends PropsWithChildren {
+  readonly shouldBeDisabled: boolean
+  readonly backend: Backend
+  readonly category: Category
+  readonly rootDirectoryId: DirectoryId
+}
+
+/**
+ * A toolbar for the trash folder.
+ */
+function TrashFolderToolbar(props: TrashFolderToolbarProps) {
+  const { shouldBeDisabled, backend, category, rootDirectoryId, children } = props
+  const { getText } = useText()
+
+  const rootDirectoryQuery = listDirectoryQueryOptions({
+    backend,
+    category,
+    parentId: rootDirectoryId,
+  })
+
+  const { data: isEmpty } = useSuspenseQuery({
+    ...rootDirectoryQuery,
+    select: (data) => data.length === 0,
+  })
+
+  const queryClient = useQueryClient()
+  const deleteAssetsMutation = useMutation(deleteAssetsMutationOptions(backend))
+
+  const clearTrash = useEventCallback(async () => {
+    const allTrashedItems = await getAllTrashedItems(queryClient, backend)
+    await deleteAssetsMutation.mutateAsync([allTrashedItems.map((item) => item.id), true])
+  })
+
+  return (
+    <ButtonGroup className="grow-0" buttonVariants={{ isDisabled: shouldBeDisabled }}>
+      <DialogTrigger>
+        <Button size="medium" variant="outline" isDisabled={isEmpty}>
+          {getText('clearTrash')}
+        </Button>
+
+        <ConfirmDeleteModal
+          actionText={getText('allTrashedItemsForever')}
+          doDelete={async () => {
+            await clearTrash()
+          }}
+        />
+      </DialogTrigger>
+
+      {children}
+    </ButtonGroup>
+  )
 }

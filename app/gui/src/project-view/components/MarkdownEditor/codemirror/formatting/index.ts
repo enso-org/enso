@@ -1,10 +1,9 @@
 /** @file Provides a Vue reactive API for Markdown formatting in CodeMirror. */
 import {
-  HeaderLevel,
-  ListType,
-  toggleHeader,
-  toggleList,
-  toggleQuote,
+  getBlockType,
+  insertCodeBlock,
+  removeCodeBlock,
+  setBlockType,
 } from '@/components/MarkdownEditor/codemirror/formatting/block'
 import {
   canInsertLink,
@@ -13,12 +12,20 @@ import {
   insertLink,
   setInlineFormatting,
 } from '@/components/MarkdownEditor/codemirror/formatting/inline'
+import { type SupportedBlockType as BlockType } from '@/components/MarkdownEditor/markdown/types'
+import { assert } from '@/util/assert'
 import { type Extension, Facet, Prec } from '@codemirror/state'
 import { type EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { computed, proxyRefs, readonly, type Ref, ref } from 'vue'
+export { type BlockType }
 
-type ReactiveFormatting = Record<InlineFormattingNode, Ref<boolean | undefined>>
+interface ReactiveFormatting {
+  inline: Record<InlineFormattingNode, Ref<boolean | undefined>>
+  blockType: Ref<BlockType | undefined>
+  unformattable: Ref<boolean>
+}
+
 const reactiveFormattingFacet = Facet.define<ReactiveFormatting, ReactiveFormatting>({
   combine: (values) => values[values.length - 1]!,
 })
@@ -27,30 +34,50 @@ const reactiveFormattingFacet = Facet.define<ReactiveFormatting, ReactiveFormatt
 export function useMarkdownFormatting(view: EditorView) {
   const reactiveFormatting = view.state.facet(reactiveFormattingFacet)
   function inlineFormat(type: InlineFormattingNode) {
+    const setter = (value: boolean) => view.dispatch(setInlineFormatting(view.state, type, value))
     return proxyRefs({
-      value: readonly(reactiveFormatting[type]),
-      set: (value: boolean) => view.dispatch(setInlineFormatting(view.state, type, value)),
+      value: computed(() => !!reactiveFormatting.inline[type].value),
+      set: computed(() => (reactiveFormatting.inline[type] === undefined ? undefined : setter)),
     })
   }
   return {
-    toggleHeader: (level: HeaderLevel) => toggleHeader(view, level),
-    toggleQuote: () => toggleQuote(view),
-    toggleList: (type: ListType) => toggleList(view, type),
     italic: inlineFormat('Emphasis'),
     bold: inlineFormat('StrongEmphasis'),
     strikethrough: inlineFormat('Strikethrough'),
     insertLink: computed(
       () => canInsertLink(view.state) && (() => view.dispatch(insertLink(view.state))),
     ),
+    insertCodeBlock: computed(() =>
+      reactiveFormatting.unformattable.value ?
+        undefined
+      : () => view.dispatch(insertCodeBlock(view.state)),
+    ),
+    blockType: proxyRefs({
+      value: readonly(reactiveFormatting.blockType),
+      set: (type: BlockType) => {
+        const currentType = getBlockType(view.state)
+        if (type === currentType) return
+        assert(type !== 'FencedCode')
+        view.dispatch(
+          currentType === 'FencedCode' ?
+            removeCodeBlock(view.state)
+          : setBlockType(view.state, type),
+        )
+      },
+    }),
   }
 }
 
 /** Returns an extension that supports reactively watch the formatting of the selected text. */
 export function markdownFormatting(): Extension {
-  const reactiveFormatting = {
-    Emphasis: ref<boolean>(),
-    StrongEmphasis: ref<boolean>(),
-    Strikethrough: ref<boolean>(),
+  const reactiveFormatting: ReactiveFormatting = {
+    inline: {
+      Emphasis: ref(),
+      StrongEmphasis: ref(),
+      Strikethrough: ref(),
+    },
+    blockType: ref(),
+    unformattable: ref(false),
   }
   const reactiveFormattingFacetExt = reactiveFormattingFacet.of(reactiveFormatting)
   return [
@@ -58,8 +85,10 @@ export function markdownFormatting(): Extension {
     viewObserverExt((update) => {
       if (!update.docChanged && !update.selectionSet) return
       const formatting = getInlineFormatting(update.view.state)
-      for (const key of objects.unsafeKeys(reactiveFormatting))
-        reactiveFormatting[key].value = formatting?.[key]
+      for (const key of objects.unsafeKeys(reactiveFormatting.inline))
+        reactiveFormatting.inline[key].value = formatting?.[key]
+      reactiveFormatting.blockType.value = getBlockType(update.view.state)
+      reactiveFormatting.unformattable.value = formatting === undefined
     }),
   ]
 }
