@@ -69,9 +69,9 @@ type Group_Builder
        Arguments:
        - name: The name of the benchmark. Must be a valid Java identifier.
     specify : Text -> Any -> Bench
-    specify self (name:Text) ~benchmark =
+    specify self (name:Text) ~benchmark setup=Nothing teardown=Nothing =
         validate_name name
-        self.builder.append <| Bench.Spec name (_ -> benchmark)
+        self.builder.append <| Bench.Spec name (_ -> benchmark) (setup.if_not_nothing (_ -> setup)) (teardown.if_not_nothing (_ -> teardown))
 
 
 type Bench
@@ -82,7 +82,7 @@ type Bench
     Group (name:Text) (configuration:Bench_Options) (specs : Vector Bench)
 
     ## A specific single benchmark.
-    Spec (name:Text) (code : Any -> Any)
+    Spec (name:Text) (code : Any -> Any) (setup : (Any -> Any) | Nothing) (teardown : (Any -> Any) | Nothing)
 
     ## Construct a Bench object.
     build : (Bench_Builder -> Any) -> Bench
@@ -122,7 +122,7 @@ type Bench
                 validate_name name
                 conf.validate
                 ensure_distinct_names <| specs.map (_.name)
-            Bench.Spec name code ->
+            Bench.Spec name code _ _ ->
                 validate_name name
                 if code == Nothing then Panic.throw (Illegal_Argument.Error "Benchmark code must be specified")
         self
@@ -132,7 +132,7 @@ type Bench
     fold self value fn = case self of
         Bench.All groups -> groups.fold value (v-> g-> g.fold v fn)
         Bench.Group _ _ specs -> specs.fold value (v-> s-> fn v self s)
-        Bench.Spec _ _ -> fn value self self
+        Bench.Spec _ _ _ _ -> fn value self self
 
     ## Counts all the specs in the benchmark.
     total_specs : Integer
@@ -177,7 +177,9 @@ type Bench
             case should_skip bench_name of
                 False ->
                     IO.println <| "Benchmarking '" + bench_name + "' with configuration: " + c.to_text
+                    #if s.setup.is_nothing.not then (s.setup 0)
                     Bench.measure bench_name c.warmup c.measure (s.code 0)
+                    #if s.teardown.is_nothing.not then (s.teardown 0)
                 True ->
                     IO.println <| "Skipping '" + bench_name + "' benchmark"
 
