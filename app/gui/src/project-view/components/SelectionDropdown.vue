@@ -6,7 +6,7 @@ import MenuButton from '@/components/MenuButton.vue'
 import MenuPanel from '@/components/MenuPanel.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import type { SelectionMenuOption } from '@/components/visualizations/toolbar'
-import { ref } from 'vue'
+import { ref, toValue } from 'vue'
 
 type Key = number | string | symbol
 const selected = defineModel<Key>({ required: true })
@@ -18,6 +18,10 @@ const _props = defineProps<{
 }>()
 
 const open = ref(false)
+
+function onClick(option: SelectionMenuOption) {
+  if (!(option.disabled && toValue(option.disabled))) open.value = false
+}
 </script>
 
 <template>
@@ -35,12 +39,15 @@ const open = ref(false)
     <template #menu>
       <MenuPanel>
         <MenuButton
-          v-for="[key, option] in Object.entries(options)"
+          v-for="[key, option] in Object.entries(options).filter(
+            ([_key, { hidden }]) => !hidden || !toValue(hidden),
+          )"
           :key="key"
           :title="option.title"
           :modelValue="selected === key"
+          :disabled="option.disabled && toValue(option.disabled)"
           @update:modelValue="$event && (selected = key)"
-          @click="open = false"
+          @click="() => onClick(option)"
         >
           <SvgIcon :name="option.icon" :style="option.iconStyle" :data-testid="option.dataTestid" />
           <div v-if="option.label" class="iconLabel" v-text="option.label" />

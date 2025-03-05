@@ -3,6 +3,7 @@ import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
 import BlockTypeDropdown from '@/components/MarkdownEditor/BlockTypeDropdown.vue'
 import { ensoMarkdown, useMarkdownFormatting } from '@/components/MarkdownEditor/codemirror'
+import { type BlockType } from '@/components/MarkdownEditor/codemirror/formatting'
 import SvgButton from '@/components/SvgButton.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
@@ -15,9 +16,9 @@ import { minimalSetup } from 'codemirror'
 import { computed, onMounted, ref, useCssModule, useTemplateRef, type ComponentInstance } from 'vue'
 import * as Y from 'yjs'
 
-const { content } = defineProps<{
+const { content, toolbar } = defineProps<{
   content: Y.Text | string
-  toolbarContainer?: HTMLElement | undefined
+  toolbar: boolean
 }>()
 
 const focused = ref(false)
@@ -36,8 +37,7 @@ const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
   ],
   vueHost: () => vueHost,
 })
-const { toggleHeader, toggleQuote, toggleList, italic, bold, insertLink } =
-  useMarkdownFormatting(editorView)
+const { italic, bold, insertLink, blockType, insertCodeBlock } = useMarkdownFormatting(editorView)
 
 useLinkTitles(editorView, { readonly })
 
@@ -65,31 +65,36 @@ defineExpose({
 
 <template>
   <div class="MarkdownEditorRoot">
-    <div class="toolbar" @pointerdown.prevent>
+    <div v-if="toolbar" class="toolbar" @pointerdown.prevent>
       <slot name="toolbarLeft" />
       <template v-if="!readonly">
         <BlockTypeDropdown
-          @toggleHeader="toggleHeader($event)"
-          @toggleQuote="toggleQuote()"
-          @toggleList="toggleList($event)"
+          :modelValue="blockType.value ?? 'Unknown'"
+          @update:modelValue="blockType.set($event as BlockType)"
         />
         <ToggleIcon
           icon="italic"
-          :disabled="!editing || italic.value == null"
-          :modelValue="!!italic.value"
-          @update:modelValue="italic.set"
+          :disabled="!editing || !italic.set"
+          :modelValue="italic.value"
+          @update:modelValue="italic.set!"
         />
         <ToggleIcon
           icon="bold"
-          :disabled="!editing || bold.value == null"
-          :modelValue="!!bold.value"
-          @update:modelValue="bold.set"
+          :disabled="!editing || !bold.set"
+          :modelValue="bold.value"
+          @update:modelValue="bold.set!"
         />
         <SvgButton
           name="connector_add"
           :disabled="!editing || !insertLink"
           title="Insert link"
           @click.stop="insertLink!"
+        />
+        <SvgButton
+          name="code"
+          :disabled="!editing || !insertCodeBlock"
+          title="Insert code block"
+          @click.stop="insertCodeBlock!"
         />
       </template>
       <slot name="toolbarRight" />
@@ -227,7 +232,7 @@ defineExpose({
     }
   }
 
-  .list:not(.content) {
+  .list:not(*) {
     /* Hide indentation spaces */
     display: none;
   }

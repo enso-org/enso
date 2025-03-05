@@ -36,8 +36,6 @@ from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
 from project.System.File_Format import format_types
 
-polyglot java import java.io.InputStream
-
 ## PRIVATE
    How large a response body can be before it is written to a temporary file.
 maximum_body_in_memory = 4192
@@ -51,9 +49,8 @@ type Response_Body
        - stream: The body of the response as an InputStream.
        - metadata: File format metadata associated with the response.
        - uri: The URI of the response.
-    new : InputStream -> File_Format_Metadata -> URI -> Response_Body
-    new stream (metadata : File_Format_Metadata) (uri : URI) =
-        input_stream = Input_Stream.new stream (HTTP_Error.handle_java_exceptions uri)
+    new : Input_Stream -> File_Format_Metadata -> URI -> Response_Body
+    new input_stream (metadata : File_Format_Metadata) (uri : URI) =
         Response_Body.Raw_Stream input_stream metadata uri
 
     ## PRIVATE

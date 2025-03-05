@@ -98,11 +98,31 @@ test.each([
     source: '`Inline unformattable parts |before` and `after| selection`',
     ranges: ['`Inline unformattable parts before` |and| `after selection`'],
   },
+  {
+    source: [
+      'Block |types',
+      '# Block types',
+      '## Block types',
+      '### Block types',
+      '> Block types',
+      '1. Block types',
+      '- Block| types',
+    ].join('\n'),
+    ranges: [
+      'Block |types|\n# Block types\n## Block types\n### Block types\n> Block types\n1. Block types\n- Block types',
+      'Block types\n# |Block types|\n## Block types\n### Block types\n> Block types\n1. Block types\n- Block types',
+      'Block types\n# Block types\n## |Block types|\n### Block types\n> Block types\n1. Block types\n- Block types',
+      'Block types\n# Block types\n## Block types\n### |Block types|\n> Block types\n1. Block types\n- Block types',
+      'Block types\n# Block types\n## Block types\n### Block types\n> |Block types|\n1. Block types\n- Block types',
+      'Block types\n# Block types\n## Block types\n### Block types\n> Block types\n1. |Block types|\n- Block types',
+      'Block types\n# Block types\n## Block types\n### Block types\n> Block types\n1. Block types\n- |Block| types',
+    ],
+  },
 ])('Range-splitting', ({ source, ranges }) => {
   const input = parseTestInput(source)
   const md = new MarkdownDocument(Text.of([input.doc]), ensoMarkdownParser.parse(input.doc))
   const trim = (range: Range) => md.trimRangeSpaces(trimRangeDelimiters(range, md.tree))
-  const selection = trim(Range.tryFromBounds(input.selection.anchor, input.selection.head)!)
+  const selection = trim(Range.unsafeFromBounds(input.selection.anchor, input.selection.head))
   const rangesFound: Range[] = []
   splitRange(selection, md.tree, rangesFound.push.bind(rangesFound), trim)
   expect(

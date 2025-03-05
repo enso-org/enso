@@ -3,17 +3,23 @@ package org.enso.polyglot.test
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot.PolyglotContext
 import org.graalvm.polyglot.Context
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import java.io.ByteArrayOutputStream
 import java.nio.file.Paths
 
-class ApiTest extends AnyFlatSpec with Matchers {
+class ApiTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   import org.enso.common.LanguageInfo._
-  val out = new ByteArrayOutputStream()
-  val executionContext = new PolyglotContext(
-    Context
+
+  var out: ByteArrayOutputStream        = _
+  var ctx: Context                      = _
+  var executionContext: PolyglotContext = _
+
+  override protected def beforeAll(): Unit = {
+    out = new ByteArrayOutputStream()
+    ctx = Context
       .newBuilder(ID)
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
@@ -25,7 +31,17 @@ class ApiTest extends AnyFlatSpec with Matchers {
       .err(out)
       .logHandler(out)
       .build()
-  )
+    executionContext = new PolyglotContext(ctx)
+  }
+
+  override protected def afterAll(): Unit = {
+    if (ctx != null) {
+      ctx.close()
+      ctx = null
+      out.close()
+      out = null;
+    }
+  }
 
   "Parsing a file and calling a toplevel function defined in it" should "be possible" in {
     val code =

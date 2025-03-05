@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
@@ -24,8 +25,10 @@ public class AnyOrStaticTest {
   }
 
   @After
-  public void disposeCtx() {
+  public void disposeCtx() throws IOException {
     ctx.close();
+    ctx = null;
+    out.close();
   }
 
   @Test

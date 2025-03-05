@@ -63,37 +63,39 @@ public class EqualsTest {
     context.close();
     context = null;
     unwrappedValues = null;
+    equalsNode = null;
+    testRootNode = null;
+    hostValueToEnsoNode = null;
   }
 
   @DataPoints public static Object[] unwrappedValues;
 
   private static Object[] fetchAllUnwrappedValues() {
-    var valGenerator =
-        ValuesGenerator.create(
-            context, ValuesGenerator.Language.ENSO, ValuesGenerator.Language.JAVA);
     List<Value> values = new ArrayList<>();
-    values.addAll(valGenerator.numbers());
-    values.addAll(valGenerator.booleans());
-    values.addAll(valGenerator.textual());
-    values.addAll(valGenerator.arrayLike());
-    values.addAll(valGenerator.vectors());
-    values.addAll(valGenerator.maps());
-    values.addAll(valGenerator.multiLevelAtoms());
-    values.addAll(valGenerator.timesAndDates());
-    values.addAll(valGenerator.timeZones());
-    values.addAll(valGenerator.durations());
-    values.addAll(valGenerator.periods());
-    values.addAll(valGenerator.warnings());
-    try {
-      return values.stream()
-          .map(value -> unwrapValue(context, value))
-          .map(unwrappedValue -> hostValueToEnsoNode.execute(unwrappedValue))
-          .collect(Collectors.toList())
-          .toArray(new Object[] {});
-    } catch (Exception e) {
-      throw new AssertionError(e);
-    } finally {
-      valGenerator.dispose();
+    try (ValuesGenerator valGenerator =
+        ValuesGenerator.create(
+            context, ValuesGenerator.Language.ENSO, ValuesGenerator.Language.JAVA)) {
+      values.addAll(valGenerator.numbers());
+      values.addAll(valGenerator.booleans());
+      values.addAll(valGenerator.textual());
+      values.addAll(valGenerator.arrayLike());
+      values.addAll(valGenerator.vectors());
+      values.addAll(valGenerator.maps());
+      values.addAll(valGenerator.multiLevelAtoms());
+      values.addAll(valGenerator.timesAndDates());
+      values.addAll(valGenerator.timeZones());
+      values.addAll(valGenerator.durations());
+      values.addAll(valGenerator.periods());
+      values.addAll(valGenerator.warnings());
+      try {
+        return values.stream()
+            .map(value -> unwrapValue(context, value))
+            .map(unwrappedValue -> hostValueToEnsoNode.execute(unwrappedValue))
+            .collect(Collectors.toList())
+            .toArray(new Object[] {});
+      } catch (Exception e) {
+        throw new AssertionError(e);
+      }
     }
   }
 

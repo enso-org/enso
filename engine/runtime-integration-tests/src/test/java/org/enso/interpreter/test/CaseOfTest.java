@@ -25,6 +25,7 @@ public class CaseOfTest {
   public static void closeCtx() {
     ctx.close();
     ctx = null;
+    leak.shutdown();
     leak = null;
   }
 
