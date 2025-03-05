@@ -9,6 +9,7 @@ import org.enso.interpreter.node.expression.builtin.error.AssertionError;
 import org.enso.interpreter.node.expression.builtin.error.CaughtPanic;
 import org.enso.interpreter.node.expression.builtin.error.CompileError;
 import org.enso.interpreter.node.expression.builtin.error.ForbiddenOperation;
+import org.enso.interpreter.node.expression.builtin.error.IllegalArgument;
 import org.enso.interpreter.node.expression.builtin.error.IncomparableValues;
 import org.enso.interpreter.node.expression.builtin.error.IndexOutOfBounds;
 import org.enso.interpreter.node.expression.builtin.error.InexhaustivePatternMatch;
@@ -58,6 +59,7 @@ public final class Error {
   private final ArithmeticError arithmeticError;
   private final InvalidArrayIndex invalidArrayIndex;
   private final ArityError arityError;
+  private final IllegalArgument illegalArgument;
   private final IncomparableValues incomparableValues;
   private final UnsupportedArgumentTypes unsupportedArgumentsError;
   private final ModuleDoesNotExist moduleDoesNotExistError;
@@ -98,6 +100,7 @@ public final class Error {
     arithmeticError = builtins.getBuiltinType(ArithmeticError.class);
     invalidArrayIndex = builtins.getBuiltinType(InvalidArrayIndex.class);
     arityError = builtins.getBuiltinType(ArityError.class);
+    illegalArgument = builtins.getBuiltinType(IllegalArgument.class);
     incomparableValues = builtins.getBuiltinType(IncomparableValues.class);
     unsupportedArgumentsError = builtins.getBuiltinType(UnsupportedArgumentTypes.class);
     moduleDoesNotExistError = builtins.getBuiltinType(ModuleDoesNotExist.class);
@@ -128,6 +131,10 @@ public final class Error {
 
   public Atom makeIndexOutOfBounds(long index, long length) {
     return indexOutOfBounds.newInstance(index, length);
+  }
+
+  public Atom makeIllegalArgument(Object message) {
+    return illegalArgument.newInstance(message);
   }
 
   public Atom makeIncomparableValues(Object leftOperand, Object rightOperand) {

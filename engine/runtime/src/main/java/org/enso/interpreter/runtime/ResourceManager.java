@@ -156,7 +156,7 @@ public final class ResourceManager {
     if (alreadyRegistered(object)) {
       var error = context.getBuiltins().error();
       var msg = "Object is already registered as a ManagedResource: " + object;
-      var payload = error.makeForbiddenOperation(msg);
+      var payload = error.makeIllegalArgument(msg);
       throw new PanicException(payload, null);
     }
 
