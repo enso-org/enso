@@ -44,6 +44,23 @@ pub fn is_ident_or_operator(code: &str) -> u32 {
 }
 
 #[wasm_bindgen]
+pub fn is_ident_or_operator(code: &str) -> u32 {
+    let parsed = enso_parser::lexer::run(code);
+    if parsed.internal_error.is_some() {
+        return 0;
+    }
+    let token = match &parsed.value[..] {
+        [token] => token,
+        _ => return 0,
+    };
+    match &token.variant {
+        enso_parser::syntax::token::Variant::Ident(_) => 1,
+        enso_parser::syntax::token::Variant::Operator(_) => 2,
+        _ => 0,
+    }
+}
+
+#[wasm_bindgen]
 pub fn is_numeric_literal(code: &str) -> bool {
     let parsed = PARSER.with(|parser| parser.parse_block(code));
     let enso_parser::syntax::tree::Variant::BodyBlock(body) = parsed.variant else { return false };
@@ -74,7 +91,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_is_ident_or_operator() {
+    fn test_is_numeric_literal() {
         assert!(is_numeric_literal("1234"));
         assert!(is_numeric_literal("-1234"));
         assert!(!is_numeric_literal(""));

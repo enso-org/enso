@@ -282,7 +282,13 @@ export function useComponentBrowserInput(
   }
 
   function applySourceNode(text: string) {
-    return sourceNodeIdentifier.value ? `${sourceNodeIdentifier.value}.${text}` : text
+    return (
+      sourceNodeIdentifier.value ?
+        /^[a-zA-Z]/.test(text) ?
+          `${sourceNodeIdentifier.value}.${text}`
+        : `${sourceNodeIdentifier.value} ${text}`
+      : text
+    )
   }
 
   return proxyRefs({
