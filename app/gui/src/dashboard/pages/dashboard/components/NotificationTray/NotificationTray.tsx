@@ -7,7 +7,11 @@ import { DialogTrigger, GridList, GridListItem } from '#/components/aria'
 import { useText } from '#/providers/TextProvider'
 import { useState } from 'react'
 import { NotificationItem } from './NotificationItem'
-import { useComputedNotifications } from './computedNotificationHooks'
+import {
+  useComputedNotifications,
+  useMoreComputedNotificationsIfEnabled,
+  useNotificationState,
+} from './computedNotificationHooks'
 import type { NotificationInfo } from './types'
 
 const DIALOG_OFFSET = 16
@@ -15,7 +19,11 @@ const DIALOG_CROSS_OFFSET = 16
 
 /** A button to show a list of notifications. */
 export function NotificationTray() {
-  const { computedNotifications, removeComputedNotification } = useComputedNotifications()
+  const notificationState = useNotificationState()
+  const { computedNotifications, removeComputedNotification } = notificationState
+  useComputedNotifications(notificationState)
+  useMoreComputedNotificationsIfEnabled(notificationState)
+
   const [lastOpenTimestamp, setLastOpenTimestamp] = useState(0)
   const hasUnreadNotifications = computedNotifications.some(
     (notification) => notification.timestamp != null && notification.timestamp > lastOpenTimestamp,
