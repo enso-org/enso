@@ -3790,7 +3790,10 @@ type Table
                       _ : Column_Ref -> ((self:Table_Ref).resolve from).map x->(x.up_to to step=step)
                   _ : Column_Ref -> case from of
                       _ : Integer -> ((self:Table_Ref).resolve to).map x->(from.up_to x step=step)
-                      _ : Column_Ref -> ((self:Table_Ref).resolve from).zip ((self:Table_Ref).resolve to) f->t->(f.up_to t step=step)
+                      _ : Column_Ref -> 
+                          from_column = (self:Table_Ref).resolve from
+                          to_column = (self:Table_Ref).resolve to
+                          from_column.zip to_column f->t->(f.up_to t step=step)
               self.set range_col as="generate_rows_id"
         x.expand_to_rows "generate_rows_id"
 
