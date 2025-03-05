@@ -12,7 +12,6 @@ import {
 } from '#/hooks/backendBatchedHooks'
 import { MB_BYTES, uploadingFileQueryOptions } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { NotificationItem } from '#/layouts/NotificationTray/components/NotificationItem'
 import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useText } from '#/providers/TextProvider'
 import { useIsMutating, useQuery, useQueryClient, type MutationKey } from '@tanstack/react-query'
@@ -21,6 +20,7 @@ import { omit } from 'enso-common/src/utilities/data/object'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
+import { NotificationItem } from './NotificationItem'
 import type { NotificationInfo } from './types'
 
 const COMPUTED_NOTIFICATION_STORAGE_TIME_MS = 60_000

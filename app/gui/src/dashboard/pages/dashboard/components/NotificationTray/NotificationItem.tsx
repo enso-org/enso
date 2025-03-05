@@ -1,9 +1,9 @@
 /** @file An item in the notification tray. */
 import { CloseButton, ProgressBar, Text } from '#/components/AriaComponents'
 import { Icon } from '#/components/Icon'
-import type { NotificationInfo } from '#/layouts/NotificationTray/types'
 import { useText } from '#/providers/TextProvider'
 import { tv } from '#/utilities/tailwindVariants'
+import type { NotificationInfo } from './types'
 
 const NOTIFICATION_ITEM_STYLES = tv({
   base: 'flex flex-col px-2',

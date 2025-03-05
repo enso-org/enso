@@ -4,11 +4,11 @@ import { Button, Popover, StatusBadge, Text } from '#/components/AriaComponents'
 import { Result } from '#/components/Result'
 import SvgMask from '#/components/SvgMask'
 import { DialogTrigger, GridList, GridListItem } from '#/components/aria'
-import { NotificationItem } from '#/layouts/NotificationTray/components/NotificationItem'
-import { useComputedNotifications } from '#/layouts/NotificationTray/computedNotificationHooks'
-import type { NotificationInfo } from '#/layouts/NotificationTray/types'
 import { useText } from '#/providers/TextProvider'
 import { useState } from 'react'
+import { NotificationItem } from './NotificationItem'
+import { useComputedNotifications } from './computedNotificationHooks'
+import type { NotificationInfo } from './types'
 
 const DIALOG_OFFSET = 16
 const DIALOG_CROSS_OFFSET = 16
