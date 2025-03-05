@@ -162,7 +162,6 @@ public final class LogApiAccess {
     assert requestConfig != null
         : "The request configuration must be set before building a request.";
     var payload = buildPayload(messages);
-    LOGGER.warning(() -> "Constructed HttpRequest with payload " + payload + ". Requestconfig: " + requestConfig);
     return HttpRequest.newBuilder()
         .uri(requestConfig.apiUri())
         .header("Authorization", "Bearer " + requestConfig.accessToken())
@@ -220,7 +219,7 @@ public final class LogApiAccess {
       }
     } catch (RequestFailureException e) {
       if (retryCount < 0) {
-        LOGGER.severe("Failed to send log messages after retrying: " + e.getMessage() + ". The request was: " + request);
+        LOGGER.severe("Failed to send log messages after retrying: " + e.getMessage());
         throw e;
       } else {
         LOGGER.warning("Exception when sending log messages: " + e.getMessage() + ". Retrying...");
