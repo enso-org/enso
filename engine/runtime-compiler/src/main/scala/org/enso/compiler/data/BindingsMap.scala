@@ -342,6 +342,20 @@ case class BindingsMap(
         None
       }
     }
+    if (matchingModules.isEmpty) {
+      // Traverse BindingsMap of matchingModulesFromProject
+      val matchingConcreteModules = matchingModulesFromProject.collect {
+        case ModuleReference.Concrete(concreteMod) => concreteMod
+      }
+      val importedBindingMaps = matchingConcreteModules.map(_.getBindingsMap)
+      importedBindingMaps.foreach { bm =>
+        val resolution = bm.resolveQualifiedName(name)
+        resolution match {
+          case Left(err)  => return Left(err)
+          case Right(res) => return Right(res)
+        }
+      }
+    }
 
     val restOfFQN                                 = name.drop(3)
     val allResolutions: ArrayBuffer[ResolvedName] = ArrayBuffer.empty
