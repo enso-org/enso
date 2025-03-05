@@ -20,8 +20,14 @@ import {
 } from 'react-aria'
 import type * as aria from 'react-aria-components'
 import invariant from 'tiny-invariant'
-import { Button, Text, type Addon, type IconProp, type TestIdProps } from '../AriaComponents'
-import { Icon as IconComponent } from '../Icon'
+import {
+  Button,
+  IconDisplay,
+  Text,
+  type Addon,
+  type IconProp,
+  type TestIdProps,
+} from '../AriaComponents'
 
 export const BREADCRUMB_ITEM_STYLES = tv({
   base: 'flex items-center gap-2 bg-transparent transition-colors',
@@ -29,7 +35,6 @@ export const BREADCRUMB_ITEM_STYLES = tv({
     link: 'block max-w-48 min-w-4 w-auto',
     more: 'aspect-square',
     container: 'flex items-center gap-2',
-    icon: '-mb-0.5',
   },
   variants: {
     isCurrent: {
@@ -192,22 +197,17 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
 
   const container =
     isCurrent ?
-      <Text
-        className={styles.link()}
-        nowrap
-        truncate="1"
+      <IconDisplay
         data-current
         aria-current="page"
         textSelection="none"
         elementType="a"
+        icon={icon}
+        isCurrent={isCurrent}
+        isDisabled={isDisabled}
       >
-        <span className={styles.container()}>
-          <IconComponent className={styles.icon()} size="medium" renderProps={renderProps}>
-            {icon}
-          </IconComponent>
-          {typeof children === 'function' ? children(renderProps) : children}
-        </span>
-      </Text>
+        {children}
+      </IconDisplay>
     : <Button
         {...linkProps}
         loading={dropMutation.isPending}

@@ -12,7 +12,7 @@ import type {
   AvailableIconReturn,
   IconProp as IconType,
   IconPropSvgUse as IconTypeSvgUse,
-  LegacyAvialableIconReturn,
+  LegacyAvailableIconReturn,
   LegacyIconProp as LegacyIconPropType,
   TestIdProps,
 } from '../AriaComponents'
@@ -188,6 +188,6 @@ export function SvgUse(props: SvgUseProps) {
 export function renderIcon<Icon extends string, Render>(
   icon: IconType<Icon, Render>,
   renderProps: Render,
-): AvailableIconReturn | LegacyAvialableIconReturn<Icon> {
+): AvailableIconReturn | LegacyAvailableIconReturn<Icon> {
   return typeof icon === 'function' ? icon(renderProps) : icon
 }

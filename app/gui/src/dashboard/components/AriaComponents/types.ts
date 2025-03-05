@@ -16,7 +16,7 @@ export type IconProp<Icon extends string = string, Render = never> =
   | LegacyIconProp<Icon, Render>
 
 /** The possible return values for a legacy icon. */
-export type LegacyAvialableIconReturn<Icon extends string> =
+export type LegacyAvailableIconReturn<Icon extends string> =
   | LegacyIcon<Icon>
   | ReactElement
   | false
@@ -31,8 +31,8 @@ export type AvailableIconReturn = ReactElement | SvgUseIcon | false | null | und
  * @deprecated Prefer defined keys over importing from `#/assets/*.svg`.
  */
 export type LegacyIconProp<Icon extends string, Render> =
-  | LegacyAvialableIconReturn<Icon>
-  | ((render: Render) => LegacyAvialableIconReturn<Icon>)
+  | LegacyAvailableIconReturn<Icon>
+  | ((render: Render) => LegacyAvailableIconReturn<Icon>)
 
 /** Generic type for imported from figma icons. */
 export type IconPropSvgUse<Render> = AvailableIconReturn | ((render: Render) => AvailableIconReturn)

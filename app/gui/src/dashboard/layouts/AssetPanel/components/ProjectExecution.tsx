@@ -12,12 +12,12 @@ import {
 
 import LogsIcon from '#/assets/logs.svg'
 import RepeatIcon from '#/assets/repeat.svg'
-import TimeIcon from '#/assets/time.svg'
 import { DialogTrigger } from '#/components/aria'
 import {
   Button,
   ButtonGroup,
   CloseButton,
+  IconDisplay,
   Text,
   WithVisualTooltip,
 } from '#/components/AriaComponents'
@@ -229,37 +229,34 @@ export function ProjectExecution(props: ProjectExecutionProps) {
       {!compact && (
         <ButtonGroup className={styles.infoContainer()}>
           {enableAdvancedProjectExecutionOptions && (
-            <Button
-              size="xsmall"
+            <IconDisplay
               variant="outline"
-              icon={TimeIcon}
+              icon="time"
               tooltip={maxDurationLabel}
               tooltipPlacement="left"
               className={styles.info()}
             >
-              <Text truncate="1">{maxDurationDescription}</Text>
-            </Button>
+              {maxDurationDescription}
+            </IconDisplay>
           )}
-          <Button
-            size="xsmall"
+          <IconDisplay
             variant="outline"
             icon={RepeatIcon}
             tooltip={repeatIntervalLabel}
             tooltipPlacement="left"
             className={styles.info()}
           >
-            <Text truncate="1">{repeatIntervalDescription}</Text>
-          </Button>
-          <Button
-            size="xsmall"
+            {repeatIntervalDescription}
+          </IconDisplay>
+          <IconDisplay
             variant="outline"
             icon="time"
             tooltip={timeZoneLabel}
             tooltipPlacement="left"
             className={styles.info()}
           >
-            <Text truncate="1">{timeZoneDescription}</Text>
-          </Button>
+            {timeZoneDescription}
+          </IconDisplay>
         </ButtonGroup>
       )}
     </div>
