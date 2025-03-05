@@ -3,7 +3,7 @@ import {
   ProgressBar as AriaProgressBar,
   type ProgressBarProps as AriaProgressBarProps,
 } from '#/components/aria'
-import { tv } from '#/utilities/tailwindVariants'
+import { VariantProps, tv } from '#/utilities/tailwindVariants'
 
 const PROGRESS_BAR_STYLES = tv({
   base: 'h-2 rounded-full bg-primary/10',
@@ -14,16 +14,18 @@ const PROGRESS_BAR_STYLES = tv({
 })
 
 /** Props for a {@link ProgressBar}. */
-export interface ProgressBarProps extends Omit<AriaProgressBarProps, 'value'> {
+export interface ProgressBarProps
+  extends Omit<AriaProgressBarProps, 'value'>,
+    VariantProps<typeof PROGRESS_BAR_STYLES> {
   readonly progress: number | 'indeterminate'
 }
 
 /** Progress bar. */
 export function ProgressBar(props: ProgressBarProps) {
-  const { progress, ...rest } = props
+  const { progress, variants = PROGRESS_BAR_STYLES, ...rest } = props
   const progressNumber = progress === 'indeterminate' ? 1 : progress
 
-  const styles = PROGRESS_BAR_STYLES()
+  const styles = variants()
 
   return (
     <AriaProgressBar

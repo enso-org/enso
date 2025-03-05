@@ -32,9 +32,9 @@ export interface StatusBadgeProps
 
 /** A status badge to notify the user of the state of an item. */
 export function StatusBadge(props: StatusBadgeProps) {
-  const { color, hidden, children } = props
+  const { variants = STATUS_BADGE_STYLES, color, hidden, children } = props
 
-  const styles = STATUS_BADGE_STYLES({ color, hidden })
+  const styles = variants({ color, hidden })
 
   return (
     <div className={styles.base()}>
