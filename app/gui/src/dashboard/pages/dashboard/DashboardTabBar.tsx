@@ -94,7 +94,7 @@ export function DashboardTabBar(props: DashboardTabBarProps) {
   ]
 
   return (
-    <TabBar className="bg-primary/5" items={tabs}>
+    <TabBar className="bg-primary/10" items={tabs}>
       {(tabProps) => {
         switch (tabProps.type) {
           case 'tab': {
