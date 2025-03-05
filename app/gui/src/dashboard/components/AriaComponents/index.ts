@@ -1,7 +1,4 @@
-/**
- * @file index.ts
- * Index file for Aria Components
- */
+/** @file Index file for Aria components. */
 export * from './Alert'
 export * from './Button'
 export * from './Checkbox'

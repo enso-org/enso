@@ -230,7 +230,6 @@ export function ProjectExecution(props: ProjectExecutionProps) {
         <ButtonGroup className={styles.infoContainer()}>
           {enableAdvancedProjectExecutionOptions && (
             <IconDisplay
-              showTooltip
               variant="outline"
               icon="time"
               tooltip={maxDurationLabel}
@@ -241,7 +240,6 @@ export function ProjectExecution(props: ProjectExecutionProps) {
             </IconDisplay>
           )}
           <IconDisplay
-            showTooltip
             variant="outline"
             icon={RepeatIcon}
             tooltip={repeatIntervalLabel}
@@ -251,7 +249,6 @@ export function ProjectExecution(props: ProjectExecutionProps) {
             {repeatIntervalDescription}
           </IconDisplay>
           <IconDisplay
-            showTooltip
             variant="outline"
             icon="time"
             tooltip={timeZoneLabel}

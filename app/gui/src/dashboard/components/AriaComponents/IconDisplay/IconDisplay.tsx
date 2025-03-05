@@ -40,7 +40,6 @@ export interface IconDisplayProps<IconType extends string>
   extends Omit<TextProps, 'children' | 'variant' | 'variants'>,
     IconDisplayRenderProps,
     VariantProps<typeof ICON_DISPLAY_STYLES> {
-  readonly showTooltip?: boolean
   readonly icon: IconProp<IconType, Required<IconDisplayRenderProps>>
   readonly children:
     | TooltipElementType
@@ -50,7 +49,6 @@ export interface IconDisplayProps<IconType extends string>
 /** A text display with an icon. */
 export function IconDisplay<IconType extends string>(props: IconDisplayProps<IconType>) {
   const {
-    showTooltip = false,
     icon,
     isCurrent = true,
     isDisabled = false,
@@ -68,7 +66,7 @@ export function IconDisplay<IconType extends string>(props: IconDisplayProps<Ico
 
   return (
     <div className={styles.base()}>
-      <WithVisualTooltip tooltip={showTooltip ? tooltip : null} tooltipPlacement="left">
+      <WithVisualTooltip tooltip={tooltip} tooltipPlacement="left">
         <Icon className={styles.icon()} size="medium" renderProps={renderProps}>
           {icon}
         </Icon>
