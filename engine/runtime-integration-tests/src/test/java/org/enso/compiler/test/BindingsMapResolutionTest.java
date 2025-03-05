@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import org.enso.common.RuntimeOptions;
@@ -75,6 +76,40 @@ public class BindingsMapResolutionTest {
         bindingsMap -> {
           assertSingleResolvedType(bindingsMap, "My_Vector");
           assertSingleResolvedType(bindingsMap, "local.Lib.My_Vector.My_Vector");
+        });
+  }
+
+  @Test
+  public void resolveQualifiedName_DefinedEntity() throws IOException {
+    var projDir = createProject("""
+        type My_Type
+        """);
+    testBindingsMap(
+        projDir,
+        bindingsMap -> {
+          assertSingleResolvedType(bindingsMap, "My_Type");
+          assertSingleResolvedType(bindingsMap, "local.Proj.My_Type");
+        });
+  }
+
+  @Test
+  public void resolveConstructor_DefinedEntity() throws IOException {
+    var projDir = createProject("""
+        type My_Type
+            Cons
+        """);
+    testBindingsMap(
+        projDir,
+        bindingsMap -> {
+          for (var nameToResolve : List.of("My_Type.Cons", "local.Proj.My_Type.Cons")) {
+            assertResolvedNames(
+                bindingsMap,
+                nameToResolve,
+                resolvedNames -> {
+                  assertThat(resolvedNames.size(), is(1));
+                  assertThat(resolvedNames.head() instanceof ResolvedConstructor, is(true));
+                });
+          }
         });
   }
 
@@ -186,14 +221,159 @@ public class BindingsMapResolutionTest {
                     """)),
         libDir);
     ProjectUtils.createProject(
-        "Proj",
-        Set.of(new SourceModule(QualifiedName.fromString("Main"), "from local.Lib import all")),
-        projDir);
+        "Proj", """
+            from local.Lib import all
+            """, projDir);
     testBindingsMap(
         projDir,
         bindingsMap -> {
           assertSingleResolvedType(bindingsMap, "My_Type");
           assertSingleResolvedType(bindingsMap, "local.Lib.My_Module.My_Type");
+        });
+  }
+
+  @Test
+  public void resolveReexportedType_MoreDefinedEntitiesInLib() throws IOException {
+    var tmpDir = TMP_DIR.newFolder();
+    var libDir = tmpDir.toPath().resolve("Lib");
+    var projDir = tmpDir.toPath().resolve("Proj");
+    libDir.toFile().mkdir();
+    projDir.toFile().mkdir();
+    ProjectUtils.createProject(
+        "Lib",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("Main"),
+                """
+                    import project.My_Other_Module.My_Other_Type
+                    import project.My_Module.My_Type
+                    export project.My_Other_Module.My_Other_Type
+                    export project.My_Module.My_Type
+                    """),
+            new SourceModule(
+                QualifiedName.fromString("My_Module"),
+                """
+                    type My_Type
+                    """),
+            new SourceModule(
+                QualifiedName.fromString("My_Other_Module"),
+                """
+                    type My_Other_Type
+                    """)),
+        libDir);
+    ProjectUtils.createProject(
+        "Proj", """
+            from local.Lib import all
+            """, projDir);
+    testBindingsMap(
+        projDir,
+        bindingsMap -> {
+          assertSingleResolvedType(bindingsMap, "My_Type");
+          assertSingleResolvedType(bindingsMap, "local.Lib.My_Module.My_Type");
+          assertSingleResolvedType(bindingsMap, "My_Other_Type");
+          assertSingleResolvedType(bindingsMap, "local.Lib.My_Other_Module.My_Other_Type");
+        });
+  }
+
+  @Test
+  public void resolveReexportedType_FromDifferentProject() throws IOException {
+    var tmpDir = TMP_DIR.newFolder();
+    var libDir = tmpDir.toPath().resolve("Lib");
+    var otherLibDir = tmpDir.toPath().resolve("Other_Lib");
+    var projDir = tmpDir.toPath().resolve("Proj");
+    libDir.toFile().mkdir();
+    projDir.toFile().mkdir();
+    otherLibDir.toFile().mkdir();
+    ProjectUtils.createProject(
+        "Other_Lib",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("Other_Module"),
+                """
+                    type Other_Type
+                    """),
+            new SourceModule(
+                QualifiedName.fromString("Main"),
+                """
+                    import project.Other_Module.Other_Type
+                    export project.Other_Module.Other_Type
+                    """)),
+        otherLibDir);
+    ProjectUtils.createProject(
+        "Lib",
+        """
+            import local.Other_Lib.Other_Module.Other_Type
+            export local.Other_Lib.Other_Module.Other_Type
+            type My_Type
+            """,
+        libDir);
+    ProjectUtils.createProject(
+        "Proj", """
+            from local.Lib import all
+            """, projDir);
+    testBindingsMap(
+        projDir,
+        bindingsMap -> {
+          assertSingleResolvedType(bindingsMap, "My_Type");
+          assertSingleResolvedType(bindingsMap, "local.Lib.My_Type");
+          assertSingleResolvedType(bindingsMap, "Other_Type");
+          assertSingleResolvedType(bindingsMap, "local.Other_Lib.Other_Module.Other_Type");
+        });
+  }
+
+  @Test
+  public void resolveReexportedType_ThreeProjects() throws IOException {
+    var tmpDir = TMP_DIR.newFolder();
+    var libDir = tmpDir.toPath().resolve("Lib");
+    var otherLibDir = tmpDir.toPath().resolve("Other_Lib");
+    var projDir = tmpDir.toPath().resolve("Proj");
+    libDir.toFile().mkdir();
+    projDir.toFile().mkdir();
+    otherLibDir.toFile().mkdir();
+    ProjectUtils.createProject(
+        "Other_Lib", """
+            type Other_Type
+            """, otherLibDir);
+    ProjectUtils.createProject(
+        "Lib",
+        Set.of(
+            new SourceModule(
+                QualifiedName.fromString("Main"),
+                """
+                    import project.My_Module.My_Type
+                    export project.My_Module.My_Type
+                    """),
+            new SourceModule(
+                QualifiedName.fromString("My_Module"),
+                """
+                    type My_Type
+                        Cons
+                    """)),
+        libDir);
+    ProjectUtils.createProject(
+        "Proj",
+        """
+            from local.Other_Lib import all
+            from local.Lib import all
+            """,
+        projDir);
+    testBindingsMap(
+        projDir,
+        bindingsMap -> {
+          assertResolvedNames(
+              bindingsMap,
+              "My_Type",
+              resolvedNames -> {
+                assertThat(resolvedNames.size(), is(1));
+                assertThat(resolvedNames.head() instanceof ResolvedType, is(true));
+              });
+          assertResolvedNames(
+              bindingsMap,
+              "local.Lib.My_Module.My_Type",
+              resolvedNames -> {
+                assertThat(resolvedNames.size(), is(1));
+                assertThat(resolvedNames.head() instanceof ResolvedType, is(true));
+              });
         });
   }
 
@@ -213,7 +393,6 @@ public class BindingsMapResolutionTest {
   }
 
   private static void assertSingleResolvedType(BindingsMap bindingsMap, String typeName) {
-    assertThat("Has resolved import", bindingsMap.resolvedImports().size(), is(1));
     Either<ResolutionError, scala.collection.immutable.List<ResolvedName>> resolution;
     if (typeName.contains(".")) {
       var fqn = Arrays.stream(typeName.split("\\.")).toList();
