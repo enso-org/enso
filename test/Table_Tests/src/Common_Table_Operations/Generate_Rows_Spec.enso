@@ -31,6 +31,7 @@ add_offset_specs suite_builder setup =
     suite_builder.group prefix+"Table.Offset with default fill strategy (Text Values)" group_builder->
         t1 = build_sorted_table [["Text Values", ["A", "B", "C"]]]
         t2 = build_sorted_table [["Text Values", ["A", "B", "C"]], ["NumRows", [1, 0, 2]]]
+        t3 = build_sorted_table [["Text Values", ["A", "B", "C"]], ["Start", [1, 0, 2]], ["Stop", [3, 0, 3]]]
         group_builder.specify "Works with Integer_Range constant values and default step" <|
             t1.generate_rows (..Integer_Range 0 2) . should_equal ignore_order=setup.is_database
                 Table.new [["Text Values", ["A", "A", "B", "B", "C", "C"]], ["generate_rows_id", [0, 1, 0, 1, 0, 1]]]
@@ -43,5 +44,8 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Works with Integer_Range column value and constant" <|
             t2.generate_rows (..Integer_Range (..Name 'NumRows') 2) . should_equal ignore_order=setup.is_database
                 Table.new [["Text Values", ["A", "B", "B"]], ["NumRows", [1, 0, 0]], ["generate_rows_id", [1, 0, 1]]]
+        group_builder.specify "Works with Integer_Range 2 columns" <|
+            t3.generate_rows (..Integer_Range (..Name 'Start') (..Name 'Stop')) . should_equal ignore_order=setup.is_database
+                Table.new [["Text Values", ["A", "A", "C"]], ["Start", [1, 1, 2]], ["Stop", [3, 3, 3]], ["generate_rows_id", [1, 2, 2]]]
 
 
