@@ -38,6 +38,7 @@ public class BindingsMapResolutionTest {
         projDir,
         bindingsMap -> {
           assertSingleResolvedType(bindingsMap, "My_Vector");
+          assertSingleResolvedType(bindingsMap, "local.Proj.My_Vector.My_Vector");
         });
   }
 
@@ -48,15 +49,6 @@ public class BindingsMapResolutionTest {
         projDir,
         bindingsMap -> {
           assertSingleResolvedType(bindingsMap, "My_Vector");
-        });
-  }
-
-  @Test
-  public void resolveQualifiedName_FromSingleImport() throws IOException {
-    var projDir = createProject("import local.Proj.My_Vector.My_Vector");
-    testBindingsMap(
-        projDir,
-        bindingsMap -> {
           assertSingleResolvedType(bindingsMap, "local.Proj.My_Vector.My_Vector");
         });
   }
@@ -81,6 +73,7 @@ public class BindingsMapResolutionTest {
     testBindingsMap(
         projDir,
         bindingsMap -> {
+          assertSingleResolvedType(bindingsMap, "My_Vector");
           assertSingleResolvedType(bindingsMap, "local.Lib.My_Vector.My_Vector");
         });
   }
@@ -151,19 +144,21 @@ public class BindingsMapResolutionTest {
             new SourceModule(
                 QualifiedName.fromString("My_Module"),
                 """
-                type My_Type
-                    Cons
-                """),
+                    type My_Type
+                        Cons
+                    """),
             new SourceModule(
                 QualifiedName.fromString("Main"),
                 """
-                export project.My_Module.My_Type
-                """)),
+                    import project.My_Module.My_Type
+                    export project.My_Module.My_Type
+                    """)),
         projDir);
     testBindingsMap(
         projDir,
         bindingsMap -> {
           assertSingleResolvedType(bindingsMap, "My_Type");
+          assertSingleResolvedType(bindingsMap, "local.Proj.My_Module.My_Type");
         });
   }
 
@@ -177,13 +172,18 @@ public class BindingsMapResolutionTest {
     ProjectUtils.createProject(
         "Lib",
         Set.of(
-            new SourceModule(QualifiedName.fromString("Main"), "export project.My_Module.My_Type"),
+            new SourceModule(
+                QualifiedName.fromString("Main"),
+                """
+                    import project.My_Module.My_Type
+                    export project.My_Module.My_Type
+                    """),
             new SourceModule(
                 QualifiedName.fromString("My_Module"),
                 """
-                type My_Type
-                    Cons
-                """)),
+                    type My_Type
+                        Cons
+                    """)),
         libDir);
     ProjectUtils.createProject(
         "Proj",
@@ -192,6 +192,7 @@ public class BindingsMapResolutionTest {
     testBindingsMap(
         projDir,
         bindingsMap -> {
+          assertSingleResolvedType(bindingsMap, "My_Type");
           assertSingleResolvedType(bindingsMap, "local.Lib.My_Module.My_Type");
         });
   }
@@ -256,14 +257,12 @@ public class BindingsMapResolutionTest {
     }
   }
 
-  // TODO: Extract from ExportedSymbolsTest
   private static Context createCtx(Path projDir) {
     return ContextUtils.defaultContextBuilder()
         .option(RuntimeOptions.PROJECT_ROOT, projDir.toAbsolutePath().toString())
         .build();
   }
 
-  // TODO: Extract
   private static void compile(Context ctx) {
     new PolyglotContext(ctx).getTopScope().compile(true);
   }
