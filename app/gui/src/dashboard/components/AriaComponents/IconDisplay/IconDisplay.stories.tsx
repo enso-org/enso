@@ -9,22 +9,19 @@ export default {
   component: IconDisplay,
   render: (args) => <IconDisplay {...args} />,
   tags: ['autodocs'],
-  args: {},
+  args: { icon: 'time', children: 'aaaaaaaa' } satisfies Props,
+  // `text-primary` is required to make icons show up.
+  decorators: [(Story, context) => <div className="text-primary">{Story(context)}</div>],
   parameters: {
     layout: 'centered',
   },
 } as Meta<Props>
 
-export const Default: Story = {
-  args: {
-    icon: 'time',
-    children: 'aaaaaaaa',
-  } satisfies Props,
-}
+export const Default: Story = {}
 
 export const Overflowing: Story = {
   args: {
     icon: 'sort',
-    children: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    children: 'very long example label that overflows the max width',
   } satisfies Props,
 }
