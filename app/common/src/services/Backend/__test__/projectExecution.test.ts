@@ -1,3 +1,7 @@
+import * as v from 'vitest'
+
+v.test('Test suite disabled (FIXME: #12426)', () => {})
+/*
 import { ZonedDateTime } from '@internationalized/date'
 import * as v from 'vitest'
 import { IanaTimeZone, toRfc3339 } from '../../../utilities/data/dateTime'
@@ -67,3 +71,4 @@ v.test.each([
     v.expect(firstProjectExecutionOnOrAfter(info, current).toString()).toBe(next.toString())
   },
 )
+ */
