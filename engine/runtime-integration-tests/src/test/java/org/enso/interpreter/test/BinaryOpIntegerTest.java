@@ -109,6 +109,7 @@ public class BinaryOpIntegerTest {
   public static void closeContext() {
     ctx.close();
     ctx = null;
+    wrapInt = null;
   }
 
   private final String operation;

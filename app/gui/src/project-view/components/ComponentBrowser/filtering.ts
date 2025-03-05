@@ -28,6 +28,8 @@ const ALIAS_PENALTY = 1000
 const OWNER_SCORE_WEIGHT = 0.2
 /** The matches on actual names should be better than matches on owner names only */
 const OWNER_ONLY_MATCH_PENALTY = 6000
+/** Penalty added when selfType is specified, and we match entry from another type */
+const DIFFERENT_TYPE_PENALTY = 1
 
 interface NameMatchResult {
   score: number
@@ -242,20 +244,23 @@ export class Filtering {
     public currentModule: ProjectPath | undefined = undefined,
   ) {
     const { pattern, selfArg } = filter
-    this.pattern = pattern != null ? new FilteringWithPattern(pattern) : undefined
+    this.pattern = pattern ? new FilteringWithPattern(pattern) : undefined
     this.selfArg = selfArg
   }
 
-  private selfTypeMatches(entry: SuggestionEntry, additionalSelfTypes: ProjectPath[]): boolean {
-    if (this.selfArg == null) return entry.kind !== SuggestionKind.Method || entry.selfType == null
-    if (entry.kind !== SuggestionKind.Method || entry.selfType == null) return false
+  private selfTypeMatches(
+    entry: SuggestionEntry,
+    additionalSelfTypes: ProjectPath[],
+  ): { score: number } | null {
+    if (this.selfArg == null)
+      return entry.kind !== SuggestionKind.Method || entry.selfType == null ? { score: 0 } : null
+    if (entry.kind !== SuggestionKind.Method || entry.selfType == null) return null
+    if (this.selfArg.type !== 'known') return { score: 0 }
     const entrySelfType = entry.selfType
-    return (
-      this.selfArg.type !== 'known' ||
-      entrySelfType.equals(this.selfArg.typename) ||
-      entrySelfType.equals(ANY_TYPE) ||
-      additionalSelfTypes.some((t) => entrySelfType.equals(t))
-    )
+    if (entrySelfType.equals(this.selfArg.typename)) return { score: 0 }
+    if (entrySelfType.equals(ANY_TYPE) || additionalSelfTypes.some((t) => entrySelfType.equals(t)))
+      return { score: DIFFERENT_TYPE_PENALTY }
+    return null
   }
 
   /** TODO: Add docs */
@@ -278,15 +283,17 @@ export class Filtering {
   filter(entry: SuggestionEntry, additionalSelfTypes: ProjectPath[]): MatchResult | null {
     if (entry.isPrivate || entry.kind != SuggestionKind.Method) return null
     if (this.selfArg == null && isInternal(entry)) return null
-    if (!this.selfTypeMatches(entry, additionalSelfTypes)) return null
+    const selfTypeMatch = this.selfTypeMatches(entry, additionalSelfTypes)
+    if (selfTypeMatch == null) return null
     if (this.pattern) {
       const patternMatch = this.pattern.tryMatch(entry.name, entry.aliases, entry.memberOf)
       if (!patternMatch) return null
       if (this.isLocal(entry)) patternMatch.score *= 2
+      patternMatch.score += selfTypeMatch.score
       return patternMatch
     }
     if (this.isMainView()) return this.mainViewFilter(entry)
-    return { score: 0 }
+    return selfTypeMatch
   }
 }
 

@@ -24,7 +24,7 @@ electronTest('Local Workflow', async ({ page, app, projectsDir }) => {
   await page.locator('.GraphNode').click()
   await page.keyboard.press('Enter')
   await expect(page.locator('.ComponentBrowser')).toBeVisible()
-  const entry = page.locator('.ComponentList .list-variant.selected .component', {
+  const entry = page.locator('.ComponentEntry.selected', {
     hasText: 'column_count',
   })
   await expect(entry).toBeVisible()

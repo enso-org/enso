@@ -204,6 +204,10 @@ const config = [
       'app/rust-ffi/pkg/',
     ],
   },
+  {
+    // Based on a 3rd party library that doesn't use ESLint.
+    ignores: ['app/lang-markdown/', 'app/lezer-markdown/'],
+  },
   eslintJs.configs.recommended,
   ...pluginVue.configs['flat/recommended'],
   ...vueTsEslintConfig(),

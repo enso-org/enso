@@ -61,11 +61,12 @@ public class WarningsTest {
 
   @AfterClass
   public static void disposeContext() {
-    generator.dispose();
+    generator.close();
     ctx.close();
     ctx = null;
     ensoContext.shutdown();
     ensoContext = null;
+    wrap = null;
   }
 
   @Test

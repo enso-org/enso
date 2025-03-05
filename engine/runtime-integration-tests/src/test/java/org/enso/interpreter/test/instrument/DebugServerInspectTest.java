@@ -35,7 +35,9 @@ public class DebugServerInspectTest {
   public static void closeContext() throws Exception {
     ctx.close();
     ctx = null;
+    out.close();
     out = null;
+    err.close();
     err = null;
   }
 
