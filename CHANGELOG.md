@@ -30,6 +30,7 @@
   buttons][12341]
 - [Cloud File Browser allows renaming existing directories in "writing"
   components][12323]
+- [New Component Browser displaying list of groups][12386]
 - ["Insert link" button added to documentation panel][12365]
 - [Cloud File Browser, when opened first time after opening project, shows and
   highlights the currently set file][12184]
@@ -52,6 +53,7 @@
 [12275]: https://github.com/enso-org/enso/pull/12275
 [12341]: https://github.com/enso-org/enso/pull/12341
 [12323]: https://github.com/enso-org/enso/pull/12323
+[12386]: https://github.com/enso-org/enso/pull/12386
 [12365]: https://github.com/enso-org/enso/pull/12365
 [12184]: https://github.com/enso-org/enso/pull/12184
 

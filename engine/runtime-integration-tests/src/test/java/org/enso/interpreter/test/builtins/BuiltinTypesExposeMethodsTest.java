@@ -43,20 +43,21 @@ public class BuiltinTypesExposeMethodsTest {
 
   @Parameters(name = "{index}: {0}")
   public static Iterable<Value> generateBuiltinObjects() {
-    var valuesGenerator = ValuesGenerator.create(ctx(), Language.ENSO);
     var builtinTypes = new ArrayList<Value>();
-    ContextUtils.executeInContext(
-        ctx(),
-        () -> {
-          valuesGenerator.allTypes().stream()
-              .filter(
-                  val -> {
-                    var asType = getType(val);
-                    return !shouldSkipType(asType);
-                  })
-              .forEach(builtinTypes::add);
-          return null;
-        });
+    try (ValuesGenerator valuesGenerator = ValuesGenerator.create(ctx(), Language.ENSO)) {
+      ContextUtils.executeInContext(
+          ctx(),
+          () -> {
+            valuesGenerator.allTypes().stream()
+                .filter(
+                    val -> {
+                      var asType = getType(val);
+                      return !shouldSkipType(asType);
+                    })
+                .forEach(builtinTypes::add);
+            return null;
+          });
+    }
     return builtinTypes;
   }
 

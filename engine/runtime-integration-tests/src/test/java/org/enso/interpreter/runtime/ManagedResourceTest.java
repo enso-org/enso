@@ -53,7 +53,12 @@ public class ManagedResourceTest {
   @AfterClass
   public static void closeCtx() throws Exception {
     ctx.close();
+    ensoCtx.shutdown();
     ctx = null;
+    ensoCtx = null;
+    newResource = null;
+    createResource = null;
+    getResource = null;
   }
 
   @Test

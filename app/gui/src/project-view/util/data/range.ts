@@ -41,12 +41,12 @@ export function* allRanges(
   }
   let lastEndIndex = start
   for (const range of ranges) {
-    yield RangeWithMatch.fromRange(Range.tryFromBounds(lastEndIndex, range.from)!, false)
+    yield RangeWithMatch.fromRange(Range.unsafeFromBounds(lastEndIndex, range.from), false)
     yield RangeWithMatch.fromRange(range, true)
     lastEndIndex = range.to
   }
   if (lastEndIndex !== end) {
-    yield RangeWithMatch.fromRange(Range.tryFromBounds(lastEndIndex, end)!, false)
+    yield RangeWithMatch.fromRange(Range.unsafeFromBounds(lastEndIndex, end), false)
   }
 }
 

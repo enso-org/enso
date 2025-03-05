@@ -29,6 +29,86 @@ declare const brandNormalized: unique symbol
  */
 export type NormalizedRange = SeminormalizedRange & { [brandNormalized]: true }
 
+declare const brandLeaf: unique symbol
+declare const brandSupported: unique symbol
+declare const brandDelimited: unique symbol
+type BT<
+  LeafOrContainer extends 'leaf' | 'container',
+  SupportedOrHidden extends 'supported' | 'hidden',
+  DelimitedOrFenced extends 'delimited' | 'fenced',
+> = {
+  [brandLeaf]: LeafOrContainer extends 'leaf' ? true : false
+  [brandSupported]: SupportedOrHidden extends 'supported' ? true : false
+  [brandDelimited]: DelimitedOrFenced extends 'delimited' ? true : false
+}
+
+type BlockTypes = {
+  Paragraph: BT<'leaf', 'supported', 'delimited'>
+  ATXHeading1: BT<'leaf', 'supported', 'delimited'>
+  ATXHeading2: BT<'leaf', 'supported', 'delimited'>
+  ATXHeading3: BT<'leaf', 'supported', 'delimited'>
+  ATXHeading4: BT<'leaf', 'hidden', 'delimited'>
+  ATXHeading5: BT<'leaf', 'hidden', 'delimited'>
+  ATXHeading6: BT<'leaf', 'hidden', 'delimited'>
+  Blockquote: BT<'leaf', 'supported', 'delimited'>
+  FencedCode: BT<'leaf', 'supported', 'fenced'>
+  OrderedList: BT<'container', 'supported', 'delimited'>
+  BulletList: BT<'container', 'supported', 'delimited'>
+  ListItem: BT<'leaf', 'hidden', 'delimited'>
+}
+
+/** Block types the parser recognizes, that correspond to one block per node. */
+export type LeafBlockType = keyof {
+  [K in keyof BlockTypes as BlockTypes[K][typeof brandLeaf] extends true ? K : never]: never
+}
+
+/** Block types we support applying. */
+export type SupportedBlockType = keyof {
+  [K in keyof BlockTypes as BlockTypes[K][typeof brandSupported] extends true ? K : never]: never
+}
+
+/**
+ * Block types that are defined by a delimited at the start of each line, not fence lines before and
+ * after.
+ */
+export type DelimitedBlockType = keyof {
+  [K in keyof BlockTypes as BlockTypes[K][typeof brandDelimited] extends true ? K : never]: never
+}
+
+/** Type predicate for {@link SupportedBlockType} */
+export function isSupportedBlockType(type: string): type is SupportedBlockType {
+  switch (type) {
+    case 'Paragraph':
+    case 'ATXHeading1':
+    case 'ATXHeading2':
+    case 'ATXHeading3':
+    case 'Blockquote':
+    case 'FencedCode':
+    case 'OrderedList':
+    case 'BulletList':
+      return true
+  }
+  return false
+}
+
+/** Type predicate for {@link LeafBlockType} */
+export function isLeafBlockType(type: string): type is LeafBlockType {
+  switch (type) {
+    case 'Paragraph':
+    case 'ATXHeading1':
+    case 'ATXHeading2':
+    case 'ATXHeading3':
+    case 'ATXHeading4':
+    case 'ATXHeading5':
+    case 'ATXHeading6':
+    case 'Blockquote':
+    case 'FencedCode':
+    case 'ListItem':
+      return true
+  }
+  return false
+}
+
 export type FormatNode = 'Emphasis' | 'StrongEmphasis' | 'Strikethrough'
 
 const MARK_TOKEN: Readonly<Record<FormatNode, string>> = {

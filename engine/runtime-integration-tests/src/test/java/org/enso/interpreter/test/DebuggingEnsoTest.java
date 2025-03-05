@@ -92,6 +92,7 @@ public class DebuggingEnsoTest {
     engine.close();
     engine = null;
     debugger = null;
+    out.close();
   }
 
   @Before

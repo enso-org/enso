@@ -1,68 +1,67 @@
 <script setup lang="ts">
-import DropdownMenu from '@/components/DropdownMenu.vue'
-import {
-  type HeaderLevel,
-  type ListType,
-} from '@/components/MarkdownEditor/codemirror/formatting/block'
-import MenuButton from '@/components/MenuButton.vue'
-import MenuPanel from '@/components/MenuPanel.vue'
-import SvgIcon from '@/components/SvgIcon.vue'
+import { type BlockType } from '@/components/MarkdownEditor/codemirror/formatting'
+import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import { type Icon } from '@/util/iconMetadata/iconName'
-import { ref } from 'vue'
+import { computed } from 'vue'
 
-const emit = defineEmits<{
-  toggleHeader: [HeaderLevel]
-  toggleQuote: []
-  toggleList: [ListType]
-}>()
+const blockType = defineModel<BlockType | 'Unknown'>({ required: true })
 
-interface MenuItem {
-  name: string
-  icon: Icon
-  action: () => void
+const blockIcon: Record<BlockType | 'Unknown', Icon> = {
+  Unknown: 'text',
+  Paragraph: 'text',
+  BulletList: 'bullet-list',
+  ATXHeading1: 'header1',
+  ATXHeading2: 'header2',
+  ATXHeading3: 'header3',
+  OrderedList: 'numbered-list',
+  Blockquote: 'quote',
+  FencedCode: 'code',
 }
-const menuItems: MenuItem[] = [
-  { name: 'Header 1', icon: 'header1', action: () => emit('toggleHeader', 1) },
-  { name: 'Header 2', icon: 'header2', action: () => emit('toggleHeader', 2) },
-  { name: 'Header 3', icon: 'header3', action: () => emit('toggleHeader', 3) },
-  { name: 'Quote', icon: 'quote', action: () => emit('toggleQuote') },
-  { name: 'Bullet list', icon: 'bullet-list', action: () => emit('toggleList', 'unordered') },
-  { name: 'Numbered list', icon: 'numbered-list', action: () => emit('toggleList', 'ordered') },
+const blockName: Record<BlockType | 'Unknown', string> = {
+  Unknown: 'Paragraph type',
+  Paragraph: 'Normal',
+  BulletList: 'List',
+  ATXHeading1: 'Header 1',
+  ATXHeading2: 'Header 2',
+  ATXHeading3: 'Header 3',
+  OrderedList: 'Numbered List',
+  Blockquote: 'Quote',
+  FencedCode: 'Code',
+}
+const blockTypesOrdered: BlockType[] = [
+  'Paragraph',
+  'ATXHeading1',
+  'ATXHeading2',
+  'ATXHeading3',
+  'BulletList',
+  'OrderedList',
+  'Blockquote',
 ]
 
-const open = ref(false)
+const blockTypeOptions = computed(() => {
+  // Always show the current type.
+  const shownTypes =
+    blockTypesOrdered.includes(blockType.value as BlockType) ? blockTypesOrdered : (
+      [...blockTypesOrdered, blockType.value]
+    )
+  // Code cannot directly be converted to other block types. Switching to `Paragraph` removes the delimiters, and allows
+  // whatever is contained to be interpreted as Markdown; once the content is Markdown, further styling changes can be
+  // made.
+  const disableSettingTypes = blockType.value === 'FencedCode'
+  return Object.fromEntries(
+    shownTypes.map((key) => [
+      key,
+      {
+        icon: blockIcon[key],
+        label: blockName[key],
+        disabled: disableSettingTypes ? key !== blockType.value && key !== 'Paragraph' : false,
+        hidden: key === 'Unknown',
+      },
+    ]),
+  )
+})
 </script>
 
 <template>
-  <DropdownMenu v-model:open="open" title="Block type">
-    <template #button>
-      <SvgIcon name="text3" />
-    </template>
-    <template #menu>
-      <MenuPanel>
-        <template v-for="item in menuItems" :key="item.name">
-          <MenuButton @click="(item.action(), (open = false))">
-            <SvgIcon :name="item.icon" />
-            <div class="iconLabel" v-text="item.name" />
-          </MenuButton>
-        </template>
-      </MenuPanel>
-    </template>
-  </DropdownMenu>
+  <SelectionDropdown v-model="blockType" :options="blockTypeOptions" labelButton />
 </template>
-
-<style scoped>
-.MenuPanel {
-  box-shadow: 0 0 1px rgba(0, 0, 0, 0.2);
-}
-
-.MenuButton {
-  margin: -4px;
-  justify-content: unset;
-}
-
-.iconLabel {
-  margin-left: 4px;
-  padding-right: 4px;
-}
-</style>

@@ -3,6 +3,7 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.*;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import org.enso.common.MethodNames;
@@ -46,9 +47,10 @@ public class TypeInferenceConsistencyTest {
   }
 
   @AfterClass
-  public static void disposeCtx() {
+  public static void disposeCtx() throws IOException {
     ctx.close();
     ctx = null;
+    output.close();
   }
 
   @Test

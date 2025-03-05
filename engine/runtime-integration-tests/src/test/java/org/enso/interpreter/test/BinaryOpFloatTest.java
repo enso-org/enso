@@ -90,6 +90,7 @@ public class BinaryOpFloatTest {
   public static void closeContext() {
     ctx.close();
     ctx = null;
+    wrapReal = null;
   }
 
   private final String operation;
