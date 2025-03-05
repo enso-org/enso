@@ -77,7 +77,13 @@ export interface BaseButtonProps<IconType extends string, Render>
    * Handler that is called when the press is released over the target.
    * If the handler returns a promise, the button will be in a loading state until the promise resolves.
    */
-  readonly onPress?: ((event: aria.PressEvent) => Promise<void> | void) | null | undefined
+  // Prettier is not able to format this line correctly
+  // prettier-ignore
+  readonly onPress?:
+    // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+    | ((event: aria.PressEvent) => Promise<unknown> | unknown)
+    | null
+    | undefined
   readonly contentClassName?: string
   readonly isDisabled?: boolean
   readonly formnovalidate?: boolean
@@ -95,10 +101,17 @@ export interface BaseButtonProps<IconType extends string, Render>
 }
 
 /**
+ * A type that makes all properties of a type optional
+ */
+type WithUndefined<T> = {
+  [K in keyof T]: T[K] | undefined
+}
+
+/**
  * Props that are shared between buttons in a button group.
  */
-export interface ButtonGroupSharedButtonProps extends ButtonVariants {
-  readonly isDisabled?: boolean
-  readonly isLoading?: boolean
-  readonly loaderPosition?: 'full' | 'icon'
+export interface ButtonGroupSharedButtonProps extends WithUndefined<ButtonVariants> {
+  readonly isDisabled?: boolean | undefined
+  readonly isLoading?: boolean | undefined
+  readonly loaderPosition?: 'full' | 'icon' | undefined
 }

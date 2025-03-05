@@ -1,5 +1,6 @@
 /** @file Lezer Tree operations for reading and writing inline formatting state. */
 import {
+  isLeafBlockType,
   zeroFormatDepths,
   type FormatDepths,
   type FormatNode,
@@ -75,8 +76,16 @@ abstract class ExclusiveTreeVisitor extends TreeRangeVisitor {
       from: this.range.from,
       to: this.range.to,
       enter: (node) => {
-        // `iterate` is inclusive of nodes that just-meet the specified range
-        if (node.to === this.range.from || node.from === this.range.to) return false
+        // `iterate` is inclusive of nodes that just-meet the specified range; we exclude those
+        // nodes unless the input range is empty.
+        // FIXME: Expose a `side` parameter to configure this? Or always use a cursor to "iterate" a
+        //  point? Currently only block-formatting logic treats a cursor as an empty range, and in
+        //  that case inclusive behavior here is fine.
+        if (
+          this.range.to !== this.range.from &&
+          (node.to === this.range.from || node.from === this.range.to)
+        )
+          return false
         return this.enter(node)
       },
       leave: this.leave.bind(this),
@@ -90,7 +99,8 @@ abstract class ContainedNodeVisitor extends TreeRangeVisitor {
       from: this.range.from,
       to: this.range.to,
       enter: (node) => {
-        // `iterate` is inclusive of nodes that just-meet the specified range (see {@link ExclusiveTreeVisitor}).
+        // `iterate` is inclusive of nodes that just-meet the specified range
+        // (see {@link ExclusiveTreeVisitor}).
         if (node.to === this.range.from || node.from === this.range.to) return false
         if (this.range.contains(nodeRange(node))) return this.enter(node)
       },
@@ -101,9 +111,72 @@ abstract class ContainedNodeVisitor extends TreeRangeVisitor {
   }
 }
 
+/** Apply the specified visitor to the top-level block elements in the given range. */
+export function visitBlocks(range: Range, tree: Tree, visit: (node: SyntaxNodeRef) => void) {
+  new BlockVisitor(range, visit).visit(tree)
+}
+class BlockVisitor extends ExclusiveTreeVisitor {
+  constructor(
+    range: Range,
+    private emit: (node: SyntaxNodeRef) => void,
+  ) {
+    super(range)
+  }
+
+  enter(node: SyntaxNodeRef): boolean {
+    if (node.name === 'Document') return true
+    this.emit(node)
+    return false
+  }
+}
+
+/** Apply the specified visitor to the leaf (i.e. single-line) blocks in the given range. */
+export function visitLeafBlocks(
+  range: Range,
+  tree: Tree,
+  visit: (node: SyntaxNodeRef, parentList: 'BulletList' | 'OrderedList' | undefined) => void,
+) {
+  new LeafBlockVisitor(range, visit).visit(tree)
+}
+class LeafBlockVisitor extends ExclusiveTreeVisitor {
+  private parentList: 'BulletList' | 'OrderedList' | undefined = undefined
+
+  constructor(
+    range: Range,
+    private emit: (
+      node: SyntaxNodeRef,
+      parentList: 'BulletList' | 'OrderedList' | undefined,
+    ) => void,
+  ) {
+    super(range)
+  }
+
+  enter(node: SyntaxNodeRef): boolean {
+    if (node.name === 'Document') return true
+    if (node.name === 'BulletList' || node.name === 'OrderedList') {
+      this.parentList = node.name
+      return true
+    }
+    if (isLeafBlockType(node.name)) this.emit(node, this.parentList)
+    return false
+  }
+}
+
+/** @returns Whether this is one of the syntax nodes introducing a {@link DelimitedBlockType}. */
+export function isBlockDelimiter(type: string) {
+  switch (type) {
+    case 'ListMark':
+    case 'HeaderMark':
+    case 'QuoteMark':
+      return true
+    default:
+      return false
+  }
+}
+
 /**
- * @returns The depths of formatting nodes the point is within, or `undefined` if the point is within an unformattable
- * block.
+ * @returns The depths of formatting nodes the point is within, or `undefined` if the point is
+ * within an unformattable block.
  */
 export function pointFormatAncestorInfo(
   pos: number,
@@ -111,7 +184,10 @@ export function pointFormatAncestorInfo(
 ):
   | {
       formatDepth: Readonly<FormatDepths>
-      /** True if the position is within an inline node where formatting delimiters are not recognized. */
+      /**
+       * True if the position is within an inline node where formatting delimiters are not
+       * recognized.
+       */
       unformattable: boolean
     }
   | undefined {
@@ -140,7 +216,10 @@ export function pointFormatAncestorInfo(
   return { formatDepth, unformattable }
 }
 
-/** @returns The containing unformattable inline node. The caller should first determine that such a node is present. */
+/**
+ * @returns The containing unformattable inline node. The caller should first determine that such a
+ * node is present.
+ */
 export function getUnformattableAncestor(pos: number, tree: Tree): Range {
   const cursor = tree.cursorAt(pos, 0)
   LOOP: do {
@@ -177,7 +256,10 @@ class AnalyzeContainedDelimiters extends ContainedNodeVisitor {
   }
 }
 
-/** For each node of the specified type fully-contained in the given range, apply the visitor to its delimiters. */
+/**
+ * For each node of the specified type fully-contained in the given range, apply the visitor to its
+ * delimiters.
+ */
 export function visitContainedDelimiters(
   range: Range,
   tree: Tree,
@@ -191,7 +273,7 @@ export function visitContainedDelimiters(
  * Extract the current range from the given node.
  */
 export function nodeRange(node: Readonly<SyntaxNodeRef>): Range {
-  return Range.tryFromBounds(node.from, node.to)!
+  return Range.unsafeFromBounds(node.from, node.to)
 }
 
 /** Returns whether the node is formatting markup. */
@@ -210,10 +292,10 @@ export function isDelimiter(nodeName: string) {
 /** Contract the range to exclude any delimiters that are oriented the wrong way. */
 export function trimRangeDelimiters(range: Range, tree: Tree): TrimmedRange {
   const cursor = tree.cursor()
-  return Range.tryFromBounds(
+  return Range.unsafeFromBounds(
     trimDelimiter.from(range.from, cursor),
     trimDelimiter.to(range.to, cursor),
-  )! as TrimmedRange
+  ) as TrimmedRange
 }
 const trimDelimiter = sides(({ toOrFrom, inside }) => (pos: number, cursor: TreeCursor) => {
   while (cursor.moveTo(pos, inside) && isDelimiter(cursor.name)) {
@@ -226,8 +308,8 @@ const trimDelimiter = sides(({ toOrFrom, inside }) => (pos: number, cursor: Tree
 })
 
 /**
- * Split the given range into parts that can have inline formatting applied to them, and yield them to the provided
- * visitors. Note that ranges will not necessarily be yielded in document order.
+ * Split the given range into parts that can have inline formatting applied to them, and yield them
+ * to the provided visitors. Note that ranges will not necessarily be yielded in document order.
  */
 export function splitRange(
   range: TrimmedRange,
@@ -242,11 +324,12 @@ export function splitRange(
 }
 
 class RangeSplitter extends ExclusiveTreeVisitor {
-  /** Depth of currently-entered node in AST: 0 is the `Document`; 1 is a block-level node; deeper nodes are inline. */
+  /** Depth of currently-entered node in AST: 0 is the `Document`; 1 is a top-level block node. */
   private depth: number = 0
   /**
-   * When a block node that is partially-covered by `range` has been entered, this is initially set to the intersection
-   * of the node, refined by visiting any children, and emitted when leaving the block node.
+   * When a block node that is partially-covered by `range` has been entered, this is initially set
+   * to the intersection of the node, refined by visiting any children, and emitted when leaving the
+   * block node.
    */
   private currentRange: Range | undefined = undefined
 
@@ -263,30 +346,19 @@ class RangeSplitter extends ExclusiveTreeVisitor {
     const nodeFromOutside = node.from < this.range.from
     const nodeToOutside = this.range.to < node.to
     if (this.depth === 1) {
-      if (!this.enterBlock(node, !nodeFromOutside && !nodeToOutside)) return false
+      switch (node.name) {
+        case 'CodeBlock':
+        case 'FencedCode':
+          return false
+        default:
+      }
+      this.currentRange = this.range.tryIntersect(nodeRange(node))!
     } else if (this.depth && nodeFromOutside !== nodeToOutside) {
       if (!this.enterPartialInline(node, nodeFromOutside)) return false
+    } else if (this.depth && node.from === this.currentRange?.from && isBlockDelimiter(node.name)) {
+      this.currentRange = this.trimRange(Range.unsafeFromBounds(node.to, this.currentRange.to))
     }
     this.depth += 1
-    return true
-  }
-
-  private enterBlock(node: SyntaxNodeRef, nodeFullyInRange: boolean): boolean {
-    // TODO: Exclude block delimiter
-    const blockRange = nodeRange(node)
-    if (nodeFullyInRange) {
-      if (blockRange.to !== blockRange.from) {
-        switch (node.name) {
-          case 'CodeBlock':
-          case 'FencedCode':
-            break
-          default:
-            this.emit(blockRange as NormalizedRange)
-        }
-      }
-      return false
-    }
-    this.currentRange = this.range.tryIntersect(blockRange)!
     return true
   }
 
@@ -300,8 +372,8 @@ class RangeSplitter extends ExclusiveTreeVisitor {
         // Exclude the node from the range.
         this.currentRange = this.trimRange(
           nodeFromOutside ?
-            Range.tryFromBounds(node.to, this.currentRange!.to)!
-          : Range.tryFromBounds(this.currentRange!.from, node.from)!,
+            Range.unsafeFromBounds(node.to, this.currentRange!.to)
+          : Range.unsafeFromBounds(this.currentRange!.from, node.from),
         )
         return false
       }
@@ -325,25 +397,26 @@ export function normalizeRange(
   { from, to }: SeminormalizedRange,
   tree: Tree,
 ): NormalizedRange | undefined
-// This delimiter operation can be applied to any trimmed range (i.e. before range splitting); in that case the result
-// won't be a fully normalized range.
+// This delimiter operation can be applied to any trimmed range (i.e. before range splitting); in
+// that case the result won't be a fully normalized range.
 export function normalizeRange({ from, to }: TrimmedRange, tree: Tree): TrimmedRange | undefined
 /**
- * Adjust the ends of the range to include/exclude delimiters based on tree structure (see {@link NormalizedRange});
- * returns `undefined` if the resulting range contains no formattable content.
+ * Adjust the ends of the range to include/exclude delimiters based on tree structure
+ * (see {@link NormalizedRange}).
+ * @returns `undefined` if the resulting range contains no formattable content.
  */
 export function normalizeRange(range: TrimmedRange, tree: Tree): TrimmedRange | undefined {
   const cursor = tree.cursor()
 
-  const expandedRange = Range.tryFromBounds(
+  const expandedRange = Range.unsafeFromBounds(
     includeWrappingDelimiters.from(range.from, cursor),
     includeWrappingDelimiters.to(range.to, cursor),
-  )!
+  )
 
   if (insideInlineUnformattable(expandedRange, cursor)) return
 
-  // For any allowed input, the result will be a {@link TrimmedRange}; if the input is a {@link SeminormalizedRange},
-  // the result will be a {@link NormalizedRange}.
+  // For any allowed input, the result will be a {@link TrimmedRange}; if the input is a
+  // {@link SeminormalizedRange}, the result will be a {@link NormalizedRange}.
   return Range.tryFromBounds(
     excludeExcessDelimiters.from(expandedRange, cursor),
     excludeExcessDelimiters.to(expandedRange, cursor),
@@ -372,8 +445,8 @@ const excludeExcessDelimiters = sides(
         cursor.parent()
         const currentRange =
           fromOrTo === 'from' ?
-            Range.tryFromBounds(pos, range.to)!
-          : Range.tryFromBounds(range.from, pos)!
+            Range.unsafeFromBounds(pos, range.to)
+          : Range.unsafeFromBounds(range.from, pos)
         if (currentRange.contains(nodeRange(cursor))) break
         pos = contracted
       }
@@ -395,7 +468,10 @@ function insideInlineUnformattable(range: Range, cursor: TreeCursor) {
   return false
 }
 
-/** Expand each end of the range to the outermost node that it includes that end of the non-delimiter content of. */
+/**
+ * Expand each end of the range to the outermost node that it includes that end of the non-delimiter
+ * content of.
+ */
 export function denormalizeRange(range: NormalizedRange, tree: Tree): Range {
   const cursor = tree.cursor()
   return Range.tryFromBounds(
@@ -405,7 +481,8 @@ export function denormalizeRange(range: NormalizedRange, tree: Tree): Range {
 }
 
 /**
- * If nodes of the given type are closed just before or opened just after the provided (expanded) range, returns them.
+ * If nodes of the given type are closed just before or opened just after the provided (expanded)
+ * range, returns them.
  */
 export function analyzeMerges(
   tree: Tree,
@@ -573,7 +650,9 @@ export interface Autolink extends LinkOrImage {
   title: undefined
 }
 
-/** Given a {@link SyntaxNodeRef} of type `Link` or `Image`, returns information about its contents. */
+/**
+ * Given a {@link SyntaxNodeRef} of type `Link` or `Image`, returns information about its contents.
+ */
 export function analyzeLinkOrImage(nodeRef: SyntaxNodeRef): LinkOrImage | undefined {
   const cursor = nodeRef.node.cursor()
   const linkOrImage = nodeRange(nodeRef)
@@ -591,7 +670,7 @@ export function analyzeLinkOrImage(nodeRef: SyntaxNodeRef): LinkOrImage | undefi
   const title = isNodeType(cursor, 'LinkTitle') ? nodeRange(cursor) : undefined
   return {
     linkOrImage,
-    text: Range.tryFromBounds(textFrom, textTo)!,
+    text: Range.unsafeFromBounds(textFrom, textTo),
     url,
     title,
   }
@@ -611,4 +690,47 @@ export function analyzeAutolink(nodeRef: SyntaxNodeRef): Autolink | undefined {
     url: text,
     title: undefined,
   }
+}
+
+/** @returns The range of the top-level block element containing the given point. */
+export function topLevelBlock(tree: Tree, pos: number): Range | undefined {
+  const cursor = tree.cursor()
+  if (!cursor.firstChild()) return
+  while (cursor.to < pos) if (!cursor.nextSibling()) break
+  if (cursor.from <= pos && pos <= cursor.to) return nodeRange(cursor)
+}
+
+/**
+ * @returns The given range expanded to include the full extent of any fenced blocks it
+ * partially-includes.
+ */
+export function expandRangeToIncludeFencedBlocks(tree: Tree, range: Range): Range {
+  const cursor = tree.cursor()
+  const efbFrom = enclosingFencedBlock(cursor, range.from, 1)
+  const efbTo = enclosingFencedBlock(cursor, range.to, -1)
+  return range.empty ?
+      (efbFrom ?? efbTo ?? range)
+    : Range.unsafeFromBounds(
+        efbFrom ? Math.min(efbFrom.from, range.from) : range.from,
+        efbTo ? Math.max(efbTo.to, range.to) : range.to,
+      )
+}
+
+function enclosingFencedBlock(
+  cursor: TreeCursor,
+  pos: number,
+  side: -1 | 0 | 1,
+): Range | undefined {
+  cursor.moveTo(pos, side)
+  if (isFencedBlock(cursor.name)) return nodeRange(cursor)
+  cursor.parent()
+  if (isFencedBlock(cursor.name)) return nodeRange(cursor)
+}
+
+/**
+ * @returns Whether the specified block type is a fenced block (introduced by fence lines), as
+ * opposed to a {@link DelimitedBlockType}.
+ */
+export function isFencedBlock(type: string): boolean {
+  return type === 'FencedCode'
 }

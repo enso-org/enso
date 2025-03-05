@@ -19,18 +19,24 @@ export const textEditorsBindings = defineKeybinds('text-editors', {
   openLink: ['Mod+PointerMain'],
 })
 
+export const listBindings = defineKeybinds('list', {
+  moveUp: ['ArrowUp'],
+  moveDown: ['ArrowDown'],
+  accept: ['Enter'],
+})
+
 export const interactionBindings = defineKeybinds('current-interaction', {
   cancel: ['Escape'],
 })
 
 export const componentBrowserBindings = defineKeybinds('component-browser', {
-  applySuggestion: ['Tab'],
+  applySuggestion: ['Shift+Enter'],
   acceptSuggestion: ['Enter'],
   acceptCode: ['Enter'],
   acceptInput: ['Mod+Enter'],
-  acceptAIPrompt: ['Tab', 'Enter'],
-  moveUp: ['ArrowUp'],
-  moveDown: ['ArrowDown'],
+  acceptAIPrompt: ['Enter'],
+  switchPanelFocus: ['Tab'],
+  switchToCodeEditMode: ['Mod+Tab'],
 })
 
 export const graphBindings = defineKeybinds('graph-editor', {

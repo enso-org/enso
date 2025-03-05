@@ -307,13 +307,13 @@ export class AliasAnalyzer {
           const expression = caseLine.case?.expression
           if (pattern) {
             const patternRange = parsedTreeOrTokenRange(pattern)
-            const armRange = SourceRange.tryFromBounds(
+            const armRange = SourceRange.unsafeFromBounds(
               patternRange.from,
               (expression ? parsedTreeOrTokenRange(expression)
               : arrow ? parsedTreeOrTokenRange(arrow)
               : patternRange
               ).to,
-            )!
+            )
             this.withNewScopeOver(armRange, () => {
               this.withContext(Context.Pattern, () => {
                 this.processTree(caseLine.case?.pattern)

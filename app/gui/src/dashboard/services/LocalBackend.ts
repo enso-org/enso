@@ -12,7 +12,7 @@ import { APP_BASE_URL } from '#/utilities/appBaseUrl'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
 import { fileExtension, getFileName, getFolderPath } from '#/utilities/fileInfo'
-import { getDirectoryAndName, joinPath } from '#/utilities/path'
+import { getDirectoryAndName, joinPath, Path } from '#/utilities/path'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 
@@ -28,20 +28,23 @@ function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
 // ======================================
 // === Functions for manipulating ids ===
 // ======================================
+export const DIRECTORY_ID_PREFIX = `${backend.AssetType.directory}-`
+export const PROJECT_ID_PREFIX = `${backend.AssetType.project}-`
+export const FILE_ID_PREFIX = `${backend.AssetType.file}-`
 
 /** Create a {@link backend.DirectoryId} from a path. */
 export function newDirectoryId(path: projectManager.Path) {
-  return backend.DirectoryId(`${backend.AssetType.directory}-${path}` as const)
+  return backend.DirectoryId(`${DIRECTORY_ID_PREFIX}${path}` as const)
 }
 
 /** Create a {@link backend.ProjectId} from a UUID. */
 export function newProjectId(uuid: projectManager.UUID, path: projectManager.Path) {
-  return backend.ProjectId(`${backend.AssetType.project}-${uuid}-${path}`)
+  return backend.ProjectId(`${PROJECT_ID_PREFIX}${uuid}-${path}`)
 }
 
 /** Create a {@link backend.FileId} from a path. */
 export function newFileId(path: projectManager.Path) {
-  return backend.FileId(`${backend.AssetType.file}-${path}`)
+  return backend.FileId(`${FILE_ID_PREFIX}${path}`)
 }
 
 /** The internal asset type and properly typed corresponding internal ID of a directory. */
@@ -156,6 +159,7 @@ export default class LocalBackend extends Backend {
   override async listDirectory(
     query: backend.ListDirectoryRequestParams,
   ): Promise<readonly backend.AnyAsset[]> {
+    const { rootPath = this.rootPath() } = query
     const parentIdRaw = query.parentId == null ? null : extractTypeAndId(query.parentId).id
     const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
 
@@ -167,9 +171,48 @@ export default class LocalBackend extends Backend {
         .map((entry) => {
           switch (entry.type) {
             case projectManager.FileSystemEntryType.DirectoryEntry: {
+              const id = newDirectoryId(entry.path)
+
+              const virtualParentsPath = (() => {
+                let path = entry.path.replace(rootPath, '')
+
+                if (path.startsWith('/')) {
+                  path = path.slice(1)
+                }
+
+                if (path.endsWith('/')) {
+                  path = path.slice(0, -1)
+                }
+
+                return path
+              })()
+
+              const parentsPath = (() => {
+                const parentsPathArray: backend.DirectoryId[] = [newDirectoryId(rootPath)]
+                const splitPath = virtualParentsPath.split('/')
+
+                let previousPath = ''
+
+                for (const directory of splitPath) {
+                  if (directory === '') {
+                    continue
+                  }
+
+                  previousPath = Path(previousPath + '/' + directory)
+
+                  if (previousPath.endsWith('/')) {
+                    previousPath = previousPath.slice(0, -1)
+                  }
+
+                  parentsPathArray.push(newDirectoryId(Path(rootPath + previousPath)))
+                }
+
+                return parentsPathArray.slice(0, -1).join('/')
+              })()
+
               return {
+                id,
                 type: backend.AssetType.directory,
-                id: newDirectoryId(entry.path),
                 modifiedAt: entry.attributes.lastModifiedTime,
                 parentId,
                 title: getFileName(entry.path),
@@ -178,8 +221,8 @@ export default class LocalBackend extends Backend {
                 extension: null,
                 labels: [],
                 description: null,
-                parentsPath: '',
-                virtualParentsPath: '',
+                parentsPath: backend.ParentsPath(parentsPath),
+                virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
               } satisfies backend.DirectoryAsset
             }
             case projectManager.FileSystemEntryType.ProjectEntry: {
@@ -199,8 +242,8 @@ export default class LocalBackend extends Backend {
                 extension: null,
                 labels: [],
                 description: null,
-                parentsPath: '',
-                virtualParentsPath: '',
+                parentsPath: backend.ParentsPath(''),
+                virtualParentsPath: backend.VirtualParentsPath(''),
               } satisfies backend.ProjectAsset
             }
             case projectManager.FileSystemEntryType.FileEntry: {
@@ -215,8 +258,8 @@ export default class LocalBackend extends Backend {
                 extension: fileExtension(entry.path),
                 labels: [],
                 description: null,
-                parentsPath: '',
-                virtualParentsPath: '',
+                parentsPath: backend.ParentsPath(''),
+                virtualParentsPath: backend.VirtualParentsPath(''),
               } satisfies backend.FileAsset
             }
           }

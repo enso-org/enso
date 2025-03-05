@@ -16,6 +16,7 @@ import java.io.StringWriter;
 import java.net.URI;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 import org.enso.common.MethodNames;
@@ -53,7 +54,7 @@ public class MetaObjectTest {
   @AfterClass
   public static void disposeCtx() {
     if (generator != null) {
-      generator.dispose();
+      generator.close();
       generator = null;
     }
     ctx.close();
@@ -238,8 +239,10 @@ public class MetaObjectTest {
 
   @Test
   public void nothingIsNotMeta() {
-    var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
-    var nothing = g.typeNothing();
+    Value nothing;
+    try (ValuesGenerator g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO)) {
+      nothing = g.typeNothing();
+    }
     assertThat("Nothing is not meta", nothing.isMetaObject(), is(false));
   }
 
@@ -287,11 +290,13 @@ main = Nothing
    */
   @Test
   public void allEnsoNonPrimitiveValuesHaveLanguage() throws Exception {
-    var gen = ValuesGenerator.create(ctx, Language.ENSO);
     Predicate<Value> isPrimitiveOrException =
         (val) -> val.fitsInInt() || val.fitsInDouble() || val.isBoolean() || val.isException();
-    var nonPrimitiveValues =
-        gen.allValues().stream().filter(isPrimitiveOrException.negate()).toList();
+    List<Value> nonPrimitiveValues;
+    try (ValuesGenerator gen = ValuesGenerator.create(ctx, Language.ENSO)) {
+      nonPrimitiveValues =
+          gen.allValues().stream().filter(isPrimitiveOrException.negate()).toList();
+    }
     var interop = InteropLibrary.getUncached();
     ContextUtils.executeInContext(
         ctx,

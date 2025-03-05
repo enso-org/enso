@@ -189,7 +189,7 @@ test('Filling input with suggestion', async ({ page }) => {
   await expect(locate.componentBrowserEntry(page)).toExist()
 
   // Applying suggestion
-  await page.keyboard.press('Tab')
+  await page.keyboard.press('Shift+Enter')
   await expect(locate.componentBrowser(page)).toExist()
   await expect(locate.componentBrowserInput(page).locator('input')).toHaveValue('Data.read ')
 })
@@ -202,6 +202,34 @@ test('Filtering list', async ({ page }) => {
   await expect(segments).toHaveText(['Data.', 're', 'ad', '_te', 'xt'])
   const highlighted = locate.componentBrowserEntry(page).locator('.component-label-segment.match')
   await expect(highlighted).toHaveText(['re', '_te'])
+  // Filtered-out group are hidden, and the rest displays number of matched elements.
+  await expect(page.locator('.groupEntry')).toHaveText(['all (1)', 'Input (1)'])
+})
+
+test('Navigating groups', async ({ page }) => {
+  await actions.goToGraph(page)
+  await locate.addNewNodeButton(page).click()
+  await expect(locate.componentBrowserSelectedEntry(page)).toExist()
+  await expect(page.locator('.groupEntry')).toHaveText(['all', 'Input', 'Output'])
+  await expect(locate.componentBrowserEntryByLabel(page, 'Data.read')).toExist()
+  await expect(locate.componentBrowserEntryByLabel(page, 'Data.every_tag')).toExist()
+
+  // Hover first group: `Data.read` is filtered out
+  await page.locator('.groupEntry').nth(1).hover()
+  await expect(locate.componentBrowserEntryByLabel(page, 'Data.read')).toExist()
+  await expect(locate.componentBrowserEntryByLabel(page, 'Data.every_tag')).toHaveCount(0)
+  await expect(locate.componentBrowserSelectedEntry(page)).toExist() // component list didn't lose focus.
+
+  // Navigate to second group using arrows.
+  await page.keyboard.press('Tab')
+  await expect(locate.componentBrowserSelectedEntry(page)).toHaveCount(0)
+  await page.keyboard.press('ArrowDown')
+  await expect(locate.componentBrowserSelectedEntry(page)).toHaveCount(0)
+  await expect(page.locator('.groupEntry.selected')).toHaveText('Output')
+  await expect(locate.componentBrowserEntryByLabel(page, 'Data.read')).toHaveCount(0)
+  await expect(locate.componentBrowserEntryByLabel(page, 'Data.every_tag')).toExist()
+  await page.keyboard.press('Tab')
+  await expect(locate.componentBrowserSelectedEntry(page)).toExist()
 })
 
 test('Editing existing nodes', async ({ page }) => {
@@ -247,7 +275,7 @@ test('Visualization preview: type-based visualization selection', async ({ page 
   const input = locate.componentBrowserInput(page).locator('input')
   await input.fill('Table.ne')
   await expect(input).toHaveValue('Table.ne')
-  await locate.componentBrowser(page).getByTestId('switchToEditMode').click()
+  await page.keyboard.press(`Shift+Enter`)
   await expect(locate.tableVisualization(page)).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(locate.componentBrowser(page)).toBeHidden()
@@ -262,7 +290,7 @@ test('Visualization preview: user visualization selection', async ({ page }) => 
   const input = locate.componentBrowserInput(page).locator('input')
   await input.fill('4')
   await expect(input).toHaveValue('4')
-  await locate.componentBrowser(page).getByTestId('switchToEditMode').click()
+  await page.keyboard.press(`Shift+Enter`)
   await expect(locate.jsonVisualization(page)).toBeVisible()
   await expect(locate.jsonVisualization(page)).toContainText('"visualizedExpr": "4"')
   await locate.toggleVisualizationSelectorButton(page).click()

@@ -90,12 +90,12 @@ export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
 }
 
 /**
- * Component Group.
+ * Description of a Component Group.
  *
  * These are groups displayed in the Component Browser. Also, nodes being a call to method from
  * given group will inherit its color.
  */
-export interface Group {
+export interface GroupInfo {
   color?: string
   name: string
   project: QualifiedName
@@ -185,7 +185,7 @@ async function loadGroups(lsRpc: LanguageServer, firstExecution: Promise<unknown
     return []
   }
   return groups.value.componentGroups.map(
-    (group): Group => ({
+    (group): GroupInfo => ({
       name: group.name,
       ...(group.color ? { color: group.color } : {}),
       project: group.library as QualifiedName,
@@ -199,7 +199,7 @@ export const [provideSuggestionDbStore, useSuggestionDbStore] = createContextSto
   'suggestionDatabase',
   (projectStore: ProjectStore, projectNames: ProjectNameStore) => {
     const entries = new SuggestionDb()
-    const groups = ref<Group[]>([])
+    const groups = ref<GroupInfo[]>([])
 
     const updateProcessor = loadGroups(
       projectStore.lsRpcConnection,

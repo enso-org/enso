@@ -33,6 +33,9 @@ const PROJECT_SCHEMA = z
     ),
     title: z.string(),
     type: z.nativeEnum(backendModule.BackendType),
+    cloudProjectId: z.optional(
+      z.custom<backendModule.ProjectId>((x) => typeof x === 'string' && x.startsWith('project-')),
+    ),
   })
   .readonly()
 const LAUNCHED_PROJECT_SCHEMA = z.array(PROJECT_SCHEMA).readonly()

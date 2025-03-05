@@ -1,7 +1,7 @@
 /** @file `useEvent` shim. */
 import { useCallback } from 'react'
 
-import { useSyncRef } from '#/hooks/syncRefHooks'
+import { useSyncRef } from './syncRefHooks'
 
 /**
  * `useEvent` shim.
