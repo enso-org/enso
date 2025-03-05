@@ -85,7 +85,7 @@ export const formatText = (input: string, textFormatterSelected: TextFormatOptio
       : match
   }
   const newString = replaceReturns.replace(/[\s]/g, function (match: string) {
-    const mapping = textFormatterSelected.value === 'full' ? fullMappings : partialMappings
+    const mapping = textFormatterSelected === 'full' ? fullMappings : partialMappings
     return mapping[match as keyof typeof mapping] || renderOtherWhitespace(match)
   })
   return `<span > ${newString} <span>`
