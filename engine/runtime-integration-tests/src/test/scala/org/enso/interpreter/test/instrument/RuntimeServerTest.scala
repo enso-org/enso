@@ -38,7 +38,7 @@ class RuntimeServerTest
 
     val out: ByteArrayOutputStream    = new ByteArrayOutputStream()
     val logOut: ByteArrayOutputStream = new ByteArrayOutputStream()
-    private var _context: Context = null;
+    private var _context: Context     = null;
     protected def context(): Context = {
       if (_context == null) {
         _context = Context
@@ -50,7 +50,10 @@ class RuntimeServerTest
             RuntimeOptions.LOG_LEVEL,
             java.util.logging.Level.WARNING.getName
           )
-          .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
+          .option(
+            RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION,
+            "true"
+          )
           .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
           .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "false")
           .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")

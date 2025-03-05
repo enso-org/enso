@@ -13,8 +13,8 @@ import java.nio.file.Paths
 class ApiTest extends AnyFlatSpec with Matchers with BeforeAndAfterAll {
   import org.enso.common.LanguageInfo._
 
-  var out: ByteArrayOutputStream = _
-  var ctx: Context = _
+  var out: ByteArrayOutputStream        = _
+  var ctx: Context                      = _
   var executionContext: PolyglotContext = _
 
   override protected def beforeAll(): Unit = {
