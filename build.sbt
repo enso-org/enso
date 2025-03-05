@@ -4525,7 +4525,7 @@ lazy val `library-manager` = project
   .dependsOn(cli)
   .dependsOn(`distribution-manager`)
   .dependsOn(downloader)
-  .dependsOn(testkit % Test)
+  .dependsOn(testkit % "test->test")
 
 lazy val `library-manager-test` = project
   .in(file("lib/scala/library-manager-test"))
@@ -4561,7 +4561,7 @@ lazy val `library-manager-test` = project
   .dependsOn(`process-utils`)
   .dependsOn(`logging-utils`)
   .dependsOn(testkit)
-  .dependsOn(`logging-service-logback` % Test)
+  .dependsOn(`logging-service-logback` % "test->test")
 
 lazy val `connected-lock-manager` = project
   .in(file("lib/scala/connected-lock-manager"))
