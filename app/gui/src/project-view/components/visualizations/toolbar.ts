@@ -22,6 +22,12 @@ export interface ToggleButton extends Button {
 
 export interface SelectionMenuOption extends Button {
   label?: string
+  disabled?: ToValue<boolean>
+  /**
+   * If `true`, the option will never be shown in the list, but can be rendered as the heading if it
+   * is the current model-value.
+   */
+  hidden?: ToValue<boolean>
 }
 
 export interface SelectionMenu {

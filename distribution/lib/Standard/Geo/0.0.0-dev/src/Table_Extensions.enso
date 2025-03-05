@@ -1,0 +1,101 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Missing_Argument
+
+from Standard.Table import Column, Column_Ref, Table, Value_Type
+import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
+import Standard.Table.Internal.Table_Ref.Table_Ref
+import Standard.Table.Internal.Widget_Helpers
+
+## UNSTABLE
+   ICON geo_map_distance
+
+   Computes the distance between two latitude/longitude points on each row of the table.
+
+   Arguments:
+   - lat1: The latitude of the first point, either a Column or single value.
+   - long1: The longitude of the first point, either a Column or single value.
+   - lat2: The latitude of the second point, either a Column or single value.
+   - long2: The longitude of the second point, either a Column or single value.
+   - units: The unit to return the result in.
+   - as: The name of the resulting column to add.
+@lat1 (Widget_Helpers.make_column_ref_by_name_selector_for_type display=..Always value_type=Value_Type.Float)
+@long1 (Widget_Helpers.make_column_ref_by_name_selector_for_type display=..Always value_type=Value_Type.Float)
+@lat2 (Widget_Helpers.make_column_ref_by_name_selector_for_type display=..Always value_type=Value_Type.Float)
+@long2 (Widget_Helpers.make_column_ref_by_name_selector_for_type display=..Always value_type=Value_Type.Float)
+Table.geo_distance self lat1:(Float | Column | Column_Ref)=(_find_column_with_similar_name  self "latitude" "lat" (Missing_Argument.throw "lat1")) long1:(Float | Column | Column_Ref)=(_find_column_with_similar_name  self "longitude" "long" (Missing_Argument.throw "long1")) lat2:(Float | Column | Column_Ref)=(Missing_Argument.throw "lat2") long2:(Float | Column | Column_Ref)=(Missing_Argument.throw "long2") units:Distance_Units=..Meters as:Text="" -> Table =
+    table_ref = (self:Table_Ref)
+    resolved_lat1 = table_ref.resolve lat1
+    resolved_long1 = table_ref.resolve long1
+    resolved_lat2 = table_ref.resolve lat2
+    resolved_long2 = table_ref.resolve long2
+    used_name = if as != "" then as else
+        Column_Naming_Helper.in_memory.function_name "geo_distance" [resolved_lat1, resolved_long1, resolved_lat2, resolved_long2, units]
+    compute_distance self resolved_lat1 resolved_long1 resolved_lat2 resolved_long2 units used_name
+
+## PRIVATE
+private _find_column_with_similar_name  table:Table column_name:Text prefix:Text=column_name ~on_fail=(Missing_Argument.throw column_name) =
+    names = table.column_names
+    cond = [Filter_Condition.Equal column_name, Filter_Condition.Equal_Ignore_Case column_name, Filter_Condition.Equal prefix, Filter_Condition.Equal_Ignore_Case prefix, Filter_Condition.Starts_With prefix ..Insensitive]
+    name = names.find (cond.find names.any if_missing=on_fail)
+    Column_Ref.Name name
+
+
+## PRIVATE
+private compute_distance table:Table lat1:(Column | Float) lng1:(Column | Float) lat2:(Column | Float) lng2:(Column | Float) units:Distance_Units as:Text =
+    lat1_col = if lat1.is_a Float then table.make_constant_column lat1 else lat1
+    lng1_col = if lng1.is_a Float then table.make_constant_column lng1 else lng1
+    lat2_col = if lat2.is_a Float then table.make_constant_column lat2 else lat2
+    lng2_col = if lng2.is_a Float then table.make_constant_column lng2 else lng2
+
+    rLat1 = lat1_col.map _to_radians
+    rLat2 = lat2_col.map _to_radians
+    rLng1 = lng1_col.map _to_radians
+    rLng2 = lng2_col.map _to_radians
+
+    dLat = rLat2 - rLat1
+    sinDLat = dLat.map v-> ((v/2).sin)^2
+    dLng = rLng2 - rLng1
+    sinDLng = dLng.map v-> ((v/2).sin)^2
+
+    cosLat1 = rLat1.map .cos
+    cosLat2 = rLat2.map .cos
+
+    product = cosLat1 * cosLat2 * sinDLng + sinDLat
+    haversine_distance = product.map v-> (units.from_meters (v.sqrt.asin*2*6371000)).round 1
+
+    table.set haversine_distance as
+
+private _to_radians degrees =
+    degrees * Math.pi / 180
+
+## A type of distance units.
+type Distance_Units
+    ## Use meters as the unit.
+    Meters
+
+    ## Use kilometers as the unit.
+    Kilometers
+
+    ## Use feet as the unit.
+    Feet
+
+    ## Use yards as the unit.
+    Yards
+
+    ## Use miles as the unit.
+    Miles
+
+    ## Use Smoots as the unit.
+       https://en.wikipedia.org/wiki/Smoot
+    Smoots
+
+    ## PRIVATE
+       Converts meters to the unit.
+    from_meters self meters:Float -> Float = case self of
+        Distance_Units.Meters -> meters
+        Distance_Units.Kilometers -> meters / 1000
+        Distance_Units.Feet -> meters * 3.280839895
+        Distance_Units.Yards -> meters * 1.0936132983
+        Distance_Units.Miles -> meters * 0.0006213712
+        Distance_Units.Smoots -> meters / 1.7018
+

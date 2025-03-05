@@ -27,40 +27,55 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       extends InstrumentTestContext(packageName) {
 
     val out: ByteArrayOutputStream = new ByteArrayOutputStream()
-    val context =
-      Context
-        .newBuilder()
-        .allowExperimentalOptions(true)
-        .allowAllAccess(true)
-        .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
-        .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
-        .option(
-          RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION,
-          sequentialExecution.toString
-        )
-        .option(
-          RuntimeOptions.INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION,
-          (!sequentialExecution).toString
-        )
-        .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
-        .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "false")
-        .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
-        .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
-        .option(RuntimeServerInfo.ENABLE_OPTION, "true")
-        .option(RuntimeOptions.INTERACTIVE_MODE, "true")
-        .option(
-          RuntimeOptions.DISABLE_IR_CACHES,
-          InstrumentTestContext.DISABLE_IR_CACHE
-        )
-        .option("engine.WarnInterpreterOnly", "false")
-        .option(
-          RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-          Paths.get("../../distribution/component").toFile.getAbsolutePath
-        )
-        .logHandler(System.err)
-        .out(out)
-        .serverTransport(runtimeServerEmulator.makeServerTransport)
-        .build()
+
+    var _context: Context = null
+
+    override def context(): Context = {
+      if (_context == null) {
+        _context = Context
+          .newBuilder()
+          .allowExperimentalOptions(true)
+          .allowAllAccess(true)
+          .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
+          .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+          .option(
+            RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION,
+            sequentialExecution.toString
+          )
+          .option(
+            RuntimeOptions.INTERPRETER_RANDOM_DELAYED_COMMAND_EXECUTION,
+            (!sequentialExecution).toString
+          )
+          .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
+          .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "false")
+          .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
+          .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
+          .option(RuntimeServerInfo.ENABLE_OPTION, "true")
+          .option(RuntimeOptions.INTERACTIVE_MODE, "true")
+          .option(
+            RuntimeOptions.DISABLE_IR_CACHES,
+            InstrumentTestContext.DISABLE_IR_CACHE
+          )
+          .option("engine.WarnInterpreterOnly", "false")
+          .option(
+            RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+            Paths.get("../../distribution/component").toFile.getAbsolutePath
+          )
+          .logHandler(System.err)
+          .out(out)
+          .serverTransport(runtimeServerEmulator.makeServerTransport)
+          .build()
+      }
+      _context
+    }
+
+    override def close(): Unit = {
+      super.close()
+      if (_context != null) {
+        _context.close()
+        _context = null
+      }
+    }
 
     def writeFile(file: File, contents: String): File =
       Files.write(file.toPath, contents.getBytes).toFile
