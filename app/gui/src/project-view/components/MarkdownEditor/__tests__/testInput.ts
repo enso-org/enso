@@ -1,4 +1,5 @@
 import { ensoMarkdownSyntax } from '@/components/MarkdownEditor/markdown/syntax'
+import { assert } from '@/util/assert'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 
@@ -23,6 +24,7 @@ export function parseTestInput(source: string): {
   selection: { anchor: number; head: number }
 } {
   const selectionStart = source.indexOf('|')
+  assert(selectionStart !== -1)
   const selectionEnd = source.indexOf('|', selectionStart + 1)
   const selection = {
     anchor: selectionStart,

@@ -3,6 +3,7 @@ package org.enso.interpreter.test.asserts;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.List;
 import org.enso.common.LanguageInfo;
 import org.enso.test.utils.ContextUtils;
@@ -21,7 +22,7 @@ public class SuccessfulAssertionExpressionTest {
 
   private static Context ctx;
 
-  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
+  private static ByteArrayOutputStream out = new ByteArrayOutputStream();
 
   @BeforeClass
   public static void setupCtx() {
@@ -34,9 +35,11 @@ public class SuccessfulAssertionExpressionTest {
   }
 
   @AfterClass
-  public static void disposeCtx() {
+  public static void disposeCtx() throws IOException {
     ctx.close(true);
     ctx = null;
+    out.close();
+    out = null;
   }
 
   @After

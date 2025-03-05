@@ -30,6 +30,8 @@ public class ProgressTest {
   public static void closeCtx() throws Exception {
     ctx.close();
     ctx = null;
+    ensoCtx.shutdown();
+    ensoCtx = null;
   }
 
   public ProgressTest() {}

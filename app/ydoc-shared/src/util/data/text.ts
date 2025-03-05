@@ -14,7 +14,7 @@ export function sourceRangeKey({ from, to }: SourceRange): SourceRangeKey {
 /** Deserializes a {@link SourceRange} that was serialized by {@link sourceRangeKey} */
 export function sourceRangeFromKey(key: SourceRangeKey): SourceRange {
   const [from, to] = key.split(':').map((x) => parseInt(x, 16)) as [number, number]
-  return SourceRange.tryFromBounds(from, to)!
+  return SourceRange.unsafeFromBounds(from, to)
 }
 
 /** Describes how a change to text will affect document locations. */
@@ -31,7 +31,7 @@ export class SourceRangeEditDesc {
   }
 
   get range(): SourceRange {
-    return SourceRange.tryFromBounds(this.from, this.to)!
+    return SourceRange.unsafeFromBounds(this.from, this.to)
   }
 
   get lengthChange(): number {
@@ -175,7 +175,7 @@ export function applyTextEditsToSpans(
     const startAfter = startMap.get(spanBefore.from)!
     const endAfter = endMap.get(spanBefore.to)!
     if (startAfter < endAfter)
-      spansBeforeAndAfter.push([spanBefore, SourceRange.tryFromBounds(startAfter, endAfter)!])
+      spansBeforeAndAfter.push([spanBefore, SourceRange.unsafeFromBounds(startAfter, endAfter)])
   }
   return spansBeforeAndAfter
 }

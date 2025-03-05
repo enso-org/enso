@@ -73,8 +73,8 @@ export const SCROLLER_STYLES = tv({
 
   slots: {
     content: '',
-    shadowStart: 'pointer-events-none absolute bg-gradient-to-r from-dashboard transition-opacity',
-    shadowEnd: 'pointer-events-none absolute bg-gradient-to-l from-dashboard transition-opacity',
+    shadowStart: 'pointer-events-none absolute from-dashboard transition-opacity',
+    shadowEnd: 'pointer-events-none absolute from-dashboard transition-opacity',
   },
 
   compoundVariants: [
@@ -88,9 +88,17 @@ export const SCROLLER_STYLES = tv({
     {
       orientation: 'horizontal',
       class: {
-        content: 'overflow-x-auto',
+        content: 'overflow-x-auto min-w-0 max-w-full',
         shadowStart: 'top-0 bottom-0 left-0 w-10',
         shadowEnd: 'top-0 bottom-0 right-0 w-10',
+      },
+    },
+    {
+      orientation: 'horizontal',
+      class: {
+        content: 'overflow-x-auto min-w-0 max-w-full',
+        shadowStart: 'top-0 bottom-0 left-0 w-10 bg-gradient-to-r',
+        shadowEnd: 'top-0 bottom-0 right-0 w-10 bg-gradient-to-l',
       },
     },
     {
@@ -103,9 +111,9 @@ export const SCROLLER_STYLES = tv({
     {
       orientation: 'vertical',
       class: {
-        content: 'overflow-y-auto',
-        shadowStart: 'top-0 left-0 right-0 h-10',
-        shadowEnd: 'bottom-0 left-0 right-0 h-10',
+        content: 'overflow-y-auto min-h-0 max-h-full',
+        shadowStart: '-top-[0.5px] left-0 right-0 min-h-1 h-[25%] max-h-10 bg-gradient-to-b',
+        shadowEnd: '-bottom-[0.5px] left-0 right-0 min-h-1 h-[25%] max-h-10 bg-gradient-to-t',
       },
     },
   ],
@@ -195,7 +203,7 @@ export function Scroller(props: ScrollerProps) {
     const scrollSize = orientation === 'horizontal' ? scrollWidth : scrollHeight
 
     const isAtStart = scrollStart === 0
-    const isAtEnd = scrollStart + size >= scrollSize
+    const isAtEnd = Math.ceil(scrollStart + size) >= scrollSize
 
     return { isAtStart, isAtEnd }
   })

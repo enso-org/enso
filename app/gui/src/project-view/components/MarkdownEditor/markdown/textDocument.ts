@@ -68,6 +68,11 @@ export class TextDocument {
     const line = this.doc.lineAt(pos)
     return line.text.slice(pos - line.from)
   }
+
+  /** @returns The given range expanded to fully-include any lines it partially-includes. */
+  expandRangeToFullLines(range: Range): Range {
+    return Range.unsafeFromBounds(this.doc.lineAt(range.from).from, this.doc.lineAt(range.to).to)
+  }
 }
 
 function spacesBefore(text: string): number {

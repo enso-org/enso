@@ -27,14 +27,14 @@ abstract class InstrumentTestContext(packageName: String) {
   val pkg: Package[File] =
     PackageManager.Default.create(tmpDir.toFile, packageName, "Enso_Test")
 
-  protected val context: Context
+  protected def context(): Context
 
   protected var executionContext: PolyglotContext = null
 
   def init(): Unit = {
-    assert(context != null)
-    executionContext = new PolyglotContext(context)
-    context.initialize(LanguageInfo.ID)
+    assert(context() != null)
+    executionContext = new PolyglotContext(context())
+    context().initialize(LanguageInfo.ID)
   }
 
   protected val runtimeServerEmulator: RuntimeServerEmulator =
@@ -154,8 +154,8 @@ abstract class InstrumentTestContext(packageName: String) {
     Api.Response(Api.ExecutionComplete(contextId))
 
   def close(): Unit = {
-    if (context != null) {
-      context.close()
+    if (context() != null) {
+      context().close()
     }
     Await.ready(runtimeServerEmulator.terminate(), 5.seconds)
     lockManager.reset()

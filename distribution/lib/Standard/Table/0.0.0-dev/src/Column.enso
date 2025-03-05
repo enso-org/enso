@@ -1645,7 +1645,7 @@ type Column
             Value_Type.expect_type end (== my_type) my_type.to_display_text <|
                 aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
                 aligned_period.if_not_error <|
-                    new_name = naming_helper.function_name "date_diff" [self, end, period.to_display_text]
+                    new_name = naming_helper.function_name "date_diff" [self, end, period]
                     java_unit = aligned_period.to_java_unit
                     fn = case my_type of
                         Value_Type.Date_Time _ ->
@@ -1683,7 +1683,7 @@ type Column
             Value_Type.expect_integer amount <|
                 aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
                 aligned_period.if_not_error <|
-                    new_name = naming_helper.function_name "date_add" [self, amount, period.to_display_text]
+                    new_name = naming_helper.function_name "date_add" [self, amount, period]
                     java_unit = aligned_period.to_java_unit
                     ## Here we do not need a Time_Utils helper like in scalar
                        implementations of `date_add`, because the date coming

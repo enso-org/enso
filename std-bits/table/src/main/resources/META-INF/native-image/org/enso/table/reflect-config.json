@@ -365,12 +365,6 @@
                 "parameterTypes": [
                     "org.enso.table.data.table.Column"
                 ]
-            },
-            {
-                "name": "new",
-                "parameterTypes": [
-                    "org.enso.table.data.table.Column"
-                ]
             }
         ]
     },
@@ -385,12 +379,6 @@
                 "parameterTypes": [
                     "org.enso.table.data.table.Column"
                 ]
-            },
-            {
-                "name": "new",
-                "parameterTypes": [
-                    "org.enso.table.data.table.Column"
-                ]
             }
         ]
     },
@@ -402,14 +390,6 @@
         "methods": [
             {
                 "name": "<init>",
-                "parameterTypes": [
-                    "org.enso.table.data.table.Column",
-                    "org.enso.table.data.table.Column",
-                    "org.enso.table.data.column.storage.type.StorageType"
-                ]
-            },
-            {
-                "name": "new",
                 "parameterTypes": [
                     "org.enso.table.data.table.Column",
                     "org.enso.table.data.table.Column",

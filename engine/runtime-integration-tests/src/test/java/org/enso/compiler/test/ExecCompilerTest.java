@@ -22,6 +22,7 @@ import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.io.IOAccess;
 import org.hamcrest.core.AllOf;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -55,6 +56,12 @@ public class ExecCompilerTest {
   @AfterClass
   public static void closeEnsoContext() throws Exception {
     ctx.close();
+    ctx = null;
+    out.close();
+  }
+
+  @After
+  public void cleanup() {
     out.reset();
   }
 

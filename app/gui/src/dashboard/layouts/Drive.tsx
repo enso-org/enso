@@ -204,7 +204,6 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
               query={query}
               setQuery={setQuery}
               category={category}
-              rootDirectoryId={rootDirectoryId}
             />
 
             {status === 'offline' ?
