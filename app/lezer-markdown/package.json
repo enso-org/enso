@@ -16,8 +16,6 @@
     "ist": "^1.1.1",
     "mocha": "^10.2.0",
     "@lezer/html": "^1.0.0",
-    "getdocs-ts": "^0.1.0",
-    "builddocs": "^1.0.0",
     "@marijn/buildtool": "^0.1.6"
   },
   "dependencies": {
@@ -29,9 +27,7 @@
     "url" : "https://github.com/lezer-parser/markdown.git"
   },
   "scripts": {
-    "watch": "node build.js --watch",
     "prepare": "node build.js",
-    "test": "mocha",
-    "build-readme": "node bin/build-readme.cjs"
+    "test": "mocha"
   }
 }

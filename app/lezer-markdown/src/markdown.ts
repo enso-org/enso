@@ -2,6 +2,8 @@ import {Tree, TreeBuffer, NodeType, NodeProp, NodePropSource, TreeFragment, Node
         Input, Parser, PartialParse, SyntaxNode, ParseWrapper} from "@lezer/common"
 import {styleTags, tags as t, Tag} from "@lezer/highlight"
 
+const includeSpaceInDelimiterNode = true
+
 class CompositeBlock {
   static create(type: number, value: number, from: number, parentHash: number, end: number) {
     let hash = (parentHash + (parentHash << 8) + type + (value << 4)) | 0
@@ -215,8 +217,10 @@ function skipForList(bl: CompositeBlock, cx: BlockContext, line: Line) {
 const DefaultSkipMarkup: {[type: number]: (bl: CompositeBlock, cx: BlockContext, line: Line) => boolean} = {
   [Type.Blockquote](bl, cx, line) {
     if (line.next != 62 /* '>' */) return false
-    line.markers.push(elt(Type.QuoteMark, cx.lineStart + line.pos, cx.lineStart + line.pos + 1))
-    line.moveBase(line.pos + (space(line.text.charCodeAt(line.pos + 1)) ? 2 : 1))
+    let sAfter = space(line.text.charCodeAt(line.pos + 1))
+    let size = sAfter ? 2 : 1
+    line.markers.push(elt(Type.QuoteMark, cx.lineStart + line.pos, cx.lineStart + line.pos + (includeSpaceInDelimiterNode ? size : 1)))
+    line.moveBase(line.pos + size)
     bl.end = cx.lineStart + line.text.length
     return true
   },
@@ -437,7 +441,8 @@ const DefaultBlockParsers: {[name: string]: ((cx: BlockContext, line: Line) => B
     let size = isBlockquote(line)
     if (size < 0) return false
     cx.startContext(Type.Blockquote, line.pos)
-    cx.addNode(Type.QuoteMark, cx.lineStart + line.pos, cx.lineStart + line.pos + 1)
+    cx.addNode(Type.QuoteMark, cx.lineStart + line.pos,
+               cx.lineStart + line.pos + (includeSpaceInDelimiterNode ? size : 1))
     line.moveBase(line.pos + size)
     return null
   },
@@ -453,6 +458,8 @@ const DefaultBlockParsers: {[name: string]: ((cx: BlockContext, line: Line) => B
   BulletList(cx, line) {
     let size = isBulletList(line, cx, false)
     if (size < 0) return false
+    if (includeSpaceInDelimiterNode && space(line.text.charCodeAt(line.pos + 1)))
+      size++
     if (cx.block.type != Type.BulletList)
       cx.startContext(Type.BulletList, line.basePos, line.next)
     let newBase = getListIndent(line, line.pos + 1)
@@ -465,11 +472,12 @@ const DefaultBlockParsers: {[name: string]: ((cx: BlockContext, line: Line) => B
   OrderedList(cx, line) {
     let size = isOrderedList(line, cx, false)
     if (size < 0) return false
+    let length = size + (includeSpaceInDelimiterNode && space(line.text.charCodeAt(line.pos + size)) ? 1 : 0)
     if (cx.block.type != Type.OrderedList)
       cx.startContext(Type.OrderedList, line.basePos, line.text.charCodeAt(line.pos + size - 1))
     let newBase = getListIndent(line, line.pos + size)
     cx.startContext(Type.ListItem, line.basePos, newBase - line.baseIndent)
-    cx.addNode(Type.ListMark, cx.lineStart + line.pos, cx.lineStart + line.pos + size)
+    cx.addNode(Type.ListMark, cx.lineStart + line.pos, cx.lineStart + line.pos + length)
     line.moveBaseColumn(newBase)
     return null
   },
@@ -482,7 +490,7 @@ const DefaultBlockParsers: {[name: string]: ((cx: BlockContext, line: Line) => B
     while (after > off && line.text.charCodeAt(after - 1) == line.next) after--
     if (after == endOfSpace || after == off || !space(line.text.charCodeAt(after - 1))) after = line.text.length
     let buf = cx.buffer
-      .write(Type.HeaderMark, 0, size)
+      .write(Type.HeaderMark, 0, size + (includeSpaceInDelimiterNode && space(line.text.charCodeAt(size)) ? 1 : 0))
       .writeElements(cx.parser.parseInline(line.text.slice(off + size + 1, after), from + size + 1), -from)
     if (after < line.text.length) buf.write(Type.HeaderMark, after - off, endOfSpace - off)
     let node = buf.finish(Type.ATXHeading1 - 1 + size, line.text.length - off)
@@ -568,7 +576,8 @@ class LinkReferenceParser implements LeafBlockParser {
         this.elts.push(elt(Type.LinkMark, this.pos + this.start, this.pos + this.start + 1))
         this.pos++
       } else if (this.stage == RefStage.Label) {
-        if (!this.nextStage(parseURL(content, skipSpace(content, this.pos), this.start))) return -1
+        let url = parseURL(content, skipSpace(content, this.pos), this.start)
+        if (!this.nextStage(Array.isArray(url) ? url[1] : url)) return -1
       } else if (this.stage == RefStage.Link) {
         let skip = skipSpace(content, this.pos), end = 0
         if (skip > this.pos) {
@@ -1538,9 +1547,10 @@ function finishLink(cx: InlineContext, content: Element[], type: Type, start: nu
     let pos = cx.skipSpace(startPos + 1)
     let dest = parseURL(text, pos - cx.offset, cx.offset), title
     if (dest) {
-      pos = cx.skipSpace(dest.to)
+      let last = dest[dest.length - 1]
+      pos = cx.skipSpace(last.to)
       // The destination and title must be separated by whitespace
-      if (pos != dest.to) {
+      if (pos != last.to) {
         title = parseLinkTitle(text, pos - cx.offset, cx.offset)
         if (title) pos = cx.skipSpace(title.to)
       }
@@ -1548,7 +1558,7 @@ function finishLink(cx: InlineContext, content: Element[], type: Type, start: nu
     if (cx.char(pos) == 41 /* ')' */) {
       content.push(elt(Type.LinkMark, startPos, startPos + 1))
       endPos = pos + 1
-      if (dest) content.push(dest)
+      if (dest) content.push(...dest)
       if (title) content.push(title)
       content.push(elt(Type.LinkMark, pos, endPos))
     }
@@ -1566,12 +1576,16 @@ function finishLink(cx: InlineContext, content: Element[], type: Type, start: nu
 // when parsing fails otherwise (for use in the incremental link
 // reference parser).
 
-function parseURL(text: string, start: number, offset: number): null | false | Element {
+function parseURL(text: string, start: number, offset: number): null | false | Element[] {
   let next = text.charCodeAt(start)
   if (next == 60 /* '<' */) {
     for (let pos = start + 1; pos < text.length; pos++) {
       let ch = text.charCodeAt(pos)
-      if (ch == 62 /* '>' */) return elt(Type.URL, start + offset, pos + 1 + offset)
+      if (ch == 62 /* '>' */) return [
+        elt(Type.LinkMark, start + offset, start + offset + 1),
+        elt(Type.URL, start + offset + 1, pos + offset),
+        elt(Type.LinkMark, pos + offset, pos + offset + 1),
+      ]
       if (ch == 60 || ch == 10 /* '<\n' */) return false
     }
     return null
@@ -1592,7 +1606,7 @@ function parseURL(text: string, start: number, offset: number): null | false | E
         escaped = true
       }
     }
-    return pos > start ? elt(Type.URL, start + offset, pos + offset) : pos == text.length ? null : false
+    return pos > start ? [elt(Type.URL, start + offset, pos + offset)] : pos == text.length ? null : false
   }
 }
 
