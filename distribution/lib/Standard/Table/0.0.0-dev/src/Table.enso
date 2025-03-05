@@ -3784,16 +3784,13 @@ type Table
     generate_rows self n:Duplicate_Rows_Method =
         x = case n of
           Duplicate_Rows_Method.Integer_Range from to step ->
-              range_col = case to of
-                  _ : Integer -> case from of
-                      _ : Integer ->  self.make_constant_column (from.up_to to step=step)
-                      _ : Column_Ref -> ((self:Table_Ref).resolve from).map x->(x.up_to to step=step)
-                  _ : Column_Ref -> case from of
-                      _ : Integer -> ((self:Table_Ref).resolve to).map x->(from.up_to x step=step)
-                      _ : Column_Ref -> 
-                          from_column = (self:Table_Ref).resolve from
-                          to_column = (self:Table_Ref).resolve to
-                          from_column.zip to_column f->t->(f.up_to t step=step)
+              from_column = case from of
+                  _ : Integer -> self.make_constant_column from
+                  _ : Column_Ref -> (self:Table_Ref).resolve from
+              to_column = case to of
+                  _ : Integer -> self.make_constant_column to
+                  _ : Column_Ref -> (self:Table_Ref).resolve to
+              range_col = from_column.zip to_column f->t->(f.up_to t step=step)
               self.set range_col as="generate_rows_id"
         x.expand_to_rows "generate_rows_id"
 
