@@ -84,13 +84,15 @@ public final class MethodInvocationOnTypeConsistencyTest {
       ctx.close();
       ctx = null;
     }
+    module = null;
+    anyType = null;
+    myType = null;
+    myTypeAtom = null;
   }
 
   @Parameters(name = "{index}: expression = {0}")
   public static List<TestArgs> testArgs() {
-    if (ctx == null) {
-      initCtx();
-    }
+    initCtx();
     return List.of(
         new TestArgs(
             new EnsoInvokeArgs("Any.to_display_text My_Type"),

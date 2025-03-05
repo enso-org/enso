@@ -6,7 +6,7 @@ export function changeSetToTextEdits(changes: ChangeSet): SourceRangeEdit[] {
   const textEdits = new Array<SourceRangeEdit>()
   changes.iterChanges((from, to, _fromB, _toB, insert) =>
     textEdits.push(
-      SourceRangeEdit.replace(SourceRange.tryFromBounds(from, to)!, insert.toString()),
+      SourceRangeEdit.replace(SourceRange.unsafeFromBounds(from, to), insert.toString()),
     ),
   )
   return textEdits
@@ -17,7 +17,9 @@ export function changeDescToSourceRangeEditDesc(changeDesc: ChangeDesc): SourceR
   const textEdits = new Array<SourceRangeEditDesc>()
   changeDesc.iterChangedRanges((fromA, toA, fromB, toB) => {
     textEdits.push(
-      SourceRangeEditDesc.replace(SourceRange.tryFromBounds(fromA, toA)!, { length: toB - fromB }),
+      SourceRangeEditDesc.replace(SourceRange.unsafeFromBounds(fromA, toA), {
+        length: toB - fromB,
+      }),
     )
   })
   return textEdits

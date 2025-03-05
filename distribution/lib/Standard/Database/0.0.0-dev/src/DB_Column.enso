@@ -1743,7 +1743,7 @@ type DB_Column
             Value_Type.expect_type end (== my_type) my_type.to_display_text <|
                 aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
                 aligned_period.if_not_error <|
-                    new_name = self.naming_helper.function_name "date_diff" [self, end, period.to_display_text]
+                    new_name = self.naming_helper.function_name "date_diff" [self, end, period]
                     metadata = self.connection.dialect.prepare_metadata_for_period aligned_period my_type
                     self.make_op "date_diff" [end] new_name metadata
 
@@ -1773,7 +1773,7 @@ type DB_Column
             Helpers.expect_dialect_specific_integer_type self amount <|
                 aligned_period = Date_Time_Helpers.align_period_with_value_type my_type period
                 aligned_period.if_not_error <|
-                    new_name = self.naming_helper.function_name "date_add" [self, amount, period.to_display_text]
+                    new_name = self.naming_helper.function_name "date_add" [self, amount, period]
                     metadata = self.connection.dialect.prepare_metadata_for_period aligned_period my_type
                     self.make_op "date_add" [amount] new_name metadata
 

@@ -41,11 +41,13 @@ public class SharedEngineTest {
   @AfterClass
   public static void disposeEngine() {
     sharedEngine.close();
+    sharedEngine = null;
   }
 
   @After
   public void disposeCtx() {
     this.ctx.close();
+    this.ctx = null;
   }
 
   private final Source typeCase =

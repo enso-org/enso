@@ -16,6 +16,12 @@ export class Range {
     return from <= to ? new Range(from, to) : undefined
   }
 
+  /** @returns A new `Range`. The caller must ensule that `from <= to`. */
+  static unsafeFromBounds(from: number, to: number): Range {
+    assert(from <= to)
+    return new Range(from, to)
+  }
+
   /** @returns A new from `start` to `start + length`. `length` must be nonnegative. */
   static fromStartAndLength(start: number, length: number): Range {
     assert(length >= 0)
@@ -33,6 +39,11 @@ export class Range {
   /** @returns A nonnegative number representing the length of the range. */
   get length(): number {
     return this.to - this.from
+  }
+
+  /** @returns Whether the range length is 0. */
+  get empty(): boolean {
+    return this.to === this.from
   }
 
   /**
