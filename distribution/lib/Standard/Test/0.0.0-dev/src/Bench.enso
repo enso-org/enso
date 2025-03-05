@@ -69,9 +69,9 @@ type Group_Builder
        Arguments:
        - name: The name of the benchmark. Must be a valid Java identifier.
     specify : Text -> Any -> Bench
-    specify self (name:Text) ~benchmark setup=Nothing teardown=Nothing =
+    specify self (name:Text) ~benchmark ~setup=Nothing ~teardown=Nothing =
         validate_name name
-        self.builder.append <| Bench.Spec name (_ -> benchmark) (setup.if_not_nothing (_ -> setup)) (teardown.if_not_nothing (_ -> teardown))
+        self.builder.append <| Bench.Spec name (_ -> benchmark) (_ -> setup) (_ -> teardown)
 
 
 type Bench
@@ -180,6 +180,7 @@ type Bench
                     if s.setup.is_nothing.not then (s.setup 0)
                     Bench.measure bench_name c.warmup c.measure (s.code 0)
                     if s.teardown.is_nothing.not then (s.teardown 0)
+                    Nothing
                 True ->
                     IO.println <| "Skipping '" + bench_name + "' benchmark"
 
