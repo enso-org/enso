@@ -177,9 +177,9 @@ type Bench
             case should_skip bench_name of
                 False ->
                     IO.println <| "Benchmarking '" + bench_name + "' with configuration: " + c.to_text
-                    #if s.setup.is_nothing.not then (s.setup 0)
+                    if s.setup.is_nothing.not then (s.setup 0)
                     Bench.measure bench_name c.warmup c.measure (s.code 0)
-                    #if s.teardown.is_nothing.not then (s.teardown 0)
+                    if s.teardown.is_nothing.not then (s.teardown 0)
                 True ->
                     IO.println <| "Skipping '" + bench_name + "' benchmark"
 
