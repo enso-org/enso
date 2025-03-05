@@ -1,5 +1,4 @@
 import { LINKABLE_URL_REGEX } from '@/util/link'
-import { ICellRendererParams } from 'ag-grid-enterprise'
 import { TextFormatOptions } from '../TableVisualization.vue'
 
 export const getCellValueType = (item: string) => {

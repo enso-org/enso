@@ -8,7 +8,6 @@ import {
 } from '@/components/visualizations/TableVisualization/tableVizToolbar'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
-import { LINKABLE_URL_REGEX } from '@/util/link'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import type {
   CellClassParams,
