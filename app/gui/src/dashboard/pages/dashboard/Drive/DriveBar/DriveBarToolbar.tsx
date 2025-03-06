@@ -220,13 +220,30 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
 
             <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-[11px]">
               <Button
-                variant="icon"
-                size="medium"
-                icon={AddFolderIcon}
-                aria-label={getText('newFolder')}
-                onPress={() => newFolder(currentDirectoryId)}
-              />
-
+                  variant="icon"
+                  size="medium"
+                  icon={AddFolderIcon}
+                  aria-label={getText('newFolder')}
+                  onPress={() => newFolder(currentDirectoryId)}
+                />
+              {!isCloud && (
+                <Button
+                  isDisabled={true}
+                  variant="icon"
+                  size="medium"
+                  icon={AddKeyIcon}
+                  aria-label={getText('newSecretOnlyCloud')}
+                />
+              )}
+              {!isCloud && (
+                <Button
+                  isDisabled={true}
+                  variant="icon"
+                  size="medium"
+                  icon={AddDatalinkIcon}
+                  aria-label={getText('newDatalinkOnlyCloud')}
+                />
+              )}
               {isCloud && (
                 <DialogTrigger>
                   <Button
@@ -244,7 +261,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   />
                 </DialogTrigger>
               )}
-
               {isCloud && (
                 <DialogTrigger>
                   <Button
@@ -260,6 +276,9 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   />
                 </DialogTrigger>
               )}
+            </div>
+
+            <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-[11px]">
               <Button
                 variant="icon"
                 size="medium"

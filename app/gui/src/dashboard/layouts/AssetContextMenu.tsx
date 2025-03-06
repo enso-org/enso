@@ -375,21 +375,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
         {isCloud && (
           <ContextMenuEntry
             hidden={hidden}
-            action="editDescription"
-            label={getText('editDescriptionShortcut')}
-            doAction={() => {
-              setIsAssetPanelTemporarilyVisible(true)
-              setAssetPanelProps({
-                backend,
-                item: asset,
-                spotlightOn: 'description',
-              })
-            }}
-          />
-        )}
-        {isCloud && (
-          <ContextMenuEntry
-            hidden={hidden}
             isDisabled
             action="snapshot"
             doAction={() => {
