@@ -3,7 +3,7 @@
 - type Bench
     - All groups:(Standard.Base.Data.Vector.Vector Standard.Test.Bench.Bench)
     - Group name:Standard.Base.Data.Text.Text configuration:Standard.Test.Bench.Bench_Options specs:(Standard.Base.Data.Vector.Vector Standard.Test.Bench.Bench)
-    - Spec name:Standard.Base.Data.Text.Text code:Standard.Base.Any.Any
+    - Spec name:Standard.Base.Data.Text.Text code:Standard.Base.Any.Any setup:(Standard.Base.Any.Any|Standard.Base.Nothing.Nothing) teardown:(Standard.Base.Any.Any|Standard.Base.Nothing.Nothing)
     - build fn:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - estimated_runtime self -> Standard.Base.Any.Any
     - fold self value:Standard.Base.Any.Any fn:Standard.Base.Any.Any -> Standard.Base.Any.Any
@@ -27,7 +27,7 @@
     - validate self -> Standard.Base.Any.Any
 - type Group_Builder
     - Impl name:Standard.Base.Any.Any builder:Standard.Base.Any.Any
-    - specify self name:Standard.Base.Data.Text.Text ~benchmark:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - specify self name:Standard.Base.Data.Text.Text ~benchmark:Standard.Base.Any.Any ~setup:Standard.Base.Any.Any= ~teardown:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - type Phase_Conf
     - Impl iterations:Standard.Base.Data.Numbers.Integer seconds:Standard.Base.Data.Numbers.Integer
     - to_text self -> Standard.Base.Any.Any
