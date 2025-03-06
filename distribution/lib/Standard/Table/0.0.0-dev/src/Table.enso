@@ -3780,9 +3780,9 @@ type Table
     offset self (columns : Vector (Integer | Text | Regex | By_Type) = Missing_Argument.throw "columns") n:Integer=-1 fill_with:Fill_With=..Nothing (group_by : Vector | Text | Integer | Regex = []) (order_by : Vector | Text = []) set_mode:Set_Mode=..Add on_problems:Problem_Behavior=..Report_Warning -> Table =
         Offset_Helper.table_offset_impl self columns n fill_with group_by order_by set_mode on_problems
 
-    @n Duplicate_Rows_Method.default_widget
-    generate_rows self n:Duplicate_Rows_Method =
-        x = case n of
+    @over Duplicate_Rows_Method.default_widget
+    generate_rows self over:Duplicate_Rows_Method =
+        x = case over of
           Duplicate_Rows_Method.Integer_Range from to step ->
               from_column = case from of
                   _ : Integer -> self.make_constant_column from
