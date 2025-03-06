@@ -38,10 +38,12 @@ export const Default: Story = {
   },
 }
 
+const SAMPLE_PROGRESS_VALUES = [0, 0.2, 0.4, 0.6, 0.8, 1, 'indeterminate' as const]
+
 export const Progress: Story = {
   render: () => (
     <div className="flex flex-col items-center gap-4">
-      {[0, 0.2, 0.4, 0.6, 0.8, 1, 'indeterminate' as const].map((progress) => (
+      {SAMPLE_PROGRESS_VALUES.map((progress) => (
         <div key={progress} className="flex flex-col items-center gap-1">
           <ProgressBar progress={progress} className="h-2 w-40" />
           <Text variant="caption">{progress}</Text>
