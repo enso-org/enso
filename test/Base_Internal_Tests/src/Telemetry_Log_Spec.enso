@@ -8,7 +8,7 @@ from Standard.Base.Enso_Cloud.Public_Utils import get_optional_field, get_requir
 from Standard.Test import all
 import Standard.Test.Test_Environment
 
-import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
 ## Heavily inspired by `Audit_Log_Spec`.
    TODO[pm]: Should be removed once telemetry is implemented as a slf4j logger appender.

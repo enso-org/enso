@@ -8,7 +8,6 @@ import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 import project.Network.Enso_Cloud.Enso_Cloud_Spec
 import project.Network.Enso_Cloud.Enso_File_Spec
 import project.Network.Enso_Cloud.Secrets_Spec
-import project.Network.Enso_Cloud.Telemetry_Log_Spec
 
 add_specs suite_builder (setup : Cloud_Tests_Setup = Cloud_Tests_Setup.prepare) =
     Enso_Cloud_Spec.add_specs suite_builder setup
@@ -16,7 +15,6 @@ add_specs suite_builder (setup : Cloud_Tests_Setup = Cloud_Tests_Setup.prepare) 
     Secrets_Spec.add_specs suite_builder setup
     Cloud_Data_Link_Spec.add_specs suite_builder setup
     Audit_Log_Spec.add_specs suite_builder
-    Telemetry_Log_Spec.add_specs suite_builder
 
 main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare
