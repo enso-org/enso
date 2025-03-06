@@ -2458,7 +2458,7 @@ export class FunctionDef extends BaseStatement {
         return preferUnspaced(nodeChild)
       }
     }
-    const docs = functionDocsToConcrete(docMarkdown.toJSON(), docLineMarkdownHash, docLine, indent)
+    const docs = functionDocsToConcrete(docMarkdown, docLineMarkdownHash, docLine, indent)
     if (docs) {
       yield* docs
       prevIsNewline = true

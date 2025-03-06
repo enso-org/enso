@@ -351,7 +351,7 @@ class Abstractor {
     return FunctionDef.concrete(this.module, {
       docLine,
       docLineMarkdownHash,
-      docMarkdown: new Y.Text(docMarkdown),
+      docMarkdown,
       annotationLines,
       signatureLine,
       private_,
