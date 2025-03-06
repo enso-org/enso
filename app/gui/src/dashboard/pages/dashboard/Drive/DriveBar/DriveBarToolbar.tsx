@@ -226,56 +226,36 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                   aria-label={getText('newFolder')}
                   onPress={() => newFolder(currentDirectoryId)}
                 />
-              {!isCloud && (
+              <DialogTrigger>
                 <Button
-                  isDisabled={true}
+                  isDisabled={!isCloud}
                   variant="icon"
                   size="medium"
                   icon={AddKeyIcon}
-                  aria-label={getText('newSecretOnlyCloud')}
+                  aria-label={isCloud ? getText('newSecret') : getText('newSecretOnlyCloud')}
                 />
-              )}
-              {!isCloud && (
+                <UpsertSecretModal
+                  id={null}
+                  name={null}
+                  doCreate={async (name, value) => {
+                    await newSecret(name, value)
+                  }}
+                />
+              </DialogTrigger>
+              <DialogTrigger>
                 <Button
-                  isDisabled={true}
+                  isDisabled={!isCloud}
                   variant="icon"
                   size="medium"
                   icon={AddDatalinkIcon}
-                  aria-label={getText('newDatalinkOnlyCloud')}
+                  aria-label={isCloud ? getText('newDatalink') : getText('newDatalinkOnlyCloud')}
                 />
-              )}
-              {isCloud && (
-                <DialogTrigger>
-                  <Button
-                    variant="icon"
-                    size="medium"
-                    icon={AddKeyIcon}
-                    aria-label={getText('newSecret')}
-                  />
-                  <UpsertSecretModal
-                    id={null}
-                    name={null}
-                    doCreate={async (name, value) => {
-                      await newSecret(name, value)
-                    }}
-                  />
-                </DialogTrigger>
-              )}
-              {isCloud && (
-                <DialogTrigger>
-                  <Button
-                    variant="icon"
-                    size="medium"
-                    icon={AddDatalinkIcon}
-                    aria-label={getText('newDatalink')}
-                  />
-                  <UpsertDatalinkModal
-                    doCreate={async (name, value) => {
-                      await newDatalink(name, value)
-                    }}
-                  />
-                </DialogTrigger>
-              )}
+                <UpsertDatalinkModal
+                  doCreate={async (name, value) => {
+                    await newDatalink(name, value)
+                  }}
+                />
+              </DialogTrigger>
             </div>
 
             <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-[11px]">
