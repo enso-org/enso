@@ -154,6 +154,10 @@ export const geoMapVisualization = visualizationLocator('.GeoMapVisualization')
 export const imageBase64Visualization = visualizationLocator('.ImageBase64Visualization')
 export const warningsVisualization = visualizationLocator('.WarningsVisualization')
 
+export function visualisationNodeType(page: Page) {
+  return page.getByTestId('visualisationNodeType')
+}
+
 // === Edge locators ===
 
 /** All edges going from a node with given binding. */
