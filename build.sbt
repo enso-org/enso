@@ -332,7 +332,6 @@ lazy val enso = (project in file("."))
     `language-server-deps-wrapper`,
     launcher,
     `library-manager`,
-    `library-manager-test`,
     `locking-test-helper`,
     `logging-config`,
     `logging-service`,
@@ -2499,7 +2498,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(filewatcher)
   .dependsOn(testkit % Test)
   .dependsOn(`logging-service-logback` % "test->test")
-  .dependsOn(`library-manager-test` % Test)
+  .dependsOn(`library-manager` % "test->test")
   .dependsOn(`runtime-version-manager-test` % Test)
   .dependsOn(`ydoc-polyfill`)
 
@@ -4478,7 +4477,7 @@ lazy val `edition-updater` = project
   .dependsOn(editions)
   .dependsOn(downloader)
   .dependsOn(`distribution-manager`)
-  .dependsOn(`library-manager-test` % Test)
+  .dependsOn(`library-manager` % "test->test")
 
 lazy val `edition-uploader` = project
   .in(file("lib/scala/edition-uploader"))
@@ -4518,50 +4517,20 @@ lazy val `library-manager` = project
       (`logging-utils` / Compile / exportedModule).value,
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`scala-yaml` / Compile / exportedModule).value
-    )
+    ),
+    commands += WithDebugCommand.withDebug,
+    Test / javaOptions ++= testLogProviderOptions,
+    Test / test := (Test / test).tag(simpleLibraryServerTag).value,
+    Test / fork := true
   )
   .dependsOn(`version-output`) // Note [Default Editions]
   .dependsOn(editions)
   .dependsOn(cli)
   .dependsOn(`distribution-manager`)
   .dependsOn(downloader)
-  .dependsOn(testkit % Test)
-
-lazy val `library-manager-test` = project
-  .in(file("lib/scala/library-manager-test"))
-  .enablePlugins(JPMSPlugin)
-  .configs(Test)
-  .settings(
-    frgaalJavaCompilerSetting,
-    scalaModuleDependencySetting,
-    compileOrder := CompileOrder.ScalaThenJava,
-    Test / fork := true,
-    commands += WithDebugCommand.withDebug,
-    Test / javaOptions ++= testLogProviderOptions,
-    Test / test := (Test / test).tag(simpleLibraryServerTag).value,
-    libraryDependencies ++= Seq(
-      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
-    ),
-    Compile / internalModuleDependencies := Seq(
-      (`library-manager` / Compile / exportedModule).value,
-      (`cli` / Compile / exportedModule).value,
-      (`distribution-manager` / Compile / exportedModule).value,
-      (`library-manager` / Compile / exportedModule).value,
-      (`process-utils` / Compile / exportedModule).value,
-      (`pkg` / Compile / exportedModule).value,
-      (`semver` / Compile / exportedModule).value,
-      (`downloader` / Compile / exportedModule).value,
-      (`editions` / Compile / exportedModule).value,
-      (`version-output` / Compile / exportedModule).value,
-      (`testkit` / Compile / exportedModule).value
-    )
-  )
-  .dependsOn(`library-manager`)
-  .dependsOn(`process-utils`)
-  .dependsOn(`logging-utils`)
-  .dependsOn(testkit)
-  .dependsOn(`logging-service-logback` % Test)
+  .dependsOn(testkit % "test->test")
+  .dependsOn(`process-utils` % "test->compile")
+  .dependsOn(`logging-service-logback` % "test->test")
 
 lazy val `connected-lock-manager` = project
   .in(file("lib/scala/connected-lock-manager"))
