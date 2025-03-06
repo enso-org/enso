@@ -22,28 +22,13 @@ import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
 import org.graalvm.polyglot.Context;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public final class FullyQualifiedNamesTest {
 
-  @ClassRule public static final TemporaryFolder TMP_DIR = new TemporaryFolder();
-
-  private Path projDir;
-
-  @Before
-  public void before() throws IOException {
-    var tmpDir = TMP_DIR.newFolder();
-    projDir = tmpDir.toPath().resolve("Proj");
-    var wasCreated = projDir.toFile().mkdir();
-    assert wasCreated;
-  }
-
-  @After
-  public void after() {}
+  @Rule public final TemporaryFolder TMP_DIR = new TemporaryFolder();
 
   @Test
   public void libraryNameIsResolved_InExpressionBlock() throws IOException {
@@ -51,8 +36,9 @@ public final class FullyQualifiedNamesTest {
         main =
             local.Proj.My_Module.My_Type
         """;
-    createProject(Set.of(srcModule("Main", mainSrc)));
-    try (var ctx = createCtx()) {
+    var projDir = TMP_DIR.newFolder("Proj").toPath();
+    ProjectUtils.createProject("Proj", mainSrc, projDir);
+    try (var ctx = createCtx(projDir)) {
       compileAllModules(ctx);
       var modIr = getModuleIr(ctx, "local.Proj.Main");
       var location = getLocationOf(mainSrc, "Proj");
@@ -62,6 +48,43 @@ public final class FullyQualifiedNamesTest {
           FullyQualifiedNames.ResolvedModule.class,
           meta -> {
             assertThat(meta.moduleRef().getName().toString(), is("local.Proj.Main"));
+          });
+    }
+  }
+
+  @Test
+  public void libNameIsResolved_FromDifferentProject() throws IOException {
+    var projDir = TMP_DIR.newFolder("Proj").toPath();
+    var libDir = TMP_DIR.newFolder("Lib").toPath();
+    ProjectUtils.createProject(
+        "Lib",
+        Set.of(
+            srcModule("My_Module", """
+                type My_Type
+                """),
+            srcModule(
+                "Main", """
+                export project.My_Module.My_Type
+                """)),
+        libDir);
+    var mainSrc =
+        """
+        from local.Lib import all
+
+        main =
+            local.Lib.My_Module.My_Type
+        """;
+    ProjectUtils.createProject("Proj", mainSrc, projDir);
+    try (var ctx = createCtx(projDir)) {
+      compileAllModules(ctx);
+      var modIr = getModuleIr(ctx, "local.Proj.Main");
+      var location = getLocationOf(mainSrc, "Lib");
+      var ir = findIrByLocation(modIr, location);
+      assertHasFQNMetadata(
+          ir,
+          FullyQualifiedNames.ResolvedModule.class,
+          meta -> {
+            assertThat(meta.moduleRef().getName().toString(), is("local.Lib.Main"));
           });
     }
   }
@@ -80,18 +103,14 @@ public final class FullyQualifiedNamesTest {
     callback.accept(target);
   }
 
-  private Context createCtx() {
+  private Context createCtx(Path projectRoot) {
     return ContextUtils.defaultContextBuilder()
-        .option(RuntimeOptions.PROJECT_ROOT, projDir.toFile().getAbsolutePath())
+        .option(RuntimeOptions.PROJECT_ROOT, projectRoot.toFile().getAbsolutePath())
         .build();
   }
 
   private static SourceModule srcModule(String moduleName, String src) {
     return new SourceModule(QualifiedName.fromString(moduleName), src);
-  }
-
-  private void createProject(Set<SourceModule> srcModules) throws IOException {
-    ProjectUtils.createProject("Proj", srcModules, projDir);
   }
 
   private void compileAllModules(Context ctx) {
