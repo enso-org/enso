@@ -25,7 +25,7 @@ import org.enso.interpreter.runtime.error.PanicException;
  * Allows the context to attach garbage collection hooks on the removal of certain objects.
  *
  * <p><Using the same underlying resource with multiple managed resource instances is an error and
- * will result in a `Forbidden_Operation` panic.
+ * will result in an `Illegal_Argument` panic.
  *
  * <p>Truly atomic values such as integer `2` cannot be managed resources.
  */
@@ -156,8 +156,7 @@ public final class ResourceManager {
     if (alreadyRegistered(object)) {
       var error = context.getBuiltins().error();
       var msg = "Object is already registered as a ManagedResource: " + object;
-      var payload = error.makeIllegalArgument(msg);
-      throw new PanicException(payload, null);
+      throw new PanicException(msg, null);
     }
 
     if (CLOSED == processor) {
