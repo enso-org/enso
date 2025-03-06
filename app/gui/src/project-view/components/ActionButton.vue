@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import SvgButton from '@/components/SvgButton.vue'
-import ToggleIcon from '@/components/ToggleIcon.vue'
 import { computed, toValue } from 'vue'
 import { Action, ActionName, injectActions } from '../providers/action'
 
