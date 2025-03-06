@@ -2,7 +2,7 @@ import { StatusBadge } from '#/components/AriaComponents'
 import { iconNames } from '@/util/iconMetadata/iconName'
 import type { Meta, StoryObj } from '@storybook/react'
 import { Text } from '../AriaComponents/Text'
-import { Icon, type IconProps } from './Icon'
+import { ICON_COLORS, Icon, type IconProps } from './Icon'
 
 const meta = {
   title: 'Components/Icon',
@@ -20,17 +20,6 @@ const sizes = [
   'xlarge',
   'xxlarge',
 ] satisfies IconProps['size'][]
-const colors = [
-  'primary',
-  'danger',
-  'success',
-  'accent',
-  'muted',
-  'disabled',
-  'invert',
-  'inherit',
-  'current',
-] satisfies IconProps['color'][]
 
 export default meta
 type Story = StoryObj<typeof meta>
@@ -59,16 +48,25 @@ const RenderPropIcon = ({ color = '#000' }: RenderProps) => (
   </svg>
 )
 
+export const Default = {
+  args: {},
+  argTypes: {
+    icon: { options: iconNames, control: { type: 'select' } },
+    size: { options: sizes, control: { type: 'select' } },
+    color: { options: ICON_COLORS, control: { type: 'select' } },
+  },
+}
+
 export const Icons: Story = {
   render: () => (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 text-primary">
       <div className="flex flex-col gap-2">
         <div className="text-sm font-medium">Custom Icons</div>
         <div className="flex items-center gap-4">
           {sizes.map((size) => (
             <Icon key={size} size={size} icon={CustomSvgIcon} />
           ))}
-          {colors.map((color) => (
+          {ICON_COLORS.map((color) => (
             <Icon key={color} color={color} icon={CustomSvgIcon} />
           ))}
           <Icon
@@ -87,7 +85,10 @@ export const Icons: Story = {
         <div className="text-sm font-medium">Sizes</div>
         <div className="flex items-center gap-4">
           {sizes.map((size) => (
-            <Icon key={size} size={size} icon="close" />
+            <div key={size} className="flex flex-col items-center gap-1">
+              <Icon key={size} size={size} icon="close" />
+              <Text variant="caption">{size}</Text>
+            </div>
           ))}
         </div>
       </div>
@@ -95,8 +96,11 @@ export const Icons: Story = {
       <div className="flex flex-col gap-2">
         <div className="text-sm font-medium">Colors</div>
         <div className="flex items-center gap-4">
-          {colors.map((color) => (
-            <Icon key={color} color={color} icon="close" />
+          {ICON_COLORS.map((color) => (
+            <div key={color} className="flex flex-col items-center gap-1">
+              <Icon key={color} color={color} icon="close" />
+              <Text variant="caption">{color}</Text>
+            </div>
           ))}
         </div>
       </div>
@@ -106,7 +110,7 @@ export const Icons: Story = {
 
 export const AvailableIcons: Story = {
   render: () => (
-    <div className="flex flex-col gap-2 pb-24">
+    <div className="flex flex-col gap-2 pb-24 text-primary">
       <Text.Heading className="mb-3">Available Icons</Text.Heading>
 
       <div className="grid grid-cols-9 items-center gap-4">
@@ -123,7 +127,7 @@ export const AvailableIcons: Story = {
 
 export const AvailableIconsWithStatusBadge: Story = {
   render: () => (
-    <div className="flex flex-col gap-2 pb-24">
+    <div className="flex flex-col gap-2 pb-24 text-primary">
       <Text.Heading className="mb-3">Available Icons</Text.Heading>
 
       <div className="grid grid-cols-9 items-center gap-4">
