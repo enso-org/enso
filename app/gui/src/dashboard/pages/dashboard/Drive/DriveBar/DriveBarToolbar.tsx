@@ -220,12 +220,12 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
 
             <div className="flex h-row items-center gap-4 rounded-full border-0.5 border-primary/20 px-[11px]">
               <Button
-                  variant="icon"
-                  size="medium"
-                  icon={AddFolderIcon}
-                  aria-label={getText('newFolder')}
-                  onPress={() => newFolder(currentDirectoryId)}
-                />
+                variant="icon"
+                size="medium"
+                icon={AddFolderIcon}
+                aria-label={getText('newFolder')}
+                onPress={() => newFolder(currentDirectoryId)}
+              />
               <DialogTrigger>
                 <Button
                   isDisabled={!isCloud}

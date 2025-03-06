@@ -7,11 +7,7 @@ import { useOpenProject } from '#/hooks/projectHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useText } from '#/providers/TextProvider'
-import {
-  BackendType,
-  isNewTitleUnique,
-  type ProjectAsset,
-} from '#/services/Backend'
+import { BackendType, isNewTitleUnique, type ProjectAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
 import { PERMISSION_ACTION_CAN_EXECUTE, tryFindSelfPermission } from '#/utilities/permissions'
