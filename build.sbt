@@ -2061,7 +2061,7 @@ lazy val `persistance-dsl` = (project in file("lib/java/persistance-dsl"))
     )
   )
 
-lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
+lazy val `interpreter-dsl` = (project in file("lib/java/interpreter-dsl"))
   .enablePlugins(JPMSPlugin)
   .settings(
     version := "0.1",
