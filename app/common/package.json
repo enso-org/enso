@@ -17,7 +17,7 @@
   },
   "main": "src/index.ts",
   "scripts": {
-    "test": "vitest run",
+    "test:unit": "vitest run",
     "compile": "tsc",
     "lint": "eslint ./src --cache --max-warnings=0"
   },
