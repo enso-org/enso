@@ -72,7 +72,6 @@ const emit = defineEmits<{
   'update:visualizationEnabled': [enabled: boolean]
   'update:visualizationWidth': [width: number]
   'update:visualizationHeight': [height: number]
-  executeExpression: [expression: string]
 }>()
 
 const nodeSelection = injectGraphSelection(true)

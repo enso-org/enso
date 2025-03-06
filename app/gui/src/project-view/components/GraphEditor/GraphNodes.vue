@@ -18,7 +18,6 @@ const emit = defineEmits<{
   nodeOutputPortDoubleClick: [portId: AstId]
   enterNode: [nodeId: NodeId]
   createNodes: [source: NodeId, options: NodeCreationOptions[]]
-  executeExpression: [expression: string]
   toggleDocPanel: []
 }>()
 

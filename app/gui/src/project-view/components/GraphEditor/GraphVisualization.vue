@@ -46,7 +46,6 @@ const emit = defineEmits<{
   'update:height': [height: number]
   'update:nodePosition': [pos: Vec2]
   createNodes: [options: NodeCreationOptions[]]
-  executeExpression: [expression: string]
 }>()
 
 // ===================================
