@@ -44,6 +44,9 @@ public class EqualsMultiValueTest {
   public static void disposeContext() {
     context.close();
     context = null;
+    equalsNode = null;
+    testRootNode = null;
+    hostValueToEnsoNode = null;
   }
 
   @Test

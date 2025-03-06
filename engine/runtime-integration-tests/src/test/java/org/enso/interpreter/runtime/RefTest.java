@@ -35,14 +35,17 @@ public class RefTest {
   public static void closeCtx() throws Exception {
     ctx.close();
     ctx = null;
+    refType = null;
+    ensoCtx.shutdown();
+    ensoCtx = null;
   }
 
   private static Value getRef(Value ref) {
-    return refType.invokeMember("get", ref);
+    return refType.invokeMember("get", refType, ref);
   }
 
   private static Value newRef(Object object) {
-    return refType.invokeMember("new", object);
+    return refType.invokeMember("new", refType, object);
   }
 
   @Test

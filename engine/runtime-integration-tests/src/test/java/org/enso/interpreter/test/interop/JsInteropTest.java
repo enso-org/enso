@@ -3,6 +3,7 @@ package org.enso.interpreter.test.interop;
 import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -12,7 +13,7 @@ import org.junit.Test;
 
 public class JsInteropTest {
 
-  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
+  private static ByteArrayOutputStream out = new ByteArrayOutputStream();
   private Context ctx;
 
   @Before
@@ -21,10 +22,11 @@ public class JsInteropTest {
   }
 
   @After
-  public void disposeCtx() {
+  public void disposeCtx() throws IOException {
     ctx.close();
     ctx = null;
-    out.reset();
+    out.close();
+    out = null;
   }
 
   @Test

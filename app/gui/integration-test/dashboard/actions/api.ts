@@ -19,10 +19,6 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import invariant from 'tiny-invariant'
 
-// =================
-// === Constants ===
-// =================
-
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const MOCK_SVG = `
@@ -59,6 +55,17 @@ const GLOB_TAG_ID = backend.TagId('*')
 const GLOB_CHECKOUT_SESSION_ID = backend.CheckoutSessionId('*')
 const BASE_URL = 'https://mock/'
 const MOCK_S3_BUCKET_URL = 'https://mock-s3-bucket.com/'
+
+const lastDate = new Date(0)
+
+function newDate() {
+  let date = new Date()
+  while (Number(date) === Number(lastDate)) {
+    // Busy loop until date is different.
+    date = new Date()
+  }
+  return dateTime.toRfc3339(date)
+}
 
 function array<T>(): Readonly<T>[] {
   return []
@@ -168,6 +175,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     userGroups: null,
     plan: backend.Plan.solo,
     isOrganizationAdmin: true,
+    isEnsoTeamMember: true,
   }
   const defaultOrganization: backend.OrganizationInfo = {
     id: defaultOrganizationId,
@@ -178,6 +186,14 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     website: null,
     subscription: {},
   }
+
+  let featureFlags: Partial<FeatureFlags> = {
+    enableCloudExecution: true,
+    enableAsyncExecution: true,
+    enableAdvancedProjectExecutionOptions: true,
+    enableAssetsTableBackgroundRefresh: false,
+  }
+
   const callsObjects = new Set<typeof INITIAL_CALLS_OBJECT>()
   let totalSeats = 1
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -328,17 +344,10 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     )
 
   const createUserGroupPermission = (
-    userGroup: backend.UserGroupInfo,
+    userGroup: backend.UserGroup,
     permission: permissions.PermissionAction = permissions.PermissionAction.own,
     rest: Partial<backend.UserGroupPermission> = {},
-  ): backend.UserGroupPermission =>
-    object.merge(
-      {
-        userGroup,
-        permission,
-      },
-      rest,
-    )
+  ): backend.UserGroupPermission => object.merge({ userGroup, permission }, rest)
 
   const createDirectory = (rest: Partial<backend.DirectoryAsset> = {}): backend.DirectoryAsset => {
     const parentId = rest.parentId ?? defaultDirectoryId
@@ -358,13 +367,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         projectState: null,
         extension: null,
         title,
-        modifiedAt: dateTime.toRfc3339(new Date()),
+        modifiedAt: newDate(),
         description: rest.description ?? '',
         labels: [],
         parentId,
         permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
-        parentsPath: '',
-        virtualParentsPath: '',
+        parentsPath: backend.ParentsPath(''),
+        virtualParentsPath: backend.VirtualParentsPath(''),
       },
       rest,
     )
@@ -411,13 +420,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         },
         extension: null,
         title,
-        modifiedAt: dateTime.toRfc3339(new Date()),
+        modifiedAt: newDate(),
         description: rest.description ?? '',
         labels: [],
         parentId: defaultDirectoryId,
         permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
-        parentsPath: '',
-        virtualParentsPath: '',
+        parentsPath: backend.ParentsPath(''),
+        virtualParentsPath: backend.VirtualParentsPath(''),
       },
       rest,
     )
@@ -452,13 +461,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         projectState: null,
         extension: '',
         title: rest.title ?? '',
-        modifiedAt: dateTime.toRfc3339(new Date()),
+        modifiedAt: newDate(),
         description: rest.description ?? '',
         labels: [],
         parentId: defaultDirectoryId,
         permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
-        parentsPath: '',
-        virtualParentsPath: '',
+        parentsPath: backend.ParentsPath(''),
+        virtualParentsPath: backend.VirtualParentsPath(''),
       },
       rest,
     )
@@ -494,13 +503,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         projectState: null,
         extension: null,
         title: rest.title ?? '',
-        modifiedAt: dateTime.toRfc3339(new Date()),
+        modifiedAt: newDate(),
         description: rest.description ?? '',
         labels: [],
         parentId: defaultDirectoryId,
         permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
-        parentsPath: '',
-        virtualParentsPath: '',
+        parentsPath: backend.ParentsPath(''),
+        virtualParentsPath: backend.VirtualParentsPath(''),
       },
       rest,
     )
@@ -536,13 +545,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         projectState: null,
         extension: null,
         title: rest.title ?? '',
-        modifiedAt: dateTime.toRfc3339(new Date()),
+        modifiedAt: newDate(),
         description: rest.description ?? '',
         labels: [],
         parentId: defaultDirectoryId,
         permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
-        parentsPath: '',
-        virtualParentsPath: '',
+        parentsPath: backend.ParentsPath(''),
+        virtualParentsPath: backend.VirtualParentsPath(''),
       },
       rest,
     )
@@ -650,6 +659,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       userGroups: null,
       plan: backend.Plan.enterprise,
       isOrganizationAdmin: true,
+      isEnsoTeamMember: true,
       ...rest,
     }
     users.push(user)
@@ -1235,6 +1245,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         rootDirectoryId,
         userGroups: null,
         isOrganizationAdmin: true,
+        isEnsoTeamMember: true,
       }
       return currentUser
     })
@@ -1322,7 +1333,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         description: null,
         id,
         labels: [],
-        modifiedAt: dateTime.toRfc3339(new Date()),
+        modifiedAt: newDate(),
         parentId,
         permissions: [
           {
@@ -1477,17 +1488,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     createUserPermission,
     createUserGroupPermission,
     setFeatureFlags: (flags: Partial<FeatureFlags>) => {
-      return page.addInitScript((flags: Partial<FeatureFlags>) => {
-        const currentOverrideFeatureFlags =
-          'overrideFeatureFlags' in window && typeof window.overrideFeatureFlags === 'object' ?
-            window.overrideFeatureFlags
-          : {}
-
-        Object.defineProperty(window, 'overrideFeatureFlags', {
-          value: { ...currentOverrideFeatureFlags, ...flags },
-          writable: false,
-        })
-      }, flags)
+      featureFlags = { ...featureFlags, ...flags }
     },
     // TODO:
     // addPermission,
@@ -1500,6 +1501,17 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
   if (setupAPI) {
     await setupAPI(api)
   }
+
+  await page.addInitScript((flags) => {
+    Object.defineProperty(window, 'overrideFeatureFlags', {
+      value: flags,
+      writable: false,
+      configurable: false,
+    })
+  }, featureFlags)
+
+  // Disallow any changes to the feature flags after the mock API has been initialized.
+  featureFlags = Object.freeze({})
 
   return api
 }

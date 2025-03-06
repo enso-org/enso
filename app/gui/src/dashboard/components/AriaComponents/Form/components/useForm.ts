@@ -15,6 +15,7 @@ import { useOffline, useOfflineChange } from '#/hooks/offlineHooks'
 import { useText } from '#/providers/TextProvider'
 import * as errorUtils from '#/utilities/error'
 import { useMutation } from '@tanstack/react-query'
+import { IS_DEV_MODE } from 'enso-common/src/detect'
 import * as schemaModule from './schema'
 import type * as types from './types'
 
@@ -71,6 +72,7 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
       onSubmitted,
       onSubmitSuccess,
       debugName,
+      resetOnSubmit = true,
       ...options
     } = optionsOrFormInstance
 
@@ -83,6 +85,10 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
         {
           async: true,
           errorMap: (issue) => {
+            if (IS_DEV_MODE) {
+              // eslint-disable-next-line no-restricted-properties
+              console.error('(Development only) Form validation error:', issue)
+            }
             switch (issue.code) {
               case 'too_small':
                 if (issue.minimum === 1 && issue.type === 'string') {
@@ -95,13 +101,16 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
                   }
                 }
               case 'too_big':
-                return {
-                  message: getText('arbitraryFieldTooLarge', issue.maximum.toString()),
-                }
+                return { message: getText('arbitraryFieldTooLarge', issue.maximum.toString()) }
               case 'invalid_type':
-                return {
-                  message: getText('arbitraryFieldInvalid'),
+                return { message: getText('arbitraryFieldInvalid') }
+              case 'invalid_string':
+                if (issue.validation === 'email') {
+                  return { message: getText('invalidEmailValidationError') }
                 }
+
+                return { message: getText('arbitraryFieldInvalid') }
+
               case 'invalid_literal':
               case 'invalid_enum_value':
               case 'invalid_union':
@@ -109,7 +118,6 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
               case 'invalid_union_discriminator':
               case 'invalid_arguments':
               case 'invalid_return_type':
-              case 'invalid_string':
               case 'not_multiple_of':
               case 'custom':
               case 'invalid_intersection_types':
@@ -172,7 +180,9 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
             closeRef.current()
           }
 
-          formInstance.reset()
+          if (resetOnSubmit) {
+            formInstance.reset()
+          }
 
           return result
         } catch (error) {

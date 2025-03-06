@@ -57,7 +57,7 @@ import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.enso.version.BuildVersion
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.slf4j.event.Level
-import org.slf4j.LoggerFactory
+import org.slf4j.{LoggerFactory, MDC}
 
 import java.io.{File, PrintStream}
 import java.net.URI
@@ -317,9 +317,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   )
 
   if (java.lang.Boolean.getBoolean("com.oracle.graalvm.isaot")) {
-    log.trace("Running Language Server in AOT mode")
+    log.info("Running Language Server in AOT mode")
   } else {
-    log.trace("Running Language Server in non-AOT mode")
+    log.info("Running Language Server in JVM mode")
   }
 
   private val builder = ContextFactory
@@ -514,6 +514,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     contextSupervisor.close()
     runtimeEventsMonitor.close()
     log.info("Stopped Language Server")
+    MDC.remove("project.id")
   }
 
   private def akkaHttpsConfig(): com.typesafe.config.Config = {

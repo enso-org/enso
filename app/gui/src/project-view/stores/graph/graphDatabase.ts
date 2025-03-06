@@ -5,7 +5,7 @@ import {
   type ExpressionInfo,
 } from '@/stores/project/computedValueRegistry'
 import { mockProjectNameStore, type ProjectNameStore } from '@/stores/projectNames'
-import { SuggestionDb, type Group } from '@/stores/suggestionDatabase'
+import { SuggestionDb, type GroupInfo } from '@/stores/suggestionDatabase'
 import { type CallableSuggestionEntry } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
@@ -66,7 +66,7 @@ export class GraphDb {
   /** Constructor. */
   constructor(
     private readonly suggestionDb: SuggestionDb,
-    private readonly groups: Ref<DeepReadonly<Group[]>>,
+    private readonly groups: Ref<DeepReadonly<GroupInfo[]>>,
     private readonly valuesRegistry: ComputedValueRegistry,
     private readonly projectNames: ProjectNameStore,
   ) {}

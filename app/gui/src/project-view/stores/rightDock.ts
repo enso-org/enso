@@ -14,7 +14,7 @@ export type RightDockStore = ReturnType<typeof useRightDock>
 
 export type RightDockTab = ExtractTabs<typeof tabButtons>
 export const { buttons: tabButtons, isValidTab } = defineTabButtons([
-  { tab: 'docs', icon: 'text', title: 'Documentation Editor' },
+  { tab: 'docs', icon: 'document', title: 'Documentation Editor' },
   { tab: 'help', icon: 'help', title: 'Component Help' },
 ])
 

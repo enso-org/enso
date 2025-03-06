@@ -1,5 +1,7 @@
 import project.Any.Any
 import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Data.Numbers.Integer
 import project.Meta
 import project.Nothing.Nothing
 
@@ -13,13 +15,73 @@ Any.log_message : Text -> Log_Level -> Any
 Any.log_message self ~message:Text level:Log_Level=Log_Level.Info =
     type_name = self.to Meta.Type . qualified_name
     logger = LoggerFactory.getLogger type_name
-    case level of
-        Log_Level.Finest -> logger.trace message
-        Log_Level.Fine -> logger.debug message
-        Log_Level.Info -> logger.info message
-        Log_Level.Warning -> logger.warn message
-        Log_Level.Severe -> logger.error message
+    log_impl logger message level []
     self
+
+## Infrastructure for reporting logs and progress of computations.
+
+   Useful for longer running actions (more than a second). A must
+   for long running actions (more than ten seconds). 
+   Start by invoking `Progress.run`, providing your own action
+   to preform and report progress as your action advances. Nest
+   your `Progress.run` invocations freely - the infrastructure is
+   going to take care of combining the overall status of the computations
+   together and will report it as a whole to a
+   [progress displaying facility](https://github.com/enso-org/enso/pull/12126).
+type Progress
+    private Running label:Text max:Integer logger
+
+    ## Performs provided `action` while reporting its progress.
+
+       The `action` is a function that takes a `Progress` handle
+       and uses its methods to report progress of the computation.
+       The value returned from `action` is returned from this
+       method.
+
+       Arguments:
+       - label: Overall description of the action
+       - up_to: how _"long"_ - e.g. how many steps the action is expected to take. 
+           It has to be at least one or higher.
+       - action: function performing the computation while reporting its `Progress`
+
+    run label:Text up_to:Integer action:(Progress->Any) -> Any =
+        logger = LoggerFactory.getLogger (Progress.to Meta.Type . qualified_name)
+        progress = Progress.Running label (up_to.max 1) logger
+        log_impl logger "INIT {}:{}@{}" Log_Level.Finest [progress, progress.label, progress.max]
+        res = action progress
+        progress.advance up_to
+        res
+
+    ## Reports progress of the computation.
+
+       Adds provided `amount` to the already
+       accumulated work towards `up_to` value provided when creating this `Progress`.
+
+       Arguments:
+       - amount: value to add to the progress. Must be >= 0
+
+       Returns:
+       The self value.
+
+    advance self amount:Integer=1 -> Progress =
+        add = if amount>=0 then amount else 0
+        log_impl self.logger "ADVANCE {}+{}" Log_Level.Finest [self, add]
+        self
+
+    ## Provides additional human readable detail of the status of the computation.
+
+       Arguments:
+       - info: textual description of what's going on
+
+       Returns:
+       The self value.
+
+    log self detail:Text -> Progress =
+        log_impl self.logger "LOG {}:{}" Log_Level.Finest [self, detail]
+        self
+
+    ## Simple name of the progress
+    to_text self = "Progress"
 
 ## PRIVATE
 type Log_Level
@@ -37,3 +99,17 @@ type Log_Level
 
     ## Severe level log message.
     Severe
+
+private log_impl logger ~message level args =
+    builder = case level of
+        Log_Level.Finest -> logger.atTrace
+        Log_Level.Fine -> logger.atDebug
+        Log_Level.Info -> logger.atInfo
+        Log_Level.Warning -> logger.atWarn
+        Log_Level.Severe -> logger.atError
+
+    builder.setMessage message
+    args.each a->
+        builder.addArgument a
+
+    builder.log

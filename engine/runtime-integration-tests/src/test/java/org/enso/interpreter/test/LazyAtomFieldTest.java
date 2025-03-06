@@ -1,8 +1,10 @@
 package org.enso.interpreter.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -32,8 +34,10 @@ public class LazyAtomFieldTest {
   }
 
   @AfterClass
-  public static void disposeCtx() {
+  public static void disposeCtx() throws IOException {
     ctx.close();
+    ctx = null;
+    out.close();
   }
 
   @Test
@@ -165,6 +169,28 @@ public class LazyAtomFieldTest {
 
         new  = Num.Holder "a" "b" "c" "d" (R.new.nextInt)
     """);
+  }
+
+  @Test
+  public void toTextOnAtomWithLazyField() throws URISyntaxException {
+    var res =
+        evalCode(
+            """
+        from Standard.Base.Any import all
+
+        type Generator
+            Value n ~next
+
+        natural =
+            gen n = Generator.Value n (gen n+1)
+            gen 2
+
+        main _ =
+            two = natural
+            two.to_text
+        """,
+            "main");
+    assertTrue(res.isString());
   }
 
   private void checkNumHolder(String typeDefinition) throws Exception {

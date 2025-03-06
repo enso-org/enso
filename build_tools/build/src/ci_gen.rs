@@ -21,12 +21,14 @@ use ide_ci::actions::workflow::definition::setup_corepack;
 use ide_ci::actions::workflow::definition::setup_node;
 use ide_ci::actions::workflow::definition::shell;
 use ide_ci::actions::workflow::definition::wrap_expression;
+use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Branches;
 use ide_ci::actions::workflow::definition::Concurrency;
 use ide_ci::actions::workflow::definition::Event;
 use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
 use ide_ci::actions::workflow::definition::JobSecrets;
+use ide_ci::actions::workflow::definition::Permission;
 use ide_ci::actions::workflow::definition::PullRequest;
 use ide_ci::actions::workflow::definition::PullRequestActivityType;
 use ide_ci::actions::workflow::definition::Push;
@@ -228,7 +230,7 @@ impl Display for CleaningCondition {
             Self::Always => write!(f, "always()"),
             Self::OnRequest => write!(
                 f,
-                "contains(github.event.pull_request.labels.*.name, '{}') || inputs.{}",
+                "contains(github.event.pull_request.labels.*.name, '{}') || (github.ref == 'refs/heads/develop') || inputs.{}",
                 crate::ci::labels::CLEAN_BUILD_REQUIRED,
                 crate::ci::inputs::CLEAN_BUILD_REQUIRED
             ),
@@ -379,7 +381,7 @@ pub fn setup_script_steps() -> Vec<Step> {
         setup_bazel_env(),
         setup_bazel(),
         setup_artifact_api(),
-        checkout_repo_step(),
+        checkout_repo_step(None),
         setup_node(),
         setup_corepack(),
     ];
@@ -851,6 +853,47 @@ pub fn extra_nightly_tests() -> Result<Workflow> {
     Ok(workflow)
 }
 
+/// Workflow that cheks whether some API signature files in any of the standard
+/// libraries changed, and if so, appends a corresponding label to the PR.
+fn stdlib_api_change_labels_workflow() -> Result<Workflow> {
+    let lib_names = vec![
+        "AWS",
+        "Base",
+        "Database",
+        "Google_Api",
+        "Image",
+        "Microsoft",
+        "Snowflake",
+        "Table",
+        "Tableau",
+        "Test",
+        "Visualization",
+    ];
+    let on = Event {
+        push:              Some(Push { inner_branches: Branches::new(["develop"]), ..default() }),
+        pull_request:      Some(PullRequest::default()),
+        workflow_dispatch: Some(WorkflowDispatch::default()),
+        workflow_call:     Some(WorkflowCall::default()),
+        schedule:          vec![],
+    };
+    let mut permissions: BTreeMap<Permission, Access> = BTreeMap::new();
+    permissions.insert(Permission::Checks, Access::Write);
+    permissions.insert(Permission::PullRequests, Access::Write);
+    let mut workflow = Workflow {
+    name: "🏷 Standard Library Labels".into(),
+    on,
+    description: Some("Check if the API signature files in any of the standard libraries changed and if so, append a corresponding label to the PR.".into()),
+    permissions,
+    ..default()
+  };
+    for lib_name in lib_names {
+        let lib_api_check = job::StandardLibraryLabelCheck { lib_name: lib_name.to_string() };
+        workflow.add(PRIMARY_TARGET, lib_api_check);
+    }
+    Ok(workflow)
+}
+
+
 pub fn engine_benchmark() -> Result<Workflow> {
     let report_path = "engine/runtime-benchmarks/bench-report.xml";
     benchmark_workflow("Benchmark Engine", "backend benchmark runtime", report_path, Some(4 * 60))
@@ -881,9 +924,16 @@ fn benchmark_workflow(
         r#type: WorkflowDispatchInputType::Boolean { default: Some(false) },
         ..WorkflowDispatchInput::new("If set, benchmarks will be only checked to run correctly, not to measure actual performance.", true)
     };
+    let bench_name_input_name = "bench-name";
+    let bench_name_input = WorkflowDispatchInput {
+        r#type: WorkflowDispatchInputType::String { default: None },
+        ..WorkflowDispatchInput::new("Name (regex) of the benchmark to run.", false)
+    };
     let on = Event {
         workflow_dispatch: Some(
-            WorkflowDispatch::default().with_input(just_check_input_name, just_check_input),
+            WorkflowDispatch::default()
+                .with_input(just_check_input_name, just_check_input)
+                .with_input(bench_name_input_name, bench_name_input),
         ),
         schedule: vec![Schedule::new("0 0 * * *")?],
         ..default()
@@ -895,6 +945,8 @@ fn benchmark_workflow(
         "ENSO_BUILD_MINIMAL_RUN",
         wrap_expression(format!("true == inputs.{just_check_input_name}")),
     );
+    workflow
+        .env("ENSO_BUILD_BENCH_NAME", wrap_expression(format!("inputs.{bench_name_input_name}")));
 
     let graal_edition = graalvm::Edition::Community;
     let job_name = format!("{name} ({graal_edition})");
@@ -944,6 +996,7 @@ pub fn generate(
         (repo_root.wasm_checks_yml.to_path_buf(), wasm_checks()?),
         (repo_root.engine_benchmark_yml.to_path_buf(), engine_benchmark()?),
         (repo_root.std_libs_benchmark_yml.to_path_buf(), std_libs_benchmark()?),
+        (repo_root.std_libs_labels_yml.to_path_buf(), stdlib_api_change_labels_workflow()?),
         (repo_root.release_yml.to_path_buf(), release()?),
         (repo_root.promote_yml.to_path_buf(), promote()?),
     ];

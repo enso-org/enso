@@ -17,10 +17,8 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
@@ -214,7 +212,10 @@ public abstract class IndirectInvokeCallableNode extends Node {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       BaseNode.TailStatus isTail) {
-    Atom error = EnsoContext.get(this).getBuiltins().error().makeNotInvokable(callable);
-    throw new PanicException(error, this);
+    // The IndirectInvokeCallableNode is used only from IndirectCurryNode, so it is always used for
+    // oversaturated arguments as long as schema.length >= 1.
+    boolean isEligibleForOversaturatedApplication = true;
+    throw InvokeCallableNode.buildNotInvokablePanicWithCause(
+        this, callable, isEligibleForOversaturatedApplication, schema);
   }
 }

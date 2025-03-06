@@ -14,7 +14,7 @@ public abstract class ComputedLongStorage extends AbstractLongStorage
     implements ColumnStorageWithNothingMap {
   private static final BitSet EMPTY = new BitSet();
 
-  protected abstract long computeItem(int idx);
+  protected abstract long computeItem(long idx);
 
   protected ComputedLongStorage(int size) {
     super(size, IntegerType.INT_64);
@@ -25,7 +25,7 @@ public abstract class ComputedLongStorage extends AbstractLongStorage
     if (index < 0 || index >= getSize()) {
       throw new IndexOutOfBoundsException(index);
     }
-    return computeItem((int) index);
+    return computeItem(index);
   }
 
   @Override

@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState, type ForwardedRef, type ReactNode } from 'react'
 
 import CheckMarkIcon from '#/assets/check_mark.svg'
-import FolderArrowIcon from '#/assets/folder_arrow.svg'
+import ArrowIcon from '#/assets/folder_arrow.svg'
 import {
   FieldError,
   ListBox,
@@ -17,7 +17,7 @@ import SvgMask from '#/components/SvgMask'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
-import { tv } from '#/utilities/tailwindVariants'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import {
   Form,
   type FieldComponentProps,
@@ -28,7 +28,9 @@ import {
   type FieldVariantProps,
   type FormInstance,
   type TSchema,
-} from '../../Form'
+} from '../..'
+// This cannot be added to the import above or else it is `undefined` due to a circular import.
+import { makeRoundedStyles } from '../../utilities'
 
 const DROPDOWN_STYLES = tv({
   base: 'focus-child group relative flex w-max cursor-pointer flex-col items-start whitespace-nowrap rounded-input leading-cozy',
@@ -36,13 +38,13 @@ const DROPDOWN_STYLES = tv({
     isFocused: {
       true: {
         container: 'z-1',
-        options: 'before:h-full before:shadow-soft before:bg-frame before:backdrop-blur-md',
+        options: 'before:shadow-soft before:bg-frame before:backdrop-blur-md',
         optionsContainer: 'grid-rows-1fr',
         input: 'z-1',
       },
       false: {
         container: 'overflow-hidden',
-        options: 'before:h-6 group-hover:before:bg-hover-bg',
+        options: 'before:h-full',
         optionsContainer: 'grid-rows-0fr',
       },
     },
@@ -56,21 +58,43 @@ const DROPDOWN_STYLES = tv({
         optionsItem: 'hover:font-semibold',
       },
     },
+    rounded: makeRoundedStyles('options', (classes) => `before:${classes}`),
+    size: {
+      medium: {
+        input: 'px-4 pb-[6.5px] pt-[8.5px]',
+        optionsItem: 'px-4',
+        hiddenOption: 'px-4',
+        icon: 'size-4',
+      },
+      small: {
+        input: 'px-4 pb-0.5 pt-1',
+        optionsItem: 'px-4',
+        hiddenOption: 'px-4',
+        icon: 'size-3',
+      },
+      custom: {},
+    },
   },
   slots: {
-    container: 'absolute left-0 h-full w-full min-w-max',
+    container: 'absolute left-0 min-h-full w-full min-w-max pb-px',
+    icon: '',
     options:
-      'relative before:absolute before:top-0 before:w-full before:rounded-input before:border-0.5 before:border-primary/20 before:transition-colors',
-    optionsSpacing: 'padding relative h-6',
+      'relative before:absolute before:top-0 before:h-full before:w-full before:rounded-input before:border-0.5 before:border-primary/20 before:transition-colors',
+    optionsSpacing: 'padding relative h-full',
     optionsContainer:
-      'relative grid max-h-dropdown-items w-full overflow-auto rounded-input transition-grid-template-rows',
+      'relative grid max-h-60 w-full overflow-auto rounded-input transition-grid-template-rows',
     optionsList: 'overflow-hidden',
     optionsItem:
-      'flex h-6 items-center gap-dropdown-arrow rounded-input px-input-x transition-colors focus:cursor-default focus:bg-frame focus:font-bold focus:focus-ring not-focus:hover:bg-hover-bg not-selected:hover:bg-hover-bg',
-    input: 'relative flex h-6 items-center gap-dropdown-arrow px-input-x',
+      'flex min-h-6 items-center gap-2 rounded-input transition-colors focus:cursor-default focus:bg-frame focus:font-bold focus:focus-ring not-focus:hover:bg-hover-bg not-selected:hover:bg-hover-bg',
+    input: 'group relative flex items-center gap-2',
+    dropdownArrow: 'rotate-90 opacity-80 group-hover:opacity-100',
     inputDisplay: 'grow select-none',
     hiddenOptions: 'flex h-0 flex-col overflow-hidden',
-    hiddenOption: 'flex gap-dropdown-arrow px-input-x font-bold',
+    hiddenOption: 'flex gap-2 font-bold',
+  },
+  defaultVariants: {
+    rounded: 'xlarge',
+    size: 'small',
   },
 })
 
@@ -91,7 +115,9 @@ interface InternalChildrenProps<T> {
 }
 
 /** Props for a {@link Dropdown} shared between all variants. */
-interface InternalBaseDropdownProps<T> extends InternalChildrenProps<T> {
+interface InternalBaseDropdownProps<T>
+  extends InternalChildrenProps<T>,
+    Omit<VariantProps<typeof DROPDOWN_STYLES>, 'isFocused' | 'isReadOnly' | 'multiple'> {
   readonly readOnly?: boolean
   readonly className?: string
   // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -121,7 +147,15 @@ export const Dropdown = forwardRef(function Dropdown<T>(
   props: DropdownProps<T>,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
-  const { readOnly = false, className, items, children: Child } = props
+  const {
+    readOnly = false,
+    className,
+    items,
+    rounded,
+    size,
+    variants = DROPDOWN_STYLES,
+    children: Child,
+  } = props
   const listBoxItems = useMemo(() => items.map((item, i) => ({ item, i })), [items])
   const [tempSelectedIndex, setTempSelectedIndex] = useState<number | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -148,7 +182,14 @@ export const Dropdown = forwardRef(function Dropdown<T>(
   const visuallySelectedItem = visuallySelectedIndex == null ? null : items[visuallySelectedIndex]
 
   const isFocused = isFocusVisible ? isFocusWithin : isMouseFocused
-  const styles = DROPDOWN_STYLES({ isFocused, isReadOnly: readOnly })
+
+  const styles = variants({
+    isFocused,
+    isReadOnly: readOnly,
+    multiple,
+    rounded,
+    size,
+  })
 
   useEffect(() => {
     setTempSelectedIndex(selectedIndex)
@@ -204,11 +245,10 @@ export const Dropdown = forwardRef(function Dropdown<T>(
         <div className={styles.container()}>
           <div className={styles.options()}>
             {/* Spacing. */}
-            <div className={styles.optionsSpacing()} />
+            <div className={styles.input()}>&nbsp;</div>
             <div className={styles.optionsContainer()}>
               <ListBox
-                // eslint-disable-next-line @typescript-eslint/naming-convention
-                {...(props['aria-label'] != null ? { 'aria-label': props['aria-label'] } : {})}
+                aria-label={props['aria-label'] ?? 'Dropdown'}
                 selectionMode={multiple ? 'multiple' : 'single'}
                 selectionBehavior={multiple ? 'toggle' : 'replace'}
                 items={listBoxItems}
@@ -247,7 +287,9 @@ export const Dropdown = forwardRef(function Dropdown<T>(
                   >
                     <SvgMask
                       src={CheckMarkIcon}
-                      className={selectedIndices.includes(i) ? '' : 'invisible'}
+                      className={styles.icon({
+                        className: selectedIndices.includes(i) ? '' : 'invisible',
+                      })}
                     />
                     <Child item={item} />
                   </ListBoxItem>
@@ -257,9 +299,11 @@ export const Dropdown = forwardRef(function Dropdown<T>(
           </div>
         </div>
         <div className={styles.input()}>
-          <SvgMask src={FolderArrowIcon} className="rotate-90" />
+          <SvgMask src={ArrowIcon} className={styles.dropdownArrow()} />
           <div className={styles.inputDisplay()}>
-            {visuallySelectedItem != null ?
+            {isMouseFocused && !multiple ?
+              '\u00a0'
+            : visuallySelectedItem != null ?
               <Child item={visuallySelectedItem} />
             : multiple && <props.renderMultiple items={selectedItems}>{Child}</props.renderMultiple>
             }
@@ -305,7 +349,7 @@ export function FormDropdown<
   TFieldName extends FieldPath<Schema, Constraint>,
   Constraint,
 >(props: FormDropdownProps<Schema, TFieldName, Constraint>) {
-  const { name, children, ...inputProps } = props
+  const { name, children, rounded, size, variants, ...inputProps } = props
   const { items } = inputProps
 
   const form = Form.useFormContext(props.form)
@@ -332,7 +376,14 @@ export function FormDropdown<
           const { value, onChange } = field
           return (
             <>
-              <Dropdown {...inputProps} selectedIndex={items.indexOf(value)} onChange={onChange}>
+              <Dropdown
+                {...inputProps}
+                selectedIndex={items.indexOf(value)}
+                onChange={onChange}
+                rounded={rounded}
+                size={size}
+                variants={variants}
+              >
                 {children}
               </Dropdown>
               <FieldError>{fieldState.error?.message}</FieldError>

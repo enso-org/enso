@@ -22,7 +22,6 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.state.State;
 
 @BuiltinMethod(
     type = "Panic",
@@ -49,18 +48,19 @@ public abstract class CatchPanicNode extends Node {
   }
 
   abstract Object execute(
-      VirtualFrame frame, State state, Object panicType, @Suspend Object action, Object handler);
+      VirtualFrame frame, Object panicType, @Suspend Object action, Object handler);
 
   @Specialization
   Object doExecute(
       VirtualFrame frame,
-      State state,
       Object panicType,
       Object action,
       Object handler,
       @Cached BranchProfile panicBranchProfile,
       @Cached BranchProfile otherExceptionBranchProfile,
       @CachedLibrary(limit = "3") InteropLibrary interop) {
+    var ctx = EnsoContext.get(this);
+    var state = ctx.currentState();
     try {
       // Note [Tail call]
       var ret = thunkExecutorNode.executeThunk(frame, action, state, BaseNode.TailStatus.NOT_TAIL);
@@ -71,16 +71,15 @@ public abstract class CatchPanicNode extends Node {
     } catch (PanicException e) {
       panicBranchProfile.enter();
       Object payload = e.getPayload();
-      return executeCallbackOrRethrow(frame, state, panicType, handler, payload, e, interop);
+      return executeCallbackOrRethrow(frame, panicType, handler, payload, e, interop);
     } catch (AbstractTruffleException e) {
       otherExceptionBranchProfile.enter();
-      return executeCallbackOrRethrow(frame, state, panicType, handler, e, e, interop);
+      return executeCallbackOrRethrow(frame, panicType, handler, e, e, interop);
     }
   }
 
   private Object executeCallbackOrRethrow(
       VirtualFrame frame,
-      State state,
       Object panicType,
       Object handler,
       Object payload,
@@ -88,7 +87,9 @@ public abstract class CatchPanicNode extends Node {
       InteropLibrary interopLibrary) {
 
     if (profile.profile(isValueOfTypeNode.execute(panicType, payload, true))) {
-      var builtins = EnsoContext.get(this).getBuiltins();
+      var ctx = EnsoContext.get(this);
+      var state = ctx.currentState();
+      var builtins = ctx.getBuiltins();
       var cons = builtins.caughtPanic().getUniqueConstructor();
       if (originalException instanceof PanicException panic) {
         panic.assignCaughtLocation(this);

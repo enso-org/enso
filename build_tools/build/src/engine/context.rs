@@ -4,7 +4,7 @@ use crate::engine;
 use crate::engine::download_project_templates;
 use crate::engine::env;
 use crate::engine::sbt::SbtCommandProvider;
-use crate::engine::Benchmarks;
+use crate::engine::BenchmarkType;
 use crate::engine::BuildConfigurationResolved;
 use crate::engine::BuiltArtifacts;
 use crate::engine::Operation;
@@ -202,19 +202,6 @@ impl RunContext {
         if self.config.build_native_runner {
             env::ENSO_LAUNCHER.set(&engine::EngineLauncher::TestNative)?;
         }
-
-        // TODO: Once the native image is production ready, we should switch to
-        // EngineLauncher::Native on release versions.
-        // See tasks in https://github.com/orgs/enso-org/discussions/10121
-        /*let version = versions_from_env()?.unwrap();
-        let is_release = version.release_mode;
-        let kind = Kind::deduce(&version)?;
-        if is_release {
-            env::ENSO_LAUNCHER.set(&engine::EngineLauncher::Native)?;
-        } else {
-            env::ENSO_LAUNCHER.set(&engine::EngineLauncher::Shell)?;
-        }*/
-
         prepare_simple_library_server.await??;
 
         Ok(())
@@ -402,8 +389,9 @@ impl RunContext {
         } else {
             None
         };
-        let execute_benchmark_tasks =
-            self.config.execute_benchmarks.iter().flat_map(|b| b.sbt_task());
+
+        let execute_benchmark_tasks = self.bench_sbt_task();
+        let execute_benchmark_tasks: Option<&str> = execute_benchmark_tasks.as_deref();
         let build_and_execute_benchmark_task =
             build_benchmark_task.as_deref().into_iter().chain(execute_benchmark_tasks);
         let benchmark_command = Sbt::sequential_tasks(build_and_execute_benchmark_task);
@@ -414,47 +402,31 @@ impl RunContext {
             debug!("No SBT tasks to run.");
         }
 
-        if self.config.execute_benchmarks.contains(&Benchmarks::Enso) {
-            enso.run_benchmarks(BenchmarkOptions { dry_run: false }).await?;
-        } else if self.config.check_enso_benchmarks {
-            enso.run_benchmarks(BenchmarkOptions { dry_run: true }).await?;
+        match &self.config.execute_benchmarks {
+            None => (),
+            Some(benchs) =>
+                if benchs.bench_type == BenchmarkType::Enso {
+                    if self.config.check_enso_benchmarks {
+                        enso.run_benchmarks(BenchmarkOptions { dry_run: true }).await?;
+                    } else {
+                        enso.run_benchmarks(BenchmarkOptions { dry_run: false }).await?;
+                    }
+                },
         }
 
         if is_in_env() {
             // If we were running any benchmarks, they are complete by now.
             // Just check whether the reports exist, the artifact upload is done in a
             // separate step.
-            for bench in &self.config.execute_benchmarks {
-                match bench {
-                    Benchmarks::Runtime => {
-                        let runtime_bench_report = &self
-                            .paths
-                            .repo_root
-                            .engine
-                            .join("runtime-benchmarks")
-                            .join("bench-report.xml");
-                        if !runtime_bench_report.exists() {
-                            warn!(
-                                "No Runtime Benchmark Report file found at {}, nothing to upload.",
-                                runtime_bench_report.display()
-                            );
-                        }
-                    }
-                    Benchmarks::EnsoJMH => {
-                        let enso_jmh_report =
-                            &self.paths.repo_root.std_bits.benchmarks.bench_report_xml;
-                        if !enso_jmh_report.exists() {
-                            warn!(
-                                "No Enso JMH Benchmark Report file found at {}, nothing to upload.",
-                                enso_jmh_report.display()
-                            );
-                        }
-                    }
+            match &self.config.execute_benchmarks {
+                None => {}
+                Some(benchs) => match benchs.bench_type {
+                    BenchmarkType::Runtime => self.ensure_runtime_bench_report_exist(),
+                    BenchmarkType::EnsoJMH => self.ensure_stdlib_bench_report_exist(),
                     _ => {}
-                }
+                },
             }
         }
-
 
         // === Build Distribution ===
         debug!("Building distribution");
@@ -569,6 +541,34 @@ impl RunContext {
         };
 
         Ok(())
+    }
+
+    fn ensure_runtime_bench_report_exist(&self) {
+        let runtime_bench_report =
+            &self.paths.repo_root.engine.join("runtime-benchmarks").join("bench-report.xml");
+        if !runtime_bench_report.exists() {
+            warn!(
+                "No Runtime Benchmark Report file found at {}, nothing to upload.",
+                runtime_bench_report.display()
+            );
+        }
+    }
+
+    fn ensure_stdlib_bench_report_exist(&self) {
+        let enso_jmh_report = &self.paths.repo_root.std_bits.benchmarks.bench_report_xml;
+        if !enso_jmh_report.exists() {
+            warn!(
+                "No Enso JMH Benchmark Report file found at {}, nothing to upload.",
+                enso_jmh_report.display()
+            );
+        }
+    }
+
+    fn bench_sbt_task(&self) -> Option<String> {
+        match &self.config.execute_benchmarks {
+            None => None,
+            Some(benchs) => benchs.sbt_task(),
+        }
     }
 
     /// Checks API for all the standard libraries that have non-empty `docs/api` directory.

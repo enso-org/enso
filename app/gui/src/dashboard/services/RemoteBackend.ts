@@ -14,15 +14,11 @@ import type * as textProvider from '#/providers/TextProvider'
 import Backend, * as backend from '#/services/Backend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 
-import { DirectoryId, UserGroupId } from '#/services/Backend'
+import { DirectoryId, UserGroupId, UserId } from '#/services/Backend'
 import * as download from '#/utilities/download'
 import type HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 import invariant from 'tiny-invariant'
-
-// =================
-// === Constants ===
-// =================
 
 /** HTTP status indicating that the request was successful. */
 const STATUS_SUCCESS_FIRST = 200
@@ -36,6 +32,16 @@ const STATUS_SERVER_ERROR = 500
 const STATUS_NOT_AUTHORIZED = 401
 /** HTTP status indicating that authorized user doesn't have access to the given resource */
 const STATUS_NOT_ALLOWED = 403
+const TYPE_TO_EXTENSION: Record<backend.AssetType, string> = {
+  directory: '/',
+  project: '.project',
+  secret: '.secret',
+  datalink: '.datalink',
+  file: '',
+  specialEmpty: '',
+  specialError: '',
+  specialLoading: '',
+}
 
 /** The format of all errors returned by the backend. */
 interface RemoteBackendError {
@@ -91,23 +97,26 @@ export function extractIdFromUserId(id: backend.UserId) {
   return id.replace(/^user-/, '')
 }
 
-/**
- * Convert a user group ID to a directory ID.
- */
+/** Convert a user group ID to a directory ID. */
 export function userGroupIdToDirectoryId(id: backend.UserGroupId): backend.DirectoryId {
   return DirectoryId(`directory-${extractIdFromUserGroupId(id)}` as const)
 }
 
-/**
- * Convert a user ID to a directory ID.
- */
+/** Convert a user ID to a directory ID. */
 export function userIdToDirectoryId(id: backend.UserId): backend.DirectoryId {
   return DirectoryId(`directory-${extractIdFromUserId(id)}` as const)
 }
 
 /**
- * Convert organization ID to a directory ID
+ * Convert a directory ID to a user ID.
+ * @param id - The directory ID.
+ * @returns The user ID.
  */
+export function directoryIdToUserId(id: backend.DirectoryId): backend.UserId {
+  return UserId(`user-${extractIdFromDirectoryId(id)}` as const)
+}
+
+/** Convert organization ID to a directory ID. */
 export function organizationIdToDirectoryId(id: backend.OrganizationId): backend.DirectoryId {
   return DirectoryId(`directory-${extractIdFromOrganizationId(id)}` as const)
 }
@@ -148,9 +157,42 @@ export function idIsUserGroupId(id: string): id is backend.UserGroupId {
   return id.startsWith('usergroup-')
 }
 
-// =============
-// === Types ===
-// =============
+/** Convert a {@link backend.ParentsPath} and a {@link backend.VirtualParentsPath} to a full path. */
+export function parentsPathsToPath(
+  parentsPath: backend.ParentsPath,
+  virtualParentsPath: backend.VirtualParentsPath,
+  users: readonly backend.UserInfo[],
+  userGroups: readonly backend.UserGroupInfo[],
+) {
+  const virtualParentsPathWithPrefix = virtualParentsPath === '' ? '' : `/${virtualParentsPath}`
+  // This is SAFE as `parentsPath` is guaranteed to be composed only of valid path segments.
+  // eslint-disable-next-line no-restricted-syntax
+  const firstPathSegment = DirectoryId(parentsPath.split('/')[0] as never)
+  const possibleUserId = directoryIdToUserId(firstPathSegment)
+  const user = users.find((otherUser) => otherUser.userId === possibleUserId)
+  if (user) {
+    return `enso://Users/${user.name}${virtualParentsPathWithPrefix}`
+  }
+  const possibleUserGroupId = directoryIdToUserGroupId(firstPathSegment)
+  const userGroup = userGroups.find((otherUserGroup) => otherUserGroup.id === possibleUserGroupId)
+  if (userGroup) {
+    return `enso://Teams/${userGroup.groupName}${virtualParentsPathWithPrefix}`
+  }
+}
+
+/** Convert a {@link backend.ParentsPath} and a {@link backend.VirtualParentsPath} to a full path. */
+export function computeFullRemotePath(
+  asset: Pick<backend.AnyAsset, 'parentsPath' | 'title' | 'type' | 'virtualParentsPath'>,
+  users: readonly backend.UserInfo[],
+  userGroups: readonly backend.UserGroupInfo[],
+) {
+  const { title, type, parentsPath, virtualParentsPath } = asset
+  const directoryPath = parentsPathsToPath(parentsPath, virtualParentsPath, users, userGroups)
+  if (directoryPath == null) {
+    return
+  }
+  return `${directoryPath}/${title}${TYPE_TO_EXTENSION[type]}`
+}
 
 /** HTTP response body for the "list users" endpoint. */
 export interface ListUsersResponseBody {
@@ -181,10 +223,6 @@ export interface ListSecretsResponseBody {
 export interface ListTagsResponseBody {
   readonly tags: readonly backend.Label[]
 }
-
-// =====================
-// === RemoteBackend ===
-// =====================
 
 /**
  * A function that turns a text ID (and a list of replacements, if required) to
@@ -610,6 +648,7 @@ export default class RemoteBackend extends Backend {
    */
   override async createDirectory(
     body: backend.CreateDirectoryRequestBody,
+    discardTitle = true,
   ): Promise<backend.CreatedDirectory> {
     const path = remoteBackendPaths.CREATE_DIRECTORY_PATH
 
@@ -617,7 +656,7 @@ export default class RemoteBackend extends Backend {
     // It's generated on the server side.
     const { title, ...rest } = body
 
-    const response = await this.post<backend.CreatedDirectory>(path, rest)
+    const response = await this.post<backend.CreatedDirectory>(path, discardTitle ? rest : body)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createFolderBackendError', title)
     } else {
@@ -855,6 +894,23 @@ export default class RemoteBackend extends Backend {
     const response = await this.post<backend.ProjectExecution>(path, rest)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createProjectExecutionBackendError', title)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Create a project execution.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async getProjectExecutionDetails(
+    executionId: backend.ProjectExecutionId,
+    title: string,
+  ): Promise<backend.ProjectExecution> {
+    const path = remoteBackendPaths.getProjectExecutionDetailsPath(executionId)
+    const response = await this.get<backend.ProjectExecution>(path)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'getProjectExecutionDetailsBackendError', title)
     } else {
       return await response.json()
     }
@@ -1469,6 +1525,38 @@ export default class RemoteBackend extends Backend {
         break
       }
     }
+  }
+
+  /** Download the project to a temporary location. */
+  async downloadProject(id: backend.ProjectId): Promise<DirectoryId> {
+    const details = await this.getProjectDetails(id, true)
+
+    invariant(details.url != null, 'The download URL of the project must be present.')
+
+    const queryString = new URLSearchParams({
+      downloadUrl: details.url,
+      projectId: id,
+    })
+
+    const response = await this.client.get(`./api/cloud/download-project?${queryString}`)
+    const path = await response.text()
+
+    if (!response.ok) {
+      return await this.throw(response, 'resolveProjectAssetPathBackendError')
+    }
+
+    return DirectoryId(`directory-${path}` as const)
+  }
+
+  /** Upload the project. */
+  async uploadProject(id: backend.ProjectId, directoryId: backend.DirectoryId): Promise<void> {
+    const uploadPath = remoteBackendPaths.getProjectUploadPath(id)
+    const queryString = new URLSearchParams({
+      uploadUrl: `${$config.API_URL}/${uploadPath}`,
+      directory: extractIdFromDirectoryId(directoryId),
+    })
+
+    await this.client.get(`./api/cloud/upload-project?${queryString}`)
   }
 
   /** Fetch the URL of the customer portal. */

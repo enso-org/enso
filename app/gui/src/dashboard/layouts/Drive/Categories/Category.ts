@@ -84,7 +84,12 @@ export type TeamCategory = z.infer<typeof TEAM_CATEGORY_SCHEMA>
 /** A category corresponding to the primary root directory for Local projects. */
 
 const LOCAL_CATEGORY_SCHEMA = z
-  .object({ type: z.literal('local'), id: z.literal('local') })
+  .object({
+    type: z.literal('local'),
+    id: z.literal('local'),
+    rootPath: PATH_SCHEMA,
+    homeDirectoryId: DIRECTORY_ID_SCHEMA,
+  })
   .merge(EACH_CATEGORY_SCHEMA)
   .readonly()
 /** A category corresponding to the primary root directory for Local projects. */
@@ -121,6 +126,9 @@ export const ANY_LOCAL_CATEGORY_SCHEMA = z.union([
 ])
 /** Any local category. */
 export type AnyLocalCategory = z.infer<typeof ANY_LOCAL_CATEGORY_SCHEMA>
+
+/** Any category. */
+export type AnyCategory = AnyCloudCategory | AnyLocalCategory
 
 /** A category of an arbitrary type. */
 export const CATEGORY_SCHEMA = z.union([ANY_CLOUD_CATEGORY_SCHEMA, ANY_LOCAL_CATEGORY_SCHEMA])

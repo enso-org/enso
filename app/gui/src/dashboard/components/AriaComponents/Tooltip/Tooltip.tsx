@@ -78,6 +78,7 @@ export function Tooltip(props: TooltipProps) {
     variant,
     size,
     rounded,
+    variants = TOOLTIP_STYLES,
     ...ariaTooltipProps
   } = props
 
@@ -90,7 +91,7 @@ export function Tooltip(props: TooltipProps) {
         containerPadding={containerPadding}
         UNSTABLE_portalContainer={root}
         className={aria.composeRenderProps(className, (classNames, values) =>
-          TOOLTIP_STYLES({ className: classNames, variant, size, rounded, ...values }),
+          variants({ className: classNames, variant, size, rounded, ...values }),
         )}
         data-ignore-click-outside
         {...ariaTooltipProps}

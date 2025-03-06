@@ -10,7 +10,6 @@ import {
   applyTextEdits,
   applyTextEditsToSpans,
   enclosingSpans,
-  rangeLength,
   sourceRangeFromKey,
   sourceRangeKey,
   textChangeToEdits,
@@ -118,10 +117,10 @@ function calculateCorrespondence(
     for (const partAfter of partsAfter) {
       const astBefore = partAfterToAstBefore.get(sourceRangeKey(partAfter))!
       if (astBefore.typeName === astAfter.typeName) {
-        ;(rangeLength(newSpans.get(astAfter.id)!) === rangeLength(partAfter) ?
-          toSync
-        : candidates
-        ).set(astBefore.id, astAfter)
+        ;(newSpans.get(astAfter.id)!.length === partAfter.length ? toSync : candidates).set(
+          astBefore.id,
+          astAfter,
+        )
         break
       }
     }

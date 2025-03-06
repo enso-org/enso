@@ -3,6 +3,7 @@
  *
  * Variants for the ResizableInput component.
  */
+import { makeRoundedStyles } from '#/components/AriaComponents/utilities'
 import { tv } from '#/utilities/tailwindVariants'
 import { TEXT_STYLE } from '../Text'
 
@@ -28,16 +29,7 @@ export const INPUT_STYLES = tv({
       small: { base: 'px-[11px] pb-0.5 pt-1', icon: 'size-3' },
       custom: {},
     },
-    rounded: {
-      none: { base: 'rounded-none' },
-      small: { base: 'rounded-sm' },
-      medium: { base: 'rounded-md' },
-      large: { base: 'rounded-lg' },
-      xlarge: { base: 'rounded-xl' },
-      xxlarge: { base: 'rounded-2xl' },
-      xxxlarge: { base: 'rounded-3xl' },
-      full: { base: 'rounded-full' },
-    },
+    rounded: makeRoundedStyles('base'),
     variant: {
       custom: {},
       outline: {

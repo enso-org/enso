@@ -8,7 +8,7 @@
     "email": "contact@enso.org"
   },
   "scripts": {
-    "test": "vitest run",
+    "test:unit": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --version && prettier --write src/ && eslint . --fix",
     "compile": "tsc"
@@ -27,7 +27,8 @@
   },
   "dependencies": {
     "@lezer/common": "^1.2.3",
-    "@lezer/markdown": "^1.3.2",
+    "@lezer/markdown": "workspace:*",
+    "@lezer/highlight": "^1.2.1",
     "@noble/hashes": "^1.6.1",
     "@open-rpc/client-js": "^1.8.1",
     "@types/debug": "^4.1.12",
@@ -51,6 +52,6 @@
     "typescript": "^5.7.2",
     "vite-node": "3.0.3",
     "vite-plugin-wasm": "^3.4.1",
-    "vitest": "3.0.3"
+    "vitest": "3.0.5"
   }
 }

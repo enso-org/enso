@@ -1,20 +1,17 @@
 /** @file Functions related to manipulating objects. */
 
-// ===============
-// === Mutable ===
-// ===============
-
 /** Remove the `readonly` modifier from all fields in a type. */
 export type Mutable<T> = {
   -readonly [K in keyof T]: T[K]
 }
 
-// =============
-// === merge ===
-// =============
-
 /** Prevents generic parameter inference by hiding the type parameter behind a conditional type. */
 type NoInfer<T> = [T][T extends T ? 0 : never]
+
+/** UNSAFE when `Key` is not a literal type. */
+export function unsafeKeyValuePair<Key extends PropertyKey, Value>(key: Key, value: Value) {
+  return { [key]: value } as { [K in Key]: Value }
+}
 
 /**
  * Immutably shallowly merge an object with a partial update.
@@ -116,7 +113,7 @@ export function unsafeRemoveUndefined<T extends object>(
 export function mapEntries<K extends PropertyKey, V, W>(
   object: Record<K, V>,
   map: (key: K, value: V) => W,
-): Readonly<Record<K, W>> {
+): Record<K, W> {
   // @ts-expect-error It is known that the set of keys is the same for the input and the output,
   // because the output is dynamically generated based on the input.
   return Object.fromEntries(

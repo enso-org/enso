@@ -13,7 +13,7 @@ export type SortModel = {
   sortDirection: SortDirection
   sortIndex: number
 }
-type FilterType = 'number' | 'date' | 'set'
+type FilterType = 'number' | 'date' | 'set' | 'text'
 
 /**
  * Represents the value used for filtering.
@@ -34,6 +34,9 @@ const actionMap = {
   inRange: '..Between',
   blank: '..Is_Nothing',
   notBlank: '..Not_Nothing',
+  contains: '..Contains',
+  startsWith: '..Starts_With',
+  endsWith: '..Ends_With',
 }
 type FilterAction = keyof typeof actionMap
 export type GridFilterModel = {
@@ -279,6 +282,9 @@ function useSortFilterNodesButton({
               filterAction === 'inRange' ?
                 { toValue: filterModel.dateTo!, fromValue: filterModel.dateFrom! }
               : (filterModel.dateFrom as FilterValue)
+            break
+          case 'text':
+            value = filterModel.filter as FilterValue
             break
           default:
             value = filterModel.values as FilterValue

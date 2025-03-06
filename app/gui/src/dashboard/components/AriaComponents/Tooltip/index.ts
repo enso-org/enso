@@ -1,7 +1,2 @@
-/**
- * @file
- *
- * Barrel file for the Tooltip component.
- */
-
+/** @file Barrel file for the `Tooltip` component. */
 export * from './Tooltip'

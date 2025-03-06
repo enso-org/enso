@@ -13,7 +13,7 @@ function or(a: (page: Locator | Page) => Locator, b: (page: Locator | Page) => L
 
 /** Show/hide visualization button */
 export function toggleVisualizationButton(page: Locator | Page) {
-  return page.getByLabel('Visualization', { exact: true })
+  return page.getByLabel('Show/Hide visualization')
 }
 
 /** Visualization Selector button */
@@ -93,12 +93,12 @@ export const nodeCommentContent = componentLocator('.GraphNodeComment div[conten
  * It may be covered by selected one due to way we display them.
  */
 export function componentBrowserEntry(page: Locator | Page) {
-  return page.locator(`.ComponentBrowser .list-variant:not(.selected) .component`)
+  return page.locator(`.ComponentEntry`)
 }
 
 /** A selected variant of Component Browser Entry */
 export function componentBrowserSelectedEntry(page: Locator | Page) {
-  return page.locator(`.ComponentBrowser .list-variant.selected .component`)
+  return page.locator(`.ComponentEntry.selected`)
 }
 
 /** A not-selected variant of Component Browser entry with given label */
