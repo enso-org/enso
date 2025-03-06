@@ -1,16 +1,10 @@
 import project.Any.Any
-import project.Data.Dictionary.Dictionary
-import project.Data.Json.JS_Object
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Data.Numbers.Integer
-import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Nothing.Nothing
-import project.Panic.Panic
 
-polyglot java import org.enso.base.enso_cloud.telemetry.TelemetryLog
-polyglot java import org.enso.base.enso_cloud.telemetry.TelemetryLog.TelemetryLogError
 polyglot java import org.slf4j.LoggerFactory
 
 ## PRIVATE
@@ -88,28 +82,6 @@ type Progress
 
     ## Simple name of the progress
     to_text self = "Progress"
-
-
-type Telemetry
-    logger_root = "org.enso.telemetry"
-
-    log self name:Text message:Text (metadata:Dictionary Text Any = Dictionary.empty) =
-        logger_name = Telemetry.logger_root + "." + name
-        metadata_js = JS_Object.from_pairs <| metadata.to_vector
-        Illegal_Argument.handle_java_exception <|
-            Telemetry_Log_Error.handle_java_exception <|
-                TelemetryLog.logAsync logger_name message metadata_js.object_node
-
-
-type Telemetry_Log_Error
-    private Error message:Text cause:Any
-
-    private handle_java_exception =
-        on_error caught_panic =
-            cause = caught_panic.payload
-            Panic.throw (Telemetry_Log_Error.Error cause.getMessage cause)
-        Panic.catch TelemetryLogError handler=on_error
-
 
 ## PRIVATE
 type Log_Level
