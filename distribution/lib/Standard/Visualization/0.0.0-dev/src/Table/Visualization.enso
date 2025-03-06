@@ -210,7 +210,7 @@ make_json_for_table dataframe max_rows all_rows_count is_db_table =
         number_non_triv = JS_Object.from_pairs [["name", "Count non trivial whitespace" + sampled_label], ["percentage_value", columns.map .count_non_trivial_whitespace]]
         JS_Object.from_pairs
         [number_nothing, number_untrimmed, number_non_triv]
-    pairs                = [header, value_type, ["data", data], all_rows, has_index_col, links, ["data_quality_metrics", data_quality_metrics] ,["type", "Table"], child_label, ["is_ssrm", is_db_table.not]]
+    pairs                = [header, value_type, ["data", data], all_rows, has_index_col, links, ["data_quality_metrics", data_quality_metrics] ,["type", "Table"], child_label, ["is_using_server_sort_and_filter", is_db_table.not]]
     JS_Object.from_pairs pairs
 
 ## PRIVATE

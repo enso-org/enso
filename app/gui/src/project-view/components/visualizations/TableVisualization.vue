@@ -105,7 +105,7 @@ interface UnknownTable {
   child_label: string
   visualization_header: string
   data_quality_metrics?: DataQualityMetric[]
-  is_ssrm: boolean
+  is_using_server_sort_and_filter: boolean
 }
 
 type DataQualityMetric = {
@@ -159,7 +159,7 @@ const allRowCount = computed(() =>
   typeof props.data === 'object' && 'all_rows_count' in props.data ? props.data.all_rows_count : 0,
 )
 const isSSRM = computed(
-  () => typeof props.data === 'object' && 'is_ssrm' in props.data && props.data.is_ssrm,
+  () => typeof props.data === 'object' && 'is_using_server_sort_and_filter' in props.data && props.data.is_using_server_sort_and_filter,
 )
 const statusBar = computed(() =>
   allRowCount.value ?
@@ -669,7 +669,7 @@ watchEffect(() => {
         // eslint-disable-next-line camelcase
         link_value_type: undefined,
         // eslint-disable-next-line camelcase
-        is_ssrm: undefined,
+        is_using_server_sort_and_filter: undefined,
       }
   if ('error' in data_) {
     columnDefs.value = [
@@ -779,8 +779,8 @@ watchEffect(() => {
           ...dataHeader,
         ]
       : dataHeader
-    if (!data_.is_ssrm) {
-      rowData.value = data_.data ? createRowsForTable(data_.data, 0, data_.is_ssrm) : []
+    if (!data_.is_using_server_sort_and_filter) {
+      rowData.value = data_.data ? createRowsForTable(data_.data, 0, data_.is_using_server_sort_and_filter) : []
     }
   }
   // Update paging
