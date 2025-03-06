@@ -35,6 +35,9 @@ public class RefTest {
   public static void closeCtx() throws Exception {
     ctx.close();
     ctx = null;
+    refType = null;
+    ensoCtx.shutdown();
+    ensoCtx = null;
   }
 
   private static Value getRef(Value ref) {

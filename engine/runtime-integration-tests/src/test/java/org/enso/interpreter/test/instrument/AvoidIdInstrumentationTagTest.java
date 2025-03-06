@@ -44,9 +44,9 @@ public class AvoidIdInstrumentationTagTest {
 
   @After
   public void disposeContext() {
-    nodes = null;
     context.close();
     context = null;
+    nodes = null;
   }
 
   @Test

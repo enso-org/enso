@@ -810,7 +810,7 @@
   "settingsShortcut": "Settings",
   "closeTabShortcut": "Close Tab",
   "openShortcut": "Open",
-  "runShortcut": "Execute as Task",
+  "runShortcut": "Run Locally",
   "closeShortcut": "Close",
   "uploadToCloudShortcut": "Upload to Cloud",
   "renameShortcut": "Rename",

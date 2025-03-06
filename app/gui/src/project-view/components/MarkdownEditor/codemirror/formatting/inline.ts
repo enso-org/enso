@@ -1,4 +1,5 @@
 /** @file CodeMirror state operations for getting and setting inline formatting status. */
+import { MarkdownEdit } from '@/components/MarkdownEditor/codemirror/formatting/markdownEdit'
 import {
   MarkdownDocument,
   nodeExtensionOrExpansions,
@@ -15,24 +16,17 @@ import {
   type FormatStates,
   type NormalizedRange,
 } from '@/components/MarkdownEditor/markdown/types'
-import { assert } from '@/util/assert'
 import { syntaxTree } from '@codemirror/language'
-import {
-  type ChangeSpec,
-  type EditorState,
-  type SelectionRange,
-  type Text,
-  type TransactionSpec,
-} from '@codemirror/state'
-import { type Tree } from '@lezer/common'
+import { type EditorState, type SelectionRange, type TransactionSpec } from '@codemirror/state'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { Range } from 'ydoc-shared/util/data/range'
 export { type FormatNode as InlineFormattingNode } from '@/components/MarkdownEditor/markdown/types'
 
 /**
- * @returns `undefined` if it is not possible to apply formatting to the given range. Otherwise, for each inline
- * formatting type, a boolean suitable for a button state. The boolean will be `false` if the format type could be
- * applied to more of the content in the range, or `true` if the format can be removed from the given range.
+ * @returns `undefined` if it is not possible to apply formatting to the given range. Otherwise, for
+ * each inline formatting type, a boolean suitable for a button state. The boolean will be `false`
+ * if the format type could be applied to more of the content in the range, or `true` if the format
+ * can be removed from the given range.
  */
 export function getInlineFormatting(state: EditorState): FormatStates | undefined {
   const range = state.selection.main
@@ -48,7 +42,7 @@ export function setInlineFormatting(
   nodeType: FormatNode,
   value: boolean,
 ): TransactionSpec {
-  const md = new MDChangeBuilder(state.doc, syntaxTree(state))
+  const md = new MarkdownEdit(state.doc, syntaxTree(state))
   md.select(selectionRange(state.selection.main))
   md.visitFormattableRanges(selectionRange(state.selection.main), (range) =>
     setRangeFormatting(md, range, nodeType, value),
@@ -58,9 +52,9 @@ export function setInlineFormatting(
     changes,
     // TODO SelectionMapping
     //  `SelectionRange.map` produces a "valid" new selection based on the old selection and the
-    //  changes, but it isn't perfect. Once MDChangeBuilder's selection-adjusting logic is
-    //  consistently better than that sane default, we should switch to it and enable the checks of
-    //  after-edit selection boundaries `inlineFormatting.test.ts`.
+    //  changes, but it isn't perfect. Once MarkdownEdit's selection-adjusting logic is consistently
+    //  better than that sane default, we should switch to it and enable the checks of after-edit
+    //  selection boundaries `inlineFormatting.test.ts`.
     // selection: rangeToSelection(md.adjustedSelection),
     selection: state.selection.main.map(changes),
   }
@@ -68,7 +62,7 @@ export function setInlineFormatting(
 
 /** @returns Whether a link can be inserted. */
 export function canInsertLink(state: EditorState): boolean {
-  const md = new MDChangeBuilder(state.doc, syntaxTree(state))
+  const md = new MarkdownEdit(state.doc, syntaxTree(state))
   const range = lastFormattableRange(md, selectionRange(state.selection.main))
   // Note: Once formatting link text is allowed, we will have to check that we aren't already inside a link here.
   return range !== undefined
@@ -76,7 +70,7 @@ export function canInsertLink(state: EditorState): boolean {
 
 /** Insert a link at the selection. */
 export function insertLink(state: EditorState): TransactionSpec {
-  const md = new MDChangeBuilder(state.doc, syntaxTree(state))
+  const md = new MarkdownEdit(state.doc, syntaxTree(state))
   const range = lastFormattableRange(md, selectionRange(state.selection.main))
   if (range === undefined) {
     console.error('Cannot insert link: No formattable range')
@@ -84,19 +78,19 @@ export function insertLink(state: EditorState): TransactionSpec {
   }
   const beforeText = '['
   const afterText = '](https://)'
-  const afterTextSelection = Range.tryFromBounds(
+  const afterTextSelection = Range.unsafeFromBounds(
     afterText.indexOf('(') + 1,
     afterText.indexOf(')'),
-  )!
+  )
   let afterTextPos: number
-  if (range.length > 0) {
-    md.select(Range.emptyAt(range.to))
-    insertAround(md, range, beforeText, afterText)
-    afterTextPos = md.adjustedSelection.to
-  } else {
+  if (range.empty) {
     const defaultText = 'Link'
     md.insert(`${beforeText}${defaultText}${afterText}`, range.to)
     afterTextPos = range.to + beforeText.length + defaultText.length
+  } else {
+    md.select(Range.emptyAt(range.to))
+    insertAround(md, range, beforeText, afterText)
+    afterTextPos = md.adjustedSelection.to
   }
   return {
     changes: md.changes,
@@ -119,7 +113,7 @@ function lastFormattableRange(md: MarkdownDocument, selection: Range): Normalize
  * needed. If the range touches the boundary of the selection, the given strings will be inserted
  * outside it.
  */
-function insertAround(md: MDChangeBuilder, range: NormalizedRange, before: string, after: string) {
+function insertAround(md: MarkdownEdit, range: NormalizedRange, before: string, after: string) {
   const partlyOutside = analyzeSplits(md.tree, range)
   const { outside: closeBefore, inside: reopenInside } = nodeSplitDelimiters.from(
     md,
@@ -142,77 +136,11 @@ function rangeToSelection(range: Range): { anchor: number; head: number } {
 }
 
 function selectionRange(selection: SelectionRange): Range {
-  return Range.tryFromBounds(selection.from, selection.to)!
-}
-
-class MDChangeBuilder extends MarkdownDocument {
-  readonly changes: ChangeSpec[] = []
-  adjustedSelection: Range
-
-  constructor(
-    text: Text,
-    tree: Tree,
-    public selection: Range = Range.empty,
-  ) {
-    super(text, tree)
-    this.adjustedSelection = selection
-  }
-
-  insertAroundRangeOutsideSelection(before: string, after: string, range: Range) {
-    this.insert(before, range.from, 'outside-before')
-    this.insert(after, range.to, 'outside-after')
-  }
-
-  /**
-   * @param insert Text to insert.
-   * @param from Position for inserted text to start, relative to document before any uncommitted changes.
-   * @param positionRelativeToSelection Determines the result when the insertion position is at the boundary of the
-   * selection.
-   * - 'inside': The selection will be expanded to include the inserted text.
-   * - 'outside-before': The selection will not be expanded to include the inserted text. If the selection is 0-length,
-   *   the insertion will be before it.
-   * - 'outside-after': The selection will not be expanded to include the inserted text. If the selection is 0-length,
-   *   the insertion will be after it.
-   */
-  insert(
-    insert: string,
-    from: number,
-    positionRelativeToSelection: 'outside-before' | 'outside-after' | 'inside' = 'inside',
-  ) {
-    if (!insert) return
-    this.changes.push({ from, to: from, insert })
-    const atFrom = from === this.selection.from
-    const atTo = from === this.selection.to
-    const shiftFrom =
-      from < this.selection.from ||
-      (atFrom && !(positionRelativeToSelection !== 'outside-before' || !atTo))
-    const shiftTo =
-      from < this.selection.to ||
-      (atTo && (positionRelativeToSelection !== 'outside-after' || !atFrom))
-    assert(shiftTo || !shiftFrom)
-    this.adjustedSelection = Range.tryFromBounds(
-      this.adjustedSelection.from + (shiftFrom ? insert.length : 0),
-      this.adjustedSelection.to + (shiftTo ? insert.length : 0),
-    )!
-  }
-
-  remove(range: Range) {
-    if (!range.length) return
-    this.changes.push(range)
-    this.adjustedSelection = Range.tryFromBounds(
-      this.adjustedSelection.from - (range.from <= this.selection.from ? range.length : 0),
-      this.adjustedSelection.to - (this.selection.to <= range.from ? range.length : 0),
-    )!
-  }
-
-  select(range: Range) {
-    this.selection = range
-    this.adjustedSelection = range
-  }
+  return Range.unsafeFromBounds(selection.from, selection.to)
 }
 
 function setRangeFormatting(
-  md: MDChangeBuilder,
+  md: MarkdownEdit,
   range: NormalizedRange,
   nodeType: FormatNode,
   value: boolean,
@@ -224,7 +152,7 @@ function setRangeFormatting(
 }
 
 function addFormat(
-  md: MDChangeBuilder,
+  md: MarkdownEdit,
   range: NormalizedRange,
   outsideRange: Range,
   nodeType: FormatNode,
@@ -264,7 +192,7 @@ function addFormat(
 }
 
 function removeFormat(
-  md: MDChangeBuilder,
+  md: MarkdownEdit,
   range: NormalizedRange,
   outsideRange: Range,
   nodeType: FormatNode,

@@ -39,6 +39,7 @@ public class NonStrictModeTests {
   public static void disposeCtx() {
     nonStrictCtx.close();
     nonStrictCtx = null;
+    logHandler.close();
   }
 
   @Before

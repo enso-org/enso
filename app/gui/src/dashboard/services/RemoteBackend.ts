@@ -1527,6 +1527,38 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Download the project to a temporary location. */
+  async downloadProject(id: backend.ProjectId): Promise<DirectoryId> {
+    const details = await this.getProjectDetails(id, true)
+
+    invariant(details.url != null, 'The download URL of the project must be present.')
+
+    const queryString = new URLSearchParams({
+      downloadUrl: details.url,
+      projectId: id,
+    })
+
+    const response = await this.client.get(`./api/cloud/download-project?${queryString}`)
+    const path = await response.text()
+
+    if (!response.ok) {
+      return await this.throw(response, 'resolveProjectAssetPathBackendError')
+    }
+
+    return DirectoryId(`directory-${path}` as const)
+  }
+
+  /** Upload the project. */
+  async uploadProject(id: backend.ProjectId, directoryId: backend.DirectoryId): Promise<void> {
+    const uploadPath = remoteBackendPaths.getProjectUploadPath(id)
+    const queryString = new URLSearchParams({
+      uploadUrl: `${$config.API_URL}/${uploadPath}`,
+      directory: extractIdFromDirectoryId(directoryId),
+    })
+
+    await this.client.get(`./api/cloud/upload-project?${queryString}`)
+  }
+
   /** Fetch the URL of the customer portal. */
   override async createCustomerPortalSession() {
     const response = await this.post<backend.CreateCustomerPortalSessionResponse>(
