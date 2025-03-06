@@ -3,9 +3,9 @@ import assert from 'assert'
 import * as actions from './actions'
 import { computedContent } from './css'
 import { expect } from './customExpect'
+import { mockExpressionUpdate } from './expressionUpdates'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
-import { mockExpressionUpdate } from './expressionUpdates'
 
 test('Node can open and load visualization', async ({ page }) => {
   await actions.goToGraph(page)

@@ -89,8 +89,8 @@ function updateInfo(
     rawTypename: newInfo.rawTypename,
     methodCall: newInfo.methodCall,
     payload: newInfo.payload,
-    profilingInfo: newInfo.profilingInfo
-  } satisfies ExpressionInfo;
+    profilingInfo: newInfo.profilingInfo,
+  } satisfies ExpressionInfo
 }
 
 /**
