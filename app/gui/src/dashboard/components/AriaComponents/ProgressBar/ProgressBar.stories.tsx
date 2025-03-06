@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
+import { omit } from 'enso-common/src/utilities/data/object'
 import { Text } from '../Text'
 import { ProgressBar } from './ProgressBar'
 
@@ -6,25 +7,17 @@ const meta = {
   title: 'Components/ProgressBar',
   component: ProgressBar,
   decorators: [
-    (Story, context) =>
-      Story(
-        'indeterminate' in context.args && context.args.indeterminate === true ?
-          {
-            ...context,
-            args: { ...context.args, progress: 'indeterminate' },
-          }
-        : context,
-      ),
+    (Story, context) => {
+      context = { ...context, args: { ...context.args } }
+      if ('indeterminate' in context.args) {
+        if (context.args.indeterminate === true) {
+          context.args.progress = 'indeterminate'
+        }
+        delete context.args.indeterminate
+      }
+      return Story(context)
+    },
   ],
-  args: { className: 'h-2 w-40', indeterminate: false, progress: 0.2 },
-  argTypes: {
-    indeterminate: {
-      control: { type: 'boolean' },
-    },
-    progress: {
-      control: { type: 'number', min: 0, max: 1, step: 0.01 },
-    },
-  },
   parameters: {
     layout: 'centered',
   },
@@ -33,7 +26,17 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof ProgressBar>
 
-export const Default: Story = {}
+export const Default: Story = {
+  args: { className: 'h-2 w-40', indeterminate: false, progress: 0.2 },
+  argTypes: {
+    indeterminate: {
+      control: { type: 'boolean' },
+    },
+    progress: {
+      control: { type: 'number', min: 0, max: 1, step: 0.1 },
+    },
+  },
+}
 
 export const Progress: Story = {
   render: () => (
@@ -46,5 +49,4 @@ export const Progress: Story = {
       ))}
     </div>
   ),
-  argTypes: {},
 }

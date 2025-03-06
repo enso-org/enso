@@ -49,6 +49,19 @@ export interface SvgUseIconProps<Render = never> {
   readonly icon: IconTypeSvgUse<Render>
 }
 
+export const ICON_COLORS = [
+  'custom',
+  'primary',
+  'danger',
+  'success',
+  'accent',
+  'muted',
+  'disabled',
+  'invert',
+  'inherit',
+  'current',
+] as const satisfies readonly VariantProps<typeof ICON_STYLES>['color'][]
+
 export const ICON_STYLES = tv({
   base: 'flex-none aspect-square [&>svg]:stroke-current [&>svg]:w-full [&>svg]:h-full',
   variants: {
