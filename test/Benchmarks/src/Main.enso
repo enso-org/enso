@@ -127,7 +127,7 @@ main filter=Nothing =
                 vec = specs.map filter_benchmarks . filter no_nothing
                 if vec.is_empty then Nothing else
                     Bench.Group n opts vec
-            Bench.Spec n _ ->
+            Bench.Spec n _ _ _ ->
                 if is_matching n then b else Nothing
 
         all_benchmarks.map filter_benchmarks . filter no_nothing
