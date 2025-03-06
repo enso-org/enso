@@ -19,7 +19,7 @@ const MOUSE_SELECTION_DEBOUNCE = 200
 
 const props = defineProps<{
   filter: Filter
-  literal?: Ast.TextLiteral | Ast.NumericLiteral | undefined
+  literal?: Ast.Ast | undefined
 }>()
 const emit = defineEmits<{
   acceptSuggestion: [suggestion: Component]

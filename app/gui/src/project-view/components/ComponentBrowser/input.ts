@@ -10,6 +10,7 @@ import {
   type SuggestionId,
 } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
+import { startsWithIdentifier } from '@/util/ast/abstract'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { type ProjectPath } from '@/util/projectPath'
 import { qnJoin, qnLastSegment } from '@/util/qualifiedName'
@@ -284,8 +285,7 @@ export function useComponentBrowserInput(
   function applySourceNode(text: string) {
     return (
       sourceNodeIdentifier.value ?
-        /^[a-zA-Z]/.test(text) ?
-          `${sourceNodeIdentifier.value}.${text}`
+        startsWithIdentifier(sourceNodeIdentifier.value) ? `${sourceNodeIdentifier.value}.${text}`
         : `${sourceNodeIdentifier.value} ${text}`
       : text
     )

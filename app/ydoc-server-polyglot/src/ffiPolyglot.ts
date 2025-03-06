@@ -7,6 +7,7 @@
 
 export const {
   is_ident_or_operator,
+  is_first_token_ident_or_operator,
   is_numeric_literal,
   parse_doc_to_json,
   parse_block,

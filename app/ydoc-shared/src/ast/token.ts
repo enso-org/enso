@@ -1,7 +1,7 @@
 import { assert } from '../util/assert'
 import type { ExternalId } from '../yjsModel'
 import { isUuid } from '../yjsModel'
-import { is_ident_or_operator } from './ffi'
+import { is_first_token_ident_or_operator, is_ident_or_operator } from './ffi'
 import * as RawAst from './generated/ast'
 import { newExternalId } from './idMap'
 import type { AstId, DeepReadonly, NodeChild, Owned } from './tree'
@@ -135,7 +135,9 @@ export function isIdentifier(code: string): code is Identifier {
   return is_ident_or_operator(code) === 1
 }
 
-export function startsWithIdentifier
+export function startsWithIdentifier(code: string): boolean {
+  return is_first_token_ident_or_operator(code) === 1
+}
 
 /**
  * Whether the given code is a type or constructor identifier.
