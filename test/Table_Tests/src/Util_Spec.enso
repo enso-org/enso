@@ -13,8 +13,8 @@ from project.Util import all
 add_specs suite_builder =
     suite_builder.group "Table/Column.should_equal helpers" group_builder->
         this_file = case Platform.os of
-            Platform.OS.Windows -> "Table_Tests\src\Util_Spec.enso"
-            _ -> "Table_Tests/src/Util_Spec.enso"
+            Platform.OS.Windows -> "test\Table_Tests\src\Util_Spec.enso"
+            _ -> "test/Table_Tests/src/Util_Spec.enso"
 
         group_builder.specify "should report correct location for Table" <|
             r1 = expect_test_failure <|
