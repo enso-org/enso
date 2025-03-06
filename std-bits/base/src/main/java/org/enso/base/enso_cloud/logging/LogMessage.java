@@ -22,23 +22,16 @@ public abstract class LogMessage {
   private static final String LOCAL_TIMESTAMP = "localTimestamp";
 
   private final String message;
-  private final ObjectNode extraMetadata;
   private final String projectId;
   private final String projectName;
+  private final String projectSessionId;
 
-  /**
-   * @param message
-   * @param extraMetadata Optional additional metadata to include in the log message. May be null
-   */
-  protected LogMessage(String message, ObjectNode extraMetadata) {
+  protected LogMessage(String message) {
     this.message = Objects.requireNonNull(message);
-    this.extraMetadata = extraMetadata;
     this.projectId = CloudAPI.getCloudProjectId();
     var currentProject = CurrentEnsoProject.get();
     this.projectName = currentProject == null ? null : currentProject.fullName();
-    if (extraMetadata != null) {
-      checkNoRestrictedFields(extraMetadata);
-    }
+    this.projectSessionId = CloudAPI.getCloudSessionId();
   }
 
   private static void checkNoRestrictedField(ObjectNode metadata, String fieldName) {
@@ -48,7 +41,7 @@ public abstract class LogMessage {
     }
   }
 
-  private static void checkNoRestrictedFields(ObjectNode metadata) {
+  protected static void checkNoRestrictedFields(ObjectNode metadata) {
     checkNoRestrictedField(metadata, RESERVED_TYPE);
     checkNoRestrictedField(metadata, LOCAL_TIMESTAMP);
     checkNoRestrictedField(metadata, PROJECT_NAME);
@@ -56,48 +49,51 @@ public abstract class LogMessage {
   }
 
   private ObjectNode computedMetadata() {
-    var copy = new ObjectNode(JsonNodeFactory.instance);
-
+    var meta = new ObjectNode(JsonNodeFactory.instance);
+    meta.set(PROJECT_ID, projectId == null ? NullNode.getInstance() : TextNode.valueOf(projectId));
     // The project name may be null if a script is run outside a project.
     if (projectName != null) {
-      copy.set(PROJECT_NAME, TextNode.valueOf(projectName));
+      meta.set(PROJECT_NAME, TextNode.valueOf(projectName));
     }
 
-    String projectSessionId = CloudAPI.getCloudSessionId();
     if (projectSessionId != null) {
-      copy.set(PROJECT_SESSION_ID, TextNode.valueOf(projectSessionId));
+      meta.set(PROJECT_SESSION_ID, TextNode.valueOf(projectSessionId));
     }
 
-    if (extraMetadata != null) {
-      extraMetadata
+    if (extraMetadata() != null) {
+      extraMetadata()
           .fields()
           .forEachRemaining(
               entry -> {
-                copy.set(entry.getKey(), entry.getValue());
+                meta.set(entry.getKey(), entry.getValue());
               });
     }
-
-    return copy;
+    return meta;
   }
 
   public String payload() {
     var payload = new ObjectNode(JsonNodeFactory.instance);
     payload.set("message", TextNode.valueOf(message));
-    payload.set(
-        PROJECT_ID, projectId == null ? NullNode.getInstance() : TextNode.valueOf(projectId));
-    if (projectName != null) {
-      payload.set(PROJECT_NAME, TextNode.valueOf(projectName));
-    }
-    String projectSessionId = CloudAPI.getCloudSessionId();
-    if (projectSessionId != null) {
-      payload.set(PROJECT_SESSION_ID, TextNode.valueOf(projectSessionId));
-    }
     payload.set("metadata", computedMetadata());
     payload.set("kind", TextNode.valueOf(kind()));
+    if (extraPayload() != null) {
+      extraPayload()
+          .fields()
+          .forEachRemaining(
+              entry -> {
+                payload.set(entry.getKey(), entry.getValue());
+              });
+    }
     return payload.toString();
   }
 
   protected abstract String kind();
+
+  /** Returns optional JSON object that will be appended to the payload. May return null. */
+  protected abstract ObjectNode extraPayload();
+
+  /** Returns optional JSON object that will be appended to the metadata. May return null. */
+  protected abstract ObjectNode extraMetadata();
 
   @Override
   public String toString() {
