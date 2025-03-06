@@ -15,7 +15,7 @@ import project.Internal.Widget_Helpers
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 
 type Duplicate_Rows_Method
-    Integer_Range from:(Integer | Column_Ref) to:(Integer | Column_Ref) step:Integer=1
+    Integer_Range from:(Integer | Column_Ref | Expression) to:(Integer | Column_Ref | Expression) step:Integer=1
 
     Date_Range from to step:Integer=1 period:Date_Period
 
