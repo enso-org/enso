@@ -5,7 +5,7 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 
-public final class LogJobsQueue {
+final class LogJobsQueue {
   private final Deque<LogJob> queue = new LinkedList<>();
 
   /** Enqueues a log message to be sent and returns the number of messages in the queue. */

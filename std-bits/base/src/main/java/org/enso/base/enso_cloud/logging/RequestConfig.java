@@ -14,4 +14,4 @@ import org.enso.base.enso_cloud.AuthenticationProvider;
  * the configs will be the same, they only change during testing. Tests should this into account, by
  * sending the last message in synchronous mode.
  */
-public record RequestConfig(URI apiUri, String accessToken) {}
+record RequestConfig(URI apiUri, String accessToken) {}

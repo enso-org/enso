@@ -2,7 +2,7 @@ package org.enso.base.enso_cloud.logging;
 
 import java.util.concurrent.CompletableFuture;
 
-public final class LogJob {
+final class LogJob {
   private final LogMessage logMessage;
   private final CompletableFuture<Void> completionNotification;
   private final RequestConfig requestConfig;
