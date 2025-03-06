@@ -261,7 +261,7 @@
   "logs": "Logs",
   "showLogs": "Show Logs",
   "executions": "Executions",
-  "executionsCalendar": "Executions Calendar",
+  "executionsCalendar": "Scheduler",
   "accept": "Accept",
   "decline": "Decline",
   "clearTrash": "Clear Trash",
