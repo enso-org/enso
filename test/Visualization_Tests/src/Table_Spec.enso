@@ -140,21 +140,21 @@ add_specs suite_builder =
         group_builder.specify "should indicate number of Nothing/Nulls" <|
             vis = Visualization.prepare_visualization data.t3_with_nulls 3
             value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
-            json = make_json header=["A", "B", "C"] data=[[1,Nothing,3],[4,Nothing,Nothing],[7,Nothing,Nothing]] all_rows=3 value_type=[value_type_int, value_type_int, value_type_int] has_index_col=True get_child_node="get_row" is_ssrm=False number_of_nothing=[1, 2, 2] number_of_untrimmed_whitespace=[Nothing, Nothing, Nothing] number_non_trivial_ws=[Nothing, Nothing, Nothing]
+            json = make_json header=["A", "B", "C"] data=Nothing all_rows=3 value_type=[value_type_int, value_type_int, value_type_int] has_index_col=True get_child_node="get_row" is_ssrm=True number_of_nothing=[1, 2, 2] number_of_untrimmed_whitespace=[Nothing, Nothing, Nothing] number_non_trivial_ws=[Nothing, Nothing, Nothing]
             vis . should_equal json
 
         group_builder.specify "should indicate number of leading/trailing whitespace" <|
             vis = Visualization.prepare_visualization data.t4_with_space 3
             value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"], ["size", Nothing], ["variable_length", True]]
             value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
-            json = make_json header=["A", "B", "C"] data=[['hello', '   leading space', 'trailing space    '],['a', 'b', 'c'],[7, 8, 9]] all_rows=3 value_type=[value_type_char, value_type_char, value_type_int] has_index_col=True get_child_node="get_row" is_ssrm=False number_of_nothing=[0, 0, 0] number_of_untrimmed_whitespace=[2, 0, Nothing] number_non_trivial_ws=[0, 0, Nothing]
+            json = make_json header=["A", "B", "C"] data=Nothing all_rows=3 value_type=[value_type_char, value_type_char, value_type_int] has_index_col=True get_child_node="get_row" is_ssrm=True number_of_nothing=[0, 0, 0] number_of_untrimmed_whitespace=[2, 0, Nothing] number_non_trivial_ws=[0, 0, Nothing]
             vis . should_equal json
 
         group_builder.specify "should indicate number of non trivial whitespace" <|
             vis = Visualization.prepare_visualization data.t5_with_non_trivial_ws 3
             value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"], ["size", Nothing], ["variable_length", True]]
             value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
-            json = make_json header=["A", "B", "C"] data=[['hello', 'extra \r space', 'world'],['a', 'b', 'c'],[7, 8, 9]] all_rows=3 value_type=[value_type_char, value_type_char, value_type_int] has_index_col=True get_child_node="get_row" is_ssrm=False number_of_nothing=[0, 0, 0] number_of_untrimmed_whitespace=[0,0,Nothing] number_non_trivial_ws=[1, 0, Nothing]
+            json = make_json header=["A", "B", "C"] data=Nothing all_rows=3 value_type=[value_type_char, value_type_char, value_type_int] has_index_col=True get_child_node="get_row" is_ssrm=True number_of_nothing=[0, 0, 0] number_of_untrimmed_whitespace=[0,0,Nothing] number_non_trivial_ws=[1, 0, Nothing]
             vis . should_equal json
 
         group_builder.specify "should indicate number of leading/trailing whitespace with sample if more than 10000 rows" <|
