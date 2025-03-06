@@ -106,8 +106,8 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
     <div
       class="after-toolbars node-type"
       :title="props.typename ?? UNKNOWN_TYPE"
-      v-text="nodeShortType"
       data-testid="visualisationNodeType"
+      v-text="nodeShortType"
     />
   </div>
 </template>
