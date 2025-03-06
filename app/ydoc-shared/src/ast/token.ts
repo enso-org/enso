@@ -135,6 +135,8 @@ export function isIdentifier(code: string): code is Identifier {
   return is_ident_or_operator(code) === 1
 }
 
+export function startsWithIdentifier
+
 /**
  * Whether the given code is a type or constructor identifier.
  * This is true if the code is an identifier beginning with an uppercase letter.

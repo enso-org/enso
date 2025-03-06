@@ -6,6 +6,7 @@
 import { createXXHash128 } from 'hash-wasm'
 import type { IDataType } from 'hash-wasm/dist/lib/util'
 import {
+  is_first_token_ident_or_operator,
   is_ident_or_operator,
   is_numeric_literal,
   parse_block,
@@ -21,5 +22,12 @@ export function xxHash128(input: IDataType) {
   return xxHasher128.digest()
 }
 
-/* eslint-disable-next-line camelcase */
-export { is_ident_or_operator, is_numeric_literal, parse_block, parse_doc_to_json, parse_module }
+/* eslint-disable camelcase */
+export {
+  is_first_token_ident_or_operator,
+  is_ident_or_operator,
+  is_numeric_literal,
+  parse_block,
+  parse_doc_to_json,
+  parse_module,
+}

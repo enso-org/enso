@@ -281,7 +281,7 @@ function applyComponent(component: Opt<Component> = null) {
     input.switchToCodeEditMode()
     return Ok()
   }
-  if (component.suggestionId) {
+  if (component.suggestionId != null) {
     return input.applySuggestion(component.suggestionId)
   } else {
     // Component without suggestion database entry, for example "literal" component.
@@ -296,16 +296,6 @@ function acceptComponent(component: Opt<Component> = null) {
   if (result.ok) acceptInput()
   else result.error.log('Cannot apply suggestion')
 }
-
-// function editComponent(component: Opt<Component> = null) {
-//   const result = applyComponentToInput(component)
-//   if (result.ok) acceptInput()
-//   else result.error.log('Cannot apply suggestion')
-//   const suggestionId = component?.suggestionId ?? selectedSuggestionId.value
-//   if (suggestionId == null) return input.switchToCodeEditMode()
-//   const result = input.applySuggestion(suggestionId)
-//   if (!result.ok) result.error.log('Cannot apply suggestion')
-// }
 
 function acceptInput() {
   const appliedReturnType =

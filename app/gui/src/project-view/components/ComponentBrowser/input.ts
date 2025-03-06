@@ -32,7 +32,7 @@ export type ComponentBrowserMode =
   | {
       mode: 'componentBrowsing'
       filter: Filter
-      literal?: Ast.TextLiteral | Ast.NumericLiteral
+      literal?: Ast.TextLiteral | Ast.NumericLiteral | Ast.NegationApp | undefined
     }
   | {
       mode: 'codeEditing'
@@ -111,10 +111,10 @@ export function useComponentBrowserInput(
         : {}),
       }
     } else {
-      let literal: Ast.MutableTextLiteral | Ast.NumericLiteral | undefined =
+      let literal: Ast.MutableTextLiteral | Ast.NumericLiteral | Ast.NegationApp | undefined =
         Ast.TextLiteral.tryParse(text.value)
       if (literal == null) {
-        literal = Ast.NumericLiteral.tryParse(text.value)
+        literal = Ast.NumericLiteral.tryParseWithSign(text.value)
       } else {
         literal.fixBoundaries()
       }
@@ -124,7 +124,7 @@ export function useComponentBrowserInput(
           pattern: text.value,
           ...(sourceNodeType.value != null ? { selfArg: sourceNodeType.value } : {}),
         },
-        ...(literal ? { literal } : {}),
+        literal,
       }
     }
   })

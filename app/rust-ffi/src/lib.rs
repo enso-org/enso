@@ -26,14 +26,14 @@ pub fn parse_block(code: &str) -> Vec<u8> {
     enso_parser::format::serialize(&ast).expect("Failed to serialize AST to binary format")
 }
 
-#[wasm_bindgen]
-pub fn is_ident_or_operator(code: &str) -> u32 {
+fn starts_with_ident_or_operator<const ONLY_ONE_TOKEN_ALLOWED: bool>(code: &str) -> u32 {
     let parsed = enso_parser::lexer::run(code);
     if parsed.internal_error.is_some() {
         return 0;
     }
     let token = match &parsed.value[..] {
         [token] => token,
+        [token, ..] if !ONLY_ONE_TOKEN_ALLOWED => token,
         _ => return 0,
     };
     match &token.variant {
@@ -42,6 +42,17 @@ pub fn is_ident_or_operator(code: &str) -> u32 {
         _ => 0,
     }
 }
+
+#[wasm_bindgen]
+pub fn is_ident_or_operator(code: &str) -> u32 {
+    starts_with_ident_or_operator::<true>(code)
+}
+
+#[wasm_bindgen]
+pub fn is_first_token_ident_or_operator(code: &str) -> u32 {
+    starts_with_ident_or_operator::<false>(code)
+}
+
 
 #[wasm_bindgen]
 pub fn is_numeric_literal(code: &str) -> bool {
@@ -82,5 +93,21 @@ mod tests {
         assert!(!is_numeric_literal("1-234"));
         assert!(!is_numeric_literal("1234!"));
         assert!(!is_numeric_literal("1234e5"));
+    }
+
+    #[test]
+    fn test_checking_ident_or_operator() {
+        assert_eq!(is_ident_or_operator("abc"), 1);
+        assert_eq!(is_ident_or_operator("Abc"), 1);
+        assert_eq!(is_ident_or_operator("abc 14"), 0);
+        assert_eq!(is_ident_or_operator("+"), 2);
+        assert_eq!(is_ident_or_operator("+ 2"), 0);
+        assert_eq!(is_ident_or_operator("[]"), 0);
+
+        assert_eq!(is_first_token_ident_or_operator("abc"), 1);
+        assert_eq!(is_first_token_ident_or_operator("abc 14"), 1);
+        assert_eq!(is_first_token_ident_or_operator("+"), 2);
+        assert_eq!(is_first_token_ident_or_operator("+ 2"), 2);
+        assert_eq!(is_first_token_ident_or_operator("[]"), 0);
     }
 }
