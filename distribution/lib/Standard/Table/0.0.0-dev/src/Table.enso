@@ -3781,7 +3781,8 @@ type Table
         Offset_Helper.table_offset_impl self columns n fill_with group_by order_by set_mode on_problems
 
     @over Duplicate_Rows_Method.default_widget
-    generate_rows self over:Duplicate_Rows_Method =
+    generate_rows self over:Duplicate_Rows_Method as:Text="" =
+        resolved_as = if as.is_empty then "generate_rows_id" else as
         resolve_to_from value =
             case value of
                 _ : Integer -> self.make_constant_column value
@@ -3793,8 +3794,8 @@ type Table
               from_column = resolve_to_from from
               to_column = resolve_to_from to
               range_col = from_column.zip to_column f->t->(f.up_to t step=step)
-              self.set range_col as="generate_rows_id"
-        x.expand_to_rows "generate_rows_id"
+              self.set range_col as=resolved_as
+        x.expand_to_rows resolved_as
 
     ## PRIVATE
     column_naming_helper : Column_Naming_Helper

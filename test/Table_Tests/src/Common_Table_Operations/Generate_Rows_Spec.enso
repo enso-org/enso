@@ -63,5 +63,9 @@ add_offset_specs suite_builder setup =
             t3.generate_rows (..Integer_Range (..Name 'Start') (expr '[Stop]+1')) . should_equal ignore_order=setup.is_database
                 Table.new [["Text Values", ["A", "A", "A", "B", "C", "C"]], ["Start", [1, 1, 1, 0, 2, 2]], ["Stop", [3, 3, 3, 0, 3, 3]], ["generate_rows_id", [1, 2, 3, 0, 2, 3]]]
 
+        group_builder.specify "Can rename generated id colummn" <|
+            t3.generate_rows (..Integer_Range (..Name 'Start') (expr '[Stop]+1')) "MyColumnName" . should_equal ignore_order=setup.is_database
+                Table.new [["Text Values", ["A", "A", "A", "B", "C", "C"]], ["Start", [1, 1, 1, 0, 2, 2]], ["Stop", [3, 3, 3, 0, 3, 3]], ["MyColumnName", [1, 2, 3, 0, 2, 3]]]
+
 
 
