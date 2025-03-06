@@ -17,6 +17,7 @@ const PROGRESS_BAR_STYLES = tv({
 export interface ProgressBarProps
   extends Omit<AriaProgressBarProps, 'value'>,
     VariantProps<typeof PROGRESS_BAR_STYLES> {
+  /** A number from 0 (not yet started, or just started) to 1 (about to complete, or completed). */
   readonly progress: number | 'indeterminate'
 }
 
@@ -34,7 +35,8 @@ export function ProgressBar(props: ProgressBarProps) {
       maxValue={1}
       {...rest}
     >
-      {({ percentage }) => (
+      {/* When indeterminate, the percentage is `undefined`, so a fallback must be provided. */}
+      {({ percentage = 100 }) => (
         <div className={styles.base()}>
           <div className={styles.progressBar()} style={{ width: percentage + '%' }}>
             {progress === 'indeterminate' && <div className={styles.indeterminateProgressBar()} />}
