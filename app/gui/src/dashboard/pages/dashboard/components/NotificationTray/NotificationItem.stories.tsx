@@ -1,5 +1,5 @@
 import { ICON_COLORS } from '#/components/Icon/Icon'
-import { iconNames } from '@/util/iconName'
+import { iconNames } from '@/util/iconMetadata/iconName'
 import type { Meta, StoryObj } from '@storybook/react'
 import { NotificationItem, type NotificationItemProps } from './NotificationItem'
 
