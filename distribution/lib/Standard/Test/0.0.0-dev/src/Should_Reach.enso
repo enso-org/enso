@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 
+import project.Frame_Hider.Frame_Hider
 import project.Spec_Result.Spec_Result
 from project import Test
 from project.Extensions import all
@@ -21,8 +22,7 @@ type Should_Reach
         Nothing
 
     ## Checks if a point was reached in execution.
-    should_have_reached : Integer -> Spec_Result
-    should_have_reached self (frames_to_skip : Integer = 0) -> Spec_Result =
-        loc = Test.get_source_location 1+frames_to_skip
+    should_have_reached : Spec_Result
+    should_have_reached self -> Spec_Result = Frame_Hider.hide <|
         if self.reached_ref.get then Spec_Result.Success else 
-            Test.fail ("Did not reach Should_Reach (at "+loc+").")
+            Test.fail ("Did not reach Should_Reach (at "+Frame_Hider.get_top_stack_frame+").")

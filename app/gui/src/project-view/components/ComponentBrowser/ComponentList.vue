@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { makeComponentList, type Component } from '@/components/ComponentBrowser/component'
+import { makeComponentLists, type Component } from '@/components/ComponentBrowser/component'
 import ComponentEntry from '@/components/ComponentBrowser/ComponentEntry.vue'
-import type { Filtering } from '@/components/ComponentBrowser/filtering'
+import { Filter, Filtering } from '@/components/ComponentBrowser/filtering'
 import SvgIcon from '@/components/SvgIcon.vue'
 import VirtualizedList from '@/components/VirtualizedList.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
+import { useProjectStore } from '@/stores/project'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
+import { Ast } from '@/util/ast'
 import { tryGetIndex } from '@/util/data/array'
-import { computed, ref, toRef, watch } from 'vue'
+import * as map from 'lib0/map'
+import { computed, ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 
 const ITEM_SIZE = 24
@@ -15,13 +18,15 @@ const SCROLL_TO_SELECTION_MARGIN = ITEM_SIZE / 2
 const MOUSE_SELECTION_DEBOUNCE = 200
 
 const props = defineProps<{
-  filtering: Filtering
+  filter: Filter
+  literal?: Ast.Ast | undefined
 }>()
 const emit = defineEmits<{
   acceptSuggestion: [suggestion: Component]
   'update:selectedComponent': [selected: Component | null]
 }>()
 
+const projectStore = useProjectStore()
 const root = ref<HTMLElement>()
 const groupsPanel = ref<ComponentExposed<typeof VirtualizedList>>()
 const componentsPanel = ref<ComponentExposed<typeof VirtualizedList>>()
@@ -42,18 +47,34 @@ const displayedSelectedComponentIndex = computed({
   },
 })
 
-watch(toRef(props, 'filtering'), () => (displayedSelectedComponentIndex.value = 0))
+const filtering = computed(() => {
+  const currentModule = projectStore.moduleProjectPath
+  return new Filtering(props.filter, currentModule?.ok ? currentModule.value : undefined)
+})
+
+watch(filtering, () => (displayedSelectedComponentIndex.value = 0))
 watch(selectedGroupIndex, () => (selectedComponentIndex.value = 0))
 
 const suggestionDbStore = useSuggestionDbStore()
-const components = computed(() => makeComponentList(suggestionDbStore.entries, props.filtering))
+const components = computed(() => {
+  const lists = makeComponentLists(suggestionDbStore.entries, filtering.value)
+  if (props.literal != null) {
+    map
+      .setIfUndefined(lists, 'all', (): Component[] => [])
+      .unshift({
+        label: props.literal.code(),
+        icon: props.literal instanceof Ast.TextLiteral ? 'text_input' : 'input_number',
+      })
+  }
+  return lists
+})
 const currentGroups = computed(() => {
   return Array.from(components.value.entries(), ([id, components]) => ({
     id,
     ...(id === 'all' ? { name: 'all' }
     : id === 'suggestions' ? { name: 'suggestions' }
     : (suggestionDbStore.groups[id] ?? { name: 'unknown' })),
-    ...(props.filtering.pattern != null ? { displayedNumber: components.length } : {}),
+    ...(filtering.value?.pattern != null ? { displayedNumber: components.length } : {}),
   }))
 })
 const displayedGroupId = computed(() =>

@@ -34,6 +34,9 @@
 - ["Insert link" button added to documentation panel][12365]
 - [Cloud File Browser, when opened first time after opening project, shows and
   highlights the currently set file][12184]
+- [It's easier to write numeric/text nodes in Component Browser][12420]. When
+  typing digits only, any names containing digits are not the best match
+  anymore. Also unclosed text literals will be automatically closed.
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -56,6 +59,7 @@
 [12386]: https://github.com/enso-org/enso/pull/12386
 [12365]: https://github.com/enso-org/enso/pull/12365
 [12184]: https://github.com/enso-org/enso/pull/12184
+[12420]: https://github.com/enso-org/enso/pull/12420
 
 #### Enso Standard Library
 
@@ -79,6 +83,7 @@
 - [Support for Regular Expressions in Enso Expressions.][12320]
 - [Support for pi() and e() in Enso Expressions.][12367]
 - [xlsx reader now does not read empty rows from the end of a worksheet][12345]
+- [Generic JDBC connections can be created with `Database.connect`.][12331]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
@@ -93,6 +98,7 @@
 [12300]: https://github.com/enso-org/enso/pull/12300
 [12297]: https://github.com/enso-org/enso/pull/12297
 [12320]: https://github.com/enso-org/enso/pull/12320
+[12331]: https://github.com/enso-org/enso/pull/12331
 [12367]: https://github.com/enso-org/enso/pull/12367
 [12345]: https://github.com/enso-org/enso/pull/12345
 

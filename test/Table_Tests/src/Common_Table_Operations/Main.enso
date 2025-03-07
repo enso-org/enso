@@ -3,6 +3,7 @@ from Standard.Base import all
 import Standard.Database.Internal.Replace_Params.Replace_Params
 
 from Standard.Test import Test
+import Standard.Test.Frame_Hider.Frame_Hider
 
 import project.Common_Table_Operations.Add_Group_Number_Spec
 import project.Common_Table_Operations.Add_Row_Number_Spec
@@ -84,11 +85,10 @@ type Test_Setup
     supports_custom_objects self = self.is_database.not
 
     ## Checks if the provided column has integer type as defined by the backend.
-    expect_integer_type self column =
-        loc = Test.get_source_location 1
+    expect_integer_type self column = Frame_Hider.hide <|
         value_type = column.value_type
         if self.is_integer_type value_type then column else
-            Test.fail ("Expected column ["+column.name+"] to have integer type, but got "+value_type.to_display_text+" (at " + loc + ").")
+            Test.fail ("Expected column ["+column.name+"] to have integer type, but got "+value_type.to_display_text+" (at " + Frame_Hider.get_top_stack_frame + ").")
 
 type Test_Selection
     ## The configuration specifying what features are supported by a given
