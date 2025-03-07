@@ -98,10 +98,6 @@ import { CloudBrowserDisabledLayout } from '#/providers/AuthProvider'
 import { useMutation } from '@tanstack/react-query'
 import { useOffline } from './hooks/offlineHooks'
 
-// ============================
-// === Global configuration ===
-// ============================
-
 declare module '#/utilities/LocalStorage' {
   /** */
   interface LocalStorageData {
