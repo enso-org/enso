@@ -106,19 +106,25 @@ add_offset_specs suite_builder setup =
                 t2.generate_rows (..Date_Range (..Name 'JoinDate') (expr '[LeaveDate]')) . should_equal ignore_order=setup.is_database
                     Table.new [["Text Values", ["A", "C", "C"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 3, Date.new 2025 1 3]], ["LeaveDate", [Date.new 2025 1 2, Date.new 2025 1 5, Date.new 2025 1 5]], ["generate_rows_id", [Date.new 2025 1 1, Date.new 2025 1 3, Date.new 2025 1 4]]]
 
-        suite_builder.group prefix+"Table.generate_rows edge cases" group_builder->
-            group_builder.specify "Running twice should rename existing column upon a name clash" <|
-                t1 = build_sorted_table [["Text Values", ["A"]]]
+        suite_builder.group prefix+"Table.generate_rows name collisions" group_builder->
+            t1 = build_sorted_table [["Text Values", ["A"]]]
+            group_builder.specify "Running twice should rename existing column upon a name clash and warns" <|
                 r1 = t1.generate_rows (..Integer_Range 0 2) . generate_rows (..Integer_Range 3 5)
                 r1.should_equal 
                     Table.new [["Text Values", ["A", "A", "A", "A"]], ["generate_rows_id 1", [0, 0, 1, 1]], ["generate_rows_id", [3, 4, 3, 4]]]
                 Problems.expect_warning Duplicate_Output_Column_Names r1
+            group_builder.specify "Using an existing name should rename existing column and warn" <|
+                r1 = t1.generate_rows (..Integer_Range 0 2) as="Text Values"
+                r1.should_equal 
+                    Table.new [["Text Values 1", ["A", "A"]], ["Text Values", [0, 1]]]
+                Problems.expect_warning Duplicate_Output_Column_Names r1
+            group_builder.specify "Running twice should rename existing column upon a name clash and error" <|
+                r2 = t1.generate_rows (..Integer_Range 0 2) . generate_rows (..Integer_Range 3 5) on_problems=..Report_Error
+                r2.should_fail_with Duplicate_Output_Column_Names
 
         ## Problem behaviour error
 
         ## Include end flag
-
-        ## Can run from a column of integers
 
         ## Datetime range methods
 
