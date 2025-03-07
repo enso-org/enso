@@ -261,13 +261,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
                     isDisabled={shouldBeDisabled}
                     aria-label={getText('newCredential')}
                   />
-                  <UpsertCredentialModal
-                    id={null}
-                    name={null}
-                    doCreate={async (name, type, value) => {
-                      await newCredential(name, type, value)
-                    }}
-                  />
+                  <UpsertCredentialModal id={null} name={null} doCreate={newCredential} />
                 </DialogTrigger>
               )}
               {isCloud && (

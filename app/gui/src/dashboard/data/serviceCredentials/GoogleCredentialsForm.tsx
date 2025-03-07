@@ -21,7 +21,24 @@ export function GoogleCredentialsDialog(props: CredentialsFormProps) {
       z.object({
         scopes: z.string().array(),
       }),
-    onSubmit: upsertCredential,
+    onSubmit: async (formValue) => {
+      await upsertCredential(formValue, (id) => {
+        const query = new URLSearchParams({
+          /* eslint-disable @typescript-eslint/naming-convention, camelcase */
+          response_type: 'code',
+          access_type: 'offline',
+          prompt: 'consent',
+          redirect_uri: $config.CLOUD_EXTERNAL_SERVICE_OAUTH_CALLBACK,
+          client_id: $config.ENSO_GOOGLE_OAUTH_CLIENT_ID,
+          state: id,
+          /* eslint-enable @typescript-eslint/naming-convention, camelcase */
+        })
+        for (const scope of formValue.scopes) {
+          query.append('scope', scope)
+        }
+        return `https://accounts.google.com/o/oauth2/v2/auth?${query.toString()}`
+      })
+    },
   })
   useSynchronizeCredentialsValue(form, value)
 

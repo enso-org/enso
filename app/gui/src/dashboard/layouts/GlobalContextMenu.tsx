@@ -140,15 +140,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
           hidden={hidden}
           action="newCredential"
           doAction={() => {
-            setModal(
-              <UpsertCredentialModal
-                id={null}
-                name={null}
-                doCreate={async (name, type, value) => {
-                  await newCredential(name, type, value)
-                }}
-              />,
-            )
+            setModal(<UpsertCredentialModal id={null} name={null} doCreate={newCredential} />)
           }}
         />
       )}

@@ -29,7 +29,17 @@ export function SnowflakeCredentialsForm(props: CredentialsFormProps) {
           const { role, ...rest } = obj
           return { ...rest, ...(role !== '' ? { role } : {}) }
         }),
-    onSubmit: upsertCredential,
+    onSubmit: async (formValue) => {
+      const query = new URLSearchParams({
+        /* eslint-disable @typescript-eslint/naming-convention, camelcase */
+        client_id: formValue.clientId,
+        response_type: 'code',
+        redirect_uri: $config.CLOUD_EXTERNAL_SERVICE_OAUTH_CALLBACK,
+        /* eslint-enable @typescript-eslint/naming-convention, camelcase */
+      })
+      const url = `https://${encodeURIComponent(formValue.account)}.snowflakecomputing.com/oauth/authorize?${query.toString()}`
+      await upsertCredential(formValue, () => url)
+    },
   })
   useSynchronizeCredentialsValue(form, value)
 
