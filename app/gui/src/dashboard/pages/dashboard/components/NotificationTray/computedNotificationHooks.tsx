@@ -16,7 +16,7 @@ import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useText } from '#/providers/TextProvider'
 import { useIsMutating, useQuery, useQueryClient, type MutationKey } from '@tanstack/react-query'
 import { BackendType } from 'enso-common/src/services/Backend'
-import { TextId } from 'enso-common/src/text'
+import type { TextId } from 'enso-common/src/text'
 import { omit } from 'enso-common/src/utilities/data/object'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { useEffect, useState } from 'react'
@@ -77,7 +77,7 @@ export function useNotificationState() {
         }
         newNotifications.set(key, notification)
         const isFinished = (() => {
-          if (!('progress' in notification)) {
+          if (!('progress' in notification) || notification.progress == null) {
             // If the notification does not have a progress value, assume it is instantaneous
             // (or finished by the time it was added).
             return true
@@ -96,7 +96,9 @@ export function useNotificationState() {
               position: 'bottom-right',
               toastId: notification.id,
               closeButton: true,
-              ...('progress' in notification ? { progress: notification.progress } : {}),
+              ...('progress' in notification && notification.progress != null ?
+                { progress: notification.progress }
+              : {}),
             })
           } else {
             toast.update(notification.id, {
