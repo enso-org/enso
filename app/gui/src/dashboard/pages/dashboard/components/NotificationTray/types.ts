@@ -8,8 +8,8 @@ export interface NotificationInfo {
   readonly message: string
   readonly icon: SvgUseIcon
   /** A number from 0 (not started) to 1 (finished). */
-  readonly progress?: number | 'indeterminate'
-  readonly color?: IconProps['color']
-  readonly timestamp?: number
-  readonly showToast?: boolean
+  readonly progress?: number | 'indeterminate' | undefined
+  readonly color?: IconProps['color'] | undefined
+  readonly timestamp?: number | undefined
+  readonly showToast?: boolean | undefined
 }
