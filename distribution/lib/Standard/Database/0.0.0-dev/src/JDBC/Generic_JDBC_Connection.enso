@@ -2,10 +2,12 @@ from Standard.Base import all
 
 import Standard.Base.Errors.Common.Forbidden_Operation
 import Standard.Base.Errors.Common.Missing_Argument
+import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Runtime.Context
 
 from Standard.Table import Table
 
+import project.Connection.Connection_Options.Connection_Options
 import project.Internal.Column_Fetcher as Column_Fetcher_Module
 import project.Internal.JDBC_Connection
 import project.Internal.SQL_Warning_Helper
@@ -37,6 +39,7 @@ type Generic_JDBC_Connection
 
        Arguments:
        - url: The JDBC URL describing the database to connect to.
+       - properties: A vector of properties for the connection.
 
        > Example
          Connect to an H2 database instance. (This requires that you have the H2
@@ -286,6 +289,24 @@ type Generic_JDBC_Connection
     quote_literal self literal:Text -> Text =
         self.jdbc_connection.with_connection connection->
             connection.createStatement.enquoteLiteral literal
+
+type Generic_JDBC_Details
+    Value url:Text
+
+    ## PRIVATE
+       Attempt to resolve the constructor.
+    resolve : Function -> Generic_JDBC_Details | Nothing
+    resolve constructor =
+        Panic.catch Type_Error (constructor:Generic_JDBC_Details) _->Nothing
+
+    ## PRIVATE
+       Build the Connection resource.
+
+       Arguments:
+       - options: Overrides for the connection properties.
+    connect : Connection_Options -> Generic_JDBC_Connection
+    connect self options =
+        Generic_JDBC_Connection.connect self.url options.options
 
 ## PRVIATE
    Convert a JDBC ResultSet to a Table using the fallback fetcher.
