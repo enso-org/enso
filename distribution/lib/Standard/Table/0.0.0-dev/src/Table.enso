@@ -3793,22 +3793,19 @@ type Table
                 _ : Column_Ref -> (self:Table_Ref).resolve value
                 _ : Expression -> self.evaluate_expression value on_problems
 
-        x = case over of
+        range_col = case over of
           Duplicate_Rows_Method.Integer_Range from to step ->
               from_column = resolve_to_from from
               to_column = resolve_to_from to
-              range_col = from_column.zip to_column f->t->(f.up_to t step=step)
-              renamed_table.set range_col as=resolved_as
+              from_column.zip to_column f->t->(f.up_to t step=step)  
           Duplicate_Rows_Method.Date_Range from to step ->
               from_column = resolve_to_from from
               to_column = resolve_to_from to
-              range_col = from_column.zip to_column f->t->(f.up_to t step=step)
-              renamed_table.set range_col as=resolved_as
+              from_column.zip to_column f->t->(f.up_to t step=step)
           Duplicate_Rows_Method.Range value ->
-              range_col = self.make_constant_column value
-              renamed_table.set range_col as=resolved_as
-        
-        x.expand_to_rows resolved_as
+              self.make_constant_column value
+
+        renamed_table.set range_col as=resolved_as . expand_to_rows resolved_as
 
     ## PRIVATE
     column_naming_helper : Column_Naming_Helper
