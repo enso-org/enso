@@ -94,9 +94,7 @@ read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Prob
     _ : Text -> if Data_Read_Helpers.looks_like_uri path then Data_Read_Helpers.fetch_following_data_links path format=format else
         read (File.new path) format on_problems
     uri : URI ->
-        response = fetch uri format=format
-        Telemetry.log "Data.read" "fetching from URI" (Dictionary.from_vector [["content_length", response.content_length]])
-        response
+        fetch uri format=format
     _ ->
         file_obj = File.new path
         if file_obj.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `Data.list`.") else
