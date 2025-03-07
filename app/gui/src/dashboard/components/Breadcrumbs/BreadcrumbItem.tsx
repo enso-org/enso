@@ -171,13 +171,6 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
     await onAction(id)
   })
 
-  const iconComponent = (() => {
-    if (typeof icon === 'function') {
-      return icon(renderProps)
-    }
-    return icon
-  })()
-
   const shouldFail = onActionSpecified && id == null
 
   invariant(
@@ -197,6 +190,9 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
 
   const styles = variants({ isCurrent, isDropTarget })
 
+  const renderedIcon = typeof icon === 'function' ? icon(renderProps) : icon
+  const renderedChildren = typeof children === 'function' ? children(renderProps) : children
+
   const container =
     isCurrent ?
       <IconDisplay
@@ -204,21 +200,19 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
         aria-current="page"
         textSelection="none"
         elementType="a"
-        icon={icon}
-        isCurrent={isCurrent}
-        isDisabled={isDisabled}
+        icon={renderedIcon}
       >
-        {children}
+        {renderedChildren}
       </IconDisplay>
     : <Button
         {...linkProps}
         loading={dropMutation.isPending}
         loaderPosition="icon"
         onPress={onPress}
-        icon={iconComponent}
+        icon={renderedIcon}
       >
         <Text className={styles.link()} nowrap truncate="1" disableLineHeightCompensation>
-          {typeof children === 'function' ? children(renderProps) : children}
+          {renderedChildren}
         </Text>
       </Button>
 

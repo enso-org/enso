@@ -27,53 +27,30 @@ const ICON_DISPLAY_STYLES = tv({
   },
 })
 
-/** Render props for {@link IconDisplay}. */
-export interface IconDisplayRenderProps {
-  /** Defaults to `true`. */
-  readonly isCurrent?: boolean
-  /** Defaults to `false`. */
-  readonly isDisabled?: boolean
-}
-
 /** Props for an {@link IconDisplay}. */
 export interface IconDisplayProps<IconType extends string>
   extends Omit<TextProps, 'children' | 'variant' | 'variants'>,
-    IconDisplayRenderProps,
     VariantProps<typeof ICON_DISPLAY_STYLES> {
-  readonly icon: IconProp<IconType, Required<IconDisplayRenderProps>>
-  readonly children:
-    | TooltipElementType
-    | ((renderProps: Required<IconDisplayRenderProps>) => TooltipElementType)
+  readonly icon: IconProp<IconType>
+  readonly children: TooltipElementType
 }
 
 /** A text display with an icon. */
 export function IconDisplay<IconType extends string>(props: IconDisplayProps<IconType>) {
-  const {
-    icon,
-    isCurrent = true,
-    isDisabled = false,
-    children,
-    variant,
-    variants = ICON_DISPLAY_STYLES,
-    tooltip,
-    ...textProps
-  } = props
-  const renderProps = { isCurrent, isDisabled }
+  const { icon, children, variant, variants = ICON_DISPLAY_STYLES, tooltip, ...textProps } = props
 
   const styles = variants({ variant })
-
-  const renderedChildren = typeof children === 'function' ? children(renderProps) : children
 
   return (
     <div className={styles.base()}>
       <WithVisualTooltip tooltip={tooltip} tooltipPlacement="left">
-        <Icon className={styles.icon()} size="medium" renderProps={renderProps}>
+        <Icon className={styles.icon()} size="medium">
           {icon}
         </Icon>
       </WithVisualTooltip>
       <div className={styles.container()}>
-        <Text className={styles.text()} truncate="1" {...textProps} tooltip={renderedChildren}>
-          {renderedChildren}
+        <Text className={styles.text()} truncate="1" {...textProps} tooltip={children}>
+          {children}
         </Text>
       </div>
     </div>

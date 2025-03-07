@@ -99,7 +99,6 @@ import {
   useSetVisuallySelectedKeys,
   type SelectedAssetInfo,
 } from '#/providers/DriveProvider'
-import { useFeatureFlag } from '#/providers/FeatureFlagsProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { useSetModal } from '#/providers/ModalProvider'
@@ -258,10 +257,6 @@ function AssetsTable(props: AssetsTableProps) {
   const setSelectedAssets = useSetSelectedAssets()
   const setVisuallySelectedKeys = useSetVisuallySelectedKeys()
   const setPasteData = useSetPasteData()
-  const enableAssetsTableBackgroundRefresh = useFeatureFlag('enableAssetsTableBackgroundRefresh')
-  const assetsTableBackgroundRefreshInterval = useFeatureFlag(
-    'assetsTableBackgroundRefreshInterval',
-  )
 
   const uploadFiles = useUploadFiles(backend, category)
   const updateSecretMutation = useMutation(backendMutationOptions(backend, 'updateSecret'))
