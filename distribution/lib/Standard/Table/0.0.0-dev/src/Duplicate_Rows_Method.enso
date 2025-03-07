@@ -9,6 +9,7 @@ from Standard.Base.Metadata.Widget import Single_Choice
 from Standard.Base.Widget_Helpers import make_any_selector, make_format_chooser
 
 import project.Column_Ref.Column_Ref
+import project.Column.Column
 import project.Expression.Expression
 import project.Internal.Table_Ref.Table_Ref
 import project.Internal.Widget_Helpers
@@ -20,6 +21,8 @@ type Duplicate_Rows_Method
     Date_Range from:(Date | Column_Ref | Expression) to:(Date | Column_Ref | Expression) step:Date_Period=..Day
 
     Range value:Range
+
+    Integer_Column value:Column
    
     ## PRIVATE
        Create a widget for operation
@@ -35,3 +38,6 @@ Duplicate_Rows_Method.from (that:Integer) =
 
 Duplicate_Rows_Method.from (that:Range) =
    Duplicate_Rows_Method.Range that
+
+Duplicate_Rows_Method.from (that:Column) =
+   Duplicate_Rows_Method.Integer_Column that
