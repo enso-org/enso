@@ -6,7 +6,7 @@
 
 import { Form as FormComponent } from '#/components/AriaComponents'
 import { CredentialsFormButtons } from '#/data/serviceCredentials/CredentialsFormButtons'
-import { useSynchronizeCredentialsValue } from '#/data/serviceCredentials/hooks'
+import { useSynchronizeCredentialsValue } from '#/data/serviceCredentials/utilities'
 import { useText } from '#/providers/TextProvider'
 import type { CredentialsFormProps } from './types'
 
