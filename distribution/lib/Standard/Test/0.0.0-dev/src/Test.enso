@@ -226,7 +226,9 @@ type Test
         need to be skipped will not change between versions, so this method should be
         used carefully.
     get_source_location skip_frames:Integer -> Text =
-        stack = Standard.Base.Runtime.get_stack_trace
-        element = stack . at skip_frames+1
-        loc = element . source_location
-        loc . to_display_text
+        # stack = Standard.Base.Runtime.get_stack_trace
+        # element = stack . at skip_frames+1
+        # loc = element . source_location
+        # loc . to_display_text
+        skip_frames.to_text
+        "<disabled>"
