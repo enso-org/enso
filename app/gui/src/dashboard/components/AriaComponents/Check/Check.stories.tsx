@@ -1,3 +1,4 @@
+import { StoryVariants } from '#/utilities/StoryVariants'
 import type { Meta, StoryObj } from '@storybook/react'
 import { useState } from 'react'
 import { Check } from './Check'
@@ -16,94 +17,79 @@ type Story = StoryObj<typeof Check>
 // Basic states
 export const States: Story = {
   render: () => (
-    <div className="flex items-center gap-4">
-      <Check isSelected={false} />
-      <Check isSelected={true} />
-      <Check isSelected={true} isIndeterminate={true} />
-      <Check isSelected={true} isPressed={true} />
-      <Check isPressed />
-    </div>
+    <StoryVariants
+      render={Check}
+      variants={[
+        { isSelected: false },
+        { isSelected: true },
+        { isSelected: true, isIndeterminate: true },
+        { isSelected: true, isPressed: true },
+        { isPressed: true },
+      ]}
+    />
   ),
 }
 
 // Different sizes
 export const Sizes: Story = {
   render: () => (
-    <div className="flex items-center gap-4">
-      <Check isSelected={true} size="small" />
-      <Check isSelected={true} size="medium" />
-      <Check isSelected={true} size="large" />
-    </div>
+    <StoryVariants
+      render={Check}
+      toProps={(size) => ({ isSelected: true, size })}
+      variants={['small', 'medium', 'large']}
+    />
   ),
 }
 
 // Different colors
 export const Colors: Story = {
   render: () => (
-    <div className="flex items-center gap-4">
-      <Check isSelected={true} color="primary" />
-      <Check isSelected={true} color="accent" />
-      <Check isSelected={true} color="error" />
-    </div>
+    <StoryVariants
+      render={Check}
+      toProps={(color) => ({ isSelected: true, color })}
+      variants={['primary', 'accent', 'error']}
+    />
   ),
 }
 
 // Different border radius options
 export const BorderRadius: Story = {
   render: () => (
-    <div className="flex items-center gap-4">
-      <Check isSelected={true} rounded="none" />
-      <Check isSelected={true} rounded="small" />
-      <Check isSelected={true} rounded="medium" />
-      <Check isSelected={true} rounded="large" />
-      <Check isSelected={true} rounded="xlarge" />
-      <Check isSelected={true} rounded="xxlarge" />
-      <Check isSelected={true} rounded="xxxlarge" />
-      <Check isSelected={true} rounded="full" />
-    </div>
+    <StoryVariants
+      render={Check}
+      toProps={(rounded) => ({ isSelected: true, rounded })}
+      variants={['none', 'small', 'medium', 'large', 'xlarge', 'xxlarge', 'xxxlarge', 'full']}
+    />
   ),
 }
 
 // Combined variations
 export const CombinedVariations: Story = {
   render: () => (
-    <div className="flex flex-col gap-4">
-      {/* Row 1: Primary color variations */}
-      <div className="flex items-center gap-4">
-        <Check isSelected={true} color="primary" size="small" rounded="small" />
-        <Check isSelected={true} color="primary" size="medium" rounded="medium" />
-        <Check isSelected={true} color="primary" size="large" rounded="large" />
-        <Check
-          isSelected={true}
-          color="primary"
-          size="large"
-          rounded="full"
-          isIndeterminate={true}
-        />
-      </div>
+    <StoryVariants
+      columns="4"
+      render={Check}
+      toProps={(props) => ({ isSelected: true, ...props })}
+      variants={[
+        // Row 1: Primary color variations
+        { color: 'primary', size: 'small', rounded: 'small' },
+        { color: 'primary', size: 'medium', rounded: 'medium' },
+        { color: 'primary', size: 'large', rounded: 'large' },
+        { color: 'primary', size: 'large', rounded: 'full', isIndeterminate: true },
 
-      {/* Row 2: Accent color variations */}
-      <div className="flex items-center gap-4">
-        <Check isSelected={true} color="accent" size="small" rounded="small" />
-        <Check isSelected={true} color="accent" size="medium" rounded="medium" />
-        <Check isSelected={true} color="accent" size="large" rounded="large" />
-        <Check
-          isSelected={true}
-          color="accent"
-          size="large"
-          rounded="full"
-          isIndeterminate={true}
-        />
-      </div>
+        // Row 2: Accent color variations
+        { color: 'accent', size: 'small', rounded: 'small' },
+        { color: 'accent', size: 'medium', rounded: 'medium' },
+        { color: 'accent', size: 'large', rounded: 'large' },
+        { color: 'accent', size: 'large', rounded: 'full', isIndeterminate: true },
 
-      {/* Row 3: Error color variations */}
-      <div className="flex items-center gap-4">
-        <Check isSelected={true} color="error" size="small" rounded="small" />
-        <Check isSelected={true} color="error" size="medium" rounded="medium" />
-        <Check isSelected={true} color="error" size="large" rounded="large" />
-        <Check isSelected={true} color="error" size="large" rounded="full" isIndeterminate={true} />
-      </div>
-    </div>
+        // Row 3: Error color variations
+        { color: 'error', size: 'small', rounded: 'small' },
+        { color: 'error', size: 'medium', rounded: 'medium' },
+        { color: 'error', size: 'large', rounded: 'large' },
+        { color: 'error', size: 'large', rounded: 'full', isIndeterminate: true },
+      ]}
+    />
   ),
 }
 
