@@ -10,7 +10,7 @@ import {
   type SuggestionId,
 } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
-import { startsWithIdentifier } from '@/util/ast/abstract'
+import { selfArgSeparator } from '@/util/ast/abstract'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { type ProjectPath } from '@/util/projectPath'
 import { qnJoin, qnLastSegment } from '@/util/qualifiedName'
@@ -283,12 +283,9 @@ export function useComponentBrowserInput(
   }
 
   function applySourceNode(text: string) {
-    return (
-      sourceNodeIdentifier.value ?
-        startsWithIdentifier(sourceNodeIdentifier.value) ? `${sourceNodeIdentifier.value}.${text}`
-        : `${sourceNodeIdentifier.value} ${text}`
+    return sourceNodeIdentifier.value ?
+        `${sourceNodeIdentifier.value}${selfArgSeparator(text)}${text}`
       : text
-    )
   }
 
   return proxyRefs({
