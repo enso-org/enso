@@ -101,7 +101,7 @@ read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Prob
         file_obj = File.new path
         if file_obj.is_directory then Error.throw (Illegal_Argument.Error "Cannot `read` a directory, use `Data.list`.") else
             file_content = file_obj.read format on_problems
-            Telemetry.log "Data.read" "read from file" (Dictionary.from_vector [["path", file_obj.path]])
+            Telemetry.log "Data.read" "read from file" (Dictionary.from_vector [["size", file_obj.size]])
             file_content
 
 ## ALIAS load, open
