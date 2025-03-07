@@ -3804,6 +3804,10 @@ type Table
               to_column = resolve_to_from to
               range_col = from_column.zip to_column f->t->(f.up_to t step=step)
               renamed_table.set range_col as=resolved_as
+          Duplicate_Rows_Method.Range value ->
+              range_col = self.make_constant_column value
+              renamed_table.set range_col as=resolved_as
+        
         x.expand_to_rows resolved_as
 
     ## PRIVATE

@@ -68,10 +68,14 @@ add_offset_specs suite_builder setup =
             t3.generate_rows (..Integer_Range (..Name 'Start') (expr '[Stop]+1')) "MyColumnName" . should_equal ignore_order=setup.is_database
                 Table.new [["Text Values", ["A", "A", "A", "B", "C", "C"]], ["Start", [1, 1, 1, 0, 2, 2]], ["Stop", [3, 3, 3, 0, 3, 3]], ["MyColumnName", [1, 2, 3, 0, 2, 3]]]
 
-        suite_builder.group prefix+"Table.generate_rows from an Integer" group_builder->
+        suite_builder.group prefix+"Table.generate_rows from existing objects" group_builder->
             t1 = build_sorted_table [["Text Values", ["A", "B", "C"]]]
             group_builder.specify "Can pass in a integer to create quick duplicated rows" <|
                 t1.generate_rows 3 . should_equal ignore_order=setup.is_database
+                    Table.new [["Text Values", ["A", "A", "A", "B", "B", "B", "C", "C", "C"]], ["generate_rows_id", [0, 1, 2, 0, 1, 2, 0, 1, 2]]]
+            group_builder.specify "Can use an existing integer range" <|
+                range = (0.up_to 2 include_end=True)
+                t1.generate_rows range . should_equal ignore_order=setup.is_database
                     Table.new [["Text Values", ["A", "A", "A", "B", "B", "B", "C", "C", "C"]], ["generate_rows_id", [0, 1, 2, 0, 1, 2, 0, 1, 2]]]
              
         suite_builder.group prefix+"Table.generate_rows from an Date Range" group_builder->
@@ -111,8 +115,6 @@ add_offset_specs suite_builder setup =
         ## Include end flag
 
         ## Can run from an existing range
-
-        ## Can run from an integer value
 
         ## Can run from a column of integers
 
