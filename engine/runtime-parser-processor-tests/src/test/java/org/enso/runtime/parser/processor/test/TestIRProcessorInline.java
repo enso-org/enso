@@ -768,4 +768,36 @@ public class TestIRProcessorInline {
     assertThat(src, containsString("class JNameGen"));
     assertThat("has getter method for expression", src, containsString("Option<IR> expression()"));
   }
+
+  @Test
+  public void fieldCanBePersistanceReference() {
+    var src =
+        generatedClass(
+            "JName",
+            """
+        import org.enso.runtime.parser.dsl.GenerateIR;
+        import org.enso.runtime.parser.dsl.GenerateFields;
+        import org.enso.runtime.parser.dsl.IRChild;
+        import org.enso.persist.Persistance;
+        import org.enso.compiler.core.IR;
+
+        @GenerateIR
+        public final class JName extends JNameGen {
+          @GenerateFields
+          public JName(@IRChild Persistance.Reference<IR> expression) {
+            super(expression);
+          }
+
+          @Override
+          public String showCode(int indent) {
+            return "";
+          }
+        }
+        """);
+    assertThat(src, containsString("class JNameGen"));
+    assertThat(
+        "has getter method for expression with a different return type",
+        src,
+        containsString("IR expression()"));
+  }
 }
