@@ -116,6 +116,11 @@ add_offset_specs suite_builder setup =
                 t2 = build_sorted_table [["Text Values", ["A", "B", "C"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 2, Date.new 2025 1 3]], ["LeaveDate", [Date.new 2025 1 2, Date.new 2025 1 2, Date.new 2025 1 5]]]
                 t2.generate_rows (..Date_Range (..Name 'JoinDate') (expr '[LeaveDate]')) . should_equal ignore_order=setup.is_database
                     Table.new [["Text Values", ["A", "C", "C"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 3, Date.new 2025 1 3]], ["LeaveDate", [Date.new 2025 1 2, Date.new 2025 1 5, Date.new 2025 1 5]], ["generate_rows_id", [Date.new 2025 1 1, Date.new 2025 1 3, Date.new 2025 1 4]]]
+            group_builder.specify "Can step 2 periods" <|
+                t2 = build_sorted_table [["Text Values", ["A", "B"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 1]], ["LeaveDate", [Date.new 2027 1 1, Date.new 2029 1 1]]]
+                t2.generate_rows (..Date_Range (..Name 'JoinDate') (..Name 'LeaveDate') step=..Year) . should_equal ignore_order=setup.is_database
+                    Table.new [["Text Values", ["A", "B", "B"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 1, Date.new 2025 1 1]], ["LeaveDate", [Date.new 2027 1 1, Date.new 2029 1 1, Date.new 2029 1 1]], ["generate_rows_id", [Date.new 2025 1 1, Date.new 2025 1 1, Date.new 2027 1 1]]]
+            
 
         suite_builder.group prefix+"Table.generate_rows name collisions" group_builder->
             t1 = build_sorted_table [["Text Values", ["A"]]]
@@ -160,8 +165,6 @@ add_offset_specs suite_builder setup =
         ## Unsupported
 
         ## 2 step days
-
-        ## external date range
 
         ## check imports
 
