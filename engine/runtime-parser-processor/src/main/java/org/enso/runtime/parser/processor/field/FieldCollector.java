@@ -102,6 +102,9 @@ public final class FieldCollector {
     } else if (Utils.isScalaOption(param.asType(), processingEnv)) {
       ensureTypeArgIsSubtypeOfIR(param.asType());
       return new OptionField(name, param.asType(), processingEnv);
+    } else if (Utils.isPersistanceReference(param.asType(), processingEnv)) {
+      ensureTypeArgIsSubtypeOfIR(param.asType());
+      return new PersistanceReferenceField(name, param.asType(), processingEnv);
     } else {
       if (!Utils.isSubtypeOfIR(type, processingEnv)) {
         throw new IRProcessingException(

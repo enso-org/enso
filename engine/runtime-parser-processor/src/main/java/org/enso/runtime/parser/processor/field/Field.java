@@ -73,6 +73,15 @@ public abstract class Field {
     return Utils.isScalaOption(type, procEnv);
   }
 
+  /**
+   * Returns true if this field is {@code org.enso.persistance.Persistance.Reference}.
+   *
+   * @return
+   */
+  public boolean isPersistanceReference() {
+    return Utils.isPersistanceReference(type, procEnv);
+  }
+
   /** Returns true if the type of this field is Java primitive. */
   public boolean isPrimitive() {
     return type.getKind().isPrimitive();
