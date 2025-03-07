@@ -19,7 +19,7 @@ from project.Internal.Filter_Condition_Helpers import make_filter_column
 type Duplicate_Rows_Method
     Integer_Range from:(Integer | Column_Ref | Expression)=(Missing_Argument.throw "from") to:(Integer | Column_Ref | Expression)=(Missing_Argument.throw "to") include_end:Boolean=False step:Integer=1
 
-    Date_Range from:(Date | Column_Ref | Expression)=(Missing_Argument.throw "from") to:(Date | Column_Ref | Expression)=(Missing_Argument.throw "to") include_end:Boolean=False step:Date_Period=..Day
+    Date_Range from:(Date | Column_Ref | Expression)=(Missing_Argument.throw "from") to:(Date | Column_Ref | Expression)=(Missing_Argument.throw "to") include_end:Boolean=False step:(Date_Period|Period)=..Day
 
     Range value
 
