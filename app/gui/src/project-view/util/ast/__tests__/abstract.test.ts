@@ -1092,6 +1092,20 @@ test('setRawTextContent promotes single-line uninterpolated text to interpolated
   expect(literal.code()).toBe(`'${escapeTextLiteral(rawText)}'`)
 })
 
+test.each`
+  text               | fixed
+  ${"'abc'"}         | ${"'abc'"}
+  ${'"abc"'}         | ${'"abc"'}
+  ${"'''abc\n  cde"} | ${"'''abc\n  cde"}
+  ${"'abc"}          | ${"'abc'"}
+  ${'"abc'}          | ${'"abc"'}
+`('Fixing boundaries in $text', ({ text, fixed }) => {
+  const literal = Ast.TextLiteral.tryParse(text)
+  assert(literal != null)
+  literal.fixBoundaries()
+  expect(literal.code()).toBe(fixed)
+})
+
 test.each([
   { code: 'operator1', expected: { subject: 'operator1', accesses: [] } },
   { code: 'operator1 foo bar', expected: { subject: 'operator1 foo bar', accesses: [] } },

@@ -316,7 +316,7 @@ lazy val enso = (project in file("."))
     `engine-common`,
     `engine-runner`,
     `engine-runner-common`,
-    `enso-generic-jdbc-connection-spec-dependencies`,
+    `generic-jdbc-connection-spec-dependencies`,
     `enso-test-java-helpers`,
     `snowflake-test-java-helpers`,
     `exploratory-benchmark-java-helpers`,
@@ -327,7 +327,6 @@ lazy val enso = (project in file("."))
     `interpreter-dsl-test`,
     `jna-wrapper`,
     `json-rpc-server`,
-    `json-rpc-server-test`,
     `language-server`,
     `language-server-deps-wrapper`,
     launcher,
@@ -368,7 +367,6 @@ lazy val enso = (project in file("."))
     `runtime-parser`,
     `runtime-suggestions`,
     `runtime-version-manager`,
-    `runtime-version-manager-test`,
     `runtime-test-instruments`,
     `scala-libs-wrapper`,
     `scala-yaml`,
@@ -1785,16 +1783,14 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .dependsOn(cli)
   .dependsOn(`task-progress-notifications`)
   .dependsOn(`polyglot-api`)
-  .dependsOn(`runtime-version-manager`)
   .dependsOn(`library-manager`)
   .dependsOn(`logging-utils-akka`)
   .dependsOn(`logging-service`)
   .dependsOn(pkg)
-  .dependsOn(`json-rpc-server`)
   .dependsOn(`logging-service-logback` % Runtime)
-  .dependsOn(`json-rpc-server-test` % Test)
+  .dependsOn(`json-rpc-server` % "compile->compile;test->test")
   .dependsOn(testkit % Test)
-  .dependsOn(`runtime-version-manager-test` % Test)
+  .dependsOn(`runtime-version-manager` % "compile->compile;test->test")
   .dependsOn(`logging-service-logback` % "test->test")
   .dependsOn(`ydoc-polyfill` % Test)
   .dependsOn(`profiling-utils` % Test)
@@ -1818,7 +1814,8 @@ lazy val `json-rpc-server` = project
       "com.github.sbt"              % "junit-interface" % junitIfVersion        % Test,
       "org.apache.httpcomponents"   % "httpclient"      % httpComponentsVersion % Test,
       "org.apache.httpcomponents"   % "httpcore"        % httpComponentsVersion % Test,
-      "commons-io"                  % "commons-io"      % commonsIoVersion      % Test
+      "commons-io"                  % "commons-io"      % commonsIoVersion      % Test,
+      "org.gnieh"                  %% "diffson-circe"   % diffsonVersion        % Test
     ),
     Compile / moduleDependencies ++=
       Seq(
@@ -1829,21 +1826,6 @@ lazy val `json-rpc-server` = project
       (`akka-wrapper` / Compile / exportedModule).value
     )
   )
-
-lazy val `json-rpc-server-test` = project
-  .in(file("lib/scala/json-rpc-server-test"))
-  .settings(
-    frgaalJavaCompilerSetting,
-    libraryDependencies ++= akka,
-    libraryDependencies ++= circe,
-    libraryDependencies ++= Seq(
-      "io.circe" %% "circe-literal" % circeVersion,
-      akkaTestkit,
-      "org.scalatest" %% "scalatest"     % scalatestVersion,
-      "org.gnieh"     %% "diffson-circe" % diffsonVersion
-    )
-  )
-  .dependsOn(`json-rpc-server`)
 
 // An automatic JPMS module
 lazy val testkit = project
@@ -2079,7 +2061,7 @@ lazy val `persistance-dsl` = (project in file("lib/java/persistance-dsl"))
     )
   )
 
-lazy val `interpreter-dsl` = (project in file("lib/scala/interpreter-dsl"))
+lazy val `interpreter-dsl` = (project in file("lib/java/interpreter-dsl"))
   .enablePlugins(JPMSPlugin)
   .settings(
     version := "0.1",
@@ -2480,8 +2462,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "ENSO_EDITION_PATH" -> file("distribution/editions").getCanonicalPath
     )
   )
-  .dependsOn(`json-rpc-server-test` % Test)
-  .dependsOn(`json-rpc-server`)
+  .dependsOn(`json-rpc-server` % "compile->compile;test->test")
   .dependsOn(`task-progress-notifications`)
   .dependsOn(`library-manager`)
   .dependsOn(`connected-lock-manager-server`)
@@ -2499,7 +2480,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(testkit % Test)
   .dependsOn(`logging-service-logback` % "test->test")
   .dependsOn(`library-manager` % "test->test")
-  .dependsOn(`runtime-version-manager-test` % Test)
+  .dependsOn(`runtime-version-manager` % "test->test")
   .dependsOn(`ydoc-polyfill`)
 
 lazy val cleanInstruments = taskKey[Unit](
@@ -2833,7 +2814,7 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(`std-base` / Compile / packageBin)
       .dependsOn(`enso-test-java-helpers` / Compile / packageBin)
       .dependsOn(
-        `enso-generic-jdbc-connection-spec-dependencies` / Compile / packageBin
+        `generic-jdbc-connection-spec-dependencies` / Compile / packageBin
       )
       .dependsOn(`snowflake-test-java-helpers` / Compile / packageBin)
       .dependsOn(`benchmark-java-helpers` / Compile / packageBin)
@@ -4061,7 +4042,7 @@ lazy val launcher = project
   .dependsOn(`logging-service`)
   .dependsOn(`logging-service-logback` % "test->test;runtime->runtime")
   .dependsOn(`distribution-manager` % Test)
-  .dependsOn(`runtime-version-manager-test` % Test)
+  .dependsOn(`runtime-version-manager` % "test->test")
 
 lazy val `distribution-manager` = project
   .in(file("lib/scala/distribution-manager"))
@@ -4615,6 +4596,13 @@ lazy val `runtime-version-manager` = project
       (`version-output` / Compile / exportedModule).value
     )
   )
+  .settings(
+    Test / parallelExecution := false,
+    (Test / test) := (Test / test)
+      .dependsOn(`locking-test-helper` / assembly)
+      .value,
+    Test / javaOptions ++= testLogProviderOptions
+  )
   .dependsOn(pkg)
   .dependsOn(downloader)
   .dependsOn(cli)
@@ -4622,6 +4610,8 @@ lazy val `runtime-version-manager` = project
   .dependsOn(`version-output`)
   .dependsOn(`edition-updater`)
   .dependsOn(`distribution-manager`)
+  .dependsOn(testkit % "test->test")
+  .dependsOn(`logging-service-logback` % "test->test")
 
 /** `process-utils` provides utilities for correctly managing process execution such as providing
   *  handlers for its stdout/stderr.
@@ -4634,28 +4624,6 @@ lazy val `process-utils` = project
     scalaModuleDependencySetting,
     compileOrder := CompileOrder.ScalaThenJava
   )
-
-lazy val `runtime-version-manager-test` = project
-  .in(file("lib/scala/runtime-version-manager-test"))
-  .configs(Test)
-  .settings(
-    frgaalJavaCompilerSetting,
-    libraryDependencies ++= Seq(
-      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-      "org.scalatest"              %% "scalatest"     % scalatestVersion,
-      "commons-io"                  % "commons-io"    % commonsIoVersion
-    )
-  )
-  .settings(Test / parallelExecution := false)
-  .settings(
-    (Test / test) := (Test / test)
-      .dependsOn(`locking-test-helper` / assembly)
-      .value
-  )
-  .dependsOn(`runtime-version-manager`)
-  .dependsOn(testkit)
-  .dependsOn(cli)
-  .dependsOn(`distribution-manager`)
 
 lazy val `locking-test-helper` = project
   .in(file("lib/scala/locking-test-helper"))
@@ -4762,7 +4730,8 @@ lazy val `enso-test-java-helpers` = project
   .dependsOn(`std-base` % "provided")
   .dependsOn(`std-table` % "provided")
 
-lazy val `enso-generic-jdbc-connection-spec-dependencies` = project
+lazy val `generic-jdbc-connection-spec-dependencies` = project
+  .in(file("lib/java/generic-jdbc-connection-spec-dependencies"))
   .settings(
     frgaalJavaCompilerSetting,
     autoScalaLibrary := false,
@@ -5563,7 +5532,7 @@ pkgStdLibInternal := Def.inputTask {
       (`std-table` / Compile / packageBin).value
     case "TestHelpers" =>
       (`enso-test-java-helpers` / Compile / packageBin).value
-      (`enso-generic-jdbc-connection-spec-dependencies` / Compile / packageBin).value
+      (`generic-jdbc-connection-spec-dependencies` / Compile / packageBin).value
       (`snowflake-test-java-helpers` / Compile / packageBin).value
       (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
       (`benchmark-java-helpers` / Compile / packageBin).value
@@ -5578,7 +5547,7 @@ pkgStdLibInternal := Def.inputTask {
     case _ if buildAllCmd =>
       (`std-base` / Compile / packageBin).value
       (`enso-test-java-helpers` / Compile / packageBin).value
-      (`enso-generic-jdbc-connection-spec-dependencies` / Compile / packageBin).value
+      (`generic-jdbc-connection-spec-dependencies` / Compile / packageBin).value
       (`snowflake-test-java-helpers` / Compile / packageBin).value
       (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
       (`benchmark-java-helpers` / Compile / packageBin).value
