@@ -73,7 +73,8 @@
     "snippets": [],
     "breakpoints": [
       {
-        "language": "enso"
+        "language": "enso",
+        "language": "scala"
       }
     ],
     "debuggers": [
