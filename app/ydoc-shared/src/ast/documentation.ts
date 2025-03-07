@@ -1,10 +1,13 @@
 import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
-import { ensoMarkdownParser } from './ensoMarkdown'
+import * as Y from 'yjs'
+import { ensoMarkdownParser, ensoStandardMarkdownParser } from './ensoMarkdown'
 import { xxHash128 } from './ffi'
 import type { ConcreteChild, RawConcreteChild } from './print'
 import { ensureUnspaced, firstChild, preferUnspaced, unspaced } from './print'
 import { Token, TokenType } from './token'
 import type { ConcreteRefs, DeepReadonly, DocLine, TextToken } from './tree'
+
+// === AST logic ===
 
 /** Render a documentation line to concrete tokens. */
 export function* docLineToConcrete(
@@ -33,49 +36,48 @@ export function* docLineToConcrete(
   for (const newline of docLine.newlines) yield preferUnspaced(newline)
 }
 
-// === Markdown ===
-
 /**
- * Render function documentation to concrete tokens. If the `markdown` content has the same value as when `docLine` was
- * parsed (as indicated by `hash`), the `docLine` will be used (preserving concrete formatting). If it is different, the
- * `markdown` text will be converted to source tokens.
+ * Render function documentation to concrete tokens. If the `markdown` content has the same value as
+ * when `docLine` was parsed (as indicated by `hash`), the `docLine` will be used (preserving
+ * concrete formatting). If it is different, the `markdown` text will be converted to source tokens.
  */
 export function functionDocsToConcrete(
-  markdown: string,
+  markdown: DeepReadonly<Y.Text>,
   hash: string | undefined,
   docLine: DeepReadonly<DocLine> | undefined,
   indent: string | null,
 ): Iterable<RawConcreteChild> | undefined {
-  return (
-    hash && docLine && xxHash128(markdown) === hash ? docLineToConcrete(docLine, indent)
-    : markdown ? markdownYTextToTokens(markdown, (indent || '') + '   ')
-    : undefined
-  )
-}
-
-function markdownYTextToTokens(yText: string, indent: string): Iterable<ConcreteChild<Token>> {
-  const tokensBuilder = new DocTokensBuilder(indent)
-  standardizeMarkdown(yText, tokensBuilder)
+  const markdownText = markdown.toString()
+  if (hash && docLine && xxHash128(markdownText) === hash) return docLineToConcrete(docLine, indent)
+  if (!markdownText) return
+  const tokensBuilder = new DocTokensBuilder((indent || '') + '   ')
+  standardizeMarkdown(markdownText, tokensBuilder)
   return tokensBuilder.build()
 }
 
 /**
- * Given Enso documentation comment tokens, returns a model of their Markdown content. This model abstracts away details
- * such as the locations of line breaks that are not paragraph breaks (e.g. lone newlines denoting hard-wrapping of the
- * source code).
+ * Given Enso documentation comment tokens, returns a model of their Markdown content. This model
+ * abstracts away details such as the locations of line breaks that are not paragraph breaks (e.g.
+ * lone newlines denoting hard-wrapping of the source code).
  */
-export function abstractMarkdown(elements: undefined | TextToken<ConcreteRefs>[]) {
+export function abstractMarkdown(elements: undefined | TextToken<ConcreteRefs>[]): {
+  markdown: Y.Text
+  hash: string
+} {
   const { tags, rawMarkdown } = toRawMarkdown(elements)
-  const markdown = [...tags, normalizeMarkdown(rawMarkdown)].join('\n')
+  const markdown = [...tags, prerenderMarkdown(rawMarkdown)].join('\n')
   const hash = xxHash128(markdown)
-  return { markdown, hash }
+  return { markdown: new Y.Text(markdown), hash }
 }
 
 function indentLevel(whitespace: string) {
   return whitespace.length + whitespace.split('\t').length - 1
 }
 
-function toRawMarkdown(elements: undefined | TextToken<ConcreteRefs>[]) {
+function toRawMarkdown(elements: undefined | TextToken<ConcreteRefs>[]): {
+  tags: string[]
+  rawMarkdown: string
+} {
   const tags: string[] = []
   let readingTags = true
   const tokenWhitespace = ({ token: { whitespace } }: TextToken<ConcreteRefs>) => whitespace
@@ -113,57 +115,39 @@ function toRawMarkdown(elements: undefined | TextToken<ConcreteRefs>[]) {
   return { tags, rawMarkdown }
 }
 
+// === Markdown ===
+
 /**
- * Convert the Markdown input to a format with rendered-style linebreaks: Hard-wrapped lines within a paragraph will be
- * joined, and only a single linebreak character is used to separate paragraphs.
+ * Convert the Markdown input to a format with "prerendered" linebreaks: Hard-wrapped lines within
+ * a paragraph will be joined, and only a single linebreak character is used to separate paragraphs.
  */
-export function normalizeMarkdown(rawMarkdown: string): string {
-  let normalized = ''
+export function prerenderMarkdown(markdown: string): string {
+  let prerendered = ''
   let prevTo = 0
   let prevName: string | undefined = undefined
-  const cursor = ensoMarkdownParser.parse(rawMarkdown).cursor()
+  const cursor = ensoStandardMarkdownParser.parse(markdown).cursor()
   cursor.firstChild()
   do {
     if (prevTo < cursor.from) {
-      const textBetween = rawMarkdown.slice(prevTo, cursor.from)
-      normalized +=
+      const textBetween = markdown.slice(prevTo, cursor.from)
+      prerendered +=
         cursor.name === 'Paragraph' && prevName !== 'Table' ? textBetween.slice(0, -1) : textBetween
     }
-    const text = rawMarkdown.slice(cursor.from, cursor.to)
-    normalized += cursor.name === 'Paragraph' ? text.replaceAll(/ *\n */g, ' ') : text
+    const text = markdown.slice(cursor.from, cursor.to)
+    prerendered += cursor.name === 'Paragraph' ? text.replaceAll(/ *\n */g, ' ') : text
     prevTo = cursor.to
     prevName = cursor.name
   } while (cursor.nextSibling())
-  return normalized
-}
-
-function stringCollector() {
-  let output = ''
-  const collector = {
-    text: (text: string) => (output += text),
-    wrapText: (text: string) => (output += text),
-    newline: () => (output += '\n'),
-  }
-  return { collector, output }
+  return prerendered
 }
 
 /**
- * Convert from "normalized" Markdown (with hard line-breaks removed) to the standard format, with paragraphs separated
- * by blank lines.
+ * Convert from our internal "prerendered" Markdown to the (more standard-compatible) on-disk
+ * representation, with paragraphs hard-wrapped and separated by blank lines.
  */
-export function normalizedMarkdownToStandard(normalizedMarkdown: string) {
-  const { collector, output } = stringCollector()
-  standardizeMarkdown(normalizedMarkdown, collector)
-  return output
-}
-
-/**
- * Convert from "normalized" Markdown to the on-disk representation, with paragraphs hard-wrapped and separated by blank
- * lines.
- */
-function standardizeMarkdown(normalizedMarkdown: string, textConsumer: TextConsumer) {
+function standardizeMarkdown(prerenderedMarkdown: string, textConsumer: TextConsumer): void {
   let printingTags = true
-  const cursor = ensoMarkdownParser.parse(normalizedMarkdown).cursor()
+  const cursor = ensoMarkdownParser.parse(prerenderedMarkdown).cursor()
 
   function standardizeDocument() {
     let prevTo = 0
@@ -171,15 +155,15 @@ function standardizeMarkdown(normalizedMarkdown: string, textConsumer: TextConsu
     cursor.firstChild()
     do {
       if (prevTo < cursor.from) {
-        const betweenText = normalizedMarkdown.slice(prevTo, cursor.from)
+        const betweenText = prerenderedMarkdown.slice(prevTo, cursor.from)
         for (const _match of betweenText.matchAll(LINE_BOUNDARIES)) {
           textConsumer.newline()
         }
-        if (cursor.name === 'Paragraph' && prevName !== 'Table') {
+        if (cursor.name === 'Paragraph' && prevName === 'Paragraph' && !printingTags) {
           textConsumer.newline()
         }
       }
-      const lines = normalizedMarkdown.slice(cursor.from, cursor.to).split(LINE_BOUNDARIES)
+      const lines = prerenderedMarkdown.slice(cursor.from, cursor.to).split(LINE_BOUNDARIES)
       if (cursor.name === 'Paragraph') {
         standardizeParagraph(lines)
       } else {
@@ -217,6 +201,8 @@ function standardizeMarkdown(normalizedMarkdown: string, textConsumer: TextConsu
 
   standardizeDocument()
 }
+
+// === AST utilities ===
 
 interface TextConsumer {
   text: (text: string) => void
