@@ -322,7 +322,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
           productFilename: appName,
           // This will always be defined since we have an `entitlements.mac.plist`.
           entitlements: macConfig!.entitlements!,
-          identity: 'Developer ID Application: New Byte Order Sp. z o. o. (NM77WTZJFQ)',
+          identity: `Developer ID Application: Enso International Inc. (${process.env.APPLETEAMID})`,
         })
 
         console.log('  • Notarizing.')
