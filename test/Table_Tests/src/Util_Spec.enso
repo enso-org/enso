@@ -12,18 +12,14 @@ from project.Util import all
 
 add_specs suite_builder =
     suite_builder.group "Table/Column.should_equal helpers" group_builder->
-
-
-
-
         group_builder.specify "should report correct location for Table" <|
             r1 = expect_test_failure <|
                 (Table.new [["X", [1]]]) . should_equal (Table.new [["X", [2]]])
-            r1.message.should_contain "Util_Spec.enso:21"
+            r1.message.should_contain "Util_Spec.enso:17"
 
             r2 = expect_test_failure <|
                 (Table.new [["X", [1]]]) . should_equal (Table.new [["A", [1]]])
-            r2.message.should_contain "Util_Spec.enso:25"
+            r2.message.should_contain "Util_Spec.enso:21"
 
         group_builder.specify "should report correct location for Column" <|
             r1 = expect_test_failure <|
