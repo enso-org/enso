@@ -11,7 +11,7 @@ import { useGraphStore } from '@/stores/graph'
 import { useProjectStore } from '@/stores/project'
 import { useProjectFiles } from '@/stores/projectFiles'
 import { ComponentInstance, ref, toRef, watch } from 'vue'
-import { normalizeMarkdown } from 'ydoc-shared/ast/documentation'
+import { prerenderMarkdown } from 'ydoc-shared/ast/documentation'
 import * as Y from 'yjs'
 
 const { yText } = defineProps<{
@@ -49,7 +49,7 @@ function handlePaste(raw: boolean) {
       if (htmlType) {
         const blob = await item.getType(htmlType)
         const html = await blob.text()
-        const markdown = normalizeMarkdown(await htmlToMarkdown(html))
+        const markdown = prerenderMarkdown(await htmlToMarkdown(html))
         markdownEditor.value.putText(markdown)
         continue
       }

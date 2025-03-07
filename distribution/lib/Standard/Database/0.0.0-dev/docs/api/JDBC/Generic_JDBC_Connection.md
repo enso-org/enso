@@ -12,3 +12,7 @@
     - quote_literal self literal:Standard.Base.Data.Text.Text -> Standard.Base.Data.Text.Text
     - read self sql_query:Standard.Database.SQL_Query.SQL_Query= -> Standard.Table.Table.Table
     - with_metadata self f:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- type Generic_JDBC_Details
+    - Value url:Standard.Base.Data.Text.Text
+    - connect self options:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - resolve constructor:Standard.Base.Any.Any -> Standard.Base.Any.Any

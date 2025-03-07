@@ -8,7 +8,6 @@ import {
 } from '@/components/visualizations/TableVisualization/tableVizToolbar'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
-import { LINKABLE_URL_REGEX } from '@/util/link'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import type {
   CellClassParams,
@@ -20,7 +19,7 @@ import type {
 } from 'ag-grid-enterprise'
 import { computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
-import { getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
+import { formatText, getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -193,54 +192,6 @@ function formatNumber(params: ICellRendererParams) {
   return needsGrouping ? numberFormatGroupped.format(value) : numberFormat.format(value)
 }
 
-function formatText(params: ICellRendererParams) {
-  const htmlEscaped = params.value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-
-  if (textFormatterSelected.value === 'off') {
-    const replaceLinks = replaceLinksWithTag(htmlEscaped)
-    return replaceLinks.replace(/^\s+|\s+$/g, '&nbsp;')
-  }
-
-  const partialMappings = {
-    '\r': '<span style="color: #df8800">␍</span> <br>',
-    '\n': '<span style="color: #df8800;">␊</span> <br>',
-    '\t': '<span style="color: #df8800; white-space: break-spaces;">&#8594;  |</span>',
-  }
-  const fullMappings = {
-    '\r': '<span style="color: #df8800">␍</span> <br>',
-    '\n': '<span style="color: #df8800">␊</span> <br>',
-    '\t': '<span style="color: #df8800; white-space: break-spaces;">&#8594;  |</span>',
-  }
-
-  const replaceSpaces =
-    textFormatterSelected.value === 'full' ?
-      htmlEscaped.replaceAll(' ', '<span style="color: #df8800">&#183;</span>')
-    : htmlEscaped.replace(/ \s+|^ +| +$/g, function (match: string) {
-        return `<span style="color: #df8800">${match.replaceAll(' ', '&#183;')}</span>`
-      })
-
-  const replaceLinks = replaceLinksWithTag(replaceSpaces)
-
-  const replaceReturns = replaceLinks.replace(
-    /\r\n/g,
-    '<span style="color: #df8800">␍␊</span> <br>',
-  )
-
-  const renderOtherWhitespace = (match: string) => {
-    return textFormatterSelected.value === 'full' && match != ' ' ?
-        '<span style="color: #df8800">&#9744;</span>'
-      : match
-  }
-  const newString = replaceReturns.replace(/[\s]/g, function (match: string) {
-    const mapping = textFormatterSelected.value === 'full' ? fullMappings : partialMappings
-    return mapping[match as keyof typeof mapping] || renderOtherWhitespace(match)
-  })
-  return `<span > ${newString} <span>`
-}
-
 function setRowLimit(newRowLimit: number) {
   if (newRowLimit !== rowLimit.value) {
     rowLimit.value = newRowLimit
@@ -250,13 +201,6 @@ function setRowLimit(newRowLimit: number) {
       newRowLimit.toString(),
     )
   }
-}
-
-function replaceLinksWithTag(str: string) {
-  return str.replace(
-    LINKABLE_URL_REGEX,
-    (url: string) => `<a href="${url}" target="_blank" class="link">${url}</a>`,
-  )
 }
 
 function escapeHTML(str: string) {
@@ -286,7 +230,8 @@ function cellRenderer(params: ICellRendererParams) {
   else if (params.value === undefined) return ''
   else if (params.value === '') return '<span style="color:grey; font-style: italic;">Empty</span>'
   else if (typeof params.value === 'number') return formatNumber(params)
-  else if (typeof params.value === 'string') return formatText(params)
+  else if (typeof params.value === 'string')
+    return formatText(params.value, textFormatterSelected.value)
   else if (Array.isArray(params.value)) return `[Vector ${params.value.length} items]`
   else if (typeof params.value === 'object') {
     const valueType = params.value?.type
