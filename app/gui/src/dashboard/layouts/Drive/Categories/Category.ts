@@ -24,7 +24,11 @@ import { newDirectoryId } from '#/services/LocalBackend'
 const PATH_SCHEMA = z.string().refine((s): s is Path => true)
 const DIRECTORY_ID_SCHEMA = z.string().refine((s): s is DirectoryId => true)
 
-const EACH_CATEGORY_SCHEMA = z.object({ label: z.string(), icon: z.string() })
+const EACH_CATEGORY_SCHEMA = z.object({
+  label: z.string(),
+  icon: z.string(),
+  canUploadHere: z.boolean(),
+})
 
 /** A category corresponding to the root of the user or organization. */
 const CLOUD_CATEGORY_SCHEMA = z

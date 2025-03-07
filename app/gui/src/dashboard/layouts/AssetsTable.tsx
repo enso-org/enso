@@ -288,21 +288,6 @@ function AssetsTable(props: AssetsTableProps) {
   const lastSelectedIdsRef = useRef<AssetId | ReadonlySet<AssetId> | null>(null)
   const headerRowRef = useRef<HTMLTableRowElement>(null)
   const getPasteData = useEventCallback(() => driveStore.getState().pasteData)
-  const canUploadToThisCategory = (() => {
-    switch (category.type) {
-      case 'cloud':
-      case 'team':
-      case 'user':
-      case 'local':
-      case 'local-directory': {
-        return true
-      }
-      case 'recent':
-      case 'trash': {
-        return false
-      }
-    }
-  })()
 
   const isMainDropzoneVisible = useIntersectionRatio(
     rootRef,
@@ -1477,7 +1462,7 @@ function AssetsTable(props: AssetsTableProps) {
           </IsolateLayout>
         )}
       </FocusArea>
-      {isDraggingFiles && !isMainDropzoneVisible && canUploadToThisCategory && (
+      {isDraggingFiles && !isMainDropzoneVisible && category.canUploadHere && (
         <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2">
           <div
             className="pointer-events-auto flex items-center justify-center gap-3 rounded-default bg-selected-frame px-8 py-6 text-primary/50 backdrop-blur-3xl transition-all"

@@ -78,6 +78,7 @@ export function useCloudCategoryList() {
     label: getText('cloudCategory'),
     icon: CloudIcon,
     homeDirectoryId: userIdToDirectoryId(userId),
+    canUploadHere: true,
   }
 
   const recentCategory: RecentCategory = {
@@ -85,6 +86,7 @@ export function useCloudCategoryList() {
     id: 'recent',
     label: getText('recentCategory'),
     icon: RecentIcon,
+    canUploadHere: false,
   }
 
   const trashCategory: TrashCategory = {
@@ -92,6 +94,7 @@ export function useCloudCategoryList() {
     id: 'trash',
     label: getText('trashCategory'),
     icon: Trash2Icon,
+    canUploadHere: false,
   }
 
   const predefinedCloudCategories: AnyCloudCategory[] = [
@@ -109,6 +112,7 @@ export function useCloudCategoryList() {
       homeDirectoryId: group.homeDirectoryId,
       label: getText('teamCategory', group.name),
       icon: PeopleIcon,
+      canUploadHere: true,
     })) ?? []
 
   const categories = [...predefinedCloudCategories, ...teamCategories] satisfies AnyCloudCategory[]
@@ -168,6 +172,7 @@ export function useLocalCategoryList() {
     icon: ComputerIcon,
     homeDirectoryId: newDirectoryId(localBackend?.rootPath() ?? Path('')),
     rootPath: localBackend?.rootPath() ?? Path(''),
+    canUploadHere: true,
   }
 
   const predefinedLocalCategories: AnyLocalCategory[] = [localCategory]
@@ -184,6 +189,7 @@ export function useLocalCategoryList() {
     homeDirectoryId: newDirectoryId(Path(directory)),
     label: getFileName(directory),
     icon: FolderFilledIcon,
+    canUploadHere: true,
   }))
 
   const categories =
