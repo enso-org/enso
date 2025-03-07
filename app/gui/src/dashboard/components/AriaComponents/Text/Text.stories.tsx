@@ -6,8 +6,6 @@ import type { TextProps } from './Text'
 import { Text } from './Text'
 
 const args = {
-  ref: undefined,
-  key: undefined,
   children: 'Lorem ipsum dolor sit amet.',
 }
 
@@ -39,8 +37,8 @@ export const Colors: Story = {
   render: () => (
     <StoryVariants
       render={Text}
-      toProps={(variant) => ({ ...args, ...variant })}
-      toLabel={(variant) => variant.color}
+      toProps={(props) => ({ ...args, ...props })}
+      toLabel={({ color }) => color}
       variants={[
         { color: 'primary' },
         { color: 'danger' },

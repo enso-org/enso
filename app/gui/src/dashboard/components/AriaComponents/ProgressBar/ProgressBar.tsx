@@ -3,7 +3,10 @@ import {
   ProgressBar as AriaProgressBar,
   type ProgressBarProps as AriaProgressBarProps,
 } from '#/components/aria'
-import { VariantProps, tv } from '#/utilities/tailwindVariants'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+
+/** `1` as a percentage. */
+const WHOLE_PERCENTAGE = 100
 
 const PROGRESS_BAR_STYLES = tv({
   base: 'h-2 rounded-full bg-primary/10',
@@ -36,7 +39,7 @@ export function ProgressBar(props: ProgressBarProps) {
       {...rest}
     >
       {/* When indeterminate, the percentage is `undefined`, so a fallback must be provided. */}
-      {({ percentage = 100 }) => (
+      {({ percentage = WHOLE_PERCENTAGE }) => (
         <div className={styles.base()}>
           <div className={styles.progressBar()} style={{ width: percentage + '%' }}>
             {progress === 'indeterminate' && <div className={styles.indeterminateProgressBar()} />}

@@ -15,21 +15,23 @@ const STORY_LAYOUT_STYLES = tv({
 /** Props for a {@link StoryVariants}. */
 export interface StoryVariantsProps<
     Component extends (props: Props) => ReactNode,
-    Props extends JSX.IntrinsicAttributes = Parameters<Component>[0],
+    Props = Parameters<Component>[0],
     T = Props,
   >
   // `variants` is intentionally omitted
   extends Omit<VariantProps<typeof STORY_LAYOUT_STYLES>, 'variants'> {
   readonly render: Component
   readonly variants: readonly T[]
-  readonly toProps?: (variant: T) => JSX.LibraryManagedAttributes<Component, Props>
+  readonly toProps?: (
+    variant: T,
+  ) => JSX.IntrinsicAttributes & JSX.LibraryManagedAttributes<Component, NoInfer<Props>>
   readonly toLabel?: (variant: T) => unknown
 }
 
 /** Display multiple variants of a component, labeled by their props. */
 export function StoryVariants<
-  Component extends (props: Props) => ReactNode,
-  Props extends JSX.IntrinsicAttributes = Parameters<Component>[0],
+  const Component extends (props: Props) => ReactNode,
+  Props = Parameters<Component>[0],
   const T = Props,
 >(props: StoryVariantsProps<Component, Props, T>) {
   const {

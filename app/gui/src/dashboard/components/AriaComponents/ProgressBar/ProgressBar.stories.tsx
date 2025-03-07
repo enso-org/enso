@@ -1,23 +1,14 @@
+import { StoryVariants } from '#/utilities/StoryVariants'
 import type { Meta, StoryObj } from '@storybook/react'
-import { omit } from 'enso-common/src/utilities/data/object'
-import { Text } from '../Text'
-import { ProgressBar } from './ProgressBar'
+import { ProgressBar, type ProgressBarProps } from './ProgressBar'
+
+const args = {
+  className: 'h-2 w-40',
+}
 
 const meta = {
   title: 'Components/ProgressBar',
   component: ProgressBar,
-  decorators: [
-    (Story, context) => {
-      context = { ...context, args: { ...context.args } }
-      if ('indeterminate' in context.args) {
-        if (context.args.indeterminate === true) {
-          context.args.progress = 'indeterminate'
-        }
-        delete context.args.indeterminate
-      }
-      return Story(context)
-    },
-  ],
   parameters: {
     layout: 'centered',
   },
@@ -27,6 +18,9 @@ export default meta
 type Story = StoryObj<typeof ProgressBar>
 
 export const Default: Story = {
+  render: (props: ProgressBarProps & { indeterminate?: true }) => (
+    <ProgressBar {...props} progress={props.indeterminate ? 'indeterminate' : props.progress} />
+  ),
   args: { className: 'h-2 w-40', indeterminate: false, progress: 0.2 },
   argTypes: {
     indeterminate: {
@@ -38,17 +32,12 @@ export const Default: Story = {
   },
 }
 
-const SAMPLE_PROGRESS_VALUES = [0, 0.2, 0.4, 0.6, 0.8, 1, 'indeterminate' as const]
-
 export const Progress: Story = {
   render: () => (
-    <div className="flex flex-col items-center gap-4">
-      {SAMPLE_PROGRESS_VALUES.map((progress) => (
-        <div key={progress} className="flex flex-col items-center gap-1">
-          <ProgressBar progress={progress} className="h-2 w-40" />
-          <Text variant="caption">{progress}</Text>
-        </div>
-      ))}
-    </div>
+    <StoryVariants
+      render={ProgressBar}
+      toProps={(progress) => ({ ...args, progress })}
+      variants={[0, 0.2, 0.4, 0.6, 0.8, 1, 'indeterminate']}
+    />
   ),
 }
