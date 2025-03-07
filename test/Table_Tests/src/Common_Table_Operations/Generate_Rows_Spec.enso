@@ -133,6 +133,18 @@ add_offset_specs suite_builder setup =
             group_builder.specify "Default state gives missing value error" <|
                 r = t1.generate_rows
                 r.should_fail_with Missing_Argument
+            group_builder.specify "Integer_Range Missing from gives missing value error" <|
+                r = t1.generate_rows ..Integer_Range
+                r.should_fail_with Missing_Argument
+            group_builder.specify "Integer_Range Missing to gives missing value error" <|
+                r = t1.generate_rows (..Integer_Range 0)
+                r.should_fail_with Missing_Argument
+            group_builder.specify "Date_Range Missing from gives missing value error" <|
+                r = t1.generate_rows ..Date_Range
+                r.should_fail_with Missing_Argument
+            group_builder.specify "Date_Range Missing to gives missing value error" <|
+                r = t1.generate_rows (..Date_Range (Date.new 2025 1 1))
+                r.should_fail_with Missing_Argument
 
         ## Unsupported
 
