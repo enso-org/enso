@@ -17,5 +17,9 @@ PROFILING_OPTIONS=""
 if [ "$PROFILING_FILENAME" != "" ] && [ "$PROFILING_TIME" != "" ]; then
   PROFILING_OPTIONS="--profiling-path /opt/enso/profiling/$PROFILING_FILENAME --profiling-time=$PROFILING_TIME"
 fi
+NATIVE_PROP="--jvm"
+if [ "$ENSO_LAUNCHER" != "" ] && [ "$ENSO_LAUNCHER" == "native" ]; then
+  NATIVE_PROP="-Dcom.oracle.graalvm.isaot=true"
+fi
 
-/opt/enso/bin/enso $PROFILING_OPTIONS --log-level "$LOG_LEVEL" --rpc-port $RPC_PORT --data-port $DATA_PORT --root-id "$LS_ROOT_ID" --interface "$INTERFACE" "$@"
+/opt/enso/bin/enso $PROFILING_OPTIONS $NATIVE_PROP --log-level "$LOG_LEVEL" --rpc-port $RPC_PORT --data-port $DATA_PORT --root-id "$LS_ROOT_ID" --interface "$INTERFACE" "$@"

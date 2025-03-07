@@ -207,7 +207,7 @@ class JsonConnectionController(
             logger.trace("Resources have been initialized")
             self ! InitializationComponentInitialized.getInstance()
           } else {
-            logger.warn("Failed to initialize resources", ex)
+            logger.warn(s"Failed to initialize resources: {}", ex.getMessage, ex)
           }
         )
         .pipeTo(self)
