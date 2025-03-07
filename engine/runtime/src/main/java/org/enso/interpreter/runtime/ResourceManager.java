@@ -9,10 +9,9 @@ import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -39,12 +38,14 @@ public final class ResourceManager {
    * All the items that were issued, but haven't yet arrived at {@link #referenceQueue} for
    * finalization.
    *
+   * This is stored as a map from the underying object to the `Item` that wraps
+   * it, to allow checking for multiple registrations of a single object, which
+   * is an error. The value set of this map is the set of distinct pending
+   * items, with distinct underlying objects.
+   *
    * <p>@GuardedBy("this")
    */
-  private final List<Item> pendingItems = new ArrayList<>();
-
-  private final Set<Object> registeredObjects =
-      Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
+  private final Map<Object, Item> pendingItems = new IdentityHashMap<>();
 
   private final EnsoContext context;
 
@@ -187,7 +188,7 @@ public final class ResourceManager {
         // already shut(-ting) down
         return;
       }
-      toFinalize = pendingItems.toArray(Item[]::new);
+      toFinalize = pendingItems.values().toArray(Item[]::new);
       lastProcessor = processor;
       processor = CLOSED;
     }
@@ -212,15 +213,13 @@ public final class ResourceManager {
     if (processor == null) {
       processor = new ProcessItems(r -> context.createThread(true, r));
     }
-    pendingItems.add(item);
-    registeredObjects.add(item.getUnderlyingObject());
+    pendingItems.put(item.underlying, item);
   }
 
   @CompilerDirectives.TruffleBoundary
   private synchronized void removeFromItems(PhantomReference<ManagedResource> it) {
     if (it instanceof Item item) {
-      pendingItems.remove(item);
-      registeredObjects.remove(item.getUnderlyingObject());
+      pendingItems.remove(item.underlying);
       if (pendingItems.isEmpty() && processor != null) {
         processor.awake();
       }
@@ -235,7 +234,7 @@ public final class ResourceManager {
    */
   @CompilerDirectives.TruffleBoundary
   public final synchronized void scheduleFinalizationOfSystemReferences() {
-    for (var item : pendingItems) {
+    for (var item : pendingItems.values()) {
       if (item.systemResource) {
         item.enqueue();
       }
@@ -415,7 +414,7 @@ public final class ResourceManager {
   }
 
   private synchronized boolean alreadyRegistered(Object resource) {
-    return registeredObjects.contains(resource);
+    return pendingItems.containsKey(resource);
   }
 
   /** A storage representation of a finalizable object handled by this system. */
@@ -462,10 +461,6 @@ public final class ResourceManager {
       this.underlying = underlying;
       this.finalizer = finalizer;
       this.systemResource = systemResource;
-    }
-
-    private Object getUnderlyingObject() {
-      return underlying;
     }
 
     /**
