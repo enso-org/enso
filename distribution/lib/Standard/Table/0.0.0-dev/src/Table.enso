@@ -3782,7 +3782,7 @@ type Table
         Offset_Helper.table_offset_impl self columns n fill_with group_by order_by set_mode on_problems
 
     @over Duplicate_Rows_Method.default_widget
-    generate_rows self over:Duplicate_Rows_Method as:Text="" on_problems:Problem_Behavior=..Report_Warning =
+    generate_rows self over:Duplicate_Rows_Method=(Missing_Argument.throw "over") as:Text="" on_problems:Problem_Behavior=..Report_Warning =
         resolved_as = if as.is_empty then "generate_rows_id" else as
         renamed_table = rename_columns_if_needed self resolved_as on_problems Table.new
         resolve_to_from value =

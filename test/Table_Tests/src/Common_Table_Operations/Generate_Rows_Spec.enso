@@ -128,11 +128,11 @@ add_offset_specs suite_builder setup =
                 r2 = t1.generate_rows (..Integer_Range 0 2) . generate_rows (..Integer_Range 3 5) on_problems=..Report_Error
                 r2.should_fail_with Duplicate_Output_Column_Names
 
-        ## Include end flag
-
-        ## Datetime range methods
-
-        ## Unhappy paths
+        suite_builder.group prefix+"Table.generate_rows error cases" group_builder->
+            t1 = build_sorted_table [["Text Values", ["A"]]]
+            group_builder.specify "Default state gives missing value error" <|
+                r = t1.generate_rows
+                r.should_fail_with Missing_Argument
 
         ## Unsupported
 
