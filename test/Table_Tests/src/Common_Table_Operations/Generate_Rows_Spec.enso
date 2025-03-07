@@ -82,6 +82,14 @@ add_offset_specs suite_builder setup =
                 t2 = build_sorted_table [["Text Values", ["A", "B", "C"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 2, Date.new 2025 1 3]]]
                 t2.generate_rows (..Date_Range (..Name 'JoinDate') (Date.new 2025 1 3)) . should_equal ignore_order=setup.is_database
                     Table.new [["Text Values", ["A", "A", "B"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 1, Date.new 2025 1 2]], ["generate_rows_id", [Date.new 2025 1 1, Date.new 2025 1 2, Date.new 2025 1 2]]]
+            group_builder.specify "Works with a 2 Date columns" <|
+                t2 = build_sorted_table [["Text Values", ["A", "B", "C"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 2, Date.new 2025 1 3]], ["LeaveDate", [Date.new 2025 1 2, Date.new 2025 1 2, Date.new 2025 1 5]]]
+                t2.generate_rows (..Date_Range (..Name 'JoinDate') (..Name 'LeaveDate')) . should_equal ignore_order=setup.is_database
+                    Table.new [["Text Values", ["A", "C", "C"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 3, Date.new 2025 1 3]], ["LeaveDate", [Date.new 2025 1 2, Date.new 2025 1 5, Date.new 2025 1 5]], ["generate_rows_id", [Date.new 2025 1 1, Date.new 2025 1 3, Date.new 2025 1 4]]]
+            group_builder.specify "Works with a Date columns and expression" <|
+                t2 = build_sorted_table [["Text Values", ["A", "B", "C"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 2, Date.new 2025 1 3]], ["LeaveDate", [Date.new 2025 1 2, Date.new 2025 1 2, Date.new 2025 1 5]]]
+                t2.generate_rows (..Date_Range (..Name 'JoinDate') (expr '[LeaveDate]')) . should_equal ignore_order=setup.is_database
+                    Table.new [["Text Values", ["A", "C", "C"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 3, Date.new 2025 1 3]], ["LeaveDate", [Date.new 2025 1 2, Date.new 2025 1 5, Date.new 2025 1 5]], ["generate_rows_id", [Date.new 2025 1 1, Date.new 2025 1 3, Date.new 2025 1 4]]]
 
 
         ## Running twice deals with column nammes correctly
