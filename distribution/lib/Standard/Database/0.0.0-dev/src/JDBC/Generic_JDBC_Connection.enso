@@ -1,9 +1,8 @@
 from Standard.Base import all
 
-import Standard.Base.Errors.Common.Forbidden_Operation
-import Standard.Base.Errors.Common.Missing_Argument
-import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Runtime.Context
+from Standard.Base.Errors.Common import Forbidden_Operation, Missing_Argument, Type_Error, Unavailable_In_Native_Image
+from Standard.Base.Internal.Native_Image import is_running_in_native_mode
 
 from Standard.Table import Table
 
@@ -47,8 +46,9 @@ type Generic_JDBC_Connection
 
              connection = Generic_JDBC_Connection.connect "jdbc:h2:~/my_database"
     connect (url : Text = (Missing_Argument.throw "url")) properties:Vector=[] -> Generic_JDBC_Connection =
-        jdbc_connection = JDBC_Connection.create url properties
-        Generic_JDBC_Connection.Value jdbc_connection
+        if_not_running_in_native_mode_ <|
+            jdbc_connection = JDBC_Connection.create url properties
+            Generic_JDBC_Connection.Value jdbc_connection
 
     ## ADVANCED
        GROUP Standard.Base.Input
@@ -320,3 +320,9 @@ private rs_to_table_ rs =
 private when_output_enabled_ ~action =
     if Context.Output.is_enabled then action else
         Error.throw (Forbidden_Operation.Error ("As writing is disabled, this operation was not executed. Press the Write button ▶ to execute it."))
+
+## PRIVATE
+   If running under native mode, throw a useful error.
+private if_not_running_in_native_mode_ ~action =
+    if is_running_in_native_mode.not then action else
+        Error.throw Unavailable_In_Native_Image.Value

@@ -1,0 +1,10 @@
+from project.Data.Boolean import Boolean
+
+polyglot java import org.graalvm.nativeimage.ImageInfo
+
+## PRIVATE
+   ADVANCED
+
+   Return true if running as a native image.
+is_running_in_native_mode -> Boolean =
+    ImageInfo.inImageRuntimeCode

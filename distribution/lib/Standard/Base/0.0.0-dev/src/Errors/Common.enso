@@ -622,3 +622,13 @@ type Failed_To_Load
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self = "Failed to load file at path: "+self.path.to_display_text+": "+self.cause.to_display_text
+
+## Indicates that an operation cannot be executed while running as a native image.
+type Unavailable_In_Native_Image
+    ## PRIVATE
+    Error
+
+    ## PRIVATE
+       Create a human-readable version of the error.
+    to_display_text : Text
+    to_display_text self = "This operation is unavailable when running as a native image."
