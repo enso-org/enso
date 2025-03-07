@@ -36,6 +36,7 @@ import {
   setExternalIds,
 } from 'ydoc-shared/ast'
 import { spanMapToIdMap, spanMapToSpanGetter } from 'ydoc-shared/ast/idMap'
+import { Opt } from 'ydoc-shared/util/data/opt'
 import { IdMap } from 'ydoc-shared/yjsModel'
 
 export * from 'ydoc-shared/ast'
@@ -202,22 +203,40 @@ export function substituteIdentifier(
   }
 }
 
+export function substituteQualifiedName(
+  expr: MutableAst,
+  pattern: QualifiedName | IdentifierOrOperatorIdentifier,
+  to: QualifiedName,
+): Ast
+export function substituteQualifiedName(
+  expr: MutableAst,
+  substitution: (from: QualifiedName) => Opt<QualifiedName>,
+): Ast
 /**
  * Substitute `pattern` inside `expression` with `to`.
  * Replaces identifier, the whole qualified name, or the beginning of the qualified name (first segments of property access chain).
  */
 export function substituteQualifiedName(
   expr: MutableAst,
-  pattern: QualifiedName | IdentifierOrOperatorIdentifier,
-  to: QualifiedName,
-) {
+  patternOrF:
+    | QualifiedName
+    | IdentifierOrOperatorIdentifier
+    | ((from: QualifiedName) => Opt<QualifiedName>),
+  to?: QualifiedName,
+): Ast {
   if (expr instanceof MutablePropertyAccess || expr instanceof MutableIdent) {
     const qn = astToQualifiedName(expr)
-    if (qn === pattern) {
-      expr.updateValue(() => parseExpression(to, expr.module)!)
-    } else if (qn && qn.startsWith(pattern)) {
-      const withoutPattern = qn.replace(pattern, '')
-      expr.updateValue(() => parseExpression(to + withoutPattern, expr.module)!)
+    if (!qn) return expr
+    if (typeof patternOrF === 'function') {
+      const replacement = patternOrF(qn) ?? undefined
+      if (replacement != null) {
+        return expr.updateValue(() => parseExpression(replacement, expr.module)!)
+      }
+    } else if (qn === patternOrF) {
+      return expr.updateValue(() => parseExpression(to!, expr.module)!)
+    } else if (qn && qn.startsWith(patternOrF)) {
+      const withoutPattern = qn.replace(patternOrF, '')
+      return expr.updateValue(() => parseExpression(to + withoutPattern, expr.module)!)
     }
   } else {
     for (const child of expr.children()) {
@@ -225,9 +244,14 @@ export function substituteQualifiedName(
         continue
       }
       const mutableChild = expr.module.getVersion(child)
-      substituteQualifiedName(mutableChild, pattern, to)
+      if (typeof patternOrF === 'function') {
+        substituteQualifiedName(mutableChild, patternOrF)
+      } else {
+        substituteQualifiedName(mutableChild, patternOrF, to!)
+      }
     }
   }
+  return expr
 }
 
 /**

@@ -157,18 +157,20 @@ watch(
 // === Expose ===
 
 function moveUp() {
-  if (selected.value != null && selected.value > 0) {
-    selected.value -= 1
+  if (highlighted.value != null && highlighted.value > 0) {
+    highlighted.value -= 1
   }
+  updateSelectionToHighlight()
   showSelectedItem()
 }
 
 function moveDown() {
-  if (selected.value == null) {
-    selected.value = 0
-  } else if (selected.value < items.length - 1) {
-    selected.value += 1
+  if (highlighted.value == null) {
+    highlighted.value = 0
+  } else if (highlighted.value < items.length - 1) {
+    highlighted.value += 1
   }
+  updateSelectionToHighlight()
   showSelectedItem()
 }
 
