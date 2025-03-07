@@ -9,9 +9,9 @@ import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -23,9 +23,9 @@ import org.enso.interpreter.runtime.error.PanicException;
  * Allows the context to attach garbage collection hooks on the removal of certain objects.
  *
  * <p><Using the same underlying resource with multiple managed resource instances is an error and
- * will result in a `Forbidden_Operation` panic.
+ * will result in an `Illegal_Argument` panic.
  *
- * <p>Truly atomic values such as integer `2` cannot be managed resources.
+ * <p>Truly atomic values (`Integer`, `Boolean` and `Float`) cannot be managed resources.
  */
 public final class ResourceManager {
   /** Amount of milliseconds to wait for another resource when none is pending. */
@@ -38,11 +38,13 @@ public final class ResourceManager {
    * All the items that were issued, but haven't yet arrived at {@link #referenceQueue} for
    * finalization.
    *
+   * <p>This is stored as a map from the underying object to the `Item` that wraps it, to allow
+   * checking for multiple registrations of a single object, which is an error. The value set of
+   * this map is the set of distinct pending items, with distinct underlying objects.
+   *
    * <p>@GuardedBy("this")
    */
-  private final List<Item> pendingItems = new ArrayList<>();
-
-  private final Set<Object> registeredObjects = new HashSet<>();
+  private final Map<Object, Item> pendingItems = new IdentityHashMap<>();
 
   private final EnsoContext context;
 
@@ -154,8 +156,7 @@ public final class ResourceManager {
     if (alreadyRegistered(object)) {
       var error = context.getBuiltins().error();
       var msg = "Object is already registered as a ManagedResource: " + object;
-      var payload = error.makeForbiddenOperation(msg);
-      throw new PanicException(payload, null);
+      throw new PanicException(msg, null);
     }
 
     if (CLOSED == processor) {
@@ -186,7 +187,7 @@ public final class ResourceManager {
         // already shut(-ting) down
         return;
       }
-      toFinalize = pendingItems.toArray(Item[]::new);
+      toFinalize = pendingItems.values().toArray(Item[]::new);
       lastProcessor = processor;
       processor = CLOSED;
     }
@@ -211,15 +212,13 @@ public final class ResourceManager {
     if (processor == null) {
       processor = new ProcessItems(r -> context.createThread(true, r));
     }
-    pendingItems.add(item);
-    registeredObjects.add(item.getUnderlyingObject());
+    pendingItems.put(item.underlying, item);
   }
 
   @CompilerDirectives.TruffleBoundary
   private synchronized void removeFromItems(PhantomReference<ManagedResource> it) {
     if (it instanceof Item item) {
-      pendingItems.remove(item);
-      registeredObjects.remove(item.getUnderlyingObject());
+      pendingItems.remove(item.underlying);
       if (pendingItems.isEmpty() && processor != null) {
         processor.awake();
       }
@@ -234,7 +233,7 @@ public final class ResourceManager {
    */
   @CompilerDirectives.TruffleBoundary
   public final synchronized void scheduleFinalizationOfSystemReferences() {
-    for (var item : pendingItems) {
+    for (var item : pendingItems.values()) {
       if (item.systemResource) {
         item.enqueue();
       }
@@ -414,7 +413,7 @@ public final class ResourceManager {
   }
 
   private synchronized boolean alreadyRegistered(Object resource) {
-    return registeredObjects.contains(resource);
+    return pendingItems.containsKey(resource);
   }
 
   /** A storage representation of a finalizable object handled by this system. */
@@ -461,10 +460,6 @@ public final class ResourceManager {
       this.underlying = underlying;
       this.finalizer = finalizer;
       this.systemResource = systemResource;
-    }
-
-    private Object getUnderlyingObject() {
-      return underlying;
     }
 
     /**

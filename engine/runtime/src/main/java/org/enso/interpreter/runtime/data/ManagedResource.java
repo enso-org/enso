@@ -37,9 +37,9 @@ import org.enso.interpreter.runtime.error.PanicException;
  * ProcessItems} processor.
  *
  * <p><Using the same underlying resource with multiple managed resource instances is an error and
- * will result in a `Forbidden_Operation` panic.
+ * will result in an `Illegal_Argument` panic.
  *
- * <p>Truly atomic values such as integer `2` cannot be managed resources.
+ * <p>Truly atomic values (`Integer`, `Boolean` and `Float`) cannot be managed resources.
  */
 @ExportLibrary(InteropLibrary.class)
 @Builtin(pkg = "resource", stdlibName = "Standard.Base.Runtime.Managed_Resource.Managed_Resource")

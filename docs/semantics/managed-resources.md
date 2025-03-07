@@ -95,13 +95,14 @@ which thread will perform the finalization.
 If the same underlying resource is used in multiple managed resources, it would
 be finalized as soon as the first managed resource is garbage collected.
 Moreover, the finalizer will be called for each garbage collected managed
-resource, leading to multiple-finalization of the underlying object.  Therefore,
-using the same underlying resource with multiple managed resource instances
-is an error and will result in a `Forbidden_Operation` panic.
+resource, leading to multiple-finalization of the underlying object. Therefore,
+using the same underlying resource with multiple managed resource instances is
+an error and will result in an `Illegal_Argument` panic.
 
 ### Objects Eligible to be a Managed Resource
 
-Truly atomic values such as integer `2` cannot be managed resources.
+Truly atomic values (`Integer`, `Boolean` and `Float`) cannot be managed
+resources.
 
 ### Thread Safety
 

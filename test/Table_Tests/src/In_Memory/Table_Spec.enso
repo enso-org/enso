@@ -703,8 +703,8 @@ add_specs suite_builder =
             actual.column_names . should_equal ["col0", "col_between", "col1"]
 
     suite_builder.group "Use First Row As Names" group_builder->
-        expect_column_names names table =
-            table.columns . map .name . should_equal names frames_to_skip=2
+        expect_column_names names table = Frame_Hider.hide <|
+            table.columns . map .name . should_equal names
 
         group_builder.specify "should work happily with mixed types" <|
             c_0 = ['A', ["H", "B", "C"]]
@@ -723,7 +723,7 @@ add_specs suite_builder =
             c_4 = ['Z', [True, False, True]]
             table = Table.new [c_0, c_1, c_2, c_3, c_4]
             action = table.use_first_row_as_names on_problems=_
-            tester = expect_column_names ["Column 1", "1980-01-01", "1", "5.3", "True"]
+            tester t = expect_column_names ["Column 1", "1980-01-01", "1", "5.3", "True"] t
             problems = [Invalid_Column_Names.Error [""]]
             Problems.test_problem_handling action problems tester
 
@@ -735,7 +735,7 @@ add_specs suite_builder =
             c_4 = ['Z', [True, False, True]]
             table = Table.new [c_0, c_1, c_2, c_3, c_4]
             action = table.use_first_row_as_names on_problems=_
-            tester = expect_column_names ["A", "1980-01-01", "Column 1", "5.3", "True"]
+            tester t = expect_column_names ["A", "1980-01-01", "Column 1", "5.3", "True"] t
             problems = [Invalid_Column_Names.Error [Nothing]]
             Problems.test_problem_handling action problems tester
 
@@ -747,7 +747,7 @@ add_specs suite_builder =
             c_4 = ['Z', [True, False, True]]
             table = Table.new [c_0, c_1, c_2, c_3, c_4]
             action = table.use_first_row_as_names on_problems=_
-            tester = expect_column_names ["Column 1", "1980-01-01", "Column 2", "5.3", "True"]
+            tester t = expect_column_names ["Column 1", "1980-01-01", "Column 2", "5.3", "True"] t
             problems = [Invalid_Column_Names.Error ["", Nothing]]
             Problems.test_problem_handling action problems tester
 
@@ -758,7 +758,7 @@ add_specs suite_builder =
             c_3 = ['C', ["A", "B", "C"]]
             table = Table.new [c_0, c_1, c_2, c_3]
             action = table.use_first_row_as_names on_problems=_
-            tester = expect_column_names ["A", "A 1", "A 2", "A 3"]
+            tester t = expect_column_names ["A", "A 1", "A 2", "A 3"] t
             problems = [Duplicate_Output_Column_Names.Error ["A", "A", "A"]]
             Problems.test_problem_handling action problems tester
 

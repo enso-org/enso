@@ -7,10 +7,10 @@ from Standard.Test import all
 
 from project.In_Memory.Common_Spec import in_memory_setup
 
-expect_column_names names table ignore_order=False =
+expect_column_names names table ignore_order=False = Frame_Hider.hide <|
     case ignore_order of
-        False -> table.columns . map .name . should_equal names frames_to_skip=2
-        True -> table.columns . map .name . sort . should_equal names.sort frames_to_skip=2
+        False -> table.columns . map .name . should_equal names
+        True -> table.columns . map .name . sort . should_equal names.sort
 
 ## These tests are parametrized by various backends and so they should be run in
    context of a specific backend. However, for the purpose of testing we provide
@@ -49,10 +49,9 @@ within_table table =
     Test.with_clue 'Resulting table:\n'+description+'\n\n'
 
 ## PRIVATE
-Any.should_equal_tz_agnostic self other =
-    loc = Test.get_source_location 1
+Any.should_equal_tz_agnostic self other = Frame_Hider.hide <|
     _ = other
-    Test.fail "Expected a vector but got "+self.to_display_text+" (at "+loc+")."
+    Test.fail "Expected a vector but got "+self.to_display_text+" (at "+Frame_Hider.get_top_stack_frame+")."
 
 ## PRIVATE
    A helper method that compares two vectors of Date_Time values.
@@ -60,24 +59,22 @@ Any.should_equal_tz_agnostic self other =
    It ensures that they represent the same instant in time, but ignore the
    timezone that is attached to them. This is simply done by converting them to
    UTC.
-Vector.should_equal_tz_agnostic self other =
-    loc = Test.get_source_location 1
+Vector.should_equal_tz_agnostic self other = Frame_Hider.hide <|
     case other of
         _ : Vector ->
             utc = Time_Zone.utc
             normalize_date_time dt = case dt of
                 _ : Date_Time -> dt.at_zone utc
-                _ -> Test.fail "The vector should contain Date_Time objects but it contained "+dt.to_display_text+" (at "+loc+")"
+                _ -> Test.fail "The vector should contain Date_Time objects but it contained "+dt.to_display_text+" (at "+Frame_Hider.get_top_stack_frame+")"
             self_normalized = self.map normalize_date_time
             other_normalized = other.map normalize_date_time
-            self_normalized.should_equal other_normalized frames_to_skip=2
-        _ -> Test.fail "Expected a vector but got "+other.to_display_text+" (at "+loc+")"
+            self_normalized.should_equal other_normalized
+        _ -> Test.fail "Expected a vector but got "+other.to_display_text+" (at "+Frame_Hider.get_top_stack_frame+")"
 
 ## PRIVATE
-Error.should_equal_tz_agnostic self other =
-    loc = Test.get_source_location 1
+Error.should_equal_tz_agnostic self other = Frame_Hider.hide <|
     _ = other
-    Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+loc+")."
+    Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+Frame_Hider.get_top_stack_frame+")."
 
 ## PRIVATE
    Builds a table ensuring that the rows are in the order as given.
