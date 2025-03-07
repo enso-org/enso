@@ -129,6 +129,7 @@
     "webpack-cli": "=5.0.1"
   },
   "extensionDependencies": [
-    "asf.apache-netbeans-java"
+    "asf.apache-netbeans-java",
+    "scala-lang.scala"
   ]
 }
