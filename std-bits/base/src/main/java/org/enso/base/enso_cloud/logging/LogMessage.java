@@ -8,7 +8,7 @@ import java.util.Objects;
 import org.enso.base.CurrentEnsoProject;
 import org.enso.base.enso_cloud.CloudAPI;
 
-/** Base class for log messages that are passed to the OpenSearch cloud endpoint. */
+/** Base class for log messages that are passed to the cloud endpoint. */
 public abstract class LogMessage {
   /**
    * A reserved field that is currently added by the cloud backend. Duplicating it will lead to
