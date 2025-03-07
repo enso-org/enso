@@ -59,6 +59,7 @@ import {
   backendMutationOptions,
   listDirectoryQueryOptions,
   useBackendQuery,
+  useListDirectoryRefetchInterval,
 } from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useCutAndPaste } from '#/hooks/cutAndPasteHooks'
@@ -273,15 +274,15 @@ function AssetsTable(props: AssetsTableProps) {
   const { currentDirectoryId, setCurrentDirectoryId } = useDirectoryIds({
     category,
   })
-  const { data: assets = [], status: fetchStatus } = useQuery({
-    ...listDirectoryQueryOptions({
+  const listDirectoryRefetchInterval = useListDirectoryRefetchInterval()
+  const { data: assets = [], status: fetchStatus } = useQuery(
+    listDirectoryQueryOptions({
       backend,
       parentId: currentDirectoryId,
       category,
+      refetchInterval: listDirectoryRefetchInterval,
     }),
-    refetchInterval:
-      enableAssetsTableBackgroundRefresh ? assetsTableBackgroundRefreshInterval : Infinity,
-  })
+  )
   const isLoading = fetchStatus === 'pending'
 
   const { visibleItems } = useAssetsTableItems({
