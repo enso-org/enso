@@ -85,6 +85,10 @@ add_offset_specs suite_builder setup =
                 col = t2.at 0
                 t1.generate_rows col . should_equal ignore_order=setup.is_database
                     Table.new [["Text Values", ["A", "C", "C"]], ["generate_rows_id", [0, 0, 1]]]
+            group_builder.specify "Can use an existing date range" <|
+                range = ((Date.new 2021 3 3).up_to (Date.new 2021 3 4) include_end=True)
+                t1.generate_rows range . should_equal ignore_order=setup.is_database
+                    Table.new [["Text Values", ["A", "A", "B", "B", "C", "C"]], ["generate_rows_id", [(Date.new 2021 3 3),(Date.new 2021 3 4),(Date.new 2021 3 3),(Date.new 2021 3 4),(Date.new 2021 3 3),(Date.new 2021 3 4)]]]
              
         suite_builder.group prefix+"Table.generate_rows from an Date Range" group_builder->
             t1 = build_sorted_table [["Text Values", ["A", "B", "C"]]]

@@ -21,7 +21,7 @@ type Duplicate_Rows_Method
 
     Date_Range from:(Date | Column_Ref | Expression)=(Missing_Argument.throw "from") to:(Date | Column_Ref | Expression)=(Missing_Argument.throw "to") include_end:Boolean=False step:Date_Period=..Day
 
-    Range value:Range
+    Range value
 
     Integer_Column value:Column
 
@@ -62,10 +62,13 @@ type Duplicate_Rows_Method
         Single_Choice [integer_range, date_range] display=display
 
 Duplicate_Rows_Method.from (that:Integer) =
-   Duplicate_Rows_Method.Integer_Range 0 that
+    Duplicate_Rows_Method.Integer_Range 0 that
 
 Duplicate_Rows_Method.from (that:Range) =
-   Duplicate_Rows_Method.Range that
+    Duplicate_Rows_Method.Range that
+
+Duplicate_Rows_Method.from (that:Date_Range) =
+    Duplicate_Rows_Method.Range that
 
 Duplicate_Rows_Method.from (that:Column) =
-   Duplicate_Rows_Method.Integer_Column that
+    Duplicate_Rows_Method.Integer_Column that
