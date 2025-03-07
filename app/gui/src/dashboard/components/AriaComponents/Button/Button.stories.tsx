@@ -94,7 +94,11 @@ export const Tooltips: Story = {
     <StoryVariants
       render={Button}
       toLabel={(props) =>
-        omit('icon' in props ? { ...props, icon: { toString: () => 'Enso' } } : props, 'testId', 'children')
+        omit(
+          'icon' in props ? { ...props, icon: { toString: () => 'Enso' } } : props,
+          'testId',
+          'children',
+        )
       }
       variants={[
         { tooltip: 'This is a tooltip', children: 'Tooltip' },
