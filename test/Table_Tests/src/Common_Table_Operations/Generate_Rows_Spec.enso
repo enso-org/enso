@@ -6,6 +6,7 @@ from Standard.Database.Errors import Unsupported_Database_Operation
 import Standard.Database.Feature.Feature
 from Standard.Base.Errors.Common import Missing_Argument, Floating_Point_Equality
 from Standard.Table.Errors import Missing_Input_Columns, Duplicate_Output_Column_Names
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from project.Common_Table_Operations.Util import run_default_backend
 import project.Common_Table_Operations.Util
@@ -128,7 +129,7 @@ add_offset_specs suite_builder setup =
                 r2 = t1.generate_rows (..Integer_Range 0 2) . generate_rows (..Integer_Range 3 5) on_problems=..Report_Error
                 r2.should_fail_with Duplicate_Output_Column_Names
 
-        suite_builder.group prefix+"Table.generate_rows error cases" group_builder->
+        suite_builder.group prefix+"Table.generate_rows missing value error cases" group_builder->
             t1 = build_sorted_table [["Text Values", ["A"]]]
             group_builder.specify "Default state gives missing value error" <|
                 r = t1.generate_rows
@@ -145,6 +146,12 @@ add_offset_specs suite_builder setup =
             group_builder.specify "Date_Range Missing to gives missing value error" <|
                 r = t1.generate_rows (..Date_Range (Date.new 2025 1 1))
                 r.should_fail_with Missing_Argument
+
+        suite_builder.group prefix+"Table.generate_rows bad types error cases" group_builder->
+            t1 = build_sorted_table [["Text Values", ["A"]]]
+            group_builder.specify "Using a text column as Integer_Range from value errors" <|
+                r = t1.generate_rows (..Integer_Range (..Name 'Text Values') 4)
+                r.should_fail_with Illegal_Argument
 
         ## Unsupported
 

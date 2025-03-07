@@ -3785,21 +3785,26 @@ type Table
     generate_rows self over:Duplicate_Rows_Method=(Missing_Argument.throw "over") as:Text="" on_problems:Problem_Behavior=..Report_Warning =
         resolved_as = if as.is_empty then "generate_rows_id" else as
         renamed_table = rename_columns_if_needed self resolved_as on_problems Table.new
-        resolve_to_from value =
-            case value of
+        resolve_to_from value col_type =
+            col = case value of
                 _ : Integer -> self.make_constant_column value
                 _ : Date -> self.make_constant_column value
                 _ : Column_Ref -> (self:Table_Ref).resolve value
                 _ : Expression -> self.evaluate_expression value on_problems
+            is_correct_type = case col_type of
+                Value_Type.Integer _ -> col.value_type.is_integer
+                Value_Type.Date -> col.value_type.is_date
+            if is_correct_type.not then Error.throw (Illegal_Argument.Error "Expected an "+col_type.to_display_text+" column but got a "+col.value_type.to_display_text+"") else
+                col
 
         range_col = case over of
             Duplicate_Rows_Method.Integer_Range from to include_end step ->
-                from_column = resolve_to_from from
-                to_column = resolve_to_from to
+                from_column = resolve_to_from from Value_Type.Integer
+                to_column = resolve_to_from to Value_Type.Integer
                 from_column.zip to_column f->t->(f.up_to t include_end step)  
             Duplicate_Rows_Method.Date_Range from to include_end step ->
-                from_column = resolve_to_from from
-                to_column = resolve_to_from to
+                from_column = resolve_to_from from Value_Type.Date
+                to_column = resolve_to_from to Value_Type.Date
                 from_column.zip to_column f->t->(f.up_to t include_end step)
             Duplicate_Rows_Method.Range value ->
                 self.make_constant_column value
