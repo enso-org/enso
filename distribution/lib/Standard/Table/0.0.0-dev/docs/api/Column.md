@@ -29,6 +29,7 @@
     - count_non_trivial_whitespace self sample_size:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
     - count_nothing self -> Standard.Base.Data.Numbers.Integer
     - count_untrimmed self sample_size:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
+    - requires_numeric_formatter_check self -> Standard.Base.Data.Boolean.Boolean
     - date_add self amount:(Standard.Table.Column.Column|Standard.Base.Data.Numbers.Integer) period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)= -> Standard.Base.Any.Any
     - date_diff self end:(Standard.Table.Column.Column|Standard.Base.Data.Time.Date.Date|Standard.Base.Data.Time.Date_Time.Date_Time|Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day) period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)= -> Standard.Base.Any.Any
     - date_part self period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)= -> Standard.Base.Any.Any
