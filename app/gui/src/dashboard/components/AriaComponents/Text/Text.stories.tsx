@@ -1,15 +1,20 @@
 import type { Meta, StoryObj } from '@storybook/react'
 
+import { StoryVariants } from '#/utilities/StoryVariants'
 import { omit } from 'enso-common/src/utilities/data/object'
 import type { TextProps } from './Text'
 import { Text } from './Text'
 
+const args = {
+  ref: undefined,
+  key: undefined,
+  children: 'Lorem ipsum dolor sit amet.',
+}
+
 export default {
   title: 'Components/Text',
   component: Text,
-  args: {
-    children: 'Hello, world!',
-  },
+  args,
   parameters: {
     layout: 'centered',
   },
@@ -17,101 +22,75 @@ export default {
 
 type Story = StoryObj<TextProps>
 
-const variants = ['h1', 'subtitle', 'body', 'body-sm', 'caption', 'overline']
-const weights = ['thin', 'normal', 'medium', 'semibold', 'bold', 'extraBold']
+const variants = ['h1', 'subtitle', 'body', 'body-sm', 'caption', 'overline'] as const
+const weights = ['thin', 'normal', 'medium', 'semibold', 'bold', 'extraBold'] as const
 
 export const Variants: Story = {
-  render: (args) => (
-    <section className="flex flex-col gap-4">
-      {variants.map((variant) => (
-        <div key={variant} className="flex flex-col items-center gap-1">
-          <Text {...args} variant={variant}>
-            Lorem ipsum dolor sit amet.
-          </Text>
-          <Text variant="caption">{variant}</Text>
-        </div>
-      ))}
-    </section>
+  render: () => (
+    <StoryVariants
+      render={Text}
+      toProps={(variant) => ({ ...args, variant })}
+      variants={variants}
+    />
   ),
 }
 
-const colorsProps = [
-  { color: 'primary' },
-  { color: 'danger' },
-  { color: 'invert', className: 'bg-primary px-2 rounded-md' },
-  { color: 'success' },
-  { color: 'disabled' },
-  { color: 'custom', className: 'text-youtube' },
-] satisfies readonly Partial<TextProps>[]
-
 export const Colors: Story = {
-  render: (args) => (
-    <section className="flex flex-col gap-4">
-      {colorsProps.map((props) => (
-        <div key={props.color} className="flex flex-col items-center gap-1">
-          <Text {...args} {...props}>
-            Lorem ipsum dolor sit amet.
-          </Text>
-          <Text variant="caption">{props.color}</Text>
-        </div>
-      ))}
-    </section>
+  render: () => (
+    <StoryVariants
+      render={Text}
+      toProps={(variant) => ({ ...args, ...variant })}
+      toLabel={(variant) => variant.color}
+      variants={[
+        { color: 'primary' },
+        { color: 'danger' },
+        { color: 'invert', className: 'bg-primary px-2 rounded-md' },
+        { color: 'success' },
+        { color: 'disabled' },
+        { color: 'custom', className: 'text-youtube' },
+      ]}
+    />
   ),
 }
 
 export const Weights: Story = {
-  render: (args) => (
-    <section className="flex flex-col gap-4">
-      {weights.map((weight) => (
-        <div key={weight} className="flex flex-col items-center gap-1">
-          <Text {...args} weight={weight}>
-            Lorem ipsum dolor sit amet.
-          </Text>
-          <Text variant="caption">{weight}</Text>
-        </div>
-      ))}
-    </section>
+  render: () => (
+    <StoryVariants render={Text} toProps={(weight) => ({ ...args, weight })} variants={weights} />
   ),
 }
 
-const restProps = [
-  { balance: true, className: 'block w-48' },
-  { truncate: '1', className: 'block w-48' },
-  { variant: 'h1', truncate: '2', className: 'w-48' },
-  { truncate: 'custom', lineClamp: 2, className: 'w-48' },
-] satisfies readonly Partial<TextProps>[]
-
-function stringifyJSX(value: unknown) {
-  if (typeof value !== 'object' || value == null) {
-    return String(value)
-  }
-  return Object.entries(value)
-    .flatMap(([k, v]) => {
-      if (v === true) {
-        return [`${k}`]
-      }
-      if (v === false) {
-        return []
-      }
-      if (typeof v === 'string') {
-        return [`${k}=${JSON.stringify(v)}`]
-      }
-      return [`${k}={${JSON.stringify(v)}}`]
-    })
-    .join(' ')
-}
-
 export const Rest: Story = {
-  render: (args) => (
-    <section className="flex flex-col gap-4">
-      {restProps.map((props, i) => (
-        <div key={i} className="flex flex-col items-center gap-1">
-          <Text {...args} {...props}>
-            Lorem ipsum dolor sit amet.
-          </Text>
-          <Text variant="caption">{stringifyJSX(omit(props, 'className'))}</Text>
-        </div>
-      ))}
-    </section>
+  render: () => (
+    <StoryVariants
+      render={Text}
+      toProps={(variant) => ({ ...args, ...variant })}
+      toLabel={(variant) => omit(variant, 'className', 'children')}
+      variants={[
+        {
+          balance: true,
+          className: 'block w-48',
+          children: 'Lorem ipsum dolor sit amet verylongword Balance.',
+        },
+        {
+          truncate: '1',
+          className: 'block w-48',
+          children: 'Text truncate 1. Should display tooltip on hover.',
+        },
+        {
+          variant: 'h1',
+          truncate: '2',
+          className: 'w-48',
+          children:
+            'Text truncate 2. Should display tooltip on hover. Does not work with custom display.',
+        },
+        {
+          truncate: 'custom',
+          lineClamp: 2,
+          className: 'w-48',
+          children:
+            'Text truncate custom. Should display tooltip on hover. Does not work with custom display.',
+        },
+      ]}
+    />
   ),
 }
