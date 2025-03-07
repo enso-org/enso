@@ -71,7 +71,7 @@ public abstract class LogMessage {
     return meta;
   }
 
-  public String payload() {
+  public final String payload() {
     var payload = new ObjectNode(JsonNodeFactory.instance);
     payload.set("message", TextNode.valueOf(message));
     payload.set("metadata", computedMetadata());
@@ -96,7 +96,7 @@ public abstract class LogMessage {
   protected abstract ObjectNode extraMetadata();
 
   @Override
-  public String toString() {
+  public final String toString() {
     return payload();
   }
 }

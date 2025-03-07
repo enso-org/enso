@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import java.util.Objects;
 import org.enso.base.enso_cloud.logging.LogMessage;
 
-public final class TelemetryLogMessage extends LogMessage {
+final class TelemetryLogMessage extends LogMessage {
 
   private final String loggerName;
   private final ObjectNode extraMeta;

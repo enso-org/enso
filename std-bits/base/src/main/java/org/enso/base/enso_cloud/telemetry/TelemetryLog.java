@@ -11,7 +11,7 @@ public final class TelemetryLog {
     LogApiAccess.INSTANCE.logWithoutConfirmation(event);
   }
 
-  public static class TelemetryLogError extends RuntimeException {
+  public static final class TelemetryLogError extends RuntimeException {
     public TelemetryLogError(String message, Throwable cause) {
       super(message, cause);
     }
