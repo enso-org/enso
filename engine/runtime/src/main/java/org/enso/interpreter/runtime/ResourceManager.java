@@ -38,10 +38,9 @@ public final class ResourceManager {
    * All the items that were issued, but haven't yet arrived at {@link #referenceQueue} for
    * finalization.
    *
-   * This is stored as a map from the underying object to the `Item` that wraps
-   * it, to allow checking for multiple registrations of a single object, which
-   * is an error. The value set of this map is the set of distinct pending
-   * items, with distinct underlying objects.
+   * <p>This is stored as a map from the underying object to the `Item` that wraps it, to allow
+   * checking for multiple registrations of a single object, which is an error. The value set of
+   * this map is the set of distinct pending items, with distinct underlying objects.
    *
    * <p>@GuardedBy("this")
    */
