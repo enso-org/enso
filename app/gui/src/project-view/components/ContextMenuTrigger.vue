@@ -12,7 +12,6 @@ const emit = defineEmits<{
 }>()
 
 const point = ref<{ x: number; y: number } | null>(null)
-const menuComponent = ref<typeof ContextMenu>()
 
 function show(at: typeof point.value) {
   point.value = at

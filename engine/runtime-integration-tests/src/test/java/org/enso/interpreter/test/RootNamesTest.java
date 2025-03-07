@@ -56,7 +56,7 @@ public class RootNamesTest {
     this.insightHandle.close();
     this.ctx.close();
     this.ctx = null;
-    this.out.reset();
+    this.out.close();
   }
 
   @Test

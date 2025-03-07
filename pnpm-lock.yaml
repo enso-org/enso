@@ -767,12 +767,6 @@ importers:
       '@marijn/buildtool':
         specifier: ^0.1.6
         version: 0.1.6
-      ist:
-        specifier: ^1.1.1
-        version: 1.1.7
-      mocha:
-        specifier: ^10.2.0
-        version: 10.8.2
 
   app/rust-ffi: {}
 

@@ -217,8 +217,10 @@ function skipForList(bl: CompositeBlock, cx: BlockContext, line: Line) {
 const DefaultSkipMarkup: {[type: number]: (bl: CompositeBlock, cx: BlockContext, line: Line) => boolean} = {
   [Type.Blockquote](bl, cx, line) {
     if (line.next != 62 /* '>' */) return false
-    line.markers.push(elt(Type.QuoteMark, cx.lineStart + line.pos, cx.lineStart + line.pos + 1))
-    line.moveBase(line.pos + (space(line.text.charCodeAt(line.pos + 1)) ? 2 : 1))
+    let sAfter = space(line.text.charCodeAt(line.pos + 1))
+    let size = sAfter ? 2 : 1
+    line.markers.push(elt(Type.QuoteMark, cx.lineStart + line.pos, cx.lineStart + line.pos + (includeSpaceInDelimiterNode ? size : 1)))
+    line.moveBase(line.pos + size)
     bl.end = cx.lineStart + line.text.length
     return true
   },
@@ -483,17 +485,15 @@ const DefaultBlockParsers: {[name: string]: ((cx: BlockContext, line: Line) => B
   ATXHeading(cx, line) {
     let size = isAtxHeading(line)
     if (size < 0) return false
-    let level = size
-    if (includeSpaceInDelimiterNode && space(line.text.charCodeAt(size))) size += 1
     let off = line.pos, from = cx.lineStart + off
     let endOfSpace = skipSpaceBack(line.text, line.text.length, off), after = endOfSpace
     while (after > off && line.text.charCodeAt(after - 1) == line.next) after--
     if (after == endOfSpace || after == off || !space(line.text.charCodeAt(after - 1))) after = line.text.length
     let buf = cx.buffer
-      .write(Type.HeaderMark, 0, size)
+      .write(Type.HeaderMark, 0, size + (includeSpaceInDelimiterNode && space(line.text.charCodeAt(size)) ? 1 : 0))
       .writeElements(cx.parser.parseInline(line.text.slice(off + size + 1, after), from + size + 1), -from)
     if (after < line.text.length) buf.write(Type.HeaderMark, after - off, endOfSpace - off)
-    let node = buf.finish(Type.ATXHeading1 - 1 + level, line.text.length - off)
+    let node = buf.finish(Type.ATXHeading1 - 1 + size, line.text.length - off)
     cx.nextLine()
     cx.addNode(node, from)
     return true
