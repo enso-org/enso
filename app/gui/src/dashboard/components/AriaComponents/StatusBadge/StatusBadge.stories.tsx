@@ -1,4 +1,6 @@
 import { Icon } from '#/components/Icon'
+import { ICON_COLORS } from '#/components/Icon/Icon'
+import { StoryVariants } from '#/utilities/StoryVariants'
 import type { Meta, StoryObj } from '@storybook/react'
 import { StatusBadge } from './StatusBadge'
 
@@ -13,52 +15,24 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof StatusBadge>
 
+const icon = <Icon icon="enso_logo" />
+
 export const Hidden: Story = {
   render: () => (
-    <div className="flex items-center gap-4">
-      <StatusBadge color="danger">
-        <Icon icon="enso_logo" />
-      </StatusBadge>
-      <StatusBadge hidden color="danger">
-        <Icon icon="enso_logo" />
-      </StatusBadge>
-    </div>
+    <StoryVariants
+      render={StatusBadge}
+      toProps={(props) => ({ color: 'danger' as const, children: icon, ...props })}
+      variants={[{}, { hidden: true }]}
+    />
   ),
 }
 
 export const Colors: Story = {
   render: () => (
-    <div className="flex items-center gap-4">
-      <StatusBadge color="accent">
-        <Icon icon="enso_logo" />
-      </StatusBadge>
-      <StatusBadge color="current">
-        <Icon icon="enso_logo" />
-      </StatusBadge>
-      <StatusBadge color="custom">
-        <Icon icon="enso_logo" />
-      </StatusBadge>
-      <StatusBadge color="danger">
-        <Icon icon="enso_logo" />
-      </StatusBadge>
-      <StatusBadge color="disabled">
-        <Icon icon="enso_logo" />
-      </StatusBadge>
-      <StatusBadge color="inherit">
-        <Icon icon="enso_logo" />
-      </StatusBadge>
-      <StatusBadge color="invert">
-        <Icon icon="enso_logo" />
-      </StatusBadge>
-      <StatusBadge color="muted">
-        <Icon icon="enso_logo" />
-      </StatusBadge>
-      <StatusBadge color="primary">
-        <Icon icon="enso_logo" />
-      </StatusBadge>
-      <StatusBadge color="success">
-        <Icon icon="enso_logo" />
-      </StatusBadge>
-    </div>
+    <StoryVariants
+      render={StatusBadge}
+      toProps={(color) => ({ color, children: icon })}
+      variants={ICON_COLORS}
+    />
   ),
 }
