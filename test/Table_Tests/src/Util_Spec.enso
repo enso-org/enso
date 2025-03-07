@@ -24,21 +24,21 @@ add_specs suite_builder =
         group_builder.specify "should report correct location for Column" <|
             r1 = expect_test_failure <|
                 Column.from_vector "X" [1] . should_equal (Column.from_vector "X" [2])
-            r1.message.should_contain "Util_Spec.enso:30"
+            r1.message.should_contain "Util_Spec.enso:26"
 
             r2 = expect_test_failure <|
                 Column.from_vector "X" [1] . should_equal (Column.from_vector "A" [1])
-            r2.message.should_contain "Util_Spec.enso:34"
+            r2.message.should_contain "Util_Spec.enso:30"
 
         group_builder.specify "should report correct location for DB_Table" <|
             tables = DB_Tables.make
             r1 = expect_test_failure <|
                 tables.t1 . should_equal tables.t2
-            r1.message.should_contain "Util_Spec.enso:40"
+            r1.message.should_contain "Util_Spec.enso:36"
 
             r2 = expect_test_failure <|
                 tables.t1 . should_equal tables.tA
-            r2.message.should_contain "Util_Spec.enso:44"
+            r2.message.should_contain "Util_Spec.enso:40"
 
         group_builder.specify "should report correct location for DB_Column" <|
             tables = DB_Tables.make
@@ -48,11 +48,11 @@ add_specs suite_builder =
 
             r1 = expect_test_failure <|
                 c1 . should_equal c2
-            r1.message.should_contain "Util_Spec.enso:54"
+            r1.message.should_contain "Util_Spec.enso:50"
 
             r2 = expect_test_failure <|
                 c1 . should_equal cA
-            r2.message.should_contain "Util_Spec.enso:58"
+            r2.message.should_contain "Util_Spec.enso:54"
 
         group_builder.specify "Two Columns Are Equal" <|
             expected_column = Column.from_vector "Col" ["Quis", "custodiet", "ipsos", "custodes?"]
@@ -136,14 +136,14 @@ add_specs suite_builder =
             res = Panic.recover Test_Failure_Error (table_should_equal_impl actual_table expected_table False)
             res.catch.message.should_end_with 'Column: Col2 differs at row 2.\n\t  Actual  : teh\n\t  Expected: the\n\t.'
             res.catch.message.should_start_with 'Tables differ at '
-            res.catch.message.should_contain 'Util_Spec.enso:140:53-109.\nActual:'
+            res.catch.message.should_contain 'Util_Spec.enso:136:53-109.\nActual:'
         group_builder.specify "Two Tables With Different Values Ignoring Order" <|
             expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
             actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "teh", "guards?"]]
             res = Panic.recover Test_Failure_Error (table_should_equal_impl actual_table expected_table True)
             res.catch.message.should_end_with 'Column: Col2 differs at row 3.\n\t  Actual  : teh\n\t  Expected: the\n\t.'
             res.catch.message.should_start_with 'Tables differ at '
-            res.catch.message.should_contain 'Util_Spec.enso:147:53-108.\nActual (sorted):'
+            res.catch.message.should_contain 'Util_Spec.enso:143:53-108.\nActual (sorted):'
         group_builder.specify "Tables different number of columns" <|
             expected_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"]]
             actual_table = Table.new [Column.from_vector "Col1" ["Quis", "custodiet", "ipsos", "custodes?"], Column.from_vector "Col2" ["Who", "guards", "the", "guards?"]]
