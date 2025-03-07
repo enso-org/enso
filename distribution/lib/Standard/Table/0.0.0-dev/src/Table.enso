@@ -3786,11 +3786,17 @@ type Table
         resolve_to_from value =
             case value of
                 _ : Integer -> self.make_constant_column value
+                _ : Date -> self.make_constant_column value
                 _ : Column_Ref -> (self:Table_Ref).resolve value
                 _ : Expression -> self.evaluate_expression value ..Report_Warning
 
         x = case over of
           Duplicate_Rows_Method.Integer_Range from to step ->
+              from_column = resolve_to_from from
+              to_column = resolve_to_from to
+              range_col = from_column.zip to_column f->t->(f.up_to t step=step)
+              self.set range_col as=resolved_as
+          Duplicate_Rows_Method.Date_Range from to step ->
               from_column = resolve_to_from from
               to_column = resolve_to_from to
               range_col = from_column.zip to_column f->t->(f.up_to t step=step)

@@ -70,8 +70,8 @@ add_offset_specs suite_builder setup =
         suite_builder.group prefix+"Table.generate_rows from an Date Range" group_builder->
             t1 = build_sorted_table [["Text Values", ["A", "B", "C"]]]
             group_builder.specify "Works with Integer_Range constant values and default step and period" <|
-            t1.generate_rows (..Date_Range (Date.new 2025 3 6) (Date.new 2025 3 8)) . should_equal ignore_order=setup.is_database
-                Table.new [["Text Values", ["A", "A", "B", "B", "C", "C"]], ["generate_rows_id", [Date.new 2025 3 6, Date.new 2025 3 8, Date.new 2025 3 6, Date.new 2025 3 8, Date.new 2025 3 6, Date.new 2025 3 8]]]
+                t1.generate_rows (..Date_Range (Date.new 2025 3 6) (Date.new 2025 3 8)) . should_equal ignore_order=setup.is_database
+                    Table.new [["Text Values", ["A", "A", "B", "B", "C", "C"]], ["generate_rows_id", [Date.new 2025 3 6, Date.new 2025 3 7, Date.new 2025 3 6, Date.new 2025 3 7, Date.new 2025 3 6, Date.new 2025 3 7]]]
         ## Running twice deals with column nammes correctly
 
         ## Can run from an existing range
