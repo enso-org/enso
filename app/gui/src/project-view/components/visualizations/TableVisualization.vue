@@ -28,7 +28,6 @@ import {
 } from './TableVisualization/TableVizDataSourceUtils'
 import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
-import { getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
 import { formatText, getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
 
 export const name = 'Table'
@@ -159,7 +158,10 @@ const allRowCount = computed(() =>
   typeof props.data === 'object' && 'all_rows_count' in props.data ? props.data.all_rows_count : 0,
 )
 const isSSRM = computed(
-  () => typeof props.data === 'object' && 'is_using_server_sort_and_filter' in props.data && props.data.is_using_server_sort_and_filter,
+  () =>
+    typeof props.data === 'object' &&
+    'is_using_server_sort_and_filter' in props.data &&
+    props.data.is_using_server_sort_and_filter,
 )
 const statusBar = computed(() =>
   allRowCount.value ?
@@ -235,54 +237,6 @@ function formatNumber(params: ICellRendererParams) {
   }
   const needsGrouping = dataGroupingMap.value?.get(params.colDef?.field || '')
   return needsGrouping ? numberFormatGroupped.format(value) : numberFormat.format(value)
-}
-
-function formatText(params: ICellRendererParams) {
-  const htmlEscaped = params.value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-
-  if (textFormatterSelected.value === 'off') {
-    const replaceLinks = replaceLinksWithTag(htmlEscaped)
-    return replaceLinks.replace(/^\s+|\s+$/g, '&nbsp;')
-  }
-
-  const partialMappings = {
-    '\r': '<span style="color: #df8800">␍</span> <br>',
-    '\n': '<span style="color: #df8800;">␊</span> <br>',
-    '\t': '<span style="color: #df8800; white-space: break-spaces;">&#8594;  |</span>',
-  }
-  const fullMappings = {
-    '\r': '<span style="color: #df8800">␍</span> <br>',
-    '\n': '<span style="color: #df8800">␊</span> <br>',
-    '\t': '<span style="color: #df8800; white-space: break-spaces;">&#8594;  |</span>',
-  }
-
-  const replaceSpaces =
-    textFormatterSelected.value === 'full' ?
-      htmlEscaped.replaceAll(' ', '<span style="color: #df8800">&#183;</span>')
-    : htmlEscaped.replace(/ \s+|^ +| +$/g, function (match: string) {
-        return `<span style="color: #df8800">${match.replaceAll(' ', '&#183;')}</span>`
-      })
-
-  const replaceLinks = replaceLinksWithTag(replaceSpaces)
-
-  const replaceReturns = replaceLinks.replace(
-    /\r\n/g,
-    '<span style="color: #df8800">␍␊</span> <br>',
-  )
-
-  const renderOtherWhitespace = (match: string) => {
-    return textFormatterSelected.value === 'full' && match != ' ' ?
-        '<span style="color: #df8800">&#9744;</span>'
-      : match
-  }
-  const newString = replaceReturns.replace(/[\s]/g, function (match: string) {
-    const mapping = textFormatterSelected.value === 'full' ? fullMappings : partialMappings
-    return mapping[match as keyof typeof mapping] || renderOtherWhitespace(match)
-  })
-  return `<span > ${newString} <span>`
 }
 
 const createRowsForTable = (data: unknown[][], shift: number, isSSrm: boolean) => {
@@ -774,7 +728,8 @@ watchEffect(() => {
         ]
       : dataHeader
     if (!data_.is_using_server_sort_and_filter) {
-      rowData.value = data_.data ? createRowsForTable(data_.data, 0, data_.is_using_server_sort_and_filter) : []
+      rowData.value =
+        data_.data ? createRowsForTable(data_.data, 0, data_.is_using_server_sort_and_filter) : []
     }
   }
   // Update paging
