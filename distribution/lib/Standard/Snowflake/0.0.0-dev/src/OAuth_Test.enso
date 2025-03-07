@@ -115,4 +115,4 @@ type Refresh_Token
 
 client_id = Environment.get "SNOWFLAKE_APP_CLIENT_ID"
 client_secret = Environment.get "SNOWFLAKE_APP_CLIENT_SECRET"
-redirect_uri = "http://localhost:51234/oauth"
+redirect_uri = "http://localhost:20935/oauth/snowflake/callback"
