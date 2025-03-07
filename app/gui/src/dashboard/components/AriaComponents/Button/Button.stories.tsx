@@ -27,18 +27,20 @@ const sizes = ['hero', 'large', 'medium', 'small', 'xsmall', 'xxsmall'] as const
 export default {
   title: 'Components/Button',
   component: Button,
-  render: (props) => <Button {...props} />,
   argTypes: {
     variant: {
-      control: 'radio',
       options: variants,
+      control: { type: 'radio' },
     },
     size: {
-      control: 'radio',
       options: sizes,
+      control: { type: 'radio' },
     },
     addonStart: { control: false },
     addonEnd: { control: false },
+  },
+  parameters: {
+    layout: 'centered',
   },
 } satisfies Meta<BaseButtonProps<string, aria.ButtonRenderProps>>
 
