@@ -28,4 +28,5 @@ type Duplicate_Rows_Method
         date_range = Option "..Date_Range" "..Date_Range" [["from", date_input_column], ["to", date_input_column]]
         Single_Choice [integer_range, date_range] display=display
 
-
+Duplicate_Rows_Method.from (that:Integer) =
+   Duplicate_Rows_Method.Integer_Range 0 that
