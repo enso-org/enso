@@ -6,7 +6,7 @@ import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import type { JSX, ReactNode } from 'react'
 
 const STORY_LAYOUT_STYLES = tv({
-  base: 'grid gap-4 text-primary',
+  base: 'grid gap-4 place-items-center text-primary',
   slots: {
     item: 'flex flex-col items-center gap-1',
   },

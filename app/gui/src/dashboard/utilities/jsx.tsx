@@ -9,20 +9,21 @@ export function stringifyJsx(value: unknown) {
     return String(value)
   }
   return Object.entries(value)
-    .flatMap(([k, v]) => {
+    .map(([k, v]: [k: string, v: unknown]) => {
       if (v === true) {
-        return [`${k}`]
-      }
-      if (v === false) {
-        return []
+        return `${k}`
       }
       if (typeof v === 'string') {
-        return [`${k}=${JSON.stringify(v)}`]
+        return `${k}=${JSON.stringify(v)}`
       }
       if (typeof v === 'function') {
-        return [`${k}={/* function */}`]
+        return `${k}={/* function */}`
       }
-      return [`${k}={${JSON.stringify(v)}}`]
+      if (typeof v === 'object' && v != null && Object.hasOwn(v, 'toString')) {
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
+        return `${k}={${String(v)}}`
+      }
+      return `${k}={${JSON.stringify(v)}}`
     })
     .join(' ')
 }
