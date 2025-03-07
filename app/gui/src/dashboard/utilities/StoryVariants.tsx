@@ -6,9 +6,27 @@ import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import type { JSX, ReactNode } from 'react'
 
 const STORY_LAYOUT_STYLES = tv({
-  base: 'flex flex-col gap-4',
+  base: 'grid gap-4 text-primary',
   slots: {
     item: 'flex flex-col items-center gap-1',
+  },
+  variants: {
+    columns: {
+      /* eslint-disable @typescript-eslint/naming-convention */
+      '1': 'grid-cols-1',
+      '2': 'grid-cols-2',
+      '3': 'grid-cols-3',
+      '4': 'grid-cols-4',
+      '5': 'grid-cols-5',
+      '6': 'grid-cols-6',
+      '7': 'grid-cols-7',
+      '8': 'grid-cols-8',
+      '9': 'grid-cols-9',
+      /* eslint-enable @typescript-eslint/naming-convention */
+    },
+  },
+  defaultVariants: {
+    columns: '1',
   },
 })
 
@@ -36,6 +54,7 @@ export function StoryVariants<
 >(props: StoryVariantsProps<Component, Props, T>) {
   const {
     render: Render,
+    columns,
     variants,
     // UNSAFE when `JSX.LibraryManagedAttributes` requires extra fields.
     // eslint-disable-next-line no-restricted-syntax
@@ -43,7 +62,7 @@ export function StoryVariants<
     toLabel = identity,
   } = props
 
-  const styles = STORY_LAYOUT_STYLES()
+  const styles = STORY_LAYOUT_STYLES({ columns })
 
   return (
     <section className={styles.base()}>

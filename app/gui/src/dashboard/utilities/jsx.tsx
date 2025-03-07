@@ -19,6 +19,9 @@ export function stringifyJsx(value: unknown) {
       if (typeof v === 'string') {
         return [`${k}=${JSON.stringify(v)}`]
       }
+      if (typeof v === 'function') {
+        return [`${k}={/* function */}`]
+      }
       return [`${k}={${JSON.stringify(v)}}`]
     })
     .join(' ')
