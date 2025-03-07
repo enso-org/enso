@@ -7,6 +7,8 @@ import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
 from Standard.Base.Widget_Helpers import make_any_selector, make_format_chooser
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Table import Value_Type
 
 import project.Column_Ref.Column_Ref
 import project.Column.Column
@@ -22,6 +24,33 @@ type Duplicate_Rows_Method
     Range value:Range
 
     Integer_Column value:Column
+
+    get_range_column self table on_problems -> Column =
+        resolve_to_from value col_type -> Column =
+            col = case value of
+                _ : Integer -> table.make_constant_column value
+                _ : Date -> table.make_constant_column value
+                _ : Column_Ref -> (table:Table_Ref).resolve value
+                _ : Expression -> table.evaluate_expression value on_problems
+            is_correct_type = case col_type of
+                Value_Type.Integer _ -> col.value_type.is_integer
+                Value_Type.Date -> col.value_type.is_date
+            if is_correct_type.not then Error.throw (Illegal_Argument.Error "Expected an "+col_type.to_display_text+" column but got a "+col.value_type.to_display_text+"") else
+                col
+
+        case self of
+            Duplicate_Rows_Method.Integer_Range from to include_end step ->
+                from_column = resolve_to_from from Value_Type.Integer
+                to_column = resolve_to_from to Value_Type.Integer
+                from_column.zip to_column f->t->(f.up_to t include_end step)  
+            Duplicate_Rows_Method.Date_Range from to include_end step ->
+                from_column = resolve_to_from from Value_Type.Date
+                to_column = resolve_to_from to Value_Type.Date
+                from_column.zip to_column f->t->(f.up_to t include_end step)
+            Duplicate_Rows_Method.Range value ->
+                table.make_constant_column value
+            Duplicate_Rows_Method.Integer_Column column ->
+                column.map t->(0.up_to t)
    
     ## PRIVATE
        Create a widget for operation
