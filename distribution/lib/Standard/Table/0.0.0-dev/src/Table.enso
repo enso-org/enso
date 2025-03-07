@@ -3793,10 +3793,10 @@ type Table
                 _ : Expression -> self.evaluate_expression value on_problems
 
         range_col = case over of
-          Duplicate_Rows_Method.Integer_Range from to step ->
+          Duplicate_Rows_Method.Integer_Range from to include_end step ->
               from_column = resolve_to_from from
               to_column = resolve_to_from to
-              from_column.zip to_column f->t->(f.up_to t step=step)  
+              from_column.zip to_column f->t->(f.up_to t include_end step)  
           Duplicate_Rows_Method.Date_Range from to step ->
               from_column = resolve_to_from from
               to_column = resolve_to_from to

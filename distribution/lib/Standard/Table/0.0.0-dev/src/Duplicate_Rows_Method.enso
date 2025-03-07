@@ -15,7 +15,7 @@ import project.Internal.Table_Ref.Table_Ref
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 
 type Duplicate_Rows_Method
-    Integer_Range from:(Integer | Column_Ref | Expression) to:(Integer | Column_Ref | Expression) step:Integer=1
+    Integer_Range from:(Integer | Column_Ref | Expression) to:(Integer | Column_Ref | Expression) include_end:Boolean=False step:Integer=1
 
     Date_Range from:(Date | Column_Ref | Expression) to:(Date | Column_Ref | Expression) step:Date_Period=..Day
 
