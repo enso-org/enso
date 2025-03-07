@@ -28,7 +28,7 @@ add_specs suite_builder setup =
 add_offset_specs suite_builder setup =
     prefix = setup.prefix
     build_sorted_table = Util.build_sorted_table setup
-    suite_builder.group prefix+"Table.Offset with default fill strategy (Text Values)" group_builder->
+    suite_builder.group prefix+"Table.generate_rows from an Integer Range" group_builder->
         t1 = build_sorted_table [["Text Values", ["A", "B", "C"]]]
         t2 = build_sorted_table [["Text Values", ["A", "B", "C"]], ["NumRows", [1, 0, 2]]]
         t3 = build_sorted_table [["Text Values", ["A", "B", "C"]], ["Start", [1, 0, 2]], ["Stop", [3, 0, 3]]]
@@ -66,6 +66,23 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Can rename generated id colummn" <|
             t3.generate_rows (..Integer_Range (..Name 'Start') (expr '[Stop]+1')) "MyColumnName" . should_equal ignore_order=setup.is_database
                 Table.new [["Text Values", ["A", "A", "A", "B", "C", "C"]], ["Start", [1, 1, 1, 0, 2, 2]], ["Stop", [3, 3, 3, 0, 3, 3]], ["MyColumnName", [1, 2, 3, 0, 2, 3]]]
+                
+        suite_builder.group prefix+"Table.generate_rows from an Date Range" group_builder->
+            t1 = build_sorted_table [["Text Values", ["A", "B", "C"]]]
+            group_builder.specify "Works with Integer_Range constant values and default step and period" <|
+            t1.generate_rows (..Date_Range (Date.new 2025 3 6) (Date.new 2025 3 8)) . should_equal ignore_order=setup.is_database
+                Table.new [["Text Values", ["A", "A", "B", "B", "C", "C"]], ["generate_rows_id", [Date.new 2025 3 6, Date.new 2025 3 8, Date.new 2025 3 6, Date.new 2025 3 8, Date.new 2025 3 6, Date.new 2025 3 8]]]
+        ## Running twice deals with column nammes correctly
+
+        ## Can run from an existing range
+
+        ## Can run from an integer value
+
+        ## Can run from a column of integers
+
+        ## Datetime range methods
+
+        ## Unhappy paths
 
 
 
