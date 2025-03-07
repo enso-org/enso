@@ -101,7 +101,8 @@ an error and will result in an `Illegal_Argument` panic.
 
 ### Objects Eligible to be a Managed Resource
 
-Truly atomic values such as integer `2` cannot be managed resources.
+Truly atomic values (`Integer`, `Boolean` and `Float`) cannot be managed
+resources.
 
 ### Thread Safety
 

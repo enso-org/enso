@@ -26,7 +26,7 @@ import org.enso.interpreter.runtime.error.PanicException;
  * <p><Using the same underlying resource with multiple managed resource instances is an error and
  * will result in an `Illegal_Argument` panic.
  *
- * <p>Truly atomic values such as integer `2` cannot be managed resources.
+ * <p>Truly atomic values (`Integer`, `Boolean` and `Float`) cannot be managed resources.
  */
 public final class ResourceManager {
   /** Amount of milliseconds to wait for another resource when none is pending. */

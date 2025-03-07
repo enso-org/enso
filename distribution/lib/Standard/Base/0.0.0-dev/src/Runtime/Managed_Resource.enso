@@ -56,7 +56,8 @@ type Managed_Resource
 
        ! Values Eligible to be `Managed_Resource`s
 
-         Truly atomic values such as integer `2` cannot be managed resources.
+         Truly atomic values (`Integer`, `Boolean` and `Float`) cannot be
+         managed resources.
 
        Arguments:
        - resource: The resource to register.
