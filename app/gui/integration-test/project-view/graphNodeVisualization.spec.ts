@@ -3,12 +3,13 @@ import assert from 'assert'
 import * as actions from './actions'
 import { computedContent } from './css'
 import { expect } from './customExpect'
+import { mockExpressionUpdate } from './expressionUpdates'
 import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 
 test('Node can open and load visualization', async ({ page }) => {
   await actions.goToGraph(page)
-  const node = locate.graphNode(page).last()
+  const node = locate.graphNodeByBinding(page, 'final')
   await node.click({ position: { x: 8, y: 8 } })
   await expect(locate.componentMenu(page)).toExist()
   await locate.toggleVisualizationButton(page).click()
@@ -24,6 +25,12 @@ test('Node can open and load visualization', async ({ page }) => {
   const textContent = await computedContent(element)
   const jsonContent = JSON.parse(textContent)
   expect(typeof jsonContent).toBe('object')
+  const nodeType = await locate.visualisationNodeType(page)
+  await expect(nodeType).toHaveText('Unknown')
+  await mockExpressionUpdate(page, 'final', { type: ['Standard.Table.Table.Table'] })
+  await expect(nodeType).toHaveText('Table')
+  await mockExpressionUpdate(page, 'final', { type: ['Standard.Table.Table.DifferentType'] })
+  await expect(nodeType).toHaveText('DifferentType')
 })
 
 test('Previewing visualization', async ({ page }) => {

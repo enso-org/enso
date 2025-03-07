@@ -248,6 +248,7 @@ impl BuiltEnso {
                 cloud_tests::env::test_controls::ENSO_RUN_REAL_CLOUD_TEST.name().to_string(),
                 "1".to_string(),
             ));
+            environment_overrides.push(("ENSO_LAUNCHER".to_string(), "native".to_string()));
         };
 
         let futures = std_tests.into_iter().map(|test_path| {

@@ -7,7 +7,6 @@ import {
 } from '@/components/visualizations/TableVisualization/tableVizToolbar'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
-import { LINKABLE_URL_REGEX } from '@/util/link'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import type {
   CellClassParams,
@@ -30,6 +29,7 @@ import {
 import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
 import { getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
+import { formatText, getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -397,13 +397,6 @@ function createServerSideDatasource(): IServerSideDatasource {
   }
 }
 
-function replaceLinksWithTag(str: string) {
-  return str.replace(
-    LINKABLE_URL_REGEX,
-    (url: string) => `<a href="${url}" target="_blank" class="link">${url}</a>`,
-  )
-}
-
 function escapeHTML(str: string) {
   const mapping: Record<string, string> = {
     '&': '&amp;',
@@ -431,7 +424,8 @@ function cellRenderer(params: ICellRendererParams) {
   else if (params.value === undefined) return ''
   else if (params.value === '') return '<span style="color:grey; font-style: italic;">Empty</span>'
   else if (typeof params.value === 'number') return formatNumber(params)
-  else if (typeof params.value === 'string') return formatText(params)
+  else if (typeof params.value === 'string')
+    return formatText(params.value, textFormatterSelected.value)
   else if (Array.isArray(params.value)) return `[Vector ${params.value.length} items]`
   else if (typeof params.value === 'object') {
     const valueType = params.value?.type
