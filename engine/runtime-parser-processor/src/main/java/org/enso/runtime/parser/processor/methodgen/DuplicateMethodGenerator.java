@@ -113,6 +113,11 @@ public class DuplicateMethodGenerator {
             sb.append(System.lineSeparator());
             duplicatedVars.add(
                 new DuplicateVar(field.getType(), dupFieldName(field), field.getName(), false));
+          } else if (field.isPersistanceReference()) {
+            sb.append(Utils.indent(persistanceReferenceCode(field), 2));
+            sb.append(System.lineSeparator());
+            duplicatedVars.add(
+                new DuplicateVar(field.getType(), dupFieldName(field), field.getName(), false));
           } else {
             sb.append(Utils.indent(notNullableChildCode(field), 2));
             sb.append(System.lineSeparator());
@@ -245,6 +250,24 @@ public class DuplicateMethodGenerator {
         .replace("$childName", optionChild.getName())
         .replace("$dupName", dupFieldName(optionChild))
         .replace("$parameterNames", String.join(", ", parameterNames()));
+  }
+
+  private String persistanceReferenceCode(Field perRefChild) {
+    Utils.hardAssert(perRefChild.isPersistanceReference());
+    return """
+        ${perRefType} ${dupName};
+        {
+          ${type} duplicated = ${childName}
+              .get(${type}.class)
+              .duplicate(${parameterNames});
+          ${dupName} = Reference.of(duplicated);
+        }
+        """
+        .replace("${perRefType}", perRefChild.getSimpleTypeName())
+        .replace("${type}", perRefChild.getTypeParameter().getSimpleName())
+        .replace("${childName}", perRefChild.getName())
+        .replace("${dupName}", dupFieldName(perRefChild))
+        .replace("${parameterNames}", String.join(", ", parameterNames()));
   }
 
   private static String nonChildCode(Field field) {
