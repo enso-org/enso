@@ -3793,18 +3793,18 @@ type Table
                 _ : Expression -> self.evaluate_expression value on_problems
 
         range_col = case over of
-          Duplicate_Rows_Method.Integer_Range from to include_end step ->
-              from_column = resolve_to_from from
-              to_column = resolve_to_from to
-              from_column.zip to_column f->t->(f.up_to t include_end step)  
-          Duplicate_Rows_Method.Date_Range from to step ->
-              from_column = resolve_to_from from
-              to_column = resolve_to_from to
-              from_column.zip to_column f->t->(f.up_to t step=step)
-          Duplicate_Rows_Method.Range value ->
-              self.make_constant_column value
-          Duplicate_Rows_Method.Integer_Column column ->
-              column.map t->(0.up_to t)
+            Duplicate_Rows_Method.Integer_Range from to include_end step ->
+                from_column = resolve_to_from from
+                to_column = resolve_to_from to
+                from_column.zip to_column f->t->(f.up_to t include_end step)  
+            Duplicate_Rows_Method.Date_Range from to include_end step ->
+                from_column = resolve_to_from from
+                to_column = resolve_to_from to
+                from_column.zip to_column f->t->(f.up_to t include_end step)
+            Duplicate_Rows_Method.Range value ->
+                self.make_constant_column value
+            Duplicate_Rows_Method.Integer_Column column ->
+                column.map t->(0.up_to t)
 
         renamed_table.set range_col as=resolved_as . expand_to_rows resolved_as
 
