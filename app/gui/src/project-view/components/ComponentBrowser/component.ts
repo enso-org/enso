@@ -9,10 +9,11 @@ import {
 } from '@/stores/suggestionDatabase/entry'
 import { compareOpt } from '@/util/compare'
 import { isSome } from '@/util/data/opt'
-import { Range } from '@/util/data/range'
 import { displayedIconOf } from '@/util/getIconName'
 import { type Icon } from '@/util/iconMetadata/iconName'
 import { type ProjectPath } from '@/util/projectPath'
+import * as map from 'lib0/map'
+import { Range } from 'ydoc-shared/util/data/range'
 
 interface ComponentLabelInfo {
   label: string
@@ -32,6 +33,8 @@ export interface Component extends ComponentLabel {
   group?: number | undefined
 }
 
+export type GroupId = 'all' | 'suggestions' | number
+
 /** @returns the displayed label of given suggestion entry with information of highlighted ranges. */
 export function labelOfEntry(entry: SuggestionEntry, match: MatchResult): ComponentLabelInfo {
   if (entryIsStatic(entry)) {
@@ -49,9 +52,7 @@ export function labelOfEntry(entry: SuggestionEntry, match: MatchResult): Compon
       matchedAlias: match.matchedAlias,
       matchedRanges: [
         ...(match.ownerNameRanges ?? []),
-        ...(match.nameRanges ?? []).map(
-          (range) => new Range(range.start + nameOffset, range.end + nameOffset),
-        ),
+        ...(match.nameRanges ?? []).map((range) => range.shift(nameOffset)),
       ],
     }
   } else
@@ -62,7 +63,7 @@ export function labelOfEntry(entry: SuggestionEntry, match: MatchResult): Compon
 
 function formatLabel(labelInfo: ComponentLabelInfo): ComponentLabel {
   const shift = labelInfo.label.length + 2
-  const shiftRange = (range: Range) => new Range(range.start + shift, range.end + shift)
+  const shiftRange = (range: Range) => range.shift(shift)
   return !labelInfo.matchedAlias ?
       { label: labelInfo.label, matchedRanges: labelInfo.matchedRanges }
     : {
@@ -110,8 +111,11 @@ export function makeComponent({ id, entry, match }: ComponentInfo): Component {
   }
 }
 
-/** Create {@link Component} list from filtered suggestions. */
-export function makeComponentList(db: SuggestionDb, filtering: Filtering): Component[] {
+/** Create {@link Component} list for each displayed group from filtered suggestions. */
+export function makeComponentList(
+  db: SuggestionDb,
+  filtering: Filtering,
+): Map<GroupId, Component[]> {
   function* matchSuggestions() {
     const additionalSelfTypes: ProjectPath[] = []
     if (filtering.selfArg?.type === 'known') {
@@ -120,6 +124,7 @@ export function makeComponentList(db: SuggestionDb, filtering: Filtering): Compo
     }
 
     for (const [id, entry] of db.entries()) {
+      if (!entry) continue
       const match = filtering.filter(entry, additionalSelfTypes)
       if (isSome(match)) {
         yield { id, entry, match }
@@ -127,5 +132,16 @@ export function makeComponentList(db: SuggestionDb, filtering: Filtering): Compo
     }
   }
   const matched = Array.from(matchSuggestions()).sort(compareSuggestions)
-  return Array.from(matched, (info) => makeComponent(info))
+  const groups = new Map<GroupId, Component[]>()
+  const addToGroup = (group: GroupId, entry: ComponentInfo) => {
+    const list = map.setIfUndefined(groups, group, (): Component[] => [])
+    list.push(makeComponent(entry))
+  }
+  for (const entry of matched) {
+    addToGroup('all', entry)
+    if (entry.entry.groupIndex != null) {
+      addToGroup(entry.entry.groupIndex, entry)
+    }
+  }
+  return groups
 }

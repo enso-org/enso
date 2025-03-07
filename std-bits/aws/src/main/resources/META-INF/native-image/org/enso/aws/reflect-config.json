@@ -1,0 +1,205 @@
+[
+    {
+        "name": "java.util.function.Consumer"
+    },
+    {
+        "name": "org.enso.aws.AwsCredential"
+    },
+    {
+        "name": "org.enso.aws.AwsCredential$Key",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": ["org.enso.base.enso_cloud.HideableValue", "org.enso.base.enso_cloud.HideableValue"]
+            }
+        ]
+    },
+    {
+        "name": "org.enso.aws.AwsCredential.Key"
+    },
+    {
+        "name": "org.enso.aws.AwsCredential$Profile",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": ["java.lang.String"]
+            }
+        ]
+    },
+    {
+        "name": "org.enso.aws.AwsCredential.Profile"
+    },
+    {
+        "name": "org.enso.aws.AwsCredential$Default",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "org.enso.aws.AwsCredential.Default"
+    },
+    {
+        "name": "org.enso.aws.BucketLocator",
+        "methods": [
+            {
+                "name": "flushCache"
+            },
+            {
+                "name": "getBucketRegion",
+                "parameterTypes": [
+                    "java.lang.String",
+                    "org.enso.aws.AwsCredential"
+                ]
+            }
+        ]
+    },
+    {
+        "name":"org.enso.aws.ClientBuilder"
+    },
+    {
+        "name":"org.enso.aws.DefaultRegionProvider"
+    },
+    {
+        "name":"org.enso.aws.ProfileReader"
+    },
+    {
+        "name":"org.enso.aws.file_system.S3DataLinkCache"
+    },
+    {
+        "name": "software.amazon.awssdk.services.s3.model.PutObjectAclRequest"
+    },
+    {
+        "name": "software.amazon.awssdk.services.s3.model.HeadBucketResponse",
+        "methods": [
+            {
+                "name": "sdkFields",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "software.amazon.awssdk.services.s3.model.HeadObjectResponse",
+        "methods": [
+            {
+                "name": "sdkFields",
+                "parameterTypes": []
+            },
+            {
+                "name": "contentLength",
+                "parameterTypes": []
+            },
+            {
+                "name": "lastModified",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "software.amazon.awssdk.services.s3.model.S3Object",
+        "methods": [
+            {
+                "name": "key",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "software.amazon.awssdk.core.SdkField",
+        "methods": [
+            {
+                "name": "memberName",
+                "parameterTypes": []
+            },
+            {
+                "name": "getValueOrDefault",
+                "parameterTypes": ["java.lang.Object"]
+            }
+        ]
+    },
+    {
+        "name": "software.amazon.awssdk.services.s3.model.CommonPrefix",
+        "methods": [
+            {
+                "name": "prefix",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "software.amazon.awssdk.services.s3.model.ListObjectsV2Response",
+        "methods": [
+            {
+                "name": "commonPrefixes",
+                "parameterTypes": []
+            },
+            {
+                "name": "isTruncated",
+                "parameterTypes": []
+            },
+            {
+                "name": "contents",
+                "parameterTypes": []
+            },
+            {
+                "name": "nextContinuationToken",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "software.amazon.awssdk.core.ResponseInputStream",
+        "methods": [
+            {
+                "name": "response",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "software.amazon.awssdk.awscore.exception.AwsErrorDetails",
+        "methods": [
+            {
+                "name": "errorCode",
+                "parameterTypes": []
+            },
+            {
+                "name": "errorMessage",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "software.amazon.awssdk.services.s3.model.ListBucketsResponse",
+        "methods": [
+            {
+                "name": "buckets",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "software.amazon.awssdk.services.s3.model.GetObjectResponse",
+        "methods": [
+            {
+                "name": "contentType",
+                "parameterTypes": []
+            },
+            {
+                "name": "contentDisposition",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "software.amazon.awssdk.services.s3.model.Bucket",
+        "methods": [
+            {
+                "name": "name",
+                "parameterTypes": []
+            }
+        ]
+    }
+]

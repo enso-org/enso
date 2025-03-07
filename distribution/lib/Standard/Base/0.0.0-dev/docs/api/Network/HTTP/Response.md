@@ -1,7 +1,8 @@
 ## Enso Signatures 1.0
 ## module Standard.Base.Network.HTTP.Response
+- type Enso_Http_Response
+    - new java_response:Standard.Base.Network.HTTP.Response.EnsoHttpResponse -> Standard.Base.Network.HTTP.Response.Enso_Http_Response
 - type Response
-    - Value internal_http_response:Standard.Base.Any.Any body_object:Standard.Base.Any.Any=
     - body self -> Standard.Base.Any.Any
     - code self -> Standard.Base.Any.Any
     - content_length self -> Standard.Base.Any.Any
@@ -11,6 +12,7 @@
     - decode_as_text self encoding:(Standard.Base.Data.Text.Encoding.Encoding|Standard.Base.System.File_Format.Infer)= -> Standard.Base.Any.Any
     - get_header self name:Standard.Base.Data.Text.Text ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - headers self -> Standard.Base.Any.Any
+    - new java_http_response:Standard.Base.Network.HTTP.Response.EnsoHttpResponse -> Standard.Base.Any.Any
     - to_js_object self -> Standard.Base.Any.Any
     - uri self -> Standard.Base.Any.Any
     - with_materialized_body self -> Standard.Base.Any.Any

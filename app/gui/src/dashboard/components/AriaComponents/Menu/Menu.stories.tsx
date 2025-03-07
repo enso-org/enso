@@ -273,7 +273,6 @@ export const DynamicContent: Story = {
 
 export const WithPopover: Story = {
   render: () => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
     const { getText } = useText()
     return (
       <Menu.Trigger>

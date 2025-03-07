@@ -329,8 +329,32 @@ function getFilterType(valueType: string) {
     return 'agDateColumnFilter'
   } else if (isNumericType(valueType)) {
     return 'agNumberColumnFilter'
+  } else if (valueType === 'Char') {
+    return 'agTextColumnFilter'
   } else {
     return 'agSetColumnFilter'
+  }
+}
+
+function getFilterOptions(valueType: string) {
+  if (valueType === 'Date') {
+    return ['equals', 'notEqual', 'greaterThan', 'lessThan', 'inRange', 'blank', 'notBlank']
+  } else if (isNumericType(valueType)) {
+    return [
+      'equals',
+      'notEqual',
+      'greaterThan',
+      'greaterThanOrEqual',
+      'lessThan',
+      'lessThanOrEqual',
+      'inRange',
+      'blank',
+      'notBlank',
+    ]
+  } else if (valueType === 'Char') {
+    return ['equals', 'notEqual', 'blank', 'notBlank', 'contains', 'startsWith', 'endsWith']
+  } else {
+    return null
   }
 }
 
@@ -353,6 +377,7 @@ function toField(
   const displayValue = valueType ? valueType.display_text : null
   const icon = valueType ? getValueTypeIcon(valueType.constructor) : null
   const filterType = valueType ? getFilterType(valueType.constructor) : null
+  const filterOptions = valueType ? getFilterOptions(valueType.constructor) : null
 
   const dataQualityMetrics =
     typeof props.data === 'object' && 'data_quality_metrics' in props.data ?
@@ -389,6 +414,7 @@ function toField(
     filter: filterType,
     filterParams: {
       maxNumConditions: 1,
+      filterOptions: filterOptions,
     },
     headerComponentParams: {
       template,

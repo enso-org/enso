@@ -89,23 +89,54 @@ add_derived_columns_specs suite_builder setup =
                 t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") Simple_Calculation.Truncate) "Z" . at "Z" . to_vector . should_equal [Date.new 2023 1 12, Date.new 2020 5 12]
                 t.set (Simple_Expression.Simple_Expr (Date_Time.new 1999 12 10 14 55 11) Simple_Calculation.Truncate) "Z" . at "Z" . to_vector . should_equal [Date.new 1999 12 10, Date.new 1999 12 10]
 
-            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Date_Add (Column_Ref.Name "x"))) "Z" . at "Z" . to_vector . should_equal_tz_agnostic [Date_Time.new 2023 1 13 12 45, Date_Time.new 2020 5 15 1 45]
-            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Date_Add 10 Date_Period.Year)) "Z" . at "Z" . to_vector . should_equal_tz_agnostic [Date_Time.new 2033 1 12 12 45, Date_Time.new 2030 5 12 1 45]
-            t.set (Simple_Expression.Simple_Expr (Date_Time.new 2001 12 15 11 00) (Simple_Calculation.Date_Add 10 Time_Period.Minute)) "Z" . at "Z" . to_vector . should_equal_tz_agnostic [Date_Time.new 2001 12 15 11 10, Date_Time.new 2001 12 15 11 10]
+            r = t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Date_Add (Column_Ref.Name "x"))) . at -1
+            r.to_vector . should_equal_tz_agnostic [Date_Time.new 2023 1 13 12 45, Date_Time.new 2020 5 15 1 45]
+            r.name . should_equal "date_add([A], [x], ..Day)"
+            
+            r2 = t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Date_Add 10 Date_Period.Year)) . at -1
+            r2.to_vector . should_equal_tz_agnostic [Date_Time.new 2033 1 12 12 45, Date_Time.new 2030 5 12 1 45]
+            r2.name . should_equal "date_add([A], 10, ..Year)"
 
-            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Date_Diff (Column_Ref.Name "B") Date_Period.Day)) "Z" . at "Z" . to_vector . should_equal [3, 31]
-            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Date_Part Date_Period.Year)) "Z" . at "Z" . to_vector . should_equal [2023, 2020]
-            t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Date_Part Time_Period.Minute)) "Z" . at "Z" . to_vector . should_equal [45, 45]
+            r3 = t.set (Simple_Expression.Simple_Expr (Date_Time.new 2001 12 15 11 00) (Simple_Calculation.Date_Add 10 Time_Period.Minute)) . at -1
+            r3.to_vector . should_equal_tz_agnostic [Date_Time.new 2001 12 15 11 10, Date_Time.new 2001 12 15 11 10]
+            r3.name . should_equal "date_add([Date_Time.new 2001 12 15 11], 10, ..Minute)"
+
+            r4 = t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Date_Diff (Column_Ref.Name "B") Date_Period.Day)) . at -1
+            r4.to_vector . should_equal [3, 31]
+            r4.name . should_equal "date_diff([A], [B], ..Day)"
+
+            r5 = t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Date_Part Date_Period.Year)) . at -1
+            r5.to_vector . should_equal [2023, 2020]
+            r5.name . should_equal "date_part([A], ..Year)"
+            
+            r6 = t.set (Simple_Expression.Simple_Expr (Column_Ref.Name "A") (Simple_Calculation.Date_Part Time_Period.Minute)) . at -1
+            r6.to_vector . should_equal [45, 45]
+            r6.name . should_equal "date_part([A], ..Minute)"
 
             t2 = table_builder [["C", [Date.new 2002 12 10, Date.new 2005 01 01]], ["D", [Time_Of_Day.new 12 45, Time_Of_Day.new 01 01]]]
-            t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "C") (Simple_Calculation.Date_Add 5 Date_Period.Month)) "Z" . at "Z" . to_vector . should_equal [Date.new 2003 5 10, Date.new 2005 6 01]
-            t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "D") (Simple_Calculation.Date_Add 15 Time_Period.Hour)) "Z" . at "Z" . to_vector . should_equal [Time_Of_Day.new 03 45, Time_Of_Day.new 16 01]
+            r7 = t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "C") (Simple_Calculation.Date_Add 5 Date_Period.Month)) . at -1
+            r7.to_vector . should_equal [Date.new 2003 5 10, Date.new 2005 6 01]
+            r7.name . should_equal "date_add([C], 5, ..Month)"
 
-            t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "C") (Simple_Calculation.Date_Diff (Date.new 2003 01 01) Date_Period.Year)) "Z" . at "Z" . to_vector . should_equal [0, -2]
-            t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "D") (Simple_Calculation.Date_Diff (Time_Of_Day.new 13) Time_Period.Minute)) "Z" . at "Z" . to_vector . should_equal [15, 59+(60*11)]
+            r8 = t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "D") (Simple_Calculation.Date_Add 15 Time_Period.Hour)) . at -1
+            r8.to_vector . should_equal [Time_Of_Day.new 03 45, Time_Of_Day.new 16 01]
+            r8.name . should_equal "date_add([D], 15, ..Hour)"
 
-            t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "C") (Simple_Calculation.Date_Part Date_Period.Year)) "Z" . at "Z" . to_vector . should_equal [2002, 2005]
-            t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "D") (Simple_Calculation.Date_Part Time_Period.Minute)) "Z" . at "Z" . to_vector . should_equal [45, 1]
+            r9 = t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "C") (Simple_Calculation.Date_Diff (Date.new 2003 01 01) Date_Period.Year)) . at -1
+            r9.to_vector . should_equal [0, -2]
+            r9.name . should_equal "date_diff([C], Date.new 2003 1 1, ..Year)"
+
+            r10 = t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "D") (Simple_Calculation.Date_Diff (Time_Of_Day.new 13) Time_Period.Minute)) . at -1
+            r10.to_vector . should_equal [15, 59+(60*11)]
+            r10.name . should_equal "date_diff([D], Time_Of_Day.new 13, ..Minute)"
+
+            r11 = t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "C") (Simple_Calculation.Date_Part Date_Period.Year)) . at -1
+            r11.to_vector . should_equal [2002, 2005]
+            r11.name . should_equal "date_part([C], ..Year)"
+
+            r12 = t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "D") (Simple_Calculation.Date_Part Time_Period.Minute)) . at -1
+            r12.to_vector . should_equal [45, 1]
+            r12.name . should_equal "date_part([D], ..Minute)"
 
             # error handling
             t2.set (Simple_Expression.Simple_Expr (Column_Ref.Name "C") (Simple_Calculation.Date_Part Time_Period.Second)) . should_fail_with Illegal_Argument

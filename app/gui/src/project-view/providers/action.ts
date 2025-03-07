@@ -1,4 +1,4 @@
-import { graphBindings, nodeEditBindings } from '@/bindings'
+import { componentBrowserBindings, graphBindings, nodeEditBindings } from '@/bindings'
 import { createContextStore } from '@/providers'
 import { assert } from '@/util/assert'
 import { Icon } from '@/util/iconMetadata/iconName'
@@ -80,6 +80,26 @@ const actions = {
   'component.pickColor': {
     icon: 'paint_palette',
     description: 'Color Component',
+  },
+  'componentBrowser.editSuggestion': {
+    icon: 'edit',
+    description: 'Edit selected component',
+    shortcut: componentBrowserBindings.bindings.applySuggestion,
+  },
+  'componentBrowser.acceptSuggestion': {
+    icon: 'add_to_graph_editor',
+    description: 'Accept selected component',
+    shortcut: componentBrowserBindings.bindings.acceptSuggestion,
+  },
+  'componentBrowser.acceptInputAsCode': {
+    icon: 'add_to_graph_editor',
+    description: 'Accept search input as code',
+    shortcut: componentBrowserBindings.bindings.acceptInput,
+  },
+  'componentBrowser.switchToCodeEditMode': {
+    icon: 'edit',
+    description: 'Swtich to Code Edit Mode',
+    shortcut: componentBrowserBindings.bindings.switchToCodeEditMode,
   },
 } satisfies Record<string, Action>
 

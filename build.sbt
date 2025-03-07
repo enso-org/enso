@@ -332,7 +332,6 @@ lazy val enso = (project in file("."))
     `language-server-deps-wrapper`,
     launcher,
     `library-manager`,
-    `library-manager-test`,
     `locking-test-helper`,
     `logging-config`,
     `logging-service`,
@@ -1121,7 +1120,8 @@ lazy val `logging-service-logback` = project
     Compile / shouldCompileModuleInfoManually := true,
     Compile / internalModuleDependencies := Seq(
       (`logging-service` / Compile / exportedModule).value,
-      (`logging-config` / Compile / exportedModule).value
+      (`logging-config` / Compile / exportedModule).value,
+      (`logging-utils` / Compile / exportedModule).value
     ),
     Test / shouldCompileModuleInfoManually := true,
     Test / javaModuleName := "org.enso.logging.service.logback.test.provider",
@@ -2498,7 +2498,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(filewatcher)
   .dependsOn(testkit % Test)
   .dependsOn(`logging-service-logback` % "test->test")
-  .dependsOn(`library-manager-test` % Test)
+  .dependsOn(`library-manager` % "test->test")
   .dependsOn(`runtime-version-manager-test` % Test)
   .dependsOn(`ydoc-polyfill`)
 
@@ -3062,6 +3062,7 @@ lazy val `runtime-integration-tests` =
     .dependsOn(`runtime`)
     .dependsOn(`runtime-test-instruments`)
     .dependsOn(`logging-service-logback` % "test->test")
+    .dependsOn(`logging-utils` % Test)
     .dependsOn(testkit % Test)
     .dependsOn(`connected-lock-manager-server`)
     .dependsOn(`test-utils`)
@@ -3227,9 +3228,13 @@ lazy val `runtime-benchmarks` =
           case List(name) => name
           case _          => throw new IllegalArgumentException("Expected one argument.")
         }
-        Def.task {
-          (Compile / run).toTask(" " + name).value
-        }
+        Def
+          .task {
+            (Compile / run).toTask(" " + name).value
+          }
+          .dependsOn(
+            buildEngineDistribution
+          )
       }.evaluated
     )
     .dependsOn(`benchmarks-common`)
@@ -4293,13 +4298,7 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
         "org.slf4j.nop/org.slf4j.nop" -> Seq("org.slf4j")
       )
     },
-    javaOptions ++= {
-      Seq(
-        // To enable logging in benchmarks, add ch.qos.logback module on the modulePath
-        //"-Dslf4j.provider=org.slf4j.nop.NOPServiceProvider"
-        "-Dslf4j.provider=ch.qos.logback.classic.spi.LogbackServiceProvider"
-      )
-    },
+    javaOptions ++= testLogProviderOptions,
     javaOptions ++= benchOnlyOptions
   )
   .settings(
@@ -4317,9 +4316,13 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
         case List(name) => name
         case _          => throw new IllegalArgumentException("Expected one argument.")
       }
-      Def.task {
-        (Compile / run).toTask(" " + name).value
-      }
+      Def
+        .task {
+          (Compile / run).toTask(" " + name).value
+        }
+        .dependsOn(
+          buildEngineDistribution
+        )
     }.evaluated
   )
   .dependsOn(`bench-processor`)
@@ -4474,7 +4477,7 @@ lazy val `edition-updater` = project
   .dependsOn(editions)
   .dependsOn(downloader)
   .dependsOn(`distribution-manager`)
-  .dependsOn(`library-manager-test` % Test)
+  .dependsOn(`library-manager` % "test->test")
 
 lazy val `edition-uploader` = project
   .in(file("lib/scala/edition-uploader"))
@@ -4514,49 +4517,19 @@ lazy val `library-manager` = project
       (`logging-utils` / Compile / exportedModule).value,
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`scala-yaml` / Compile / exportedModule).value
-    )
+    ),
+    commands += WithDebugCommand.withDebug,
+    Test / javaOptions ++= testLogProviderOptions,
+    Test / test := (Test / test).tag(simpleLibraryServerTag).value,
+    Test / fork := true
   )
   .dependsOn(`version-output`) // Note [Default Editions]
   .dependsOn(editions)
   .dependsOn(cli)
   .dependsOn(`distribution-manager`)
   .dependsOn(downloader)
-  .dependsOn(testkit % Test)
-
-lazy val `library-manager-test` = project
-  .in(file("lib/scala/library-manager-test"))
-  .enablePlugins(JPMSPlugin)
-  .configs(Test)
-  .settings(
-    frgaalJavaCompilerSetting,
-    scalaModuleDependencySetting,
-    compileOrder := CompileOrder.ScalaThenJava,
-    Test / fork := true,
-    commands += WithDebugCommand.withDebug,
-    Test / javaOptions ++= testLogProviderOptions,
-    Test / test := (Test / test).tag(simpleLibraryServerTag).value,
-    libraryDependencies ++= Seq(
-      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
-      "org.scalatest"              %% "scalatest"     % scalatestVersion % Test
-    ),
-    Compile / internalModuleDependencies := Seq(
-      (`library-manager` / Compile / exportedModule).value,
-      (`cli` / Compile / exportedModule).value,
-      (`distribution-manager` / Compile / exportedModule).value,
-      (`library-manager` / Compile / exportedModule).value,
-      (`process-utils` / Compile / exportedModule).value,
-      (`pkg` / Compile / exportedModule).value,
-      (`semver` / Compile / exportedModule).value,
-      (`downloader` / Compile / exportedModule).value,
-      (`editions` / Compile / exportedModule).value,
-      (`version-output` / Compile / exportedModule).value,
-      (`testkit` / Compile / exportedModule).value
-    )
-  )
-  .dependsOn(`library-manager`)
-  .dependsOn(`process-utils`)
-  .dependsOn(`logging-utils` % "test->test")
-  .dependsOn(testkit)
+  .dependsOn(testkit % "test->test")
+  .dependsOn(`process-utils` % "test->compile")
   .dependsOn(`logging-service-logback` % "test->test")
 
 lazy val `connected-lock-manager` = project
@@ -5485,17 +5458,31 @@ runEngineDistribution := {
   )
 }
 
+lazy val buildProjectManagerDistributionCond =
+  taskKey[Unit](
+    "Builds the project manager distribution either via NativeImage, or just assembly Jar"
+  )
+buildProjectManagerDistributionCond := Def.taskIf {
+  if (shouldBuildNativeImage.value) {
+    buildProjectManagerDistribution.value
+  } else {
+    (`project-manager` / assembly).value
+  }
+}.value
+
 lazy val runProjectManagerDistribution =
   inputKey[Unit](
     "Run or --debug the project manager distribution with arguments"
   )
 runProjectManagerDistribution := {
-  buildEngineDistribution.value
-  buildProjectManagerDistribution.value
+  buildEngineDistributionNoIndex.value
+  buildProjectManagerDistributionCond.value
+  val projectManagerJar = (`project-manager` / assembly).value.getAbsoluteFile()
   val args: Seq[String] = spaceDelimited("<arg>").parsed
   DistributionPackage.runProjectManagerPackage(
     engineDistributionRoot.value,
     projectManagerDistributionRoot.value,
+    projectManagerJar,
     args,
     streams.value.log
   )

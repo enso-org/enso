@@ -32,9 +32,8 @@ export interface GlobalContextMenuProps {
   readonly hidden?: boolean
   readonly backend: Backend
   readonly category: Category
-  readonly rootDirectoryId: DirectoryId
+  readonly currentDirectoryId: DirectoryId
   readonly directoryId: DirectoryId | null
-  readonly path: string | null
   readonly doPaste: (newParentKey: DirectoryId, newParentId: DirectoryId) => void
   readonly event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
 }
@@ -51,11 +50,10 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
     backend,
     category,
     directoryId = null,
-    path,
-    rootDirectoryId,
+    currentDirectoryId,
     event,
+    doPaste,
   } = props
-  const { doPaste } = props
 
   const { getText } = useText()
   const { setModal, unsetModal } = useSetModal()
@@ -69,29 +67,29 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
 
   const newFolderRaw = useNewFolder(backend, category)
   const newFolder = useEventCallback(async () => {
-    return await newFolderRaw(directoryId ?? rootDirectoryId, path)
+    return await newFolderRaw(directoryId ?? currentDirectoryId)
   })
-  const newSecretRaw = useNewSecret(backend, category)
+  const newSecretRaw = useNewSecret(backend)
   const newSecret = useEventCallback(async (name: string, value: string) => {
-    return await newSecretRaw(name, value, null, directoryId ?? rootDirectoryId, path)
+    return await newSecretRaw(name, value, directoryId ?? currentDirectoryId)
   })
-  const newCredentialRaw = useNewCredential(backend, category)
+  const newCredentialRaw = useNewCredential(backend)
   const newCredential = useEventCallback(async (name: string, type: string, value: unknown) => {
-    return await newCredentialRaw(name, type, value, directoryId ?? rootDirectoryId, path)
+    return await newCredentialRaw(name, type, value, directoryId ?? currentDirectoryId)
   })
   const newProjectRaw = useNewProject(backend, category)
   const newProject = useEventCallback(
     async (templateId: string | null | undefined, templateName: string | null | undefined) => {
-      return await newProjectRaw({ templateName, templateId }, directoryId ?? rootDirectoryId, path)
+      return await newProjectRaw({ templateName, templateId }, directoryId ?? currentDirectoryId)
     },
   )
-  const newDatalinkRaw = useNewDatalink(backend, category)
+  const newDatalinkRaw = useNewDatalink(backend)
   const newDatalink = useEventCallback(async (name: string, value: unknown) => {
-    return await newDatalinkRaw(name, value, directoryId ?? rootDirectoryId, path)
+    return await newDatalinkRaw(name, value, directoryId ?? currentDirectoryId)
   })
   const uploadFilesRaw = useUploadFiles(backend, category)
   const uploadFiles = useEventCallback(async (files: readonly File[]) => {
-    await uploadFilesRaw(files, directoryId ?? rootDirectoryId, path)
+    await uploadFilesRaw(files, directoryId ?? currentDirectoryId)
   })
 
   const entries = (
@@ -175,7 +173,7 @@ export const GlobalContextMenu = function GlobalContextMenu(props: GlobalContext
           action="paste"
           doAction={() => {
             unsetModal()
-            doPaste(rootDirectoryId, rootDirectoryId)
+            doPaste(currentDirectoryId, currentDirectoryId)
           }}
         />
       )}

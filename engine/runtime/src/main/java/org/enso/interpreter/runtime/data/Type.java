@@ -23,10 +23,13 @@ import java.util.Objects;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.ConstantNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
-import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
+import org.enso.interpreter.node.callable.InvokeMethodNode;
+import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -416,13 +419,19 @@ public final class Type extends EnsoObject {
         String member,
         Object[] args,
         @Cached("member") String cachedMember,
-        @Cached("findMethod(receiver, member)") Function func,
-        @Cached("buildInvokeFuncNode(func)") InvokeFunctionNode invokeFuncNode)
+        @Cached MethodResolverNode methodResolverNode,
+        @Cached("buildSymbol(receiver, member)") UnresolvedSymbol symbol,
+        @Cached("findMethod(eigenType(receiver), symbol, methodResolverNode)") Function func,
+        @Cached("buildInvokeCallableNode(func)") InvokeCallableNode invokeCallableNode)
         throws UnsupportedMessageException, UnsupportedTypeException, ArityException {
-      var argsWithReceiver = new Object[args.length + 1];
-      argsWithReceiver[0] = receiver;
-      System.arraycopy(args, 0, argsWithReceiver, 1, args.length);
-      return invokeFuncNode.execute(func, null, null, argsWithReceiver);
+      Object[] finalArgs = args;
+      if (InvokeMethodNode.shouldPrependSyntheticSelfArg(func.getSchema(), args.length)) {
+        var argsWithReceiver = new Object[args.length + 1];
+        argsWithReceiver[0] = receiver;
+        System.arraycopy(args, 0, argsWithReceiver, 1, args.length);
+        finalArgs = argsWithReceiver;
+      }
+      return invokeCallableNode.execute(func, null, null, finalArgs);
     }
 
     @Specialization(replaces = "doCached")
@@ -436,19 +445,31 @@ public final class Type extends EnsoObject {
             UnsupportedTypeException,
             ArityException,
             UnknownIdentifierException {
-      var method = findMethod(receiver, member);
+      var symbol = buildSymbol(receiver, member);
+      var methodResolverNode = MethodResolverNode.getUncached();
+      var method = findMethod(receiver.getEigentype(), symbol, methodResolverNode);
       if (method == null) {
         throw UnknownIdentifierException.create(member);
       }
-      var invokeFuncNode = buildInvokeFuncNode(method);
-      return doCached(receiver, member, args, member, method, invokeFuncNode);
+      var invokeCallableNode = buildInvokeCallableNode(method);
+      return doCached(
+          receiver, member, args, member, methodResolverNode, symbol, method, invokeCallableNode);
     }
 
-    static Function findMethod(Type receiver, String name) {
-      return receiver.methods().get(name);
+    static Type eigenType(Type receiver) {
+      return receiver.getEigentype();
     }
 
-    static InvokeFunctionNode buildInvokeFuncNode(Function func) {
+    static UnresolvedSymbol buildSymbol(Type receiver, String member) {
+      return UnresolvedSymbol.build(member, receiver.getDefinitionScope());
+    }
+
+    static Function findMethod(
+        Type receiver, UnresolvedSymbol symbol, MethodResolverNode methodResolverNode) {
+      return InvokeMethodNode.resolveFunction(symbol, receiver, methodResolverNode);
+    }
+
+    static InvokeCallableNode buildInvokeCallableNode(Function func) {
       assert func != null;
       var argumentInfos = func.getSchema().getArgumentInfos();
       var callArgInfos = new CallArgumentInfo[argumentInfos.length];
@@ -457,7 +478,7 @@ public final class Type extends EnsoObject {
         var callArgInfo = new CallArgumentInfo(argInfo.getName());
         callArgInfos[i] = callArgInfo;
       }
-      return InvokeFunctionNode.build(
+      return InvokeCallableNode.build(
           callArgInfos, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE);
     }
   }
@@ -519,29 +540,76 @@ public final class Type extends EnsoObject {
   private Map<String, Function> methods() {
     if (methods == null) {
       CompilerDirectives.transferToInterpreter();
-      var allMethods = new HashMap<String, Function>();
-      var defScope = definitionScope.asModuleScope();
-      var methodsFromThisScope = defScope.getMethodsForType(this);
-      if (methodsFromThisScope != null) {
-        methodsFromThisScope.forEach(
-            func -> {
-              var simpleName = simpleFuncName(func);
-              allMethods.put(simpleName, func);
-            });
-      }
-      if (eigentype != null) {
-        var methodsFromEigenScope = eigentype.getDefinitionScope().getMethodsForType(eigentype);
-        if (methodsFromEigenScope != null) {
-          methodsFromEigenScope.forEach(
-              func -> {
-                var simpleName = simpleFuncName(func);
-                allMethods.put(simpleName, func);
-              });
-        }
-      }
-      methods = allMethods;
+      methods = getMethods(true);
     }
     return methods;
+  }
+
+  /**
+   * Returns methods (both instance and static) defined on this type, including the ones inherited
+   * from super types. Instance methods are defined on this type, static methods are defined on its
+   * {@link #getEigentype() eigen type}. The methods defined on this type are searched for inside
+   * the module scope where this type is defined, so if there are any other extension methods
+   * defined in other modules, they are not included in the result.
+   *
+   * @param includeStaticMethods If static methods, defined on eigen type, should be included in the
+   *     result.
+   * @return All static and instance methods defined on this type, including the ones inherited from
+   *     Any.
+   */
+  @TruffleBoundary
+  public Map<String, Function> getMethods(boolean includeStaticMethods) {
+    var ctx = EnsoContext.get(null);
+    var allMethods = new HashMap<String, Function>();
+    for (var type : allTypes(ctx)) {
+      var methodsOnThisType = type.methodsOnThisType(includeStaticMethods);
+      for (var entry : methodsOnThisType.entrySet()) {
+        var name = entry.getKey();
+        // If a method with the name is already in `allMethods`, it means that it is an override
+        // of a method from super type - let's keep the override.
+        if (!allMethods.containsKey(name)) {
+          allMethods.put(name, entry.getValue());
+        }
+      }
+    }
+    return allMethods;
+  }
+
+  /**
+   * Returns methods (both instance and static) defined only on this type.
+   *
+   * <p>As opposed to {@link #getMethods(boolean)}, does not include methods inherited from super
+   * types.
+   *
+   * @param includeStaticMethods If static methods, defined on eigen type, should be included in the
+   *     result.
+   */
+  @TruffleBoundary
+  private Map<String, Function> methodsOnThisType(boolean includeStaticMethods) {
+    var allMethods = new HashMap<String, Function>();
+    var defScope = definitionScope.asModuleScope();
+    var methodsFromThisScope = defScope.getMethodsForType(this);
+    if (methodsFromThisScope != null) {
+      methodsFromThisScope.forEach(
+          func -> {
+            var simpleName = simpleFuncName(func);
+            allMethods.put(simpleName, func);
+          });
+    }
+    if (includeStaticMethods && eigentype != null) {
+      var methodsFromEigenScope = eigentype.getDefinitionScope().getMethodsForType(eigentype);
+      if (methodsFromEigenScope != null) {
+        for (var method : methodsFromEigenScope) {
+          var simpleName = simpleFuncName(method);
+          // Don't replace instance methods (with one self argument) with static ones (with two self
+          // arguments).
+          if (!allMethods.containsKey(simpleName)) {
+            allMethods.put(simpleName, method);
+          }
+        }
+      }
+    }
+    return allMethods;
   }
 
   private static String simpleFuncName(Function func) {

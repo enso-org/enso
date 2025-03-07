@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.List;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
@@ -27,7 +28,7 @@ public class AssertionsTest {
 
   private static Context ctx;
 
-  private static final ByteArrayOutputStream out = new ByteArrayOutputStream();
+  private static ByteArrayOutputStream out = new ByteArrayOutputStream();
 
   @BeforeClass
   public static void setupCtx() {
@@ -40,9 +41,11 @@ public class AssertionsTest {
   }
 
   @AfterClass
-  public static void disposeCtx() {
+  public static void disposeCtx() throws IOException {
     ctx.close(true);
     ctx = null;
+    out.close();
+    out = null;
   }
 
   @After

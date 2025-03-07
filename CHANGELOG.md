@@ -26,8 +26,14 @@
   (new) files.][12228]
 - [Cloud File Browser allows adding new directory in "writing"
   components][12275]
+- [In the documentation panel, text can now be made bold or italic using
+  buttons][12341]
 - [Cloud File Browser allows renaming existing directories in "writing"
   components][12323]
+- [New Component Browser displaying list of groups][12386]
+- ["Insert link" button added to documentation panel][12365]
+- [Cloud File Browser, when opened first time after opening project, shows and
+  highlights the currently set file][12184]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -45,7 +51,11 @@
 [12228]: https://github.com/enso-org/enso/pull/12228
 [12217]: https://github.com/enso-org/enso/pull/12217
 [12275]: https://github.com/enso-org/enso/pull/12275
+[12341]: https://github.com/enso-org/enso/pull/12341
 [12323]: https://github.com/enso-org/enso/pull/12323
+[12386]: https://github.com/enso-org/enso/pull/12386
+[12365]: https://github.com/enso-org/enso/pull/12365
+[12184]: https://github.com/enso-org/enso/pull/12184
 
 #### Enso Standard Library
 
@@ -55,6 +65,7 @@
 - [Added Table.Offset][12071]
 - [Implemented Generic JDBC connections.][12073]
 - [Added Column.Offset][12092]
+- [Progress API][12163]
 - [When reading a Delimited file, if a row with more columns than expected is
   encountered, extra columns can be added to the result.][12231]
   - In `Delimited` format, the `keep_invalid_rows` setting has been renamed to
@@ -63,20 +74,29 @@
 - [Added DB_Table.Offset for SQLServer][12206]
 - [Added DB_Table.Offset for Snowflake, Postgres, SQLite][12251]
 - [Support for key-pair authentication in Snowflake connector.][12247]
+- [Support for generic JDBC connections through external drivers.][12300]
 - [Support for basic arithmetic operations as numbers in Expressions.][12297]
 - [Support for Regular Expressions in Enso Expressions.][12320]
+- [Support for pi() and e() in Enso Expressions.][12367]
+- [xlsx reader now does not read empty rows from the end of a worksheet][12345]
+- [Generic JDBC connections can be created with `Database.connect`.][12331]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
 [12071]: https://github.com/enso-org/enso/pull/12071
 [12073]: https://github.com/enso-org/enso/pull/12073
 [12092]: https://github.com/enso-org/enso/pull/12092
+[12163]: https://github.com/enso-org/enso/pull/12163
 [12231]: https://github.com/enso-org/enso/pull/12231
 [12206]: https://github.com/enso-org/enso/pull/12206
 [12251]: https://github.com/enso-org/enso/pull/12251
 [12247]: https://github.com/enso-org/enso/pull/12247
+[12300]: https://github.com/enso-org/enso/pull/12300
 [12297]: https://github.com/enso-org/enso/pull/12297
 [12320]: https://github.com/enso-org/enso/pull/12320
+[12331]: https://github.com/enso-org/enso/pull/12331
+[12367]: https://github.com/enso-org/enso/pull/12367
+[12345]: https://github.com/enso-org/enso/pull/12345
 
 #### Enso Language & Runtime
 
@@ -197,6 +217,7 @@
 [11695]: https://github.com/enso-org/enso/pull/11695
 [11715]: https://github.com/enso-org/enso/pull/11715
 [11753]: https://github.com/enso-org/enso/pull/11753
+[11755]: https://github.com/enso-org/enso/pull/11755
 [11761]: https://github.com/enso-org/enso/pull/11761
 [11768]: https://github.com/enso-org/enso/pull/11768
 [11810]: https://github.com/enso-org/enso/pull/11810
@@ -220,6 +241,8 @@
 - [The reload button clears the HTTP cache.][11673]
 - [SQL Server Support for Aggregate][11811]
 - [Added `Download_Mode` parameter to `Data.download`.][12017]
+- [Added `Table.geo_distance` to calculate the distance between two
+  points.][12393]
 
 [11235]: https://github.com/enso-org/enso/pull/11235
 [11255]: https://github.com/enso-org/enso/pull/11255
@@ -232,6 +255,7 @@
 [11673]: https://github.com/enso-org/enso/pull/11673
 [11811]: https://github.com/enso-org/enso/pull/11811
 [12017]: https://github.com/enso-org/enso/pull/12017
+[12393]: https://github.com/enso-org/enso/pull/12393
 
 #### Enso Language & Runtime
 

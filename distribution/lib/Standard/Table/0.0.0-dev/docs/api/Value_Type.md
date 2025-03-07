@@ -1,0 +1,59 @@
+## Enso Signatures 1.0
+## module Standard.Table.Value_Type
+- type Auto
+- type Bits
+    - Bits_16
+    - Bits_32
+    - Bits_64
+    - from_integer bits:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - to_integer self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+- type Bits_Comparator
+    - compare x:Standard.Base.Any.Any y:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - hash x:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- type By_Type
+    - By_Type type:Standard.Table.Value_Type.Value_Type
+- type Value_Type
+    - Binary size:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)= variable_length:Standard.Base.Data.Boolean.Boolean=
+    - Boolean
+    - Byte
+    - Char size:(Standard.Base.Data.Numbers.Positive_Integer|Standard.Base.Nothing.Nothing)= variable_length:Standard.Base.Data.Boolean.Boolean=
+    - Date
+    - Date_Time with_timezone:Standard.Base.Data.Boolean.Boolean=
+    - Decimal precision:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)= scale:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)=
+    - Float size:Standard.Table.Value_Type.Bits=
+    - Integer size:Standard.Table.Value_Type.Bits=
+    - Mixed
+    - Null
+    - Time
+    - Unsupported_Data_Type type_name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= underlying_type:(Standard.Base.Any.Any|Standard.Base.Nothing.Nothing)=
+    - are_comparable type_1:Standard.Base.Any.Any type_2:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - can_be_widened_to self target_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - expect_boolean argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - expect_comparable arg1:Standard.Base.Any.Any arg2:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - expect_floating_point argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - expect_has_date argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - expect_has_time argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - expect_integer argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - expect_numeric argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - expect_text argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - expect_type value:Standard.Base.Any.Any predicate:Standard.Base.Any.Any type_kind:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - has_date self -> Standard.Base.Any.Any
+    - has_ordering self -> Standard.Base.Any.Any
+    - has_time self -> Standard.Base.Any.Any
+    - is_boolean self -> Standard.Base.Any.Any
+    - is_date self -> Standard.Base.Any.Any
+    - is_date_or_time self -> Standard.Base.Any.Any
+    - is_date_time self -> Standard.Base.Any.Any
+    - is_decimal self -> Standard.Base.Any.Any
+    - is_floating_point self -> Standard.Base.Any.Any
+    - is_integer self -> Standard.Base.Any.Any
+    - is_null self -> Standard.Base.Any.Any
+    - is_numeric self -> Standard.Base.Any.Any
+    - is_same_type self other:Standard.Table.Value_Type.Value_Type -> Standard.Base.Any.Any
+    - is_text self -> Standard.Base.Any.Any
+    - is_time self -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
+    - to_name self -> Standard.Base.Any.Any
+- Standard.Base.Data.Ordering.Comparable.from that:Standard.Table.Value_Type.Bits -> Standard.Base.Data.Ordering.Comparable

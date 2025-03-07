@@ -22,6 +22,7 @@ import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.io.IOAccess;
 import org.hamcrest.core.AllOf;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -55,6 +56,12 @@ public class ExecCompilerTest {
   @AfterClass
   public static void closeEnsoContext() throws Exception {
     ctx.close();
+    ctx = null;
+    out.close();
+  }
+
+  @After
+  public void cleanup() {
     out.reset();
   }
 
@@ -151,7 +158,6 @@ public class ExecCompilerTest {
     var run = module.invokeMember("eval_expression", "My_Type.Value");
     var atom = run.newInstance(1, 2, 3, 4);
     assertFalse("In spite of error we get an instance back: " + atom, atom.isException());
-    assertEquals("Just three keys", 3, atom.getMemberKeys().size());
     assertTrue("Check a: " + atom.getMemberKeys(), atom.getMemberKeys().contains("a"));
     assertTrue("Check b: " + atom.getMemberKeys(), atom.getMemberKeys().contains("b"));
     assertTrue("Check c: " + atom.getMemberKeys(), atom.getMemberKeys().contains("c"));

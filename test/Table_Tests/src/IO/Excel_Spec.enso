@@ -839,6 +839,36 @@ add_specs suite_builder =
             Excel_Range.for_rows "Test" 55 20000000 . should_fail_with Illegal_Argument
             Excel_Range.for_rows "Test" 55 0 . should_fail_with Illegal_Argument
 
+        group_builder.specify 'should allow creating column name from index' <|
+            Excel_Range.column_name_for_index 1 . should_equal "A"
+            Excel_Range.column_name_for_index 26 . should_equal "Z"
+            Excel_Range.column_name_for_index 27 . should_equal "AA"
+            Excel_Range.column_name_for_index 52 . should_equal "AZ"
+            Excel_Range.column_name_for_index 53 . should_equal "BA"
+            Excel_Range.column_name_for_index 78 . should_equal "BZ"
+            Excel_Range.column_name_for_index 186 . should_equal "GD"
+            Excel_Range.column_name_for_index 702 . should_equal "ZZ"
+            Excel_Range.column_name_for_index 703 . should_equal "AAA"
+            Excel_Range.column_name_for_index 728 . should_equal "AAZ"
+            Excel_Range.column_name_for_index 1234 . should_equal "AUL"
+            Excel_Range.column_name_for_index 6383 . should_equal "IKM"
+            Excel_Range.column_name_for_index 16384 . should_equal "XFD"
+
+        group_builder.specify 'should allow creating column index from name' <|
+            Excel_Range.column_index_for_name "A" . should_equal 1
+            Excel_Range.column_index_for_name "Z" . should_equal 26
+            Excel_Range.column_index_for_name "AA" . should_equal 27
+            Excel_Range.column_index_for_name "AZ" . should_equal 52
+            Excel_Range.column_index_for_name "BA" . should_equal 53
+            Excel_Range.column_index_for_name "BZ" . should_equal 78
+            Excel_Range.column_index_for_name "GD" . should_equal 186
+            Excel_Range.column_index_for_name "ZZ" . should_equal 702
+            Excel_Range.column_index_for_name "AAA" . should_equal 703
+            Excel_Range.column_index_for_name "AAZ" . should_equal 728
+            Excel_Range.column_index_for_name "AUL" . should_equal 1234
+            Excel_Range.column_index_for_name "IKM" . should_equal 6383
+            Excel_Range.column_index_for_name "XFD" . should_equal 16384
+
     xlsx_sheet = enso_project.data / "TestSheet.xlsx"
     xlsx_path = xlsx_sheet.path
 
@@ -1303,6 +1333,13 @@ add_specs suite_builder =
             table.at "Date" . to_vector . should_equal [Date.new 1903 12 28, Date.new 1903 12 29, Date.new 1903 12 30, Date.new 1903 12 31, Date.new 1904 1 1, Date.new 1904 1 2, Date.new 1904 1 3, Date.new 1904 1 4, Date.new 1904 1 5, Date.new 1904 2 29, Date.new 1904 3 1, Date.new 1904 3 2, Date.new 1904 3 3, Date.new 1904 3 4, Date.new 1904 3 5]
             table.at "Date13" . to_vector . should_equal [Date_Time.new 1903 12 28 13, Date_Time.new 1903 12 29 13, Date_Time.new 1903 12 30 13, Date_Time.new 1903 12 31 13, Date_Time.new 1904 1 1 13, Date_Time.new 1904 1 2 13, Date_Time.new 1904 1 3 13, Date_Time.new 1904 1 4 13, Date_Time.new 1904 1 5 13, Date_Time.new 1904 2 29 13, Date_Time.new 1904 3 1 13, Date_Time.new 1904 3 2 13, Date_Time.new 1904 3 3 13, Date_Time.new 1904 3 4 13, Date_Time.new 1904 3 5 13]
             table.at "Times" . to_vector . should_equal [Time_Of_Day.new 14 55 52, Time_Of_Day.new 10 30 2, Time_Of_Day.new 23 6 58, Time_Of_Day.new 15 39, Time_Of_Day.new 1 37 21, Time_Of_Day.new 17 16 34, Time_Of_Day.new 10 21 53, Time_Of_Day.new 2 29 9, Time_Of_Day.new 10 20 55, Time_Of_Day.new 2 10 52, Time_Of_Day.new 7 50 24, Time_Of_Day.new 5 46 13, Time_Of_Day.new 18 36 38, Time_Of_Day.new 15 34 42, Time_Of_Day.new 8 25 35]
+
+        group_builder.specify "should remove blank rows from the end of a worksheet" <|
+            ## This worksheet has a header row, a data row and a third blank row. We should not read the blank row from the end.
+            table = (enso_project.data / "WorkbookWithEmptyLastRow.xlsx") . read ..Sheet
+            table.row_count . should_equal 1
+            table.column_names . should_equal ["A"]
+            table.at "A" . to_vector . should_equal [1]
 
         group_builder.specify "should be able to write dates In Excel 1904 format in legacy spreadsheet" <|
             xlsx_copy = enso_project.data / "transient" / "OlderDates1904Copy.xlsx"

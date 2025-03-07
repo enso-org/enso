@@ -3,6 +3,7 @@ from Standard.Base import all
 from Standard.Table import Table
 
 export project.Geo_Json.geo_json_to_table
+export project.Table_Extensions.geo_distance
 
 ## UNSTABLE
    ICON location
@@ -14,7 +15,7 @@ export project.Geo_Json.geo_json_to_table
    - latitude: The latitude of the geographic point, specified in decimal form
      using the [WGS84](https://en.wikipedia.org/wiki/World_Geodetic_System)
      coordinate system.
-   - longitude: The longitude of the gepgraphic point, specified in decimal form
+   - longitude: The longitude of the geographic point, specified in decimal form
      using the [WGS84](https://en.wikipedia.org/wiki/World_Geodetic_System)
      coordinate system.
    - elevation: The elevation of the point from sea level, in metres.

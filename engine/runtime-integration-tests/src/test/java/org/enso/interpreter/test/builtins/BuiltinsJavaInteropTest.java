@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.junit.After;
@@ -25,9 +26,10 @@ public class BuiltinsJavaInteropTest {
   }
 
   @AfterClass
-  public static void disposeCtx() {
+  public static void disposeCtx() throws IOException {
     ctx.close();
     ctx = null;
+    out.close();
   }
 
   @After

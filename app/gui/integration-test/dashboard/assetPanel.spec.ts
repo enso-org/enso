@@ -19,13 +19,6 @@ function locateAssetPanelDescription(page: Page) {
   return locateAssetPanel(page).getByTestId('asset-panel-description')
 }
 
-/** Find asset permissions in an asset panel. */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function locateAssetPanelPermissions(page: Page) {
-  // This has no identifying features.
-  return locateAssetPanel(page).getByTestId('asset-panel-permissions').getByRole('button')
-}
-
 /** An example description for the asset selected in the asset panel. */
 const DESCRIPTION = 'foo bar'
 /** An example owner username for the asset selected in the asset panel. */
