@@ -80,6 +80,7 @@ import project.Value_Type.Auto
 import project.Value_Type.By_Type
 import project.Value_Type.Value_Type
 from project.Errors import all
+from project.Internal.Add_Row_Number import rename_columns_if_needed
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 from project.Internal.Lookup_Helpers import make_java_lookup_column_description
 from project.Internal.Rows_View import Rows_View
@@ -3782,25 +3783,27 @@ type Table
 
     @over Duplicate_Rows_Method.default_widget
     generate_rows self over:Duplicate_Rows_Method as:Text="" =
+        on_problems = Problem_Behavior.Report_Warning
         resolved_as = if as.is_empty then "generate_rows_id" else as
+        renamed_table = rename_columns_if_needed self resolved_as on_problems Table.new
         resolve_to_from value =
             case value of
                 _ : Integer -> self.make_constant_column value
                 _ : Date -> self.make_constant_column value
                 _ : Column_Ref -> (self:Table_Ref).resolve value
-                _ : Expression -> self.evaluate_expression value ..Report_Warning
+                _ : Expression -> self.evaluate_expression value on_problems
 
         x = case over of
           Duplicate_Rows_Method.Integer_Range from to step ->
               from_column = resolve_to_from from
               to_column = resolve_to_from to
               range_col = from_column.zip to_column f->t->(f.up_to t step=step)
-              self.set range_col as=resolved_as
+              renamed_table.set range_col as=resolved_as
           Duplicate_Rows_Method.Date_Range from to step ->
               from_column = resolve_to_from from
               to_column = resolve_to_from to
               range_col = from_column.zip to_column f->t->(f.up_to t step=step)
-              self.set range_col as=resolved_as
+              renamed_table.set range_col as=resolved_as
         x.expand_to_rows resolved_as
 
     ## PRIVATE

@@ -2,6 +2,7 @@ from Standard.Base import all
 from Standard.Test import all
 from Standard.Table import all
 
+from Standard.Table.Errors import Missing_Input_Columns, Duplicate_Output_Column_Names
 from Standard.Database.Errors import Unsupported_Database_Operation
 import Standard.Database.Feature.Feature
 from Standard.Base.Errors.Common import Missing_Argument, Floating_Point_Equality
@@ -92,10 +93,14 @@ add_offset_specs suite_builder setup =
                     Table.new [["Text Values", ["A", "C", "C"]], ["JoinDate", [Date.new 2025 1 1, Date.new 2025 1 3, Date.new 2025 1 3]], ["LeaveDate", [Date.new 2025 1 2, Date.new 2025 1 5, Date.new 2025 1 5]], ["generate_rows_id", [Date.new 2025 1 1, Date.new 2025 1 3, Date.new 2025 1 4]]]
 
         suite_builder.group prefix+"Table.generate_rows edge cases" group_builder->
-            group_builder.specify "Running twice deals with column nammes correctly" <|
+            group_builder.specify "Running twice should rename existing column upon a name clash" <|
                 t1 = build_sorted_table [["Text Values", ["A"]]]
-                t1.generate_rows (..Integer_Range 0 2) . generate_rows (..Integer_Range 0 2) . should_equal ignore_order=setup.is_database
-                    Table.new [["Text Values", ["A", "A", "A", "A"]], ["generate_rows_id", [0, 0, 1, 1]], ["generate_rows_id2", [0, 1, 0, 1]]]
+                r1 = t1.generate_rows (..Integer_Range 0 2) . generate_rows (..Integer_Range 3 5)
+                r1.should_equal 
+                    Table.new [["Text Values", ["A", "A", "A", "A"]], ["generate_rows_id 1", [0, 0, 1, 1]], ["generate_rows_id", [3, 4, 3, 4]]]
+                Problems.expect_warning Duplicate_Output_Column_Names r1
+
+        ## Problem behaviour error
 
         ## Can run from an existing range
 
