@@ -15,7 +15,7 @@ add_specs suite_builder = suite_builder.group "Meta-Value Inspection" group_buil
 
     location_pending = case Platform.os of
         Platform.OS.Windows -> "This test is disabled on Windows until issue 1561 is fixed."
-        _ -> Nothing
+        _ -> "Disabled until #12215 is integrated"
 
     group_builder.specify "should allow to get the source location of a frame" pending=location_pending <|
         src = Test.get_source_location 0
