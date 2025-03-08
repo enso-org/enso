@@ -2159,12 +2159,15 @@ lazy val `engine-common` = project
     commands += WithDebugCommand.withDebug,
     Test / envVars ++= distributionEnvironmentOverrides,
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
+      "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion % "provided"
     ),
     Compile / moduleDependencies ++= {
       Seq(
-        "org.graalvm.polyglot" % "polyglot"  % graalMavenPackagesVersion,
-        "org.slf4j"            % "slf4j-api" % slf4jVersion
+        "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
+        "org.slf4j"            % "slf4j-api"   % slf4jVersion
       )
     },
     Compile / internalModuleDependencies := Seq(
