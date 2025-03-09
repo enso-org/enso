@@ -69,7 +69,7 @@ final class Instrumentor extends EnsoObject implements IdExecutionService.Callba
   public Object findCachedResult(IdExecutionService.Info info) {
     try {
       if (onEnter != null) {
-        var ret = InteropLibrary.getUncached().execute(onEnter, info.getId().toString());
+        var ret = InteropLibrary.getUncached().execute(onEnter, idString(info));
         ret = InteropLibrary.getUncached().isNull(ret) ? null : ret;
         return handle.isDisposed() ? null : ret;
       }
@@ -88,7 +88,7 @@ final class Instrumentor extends EnsoObject implements IdExecutionService.Callba
                 ? info.getResult()
                 : InstrumentorEvalNode.asSuspendedEval(
                     EnsoLanguage.get(target.getRootNode()), onReturnExpr, info);
-        iop.execute(onReturn, info.getId().toString(), result);
+        iop.execute(onReturn, idString(info), result);
       }
     } catch (Throwable ignored) {
       CompilerDirectives.transferToInterpreter();
@@ -111,7 +111,7 @@ final class Instrumentor extends EnsoObject implements IdExecutionService.Callba
             InteropLibrary.getUncached()
                 .execute(
                     onCall,
-                    info.getId().toString(),
+                    idString(info),
                     call.getFunction(),
                     ArrayLikeHelpers.asVectorWithCheckAt(args));
         ret = InteropLibrary.getUncached().isNull(ret) ? null : ret;
@@ -137,5 +137,10 @@ final class Instrumentor extends EnsoObject implements IdExecutionService.Callba
       rootName = "<unknown>";
     }
     return "Instrumentor(target = " + rootName + ")";
+  }
+
+  @TruffleBoundary
+  public String idString(IdExecutionService.Info info) {
+    return info.getId().toString();
   }
 }
