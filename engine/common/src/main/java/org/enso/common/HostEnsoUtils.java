@@ -23,8 +23,9 @@ public final class HostEnsoUtils {
   }
 
   /**
-   * Checks the AOT mode.Delegates to {@link ImageInfo#is}
-     * @return {@code true} if running inside of native executable, {@code false} otherwise
+   * Checks state of the AOT mode. Delegates to {@link ImageInfo#inImageRuntimeCode}.
+   *
+   * @return {@code true} if running inside of native executable, {@code false} otherwise
    */
   public static boolean isAot() {
     return ImageInfo.inImageRuntimeCode();
