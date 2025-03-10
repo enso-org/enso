@@ -4,8 +4,8 @@ from Standard.Table import all
 
 from Standard.Database.Errors import Unsupported_Database_Operation
 import Standard.Database.Feature.Feature
-from Standard.Base.Errors.Common import Missing_Argument, Floating_Point_Equality
-from Standard.Table.Errors import Missing_Input_Columns, Duplicate_Output_Column_Names
+from Standard.Base.Errors.Common import Missing_Argument
+from Standard.Table.Errors import No_Such_Column, Duplicate_Output_Column_Names
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from project.Common_Table_Operations.Util import run_default_backend
@@ -152,6 +152,9 @@ add_generate_rows_specs suite_builder setup =
             group_builder.specify "Date_Range Missing to gives missing value error" <|
                 r = t1.generate_rows (..Date_Range (Date.new 2025 1 1))
                 r.should_fail_with Missing_Argument
+            group_builder.specify "Missing column gives No_Such_Column error" <|
+                r = t1.generate_rows (..Integer_Range 0 (..Name 'NumRows'))
+                r.should_fail_with (No_Such_Column.Error 'NumRows')
 
         suite_builder.group prefix+"Table.generate_rows bad types error cases" group_builder->
             t1 = build_sorted_table [["Text Values", ["A"]]]
