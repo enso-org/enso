@@ -64,15 +64,15 @@
 - [Reducing helper methods in `Standard.Base.Meta`.][12031]
 - [Added Table.Offset][12071]
 - [Implemented Generic JDBC connections.][12073]
-- [Added Column.Offset][12092]
+- [Added Column.offset][12092]
 - [Progress API][12163]
 - [When reading a Delimited file, if a row with more columns than expected is
   encountered, extra columns can be added to the result.][12231]
   - In `Delimited` format, the `keep_invalid_rows` setting has been renamed to
     `on_invalid_rows`. The default behaviour was also changed to add any extra
     columns instead of discarding them.
-- [Added DB_Table.Offset for SQLServer][12206]
-- [Added DB_Table.Offset for Snowflake, Postgres, SQLite][12251]
+- [Added DB_Table.offset for SQLServer][12206]
+- [Added DB_Table.offset for Snowflake, Postgres, SQLite][12251]
 - [Support for key-pair authentication in Snowflake connector.][12247]
 - [Support for generic JDBC connections through external drivers.][12300]
 - [Support for basic arithmetic operations as numbers in Expressions.][12297]
