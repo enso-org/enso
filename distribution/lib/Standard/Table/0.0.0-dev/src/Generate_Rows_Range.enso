@@ -16,7 +16,7 @@ import project.Expression.Expression
 import project.Internal.Table_Ref.Table_Ref
 from project.Internal.Filter_Condition_Helpers import make_filter_column
 
-type Duplicate_Rows_Method
+type Generate_Rows_Range
     Integer_Range from:(Integer | Column_Ref | Expression)=(Missing_Argument.throw "from") to:(Integer | Column_Ref | Expression)=(Missing_Argument.throw "to") include_end:Boolean=False step:Integer=1
 
     Date_Range from:(Date | Column_Ref | Expression)=(Missing_Argument.throw "from") to:(Date | Column_Ref | Expression)=(Missing_Argument.throw "to") include_end:Boolean=False step:(Date_Period|Period)=..Day
@@ -39,17 +39,17 @@ type Duplicate_Rows_Method
                 col
 
         case self of
-            Duplicate_Rows_Method.Integer_Range from to include_end step ->
+            Generate_Rows_Range.Integer_Range from to include_end step ->
                 from_column = resolve_to_from from Value_Type.Integer
                 to_column = resolve_to_from to Value_Type.Integer
                 from_column.zip to_column f->t->(f.up_to t include_end step)  
-            Duplicate_Rows_Method.Date_Range from to include_end step ->
+            Generate_Rows_Range.Date_Range from to include_end step ->
                 from_column = resolve_to_from from Value_Type.Date
                 to_column = resolve_to_from to Value_Type.Date
                 from_column.zip to_column f->t->(f.up_to t include_end step)
-            Duplicate_Rows_Method.Range value ->
+            Generate_Rows_Range.Range value ->
                 table.make_constant_column value
-            Duplicate_Rows_Method.Integer_Column column ->
+            Generate_Rows_Range.Integer_Column column ->
                 column.map t->(0.up_to t)
    
     ## PRIVATE
@@ -61,14 +61,14 @@ type Duplicate_Rows_Method
         date_range = Option "..Date_Range" "..Date_Range" [["from", date_input_column], ["to", date_input_column]]
         Single_Choice [integer_range, date_range] display=display
 
-Duplicate_Rows_Method.from (that:Integer) =
-    Duplicate_Rows_Method.Integer_Range 0 that
+Generate_Rows_Range.from (that:Integer) =
+    Generate_Rows_Range.Integer_Range 0 that
 
-Duplicate_Rows_Method.from (that:Range) =
-    Duplicate_Rows_Method.Range that
+Generate_Rows_Range.from (that:Range) =
+    Generate_Rows_Range.Range that
 
-Duplicate_Rows_Method.from (that:Date_Range) =
-    Duplicate_Rows_Method.Range that
+Generate_Rows_Range.from (that:Date_Range) =
+    Generate_Rows_Range.Range that
 
-Duplicate_Rows_Method.from (that:Column) =
-    Duplicate_Rows_Method.Integer_Column that
+Generate_Rows_Range.from (that:Column) =
+    Generate_Rows_Range.Integer_Column that

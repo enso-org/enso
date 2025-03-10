@@ -164,8 +164,6 @@ add_offset_specs suite_builder setup =
 
         ## Unsupported
 
-        ## 2 step days
-
         ## check imports
 
         ## rename files

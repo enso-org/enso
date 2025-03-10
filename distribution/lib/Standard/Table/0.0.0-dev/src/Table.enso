@@ -31,7 +31,7 @@ import project.Columns_To_Keep.Columns_To_Keep
 import project.Constants.Previous_Value
 import project.Constants.Report_Unmatched
 import project.Data_Formatter.Data_Formatter
-import project.Duplicate_Rows_Method.Duplicate_Rows_Method
+import project.Generate_Rows_Range.Generate_Rows_Range
 import project.Delimited.Delimited_Format.Delimited_Format
 import project.Expression.Expression
 import project.Expression.Expression_Error
@@ -3816,8 +3816,8 @@ type Table
            in the table, a `Missing_Input_Columns` error is raised.
          - If grouping on floating point numbers, a `Floating_Point_Equality`
            problem is reported.
-    @over Duplicate_Rows_Method.default_widget
-    generate_rows self over:Duplicate_Rows_Method=(Missing_Argument.throw "over") as:Text="" on_problems:Problem_Behavior=..Report_Warning =
+    @over Generate_Rows_Range.default_widget
+    generate_rows self over:Generate_Rows_Range=(Missing_Argument.throw "over") as:Text="" on_problems:Problem_Behavior=..Report_Warning =
         resolved_as = if as.is_empty then "generate_rows_id" else as
         renamed_table = rename_columns_if_needed self resolved_as on_problems Table.new
         range_col = over.get_range_column self on_problems
