@@ -80,6 +80,7 @@
 - [Support for pi() and e() in Enso Expressions.][12367]
 - [xlsx reader now does not read empty rows from the end of a worksheet][12345]
 - [Generic JDBC connections can be created with `Database.connect`.][12331]
+- [Added Table.generate_rows][12413]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
@@ -97,6 +98,7 @@
 [12331]: https://github.com/enso-org/enso/pull/12331
 [12367]: https://github.com/enso-org/enso/pull/12367
 [12345]: https://github.com/enso-org/enso/pull/12345
+[12413]: https://github.com/enso-org/enso/pull/12413
 
 #### Enso Language & Runtime
 
