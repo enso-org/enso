@@ -38,7 +38,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public final class FullyQualifiedNamesTest {
+/**
+ * Tests name resolution inside the compiler done by various {@link IRProcessingPass compiler
+ * passes}.
+ */
+public final class NameResolutionTest {
 
   @Rule public final TemporaryFolder TMP_DIR = new TemporaryFolder();
 
