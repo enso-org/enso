@@ -35,6 +35,7 @@ export const BREADCRUMB_ITEM_STYLES = tv({
     link: 'block max-w-48 min-w-4 w-auto',
     more: 'aspect-square',
     container: 'flex items-center gap-2',
+    iconDisplay: 'h-8',
   },
   variants: {
     isCurrent: {
@@ -201,6 +202,7 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
         textSelection="none"
         elementType="a"
         icon={renderedIcon}
+        className={styles.iconDisplay()}
       >
         {renderedChildren}
       </IconDisplay>

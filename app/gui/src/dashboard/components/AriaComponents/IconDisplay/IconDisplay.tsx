@@ -37,12 +37,20 @@ export interface IconDisplayProps<IconType extends string>
 
 /** A text display with an icon. */
 export function IconDisplay<IconType extends string>(props: IconDisplayProps<IconType>) {
-  const { icon, children, variant, variants = ICON_DISPLAY_STYLES, tooltip, ...textProps } = props
+  const {
+    icon,
+    children,
+    variant,
+    variants = ICON_DISPLAY_STYLES,
+    tooltip,
+    className,
+    ...textProps
+  } = props
 
   const styles = variants({ variant })
 
   return (
-    <div className={styles.base()}>
+    <div className={styles.base({ className })}>
       <WithVisualTooltip tooltip={tooltip} tooltipPlacement="left">
         <Icon className={styles.icon()} size="medium">
           {icon}
