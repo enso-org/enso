@@ -38,15 +38,16 @@ type Generate_Rows_Range
             if is_correct_type.not then Error.throw (Illegal_Argument.Error "Expected an "+col_type.to_display_text+" column but got a "+col.value_type.to_display_text+"") else
                 col
 
+        resolve_from_to_range from to include_end step col_type -> Column =
+            from_column = resolve_to_from from col_type
+            to_column = resolve_to_from to col_type
+            from_column.zip to_column f->t->(f.up_to t include_end step)
+
         case self of
             Generate_Rows_Range.Integer_Range from to include_end step ->
-                from_column = resolve_to_from from Value_Type.Integer
-                to_column = resolve_to_from to Value_Type.Integer
-                from_column.zip to_column f->t->(f.up_to t include_end step)  
+                resolve_from_to_range from to include_end step Value_Type.Integer
             Generate_Rows_Range.Date_Range from to include_end step ->
-                from_column = resolve_to_from from Value_Type.Date
-                to_column = resolve_to_from to Value_Type.Date
-                from_column.zip to_column f->t->(f.up_to t include_end step)
+                resolve_from_to_range from to include_end step Value_Type.Date
             Generate_Rows_Range.Range value ->
                 table.make_constant_column value
             Generate_Rows_Range.Integer_Column column ->
