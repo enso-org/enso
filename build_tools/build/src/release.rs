@@ -145,9 +145,8 @@ pub async fn publish_release(context: &BuildContext) -> Result {
     release_handle.publish().await?;
     debug!("Done. Release URL: {}", release.url);
 
-    let temp = tempdir()?;
     let edition_file_path = generated::RepoRootDistributionEditions::new_root(
-        temp.path(),
+        context.inner.repo_root.distribution.editions.clone(),
         triple.versions.edition_name(),
     )
     .edition_yaml;
