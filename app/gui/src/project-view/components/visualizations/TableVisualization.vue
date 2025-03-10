@@ -201,13 +201,16 @@ const selectableRowLimits = computed(() => {
 function setRowLimit(newRowLimit: number) {
   if (newRowLimit !== rowLimit.value) {
     rowLimit.value = newRowLimit
-    config.setPreprocessor(
-      'Standard.Visualization.Table.Visualization',
-      'prepare_visualization',
-      newRowLimit.toString(),
-    )
   }
 }
+
+watchEffect(() =>
+  config.setPreprocessor(
+    'Standard.Visualization.Table.Visualization',
+    'prepare_visualization',
+    rowLimit.value.toString(),
+  ),
+)
 
 const isFilterSortNodeEnabled = computed(
   () => config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE,
@@ -850,7 +853,7 @@ function checkSortAndFilter(e: SortChangedEvent) {
 // === Updates ===
 // ===============
 onMounted(() => {
-  setRowLimit(1000)
+  rowLimit.value = 1000
 })
 
 // ===============
