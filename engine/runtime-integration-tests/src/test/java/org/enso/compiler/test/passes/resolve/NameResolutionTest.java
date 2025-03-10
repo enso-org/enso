@@ -14,9 +14,11 @@ import java.util.function.Predicate;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.core.IR;
+import org.enso.compiler.core.ir.DefinitionArgument;
 import org.enso.compiler.core.ir.Literal;
 import org.enso.compiler.core.ir.Location;
 import org.enso.compiler.core.ir.Module;
+import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.Pattern;
 import org.enso.compiler.core.ir.expression.Case;
 import org.enso.compiler.data.BindingsMap;
@@ -27,6 +29,9 @@ import org.enso.compiler.pass.resolve.FullyQualifiedNames$;
 import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.compiler.pass.resolve.Patterns;
 import org.enso.compiler.pass.resolve.Patterns$;
+import org.enso.compiler.pass.resolve.TypeNames$;
+import org.enso.compiler.pass.resolve.TypeSignatures;
+import org.enso.compiler.pass.resolve.TypeSignatures$;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.PolyglotContext;
 import org.enso.scala.wrapper.ScalaConversions;
@@ -116,6 +121,194 @@ public final class NameResolutionTest {
                     is("local.Proj.My_Module.My_Type"));
               });
         });
+  }
+
+  /**
+   * {@link TypeSignatures} and {@link org.enso.compiler.pass.resolve.TypeNames} passes resolves the
+   * ascribed type.
+   */
+  @Test
+  public void nameIsResolved_InAscribedType() throws Exception {
+    var myMod = srcModule("My_Module", """
+        type My_Type
+            Cons
+        """);
+    var mainMod =
+        srcModule(
+            "Main",
+            """
+        import project.My_Module.My_Type
+
+        foo : local.Proj.My_Module.My_Type
+        foo = My_Type.Cons
+        """);
+    withProject(
+        "Proj",
+        Set.of(myMod, mainMod),
+        ctx -> {
+          var modIr = getModuleIr(ctx, "local.Proj.Main");
+          var fooMethod = modIr.bindings().head();
+          var signatureMeta =
+              MetadataInteropHelpers.getMetadataOrNull(
+                  fooMethod, TypeSignatures$.MODULE$, TypeSignatures.Signature.class);
+          assertThat(signatureMeta, is(notNullValue()));
+          assertThat(signatureMeta.signature(), instanceOf(Name.Qualified.class));
+          var res =
+              MetadataInteropHelpers.getMetadataOrNull(
+                  signatureMeta.signature(), TypeNames$.MODULE$, BindingsMap.Resolution.class);
+          assertThat(res, is(notNullValue()));
+          assertThat(res.target(), instanceOf(BindingsMap.ResolvedType.class));
+          assertThat(res.target().qualifiedName().toString(), is("local.Proj.My_Module.My_Type"));
+        });
+  }
+
+  /**
+   * Inline type ascription resolution is handled by {@link
+   * org.enso.compiler.pass.resolve.TypeNames}.
+   *
+   * @throws Exception
+   */
+  @Test
+  public void nameIsResolved_InInlineAscription() throws Exception {
+    var myMod =
+        srcModule(
+            "My_Module",
+            """
+        type My_Type
+            Cons
+            method self = 42
+        """);
+    var mainMod =
+        srcModule(
+            "Main",
+            """
+        import project.My_Module.My_Type
+
+        foo (obj : local.Proj.My_Module.My_Type) =
+            obj.method
+        """);
+    withProject(
+        "Proj",
+        Set.of(myMod, mainMod),
+        ctx -> {
+          var modIr = getModuleIr(ctx, "local.Proj.Main");
+          var fooMethod = modIr.bindings().head();
+          assertThat(fooMethod, is(notNullValue()));
+          var defArg =
+              findIR(
+                  modIr,
+                  DefinitionArgument.Specified.class,
+                  arg -> {
+                    if (arg.name() instanceof Name.Literal lit) {
+                      return lit.name().equals("obj") && arg.ascribedType().isDefined();
+                    }
+                    return false;
+                  });
+          var ascribedTypeName = ((Name.Qualified) defArg.ascribedType().get());
+          var res =
+              MetadataInteropHelpers.getMetadataOrNull(
+                  ascribedTypeName, TypeNames$.MODULE$, BindingsMap.Resolution.class);
+          assertThat(res.target(), instanceOf(BindingsMap.ResolvedType.class));
+          assertThat(res.target().qualifiedName().toString(), is("local.Proj.My_Module.My_Type"));
+        });
+  }
+
+  @Test
+  public void nameIsResolved_InInlineAscription_TwoProjects() throws Exception {
+    var libDir = TMP_DIR.newFolder("Lib").toPath();
+    var projDir = TMP_DIR.newFolder("Proj").toPath();
+    ProjectUtils.createProject(
+        "Lib",
+        Set.of(
+            srcModule(
+                "My_Module",
+                """
+                type My_Type
+                    method self = 42
+                """),
+            srcModule(
+                "Main", """
+                export project.My_Module.My_Type
+                """)),
+        libDir);
+    ProjectUtils.createProject(
+        "Proj",
+        """
+            from local.Lib import all
+
+            foo (obj : local.Lib.My_Module.My_Type) = obj.method
+            """,
+        projDir);
+    try (var ctx = createCtx(projDir)) {
+      compileAllModules(ctx);
+      var modIr = getModuleIr(ctx, "local.Proj.Main");
+      var fooMethod = modIr.bindings().head();
+      assertThat(fooMethod, is(notNullValue()));
+      var defArg =
+          findIR(
+              modIr,
+              DefinitionArgument.Specified.class,
+              arg -> {
+                if (arg.name() instanceof Name.Literal lit) {
+                  return lit.name().equals("obj") && arg.ascribedType().isDefined();
+                }
+                return false;
+              });
+      var ascribedTypeName = ((Name.Qualified) defArg.ascribedType().get());
+      var res =
+          MetadataInteropHelpers.getMetadataOrNull(
+              ascribedTypeName, TypeNames$.MODULE$, BindingsMap.Resolution.class);
+      assertThat(res.target(), instanceOf(BindingsMap.ResolvedType.class));
+      assertThat(res.target().qualifiedName().toString(), is("local.Lib.My_Module.My_Type"));
+    }
+  }
+
+  @Test
+  public void nameIsResolved_InInlineAscription_TwoProjects_TypeInSubmodule() throws Exception {
+    var libDir = TMP_DIR.newFolder("Lib").toPath();
+    var projDir = TMP_DIR.newFolder("Proj").toPath();
+    ProjectUtils.createProject(
+        "Lib",
+        Set.of(
+            srcModule("Data.Numbers", """
+                type Integer
+                """),
+            srcModule(
+                "Main",
+                """
+                export project.Data.Numbers.Integer
+                """)),
+        libDir);
+    ProjectUtils.createProject(
+        "Proj",
+        """
+            from local.Lib import all
+
+            foo (obj : local.Lib.Data.Numbers.Integer) = obj.method
+            """,
+        projDir);
+    try (var ctx = createCtx(projDir)) {
+      compileAllModules(ctx);
+      var modIr = getModuleIr(ctx, "local.Proj.Main");
+      var fooMethod = modIr.bindings().head();
+      assertThat(fooMethod, is(notNullValue()));
+      var defArg =
+          findIR(
+              modIr,
+              DefinitionArgument.Specified.class,
+              arg -> {
+                if (arg.name() instanceof Name.Literal lit) {
+                  return lit.name().equals("obj") && arg.ascribedType().isDefined();
+                }
+                return false;
+              });
+      var ascribedTypeName = ((Name.Qualified) defArg.ascribedType().get());
+      var res =
+          MetadataInteropHelpers.getMetadataOrNull(
+              ascribedTypeName, TypeNames$.MODULE$, BindingsMap.Resolution.class);
+      assertThat(res.target(), instanceOf(BindingsMap.ResolvedType.class));
+      assertThat(res.target().qualifiedName().toString(), is("local.Lib.Data.Numbers.Integer"));
+    }
   }
 
   /**
