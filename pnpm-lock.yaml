@@ -8,7 +8,7 @@ overrides:
   tslib: ^2.8.1
   jsdom: ^24.1.0
   '@types/react': ^18.3.1
-  ws: ^8.5.13
+  ws: ^8.18.0
 
 packageExtensionsChecksum: sha256-rjs4ufO3dcjiIs9z7yfts3qwzVzGoB6bkBTn+xU/hOo=
 
@@ -822,7 +822,7 @@ importers:
   app/ydoc-server-nodejs:
     dependencies:
       ws:
-        specifier: ^8.5.13
+        specifier: ^8.18.0
         version: 8.18.0
       ydoc-server:
         specifier: workspace:*
@@ -5759,7 +5759,7 @@ packages:
   isomorphic-ws@5.0.0:
     resolution: {integrity: sha512-muId7Zzn9ywDsyXgTIafTry2sV3nySZeUDe6YedVd1Hvuuep5AsIlqK+XefWpYTyJG5e503F2xIuT2lcU6rCSw==}
     peerDependencies:
-      ws: ^8.5.13
+      ws: ^8.18.0
 
   isomorphic.js@0.2.5:
     resolution: {integrity: sha512-PIeMbHqMt4DnUP3MA/Flc0HElYjMXArsw1qwJZcm9sqR8mq3l8NYizFMty0pWwE/tzIGH3EKK5+jes5mAr85yw==}
@@ -6232,7 +6232,7 @@ packages:
     resolution: {integrity: sha512-cgJzdkn1//XyYJsFZkjPYKN21CXeG+KC38Q5uFwTnbUwG3pmmsUDS9a5RRJ6lFnjsnEbUKx+rIXjxX/uCUFYvQ==}
     peerDependencies:
       '@types/ws': '*'
-      ws: ^8.5.13
+      ws: ^8.18.0
 
   monaco-editor@0.48.0:
     resolution: {integrity: sha512-goSDElNqFfw7iDHMg8WDATkfcyeLTNpBHQpO8incK6p5qZt5G/1j41X0xdGzpIkGojGXM+QiRQyLjnfDVvrpwA==}
