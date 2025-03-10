@@ -26,7 +26,7 @@ type Generate_Rows_Range
     Integer_Column value:Column
 
     get_range_column self table on_problems -> Column =
-        resolve_to_from value col_type -> Column =
+        resolve_to_from value col_type arg_name -> Column =
             col = case value of
                 _ : Integer -> table.make_constant_column value
                 _ : Date -> table.make_constant_column value
@@ -35,12 +35,12 @@ type Generate_Rows_Range
             is_correct_type = case col_type of
                 Value_Type.Integer _ -> col.value_type.is_integer
                 Value_Type.Date -> col.value_type.is_date
-            if is_correct_type.not then Error.throw (Illegal_Argument.Error "Expected an "+col_type.to_display_text+" column but got a "+col.value_type.to_display_text+"") else
+            if is_correct_type.not then Error.throw (Illegal_Argument.Error "Expected an "+col_type.to_display_text+" column for argument `"+arg_name+"` but got a "+col.value_type.to_display_text+"") else
                 col
 
         resolve_from_to_range from to include_end step col_type -> Column =
-            from_column = resolve_to_from from col_type
-            to_column = resolve_to_from to col_type
+            from_column = resolve_to_from from col_type "from"
+            to_column = resolve_to_from to col_type "to"
             from_column.zip to_column f->t->(f.up_to t include_end step)
 
         case self of
