@@ -238,7 +238,7 @@ function useSortFilterNodesButton({
           patterns.push(filterPatterns)
         }
 
-        const value = getFilterValue(filterModel, filterAction)
+        const value = getFilterValue(filterModel)
 
         if (value) {
           const filterPatterns =
