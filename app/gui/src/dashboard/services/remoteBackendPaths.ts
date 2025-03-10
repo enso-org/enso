@@ -52,6 +52,8 @@ export const UPLOAD_FILE_END_PATH = 'files/upload/end'
 export const CREATE_SECRET_PATH = 'secrets'
 /** Relative HTTP path to the "list secrets" endpoint of the Cloud backend API. */
 export const LIST_SECRETS_PATH = 'secrets'
+/** Relative HTTP path to the "create credential" endpoint of the Cloud backend API. */
+export const CREATE_CREDENTIAL_PATH = 'secrets'
 /** Relative HTTP path to the "list project sessions" endpoint of the Cloud backend API. */
 export const LIST_PROJECT_SESSIONS_PATH = 'project-sessions'
 /** Relative HTTP path to the "create datalink" endpoint of the Cloud backend API. */
@@ -218,6 +220,10 @@ export function deleteUserGroupPath(groupId: backend.UserGroupId) {
 /** Relative HTTP path to the "get checkout session" endpoint of the Cloud backend API. */
 export function getCheckoutSessionPath(checkoutSessionId: backend.CheckoutSessionId) {
   return `${GET_CHECKOUT_SESSION_PATH}/${checkoutSessionId}`
+}
+/** Relative HTTP path to the "get oauth callback" endpoint of the Cloud backend API. */
+export function getOauthCallbackPath(service: backend.CredentialInput['type']) {
+  return `libs/${service}/oauth/callback`
 }
 
 /** Unique identifier for a directory. */

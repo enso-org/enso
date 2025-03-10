@@ -647,7 +647,6 @@ export function useNewSecret(backend: Backend) {
         parentDirectoryId: placeholderItem.parentId,
         name: placeholderItem.title,
         value: value,
-        metadata: undefined,
       },
     ])
   })
@@ -658,14 +657,13 @@ export function useNewCredential(backend: Backend) {
   const createCredentialMutation = useMutation(backendMutationOptions(backend, 'createCredential'))
 
   return useEventCallback(
-    async (name: string, type: string, value: unknown, parentId: DirectoryId) => {
+    async (name: string, value: backendModule.CredentialMetadata, parentId: DirectoryId) => {
       const placeholderItem = backendModule.createPlaceholderSecretAsset(name, parentId)
 
       return await createCredentialMutation.mutateAsync([
         {
           parentDirectoryId: placeholderItem.parentId,
           name: placeholderItem.title,
-          type,
           value,
         },
       ])

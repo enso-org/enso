@@ -1268,14 +1268,13 @@ export default class RemoteBackend extends Backend {
   override async createCredential(
     body: backend.CreateCredentialRequestBody,
   ): Promise<backend.SecretId> {
-    const { name, type, value, parentDirectoryId } = body
-
-    return this.createSecret({
-      name,
-      value: '',
-      metadata: { subtype: 'credential', credential: { type, value } },
-      parentDirectoryId,
-    })
+    const path = remoteBackendPaths.CREATE_CREDENTIAL_PATH
+    const response = await this.post<backend.SecretId>(path, body)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'createCredentialBackendError', body.name)
+    } else {
+      return await response.json()
+    }
   }
 
   /**

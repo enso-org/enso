@@ -1,13 +1,14 @@
 /**
  * @file
  * Dialog for a Snowflake credential.
- * Remember to ensure this file is re-exported by `./index.ts`.
+ * Remember to ensure this component is added to `CREDENTIAL_INFOS` in `constants.ts`.
  */
 
 import { Form as FormComponent } from '#/components/AriaComponents'
 import { CredentialsFormButtons } from '#/data/serviceCredentials/CredentialsFormButtons'
 import { useSynchronizeCredentialsValue } from '#/data/serviceCredentials/utilities'
 import { useText } from '#/providers/TextProvider'
+import { getOauthCallbackPath } from '#/services/remoteBackendPaths'
 import type { CredentialsFormProps } from './types'
 
 /** Dialog for a Snowflake credential. */
@@ -34,7 +35,7 @@ export function SnowflakeCredentialsForm(props: CredentialsFormProps) {
         /* eslint-disable @typescript-eslint/naming-convention, camelcase */
         client_id: formValue.clientId,
         response_type: 'code',
-        redirect_uri: $config.CLOUD_EXTERNAL_SERVICE_OAUTH_CALLBACK,
+        redirect_uri: getOauthCallbackPath('Snowflake'),
         /* eslint-enable @typescript-eslint/naming-convention, camelcase */
       })
       const url = `https://${encodeURIComponent(formValue.account)}.snowflakecomputing.com/oauth/authorize?${query.toString()}`

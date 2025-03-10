@@ -1400,19 +1400,46 @@ export interface UpdateProjectExecutionRequestBody {
   readonly enabled?: boolean | undefined
 }
 
+/** HTTP request body for the "create secret or credential" endpoint. */
+export type CreateSecretOrCredentialRequestBody =
+  | CreateSecretRequestBody
+  | CreateCredentialRequestBody
+
 /** HTTP request body for the "create secret" endpoint. */
 export interface CreateSecretRequestBody {
   readonly name: string
   readonly value: string
-  readonly metadata: unknown
   readonly parentDirectoryId: DirectoryId | null
+}
+
+/** Metadata for a Snowflake credential. */
+export interface SnowflakeCredentialInput {
+  readonly type: 'Snowflake'
+  readonly account: string
+  readonly client_id: string
+  readonly client_secret: string
+  readonly role: string | null
+}
+
+/** Metadata for a Google credential. */
+export interface GoogleCredentialInput {
+  readonly type: 'Google'
+  readonly scopes: readonly string[]
+}
+
+/** Metadata for an arbitrary credential. */
+export type CredentialInput = SnowflakeCredentialInput | GoogleCredentialInput
+
+/** Metadata for an arbitrary credential, plus a nonce for authentication purposes. */
+export interface CredentialMetadata {
+  readonly nonce: string
+  readonly input: CredentialInput
 }
 
 /** HTTP request body for the "create credential" endpoint. */
 export interface CreateCredentialRequestBody {
   readonly name: string
-  readonly type: string
-  readonly value: unknown
+  readonly value: CredentialMetadata
   readonly parentDirectoryId: DirectoryId | null
 }
 
