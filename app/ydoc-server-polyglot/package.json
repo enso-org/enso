@@ -15,10 +15,10 @@
     "lint": "eslint . --cache --max-warnings=0"
   },
   "dependencies": {
-    "y-websocket": "^1.5.0",
+    "y-websocket": "^1.5.4",
     "ydoc-server": "workspace:*",
     "ydoc-shared": "workspace:*",
-    "yjs": "^13.6.7"
+    "yjs": "^13.6.21"
   },
   "devDependencies": {
     "@fal-works/esbuild-plugin-global-externals": "^2.1.2",
