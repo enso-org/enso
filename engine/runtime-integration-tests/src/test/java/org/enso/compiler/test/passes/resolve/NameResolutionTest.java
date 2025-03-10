@@ -84,6 +84,39 @@ public final class NameResolutionTest {
     }
   }
 
+  @Test
+  public void importedNameIsResolved_AsType() throws Exception {
+    var myMod = srcModule("My_Module", """
+        type My_Type
+        """);
+    var mainMod =
+        srcModule(
+            "Main",
+            """
+        import project.My_Module.My_Type
+
+        main =
+            My_Type
+        """);
+    var projDir = TMP_DIR.newFolder("Proj").toPath();
+    ProjectUtils.createProject("Proj", Set.of(myMod, mainMod), projDir);
+    try (var ctx = createCtx(projDir)) {
+      compileAllModules(ctx);
+      var modIr = getModuleIr(ctx, "local.Proj.Main");
+      var location = getLastLocationOf(mainMod.code(), "My_Type");
+      var ir = findIrByLocation(modIr, location);
+      assertHasMetadata(
+          ir,
+          GlobalNames$.MODULE$,
+          BindingsMap.Resolution.class,
+          resolution -> {
+            assertThat(resolution.target(), instanceOf(BindingsMap.ResolvedType.class));
+            assertThat(
+                resolution.target().qualifiedName().toString(), is("local.Proj.My_Module.My_Type"));
+          });
+    }
+  }
+
   /**
    * Fully qualified name used in {@link Pattern.Type} is resolved in {@link Patterns} compiler
    * pass. Moreover, this pass resolves it to {@link ResolvedType} - which means full resolution.
