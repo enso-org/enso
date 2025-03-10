@@ -2,6 +2,7 @@ package org.enso.compiler.test.passes.resolve;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
@@ -23,6 +24,7 @@ import org.enso.compiler.data.BindingsMap.ResolvedType;
 import org.enso.compiler.pass.IRProcessingPass;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames;
 import org.enso.compiler.pass.resolve.FullyQualifiedNames$;
+import org.enso.compiler.pass.resolve.GlobalNames$;
 import org.enso.compiler.pass.resolve.Patterns;
 import org.enso.compiler.pass.resolve.Patterns$;
 import org.enso.pkg.QualifiedName;
@@ -42,22 +44,38 @@ public final class FullyQualifiedNamesTest {
 
   @Test
   public void libraryNameIsResolved_InExpressionBlock() throws IOException {
-    String mainSrc = """
+    var myMod = srcModule("My_Module", """
+        type My_Type
+        """);
+    var mainMod =
+        srcModule(
+            "Main",
+            """
+        import project.My_Module.My_Type
+
         main =
             local.Proj.My_Module.My_Type
-        """;
+        """);
     var projDir = TMP_DIR.newFolder("Proj").toPath();
-    ProjectUtils.createProject("Proj", mainSrc, projDir);
+    ProjectUtils.createProject("Proj", Set.of(myMod, mainMod), projDir);
     try (var ctx = createCtx(projDir)) {
       compileAllModules(ctx);
       var modIr = getModuleIr(ctx, "local.Proj.Main");
-      var location = getLastLocationOf(mainSrc, "Proj");
+      var location = getLastLocationOf(mainMod.code(), "Proj");
       var ir = findIrByLocation(modIr, location);
       assertHasFQNMetadata(
           ir,
           FullyQualifiedNames.ResolvedModule.class,
           meta -> {
             assertThat(meta.moduleRef().getName().toString(), is("local.Proj.Main"));
+          });
+      assertHasMetadata(
+          ir,
+          GlobalNames$.MODULE$,
+          BindingsMap.Resolution.class,
+          resolution -> {
+            assertThat(resolution.target(), instanceOf(BindingsMap.ResolvedModule.class));
+            assertThat(resolution.target().qualifiedName().item(), is("Main"));
           });
     }
   }
