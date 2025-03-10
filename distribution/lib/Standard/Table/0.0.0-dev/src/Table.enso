@@ -3818,7 +3818,7 @@ type Table
            problem is reported.
     @over Generate_Rows_Range.default_widget
     generate_rows self over:Generate_Rows_Range=(Missing_Argument.throw "over") as:Text="" on_problems:Problem_Behavior=..Report_Warning =
-        resolved_as = if as.is_empty then "generate_rows_id" else as
+        resolved_as = if as.is_empty then "Generated Row" else as
         renamed_table = rename_columns_if_needed self resolved_as on_problems Table.new
         range_col = over.get_range_column self on_problems
         renamed_table.set range_col as=resolved_as . expand_to_rows resolved_as
