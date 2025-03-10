@@ -501,7 +501,7 @@ importers:
         specifier: ^2023.10.5
         version: 2023.10.5
       '@types/ws':
-        specifier: 8.5.13
+        specifier: ^8.5.13
         version: 8.5.13
       '@vitejs/plugin-react':
         specifier: ^4.3.4
