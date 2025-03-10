@@ -60,28 +60,28 @@ public final class NameResolutionTest {
         main =
             local.Proj.My_Module.My_Type
         """);
-    var projDir = TMP_DIR.newFolder("Proj").toPath();
-    ProjectUtils.createProject("Proj", Set.of(myMod, mainMod), projDir);
-    try (var ctx = createCtx(projDir)) {
-      compileAllModules(ctx);
-      var modIr = getModuleIr(ctx, "local.Proj.Main");
-      var location = getLastLocationOf(mainMod.code(), "Proj");
-      var ir = findIrByLocation(modIr, location);
-      assertHasFQNMetadata(
-          ir,
-          FullyQualifiedNames.ResolvedModule.class,
-          meta -> {
-            assertThat(meta.moduleRef().getName().toString(), is("local.Proj.Main"));
-          });
-      assertHasMetadata(
-          ir,
-          GlobalNames$.MODULE$,
-          BindingsMap.Resolution.class,
-          resolution -> {
-            assertThat(resolution.target(), instanceOf(BindingsMap.ResolvedModule.class));
-            assertThat(resolution.target().qualifiedName().item(), is("Main"));
-          });
-    }
+    withProject(
+        "Proj",
+        Set.of(myMod, mainMod),
+        ctx -> {
+          var modIr = getModuleIr(ctx, "local.Proj.Main");
+          var location = getLastLocationOf(mainMod.code(), "Proj");
+          var ir = findIrByLocation(modIr, location);
+          assertHasFQNMetadata(
+              ir,
+              FullyQualifiedNames.ResolvedModule.class,
+              meta -> {
+                assertThat(meta.moduleRef().getName().toString(), is("local.Proj.Main"));
+              });
+          assertHasMetadata(
+              ir,
+              GlobalNames$.MODULE$,
+              BindingsMap.Resolution.class,
+              resolution -> {
+                assertThat(resolution.target(), instanceOf(BindingsMap.ResolvedModule.class));
+                assertThat(resolution.target().qualifiedName().item(), is("Main"));
+              });
+        });
   }
 
   @Test
@@ -98,23 +98,24 @@ public final class NameResolutionTest {
         main =
             My_Type
         """);
-    var projDir = TMP_DIR.newFolder("Proj").toPath();
-    ProjectUtils.createProject("Proj", Set.of(myMod, mainMod), projDir);
-    try (var ctx = createCtx(projDir)) {
-      compileAllModules(ctx);
-      var modIr = getModuleIr(ctx, "local.Proj.Main");
-      var location = getLastLocationOf(mainMod.code(), "My_Type");
-      var ir = findIrByLocation(modIr, location);
-      assertHasMetadata(
-          ir,
-          GlobalNames$.MODULE$,
-          BindingsMap.Resolution.class,
-          resolution -> {
-            assertThat(resolution.target(), instanceOf(BindingsMap.ResolvedType.class));
-            assertThat(
-                resolution.target().qualifiedName().toString(), is("local.Proj.My_Module.My_Type"));
-          });
-    }
+    withProject(
+        "Proj",
+        Set.of(myMod, mainMod),
+        ctx -> {
+          var modIr = getModuleIr(ctx, "local.Proj.Main");
+          var location = getLastLocationOf(mainMod.code(), "My_Type");
+          var ir = findIrByLocation(modIr, location);
+          assertHasMetadata(
+              ir,
+              GlobalNames$.MODULE$,
+              BindingsMap.Resolution.class,
+              resolution -> {
+                assertThat(resolution.target(), instanceOf(BindingsMap.ResolvedType.class));
+                assertThat(
+                    resolution.target().qualifiedName().toString(),
+                    is("local.Proj.My_Module.My_Type"));
+              });
+        });
   }
 
   /**
@@ -138,38 +139,38 @@ public final class NameResolutionTest {
                 _ : local.Proj.My_Module.My_Type -> 21  # Case.Branch
                 _ -> 22
         """);
-    var projDir = TMP_DIR.newFolder("Proj").toPath();
-    ProjectUtils.createProject("Proj", Set.of(myMod, mainMod), projDir);
-    try (var ctx = createCtx(projDir)) {
-      compileAllModules(ctx);
-      var modIr = getModuleIr(ctx, "local.Proj.Main");
-      var caseBranch =
-          findIR(
-              modIr,
-              Case.Branch.class,
-              branch -> {
-                if (branch.expression() instanceof Literal.Number num) {
-                  return num.value().equals("21");
-                }
-                return false;
+    withProject(
+        "Proj",
+        Set.of(myMod, mainMod),
+        ctx -> {
+          var modIr = getModuleIr(ctx, "local.Proj.Main");
+          var caseBranch =
+              findIR(
+                  modIr,
+                  Case.Branch.class,
+                  branch -> {
+                    if (branch.expression() instanceof Literal.Number num) {
+                      return num.value().equals("21");
+                    }
+                    return false;
+                  });
+          assertThat(caseBranch, is(notNullValue()));
+          var patternType = (Pattern.Type) caseBranch.pattern();
+          var tpeName = patternType.tpe();
+          assertHasMetadata(
+              tpeName,
+              Patterns$.MODULE$,
+              BindingsMap.Resolution.class,
+              resolution -> {
+                assertThat(
+                    "Resolution target: " + resolution.target() + " should be ResolvedType",
+                    resolution.target() instanceof ResolvedType,
+                    is(true));
+                assertThat(
+                    resolution.target().qualifiedName().toString(),
+                    containsString("My_Module.My_Type"));
               });
-      assertThat(caseBranch, is(notNullValue()));
-      var patternType = (Pattern.Type) caseBranch.pattern();
-      var tpeName = patternType.tpe();
-      assertHasMetadata(
-          tpeName,
-          Patterns$.MODULE$,
-          BindingsMap.Resolution.class,
-          resolution -> {
-            assertThat(
-                "Resolution target: " + resolution.target() + " should be ResolvedType",
-                resolution.target() instanceof ResolvedType,
-                is(true));
-            assertThat(
-                resolution.target().qualifiedName().toString(),
-                containsString("My_Module.My_Type"));
-          });
-    }
+        });
   }
 
   @Test
@@ -206,6 +207,16 @@ public final class NameResolutionTest {
           meta -> {
             assertThat(meta.moduleRef().getName().toString(), is("local.Lib.Main"));
           });
+    }
+  }
+
+  private void withProject(String projName, Set<SourceModule> modules, Consumer<Context> callback)
+      throws IOException {
+    var projDir = TMP_DIR.newFolder(projName).toPath();
+    ProjectUtils.createProject(projName, modules, projDir);
+    try (var ctx = createCtx(projDir)) {
+      compileAllModules(ctx);
+      callback.accept(ctx);
     }
   }
 
