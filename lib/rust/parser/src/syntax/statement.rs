@@ -9,9 +9,10 @@ use crate::empty_tree;
 use crate::expression_to_pattern;
 use crate::is_qualified_name;
 use crate::prelude::*;
+use crate::syntax::expression::ExpressionParser;
+use crate::syntax::expression::Spacing;
 use crate::syntax::item;
 use crate::syntax::maybe_with_error;
-use crate::syntax::operator::Precedence;
 use crate::syntax::statement::function_def::try_parse_foreign_function;
 use crate::syntax::statement::function_def::FunctionBuilder;
 use crate::syntax::statement::type_def::try_parse_type_def;
@@ -26,7 +27,6 @@ use crate::syntax::tree::FunctionAnnotation;
 use crate::syntax::tree::SyntaxError;
 use crate::syntax::tree::TypeSignature;
 use crate::syntax::tree::TypeSignatureLine;
-use crate::syntax::treebuilding::Spacing;
 use crate::syntax::Item;
 use crate::syntax::Token;
 use crate::syntax::Tree;
@@ -44,7 +44,7 @@ impl<'s> BodyBlockParser<'s> {
     pub fn parse_body_block(
         &mut self,
         lines: &mut Vec<item::Line<'s>>,
-        precedence: &mut Precedence<'s>,
+        precedence: &mut ExpressionParser<'s>,
     ) -> Tree<'s> {
         let lines = compound_lines_with_tail_expression(lines, |prefixes, line, is_tail| {
             if is_tail {
@@ -60,7 +60,7 @@ impl<'s> BodyBlockParser<'s> {
     pub fn parse_module(
         &mut self,
         lines: &mut Vec<item::Line<'s>>,
-        precedence: &mut Precedence<'s>,
+        precedence: &mut ExpressionParser<'s>,
     ) -> Tree<'s> {
         let lines = compound_lines(lines, |prefixes, line| {
             self.statement_parser.parse_module_statement(prefixes, line, precedence)
@@ -159,7 +159,7 @@ impl<'s> StatementParser<'s> {
         &mut self,
         prefixes: &mut StatementPrefixes<'s>,
         line: item::Line<'s>,
-        precedence: &mut Precedence<'s>,
+        precedence: &mut ExpressionParser<'s>,
     ) -> Line<'s, StatementOrPrefix<'s>> {
         parse_statement(prefixes, line, precedence, &mut self.args_buffer, StatementContext {
             evaluation_context: EvaluationContext::Eager,
@@ -172,7 +172,7 @@ impl<'s> StatementParser<'s> {
         &mut self,
         prefixes: &mut StatementPrefixes<'s>,
         line: item::Line<'s>,
-        precedence: &mut Precedence<'s>,
+        precedence: &mut ExpressionParser<'s>,
     ) -> Line<'s, StatementOrPrefix<'s>> {
         parse_statement(prefixes, line, precedence, &mut self.args_buffer, StatementContext {
             evaluation_context: EvaluationContext::Eager,
@@ -185,7 +185,7 @@ impl<'s> StatementParser<'s> {
         &mut self,
         prefixes: &mut StatementPrefixes<'s>,
         line: item::Line<'s>,
-        precedence: &mut Precedence<'s>,
+        precedence: &mut ExpressionParser<'s>,
     ) -> Line<'s, StatementOrPrefix<'s>> {
         parse_statement(prefixes, line, precedence, &mut self.args_buffer, StatementContext {
             evaluation_context: EvaluationContext::Lazy,
@@ -235,6 +235,7 @@ impl<'s> From<StatementPrefix<'s>> for Tree<'s> {
     }
 }
 
+#[derive(From)]
 enum StatementOrPrefix<'s> {
     Statement(Tree<'s>),
     Prefix(StatementPrefix<'s>),
@@ -243,7 +244,7 @@ enum StatementOrPrefix<'s> {
 impl<'s> StatementOrPrefix<'s> {
     fn map_statement(self, f: impl FnOnce(Tree<'s>) -> Tree<'s>) -> Self {
         match self {
-            StatementOrPrefix::Statement(statement) => StatementOrPrefix::Statement(f(statement)),
+            StatementOrPrefix::Statement(statement) => f(statement).into(),
             prefix => prefix,
         }
     }
@@ -255,12 +256,6 @@ impl<'s> From<StatementOrPrefix<'s>> for Tree<'s> {
             StatementOrPrefix::Statement(tree) => tree,
             StatementOrPrefix::Prefix(prefix) => prefix.into(),
         }
-    }
-}
-
-impl<'s> From<Tree<'s>> for StatementOrPrefix<'s> {
-    fn from(value: Tree<'s>) -> Self {
-        StatementOrPrefix::Statement(value)
     }
 }
 
@@ -286,7 +281,7 @@ impl<'s> StatementPrefixLine<'s> {
 fn parse_statement<'s>(
     prefixes: &mut StatementPrefixes<'s>,
     mut line: item::Line<'s>,
-    precedence: &mut Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
     statement_context: StatementContext,
 ) -> Line<'s, StatementOrPrefix<'s>> {
@@ -326,7 +321,7 @@ fn parse_statement<'s>(
         Err(e) =>
             return Line {
                 newline,
-                content: Some(precedence.resolve_non_section(items).unwrap().with_error(e).into()),
+                content: Some(precedence.parse_non_section(items).unwrap().with_error(e).into()),
             },
     };
     match top_level_operator {
@@ -438,10 +433,10 @@ fn parse_expression_statement<'s>(
     prefixes: &mut StatementPrefixes<'s>,
     start: usize,
     mut line: item::Line<'s>,
-    precedence: &mut Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
     visibility_context: VisibilityContext,
 ) -> Line<'s, Tree<'s>> {
-    let expression = precedence.resolve_offset(start, &mut line.items);
+    let expression = precedence.parse_offset(start, &mut line.items);
     debug_assert!(line.items.len() <= start);
     let expression = apply_private_keywords(expression, line.items.drain(..), visibility_context);
     let mut first_newline = line.newline;
@@ -549,7 +544,7 @@ pub fn try_parse_doc_comment<'s>(items: &mut Vec<Item<'s>>) -> Option<DocComment
 fn try_parse_annotation<'s>(
     items: &mut Vec<Item<'s>>,
     start: usize,
-    precedence: &mut Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
 ) -> Option<FunctionAnnotation<'s>> {
     match &items[..] {
         [Item::Token(Token { variant: token::Variant::AnnotationOperator(opr), .. }), Item::Token(Token { variant: token::Variant::Ident(ident), .. }), ..]
@@ -557,7 +552,7 @@ fn try_parse_annotation<'s>(
         {
             let ident = *ident;
             let opr = *opr;
-            let argument = precedence.resolve_non_section_offset(start + 2, items);
+            let argument = precedence.parse_non_section_offset(start + 2, items);
             let annotation = items.pop().unwrap().into_token().unwrap().with_variant(ident);
             let operator = items.pop().unwrap().into_token().unwrap().with_variant(opr);
             Some(FunctionAnnotation { operator, annotation, argument })
@@ -570,23 +565,19 @@ fn parse_type_annotation_statement<'s>(
     items: &mut Vec<Item<'s>>,
     start: usize,
     operator_index: usize,
-    precedence: &mut Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
     tail_expression: bool,
 ) -> StatementOrPrefix<'s> {
-    let type_ = precedence.resolve_non_section_offset(operator_index + 1, items);
+    let type_ = precedence.parse_non_section_offset(operator_index + 1, items);
     let operator: token::TypeAnnotationOperator =
         items.pop().unwrap().into_token().unwrap().try_into().unwrap();
-    let lhs = precedence.resolve_non_section_offset(start, items);
+    let lhs = precedence.parse_non_section_offset(start, items);
     let type_ = type_.unwrap_or_else(|| {
         empty_tree(operator.code.position_after()).with_error(SyntaxError::ExpectedType)
     });
     debug_assert!(items.len() <= start);
     if lhs.as_ref().is_some_and(is_qualified_name) && !tail_expression {
-        StatementOrPrefix::Prefix(StatementPrefix::TypeSignature(TypeSignature {
-            name: lhs.unwrap(),
-            operator,
-            type_,
-        }))
+        StatementPrefix::TypeSignature(TypeSignature { name: lhs.unwrap(), operator, type_ }).into()
     } else {
         let lhs = lhs.unwrap_or_else(|| {
             empty_tree(operator.left_offset.code.position_before())
@@ -673,7 +664,7 @@ fn parse_assignment_like_statement<'s>(
     mut line: item::Line<'s>,
     start: usize,
     operator: usize,
-    precedence: &mut Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
     StatementContext { evaluation_context, visibility_context, .. }: StatementContext,
 ) -> Line<'s, Tree<'s>> {
@@ -681,7 +672,7 @@ fn parse_assignment_like_statement<'s>(
     let newline = line.newline;
     if operator == start {
         let error = precedence
-            .resolve_non_section_offset(start, items)
+            .parse_non_section_offset(start, items)
             .unwrap()
             .with_error(SyntaxError::StmtInvalidAssignmentOrMethod);
         return Line {
@@ -690,7 +681,7 @@ fn parse_assignment_like_statement<'s>(
         };
     }
 
-    let mut expression = precedence.resolve_offset(operator + 1, items);
+    let mut expression = precedence.parse_offset(operator + 1, items);
 
     let operator = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
 
@@ -753,7 +744,7 @@ fn parse_assignment_like_statement<'s>(
             newline,
             content: Some(
                 Tree::opr_app(
-                    precedence.resolve_non_section(items),
+                    precedence.parse_non_section(items),
                     Ok(operator.with_variant(token::variant::Operator())),
                     None,
                 )
@@ -777,10 +768,10 @@ impl<'s> AssignmentBuilder<'s> {
         mut line: item::Line<'s>,
         operator: token::AssignmentOperator<'s>,
         expression: Tree<'s>,
-        precedence: &mut Precedence<'s>,
+        precedence: &mut ExpressionParser<'s>,
     ) -> Self {
         let pattern = expression_to_pattern(
-            precedence.resolve_non_section_offset(start, &mut line.items).unwrap(),
+            precedence.parse_non_section_offset(start, &mut line.items).unwrap(),
         );
         Self { newline: line.newline, pattern, operator, expression, excess_items: line.items }
     }
@@ -807,7 +798,7 @@ impl<'s> AssignmentBuilder<'s> {
 fn parse_pattern<'s>(
     items: &mut Vec<Item<'s>>,
     arg_start: usize,
-    precedence: &mut Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
 ) -> (Option<token::SuspensionOperator<'s>>, Option<Tree<'s>>) {
     let have_suspension = matches!(
         items.get(arg_start),
@@ -826,13 +817,13 @@ fn parse_pattern<'s>(
                 }
             }
             _ => precedence
-                .resolve_non_section_offset(items.len() - 1, items)
+                .parse_non_section_offset(items.len() - 1, items)
                 .map(|tree| tree.with_error(SyntaxError::ArgDefExpectedPattern))
                 .unwrap(),
         })
     } else {
         precedence
-            .resolve_non_section_offset(pattern_start, items)
+            .parse_non_section_offset(pattern_start, items)
             .map(|tree| tree.with_error(SyntaxError::ArgDefExpectedPattern))
     };
     let suspension =

@@ -141,7 +141,7 @@ struct ResolverState<'s> {
     items:        Vec<Item<'s>>,
     context:      Context,
     root_context: RootContext,
-    precedence:   syntax::operator::Precedence<'s>,
+    precedence:   syntax::expression::ExpressionParser<'s>,
 }
 
 
@@ -153,7 +153,7 @@ impl<'s> ResolverState<'s> {
         Self {
             context,
             root_context,
-            precedence: syntax::operator::Precedence::new(),
+            precedence: syntax::expression::ExpressionParser::new(),
             blocks: default(),
             lines: vec![initial_line()],
             groups: default(),
@@ -244,8 +244,8 @@ impl<'s, 'macros> GroupHierarchyConsumer<'s> for Resolver<'s, 'macros> {
         self.resolver.start_group(open);
     }
 
-    fn end_group(&mut self, close: token::CloseSymbol<'s>) {
-        self.resolver.close_group(close);
+    fn end_group(&mut self, close: Option<token::CloseSymbol<'s>>) {
+        self.resolver.close_group(close.unwrap());
     }
 }
 
@@ -350,7 +350,7 @@ impl<'s> ResolverState<'s> {
 
     fn close_group(&mut self, close: token::CloseSymbol<'s>) {
         match self.groups.pop() {
-            Some(group) => self.end_group(group, close.into()),
+            Some(group) => self.end_group(group, Some(close)),
             None => self.items.push(Item::Token(close.into())),
         }
     }
@@ -507,11 +507,11 @@ impl<'s> ResolverState<'s> {
                     }
                     Err(tokens) => tokens,
                 };
-                if let Some(excess) = self.precedence.resolve(&mut excess.into()) {
+                if let Some(excess) = self.precedence.parse(&mut excess.into()) {
                     let excess = excess.with_error("Unexpected tokens in macro invocation.");
                     tokens.push(excess.into());
                 }
-                let body = self.precedence.resolve(&mut tokens);
+                let body = self.precedence.parse(&mut tokens);
                 syntax::tree::MultiSegmentAppSegment { header, body }
             });
             syntax::Tree::multi_segment_app(segments)

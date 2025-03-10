@@ -762,7 +762,7 @@ impl<'s, Inner: TokenConsumer<'s> + GroupHierarchyConsumer<'s>> Lexer<'s, Inner>
             return;
         }
         if let Some(token) = self.token(|this| this.take_1(')')) {
-            self.inner.end_group(token.with_variant(token::variant::CloseSymbol()));
+            self.inner.end_group(Some(token.with_variant(token::variant::CloseSymbol())));
             return;
         }
         if let Some(token) = self.token(|this| this.take_1(&['{', '['])) {

@@ -7,8 +7,8 @@ use crate::empty_tree;
 use crate::expect_qualified_name;
 use crate::expression_to_pattern;
 use crate::source::Code;
+use crate::syntax::expression::ExpressionParser;
 use crate::syntax::maybe_with_error;
-use crate::syntax::operator;
 use crate::syntax::statement::try_parse_doc_comment;
 use crate::syntax::token;
 use crate::syntax::tree::SyntaxError;
@@ -71,7 +71,7 @@ fn register_import_macros(macros: &mut resolver::SegmentMap<'_>) {
 
 fn import_body<'s>(
     segments: NonEmptyVec<MatchedSegment<'s>>,
-    precedence: &mut operator::Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
 ) -> syntax::Tree<'s> {
     let mut polyglot = None;
     let mut from = None;
@@ -88,7 +88,7 @@ fn import_body<'s>(
             "polyglot" => {
                 body = Some(
                     precedence
-                        .resolve(&mut tokens)
+                        .parse(&mut tokens)
                         .map(expect_ident)
                         .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
@@ -97,7 +97,7 @@ fn import_body<'s>(
             "from" => {
                 body = Some(
                     precedence
-                        .resolve(&mut tokens)
+                        .parse(&mut tokens)
                         .map(expect_qualified_name)
                         .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
@@ -121,7 +121,7 @@ fn import_body<'s>(
             "as" => {
                 body = Some(
                     precedence
-                        .resolve(&mut tokens)
+                        .parse(&mut tokens)
                         .map(expect_ident)
                         .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
@@ -168,7 +168,7 @@ fn register_export_macros(macros: &mut resolver::SegmentMap<'_>) {
 
 fn export_body<'s>(
     segments: NonEmptyVec<MatchedSegment<'s>>,
-    precedence: &mut operator::Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
 ) -> syntax::Tree<'s> {
     let mut from = None;
     let mut export = None;
@@ -184,7 +184,7 @@ fn export_body<'s>(
             "from" => {
                 body = Some(
                     precedence
-                        .resolve(&mut tokens)
+                        .parse(&mut tokens)
                         .map(expect_qualified_name)
                         .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
@@ -208,7 +208,7 @@ fn export_body<'s>(
             "as" => {
                 body = Some(
                     precedence
-                        .resolve(&mut tokens)
+                        .parse(&mut tokens)
                         .map(expect_ident)
                         .unwrap_or_else(|| expected_nonempty(header.code.position_after())),
                 );
@@ -257,7 +257,7 @@ pub fn if_then<'s>() -> Definition<'s> {
 
 fn if_body<'s>(
     segments: NonEmptyVec<MatchedSegment<'s>>,
-    precedence: &mut operator::Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
 ) -> syntax::Tree<'s> {
     capture_expressions(segments, precedence)
 }
@@ -272,7 +272,7 @@ pub fn lambda<'s>() -> Definition<'s> {
 
 fn lambda_body<'s>(
     segments: NonEmptyVec<MatchedSegment<'s>>,
-    precedence: &mut operator::Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
 ) -> syntax::Tree<'s> {
     let (body, mut rest) = segments.pop();
     let arguments = rest.pop().unwrap();
@@ -280,7 +280,7 @@ fn lambda_body<'s>(
     let arguments =
         syntax::parse_args(&mut arguments.result.tokens(), 0, precedence, &mut default());
     let arrow = body.header.with_variant(token::variant::ArrowOperator());
-    let body_expression = precedence.resolve(&mut body.result.tokens());
+    let body_expression = precedence.parse(&mut body.result.tokens());
     let body_expression =
         body_expression.unwrap_or_else(|| expected_nonempty(arrow.code.position_after()));
     syntax::Tree::lambda(backslash, arguments, arrow, body_expression)
@@ -293,14 +293,14 @@ pub fn case<'s>() -> Definition<'s> {
 
 fn case_body<'s>(
     segments: NonEmptyVec<MatchedSegment<'s>>,
-    precedence: &mut operator::Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
 ) -> syntax::Tree<'s> {
     use syntax::tree::*;
     let (of, mut rest) = segments.pop();
     let case = rest.pop().unwrap();
     let case_ = case.header.with_variant(token::variant::CaseKeyword());
     let mut expression = case.result.tokens();
-    let expression = precedence.resolve(&mut expression);
+    let expression = precedence.parse(&mut expression);
     let of_ = of.header.with_variant(token::variant::OfKeyword());
     let mut initial_case = vec![];
     let mut block = default();
@@ -332,7 +332,7 @@ fn case_body<'s>(
 
 fn parse_case_line<'s>(
     line: syntax::item::Line<'s>,
-    precedence: &mut operator::Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
 ) -> (syntax::tree::CaseLine<'s>, Option<SyntaxError>) {
     let syntax::item::Line { newline, mut items } = line;
     if let Some(docs) = try_parse_doc_comment(&mut items) {
@@ -351,22 +351,22 @@ fn parse_case_line<'s>(
 
 fn parse_case<'s>(
     items: &mut Vec<Item<'s>>,
-    precedence: &mut operator::Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
 ) -> (syntax::tree::Case<'s>, Option<SyntaxError>) {
     let mut arrow = None;
     let mut pattern = None;
     let expression;
     if let Some(arrow_i) = find_top_level_arrow(items) {
         expression = if arrow_i + 1 < items.len() {
-            precedence.resolve_offset(arrow_i + 1, items)
+            precedence.parse_offset(arrow_i + 1, items)
         } else {
             None
         };
         let op = items.pop().unwrap().into_token().unwrap();
         arrow = Some(op.with_variant(token::variant::ArrowOperator()));
-        pattern = precedence.resolve(items).map(expression_to_pattern);
+        pattern = precedence.parse(items).map(expression_to_pattern);
     } else {
-        expression = precedence.resolve(items);
+        expression = precedence.parse(items);
     }
     let error = match (&pattern, &arrow, &expression) {
         (Some(_), Some(_), Some(_)) | (None, None, None) => None,
@@ -408,7 +408,7 @@ pub fn array<'s>() -> Definition<'s> {
 
 fn array_body<'s>(
     segments: NonEmptyVec<MatchedSegment<'s>>,
-    precedence: &mut operator::Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
 ) -> syntax::Tree<'s> {
     let GroupedSequence { left, first, rest, right } = grouped_sequence(segments, precedence);
     syntax::tree::Tree::array(left, first, rest, right)
@@ -421,7 +421,7 @@ pub fn tuple<'s>() -> Definition<'s> {
 
 fn tuple_body<'s>(
     segments: NonEmptyVec<MatchedSegment<'s>>,
-    precedence: &mut operator::Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
 ) -> syntax::Tree<'s> {
     let GroupedSequence { left, first, rest, right } = grouped_sequence(segments, precedence);
     syntax::tree::Tree::tuple(left, first, rest, right)
@@ -436,7 +436,7 @@ struct GroupedSequence<'s> {
 
 fn grouped_sequence<'s>(
     segments: NonEmptyVec<MatchedSegment<'s>>,
-    precedence: &mut operator::Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
 ) -> GroupedSequence<'s> {
     let (right, mut rest) = segments.pop();
     let right = right.header.with_variant(token::variant::CloseSymbol());
@@ -447,7 +447,7 @@ fn grouped_sequence<'s>(
 }
 
 fn sequence<'s>(
-    precedence: &mut operator::Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
     tokens: &mut Vec<Item<'s>>,
 ) -> (Option<syntax::Tree<'s>>, Vec<syntax::tree::OperatorDelimitedTree<'s>>) {
     use syntax::tree::*;
@@ -459,7 +459,7 @@ fn sequence<'s>(
                 tokens.get(i).unwrap()
             {
                 let body =
-                    if i < tokens.len() { precedence.resolve_offset(i + 1, tokens) } else { None };
+                    if i < tokens.len() { precedence.parse_offset(i + 1, tokens) } else { None };
                 let operator = tokens
                     .pop()
                     .unwrap()
@@ -475,12 +475,12 @@ fn sequence<'s>(
         }
     }
     rest.reverse();
-    let first = precedence.resolve(tokens);
+    let first = precedence.parse(tokens);
     (first, rest)
 }
 
 fn sequence_tree<'s>(
-    precedence: &mut operator::Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
     tokens: &mut Vec<Item<'s>>,
     mut f: impl FnMut(syntax::Tree<'s>) -> syntax::Tree<'s>,
 ) -> Option<syntax::Tree<'s>> {
@@ -504,14 +504,14 @@ fn splice<'s>() -> Definition<'s> {
 
 fn splice_body<'s>(
     segments: NonEmptyVec<MatchedSegment<'s>>,
-    precedence: &mut operator::Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
 ) -> syntax::Tree<'s> {
     let (close, mut segments) = segments.pop();
     let close = close.header.with_variant(token::variant::CloseSymbol());
     let segment = segments.pop().unwrap();
     let open = segment.header.with_variant(token::variant::OpenSymbol());
     let mut expression = segment.result.tokens();
-    let expression = precedence.resolve(&mut expression);
+    let expression = precedence.parse(&mut expression);
     let splice = syntax::tree::TextElement::Splice { open, expression, close };
     syntax::Tree::text_literal(default(), default(), vec![splice], default())
 }
@@ -528,12 +528,12 @@ fn freeze<'s>() -> Definition<'s> {
 /// in a [`MultiSegmentApp`].
 fn capture_expressions<'s>(
     segments: NonEmptyVec<MatchedSegment<'s>>,
-    precedence: &mut operator::Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
 ) -> syntax::Tree<'s> {
     use syntax::tree::*;
     Tree::multi_segment_app(segments.mapped(|s| {
         let header = s.header;
-        let body = precedence.resolve(&mut s.result.tokens());
+        let body = precedence.parse(&mut s.result.tokens());
         MultiSegmentAppSegment { header, body }
     }))
 }

@@ -41,8 +41,10 @@ impl<'s> GroupHierarchyConsumer<'s> for Vec<Token<'s>> {
         self.push(open.into())
     }
 
-    fn end_group(&mut self, close: token::CloseSymbol<'s>) {
-        self.push(close.into())
+    fn end_group(&mut self, close: Option<token::CloseSymbol<'s>>) {
+        if let Some(close) = close {
+            self.push(close.into())
+        }
     }
 }
 

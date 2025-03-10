@@ -1,9 +1,10 @@
 use crate::prelude::*;
 
 use crate::empty_tree;
+use crate::syntax::expression::ExpressionParser;
+use crate::syntax::expression::Spacing;
 use crate::syntax::item;
 use crate::syntax::maybe_with_error;
-use crate::syntax::operator::Precedence;
 use crate::syntax::statement::apply_excess_private_keywords;
 use crate::syntax::statement::apply_private_keywords;
 use crate::syntax::statement::find_top_level_operator;
@@ -24,7 +25,6 @@ use crate::syntax::tree::DocLine;
 use crate::syntax::tree::ReturnSpecification;
 use crate::syntax::tree::SyntaxError;
 use crate::syntax::tree::TypeSignatureLine;
-use crate::syntax::treebuilding::Spacing;
 use crate::syntax::Item;
 use crate::syntax::Token;
 use crate::syntax::Tree;
@@ -44,7 +44,7 @@ impl<'s> FunctionBuilder<'s> {
         mut line: item::Line<'s>,
         start: usize,
         qn_len: usize,
-        precedence: &mut Precedence<'s>,
+        precedence: &mut ExpressionParser<'s>,
         args_buffer: &mut Vec<ArgumentDefinition<'s>>,
     ) -> Self {
         let mut arg_starts = vec![];
@@ -66,7 +66,7 @@ impl<'s> FunctionBuilder<'s> {
         );
         let args = args_buffer.drain(..).rev().collect();
 
-        let name = precedence.resolve_non_section_offset(start, items).unwrap();
+        let name = precedence.parse_non_section_offset(start, items).unwrap();
 
         Self { name, return_, args, line, start }
     }
@@ -181,7 +181,7 @@ fn opt_qn_equivalent(a: &Option<Tree>, b: &Option<Tree>) -> bool {
 pub fn parse_args<'s>(
     items: &mut Vec<Item<'s>>,
     start: usize,
-    precedence: &mut Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
 ) -> Vec<ArgumentDefinition<'s>> {
     let mut arg_starts = vec![];
@@ -202,7 +202,7 @@ pub fn parse_constructor_definition<'s>(
     mut line: item::Line<'s>,
     private_keywords_start: usize,
     start: usize,
-    precedence: &mut Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
 ) -> Line<'s, Tree<'s>> {
     let newline = line.newline;
@@ -266,7 +266,7 @@ pub fn parse_constructor_definition<'s>(
 fn parse_constructor_decl<'s>(
     items: &mut Vec<Item<'s>>,
     start: usize,
-    precedence: &mut Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
 ) -> (token::Ident<'s>, Vec<ArgumentDefinition<'s>>) {
     let args = parse_args(items, start + 1, precedence, args_buffer);
@@ -280,7 +280,7 @@ pub fn try_parse_foreign_function<'s>(
     start: usize,
     operator: &mut Option<token::AssignmentOperator<'s>>,
     expression: &mut Option<Tree<'s>>,
-    precedence: &mut Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
 ) -> Option<Tree<'s>> {
     match items.get(start) {
@@ -295,7 +295,7 @@ pub fn try_parse_foreign_function<'s>(
             items.push(Item::from(Token::from(operator)));
             items.extend(expression.take().map(Item::from));
             return precedence
-                .resolve_non_section_offset(start, items)
+                .parse_non_section_offset(start, items)
                 .unwrap()
                 .with_error(SyntaxError::ForeignFnExpectedLanguage)
                 .into();
@@ -308,7 +308,7 @@ pub fn try_parse_foreign_function<'s>(
             items.push(Item::from(Token::from(operator)));
             items.extend(expression.take().map(Item::from));
             return precedence
-                .resolve_non_section_offset(start, items)
+                .parse_non_section_offset(start, items)
                 .unwrap()
                 .with_error(SyntaxError::ForeignFnExpectedName)
                 .into();
@@ -362,9 +362,9 @@ struct ArgDefInfo {
 fn parse_return_spec<'s>(
     items: &mut Vec<Item<'s>>,
     arrow: usize,
-    precedence: &mut Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
 ) -> ReturnSpecification<'s> {
-    let r#type = precedence.resolve_non_section_offset(arrow + 1, items);
+    let r#type = precedence.parse_non_section_offset(arrow + 1, items);
     let arrow: token::ArrowOperator =
         items.pop().unwrap().into_token().unwrap().try_into().unwrap();
     let r#type = r#type.unwrap_or_else(|| {
@@ -376,7 +376,7 @@ fn parse_return_spec<'s>(
 fn parse_arg_def<'s>(
     items: &mut Vec<Item<'s>>,
     mut start: usize,
-    precedence: &mut Precedence<'s>,
+    precedence: &mut ExpressionParser<'s>,
 ) -> ArgumentDefinition<'s> {
     let mut open1 = None;
     let mut close1 = None;
@@ -394,8 +394,7 @@ fn parse_arg_def<'s>(
     let items = parenthesized_body.as_mut().unwrap_or(items);
     let ArgDefInfo { type_, default } = match analyze_arg_def(&items[start..]) {
         Err(e) => {
-            let pattern =
-                precedence.resolve_non_section_offset(start, items).unwrap().with_error(e);
+            let pattern = precedence.parse_non_section_offset(start, items).unwrap().with_error(e);
             return ArgumentDefinition {
                 open: open1,
                 open2: None,
@@ -410,7 +409,7 @@ fn parse_arg_def<'s>(
         Ok(arg_def) => arg_def,
     };
     let default = default.map(|default| {
-        let tree = precedence.resolve_offset(start + default + 1, items);
+        let tree = precedence.parse_offset(start + default + 1, items);
         let equals = items.pop().unwrap().into_token().unwrap();
         let expression = tree.unwrap_or_else(|| {
             empty_tree(equals.code.position_after()).with_error(SyntaxError::ExpectedExpression)
@@ -439,7 +438,7 @@ fn parse_arg_def<'s>(
             start = 0;
         }
         let items = parenthesized_body.as_mut().unwrap_or(items);
-        let tree = precedence.resolve_non_section_offset(start + type_ + 1, items);
+        let tree = precedence.parse_non_section_offset(start + type_ + 1, items);
         let operator = items.pop().unwrap().into_token().unwrap();
         let type_ = tree.unwrap_or_else(|| {
             empty_tree(operator.code.position_after()).with_error(SyntaxError::ExpectedType)

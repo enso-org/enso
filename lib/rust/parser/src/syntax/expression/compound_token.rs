@@ -1,13 +1,12 @@
-use enso_prelude::*;
+use crate::prelude::*;
 
 use crate::syntax;
-use crate::syntax::consumer::Finish;
-use crate::syntax::consumer::TokenConsumer;
-use crate::syntax::consumer::TreeConsumer;
+use crate::syntax::expression::consumer::TokenConsumer;
+use crate::syntax::expression::consumer::TreeConsumer;
 use crate::syntax::maybe_with_error;
 use crate::syntax::token;
 use crate::syntax::tree::SyntaxError;
-use crate::syntax::GroupHierarchyConsumer;
+use crate::syntax::Flush;
 use crate::syntax::Token;
 use crate::syntax::Tree;
 
@@ -18,14 +17,17 @@ use crate::syntax::Tree;
 // ================================
 
 /// Recognizes lexical tokens that are indivisible, and assembles them into trees.
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Finish, OperatorConsumer, GroupHierarchyConsumer)]
+#[operator_consumer(FlushAndForward)]
 pub struct CompoundTokens<'s, Inner> {
     compounding:        Option<CompoundToken<'s>>,
     inner:              Inner,
     has_preceding_item: bool,
 }
 
-impl<'s, Inner: TreeConsumer<'s> + TokenConsumer<'s>> CompoundTokens<'s, Inner> {
+impl<'s, Inner> CompoundTokens<'s, Inner>
+where Inner: TreeConsumer<'s> + TokenConsumer<'s>
+{
     fn try_start(&mut self, token: Token<'s>) {
         match CompoundToken::start(token, self.has_preceding_item) {
             StartStep::Start(compounding) => self.compounding = Some(compounding),
@@ -39,8 +41,8 @@ impl<'s, Inner: TreeConsumer<'s> + TokenConsumer<'s>> CompoundTokens<'s, Inner> 
     }
 }
 
-impl<'s, Inner: TreeConsumer<'s> + TokenConsumer<'s>> TokenConsumer<'s>
-    for CompoundTokens<'s, Inner>
+impl<'s, Inner> TokenConsumer<'s> for CompoundTokens<'s, Inner>
+where Inner: TreeConsumer<'s> + TokenConsumer<'s>
 {
     fn push_token(&mut self, token: Token<'s>) {
         if let Some(compounding) = self.compounding.take() {
@@ -59,7 +61,9 @@ impl<'s, Inner: TreeConsumer<'s> + TokenConsumer<'s>> TokenConsumer<'s>
     }
 }
 
-impl<'s, Inner: TreeConsumer<'s>> TreeConsumer<'s> for CompoundTokens<'s, Inner> {
+impl<'s, Inner> TreeConsumer<'s> for CompoundTokens<'s, Inner>
+where Inner: TreeConsumer<'s>
+{
     fn push_tree(&mut self, mut tree: Tree<'s>) {
         match (&mut self.compounding, &mut tree.variant) {
             (
@@ -87,35 +91,14 @@ impl<'s, Inner: TreeConsumer<'s>> TreeConsumer<'s> for CompoundTokens<'s, Inner>
     }
 }
 
-impl<'s, Inner: TreeConsumer<'s>> CompoundTokens<'s, Inner> {
+impl<'s, Inner> Flush for CompoundTokens<'s, Inner>
+where Inner: TreeConsumer<'s>
+{
     fn flush(&mut self) {
         if let Some(tree) = self.compounding.take().and_then(|builder| builder.flush()) {
             self.inner.push_tree(tree);
         }
         self.has_preceding_item = default();
-    }
-}
-
-impl<'s, Inner: TreeConsumer<'s> + Finish> Finish for CompoundTokens<'s, Inner> {
-    type Result = Inner::Result;
-
-    fn finish(&mut self) -> Self::Result {
-        self.flush();
-        self.inner.finish()
-    }
-}
-
-impl<'s, Inner> GroupHierarchyConsumer<'s> for CompoundTokens<'s, Inner>
-where Inner: TreeConsumer<'s> + GroupHierarchyConsumer<'s>
-{
-    fn start_group(&mut self, open: token::OpenSymbol<'s>) {
-        self.flush();
-        self.inner.start_group(open);
-    }
-
-    fn end_group(&mut self, close: token::CloseSymbol<'s>) {
-        self.flush();
-        self.inner.end_group(close);
     }
 }
 
