@@ -96,12 +96,7 @@ export function useVisualizationData({
   )
 
   const executeExpression = async (
-    visulizationModule: string,
-    expressionString: string,
-    formatFunction:
-      | ((arg: any, tempModule: Ast.MutableModule) => Ast.Owned<Ast.MutableExpression>)
-      | null,
-    ...positionalArgumentsExpressions: any[]
+    expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.MutableOprApp>,
   ) => {
     const dataSourceValue = toValue(dataSource)
     if (dataSourceValue?.type !== 'node') return
@@ -114,24 +109,7 @@ export function useVisualizationData({
       graphDb.nodeIdToNode.get(dataSourceValue.nodeId as NodeId)?.outerAst.externalId
     if (contextId === undefined) return
     try {
-      const tempModule = Ast.MutableModule.Transient()
-      const preprocessorModule = Ast.parseExpression(visulizationModule, tempModule)!
-      const preprocessorQn = Ast.PropertyAccess.new(
-        tempModule,
-        preprocessorModule,
-        Ast.identifier(expressionString)!,
-      )
-
-      const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
-        Ast.Wildcard.new(tempModule),
-        ...positionalArgumentsExpressions.map((arg) => {
-          const parsedArg =
-            formatFunction ? formatFunction(arg, tempModule) : Ast.parseExpression(arg, tempModule)!
-          return Ast.Group.new(tempModule, parsedArg)
-        }),
-      ])
-      const rhs = Ast.parseExpression(identifier, tempModule)!
-      const expression = Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
+      const expression = expressionFunction(identifier)
       return projectStore.executeExpression(contextId, expression.code())
     } catch (e) {
       console.error(e)
@@ -307,19 +285,6 @@ export function useVisualizationData({
       (toolbarDefinition.value = definition),
     visualizationDefinedToolbar: computed(() => toValue(toolbarDefinition.value)),
     toolbarOverlay,
-    executeExpression: (
-      visulizationModule: string,
-      expressionString: string,
-      formatFunction:
-        | ((arg: any, tempModule: Ast.MutableModule) => Ast.Owned<Ast.MutableExpression>)
-        | null,
-      ...positionalArgumentsExpressions: string[]
-    ) =>
-      executeExpression(
-        visulizationModule,
-        expressionString,
-        formatFunction,
-        ...positionalArgumentsExpressions,
-      ),
+    executeExpression,
   }
 }

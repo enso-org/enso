@@ -27,12 +27,7 @@ export interface VisualizationConfig {
    */
   setToolbarOverlay: (enableOverlay: boolean) => void
   executeExpression: (
-    visulizationModule: string,
-    expressionString: string,
-    formatFunction:
-      | ((arg: any, tempModule: Ast.MutableModule) => Ast.Owned<Ast.MutableExpression>)
-      | null,
-    ...positionalArgumentsExpressions: any[]
+    expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.MutableOprApp>,
   ) => any
 }
 

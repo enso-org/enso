@@ -24,7 +24,7 @@ import { TableVisualisationTooltip } from './TableVisualization/TableVisualisati
 import {
   convertFilterModel,
   convertSortModel,
-  parseArgument,
+  createExpression,
 } from './TableVisualization/TableVizDataSourceUtils'
 import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
@@ -273,13 +273,12 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
 function createServer() {
   return {
     getSetFilterValues: async (columnIndex?: number) => {
-      const response = await config.executeExpression(
+      const expressionFunction = createExpression(
         'Standard.Visualization.Table.Visualization',
         'get_distinct_values_for_column',
-        //null as values dont need parsing
-        null,
         `${columnIndex}`,
       )
+      const response = await config.executeExpression(expressionFunction)
       return {
         success: true,
         data: response.value.distinct_vals,
@@ -301,11 +300,9 @@ function createServer() {
         colTypeMap.value,
       )
 
-      const response = await config.executeExpression(
+      const expressionFunction = createExpression(
         'Standard.Visualization.Table.Visualization',
         'get_rows_for_table',
-        // function that will parse filter values to enso compaible
-        parseArgument,
         //the index of the next bucket of rows to get
         `${request.startRow}`,
         //column indexes that require a sort
@@ -321,6 +318,7 @@ function createServer() {
         // To Values (only used in Between filters will be 'Nothing' for any other filter)
         toValueList,
       )
+      const response = await config.executeExpression(expressionFunction)
       return {
         success: true,
         data: response.value.rows,

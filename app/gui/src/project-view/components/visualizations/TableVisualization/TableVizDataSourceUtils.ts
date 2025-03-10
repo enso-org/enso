@@ -1,7 +1,6 @@
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { IServerSideGetRowsRequest } from 'ag-grid-community'
-import { request } from 'http'
 import {
   actionMap,
   FilterAction,
@@ -17,7 +16,7 @@ type ValueTypeArgumentParent =
   | { valueType: ValueTypes; value: string }
   | { valueType: 'Mixed'; value: ValueTypeArgumentChild[] }
 type PossibleArguments = string | ValueTypeArgumentParent
-type Argument = string | Array<PossibleArguments>
+export type Argument = string | Array<PossibleArguments>
 type SortDirection = 'asc' | 'desc'
 const sortDirectionMap = {
   asc: '1',
@@ -118,14 +117,14 @@ export const convertFilterModel = (
     }
   })
 
-  const valueList =
+  const valueList: Argument =
     valueMap.length ?
       valueMap.map((value) => {
         if (value.valType === 'Mixed' && Array.isArray(value.value)) {
           const parseValues = value.value.map((val) => {
             return { valueType: getCellValueType(val), value: val }
           })
-          return { valueType: value.valType, value: parseValues }
+          return { valueType: 'Mixed', value: parseValues } as ValueTypeArgumentParent
         }
 
         if (
@@ -133,10 +132,10 @@ export const convertFilterModel = (
           typeof value.value === 'object' &&
           'fromValue' in value.value
         ) {
-          return { valueType: value.valType, value: `${value.value.fromValue}` }
+          return { valueType: value.valType as ValueTypes, value: `${value.value.fromValue}` }
         }
 
-        return { valueType: value.valType, value: `${value.value}` }
+        return { valueType: value.valType as ValueTypes, value: `${value.value}` }
       })
     : 'Nothing'
 
@@ -155,4 +154,30 @@ export const convertFilterModel = (
     : 'Nothing'
 
   return { filterColumnIndexList, filterActions, valueList, toValueList }
+}
+
+export const createExpression = (
+  visulizationModule: string,
+  expressionString: string,
+  ...positionalArgumentsExpressions: Argument[]
+) => {
+  const tempModule = Ast.MutableModule.Transient()
+  const preprocessorModule = Ast.parseExpression(visulizationModule, tempModule)!
+  const preprocessorQn = Ast.PropertyAccess.new(
+    tempModule,
+    preprocessorModule,
+    Ast.identifier(expressionString)!,
+  )
+
+  const preprocessorInvocation = Ast.App.PositionalSequence(preprocessorQn, [
+    Ast.Wildcard.new(tempModule),
+    ...positionalArgumentsExpressions.map((arg) => {
+      const parsedArg = parseArgument(arg, tempModule)
+      return Ast.Group.new(tempModule, parsedArg)
+    }),
+  ])
+  return (nodeId: string) => {
+    const rhs = Ast.parseExpression(nodeId, tempModule)!
+    return Ast.OprApp.new(tempModule, preprocessorInvocation, '<|', rhs)
+  }
 }
