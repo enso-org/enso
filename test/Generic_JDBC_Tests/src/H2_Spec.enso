@@ -20,7 +20,7 @@ type H2_JDBC_Config
     name self = "H2"
 
     with_database self ~action =
-        database_root = data_dir / "h2_tests"
+        database_root = data_dir / ("h2_tests" + (Date_Time.now.format "yyyy-MM-dd_HHmmss.f"))
         url = "jdbc:h2:" + database_root.path + "/test"
         cleanup =
             database_root . delete_if_exists recursive=True
