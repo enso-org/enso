@@ -29,7 +29,6 @@
     - count_non_trivial_whitespace self sample_size:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
     - count_nothing self -> Standard.Base.Data.Numbers.Integer
     - count_untrimmed self sample_size:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
-    - requires_numeric_formatter_check self -> Standard.Base.Data.Boolean.Boolean
     - date_add self amount:(Standard.Table.Column.Column|Standard.Base.Data.Numbers.Integer) period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)= -> Standard.Base.Any.Any
     - date_diff self end:(Standard.Table.Column.Column|Standard.Base.Data.Time.Date.Date|Standard.Base.Data.Time.Date_Time.Date_Time|Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day) period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)= -> Standard.Base.Any.Any
     - date_part self period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)= -> Standard.Base.Any.Any
@@ -83,6 +82,7 @@
     - print self show_rows:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Nothing.Nothing
     - read self max_rows:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Table.Column.Column
     - rename self name:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - requires_numeric_formatter_check self -> Standard.Base.Data.Boolean.Boolean
     - reverse self -> Standard.Table.Column.Column
     - round self decimal_places:Standard.Base.Data.Numbers.Integer= use_bankers:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - running self statistic:Standard.Base.Data.Statistics.Statistic= name:Standard.Base.Data.Text.Text= -> Standard.Table.Column.Column
