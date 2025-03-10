@@ -1592,6 +1592,34 @@ export default class RemoteBackend extends Backend {
     }
   }
 
+  /** Set state of the project running in Hybrid mode as open in progress. */
+  async setHybridOpenInProgress(id: backend.ProjectId, title: string): Promise<void> {
+    const path = remoteBackendPaths.getHybridSetOpenInProgress(id)
+    const response = await this.post(path, {})
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'openProjectBackendError', title)
+    } else {
+      return
+    }
+  }
+
+  /** Set state of the project running in Hybrid mode as opened. */
+  async setHybridOpened(id: backend.ProjectId, title: string): Promise<void> {
+    const path = remoteBackendPaths.getHybridSetOpened(id)
+    const response = await this.post(path, {})
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'openProjectBackendError', title)
+    } else {
+      return
+    }
+  }
+
+  /** Send ping notifying the backend that the project is running. */
+  async ping(id: backend.ProjectId): Promise<void> {
+    const path = remoteBackendPaths.getHybridProjectPing(id)
+    await this.post(path, {})
+  }
+
   /**
    * Replaces the `user` of all permissions for the current user on an asset, so that they always
    * return the up-to-date user.

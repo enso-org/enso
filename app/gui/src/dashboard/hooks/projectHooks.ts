@@ -238,7 +238,10 @@ export function useOpenProjectMutation() {
 
       void client.cancelQueries({ queryKey })
     },
-    onSuccess: async (_, { type, id, parentId }) => {
+    onSuccess: async (_, { type, id, title, parentId, hybrid }) => {
+      if (hybrid) {
+        await remoteBackend.setHybridOpened(hybrid.cloudProjectId, title)
+      }
       await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
     },
@@ -258,10 +261,14 @@ export function useCloseProjectMutation() {
 
   return reactQuery.useMutation({
     mutationKey: ['closeProject'],
-    mutationFn: ({ type, id, title }: LaunchedProject) => {
+    mutationFn: async ({ type, id, title, hybrid }: LaunchedProject) => {
       const backend = type === backendModule.BackendType.remote ? remoteBackend : localBackend
 
       invariant(backend != null, 'Backend is null')
+
+      if (hybrid) {
+        await remoteBackend.closeProject(hybrid.cloudProjectId, title)
+      }
 
       return backend.closeProject(id, title)
     },
@@ -276,24 +283,28 @@ export function useCloseProjectMutation() {
 
       void client.cancelQueries({ queryKey })
     },
-    onSuccess: async (_, { type, id, parentId, cloudProjectId }) => {
+    onSuccess: async (_, { type, id, parentId, hybrid }) => {
       await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       setProjectAsset(type, id, parentId, (asset) => ({
         ...asset,
         projectState: { ...asset.projectState, type: backendModule.ProjectState.closed },
       }))
 
-      // If the project runs in hybrid execution mode
-      // TODO: implement proper handling of upload failures
-      if (cloudProjectId) {
+      if (hybrid) {
+        await remoteBackend.uploadProject(hybrid.cloudProjectId, parentId)
+
         invariant(localBackend != null, 'LocalBackend is null')
-
-        await remoteBackend.uploadProject(cloudProjectId, parentId)
-
         await localBackend.deleteAsset(parentId, { force: true }, null)
       }
     },
-    onError: async (_, { type, id, parentId }) => {
+    onError: async (_, { type, id, parentId, hybrid }) => {
+      if (hybrid) {
+        await remoteBackend.uploadProject(hybrid.cloudProjectId, parentId)
+
+        invariant(localBackend != null, 'LocalBackend is null')
+        await localBackend.deleteAsset(parentId, { force: true }, null)
+      }
+
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       await client.invalidateQueries({ queryKey: [type, 'listDirectory', parentId] })
     },

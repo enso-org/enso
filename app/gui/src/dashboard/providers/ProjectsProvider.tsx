@@ -25,16 +25,21 @@ declare module '#/utilities/LocalStorage' {
   }
 }
 
+const PROJECT_ID_SCHEMA = z.custom<backendModule.ProjectId>(
+  (x) => typeof x === 'string' && x.startsWith('project-'),
+)
 const PROJECT_SCHEMA = z
   .object({
-    id: z.custom<backendModule.ProjectId>((x) => typeof x === 'string' && x.startsWith('project-')),
+    id: PROJECT_ID_SCHEMA,
     parentId: z.custom<backendModule.DirectoryId>(
       (x) => typeof x === 'string' && x.startsWith('directory-'),
     ),
     title: z.string(),
     type: z.nativeEnum(backendModule.BackendType),
-    cloudProjectId: z.optional(
-      z.custom<backendModule.ProjectId>((x) => typeof x === 'string' && x.startsWith('project-')),
+    hybrid: z.optional(
+      z.object({
+        cloudProjectId: PROJECT_ID_SCHEMA,
+      }),
     ),
   })
   .readonly()
