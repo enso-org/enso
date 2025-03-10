@@ -135,9 +135,9 @@ add_specs suite_builder =
             after_count = get_num_response_cache_entries
             [before_count, after_count]
 
-        expect_counts expected_counts ~action =
+        expect_counts expected_counts ~action = Frame_Hider.hide <|
             counts = with_counts action
-            counts . should_equal expected_counts frames_to_skip=1
+            counts . should_equal expected_counts
 
         get_cache_files : Vector Text
         get_cache_files -> Vector Text =

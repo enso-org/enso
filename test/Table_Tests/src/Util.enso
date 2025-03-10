@@ -9,33 +9,31 @@ from Standard.Test import all
 
 polyglot java import org.enso.base_test_helpers.FileSystemHelper
 
-Table.should_equal : Any -> Integer -> Boolean -> Any
-Table.should_equal self expected frames_to_skip=0 ignore_order=False =
-    loc = Test.get_source_location 1+frames_to_skip
+Table.should_equal : Any -> Boolean -> Any
+Table.should_equal self expected ignore_order=False = Frame_Hider.hide <|
     rhs_error_check expected
-    Panic.catch Test_Failure_Error (table_should_equal_impl self expected loc ignore_order) error->
+    Panic.catch Test_Failure_Error (table_should_equal_impl self expected ignore_order) error->
         Test.fail error.payload.message
 
-Column.should_equal : Any -> Integer -> Any
-Column.should_equal self expected frames_to_skip=0 =
-    loc = Test.get_source_location 1+frames_to_skip
+Column.should_equal : Any -> Any
+Column.should_equal self expected = Frame_Hider.hide <|
     rhs_error_check expected
-    Panic.catch Test_Failure_Error (column_should_equal_impl self expected loc) error->
+    Panic.catch Test_Failure_Error (column_should_equal_impl self expected) error->
         Test.fail error.payload.message
 
-DB_Table.should_equal : DB_Table|Table -> Integer -> Boolean -> Any
-DB_Table.should_equal self expected frames_to_skip=0 ignore_order=False =
+DB_Table.should_equal : DB_Table|Table -> Boolean -> Any
+DB_Table.should_equal self expected ignore_order=False = Frame_Hider.hide <|
     rhs_error_check expected
     t0 = self.read
     t1 = expected.read
-    t0 . should_equal t1 frames_to_skip+1 ignore_order
+    t0 . should_equal t1 ignore_order
 
-DB_Column.should_equal : DB_Column -> Integer -> Any
-DB_Column.should_equal self expected frames_to_skip=0 =
+DB_Column.should_equal : DB_Column -> Any
+DB_Column.should_equal self expected = Frame_Hider.hide <|
     rhs_error_check expected
     t0 = self.read
     t1 = expected.read
-    t0 . should_equal t1 frames_to_skip+1
+    t0 . should_equal t1
 
 type Test_Failure_Error
     ## PRIVATE
@@ -50,49 +48,49 @@ type Test_Failure_Error
     to_display_text self = "Test failure error: "+self.message
 
 ## PRIVATE
-table_should_equal_impl actual_table expected_table loc ignore_order =
+table_should_equal_impl actual_table expected_table ignore_order = Frame_Hider.hide <|
     case expected_table of
         _ : Table ->
             actual = if ignore_order then actual_table.sort actual_table.column_names else actual_table
             expected = if ignore_order then expected_table.sort expected_table.column_names else expected_table
             if actual.columns.length != expected.columns.length then
-                Panic.throw (Test_Failure_Error.Error 'Tables differ at '+loc+'.\nActual:\n'+actual_table.display+'\nExpected:\n'+expected_table.display+'\nExpected '+expected.columns.length.to_text+" columns, but got "+actual.columns.length.to_text+'.')
-            Panic.catch Test_Failure_Error (actual.columns.zip expected.columns a-> e->(column_should_equal_impl a e)) error->
+                Panic.throw (Test_Failure_Error.Error 'Tables differ at '+Frame_Hider.get_top_stack_frame+'.\nActual:\n'+actual_table.display+'\nExpected:\n'+expected_table.display+'\nExpected '+expected.columns.length.to_text+" columns, but got "+actual.columns.length.to_text+'.')
+            Panic.catch Test_Failure_Error (actual.columns.zip expected.columns a-> e->(column_should_equal_impl a e False)) error->
                 msg_sorted = if ignore_order then " (sorted)" else ""
-                msg = 'Tables differ at '+loc+'.\nActual'+msg_sorted+':\n'+actual.display+'\nExpected'+msg_sorted+':\n'+expected.display+'\n'+error.payload.message
+                msg = 'Tables differ at '+Frame_Hider.get_top_stack_frame+'.\nActual'+msg_sorted+':\n'+actual.display+'\nExpected'+msg_sorted+':\n'+expected.display+'\n'+error.payload.message
                 Panic.throw (Test_Failure_Error.Error msg)
-        _ -> Panic.throw (Test_Failure_Error.Error "Got a Table, but expected a "+expected_table.to_display_text+(display_loc loc)+'.')
+        _ -> Panic.throw (Test_Failure_Error.Error "Got a Table, but expected a "+expected_table.to_display_text+' (at '+Frame_Hider.get_top_stack_frame+').')
 
 ## PRIVATE
-column_should_equal_impl actual expected loc='' =
+column_should_equal_impl actual expected should_display:Boolean=True = Frame_Hider.hide <|
     case expected of
         _ : Column ->
             if actual.name != expected.name then
-                Panic.throw (Test_Failure_Error.Error "Expected column name "+expected.name+", but got "+actual.name+(display_loc loc)+'.')
+                Panic.throw (Test_Failure_Error.Error "Expected column name "+expected.name+", but got "+actual.name+(display_loc should_display)+'.')
             if actual.length != expected.length then
-                Panic.throw (Test_Failure_Error.Error "Expected column length "+expected.length.to_text+", but got "+actual.length.to_text+(display_loc loc)+'.')
+                Panic.throw (Test_Failure_Error.Error "Expected column length "+expected.length.to_text+", but got "+actual.length.to_text+(display_loc should_display)+'.')
             if actual.value_type != expected.value_type then
-                Panic.throw (Test_Failure_Error.Error "Expected column type "+expected.value_type.to_text+", but got "+actual.value_type.to_text+(display_loc loc)+'.')
+                Panic.throw (Test_Failure_Error.Error "Expected column type "+expected.value_type.to_text+", but got "+actual.value_type.to_text+(display_loc should_display)+'.')
             actual.zip expected skip_nothing=False a-> e->
                 if values_not_equal a e then
-                    report_fail actual expected loc
-        _ -> Panic.throw (Test_Failure_Error.Error "Got a Column, but expected a "+expected.to_display_text+(display_loc loc)+'.')
+                    report_fail actual expected should_display
+        _ -> Panic.throw (Test_Failure_Error.Error "Got a Column, but expected a "+expected.to_display_text+(display_loc should_display)+'.')
 
 ## PRIVATE
 values_not_equal a e =
     a != e && (a.is_a Number && e.is_a Number && a.is_nan && e.is_nan).not
 
 ## PRIVATE
-report_fail actual expected loc =
+report_fail actual expected should_display = Frame_Hider.hide <|
     indexed = actual.zip (0.up_to actual.length) skip_nothing=False a-> i-> Pair.new a i
     indexed.zip expected skip_nothing=False a-> e->
         if values_not_equal a.first e then
-            Panic.throw (Test_Failure_Error.Error "Column: "+actual.name+" differs at row "+a.second.to_text+'.\n\t  Actual  : '+a.first.to_text+'\n\t  Expected: '+e.to_text+'\n\t'+(display_loc loc)+'.')
+            Panic.throw (Test_Failure_Error.Error "Column: "+actual.name+" differs at row "+a.second.to_text+'.\n\t  Actual  : '+a.first.to_text+'\n\t  Expected: '+e.to_text+'\n\t'+(display_loc should_display)+'.')
 
 ## PRIVATE
-display_loc loc:Text =
-    if loc.is_empty then '' else
-        ' (at '+loc+')'
+display_loc should_display:Boolean =
+    if should_display.not then '' else
+        ' (at '+Frame_Hider.get_top_stack_frame+')'
 
 normalize_lines string line_separator=Line_Ending_Style.Unix.to_text newline_at_end=True =
     case newline_at_end of
@@ -113,18 +111,17 @@ set_writable file writable =
 
    For example, if `example` is `[[1, 2], [3]]`, then both `[1, 2, 3]` and
    `[2, 1, 3]` will be accepted, but `[2, 3, 1]` will be rejected.
-Any.should_have_relative_ordering self (example : Vector) =
-    loc = Test.get_source_location 1
+Any.should_have_relative_ordering self (example : Vector) = Frame_Hider.hide <|
     case self of
         _ : Vector ->
             example.each v-> case v of
                 _ : Vector ->
-                    if v.is_empty then Test.fail "The example vector should not contain empty vectors as they are meaningless (at "+loc+")."
-                _ -> Test.fail "Expected a vector of vectors but got a vector containing "+v.to_display_text+" (at "+loc+")."
+                    if v.is_empty then Test.fail "The example vector should not contain empty vectors as they are meaningless (at "+Frame_Hider.get_top_stack_frame+")."
+                _ -> Test.fail "Expected a vector of vectors but got a vector containing "+v.to_display_text+" (at "+Frame_Hider.get_top_stack_frame+")."
 
             total_length = example.fold 0 acc-> v-> acc+v.length
             if self.length != total_length then
-                Test.fail "Expected a vector of length "+total_length.to_text+" but got "+self.length.to_text+" (at "+loc+")."
+                Test.fail "Expected a vector of length "+total_length.to_text+" but got "+self.length.to_text+" (at "+Frame_Hider.get_top_stack_frame+")."
 
             pieces = Vector.build builder->
                 example.fold 0 offset-> reference_v->
@@ -141,15 +138,14 @@ Any.should_have_relative_ordering self (example : Vector) =
                     (got_piece.sort on_problems=..Report_Error) == (expected_piece.sort on_problems=..Report_Error)
                 if are_consistent.not then
                     offset = pieces.take ix . fold 0 acc-> p-> acc+p.length
-                    Test.fail "Expected the run of vector elements starting at offset "+offset.to_text+" to be a permutation of "+expected_piece.to_display_text+" but got "+got_piece.to_display_text+" (at "+loc+")."
+                    Test.fail "Expected the run of vector elements starting at offset "+offset.to_text+" to be a permutation of "+expected_piece.to_display_text+" but got "+got_piece.to_display_text+" (at "+Frame_Hider.get_top_stack_frame+")."
 
-        _ -> Test.fail "Expected a vector but got "+self.to_display_text+" (at "+loc+")."
+        _ -> Test.fail "Expected a vector but got "+self.to_display_text+" (at "+Frame_Hider.get_top_stack_frame+")."
 ## PRIVATE
    See `Any.should_have_relative_ordering`.
-Error.should_have_relative_ordering self example =
-    loc = Test.get_source_location 1
+Error.should_have_relative_ordering self example = Frame_Hider.hide <|
     _ = example
-    Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+loc+")."
+    Test.fail "Expected a vector but got a dataflow error "+self.catch.to_display_text+" (at "+Frame_Hider.get_top_stack_frame+")."
 
 
 ## PRIVATE

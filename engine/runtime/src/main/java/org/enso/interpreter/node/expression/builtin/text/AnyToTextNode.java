@@ -24,6 +24,10 @@ public abstract class AnyToTextNode extends Node {
     return AnyToTextNodeGen.create();
   }
 
+  public static AnyToTextNode getUncached() {
+    return AnyToTextNodeGen.getUncached();
+  }
+
   public abstract Text execute(Object self);
 
   @Specialization
