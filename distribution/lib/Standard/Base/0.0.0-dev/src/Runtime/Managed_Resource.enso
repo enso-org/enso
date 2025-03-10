@@ -125,7 +125,7 @@ with_builtin r fn = @Builtin_Method "Managed_Resource.with_builtin"
 
 ## PRIVATE
    Catch a double-registration panic and re-raise it as an `Illegal_Argument`.
-_handle_double_registration ~action =
+private _handle_double_registration ~action =
     handler caught =
         payload = caught.payload
         is_double_registration = payload.is_a Text && payload.starts_with "Object is already registered as a ManagedResource"
