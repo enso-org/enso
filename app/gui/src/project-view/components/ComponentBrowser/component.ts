@@ -28,7 +28,7 @@ interface ComponentLabel {
 
 /** A model of component suggestion displayed in the Component Browser. */
 export interface Component extends ComponentLabel {
-  suggestionId: SuggestionId
+  suggestionId?: SuggestionId
   icon: Icon
   group?: number | undefined
 }
@@ -112,7 +112,7 @@ export function makeComponent({ id, entry, match }: ComponentInfo): Component {
 }
 
 /** Create {@link Component} list for each displayed group from filtered suggestions. */
-export function makeComponentList(
+export function makeComponentLists(
   db: SuggestionDb,
   filtering: Filtering,
 ): Map<GroupId, Component[]> {

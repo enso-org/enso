@@ -3,7 +3,6 @@ import { componentBrowserBindings, listBindings } from '@/bindings'
 import { type Component } from '@/components/ComponentBrowser/component'
 import ComponentEditor from '@/components/ComponentBrowser/ComponentEditor.vue'
 import ComponentList from '@/components/ComponentBrowser/ComponentList.vue'
-import { Filtering } from '@/components/ComponentBrowser/filtering'
 import { useComponentBrowserInput, type Usage } from '@/components/ComponentBrowser/input'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import SvgButton from '@/components/SvgButton.vue'
@@ -15,7 +14,6 @@ import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { useGraphStore } from '@/stores/graph'
 import type { RequiredImport } from '@/stores/graph/imports'
-import { useProjectStore } from '@/stores/project'
 import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { type Typename } from '@/stores/suggestionDatabase/entry'
@@ -29,6 +27,8 @@ import { debouncedGetter } from '@/util/reactivity'
 import type { ComponentInstance } from 'vue'
 import { computed, onMounted, onUnmounted, ref, toValue, watch, watchEffect } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
+import { Range } from 'ydoc-shared/util/data/range'
+import { Ok } from 'ydoc-shared/util/data/result'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 // Difference in position between the component browser and a node for the input of the component browser to
@@ -47,7 +47,6 @@ const EDGE_Y_OFFSET = -8
 
 const cssComponentEditorPadding = `${COMPONENT_EDITOR_PADDING}px`
 
-const projectStore = useProjectStore()
 const suggestionDbStore = useSuggestionDbStore()
 const graphStore = useGraphStore()
 const interaction = injectInteractionHandler()
@@ -177,15 +176,6 @@ const selectedSuggestion = computed(() => {
 
 const input = useComponentBrowserInput()
 
-const currentFiltering = computed(() => {
-  if (input.mode.mode === 'componentBrowsing') {
-    const currentModule = projectStore.moduleProjectPath
-    return new Filtering(input.mode.filter, currentModule?.ok ? currentModule.value : undefined)
-  } else {
-    return undefined
-  }
-})
-
 onUnmounted(() => {
   graphStore.cbEditedEdge = undefined
 })
@@ -285,19 +275,26 @@ watch(
 
 // === Accepting Entry ===
 
-function acceptSuggestion(component: Opt<Component> = null) {
-  const suggestionId = component?.suggestionId ?? selectedSuggestionId.value
-  if (suggestionId == null) return acceptInput()
-  const result = input.applySuggestion(suggestionId)
-  if (result.ok) acceptInput()
-  else result.error.log('Cannot apply suggestion')
+function applyComponent(component: Opt<Component> = null) {
+  component ??= selected.value
+  if (component == null) {
+    input.switchToCodeEditMode()
+    return Ok()
+  }
+  if (component.suggestionId != null) {
+    return input.applySuggestion(component.suggestionId)
+  } else {
+    // Component without suggestion database entry, for example "literal" component.
+    input.content = { text: component.label, selection: Range.emptyAt(component.label.length) }
+    input.switchToCodeEditMode()
+    return Ok()
+  }
 }
 
-function applySuggestion(component: Opt<Component> = null) {
-  const suggestionId = component?.suggestionId ?? selectedSuggestionId.value
-  if (suggestionId == null) return input.switchToCodeEditMode()
-  const result = input.applySuggestion(suggestionId)
-  if (!result.ok) result.error.log('Cannot apply suggestion')
+function acceptComponent(component: Opt<Component> = null) {
+  const result = applyComponent(component)
+  if (result.ok) acceptInput()
+  else result.error.log('Cannot apply suggestion')
 }
 
 function acceptInput() {
@@ -314,11 +311,14 @@ function acceptInput() {
 const outsideComponentBrowsing = computed(() => input.mode.mode != 'componentBrowsing')
 const actions = registerHandlers({
   'componentBrowser.editSuggestion': {
-    action: applySuggestion,
+    action: () => {
+      const result = applyComponent()
+      if (!result.ok) result.error.log('Cannot apply component')
+    },
     disabled: outsideComponentBrowsing,
   },
   'componentBrowser.acceptSuggestion': {
-    action: acceptSuggestion,
+    action: acceptComponent,
     disabled: outsideComponentBrowsing,
   },
   'componentBrowser.acceptInputAsCode': {
@@ -427,10 +427,11 @@ const listsHandler = listBindings.handler({
       />
     </div>
     <ComponentList
-      v-if="input.mode.mode === 'componentBrowsing' && currentFiltering"
+      v-if="input.mode.mode === 'componentBrowsing'"
       ref="componentList"
-      :filtering="currentFiltering"
-      @acceptSuggestion="acceptSuggestion($event)"
+      :filter="input.mode.filter"
+      :literal="input.mode.literal"
+      @acceptSuggestion="acceptComponent($event)"
       @update:selectedComponent="selected = $event"
     />
   </div>

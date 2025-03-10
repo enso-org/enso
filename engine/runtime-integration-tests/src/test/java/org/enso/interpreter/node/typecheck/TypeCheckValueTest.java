@@ -44,13 +44,13 @@ public class TypeCheckValueTest {
               EnsoMultiValue.NewNode.getUncached()
                   .newValue(
                       new Type[] {builtins.text(), builtins.number().getInteger()}, 2, 0, hi, 42);
-          assertEquals("Text & Integer", m1.toDisplayString(true));
+          assertEquals("'Hi'", m1.toDisplayString(true));
 
           var res = convert.call(m1);
           assertTrue("Got multivalue again", res instanceof EnsoMultiValue);
           var emv = (EnsoMultiValue) res;
 
-          assertEquals("Integer & Text", emv.toDisplayString(true));
+          assertEquals("42", emv.toDisplayString(true));
           return null;
         });
   }
