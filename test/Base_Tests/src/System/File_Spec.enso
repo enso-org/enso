@@ -17,13 +17,12 @@ import project.Data.Data_Spec
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
 ## We rely on a less strict equality for `File` as it is fine if a relative file gets resolved to absolute.
-File.should_equal self other frames_to_skip=0 =
-    loc = Test.get_source_location 1+frames_to_skip
+File.should_equal self other = Frame_Hider.hide <|
     are_same = case other of
         _ : File -> self.absolute.normalize.path == other.absolute.normalize.path
         _ -> False
     if are_same then self else
-        Test.fail "Expected "+self.to_text+" to be equal to "+other.to_text+" (at "+loc+")."
+        Test.fail "Expected "+self.to_text+" to be equal to "+other.to_text+" (at "+Frame_Hider.get_top_stack_frame+")."
 
 
 set_writable file writable =
