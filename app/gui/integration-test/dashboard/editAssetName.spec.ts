@@ -156,8 +156,10 @@ test('edit name, error message is visible', ({ page }) => {
     await locateAssetRowName(row).click()
 
     const nameEl = locateAssetRowName(row)
-    await nameEl.click()
-    await nameEl.click()
+    await nameEl.click({ button: 'right' })
+    await locateContextMenu(page)
+      .getByText(/Rename/)
+      .click()
 
     const inputEl = locateInput(nameEl)
 
@@ -194,8 +196,10 @@ test('edit name (empty name)', ({ page }) =>
     await locateAssetRowName(row).click()
 
     const nameEl = locateAssetRowName(row)
-    await nameEl.click()
-    await nameEl.click()
+    await nameEl.click({ button: 'right' })
+    await locateContextMenu(page)
+      .getByText(/Rename/)
+      .click()
 
     const inputEl = locateInput(nameEl)
 
@@ -231,8 +235,10 @@ test('edit name (invalid name)', ({ page }) =>
     await locateAssetRowName(row).click()
 
     const nameEl = locateAssetRowName(row)
-    await nameEl.click()
-    await nameEl.click()
+    await nameEl.click({ button: 'right' })
+    await locateContextMenu(page)
+      .getByText(/Rename/)
+      .click()
 
     const inputEl = locateInput(nameEl)
 
@@ -269,8 +275,10 @@ test('edit name (duplicate name)', ({ page }) =>
     await locateAssetRowName(row).click()
 
     const nameEl = locateAssetRowName(row)
-    await nameEl.click()
-    await nameEl.click()
+    await nameEl.click({ button: 'right' })
+    await locateContextMenu(page)
+      .getByText(/Rename/)
+      .click()
 
     const inputEl = locateInput(nameEl)
 
@@ -301,8 +309,10 @@ test('error should not overlay the table header', ({ page }) =>
     await locateAssetRowName(row).click()
 
     const nameEl = locateAssetRowName(row)
-    await nameEl.click()
-    await nameEl.click()
+    await nameEl.click({ button: 'right' })
+    await locateContextMenu(page)
+      .getByText(/Rename/)
+      .click()
 
     const inputEl = locateInput(nameEl)
 
