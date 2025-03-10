@@ -7,6 +7,7 @@ import VirtualizedList from '@/components/VirtualizedList.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
 import { useProjectStore } from '@/stores/project'
 import { injectProjectNames } from '@/stores/projectNames'
+import { useRightDock } from '@/stores/rightDock'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { Ast } from '@/util/ast'
 import { substituteQualifiedName } from '@/util/ast/abstract'
@@ -16,6 +17,7 @@ import * as map from 'lib0/map'
 import { computed, ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { parseExpression } from 'ydoc-shared/ast'
+import ActionButton from '../ActionButton.vue'
 
 const ITEM_SIZE = 24
 const SCROLL_TO_SELECTION_MARGIN = ITEM_SIZE / 2
@@ -111,15 +113,11 @@ const selectedSuggestionReturnType = computed(() => {
   if (selectedSuggestion.value == null) return undefined
   const typename = selectedSuggestion.value.returnType(projectNames)
 
-  console.log(typename)
   const parsedType = parseExpression(typename)
-  console.log(parsedType)
   if (parsedType == null) return typename
   const substituted = substituteQualifiedName(parsedType, (qn) => qnLastSegment(qn))
   return substituted.code()
 })
-
-watch(selectedSuggestion, (x) => console.log(x), { flush: 'sync' })
 
 watch(selectedComponent, (component) => emit('update:selectedComponent', component), {
   immediate: true,
@@ -181,8 +179,10 @@ defineExpose({
       <div class="documentation">
         <!-- eslint-disable-next-line vue/no-v-html -->
         <p v-if="selectedSuggestion?.docSummaryHtml" v-html="selectedSuggestion.docSummaryHtml" />
-        <p v-if="selectedSuggestion" />
-        Returns: {{ selectedSuggestionReturnType }}
+        <div class="docBottomLine">
+          <p v-if="selectedSuggestion" v-text="`Returns ${selectedSuggestionReturnType}`" />
+          <ActionButton action="graphEditor.showHelp" />
+        </div>
       </div>
     </div>
   </div>
@@ -191,7 +191,7 @@ defineExpose({
 <style scoped>
 .ComponentList {
   width: 661px;
-  height: 370px;
+  height: 386px;
   border: none;
   border-radius: var(--radius-default);
   background-color: var(--background-color);
@@ -240,6 +240,7 @@ defineExpose({
   display: flex;
   flex-direction: column;
   gap: 9px;
+  min-width: 0;
 }
 
 .components {
@@ -247,6 +248,25 @@ defineExpose({
 }
 
 .documentation {
-  height: 56px;
+  border-top: 1px solid #d9d9d9;
+  padding-top: 9px;
+  /* width: 500px; */
+
+  p {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* If help contains <code> tags, it is a bit higher, resulting in panel hight jump. */
+    height: 23px;
+  }
+}
+
+.docBottomLine {
+  display: flex;
+  flex-direction: row;
+
+  > p {
+    flex-grow: 1;
+  }
 }
 </style>

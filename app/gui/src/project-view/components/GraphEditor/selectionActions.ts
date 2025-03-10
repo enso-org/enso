@@ -7,7 +7,7 @@ import { computed, type ComputedRef, toValue } from 'vue'
 /**
  * Register handlers of actions for many selected components.
  */
-export function registerSelectionActionHandlers(
+export function selectionActionHandlers(
   selectedNodes: ToValue<Iterable<Node>>,
   actions: {
     collapseNodes: (nodes: Node[]) => void
@@ -24,7 +24,7 @@ export function registerSelectionActionHandlers(
   function action(action: keyof typeof actions): () => void {
     return () => actions[action](toValue(selectedNodesArray))
   }
-  return registerHandlers({
+  return {
     'components.collapse': {
       disabled: computed(() => singleNodeSelected.value || noNormalNodes.value),
       action: action('collapseNodes'),
@@ -47,5 +47,5 @@ export function registerSelectionActionHandlers(
       ...toggledAction(),
       disabled: computed(() => singleNodeSelected.value || noNormalNodes.value),
     },
-  })
+  }
 }
