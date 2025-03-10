@@ -15,18 +15,15 @@ import project.Util as Test_Utils
 main filter=Nothing = run_default_backend add_specs filter
 
 add_specs suite_builder setup =
-    if setup.is_feature_supported Feature.Offset then (add_offset_specs suite_builder setup) else
-        suite_builder.group setup.prefix+"Table.offset" group_builder->
-            group_builder.specify "offset should report unsupported" <|
+    if setup.is_feature_supported Feature.Generate_Rows then (add_generate_rows_specs suite_builder setup) else
+        suite_builder.group setup.prefix+"Table.generate_rows" group_builder->
+            group_builder.specify "generate_rows should report unsupported" <|
                 table_builder = setup.light_table_builder
                 t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
-                t2 = t.offset ["X"]
-                t2.should_fail_with (Unsupported_Database_Operation.Error "offset")
-                c = t.at 0
-                c2 = c.offset
-                c2.should_fail_with (Unsupported_Database_Operation.Error "offset")
+                t2 = t.generate_rows (..Integer_Range 0 2)
+                t2.should_fail_with (Unsupported_Database_Operation.Error "generate_rows")
 
-add_offset_specs suite_builder setup =
+add_generate_rows_specs suite_builder setup =
     prefix = setup.prefix
     build_sorted_table = Util.build_sorted_table setup
     suite_builder.group prefix+"Table.generate_rows from an Integer Range" group_builder->

@@ -278,6 +278,7 @@ type SQLite_Dialect
        Checks if a feature is supported by the dialect.
     is_feature_supported self feature:Feature -> Boolean =
         case feature of
+            Feature.Generate_Rows -> False
             _ -> True
 
     ## PRIVATE
