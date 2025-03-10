@@ -16,7 +16,7 @@ import ConfirmDeleteUserModal from '#/modals/ConfirmDeleteUserModal'
 
 /** Settings tab for deleting the current user. */
 export default function DeleteUserAccountSettingsSection() {
-  const { signOut, deleteUser } = authProvider.useAuth()
+  const { deleteUser } = authProvider.useAuth()
   const { getText } = textProvider.useText()
 
   return (
@@ -37,7 +37,6 @@ export default function DeleteUserAccountSettingsSection() {
               <ConfirmDeleteUserModal
                 doDelete={async () => {
                   await deleteUser()
-                  await signOut()
                 }}
               />
             </ariaComponents.DialogTrigger>

@@ -2,21 +2,23 @@ package org.enso.table.data.column.operation.cast;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.builder.LongBuilder;
-import org.enso.table.data.column.builder.NumericBuilder;
-import org.enso.table.data.column.storage.BoolStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.StorageIterators;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
 import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
 import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.BigIntegerType;
+import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.util.BitSets;
-import org.graalvm.polyglot.Context;
+import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
 
 public class ToIntegerStorageConverter implements StorageConverter<Long> {
   private final IntegerType targetType;
@@ -26,208 +28,156 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
   }
 
   @Override
-  public Storage<Long> cast(Storage<?> storage, CastProblemAggregator problemAggregator) {
+  public boolean canApply(StorageType sourceType) {
+    return sourceType instanceof IntegerType
+        || sourceType instanceof FloatType
+        || sourceType instanceof BigDecimalType
+        || sourceType instanceof BigIntegerType
+        || sourceType instanceof BooleanType
+        || sourceType instanceof NullType
+        || sourceType instanceof AnyObjectType;
+  }
+
+  @Override
+  public ColumnStorage<Long> cast(
+      ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
     if (storage instanceof AbstractLongStorage longStorage) {
       if (longStorage.getType().equals(targetType)) {
         return longStorage;
       } else {
         return convertLongStorage(longStorage, problemAggregator);
       }
-    } else if (storage instanceof DoubleStorage doubleStorage) {
+    }
+
+    if (storage instanceof ColumnDoubleStorage doubleStorage) {
       return convertDoubleStorage(doubleStorage, problemAggregator);
-    } else if (storage instanceof BoolStorage boolStorage) {
+    } else if (storage instanceof ColumnBooleanStorage boolStorage) {
       return convertBoolStorage(boolStorage, problemAggregator);
     } else if (storage instanceof BigIntegerStorage bigIntegerStorage) {
       return convertBigIntegerStorage(bigIntegerStorage, problemAggregator);
     } else if (storage instanceof BigDecimalStorage bigDecimalStorage) {
       return convertBigDecimalStorage(bigDecimalStorage, problemAggregator);
-    } else if (storage.getType() instanceof AnyObjectType) {
-      return castFromMixed(storage, problemAggregator);
+    } else if (canApply(storage.getType())) {
+      return castFromObject(storage, problemAggregator);
     } else {
       throw new IllegalStateException(
           "No known strategy for casting storage " + storage + " to Integer.");
     }
   }
 
-  public Storage<Long> castFromMixed(
-      Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    LongBuilder builder =
-        NumericBuilder.createLongBuilder(mixedStorage.size(), targetType, problemAggregator);
-    for (int i = 0; i < mixedStorage.size(); i++) {
-      Object o = mixedStorage.getItemBoxed(i);
-      if (o == null) {
-        builder.appendNulls(1);
-      } else if (o instanceof Boolean b) {
-        builder.appendLong(booleanAsLong(b));
-      } else if (NumericConverter.isCoercibleToLong(o)) {
-        long x = NumericConverter.coerceToLong(o);
-        if (targetType.fits(x)) {
-          builder.appendLongUnchecked(x);
-        } else {
-          problemAggregator.reportNumberOutOfRange(x);
-          builder.appendNulls(1);
-        }
-      } else if (NumericConverter.isFloatLike(o)) {
-        double x = NumericConverter.coerceToDouble(o);
-        if (targetType.fits(x)) {
-          long converted = (long) x;
-          builder.appendLongUnchecked(converted);
-        } else {
-          problemAggregator.reportNumberOutOfRange(x);
-          builder.appendNulls(1);
-        }
-      } else if (o instanceof BigInteger bigInteger) {
-        if (targetType.fits(bigInteger)) {
-          builder.appendLongUnchecked(bigInteger.longValue());
-        } else {
-          problemAggregator.reportNumberOutOfRange(bigInteger);
-          builder.appendNulls(1);
-        }
-      } else if (o instanceof BigDecimal bigDecimal) {
-        BigInteger bigInteger = bigDecimal.toBigInteger();
-        if (targetType.fits(bigInteger)) {
-          builder.appendLongUnchecked(bigInteger.longValue());
-        } else {
-          problemAggregator.reportNumberOutOfRange(bigDecimal);
-          builder.appendNulls(1);
-        }
-      } else {
-        problemAggregator.reportConversionFailure(o);
-        builder.appendNulls(1);
-      }
-
-      context.safepoint();
-    }
-
-    return builder.seal();
+  private ColumnStorage<Long> castFromObject(
+      ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
+    return StorageIterators.buildOverStorage(
+        storage,
+        Builder.getForLong(targetType, storage.getSize(), problemAggregator),
+        (builder, index, value) -> {
+          if (value instanceof Boolean b) {
+            builder.appendLong(booleanAsLong(b));
+          } else if (NumericConverter.isCoercibleToLong(value)) {
+            long x = NumericConverter.coerceToLong(value);
+            builder.appendLong(x);
+          } else if (NumericConverter.isFloatLike(value)) {
+            double x = NumericConverter.coerceToDouble(value);
+            if (targetType.fits(x)) {
+              long converted = (long) x;
+              builder.appendLong(converted);
+            } else {
+              problemAggregator.reportNumberOutOfRange(x);
+              builder.appendNulls(1);
+            }
+          } else if (value instanceof BigInteger bigInteger) {
+            if (targetType.fits(bigInteger)) {
+              builder.appendLong(bigInteger.longValue());
+            } else {
+              problemAggregator.reportNumberOutOfRange(bigInteger);
+              builder.appendNulls(1);
+            }
+          } else if (value instanceof BigDecimal bigDecimal) {
+            BigInteger bigInteger = bigDecimal.toBigInteger();
+            if (targetType.fits(bigInteger)) {
+              builder.appendLong(bigInteger.longValue());
+            } else {
+              problemAggregator.reportNumberOutOfRange(bigDecimal);
+              builder.appendNulls(1);
+            }
+          } else {
+            problemAggregator.reportConversionFailure(value);
+            builder.appendNulls(1);
+          }
+        });
   }
 
-  private Storage<Long> convertBoolStorage(
-      BoolStorage boolStorage, CastProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    int n = boolStorage.size();
-    LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType, problemAggregator);
-    for (int i = 0; i < n; i++) {
-      if (boolStorage.isNothing(i)) {
-        builder.appendNulls(1);
-      } else {
-        boolean value = boolStorage.getItem(i);
-        builder.appendLong(booleanAsLong(value));
-      }
-
-      context.safepoint();
-    }
-
-    return builder.seal();
+  private ColumnStorage<Long> convertBoolStorage(
+      ColumnBooleanStorage boolStorage, CastProblemAggregator problemAggregator) {
+    return StorageIterators.buildOverBooleanStorage(
+        boolStorage,
+        Builder.getForLong(targetType, boolStorage.getSize(), problemAggregator),
+        (builder, index, value, isNothing) -> builder.appendLong(booleanAsLong(value)));
   }
 
-  private Storage<Long> convertDoubleStorage(
-      DoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    int n = doubleStorage.size();
-    LongBuilder builder = NumericBuilder.createLongBuilder(n, targetType, problemAggregator);
-    for (int i = 0; i < n; i++) {
-      if (doubleStorage.isNothing(i)) {
-        builder.appendNulls(1);
-      } else {
-        double value = doubleStorage.getItemAsDouble(i);
-        if (targetType.fits(value)) {
-          long converted = (long) value;
-          builder.appendLong(converted);
-        } else {
-          builder.appendNulls(1);
-          problemAggregator.reportConversionFailure(value);
-        }
-      }
-
-      context.safepoint();
-    }
-
-    return builder.seal();
+  private ColumnStorage<Long> convertDoubleStorage(
+      ColumnDoubleStorage doubleStorage, CastProblemAggregator problemAggregator) {
+    return StorageIterators.buildOverDoubleStorage(
+        doubleStorage,
+        Builder.getForLong(targetType, doubleStorage.getSize(), problemAggregator),
+        (builder, index, value, isNothing) -> {
+          if (targetType.fits(value)) {
+            long converted = (long) value;
+            builder.appendLong(converted);
+          } else {
+            builder.appendNulls(1);
+            problemAggregator.reportConversionFailure(value);
+          }
+        });
   }
 
-  private Storage<Long> convertLongStorage(
+  private ColumnStorage<Long> convertLongStorage(
       AbstractLongStorage longStorage, CastProblemAggregator problemAggregator) {
     boolean isWidening = targetType.fits(longStorage.getType());
     if (isWidening) {
       // If the target type is larger than the source type, we can just widen the storage without
       // doing any checks.
       return longStorage.widen(targetType);
-    } else {
-      // Otherwise we have to check for elements that may not fit.
-      Context context = Context.getCurrent();
-      int n = longStorage.size();
-      long[] data = new long[n];
-      BitSet isNothing = BitSets.makeDuplicate(longStorage.getIsNothingMap());
-      for (int i = 0; i < n; i++) {
-        if (!isNothing.get(i)) {
-          long value = longStorage.getItem(i);
+    }
+
+    return StorageIterators.buildOverLongStorage(
+        longStorage,
+        Builder.getForLong(targetType, longStorage.getSize(), problemAggregator),
+        (builder, index, value, isNothing) -> builder.appendLong(value));
+  }
+
+  private ColumnStorage<Long> convertBigIntegerStorage(
+      ColumnStorage<BigInteger> storage, CastProblemAggregator problemAggregator) {
+    return StorageIterators.buildOverStorage(
+        storage,
+        Builder.getForLong(targetType, storage.getSize(), problemAggregator),
+        (builder, index, value) -> {
           if (targetType.fits(value)) {
-            data[i] = value;
+            builder.appendLong(value.longValue());
           } else {
-            isNothing.set(i);
+            builder.appendNulls(1);
             problemAggregator.reportNumberOutOfRange(value);
           }
-        }
-
-        context.safepoint();
-      }
-
-      return new LongStorage(data, n, isNothing, targetType);
-    }
+        });
   }
 
-  private Storage<Long> convertBigIntegerStorage(
-      Storage<BigInteger> storage, CastProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    int n = storage.size();
-    long[] data = new long[n];
-    BitSet isNothing = new BitSet();
-    for (int i = 0; i < n; i++) {
-      BigInteger value = storage.getItemBoxed(i);
-      if (value == null) {
-        isNothing.set(i);
-      } else if (targetType.fits(value)) {
-        data[i] = value.longValue();
-      } else {
-        isNothing.set(i);
-        problemAggregator.reportNumberOutOfRange(value);
-      }
-
-      context.safepoint();
-    }
-
-    return new LongStorage(data, n, isNothing, targetType);
+  private ColumnStorage<Long> convertBigDecimalStorage(
+      ColumnStorage<BigDecimal> storage, CastProblemAggregator problemAggregator) {
+    return StorageIterators.buildOverStorage(
+        storage,
+        Builder.getForLong(targetType, storage.getSize(), problemAggregator),
+        (builder, index, value) -> {
+          BigInteger bigInteger = value.toBigInteger();
+          if (targetType.fits(bigInteger)) {
+            builder.appendLong(bigInteger.longValue());
+          } else {
+            builder.appendNulls(1);
+            problemAggregator.reportNumberOutOfRange(value);
+          }
+        });
   }
 
-  private Storage<Long> convertBigDecimalStorage(
-      Storage<BigDecimal> storage, CastProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    int n = storage.size();
-    long[] data = new long[n];
-    BitSet isNothing = new BitSet();
-    for (int i = 0; i < n; i++) {
-      BigDecimal value = storage.getItemBoxed(i);
-      if (value == null) {
-        isNothing.set(i);
-      } else {
-        BigInteger bigInteger = value.toBigInteger();
-        if (targetType.fits(bigInteger)) {
-          data[i] = bigInteger.longValue();
-        } else {
-          isNothing.set(i);
-          problemAggregator.reportNumberOutOfRange(value);
-        }
-      }
-
-      context.safepoint();
-    }
-
-    return new LongStorage(data, n, isNothing, targetType);
-  }
-
-  public static long booleanAsLong(boolean value) {
+  private static long booleanAsLong(boolean value) {
     return value ? 1L : 0L;
   }
 }

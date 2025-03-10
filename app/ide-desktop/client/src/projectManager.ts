@@ -62,7 +62,7 @@ export function spawn(
         windowsHide: true,
       })
       logger.log(`Backend has been spawned (pid = ${String(process.pid)}).`)
-      process.on('exit', code => {
+      process.on('exit', (code) => {
         logger.log(`Backend exited with code ${String(code)}.`)
       })
       return process
@@ -96,7 +96,7 @@ export function runCommand(
 /** Get the Project Manager version. */
 export async function version(args: config.Args) {
   if (args.options.engine.value) {
-    return await exec(args, ['--version']).then(t => t.stdout)
+    return await exec(args, ['--version']).then((t) => t.stdout)
   } else {
     return
   }

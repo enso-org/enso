@@ -18,12 +18,10 @@ import {
   useTransferBetweenCategories,
   type Category,
 } from '#/layouts/CategorySwitcher/Category'
-import * as eventListProvider from '#/layouts/Drive/EventListProvider'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import { TabType } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 import type * as backend from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
@@ -31,10 +29,8 @@ import { twJoin } from 'tailwind-merge'
 import { AnimatedBackground } from '../components/AnimatedBackground'
 import { useEventCallback } from '../hooks/eventCallbackHooks'
 
+import { useSetCurrentDirectoryId } from '../providers/DriveProvider'
 import { useCloudCategoryList, useLocalCategoryList } from './Drive/Categories/categoriesHooks'
-// ========================
-// === CategoryMetadata ===
-// ========================
 
 /** Metadata for a categoryModule.categoryType. */
 interface CategoryMetadata {
@@ -47,10 +43,6 @@ interface CategoryMetadata {
   readonly className?: string
   readonly iconClassName?: string
 }
-
-// ============================
-// === CategorySwitcherItem ===
-// ============================
 
 /** Props for a {@link CategorySwitcherItem}. */
 interface InternalCategorySwitcherItemProps extends CategoryMetadata {
@@ -81,6 +73,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { getText } = textProvider.useText()
   const localBackend = backendProvider.useLocalBackend()
   const { isOffline } = offlineHooks.useOffline()
+  const setCurrentDirectoryId = useSetCurrentDirectoryId()
 
   const isCurrent = areCategoriesEqual(currentCategory, category)
 
@@ -121,11 +114,15 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const acceptedDragTypes = isDropTarget ? [mimeTypes.ASSETS_MIME_TYPE] : []
 
   const onPress = useEventCallback(() => {
-    if (error == null && !areCategoriesEqual(category, currentCategory)) {
+    if (error == null) {
       // We use startTransition to trigger a background transition between categories.
       // and to not invoke the Suspense boundary.
       // This makes the transition feel more responsive and natural.
       startTransition(() => {
+        setCurrentDirectoryId({
+          current: null,
+          parent: null,
+        })
         setCategoryId(category.id)
       })
     }
@@ -215,10 +212,6 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     : element
 }
 
-// ========================
-// === CategorySwitcher ===
-// ========================
-
 /** Props for a {@link CategorySwitcher}. */
 export interface CategorySwitcherProps {
   readonly category: Category
@@ -231,23 +224,21 @@ function CategorySwitcher(props: CategorySwitcherProps) {
 
   const { getText } = textProvider.useText()
   const [, setSearchParams] = useSearchParams()
-  const dispatchAssetEvent = eventListProvider.useDispatchAssetEvent()
 
   const { isOffline } = offlineHooks.useOffline()
 
   const cloudCategories = useCloudCategoryList()
   const localCategories = useLocalCategoryList()
 
-  const itemProps = { currentCategory: category, setCategoryId, dispatchAssetEvent }
+  const itemProps = { currentCategory: category, setCategoryId }
 
-  const { cloudCategory, recentCategory, trashCategory, userCategory, teamCategories } =
-    cloudCategories
+  const { cloudCategory, recentCategory, trashCategory, teamCategories } = cloudCategories
   const { localCategory, directories, addDirectory, removeDirectory } = localCategories
 
   return (
-    <div className="flex flex-col gap-2 py-1">
+    <div className="flex flex-col gap-2">
       <AnimatedBackground>
-        <ariaComponents.Text variant="subtitle" weight="semibold" className="px-2">
+        <ariaComponents.Text variant="subtitle" weight="semibold">
           {getText('category')}
         </ariaComponents.Text>
 
@@ -268,21 +259,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
             badgeContent={getText('cloudCategoryBadgeContent')}
           />
 
-          {/* Self user space */}
-          {userCategory != null && (
-            <CategorySwitcherItem
-              {...itemProps}
-              isNested
-              category={userCategory}
-              icon={userCategory.icon}
-              label={userCategory.label}
-              isDisabled={isOffline}
-              buttonLabel={getText('myFilesCategoryButtonLabel')}
-              dropZoneLabel={getText('myFilesCategoryDropZoneLabel')}
-            />
-          )}
-
-          {teamCategories?.map((teamCategory) => (
+          {teamCategories.map((teamCategory) => (
             <CategorySwitcherItem
               key={teamCategory.id}
               {...itemProps}
@@ -291,8 +268,8 @@ function CategorySwitcher(props: CategorySwitcherProps) {
               icon={teamCategory.icon}
               label={teamCategory.label}
               isDisabled={isOffline}
-              buttonLabel={getText('teamCategoryButtonLabel', teamCategory.team.groupName)}
-              dropZoneLabel={getText('teamCategoryDropZoneLabel', teamCategory.team.groupName)}
+              buttonLabel={getText('teamCategoryButtonLabel', teamCategory.team.name)}
+              dropZoneLabel={getText('teamCategoryDropZoneLabel', teamCategory.team.name)}
             />
           ))}
 
@@ -342,7 +319,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                 onPress={() => {
                   setSearchParams({
                     [`${SEARCH_PARAMS_PREFIX}SettingsTab`]: JSON.stringify('local'),
-                    [`${SEARCH_PARAMS_PREFIX}page`]: JSON.stringify(TabType.settings),
+                    [`${SEARCH_PARAMS_PREFIX}page`]: JSON.stringify('settings'),
                   })
                 }}
               />
@@ -375,8 +352,9 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                   <ConfirmDeleteModal
                     actionText={getText('removeTheLocalDirectoryXFromFavorites', directory.label)}
                     actionButtonLabel={getText('remove')}
-                    doDelete={() => {
+                    doDelete={async () => {
                       removeDirectory(directory.id)
+                      await Promise.resolve()
                     }}
                   />
                 </ariaComponents.DialogTrigger>

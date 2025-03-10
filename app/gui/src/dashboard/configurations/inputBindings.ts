@@ -133,4 +133,10 @@ export const BINDINGS = inputBindings.defineBindings({
     rebindable: true,
     icon: LogoIcon,
   },
+  ensoDevtools: {
+    name: 'Enso Devtools',
+    bindings: [],
+    rebindable: false,
+    icon: LogoIcon,
+  },
 })

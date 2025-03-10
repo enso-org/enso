@@ -2,6 +2,7 @@ package org.enso.table.parsing;
 
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.CountNothing;
+import org.enso.table.data.column.storage.NullStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.parsing.problems.CommonParseProblemAggregator;
 import org.enso.table.parsing.problems.ParseProblemAggregator;
@@ -42,20 +43,22 @@ public class TypeInferringParser extends DatatypeParser {
   @Override
   public Storage<?> parseColumn(
       Storage<String> sourceStorage, CommonParseProblemAggregator problemAggregator) {
+    long size = sourceStorage.getSize();
+
     // If there are no values, the Auto parser would guess some random type (the first one that is
-    // checked). Instead, we just return the empty column unchanged.
-    boolean hasNoValues = (sourceStorage.size() == 0) || CountNothing.allNothing(sourceStorage);
+    // checked). Instead, we return a Null-type column.
+    boolean hasNoValues = (size == 0) || CountNothing.allNothing(sourceStorage);
     if (hasNoValues) {
-      return fallbackParser.parseColumn(sourceStorage, problemAggregator);
+      return new NullStorage(size);
     }
 
     Context context = Context.getCurrent();
     parsers:
     for (IncrementalDatatypeParser parser : baseParsers) {
       CommonParseProblemAggregator innerAggregator = problemAggregator.createContextAwareChild();
-      Builder builder = parser.makeBuilderWithCapacity(sourceStorage.size(), innerAggregator);
+      Builder builder = parser.makeBuilderWithCapacity(size, innerAggregator);
 
-      for (int i = 0; i < sourceStorage.size(); ++i) {
+      for (long i = 0; i < size; ++i) {
         String cell = sourceStorage.getItemBoxed(i);
         if (cell != null) {
           Object parsed = parser.parseSingleValue(cell, innerAggregator);
@@ -65,9 +68,9 @@ public class TypeInferringParser extends DatatypeParser {
             innerAggregator.detachFromParent();
             continue parsers;
           }
-          builder.appendNoGrow(parsed);
+          builder.append(parsed);
         } else {
-          builder.appendNoGrow(null);
+          builder.appendNulls(1);
         }
 
         context.safepoint();

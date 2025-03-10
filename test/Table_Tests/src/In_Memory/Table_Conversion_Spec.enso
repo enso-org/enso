@@ -255,11 +255,11 @@ add_specs suite_builder =
             r.should_fail_with Illegal_Argument
             r.catch.message.should_contain "as all inputs had no fields"
 
-        group_builder.specify "will error when fields=[]" <|
+        group_builder.specify "will add all fields when fields=[]" <|
             table = Table.new [["aaa", [1, 2]], ["bbb", data.uniform_json], ["ccc", [5, 6]]]
             r = table.expand_column "bbb" fields=[]
-            r.should_fail_with Illegal_Argument
-            r.catch.message . should_equal "The fields parameter cannot be empty."
+            expected = Table.new [["aaa", [1, 2]], ["bbb first", ["Mary", "Joe"]], ["bbb last", ["Smith", "Burton"]], ["bbb age", [23, 34]], ["ccc", [5, 6]]]
+            r . should_equal expected
 
         group_builder.specify "Can expand with no prefix" <|
             table = Table.new [["aaa", [1, 2]], ["bbb", data.non_uniform_json], ["ccc", [5, 6]]]

@@ -5,6 +5,10 @@ import org.enso.interpreter.node.expression.builtin.Builtin;
 
 @BuiltinType(name = "Standard.Base.Data.Numbers.Number")
 public class Number extends Builtin {
+  public Number() {
+    super(Number.class);
+  }
+
   @Override
   public boolean containsValues() {
     return true;

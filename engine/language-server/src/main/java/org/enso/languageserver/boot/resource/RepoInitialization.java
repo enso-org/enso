@@ -1,15 +1,12 @@
 package org.enso.languageserver.boot.resource;
 
 import akka.event.EventStream;
-import java.io.IOException;
-import java.nio.file.FileSystemException;
-import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
-import java.util.concurrent.*;
-import org.apache.commons.io.FileUtils;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Semaphore;
 import org.enso.languageserver.data.ProjectDirectoriesConfig;
 import org.enso.languageserver.event.InitializedEvent;
-import org.enso.logger.masking.MaskedPath;
 import org.enso.searcher.memory.InMemorySuggestionsRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,14 +69,18 @@ public class RepoInitialization implements InitializationComponent {
   }
 
   private CompletableFuture<Void> initSuggestionsRepo() {
-    return CompletableFuture.runAsync(
-            () -> logger.debug("Initializing suggestions repo [{}]...", suggestionsRepo), executor)
-        .thenComposeAsync(
-            v -> {
-              if (!isInitialized)
-                return doInitSuggestionsRepo()
-                    .exceptionallyComposeAsync(this::recoverInitializationError, executor);
-              else return CompletableFuture.completedFuture(v);
+    return CompletableFuture.supplyAsync(
+            () -> {
+              logger.debug("Initializing Suggestions repo [{}]...", suggestionsRepo);
+              try {
+                lock.acquire();
+                if (!isInitialized)
+                  return doInitSuggestionsRepo()
+                      .exceptionallyComposeAsync(this::recoverInitializationError, executor);
+                else return CompletableFuture.completedFuture(null);
+              } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+              }
             },
             executor)
         .thenRunAsync(
@@ -103,60 +104,6 @@ public class RepoInitialization implements InitializationComponent {
             executor)
         .thenRunAsync(() -> logger.info("Retrying suggestions repo initialization"), executor)
         .thenComposeAsync(v -> doInitSuggestionsRepo(), executor);
-  }
-
-  private CompletableFuture<Void> clearDatabaseFile(int retries) {
-    return CompletableFuture.runAsync(
-            () -> {
-              if (!isInitialized) {
-                logger.debug("Clear database file. Attempt #{}", retries + 1);
-                try {
-                  Files.delete(projectDirectoriesConfig.suggestionsDatabaseFile().toPath());
-                } catch (IOException e) {
-                  throw new CompletionException(e);
-                }
-              }
-            },
-            executor)
-        .exceptionallyComposeAsync(error -> recoverClearDatabaseFile(error, retries), executor);
-  }
-
-  private CompletableFuture<Void> recoverClearDatabaseFile(Throwable error, int retries) {
-    if (error instanceof CompletionException) {
-      return recoverClearDatabaseFile(error.getCause(), retries);
-    } else if (error instanceof NoSuchFileException) {
-      logger.warn(
-          "Failed to delete the database file. Attempt #{}. File does not exist [{}]",
-          retries + 1,
-          new MaskedPath(projectDirectoriesConfig.suggestionsDatabaseFile().toPath()));
-      return CompletableFuture.completedFuture(null);
-    } else if (error instanceof FileSystemException) {
-      logger.error(
-          "Failed to delete the database file. Attempt #{}. The file will be removed during the"
-              + " shutdown",
-          retries + 1,
-          error);
-      Runtime.getRuntime()
-          .addShutdownHook(
-              new Thread(
-                  () ->
-                      FileUtils.deleteQuietly(projectDirectoriesConfig.suggestionsDatabaseFile())));
-      return CompletableFuture.failedFuture(error);
-    } else if (error instanceof IOException) {
-      logger.error("Failed to delete the database file. Attempt #{}", retries + 1, error);
-      if (retries < MAX_RETRIES) {
-        try {
-          Thread.sleep(RETRY_DELAY_MILLIS);
-        } catch (InterruptedException e) {
-          throw new CompletionException(e);
-        }
-        return clearDatabaseFile(retries + 1);
-      } else {
-        return CompletableFuture.failedFuture(error);
-      }
-    }
-
-    return CompletableFuture.completedFuture(null);
   }
 
   private CompletionStage<Void> doInitSuggestionsRepo() {

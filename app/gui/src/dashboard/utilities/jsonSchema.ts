@@ -171,7 +171,7 @@ function constantValueOfSchemaHelper(
         }
         case 'object': {
           const propertiesObject =
-            'properties' in schema ? objectModule.asObject(schema.properties) ?? {} : {}
+            'properties' in schema ? (objectModule.asObject(schema.properties) ?? {}) : {}
           const required = new Set(
             'required' in schema && Array.isArray(schema.required) ?
               schema.required.map(String)

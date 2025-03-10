@@ -8,6 +8,7 @@ export project.Data.Boolean.Boolean.True
 export project.Data.Decimal.dec
 export project.Data.Decimal.Decimal
 export project.Data.Dictionary.Dictionary
+export project.Data.Download.Download_Mode.Download_Mode
 export project.Data.Filter_Condition.Filter_Action
 export project.Data.Filter_Condition.Filter_Condition
 export project.Data.Hashset.Hashset

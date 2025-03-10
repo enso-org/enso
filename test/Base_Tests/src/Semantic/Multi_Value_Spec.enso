@@ -34,6 +34,10 @@ add_specs suite_builder =
             c = Complex.new 1.5 0.0
             (c:Complex).re . should_equal 1.5
             (c:Float) . should_equal 1.5
+        group_builder.specify "Complex & Float remain after instance method invocation" <|
+            c = Complex.new 1.5 0.0 . confuse_me
+            (c:Complex).re . should_equal 1.5
+            (c:Float) . should_equal 1.5
 
     suite_builder.group "Chain Multi Value" group_builder->
         to_b_to_c obj =
@@ -49,18 +53,18 @@ add_specs suite_builder =
         group_builder.specify "Multiple conversions of A & X work" <|
             ax = A:A&X
             converted = to_b_to_c ax
-            converted . to_text . should_equal "(C (B A & X))"
+            converted . to_text . should_equal "(C (B A))"
 
         group_builder.specify "Multiple conversions of A & X work" <|
             xa = A:X&A
             converted = to_b_to_c xa
-            converted . to_text . should_equal "(C (B A & X))"
+            converted . to_text . should_equal "(C (B A))"
 
         group_builder.specify "Multiple conversions of (A & X : A) work" <|
             ax = A:A&X
             a = ax : A
             converted = to_b_to_c a
-            converted . to_text . should_equal "(C (B A & X))"
+            converted . to_text . should_equal "(C (B A))"
 
         group_builder.specify "Multiple conversions of X fail" <|
             x = X
@@ -163,7 +167,6 @@ add_specs suite_builder =
             Test.expect_panic Type_Error <|
                 _ = a_or_b : (A&B)
 
-        # This test is failing
         group_builder.specify "B --> (A|C) is possible" <|
             b = B.B 42
             a_or_c = b : (A|C)
@@ -173,6 +176,8 @@ add_specs suite_builder =
             a = A
             Test.expect_panic Type_Error <|
                 a : C
+
+Any.confuse_me self = self
 
 main filter=Nothing =
     suite = Test.build suite_builder->

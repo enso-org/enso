@@ -50,7 +50,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
     'format' in schema &&
     schema.format === 'enso-secret'
   const { data: secrets } = useBackendQuery(remoteBackend, 'listSecrets', [], { enabled: isSecret })
-  const autocompleteItems = isSecret ? secrets?.map((secret) => secret.path) ?? null : null
+  const autocompleteItems = isSecret ? (secrets?.map((secret) => secret.path) ?? null) : null
   const isInvalid = !isAbsent && !getValidator(path)(value)
   const validationErrorClassName =
     isInvalid && 'border border-danger focus:border-danger focus:outline-danger'
@@ -190,7 +190,7 @@ export default function JSONSchemaInput(props: JSONSchemaInputProps) {
           break
         }
         case 'object': {
-          const propertiesObject = 'properties' in schema ? asObject(schema.properties) ?? {} : {}
+          const propertiesObject = 'properties' in schema ? (asObject(schema.properties) ?? {}) : {}
           const requiredProperties =
             'required' in schema && Array.isArray(schema.required) ? schema.required : []
           const propertyDefinitions = Object.entries(propertiesObject).flatMap(

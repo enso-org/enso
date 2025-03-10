@@ -1,6 +1,6 @@
 package org.enso.table.data.column.operation.map.text;
 
-import org.enso.table.data.column.builder.StringBuilder;
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.map.BinaryMapOperation;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.SpecializedStorage;
@@ -21,57 +21,53 @@ public abstract class StringStringOp
   protected abstract TextType computeResultType(TextType a, TextType b);
 
   @Override
-  public Storage<?> runBinaryMap(
+  public Storage<String> runBinaryMap(
       SpecializedStorage<String> storage,
       Object arg,
       MapOperationProblemAggregator problemAggregator) {
-    int size = storage.size();
+    long size = storage.getSize();
     if (arg == null) {
-      StringBuilder builder = new StringBuilder(size, TextType.VARIABLE_LENGTH);
-      builder.appendNulls(size);
-      return builder.seal();
+      return StringStorage.makeEmpty(TextType.VARIABLE_LENGTH, size);
     } else if (arg instanceof String argString) {
-      String[] newVals = new String[size];
-      Context context = Context.getCurrent();
-      for (int i = 0; i < size; i++) {
-        if (storage.isNothing(i)) {
-          newVals[i] = null;
-        } else {
-          newVals[i] = doString(storage.getItem(i), argString);
-        }
+      TextType argumentType = TextType.preciseTypeForValue(argString);
+      TextType newType = computeResultType((TextType) storage.getType(), argumentType);
 
+      var builder = Builder.getForText(newType, size);
+      Context context = Context.getCurrent();
+      for (long i = 0; i < size; i++) {
+        if (storage.isNothing(i)) {
+          builder.appendNulls(1);
+        } else {
+          builder.append(doString(storage.getItemBoxed(i), argString));
+        }
         context.safepoint();
       }
 
-      TextType argumentType = TextType.preciseTypeForValue(argString);
-      TextType newType = computeResultType((TextType) storage.getType(), argumentType);
-      return new StringStorage(newVals, size, newType);
+      return builder.seal();
     } else {
       throw new UnexpectedTypeException("a Text");
     }
   }
 
   @Override
-  public Storage<?> runZip(
+  public Storage<String> runZip(
       SpecializedStorage<String> storage,
       Storage<?> arg,
       MapOperationProblemAggregator problemAggregator) {
     if (arg instanceof StringStorage v) {
-      int size = storage.size();
-      String[] newVals = new String[size];
+      TextType newType = computeResultType((TextType) storage.getType(), v.getType());
+      long size = storage.getSize();
+      var builder = Builder.getForText(newType, size);
       Context context = Context.getCurrent();
-      for (int i = 0; i < size; i++) {
+      for (long i = 0; i < size; i++) {
         if (storage.isNothing(i) || v.isNothing(i)) {
-          newVals[i] = null;
+          builder.appendNulls(1);
         } else {
-          newVals[i] = doString(storage.getItem(i), v.getItem(i));
+          builder.append(doString(storage.getItemBoxed(i), v.getItemBoxed(i)));
         }
-
         context.safepoint();
       }
-
-      TextType newType = computeResultType((TextType) storage.getType(), v.getType());
-      return new StringStorage(newVals, size, newType);
+      return builder.seal();
     } else {
       throw new UnexpectedTypeException("a Text column");
     }

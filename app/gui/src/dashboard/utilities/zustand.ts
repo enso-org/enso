@@ -11,4 +11,4 @@ export type {
   EqualityFunctionName,
   UseStoreOptions,
 } from '#/hooks/storeHooks'
-export * from 'zustand'
+export { createStore, type StoreApi } from 'zustand'

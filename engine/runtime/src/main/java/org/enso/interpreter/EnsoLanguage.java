@@ -20,6 +20,7 @@ import java.io.PrintStream;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
+import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
@@ -60,6 +61,7 @@ import org.enso.interpreter.runtime.instrument.NotificationHandler.TextMode$;
 import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
+import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.tag.Patchable;
@@ -72,8 +74,6 @@ import org.graalvm.options.OptionCategory;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
 import org.graalvm.options.OptionType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * The root of the Enso implementation.
@@ -113,8 +113,8 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
 
   private final ContextThreadLocal<ExecutionEnvironment[]> executionEnvironment =
       locals.createContextThreadLocal((ctx, thread) -> new ExecutionEnvironment[1]);
-
-  private static final Logger logger = LoggerFactory.getLogger(EnsoLanguage.class);
+  private final ContextThreadLocal<State> state =
+      locals.createContextThreadLocal((ctx, thread) -> State.create(ctx));
 
   public static EnsoLanguage get(Node node) {
     return REFERENCE.get(node);
@@ -266,7 +266,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
               false,
               true,
               false,
-              false,
+              scala.Option.empty(),
               true,
               false,
               scala.Option.apply(new PrintStream(outputRedirect)));
@@ -467,7 +467,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
         }
       }
     } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
-      logger.warn("Unexpected exception", e);
+      context.getLogger().log(Level.WARNING, "Unexpected exception", e);
     }
     return null;
   }
@@ -478,5 +478,10 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
 
   public void setExecutionEnvironment(ExecutionEnvironment executionEnvironment) {
     this.executionEnvironment.get()[0] = executionEnvironment;
+  }
+
+  /** Access to state associated with current context and thread. */
+  public final State currentState() {
+    return this.state.get();
   }
 }

@@ -9,7 +9,7 @@ import org.enso.text.Sha3_224VersionCalculator
 import java.util
 import java.util.{Collections, UUID}
 import java.util.concurrent.atomic.AtomicReference
-import java.util.concurrent.{ExecutorService, TimeUnit}
+import java.util.concurrent.{CancellationException, ExecutorService, TimeUnit}
 import java.util.logging.Level
 import scala.concurrent.{Future, Promise, TimeoutException}
 import scala.util.control.NonFatal
@@ -96,7 +96,6 @@ final class JobExecutionEngine(
             assertInJvm(timeSinceRequestedToCancel > 0)
             val timeToCancel =
               forceInterruptTimeout - timeSinceRequestedToCancel
-            assertInJvm(timeToCancel > 0)
             logger.log(
               Level.FINEST,
               "About to wait {}ms  to cancel job {}",
@@ -108,8 +107,7 @@ final class JobExecutionEngine(
             runningJob.future.get(timeToCancel, TimeUnit.MILLISECONDS)
             logger.log(
               Level.FINEST,
-              "Job {} finished within the allocated soft-cancel time",
-              runningJob.id
+              "Job {} finished within the allocated soft-cancel time"
             )
           } catch {
             case _: TimeoutException =>
@@ -133,6 +131,12 @@ final class JobExecutionEngine(
               }
               logger.log(Level.WARNING, sb.toString())
               runningJob.future.cancel(runningJob.job.mayInterruptIfRunning)
+            case _: CancellationException =>
+              logger.log(
+                Level.FINE,
+                "Job `{}` was cancelled by an external task",
+                runningJob.id
+              )
             case e: Throwable =>
               logger.log(
                 Level.WARNING,

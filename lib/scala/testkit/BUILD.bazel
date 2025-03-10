@@ -1,0 +1,26 @@
+load("@io_bazel_rules_scala//scala:scala.bzl", "scala_library", "scala_test")
+
+scala_library(
+    name = "testkit-scala",
+    srcs = glob(["src/main/scala/**/*.scala"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        "@maven//:org_scalatest_scalatest_core_2_13",
+        "@maven//:org_scalatest_scalatest_compatible",
+        "@maven//:commons_io_commons_io",
+        "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:org_scalactic_scalactic_2_13",
+        ##"@maven//:org_scala_lang_scala_library",
+    ],
+)
+
+java_library(
+    name = "testkit",
+    srcs = glob(["src/main/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        ":testkit-scala",
+        "@maven//:junit_junit",
+        "@maven//:org_scala_lang_scala_library",
+    ],
+)

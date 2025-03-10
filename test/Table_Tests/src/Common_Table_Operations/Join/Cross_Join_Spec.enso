@@ -90,8 +90,10 @@ add_cross_join_specs suite_builder setup =
             problems = [Cross_Join_Row_Limit_Exceeded.Error 100 101]
             Problems.test_problem_handling action problems tester
 
+            t2.cross_join t101 right_row_limit=..No_Limit . row_count . should_equal 202
             t2.cross_join t101 right_row_limit=Nothing . row_count . should_equal 202
             t2.cross_join t3 right_row_limit=2 on_problems=..Report_Error . should_fail_with Cross_Join_Row_Limit_Exceeded
+            t2.cross_join t3 right_row_limit=(..Limit 2) on_problems=..Report_Error . should_fail_with Cross_Join_Row_Limit_Exceeded
 
         group_builder.specify "should ensure 1-1 mapping even with duplicate rows" <|
             t1 = table_builder [["X", [2, 1, 2, 2]], ["Y", [5, 4, 5, 5]]]

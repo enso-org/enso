@@ -169,7 +169,7 @@ function preventNavigation() {
  */
 function disableNewWindowsCreation() {
   electron.app.on('web-contents-created', (_event, contents) => {
-    contents.setWindowOpenHandler(details => {
+    contents.setWindowOpenHandler((details) => {
       const { url } = details
       const parsedUrl = new URL(url)
       if (TRUSTED_EXTERNAL_PROTOCOLS.includes(parsedUrl.protocol)) {

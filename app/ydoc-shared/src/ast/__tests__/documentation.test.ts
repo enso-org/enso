@@ -22,8 +22,8 @@ describe('Component documentation (plain text)', () => {
       text: 'A multiline\ncomponent comment',
     },
   ]
-  const cases = plaintextDocumentableStatements.flatMap(statement =>
-    textCases.map(textCase => ({ statement, ...textCase })),
+  const cases = plaintextDocumentableStatements.flatMap((statement) =>
+    textCases.map((textCase) => ({ statement, ...textCase })),
   )
 
   test.each(cases)('Enso source comments to normalized text', ({ statement, source, text }) => {
@@ -169,9 +169,19 @@ describe('Function documentation (Markdown)', () => {
       source: '## Table below:\n\n   | a | b |\n   |---|---|',
       markdown: 'Table below:\n\n| a | b |\n|---|---|',
     },
+    {
+      source:
+        '## - Bullet list\n     - Nested list\n       - Very nested list\n     - Nested list\n   - Bullet list',
+      markdown:
+        '- Bullet list\n  - Nested list\n    - Very nested list\n  - Nested list\n- Bullet list',
+    },
+    {
+      source: '## Plain text\n   - Bullet list\n   Plain text\n   1. Numbered list\n   Plain text',
+      markdown: 'Plain text\n- Bullet list\nPlain text\n1. Numbered list\nPlain text',
+    },
   ]
 
-  test.each(cases)('Enso source comments to normalized markdown', ({ source, markdown }) => {
+  test.each(cases)('Enso source comments to prerendered markdown', ({ source, markdown }) => {
     const moduleSource = `${source}\nmain =\n    x = 1`
     const topLevel = parseModule(moduleSource)
     topLevel.module.setRoot(topLevel)

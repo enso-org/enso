@@ -4,16 +4,23 @@ import { useGraphStore, type NodeId } from '@/stores/graph'
 import type { GraphDb } from '@/stores/graph/graphDatabase'
 import { requiredImportEquals, requiredImports, type RequiredImport } from '@/stores/graph/imports'
 import { useSuggestionDbStore, type SuggestionDb } from '@/stores/suggestionDatabase'
-import { type SuggestionEntry, type SuggestionId } from '@/stores/suggestionDatabase/entry'
-import { isIdentifier, type AstId, type Identifier } from '@/util/ast/abstract'
+import {
+  entryIsStatic,
+  type SuggestionEntry,
+  type SuggestionId,
+} from '@/stores/suggestionDatabase/entry'
+import { Ast } from '@/util/ast'
+import { selfArgSeparator } from '@/util/ast/abstract'
 import { Err, Ok, type Result } from '@/util/data/result'
-import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
+import { type ProjectPath } from '@/util/projectPath'
+import { qnJoin, qnLastSegment } from '@/util/qualifiedName'
 import { useToast } from '@/util/toast'
-import { computed, proxyRefs, readonly, ref, type ComputedRef } from 'vue'
+import { computed, proxyRefs, readonly, ref, shallowRef, type ComputedRef } from 'vue'
+import { Range } from 'ydoc-shared/util/data/range'
 
 /** Information how the component browser is used, needed for proper input initializing. */
 export type Usage =
-  | { type: 'newNode'; sourcePort?: AstId | undefined }
+  | { type: 'newNode'; sourcePort?: Ast.AstId | undefined }
   | { type: 'editNode'; node: NodeId; cursorPos: number }
 
 /**
@@ -26,11 +33,12 @@ export type ComponentBrowserMode =
   | {
       mode: 'componentBrowsing'
       filter: Filter
+      literal?: Ast.TextLiteral | Ast.NumericLiteral | Ast.NegationApp | undefined
     }
   | {
       mode: 'codeEditing'
       code: string
-      appliedSuggestion?: SuggestionId
+      appliedSuggestion?: SuggestionEntry
     }
   | {
       mode: 'aiPrompt'
@@ -45,12 +53,12 @@ export function useComponentBrowserInput(
 ) {
   const text = ref('')
   const cbUsage = ref<Usage>()
-  const selection = ref({ start: 0, end: 0 })
-  const imports = ref<RequiredImport[]>([])
+  const selection = ref(Range.empty)
+  const imports = shallowRef<RequiredImport[]>([])
   const processingAIPrompt = ref(false)
   const toastError = useToast.error()
-  const sourceNodeIdentifier = ref<Identifier>()
-  const switchedToCodeMode = ref<{ appliedSuggestion?: SuggestionId }>()
+  const sourceNodeIdentifier = ref<Ast.Identifier>()
+  const switchedToCodeMode = ref<{ appliedSuggestion?: SuggestionEntry }>()
 
   // Text Model to being edited externally (by user).
   //
@@ -83,12 +91,9 @@ export function useComponentBrowserInput(
 
   function alterInput(newText: string, prefixLengthChange: number) {
     text.value = newText
-    const adjustPoint = (point: number) =>
-      Math.min(newText.length, Math.max(0, point + prefixLengthChange))
-    selection.value = {
-      start: adjustPoint(selection.value.start),
-      end: adjustPoint(selection.value.end),
-    }
+    selection.value = selection.value
+      .shift(prefixLengthChange)
+      .clip(Range.fromStartAndLength(0, newText.length))
   }
 
   const mode: ComputedRef<ComponentBrowserMode> = computed(() => {
@@ -107,12 +112,20 @@ export function useComponentBrowserInput(
         : {}),
       }
     } else {
+      let literal: Ast.MutableTextLiteral | Ast.NumericLiteral | Ast.NegationApp | undefined =
+        Ast.TextLiteral.tryParse(text.value)
+      if (literal == null) {
+        literal = Ast.NumericLiteral.tryParseWithSign(text.value)
+      } else {
+        literal.fixBoundaries()
+      }
       return {
         mode: 'componentBrowsing',
         filter: {
           pattern: text.value,
           ...(sourceNodeType.value != null ? { selfArg: sourceNodeType.value } : {}),
         },
+        literal,
       }
     }
   })
@@ -122,19 +135,19 @@ export function useComponentBrowserInput(
     const definition = graphDb.getIdentDefiningNode(sourceNodeIdentifier.value)
     if (definition == null) return null
     const typename = graphDb.getExpressionInfo(definition)?.typename
-    return typename != null ? { type: 'known', typename } : { type: 'unknown' }
+    return typename ? { type: 'known', typename } : { type: 'unknown' }
   })
 
   /** Apply given suggested entry to the input. */
   function applySuggestion(id: SuggestionId): Result {
     const entry = suggestionDb.get(id)
     if (!entry) return Err(`No entry with id ${id}`)
-    switchedToCodeMode.value = { appliedSuggestion: id }
-    const { newText, newCursorPos, requiredImport } = inputAfterApplyingSuggestion(entry)
+    switchedToCodeMode.value = { appliedSuggestion: entry }
+    const { newText, requiredImport } = inputAfterApplyingSuggestion(entry)
     text.value = newText
-    selection.value = { start: newCursorPos, end: newCursorPos }
+    selection.value = Range.emptyAt(newText.length)
     if (requiredImport) {
-      const [importId] = suggestionDb.nameToId.lookup(requiredImport)
+      const importId = suggestionDb.findByProjectPath(requiredImport)
       if (importId) {
         const requiredEntry = suggestionDb.get(importId)
         if (requiredEntry) {
@@ -153,28 +166,28 @@ export function useComponentBrowserInput(
 
   function inputAfterApplyingSuggestion(entry: SuggestionEntry): {
     newText: string
-    newCode: string
-    newCursorPos: number
-    requiredImport: QualifiedName | null
+    requiredImport: ProjectPath | undefined
   } {
-    const newText =
-      !sourceNodeIdentifier.value && entry.memberOf ?
-        `${qnLastSegment(entry.memberOf)}.${entry.name} `
-      : `${entry.name} `
-    const newCode =
-      sourceNodeIdentifier.value ? `${sourceNodeIdentifier.value}.${entry.name} ` : `${newText} `
-    const newCursorPos = newText.length
-
-    return {
-      newText,
-      newCode,
-      newCursorPos,
-      requiredImport:
-        sourceNodeIdentifier.value ? null
-        : entry.memberOf ? entry.memberOf
-          // Perhaps we will add cases for Type/Con imports, but they are not displayed as
-          // suggestion ATM.
-        : null,
+    if (sourceNodeIdentifier.value) {
+      return {
+        newText: entry.name + ' ',
+        requiredImport: undefined,
+      }
+    } else {
+      // Perhaps we will add cases for Type/Con imports, but they are not displayed as suggestion ATM.
+      const owner = entryIsStatic(entry) ? entry.memberOf.normalized() : undefined
+      return {
+        newText:
+          (owner ?
+            qnJoin(
+              owner.path ? qnLastSegment(owner.path)
+              : owner.project ? qnLastSegment(owner.project)
+              : ('Main' as Ast.Identifier),
+              entry.name,
+            )
+          : entry.name) + ' ',
+        requiredImport: owner,
+      }
     }
   }
 
@@ -188,7 +201,11 @@ export function useComponentBrowserInput(
     for (const anImport of imports.value) {
       const alreadyAdded = finalImports.some((existing) => requiredImportEquals(existing, anImport))
       const importedIdent =
-        anImport.kind == 'Qualified' ? qnLastSegment(anImport.module) : anImport.import
+        anImport.kind == 'Qualified' ?
+          qnLastSegment(
+            anImport.module.path ?? anImport.module.project ?? ('Main' as Ast.Identifier),
+          )
+        : anImport.import
       const noLongerNeeded = !text.value.includes(importedIdent)
       if (!noLongerNeeded && !alreadyAdded) {
         finalImports.push(anImport)
@@ -202,12 +219,12 @@ export function useComponentBrowserInput(
       case 'newNode':
         if (usage.sourcePort) {
           const ident = graphDb.getOutputPortIdentifier(usage.sourcePort)
-          sourceNodeIdentifier.value = ident != null && isIdentifier(ident) ? ident : undefined
+          sourceNodeIdentifier.value = ident != null && Ast.isIdentifier(ident) ? ident : undefined
         } else {
           sourceNodeIdentifier.value = undefined
         }
         text.value = ''
-        selection.value = { start: 0, end: 0 }
+        selection.value = Range.empty
         break
       case 'editNode': {
         const parsed = extractSourceNode(
@@ -215,7 +232,7 @@ export function useComponentBrowserInput(
         )
         text.value = parsed.text
         sourceNodeIdentifier.value = parsed.sourceNodeIdentifier
-        selection.value = { start: usage.cursorPos, end: usage.cursorPos }
+        selection.value = Range.emptyAt(usage.cursorPos)
         break
       }
     }
@@ -229,7 +246,7 @@ export function useComponentBrowserInput(
     const matchedCode = sourceNodeMatch?.[2]
     if (
       matchedSource != null &&
-      isIdentifier(matchedSource) &&
+      Ast.isIdentifier(matchedSource) &&
       matchedCode != null &&
       graphDb.getIdentDefiningNode(matchedSource)
     )
@@ -266,7 +283,9 @@ export function useComponentBrowserInput(
   }
 
   function applySourceNode(text: string) {
-    return sourceNodeIdentifier.value ? `${sourceNodeIdentifier.value}.${text}` : text
+    return sourceNodeIdentifier.value ?
+        `${sourceNodeIdentifier.value}${selfArgSeparator(text)}${text}`
+      : text
   }
 
   return proxyRefs({
@@ -282,7 +301,7 @@ export function useComponentBrowserInput(
     selfArgument: sourceNodeIdentifier,
     /** The current selection (or cursor position if start is equal to end). */
     selection,
-    /** Flag indincating that we're waiting for AI's answer for user's prompt. */
+    /** Flag indicating that we're waiting for AI's answer for user's prompt. */
     processingAIPrompt,
     /** Re-initializes the input for given usage. */
     reset,

@@ -1,0 +1,41 @@
+private
+
+from Standard.Base import all
+import project.Table.Table
+
+import project.Column.Column
+import project.Internal.Java_Problems
+import project.Fill_With.Fill_With
+import project.Set_Mode.Set_Mode
+import project.Internal.Table_Helpers
+import project.Internal.Problem_Builder.Problem_Builder
+import project.Internal.Column_Naming_Helper.Column_Naming_Helper
+
+polyglot java import org.enso.table.operations.Offset as Java_Offset
+
+table_offset_impl table:Table (columns:(Vector | Text | Integer | Regex)=[]) n:Integer=-1 fillWith:Fill_With=..Nothing (group_by:(Vector | Text | Integer | Regex)=[]) (order_by:(Vector | Text)=[]) (set_mode:Set_Mode=..Add) (on_problems:Problem_Behavior=..Report_Warning) -> Table =
+    problem_builder = Problem_Builder.new error_on_missing_columns=True
+    resolved_columns = table.columns_helper.select_columns_helper columns Case_Sensitivity.Default True problem_builder
+    grouping_columns = table.columns_helper.select_columns_helper group_by Case_Sensitivity.Default True problem_builder 
+    ordering = Table_Helpers.resolve_order_by table.columns order_by problem_builder
+    resolved_java_columns = resolved_columns.map c->c.java_column
+    fillWith_java = fillWith.to_java
+    grouping_java_columns = grouping_columns.map c->c.java_column
+    ordering_java_columns = ordering.map c->c.column.java_column
+    directions = ordering.map c->c.associated_selector.direction.to_sign
+    problem_builder.attach_problems_before on_problems <|
+        new_names = resolved_columns.map c-> 
+            if set_mode!=Set_Mode.Add then c.name else
+                Column_Naming_Helper.in_memory.function_name "offset" [c, n, fillWith]
+        new_columns_java = Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
+            Java_Offset.offset resolved_java_columns n fillWith_java grouping_java_columns ordering_java_columns directions java_problem_aggregator
+        new_columns = new_columns_java.map Column.from_java_column
+        new_columns.zip new_names . fold table t-> pair->
+            t.set pair.first pair.second set_mode
+
+column_offset_impl column:Column n:Integer=-1 fillWith:Fill_With=..Nothing =
+    java_column = column.java_column
+    fillWith_java = fillWith.to_java
+    new_column = Column.from_java_column <| Java_Offset.offset_single_column java_column n fillWith_java
+    new_name = Column_Naming_Helper.in_memory.function_name "offset" [column, n, fillWith]
+    new_column.rename new_name

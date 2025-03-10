@@ -13,7 +13,7 @@ function or(a: (page: Locator | Page) => Locator, b: (page: Locator | Page) => L
 
 /** Show/hide visualization button */
 export function toggleVisualizationButton(page: Locator | Page) {
-  return page.getByLabel('Visualization', { exact: true })
+  return page.getByLabel('Show/Hide visualization')
 }
 
 /** Visualization Selector button */
@@ -83,7 +83,6 @@ export const componentMenu = componentLocator('.ComponentMenu')
 export const addNewNodeButton = componentLocator('.PlusButton')
 export const componentBrowser = componentLocator('.ComponentBrowser')
 export const nodeOutputPort = componentLocator('.outputPortHoverArea')
-export const createNodeFromPort = componentLocator('.CreateNodeFromPortButton .plusIcon')
 export const editorRoot = componentLocator('.CodeMirror')
 export const nodeComment = componentLocator('.GraphNodeComment')
 export const nodeCommentContent = componentLocator('.GraphNodeComment div[contentEditable]')
@@ -94,12 +93,12 @@ export const nodeCommentContent = componentLocator('.GraphNodeComment div[conten
  * It may be covered by selected one due to way we display them.
  */
 export function componentBrowserEntry(page: Locator | Page) {
-  return page.locator(`.ComponentBrowser .list-variant:not(.selected) .component`)
+  return page.locator(`.ComponentEntry`)
 }
 
 /** A selected variant of Component Browser Entry */
 export function componentBrowserSelectedEntry(page: Locator | Page) {
-  return page.locator(`.ComponentBrowser .list-variant.selected .component`)
+  return page.locator(`.ComponentEntry.selected`)
 }
 
 /** A not-selected variant of Component Browser entry with given label */
@@ -155,6 +154,11 @@ export const geoMapVisualization = visualizationLocator('.GeoMapVisualization')
 export const imageBase64Visualization = visualizationLocator('.ImageBase64Visualization')
 export const warningsVisualization = visualizationLocator('.WarningsVisualization')
 
+/** Type label on the visualisation */
+export function visualisationNodeType(page: Page) {
+  return page.getByTestId('visualisationNodeType')
+}
+
 // === Edge locators ===
 
 /** All edges going from a node with given binding. */
@@ -185,11 +189,22 @@ export async function edgesToNode(page: Page, node: Locator) {
  * Returns a location that can be clicked to activate an output port.
  * Using a `Locator` would be better, but `position` option of `click` doesn't work.
  */
-export async function outputPortCoordinates(node: Locator) {
-  const outputPortArea = await node.locator('.outputPortHoverArea').boundingBox()
+export async function outputPortCoordinates(page: Page, node: Locator) {
+  const nodeId = await node.getAttribute('data-node-id')
+  const outputPortArea = await page
+    .locator(`.GraphNodeOutputPorts[data-output-ports-node-id="${nodeId}"] .outputPortHoverArea`)
+    .boundingBox()
   expect(outputPortArea).not.toBeNull()
   assert(outputPortArea)
   const centerX = outputPortArea.x + outputPortArea.width / 2
   const bottom = outputPortArea.y + outputPortArea.height
   return { x: centerX, y: bottom - 2.0 }
+}
+
+/** Returns a locator for the create node from port button. */
+export async function createNodeFromPortButton(page: Page, node: Locator) {
+  const nodeId = await node.getAttribute('data-node-id')
+  return page.locator(
+    `.GraphNodeOutputPorts[data-output-ports-node-id="${nodeId}"] .CreateNodeFromPortButton .plusIcon`,
+  )
 }

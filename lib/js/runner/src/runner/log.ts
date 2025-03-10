@@ -228,7 +228,7 @@ export class Console extends Consumer {
   private indentLvl = 0
 
   message(fn: LogLevel, ...args: unknown[]) {
-    const strArgs = args.map(arg => {
+    const strArgs = args.map((arg) => {
       if (isObject(arg)) {
         return JSON.stringify(arg, replacer, 2)
       } else {
@@ -251,10 +251,10 @@ export class Console extends Consumer {
           color = null
           break
       }
-      const coloredArgs: string[] = color ? strArgs.map(arg => Colors[color](arg)) : strArgs
+      const coloredArgs: string[] = color ? strArgs.map((arg) => Colors[color](arg)) : strArgs
       if (this.indentLvl > 0) {
         const indent = this.indent()
-        const indentedArgs = coloredArgs.map(arg => arg.replace(/\n/g, `\n${indent}`))
+        const indentedArgs = coloredArgs.map((arg) => arg.replace(/\n/g, `\n${indent}`))
         c.log(this.indentShorter(), ...indentedArgs)
       } else {
         c.log(...coloredArgs)

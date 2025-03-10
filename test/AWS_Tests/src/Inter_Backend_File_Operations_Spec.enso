@@ -195,7 +195,7 @@ add_specs suite_builder =
                 source_file = regular_source_file_provider.get
                 destination_file = regular_destination_file_provider.get
 
-                test_mixed source destination method =
+                test_mixed source destination method = Test.with_clue "("+source.to_text+" "+method.to_text+" "+destination.to_text+") " <|
                     r = method source destination
                     r.should_fail_with Illegal_Argument
                     r.catch.to_display_text . should_contain "Please `.read` the data link and then write the data to the destination using the appropriate method."

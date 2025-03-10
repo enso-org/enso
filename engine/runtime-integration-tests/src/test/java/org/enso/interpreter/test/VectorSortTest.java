@@ -40,14 +40,15 @@ public class VectorSortTest {
     equalsFunc = ContextUtils.getMethodFromModule(context, code, "equals");
 
     values = new ArrayList<>();
-    var valuesGenerator = ValuesGenerator.create(context, Language.ENSO, Language.JAVA);
-    values.addAll(valuesGenerator.numbers());
-    values.addAll(valuesGenerator.vectors());
-    values.addAll(valuesGenerator.arrayLike());
-    values.addAll(valuesGenerator.booleans());
-    values.addAll(valuesGenerator.durations());
-    values.addAll(valuesGenerator.maps());
-    valuesGenerator.dispose();
+    try (ValuesGenerator valuesGenerator =
+        ValuesGenerator.create(context, Language.ENSO, Language.JAVA)) {
+      values.addAll(valuesGenerator.numbers());
+      values.addAll(valuesGenerator.vectors());
+      values.addAll(valuesGenerator.arrayLike());
+      values.addAll(valuesGenerator.booleans());
+      values.addAll(valuesGenerator.durations());
+      values.addAll(valuesGenerator.maps());
+    }
   }
 
   @AfterClass
@@ -55,24 +56,31 @@ public class VectorSortTest {
     values.clear();
     context.close();
     context = null;
+    sortFunc = null;
+    equalsFunc = null;
   }
 
   @DataPoints public static List<Value> values;
 
   @Theory
   public void testSortHandlesAllValues(Value value1, Value value2) {
-    Assume.assumeFalse(isNan(value1) || isNan(value2));
-    Value res = sortFunc.execute(value1, value2);
-    assertTrue(res.hasArrayElements());
-    assertEquals(2, res.getArraySize());
-    List<Value> resArray = readPolyglotArray(res);
-    // check that value1 is there unchanged on some index, and the same for value2
-    assertTrue(
-        "Sorted vector should contain the first value at any index",
-        invokeEquals(value1, resArray.get(0)) || invokeEquals(value1, resArray.get(1)));
-    assertTrue(
-        "Sorted vector should contain the second value at any index",
-        invokeEquals(value2, resArray.get(0)) || invokeEquals(value2, resArray.get(1)));
+    ContextUtils.executeInContext(
+        context,
+        () -> {
+          Assume.assumeFalse(isNan(value1) || isNan(value2));
+          Value res = sortFunc.execute(value1, value2);
+          assertTrue(res.hasArrayElements());
+          assertEquals(2, res.getArraySize());
+          List<Value> resArray = readPolyglotArray(res);
+          // check that value1 is there unchanged on some index, and the same for value2
+          assertTrue(
+              "Sorted vector should contain the first value at any index",
+              invokeEquals(value1, resArray.get(0)) || invokeEquals(value1, resArray.get(1)));
+          assertTrue(
+              "Sorted vector should contain the second value at any index",
+              invokeEquals(value2, resArray.get(0)) || invokeEquals(value2, resArray.get(1)));
+          return null;
+        });
   }
 
   private boolean isNan(Value value) {

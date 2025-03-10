@@ -3,8 +3,8 @@
 #### The <kbd>Meta</kbd> key.
 
 The <kbd>Meta</kbd> key was introduced to make the shortcuts consistent across
-platforms. It is defined as <kbd>Command ⌘</kbd> on macOS, and as <kbd>Ctrl</kbd>
-on Windows and Linux.
+platforms. It is defined as <kbd>Command ⌘</kbd> on macOS, and as
+<kbd>Ctrl</kbd> on Windows and Linux.
 
 #### Mouse Buttons
 

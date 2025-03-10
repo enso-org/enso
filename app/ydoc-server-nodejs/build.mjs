@@ -40,7 +40,7 @@ function runServerProcess() {
 function forkChildProcess(scriptPath) {
   const controller = new AbortController()
   fork(scriptPath, { stdio: 'inherit', signal: controller.signal })
-    .on('error', error => {
+    .on('error', (error) => {
       if (error.constructor.name != 'AbortError') console.error(error)
     })
     .on('close', function (code) {

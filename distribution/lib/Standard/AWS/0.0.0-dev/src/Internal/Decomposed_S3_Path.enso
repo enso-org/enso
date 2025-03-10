@@ -1,0 +1,66 @@
+private
+
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Internal.Path_Helpers
+
+import project.Internal.S3_Path.S3_Path
+
+type Path_Entry
+    Directory (name : Text)
+
+    File (name : Text)
+
+    is_directory self -> Boolean = case self of
+        Path_Entry.Directory _ -> True
+        Path_Entry.File _      -> False
+
+type Decomposed_S3_Path
+    Value (parts : Vector Path_Entry)
+
+    ## Reconstructs the original path.
+    key self -> Text =
+        add_directory_suffix = self.parts.not_empty && self.parts.last.is_directory
+        suffix = if add_directory_suffix then S3_Path.delimiter else ""
+        self.parts.map .name . join separator=S3_Path.delimiter suffix=suffix
+
+    parse (key : Text) -> Decomposed_S3_Path =
+        has_directory_suffix = key.ends_with S3_Path.delimiter
+        parts = key.split S3_Path.delimiter . filter (p-> p.is_empty.not)
+        entries = case has_directory_suffix of
+            True -> parts.map Path_Entry.Directory
+            False ->
+                if parts.is_empty then [] else
+                    (parts.drop (..Last 1) . map Path_Entry.Directory) + [Path_Entry.File parts.last]
+        Decomposed_S3_Path.Value entries
+
+    join (paths : Vector Decomposed_S3_Path) -> Decomposed_S3_Path =
+        if paths.is_empty then Error.throw (Illegal_Argument.Error "Cannot join an empty list of paths.") else
+            flattened = paths.flat_map .parts
+            # Any `File` parts from the middle are now transformed to `Directory`:
+            aligned = flattened.map_with_index ix-> part-> case part of
+                Path_Entry.Directory _ -> part
+                Path_Entry.File name ->
+                    is_last = ix == flattened.length-1
+                    if is_last then part else Path_Entry.Directory name
+            Decomposed_S3_Path.Value aligned
+
+    normalize self -> Decomposed_S3_Path =
+        new_parts = Path_Helpers.normalize_segments self.parts .name
+        Decomposed_S3_Path.Value new_parts
+
+    parent self -> Decomposed_S3_Path | Nothing =
+        if self.parts.is_empty then Nothing else
+            new_parts = self.parts.drop (..Last 1)
+            Decomposed_S3_Path.Value new_parts
+
+    is_empty self -> Boolean = self.parts.is_empty
+
+    first_part self -> Path_Entry | Nothing =
+        if self.parts.is_empty then Nothing else
+            self.parts.first
+
+    drop_first_part self -> Decomposed_S3_Path =
+        if self.parts.is_empty then self else
+            new_parts = self.parts.drop 1
+            Decomposed_S3_Path.Value new_parts

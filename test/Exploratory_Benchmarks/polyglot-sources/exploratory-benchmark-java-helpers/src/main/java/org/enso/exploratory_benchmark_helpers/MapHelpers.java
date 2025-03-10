@@ -1,11 +1,8 @@
 package org.enso.exploratory_benchmark_helpers;
 
-import java.util.BitSet;
 import java.util.function.Function;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.builder.InferredBuilder;
-import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.StringStorage;
 import org.enso.table.data.column.storage.datetime.DateStorage;
@@ -13,86 +10,81 @@ import org.enso.table.data.column.storage.numeric.LongStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 
 public class MapHelpers {
-  public static StringStorage stringConcatBimap(StringStorage storage1, StringStorage storage2) {
-    if (storage1.size() != storage2.size()) {
+  public static Storage<String> stringConcatBimap(StringStorage storage1, StringStorage storage2) {
+    if (storage1.getSize() != storage2.getSize()) {
       throw new IllegalArgumentException("Storage sizes must match");
     }
 
-    int n = storage1.size();
-    String[] result = new String[n];
-    for (int i = 0; i < n; i++) {
+    long n = storage1.getSize();
+    var builder = Builder.getForText(TextType.VARIABLE_LENGTH, n);
+    for (long i = 0; i < n; i++) {
       if (!storage1.isNothing(i) && !storage2.isNothing(i)) {
-        result[i] = storage1.getItem(i) + storage2.getItem(i);
+        builder.append(storage1.getItemBoxed(i) + storage2.getItemBoxed(i));
       } else {
-        result[i] = null;
+        builder.appendNulls(1);
       }
     }
-    return new StringStorage(result, n, TextType.VARIABLE_LENGTH);
+    return builder.seal();
   }
 
-  public static LongStorage longAddBimap(LongStorage storage1, LongStorage storage2) {
-    if (storage1.size() != storage2.size()) {
+  public static Storage<Long> longAddBimap(LongStorage storage1, LongStorage storage2) {
+    if (storage1.getSize() != storage2.getSize()) {
       throw new IllegalArgumentException("Storage sizes must match");
     }
 
-    int n = storage1.size();
-    long[] result = new long[n];
-    BitSet isNothing = new BitSet();
-    for (int i = 0; i < n; i++) {
+    long n = storage1.getSize();
+    var builder = Builder.getForLong(IntegerType.INT_64, n, BlackholeProblemAggregator.INSTANCE);
+    for (long i = 0; i < n; i++) {
       if (!storage1.isNothing(i) && !storage2.isNothing(i)) {
-        result[i] = storage1.getItem(i) + storage2.getItem(i);
+        builder.appendLong(storage1.getItemAsLong(i) + storage2.getItemAsLong(i));
       } else {
-        isNothing.set(i);
+        builder.appendNulls(1);
       }
     }
-    return new LongStorage(result, n, isNothing, IntegerType.INT_64);
+    return builder.seal();
   }
 
-  public static BoolStorage textEndsWith(StringStorage storage, String suffix) {
-    int n = storage.size();
-    BitSet result = new BitSet();
-    BitSet isNothing = new BitSet();
-    for (int i = 0; i < n; i++) {
+  public static Storage<Boolean> textEndsWith(StringStorage storage, String suffix) {
+    long n = storage.getSize();
+    var builder = Builder.getForBoolean(n);
+    for (long i = 0; i < n; i++) {
       if (storage.isNothing(i)) {
-        isNothing.set(i);
+        builder.appendNulls(1);
       } else {
-        if (Text_Utils.ends_with(storage.getItem(i), suffix)) {
-          result.set(i);
-        }
+        builder.appendBoolean(Text_Utils.ends_with(storage.getItemBoxed(i), suffix));
       }
     }
-    return new BoolStorage(result, isNothing, n, false);
+    return builder.seal();
   }
 
-  public static LongStorage longAdd(LongStorage storage, long shift) {
-    int n = storage.size();
-    long[] result = new long[n];
-    BitSet isNothing = new BitSet();
-    for (int i = 0; i < n; i++) {
+  public static Storage<Long> longAdd(LongStorage storage, long shift) {
+    long n = storage.getSize();
+    var builder = Builder.getForLong(IntegerType.INT_64, n, BlackholeProblemAggregator.INSTANCE);
+    for (long i = 0; i < n; i++) {
       if (!storage.isNothing(i)) {
-        result[i] = storage.getItem(i) + shift;
+        builder.appendLong(storage.getItemAsLong(i) + shift);
       } else {
-        isNothing.set(i);
+        builder.appendNulls(1);
       }
     }
-    return new LongStorage(result, n, isNothing, IntegerType.INT_64);
+    return builder.seal();
   }
 
-  public static LongStorage getYear(DateStorage storage) {
-    int n = storage.size();
-    long[] result = new long[n];
-    BitSet isNothing = new BitSet();
-    for (int i = 0; i < n; i++) {
+  public static Storage<Long> getYear(DateStorage storage) {
+    long n = storage.getSize();
+    var builder = Builder.getForLong(IntegerType.INT_64, n, BlackholeProblemAggregator.INSTANCE);
+    for (long i = 0; i < n; i++) {
       if (!storage.isNothing(i)) {
-        result[i] = storage.getItem(i).getYear();
+        builder.appendLong(storage.getItemBoxed(i).getYear());
       } else {
-        isNothing.set(i);
+        builder.appendNulls(1);
       }
     }
-    return new LongStorage(result, n, isNothing, IntegerType.INT_64);
+    return builder.seal();
   }
 
   public static Storage<?> mapCallback(
@@ -100,12 +92,9 @@ public class MapHelpers {
       Function<Object, Object> fn,
       StorageType expectedType,
       ProblemAggregator problemAggregator) {
-    int n = storage.size();
-    Builder builder =
-        expectedType == null
-            ? new InferredBuilder(n, problemAggregator)
-            : Builder.getForType(expectedType, n, problemAggregator);
-    for (int i = 0; i < n; i++) {
+    long n = storage.getSize();
+    Builder builder = Builder.getForType(expectedType, n, problemAggregator);
+    for (long i = 0; i < n; i++) {
       if (!storage.isNothing(i)) {
         builder.append(fn.apply(storage.getItemBoxed(i)));
       } else {

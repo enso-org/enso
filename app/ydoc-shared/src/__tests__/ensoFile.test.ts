@@ -21,7 +21,7 @@ const cases = [
 {}`,
 ]
 
-test.each(cases)('File split and combine roundtrip $#', contents => {
+test.each(cases)('File split and combine roundtrip $#', (contents) => {
   const parts = splitFileContents(contents)
   const combined = combineFileParts(parts)
   expect(combined).toEqual(contents)

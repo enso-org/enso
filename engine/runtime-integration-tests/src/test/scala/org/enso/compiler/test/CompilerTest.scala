@@ -69,7 +69,8 @@ trait CompilerRunner {
         // IR on the runtime module, as the pass manager will not do this for us.
         // This is to ensure consistency between the curIr and IR stored in moduleContext
         ModuleTestUtils.unsafeSetIr(runtimeMod, curIr)
-        val newIr = passManager.runPassesOnModule(curIr, moduleContext, group)
+        val newIr =
+          passManager.runPassesOnModule(curIr, moduleContext, group, None)
         newIr
       })
     }
@@ -81,7 +82,8 @@ trait CompilerRunner {
     ): Module = {
       val runtimeMod = runtime.Module.fromCompilerModule(moduleContext.module)
       ModuleTestUtils.unsafeSetIr(runtimeMod, ir)
-      val newIr = passManager.runPassesOnModule(ir, moduleContext, passGroup)
+      val newIr =
+        passManager.runPassesOnModule(ir, moduleContext, passGroup, None)
       newIr
     }
   }
@@ -220,15 +222,14 @@ trait CompilerRunner {
       Definition.Data(
         Name.Literal("TestAtom", isMethod = false, identifiedLocation = null),
         List(
-          DefinitionArgument
-            .Specified(
-              Name
-                .Literal("arg", isMethod = false, identifiedLocation = null),
-              None,
-              Some(ir),
-              suspended          = false,
-              identifiedLocation = null
-            )
+          new DefinitionArgument.Specified(
+            Name
+              .Literal("arg", isMethod = false, identifiedLocation = null),
+            None,
+            Some(ir),
+            suspended          = false,
+            identifiedLocation = null
+          )
         ),
         List(),
         false,
@@ -323,7 +324,7 @@ trait CompilerRunner {
       compilerConfig = compilerConfig
     )
     InlineContext(
-      module            = mc,
+      moduleContext     = mc,
       freshNameSupply   = freshNameSupply,
       passConfiguration = passConfiguration,
       localScope        = localScope,

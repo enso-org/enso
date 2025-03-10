@@ -32,6 +32,10 @@ public class ScalaConversions {
     return CollectionConverters.asJava(list);
   }
 
+  public static <T> scala.collection.immutable.List<T> asScala(List<T> list) {
+    return CollectionConverters.asScala(list).toList();
+  }
+
   @SuppressWarnings("unchecked")
   public static <T> scala.collection.immutable.List<T> nil() {
     return (scala.collection.immutable.List<T>) scala.collection.immutable.Nil$.MODULE$;

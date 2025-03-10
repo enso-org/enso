@@ -35,7 +35,7 @@ type Header
             _ : Pair -> Header.new (h.at 0) (h.at 1)
             _ : Function -> h:Header
             _ : Header -> h
-            _ -> Error.throw (Illegal_Argument.Error "Invalid header type - all values must be Vector, Pair or Header (got "+(Meta.get_simple_type_name h)+").")
+            _ -> Error.throw (Illegal_Argument.Error "Invalid header type - all values must be Vector, Pair or Header (got "+(h.to Meta.Type . name)+").")
 
     ## PRIVATE
        A type representing a header.

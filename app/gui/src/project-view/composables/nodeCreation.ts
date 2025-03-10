@@ -74,8 +74,8 @@ export function useNodeCreation(
   function placeNode(placement: PlacementStrategy, place: (nodes?: Iterable<Rect>) => Vec2): Vec2 {
     return (
       placement.type === 'viewport' ? place()
-      : placement.type === 'mouse' ? tryMouse() ?? place()
-      : placement.type === 'mouseRelative' ? tryMouseRelative(placement.posOffset) ?? place()
+      : placement.type === 'mouse' ? (tryMouse() ?? place())
+      : placement.type === 'mouseRelative' ? (tryMouseRelative(placement.posOffset) ?? place())
       : placement.type === 'mouseEvent' ? mouseDictatedPlacement(placement.position)
       : placement.type === 'source' ?
         place(iter.filterDefined([graphStore.visibleArea(placement.node)]))
@@ -115,7 +115,7 @@ export function useNodeCreation(
   function createNodes(nodesOptions: Iterable<NodeCreationOptions>) {
     const placedNodes = placeNodes(nodesOptions)
     if (placedNodes.length === 0) return new Set()
-    const methodAst = graphStore.methodAst
+    const methodAst = graphStore.currentMethod.ast
     if (!methodAst.ok) {
       methodAst.error.log(`BUG: Cannot add node: No current function.`)
       return new Set()

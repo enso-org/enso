@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import { transformPastedText } from '@/components/DocumentationEditor/textPaste'
-import { ensoMarkdown } from '@/components/MarkdownEditor/markdown'
-import VueComponentHost from '@/components/VueComponentHost.vue'
+import BlockTypeDropdown from '@/components/MarkdownEditor/BlockTypeDropdown.vue'
+import { ensoMarkdown, useMarkdownFormatting } from '@/components/MarkdownEditor/codemirror'
+import { type BlockType } from '@/components/MarkdownEditor/codemirror/formatting'
+import SvgButton from '@/components/SvgButton.vue'
+import ToggleIcon from '@/components/ToggleIcon.vue'
+import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { useCodeMirror } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { useLinkTitles } from '@/util/codemirror/links'
@@ -12,15 +16,15 @@ import { minimalSetup } from 'codemirror'
 import { computed, onMounted, ref, useCssModule, useTemplateRef, type ComponentInstance } from 'vue'
 import * as Y from 'yjs'
 
-const { content } = defineProps<{
+const { content, toolbar } = defineProps<{
   content: Y.Text | string
-  toolbarContainer?: HTMLElement | undefined
+  toolbar: boolean
 }>()
 
 const focused = ref(false)
 const editing = computed(() => !readonly.value && focused.value)
 
-const vueHost = useTemplateRef<ComponentInstance<typeof VueComponentHost>>('vueHost')
+const vueHost = new VueHostInstance()
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
 const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
   content: () => content,
@@ -31,8 +35,9 @@ const { editorView, readonly, putTextAt } = useCodeMirror(editorRoot, {
     EditorView.clipboardInputFilter.of(transformPastedText),
     ensoMarkdown(),
   ],
-  vueHost: () => vueHost.value || undefined,
+  vueHost: () => vueHost,
 })
+const { italic, bold, insertLink, blockType, insertCodeBlock } = useMarkdownFormatting(editorView)
 
 useLinkTitles(editorView, { readonly })
 
@@ -59,26 +64,95 @@ defineExpose({
 </script>
 
 <template>
-  <CodeMirrorRoot
-    ref="editorRoot"
-    v-bind="$attrs"
-    :class="{ editing }"
-    @focusout="focused = false"
-  />
-  <VueComponentHost ref="vueHost" />
+  <div class="MarkdownEditorRoot">
+    <div v-if="toolbar" class="toolbar" @pointerdown.prevent>
+      <slot name="toolbarLeft" />
+      <template v-if="!readonly">
+        <BlockTypeDropdown
+          :modelValue="blockType.value ?? 'Unknown'"
+          @update:modelValue="blockType.set($event as BlockType)"
+        />
+        <ToggleIcon
+          icon="italic"
+          :disabled="!editing || !italic.set"
+          :modelValue="italic.value"
+          @update:modelValue="italic.set!"
+        />
+        <ToggleIcon
+          icon="bold"
+          :disabled="!editing || !bold.set"
+          :modelValue="bold.value"
+          @update:modelValue="bold.set!"
+        />
+        <SvgButton
+          name="connector_add"
+          :disabled="!editing || !insertLink"
+          title="Insert link"
+          @click.stop="insertLink!"
+        />
+        <SvgButton
+          name="code"
+          :disabled="!editing || !insertCodeBlock"
+          title="Insert code block"
+          @click.stop="insertCodeBlock!"
+        />
+      </template>
+      <slot name="toolbarRight" />
+    </div>
+    <slot name="belowToolbar" />
+    <div class="scrollArea">
+      <CodeMirrorRoot
+        ref="editorRoot"
+        v-bind="$attrs"
+        :class="{ MarkdownEditor: true, editing }"
+        @focusout="focused = false"
+      />
+      <VueHostRender :host="vueHost" />
+    </div>
+  </div>
 </template>
 
 <style scoped>
+.MarkdownEditorRoot {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.toolbar {
+  height: 48px;
+  padding-left: 18px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  gap: 8px;
+  z-index: 250;
+}
+
+.scrollArea {
+  width: 100%;
+  overflow-y: auto;
+  padding-left: 10px;
+  /* Prevent touchpad back gesture, which can be triggered while panning. */
+  overscroll-behavior-x: none;
+  flex-grow: 1;
+}
+
 :deep(.cm-content) {
+  /*noinspection CssUnresolvedCustomProperty,CssNoGenericFontName*/
   font-family: var(--font-sans);
 }
 
+/*noinspection CssUnusedSymbol*/
 :deep(.cm-editor) {
   opacity: 1;
   color: black;
   font-size: 12px;
 }
 
+/*noinspection CssUnusedSymbol*/
 :deep(img.uploading) {
   opacity: 0.5;
 }
@@ -158,10 +232,32 @@ defineExpose({
     }
   }
 
-  &:has(.list.processingInstruction) {
+  .list:not(*) {
+    /* Hide indentation spaces */
+    display: none;
+  }
+
+  :global(.cm-BulletList-item),
+  :global(.cm-OrderedList-item) {
     display: list-item;
+  }
+
+  :global(.cm-BulletList-item) {
     list-style-type: disc;
+    &:global(.cm-BulletList-item-odd) {
+      list-style-type: circle;
+    }
+    list-style-position: outside;
+    text-indent: -0.3em;
+    /*noinspection CssUnresolvedCustomProperty*/
+    margin-left: calc(var(--cm-list-depth) * 0.57em + 1em);
+  }
+
+  :global(.cm-OrderedList-item) {
+    list-style-type: decimal;
     list-style-position: inside;
+    /*noinspection CssUnresolvedCustomProperty*/
+    margin-left: calc(var(--cm-list-depth) * 0.85em);
   }
 }
 </style>

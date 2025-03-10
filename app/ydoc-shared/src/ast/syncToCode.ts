@@ -10,7 +10,6 @@ import {
   applyTextEdits,
   applyTextEditsToSpans,
   enclosingSpans,
-  rangeLength,
   sourceRangeFromKey,
   sourceRangeKey,
   textChangeToEdits,
@@ -112,16 +111,16 @@ function calculateCorrespondence(
     partAfterToAstBefore.set(sourceRangeKey(partAfter), astBefore)
   }
   const matchingPartsAfter = spansBeforeAndAfter.map(([_before, after]) => after)
-  const parsedSpanTree = new AstWithSpans(parsedRoot, id => newSpans.get(id)!)
+  const parsedSpanTree = new AstWithSpans(parsedRoot, (id) => newSpans.get(id)!)
   const astsMatchingPartsAfter = enclosingSpans(parsedSpanTree, matchingPartsAfter)
   for (const [astAfter, partsAfter] of astsMatchingPartsAfter) {
     for (const partAfter of partsAfter) {
       const astBefore = partAfterToAstBefore.get(sourceRangeKey(partAfter))!
       if (astBefore.typeName === astAfter.typeName) {
-        ;(rangeLength(newSpans.get(astAfter.id)!) === rangeLength(partAfter) ?
-          toSync
-        : candidates
-        ).set(astBefore.id, astAfter)
+        ;(newSpans.get(astAfter.id)!.length === partAfter.length ? toSync : candidates).set(
+          astBefore.id,
+          astAfter,
+        )
         break
       }
     }
@@ -139,8 +138,8 @@ function calculateCorrespondence(
   const newHashes = syntaxHash(parsedRoot).hashes
   const oldHashes = syntaxHash(ast).hashes
   for (const [hash, newAsts] of newHashes) {
-    const unmatchedNewAsts = newAsts.filter(ast => !newIdsMatched.has(ast.id))
-    const unmatchedOldAsts = oldHashes.get(hash)?.filter(ast => !oldIdsMatched.has(ast.id)) ?? []
+    const unmatchedNewAsts = newAsts.filter((ast) => !newIdsMatched.has(ast.id))
+    const unmatchedOldAsts = oldHashes.get(hash)?.filter((ast) => !oldIdsMatched.has(ast.id)) ?? []
     for (const [unmatchedNew, unmatchedOld] of iter.zip(unmatchedNewAsts, unmatchedOldAsts)) {
       if (unmatchedNew.typeName === unmatchedOld.typeName) {
         toSync.set(unmatchedOld.id, unmatchedNew)
@@ -221,7 +220,7 @@ function syncTree(
     newRoot.fields.set('metadata', target.fields.get('metadata').clone())
     target.fields.get('metadata').set('externalId', newExternalId())
   }
-  newRoot.visitRecursive(ast => {
+  newRoot.visitRecursive((ast) => {
     const syncFieldsFrom = toSync.get(ast.id)
     const editAst = edit.getVersion(ast)
     if (syncFieldsFrom) {

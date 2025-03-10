@@ -1,0 +1,51 @@
+private
+
+from Standard.Base import all
+
+import project.Column.Column
+from project.Internal.Type_Refinements.Column_Refinements import is_single_value
+
+## This conversion is internal and should never be exported.
+Integer.from (that : Column) -> Integer =
+    Runtime.assert (is_single_value that)
+    x = that.at 0
+    case x of
+        _ : Integer -> x
+        _ : Float ->
+            Runtime.assert (x % 1.0 == 0.0)
+            x.truncate
+
+## This conversion is internal and should never be exported.
+Float.from (that : Column) -> Float =
+    Runtime.assert (is_single_value that)
+    that.at 0
+
+## This conversion is internal and should never be exported.
+Text.from (that : Column) -> Text =
+    Runtime.assert (is_single_value that)
+    that.at 0
+
+## This conversion is internal and should never be exported.
+Boolean.from (that : Column) -> Boolean =
+    Runtime.assert (is_single_value that)
+    that.at 0
+
+## This conversion is internal and should never be exported.
+Date.from (that : Column) -> Date =
+    Runtime.assert (is_single_value that)
+    that.at 0
+
+## This conversion is internal and should never be exported.
+Time_Of_Day.from (that : Column) -> Time_Of_Day =
+    Runtime.assert (is_single_value that)
+    that.at 0
+
+## This conversion is internal and should never be exported.
+Date_Time.from (that : Column) -> Date_Time =
+    Runtime.assert (is_single_value that)
+    that.at 0
+
+## This conversion is internal and should never be exported.
+Decimal.from (that : Column) -> Decimal =
+    Runtime.assert (is_single_value that)
+    that.at 0

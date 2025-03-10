@@ -139,7 +139,9 @@ export default function KeyboardShortcut(props: KeyboardShortcutProps) {
               <Text key={modifier}>{getText(MODIFIER_TO_TEXT_ID[modifier])}</Text>
             ),
         )}
-        <Text>{shortcut.key === ' ' ? 'Space' : KEY_CHARACTER[shortcut.key] ?? shortcut.key}</Text>
+        <Text>
+          {shortcut.key === ' ' ? 'Space' : (KEY_CHARACTER[shortcut.key] ?? shortcut.key)}
+        </Text>
       </div>
     )
   }

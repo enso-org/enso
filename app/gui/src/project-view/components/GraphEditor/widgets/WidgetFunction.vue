@@ -12,6 +12,7 @@ import {
 import { useGraphStore } from '@/stores/graph'
 import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
 import { useProjectStore } from '@/stores/project'
+import { injectProjectNames } from '@/stores/projectNames'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
@@ -23,21 +24,22 @@ import {
   getMethodCallInfoRecursively,
 } from '@/util/callTree'
 import { partitionPoint } from '@/util/data/array'
+import { methodPointerEquals, type MethodPointer } from '@/util/methodPointer'
 import { isIdentifier } from '@/util/qualifiedName'
 import { computed, proxyRefs } from 'vue'
-import { methodPointerEquals, type MethodPointer } from 'ydoc-shared/languageServerTypes'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()
 const project = useProjectStore()
 
 const exprInfo = computed(() => graph.db.getExpressionInfo(props.input.value.externalId))
-const outputType = computed(() => exprInfo.value?.typename)
+const outputType = computed(() => exprInfo.value?.rawTypename)
 
 const { methodCallInfo, application } = useWidgetFunctionCallInfo(
   () => props.input,
   graph.db,
   project,
+  injectProjectNames(),
 )
 
 provideFunctionInfo(

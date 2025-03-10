@@ -35,6 +35,11 @@ public abstract class ThunkExecutorNode extends Node {
     return ThunkExecutorNodeGen.create();
   }
 
+  @NeverDefault
+  public static ThunkExecutorNode getUncached() {
+    return ThunkExecutorNodeGen.getUncached();
+  }
+
   /**
    * Forces the thunk to its resulting value.
    *
@@ -63,10 +68,10 @@ public abstract class ThunkExecutorNode extends Node {
       @Exclusive @Cached LoopingCallOptimiserNode loopingCallOptimiserNode) {
     CompilerAsserts.partialEvaluationConstant(isTail);
     if (isTail != BaseNode.TailStatus.NOT_TAIL) {
-      return callNode.call(Function.ArgumentsHelper.buildArguments(function, state));
+      return callNode.call(Function.ArgumentsHelper.buildArguments(function));
     } else {
       try {
-        return callNode.call(Function.ArgumentsHelper.buildArguments(function, state));
+        return callNode.call(Function.ArgumentsHelper.buildArguments(function));
       } catch (TailCallException e) {
         return loopingCallOptimiserNode.executeDispatch(
             frame, e.getFunction(), e.getCallerInfo(), state, e.getArguments(), e.getWarnings());
@@ -84,11 +89,11 @@ public abstract class ThunkExecutorNode extends Node {
       @Exclusive @Cached LoopingCallOptimiserNode loopingCallOptimiserNode) {
     if (isTail != BaseNode.TailStatus.NOT_TAIL) {
       return callNode.call(
-          function.getCallTarget(), Function.ArgumentsHelper.buildArguments(function, state));
+          function.getCallTarget(), Function.ArgumentsHelper.buildArguments(function));
     } else {
       try {
         return callNode.call(
-            function.getCallTarget(), Function.ArgumentsHelper.buildArguments(function, state));
+            function.getCallTarget(), Function.ArgumentsHelper.buildArguments(function));
       } catch (TailCallException e) {
         return loopingCallOptimiserNode.executeDispatch(
             frame, e.getFunction(), e.getCallerInfo(), state, e.getArguments(), e.getWarnings());

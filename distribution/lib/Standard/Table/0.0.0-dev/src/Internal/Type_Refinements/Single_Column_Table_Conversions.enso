@@ -1,0 +1,45 @@
+private
+
+from Standard.Base import all
+
+import project.Column.Column
+import project.Table.Table
+from project.Internal.Type_Refinements.Single_Value_Column_Conversions import all
+from project.Internal.Type_Refinements.Table_Refinements import is_single_column
+
+## This conversion is internal and should never be exported.
+Column.from (that : Table) -> Column =
+    Runtime.assert (is_single_column that)
+    that.at 0
+
+## This conversion is internal and should never be exported.
+Integer.from (that : Table) -> Integer =
+    Integer.from (Column.from that)
+
+## This conversion is internal and should never be exported.
+Float.from (that : Table) -> Float =
+    Float.from (Column.from that)
+
+## This conversion is internal and should never be exported.
+Text.from (that : Table) -> Text =
+    Text.from (Column.from that)
+
+## This conversion is internal and should never be exported.
+Boolean.from (that : Table) -> Boolean =
+    Boolean.from (Column.from that)
+
+## This conversion is internal and should never be exported.
+Date.from (that : Table) -> Date =
+    Date.from (Column.from that)
+
+## This conversion is internal and should never be exported.
+Time_Of_Day.from (that : Table) -> Time_Of_Day =
+    Time_Of_Day.from (Column.from that)
+
+## This conversion is internal and should never be exported.
+Date_Time.from (that : Table) -> Date_Time =
+    Date_Time.from (Column.from that)
+
+## This conversion is internal and should never be exported.
+Decimal.from (that : Table) -> Decimal =
+    Decimal.from (Column.from that)

@@ -3,6 +3,7 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
@@ -27,9 +28,10 @@ public class AnyToTest {
   }
 
   @AfterClass
-  public static void disposeCtx() {
+  public static void disposeCtx() throws IOException {
     ctx.close();
     ctx = null;
+    out.close();
   }
 
   @Before
@@ -60,7 +62,9 @@ public class AnyToTest {
     """;
     var conv =
         ContextUtils.evalModule(ctx, Source.newBuilder("enso", code, "conv.enso").build(), "conv");
-    var both = EnsoMultiValue.create(types, types.length, new Object[] {2L, Text.create("Two")});
+    var both =
+        EnsoMultiValue.NewNode.getUncached()
+            .newValue(types, types.length, 0, new Object[] {2L, Text.create("Two")});
     var eq =
         ContextUtils.executeInContext(
             ctx,
@@ -104,7 +108,9 @@ public class AnyToTest {
     """;
     var conv =
         ContextUtils.evalModule(ctx, Source.newBuilder("enso", code, "conv.enso").build(), "conv");
-    var both = EnsoMultiValue.create(types, dispatchLength, new Object[] {2L, Text.create("Two")});
+    var both =
+        EnsoMultiValue.NewNode.getUncached()
+            .newValue(types, dispatchLength, 0, new Object[] {2L, Text.create("Two")});
     var eq =
         ContextUtils.executeInContext(
             ctx,

@@ -228,12 +228,16 @@ public class ExcelConnectionPool {
 
   /** Public for testing. */
   public int getConnectionRecordCount() {
-    return records.size();
+    synchronized (this) {
+      return records.size();
+    }
   }
 
   /** Public for testing. */
   public void simulateReloadTestOnly() {
-    reloadDetector.simulateReloadTestOnly();
+    synchronized (this) {
+      reloadDetector.simulateReloadTestOnly();
+    }
   }
 
   static class ConnectionRecord {

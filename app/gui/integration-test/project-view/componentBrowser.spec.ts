@@ -59,7 +59,10 @@ test('Different ways of opening Component Browser', async ({ page }) => {
   await locate.graphEditor(page).press('Enter')
   await expectAndCancelBrowser(page, '', 'selected')
   // Dragging out an edge
-  let outputPort = await locate.outputPortCoordinates(locate.graphNodeByBinding(page, 'selected'))
+  let outputPort = await locate.outputPortCoordinates(
+    page,
+    locate.graphNodeByBinding(page, 'selected'),
+  )
   await page.mouse.click(outputPort.x, outputPort.y)
   await locate.graphEditor(page).click({ position: { x: 100, y: 500 } })
   await expectAndCancelBrowser(page, '', 'selected')
@@ -67,7 +70,7 @@ test('Different ways of opening Component Browser', async ({ page }) => {
   // TODO[ao] Without timeout, even the first click would be treated as double due to previous
   // event. Probably we need a better way to simulate double clicks.
   await page.waitForTimeout(600)
-  outputPort = await locate.outputPortCoordinates(locate.graphNodeByBinding(page, 'selected'))
+  outputPort = await locate.outputPortCoordinates(page, locate.graphNodeByBinding(page, 'selected'))
   await page.mouse.click(outputPort.x, outputPort.y)
   await page.mouse.click(outputPort.x, outputPort.y)
   await expectAndCancelBrowser(page, '', 'selected')
@@ -79,15 +82,16 @@ test('Opening Component Browser from output port buttons', async ({ page }) => {
   // Small (+) button shown when node is hovered
   const node = locate.graphNodeByBinding(page, 'selected')
   await locate.graphNodeIcon(node).hover()
-  await expect(locate.createNodeFromPort(node)).toBeVisible()
-  await locate.createNodeFromPort(node).click({ force: true })
+  const createNodeFromPortButton = await locate.createNodeFromPortButton(page, node)
+  await expect(createNodeFromPortButton).toBeVisible()
+  await createNodeFromPortButton.click({ force: true })
   await expectAndCancelBrowser(page, '', 'selected')
 
   // Small (+) button shown when node is selected
   await page.keyboard.press('Escape')
   await node.click()
-  await expect(locate.createNodeFromPort(node)).toBeVisible()
-  await locate.createNodeFromPort(node).click({ force: true })
+  await expect(createNodeFromPortButton).toBeVisible()
+  await createNodeFromPortButton.click({ force: true })
   await expectAndCancelBrowser(page, '', 'selected')
 })
 
@@ -111,7 +115,10 @@ test('Graph Editor pans to Component Browser', async ({ page }) => {
   await page.mouse.move(100, 280)
   await page.mouse.up({ button: 'middle' })
   await expect(locate.graphNodeByBinding(page, 'five')).toBeInViewport()
-  const outputPort = await locate.outputPortCoordinates(locate.graphNodeByBinding(page, 'final'))
+  const outputPort = await locate.outputPortCoordinates(
+    page,
+    locate.graphNodeByBinding(page, 'final'),
+  )
   await page.mouse.click(outputPort.x, outputPort.y)
   await locate.graphEditor(page).click({ position: { x: 100, y: 1700 } })
   await expect(locate.graphNodeByBinding(page, 'five')).not.toBeInViewport()
@@ -182,7 +189,7 @@ test('Filling input with suggestion', async ({ page }) => {
   await expect(locate.componentBrowserEntry(page)).toExist()
 
   // Applying suggestion
-  await page.keyboard.press('Tab')
+  await page.keyboard.press('Shift+Enter')
   await expect(locate.componentBrowser(page)).toExist()
   await expect(locate.componentBrowserInput(page).locator('input')).toHaveValue('Data.read ')
 })
@@ -195,6 +202,34 @@ test('Filtering list', async ({ page }) => {
   await expect(segments).toHaveText(['Data.', 're', 'ad', '_te', 'xt'])
   const highlighted = locate.componentBrowserEntry(page).locator('.component-label-segment.match')
   await expect(highlighted).toHaveText(['re', '_te'])
+  // Filtered-out group are hidden, and the rest displays number of matched elements.
+  await expect(page.locator('.groupEntry')).toHaveText(['all (1)', 'Input (1)'])
+})
+
+test('Navigating groups', async ({ page }) => {
+  await actions.goToGraph(page)
+  await locate.addNewNodeButton(page).click()
+  await expect(locate.componentBrowserSelectedEntry(page)).toExist()
+  await expect(page.locator('.groupEntry')).toHaveText(['all', 'Input', 'Output'])
+  await expect(locate.componentBrowserEntryByLabel(page, 'Data.read')).toExist()
+  await expect(locate.componentBrowserEntryByLabel(page, 'Data.every_tag')).toExist()
+
+  // Hover first group: `Data.read` is filtered out
+  await page.locator('.groupEntry').nth(1).hover()
+  await expect(locate.componentBrowserEntryByLabel(page, 'Data.read')).toExist()
+  await expect(locate.componentBrowserEntryByLabel(page, 'Data.every_tag')).toHaveCount(0)
+  await expect(locate.componentBrowserSelectedEntry(page)).toExist() // component list didn't lose focus.
+
+  // Navigate to second group using arrows.
+  await page.keyboard.press('Tab')
+  await expect(locate.componentBrowserSelectedEntry(page)).toHaveCount(0)
+  await page.keyboard.press('ArrowDown')
+  await expect(locate.componentBrowserSelectedEntry(page)).toHaveCount(0)
+  await expect(page.locator('.groupEntry.selected')).toHaveText('Output')
+  await expect(locate.componentBrowserEntryByLabel(page, 'Data.read')).toHaveCount(0)
+  await expect(locate.componentBrowserEntryByLabel(page, 'Data.every_tag')).toExist()
+  await page.keyboard.press('Tab')
+  await expect(locate.componentBrowserSelectedEntry(page)).toExist()
 })
 
 test('Editing existing nodes', async ({ page }) => {
@@ -240,7 +275,7 @@ test('Visualization preview: type-based visualization selection', async ({ page 
   const input = locate.componentBrowserInput(page).locator('input')
   await input.fill('Table.ne')
   await expect(input).toHaveValue('Table.ne')
-  await locate.componentBrowser(page).getByTestId('switchToEditMode').click()
+  await page.keyboard.press(`Shift+Enter`)
   await expect(locate.tableVisualization(page)).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(locate.componentBrowser(page)).toBeHidden()
@@ -255,7 +290,7 @@ test('Visualization preview: user visualization selection', async ({ page }) => 
   const input = locate.componentBrowserInput(page).locator('input')
   await input.fill('4')
   await expect(input).toHaveValue('4')
-  await locate.componentBrowser(page).getByTestId('switchToEditMode').click()
+  await page.keyboard.press(`Shift+Enter`)
   await expect(locate.jsonVisualization(page)).toBeVisible()
   await expect(locate.jsonVisualization(page)).toContainText('"visualizedExpr": "4"')
   await locate.toggleVisualizationSelectorButton(page).click()

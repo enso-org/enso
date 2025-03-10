@@ -1,14 +1,16 @@
 package org.enso.interpreter.node.expression.builtin.text;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.GenerateUncached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.atom.StructsLibrary;
@@ -22,6 +24,10 @@ public abstract class AnyToTextNode extends Node {
     return AnyToTextNodeGen.create();
   }
 
+  public static AnyToTextNode getUncached() {
+    return AnyToTextNodeGen.getUncached();
+  }
+
   public abstract Text execute(Object self);
 
   @Specialization
@@ -33,10 +39,22 @@ public abstract class AnyToTextNode extends Node {
     }
   }
 
+  @Specialization
+  Text doMultiValue(
+      EnsoMultiValue mv,
+      @Cached EnsoMultiValue.CastToNode castToNode,
+      @Cached AnyToTextNode toTextNode) {
+    var ctx = EnsoContext.get(this);
+    var any = ctx.getBuiltins().any();
+    var first = castToNode.findTypeOrNull(any, mv, false, false);
+    assert first != null;
+    return toTextNode.execute(first);
+  }
+
   @Fallback
-  Text doOther(Object object, @CachedLibrary(limit = "5") InteropLibrary interop) {
+  Text doOther(Object object) {
     try {
-      return Text.create(showObject(object, interop));
+      return Text.create(showObject(object));
     } catch (UnsupportedMessageException e) {
       CompilerDirectives.transferToInterpreter();
       return Text.create(object.toString());
@@ -50,19 +68,16 @@ public abstract class AnyToTextNode extends Node {
 
   @CompilerDirectives.TruffleBoundary
   private Text doComplexAtom(Atom atom) {
-    var interop = InteropLibrary.getUncached();
     var structs = StructsLibrary.getUncached();
     Text res = Text.create("(", consName(atom.getConstructor()));
-    res = Text.create(res, " ");
-    try {
-      res = Text.create(res, showObject(structs.getField(atom, 0), interop));
-    } catch (UnsupportedMessageException e) {
-      res = Text.create(res, structs.getField(atom, 0).toString());
-    }
-    for (int i = 1; i < atom.getConstructor().getArity(); i++) {
+    for (int i = 0; i < atom.getConstructor().getArity(); i++) {
       res = Text.create(res, " ");
       try {
-        res = Text.create(res, showObject(structs.getField(atom, i), interop));
+        if (structs.isFieldEvaluated(atom, i)) {
+          res = Text.create(res, showObject(structs.getField(atom, i)));
+        } else {
+          res = Text.create(res, "~" + fieldName(i, atom));
+        }
       } catch (UnsupportedMessageException e) {
         res = Text.create(res, structs.getField(atom, i).toString());
       }
@@ -72,8 +87,7 @@ public abstract class AnyToTextNode extends Node {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private String showObject(Object child, InteropLibrary interop)
-      throws UnsupportedMessageException {
+  private String showObject(Object child) throws UnsupportedMessageException {
     if (child == null) {
       // TODO [RW] This is a temporary workaround to make it possible to display errors related to
       // https://www.pivotaltracker.com/story/show/181652974
@@ -82,7 +96,19 @@ public abstract class AnyToTextNode extends Node {
     } else if (child instanceof Boolean) {
       return (boolean) child ? "True" : "False";
     } else {
+      var interop = InteropLibrary.getUncached();
       return interop.asString(interop.toDisplayString(child));
     }
+  }
+
+  private static boolean isFieldSuspended(int i, Atom atom) {
+    assert 0 <= i && i < atom.getConstructor().getArity();
+    var fieldDef = atom.getConstructor().getFields()[i];
+    return fieldDef.isSuspended();
+  }
+
+  private static String fieldName(int i, Atom atom) {
+    assert 0 <= i && i < atom.getConstructor().getArity();
+    return atom.getConstructor().getFields()[i].getName();
   }
 }

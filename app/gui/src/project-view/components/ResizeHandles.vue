@@ -112,8 +112,8 @@ const handler = {
   & circle {
     pointer-events: all;
     r: calc(
-      var(--resize-handle-radius, 0) + (var(--resize-handle-outside) - var(--resize-handle-inside)) /
-        2
+      var(--resize-handle-radius, 0) +
+        (var(--resize-handle-outside) - var(--resize-handle-inside)) / 2
     );
     stroke: transparent;
     stroke-width: calc(var(--resize-handle-inside) + var(--resize-handle-outside));

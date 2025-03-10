@@ -36,6 +36,8 @@ export const TEXT_STYLE = twv.tv({
       primary: 'text-primary',
       danger: 'text-danger',
       success: 'text-accent-dark',
+      accent: 'text-accent-dark',
+      muted: 'text-primary/40',
       disabled: 'text-disabled',
       invert: 'text-invert',
       inherit: 'text-inherit',
@@ -53,10 +55,10 @@ export const TEXT_STYLE = twv.tv({
       body: 'text-xs leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-medium',
       // eslint-disable-next-line @typescript-eslint/naming-convention
       'body-sm':
-        'text-[10.5px] leading-[16px] before:h-[1.5px] after:h-[1.5px] macos:before:h-[0.5px] macos:after:h-[2.5px] font-medium',
+        'text-[10.5px] leading-[16px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-medium',
       h1: 'text-xl leading-[29px] before:h-0.5 after:h-[5px] macos:before:h-[3px] macos:after:h-[3px] font-bold',
       subtitle:
-        'text-[13.5px] leading-[19px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-bold',
+        'text-[13.5px] leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-bold',
       caption:
         'text-[8.5px] leading-[12px] before:h-[1px] after:h-[1px] macos:before:h-[0.5px] macos:after:h-[1.5px]',
       overline:
@@ -244,7 +246,6 @@ export interface HeadingProps extends Omit<TextProps, 'elementType'> {
 }
 
 /** Heading component */
-// eslint-disable-next-line no-restricted-syntax
 const Heading = memo(
   forwardRef(function Heading(props: HeadingProps, ref: React.Ref<HTMLHeadingElement>) {
     const { level = 1, ...textProps } = props
@@ -252,13 +253,14 @@ const Heading = memo(
   }),
 )
 
-Text.Heading = Heading
-
 /** Text group component. It's used to visually group text elements together */
-Text.Group = function TextGroup(props: React.PropsWithChildren) {
+function TextGroup(props: React.PropsWithChildren) {
   return (
     <textProvider.TextProvider value={{ isInsideTextComponent: true }}>
       {props.children}
     </textProvider.TextProvider>
   )
 }
+
+Text.Heading = Heading
+Text.Group = TextGroup

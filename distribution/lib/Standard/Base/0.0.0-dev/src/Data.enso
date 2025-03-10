@@ -1,13 +1,16 @@
 import project.Any.Any
+import project.Data.Download.Download_Mode.Download_Mode
 import project.Data.Pair.Pair
 import project.Data.Read.Many_Files_List.Many_Files_List
 import project.Data.Read.Return_As.Return_As
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
+import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link.Data_Link
 import project.Enso_Cloud.Data_Link_Helpers
 import project.Error.Error
+import project.Errors.Common.Failed_To_Load
 import project.Errors.Common.Missing_Argument
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -144,9 +147,11 @@ read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Prob
 read_many : Many_Files_List -> File_Format -> Return_As -> Problem_Behavior -> Any ! File_Error
 read_many (paths : Many_Files_List = Missing_Argument.throw "paths") format=Auto_Detect return=..As_Merged_Table (on_problems : Problem_Behavior = ..Report_Warning) =
     return_as = Return_As.resolve return
-    loaded_objects = paths.paths_to_load.map on_problems=on_problems path->
-        Data.read path format on_problems
-    return_as.make_return paths loaded_objects on_problems
+    if paths.paths_to_load.contains Nothing then Error.throw (Illegal_Argument.Error Illegal_Argument.Error "`paths` cannot contain `Nothing`. Use `filter` with `..Not_Nothing` to remove.") else
+        loaded_objects = paths.paths_to_load.map on_problems=No_Wrap.Value path->
+            Data.read path format on_problems . catch Any error->
+                Failed_To_Load.Warning path error
+        return_as.make_return paths loaded_objects on_problems
 
 ## ALIAS load text, open text
    GROUP Input
@@ -295,6 +300,7 @@ list (directory=enso_project.root) (name_filter:Text="") recursive:Boolean=False
          file = enso_project.data / "spreadsheet.xls"
          Data.fetch URL . body . write file
 @uri (Text_Input display=..Always)
+@method HTTP_Method.default_fetch_widget
 @format Data_Read_Helpers.format_widget_with_raw_response
 @headers Header.default_widget
 fetch : (URI | Text) -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Cache_Policy -> Any ! Request_Error | HTTP_Error
@@ -422,6 +428,7 @@ fetch (uri:(URI | Text)=(Missing_Argument.throw "uri")) (method:HTTP_Method=..Ge
          form_data = Dictionary.from_vector [["key", "val"], ["a_file", test_file]]
          response = Data.post url_post (Request_Body.Form_Data form_data url_encoded=True)
 @uri (Text_Input display=..Always)
+@method HTTP_Method.default_post_widget
 @headers Header.default_widget
 @response_format Data_Read_Helpers.format_widget_with_raw_response
 post : (URI | Text) -> Request_Body -> HTTP_Method -> Vector (Header | Pair Text Text) -> File_Format -> Any ! Request_Error | HTTP_Error
@@ -437,27 +444,38 @@ post (uri:(URI | Text)=(Missing_Argument.throw "uri")) (body:Request_Body=..Empt
    Arguments:
    - uri: The URI to fetch.
    - file: The file to write the response to.
+   - replace_existing: Determines when `download` should proceed with the
+     download, if the destination file already exists. (If the destination file
+     does not exist, the download always proceeds).
+     Options include:
+         - `If_Not_Exists`: Download the file if it does not already exist on
+           disk. (The default.)
+         - `If_Older_Than age`: Download the file if the existing file is older
+           than the specified age.
+         - `Always`: Always download.
    - method: The HTTP method to use. Must be one of `HTTP_Method.Get`,
      `HTTP_Method.Head`, `HTTP_Method.Delete`, `HTTP_Method.Options`.
      Defaults to `HTTP_Method.Get`.
    - headers: The headers to send with the request. Defaults to an empty vector.
 @uri (Text_Input display=..Always)
+@method HTTP_Method.default_fetch_widget
 @headers Header.default_widget
-download : (URI | Text) -> Writable_File -> HTTP_Method -> Vector (Header | Pair Text Text) -> File ! Request_Error | HTTP_Error
-download (uri:(URI | Text)=(Missing_Argument.throw "uri")) file:Writable_File (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) =
+download : (URI | Text) -> Writable_File -> Download_Mode -> HTTP_Method -> Vector (Header | Pair Text Text) -> File ! Request_Error | HTTP_Error
+download (uri:(URI | Text)=(Missing_Argument.throw "uri")) file:Writable_File (replace_existing:Download_Mode=..If_Not_Exists) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) =
     Context.Output.if_enabled disabled_message="As writing is disabled, cannot download to a file. Press the Write button ▶ to perform the operation." panic=False <|
-        response = HTTP.fetch uri method headers cache_policy=Cache_Policy.No_Cache
-        case Data_Link.is_data_link response.body.metadata of
-            True ->
-                # If the resource was a data link, we follow it, download the target data and try to write it to a file.
-                data_link = Data_Link_Helpers.interpret_json_as_data_link response.decode_as_json
-                Data_Link_Helpers.save_data_link_to_file data_link file
-            False ->
-                response.write file
+        if replace_existing.should_download file then
+            response = HTTP.fetch uri method headers cache_policy=Cache_Policy.No_Cache
+            case Data_Link.is_data_link_from_metadata response.body.metadata of
+                True ->
+                    # If the resource was a data link, we follow it, download the target data and try to write it to a file.
+                    data_link = Data_Link_Helpers.interpret_json_as_data_link response.decode_as_json
+                    Data_Link_Helpers.save_data_link_to_file data_link file
+                False ->
+                    response.write file
 
 ## If the `format` is set to `Raw_Response`, a raw HTTP `Response` is returned
    that can be then processed further manually.
 type Raw_Response
     ## PRIVATE
     get_dropdown_options : Vector Option
-    get_dropdown_options = [Option "Raw HTTP Response" (Meta.get_qualified_type_name Raw_Response)]
+    get_dropdown_options = [Option "Raw HTTP Response" (Raw_Response.to Meta.Type . qualified_name)]

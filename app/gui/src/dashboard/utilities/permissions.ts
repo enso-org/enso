@@ -1,6 +1,7 @@
 /** @file Utilities for working with permissions. */
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import * as backend from '#/services/Backend'
+import { directoryIdToUserGroupId, directoryIdToUserId } from '#/services/RemoteBackend'
 import {
   type AssetPermission,
   compareAssetPermissions,
@@ -38,16 +39,22 @@ export function tryCreateOwnerPermission(
   category: Category,
   user: backend.User,
   users: readonly backend.User[],
-  userGroups: readonly backend.UserGroupInfo[],
+  userGroups: readonly backend.UserGroup[],
 ): readonly backend.AssetPermission[] {
   switch (category.type) {
     case 'team': {
       return [{ userGroup: category.team, permission: PermissionAction.own }]
     }
+    case 'cloud':
+    case 'recent':
+    case 'trash':
+    case 'user':
+    case 'local':
+    case 'local-directory':
     default: {
       const isFreeOrSolo =
         user.plan == null || user.plan === backend.Plan.free || user.plan === backend.Plan.solo
-      const owner = isFreeOrSolo ? user : newOwnerFromPath(path, users, userGroups) ?? user
+      const owner = isFreeOrSolo ? user : (newOwnerFromPath(path, users, userGroups) ?? user)
       if ('userId' in owner) {
         const { organizationId, userId, name, email } = owner
         return [{ user: { organizationId, userId, name, email }, permission: PermissionAction.own }]
@@ -107,7 +114,7 @@ export function canPermissionModifyDirectoryContents(permission: PermissionActio
 /** Replace the first owner permission with the permission of a new user or team. */
 export function replaceOwnerPermission(
   asset: backend.AnyAsset,
-  newOwner: backend.User | backend.UserGroupInfo,
+  newOwner: backend.User | backend.UserGroup,
 ) {
   let found = false
   const newPermissions =
@@ -147,11 +154,32 @@ export function isTeamPath(path: string) {
   return TEAM_PATH_REGEX.test(path)
 }
 
+/** Whether a path is inside a user's home directory. */
+export function isUserParentsPath(path: backend.ParentsPath, userIds: readonly backend.UserId[]) {
+  const assetUserOrTeamId = directoryIdToUserId(
+    // eslint-disable-next-line no-restricted-syntax
+    backend.DirectoryId((path.split('/')[0] ?? 'directory-') as never),
+  )
+  return userIds.includes(assetUserOrTeamId)
+}
+
+/** Whether a path is inside a team's home directory. */
+export function isTeamParentsPath(
+  path: backend.ParentsPath,
+  teamIds: readonly backend.UserGroupId[],
+) {
+  const assetUserOrTeamId = directoryIdToUserGroupId(
+    // eslint-disable-next-line no-restricted-syntax
+    backend.DirectoryId((path.split('/')[0] ?? 'directory-') as never),
+  )
+  return teamIds.includes(assetUserOrTeamId)
+}
+
 /** Find the new owner of an asset based on the path of its new parent directory. */
 export function newOwnerFromPath(
   path: string,
   users: readonly backend.User[],
-  userGroups: readonly backend.UserGroupInfo[],
+  userGroups: readonly backend.UserGroup[],
 ) {
   const [, userName] = path.match(USER_PATH_REGEX) ?? []
   if (userName != null) {
@@ -161,7 +189,7 @@ export function newOwnerFromPath(
     const [, teamName] = path.match(TEAM_PATH_REGEX) ?? []
     if (teamName != null) {
       const teamNameLowercase = teamName.toLowerCase()
-      return userGroups.find((userGroup) => userGroup.groupName === teamNameLowercase)
+      return userGroups.find((userGroup) => userGroup.name === teamNameLowercase)
     } else {
       return
     }

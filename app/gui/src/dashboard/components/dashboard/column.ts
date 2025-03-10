@@ -3,7 +3,7 @@ import { memo, type Dispatch, type JSX, type SetStateAction } from 'react'
 
 import type { AssetRowState, AssetsTableState } from '#/layouts/AssetsTable'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import type { AnyAsset, Asset, AssetId, BackendType } from '#/services/Backend'
+import type { AnyAsset, BackendType } from '#/services/Backend'
 import type { SortInfo } from '#/utilities/sorting'
 import type { SortableColumn } from './column/columnUtils'
 import { Column } from './column/columnUtils'
@@ -15,26 +15,17 @@ import PathColumn from './column/PathColumn'
 import PlaceholderColumn from './column/PlaceholderColumn'
 import SharedWithColumn from './column/SharedWithColumn'
 
-// ===================
-// === AssetColumn ===
-// ===================
-
 /** Props for an arbitrary variant of {@link Asset}. */
 export interface AssetColumnProps {
-  readonly keyProp: AssetId
   readonly isOpened: boolean
   readonly item: AnyAsset
-  readonly depth: number
   readonly backendType: BackendType
-  readonly selected: boolean
   readonly setSelected: (selected: boolean) => void
-  readonly isSoleSelected: boolean
   readonly state: AssetsTableState
   readonly rowState: AssetRowState
   readonly setRowState: Dispatch<SetStateAction<AssetRowState>>
   readonly isEditable: boolean
   readonly isPlaceholder: boolean
-  readonly isExpanded: boolean
 }
 
 /** Props for a {@link AssetColumn}. */

@@ -1,7 +1,4 @@
 /** @file A modal for creating a new label. */
-import * as React from 'react'
-
-import { useMutation } from '@tanstack/react-query'
 import * as z from 'zod'
 
 import { ButtonGroup, DialogDismiss, Form, Input, Popover, Text } from '#/components/AriaComponents'
@@ -12,7 +9,7 @@ import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { findLeastUsedColor } from '#/services/Backend'
-import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
+import { useMutation } from '@tanstack/react-query'
 
 // =====================
 // === NewLabelModal ===
@@ -27,13 +24,10 @@ export interface NewLabelModalProps {
 export default function NewLabelModal(props: NewLabelModalProps) {
   const { backend } = props
   const { getText } = useText()
-  const labels = useBackendQuery(backend, 'listTags', []).data ?? EMPTY_ARRAY
-  const labelNames = React.useMemo(
-    () => new Set<string>(labels.map((label) => label.value)),
-    [labels],
-  )
+  const labels = useBackendQuery(backend, 'listTags', []).data ?? []
+  const labelNames = new Set<string>(labels.map((label) => label.value))
   const labelNamesRef = useSyncRef(labelNames)
-  const leastUsedColor = React.useMemo(() => findLeastUsedColor(labels), [labels])
+  const leastUsedColor = findLeastUsedColor(labels)
 
   const createTag = useMutation(backendMutationOptions(backend, 'createTag')).mutateAsync
 

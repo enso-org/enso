@@ -19,11 +19,15 @@ jobs:
       - self-hosted
       - Linux
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
+      - if: runner.os == 'Windows'
+        name: Setup required bazel environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        shell: pwsh
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
         with:
-          version: v0.12.1
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -32,12 +36,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -45,13 +55,7 @@ jobs:
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
@@ -65,11 +69,15 @@ jobs:
       - macOS
       - ARM64
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
+      - if: runner.os == 'Windows'
+        name: Setup required bazel environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        shell: pwsh
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
         with:
-          version: v0.12.1
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -78,12 +86,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -91,13 +105,7 @@ jobs:
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
@@ -109,11 +117,15 @@ jobs:
     runs-on:
       - macos-13
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
+      - if: runner.os == 'Windows'
+        name: Setup required bazel environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        shell: pwsh
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
         with:
-          version: v0.12.1
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -122,12 +134,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -135,13 +153,7 @@ jobs:
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
@@ -154,11 +166,15 @@ jobs:
       - self-hosted
       - Windows
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
+      - if: runner.os == 'Windows'
+        name: Setup required bazel environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        shell: pwsh
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
         with:
-          version: v0.12.1
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -167,12 +183,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -180,13 +202,7 @@ jobs:
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
@@ -199,11 +215,15 @@ jobs:
       - self-hosted
       - Linux
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
+      - if: runner.os == 'Windows'
+        name: Setup required bazel environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        shell: pwsh
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
         with:
-          version: v0.12.1
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -212,12 +232,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -225,13 +251,7 @@ jobs:
       - run: ./run backend ci-check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
@@ -244,11 +264,15 @@ jobs:
       - self-hosted
       - Linux
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
+      - if: runner.os == 'Windows'
+        name: Setup required bazel environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        shell: pwsh
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
         with:
-          version: v0.12.1
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -257,12 +281,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -279,13 +309,7 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
@@ -301,11 +325,15 @@ jobs:
       - macOS
       - ARM64
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
+      - if: runner.os == 'Windows'
+        name: Setup required bazel environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        shell: pwsh
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
         with:
-          version: v0.12.1
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -314,12 +342,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -336,13 +370,7 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
@@ -356,11 +384,15 @@ jobs:
     runs-on:
       - macos-13
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
+      - if: runner.os == 'Windows'
+        name: Setup required bazel environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        shell: pwsh
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
         with:
-          version: v0.12.1
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -369,12 +401,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -391,13 +429,7 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
@@ -412,11 +444,15 @@ jobs:
       - self-hosted
       - Windows
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
+      - if: runner.os == 'Windows'
+        name: Setup required bazel environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        shell: pwsh
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
         with:
-          version: v0.12.1
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -425,12 +461,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -447,13 +489,7 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
@@ -468,11 +504,15 @@ jobs:
       - self-hosted
       - Linux
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
+      - if: runner.os == 'Windows'
+        name: Setup required bazel environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        shell: pwsh
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
         with:
-          version: v0.12.1
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -481,12 +521,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -503,13 +549,7 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*.xml
           path-replace-backslashes: true
           reporter: java-junit
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
@@ -524,11 +564,15 @@ jobs:
       - self-hosted
       - Linux
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
+      - if: runner.os == 'Windows'
+        name: Setup required bazel environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        shell: pwsh
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
         with:
-          version: v0.12.1
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -537,12 +581,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -562,13 +612,7 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
@@ -584,11 +628,15 @@ jobs:
       - macOS
       - ARM64
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
+      - if: runner.os == 'Windows'
+        name: Setup required bazel environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        shell: pwsh
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
         with:
-          version: v0.12.1
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -597,12 +645,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -622,13 +676,7 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
@@ -642,11 +690,15 @@ jobs:
     runs-on:
       - macos-13
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
+      - if: runner.os == 'Windows'
+        name: Setup required bazel environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        shell: pwsh
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
         with:
-          version: v0.12.1
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -655,12 +707,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -680,13 +738,7 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
@@ -701,11 +753,15 @@ jobs:
       - self-hosted
       - Windows
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
+      - if: runner.os == 'Windows'
+        name: Setup required bazel environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        shell: pwsh
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
         with:
-          version: v0.12.1
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -714,12 +770,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -739,13 +801,7 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:
@@ -760,11 +816,15 @@ jobs:
       - self-hosted
       - Linux
     steps:
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
+      - if: runner.os == 'Windows'
+        name: Setup required bazel environment
+        run: "\n\"BAZEL_SH=C:\\Program Files\\Git\\bin\\bash.exe\" >> $env:GITHUB_ENV\n\"BAZEL_VC=C:\\BuildTools\\VC\" >> $env:GITHUB_ENV\n        "
+        shell: pwsh
+      - name: Setup bazel environment
+        uses: bazel-contrib/setup-bazel@0.13.0
         with:
-          version: v0.12.1
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
+          output-base: ${{ runner.os == 'Windows' && 'c:/_bazel' || '' }}
       - name: Expose Artifact API and context information.
         uses: actions/github-script@v7
         with:
@@ -773,12 +833,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           clean: false
-          submodules: recursive
+      - if: runner.os == 'macOS'
+        name: Setup nodejs version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - if: runner.os != 'Linux'
+        run: npm install -g corepack@0.31.0 && corepack --version
       - name: Build Script Setup
         run: ./run --help || (git clean -ffdx && ./run --help)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean before
         run: ./run git-clean
         env:
@@ -798,13 +864,7 @@ jobs:
           path: ${{ env.ENSO_TEST_JUNIT_DIR }}/*/*.xml
           path-replace-backslashes: true
           reporter: java-junit
-      - if: failure() && runner.os == 'Windows'
-        name: List files if failed (Windows)
-        run: Get-ChildItem -Force -Recurse
-      - if: failure() && runner.os != 'Windows'
-        name: List files if failed (non-Windows)
-        run: ls -lAR
-      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || inputs.clean_build_required)"
+      - if: "(always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required)"
         name: Clean after
         run: ./run git-clean
         env:

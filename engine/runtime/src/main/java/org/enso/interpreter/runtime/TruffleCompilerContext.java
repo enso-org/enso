@@ -8,6 +8,7 @@ import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -487,11 +488,18 @@ final class TruffleCompilerContext implements CompilerContext {
   private boolean deserializeModuleDirect(CompilerContext.Module module)
       throws InterruptedException {
     var pool = serializationPool;
-    if (pool.isWaitingForSerialization(module.getName())) {
-      pool.abort(module.getName());
+    var moduleName = module.getName();
+    var awaitingSerialization = pool.isWaitingForSerialization(moduleName);
+    logSerializationManager(
+        Level.FINE,
+        "deserializing module [{0}]. Awaiting serialization: {1}",
+        moduleName,
+        awaitingSerialization);
+    if (awaitingSerialization) {
+      pool.abort(moduleName);
       return false;
     } else {
-      pool.waitWhileSerializing(module.getName());
+      pool.waitWhileSerializing(moduleName);
 
       var loaded = loadCache(((Module) module).getCache());
       if (loaded.isPresent()) {
@@ -505,12 +513,11 @@ final class TruffleCompilerContext implements CompilerContext {
         logSerializationManager(
             Level.FINE,
             "Restored IR from cache for module [{0}] at stage [{1}].",
-            module.getName(),
+            moduleName,
             loaded.get().compilationStage());
         return true;
       } else {
-        logSerializationManager(
-            Level.FINE, "Unable to load a cache for module [{0}].", module.getName());
+        logSerializationManager(Level.FINE, "Unable to load a cache for module [{0}].", moduleName);
         return false;
       }
     }
@@ -884,6 +891,21 @@ final class TruffleCompilerContext implements CompilerContext {
       sb.append("module=").append(module);
       sb.append('}');
       return sb.toString();
+    }
+
+    @Override
+    public int findLine(IdentifiedLocation loc) {
+      var ss = module.createSection(loc.start(), loc.length());
+      return ss.getStartLine();
+    }
+
+    @Override
+    public URI getUri() {
+      try {
+        return module.getSource().getURI();
+      } catch (IOException ex) {
+        return null;
+      }
     }
   }
 

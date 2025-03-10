@@ -1,9 +1,9 @@
 /** @file A table row for an arbitrary asset. */
 import * as React from 'react'
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useStore } from '#/utilities/zustand'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
-import { useStore } from 'zustand'
 
 import BlankIcon from '#/assets/blank.svg'
 
@@ -13,8 +13,11 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { DrivePastePayload } from '#/providers/DriveProvider'
 import {
   useDriveStore,
-  useSetSelectedKeys,
-  useToggleDirectoryExpansion,
+  useSetCurrentDirectoryId,
+  useSetDragTargetAssetId,
+  useSetIsDraggingOverSelectedRow,
+  useSetLabelsDragPayload,
+  useSetSelectedAssets,
 } from '#/providers/DriveProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
@@ -22,60 +25,45 @@ import * as textProvider from '#/providers/TextProvider'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnModule from '#/components/dashboard/column'
 import * as columnUtils from '#/components/dashboard/column/columnUtils'
-import AssetEventType from '#/events/AssetEventType'
-import AssetListEventType from '#/events/AssetListEventType'
 import AssetContextMenu from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
-import { isCloudCategory, isLocalCategory } from '#/layouts/CategorySwitcher/Category'
-import * as eventListProvider from '#/layouts/Drive/EventListProvider'
-import * as localBackend from '#/services/LocalBackend'
+import { isLocalCategory } from '#/layouts/CategorySwitcher/Category'
 
 import * as backendModule from '#/services/Backend'
 
 import { Text } from '#/components/AriaComponents'
 import { IndefiniteSpinner } from '#/components/Spinner'
-import type { AssetEvent } from '#/events/assetEvent'
-import { useCutAndPaste } from '#/events/assetListEvent'
+import {
+  useDeleteAssetsMutationState,
+  useMoveAssetsMutationState,
+  useRestoreAssetsMutationState,
+} from '#/hooks/backendBatchedHooks'
 import {
   backendMutationOptions,
-  backendQueryOptions,
   useBackendMutationState,
-  useUploadFiles,
+  useBackendQuery,
 } from '#/hooks/backendHooks'
+import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
+import { useCutAndPaste } from '#/hooks/cutAndPasteHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
-import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import { useAsset } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useAsset, useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import type * as assetTreeNode from '#/utilities/AssetTreeNode'
-import { download } from '#/utilities/download'
 import * as drag from '#/utilities/drag'
 import * as eventModule from '#/utilities/event'
-import * as indent from '#/utilities/indent'
 import * as object from '#/utilities/object'
-import * as permissions from '#/utilities/permissions'
-import * as set from '#/utilities/set'
+import {
+  canPermissionModifyDirectoryContents,
+  isTeamParentsPath,
+  tryFindSelfPermission,
+} from '#/utilities/permissions'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
-
-// =================
-// === Constants ===
-// =================
-
-/**
- * The amount of time (in milliseconds) the drag item must be held over this component
- * to make a directory row expand.
- */
-const DRAG_EXPAND_DELAY_MS = 500
-
-// ================
-// === AssetRow ===
-// ================
+import { useTransition } from 'react'
 
 /** Common properties for state and setters passed to event handlers on an {@link AssetRow}. */
 export interface AssetRowInnerProps {
   readonly asset: backendModule.AnyAsset
-  readonly path: string
   readonly state: assetsTable.AssetsTableState
   readonly rowState: assetsTable.AssetRowState
   readonly setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
@@ -84,28 +72,17 @@ export interface AssetRowInnerProps {
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps {
   readonly isOpened: boolean
-
   readonly isPlaceholder: boolean
-  readonly visibility: Visibility | undefined
   readonly id: backendModule.AssetId
   readonly parentId: backendModule.DirectoryId
   readonly type: backendModule.AssetType
-  readonly hidden: boolean
-  readonly path: string
-  readonly initialAssetEvents: readonly AssetEvent[] | null
-  readonly depth: number
   readonly state: assetsTable.AssetsTableState
   readonly columns: columnUtils.Column[]
   readonly isKeyboardSelected: boolean
   readonly grabKeyboardFocus: (item: backendModule.AnyAsset) => void
   readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
   readonly select: (item: backendModule.AnyAsset) => void
-  readonly isExpanded: boolean
   readonly onDragStart?: (
-    event: React.DragEvent<HTMLTableRowElement>,
-    item: backendModule.AnyAsset,
-  ) => void
-  readonly onDragOver?: (
     event: React.DragEvent<HTMLTableRowElement>,
     item: backendModule.AnyAsset,
   ) => void
@@ -125,21 +102,25 @@ export interface AssetRowProps {
     newParentKey: backendModule.DirectoryId,
     newParentId: backendModule.DirectoryId,
     pasteData: DrivePastePayload,
-    nodeMap: ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>,
   ) => void
 }
 
 /** A row containing an {@link backendModule.AnyAsset}. */
-// eslint-disable-next-line no-restricted-syntax
+
 export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
-  const { type, columns, depth, id } = props
+  const { type, columns, id } = props
 
   switch (type) {
     case backendModule.AssetType.specialLoading:
     case backendModule.AssetType.specialEmpty:
     case backendModule.AssetType.specialError: {
-      return <AssetSpecialRow columnsLength={columns.length} depth={depth} type={type} />
+      return <AssetSpecialRow columnsLength={columns.length} type={type} />
     }
+    case backendModule.AssetType.project:
+    case backendModule.AssetType.file:
+    case backendModule.AssetType.secret:
+    case backendModule.AssetType.datalink:
+    case backendModule.AssetType.directory:
     default: {
       // This is safe because we filter out special asset types in the switch statement above.
       // eslint-disable-next-line no-restricted-syntax
@@ -148,21 +129,15 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   }
 })
 
-/**
- * Props for a {@link AssetSpecialRow}.
- */
+/** Props for a {@link AssetSpecialRow}. */
 export interface AssetSpecialRowProps {
   readonly type: backendModule.AssetType
   readonly columnsLength: number
-  readonly depth: number
 }
 
-/**
- * Renders a special asset row.
- */
-// eslint-disable-next-line no-restricted-syntax
+/** Renders a special asset row. */
 const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialRowProps) {
-  const { type, columnsLength, depth } = props
+  const { type, columnsLength } = props
 
   const { getText } = textProvider.useText()
 
@@ -170,13 +145,8 @@ const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialR
     case backendModule.AssetType.specialLoading: {
       return (
         <tr>
-          <td colSpan={columnsLength} className="border-r p-0 rounded-rows-skip-level">
-            <div
-              className={tailwindMerge.twJoin(
-                'flex h-table-row w-container items-center justify-center rounded-full rounded-rows-child',
-                indent.indentClass(depth),
-              )}
-            >
+          <td colSpan={columnsLength} className="border-r p-0">
+            <div className="flex h-table-row w-container items-center justify-center rounded-full">
               <IndefiniteSpinner size={24} />
             </div>
           </td>
@@ -186,13 +156,8 @@ const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialR
     case backendModule.AssetType.specialEmpty: {
       return (
         <tr>
-          <td colSpan={columnsLength} className="border-r p-0 rounded-rows-skip-level">
-            <div
-              className={tailwindMerge.twJoin(
-                'flex h-table-row items-center rounded-full rounded-rows-child',
-                indent.indentClass(depth),
-              )}
-            >
+          <td colSpan={columnsLength} className="border-r p-0">
+            <div className="flex h-table-row items-center rounded-full">
               <img src={BlankIcon} />
               <Text className="px-name-column-x placeholder" disableLineHeightCompensation>
                 {getText('thisFolderIsEmpty')}
@@ -205,13 +170,8 @@ const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialR
     case backendModule.AssetType.specialError: {
       return (
         <tr>
-          <td colSpan={columnsLength} className="border-r p-0 rounded-rows-skip-level">
-            <div
-              className={tailwindMerge.twJoin(
-                'flex h-table-row items-center rounded-full rounded-rows-child',
-                indent.indentClass(depth),
-              )}
-            >
+          <td colSpan={columnsLength} className="border-r p-0">
+            <div className="flex h-table-row items-center rounded-full">
               <img src={BlankIcon} />
               <Text
                 className="px-name-column-x text-danger placeholder"
@@ -224,21 +184,22 @@ const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialR
         </tr>
       )
     }
+    case backendModule.AssetType.project:
+    case backendModule.AssetType.file:
+    case backendModule.AssetType.secret:
+    case backendModule.AssetType.datalink:
+    case backendModule.AssetType.directory:
     default: {
       invariant(false, 'Unsupported special asset type: ' + type)
     }
   }
 })
 
-/**
- * Props for a {@link RealAssetRow}.
- */
+/** Props for a {@link RealAssetRow}. */
 type RealAssetRowProps = AssetRowProps & { readonly id: backendModule.RealAssetId }
 
-/**
- * Renders a real asset row.
- */
-// eslint-disable-next-line no-restricted-syntax
+/** Renders a real asset row. */
+
 const RealAssetRow = React.memo(function RealAssetRow(props: RealAssetRowProps) {
   const { id } = props
 
@@ -252,16 +213,12 @@ const RealAssetRow = React.memo(function RealAssetRow(props: RealAssetRowProps) 
   return <RealAssetInternalRow {...props} asset={asset} />
 })
 
-/**
- * Internal props for a {@link RealAssetRow}.
- */
+/** Internal props for a {@link RealAssetRow}. */
 export interface RealAssetRowInternalProps extends AssetRowProps {
   readonly asset: backendModule.AnyAsset
 }
 
-/**
- * Internal implementation of a {@link RealAssetRow}.
- */
+/** Internal implementation of a {@link RealAssetRow}. */
 export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   const {
     id,
@@ -273,43 +230,45 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
     columns,
     onClick,
     isPlaceholder,
-    isExpanded,
     type,
     asset,
   } = props
-  const { path, hidden: hiddenRaw, grabKeyboardFocus, visibility: visibilityRaw, depth } = props
-  const { initialAssetEvents } = props
-  const { nodeMap, doCopy, doCut, doPaste, doDelete: doDeleteRaw } = state
-  const { doRestore, doMove, category, rootDirectoryId, backend } = state
+  const { grabKeyboardFocus } = props
+  const { category, backend, currentDirectoryId, doCopy, doCut, doPaste } = state
+
+  const [, startTransition] = useTransition()
+
+  const { data: userGroups } = useBackendQuery(backend, 'listUserGroups', [])
 
   const driveStore = useDriveStore()
-  const queryClient = useQueryClient()
   const { user } = useFullUserSession()
-  const setSelectedKeys = useSetSelectedKeys()
-  const selected = useStore(driveStore, ({ visuallySelectedKeys, selectedKeys }) =>
-    (visuallySelectedKeys ?? selectedKeys).has(id),
+  const setSelectedAssets = useSetSelectedAssets()
+  const getAsset = useGetAsset()
+  const selected = useStore(driveStore, ({ visuallySelectedKeys, selectedIds }) =>
+    (visuallySelectedKeys ?? selectedIds).has(id),
   )
   const isSoleSelected = useStore(
     driveStore,
-    ({ selectedKeys }) => selected && selectedKeys.size === 1,
+    ({ selectedIds }) => selected && selectedIds.size === 1,
   )
   const allowContextMenu = useStore(
     driveStore,
-    ({ selectedKeys }) => selectedKeys.size === 0 || !selected || isSoleSelected,
+    ({ selectedIds }) => selectedIds.size === 0 || !selected || isSoleSelected,
   )
+  const setCurrentDirectoryId = useSetCurrentDirectoryId()
   const draggableProps = dragAndDropHooks.useDraggable({ isDisabled: !selected })
   const { setModal, unsetModal } = modalProvider.useSetModal()
-  const { getText } = textProvider.useText()
-  const dispatchAssetListEvent = eventListProvider.useDispatchAssetListEvent()
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
+  const setIsDraggingOverSelectedRow = useSetIsDraggingOverSelectedRow()
+  const setDragTargetAssetId = useSetDragTargetAssetId()
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
   const grabKeyboardFocusRef = useSyncRef(grabKeyboardFocus)
   const [innerRowState, setRowState] = React.useState<assetsTable.AssetRowState>(
     assetRowUtils.INITIAL_ROW_STATE,
   )
-  const cutAndPaste = useCutAndPaste(category)
-  const toggleDirectoryExpansion = useToggleDirectoryExpansion()
+  const cutAndPaste = useCutAndPaste(backend, category)
+  const setLabelsDragPayload = useSetLabelsDragPayload()
 
   const isNewlyCreated = useStore(driveStore, ({ newestFolderId }) => newestFolderId === asset.id)
   const isEditingName = innerRowState.isEditingName || isNewlyCreated
@@ -318,21 +277,39 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
     return object.merge(innerRowState, { isEditingName })
   }, [isEditingName, innerRowState])
 
-  const nodeParentKeysRef = React.useRef<{
-    readonly nodeMap: WeakRef<ReadonlyMap<backendModule.AssetId, assetTreeNode.AnyAssetTreeNode>>
-    readonly parentKeys: Map<backendModule.AssetId, backendModule.DirectoryId>
-  } | null>(null)
-
-  const isDeleting =
+  const isDeletingSingleAsset =
     useBackendMutationState(backend, 'deleteAsset', {
-      predicate: ({ state: { variables: [assetId] = [] } }) => assetId === asset.id,
+      predicate: ({ state: { variables } }) => variables?.[0] === asset.id,
+      select: () => null,
     }).length !== 0
-  const isRestoring =
+  const isDeletingMultipleAssets =
+    useDeleteAssetsMutationState(backend, {
+      predicate: ({ state: { variables: [assetIds = []] = [] } }) => assetIds.includes(asset.id),
+      select: () => null,
+    }).length !== 0
+  const isDeleting = isDeletingSingleAsset || isDeletingMultipleAssets
+  const isRestoringSingleAsset =
     useBackendMutationState(backend, 'undoDeleteAsset', {
-      predicate: ({ state: { variables: [assetId] = [] } }) => assetId === asset.id,
+      predicate: ({ state: { variables } }) => variables?.[0] === asset.id,
+      select: () => null,
     }).length !== 0
-
-  const isCloud = isCloudCategory(category)
+  const isRestoringMultipleAssets =
+    useRestoreAssetsMutationState(backend, {
+      predicate: ({ state: { variables: assetIds = [] } }) => assetIds.includes(asset.id),
+      select: () => null,
+    }).length !== 0
+  const isRestoring = isRestoringSingleAsset || isRestoringMultipleAssets
+  const isUpdatingSingleAsset =
+    useBackendMutationState(backend, 'updateAsset', {
+      predicate: ({ state: { variables } }) => variables?.[0] === asset.id,
+      select: () => null,
+    }).length !== 0
+  const isMovingMultipleAssets =
+    useMoveAssetsMutationState(backend, {
+      predicate: ({ state: { variables: [assetIds = []] = [] } }) => assetIds.includes(asset.id),
+      select: () => null,
+    }).length !== 0
+  const isUpdating = isUpdatingSingleAsset || isMovingMultipleAssets
 
   const { data: projectState } = useQuery({
     ...createGetProjectDetailsQuery({
@@ -340,18 +317,21 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
       // see `enabled` property below.
       // eslint-disable-next-line no-restricted-syntax
       assetId: asset.id as backendModule.ProjectId,
-      parentId: asset.parentId,
       backend,
     }),
     select: (data) => data.state.type,
     enabled: asset.type === backendModule.AssetType.project && !isPlaceholder && isOpened,
   })
 
-  const toastAndLog = useToastAndLog()
-
   const uploadFiles = useUploadFiles(backend, category)
-  const createPermissionMutation = useMutation(backendMutationOptions(backend, 'createPermission'))
-  const associateTagMutation = useMutation(backendMutationOptions(backend, 'associateTag'))
+  const createPermissionMutation = useMutation(
+    backendMutationOptions(backend, 'createPermission', {
+      meta: {
+        invalidates: [[backend.type, 'listDirectory', asset.parentId]],
+        awaitInvalidates: true,
+      },
+    }),
+  )
 
   const insertionVisibility = useStore(driveStore, (driveState) =>
     driveState.pasteData?.type === 'move' && driveState.pasteData.data.ids.has(id) ?
@@ -360,19 +340,21 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   )
   const createPermissionVariables = createPermissionMutation.variables?.[0]
   const isRemovingSelf =
-    createPermissionVariables != null &&
-    createPermissionVariables.action == null &&
-    createPermissionVariables.actorsIds[0] === user.userId
+    createPermissionVariables?.actorsIds[0] === user.userId &&
+    createPermissionVariables.action == null
   const visibility =
-    isRemovingSelf ? Visibility.hidden
-    : visibilityRaw === Visibility.visible ? insertionVisibility
-    : visibilityRaw ?? insertionVisibility
-  const hidden = isDeleting || isRestoring || hiddenRaw || visibility === Visibility.hidden
+    isDeleting || isRestoring || isUpdating ? Visibility.faded
+    : isRemovingSelf ? Visibility.hidden
+    : insertionVisibility
+  const hidden = visibility === Visibility.hidden
 
   const setSelected = useEventCallback((newSelected: boolean) => {
-    const { selectedKeys } = driveStore.getState()
-
-    setSelectedKeys(set.withPresence(selectedKeys, id, newSelected))
+    const { selectedAssets } = driveStore.getState()
+    setSelectedAssets(
+      newSelected ?
+        [...selectedAssets, asset]
+      : selectedAssets.filter((otherAsset) => otherAsset.id !== asset.id),
+    )
   })
 
   React.useEffect(() => {
@@ -388,62 +370,43 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
     }
   }, [grabKeyboardFocusRef, isKeyboardSelected, asset])
 
-  const doDelete = React.useCallback(
-    (forever = false) => {
-      void doDeleteRaw(asset, forever)
-    },
-    [doDeleteRaw, asset],
-  )
-
-  const clearDragState = React.useCallback(() => {
-    setIsDraggedOver(false)
-    setRowState((oldRowState) =>
-      oldRowState.temporarilyAddedLabels === set.EMPTY_SET ?
-        oldRowState
-      : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET }),
-    )
-  }, [])
-
   const onDragOver = (event: React.DragEvent<Element>) => {
-    const directoryKey = asset.type === backendModule.AssetType.directory ? id : parentId
+    const directoryId = asset.type === backendModule.AssetType.directory ? id : parentId
+    const labelsPayload = drag.LABELS.lookup(event)
+    if (labelsPayload) {
+      event.preventDefault()
+      event.stopPropagation()
+      setDragTargetAssetId(asset.id)
+      const { isDraggingOverSelectedRow } = driveStore.getState()
+      if (selected !== isDraggingOverSelectedRow) {
+        setIsDraggingOverSelectedRow(selected)
+      }
+      return
+    }
     const payload = drag.ASSET_ROWS.lookup(event)
     const isPayloadMatch =
-      payload != null && payload.every((innerItem) => innerItem.key !== directoryKey)
+      payload != null && payload.every((innerItem) => innerItem.key !== directoryId)
     const canPaste = (() => {
       if (!isPayloadMatch) {
         return false
-      } else {
-        if (nodeMap.current !== nodeParentKeysRef.current?.nodeMap.deref()) {
-          const parentKeys = new Map(
-            Array.from(nodeMap.current.entries()).map(([otherId, otherAsset]) => [
-              otherId,
-              otherAsset.directoryKey,
-            ]),
-          )
-          nodeParentKeysRef.current = { nodeMap: new WeakRef(nodeMap.current), parentKeys }
-        }
-
-        if (isLocalCategory(category)) {
+      }
+      if (isLocalCategory(category)) {
+        return true
+      }
+      return payload.every((payloadItem) => {
+        const payloadParentId = getAsset(payloadItem.key)?.parentId
+        const parent = payloadParentId == null ? null : getAsset(payloadParentId)
+        if (!parent) {
+          // Assume the parent is the root directory.
           return true
         }
-
-        return payload.every((payloadItem) => {
-          const parentKey = nodeParentKeysRef.current?.parentKeys.get(payloadItem.key)
-          const parent = parentKey == null ? null : nodeMap.current.get(parentKey)
-          if (!parent) {
-            return false
-          } else if (permissions.isTeamPath(parent.path)) {
-            return true
-          } else {
-            // Assume user path; check permissions
-            const permission = permissions.tryFindSelfPermission(user, asset.permissions)
-            return (
-              permission != null &&
-              permissions.canPermissionModifyDirectoryContents(permission.permission)
-            )
-          }
-        })
-      }
+        if (isTeamParentsPath(parent.parentsPath, userGroups?.map((team) => team.id) ?? [])) {
+          return true
+        }
+        // Assume user path; check permissions
+        const permission = tryFindSelfPermission(user, asset.permissions)
+        return permission != null && canPermissionModifyDirectoryContents(permission.permission)
+      })
     })()
 
     if ((isPayloadMatch && canPaste) || event.dataTransfer.types.includes('Files')) {
@@ -454,212 +417,6 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
     }
   }
 
-  eventListProvider.useAssetEventListener(async (event) => {
-    switch (event.type) {
-      case AssetEventType.move: {
-        if (event.ids.has(id)) {
-          await doMove(event.newParentKey, asset)
-        }
-        break
-      }
-      case AssetEventType.delete: {
-        if (event.ids.has(id)) {
-          doDelete(false)
-        }
-        break
-      }
-      case AssetEventType.deleteForever: {
-        if (event.ids.has(id)) {
-          doDelete(true)
-        }
-        break
-      }
-      case AssetEventType.restore: {
-        if (event.ids.has(id)) {
-          await doRestore(asset)
-        }
-        break
-      }
-      case AssetEventType.download:
-      case AssetEventType.downloadSelected: {
-        if (event.type === AssetEventType.downloadSelected ? selected : event.ids.has(asset.id)) {
-          if (isCloud) {
-            switch (asset.type) {
-              case backendModule.AssetType.project: {
-                try {
-                  const details = await queryClient.fetchQuery(
-                    backendQueryOptions(
-                      backend,
-                      'getProjectDetails',
-                      [asset.id, asset.parentId, true],
-                      { staleTime: 0 },
-                    ),
-                  )
-                  if (details.url != null) {
-                    await backend.download(details.url, `${asset.title}.enso-project`)
-                  } else {
-                    const error: unknown = getText('projectHasNoSourceFilesPhrase')
-                    toastAndLog('downloadProjectError', error, asset.title)
-                  }
-                } catch (error) {
-                  toastAndLog('downloadProjectError', error, asset.title)
-                }
-                break
-              }
-              case backendModule.AssetType.file: {
-                try {
-                  const details = await queryClient.fetchQuery(
-                    backendQueryOptions(backend, 'getFileDetails', [asset.id, asset.title, true], {
-                      staleTime: 0,
-                    }),
-                  )
-                  if (details.url != null) {
-                    await backend.download(details.url, asset.title)
-                  } else {
-                    const error: unknown = getText('fileNotFoundPhrase')
-                    toastAndLog('downloadFileError', error, asset.title)
-                  }
-                } catch (error) {
-                  toastAndLog('downloadFileError', error, asset.title)
-                }
-                break
-              }
-              case backendModule.AssetType.datalink: {
-                try {
-                  const value = await queryClient.fetchQuery(
-                    backendQueryOptions(backend, 'getDatalink', [asset.id, asset.title]),
-                  )
-                  const fileName = `${asset.title}.datalink`
-                  download(
-                    URL.createObjectURL(
-                      new File([JSON.stringify(value)], fileName, {
-                        type: 'application/json+x-enso-data-link',
-                      }),
-                    ),
-                    fileName,
-                  )
-                } catch (error) {
-                  toastAndLog('downloadDatalinkError', error, asset.title)
-                }
-                break
-              }
-              default: {
-                toastAndLog('downloadInvalidTypeError')
-                break
-              }
-            }
-          } else {
-            if (asset.type === backendModule.AssetType.project) {
-              const projectsDirectory = localBackend.extractTypeAndId(asset.parentId).id
-              const uuid = localBackend.extractTypeAndId(asset.id).id
-              const queryString = new URLSearchParams({ projectsDirectory }).toString()
-              await backend.download(
-                `./api/project-manager/projects/${uuid}/enso-project?${queryString}`,
-                `${asset.title}.enso-project`,
-              )
-            }
-          }
-        }
-        break
-      }
-      case AssetEventType.removeSelf: {
-        // This is not triggered from the asset list, so it uses `item.id` instead of `key`.
-        if (event.id === asset.id && user.isEnabled) {
-          try {
-            await createPermissionMutation.mutateAsync([
-              {
-                action: null,
-                resourceId: asset.id,
-                actorsIds: [user.userId],
-              },
-            ])
-            dispatchAssetListEvent({ type: AssetListEventType.delete, key: id })
-          } catch (error) {
-            toastAndLog(null, error)
-          }
-        }
-        break
-      }
-      case AssetEventType.temporarilyAddLabels: {
-        const labels = event.ids.has(id) ? event.labelNames : set.EMPTY_SET
-        setRowState((oldRowState) =>
-          (
-            oldRowState.temporarilyAddedLabels === labels &&
-            oldRowState.temporarilyRemovedLabels === set.EMPTY_SET
-          ) ?
-            oldRowState
-          : object.merge(oldRowState, {
-              temporarilyAddedLabels: labels,
-              temporarilyRemovedLabels: set.EMPTY_SET,
-            }),
-        )
-        break
-      }
-      case AssetEventType.temporarilyRemoveLabels: {
-        const labels = event.ids.has(id) ? event.labelNames : set.EMPTY_SET
-        setRowState((oldRowState) =>
-          (
-            oldRowState.temporarilyAddedLabels === set.EMPTY_SET &&
-            oldRowState.temporarilyRemovedLabels === labels
-          ) ?
-            oldRowState
-          : object.merge(oldRowState, {
-              temporarilyAddedLabels: set.EMPTY_SET,
-              temporarilyRemovedLabels: labels,
-            }),
-        )
-        break
-      }
-      case AssetEventType.addLabels: {
-        setRowState((oldRowState) =>
-          oldRowState.temporarilyAddedLabels === set.EMPTY_SET ?
-            oldRowState
-          : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET }),
-        )
-        const labels = asset.labels
-        if (
-          event.ids.has(id) &&
-          (labels == null || [...event.labelNames].some((label) => !labels.includes(label)))
-        ) {
-          const newLabels = [
-            ...(labels ?? []),
-            ...[...event.labelNames].filter((label) => labels?.includes(label) !== true),
-          ]
-          try {
-            await associateTagMutation.mutateAsync([asset.id, newLabels, asset.title])
-          } catch (error) {
-            toastAndLog(null, error)
-          }
-        }
-        break
-      }
-      case AssetEventType.removeLabels: {
-        setRowState((oldRowState) =>
-          oldRowState.temporarilyAddedLabels === set.EMPTY_SET ?
-            oldRowState
-          : object.merge(oldRowState, { temporarilyAddedLabels: set.EMPTY_SET }),
-        )
-        const labels = asset.labels
-        if (
-          event.ids.has(id) &&
-          labels != null &&
-          [...event.labelNames].some((label) => labels.includes(label))
-        ) {
-          const newLabels = labels.filter((label) => !event.labelNames.has(label))
-          try {
-            await associateTagMutation.mutateAsync([asset.id, newLabels, asset.title])
-          } catch (error) {
-            toastAndLog(null, error)
-          }
-        }
-        break
-      }
-      default: {
-        return
-      }
-    }
-  }, initialAssetEvents)
-
   switch (type) {
     case backendModule.AssetType.directory:
     case backendModule.AssetType.project:
@@ -668,7 +425,6 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
     case backendModule.AssetType.secret: {
       const innerProps: AssetRowInnerProps = {
         asset,
-        path,
         state,
         rowState,
         setRowState,
@@ -685,6 +441,16 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
             tabIndex={0}
             data-selected={selected}
             data-id={asset.id}
+            onDoubleClick={() => {
+              if (asset.type === backendModule.AssetType.directory) {
+                startTransition(() => {
+                  setCurrentDirectoryId({
+                    current: asset.id,
+                    parent: parentId,
+                  })
+                })
+              }
+            }}
             ref={(element) => {
               rootRef.current = element
 
@@ -712,7 +478,6 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                 window.setTimeout(() => {
                   setSelected(false)
                 })
-                toggleDirectoryExpansion(asset.id)
               }
             }}
             onContextMenu={(event) => {
@@ -725,7 +490,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                 setModal(
                   <AssetContextMenu
                     innerProps={innerProps}
-                    rootDirectoryId={rootDirectoryId}
+                    currentDirectoryId={currentDirectoryId}
                     triggerRef={rootRef}
                     event={event}
                     eventTarget={
@@ -734,7 +499,6 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                     doCopy={doCopy}
                     doCut={doCut}
                     doPaste={doPaste}
-                    doDelete={doDelete}
                   />,
                 )
               }
@@ -755,24 +519,18 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
               if (dragOverTimeoutHandle.current != null) {
                 window.clearTimeout(dragOverTimeoutHandle.current)
               }
-              if (asset.type === backendModule.AssetType.directory) {
-                dragOverTimeoutHandle.current = window.setTimeout(() => {
-                  toggleDirectoryExpansion(asset.id, true)
-                }, DRAG_EXPAND_DELAY_MS)
-              }
               // Required because `dragover` does not fire on `mouseenter`.
-              props.onDragOver?.(event, asset)
               onDragOver(event)
             }}
             onDragOver={(event) => {
               if (state.category.type === 'trash') {
                 event.dataTransfer.dropEffect = 'none'
               }
-              props.onDragOver?.(event, asset)
               onDragOver(event)
             }}
             onDragEnd={(event) => {
-              clearDragState()
+              setIsDraggedOver(false)
+              setLabelsDragPayload(null)
               props.onDragEnd?.(event, asset)
             }}
             onDragLeave={(event) => {
@@ -787,14 +545,14 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                 event.relatedTarget instanceof Node &&
                 !event.currentTarget.contains(event.relatedTarget)
               ) {
-                clearDragState()
+                setIsDraggedOver(false)
               }
               props.onDragLeave?.(event, asset)
             }}
             onDrop={(event) => {
               if (state.category.type !== 'trash') {
                 props.onDrop?.(event, asset)
-                clearDragState()
+                setIsDraggedOver(false)
                 const directoryId =
                   asset.type === backendModule.AssetType.directory ? asset.id : parentId
                 const payload = drag.ASSET_ROWS.lookup(event)
@@ -805,21 +563,18 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                   event.preventDefault()
                   event.stopPropagation()
                   unsetModal()
-                  toggleDirectoryExpansion(directoryId, true)
                   const ids = payload
                     .filter((payloadItem) => payloadItem.asset.parentId !== directoryId)
                     .map((dragItem) => dragItem.key)
-                  cutAndPaste(
-                    directoryId,
-                    directoryId,
-                    { backendType: backend.type, ids: new Set(ids), category },
-                    nodeMap.current,
-                  )
+                  cutAndPaste(directoryId, directoryId, {
+                    backendType: backend.type,
+                    ids: new Set(ids),
+                    category,
+                  })
                 } else if (event.dataTransfer.types.includes('Files')) {
                   event.preventDefault()
                   event.stopPropagation()
-                  toggleDirectoryExpansion(directoryId, true)
-                  void uploadFiles(Array.from(event.dataTransfer.files), directoryId, null)
+                  void uploadFiles(Array.from(event.dataTransfer.files), directoryId)
                 }
               }
             }}
@@ -830,15 +585,10 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
                 <td key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>
                   <Render
                     isPlaceholder={isPlaceholder}
-                    isExpanded={isExpanded}
-                    keyProp={id}
                     isOpened={isOpened}
                     backendType={backend.type}
                     item={asset}
-                    depth={depth}
-                    selected={selected}
                     setSelected={setSelected}
-                    isSoleSelected={isSoleSelected}
                     state={state}
                     rowState={rowState}
                     setRowState={setRowState}
@@ -856,19 +606,21 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
             <AssetContextMenu
               hidden
               innerProps={innerProps}
-              rootDirectoryId={rootDirectoryId}
+              currentDirectoryId={currentDirectoryId}
               triggerRef={rootRef}
               event={{ pageX: 0, pageY: 0 }}
               eventTarget={null}
               doCopy={doCopy}
               doCut={doCut}
               doPaste={doPaste}
-              doDelete={doDelete}
             />
           )}
         </>
       )
     }
+    case backendModule.AssetType.specialLoading:
+    case backendModule.AssetType.specialEmpty:
+    case backendModule.AssetType.specialError:
     default: {
       invariant(
         false,

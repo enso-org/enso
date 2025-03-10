@@ -15,6 +15,11 @@ permissions:
   statuses: write # Write access to commit statuses
   checks: write
 
+env:
+  # Workaround for https://github.com/nodejs/corepack/issues/612
+  # See: https://github.com/nodejs/corepack/blob/main/README.md#environment-variables
+  COREPACK_DEFAULT_TO_LATEST: 0
+
 jobs:
   lint:
     name: 👮 Lint GUI
@@ -33,11 +38,10 @@ jobs:
           node-version-file: .node-version
           cache: "pnpm"
 
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
+      - uses: bazel-contrib/setup-bazel@0.13.0
         with:
-          version: v0.12.1
+          bazelisk-cache: true
+          bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
 
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
@@ -48,11 +52,17 @@ jobs:
         with:
           path: |
             **/.eslintcache
-          key: ${{ runner.os }}-gui-${{ github.run_id }}
+            **/node_modules/.vite
+          key: ${{ runner.os }}-gui-lint-${{ github.run_id }}
           restore-keys: |
-            ${{ runner.os }}-gui
+            ${{ runner.os }}-gui-lint
 
       # Next Tasks are depend on Typecheck, because we build libraries at this stage
+      - name: ⚙️ Compile
+        id: compile
+        continue-on-error: true
+        run: pnpm run compile
+
       - name: 🧠 Typecheck
         id: typecheck
         continue-on-error: true
@@ -62,11 +72,6 @@ jobs:
         id: lint
         continue-on-error: true
         run: pnpm run ci:lint
-
-      - name: 🧪 Unit Tests
-        id: unit-tests
-        continue-on-error: true
-        run: pnpm run ci:unit-test
 
       - name: 📝 Annotate Code Linting Results
         if: always()
@@ -81,13 +86,10 @@ jobs:
           fail-on-error: false
           fail-on-warning: false
 
-      - name: ❌ Fail if any check failed
-        if: always() && (steps.prettier.outcome == 'failure' || steps.lint.outcome == 'failure' || steps.typecheck.outcome == 'failure' || steps.unit-tests.outcome == 'failure')
-        run: |
-          echo "Lint outcome: ${{ steps.lint.outcome }}"
-          echo "Typecheck outcome: ${{ steps.typecheck.outcome }}"
-          echo "Unit tests outcome: ${{ steps.unit-tests.outcome }}"
-          exit 1
+      - name: 🧪 Unit Tests
+        id: unit-tests
+        continue-on-error: true
+        run: pnpm run ci:unit-test
 
       - name: 💾 Save cache
         uses: actions/cache/save@v4
@@ -97,6 +99,16 @@ jobs:
           key: ${{ steps.cache.outputs.cache-primary-key }}
           path: |
             **/.eslintcache
+            **/node_modules/.vite
+
+      - name: ❌ Fail if any check failed
+        if: always() && (steps.lint.outcome == 'failure' || steps.compile.outcome == 'failure' || steps.typecheck.outcome == 'failure' || steps.unit-tests.outcome == 'failure')
+        run: |
+          echo "Lint outcome: ${{ steps.lint.outcome }}"
+          echo "Compile outcome: ${{ steps.compile.outcome }}"
+          echo "Typecheck outcome: ${{ steps.typecheck.outcome }}"
+          echo "Unit tests outcome: ${{ steps.unit-tests.outcome }}"
+          exit 1
 
   playwright:
     name: 🎭 Playwright Tests
@@ -110,8 +122,8 @@ jobs:
       fail-fast: false
       max-parallel: 24
       matrix:
-        shardIndex: [1, 2, 3, 4, 5, 6]
-        shardTotal: [6]
+        shardIndex: [1, 2, 3, 4]
+        shardTotal: [4]
 
     steps:
       - uses: actions/checkout@v4
@@ -125,11 +137,9 @@ jobs:
           node-version-file: .node-version
           cache: "pnpm"
 
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
+      - uses: bazel-contrib/setup-bazel@0.13.0
         with:
-          version: v0.12.1
+          bazelrc: build --remote_cache=http://${{ secrets.ENSO_BAZEL_CACHE_USERNAME  }}@${{ vars.ENSO_BAZEL_CACHE_URI }}
 
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
@@ -137,6 +147,10 @@ jobs:
       - name: 📺 Install Playwright Browsers
         working-directory: app/gui
         run: pnpm run playwright:install
+
+      - name: ⚙️ Compile
+        id: compile
+        run: pnpm run compile
 
       - name: 🎭 Playwright Tests
         working-directory: app/gui
@@ -166,12 +180,6 @@ jobs:
         with:
           node-version-file: .node-version
           cache: "pnpm"
-
-      - if: startsWith(runner.name, 'GitHub Actions') || startsWith(runner.name, 'Hosted Agent')
-        name: Installing wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-        with:
-          version: v0.12.1
 
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts

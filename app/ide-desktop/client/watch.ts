@@ -35,8 +35,8 @@ const BUNDLE_READY = new Promise<BuildResult>((resolve, reject) => {
     clientBundlerOpts.outdir = path.resolve(IDE_DIR_PATH)
     ;(clientBundlerOpts.plugins ??= []).push({
       name: 'enso-on-rebuild',
-      setup: build => {
-        build.onEnd(result => {
+      setup: (build) => {
+        build.onEnd((result) => {
           if (result.errors.length) {
             // We cannot carry on if the client failed to build, because electron
             // would immediately exit with an error.
@@ -79,7 +79,7 @@ const ELECTRON_ARGS = [
   path.join(IDE_DIR_PATH, 'index.mjs'),
   ...ELECTRON_FLAGS,
   '--',
-  ...process.argv.slice(2).map(arg => `'${arg}'`),
+  ...process.argv.slice(2).map((arg) => `'${arg}'`),
 ]
 
 const exit = (code = 0) => {
@@ -105,14 +105,14 @@ function startElectronProcess() {
     env: Object.assign({ NODE_MODULES_PATH }, process.env),
   })
 
-  electronProcess.on('close', code => {
+  electronProcess.on('close', (code) => {
     if (code === 0) {
       electronProcess.removeAllListeners()
       exit()
     }
   })
 
-  electronProcess.on('error', error => {
+  electronProcess.on('error', (error) => {
     console.error(chalk.red('Electron process failed:'), error)
     console.error(chalk.red('Killing electron process.'))
     electronProcess.removeAllListeners()

@@ -34,7 +34,7 @@ public class SerializationManagerTest {
 
   @Before
   public void setup() {
-    packageManager = new PackageManager<>(new TruffleFileSystem());
+    packageManager = new PackageManager<>(TruffleFileSystem.INSTANCE);
     interpreterContext = new InterpreterContext(x -> x);
     ensoContext =
         interpreterContext
@@ -89,7 +89,7 @@ public class SerializationManagerTest {
     Object result =
         ensoContext
             .getCompiler()
-            .compile(false, false)
+            .compile(false, true, false, scala.Option.empty())
             .get(COMPILE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     Assert.assertEquals(Boolean.TRUE, result);
 

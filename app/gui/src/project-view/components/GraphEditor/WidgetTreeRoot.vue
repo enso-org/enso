@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useTransitioning } from '@/composables/animation'
+import { useLayoutAnimationsState } from '@/providers/animationCounter'
 import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
 import { WidgetEditHandlerParent } from '@/providers/widgetRegistry/editHandler'
 import { provideWidgetTree } from '@/providers/widgetTree'
 import { Ast } from '@/util/ast'
-import { toRef, watch } from 'vue'
+import { computed, toRef, watch } from 'vue'
 import { AstId } from 'ydoc-shared/ast'
 import { ExternalId } from 'ydoc-shared/yjsModel'
 
@@ -37,13 +38,18 @@ const layoutTransitions = useTransitioning(
     'height',
   ]),
 )
+const layoutAnimations = useLayoutAnimationsState()
+
+const anyLayoutAnimationActive = computed(
+  () => layoutTransitions.active.value || layoutAnimations.anyAnimationActive,
+)
 
 const tree = provideWidgetTree(
   toRef(props, 'externalId'),
   toRef(props, 'rootElement'),
   toRef(props, 'conditionalPorts'),
   toRef(props, 'extended'),
-  layoutTransitions.active,
+  anyLayoutAnimationActive,
   toRef(props, 'potentialSelfArgumentId'),
 )
 watch(toRef(tree, 'currentEdit'), (edit) => emit('currentEditChanged', edit))

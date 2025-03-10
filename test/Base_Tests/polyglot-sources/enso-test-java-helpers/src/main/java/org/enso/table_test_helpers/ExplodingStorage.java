@@ -30,7 +30,7 @@ public class ExplodingStorage extends Storage<Long> {
   }
 
   @Override
-  public int size() {
+  public long getSize() {
     return array.length;
   }
 
@@ -45,14 +45,10 @@ public class ExplodingStorage extends Storage<Long> {
     return false;
   }
 
-  public long getItem(int idx) {
-    checkIndex(idx);
-    return array[idx];
-  }
-
   @Override
-  public Long getItemBoxed(int idx) {
-    return getItem(idx);
+  public Long getItemBoxed(long idx) {
+    checkIndex(idx);
+    return array[Math.toIntExact(idx)];
   }
 
   @Override

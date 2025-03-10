@@ -121,6 +121,12 @@ interpret_data_link_target_as_file (file : File_Like) -> Any =
     file_like_data_link.as_file
 
 ## PRIVATE
+interpret_data_link_target_as_file_or_nothing (file : File_Like) -> Any | Nothing =
+    data_link_instance = read_and_interpret_data_link file
+    file_like_data_link = File_Like_Data_Link.find data_link_instance if_not_supported=Nothing
+    file_like_data_link.if_not_nothing <| file_like_data_link.as_file
+
+## PRIVATE
 interpret_data_link_as_writable_file (file : File_Like) -> Writable_File =
     data_link_instance = read_and_interpret_data_link file
     ## We override the return value to return the original datalink, not the target.
@@ -175,16 +181,16 @@ data_link_name data_link_instance =
 
 ## PRIVATE
 disallow_links_in_copy source target ~action =
-    is_source_data_link = Data_Link.is_data_link source
-    is_target_data_link = Data_Link.is_data_link target
+    is_source_data_link = Data_Link.is_data_link_file source
+    is_target_data_link = Data_Link.is_data_link_file target
     if is_source_data_link && is_target_data_link then Error.throw (Illegal_Argument.Error "The `copy_to` operation cannot be used with data links. If you want to copy links, use `Data_Link.copy`. If you want to copy the contents, `.read` the data link and then write the data to the destination using the appropriate method.") else
         if is_source_data_link || is_target_data_link then Error.throw (Illegal_Argument.Error "The `copy_to` operation cannot be used with data links. Please `.read` the data link and then write the data to the destination using the appropriate method.") else
             action
 
 ## PRIVATE
 disallow_links_in_move source target ~action =
-    is_source_data_link = Data_Link.is_data_link source
-    is_target_data_link = Data_Link.is_data_link target
+    is_source_data_link = Data_Link.is_data_link_file source
+    is_target_data_link = Data_Link.is_data_link_file target
     if is_source_data_link && is_target_data_link then Error.throw (Illegal_Argument.Error "The `move_to` operation cannot be used with data links. If you want to move the link, use `Data_Link.move`.") else
         if is_source_data_link || is_target_data_link then Error.throw (Illegal_Argument.Error "The `move_to` operation cannot be used with data links. Please `.read` the data link and then write the data to the destination using the appropriate method.") else
             action
@@ -212,3 +218,21 @@ save_password_for_data_link data_link_location:Enso_File secure_value:Text|Enso_
     location_name = if data_link_location.name.ends_with data_link_extension then data_link_location.name.drop (..Last data_link_extension.length) else data_link_location.name
     secret_location.if_not_error <|
         store_as_secret secret_location location_name+"-"+name_hint secure_value
+
+## PRIVATE
+   Common logic for checking if the target of a datalink is a directory or falling back to a direct check.
+is_directory file ~check_file_directly =
+    case Data_Link.is_data_link_file file of
+        True ->
+            target = interpret_data_link_target_as_file_or_nothing file
+            if target.is_nothing then False else target.is_directory
+        False -> check_file_directly
+
+## PRIVATE
+   Common logic for checking if the target of a datalink is a regular file or falling back to a direct check.
+is_regular_file file ~check_file_directly =
+    case Data_Link.is_data_link_file file of
+        True ->
+            target = interpret_data_link_target_as_file_or_nothing file
+            if target.is_nothing then False else target.is_regular_file
+        False -> check_file_directly

@@ -156,13 +156,19 @@ function useApproachBase<T>(
   return readonly(proxyRefs({ value: current, skip }))
 }
 
-/** TODO: Add docs */
+/**
+ * Create `events` to check if any CSS transitions of declared properties
+ * within a DOM subtree are currently in progress.
+ *
+ * The state is reported back using the `active` property.
+ */
 export function useTransitioning(observedProperties?: Set<string>) {
-  const hasActiveAnimations = ref(false)
+  const hasActiveTransitions = ref(false)
+
   let numActiveTransitions = 0
   function onTransitionStart(e: TransitionEvent) {
     if (!observedProperties || observedProperties.has(e.propertyName)) {
-      if (numActiveTransitions == 0) hasActiveAnimations.value = true
+      if (numActiveTransitions == 0) hasActiveTransitions.value = true
       numActiveTransitions += 1
     }
   }
@@ -170,12 +176,12 @@ export function useTransitioning(observedProperties?: Set<string>) {
   function onTransitionEnd(e: TransitionEvent) {
     if (!observedProperties || observedProperties.has(e.propertyName)) {
       numActiveTransitions -= 1
-      if (numActiveTransitions == 0) hasActiveAnimations.value = false
+      if (numActiveTransitions == 0) hasActiveTransitions.value = false
     }
   }
 
   return {
-    active: hasActiveAnimations,
+    active: readonly(hasActiveTransitions),
     events: {
       transitionstart: onTransitionStart,
       transitionend: onTransitionEnd,

@@ -2,6 +2,7 @@
 import { documentationEditorBindings } from '@/bindings'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
+import SvgButton from '@/components/SvgButton.vue'
 import ToggleIcon from '@/components/ToggleIcon.vue'
 import { useResizeObserver } from '@/composables/events'
 import { Rect } from '@/util/data/rect'
@@ -65,14 +66,10 @@ const tabStyle = {
               v-for="{ tab, title, icon } in props.tabButtons"
               :key="tab"
               class="tab"
+              :class="{ activeTab: currentTab === tab }"
               :style="tabStyle"
             >
-              <ToggleIcon
-                :modelValue="currentTab == tab"
-                :title="title"
-                :icon="icon"
-                @update:modelValue="currentTab = tab"
-              />
+              <SvgButton :title="title" :name="icon" @click="currentTab = tab" />
             </div>
           </div>
           <ResizeHandles
@@ -135,9 +132,10 @@ const tabStyle = {
   display: flex;
   align-items: center;
   justify-content: center;
-  &:has(.toggledOn) {
-    background-color: #fff;
-  }
+}
+
+.activeTab {
+  background-color: #fff;
 }
 
 .toggleDock {

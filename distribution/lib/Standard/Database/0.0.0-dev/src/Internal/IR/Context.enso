@@ -5,6 +5,7 @@ import project.Internal.IR.From_Spec.From_Spec
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.SQL_Expression.SQL_Expression
+import project.Internal.SQL_Part.SQL_Part
 import project.SQL.SQL_Builder
 import project.SQL_Statement.SQL_Statement
 
@@ -201,22 +202,14 @@ type Context_Extension
     ## A recipe for building the extension.
 
        Arguments:
-       - position: Determines where the extension code should be inserted.
-         The positions of common query parts are following:
-         - 100 - the SELECT keyword
-         - 200 - the column descriptions
-         - 300 - the FROM part
-         - 400 - the WHERE part
-         - 500 - the GROUP BY part
-         - 600 - the ORDER BY part
-         - 700 - the LIMIT part
-         Setting the position to a value between these will result in it being
-         sorted in the desired place.
+       - part_name: Should be initilised with SQL_Part.Extension "<<extension_description>>" where extension_description is 
+         a description of this extension. SQL_Part.Extension "<<extenion_descption>>" then needs to be added to
+         get_part_order to determine where in the final SQL query this extension should be placed.
        - expressions: Sub-expressions needed for the part. They will be
          generated and the results of that will be passed to `run_generator`.
        - run_generator: A function that takes the generated expressions and
          returns the SQL code that will be inserted at the desired position.
-    Value (position : Integer) (expressions : Vector SQL_Expression) (run_generator : Vector SQL_Builder -> SQL_Builder)
+    Value (part_name : SQL_Part) (expressions : Vector SQL_Expression) (run_generator : Vector SQL_Builder -> SQL_Builder)
 
     ## PRIVATE
        A bottom-up, depth-first traversal of this IR node and its children. Each
@@ -226,6 +219,6 @@ type Context_Extension
     traverse self f -> Context_Extension =
         rec e = e.traverse f
         new_context_extension = case self of
-            Context_Extension.Value position expressions run_generator ->
-                Context_Extension.Value position (expressions.map rec) run_generator
+            Context_Extension.Value part_name expressions run_generator ->
+                Context_Extension.Value part_name (expressions.map rec) run_generator
         f new_context_extension

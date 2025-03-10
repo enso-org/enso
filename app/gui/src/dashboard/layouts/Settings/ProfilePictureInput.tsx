@@ -1,6 +1,4 @@
 /** @file The input for viewing and changing the user's profile picture. */
-import * as React from 'react'
-
 import { useMutation } from '@tanstack/react-query'
 
 import DefaultUserIcon from '#/assets/default_user.svg'

@@ -1,11 +1,9 @@
 /** @file Login component responsible for rendering and interactions in sign in flow. */
 import * as router from 'react-router-dom'
 
-import { CLOUD_DASHBOARD_DOMAIN } from 'enso-common'
 import { isOnElectron } from 'enso-common/src/detect'
 
 import { DASHBOARD_PATH, FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '#/appUtils'
-import ArrowRightIcon from '#/assets/arrow_right.svg'
 import AtIcon from '#/assets/at.svg'
 import CreateAccountIcon from '#/assets/create_account.svg'
 import GithubIcon from '#/assets/github_color.svg'
@@ -18,9 +16,10 @@ import { Stepper } from '#/components/Stepper'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordSchema } from '#/pages/authentication/schemas'
-import { useAuth } from '#/providers/AuthProvider'
+import { useSessionAPI } from '#/providers/SessionProvider'
 import { useText } from '#/providers/TextProvider'
-import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
 
 // eslint-disable-next-line no-restricted-syntax
 const GOOGLE_ICON = <img src={GoogleIcon} alt="" />
@@ -35,11 +34,16 @@ const GITHUB_ICON = <img src={GithubIcon} alt="" />
 export default function Login() {
   const location = router.useLocation()
   const navigate = router.useNavigate()
-  const { signInWithGoogle, signInWithGitHub, signInWithPassword, cognito } = useAuth()
+  const queryClient = useQueryClient()
+  const { signInWithGoogle, signInWithGitHub, signInWithPassword, confirmSignIn } = useSessionAPI()
   const { getText } = useText()
 
   const query = new URLSearchParams(location.search)
   const initialEmail = query.get('email') ?? ''
+
+  useEffect(() => {
+    void queryClient.clearWithPersister()
+  }, [queryClient])
 
   const form = Form.useForm({
     schema: (z) =>
@@ -55,16 +59,18 @@ export default function Login() {
       const res = await signInWithPassword(email, password)
 
       switch (res.challenge) {
-        case 'NO_CHALLENGE':
-          navigate(DASHBOARD_PATH)
-          break
         case 'SMS_MFA':
         case 'SOFTWARE_TOKEN_MFA':
           setUser(res.user)
           nextStep()
           break
+        case 'NO_CHALLENGE':
+        case 'CUSTOM_CHALLENGE':
+        case 'MFA_SETUP':
+        case 'NEW_PASSWORD_REQUIRED':
+        case 'SELECT_MFA_TYPE':
         default:
-          throw new Error('Unsupported challenge')
+          navigate(DASHBOARD_PATH)
       }
     },
   })
@@ -95,13 +101,7 @@ export default function Login() {
         <Form.FieldValue form={form} name="email">
           {(email) => (
             <Link
-              openInBrowser={isElectron}
-              to={(() => {
-                const newQuery = new URLSearchParams({ email }).toString()
-                return isElectron ?
-                    `https://${CLOUD_DASHBOARD_DOMAIN}${REGISTRATION_PATH}?${newQuery}`
-                  : `${REGISTRATION_PATH}?${newQuery}`
-              })()}
+              to={`${REGISTRATION_PATH}?${new URLSearchParams({ email }).toString()}`}
               icon={CreateAccountIcon}
               text={getText('dontHaveAnAccount')}
             />
@@ -160,7 +160,7 @@ export default function Login() {
                   </Form.FieldValue>
                 </div>
 
-                <Form.Submit size="large" icon={ArrowRightIcon} iconPosition="end" fullWidth>
+                <Form.Submit size="large" icon="arrow_right" iconPosition="end" fullWidth>
                   {getText('login')}
                 </Form.Submit>
 
@@ -177,7 +177,7 @@ export default function Login() {
               schema={(z) => z.object({ otp: z.string().min(6).max(6) })}
               onSubmit={async ({ otp }, formInstance) => {
                 if (user) {
-                  const res = await cognito.confirmSignIn(user, otp, 'SOFTWARE_TOKEN_MFA')
+                  const res = await confirmSignIn(user, otp)
 
                   if (res.ok) {
                     navigate(DASHBOARD_PATH)
@@ -209,7 +209,7 @@ export default function Login() {
                 maxLength={6}
               />
 
-              <Form.Submit size="large" icon={ArrowRightIcon} iconPosition="end" fullWidth>
+              <Form.Submit size="large" icon="arrow_right" iconPosition="end" fullWidth>
                 {getText('login')}
               </Form.Submit>
 

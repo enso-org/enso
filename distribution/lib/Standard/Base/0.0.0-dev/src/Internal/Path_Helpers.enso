@@ -1,9 +1,12 @@
 import project.Any.Any
 import project.Data.List.List
+import project.Data.Text.Regex.Regex
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
+from project.Data.Boolean import Boolean, False, True
+from project.Data.Text.Extensions import all
 
 ## PRIVATE
    A helper that gathers the common logic of normalizing the `..` and `.`
@@ -19,3 +22,30 @@ normalize_segments (segments : Vector) (get_name : Any -> Text) -> Vector ! Ille
             List.Cons _ tail -> tail
         _ -> List.Cons part stack
     new_stack.to_vector.reverse
+
+## PRIVATE
+   The method splits the `subpath` into parts based on the `/` delimiter and
+   applies each part iteratively using the `resolve_single_part` method on the
+   file objects.
+
+   Each delimiter is applied together with the file part preceding it (if any),
+   so call `resolve_many_parts f "/a/b/c"` translates into
+   `f.resolve_single_part "/" . resolve_single_part "a/" . resolve_single_part "b/" . resolve_single_part "c"`.
+   Keeping the delimiter is needed for some systems to be able to distinguish
+   directories from regular files (e.g. S3).
+resolve_many_parts (base_file : Any) (subpath : Text) (windows_delimiter : Boolean = True) =
+    parts = split_path subpath windows_delimiter
+    parts.fold base_file f-> part-> f.resolve_single_part part
+
+## PRIVATE
+   Splits the given path into parts based on the delimiter.
+split_path (path : Text) (windows_delimiter : Boolean = True) -> Vector Text =
+    # The `\` is doubled to escape it in the regex.
+    delimiters = if windows_delimiter then "/\\" else "/"
+    ## This matches either a string of non-slash characters followed by a slash,
+       a single slash with no characters attached to it, or a string of
+       non-slash characters with no slash at the end.
+       With one delimiter this should be equivalent to: [^/]*/|[^/]+
+       Enabling `windows_delimiter` also allows it to break on the backslash.
+    regex = Regex.compile "[^"+delimiters+"]*["+delimiters+"]|[^"+delimiters+"]+"
+    path.tokenize regex

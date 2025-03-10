@@ -38,7 +38,7 @@ const MAPBOX_API_TOKEN_KEY = 'mapBoxApiToken'
 // =========================
 
 /** A type-safe wrapper around {@link electron.contextBridge.exposeInMainWorld}. */
-function exposeInMainWorld<Key extends string & keyof typeof window>(
+function exposeInMainWorld<Key extends string & keyof Window>(
   key: Key,
   value: NonNullable<(typeof window)[Key]>,
 ) {
@@ -57,7 +57,7 @@ const IMPORT_PROJECT_RESOLVE_FUNCTIONS = new Map<
 exposeInMainWorld(BACKEND_API_KEY, {
   importProjectFromPath: (projectPath: string, directory: string | null = null, title: string) => {
     electron.ipcRenderer.send(ipc.Channel.importProjectFromPath, projectPath, directory, title)
-    return new Promise<projectManagement.ProjectInfo>(resolve => {
+    return new Promise<projectManagement.ProjectInfo>((resolve) => {
       IMPORT_PROJECT_RESOLVE_FUNCTIONS.set(projectPath, resolve)
     })
   },

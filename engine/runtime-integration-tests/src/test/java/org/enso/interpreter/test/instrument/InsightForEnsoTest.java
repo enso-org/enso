@@ -62,7 +62,7 @@ public class InsightForEnsoTest {
     this.insightHandle.close();
     this.out.reset();
     this.ctx.close();
-    ctx = null;
+    this.ctx = null;
   }
 
   @Test

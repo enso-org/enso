@@ -2,13 +2,9 @@
   "extends": "../../../tsconfig.json",
   "compilerOptions": {
     "esModuleInterop": true,
-    "paths": { "@/*": ["./src/*"] }
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
-  "include": [
-    ".",
-    "../content",
-    "../types",
-    "../../build.json",
-    "src/config.json"
-  ]
+  "include": ["src/*.ts", "tasks/*.ts", "tests/*.ts", "src/config.json", "*.ts"]
 }

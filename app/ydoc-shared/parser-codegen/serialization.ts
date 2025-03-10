@@ -1,7 +1,7 @@
 /** Generates code lazily deserializing from an application-specific binary format. */
 
 import ts from 'typescript'
-import { makeArrow } from './util'
+import { makeArrow } from './util.js'
 
 const { factory: tsf } = ts
 
@@ -201,7 +201,7 @@ export function seekViewDyn(view: ts.Expression, address: ts.Expression): ts.Exp
 
 /** TODO: Add docs */
 export function abstractTypeVariants(cases: ts.Identifier[]): ts.Statement {
-  const reads = cases.map(c => tsf.createPropertyAccessChain(c, undefined, 'read'))
+  const reads = cases.map((c) => tsf.createPropertyAccessChain(c, undefined, 'read'))
   return tsf.createVariableStatement(
     [],
     tsf.createVariableDeclarationList(
@@ -304,7 +304,7 @@ function primitiveReader(func: ts.Identifier): ReadApplicator {
  * create a `readerTransformer('readOption')`, we can apply it to the number reader to yield an optional-number reader.
  */
 function readerTransformer(func: ts.Identifier): (readElement: ReadApplicator) => ReadApplicator {
-  return readElement => (view, offset) => {
+  return (readElement) => (view, offset) => {
     return tsf.createCallExpression(
       func,
       [],

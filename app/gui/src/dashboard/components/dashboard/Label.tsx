@@ -65,7 +65,7 @@ export default function Label(props: InternalLabelProps) {
           title={title}
           disabled={isDisabled}
           className={twMerge(
-            'focus-child relative flex h-6 items-center whitespace-nowrap rounded-inherit px-[7px] opacity-75 transition-all after:pointer-events-none after:absolute after:inset after:rounded-full hover:opacity-100 focus:opacity-100',
+            'focus-child relative flex h-6 items-center whitespace-nowrap rounded-inherit px-[7px] opacity-50 transition-all after:pointer-events-none after:absolute after:inset after:rounded-full hover:opacity-100 focus:opacity-100',
             active && 'active',
             negated && 'after:border-2 after:border-delete',
           )}

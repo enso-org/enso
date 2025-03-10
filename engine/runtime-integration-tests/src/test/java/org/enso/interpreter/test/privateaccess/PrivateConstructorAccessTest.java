@@ -4,8 +4,10 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.AllOf.allOf;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import com.oracle.truffle.api.interop.InteropLibrary;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import org.enso.common.RuntimeOptions;
@@ -38,6 +40,32 @@ public class PrivateConstructorAccessTest {
   }
 
   @Test
+  public void accessMethodOnATypeWithAllPrivateConstructors() throws IOException {
+    var codeA =
+        """
+            type A
+                private Cons data
+                find d = A.Cons d
+            """;
+    var codeUse =
+        """
+        import local.Proj_A
+        create x = local.Proj_A.Main.A.find x
+        main = create
+        """;
+    var proj1Dir = tempFolder.newFolder("Proj_A").toPath();
+    ProjectUtils.createProject("Proj_A", codeA, proj1Dir);
+    var proj2Dir = tempFolder.newFolder("Proj_Use").toPath();
+    ProjectUtils.createProject("Proj_Use", codeUse, proj2Dir);
+    ProjectUtils.testProjectRun(
+        proj2Dir,
+        create -> {
+          var res = create.execute("Hello");
+          assertEquals("It is object: " + res, "(Cons 'Hello')", res.toString());
+        });
+  }
+
+  @Test
   public void privateConstructorIsNotExposedToPolyglot() throws IOException {
     var mainSrc = """
         type My_Type
@@ -53,7 +81,18 @@ public class PrivateConstructorAccessTest {
       var polyCtx = new PolyglotContext(ctx);
       var mainMod = polyCtx.evalModule(mainSrcPath.toFile());
       var myType = mainMod.getType("My_Type");
-      assertThat(myType.hasMember("Cons"), is(false));
+      ContextUtils.executeInContext(
+          ctx,
+          () -> {
+            var myTypeUnwrapped = ContextUtils.unwrapValue(ctx, myType);
+            var interop = InteropLibrary.getUncached();
+            var members = interop.getMembers(myTypeUnwrapped, false);
+            assertThat(
+                "My_Type should not have any 'public' members",
+                interop.getArraySize(members),
+                is(0L));
+            return null;
+          });
     }
   }
 

@@ -18,7 +18,7 @@ import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.io.TruffleProcessBuilder;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.object.Shape;
+import com.oracle.truffle.api.profiles.ValueProfile;
 import com.oracle.truffle.api.source.Source;
 import java.io.BufferedReader;
 import java.io.File;
@@ -36,15 +36,16 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import org.enso.common.LanguageInfo;
 import org.enso.common.RuntimeOptions;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.core.EnsoParser;
 import org.enso.compiler.data.CompilerConfig;
-import org.enso.compiler.dump.IRDumper;
 import org.enso.distribution.DistributionManager;
 import org.enso.distribution.locking.LockManager;
 import org.enso.editions.LibraryName;
@@ -108,10 +109,13 @@ public final class EnsoContext {
   private final LockManager lockManager;
   private final AtomicLong clock = new AtomicLong();
 
-  private final Shape rootStateShape = Shape.newBuilder().layout(State.Container.class).build();
+  @CompilationFinal(dimensions = 1)
+  private Object[] extraValues = new Object[0];
+
   private ExecutionEnvironment globalExecutionEnvironment;
 
   private final int warningsLimit;
+  private final ValueProfile singleStateProfile = ValueProfile.createIdentityProfile();
 
   /**
    * Creates a new Enso context.
@@ -149,14 +153,14 @@ public final class EnsoContext {
     this.assertionsEnabled = shouldAssertionsBeEnabled();
     this.shouldWaitForPendingSerializationJobs =
         getOption(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS_KEY);
-    var dumpIrs = Boolean.parseBoolean(System.getProperty(IRDumper.SYSTEM_PROP));
+    var dumpModuleIR = System.getProperty(RuntimeOptions.IR_DUMPER_SYSTEM_PROP);
     this.compilerConfig =
         new CompilerConfig(
             isParallelismEnabled,
             true,
             !isPrivateCheckDisabled,
             isStaticTypeAnalysisEnabled,
-            dumpIrs,
+            scala.Option.apply(dumpModuleIR),
             getOption(RuntimeOptions.STRICT_ERRORS_KEY),
             getOption(RuntimeOptions.DISABLE_LINTING_KEY),
             scala.Option.empty());
@@ -170,7 +174,7 @@ public final class EnsoContext {
 
   /** Perform expensive initialization logic for the context. */
   public void initialize() {
-    TruffleFileSystem fs = new TruffleFileSystem();
+    TruffleFileSystem fs = TruffleFileSystem.INSTANCE;
     PackageManager<TruffleFile> packageManager = new PackageManager<>(fs);
 
     Optional<TruffleFile> projectRoot = OptionsHelper.getProjectRoot(environment);
@@ -708,6 +712,16 @@ public final class EnsoContext {
   }
 
   /**
+   * Gather information about progress. Should execution observe events from Enso Progress API and
+   * report them?
+   *
+   * @return true if progress reporting is on
+   */
+  public boolean isProgressReportEnabled() {
+    return getOption(RuntimeOptions.ENABLE_PROGRESS_REPORT_KEY);
+  }
+
+  /**
    * Checks whether global caches are to be used.
    *
    * @return true if so
@@ -924,14 +938,6 @@ public final class EnsoContext {
     return this.warningsLimit;
   }
 
-  public Shape getRootStateShape() {
-    return rootStateShape;
-  }
-
-  public State emptyState() {
-    return State.create(this);
-  }
-
   /**
    * @return the notification handler.
    */
@@ -1033,6 +1039,63 @@ public final class EnsoContext {
       return null;
     } else {
       return options.get(key);
+    }
+  }
+
+  /** Access to state associated with this context and current thread. */
+  public State currentState() {
+    return singleStateProfile.profile(language.currentState());
+  }
+
+  private Object extraValues(int index, Supplier<?> init) {
+    if (index >= extraValues.length || extraValues[index] == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      extraValues = Arrays.copyOf(extraValues, Extra.COUNTER.get());
+      extraValues[index] = init.get();
+      assert extraValues[index] != null;
+    }
+    return extraValues[index];
+  }
+
+  /**
+   * Key to associate additional value with {@link EnsoContext}. Create a {@code private static
+   * final} instance in any class and then use it <em>"as a key"</em> to access value of the
+   * specified type associated with the context.
+   *
+   * @param <T> the type of the value to access
+   */
+  public static final class Extra<T> {
+    private static final AtomicInteger COUNTER = new AtomicInteger();
+    private final int index;
+    private final Class<T> type;
+    private final Supplier<T> init;
+
+    /**
+     * Defines new value associated with the context.Use as:
+     *
+     * <pre>
+     * private static final ValueKey&lt;Integer&gt; MY_COUNTER = new Value<>(Integer.class);
+     * </pre>
+     *
+     * @param type the type of the value to {@link #set} and {@link #get}.
+     * @param initialValue function to use to compute initial value
+     */
+    public Extra(Class<T> type, Supplier<T> initialValue) {
+      this.type = type;
+      this.index = COUNTER.getAndIncrement();
+      this.init = initialValue;
+    }
+
+    /**
+     * Obtains (readily for <em>fast path</em>) value associated with this key stored in this
+     * context. Creates initial value, if it hasn't yet been created.
+     *
+     * @param ctx the context
+     * @return the value associated with this key in the given context
+     */
+    public T get(EnsoContext ctx) {
+      var value = ctx.extraValues(index, init);
+      return type.cast(value);
     }
   }
 }

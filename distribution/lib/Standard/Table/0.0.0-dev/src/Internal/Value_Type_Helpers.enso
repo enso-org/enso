@@ -23,9 +23,9 @@ polyglot java import org.enso.table.data.column.storage.type.IntegerType
    for integers it will return 64-bit integers even if the value could fit in a
    smaller one; and for Text values variable-length text will be preferred over
    fixed-length.
-most_specific_value_type : Any -> Boolean -> Value_Type
-most_specific_value_type value use_smallest=False =
+most_specific_value_type value:Any use_smallest:Boolean=False -> Value_Type =
     case value of
+        Nothing         -> Value_Type.Null
         _ : Float       -> Value_Type.Float Bits.Bits_64
         _ : Decimal     -> Value_Type.Decimal
         _ : Boolean     -> Value_Type.Boolean
@@ -58,53 +58,54 @@ most_specific_value_type value use_smallest=False =
 
 ## PRIVATE
    Finds a type that can fit both a current type and a new type.
-reconcile_types current new = case current of
-    Value_Type.Mixed -> Value_Type.Mixed
-    Value_Type.Integer size -> case new of
-        Value_Type.Integer new_size ->
-            Value_Type.Integer (max_size size new_size)
-        Value_Type.Byte    -> current
-        # If we unify integers with floats, we select the default Float 64 regardless of the input sizes.
-        Value_Type.Float _     -> Value_Type.Float
-        Value_Type.Decimal _ _ -> new
-        _                      -> Value_Type.Mixed
-    Value_Type.Float size -> case new of
-        Value_Type.Float new_size ->
-            Value_Type.Float (max_size size new_size)
-        # If we unify integers with floats, we select the default Float 64 regardless of the input sizes.
-        Value_Type.Integer _   -> Value_Type.Float
-        Value_Type.Byte        -> Value_Type.Float
-        Value_Type.Decimal _ _ -> Value_Type.Float
-        _                      -> Value_Type.Mixed
-    Value_Type.Byte -> case new of
-        Value_Type.Byte        -> Value_Type.Byte
-        Value_Type.Integer _   -> new
-        Value_Type.Float _     -> Value_Type.Float
-        Value_Type.Decimal _ _ -> new
-        _                      -> Value_Type.Mixed
-    Value_Type.Decimal precision scale -> case new of
-        Value_Type.Decimal new_precision new_scale ->
-            if (precision == new_precision) && (scale == new_scale) then new else
-                # TODO at some point we may want a more clever merging of precision and scale, for now we don't use them too much anyway so we just default to Nothing if they do not agree
-                Value_Type.Decimal
-        Value_Type.Integer _ -> Value_Type.Decimal precision scale
-        Value_Type.Byte      -> Value_Type.Decimal precision scale
-        Value_Type.Float _   -> Value_Type.Float
-        _                    -> Value_Type.Mixed
-    Value_Type.Char current_size current_variable -> case new of
-        Value_Type.Char new_size new_variable ->
-            result_variable = current_variable || new_variable || current_size != new_size
-            result_size = max_size current_size new_size
-            Value_Type.Char result_size result_variable
-        _ -> Value_Type.Mixed
-    Value_Type.Binary current_size current_variable -> case new of
-        Value_Type.Binary new_size new_variable ->
-            result_variable = current_variable || new_variable || current_size != new_size
-            result_size = max_size current_size new_size
-            Value_Type.Binary result_size result_variable
-        _ -> Value_Type.Mixed
-    _ ->
-        if current == new then current else Value_Type.Mixed
+reconcile_types current:Value_Type new:Value_Type -> Value_Type = 
+    if current == Value_Type.Null then new else if new == Value_Type.Null then current else case current of
+        Value_Type.Mixed -> Value_Type.Mixed
+        Value_Type.Integer size -> case new of
+            Value_Type.Integer new_size ->
+                Value_Type.Integer (max_size size new_size)
+            Value_Type.Byte    -> current
+            # If we unify integers with floats, we select the default Float 64 regardless of the input sizes.
+            Value_Type.Float _     -> Value_Type.Float
+            Value_Type.Decimal _ _ -> new
+            _                      -> Value_Type.Mixed
+        Value_Type.Float size -> case new of
+            Value_Type.Float new_size ->
+                Value_Type.Float (max_size size new_size)
+            # If we unify integers with floats, we select the default Float 64 regardless of the input sizes.
+            Value_Type.Integer _   -> Value_Type.Float
+            Value_Type.Byte        -> Value_Type.Float
+            Value_Type.Decimal _ _ -> Value_Type.Float
+            _                      -> Value_Type.Mixed
+        Value_Type.Byte -> case new of
+            Value_Type.Byte        -> Value_Type.Byte
+            Value_Type.Integer _   -> new
+            Value_Type.Float _     -> Value_Type.Float
+            Value_Type.Decimal _ _ -> new
+            _                      -> Value_Type.Mixed
+        Value_Type.Decimal precision scale -> case new of
+            Value_Type.Decimal new_precision new_scale ->
+                if (precision == new_precision) && (scale == new_scale) then new else
+                    # TODO at some point we may want a more clever merging of precision and scale, for now we don't use them too much anyway so we just default to Nothing if they do not agree
+                    Value_Type.Decimal
+            Value_Type.Integer _ -> Value_Type.Decimal precision scale
+            Value_Type.Byte      -> Value_Type.Decimal precision scale
+            Value_Type.Float _   -> Value_Type.Float
+            _                    -> Value_Type.Mixed
+        Value_Type.Char current_size current_variable -> case new of
+            Value_Type.Char new_size new_variable ->
+                result_variable = current_variable || new_variable || current_size != new_size
+                result_size = max_size current_size new_size
+                Value_Type.Char result_size result_variable
+            _ -> Value_Type.Mixed
+        Value_Type.Binary current_size current_variable -> case new of
+            Value_Type.Binary new_size new_variable ->
+                result_variable = current_variable || new_variable || current_size != new_size
+                result_size = max_size current_size new_size
+                Value_Type.Binary result_size result_variable
+            _ -> Value_Type.Mixed
+        _ ->
+            if current == new then current else Value_Type.Mixed
 
 ## PRIVATE
    Reconciles two size parameters. If either of them is `Nothing` (meaning
@@ -118,19 +119,19 @@ max_size a b =
    Finds the most specific value type that will fit all the provided types.
 
    Arguments:
-   - types: a vector of types to unify. It must not be empty.
+   - types: a vector of types to unify.
    - strict: A flag determining how strict the unification is.
      If `False`, if no common type can be found, `Mixed` is used as a generic fallback.
      If `True`, `Nothing` is returned if no common type can be found and `Mixed`
      is only returned if any of the input types was already `Mixed`.
 find_common_type (types : Vector Value_Type) (strict : Boolean) -> Value_Type | Nothing =
-    assert types.not_empty
-    most_generic_type = (types.drop 1).fold types.first reconcile_types
-    if strict.not || most_generic_type != Value_Type.Mixed then most_generic_type else
-        ## We return the Mixed type only if the input contained Mixed.
-           Otherwise we report failure to find common type.
-        if types.contains Value_Type.Mixed then Value_Type.Mixed else
-            Nothing
+    if types.is_empty then Value_Type.Null else
+        most_generic_type = (types.drop 1).fold types.first reconcile_types
+        if strict.not || most_generic_type != Value_Type.Mixed then most_generic_type else
+            ## We return the Mixed type only if the input contained Mixed.
+               Otherwise we report failure to find common type.
+            if types.contains Value_Type.Mixed then Value_Type.Mixed else
+                Nothing
 
 ## PRIVATE
    An extra helper function that reconciles Date_Time types with varying timezone
@@ -194,8 +195,7 @@ find_common_numeric_boolean_type (types : Vector Value_Type) -> Value_Type | Not
    method returns `Nothing` if the value is `Nothing` - so the caller can
    try to treat this value as fitting any type, or accordingly to specific
    semantics of each method.
-find_argument_type : Any -> Boolean -> Value_Type | Nothing
-find_argument_type value infer_precise_type=True = if Nothing == value then Nothing else
+find_argument_type value:Any infer_precise_type:Boolean=True -> Value_Type =
     case is_column value of
         False -> most_specific_value_type value use_smallest=True
         True ->
@@ -210,18 +210,29 @@ type Addition_Kind
     ## PRIVATE
     Text_Concat
 
+## Returns the operation kind based on types of the inputs, or an error if the inferred kinds are incompatible.
+   If both inputs are Null, it is impossible to tell the kind, so Nothing is returned and the caller may decide what to do.
+private resolve_operation_kind arg1:Any arg2:Any operation_name:Text find_operation_kind:(Value_Type -> Any) -> Any | Nothing =
+    kinds = [arg1, arg2]
+        . map on_problems=No_Wrap.Value find_operation_kind
+        . filter ..Not_Nothing
+        . distinct
+    if kinds.is_empty then Nothing else
+        if kinds.length > 1 then Error.throw (Illegal_Argument.Error ("Cannot perform "+operation_name+" on a pair of values of types " + (find_argument_type arg1).to_display_text + " and " + (find_argument_type arg2).to_display_text + ".")) else
+            kinds.first
+
 ## PRIVATE
    A helper which resolves if numeric addition or string concatenation should be
    used when the a `+` operator is used with the two provided types.
    It will return an error if the provided types are incompatible.
-resolve_addition_kind arg1 arg2 =
-    type_1 = find_argument_type arg1
-    type_2 = find_argument_type arg2
-    if type_1.is_numeric && (type_2.is_nothing || type_2.is_numeric) then Addition_Kind.Numeric_Add else
-        if type_1.is_text && (type_2.is_nothing || type_2.is_text) then Addition_Kind.Text_Concat else
-            Error.throw <| Illegal_Argument.Error <|
-                if type_2.is_nothing then "Cannot perform addition on a value of type " + type_1.to_display_text + ". Addition can only be performed if the column is of some numeric type or is text." else
-                    "Cannot perform addition on a pair of values of types " + type_1.to_display_text + " and " + type_2.to_display_text + ". Addition can only be performed if both columns are of some numeric type or are both are text."
+resolve_addition_kind arg1 arg2 -> Addition_Kind | Nothing =
+    find_addition_kind arg =
+        typ = find_argument_type arg
+        if typ.is_null then Nothing else
+            if typ.is_text then Addition_Kind.Text_Concat else
+                if typ.is_numeric then Addition_Kind.Numeric_Add else
+                    raise_unexpected_type "numeric or text" arg
+    resolve_operation_kind arg1 arg2 "addition" find_addition_kind
 
 ## PRIVATE
 type Subtraction_Kind
@@ -235,17 +246,21 @@ type Subtraction_Kind
    A helper which resolves if numeric subtraction or date-time difference should
    be used when the a `-` operator is used with the two provided types.
    It will return an error if the provided types are incompatible.
-resolve_subtraction_kind arg1 arg2 =
-    type_1 = find_argument_type arg1
-    type_2 = find_argument_type arg2
-
-    if type_1.is_numeric && (type_2.is_nothing || type_2.is_numeric) then Subtraction_Kind.Numeric_Subtract else
-        case type_1.is_date_or_time of
-            True ->
-                if type_2.is_nothing || (type_2 == type_1) then Subtraction_Kind.Date_Time_Difference else
-                    raise_unexpected_type type_1 arg2
-            False ->
-                raise_unexpected_type "numeric or date/time" arg1
+resolve_subtraction_kind arg1 arg2 -> Subtraction_Kind | Nothing =
+    find_subtraction_kind arg =
+        typ = find_argument_type arg
+        if typ.is_null then Nothing else
+            if typ.is_numeric then Subtraction_Kind.Numeric_Subtract else
+                if typ.is_date_or_time then Subtraction_Kind.Date_Time_Difference else
+                    raise_unexpected_type "numeric or date/time" arg
+    kind = resolve_operation_kind arg1 arg2 "subtraction" find_subtraction_kind
+    case kind of
+        # Additional special logic needed:
+        Subtraction_Kind.Date_Time_Difference ->
+            types = [arg1, arg2].map find_argument_type . filter (!= Value_Type.Null) . distinct
+            # If both types are date-time but they differ, we say second one should be the same as first.
+            if types.length > 1 then raise_unexpected_type types.first arg2 else kind
+        _ -> kind
 
 ## PRIVATE
    Checks that both provided arguments have numeric type and runs the action
@@ -292,10 +307,14 @@ raise_unexpected_type expected_type argument =
 find_common_type_for_arguments : Vector Any -> Value_Type | Nothing ! No_Common_Type
 find_common_type_for_arguments arguments =
     # Here we do not want to infer the more precise type for a Mixed column, because we want it to stay Mixed.
-    types = arguments.map (find_argument_type infer_precise_type=False) . filter Filter_Condition.Not_Nothing
-    case types.is_empty of
-        True -> Nothing
-        False -> case find_common_type types strict=True of
-            common_type : Value_Type -> common_type
-            Nothing -> Error.throw <|
-                No_Common_Type.Error types related_column_name=Nothing
+    types = arguments.map (find_argument_type infer_precise_type=False)
+    case find_common_type types strict=True of
+        common_type : Value_Type -> common_type
+        Nothing -> Error.throw <|
+            No_Common_Type.Error types related_column_name=Nothing
+
+## PRIVATE
+   Checks if `Value_Type.Decimal` represents integers.
+private is_decimal_integer value_type = case value_type of
+    Value_Type.Decimal _ scale -> (Nothing != scale) && (scale <= 0)
+    _ -> Error.throw (Illegal_Argument.Error "Expected Value_Type.Decimal, got "+value_type.to_display_text)

@@ -22,10 +22,10 @@ import SvgMask from '#/components/SvgMask'
 import Twemoji from '#/components/Twemoji'
 
 import { useSyncRef } from '#/hooks/syncRefHooks'
-import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
 import * as object from '#/utilities/object'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
+import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 
 // ================
 // === Newtypes ===
@@ -404,7 +404,7 @@ export default function Chat(props: ChatProps) {
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { isFocusVisible } = aria.useFocusVisible()
   const { focusWithinProps } = aria.useFocusWithin({
-    onFocusWithin: (event) => {
+    onFocusWithin: (event: FocusEvent) => {
       if (
         isFocusVisible &&
         !isOpen &&
@@ -560,6 +560,9 @@ export default function Chat(props: ChatProps) {
                 setMessages((oldMessages) => [...newMessages, ...oldMessages])
                 break
               }
+              case chat.ChatMessageDataType.authenticate:
+              case chat.ChatMessageDataType.newThread:
+              case chat.ChatMessageDataType.switchThread:
               default: {
                 setMessages(newMessages)
                 break

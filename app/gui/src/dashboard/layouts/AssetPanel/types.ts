@@ -4,7 +4,14 @@
  */
 
 /** Determines the content of the {@link import('./AssetPanel').AssetPanel}. */
-export const ASSET_PANEL_TABS = ['settings', 'versions', 'sessions', 'schedules', 'docs'] as const
+export const ASSET_PANEL_TABS = [
+  'settings',
+  'versions',
+  'sessions',
+  'executions',
+  'executionsCalendar',
+  'docs',
+] as const
 
 /** Determines the content of the {@link import('./AssetPanel').AssetPanel}. */
 export type AssetPanelTab = (typeof ASSET_PANEL_TABS)[number]

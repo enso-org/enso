@@ -11,13 +11,15 @@ import type { Docs, FunctionDocs, Sections, TypeDocs } from '@/components/Docume
 import { lookupDocumentation, placeholder } from '@/components/DocumentationPanel/ir'
 import SvgButton from '@/components/SvgButton.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
+import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId } from '@/stores/suggestionDatabase/entry'
 import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
 import { tryGetIndex } from '@/util/data/array'
 import { type Opt } from '@/util/data/opt'
-import type { Icon as IconName } from '@/util/iconName'
-import type { QualifiedName } from '@/util/qualifiedName'
+import { Ok } from '@/util/data/result'
+import type { Icon as IconName } from '@/util/iconMetadata/iconName'
+import { ProjectPath } from '@/util/projectPath'
 import { qnSegments, qnSlice } from '@/util/qualifiedName'
 import { computed, watch } from 'vue'
 
@@ -55,7 +57,9 @@ const types = computed<TypeDocs[]>(() => {
 
 const isPlaceholder = computed(() => documentation.value.kind === 'Placeholder')
 
-const name = computed<Opt<QualifiedName>>(() => {
+const projectNames = injectProjectNames()
+
+const name = computed<Opt<ProjectPath>>(() => {
   const docs = documentation.value
   return docs.kind === 'Placeholder' ? null : docs.name
 })
@@ -95,7 +99,7 @@ watch(historyStack.current, (current) => {
 
 const breadcrumbs = computed<Breadcrumb[]>(() => {
   if (name.value) {
-    const segments = qnSegments(name.value)
+    const segments = [...qnSegments(projectNames.printProjectPath(name.value))]
     return segments.slice(1).map((s) => ({ label: s.toLowerCase() }))
   } else {
     return []
@@ -104,10 +108,11 @@ const breadcrumbs = computed<Breadcrumb[]>(() => {
 
 function handleBreadcrumbClick(index: number) {
   if (name.value) {
-    const qName = qnSlice(name.value, 0, index + 2)
-    if (qName.ok) {
-      const [id] = db.entries.nameToId.lookup(qName.value)
-      if (id) {
+    const pathSlice = name.value.path ? qnSlice(name.value.path, 0, index) : Ok(undefined)
+    if (pathSlice.ok) {
+      const projectPathSlice = name.value.withPath(pathSlice.value)
+      const id = db.entries.findByProjectPath(projectPathSlice)
+      if (id != null) {
         historyStack.record(id)
       }
     }

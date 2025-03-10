@@ -5,10 +5,10 @@ import org.enso.compiler.core.ir.ProcessingPass;
 import scala.Option;
 
 /**
- * The metadata information associated with the {@link TypeInference} pass.
+ * The metadata information associated with the {@link TypeInferencePropagation} pass.
  *
  * @param type the type inferred for a given expression
- * @see TypeInference
+ * @see TypeInferencePropagation
  */
 public record InferredType(TypeRepresentation type) implements ProcessingPass.Metadata {
   @Override

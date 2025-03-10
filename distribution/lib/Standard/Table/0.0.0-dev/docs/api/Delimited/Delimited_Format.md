@@ -1,0 +1,23 @@
+## Enso Signatures 1.0
+## module Standard.Table.Delimited.Delimited_Format
+- type Delimited_Format
+    - Delimited delimiter:Standard.Base.Data.Text.Text= encoding:Standard.Base.Data.Text.Encoding.Encoding= skip_rows:Standard.Base.Data.Numbers.Integer= row_limit:Standard.Table.Rows_To_Read.Rows_To_Read= quote_style:Standard.Table.Delimited.Quote_Style.Quote_Style= headers:Standard.Table.Headers.Headers= value_formatter:(Standard.Table.Data_Formatter.Data_Formatter|Standard.Base.Nothing.Nothing)= on_invalid_rows:Standard.Table.Delimited.Invalid_Rows.Invalid_Rows= line_endings:(Standard.Base.Data.Text.Line_Ending_Style.Line_Ending_Style|Standard.Base.System.File_Format.Infer)= comment_character:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)=
+    - clone self encoding:Standard.Base.Data.Text.Encoding.Encoding= quote_style:Standard.Table.Delimited.Quote_Style.Quote_Style= headers:Standard.Table.Headers.Headers= value_formatter:Standard.Base.Any.Any= on_invalid_rows:Standard.Table.Delimited.Invalid_Rows.Invalid_Rows= line_endings:Standard.Base.Any.Any= comment_character:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - for_file_write file:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - for_read file:Standard.Base.System.File_Format_Metadata.File_Format_Metadata -> Standard.Base.Any.Any
+    - get_dropdown_options -> Standard.Base.Any.Any
+    - get_name_patterns -> (Standard.Base.Data.Vector.Vector Standard.Base.System.File_Format.File_Name_Pattern)
+    - read self file:Standard.Base.Any.Any on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
+    - read_stream self stream:Standard.Base.System.Input_Stream.Input_Stream metadata:Standard.Base.System.File_Format_Metadata.File_Format_Metadata= -> Standard.Base.Any.Any
+    - resolve constructor:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - with_comments self comment_character:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - with_headers self -> Standard.Base.Any.Any
+    - with_line_endings self line_endings:(Standard.Base.Data.Text.Line_Ending_Style.Line_Ending_Style|Standard.Base.System.File_Format.Infer)= -> Standard.Base.Any.Any
+    - with_parsing self value_formatter:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - with_quotes self quote:Standard.Base.Any.Any= quote_escape:Standard.Base.Any.Any= always_quote:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - without_comments self -> Standard.Base.Any.Any
+    - without_headers self -> Standard.Base.Any.Any
+    - without_parsing self -> Standard.Base.Any.Any
+    - without_quotes self -> Standard.Base.Any.Any
+    - write_table self file:Standard.Base.Any.Any table:Standard.Base.Any.Any on_existing_file:Standard.Base.Any.Any match_columns:Standard.Base.Any.Any on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
+- Standard.Table.Delimited.Delimited_Format.Delimited_Format.from that:Standard.Base.Data.Json.JS_Object -> Standard.Table.Delimited.Delimited_Format.Delimited_Format

@@ -12,7 +12,7 @@ import { APP_BASE_URL } from '#/utilities/appBaseUrl'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
 import { fileExtension, getFileName, getFolderPath } from '#/utilities/fileInfo'
-import { getDirectoryAndName, joinPath } from '#/utilities/path'
+import { getDirectoryAndName, joinPath, Path } from '#/utilities/path'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 
@@ -28,20 +28,23 @@ function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
 // ======================================
 // === Functions for manipulating ids ===
 // ======================================
+export const DIRECTORY_ID_PREFIX = `${backend.AssetType.directory}-`
+export const PROJECT_ID_PREFIX = `${backend.AssetType.project}-`
+export const FILE_ID_PREFIX = `${backend.AssetType.file}-`
 
 /** Create a {@link backend.DirectoryId} from a path. */
 export function newDirectoryId(path: projectManager.Path) {
-  return backend.DirectoryId(`${backend.AssetType.directory}-${path}` as const)
+  return backend.DirectoryId(`${DIRECTORY_ID_PREFIX}${path}` as const)
 }
 
 /** Create a {@link backend.ProjectId} from a UUID. */
-export function newProjectId(uuid: projectManager.UUID) {
-  return backend.ProjectId(`${backend.AssetType.project}-${uuid}`)
+export function newProjectId(uuid: projectManager.UUID, path: projectManager.Path) {
+  return backend.ProjectId(`${PROJECT_ID_PREFIX}${uuid}-${path}`)
 }
 
 /** Create a {@link backend.FileId} from a path. */
 export function newFileId(path: projectManager.Path) {
-  return backend.FileId(`${backend.AssetType.file}-${path}`)
+  return backend.FileId(`${FILE_ID_PREFIX}${path}`)
 }
 
 /** The internal asset type and properly typed corresponding internal ID of a directory. */
@@ -54,6 +57,7 @@ interface DirectoryTypeAndId {
 interface ProjectTypeAndId {
   readonly type: backend.AssetType.project
   readonly id: projectManager.UUID
+  readonly directory: projectManager.Path
 }
 
 /** The internal asset type and properly typed corresponding internal ID of a file. */
@@ -80,11 +84,17 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
       return { type: backend.AssetType.directory, id: projectManager.Path(idRaw) }
     }
     case backend.AssetType.project: {
-      return { type: backend.AssetType.project, id: projectManager.UUID(idRaw) }
+      const [, idRaw2 = '', directoryRaw = ''] = idRaw.match(/(\w+-\w+-\w+-\w+-\w+)-(.+)/) ?? []
+      return {
+        type: backend.AssetType.project,
+        id: projectManager.UUID(idRaw2),
+        directory: projectManager.Path(directoryRaw),
+      }
     }
     case backend.AssetType.file: {
       return { type: backend.AssetType.file, id: projectManager.Path(idRaw) }
     }
+    case undefined:
     default: {
       throw new Error(`Invalid type '${typeRaw}'`)
     }
@@ -100,7 +110,8 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
  * This is used instead of the cloud backend API when managing local projects from the dashboard.
  */
 export default class LocalBackend extends Backend {
-  readonly type = backend.BackendType.local
+  static readonly type = backend.BackendType.local
+  readonly type = LocalBackend.type
   /** All files that have been uploaded to the Project Manager. */
   uploadedFiles: Map<string, backend.UploadedLargeAsset> = new Map()
   private readonly projectManager: ProjectManager
@@ -148,6 +159,7 @@ export default class LocalBackend extends Backend {
   override async listDirectory(
     query: backend.ListDirectoryRequestParams,
   ): Promise<readonly backend.AnyAsset[]> {
+    const { rootPath = this.rootPath() } = query
     const parentIdRaw = query.parentId == null ? null : extractTypeAndId(query.parentId).id
     const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
 
@@ -159,9 +171,48 @@ export default class LocalBackend extends Backend {
         .map((entry) => {
           switch (entry.type) {
             case projectManager.FileSystemEntryType.DirectoryEntry: {
+              const id = newDirectoryId(entry.path)
+
+              const virtualParentsPath = (() => {
+                let path = entry.path.replace(rootPath, '')
+
+                if (path.startsWith('/')) {
+                  path = path.slice(1)
+                }
+
+                if (path.endsWith('/')) {
+                  path = path.slice(0, -1)
+                }
+
+                return path
+              })()
+
+              const parentsPath = (() => {
+                const parentsPathArray: backend.DirectoryId[] = [newDirectoryId(rootPath)]
+                const splitPath = virtualParentsPath.split('/')
+
+                let previousPath = ''
+
+                for (const directory of splitPath) {
+                  if (directory === '') {
+                    continue
+                  }
+
+                  previousPath = Path(previousPath + '/' + directory)
+
+                  if (previousPath.endsWith('/')) {
+                    previousPath = previousPath.slice(0, -1)
+                  }
+
+                  parentsPathArray.push(newDirectoryId(Path(rootPath + previousPath)))
+                }
+
+                return parentsPathArray.slice(0, -1).join('/')
+              })()
+
               return {
+                id,
                 type: backend.AssetType.directory,
-                id: newDirectoryId(entry.path),
                 modifiedAt: entry.attributes.lastModifiedTime,
                 parentId,
                 title: getFileName(entry.path),
@@ -170,14 +221,14 @@ export default class LocalBackend extends Backend {
                 extension: null,
                 labels: [],
                 description: null,
-                parentsPath: '',
-                virtualParentsPath: '',
+                parentsPath: backend.ParentsPath(parentsPath),
+                virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
               } satisfies backend.DirectoryAsset
             }
             case projectManager.FileSystemEntryType.ProjectEntry: {
               return {
                 type: backend.AssetType.project,
-                id: newProjectId(entry.metadata.id),
+                id: newProjectId(entry.metadata.id, extractTypeAndId(parentId).id),
                 title: entry.metadata.name,
                 modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
                 parentId,
@@ -191,8 +242,8 @@ export default class LocalBackend extends Backend {
                 extension: null,
                 labels: [],
                 description: null,
-                parentsPath: '',
-                virtualParentsPath: '',
+                parentsPath: backend.ParentsPath(''),
+                virtualParentsPath: backend.VirtualParentsPath(''),
               } satisfies backend.ProjectAsset
             }
             case projectManager.FileSystemEntryType.FileEntry: {
@@ -207,8 +258,8 @@ export default class LocalBackend extends Backend {
                 extension: fileExtension(entry.path),
                 labels: [],
                 description: null,
-                parentsPath: '',
-                virtualParentsPath: '',
+                parentsPath: backend.ParentsPath(''),
+                virtualParentsPath: backend.VirtualParentsPath(''),
               } satisfies backend.FileAsset
             }
           }
@@ -240,7 +291,7 @@ export default class LocalBackend extends Backend {
     return result.projects.map((project) => ({
       name: project.name,
       organizationId: backend.OrganizationId('organization-'),
-      projectId: newProjectId(project.id),
+      projectId: newProjectId(project.id, this.projectManager.rootDirectory),
       packageName: project.name,
       state: {
         type: backend.ProjectState.closed,
@@ -270,7 +321,10 @@ export default class LocalBackend extends Backend {
     return {
       name: project.projectName,
       organizationId: backend.OrganizationId('organization-'),
-      projectId: newProjectId(project.projectId),
+      projectId: newProjectId(
+        project.projectId,
+        projectsDirectory ?? this.projectManager.rootDirectory,
+      ),
       packageName: project.projectName,
       state: { type: backend.ProjectState.closed, volumeId: '' },
     }
@@ -307,15 +361,11 @@ export default class LocalBackend extends Backend {
    * Close the project identified by the given project ID.
    * @throws An error if the JSON-RPC call fails.
    */
-  override async getProjectDetails(
-    projectId: backend.ProjectId,
-    directory: backend.DirectoryId | null,
-  ): Promise<backend.Project> {
-    const { id } = extractTypeAndId(projectId)
+  override async getProjectDetails(projectId: backend.ProjectId): Promise<backend.Project> {
+    const { id, directory } = extractTypeAndId(projectId)
     const state = this.projectManager.projects.get(id)
     if (state == null) {
-      const directoryId = directory == null ? null : extractTypeAndId(directory).id
-      const entries = await this.projectManager.listDirectory(directoryId)
+      const entries = await this.projectManager.listDirectory(directory)
       const project = entries
         .flatMap((entry) =>
           entry.type === projectManager.FileSystemEntryType.ProjectEntry ? [entry.metadata] : [],
@@ -450,10 +500,11 @@ export default class LocalBackend extends Backend {
 
   /** Duplicate a specific version of a project. */
   override async duplicateProject(projectId: backend.ProjectId): Promise<backend.CreatedProject> {
-    const id = extractTypeAndId(projectId).id
+    const typeAndId = extractTypeAndId(projectId)
+    const id = typeAndId.id
     const project = await this.projectManager.duplicateProject({ projectId: id })
     return {
-      projectId: newProjectId(project.projectId),
+      projectId: newProjectId(project.projectId, typeAndId.directory),
       name: project.projectName,
       packageName: project.projectNormalizedName,
       organizationId: backend.OrganizationId('organization-'),
@@ -508,7 +559,7 @@ export default class LocalBackend extends Backend {
         throw new Error('Cannot duplicate project to a different directory on the Local Backend.')
       } else {
         const asset = {
-          id: newProjectId(project.projectId),
+          id: newProjectId(project.projectId, parentPath),
           parentId: parentDirectoryId,
           title: project.projectName,
         }
@@ -641,9 +692,7 @@ export default class LocalBackend extends Backend {
     }
   }
 
-  /**
-   * Begin uploading a large file.
-   */
+  /** Begin uploading a large file. */
   override async uploadFileStart(
     body: backend.UploadFileRequestParams,
     file: File,
@@ -686,8 +735,8 @@ export default class LocalBackend extends Backend {
         const response = await fetch(path, { method: 'POST', body: file })
         id = await response.text()
       }
-      const projectId = newProjectId(projectManager.UUID(id))
-      const project = await this.getProjectDetails(projectId, body.parentDirectoryId)
+      const projectId = newProjectId(projectManager.UUID(id), parentPath)
+      const project = await this.getProjectDetails(projectId)
       this.uploadedFiles.set(uploadId, { id: projectId, project })
     }
     return { presignedUrls: [], uploadId, sourcePath: backend.S3FilePath('') }
@@ -747,10 +796,20 @@ export default class LocalBackend extends Backend {
     }
   }
 
-  /** Download from an arbitrary URL that is assumed to originate from this backend. */
-  override async download(url: string, name?: string) {
-    download(url, name)
-    return Promise.resolve()
+  /** Download an asset. */
+  override async download(id: backend.AssetId, title: string) {
+    const asset = backend.extractTypeFromId(id)
+    if (asset.type === backend.AssetType.project) {
+      const typeAndId = extractTypeAndId(asset.id)
+      const queryString = new URLSearchParams({
+        projectsDirectory: typeAndId.directory,
+      }).toString()
+      download(
+        `./api/project-manager/projects/${typeAndId.id}/enso-project?${queryString}`,
+        `${title}.enso-project`,
+      )
+    }
+    await Promise.resolve()
   }
 
   /** Invalid operation. */
@@ -785,6 +844,36 @@ export default class LocalBackend extends Backend {
 
   /** Invalid operation. */
   override getProjectSessionLogs() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override createProjectExecution() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override getProjectExecutionDetails() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override updateProjectExecution() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override deleteProjectExecution() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override listProjectExecutions() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override syncProjectExecution() {
     return this.invalidOperation()
   }
 

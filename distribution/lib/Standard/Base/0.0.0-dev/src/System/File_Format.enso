@@ -78,7 +78,7 @@ type Auto_Detect
 
     ## PRIVATE
     get_dropdown_options : Vector Option
-    get_dropdown_options = [Option "Auto Detect" (Meta.get_qualified_type_name Auto_Detect)]
+    get_dropdown_options = [Option "Auto Detect" (Auto_Detect.to Meta.Type . qualified_name)]
 
     ## PRIVATE
        Returns the union of name patterns of all currently loaded formats,
@@ -260,7 +260,7 @@ type Bytes
 
     ## PRIVATE
     get_dropdown_options : Vector Option
-    get_dropdown_options = [Option "Bytes" (Meta.get_qualified_type_name Bytes)]
+    get_dropdown_options = [Option "Bytes" (Bytes.to Meta.Type . qualified_name)]
 
     ## PRIVATE
     get_name_patterns -> Vector File_Name_Pattern =
@@ -310,7 +310,7 @@ type JSON_Format
 
     ## PRIVATE
     get_dropdown_options : Vector Option
-    get_dropdown_options = [Option "JSON" (Meta.get_qualified_type_name JSON_Format)]
+    get_dropdown_options = [Option "JSON" (JSON_Format.to Meta.Type . qualified_name)]
 
     ## PRIVATE
     get_name_patterns -> Vector File_Name_Pattern =

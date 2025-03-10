@@ -5,8 +5,11 @@ import scala.sys.process.*
 
 object Ydoc {
 
+  private val corepackCommand =
+    if (Platform.isWindows) "corepack.cmd" else "corepack"
+
   private val pnpmCommand =
-    if (Platform.isWindows) "corepack.cmd pnpm" else "corepack pnpm"
+    s"$corepackCommand pnpm"
 
   /** Generates the bundled JS source of the Ydoc server.
     *
@@ -53,10 +56,11 @@ object Ydoc {
           ydocServerResourceManaged / "org" / "enso" / "ydoc" / "server" / "ydoc.cjs"
 
         if (changed) {
-          val command = s"$pnpmCommand -r compile"
-          streams.log.info(command)
-          val exitCode = command ! streams.log
+          runCommand(s"$corepackCommand --version", streams)
+          runCommand(s"$pnpmCommand --version", streams)
 
+          val command  = s"$pnpmCommand build:ydoc-server-polyglot"
+          val exitCode = runCommand(command, streams)
           if (exitCode != 0) {
             throw new CommandFailed(command, exitCode)
           }
@@ -87,9 +91,11 @@ object Ydoc {
       case (changed, _) =>
         val nodeModules = base / "node_modules"
         if (changed || !nodeModules.isDirectory) {
-          val command = s"$pnpmCommand i --frozen-lockfile"
-          streams.log.info(command)
-          val exitCode = command ! streams.log
+          runCommand(s"$corepackCommand --version", streams)
+          runCommand(s"$pnpmCommand --version", streams)
+
+          val command  = s"$pnpmCommand i --frozen-lockfile"
+          val exitCode = runCommand(command, streams)
           if (exitCode != 0) {
             throw new CommandFailed(command, exitCode)
           }
@@ -99,6 +105,17 @@ object Ydoc {
     val inputFile = base / "pnpm-lock.json"
 
     generator(inputFile)
+  }
+
+  /** Run command printing the output to the log stream.
+    *
+    * @param command the command to run
+    * @param streams the build streams
+    * @return exit code
+    */
+  private def runCommand(command: String, streams: TaskStreams): Int = {
+    streams.log.info(command)
+    command ! streams.log
   }
 
   final private class CommandFailed(command: String, exitCode: Int)

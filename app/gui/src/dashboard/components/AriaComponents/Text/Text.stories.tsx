@@ -4,7 +4,7 @@ import type { TextProps } from './Text'
 import { Text } from './Text'
 
 export default {
-  title: 'AriaComponents/Text',
+  title: 'Components/Text',
   component: Text,
   args: {
     children: 'Hello, world!',

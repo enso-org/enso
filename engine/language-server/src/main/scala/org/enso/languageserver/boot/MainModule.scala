@@ -57,7 +57,7 @@ import org.enso.text.{ContentBasedVersioning, Sha3_224VersionCalculator}
 import org.enso.version.BuildVersion
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.slf4j.event.Level
-import org.slf4j.LoggerFactory
+import org.slf4j.{LoggerFactory, MDC}
 
 import java.io.{File, PrintStream}
 import java.net.URI
@@ -305,7 +305,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   val stdIn     = new ObservablePipedInputStream(stdInSink)
 
   val extraOptions = new java.util.HashMap[String, String]()
-  extraOptions.put(RuntimeServerInfo.ENABLE_OPTION, "true")
   extraOptions.put(RuntimeOptions.INTERACTIVE_MODE, "true")
   extraOptions.put(
     RuntimeOptions.LOG_MASKING,
@@ -322,7 +321,13 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     stdErr.attach(arr => System.out.write(arr))
   }
 
-  val builder = ContextFactory
+  if (java.lang.Boolean.getBoolean("com.oracle.graalvm.isaot")) {
+    log.info("Running Language Server in AOT mode")
+  } else {
+    log.info("Running Language Server in JVM mode")
+  }
+
+  private val builder = ContextFactory
     .create()
     .projectRoot(serverConfig.contentRootPath)
     .logLevel(logLevel)
@@ -333,6 +338,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     .err(stdErr)
     .in(stdIn)
     .options(extraOptions)
+    .enableRuntimeServerInfoKey(RuntimeServerInfo.ENABLE_OPTION)
     .messageTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
         val connection = new RuntimeConnector.Endpoint(
@@ -513,6 +519,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     contextSupervisor.close()
     runtimeEventsMonitor.close()
     log.info("Stopped Language Server")
+    MDC.remove("project.id")
   }
 
   private def akkaHttpsConfig(): com.typesafe.config.Config = {

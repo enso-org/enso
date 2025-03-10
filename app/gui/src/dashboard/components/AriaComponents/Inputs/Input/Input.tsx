@@ -1,8 +1,4 @@
-/**
- * @file
- *
- * Basic input component. Input component is a component that is used to get user input in a text field.
- */
+/** @file Text input. */
 import {
   useRef,
   type CSSProperties,
@@ -32,14 +28,21 @@ import type { ExtractFunction, VariantProps } from '#/utilities/tailwindVariants
 import { omit } from 'enso-common/src/utilities/data/object'
 import { INPUT_STYLES } from '../variants'
 
-/** Props for the Input component. */
-export interface InputProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
-  extends FieldStateProps<Omit<aria.InputProps, 'children' | 'size'>, Schema, TFieldName>,
+/** Props for an {@link Input}. */
+export interface InputProps<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema, Constraint>,
+  Constraint extends number | string = number | string,
+> extends FieldStateProps<
+      Omit<aria.InputProps, 'children' | 'size'>,
+      Schema,
+      TFieldName,
+      Constraint
+    >,
     FieldProps,
     FieldVariantProps,
     Omit<VariantProps<typeof INPUT_STYLES>, 'disabled' | 'invalid'>,
     TestIdProps {
-  // readonly className?: string
   readonly style?: CSSProperties
   readonly inputRef?: Ref<HTMLInputElement>
   readonly addonStart?: ReactNode
@@ -54,17 +57,14 @@ export interface InputProps<Schema extends TSchema, TFieldName extends FieldPath
 /** Basic input component. Input component is a component that is used to get user input in a text field. */
 export const Input = forwardRef(function Input<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
->(props: InputProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
+  TFieldName extends FieldPath<Schema, Constraint>,
+  Constraint extends number | string = number | string,
+>(props: InputProps<Schema, TFieldName, Constraint>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     name,
-    description,
     inputRef,
-    addonStart,
-    addonEnd,
     size,
     rounded,
-    icon,
     type = 'text',
     variant,
     variants = INPUT_STYLES,
@@ -82,7 +82,8 @@ export const Input = forwardRef(function Input<
   const { fieldProps, formInstance } = Form.useFieldRegister<
     Omit<aria.InputProps, 'children' | 'size'>,
     Schema,
-    TFieldName
+    TFieldName,
+    Constraint
   >({
     ...props,
     form,
@@ -135,57 +136,140 @@ export const Input = forwardRef(function Input<
         form: formInstance,
       })}
       ref={ref}
-      name={props.name}
+      name={name}
       data-testid={testId}
     >
-      <div
-        className={classes.base()}
-        onClick={() => privateInputRef.current?.focus({ preventScroll: true })}
-      >
-        <div className={classes.content()}>
-          {addonStart != null && (
-            <div className={classes.addonStart()} data-testid="addon-start">
-              {addonStart}
-            </div>
-          )}
+      <BasicInput
+        {...aria.mergeProps<BasicInputProps>()(
+          {
+            className: (classNameStates) =>
+              classes.textArea({ className: computedClassName(classNameStates) }),
+            type,
+            name,
+            isInvalid: invalid,
+            isDisabled: disabled,
+            variant,
+            size,
+            rounded,
+            variants,
+          },
+          omit(inputProps, 'isInvalid', 'isRequired', 'isDisabled'),
+          omit(fieldProps, 'isInvalid', 'isRequired', 'isDisabled', 'invalid'),
+        )}
+        ref={(el) => {
+          mergeRefs(inputRef, fieldProps.ref)(el)
+        }}
+      />
+    </Form.Field>
+  )
+})
 
-          {icon != null &&
-            (typeof icon === 'string' ? <SvgMask src={icon} className={classes.icon()} /> : icon)}
+/** Props for an {@link BasicInput}. */
+export interface BasicInputProps
+  extends Omit<aria.InputProps, 'children' | 'size'>,
+    Omit<VariantProps<typeof INPUT_STYLES>, 'disabled' | 'invalid'>,
+    TestIdProps {
+  readonly inputRef?: Ref<HTMLInputElement> | undefined
+  readonly description?: ReactNode | undefined
+  readonly addonStart?: ReactNode | undefined
+  readonly addonEnd?: ReactNode | undefined
+  readonly placeholder?: string | undefined
+  /** The icon to display in the input. */
+  readonly icon?: ReactElement | string | null | undefined
+  readonly isInvalid?: boolean | undefined
+  readonly isDisabled?: boolean | undefined
+  readonly variants?: ExtractFunction<typeof INPUT_STYLES> | undefined
+}
 
-          <div className={classes.inputContainer()}>
-            <aria.Input
-              {...aria.mergeProps<aria.InputProps>()(
-                {
-                  className: (classNameStates) =>
-                    classes.textArea({ className: computedClassName(classNameStates) }),
-                  type,
-                  name,
-                  // eslint-disable-next-line @typescript-eslint/naming-convention
-                  'aria-invalid': invalid,
-                },
-                omit(inputProps, 'isInvalid', 'isRequired', 'isDisabled'),
-                omit(fieldProps, 'isInvalid', 'isRequired', 'isDisabled', 'invalid'),
-              )}
-              ref={(el) => {
-                mergeRefs(inputRef, privateInputRef, fieldProps.ref)(el)
-              }}
-              data-testid="input"
-            />
+/** An input without a {@link Form.Field}. */
+export const BasicInput = forwardRef(function BasicInput(
+  props: BasicInputProps,
+  ref?: Ref<HTMLInputElement>,
+) {
+  const {
+    description,
+    addonStart,
+    addonEnd,
+    icon,
+    variant,
+    variants = INPUT_STYLES,
+    autoFocus = false,
+    size,
+    rounded,
+    isInvalid,
+    isDisabled,
+    className,
+    ...inputProps
+  } = props
+
+  const privateInputRef = useRef<HTMLInputElement>(null)
+
+  const classes = variants({
+    variant,
+    size,
+    rounded,
+    invalid: isInvalid,
+    readOnly: inputProps.readOnly,
+    disabled: isDisabled,
+  })
+
+  const computedClassName = (states: aria.InputRenderProps) => {
+    if (typeof className === 'function') {
+      return className({
+        ...states,
+        defaultClassName: classes.textArea(),
+      })
+    } else {
+      return className
+    }
+  }
+
+  useAutoFocus({ ref: privateInputRef, disabled: !autoFocus })
+
+  return (
+    <div
+      className={classes.base()}
+      onClick={() => privateInputRef.current?.focus({ preventScroll: true })}
+    >
+      <div className={classes.content()}>
+        {addonStart != null && (
+          <div className={classes.addonStart()} data-testid="addon-start">
+            {addonStart}
           </div>
+        )}
 
-          {addonEnd != null && (
-            <div className={classes.addonEnd()} data-testid="addon-end">
-              {addonEnd}
-            </div>
-          )}
+        {icon != null &&
+          (typeof icon === 'string' ? <SvgMask src={icon} className={classes.icon()} /> : icon)}
+
+        <div className={classes.inputContainer()}>
+          <aria.Input
+            {...aria.mergeProps<aria.InputProps>()(
+              {
+                className: (states) => classes.textArea({ className: computedClassName(states) }),
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                'aria-invalid': isInvalid,
+              },
+              inputProps,
+            )}
+            ref={(el) => {
+              mergeRefs(ref, privateInputRef)(el)
+            }}
+            data-testid="input"
+          />
         </div>
 
-        {description != null && (
-          <Text slot="description" className={classes.description()} data-testid="description">
-            {description}
-          </Text>
+        {addonEnd != null && (
+          <div className={classes.addonEnd()} data-testid="addon-end">
+            {addonEnd}
+          </div>
         )}
       </div>
-    </Form.Field>
+
+      {description != null && (
+        <Text slot="description" className={classes.description()} data-testid="description">
+          {description}
+        </Text>
+      )}
+    </div>
   )
 })

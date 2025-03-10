@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import ConditionalTeleport from '@/components/ConditionalTeleport.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { enclosingTopLevelArgument } from '@/components/GraphEditor/widgets/WidgetTopLevelArgument.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
@@ -17,8 +16,12 @@ import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { useGraphStore } from '@/stores/graph'
 import { requiredImports, type RequiredImport } from '@/stores/graph/imports'
+import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import {
+  SuggestionKind,
+  entryDisplayPath,
+  entryIsStatic,
   type SuggestionEntry,
   type SuggestionEntryArgument,
 } from '@/stores/suggestionDatabase/entry'
@@ -27,14 +30,17 @@ import { targetIsOutside } from '@/util/autoBlur'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { arrayEquals } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
+import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
+import { ToValue } from '@/util/reactivity'
 import { autoUpdate, offset, shift, size, useFloating } from '@floating-ui/vue'
 import type { Ref, RendererNode, VNode } from 'vue'
-import { computed, proxyRefs, ref, shallowRef, watch } from 'vue'
+import { computed, proxyRefs, ref, shallowRef, toValue, watch } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
 const graph = useGraphStore()
+const projectNames = injectProjectNames()
 
 const tree = injectWidgetTree()
 
@@ -46,7 +52,8 @@ const editedWidget = ref<string>()
 const editedValue = ref<Ast.Owned<Ast.MutableExpression> | string | undefined>()
 const isHovered = ref(false)
 /** See @{link Actions.setActivity} */
-const activity = shallowRef<VNode>()
+const activity = shallowRef<ToValue<VNode>>()
+const keepActivityAlive = ref(false)
 
 // How much wider a dropdown can be than a port it is attached to, when a long text is present.
 // Any text beyond that limit will receive an ellipsis and sliding animation on hover.
@@ -106,22 +113,29 @@ class ExpressionTag {
     public parameters?: ArgumentWidgetConfiguration[],
   ) {}
 
-  static FromQualifiedName(qn: Ast.QualifiedName, label?: Opt<string>): ExpressionTag {
-    const entry = suggestions.entries.getEntryByQualifiedName(qn)
+  static FromProjectPath(path: ProjectPath, label?: Opt<string>): ExpressionTag | null {
+    const entry = suggestions.entries.getEntryByProjectPath(path)
     if (entry) return ExpressionTag.FromEntry(entry, label)
-    return new ExpressionTag(qn, label ?? qnLastSegment(qn))
+    else return null
   }
 
   static FromExpression(expression: string, label?: Opt<string>): ExpressionTag {
     const qn = tryQualifiedName(expression)
-    if (qn.ok) return ExpressionTag.FromQualifiedName(qn.value, label)
+    if (qn.ok) {
+      const projectPath = projectNames.parseProjectPath(qn.value)
+      if (projectPath.ok) {
+        const fromProjPath = ExpressionTag.FromProjectPath(projectPath.value, label)
+        if (fromProjPath) return fromProjPath
+      }
+      return new ExpressionTag(qn.value, label ?? qnLastSegment(qn.value))
+    }
     return new ExpressionTag(expression, label)
   }
 
   static FromEntry(entry: SuggestionEntry, label?: Opt<string>): ExpressionTag {
     const expression =
-      entry.selfType != null ? `_.${entry.name}`
-      : entry.memberOf ? `${qnLastSegment(entry.memberOf)}.${entry.name}`
+      entryIsStatic(entry) ? entryDisplayPath(entry)
+      : entry.kind === SuggestionKind.Method ? `_.${entry.name}`
       : entry.name
     return new ExpressionTag(
       expression,
@@ -285,7 +299,8 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
     if (
       targetIsOutside(e, unrefElement(dropdownElement)) &&
       targetIsOutside(e, unrefElement(activityElement)) &&
-      targetIsOutside(e, unrefElement(widgetRoot))
+      targetIsOutside(e, unrefElement(widgetRoot)) &&
+      targetIsOutside(e, document.getElementById('floatingLayer'))
     ) {
       dropDownInteraction.end()
       if (editedWidget.value)
@@ -324,8 +339,9 @@ function toggleDropdownWidget() {
 }
 
 const dropdownActions: Actions = {
-  setActivity: (newActivity) => {
+  setActivity: (newActivity, keepAlive = false) => {
     activity.value = newActivity
+    keepActivityAlive.value = keepAlive
   },
   close: dropDownInteraction.end.bind(dropDownInteraction),
 }
@@ -453,8 +469,11 @@ export interface Actions {
    *
    * For example, the {@link WidgetCloudBrowser} installs a custom entry that, when clicked,
    * opens a file browser where the dropdown was.
+   * @param keepAlive - when set, the `activity` instance will be kept between drop-down closing
+   *  and opening. The activity component must not change it type (when being a ref) and provide
+   * `name` option explicitly.
    */
-  setActivity: (activity: VNode) => void
+  setActivity: (activity: ToValue<VNode>, keepAlive?: boolean) => void
   close: () => void
 }
 
@@ -476,13 +495,13 @@ declare module '@/providers/widgetRegistry' {
     @pointerout="isHovered = false"
   >
     <NodeWidget :input="innerWidgetInput" />
-    <ConditionalTeleport v-if="showArrow" :disabled="!arrowLocation" :to="arrowLocation">
+    <teleport v-if="showArrow" :disabled="!arrowLocation" :to="arrowLocation">
       <SvgIcon
         name="arrow_right_head_only"
         class="arrow widgetOutOfLayout"
         :class="{ hovered: isHovered }"
       />
-    </ConditionalTeleport>
+    </teleport>
     <Teleport v-if="tree.rootElement" :to="tree.rootElement">
       <div ref="dropdownElement" :style="floatingStyles" class="widgetOutOfLayout floatingElement">
         <SizeTransition height :duration="100">
@@ -501,9 +520,15 @@ declare module '@/providers/widgetRegistry' {
         :style="activityStyles"
       >
         <SizeTransition height :duration="100">
-          <div v-if="dropDownInteraction.isActive() && activity">
-            <component :is="activity" />
-          </div>
+          <KeepAlive include="KeepAlive">
+            <KeepAlive v-if="keepActivityAlive">
+              <component :is="dropDownInteraction.isActive() && activity && toValue(activity)" />
+            </KeepAlive>
+            <component
+              :is="dropDownInteraction.isActive() && activity && toValue(activity)"
+              v-else
+            />
+          </KeepAlive>
         </SizeTransition>
       </div>
     </Teleport>

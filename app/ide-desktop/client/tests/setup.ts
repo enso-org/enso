@@ -14,7 +14,7 @@ const POSSIBLE_EXEC_PATHS = [
  * @throws when no Enso package could be found.
  */
 export default function setup() {
-  const execPath = POSSIBLE_EXEC_PATHS.find(path => {
+  const execPath = POSSIBLE_EXEC_PATHS.find((path) => {
     try {
       fs.accessSync(path, fs.constants.X_OK)
       return true

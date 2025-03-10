@@ -19,21 +19,25 @@ import ManageLabelsModal from '#/modals/ManageLabelsModal'
 
 import * as backendModule from '#/services/Backend'
 
+import { useStore } from '#/hooks/storeHooks'
+import { useDriveStore } from '#/providers/DriveProvider'
 import * as permissions from '#/utilities/permissions'
-
-// ====================
-// === LabelsColumn ===
-// ====================
+import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 
 /** A column listing the labels on this asset. */
 export default function LabelsColumn(props: column.AssetColumnProps) {
-  const { item, state, rowState } = props
+  const { item, state } = props
   const { backend, category, setQuery } = state
-  const { temporarilyAddedLabels, temporarilyRemovedLabels } = rowState
   const { user } = authProvider.useFullUserSession()
   const { setModal, unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const { data: labels } = backendHooks.useBackendQuery(backend, 'listTags', [])
+  const driveStore = useDriveStore()
+  const showDraggedLabelsFallback = useStore(
+    driveStore,
+    ({ selectedIds, isDraggingOverSelectedRow }) =>
+      isDraggingOverSelectedRow && selectedIds.has(item.id),
+  )
   const labelsByName = React.useMemo(() => {
     return new Map(labels?.map((label) => [label.value, label]))
   }, [labels])
@@ -42,6 +46,38 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
     category.type !== 'trash' &&
     (self?.permission === permissions.PermissionAction.own ||
       self?.permission === permissions.PermissionAction.admin)
+  const temporarilyAddedLabels = useStore(
+    driveStore,
+    ({ labelsDragPayload, dragTargetAssetId }) => {
+      const areTemporaryLabelsRelevant = (() => {
+        if (showDraggedLabelsFallback) {
+          return labelsDragPayload?.typeWhenAppliedToSelection === 'add'
+        } else {
+          return item.id === dragTargetAssetId
+        }
+      })()
+      if (areTemporaryLabelsRelevant) {
+        return labelsDragPayload?.labels ?? EMPTY_ARRAY
+      }
+      return EMPTY_ARRAY
+    },
+  )
+  const temporarilyRemovedLabels = useStore(
+    driveStore,
+    ({ labelsDragPayload, dragTargetAssetId }) => {
+      const areTemporaryLabelsRelevant = (() => {
+        if (showDraggedLabelsFallback) {
+          return labelsDragPayload?.typeWhenAppliedToSelection === 'remove'
+        } else {
+          return item.id === dragTargetAssetId
+        }
+      })()
+      if (areTemporaryLabelsRelevant) {
+        return labelsDragPayload?.labels ?? EMPTY_ARRAY
+      }
+      return EMPTY_ARRAY
+    },
+  )
 
   return (
     <div className="group flex items-center gap-column-items">
@@ -53,9 +89,9 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             data-testid="asset-label"
             title={getText('rightClickToRemoveLabel')}
             color={labelsByName.get(label)?.color ?? backendModule.COLORS[0]}
-            active={!temporarilyRemovedLabels.has(label)}
-            isDisabled={temporarilyRemovedLabels.has(label)}
-            negated={temporarilyRemovedLabels.has(label)}
+            active={!temporarilyRemovedLabels.includes(label)}
+            isDisabled={temporarilyRemovedLabels.includes(label)}
+            negated={temporarilyRemovedLabels.includes(label)}
             onContextMenu={(event) => {
               event.preventDefault()
               event.stopPropagation()
@@ -83,7 +119,7 @@ export default function LabelsColumn(props: column.AssetColumnProps) {
             {label}
           </Label>
         ))}
-      {...[...temporarilyAddedLabels]
+      {temporarilyAddedLabels
         .filter((label) => item.labels?.includes(label) !== true)
         .map((label) => (
           <Label

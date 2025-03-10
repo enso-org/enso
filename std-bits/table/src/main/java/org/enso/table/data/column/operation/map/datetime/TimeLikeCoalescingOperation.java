@@ -18,26 +18,25 @@ public abstract class TimeLikeCoalescingOperation<T>
     this.inputTypeClass = inputTypeClass;
   }
 
-  protected abstract Builder createOutputBuilder(int size);
+  protected abstract Builder createOutputBuilder(long size);
 
   protected abstract T doOperation(T a, T b);
 
   @Override
   public Storage<?> runBinaryMap(
       SpecializedStorage<T> storage, Object arg, MapOperationProblemAggregator problemAggregator) {
-    int size = storage.size();
     if (arg == null) {
       return storage;
     } else {
       Object adapted = Polyglot_Utils.convertPolyglotValue(arg);
       if (inputTypeClass.isInstance(adapted)) {
         T casted = inputTypeClass.cast(adapted);
-        int n = storage.size();
-        Builder builder = createOutputBuilder(n);
+        long size = storage.getSize();
+        Builder builder = createOutputBuilder(size);
         Context context = Context.getCurrent();
-        for (int i = 0; i < size; i++) {
+        for (long i = 0; i < size; i++) {
           T r = storage.isNothing(i) ? casted : doOperation(storage.getItemBoxed(i), casted);
-          builder.appendNoGrow(r);
+          builder.append(r);
           context.safepoint();
         }
 
@@ -57,10 +56,10 @@ public abstract class TimeLikeCoalescingOperation<T>
     if (arg.getType().equals(storage.getType())) {
       if (arg instanceof SpecializedStorage<?> argStorage) {
         SpecializedStorage<T> argTStorage = storage.castIfSameType(argStorage);
-        int n = storage.size();
+        long n = storage.getSize();
         Builder builder = createOutputBuilder(n);
         Context context = Context.getCurrent();
-        for (int i = 0; i < n; i++) {
+        for (long i = 0; i < n; i++) {
           T a = storage.getItemBoxed(i);
           T b = argTStorage.getItemBoxed(i);
           T r;
@@ -76,7 +75,7 @@ public abstract class TimeLikeCoalescingOperation<T>
             }
           }
 
-          builder.appendNoGrow(r);
+          builder.append(r);
           context.safepoint();
         }
 

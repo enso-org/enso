@@ -135,6 +135,11 @@ const appExtension = (() => {
       return '.dmg'
     case detect.Platform.windows:
       return '.exe'
+    case detect.Platform.unknown:
+    case detect.Platform.linux:
+    case detect.Platform.windowsPhone:
+    case detect.Platform.iPhoneOS:
+    case detect.Platform.android:
     default:
       // assume Unix-like.
       return '.AppImage'

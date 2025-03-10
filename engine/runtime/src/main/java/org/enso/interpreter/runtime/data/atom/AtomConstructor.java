@@ -293,7 +293,7 @@ public final class AtomConstructor extends EnsoObject {
             language, localScope, scopeBuilder.asModuleScope(), instantiateBlock, section, this);
     RootCallTarget callTarget = rootNode.getCallTarget();
     var schemaBldr = FunctionSchema.newBuilder().annotations(annotations).argumentDefinitions(args);
-    if (type.isProjectPrivate()) {
+    if (type.hasAllConstructorsPrivate()) {
       schemaBldr.projectPrivate();
     }
     return new Function(callTarget, null, schemaBldr.build());
@@ -307,7 +307,7 @@ public final class AtomConstructor extends EnsoObject {
             .argumentDefinitions(
                 new ArgumentDefinition(
                     0, "self", null, null, ArgumentDefinition.ExecutionMode.EXECUTE));
-    if (type.isProjectPrivate()) {
+    if (type.hasAllConstructorsPrivate()) {
       schemaBldr.projectPrivate();
     }
     var function = new Function(callTarget, null, schemaBldr.build());

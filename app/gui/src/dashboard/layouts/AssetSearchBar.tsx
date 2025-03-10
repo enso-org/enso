@@ -347,7 +347,7 @@ function AssetSearchBar(props: AssetSearchBarProps) {
               innerProps,
               {
                 className:
-                  'z-1 group flex grow items-center gap-asset-search-bar rounded-full px-1.5 py-1 text-primary border-0.5 border-primary/20',
+                  'z-1 group flex grow items-center gap-asset-search-bar rounded-full px-1.5 py-[3.5px] text-primary border-0.5 border-primary/20',
                 ref: rootRef,
                 onFocus: () => {
                   setAreSuggestionsVisible(true)
@@ -411,7 +411,7 @@ interface AssetSearchBarInputProps {
 /**
  * Renders the search field.
  */
-// eslint-disable-next-line no-restricted-syntax
+
 const AssetSearchBarInput = React.memo(function AssetSearchBarInput(
   props: AssetSearchBarInputProps,
 ) {
@@ -625,9 +625,7 @@ const SuggestionRenderer = React.memo(function SuggestionRenderer(props: Suggest
   )
 })
 
-/**
- * Props for a {@link Labels}.
- */
+/** Props for a {@link Labels}. */
 interface LabelsProps {
   readonly isCloud: boolean
   readonly query: AssetQuery
@@ -637,9 +635,7 @@ interface LabelsProps {
   readonly baseQuery: React.MutableRefObject<AssetQuery>
 }
 
-/**
- * Renders labels.
- */
+/** Renders labels. */
 const Labels = React.memo(function Labels(props: LabelsProps) {
   const { isCloud, query, setQuery, backend, querySource, baseQuery } = props
 

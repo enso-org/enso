@@ -14,14 +14,11 @@ import type * as textProvider from '#/providers/TextProvider'
 import Backend, * as backend from '#/services/Backend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 
-import { DirectoryId, UserGroupId } from '#/services/Backend'
+import { DirectoryId, UserGroupId, UserId } from '#/services/Backend'
 import * as download from '#/utilities/download'
 import type HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
-
-// =================
-// === Constants ===
-// =================
+import invariant from 'tiny-invariant'
 
 /** HTTP status indicating that the request was successful. */
 const STATUS_SUCCESS_FIRST = 200
@@ -35,6 +32,16 @@ const STATUS_SERVER_ERROR = 500
 const STATUS_NOT_AUTHORIZED = 401
 /** HTTP status indicating that authorized user doesn't have access to the given resource */
 const STATUS_NOT_ALLOWED = 403
+const TYPE_TO_EXTENSION: Record<backend.AssetType, string> = {
+  directory: '/',
+  project: '.project',
+  secret: '.secret',
+  datalink: '.datalink',
+  file: '',
+  specialEmpty: '',
+  specialError: '',
+  specialLoading: '',
+}
 
 /** The format of all errors returned by the backend. */
 interface RemoteBackendError {
@@ -90,23 +97,26 @@ export function extractIdFromUserId(id: backend.UserId) {
   return id.replace(/^user-/, '')
 }
 
-/**
- * Convert a user group ID to a directory ID.
- */
+/** Convert a user group ID to a directory ID. */
 export function userGroupIdToDirectoryId(id: backend.UserGroupId): backend.DirectoryId {
   return DirectoryId(`directory-${extractIdFromUserGroupId(id)}` as const)
 }
 
-/**
- * Convert a user ID to a directory ID.
- */
+/** Convert a user ID to a directory ID. */
 export function userIdToDirectoryId(id: backend.UserId): backend.DirectoryId {
   return DirectoryId(`directory-${extractIdFromUserId(id)}` as const)
 }
 
 /**
- * Convert organization ID to a directory ID
+ * Convert a directory ID to a user ID.
+ * @param id - The directory ID.
+ * @returns The user ID.
  */
+export function directoryIdToUserId(id: backend.DirectoryId): backend.UserId {
+  return UserId(`user-${extractIdFromDirectoryId(id)}` as const)
+}
+
+/** Convert organization ID to a directory ID. */
 export function organizationIdToDirectoryId(id: backend.OrganizationId): backend.DirectoryId {
   return DirectoryId(`directory-${extractIdFromOrganizationId(id)}` as const)
 }
@@ -147,9 +157,42 @@ export function idIsUserGroupId(id: string): id is backend.UserGroupId {
   return id.startsWith('usergroup-')
 }
 
-// =============
-// === Types ===
-// =============
+/** Convert a {@link backend.ParentsPath} and a {@link backend.VirtualParentsPath} to a full path. */
+export function parentsPathsToPath(
+  parentsPath: backend.ParentsPath,
+  virtualParentsPath: backend.VirtualParentsPath,
+  users: readonly backend.UserInfo[],
+  userGroups: readonly backend.UserGroupInfo[],
+) {
+  const virtualParentsPathWithPrefix = virtualParentsPath === '' ? '' : `/${virtualParentsPath}`
+  // This is SAFE as `parentsPath` is guaranteed to be composed only of valid path segments.
+  // eslint-disable-next-line no-restricted-syntax
+  const firstPathSegment = DirectoryId(parentsPath.split('/')[0] as never)
+  const possibleUserId = directoryIdToUserId(firstPathSegment)
+  const user = users.find((otherUser) => otherUser.userId === possibleUserId)
+  if (user) {
+    return `enso://Users/${user.name}${virtualParentsPathWithPrefix}`
+  }
+  const possibleUserGroupId = directoryIdToUserGroupId(firstPathSegment)
+  const userGroup = userGroups.find((otherUserGroup) => otherUserGroup.id === possibleUserGroupId)
+  if (userGroup) {
+    return `enso://Teams/${userGroup.groupName}${virtualParentsPathWithPrefix}`
+  }
+}
+
+/** Convert a {@link backend.ParentsPath} and a {@link backend.VirtualParentsPath} to a full path. */
+export function computeFullRemotePath(
+  asset: Pick<backend.AnyAsset, 'parentsPath' | 'title' | 'type' | 'virtualParentsPath'>,
+  users: readonly backend.UserInfo[],
+  userGroups: readonly backend.UserGroupInfo[],
+) {
+  const { title, type, parentsPath, virtualParentsPath } = asset
+  const directoryPath = parentsPathsToPath(parentsPath, virtualParentsPath, users, userGroups)
+  if (directoryPath == null) {
+    return
+  }
+  return `${directoryPath}/${title}${TYPE_TO_EXTENSION[type]}`
+}
 
 /** HTTP response body for the "list users" endpoint. */
 export interface ListUsersResponseBody {
@@ -181,10 +224,6 @@ export interface ListTagsResponseBody {
   readonly tags: readonly backend.Label[]
 }
 
-// =====================
-// === RemoteBackend ===
-// =====================
-
 /**
  * A function that turns a text ID (and a list of replacements, if required) to
  * human-readable text.
@@ -198,7 +237,9 @@ interface RemoteBackendPostOptions {
 
 /** Class for sending requests to the Cloud backend API endpoints. */
 export default class RemoteBackend extends Backend {
-  readonly type = backend.BackendType.remote
+  static readonly type = backend.BackendType.remote
+
+  readonly type = RemoteBackend.type
   private user: object.Mutable<backend.User> | null = null
 
   /**
@@ -529,7 +570,15 @@ export default class RemoteBackend extends Backend {
       return this.throw(response, 'usersMeBackendError')
     } else {
       const user = await response.json()
-      this.user = { ...user }
+
+      Object.defineProperty(user, 'isEnsoTeamMember', {
+        value: user.email.endsWith('@enso.org') || user.email.endsWith('@ensoanalytics.com'),
+        writable: false,
+        configurable: false,
+        enumerable: true,
+      })
+
+      this.user = user
 
       return user
     }
@@ -599,6 +648,7 @@ export default class RemoteBackend extends Backend {
    */
   override async createDirectory(
     body: backend.CreateDirectoryRequestBody,
+    discardTitle = true,
   ): Promise<backend.CreatedDirectory> {
     const path = remoteBackendPaths.CREATE_DIRECTORY_PATH
 
@@ -606,7 +656,7 @@ export default class RemoteBackend extends Backend {
     // It's generated on the server side.
     const { title, ...rest } = body
 
-    const response = await this.post<backend.CreatedDirectory>(path, rest)
+    const response = await this.post<backend.CreatedDirectory>(path, discardTitle ? rest : body)
     if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'createFolderBackendError', title)
     } else {
@@ -832,12 +882,116 @@ export default class RemoteBackend extends Backend {
   }
 
   /**
+   * Create a project execution.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async createProjectExecution(
+    body: backend.CreateProjectExecutionRequestBody,
+    title: string,
+  ): Promise<backend.ProjectExecution> {
+    const { projectId, ...rest } = body
+    const path = remoteBackendPaths.createProjectExecutionPath(projectId)
+    const response = await this.post<backend.ProjectExecution>(path, rest)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'createProjectExecutionBackendError', title)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Create a project execution.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async getProjectExecutionDetails(
+    executionId: backend.ProjectExecutionId,
+    title: string,
+  ): Promise<backend.ProjectExecution> {
+    const path = remoteBackendPaths.getProjectExecutionDetailsPath(executionId)
+    const response = await this.get<backend.ProjectExecution>(path)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'getProjectExecutionDetailsBackendError', title)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Update a project execution.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async updateProjectExecution(
+    executionId: backend.ProjectExecutionId,
+    body: backend.UpdateProjectExecutionRequestBody,
+    projectTitle: string,
+  ): Promise<backend.ProjectExecution> {
+    const path = remoteBackendPaths.updateProjectExecutionPath(executionId)
+    const response = await this.post<backend.ProjectExecution>(path, body)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'updateProjectExecutionBackendError', projectTitle)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Delete a project execution.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async deleteProjectExecution(
+    executionId: backend.ProjectExecutionId,
+    projectTitle: string,
+  ): Promise<void> {
+    const path = remoteBackendPaths.deleteProjectExecutionPath(executionId)
+    const response = await this.delete<backend.ProjectExecution>(path)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'createProjectExecutionBackendError', projectTitle)
+    } else {
+      return
+    }
+  }
+
+  /**
+   * Return a list of executions for a project.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async listProjectExecutions(
+    projectId: backend.ProjectId,
+    title: string,
+  ): Promise<readonly backend.ProjectExecution[]> {
+    const path = remoteBackendPaths.listProjectExecutionsPath(projectId)
+    const response = await this.get<readonly backend.ProjectExecution[]>(path)
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'listProjectExecutionsBackendError', title)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Update a project execution to use the latest version of a project.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async syncProjectExecution(
+    executionId: backend.ProjectExecutionId,
+    projectTitle: string,
+  ): Promise<backend.ProjectExecution> {
+    const path = remoteBackendPaths.syncProjectExecutionPath(executionId)
+
+    const response = await this.post<backend.ProjectExecution>(path, {})
+    if (!responseIsSuccessful(response)) {
+      return await this.throw(response, 'syncProjectExecutionBackendError', projectTitle)
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
    * Return details for a project.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
   override async getProjectDetails(
     projectId: backend.ProjectId,
-    _directoryId: null,
     getPresignedUrl = false,
   ): Promise<backend.Project> {
     const paramsString = new URLSearchParams({
@@ -1308,7 +1462,7 @@ export default class RemoteBackend extends Backend {
   async logEvent(message: string, projectId?: string | null, metadata?: object | null) {
     // Prevent events from being logged in dev mode, since we are often using production environment
     // and are polluting real logs.
-    if (detect.IS_DEV_MODE && process.env.ENSO_CLOUD_ENVIRONMENT === 'production') {
+    if (detect.IS_DEV_MODE) {
       return
     }
 
@@ -1332,10 +1486,77 @@ export default class RemoteBackend extends Backend {
     }
   }
 
-  /** Download from an arbitrary URL that is assumed to originate from this backend. */
-  override async download(url: string, name?: string) {
-    download.download(url, name)
-    return Promise.resolve()
+  /** Download an asset. */
+  override async download(id: backend.AssetId, title: string) {
+    const asset = backend.extractTypeFromId(id)
+    switch (asset.type) {
+      case backend.AssetType.project: {
+        const details = await this.getProjectDetails(asset.id, true)
+        invariant(details.url != null, 'The download URL of the project must be present.')
+        download.download(details.url, `${title}.enso-project`)
+        break
+      }
+      case backend.AssetType.file: {
+        const details = await this.getFileDetails(asset.id, title, true)
+        invariant(details.url != null, 'The download URL of the file must be present.')
+        download.download(details.url, details.file.fileName ?? '')
+        break
+      }
+      case backend.AssetType.datalink: {
+        const value = await this.getDatalink(asset.id, title)
+        const fileName = `${title}.datalink`
+        download.download(
+          URL.createObjectURL(
+            new File([JSON.stringify(value)], fileName, {
+              type: 'application/json+x-enso-data-link',
+            }),
+          ),
+          fileName,
+        )
+        break
+      }
+      case backend.AssetType.secret:
+      case backend.AssetType.directory:
+      case backend.AssetType.specialLoading:
+      case backend.AssetType.specialEmpty:
+      case backend.AssetType.specialError:
+      default: {
+        invariant(`'${asset.type}' assets cannot be downloaded.`)
+        break
+      }
+    }
+  }
+
+  /** Download the project to a temporary location. */
+  async downloadProject(id: backend.ProjectId): Promise<DirectoryId> {
+    const details = await this.getProjectDetails(id, true)
+
+    invariant(details.url != null, 'The download URL of the project must be present.')
+
+    const queryString = new URLSearchParams({
+      downloadUrl: details.url,
+      projectId: id,
+    })
+
+    const response = await this.client.get(`./api/cloud/download-project?${queryString}`)
+    const path = await response.text()
+
+    if (!response.ok) {
+      return await this.throw(response, 'resolveProjectAssetPathBackendError')
+    }
+
+    return DirectoryId(`directory-${path}` as const)
+  }
+
+  /** Upload the project. */
+  async uploadProject(id: backend.ProjectId, directoryId: backend.DirectoryId): Promise<void> {
+    const uploadPath = remoteBackendPaths.getProjectUploadPath(id)
+    const queryString = new URLSearchParams({
+      uploadUrl: `${$config.API_URL}/${uploadPath}`,
+      directory: extractIdFromDirectoryId(directoryId),
+    })
+
+    await this.client.get(`./api/cloud/upload-project?${queryString}`)
   }
 
   /** Fetch the URL of the customer portal. */
@@ -1398,36 +1619,36 @@ export default class RemoteBackend extends Backend {
 
   /** Send an HTTP GET request to the given path. */
   private get<T = void>(path: string) {
-    return this.client.get<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`)
+    return this.client.get<T>(`${$config.API_URL}/${path}`)
   }
 
   /** Send a JSON HTTP POST request to the given path. */
   private post<T = void>(path: string, payload: object, options?: RemoteBackendPostOptions) {
-    return this.client.post<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload, options)
+    return this.client.post<T>(`${$config.API_URL}/${path}`, payload, options)
   }
 
   /** Send a binary HTTP POST request to the given path. */
   private postBinary<T = void>(path: string, payload: Blob) {
-    return this.client.postBinary<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
+    return this.client.postBinary<T>(`${$config.API_URL}/${path}`, payload)
   }
 
   /** Send a JSON HTTP PATCH request to the given path. */
   private patch<T = void>(path: string, payload: object) {
-    return this.client.patch<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
+    return this.client.patch<T>(`${$config.API_URL}/${path}`, payload)
   }
 
   /** Send a JSON HTTP PUT request to the given path. */
   private put<T = void>(path: string, payload: object) {
-    return this.client.put<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
+    return this.client.put<T>(`${$config.API_URL}/${path}`, payload)
   }
 
   /** Send a binary HTTP PUT request to the given path. */
   private putBinary<T = void>(path: string, payload: Blob) {
-    return this.client.putBinary<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
+    return this.client.putBinary<T>(`${$config.API_URL}/${path}`, payload)
   }
 
   /** Send an HTTP DELETE request to the given path. */
   private delete<T = void>(path: string, payload?: Record<string, unknown>) {
-    return this.client.delete<T>(`${process.env.ENSO_CLOUD_API_URL}/${path}`, payload)
+    return this.client.delete<T>(`${$config.API_URL}/${path}`, payload)
   }
 }

@@ -64,7 +64,7 @@ export function repair(
   const fixes = module ?? root.module.edit()
   for (const ast of lostInline) {
     if (ast instanceof Group) continue
-    fixes.getVersion(ast).update(ast => Group.new(fixes, ast as any))
+    fixes.getVersion(ast).update((ast) => Group.new(fixes, ast as any))
   }
 
   // Verify that it's fixed.
@@ -95,7 +95,7 @@ function resync(
   edit: MutableModule,
 ) {
   const parentsOfBadSubtrees = new Set<AstId>()
-  const badAstIds = new Set(Array.from(badAsts, ast => ast.id))
+  const badAstIds = new Set(Array.from(badAsts, (ast) => ast.id))
   for (const id of subtreeRoots(edit, badAstIds)) {
     const parent = edit.get(id)?.parentId
     if (parent) parentsOfBadSubtrees.add(parent)

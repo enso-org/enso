@@ -447,24 +447,24 @@ function makeAbstractType(
         schema,
       ),
       tsf.createEnumDeclaration(
-        [modifiers.export, modifiers.const],
+        [modifiers.export],
         'Type',
-        childTypes.map(child => child.enumMember),
+        childTypes.map((child) => child.enumMember),
       ),
       makeExportConstVariable(
         'typeNames',
         tsf.createArrayLiteralExpression(
-          childTypes.map(child => tsf.createStringLiteralFromNode(child.name)),
+          childTypes.map((child) => tsf.createStringLiteralFromNode(child.name)),
         ),
       ),
-      ...childTypes.map(child => child.definition),
+      ...childTypes.map((child) => child.definition),
       tsf.createTypeAliasDeclaration(
         [modifiers.export],
         ident,
         undefined,
-        tsf.createUnionTypeNode(childTypes.map(child => tsf.createTypeReferenceNode(child.name))),
+        tsf.createUnionTypeNode(childTypes.map((child) => tsf.createTypeReferenceNode(child.name))),
       ),
-      abstractTypeVariants(childTypes.map(child => child.name)),
+      abstractTypeVariants(childTypes.map((child) => child.name)),
       makeReadFunction(
         ident,
         addressIdent,

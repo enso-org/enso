@@ -73,7 +73,10 @@ function entryTitle(key: string) {
 }
 .key {
   color: blue;
-  text-decoration: underline;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 .viewonly .key {
   color: darkred;

@@ -58,8 +58,10 @@ public abstract class Atom extends EnsoObject {
    * Creates a new Atom for a given constructor.
    *
    * @param constructor the Atom's constructor
+   * @param skipCheck don't assert whether the arity is non-zero
    */
-  Atom(AtomConstructor constructor) {
+  Atom(AtomConstructor constructor, boolean skipCheck) {
+    assert skipCheck || constructor.getArity() != 0;
     this.constructor = constructor;
   }
 
@@ -196,15 +198,12 @@ public abstract class Atom extends EnsoObject {
   private Set<Function> getInstanceMethods() {
     var methodsFromCtorScope =
         constructor.getDefinitionScope().getMethodsForType(constructor.getType());
-    var methodsFromTypeScope =
-        constructor.getType().getDefinitionScope().getMethodsForType(constructor.getType());
     var allMethods = new HashSet<Function>();
     if (methodsFromCtorScope != null) {
       allMethods.addAll(methodsFromCtorScope);
     }
-    if (methodsFromTypeScope != null) {
-      allMethods.addAll(methodsFromTypeScope);
-    }
+    var methodsFromType = constructor.getType().getMethods(false);
+    allMethods.addAll(methodsFromType.values());
     return allMethods.stream()
         .filter(method -> !isFieldGetter(method))
         .collect(Collectors.toUnmodifiableSet());
@@ -451,6 +450,6 @@ public abstract class Atom extends EnsoObject {
   }
 
   private boolean hasProjectPrivateConstructor() {
-    return constructor.getType().isProjectPrivate();
+    return constructor.getType().hasAllConstructorsPrivate();
   }
 }

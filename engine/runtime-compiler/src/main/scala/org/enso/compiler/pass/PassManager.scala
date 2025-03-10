@@ -1,11 +1,11 @@
 package org.enso.compiler.pass
 
-import org.enso.common.{Asserts, CompilationStage}
 import org.slf4j.LoggerFactory
-import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.context.{CompilerContext, InlineContext, ModuleContext}
 import org.enso.compiler.core.ir.{Expression, Module}
 import org.enso.compiler.core.{CompilerError, IR}
-import org.enso.compiler.pass.analyse.BindingAnalysis
+import org.enso.compiler.dump.service.IRDumper
+import org.enso.compiler.dump.service.IRSource
 
 import scala.collection.mutable.ListBuffer
 
@@ -71,10 +71,9 @@ class PassManager(
   def runPassesOnModule(
     ir: Module,
     moduleContext: ModuleContext,
-    passGroup: PassGroup
+    passGroup: PassGroup,
+    irDumper: Option[IRDumper]
   ): Module = {
-    Asserts.assertInJvm(validateConsistency(ir, moduleContext))
-
     if (!passes.contains(passGroup)) {
       throw new CompilerError("Cannot run an unvalidated pass group.")
     }
@@ -92,6 +91,9 @@ class PassManager(
       ir,
       newContext,
       passGroup,
+      moduleName = Some(moduleContext.getName().toString),
+      irDumper   = irDumper,
+      module     = newContext.module,
       createMiniPass =
         (factory, ctx) => factory.createForModuleCompilation(ctx),
       miniPassCompile = (miniPass, ir) =>
@@ -138,12 +140,38 @@ class PassManager(
       ir,
       newContext,
       passGroup,
+      moduleName = null,
+      module     = inlineContext.getModule(),
+      irDumper   = None,
       createMiniPass =
         (factory, ctx) => factory.createForInlineCompilation(ctx),
       miniPassCompile = (miniPass, ir) =>
         MiniIRPass.compile[Expression](classOf[Expression], ir, miniPass),
       megaPassCompile = (megaPass, ir, ctx) => megaPass.runExpression(ir, ctx)
     )
+  }
+
+  private def dump(
+    ir: IR,
+    moduleName: Option[String],
+    irDumper: Option[IRDumper],
+    passName: String,
+    module: CompilerContext.Module
+  ): Unit = {
+    (ir, moduleName, irDumper) match {
+      case (moduleIr: Module, Some(modName), Some(dumper)) =>
+        val irSrc = new IRSource(
+          moduleIr,
+          modName,
+          passName,
+          module.getUri(),
+          loc => {
+            module.findLine(loc)
+          }
+        );
+        dumper.dumpModule(irSrc)
+      case _ => ()
+    }
   }
 
   /** Runs all the passes in the given `passGroup` on `ir` with `context`.
@@ -159,6 +187,9 @@ class PassManager(
     ir: IRType,
     context: ContextType,
     passGroup: PassGroup,
+    moduleName: Option[String],
+    irDumper: Option[IRDumper],
+    module: CompilerContext.Module,
     createMiniPass: (MiniPassFactory, ContextType) => MiniIRPass,
     miniPassCompile: (MiniIRPass, IRType) => IRType,
     megaPassCompile: (IRPass, IRType, ContextType) => IRType
@@ -173,7 +204,9 @@ class PassManager(
         pendingMiniPasses.clear()
         if (combinedPass != null) {
           logger.trace("  flushing pending mini pass: {}", combinedPass)
-          miniPassCompile(combinedPass, in)
+          val ret = miniPassCompile(combinedPass, in)
+          dump(ret, moduleName, irDumper, combinedPass.toString, module)
+          ret
         } else {
           in
         }
@@ -220,7 +253,9 @@ class PassManager(
               "  mega running: {}",
               megaPass
             )
-            megaPassCompile(megaPass, flushedIR, context)
+            val ret = megaPassCompile(megaPass, flushedIR, context)
+            dump(ret, moduleName, irDumper, megaPass.toString, module)
+            ret
         }
     }
 
@@ -245,51 +280,6 @@ class PassManager(
     val totalLength = before.map(_.passes.length).sum
 
     ix - totalLength == indexOfPassInGroup
-  }
-
-  /** Validates consistency between the IR accessible via `moduleContext` and `ir`.
-    * There is no way to enforce this consistency statically.
-    * Should be called only iff assertions are enabled.
-    * @return true if they are consistent, otherwise throws [[AssertionError]].
-    */
-  private def validateConsistency(
-    ir: Module,
-    moduleContext: ModuleContext
-  ): Boolean = {
-    def hex(obj: Object): String = {
-      if (obj != null) {
-        val hexStr    = Integer.toHexString(System.identityHashCode(obj))
-        val className = obj.getClass.getSimpleName
-        s"$className@${hexStr}"
-      } else {
-        "null"
-      }
-    }
-
-    if (
-      moduleContext.module.getCompilationStage.isAtLeast(
-        CompilationStage.AFTER_PARSING
-      )
-    ) {
-      if (!(moduleContext.module.getIr eq ir)) {
-        throw new AssertionError(
-          "Mismatch of IR between ModuleContext and IR in module '" + moduleContext
-            .getName() + "'. " +
-          s"IR from moduleContext: ${hex(moduleContext.module.getIr)}, IR from module: ${hex(ir)}"
-        )
-      }
-      val bmFromCtx  = moduleContext.bindingsAnalysis()
-      val bmFromMeta = ir.passData.get(BindingAnalysis)
-      if (bmFromMeta.isDefined || bmFromCtx != null) {
-        Asserts.assertInJvm(
-          bmFromCtx eq bmFromMeta.get,
-          s"BindingsMap mismatch between ModuleContext and IR in module '" +
-          moduleContext.getName() + "'. " +
-          s"BindingsMap from moduleContext: ${hex(bmFromCtx)}, BindingsMap from IR: ${hex(bmFromMeta.get)}"
-        )
-      }
-    }
-    true
   }
 
   /** Updates the metadata in a copy of the IR when updating that metadata

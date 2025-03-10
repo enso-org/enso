@@ -21,21 +21,32 @@ import {
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import { MultiSelectorOption } from './MultiSelectorOption'
+import { MultiSelectorOption, type MultiSelectorOptionProps } from './MultiSelectorOption'
+
+const OPTION_VARIANTS: Record<
+  MultiSelectorProps<never, never, never>['variant'] & {},
+  MultiSelectorOptionProps['variant'] & {}
+> = {
+  outline: 'default',
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  'separate-outline': 'outline',
+}
 
 /** * Props for the MultiSelector component. */
-export interface MultiSelectorProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
-  extends FieldStateProps<
+export interface MultiSelectorProps<
+  Schema extends TSchema,
+  TFieldName extends FieldPath<Schema, readonly T[]>,
+  T,
+> extends FieldStateProps<
       Omit<ListBoxItemProps, 'children' | 'value'> & { value: FieldValues<Schema>[TFieldName] },
       Schema,
-      TFieldName
+      TFieldName,
+      readonly T[]
     >,
     FieldProps,
     Omit<VariantProps<typeof MULTI_SELECTOR_STYLES>, 'disabled' | 'invalid'> {
-  readonly items: readonly Extract<FieldValues<Schema>[TFieldName], readonly unknown[]>[number][]
-  readonly itemToString?: (
-    item: Extract<FieldValues<Schema>[TFieldName], readonly unknown[]>[number],
-  ) => string
+  readonly items: readonly T[]
+  readonly children?: (item: T) => string
   readonly columns?: number
   readonly className?: string
   readonly style?: CSSProperties
@@ -52,7 +63,7 @@ export const MULTI_SELECTOR_STYLES = tv({
     },
     readOnly: { true: 'cursor-default' },
     size: {
-      medium: { base: '' },
+      medium: '',
     },
     rounded: {
       none: 'rounded-none',
@@ -65,9 +76,9 @@ export const MULTI_SELECTOR_STYLES = tv({
       full: 'rounded-full',
     },
     variant: {
-      outline: {
-        base: 'border-[0.5px] border-primary/20',
-      },
+      outline: 'border-[0.5px] border-primary/20',
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      'separate-outline': { listBox: 'gap-2' },
     },
   },
   defaultVariants: {
@@ -80,15 +91,20 @@ export const MULTI_SELECTOR_STYLES = tv({
   },
 })
 
+// This is a function, even though it does not contain function syntax.
+// eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-explicit-any
+const useReadonlyArrayField = Form.makeUseField<readonly any[]>()
+
 /** A horizontal multi-selector. */
 export const MultiSelector = forwardRef(function MultiSelector<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
->(props: MultiSelectorProps<Schema, TFieldName>, ref: ForwardedRef<HTMLFieldSetElement>) {
+  TFieldName extends FieldPath<Schema, readonly T[]>,
+  T,
+>(props: MultiSelectorProps<Schema, TFieldName, T>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     name,
     items,
-    itemToString = String,
+    children = String,
     isDisabled = false,
     columns,
     form,
@@ -98,24 +114,29 @@ export const MultiSelector = forwardRef(function MultiSelector<
     size,
     rounded,
     isRequired = false,
+    variant,
     ...inputProps
   } = props
 
   const privateInputRef = useRef<HTMLDivElement>(null)
 
-  const { fieldState, formInstance } = Form.useField({
+  // eslint-disable-next-line no-restricted-syntax
+  const { fieldState, formInstance } = useReadonlyArrayField({
     name,
     isDisabled,
     form,
     defaultValue,
-  })
+  }) as unknown as ReturnType<ReturnType<typeof Form.makeUseField<readonly T[]>>>
 
   const classes = MULTI_SELECTOR_STYLES({
     size,
     rounded,
     readOnly: inputProps.readOnly,
     disabled: isDisabled || formInstance.formState.isSubmitting,
+    variant,
   })
+
+  const optionVariant = OPTION_VARIANTS[variant ?? 'outline']
 
   return (
     <Form.Field
@@ -165,12 +186,17 @@ export const MultiSelector = forwardRef(function MultiSelector<
                   items.indexOf(item),
                 )}
                 onSelectionChange={(selection) => {
-                  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
                   onChange([...selection].map((key) => items[Number(key)]))
                 }}
               >
                 {items.map((item, i) => (
-                  <MultiSelectorOption key={i} id={i} value={{ item }} label={itemToString(item)} />
+                  <MultiSelectorOption
+                    key={i}
+                    id={i}
+                    value={{ item }}
+                    label={children(item)}
+                    variant={optionVariant}
+                  />
                 ))}
               </ListBox>
             )

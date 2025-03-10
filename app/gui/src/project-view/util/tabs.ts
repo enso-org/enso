@@ -1,5 +1,5 @@
+import { Icon } from '@/util/iconMetadata/iconName'
 import { assert } from './assert'
-import { Icon } from './iconName'
 
 export type TabButton<T> = { tab: T; title: string; icon: Icon }
 export type ExtractTabs<Buttons> = Buttons extends TabButton<infer T>[] ? T : never

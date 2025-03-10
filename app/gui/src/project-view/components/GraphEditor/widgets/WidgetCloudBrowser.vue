@@ -12,19 +12,38 @@ import { computed, h } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
+const writeMode = computed(
+  () => props.input[ArgumentInfoKey]?.info?.reprType.includes(WRITABLE_FILE_TYPE) ?? false,
+)
+
+const path = computed(() => {
+  if (props.input.value instanceof Ast.TextLiteral) {
+    return props.input.value.rawTextContent
+  } else if (typeof props.input.value === 'string') {
+    return Ast.TextLiteral.tryParse(props.input.value)?.rawTextContent ?? ''
+  } else {
+    return ''
+  }
+})
+
 const item: CustomDropdownItem = {
   label: 'Choose file from cloud...',
   onClick: ({ setActivity, close }) => {
     setActivity(
-      h(FileBrowserWidget, {
-        onPathSelected: (path: string) => {
-          props.onUpdate({
-            portUpdate: { value: Ast.TextLiteral.new(path), origin: props.input.portId },
-            directInteraction: true,
-          })
-          close()
-        },
-      }),
+      computed(() =>
+        h(FileBrowserWidget, {
+          writeMode: writeMode.value,
+          choosenPath: path.value,
+          onPathAccepted: (path: string) => {
+            props.onUpdate({
+              portUpdate: { value: Ast.TextLiteral.new(path), origin: props.input.portId },
+              directInteraction: true,
+            })
+            close()
+          },
+        }),
+      ),
+      true,
     )
   },
 }

@@ -23,6 +23,7 @@ type Data
     t2 self = self.data.at 1
     t3_with_nulls self = self.data.at 2
     t4_with_space self = self.data.at 3
+    t5_with_non_trivial_ws self = self.data.at 4
 
     setup = Data.Value <|
         connection = Database.connect (SQLite.In_Memory)
@@ -31,7 +32,8 @@ type Data
         t2 = Table.new [["A", [1, 2, 3]], ["B", [4, 5, 6]], ["C", [7, 8, 9]]]
         t3_with_nulls = Table.new [["A", [1, Nothing, 3]], ["B", [4, Nothing, Nothing]], ["C", [7, Nothing, Nothing]]]
         t4_with_space = Table.new [["A", ['hello', '   leading space', 'trailing space    ']], ["B", ['a', 'b', 'c']], ["C", [7, 8, 9]]]
-        [t, t2, t3_with_nulls, t4_with_space]
+        t5_with_non_trivial_ws = Table.new [["A", ['hello', 'extra \r space', 'world']], ["B", ['a', 'b', 'c']], ["C", [7, 8, 9]]]
+        [t, t2, t3_with_nulls, t4_with_space, t5_with_non_trivial_ws]
 
 
 type Foo
@@ -47,7 +49,7 @@ type Foo_Link
     to_js_object self = JS_Object.from_pairs [["x", self.x], ["links", ["a", "b", "c"]]]
 
 add_specs suite_builder =
-    make_json header data all_rows value_type has_index_col get_child_node number_of_nothing=Nothing number_of_whitespace=Nothing number_of_whitespace_sampled=Nothing =
+    make_json header data all_rows value_type has_index_col get_child_node number_of_nothing=Nothing number_of_untrimmed_whitespace=Nothing number_of_untrimmed_whitespace_sampled=Nothing number_non_trivial_ws=Nothing number_non_trivial_ws_sampled=Nothing =
         p_header      = ["header", header]
         p_data        = ["data",   data]
         p_all_rows    = ["all_rows_count", all_rows]
@@ -55,9 +57,11 @@ add_specs suite_builder =
         p_has_index_col = ["has_index_col", has_index_col]
         p_get_child_node = ["get_child_node_action", get_child_node]
         p_number_of_nothing = if number_of_nothing.is_nothing then [] else [JS_Object.from_pairs [["name", "Count nothings"], ["percentage_value", number_of_nothing]]]
-        p_number_of_whitespace = if number_of_whitespace.is_nothing then [] else [JS_Object.from_pairs [["name", "Count untrimmed whitespace"], ["percentage_value", number_of_whitespace]]]
-        p_number_of_whitespace_sampled = if number_of_whitespace_sampled.is_nothing then [] else [JS_Object.from_pairs [["name", "Count untrimmed whitespace (sampled)"], ["percentage_value", number_of_whitespace_sampled]]]
-        data_quality_metrics = p_number_of_nothing + p_number_of_whitespace + p_number_of_whitespace_sampled
+        p_number_of_untrimmed_whitespace = if number_of_untrimmed_whitespace.is_nothing then [] else [JS_Object.from_pairs [["name", "Count untrimmed whitespace"], ["percentage_value", number_of_untrimmed_whitespace]]]
+        p_number_non_trivial_ws = if number_non_trivial_ws.is_nothing then [] else [JS_Object.from_pairs [["name", "Count non trivial whitespace"], ["percentage_value", number_non_trivial_ws]]]
+        p_number_of_untrimmed_whitespace_sampled = if number_of_untrimmed_whitespace_sampled.is_nothing then [] else [JS_Object.from_pairs [["name", "Count untrimmed whitespace (sampled)"], ["percentage_value", number_of_untrimmed_whitespace_sampled]]]
+        p_number_non_trivial_ws_sampled = if number_non_trivial_ws_sampled.is_nothing then [] else [JS_Object.from_pairs [["name", "Count non trivial whitespace (sampled)"], ["percentage_value", number_non_trivial_ws_sampled]]]
+        data_quality_metrics = p_number_of_nothing + p_number_of_untrimmed_whitespace + p_number_of_untrimmed_whitespace_sampled + p_number_non_trivial_ws + p_number_non_trivial_ws_sampled
         pairs    = [p_header, p_value_type, p_data, p_all_rows, p_has_index_col, p_get_child_node, ["data_quality_metrics", data_quality_metrics], ["type", "Table"], ["child_label", "row"]]
         JS_Object.from_pairs pairs . to_text
     
@@ -86,13 +90,13 @@ add_specs suite_builder =
         group_builder.specify "should visualize dataframe tables" <|
             vis = Visualization.prepare_visualization data.t2 1
             value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
-            json = make_json header=["A", "B", "C"] data=[[1], [4], [7]] all_rows=3 value_type=[value_type_int, value_type_int, value_type_int] has_index_col=True get_child_node="get_row" number_of_nothing=[0,0,0] number_of_whitespace=[Nothing, Nothing, Nothing]
+            json = make_json header=["A", "B", "C"] data=[[1], [4], [7]] all_rows=3 value_type=[value_type_int, value_type_int, value_type_int] has_index_col=True get_child_node="get_row" number_of_nothing=[0,0,0] number_of_untrimmed_whitespace=[Nothing, Nothing, Nothing] number_non_trivial_ws=[Nothing, Nothing, Nothing]
             vis . should_equal json
 
         group_builder.specify "should visualize dataframe columns" <|
             vis = Visualization.prepare_visualization (data.t2.at "A") 2
             value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
-            json = make_json header=["A"] data=[[1, 2]] all_rows=3 value_type=[value_type_int] has_index_col=True get_child_node="get_row" number_of_nothing=[0] number_of_whitespace=[Nothing]
+            json = make_json header=["A"] data=[[1, 2]] all_rows=3 value_type=[value_type_int] has_index_col=True get_child_node="get_row" number_of_nothing=[0] number_of_untrimmed_whitespace=[Nothing] number_non_trivial_ws=[Nothing]
             vis . should_equal json
 
         group_builder.specify "should handle Vectors" <|
@@ -135,14 +139,21 @@ add_specs suite_builder =
         group_builder.specify "should indicate number of Nothing/Nulls" <|
             vis = Visualization.prepare_visualization data.t3_with_nulls 3
             value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
-            json = make_json header=["A", "B", "C"] data=[[1,Nothing,3],[4,Nothing,Nothing],[7,Nothing,Nothing]] all_rows=3 value_type=[value_type_int, value_type_int, value_type_int] has_index_col=True get_child_node="get_row" number_of_nothing=[1, 2, 2] number_of_whitespace=[Nothing, Nothing, Nothing]
+            json = make_json header=["A", "B", "C"] data=[[1,Nothing,3],[4,Nothing,Nothing],[7,Nothing,Nothing]] all_rows=3 value_type=[value_type_int, value_type_int, value_type_int] has_index_col=True get_child_node="get_row" number_of_nothing=[1, 2, 2] number_of_untrimmed_whitespace=[Nothing, Nothing, Nothing] number_non_trivial_ws=[Nothing, Nothing, Nothing]
             vis . should_equal json
 
         group_builder.specify "should indicate number of leading/trailing whitespace" <|
             vis = Visualization.prepare_visualization data.t4_with_space 3
             value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"], ["size", Nothing], ["variable_length", True]]
             value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
-            json = make_json header=["A", "B", "C"] data=[['hello', '   leading space', 'trailing space    '],['a', 'b', 'c'],[7, 8, 9]] all_rows=3 value_type=[value_type_char, value_type_char, value_type_int] has_index_col=True get_child_node="get_row" number_of_nothing=[0, 0, 0] number_of_whitespace=[2, 0, Nothing]
+            json = make_json header=["A", "B", "C"] data=[['hello', '   leading space', 'trailing space    '],['a', 'b', 'c'],[7, 8, 9]] all_rows=3 value_type=[value_type_char, value_type_char, value_type_int] has_index_col=True get_child_node="get_row" number_of_nothing=[0, 0, 0] number_of_untrimmed_whitespace=[2, 0, Nothing] number_non_trivial_ws=[0, 0, Nothing]
+            vis . should_equal json
+
+        group_builder.specify "should indicate number of non trivial whitespace" <|
+            vis = Visualization.prepare_visualization data.t5_with_non_trivial_ws 3
+            value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"], ["size", Nothing], ["variable_length", True]]
+            value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
+            json = make_json header=["A", "B", "C"] data=[['hello', 'extra \r space', 'world'],['a', 'b', 'c'],[7, 8, 9]] all_rows=3 value_type=[value_type_char, value_type_char, value_type_int] has_index_col=True get_child_node="get_row" number_of_nothing=[0, 0, 0] number_of_untrimmed_whitespace=[0,0,Nothing] number_non_trivial_ws=[1, 0, Nothing]
             vis . should_equal json
 
         group_builder.specify "should indicate number of leading/trailing whitespace with sample if more than 10000 rows" <|
@@ -154,7 +165,18 @@ add_specs suite_builder =
             space_table = Table.new [["A", space_data]]
             vis = Visualization.prepare_visualization space_table 1000
             value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"], ["size", Nothing], ["variable_length", True]]
-            json = make_json header=["A"] data=[space_data.take 1000] all_rows=11000 value_type=[value_type_char] has_index_col=True get_child_node="get_row" number_of_nothing=[0] number_of_whitespace_sampled=[8266]
+            json = make_json header=["A"] data=[space_data.take 1000] all_rows=11000 value_type=[value_type_char] has_index_col=True get_child_node="get_row" number_of_nothing=[0] number_of_untrimmed_whitespace_sampled=[8267] number_non_trivial_ws_sampled=[0]
+            vis . should_equal json
+
+        group_builder.specify "should indicate number of non trivial whitespace with sample if more than 10000 rows" <|
+            space_data = 0.up_to 11000 . map i-> case i % 3 of
+                0 -> 'hello'
+                1 -> 'I have a \r space'
+                2 -> 'So do I \r\n'
+            space_table = Table.new [["A", space_data]]
+            vis = Visualization.prepare_visualization space_table 1000
+            value_type_char = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"], ["size", Nothing], ["variable_length", True]]
+            json = make_json header=["A"] data=[space_data.take 1000] all_rows=11000 value_type=[value_type_char] has_index_col=True get_child_node="get_row" number_of_nothing=[0] number_of_untrimmed_whitespace_sampled=[3659] number_non_trivial_ws_sampled=[7285]
             vis . should_equal json
 
 main filter=Nothing =

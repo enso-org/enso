@@ -14,6 +14,7 @@ concurrency:
 
 permissions:
   checks: write
+  pull-requests: write
 
 jobs:
   engine-changed-files:
@@ -35,10 +36,15 @@ jobs:
     if: needs.engine-changed-files.outputs.any_changed == 'true' || github.ref == 'refs/heads/develop'
     secrets: inherit
 
+  stdlib-api-changes-label:
+    name: 🏷 Append labels to PR
+    uses: ./.github/workflows/std-libs-labels.yml
+    secrets: inherit
+
   required-checks:
     name: Engine Required Checks
     runs-on: ubuntu-latest
-    needs: [engine-checks]
+    needs: [engine-checks, stdlib-api-changes-label]
     if: always()
     steps:
       - name: Checks Summary

@@ -8,7 +8,6 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "noEmit": true,
-    "allowJs": true,
     "strict": true,
     "noImplicitAny": true,
     "exactOptionalPropertyTypes": true,
@@ -16,11 +15,19 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "removeComments": true,
-    "resolveJsonModule": true,
-    "sourceMap": true,
     "skipLibCheck": true,
     "target": "ES2022",
     "jsx": "react-jsx"
   },
-  "exclude": ["tools", "node_modules", "lib", "engine", "test", "dist", "docs"]
+  "exclude": [
+    "tools",
+    "node_modules",
+    "lib",
+    "engine",
+    "test",
+    "dist",
+    "docs",
+    "bazel-*",
+    "build_tools"
+  ]
 }

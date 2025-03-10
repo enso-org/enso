@@ -8,9 +8,12 @@ import { MockYdocProvider } from '@/util/crdt'
 import { MockWebSocket, MockWebSocketTransport } from '@/util/net'
 import { mockDataHandler, mockLSHandler, mockYdocProvider } from './mock/engine'
 
+import '#/styles.css'
 import '#/tailwind.css'
+import '@/assets/base.css'
+import { VueQueryPlugin } from '@tanstack/vue-query'
 import { createApp } from 'vue'
-import { AsyncApp } from './asyncApp'
+import App from '../App.vue'
 
 MockWebSocketTransport.addMock('engine', mockLSHandler)
 MockWebSocket.addMock('data', mockDataHandler)
@@ -24,26 +27,24 @@ window_.fileBrowserApi = {
   },
 }
 
-AsyncApp().then(({ default: App }) => {
-  const app = createApp(App, {
-    config: {
-      startup: {
-        project: 'Mock_Project',
-        displayedProjectName: 'Mock Project',
-      },
+const app = createApp(App, {
+  projectViewOnly: {
+    options: {
+      projectId: 'project-135af445-bcfb-42fe-aa74-96f95e99c28b',
+      projectName: 'Mock_Project',
+      projectDisplayedName: 'Mock Project',
+      projectNamespace: 'local',
       engine: {
         rpcUrl: 'mock://engine',
         dataUrl: 'mock://data',
-        namespace: 'local',
-        projectManagerUrl: '',
       },
-      window: {
-        topBarOffset: '96',
+      hidden: false,
+      logEvent: () => {},
+      renameProject: () => {
+        throw new Error('Renaming project not supported in test environment.')
       },
     },
-    projectId: 'project-135af445-bcfb-42fe-aa74-96f95e99c28b',
-    logEvent: () => {},
-    hidden: false,
-  })
-  app.mount('body')
+  },
 })
+app.use(VueQueryPlugin)
+app.mount('body')

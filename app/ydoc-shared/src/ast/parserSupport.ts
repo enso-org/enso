@@ -24,7 +24,7 @@ export abstract class LazyObject {
   /** TODO: Add docs */
   children(): LazyObject[] {
     const children: LazyObject[] = []
-    this.visitChildren(child => {
+    this.visitChildren((child) => {
       children.push(child)
     })
     return children

@@ -14,7 +14,6 @@ import * as toast from 'react-toastify'
 import invariant from 'tiny-invariant'
 
 import * as detect from 'enso-common/src/detect'
-import * as gtag from 'enso-common/src/gtag'
 
 import * as appUtils from '#/appUtils'
 
@@ -23,22 +22,29 @@ import * as gtagHooks from '#/hooks/gtagHooks'
 
 import * as backendProvider from '#/providers/BackendProvider'
 import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as modalProvider from '#/providers/ModalProvider'
 import * as sessionProvider from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
-
-import * as ariaComponents from '#/components/AriaComponents'
-import * as resultComponent from '#/components/Result'
 
 import * as backendModule from '#/services/Backend'
 import type RemoteBackend from '#/services/RemoteBackend'
 
-import * as errorModule from '#/utilities/error'
-
-import * as cognitoModule from '#/authentication/cognito'
-import type * as authServiceModule from '#/authentication/service'
+import type * as cognitoModule from '#/authentication/cognito'
 import { isOrganizationId } from '#/services/RemoteBackend'
-import { unsafeWriteValue } from '#/utilities/write'
+import { Suspense } from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
+import { Button, Text } from '../components/AriaComponents'
+import { EnsoDevtools } from '../components/Devtools'
+import Page from '../components/Page'
+import { Result } from '../components/Result'
+import { useTimeoutCallback } from '../hooks/timeoutHooks'
+import { download } from '../utilities/download'
+import { getDownloadUrl } from '../utilities/github'
+import { unsafeWriteValue } from '../utilities/write'
+import {
+  featureFlagsForInternalTesting,
+  useFeatureFlag,
+  useSetFeatureFlags,
+} from './FeatureFlagsProvider'
 
 // ===================
 // === UserSession ===
@@ -96,23 +102,8 @@ export type UserSession = FullUserSession | PartialUserSession
  * See `Cognito` for details on each of the authentication functions.
  */
 interface AuthContextType {
-  readonly signUp: (email: string, password: string, organizationId: string | null) => Promise<void>
   readonly authQueryKey: reactQuery.QueryKey
-  readonly confirmSignUp: (email: string, code: string) => Promise<void>
   readonly setUsername: (username: string) => Promise<boolean>
-  readonly signInWithGoogle: () => Promise<boolean>
-  readonly signInWithGitHub: () => Promise<boolean>
-  readonly signInWithPassword: (
-    email: string,
-    password: string,
-  ) => Promise<{
-    readonly challenge: cognitoModule.UserSessionChallenge
-    readonly user: cognitoModule.CognitoUser
-  }>
-  readonly forgotPassword: (email: string) => Promise<void>
-  readonly changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
-  readonly resetPassword: (email: string, code: string, password: string) => Promise<void>
-  readonly signOut: () => Promise<void>
   /** @deprecated Never use this function. Prefer particular functions like `setUsername` or `deleteUser`. */
   readonly setUser: (user: Partial<backendModule.User>) => void
   readonly deleteUser: () => Promise<boolean>
@@ -132,7 +123,6 @@ interface AuthContextType {
   readonly isUserDeleted: () => boolean
   /** Return `true` if the user is soft deleted. */
   readonly isUserSoftDeleted: () => boolean
-  readonly cognito: cognitoModule.Cognito
 }
 
 const AuthContext = React.createContext<AuthContextType | null>(null)
@@ -145,7 +135,6 @@ const AuthContext = React.createContext<AuthContextType | null>(null)
 function createUsersMeQuery(
   session: cognitoModule.UserSession | null,
   remoteBackend: RemoteBackend,
-  performLogout: () => Promise<void>,
 ) {
   return reactQuery.queryOptions({
     queryKey: [remoteBackend.type, 'usersMe', session?.clientId] as const,
@@ -154,28 +143,17 @@ function createUsersMeQuery(
         return Promise.resolve(null)
       }
 
-      return remoteBackend
-        .usersMe()
-        .then((user) => {
-          return user == null ?
-              ({ type: UserSessionType.partial, ...session } satisfies PartialUserSession)
-            : ({ type: UserSessionType.full, user, ...session } satisfies FullUserSession)
-        })
-        .catch((error) => {
-          if (error instanceof backendModule.NotAuthorizedError) {
-            return performLogout().then(() => null)
-          }
-
-          throw error
-        })
+      return remoteBackend.usersMe().then((user) => {
+        return user == null ?
+            ({ type: UserSessionType.partial, ...session } satisfies PartialUserSession)
+          : ({ type: UserSessionType.full, user, ...session } satisfies FullUserSession)
+      })
     },
   })
 }
 
 /** Props for an {@link AuthProvider}. */
 export interface AuthProviderProps {
-  readonly shouldStartInOfflineMode: boolean
-  readonly authService: authServiceModule.AuthService
   /** Callback to execute once the user has authenticated successfully. */
   readonly onAuthenticated: (accessToken: string | null) => void
   readonly children: React.ReactNode
@@ -183,15 +161,13 @@ export interface AuthProviderProps {
 
 /** A React provider for the Cognito API. */
 export default function AuthProvider(props: AuthProviderProps) {
-  const { authService, onAuthenticated } = props
-  const { children } = props
+  const { onAuthenticated, children } = props
+
   const remoteBackend = backendProvider.useRemoteBackend()
-  const { cognito } = authService
-  const { session, sessionQueryKey } = sessionProvider.useSession()
-  const { localStorage } = localStorageProvider.useLocalStorage()
+  const setFeatureFlags = useSetFeatureFlags()
+
+  const { session, organizationId, signOut } = sessionProvider.useSession()
   const { getText } = textProvider.useText()
-  const { unsetModal } = modalProvider.useSetModal()
-  const navigate = router.useNavigate()
   const toastId = React.useId()
 
   const queryClient = reactQuery.useQueryClient()
@@ -199,39 +175,10 @@ export default function AuthProvider(props: AuthProviderProps) {
   // This component cannot use `useGtagEvent` because `useGtagEvent` depends on the React Context
   // defined by this component.
   const gtagEvent = React.useCallback((name: string, params?: object) => {
-    gtag.event(name, params)
+    gtagHooks.event(name, params)
   }, [])
 
-  const performLogout = useEventCallback(async () => {
-    await cognito.signOut()
-
-    const parentDomain = location.hostname.replace(/^[^.]*\./, '')
-    unsafeWriteValue(document, 'cookie', `logged_in=no;max-age=0;domain=${parentDomain}`)
-    gtagEvent('cloud_sign_out')
-    cognito.saveAccessToken(null)
-    localStorage.clearUserSpecificEntries()
-    sentry.setUser(null)
-
-    await queryClient.invalidateQueries({ queryKey: sessionQueryKey })
-    await queryClient.clearWithPersister()
-
-    return Promise.resolve()
-  })
-
-  const logoutMutation = reactQuery.useMutation({
-    mutationKey: [remoteBackend.type, 'usersMe', 'logout', session?.clientId] as const,
-    mutationFn: performLogout,
-    // If the User Menu is still visible, it breaks when `userSession` is set to `null`.
-    onMutate: unsetModal,
-    onSuccess: () => toast.toast.success(getText('signOutSuccess')),
-    onError: () => toast.toast.error(getText('signOutError')),
-    meta: { invalidates: [sessionQueryKey], awaitInvalidates: true },
-  })
-
-  const usersMeQueryOptions = createUsersMeQuery(session, remoteBackend, async () => {
-    await performLogout()
-    toast.toast.info(getText('userNotAuthorizedError'))
-  })
+  const usersMeQueryOptions = createUsersMeQuery(session, remoteBackend)
 
   const usersMeQuery = reactQuery.useSuspenseQuery(usersMeQueryOptions)
   const userData = usersMeQuery.data
@@ -268,58 +215,6 @@ export default function AuthProvider(props: AuthProviderProps) {
     })
   }
 
-  const signUp = useEventCallback(
-    async (username: string, password: string, organizationId: string | null) => {
-      gtagEvent('cloud_sign_up')
-      const result = await cognito.signUp(username, password, organizationId)
-
-      if (result.err) {
-        throw new Error(result.val.message)
-      } else {
-        return
-      }
-    },
-  )
-
-  const confirmSignUp = useEventCallback(async (email: string, code: string) => {
-    gtagEvent('cloud_confirm_sign_up')
-    const result = await cognito.confirmSignUp(email, code)
-
-    if (result.err) {
-      switch (result.val.type) {
-        case cognitoModule.CognitoErrorType.userAlreadyConfirmed:
-        case cognitoModule.CognitoErrorType.userNotFound: {
-          return
-        }
-        default: {
-          throw new errorModule.UnreachableCaseError(result.val.type)
-        }
-      }
-    }
-  })
-
-  const signInWithPassword = useEventCallback(async (email: string, password: string) => {
-    gtagEvent('cloud_sign_in', { provider: 'Email' })
-
-    const result = await cognito.signInWithPassword(email, password)
-
-    if (result.ok) {
-      const user = result.unwrap()
-
-      const challenge = user.challengeName ?? 'NO_CHALLENGE'
-
-      if (['SMS_MFA', 'SOFTWARE_TOKEN_MFA'].includes(challenge)) {
-        return { challenge, user } as const
-      }
-
-      return queryClient
-        .invalidateQueries({ queryKey: sessionQueryKey })
-        .then(() => ({ challenge, user }) as const)
-    } else {
-      throw new Error(result.val.message)
-    }
-  })
-
   const refetchSession = usersMeQuery.refetch
 
   const setUsername = useEventCallback(async (username: string) => {
@@ -328,18 +223,15 @@ export default function AuthProvider(props: AuthProviderProps) {
     if (userData?.type === UserSessionType.full) {
       await updateUserMutation.mutateAsync({ username })
     } else {
-      const organizationId = await cognito.organizationId()
+      const orgId = await organizationId()
       const email = session?.email ?? ''
 
-      invariant(
-        organizationId == null || isOrganizationId(organizationId),
-        'Invalid organization ID',
-      )
+      invariant(orgId == null || isOrganizationId(orgId), 'Invalid organization ID')
 
       await createUserMutation.mutateAsync({
         userName: username,
         userEmail: backendModule.EmailAddress(email),
-        organizationId: organizationId != null ? organizationId : null,
+        organizationId: orgId != null ? orgId : null,
       })
     }
     // Wait until the backend returns a value from `users/me`,
@@ -354,6 +246,7 @@ export default function AuthProvider(props: AuthProviderProps) {
 
   const deleteUser = useEventCallback(async () => {
     await deleteUserMutation.mutateAsync()
+    await signOut()
 
     toastSuccess(getText('deleteUserSuccess'))
 
@@ -382,37 +275,6 @@ export default function AuthProvider(props: AuthProviderProps) {
 
       queryClient.setQueryData(usersMeQueryOptions.queryKey, { ...currentUser, user: nextUserData })
     }
-  })
-
-  const forgotPassword = useEventCallback(async (email: string) => {
-    const result = await cognito.forgotPassword(email)
-    if (result.ok) {
-      navigate(appUtils.LOGIN_PATH)
-      return
-    } else {
-      throw new Error(result.val.message)
-    }
-  })
-
-  const resetPassword = useEventCallback(async (email: string, code: string, password: string) => {
-    const result = await cognito.forgotPasswordSubmit(email, code, password)
-
-    if (result.ok) {
-      navigate(appUtils.LOGIN_PATH)
-      return
-    } else {
-      throw new Error(result.val.message)
-    }
-  })
-
-  const changePassword = useEventCallback(async (oldPassword: string, newPassword: string) => {
-    const result = await cognito.changePassword(oldPassword, newPassword)
-
-    if (result.err) {
-      throw new Error(result.val.message)
-    }
-
-    return result.ok
   })
 
   const isUserMarkedForDeletion = useEventCallback(
@@ -460,7 +322,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   }, [userData])
 
   React.useEffect(() => {
-    gtag.gtag('set', { platform: detect.platform(), architecture: detect.architecture() })
+    gtagHooks.gtag('set', { platform: detect.platform(), architecture: detect.architecture() })
     return gtagHooks.gtagOpenCloseCallback(gtagEvent, 'open_app', 'close_app')
   }, [gtagEvent])
 
@@ -470,64 +332,26 @@ export default function AuthProvider(props: AuthProviderProps) {
     }
   }, [userData, onAuthenticated])
 
+  React.useEffect(() => {
+    if (userData?.type === UserSessionType.full && userData.user.isEnsoTeamMember) {
+      setFeatureFlags(featureFlagsForInternalTesting())
+    }
+  }, [userData, setFeatureFlags])
+
   const value: AuthContextType = {
-    signUp,
-    confirmSignUp,
+    refetchSession,
+    session: userData,
     setUsername,
     isUserMarkedForDeletion,
     isUserDeleted,
     isUserSoftDeleted,
     restoreUser,
     deleteUser,
-    cognito,
-    signInWithGoogle: useEventCallback(() => {
-      gtagEvent('cloud_sign_in', { provider: 'Google' })
-
-      return cognito
-        .signInWithGoogle()
-        .then(() => queryClient.invalidateQueries({ queryKey: sessionQueryKey }))
-        .then(
-          () => true,
-          () => false,
-        )
-    }),
-    signInWithGitHub: useEventCallback(() => {
-      gtagEvent('cloud_sign_in', { provider: 'GitHub' })
-
-      return cognito
-        .signInWithGitHub()
-        .then(() => queryClient.invalidateQueries({ queryKey: sessionQueryKey }))
-        .then(
-          () => true,
-          () => false,
-        )
-    }),
-    signInWithPassword,
-    forgotPassword,
-    resetPassword,
-    changePassword,
-    refetchSession,
-    session: userData,
-    signOut: logoutMutation.mutateAsync,
     setUser,
     authQueryKey: usersMeQueryOptions.queryKey,
   }
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-
-      <ariaComponents.Dialog
-        aria-label={getText('loggingOut')}
-        isDismissable={false}
-        isKeyboardDismissDisabled
-        hideCloseButton
-        modalProps={{ isOpen: logoutMutation.isPending }}
-      >
-        <resultComponent.Result status="loading" title={getText('loggingOut')} />
-      </ariaComponents.Dialog>
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 // ===============
@@ -549,6 +373,19 @@ export function useAuth() {
   return context
 }
 
+/**
+ * A React Router layout route containing routes only accessible by users that are logged in.
+ */
+export function AnyLoggedInUserLayout() {
+  const { session } = useAuth()
+
+  if (session == null) {
+    return <router.Navigate to={appUtils.LOGIN_PATH} />
+  }
+
+  return <router.Outlet context={session} />
+}
+
 // =======================
 // === ProtectedLayout ===
 // =======================
@@ -559,18 +396,27 @@ export function ProtectedLayout() {
 
   if (session == null) {
     return <router.Navigate to={appUtils.LOGIN_PATH} />
-  } else if (session.type === UserSessionType.partial) {
-    return <router.Navigate to={appUtils.SETUP_PATH} />
-  } else {
-    return (
-      <>
-        {/* This div is used as a flag to indicate that the dashboard has been loaded and the user is authenticated. */}
-        {/* also it guarantees that the top-level suspense boundary is already resolved */}
-        <div data-testid="after-auth-layout" aria-hidden />
-        <router.Outlet context={session} />
-      </>
-    )
   }
+
+  if (session.type === UserSessionType.partial) {
+    return <router.Navigate to={appUtils.SETUP_PATH} />
+  }
+
+  return (
+    <>
+      {/* This div is used as a flag to indicate that the dashboard has been loaded and the user is authenticated. */}
+      {/* also it guarantees that the top-level suspense boundary is already resolved */}
+      <div data-testid="after-auth-layout" aria-hidden />
+
+      <router.Outlet context={session} />
+
+      <Suspense fallback={null}>
+        <ErrorBoundary fallbackRender={() => null}>
+          <EnsoDevtools />
+        </ErrorBoundary>
+      </Suspense>
+    </>
+  )
 }
 
 // ===========================
@@ -588,14 +434,20 @@ export function SemiProtectedLayout() {
   // The user is not logged in - redirect to the login page.
   if (session == null) {
     return <router.Navigate to={appUtils.LOGIN_PATH} replace />
-    // User is registered, redirect to dashboard or to the redirect path specified during the registration / login.
-  } else if (session.type === UserSessionType.full) {
-    const redirectTo = localStorage.delete('loginRedirect') ?? appUtils.DASHBOARD_PATH
-    return <router.Navigate to={redirectTo} replace />
-    // User is in the process of registration, allow them to complete the registration.
-  } else {
-    return <router.Outlet context={session} />
   }
+
+  // User is registered, redirect to dashboard or to the redirect path specified during the registration / login.
+  if (session.type === UserSessionType.full) {
+    return (
+      <router.Navigate
+        to={localStorage.consume('loginRedirect') ?? appUtils.DASHBOARD_PATH}
+        replace
+      />
+    )
+  }
+
+  // User is in the process of registration, allow them to complete the registration.
+  return <router.Outlet context={session} />
 }
 
 // ===================
@@ -659,6 +511,75 @@ export function SoftDeletedUserLayout() {
       return <router.Navigate to={appUtils.DASHBOARD_PATH} />
     }
   }
+}
+
+const DEFAULT_REDIRECT_DELAY_MS = 3_000
+
+/** Props for a {@link CloudBrowserDisabledLayout}. */
+export interface CloudBrowserDisabledLayoutProps {
+  /** The delay in milliseconds before redirecting to the desktop edition. */
+  readonly redirectDelayMs?: number
+  /** The path to redirect to if the user is not a full user. */
+  readonly redirectPath?: string
+}
+
+/**
+ * Layout that disables the dashboard if the cloud is disabled.
+ */
+export function CloudBrowserDisabledLayout(props: CloudBrowserDisabledLayoutProps) {
+  const { redirectDelayMs = DEFAULT_REDIRECT_DELAY_MS, redirectPath = '' } = props
+  const { session } = useAuth()
+  const { getText } = textProvider.useText()
+  const isCloudExecutionEnabled = useFeatureFlag('enableCloudExecution')
+  const [isRedirecting, setIsRedirecting] = React.useState(true)
+
+  const normalizedRedirectPath = redirectPath.startsWith('/') ? redirectPath.slice(1) : redirectPath
+
+  const path = appUtils.OPEN_IDE_DEEPLINK + normalizedRedirectPath
+
+  useTimeoutCallback({
+    callback: () => {
+      unsafeWriteValue(window.location, 'href', path)
+      setIsRedirecting(false)
+    },
+    ms: redirectDelayMs,
+    isDisabled: isCloudExecutionEnabled,
+  })
+
+  if (isCloudExecutionEnabled) {
+    return <router.Outlet context={session} />
+  }
+
+  return (
+    <Page>
+      <Result
+        status={isRedirecting ? 'loading' : 'info'}
+        title={getText('cloudBrowserDisabledTitle')}
+        subtitle={getText('cloudBrowserDisabledSubtitle')}
+      >
+        <Button.Group align="center" verticalAlign="center">
+          <Button variant="primary" href={path}>
+            {getText('openInDesktop')}
+          </Button>
+
+          <Text>{getText('or')}</Text>
+
+          <Button
+            variant="outline"
+            onPress={async () => {
+              const downloadUrl = await getDownloadUrl()
+
+              if (downloadUrl != null) {
+                download(downloadUrl)
+              }
+            }}
+          >
+            {getText('downloadIDE')}
+          </Button>
+        </Button.Group>
+      </Result>
+    </Page>
+  )
 }
 
 // =============================

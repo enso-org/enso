@@ -84,6 +84,7 @@ test('labels', ({ page }) =>
       // Labels panel with one entry
       await locateCreateButton(locateNewLabelModal(page)).click()
       await expect(locateLabelsPanel(page)).toBeVisible()
+      expect(await locateLabelsPanelLabels(page).count()).toBe(1)
 
       // Empty labels panel again, after deleting the only entry
       await locateLabelsPanelLabels(page).first().hover()
@@ -91,5 +92,5 @@ test('labels', ({ page }) =>
       const labelsPanel = locateLabelsPanel(page)
       await labelsPanel.getByRole('button').and(labelsPanel.getByLabel(TEXT.delete)).click()
       await page.getByRole('button', { name: TEXT.delete }).getByText(TEXT.delete).click()
-      expect(await locateLabelsPanelLabels(page).count()).toBeGreaterThanOrEqual(1)
+      expect(await locateLabelsPanelLabels(page).count()).toBe(0)
     }))

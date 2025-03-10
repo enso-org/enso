@@ -2,6 +2,7 @@ from Standard.Base import all
 
 from Standard.Test import all
 
+from project.Enso_Bin_Utils import all
 
 polyglot java import java.lang.System as Java_System
 polyglot java import java.io.File as Java_File
@@ -24,18 +25,6 @@ should_run_test =
 # `graalpy` is on the PATH.
 pending = if should_run_test then Nothing else """
     Won't run Python numpy example test - Python not installed.
-
-
-bin_dir =
-    p = Java_System.getProperty "jdk.module.path"
-    s = p.split Java_File.separator
-    paths = s.take (..While _!="..")
-    j = paths . join Java_File.separator
-    File.new j
-
-
-enso_bin =
-    bin_dir / if Platform.os == Platform.OS.Windows then "enso.bat" else "enso"
 
 create_new_enso_project =
     bin = enso_bin

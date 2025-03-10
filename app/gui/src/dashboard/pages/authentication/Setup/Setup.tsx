@@ -64,7 +64,7 @@ const BASE_STEPS: Step[] = [
 
       const isUserCreated = userSession?.type === UserSessionType.full
       const defaultName =
-        session && 'user' in session ? session.user.name : userSession?.email ?? ''
+        session && 'user' in session ? session.user.name : (userSession?.email ?? '')
 
       return (
         <ariaComponents.Form
@@ -351,7 +351,7 @@ export function Setup() {
 
   const [searchParams] = useSearchParams()
 
-  const userPlan = session && 'user' in session ? session.user.plan ?? Plan.free : Plan.free
+  const userPlan = session && 'user' in session ? (session.user.plan ?? Plan.free) : Plan.free
 
   const steps = BASE_STEPS
   const isDebug = searchParams.get('__qd-debg__') === 'true'
@@ -404,15 +404,15 @@ export function Setup() {
   const hideNext =
     typeof currentScreen.hideNext === 'function' ?
       currentScreen.hideNext(context)
-    : currentScreen.hideNext ?? false
+    : (currentScreen.hideNext ?? false)
   const canSkip =
     typeof currentScreen.canSkip === 'function' ?
       currentScreen.canSkip(context)
-    : currentScreen.canSkip ?? false
+    : (currentScreen.canSkip ?? false)
   const hidePrevious =
     typeof currentScreen.hidePrevious === 'function' ?
       currentScreen.hidePrevious(context)
-    : currentScreen.hidePrevious ?? false
+    : (currentScreen.hidePrevious ?? false)
 
   return (
     <Page>

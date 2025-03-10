@@ -5,9 +5,9 @@ import * as backend from '#/services/Backend'
 import type * as remoteBackend from '#/services/RemoteBackend'
 import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 
-import * as dateTime from '#/utilities/dateTime'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
+import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 import * as uniqueString from 'enso-common/src/utilities/uniqueString'
 
 import * as actions from '.'
@@ -18,10 +18,6 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import invariant from 'tiny-invariant'
-
-// =================
-// === Constants ===
-// =================
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -59,6 +55,17 @@ const GLOB_TAG_ID = backend.TagId('*')
 const GLOB_CHECKOUT_SESSION_ID = backend.CheckoutSessionId('*')
 const BASE_URL = 'https://mock/'
 const MOCK_S3_BUCKET_URL = 'https://mock-s3-bucket.com/'
+
+const lastDate = new Date(0)
+
+function newDate() {
+  let date = new Date()
+  while (Number(date) === Number(lastDate)) {
+    // Busy loop until date is different.
+    date = new Date()
+  }
+  return dateTime.toRfc3339(date)
+}
 
 function array<T>(): Readonly<T>[] {
   return []
@@ -103,7 +110,7 @@ const INITIAL_CALLS_OBJECT = {
   updateDirectory: array<
     { directoryId: backend.DirectoryId } & backend.UpdateDirectoryRequestBody
   >(),
-  deleteAsset: array<{ assetId: backend.AssetId }>(),
+  deleteAsset: array<{ assetId: backend.AssetId; force: boolean }>(),
   undoDeleteAsset: array<{ assetId: backend.AssetId }>(),
   createUser: array<backend.CreateUserRequestBody>(),
   createUserGroup: array<backend.CreateUserGroupRequestBody>(),
@@ -168,6 +175,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     userGroups: null,
     plan: backend.Plan.solo,
     isOrganizationAdmin: true,
+    isEnsoTeamMember: true,
   }
   const defaultOrganization: backend.OrganizationInfo = {
     id: defaultOrganizationId,
@@ -178,6 +186,14 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     website: null,
     subscription: {},
   }
+
+  let featureFlags: Partial<FeatureFlags> = {
+    enableCloudExecution: true,
+    enableAsyncExecution: true,
+    enableAdvancedProjectExecutionOptions: true,
+    enableAssetsTableBackgroundRefresh: false,
+  }
+
   const callsObjects = new Set<typeof INITIAL_CALLS_OBJECT>()
   let totalSeats = 1
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -283,6 +299,17 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     return !alreadyDeleted
   }
 
+  const forceDeleteAsset = (assetId: backend.AssetId) => {
+    const hasAsset = assetMap.has(assetId)
+    deletedAssets.delete(assetId)
+    assetMap.delete(assetId)
+    assets.splice(
+      assets.findIndex((asset) => asset.id === assetId),
+      1,
+    )
+    return hasAsset
+  }
+
   const undeleteAsset = (assetId: backend.AssetId) => {
     const wasDeleted = deletedAssets.has(assetId)
     deletedAssets.delete(assetId)
@@ -317,17 +344,10 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     )
 
   const createUserGroupPermission = (
-    userGroup: backend.UserGroupInfo,
+    userGroup: backend.UserGroup,
     permission: permissions.PermissionAction = permissions.PermissionAction.own,
     rest: Partial<backend.UserGroupPermission> = {},
-  ): backend.UserGroupPermission =>
-    object.merge(
-      {
-        userGroup,
-        permission,
-      },
-      rest,
-    )
+  ): backend.UserGroupPermission => object.merge({ userGroup, permission }, rest)
 
   const createDirectory = (rest: Partial<backend.DirectoryAsset> = {}): backend.DirectoryAsset => {
     const parentId = rest.parentId ?? defaultDirectoryId
@@ -347,13 +367,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         projectState: null,
         extension: null,
         title,
-        modifiedAt: dateTime.toRfc3339(new Date()),
+        modifiedAt: newDate(),
         description: rest.description ?? '',
         labels: [],
         parentId,
         permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
-        parentsPath: '',
-        virtualParentsPath: '',
+        parentsPath: backend.ParentsPath(''),
+        virtualParentsPath: backend.VirtualParentsPath(''),
       },
       rest,
     )
@@ -400,13 +420,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         },
         extension: null,
         title,
-        modifiedAt: dateTime.toRfc3339(new Date()),
+        modifiedAt: newDate(),
         description: rest.description ?? '',
         labels: [],
         parentId: defaultDirectoryId,
         permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
-        parentsPath: '',
-        virtualParentsPath: '',
+        parentsPath: backend.ParentsPath(''),
+        virtualParentsPath: backend.VirtualParentsPath(''),
       },
       rest,
     )
@@ -441,13 +461,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         projectState: null,
         extension: '',
         title: rest.title ?? '',
-        modifiedAt: dateTime.toRfc3339(new Date()),
+        modifiedAt: newDate(),
         description: rest.description ?? '',
         labels: [],
         parentId: defaultDirectoryId,
         permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
-        parentsPath: '',
-        virtualParentsPath: '',
+        parentsPath: backend.ParentsPath(''),
+        virtualParentsPath: backend.VirtualParentsPath(''),
       },
       rest,
     )
@@ -483,13 +503,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         projectState: null,
         extension: null,
         title: rest.title ?? '',
-        modifiedAt: dateTime.toRfc3339(new Date()),
+        modifiedAt: newDate(),
         description: rest.description ?? '',
         labels: [],
         parentId: defaultDirectoryId,
-        permissions: [],
-        parentsPath: '',
-        virtualParentsPath: '',
+        permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
+        parentsPath: backend.ParentsPath(''),
+        virtualParentsPath: backend.VirtualParentsPath(''),
       },
       rest,
     )
@@ -517,6 +537,48 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     return secret
   }
 
+  const createDatalink = (rest: Partial<backend.DatalinkAsset>): backend.DatalinkAsset => {
+    const datalink = object.merge(
+      {
+        type: backend.AssetType.datalink,
+        id: backend.DatalinkId('datalink-' + uniqueString.uniqueString()),
+        projectState: null,
+        extension: null,
+        title: rest.title ?? '',
+        modifiedAt: newDate(),
+        description: rest.description ?? '',
+        labels: [],
+        parentId: defaultDirectoryId,
+        permissions: [createUserPermission(defaultUser, permissions.PermissionAction.own)],
+        parentsPath: backend.ParentsPath(''),
+        virtualParentsPath: backend.VirtualParentsPath(''),
+      },
+      rest,
+    )
+
+    Object.defineProperty(datalink, 'toJSON', {
+      value: function toJSON() {
+        const { parentsPath: _, virtualParentsPath: __, ...rest } = this
+
+        return {
+          ...rest,
+          parentsPath: this.parentsPath,
+          virtualParentsPath: this.virtualParentsPath,
+        }
+      },
+    })
+
+    Object.defineProperty(datalink, 'parentsPath', {
+      get: () => getParentPath(datalink.parentId),
+    })
+
+    Object.defineProperty(datalink, 'virtualParentsPath', {
+      get: () => getVirtualParentPath(datalink.parentId, datalink.title),
+    })
+
+    return datalink
+  }
+
   const createLabel = (value: string, color: backend.LChColor): backend.Label => ({
     id: backend.TagId('tag-' + uniqueString.uniqueString()),
     value: backend.LabelName(value),
@@ -537,6 +599,10 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
 
   const addSecret = (rest: Partial<backend.SecretAsset> = {}) => {
     return addAsset(createSecret(rest))
+  }
+
+  const addDatalink = (rest: Partial<backend.DatalinkAsset> = {}) => {
+    return addAsset(createDatalink(rest))
   }
 
   const addLabel = (value: string, color: backend.LChColor) => {
@@ -593,6 +659,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       userGroups: null,
       plan: backend.Plan.enterprise,
       isOrganizationAdmin: true,
+      isEnsoTeamMember: true,
       ...rest,
     }
     users.push(user)
@@ -1109,6 +1176,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     })
 
     await delete_(remoteBackendPaths.deleteAssetPath(GLOB_ASSET_ID), async (route, request) => {
+      const force = new URL(request.url()).searchParams.get('force') === 'true'
       const maybeId = request.url().match(/[/]assets[/]([^?]+)/)?.[1]
 
       if (!maybeId) return
@@ -1117,9 +1185,13 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       // `DirectoryId` to make TypeScript happy.
       const assetId = decodeURIComponent(maybeId) as backend.DirectoryId
 
-      called('deleteAsset', { assetId })
+      called('deleteAsset', { assetId, force })
 
-      deleteAsset(assetId)
+      if (force) {
+        forceDeleteAsset(assetId)
+      } else {
+        deleteAsset(assetId)
+      }
 
       await route.fulfill({ status: HTTP_STATUS_NO_CONTENT })
     })
@@ -1173,6 +1245,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         rootDirectoryId,
         userGroups: null,
         isOrganizationAdmin: true,
+        isEnsoTeamMember: true,
       }
       return currentUser
     })
@@ -1260,7 +1333,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
         description: null,
         id,
         labels: [],
-        modifiedAt: dateTime.toRfc3339(new Date()),
+        modifiedAt: newDate(),
         parentId,
         permissions: [
           {
@@ -1365,6 +1438,9 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     defaultUser,
     defaultUserId,
     rootDirectoryId: defaultDirectoryId,
+    get assetCount() {
+      return assetMap.size
+    },
     goOffline: () => {
       isOnline = false
     },
@@ -1395,10 +1471,12 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     createProject,
     createFile,
     createSecret,
+    createDatalink,
     addDirectory,
     addProject,
     addFile,
     addSecret,
+    addDatalink,
     createLabel,
     addLabel,
     setLabels,
@@ -1410,17 +1488,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
     createUserPermission,
     createUserGroupPermission,
     setFeatureFlags: (flags: Partial<FeatureFlags>) => {
-      return page.addInitScript((flags: Partial<FeatureFlags>) => {
-        const currentOverrideFeatureFlags =
-          'overrideFeatureFlags' in window && typeof window.overrideFeatureFlags === 'object' ?
-            window.overrideFeatureFlags
-          : {}
-
-        Object.defineProperty(window, 'overrideFeatureFlags', {
-          value: { ...currentOverrideFeatureFlags, ...flags },
-          writable: false,
-        })
-      }, flags)
+      featureFlags = { ...featureFlags, ...flags }
     },
     // TODO:
     // addPermission,
@@ -1433,6 +1501,17 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
   if (setupAPI) {
     await setupAPI(api)
   }
+
+  await page.addInitScript((flags) => {
+    Object.defineProperty(window, 'overrideFeatureFlags', {
+      value: flags,
+      writable: false,
+      configurable: false,
+    })
+  }, featureFlags)
+
+  // Disallow any changes to the feature flags after the mock API has been initialized.
+  featureFlags = Object.freeze({})
 
   return api
 }

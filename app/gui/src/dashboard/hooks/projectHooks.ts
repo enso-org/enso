@@ -9,7 +9,6 @@ import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'
 import {
-  TabType,
   useAddLaunchedProject,
   useProjectsStore,
   useRemoveLaunchedProject,
@@ -41,7 +40,6 @@ const DEFAULT_INTERVAL_MS = 120_000
 /** Options for {@link createGetProjectDetailsQuery}. */
 export interface CreateOpenedProjectQueryOptions {
   readonly assetId: backendModule.Asset<backendModule.AssetType.project>['id']
-  readonly parentId: backendModule.Asset<backendModule.AssetType.project>['parentId']
   readonly backend: Backend
 }
 
@@ -128,13 +126,13 @@ export function getTimeoutBasedOnTheBackendType(backendType: backendModule.Backe
 
 /** Project status query.  */
 export function createGetProjectDetailsQuery(options: CreateOpenedProjectQueryOptions) {
-  const { assetId, parentId, backend } = options
+  const { assetId, backend } = options
 
   const isLocal = backend.type === backendModule.BackendType.local
 
   return reactQuery.queryOptions({
     queryKey: createGetProjectDetailsQuery.getQueryKey(assetId),
-    queryFn: () => backend.getProjectDetails(assetId, parentId),
+    queryFn: () => backend.getProjectDetails(assetId),
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
@@ -278,12 +276,22 @@ export function useCloseProjectMutation() {
 
       void client.cancelQueries({ queryKey })
     },
-    onSuccess: async (_, { type, id, parentId }) => {
+    onSuccess: async (_, { type, id, parentId, cloudProjectId }) => {
       await client.resetQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
       setProjectAsset(type, id, parentId, (asset) => ({
         ...asset,
         projectState: { ...asset.projectState, type: backendModule.ProjectState.closed },
       }))
+
+      // If the project runs in hybrid execution mode
+      // TODO: implement proper handling of upload failures
+      if (cloudProjectId) {
+        invariant(localBackend != null, 'LocalBackend is null')
+
+        await remoteBackend.uploadProject(cloudProjectId, parentId)
+
+        await localBackend.deleteAsset(parentId, { force: true }, null)
+      }
     },
     onError: async (_, { type, id, parentId }) => {
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })
@@ -383,6 +391,7 @@ export function useCloseProject() {
   const closeProjectMutation = useCloseProjectMutation()
   const removeLaunchedProject = useRemoveLaunchedProject()
   const setPage = useSetPage()
+  const projectsStore = useProjectsStore()
 
   return eventCallbacks.useEventCallback((project: LaunchedProject) => {
     client
@@ -412,7 +421,9 @@ export function useCloseProject() {
 
     removeLaunchedProject(project.id)
 
-    setPage(TabType.drive)
+    if (projectsStore.getState().page === project.id) {
+      setPage('drive')
+    }
   })
 }
 

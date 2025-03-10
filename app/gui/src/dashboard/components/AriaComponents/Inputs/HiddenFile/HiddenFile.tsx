@@ -11,11 +11,12 @@ import {
 import { Input, type InputProps } from '#/components/aria'
 
 /** Props for {@link HiddenFile}. */
-export interface HiddenFileProps<Schema extends TSchema, TFieldName extends FieldPath<Schema>>
+export interface HiddenFileProps<Schema extends TSchema, TFieldName extends FieldPath<Schema, File>>
   extends FieldStateProps<
       Omit<InputProps, 'children' | 'value'> & { value: FieldValues<Schema>[TFieldName] },
       Schema,
-      TFieldName
+      TFieldName,
+      File
     >,
     FieldProps,
     FieldVariantProps {
@@ -25,7 +26,7 @@ export interface HiddenFileProps<Schema extends TSchema, TFieldName extends Fiel
 }
 
 /** A hidden file input. */
-export function HiddenFile<Schema extends TSchema, TFieldName extends FieldPath<Schema>>(
+export function HiddenFile<Schema extends TSchema, TFieldName extends FieldPath<Schema, File>>(
   props: HiddenFileProps<Schema, TFieldName>,
 ) {
   const {

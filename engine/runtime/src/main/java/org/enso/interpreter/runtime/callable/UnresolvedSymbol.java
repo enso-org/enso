@@ -66,6 +66,7 @@ public final class UnresolvedSymbol extends EnsoObject {
    * @param type the type for which this symbol should be resolved
    * @return the resolved function definition and type it was resolved in, or null if not found
    */
+  @TruffleBoundary
   public Pair<Function, Type> resolveFor(Node node, Type type) {
     if (type != null) {
       for (var current : type.allTypes(EnsoContext.get(node))) {
@@ -123,7 +124,7 @@ public final class UnresolvedSymbol extends EnsoObject {
         @CachedLibrary("symbol") InteropLibrary thisLib)
         throws ArityException {
       return interopMethodCallNode.execute(
-          symbol, EnsoContext.get(thisLib).emptyState(), arguments);
+          symbol, EnsoContext.get(thisLib).currentState(), arguments);
     }
   }
 

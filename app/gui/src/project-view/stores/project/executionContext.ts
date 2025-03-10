@@ -1,14 +1,16 @@
+import { type ProjectNameStore } from '@/stores/projectNames'
 import { assert } from '@/util/assert'
 import { findDifferenceIndex } from '@/util/data/array'
 import { isSome, type Opt } from '@/util/data/opt'
 import { Err, Ok, ResultError, type Result } from '@/util/data/result'
-import { AsyncQueue, type AbortScope } from '@/util/net'
 import {
-  qnReplaceProjectName,
-  tryIdentifier,
-  tryQualifiedName,
-  type Identifier,
-} from '@/util/qualifiedName'
+  methodPointerEquals,
+  stackItemsEqual,
+  type ExplicitCall,
+  type MethodPointer,
+  type StackItem,
+} from '@/util/methodPointer'
+import { AsyncQueue, type AbortScope } from '@/util/net'
 import * as array from 'lib0/array'
 import { ObservableV2 } from 'lib0/observable'
 import * as random from 'lib0/random'
@@ -19,18 +21,16 @@ import {
   RemoteRpcError,
   type LanguageServer,
 } from 'ydoc-shared/languageServer'
-import {
-  methodPointerEquals,
-  stackItemsEqual,
-  type ContextId,
-  type Diagnostic,
-  type ExecutionEnvironment,
-  type ExplicitCall,
-  type ExpressionId,
-  type ExpressionUpdate,
-  type StackItem,
-  type Uuid,
-  type VisualizationConfiguration,
+import type {
+  ContextId,
+  Diagnostic,
+  ExecutionEnvironment,
+  ExpressionId,
+  ExpressionUpdate,
+  LSMethodPointer,
+  StackItem as LSStackItem,
+  VisualizationConfiguration as LSVisualizationConfiguration,
+  Uuid,
 } from 'ydoc-shared/languageServerTypes'
 import { exponentialBackoff } from 'ydoc-shared/util/net'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
@@ -38,6 +38,11 @@ import type { ExternalId } from 'ydoc-shared/yjsModel'
 // This constant should be synchronized with EXECUTION_ENVIRONMENT constant in
 // engine/runtime/src/main/java/org/enso/interpreter/EnsoLanguage.java
 const DEFAULT_ENVIRONMENT: ExecutionEnvironment = 'Design'
+
+export type VisualizationConfiguration = Omit<LSVisualizationConfiguration, 'expression'> & {
+  /** An expression that creates a visualization. */
+  expression: string | MethodPointer
+}
 
 export type NodeVisualizationConfiguration = Omit<
   VisualizationConfiguration,
@@ -131,6 +136,7 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
     private lsRpc: LanguageServer,
     entryPoint: EntryPoint,
     private abort: AbortScope,
+    private readonly projectNames: ProjectNameStore,
   ) {
     super()
     this.abort.handleDispose(this)
@@ -185,59 +191,11 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
         this.clearScheduled = true
       }
     })
-    this.lsRpc.on('refactoring/projectRenamed', ({ oldNormalizedName, newNormalizedName }) => {
-      const newIdent = tryIdentifier(newNormalizedName)
-      if (!newIdent.ok) {
-        console.error(
-          `Cannot update project name in execution stack: new name ${newNormalizedName} is not a valid identifier!`,
-        )
-        return
-      }
-      ExecutionContext.replaceProjectNameInStack(
-        this._desiredStack,
-        oldNormalizedName,
-        newIdent.value,
-      )
-      if (this.syncStatus === SyncStatus.SYNCED) {
-        this.queue.pushTask((state) => {
-          if (state.status !== 'created') return Promise.resolve(state)
-          ExecutionContext.replaceProjectNameInStack(state.stack, oldNormalizedName, newIdent.value)
-          return Promise.resolve(state)
-        })
-      } else {
-        // Engine updates project name in its execution context frames by itself. But if we are out
-        // of sync, we have no guarantee if the stack wasn't set with old name after project rename.
-        // It's safer to just re-sync the stack.
-        this.sync()
-      }
-    })
   }
 
   private pushItem(item: StackItem) {
     this._desiredStack.push(item)
     this.sync()
-  }
-
-  private static replaceProjectNameInStack(
-    stack: StackItem[],
-    oldName: string,
-    newName: Identifier,
-  ) {
-    const updatedField = (value: string) => {
-      const qn = tryQualifiedName(value)
-      if (qn.ok) {
-        return qnReplaceProjectName(qn.value, oldName, newName)
-      } else {
-        console.warn(`Invalid qualified name in execution context stack: ${value}`)
-        return value
-      }
-    }
-    for (const item of stack) {
-      if (item.type === 'ExplicitCall') {
-        item.methodPointer.module = updatedField(item.methodPointer.module)
-        item.methodPointer.definedOnType = updatedField(item.methodPointer.definedOnType)
-      }
-    }
   }
 
   /**
@@ -428,7 +386,11 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
             // Desired stack is matching current state, but it is longer. We need to push the next item.
             const newItem = this._desiredStack[state.stack.length]!
             const pushResult = await this.withBackoff(
-              () => this.lsRpc.pushExecutionContextItem(this.id, newItem),
+              () =>
+                this.lsRpc.pushExecutionContextItem(
+                  this.id,
+                  serializeStackItem(newItem, this.projectNames),
+                ),
               'Failed to push execution stack frame',
             )
             if (pushResult.ok) state.stack.push(newItem)
@@ -450,7 +412,10 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
             () =>
               this.lsRpc.attachVisualization(id, config.expressionId, {
                 executionContextId: this.id,
-                expression: config.expression,
+                expression:
+                  typeof config.expression === 'string' ?
+                    config.expression
+                  : serializeMethodPointer(config.expression, this.projectNames),
                 visualizationModule: config.visualizationModule,
                 ...(config.positionalArgumentsExpressions ?
                   { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
@@ -467,7 +432,10 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
             () =>
               this.lsRpc.modifyVisualization(id, {
                 executionContextId: this.id,
-                expression: config.expression,
+                expression:
+                  typeof config.expression === 'string' ?
+                    config.expression
+                  : serializeMethodPointer(config.expression, this.projectNames),
                 visualizationModule: config.visualizationModule,
                 ...(config.positionalArgumentsExpressions ?
                   { positionalArgumentsExpressions: config.positionalArgumentsExpressions }
@@ -571,5 +539,25 @@ export class ExecutionContext extends ObservableV2<ExecutionContextNotification>
         }
       }
     }
+  }
+}
+
+function serializeStackItem(stackItem: StackItem, projectNames: ProjectNameStore): LSStackItem {
+  return stackItem.type === 'ExplicitCall' ?
+      {
+        ...stackItem,
+        methodPointer: serializeMethodPointer(stackItem.methodPointer, projectNames),
+      }
+    : stackItem
+}
+
+function serializeMethodPointer(
+  methodPointer: MethodPointer,
+  projectNames: ProjectNameStore,
+): LSMethodPointer {
+  return {
+    module: projectNames.serializeProjectPathForBackend(methodPointer.module),
+    definedOnType: projectNames.serializeProjectPathForBackend(methodPointer.definedOnType),
+    name: methodPointer.name,
   }
 }

@@ -44,10 +44,6 @@ export default function TabBar<T extends object>(props: TabBarProps<T>) {
   )
 }
 
-// ===========
-// === Tab ===
-// ===========
-
 /** Props for a {@link Tab}. */
 export interface TabProps extends Readonly<React.PropsWithChildren> {
   readonly 'data-testid'?: string
@@ -134,9 +130,7 @@ export function Tab(props: TabProps) {
   )
 }
 
-/**
- * Props for a {@link ProjectTab}.
- */
+/** Props for a {@link ProjectTab}. */
 export interface ProjectTabProps extends Omit<TabProps, 'onClose'> {
   readonly project: LaunchedProject
   readonly onLoadEnd?: (project: LaunchedProject) => void
@@ -145,9 +139,7 @@ export interface ProjectTabProps extends Omit<TabProps, 'onClose'> {
 
 const SPINNER = <StatelessSpinner state="loading-medium" size={16} />
 
-/**
- * Project Tab is a {@link Tab} that displays the name of the project.
- */
+/** A {@link Tab} that displays the name of the project. */
 export function ProjectTab(props: ProjectTabProps) {
   const { project, onLoadEnd, onClose, icon: iconRaw, ...rest } = props
 
@@ -169,7 +161,6 @@ export function ProjectTab(props: ProjectTabProps) {
   } = reactQuery.useQuery({
     ...projectHooks.createGetProjectDetailsQuery({
       assetId: project.id,
-      parentId: project.parentId,
       backend,
     }),
     select: (data) => projectHooks.OPENED_PROJECT_STATES.has(data.state.type),

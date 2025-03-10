@@ -17,11 +17,13 @@ import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { useGraphEditorClipboard } from '@/components/GraphEditor/clipboard'
 import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
+import { registerSelectionActionHandlers } from '@/components/GraphEditor/selectionActions'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { uploadedExpression, Uploader } from '@/components/GraphEditor/upload'
 import GraphMissingView from '@/components/GraphMissingView.vue'
 import GraphMouse from '@/components/GraphMouse.vue'
 import PlusButton from '@/components/PlusButton.vue'
+import RightDockPanel from '@/components/RightDockPanel.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
 import { builtinWidgets } from '@/components/widgets'
@@ -29,7 +31,6 @@ import { useDoubleClick } from '@/composables/doubleClick'
 import { keyboardBusy, keyboardBusyExceptIn, unrefElement, useEvent } from '@/composables/events'
 import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
-import { provideGraphEditorLayers } from '@/providers/graphEditorLayers'
 import { provideGraphEditorState } from '@/providers/graphEditorState'
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -39,7 +40,6 @@ import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
 import { provideInteractionHandler } from '@/providers/interactionHandler'
 import { provideKeyboard } from '@/providers/keyboard'
-import { provideSelectionButtons } from '@/providers/selectionButtons'
 import { provideWidgetRegistry } from '@/providers/widgetRegistry'
 import type { Node, NodeId } from '@/stores/graph'
 import { provideGraphStore } from '@/stores/graph'
@@ -48,6 +48,7 @@ import type { RequiredImport } from '@/stores/graph/imports'
 import { providePersisted } from '@/stores/persisted'
 import { useProjectStore } from '@/stores/project'
 import { provideNodeExecution } from '@/stores/project/nodeExecution'
+import { injectProjectNames } from '@/stores/projectNames'
 import { provideRightDock, StorageMode } from '@/stores/rightDock'
 import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId, Typename } from '@/stores/suggestionDatabase/entry'
@@ -73,13 +74,12 @@ import {
   watch,
   type ComponentInstance,
 } from 'vue'
-import { isDevMode } from 'ydoc-shared/util/detect'
-import RightDockPanel from './RightDockPanel.vue'
 
 const keyboard = provideKeyboard()
 const projectStore = useProjectStore()
-const suggestionDb = provideSuggestionDbStore(projectStore)
-const graphStore = provideGraphStore(projectStore, suggestionDb)
+const projectNames = injectProjectNames()
+const suggestionDb = provideSuggestionDbStore(projectStore, projectNames)
+const graphStore = provideGraphStore(projectStore, suggestionDb, projectNames)
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
 const _visualizationStore = provideVisualizationStore(projectStore)
 
@@ -88,7 +88,7 @@ provideNodeExecution(projectStore)
 
 onMounted(() => {
   widgetRegistry.loadWidgets(Object.entries(builtinWidgets))
-  if (isDevMode) {
+  if (import.meta.env.DEV) {
     ;(window as any).suggestionDb = toRaw(suggestionDb.entries)
   }
 })
@@ -104,15 +104,6 @@ const graphNavigator: GraphNavigator = provideGraphNavigator(viewportNode, keybo
   predicate: (e) => (e instanceof KeyboardEvent ? nodeSelection.selected.size === 0 : true),
 })
 
-// === Exposed layers ===
-
-const rootNode = ref<HTMLElement>()
-const floatingLayer = ref<HTMLElement>()
-provideGraphEditorLayers({
-  fullscreen: rootNode,
-  floating: floatingLayer,
-})
-
 // === Client saved state ===
 
 const persisted = providePersisted(
@@ -122,7 +113,7 @@ const persisted = providePersisted(
   () => zoomToAll(true),
 )
 
-const rightDock = provideRightDock(graphStore, persisted)
+const rightDock = provideRightDock(graphStore, projectStore, persisted)
 
 // === Zoom/pan ===
 
@@ -161,8 +152,10 @@ function panToSelected() {
 
 // == Breadcrumbs ==
 
-const stackNavigator = provideStackNavigator(projectStore, graphStore)
-const graphMissing = computed(() => graphStore.moduleRoot != null && !graphStore.methodAst.ok)
+const stackNavigator = provideStackNavigator(projectStore, graphStore, projectNames)
+const graphMissing = computed(
+  () => graphStore.moduleRoot != null && !graphStore.currentMethod.ast.ok,
+)
 
 // === Toasts ===
 
@@ -177,6 +170,7 @@ const nodeSelection = provideGraphSelection(
   {
     isValid: (id) => graphStore.db.isNodeId(id),
     onSelected: (id) => graphStore.db.moveNodeToTop(id),
+    onSoleSelected: (id) => graphStore.db.moveNodeToTop(id),
     toSorted: (ids) => {
       const idsSet = new Set(ids)
       const inputNodes = [
@@ -226,7 +220,7 @@ const { copyNodesToClipboard, createNodesFromClipboard } = useGraphEditorClipboa
 
 // === Selection Buttons ===
 
-const { buttons: selectionButtons } = provideSelectionButtons(
+const selectionHandlers = registerSelectionActionHandlers(
   () =>
     iter.filterDefined(
       iter.map(
@@ -291,7 +285,7 @@ const graphBindingsHandler = graphBindings.handler({
       createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
     }
   },
-  deleteSelected: selectionButtons.deleteSelected.action!,
+  deleteSelected: selectionHandlers['components.deleteSelected'].action,
   zoomToSelected() {
     zoomToSelected()
   },
@@ -315,11 +309,11 @@ const graphBindingsHandler = graphBindings.handler({
       }
     })
   },
-  copyNode: selectionButtons.copy.action!,
+  copyNode: selectionHandlers['components.copy'].action,
   pasteNode() {
     createNodesFromClipboard()
   },
-  collapse: selectionButtons.collapse.action!,
+  collapse: selectionHandlers['components.collapse'].action,
   enterNode() {
     const selectedNode = set.first(nodeSelection.selected)
     if (selectedNode) {
@@ -330,7 +324,7 @@ const graphBindingsHandler = graphBindings.handler({
     stackNavigator.exitNode()
   },
   changeColorSelectedNodes() {
-    selectionButtons.pickColorMulti.state = true
+    selectionHandlers['components.pickColorMulti'].toggled.value = true
   },
   openDocumentation() {
     const result = tryGetSelectionDocUrl()
@@ -539,7 +533,7 @@ function collapseNodes(nodes: Node[]) {
       toasts.userActionFailed.show(`Unable to group nodes: ${info.error.payload}.`)
       return
     }
-    const currentMethodName = unwrapOr(graphStore.currentMethodPointer, undefined)?.name
+    const currentMethodName = unwrapOr(graphStore.currentMethod.pointer, undefined)?.name
     if (currentMethodName == null) {
       bail(`Cannot get the method name for the current execution stack item.`)
     }
@@ -580,7 +574,7 @@ async function handleFileDrop(event: DragEvent) {
   if (!event.dataTransfer?.items) return
   ;[...event.dataTransfer.items].forEach(async (item, index) => {
     if (item.kind === 'file') {
-      if (!graphStore.methodAst.ok) return
+      if (!graphStore.currentMethod.ast.ok) return
       const file = item.getAsFile()
       if (!file) return
       const clientPos = new Vec2(event.clientX, event.clientY)
@@ -592,7 +586,7 @@ async function handleFileDrop(event: DragEvent) {
         pos,
         projectStore.isOnLocalBackend,
         event.shiftKey,
-        graphStore.methodAst.value.externalId,
+        graphStore.currentMethod.ast.value.externalId,
       )
       const uploadResult = await uploader.upload()
       if (uploadResult.ok) {
@@ -624,7 +618,7 @@ const groupColors = computed(() => {
 
 <template>
   <div
-    ref="rootNode"
+    id="graphEditorRoot"
     class="GraphEditor"
     :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     :style="groupColors"
@@ -641,7 +635,12 @@ const groupColors = computed(() => {
             @createNodes="createNodesFromSource"
             @toggleDocPanel="toggleRightDockHelpPanel"
           />
-          <GraphEdges :navigator="graphNavigator" @createNodeFromEdge="handleEdgeDrop" />
+          <GraphEdges
+            :navigator="graphNavigator"
+            @createNodeFromEdge="handleEdgeDrop"
+            @createNodeFromPort="createNodesFromSource"
+            @outputPortDoubleClick="handleNodeOutputPortDoubleClick"
+          />
           <ComponentBrowser
             v-if="componentBrowserOpened"
             ref="componentBrowser"
@@ -672,11 +671,6 @@ const groupColors = computed(() => {
           :scrollableArea="Rect.Bounding(...graphStore.visibleNodeAreas)"
         />
         <GraphMouse />
-        <div
-          ref="floatingLayer"
-          class="floatingLayer"
-          :style="{ transform: graphNavigator.transform }"
-        />
       </div>
       <BottomPanel v-model:show="showCodeEditor">
         <Suspense>
@@ -690,11 +684,8 @@ const groupColors = computed(() => {
 
 <style scoped>
 .GraphEditor {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  width: 100%;
+  height: 100%;
   contain: layout;
   user-select: none;
   /* Prevent touchpad back gesture, which can be triggered while panning. */
@@ -730,20 +721,5 @@ const groupColors = computed(() => {
   touch-action: none;
   --node-color-no-type: #596b81;
   --output-node-color: #006b8a;
-}
-
-.floatingLayer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  /* The size isn't important, except it must be non-zero for `floating-ui` to calculate the scale factor. */
-  width: 1px;
-  height: 1px;
-  contain: layout size style;
-  will-change: transform;
-  pointer-events: none;
-  > * {
-    pointer-events: auto;
-  }
 }
 </style>

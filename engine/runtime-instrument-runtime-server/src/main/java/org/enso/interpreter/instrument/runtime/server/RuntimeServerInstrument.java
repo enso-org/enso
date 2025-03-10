@@ -108,7 +108,7 @@ public class RuntimeServerInstrument extends TruffleInstrument {
   @Override
   protected void onCreate(Env env) {
     this.env = env;
-    env.registerService(this);
+
     if (TruffleOptions.AOT) {
       this.handler = HandlerFactoryImpl.create();
     } else {
@@ -120,12 +120,13 @@ public class RuntimeServerInstrument extends TruffleInstrument {
       MessageEndpoint client =
           env.startServer(URI.create(RuntimeServerInfo.URI), this.handler.endpoint());
       if (client != null) {
+        env.registerService(this);
         this.handler.endpoint().setClient(client);
       } else {
         env.getLogger(RuntimeServerInstrument.class)
-            .warning(
-                "The client endpoint has not been initialized. The Runtime "
-                    + "Server Instrument may very likely not function properly.");
+            .severe(
+                "The client endpoint has not been initialized. The Runtime will not function"
+                    + " properly.");
       }
     } catch (MessageTransport.VetoException | IOException e) {
       throw new RuntimeException(e);

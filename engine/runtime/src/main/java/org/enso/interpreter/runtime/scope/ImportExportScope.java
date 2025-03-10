@@ -41,9 +41,9 @@ public class ImportExportScope extends EnsoObject {
     }
   }
 
-  public Function getExportedConversion(Type type, Type target) {
+  public Function getExportedConversion(Type target, Type source) {
     if (isValidType(target)) {
-      return module.getScope().getExportedConversion(type, target);
+      return module.getScope().getExportedConversion(target, source);
     } else {
       return null;
     }
@@ -57,13 +57,9 @@ public class ImportExportScope extends EnsoObject {
     }
   }
 
-  public Function getConversionForType(Type target, Type type) {
+  public Function getConversionForType(Type target, Type source) {
     if (isValidType(target)) {
-      var result = module.getScope().getConversionsFor(target);
-      if (result == null) {
-        return null;
-      }
-      return result.get(type);
+      return module.getScope().getConversionFor(target, source);
     } else {
       return null;
     }

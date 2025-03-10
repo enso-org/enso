@@ -6,33 +6,25 @@
  * It's not the same as the categories like LocalBackend
  */
 
-import { useSuspenseQuery } from '@tanstack/react-query'
-
 import CloudIcon from '#/assets/cloud.svg'
 import ComputerIcon from '#/assets/computer.svg'
 import FolderFilledIcon from '#/assets/folder_filled.svg'
 import PeopleIcon from '#/assets/people.svg'
-import PersonIcon from '#/assets/person.svg'
 import RecentIcon from '#/assets/recent.svg'
 import Trash2Icon from '#/assets/trash2.svg'
 
 import { useUser } from '#/providers/AuthProvider'
 
-import { backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
-import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
+import { useBackend, useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
-import { type DirectoryId, Path, userHasUserAndTeamSpaces } from '#/services/Backend'
+import { type DirectoryId, Path } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
-import {
-  organizationIdToDirectoryId,
-  userGroupIdToDirectoryId,
-  userIdToDirectoryId,
-} from '#/services/RemoteBackend'
+import { userIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
 import LocalStorage from '#/utilities/LocalStorage'
 import type { ReactNode } from 'react'
@@ -40,6 +32,7 @@ import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
 import { z } from 'zod'
 import type {
+  AnyCategory,
   AnyCloudCategory,
   AnyLocalCategory,
   Category,
@@ -51,7 +44,6 @@ import type {
   RecentCategory,
   TeamCategory,
   TrashCategory,
-  UserCategory,
 } from './Category'
 import { isCloudCategory, isLocalCategory } from './Category'
 
@@ -75,24 +67,17 @@ export type CloudCategoryResult = ReturnType<typeof useCloudCategoryList>
  * List of categories in the Cloud.
  */
 export function useCloudCategoryList() {
-  const remoteBackend = useRemoteBackend()
-
   const user = useUser()
   const { getText } = useText()
 
-  const { name, userId, organizationId } = user
-
-  const hasUserAndTeamSpaces = userHasUserAndTeamSpaces(user)
+  const { userId } = user
 
   const cloudCategory: CloudCategory = {
     type: 'cloud',
     id: 'cloud',
     label: getText('cloudCategory'),
     icon: CloudIcon,
-    homeDirectoryId:
-      hasUserAndTeamSpaces ?
-        organizationIdToDirectoryId(organizationId)
-      : userIdToDirectoryId(userId),
+    homeDirectoryId: userIdToDirectoryId(userId),
   }
 
   const recentCategory: RecentCategory = {
@@ -115,56 +100,18 @@ export function useCloudCategoryList() {
     trashCategory,
   ]
 
-  const { data: allUserGroupsRaw } = useSuspenseQuery(
-    backendQueryOptions(remoteBackend, 'listUserGroups', []),
-  )
+  const teamCategories =
+    user.groups?.map<TeamCategory>((group) => ({
+      type: 'team',
+      id: group.id,
+      team: group,
+      rootPath: Path(`enso://Teams/${group.name}`),
+      homeDirectoryId: group.homeDirectoryId,
+      label: getText('teamCategory', group.name),
+      icon: PeopleIcon,
+    })) ?? []
 
-  const allUserGroups =
-    allUserGroupsRaw.length === 0 || !hasUserAndTeamSpaces ? null : allUserGroupsRaw
-
-  const userSpace: UserCategory | null =
-    hasUserAndTeamSpaces ?
-      {
-        type: 'user',
-        id: userId,
-        user: user,
-        rootPath: Path(`enso://Users/${name}`),
-        homeDirectoryId: userIdToDirectoryId(userId),
-        label: getText('myFilesCategory'),
-        icon: PersonIcon,
-      }
-    : null
-
-  const doesHaveUserGroups =
-    user.userGroups != null && user.userGroups.length > 0 && allUserGroups != null
-
-  const userGroupDynamicCategories =
-    doesHaveUserGroups ?
-      user.userGroups.map<TeamCategory>((id) => {
-        const group = allUserGroups.find((userGroup) => userGroup.id === id)
-
-        invariant(
-          group != null,
-          `Unable to find user group by id: ${id}, allUserGroups: ${JSON.stringify(allUserGroups, null, 2)}`,
-        )
-
-        return {
-          type: 'team',
-          id,
-          team: group,
-          rootPath: Path(`enso://Teams/${group.groupName}`),
-          homeDirectoryId: userGroupIdToDirectoryId(group.id),
-          label: getText('teamCategory', group.groupName),
-          icon: PeopleIcon,
-        }
-      })
-    : null
-
-  const categories = [
-    ...predefinedCloudCategories,
-    ...(userSpace != null ? [userSpace] : []),
-    ...(userGroupDynamicCategories != null ? [...userGroupDynamicCategories] : []),
-  ] as const
+  const categories = [...predefinedCloudCategories, ...teamCategories] satisfies AnyCloudCategory[]
 
   const getCategoryById = useEventCallback(
     (id: CategoryId) => categories.find((category) => category.id === id) ?? null,
@@ -178,7 +125,7 @@ export function useCloudCategoryList() {
   )
 
   const getCategoryByDirectoryId = useEventCallback(
-    (directoryId: DirectoryId) =>
+    (directoryId: DirectoryId): AnyCloudCategory | null =>
       categories.find((category) => {
         if ('homeDirectoryId' in category) {
           return category.homeDirectoryId === directoryId
@@ -193,8 +140,7 @@ export function useCloudCategoryList() {
     cloudCategory,
     recentCategory,
     trashCategory,
-    userCategory: userSpace,
-    teamCategories: userGroupDynamicCategories,
+    teamCategories,
     getCategoryById,
     getCategoriesByType,
     isCloudCategory,
@@ -220,6 +166,8 @@ export function useLocalCategoryList() {
     id: 'local',
     label: getText('localCategory'),
     icon: ComputerIcon,
+    homeDirectoryId: newDirectoryId(localBackend?.rootPath() ?? Path('')),
+    rootPath: localBackend?.rootPath() ?? Path(''),
   }
 
   const predefinedLocalCategories: AnyLocalCategory[] = [localCategory]
@@ -257,6 +205,18 @@ export function useLocalCategoryList() {
     (id: CategoryId) => categories.find((category) => category.id === id) ?? null,
   )
 
+  const getCategoryByDirectoryId = useEventCallback((id: DirectoryId): AnyLocalCategory | null => {
+    return (
+      categories.find((category) => {
+        if ('homeDirectoryId' in category) {
+          return category.homeDirectoryId === id
+        }
+
+        return false
+      }) ?? null
+    )
+  })
+
   const getCategoriesByType = useEventCallback(
     <T extends AnyLocalCategory['type']>(type: T) =>
       // This is safe, because we know that the result will have the correct type.
@@ -277,6 +237,7 @@ export function useLocalCategoryList() {
       getCategoryById,
       getCategoriesByType,
       isLocalCategory,
+      getCategoryByDirectoryId: () => null,
     }
   }
 
@@ -289,6 +250,7 @@ export function useLocalCategoryList() {
     getCategoryById,
     getCategoriesByType,
     isLocalCategory,
+    getCategoryByDirectoryId,
   } as const
 }
 
@@ -308,7 +270,13 @@ export function useCategories() {
     return cloudCategories.getCategoryById(id) ?? localCategories.getCategoryById(id)
   })
 
-  return { cloudCategories, localCategories, findCategoryById }
+  const getCategoryByDirectoryId = useEventCallback((id: DirectoryId): AnyCategory | null => {
+    return (
+      cloudCategories.getCategoryByDirectoryId(id) ?? localCategories.getCategoryByDirectoryId(id)
+    )
+  })
+
+  return { cloudCategories, localCategories, findCategoryById, getCategoryByDirectoryId }
 }
 
 /**
@@ -360,6 +328,7 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
   const setCategoryId = useEventCallback((nextCategoryId: CategoryId) => {
     const previousCategory = findCategoryById(categoryId)
     privateSetCategoryId(nextCategoryId)
+
     // This is safe, because we know that the result will have the correct type.
     // eslint-disable-next-line no-restricted-syntax
     onCategoryChange(previousCategory, findCategoryById(nextCategoryId) as Category)

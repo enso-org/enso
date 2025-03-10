@@ -1,6 +1,6 @@
 import CodeEditorTooltip from '@/components/CodeEditor/CodeEditorTooltip.vue'
 import { astProp } from '@/components/CodeEditor/ensoSyntax'
-import { type VueHost } from '@/components/VueComponentHost.vue'
+import { type VueHost } from '@/components/VueHostRender.vue'
 import { type GraphStore } from '@/stores/graph'
 import { type SuggestionDbStore } from '@/stores/suggestionDatabase'
 import { Ast } from '@/util/ast'

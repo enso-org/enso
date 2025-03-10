@@ -110,7 +110,7 @@ export function initAuthentication(window: () => electron.BrowserWindow) {
   })
 
   // Listen for events to handle deep links.
-  urlAssociations.registerUrlCallback(url => {
+  urlAssociations.registerUrlCallback((url) => {
     logger.log(`Received 'open-url' event for '${url.toString()}'.`)
     if (url.protocol !== `${common.DEEP_LINK_SCHEME}:`) {
       logger.error(`'${url.toString()}' is not a deep link, ignoring.`)
@@ -140,7 +140,7 @@ export function initAuthentication(window: () => electron.BrowserWindow) {
           // Ignored, most likely the path does not exist.
         }
       } else {
-        fs.mkdir(credentialsHomePath, { recursive: true }, error => {
+        fs.mkdir(credentialsHomePath, { recursive: true }, (error) => {
           if (error) {
             logger.error(`Could not create '${credentialsDirectoryName}' directory.`)
           } else {
@@ -155,7 +155,7 @@ export function initAuthentication(window: () => electron.BrowserWindow) {
                 expire_at: accessTokenPayload.expireAt,
                 /* eslint-enable camelcase */
               }),
-              innerError => {
+              (innerError) => {
                 if (innerError) {
                   logger.error(`Could not write to '${credentialsFileName}' file.`)
                 }

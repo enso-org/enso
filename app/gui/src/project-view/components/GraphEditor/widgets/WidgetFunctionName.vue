@@ -4,18 +4,22 @@ import { defineWidget, Score, WidgetInput, widgetProps } from '@/providers/widge
 import { useGraphStore } from '@/stores/graph'
 import { usePersisted } from '@/stores/persisted'
 import { useProjectStore } from '@/stores/project'
+import { injectProjectNames } from '@/stores/projectNames'
 import { Ast } from '@/util/ast'
 import { Err, Ok, type Result } from '@/util/data/result'
+import { type MethodPointer } from '@/util/methodPointer'
+import { type IdentifierOrOperatorIdentifier } from '@/util/qualifiedName'
 import { useToast } from '@/util/toast'
 import { computed, ref, watch } from 'vue'
 import { PropertyAccess } from 'ydoc-shared/ast'
-import type { ExpressionId, MethodPointer } from 'ydoc-shared/languageServerTypes'
+import { type ExpressionId } from 'ydoc-shared/languageServerTypes'
 import NodeWidget from '../NodeWidget.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore(true)
 const persisted = usePersisted(true)
 const displayedName = ref(props.input.value.code())
+const projectNames = injectProjectNames()
 
 const project = useProjectStore()
 const renameError = useToast.error()
@@ -46,8 +50,8 @@ async function newNameAccepted(newName: string | undefined) {
 }
 
 async function renameFunction(newName: string): Promise<Result> {
-  if (!project.modulePath?.ok) return project.modulePath ?? Err('Unknown module Path')
-  const modPath = project.modulePath.value
+  if (!project.moduleProjectPath?.ok) return project.moduleProjectPath ?? Err('Unknown module Path')
+  const modPath = projectNames.printProjectPath(project.moduleProjectPath.value)
   const editedName = props.input[FunctionName].editableNameExpression
   const oldMethodPointer = props.input[FunctionName].methodPointer
   const refactorResult = await project.lsRpcConnection.renameSymbol(modPath, editedName, newName)
@@ -55,7 +59,7 @@ async function renameFunction(newName: string): Promise<Result> {
   if (oldMethodPointer) {
     const newMethodPointer = {
       ...oldMethodPointer,
-      name: refactorResult.value.newName,
+      name: refactorResult.value.newName as IdentifierOrOperatorIdentifier,
     }
     graph?.db.insertSyntheticMethodPointerUpdate(oldMethodPointer, newMethodPointer)
     persisted?.handleModifiedMethodPointer(oldMethodPointer, newMethodPointer)

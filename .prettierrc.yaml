@@ -1,19 +1,27 @@
 overrides:
   - files:
-      - "*.[j|t]s"
-      - "*.[j|t]sx"
-      - "*.m[j|t]s"
-      - "*.c[j|t]s"
+      - "*.js"
+      - "*.ts"
+      - "*.jsx"
+      - "*.tsx"
+      - "*.mjs"
+      - "*.cjs"
+      - "*.vue"
+      - "*.json"
+      - "*.html"
     options:
-      plugins: ["prettier-plugin-organize-imports"]
+      plugins:
+        - "prettier-plugin-organize-imports"
+        - "prettier-plugin-tailwindcss"
       semi: false
       tabWidth: 2
       singleQuote: true
       printWidth: 100
       trailingComma: "all"
-      arrowParens: "avoid"
+      arrowParens: "always"
       organizeImportsSkipDestructiveCodeActions: true
       experimentalTernaries: true
+      tailwindConfig: ./app/gui/tailwind.config.ts
 
   - files: "*.md"
     options:

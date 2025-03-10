@@ -2,6 +2,7 @@
 import icons from '@/assets/icons.svg'
 import AgGridTableView, { commonContextMenuActions } from '@/components/shared/AgGridTableView.vue'
 import {
+  GridFilterModel,
   useTableVizToolbar,
   type SortModel,
 } from '@/components/visualizations/TableVisualization/tableVizToolbar'
@@ -18,7 +19,7 @@ import type {
 } from 'ag-grid-enterprise'
 import { computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
-import { getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
+import { formatText, getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
 
 export const name = 'Table'
 export const icon = 'table'
@@ -122,7 +123,7 @@ const rowCount = ref(0)
 const showRowCount = ref(true)
 const isTruncated = ref(false)
 const isCreateNodeEnabled = ref(false)
-const filterModel = ref({})
+const filterModel = ref<GridFilterModel[]>([])
 const sortModel = ref<SortModel[]>([])
 const dataGroupingMap = shallowRef<Map<string, boolean>>()
 const defaultColDef: Ref<ColDef> = ref({
@@ -133,6 +134,7 @@ const defaultColDef: Ref<ColDef> = ref({
   minWidth: 25,
   cellRenderer: cellRenderer,
   cellClass: cellClass,
+  cellStyle: { 'padding-left': 0, 'border-right': '1px solid #C0C0C0' },
   contextMenuItems: [
     commonContextMenuActions.copy,
     commonContextMenuActions.copyWithHeaders,
@@ -190,56 +192,6 @@ function formatNumber(params: ICellRendererParams) {
   return needsGrouping ? numberFormatGroupped.format(value) : numberFormat.format(value)
 }
 
-function formatText(params: ICellRendererParams) {
-  const htmlEscaped = params.value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-
-  if (textFormatterSelected.value === 'off') {
-    return htmlEscaped.replace(/^\s+|\s+$/g, '&nbsp;')
-  }
-
-  const partialMappings = {
-    '\r': '<span style="color: #df8800">␍</span> <br>',
-    '\n': '<span style="color: #df8800;">␊</span> <br>',
-    '\t': '<span style="color: #df8800; white-space: break-spaces;">&#8594;  |</span>',
-  }
-  const fullMappings = {
-    '\r': '<span style="color: #df8800">␍</span> <br>',
-    '\n': '<span style="color: #df8800">␊</span> <br>',
-    '\t': '<span style="color: #df8800; white-space: break-spaces;">&#8594;  |</span>',
-  }
-
-  const replaceSpaces =
-    textFormatterSelected.value === 'full' ?
-      htmlEscaped.replaceAll(' ', '<span style="color: #df8800">&#183;</span>')
-    : htmlEscaped.replace(/ \s+|^ +| +$/g, function (match: string) {
-        return `<span style="color: #df8800">${match.replaceAll(' ', '&#183;')}</span>`
-      })
-
-  const replaceLinks = replaceSpaces.replace(
-    /https?:\/\/([-()_.!~*';/?:@&=+$,A-Za-z0-9])+/g,
-    (url: string) => `<a href="${url}" target="_blank" class="link">${url}</a>`,
-  )
-
-  const replaceReturns = replaceLinks.replace(
-    /\r\n/g,
-    '<span style="color: #df8800">␍␊</span> <br>',
-  )
-
-  const renderOtherWhitespace = (match: string) => {
-    return textFormatterSelected.value === 'full' && match != ' ' ?
-        '<span style="color: #df8800">&#9744;</span>'
-      : match
-  }
-  const newString = replaceReturns.replace(/[\s]/g, function (match: string) {
-    const mapping = textFormatterSelected.value === 'full' ? fullMappings : partialMappings
-    return mapping[match as keyof typeof mapping] || renderOtherWhitespace(match)
-  })
-  return `<span > ${newString} <span>`
-}
-
 function setRowLimit(newRowLimit: number) {
   if (newRowLimit !== rowLimit.value) {
     rowLimit.value = newRowLimit
@@ -278,7 +230,8 @@ function cellRenderer(params: ICellRendererParams) {
   else if (params.value === undefined) return ''
   else if (params.value === '') return '<span style="color:grey; font-style: italic;">Empty</span>'
   else if (typeof params.value === 'number') return formatNumber(params)
-  else if (typeof params.value === 'string') return formatText(params)
+  else if (typeof params.value === 'string')
+    return formatText(params.value, textFormatterSelected.value)
   else if (Array.isArray(params.value)) return `[Vector ${params.value.length} items]`
   else if (typeof params.value === 'object') {
     const valueType = params.value?.type
@@ -316,6 +269,40 @@ function getValueTypeIcon(valueType: string) {
   }
 }
 
+function getFilterType(valueType: string) {
+  if (valueType === 'Date') {
+    return 'agDateColumnFilter'
+  } else if (isNumericType(valueType)) {
+    return 'agNumberColumnFilter'
+  } else if (valueType === 'Char') {
+    return 'agTextColumnFilter'
+  } else {
+    return 'agSetColumnFilter'
+  }
+}
+
+function getFilterOptions(valueType: string) {
+  if (valueType === 'Date') {
+    return ['equals', 'notEqual', 'greaterThan', 'lessThan', 'inRange', 'blank', 'notBlank']
+  } else if (isNumericType(valueType)) {
+    return [
+      'equals',
+      'notEqual',
+      'greaterThan',
+      'greaterThanOrEqual',
+      'lessThan',
+      'lessThanOrEqual',
+      'inRange',
+      'blank',
+      'notBlank',
+    ]
+  } else if (valueType === 'Char') {
+    return ['equals', 'notEqual', 'blank', 'notBlank', 'contains', 'startsWith', 'endsWith']
+  } else {
+    return null
+  }
+}
+
 /**
  * Generates the column definition for the table vizulization, including displaying the data value type and
  * data quality indicators.
@@ -334,6 +321,8 @@ function toField(
 
   const displayValue = valueType ? valueType.display_text : null
   const icon = valueType ? getValueTypeIcon(valueType.constructor) : null
+  const filterType = valueType ? getFilterType(valueType.constructor) : null
+  const filterOptions = valueType ? getFilterOptions(valueType.constructor) : null
 
   const dataQualityMetrics =
     typeof props.data === 'object' && 'data_quality_metrics' in props.data ?
@@ -367,6 +356,11 @@ function toField(
   return {
     field: name,
     headerName: name, // AGGrid would demangle it its own way if not specified.
+    filter: filterType,
+    filterParams: {
+      maxNumConditions: 1,
+      filterOptions: filterOptions,
+    },
     headerComponentParams: {
       template,
       setAriaSort: () => {},
@@ -438,10 +432,7 @@ function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef 
       params.node?.rowPinned === 'top' ?
         null
       : `Double click to view this ${tooltipValue ?? 'value'} in a separate component`,
-    cellRenderer: (params: ICellRendererParams) =>
-      params.node.rowPinned === 'top' ?
-        `<div> ${params.value}</div>`
-      : `<div class='link'> ${params.value} </div>`,
+    cellRenderer: (params: ICellRendererParams) => `<div class='link'> ${params.value} </div>`,
   }
 }
 
@@ -585,7 +576,7 @@ watchEffect(() => {
           ...dataHeader,
         ]
       : dataHeader
-    const rows = data_.data && data_.data.length > 0 ? data_.data[0]?.length ?? 0 : 0
+    const rows = data_.data && data_.data.length > 0 ? (data_.data[0]?.length ?? 0) : 0
     rowData.value = Array.from({ length: rows }, (_, i) => {
       const shift = data_.has_index_col ? 1 : 0
       return Object.fromEntries(
@@ -694,6 +685,7 @@ const createDateValue = (item: string, module: Ast.MutableModule) => {
   const dateOrTimePattern = Pattern.parseExpression('(Date.new __ __ __)')
   const dateTimeParts = item
     .match(/\d+/g)!
+    .filter((part, i) => i < 3)
     .map((part) => Ast.tryNumberToEnso(Number(part), module)!)
   return dateOrTimePattern.instantiateCopied([...dateTimeParts])
 }
@@ -706,7 +698,7 @@ function checkSortAndFilter(e: SortChangedEvent) {
     return
   }
   const colState = gridApi.getColumnState()
-  const filter = gridApi.getFilterModel()
+  const gridFilterModel = gridApi.getFilterModel()
   const sort = colState
     .map((cs) => {
       if (cs.sort) {
@@ -718,14 +710,26 @@ function checkSortAndFilter(e: SortChangedEvent) {
       }
     })
     .filter((sort) => sort)
-  if (sort.length || Object.keys(filter).length) {
+  const filter = Object.entries(gridFilterModel).map(([key, value]) => {
+    return {
+      columnName: key,
+      filterType: value.filterType,
+      filterAction: value.type,
+      filter: value.filter,
+      filterTo: value.filterTo,
+      dateFrom: value.dateFrom,
+      dateTo: value.dateTo,
+      values: value.values,
+    }
+  })
+  if (sort.length || filter.length) {
     isCreateNodeEnabled.value = true
     sortModel.value = sort as SortModel[]
     filterModel.value = filter
   } else {
     isCreateNodeEnabled.value = false
     sortModel.value = []
-    filterModel.value = {}
+    filterModel.value = []
   }
 }
 

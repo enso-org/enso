@@ -22,7 +22,7 @@ export interface SidebarTabButtonProps {
   readonly isActive?: boolean
   readonly icon: string
   readonly label: string
-  readonly onPress: ButtonProps['onPress']
+  readonly onPress: ButtonProps<string>['onPress']
 }
 
 /** A styled button representing a tab on a sidebar. */

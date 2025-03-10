@@ -29,7 +29,7 @@ export interface StripeProviderRenderProps {
  */
 export function stripeQueryOptions() {
   return reactQuery.queryOptions({
-    queryKey: ['stripe', process.env.ENSO_CLOUD_STRIPE_KEY] as const,
+    queryKey: ['stripe', $config.STRIPE_KEY] as const,
     staleTime: Infinity,
     gcTime: Infinity,
     meta: { persist: false },

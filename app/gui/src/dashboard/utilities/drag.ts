@@ -39,7 +39,7 @@ class DragPayloadManager<Payload> {
       dataTransferItem.type.startsWith(this.mimetype),
     )
     const id = item?.type.match(this.regex)?.[1] ?? null
-    return id != null ? this.map.get(id) ?? null : null
+    return id != null ? (this.map.get(id) ?? null) : null
   }
 
   /** Associate data with a {@link React.DragEvent}. */

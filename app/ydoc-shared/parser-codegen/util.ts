@@ -104,7 +104,7 @@ export function makeArrow(params: ts.BindingName[], expr: ts.Expression) {
   return tsf.createArrowFunction(
     [],
     [],
-    params.map(ident => tsf.createParameterDeclaration([], undefined, ident)),
+    params.map((ident) => tsf.createParameterDeclaration([], undefined, ident)),
     undefined,
     undefined,
     expr,

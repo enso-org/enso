@@ -2,7 +2,7 @@
  * @file
  * This file provides a zustand store that contains the state of the Enso devtools.
  */
-import { type PaywallFeatureName, PAYWALL_FEATURES } from '#/hooks/billing'
+import { PAYWALL_FEATURES, type PaywallFeatureName } from '#/hooks/billing'
 import { unsafeEntries, unsafeFromEntries } from '#/utilities/object'
 import * as zustand from '#/utilities/zustand'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
@@ -21,6 +21,8 @@ export interface PaywallDevtoolsFeatureConfiguration {
 /** The state of this zustand store. */
 interface EnsoDevtoolsStore {
   readonly showDevtools: boolean
+  readonly showEnsoDevtools: boolean
+  readonly toggleEnsoDevtools: () => void
   readonly setShowDevtools: (showDevtools: boolean) => void
   readonly toggleDevtools: () => void
   readonly showVersionChecker: boolean | null
@@ -35,11 +37,27 @@ export const ensoDevtoolsStore = zustand.createStore<EnsoDevtoolsStore>()(
   persist(
     (set) => ({
       showDevtools: IS_DEV_MODE,
+      showEnsoDevtools: IS_DEV_MODE,
+      toggleEnsoDevtools: () => {
+        set(({ showEnsoDevtools }) => ({ showEnsoDevtools: !showEnsoDevtools }))
+      },
       setShowDevtools: (showDevtools) => {
-        set({ showDevtools })
+        set({ showDevtools, showEnsoDevtools: showDevtools })
       },
       toggleDevtools: () => {
-        set(({ showDevtools }) => ({ showDevtools: !showDevtools }))
+        set(({ showDevtools, showEnsoDevtools }) => {
+          if (showEnsoDevtools === false) {
+            return {
+              showDevtools: true,
+              showEnsoDevtools: true,
+            }
+          }
+
+          return {
+            showDevtools: !showDevtools,
+            showEnsoDevtools: !showDevtools,
+          }
+        })
       },
       showVersionChecker: false,
       paywallFeatures: unsafeFromEntries(
@@ -70,8 +88,9 @@ export const ensoDevtoolsStore = zustand.createStore<EnsoDevtoolsStore>()(
     }),
     {
       name: 'ensoDevtools',
+      // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+      version: 1.1,
       partialize: (state) => ({
-        showDevtools: state.showDevtools,
         animationsDisabled: state.animationsDisabled,
       }),
     },
@@ -118,12 +137,16 @@ export function useSetAnimationsDisabled() {
 export function usePaywallDevtools() {
   return zustand.useStore(
     ensoDevtoolsStore,
-    (state) => ({
-      features: state.paywallFeatures,
-      setFeature: state.setPaywallFeature,
-    }),
+    (state) => ({ features: state.paywallFeatures, setFeature: state.setPaywallFeature }),
     { unsafeEnableTransition: true },
   )
+}
+
+/** A hook that provides access to the show enso devtools state. */
+export function useShowEnsoDevtools() {
+  return zustand.useStore(ensoDevtoolsStore, (state) => state.showEnsoDevtools, {
+    unsafeEnableTransition: true,
+  })
 }
 
 /** A hook that provides access to the show devtools state. */
@@ -133,6 +156,16 @@ export function useShowDevtools() {
   })
 }
 
-if (typeof window !== 'undefined') {
-  window.toggleDevtools = ensoDevtoolsStore.getState().toggleDevtools
+/** A hook that provides access to the toggle enso devtools state. */
+export function useToggleEnsoDevtools() {
+  return zustand.useStore(ensoDevtoolsStore, (state) => state.toggleEnsoDevtools, {
+    unsafeEnableTransition: true,
+  })
+}
+
+/** A hook that provides access to the set show devtools state. */
+export function useSetShowDevtools() {
+  return zustand.useStore(ensoDevtoolsStore, (state) => state.setShowDevtools, {
+    unsafeEnableTransition: true,
+  })
 }

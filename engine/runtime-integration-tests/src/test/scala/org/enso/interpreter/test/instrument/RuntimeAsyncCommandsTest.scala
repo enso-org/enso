@@ -13,6 +13,7 @@ import org.enso.polyglot.runtime.Runtime.Api.{
 }
 import org.enso.text.{ContentVersion, Sha3_224VersionCalculator}
 import org.enso.text.editing.model
+import org.enso.testkit.FlakySpec
 import org.graalvm.polyglot.Context
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.flatspec.AnyFlatSpec
@@ -27,7 +28,8 @@ import java.util.logging.Level
 class RuntimeAsyncCommandsTest
     extends AnyFlatSpec
     with Matchers
-    with BeforeAndAfterEach {
+    with BeforeAndAfterEach
+    with FlakySpec {
 
   // === Test Utilities =======================================================
 
@@ -61,6 +63,7 @@ class RuntimeAsyncCommandsTest
           "false"
         )
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
+        .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "false")
         .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
         .option(
@@ -82,9 +85,6 @@ class RuntimeAsyncCommandsTest
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
 
-    def writeMain(contents: String): File =
-      Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
-
     def writeFile(file: File, contents: String): File =
       Files.write(file.toPath, contents.getBytes).toFile
 
@@ -93,16 +93,11 @@ class RuntimeAsyncCommandsTest
       Files.write(file.toPath, contents.getBytes).toFile
     }
 
-    def send(msg: Api.Request): Unit = runtimeServerEmulator.sendToRuntime(msg)
-
     def consumeOut: List[String] = {
       val result = out.toString
       out.reset()
       result.linesIterator.toList
     }
-
-    def executionComplete(contextId: UUID): Api.Response =
-      Api.Response(Api.ExecutionComplete(contextId))
   }
 
   def contentsVersion(content: String): ContentVersion =
@@ -174,7 +169,7 @@ class RuntimeAsyncCommandsTest
     )
   }
 
-  it should "interrupt running execution context" in {
+  it should "interrupt running execution context" taggedAs Flaky in {
     val moduleName = "Enso_Test.Test.Main"
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()

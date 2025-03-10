@@ -4,31 +4,46 @@ import org.enso.pkg.QualifiedName;
 import org.enso.pkg.QualifiedName$;
 
 /** A helper class providing the builtin types. */
-public class BuiltinTypes {
-  // TODO in next iterations we will want to resolve descriptions of these types based on the loaded
-  // std-lib (from PackageRepository, if available). Note that if the std-lib is not imported,
-  // some builtin types have different names - this should be handled here in some sane way.
+public final class BuiltinTypes {
+  private BuiltinTypes() {}
 
-  public final TypeRepresentation INTEGER = fromQualifiedName("Standard.Base.Data.Numbers.Integer");
-  public final TypeRepresentation FLOAT = fromQualifiedName("Standard.Base.Data.Numbers.Float");
+  public static final String FQN_NUMBER = "Standard.Base.Data.Numbers.Number";
+  public static final TypeRepresentation NUMBER = fromQualifiedName(FQN_NUMBER);
+  static final String FQN_ANY = "Standard.Base.Any.Any";
+  public static final TypeRepresentation TEXT = fromQualifiedName("Standard.Base.Data.Text.Text");
+  public static final TypeRepresentation BOOLEAN =
+      fromQualifiedName("Standard.Base.Data.Boolean.Boolean");
+  public static final TypeRepresentation VECTOR =
+      fromQualifiedName("Standard.Base.Data.Vector.Vector");
+  public static final TypeRepresentation NOTHING =
+      fromQualifiedName("Standard.Base.Nothing.Nothing");
 
-  public final TypeRepresentation NUMBER = fromQualifiedName("Standard.Base.Data.Numbers.Number");
-  public final TypeRepresentation TEXT = fromQualifiedName("Standard.Base.Data.Text.Text");
-  public final TypeRepresentation VECTOR = fromQualifiedName("Standard.Base.Data.Vector.Vector");
-  public final TypeRepresentation NOTHING = fromQualifiedName("Standard.Base.Nothing.Nothing");
-
-  private TypeRepresentation fromQualifiedName(String qualifiedName) {
+  private static TypeRepresentation fromQualifiedName(String qualifiedName) {
     var fqn = QualifiedName$.MODULE$.fromString(qualifiedName);
-    return new TypeRepresentation.AtomType(fqn, null);
+    return new TypeRepresentation.AtomType(fqn);
   }
+
+  static final String FQN_FUNCTION = "Standard.Base.Function.Function";
+  private static final String FQN_INTEGER = "Standard.Base.Data.Numbers.Integer";
+  public static final TypeRepresentation INTEGER = fromQualifiedName(FQN_INTEGER);
+  private static final String FQN_FLOAT = "Standard.Base.Data.Numbers.Float";
+  public static final TypeRepresentation FLOAT = fromQualifiedName(FQN_FLOAT);
 
   public static boolean isAny(QualifiedName qualifiedName) {
     var str = qualifiedName.toString();
-    return str.equals("Standard.Base.Any.Any") || str.equals("Standard.Base.Any");
+    return str.equals(FQN_ANY);
   }
 
   public static boolean isFunction(QualifiedName qualifiedName) {
     var str = qualifiedName.toString();
-    return str.equals("Standard.Base.Function.Function");
+    return str.equals(FQN_FUNCTION);
+  }
+
+  public static boolean isInteger(QualifiedName qualifiedName) {
+    return qualifiedName.toString().equals(FQN_INTEGER);
+  }
+
+  public static boolean isFloat(QualifiedName qualifiedName) {
+    return qualifiedName.toString().equals(FQN_FLOAT);
   }
 }

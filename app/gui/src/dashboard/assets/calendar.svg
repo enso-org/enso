@@ -1,0 +1,17 @@
+<svg width="15" height="16" viewBox="0 0 15 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path opacity="0.3" d="M0 4H15V14C15 15.1046 14.1046 16 13 16H2C0.89543 16 0 15.1046 0 14V4Z" fill="black"/>
+<path d="M0 4C0 2.89543 0.895431 2 2 2H13C14.1046 2 15 2.89543 15 4H0Z" fill="black"/>
+<rect x="3" width="2" height="4" rx="1" fill="black"/>
+<rect x="10" width="2" height="4" rx="1" fill="black"/>
+<rect x="2" y="12" width="2" height="2" rx="1" fill="black"/>
+<rect x="2" y="9" width="2" height="2" rx="1" fill="black"/>
+<rect x="2" y="6" width="2" height="2" rx="1" fill="black"/>
+<rect x="5" y="12" width="2" height="2" rx="1" fill="black"/>
+<rect x="5" y="9" width="2" height="2" rx="1" fill="black"/>
+<rect x="5" y="6" width="2" height="2" rx="1" fill="black"/>
+<rect x="8" y="12" width="2" height="2" rx="1" fill="black"/>
+<rect x="8" y="9" width="2" height="2" rx="1" fill="black"/>
+<rect x="8" y="6" width="2" height="2" rx="1" fill="black"/>
+<rect x="11" y="9" width="2" height="2" rx="1" fill="black"/>
+<rect x="11" y="6" width="2" height="2" rx="1" fill="black"/>
+</svg>

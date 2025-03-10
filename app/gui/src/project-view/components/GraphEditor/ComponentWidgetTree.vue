@@ -1,14 +1,14 @@
 <script setup lang="ts">
+import { DisplayIcon } from '@/components/GraphEditor/widgets/WidgetIcon.vue'
+import WidgetTreeRoot from '@/components/GraphEditor/WidgetTreeRoot.vue'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
 import { WidgetEditHandlerParent } from '@/providers/widgetRegistry/editHandler'
 import { useGraphStore, type NodeId } from '@/stores/graph'
-import type { NodeType } from '@/stores/graph/graphDatabase'
+import { type NodeType } from '@/stores/graph/graphDatabase'
 import { Ast } from '@/util/ast'
-import { iconOfNode } from '@/util/getIconName'
-import { computed } from 'vue'
-import { DisplayIcon } from './widgets/WidgetIcon.vue'
-import WidgetTreeRoot from './WidgetTreeRoot.vue'
+import { iconOfNode, useDisplayedIcon } from '@/util/getIconName'
+import { computed, toRef } from 'vue'
 
 const props = defineProps<{
   ast: Ast.Expression
@@ -20,7 +20,13 @@ const props = defineProps<{
   conditionalPorts: Set<Ast.AstId>
   extended: boolean
 }>()
+
 const graph = useGraphStore()
+const selection = injectGraphSelection()
+
+const baseIcon = computed(() => iconOfNode(props.nodeId, graph.db))
+const { displayedIcon } = useDisplayedIcon(graph.db, toRef(props, 'nodeId'), baseIcon)
+
 const rootPort = computed(() => {
   const input = WidgetInput.FromAst(props.ast)
   if (
@@ -30,15 +36,14 @@ const rootPort = computed(() => {
     input.forcePort = true
   }
 
-  if (!props.potentialSelfArgumentId && topLevelIcon.value) {
+  if (!props.potentialSelfArgumentId) {
     input[DisplayIcon] = {
-      icon: topLevelIcon.value,
+      icon: displayedIcon.value,
       showContents: props.nodeType != 'output',
     }
   }
   return input
 })
-const selection = injectGraphSelection()
 
 function selectNode() {
   selection.setSelection(new Set([props.nodeId]))
@@ -76,8 +81,6 @@ function handleWidgetUpdates(update: WidgetUpdate) {
   // This handler is guaranteed to be the last handler in the chain.
   return true
 }
-
-const topLevelIcon = computed(() => iconOfNode(props.nodeId, graph.db))
 
 function onCurrentEditChange(currentEdit: WidgetEditHandlerParent | undefined) {
   if (currentEdit) selectNode()

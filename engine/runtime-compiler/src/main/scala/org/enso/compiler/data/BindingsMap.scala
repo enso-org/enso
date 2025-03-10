@@ -4,18 +4,15 @@ import org.enso.compiler.PackageRepository
 import org.enso.compiler.PackageRepository.ModuleMap
 import org.enso.compiler.context.CompilerContext.Module
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir
+import org.enso.compiler.core.{ir, CompilerError}
 import org.enso.compiler.core.ir.expression.errors
-import org.enso.compiler.data.BindingsMap.{DefinedEntity, ModuleReference}
-import org.enso.compiler.core.CompilerError
-import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.module.scope.Definition
+import org.enso.compiler.data.BindingsMap.{DefinedEntity, ModuleReference}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.BindingAnalysis
 import org.enso.compiler.pass.resolve.MethodDefinitions
-import org.enso.persist.Persistance.Reference
-import org.enso.pkg.QualifiedName
 import org.enso.editions.LibraryName
+import org.enso.pkg.QualifiedName
 
 import java.io.ObjectOutputStream
 import scala.annotation.unused
@@ -595,15 +592,7 @@ object BindingsMap {
     def allFieldsDefaulted: Boolean = arguments.forall(_.hasDefaultValue)
   }
 
-  case class Argument(
-    name: String,
-    hasDefaultValue: Boolean,
-    typReference: Reference[Expression]
-  ) {
-    def typ(): Option[Expression] = Option(
-      typReference.get(classOf[Expression])
-    )
-  }
+  case class Argument(name: String, hasDefaultValue: Boolean)
 
   /** A representation of a sum type
     *
@@ -629,15 +618,9 @@ object BindingsMap {
           Cons(
             m.name.name,
             m.arguments.map { arg =>
-              val ascribedType: Reference[Expression] =
-                arg.ascribedType match {
-                  case Some(value) => Reference.of(value, true)
-                  case None        => Reference.none()
-                }
               BindingsMap.Argument(
                 arg.name.name,
-                arg.defaultValue.isDefined,
-                ascribedType
+                arg.defaultValue.isDefined
               )
             },
             m.isPrivate

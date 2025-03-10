@@ -33,7 +33,7 @@ function eventToPartialShortcut(event: KeyboardEvent | ReactKeyboardEvent) {
       null
     : event.key === ' ' ? 'Space'
     : event.key === DELETE_KEY ? 'OsDelete'
-    : normalizedKeyboardSegmentLookup[event.key.toLowerCase()] ?? event.key
+    : (normalizedKeyboardSegmentLookup[event.key.toLowerCase()] ?? event.key)
   return { key, modifiers }
 }
 

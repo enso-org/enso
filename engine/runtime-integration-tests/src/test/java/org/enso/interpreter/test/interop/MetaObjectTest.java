@@ -10,11 +10,13 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URI;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
 import org.enso.common.MethodNames;
@@ -32,20 +34,32 @@ import org.junit.Test;
 
 public class MetaObjectTest {
   private static Context ctx;
+  private static Value sn;
   private static ValuesGenerator generator;
 
   @BeforeClass
-  public static void prepareCtx() {
+  public static void prepareCtx() throws IOException {
     ctx = ContextUtils.createDefaultContext();
+    var code =
+        """
+        from Standard.Base import Meta, Error
+
+        sn v = v.to Meta.Type . catch handler=(_-> Meta.meta Error) . name
+        """;
+    var src = Source.newBuilder("enso", code, "simple_name.enso").build();
+    sn = ctx.eval(src).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
+    assertTrue("It is a function", sn.canExecute());
   }
 
   @AfterClass
   public static void disposeCtx() {
     if (generator != null) {
-      generator.dispose();
+      generator.close();
       generator = null;
     }
     ctx.close();
+    ctx = null;
+    sn = null;
   }
 
   /**
@@ -113,6 +127,7 @@ public class MetaObjectTest {
       }
     }
     expecting.remove(ConstantsGen.ARRAY_LIKE_HELPERS);
+    expecting.remove(ConstantsGen.INSTRUMENTOR);
     var w = new StringBuilder();
     var f = new StringWriter();
     var err = new PrintWriter(f);
@@ -224,8 +239,10 @@ public class MetaObjectTest {
 
   @Test
   public void nothingIsNotMeta() {
-    var g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO);
-    var nothing = g.typeNothing();
+    Value nothing;
+    try (ValuesGenerator g = ValuesGenerator.create(ctx, ValuesGenerator.Language.ENSO)) {
+      nothing = g.typeNothing();
+    }
     assertThat("Nothing is not meta", nothing.isMetaObject(), is(false));
   }
 
@@ -255,15 +272,6 @@ main = Nothing
   @Test
   public void numbersAreEitherIntegerOrFloat() throws Exception {
     var g = generator();
-    var sn =
-        ctx.eval(
-                "enso",
-                """
-    from Standard.Base import Meta
-
-    sn v = Meta.get_simple_type_name v
-    """)
-            .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
     for (var v : g.numbers()) {
       var simpleName = sn.execute(v).asString();
       var ok =
@@ -282,11 +290,13 @@ main = Nothing
    */
   @Test
   public void allEnsoNonPrimitiveValuesHaveLanguage() throws Exception {
-    var gen = ValuesGenerator.create(ctx, Language.ENSO);
     Predicate<Value> isPrimitiveOrException =
         (val) -> val.fitsInInt() || val.fitsInDouble() || val.isBoolean() || val.isException();
-    var nonPrimitiveValues =
-        gen.allValues().stream().filter(isPrimitiveOrException.negate()).toList();
+    List<Value> nonPrimitiveValues;
+    try (ValuesGenerator gen = ValuesGenerator.create(ctx, Language.ENSO)) {
+      nonPrimitiveValues =
+          gen.allValues().stream().filter(isPrimitiveOrException.negate()).toList();
+    }
     var interop = InteropLibrary.getUncached();
     ContextUtils.executeInContext(
         ctx,
@@ -305,15 +315,6 @@ main = Nothing
   @Test
   public void compareQualifiedAndSimpleTypeName() throws Exception {
     var g = generator();
-    var sn =
-        ctx.eval(
-                "enso",
-                """
-    from Standard.Base import Meta
-
-    sn v = Meta.get_simple_type_name v
-    """)
-            .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
     var sb = new StringBuilder();
     for (var v : g.allValues()) {
       compareQualifiedNameOfValue(sn, v, sb);
@@ -338,6 +339,9 @@ main = Nothing
     }
     var meta = v.getMetaObject();
     var metaName = meta != null ? meta.getMetaSimpleName() : "null";
+    if (metaName.endsWith(".type")) {
+      metaName = metaName.substring(0, metaName.length() - 5);
+    }
     if (!simpleName.equals(metaName)) {
       if (v.isHostObject()) {
         if (v.hasArrayElements()) {
@@ -388,7 +392,7 @@ main = Nothing
       sb.append("\n")
           .append("Simple names shall be the same for ")
           .append(v)
-          .append(" get_simple_type_name: ")
+          .append(" Enso simple name: ")
           .append(simpleName)
           .append(" getMetaSimpleName: ")
           .append(metaName);
@@ -399,15 +403,6 @@ main = Nothing
   @Test
   public void compareQualifiedAndSimpleTypeNameForTypes() throws Exception {
     var g = generator();
-    var sn =
-        ctx.eval(
-                "enso",
-                """
-    from Standard.Base import Meta
-
-    sn v = Meta.get_simple_type_name v
-    """)
-            .invokeMember(MethodNames.Module.EVAL_EXPRESSION, "sn");
     var sb = new StringBuilder();
     for (var typ : g.allTypes()) {
       if (!typ.isMetaObject()) {
@@ -421,12 +416,12 @@ main = Nothing
       }
 
       var simpleName = sn.execute(typ).asString();
-      var metaName = typ.getMetaSimpleName() + ".type";
+      var metaName = typ.getMetaSimpleName();
       if (!simpleName.equals(metaName)) {
         sb.append("\n")
             .append("Simple names shall be the same for ")
             .append(typ)
-            .append(" get_simple_type_name: ")
+            .append(" Enso simple name: ")
             .append(simpleName)
             .append(" getMetaSimpleName: ")
             .append(metaName);

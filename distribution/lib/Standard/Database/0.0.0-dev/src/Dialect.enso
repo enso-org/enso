@@ -20,6 +20,7 @@ import project.Internal.IR.Query.Query
 import project.Internal.IR.SQL_Expression.SQL_Expression
 import project.Internal.Postgres.Postgres_Dialect
 import project.Internal.Replace_Params.Replace_Params
+import project.Internal.SQL_Part.SQL_Part
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQLite.SQLite_Dialect
@@ -65,6 +66,13 @@ type Dialect
     get_limit_sql_modifier self limit =
          _ = [limit]
          Unimplemented.throw "This is an interface only."
+
+    ## PRIVATE
+       Returns an ordering of SQL_Part's that determine what order each part gets written in for the final SQL output
+       If you add extensions using Context_Extension you have to provide an order for them here
+    get_part_order self part:SQL_Part -> Integer =
+        _ = [part]
+        Unimplemented.throw "This is an interface only."
 
     ## PRIVATE
        Prepares an ordering descriptor.

@@ -23,7 +23,7 @@ import { useFullUserSession } from '#/providers/AuthProvider'
 /** Props for a {@link UserGroupRow}. */
 export interface UserGroupRowProps {
   readonly userGroup: backend.UserGroupInfo
-  readonly doDeleteUserGroup: (userGroup: backend.UserGroupInfo) => void
+  readonly doDeleteUserGroup: (userGroup: backend.UserGroupInfo) => Promise<void>
 }
 
 /** A row representing a user group. */
@@ -43,8 +43,8 @@ export default function UserGroupRow(props: UserGroupRowProps) {
             <ConfirmDeleteModal
               defaultOpen
               actionText={getText('deleteUserGroupActionText', userGroup.groupName)}
-              doDelete={() => {
-                doDeleteUserGroup(userGroup)
+              doDelete={async () => {
+                await doDeleteUserGroup(userGroup)
               }}
             />,
           )
@@ -79,8 +79,8 @@ export default function UserGroupRow(props: UserGroupRowProps) {
             </ariaComponents.Button>
             <ConfirmDeleteModal
               actionText={getText('deleteUserGroupActionText', userGroup.groupName)}
-              doDelete={() => {
-                doDeleteUserGroup(userGroup)
+              doDelete={async () => {
+                await doDeleteUserGroup(userGroup)
               }}
             />
           </ariaComponents.DialogTrigger>

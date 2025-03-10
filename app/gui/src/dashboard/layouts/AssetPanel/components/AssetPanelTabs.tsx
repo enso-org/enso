@@ -1,13 +1,14 @@
 /** @file Tabs for the asset panel. Contains the visual state for the tabs and animations. */
+import { memo, useCallback, useRef, type ReactNode } from 'react'
+
+import { AnimatePresence, motion } from 'framer-motion'
+
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import type { TabListProps, TabPanelProps, TabPanelRenderProps, TabProps } from '#/components/aria'
 import { Tab, TabList, TabPanel, Tabs, type TabsProps } from '#/components/aria'
 import { useVisualTooltip } from '#/components/AriaComponents'
 import { Suspense } from '#/components/Suspense'
 import SvgMask from '#/components/SvgMask'
-import { AnimatePresence, motion } from 'framer-motion'
-import type { ReactNode } from 'react'
-import { memo, useCallback, useRef } from 'react'
 
 /** Display a set of tabs. */
 export function AssetPanelTabs(props: TabsProps) {
@@ -32,6 +33,7 @@ export interface AssetPanelTabProps extends TabProps {
   readonly label: string
   readonly isExpanded: boolean
   readonly onPress?: () => void
+  readonly isHidden?: boolean
 }
 
 const UNDERLAY_ELEMENT = (
@@ -44,7 +46,7 @@ const UNDERLAY_ELEMENT = (
 
 /** Display a tab. */
 export const AssetPanelTab = memo(function AssetPanelTab(props: AssetPanelTabProps) {
-  const { id, icon, label, isExpanded, isDisabled = false } = props
+  const { id, icon, label, isExpanded, isDisabled = false, isHidden = false } = props
 
   const tabRef = useRef<HTMLDivElement>(null)
 
@@ -53,6 +55,10 @@ export const AssetPanelTab = memo(function AssetPanelTab(props: AssetPanelTabPro
     targetRef: tabRef,
     overlayPositionProps: { placement: 'left' },
   })
+
+  if (isHidden) {
+    return null
+  }
 
   return (
     <Tab

@@ -5,7 +5,7 @@ export function graphParentPointers(ast: Ast, bidirectional?: true): string {
   const sanitize = (id: string) => id.replace('ast:', '').replace(/[^A-Za-z0-9]/g, '')
   const parentToChild = new Array<{ parent: string; child: string }>()
   const childToParent = new Array<{ child: string; parent: string }>()
-  ast.visitRecursive(ast => {
+  ast.visitRecursive((ast) => {
     for (const child of ast.children()) {
       if (child instanceof Ast)
         parentToChild.push({ child: sanitize(child.id), parent: sanitize(ast.id) })

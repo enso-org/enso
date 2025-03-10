@@ -84,6 +84,12 @@ object Case {
       } else this
     }
 
+    def copyWithBranches(
+      branches: Seq[Branch]
+    ): Expr = {
+      copy(branches = branches)
+    }
+
     /** @inheritdoc */
     override def duplicate(
       keepLocations: Boolean   = true,

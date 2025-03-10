@@ -3,6 +3,7 @@ package org.enso.interpreter.caches;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLogger;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
@@ -191,23 +192,20 @@ public final class Cache<T, M> {
       return spi.getCacheRoots(context)
           .flatMap(
               roots -> {
+                // Load from the global root as a priority.
                 try {
-                  Optional<T> loadedCache;
-                  // Load from the global root as a priority.
-                  loadedCache = loadCacheFrom(roots.globalCacheRoot(), context, logger);
-                  if (loadedCache.isPresent()) {
-                    logger.log(
-                        logLevel,
-                        "Using cache for ["
-                            + logName
-                            + " at location ["
-                            + toMaskedPath(roots.globalCacheRoot()).applyMasking()
-                            + "].");
-                    return loadedCache;
-                  }
-
-                  loadedCache = loadCacheFrom(roots.localCacheRoot(), context, logger);
-                  if (loadedCache.isPresent()) {
+                  var globalCache = loadCacheFrom(roots.globalCacheRoot(), context, logger);
+                  logger.log(
+                      logLevel,
+                      "Using cache for ["
+                          + logName
+                          + " at location ["
+                          + toMaskedPath(roots.globalCacheRoot()).applyMasking()
+                          + "].");
+                  return Optional.of(globalCache);
+                } catch (IOException globalEx) {
+                  try {
+                    var localCache = loadCacheFrom(roots.localCacheRoot(), context, logger);
                     logger.log(
                         logLevel,
                         "Using cache for ["
@@ -215,21 +213,24 @@ public final class Cache<T, M> {
                             + " at location ["
                             + toMaskedPath(roots.localCacheRoot()).applyMasking()
                             + "].");
-                    return loadedCache;
+                    return Optional.of(localCache);
+                  } catch (IOException localEx) {
+                    logCacheLoadFailure(
+                        logger, "Unable to load a global cache [" + logName + "]: ", globalEx);
+                    logCacheLoadFailure(
+                        logger, "Unable to load a local cache [" + logName + "]: ", localEx);
                   }
-
-                  logger.log(logLevel, "Unable to load a cache [" + logName + "]");
-                } catch (IOException e) {
-                  logger.log(
-                      Level.FINE, "Unable to load a cache [" + logName + "]: " + e.getMessage(), e);
-                } catch (Exception e) {
-                  logger.log(
-                      Level.WARNING,
-                      "Unable to load a cache [" + logName + "]: " + e.getMessage(),
-                      e);
+                  return Optional.empty();
                 }
-                return Optional.empty();
               });
+    }
+  }
+
+  private void logCacheLoadFailure(TruffleLogger logger, String prefix, IOException ex) {
+    if (ex instanceof FileNotFoundException) {
+      logger.log(Level.FINE, prefix + ex.getMessage());
+    } else {
+      logger.log(Level.FINE, prefix + ex.getMessage(), ex);
     }
   }
 
@@ -240,16 +241,15 @@ public final class Cache<T, M> {
    * @param cacheRoot the root at which to find the cache for this cache entry
    * @param context the language context in which loading is taking place
    * @param logger a logger
-   * @return the cached data if available, otherwise an empty [[Optional]].
+   * @return the cached data if available, otherwise throw exception
    */
-  private Optional<T> loadCacheFrom(
-      TruffleFile cacheRoot, EnsoContext context, TruffleLogger logger) throws IOException {
+  private T loadCacheFrom(TruffleFile cacheRoot, EnsoContext context, TruffleLogger logger)
+      throws IOException {
     TruffleFile metadataPath = getCacheMetadataPath(cacheRoot);
     TruffleFile dataPath = getCacheDataPath(cacheRoot);
 
-    Optional<M> optMeta = loadCacheMetadata(metadataPath, logger);
-    if (optMeta.isPresent()) {
-      M meta = optMeta.get();
+    var meta = loadCacheMetadata(metadataPath, logger);
+    if (meta != null) {
       boolean sourceDigestValid =
           !needsSourceDigestVerification
               || spi.computeDigestFromSource(context, logger)
@@ -270,45 +270,36 @@ public final class Cache<T, M> {
               || CacheUtils.computeDigestFromBytes(blobBytes).equals(spi.blobHash(meta));
 
       if (sourceDigestValid && blobDigestValid) {
-        T cachedObject = null;
         try {
           long now = System.currentTimeMillis();
-          cachedObject = spi.deserialize(context, blobBytes, meta, logger);
+          var cachedObject = spi.deserialize(context, blobBytes, meta, logger);
           long took = System.currentTimeMillis() - now;
           if (cachedObject != null) {
             logger.log(
                 Level.FINEST,
                 "Loaded cache for {0} with {1} bytes in {2} ms",
                 new Object[] {logName, blobBytes.limit(), took});
-            return Optional.of(cachedObject);
+            return cachedObject;
           } else {
-            logger.log(logLevel, "`{0}` was corrupt on disk.", logName);
             invalidateCache(cacheRoot, logger);
-            return Optional.empty();
+            throw new IOException(logName + " is corrupted on disk");
           }
-        } catch (ClassNotFoundException | IOException ex) {
-          logger.log(
-              Level.WARNING,
-              "`{0}` in {1} failed to load: {2}",
-              new Object[] {logName, dataPath, ex.getMessage()});
-          logger.log(Level.FINE, "`{0}` in {1} failed to load:", ex);
+        } catch (ClassNotFoundException ex) {
           invalidateCache(cacheRoot, logger);
-          return Optional.empty();
+          throw new IOException("Cannot load " + dataPath + " due to: " + ex.getMessage(), ex);
         }
       } else {
-        logger.log(logLevel, "One or more digests did not match for the cache for [{0}].", logName);
         invalidateCache(cacheRoot, logger);
-        return Optional.empty();
+        throw new IOException(
+            "One or more digests did not match for the cache for [" + logName + "].");
       }
 
     } else {
-      logger.log(
-          Level.FINE,
+      invalidateCache(cacheRoot, logger);
+      throw new FileNotFoundException(
           "Could not load the cache metadata at ["
               + toMaskedPath(metadataPath).applyMasking()
               + "].");
-      invalidateCache(cacheRoot, logger);
-      return Optional.empty();
     }
   }
 
@@ -318,11 +309,11 @@ public final class Cache<T, M> {
    * @param path location of the serialized metadata
    * @return deserialized metadata, or [[None]] if invalid
    */
-  private Optional<M> loadCacheMetadata(TruffleFile path, TruffleLogger logger) throws IOException {
+  private M loadCacheMetadata(TruffleFile path, TruffleLogger logger) throws IOException {
     if (path.isReadable()) {
       return spi.metadataFromBytes(path.readAllBytes(), logger);
     } else {
-      return Optional.empty();
+      throw new FileNotFoundException("Cannot read " + path);
     }
   }
 
@@ -489,8 +480,7 @@ public final class Cache<T, M> {
      * @return non-empty metadata, if de-serialization was successful
      * @throws IOException in case of I/O error
      */
-    public abstract Optional<M> metadataFromBytes(byte[] bytes, TruffleLogger logger)
-        throws IOException;
+    public abstract M metadataFromBytes(byte[] bytes, TruffleLogger logger) throws IOException;
 
     /**
      * Compute digest of cache's data

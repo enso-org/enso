@@ -21,8 +21,11 @@ implementation to invoke.
 
 - [Specificity](#specificity)
 - [Multiple Dispatch](#multiple-dispatch)
+- [Resolving Clashes on `Any`](#resolving-clashes-on-any)
 
 <!-- /MarkdownTOC -->
+
+Another page related to [dispatch](../semantics/dispatch.md) exists.
 
 ## Specificity
 
@@ -107,3 +110,55 @@ Multiple dispatch is also used on `from` conversions, because in expression
 >
 > Here, because `Person` conforms to the `HasName` interface, the second `greet`
 > implementation is chosen because the constraints make it more specific.
+
+## Resolving Clashes on `Any`
+
+Special attention must be paid to `Any` and its methods and extension methods.
+`Any` is a super type of all objects in Enso. As such the methods available on
+`Any` are also available on every object - including special objects like those
+representing `type` and holding its _static methods_ (discussed at
+[types page](types.md) as well).
+
+There is a `to_text` _instance method_ defined on `Any` - what does it mean when
+one calls `Integer.to_text`? Should it by treated as:
+
+```ruby
+Any.to_text Integer # yields Integer text
+```
+
+or should be a static reference to `Integer.to_text` method without providing
+the argument? In case of _regular types_ like `Integer` the following code:
+
+```ruby
+main = Integer.to_text
+```
+
+is considered as invocation of _instance method_ `to_text` on object `Integer`
+and yields `Integer` text.
+
+The situation is different when a _module static_ method together with `Any`
+_extension method_ is defined:
+
+```ruby
+# following function makes sure `simplify` can be called on any object
+Any.simplify self = "Not a Test module, but"+self.to_text
+# following "overrides" the method on Test module
+simplify = "Test module"
+```
+
+With such a setup following code invokes `Any.simplify` extension method
+
+```ruby
+main = "Hi".simplify
+```
+
+and yields `Not a Test module, but Hi` text. On contrary the following code
+yields `Test module` value:
+
+```ruby
+main = Test.simplify
+```
+
+When invoking a method on _module object_ its _module static methods_ take
+precedence over _instance methods_ defined on `Any`. Thus a module serves
+primarily as a _container for module (static) methods_.

@@ -39,7 +39,6 @@ jobs:
             .github/workflows/gui*
             .github/workflows/storybook.yml
           files_ignore: |
-            app/ide-desktop/**
             app/gui/scripts/**
             app/gui/.gitignore
             .git-*

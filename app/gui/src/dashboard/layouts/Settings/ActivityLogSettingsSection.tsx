@@ -17,9 +17,9 @@ import { useBackendQuery } from '#/hooks/backendHooks'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { EVENT_TYPES, EventType, type Event } from '#/services/Backend'
-import { formatDateTime } from '#/utilities/dateTime'
 import { nextSortDirection, SortDirection, type SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
+import { formatDateTime } from 'enso-common/src/utilities/data/dateTime'
 
 // =================
 // === Constants ===
@@ -74,9 +74,9 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
   const { backend } = props
   const { getText } = useText()
   const [types, setTypes] = React.useState<readonly EventType[]>([])
-  const [typeIndices, setTypeIndices] = React.useState<readonly number[]>(() => [])
+  const [typeIndices, setTypeIndices] = React.useState<readonly number[]>([])
   const [emails, setEmails] = React.useState<readonly string[]>([])
-  const [emailIndices, setEmailIndices] = React.useState<readonly number[]>(() => [])
+  const [emailIndices, setEmailIndices] = React.useState<readonly number[]>([])
   const [sortInfo, setSortInfo] = React.useState<SortInfo<ActivityLogSortableColumn> | null>(null)
   const { data: users } = useBackendQuery(backend, 'listUsers', [])
   const allEmails = React.useMemo(() => (users ?? []).map((user) => user.email), [users])

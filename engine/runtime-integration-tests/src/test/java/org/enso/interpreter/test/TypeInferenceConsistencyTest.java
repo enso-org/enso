@@ -3,9 +3,12 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.*;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import org.enso.common.MethodNames;
 import org.enso.common.RuntimeOptions;
+import org.enso.compiler.test.TypeInferenceTest;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.PolyglotException;
@@ -44,9 +47,10 @@ public class TypeInferenceConsistencyTest {
   }
 
   @AfterClass
-  public static void disposeCtx() {
+  public static void disposeCtx() throws IOException {
     ctx.close();
     ctx = null;
+    output.close();
   }
 
   @Test
@@ -235,6 +239,21 @@ public class TypeInferenceConsistencyTest {
     assertEquals("No warning diagnostics are expected.", "", getOutput());
   }
 
+  /*
+  The runtime counterpart of `TypeInferenceTest.precedenceOfMethodsOnAny`.
+  It verifies that the values returned by the methods are consistent with the types checked in the static analysis.
+  Thus, we verify that the runtime method resolution and type inference are consistent.
+  */
+  @Test
+  public void precedenceOfMethodsOnAny() throws URISyntaxException {
+    var module = ctx.eval(TypeInferenceTest.anyPrecedenceTestSource());
+    var result = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "foo");
+    var str = result.as(Object.class).toString();
+    // See TypeInferenceTest.precedenceOfMethodsOnAny for the dissection of each value and
+    // explanations.
+    assertEquals("[A_Value, B_Value, C_Value, A_Value, A_Value, D_Value, E_Value]", str);
+  }
+
   /**
    * Checks that the micro-distribution variant of Standard.Base can be compiled with type checking
    * enabled.
@@ -272,7 +291,7 @@ public class TypeInferenceConsistencyTest {
 
   private static void assertContains(String exp, String msg) {
     if (!msg.contains(exp)) {
-      fail("Expecting " + msg + " to contain " + exp);
+      fail("Expecting '" + msg + "' to contain '" + exp + "'.");
     }
   }
 }

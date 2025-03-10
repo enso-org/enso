@@ -152,7 +152,9 @@ add_specs suite_builder =
                 r.is_empty . should_equal r.to_vector.is_empty
                 r.not_empty . should_equal r.to_vector.not_empty
 
-                r.map .day_of_week . should_equal (r.to_vector.map .day_of_week)
+                x = r.map .day_of_week
+                y = r.to_vector.map .day_of_week
+                x . should_equal y
                 p = d-> d.day_of_week == Day_Of_Week.Monday
                 r.filter p . should_equal (r.to_vector.filter p)
                 r.partition p . should_equal (r.to_vector.partition p)

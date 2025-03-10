@@ -346,10 +346,21 @@ add_conversion_specs suite_builder setup =
                 expected_diff = Duration.between day1.to_date_time day2.to_date_time
                 diff . should_equal expected_diff
 
+            group_builder.specify "should allow to convert an Integer into Boolean" <|
+                t = table_builder [["X", [1, 0, -123, 1234]]]
+                c = t.at "X" . cast Value_Type.Boolean
+                c.value_type . should_equal Value_Type.Boolean
+                c.to_vector . should_equal [True, False, True, True]
+
     suite_builder.group prefix+"(Conversion_Spec) Table/Column.cast - checking invariants" group_builder->
         group_builder.specify "should report an error for unsupported conversions" <|
             t = table_builder [["X", [1, 2, 3]]]
-            r1 = t.at "X" . cast Value_Type.Boolean
+            r1 = t.at "X" . cast Value_Type.Date
+            r1.should_fail_with Illegal_Argument
+
+        group_builder.specify "does not allow to cast a column to Null type" <|
+            t = table_builder [["X", [1, 2]]]
+            r1 = t.at "X" . cast Value_Type.Null
             r1.should_fail_with Illegal_Argument
 
         group_builder.specify "should report an error pointing to the Table.parse method where applicable" <|
@@ -523,9 +534,9 @@ add_conversion_specs suite_builder setup =
 
                 c4 = t2.cast "super-mix" Value_Type.Boolean . at "super-mix"
                 c4.value_type . should_equal Value_Type.Boolean
-                c4.to_vector . should_equal ((nulls 10) + [True, Nothing, Nothing])
+                c4.to_vector . should_equal ([True, True] + (nulls 8) + [True, Nothing, Nothing])
                 w4 = Problems.expect_warning Conversion_Failure c4
-                w4.affected_rows_count . should_equal 11
+                w4.affected_rows_count . should_equal 9
 
                 c5 = t2.cast "super-mix" Value_Type.Date . at "super-mix"
                 c5.to_vector . should_equal ((nulls 6) + [Date.new 2020, Date.new 2023 12 15, Nothing] + (nulls 4))
@@ -557,37 +568,63 @@ add_conversion_specs suite_builder setup =
     suite_builder.group prefix+"(Conversion_Spec) Simple variant of Table/Column.parse in all backends" group_builder->
         group_builder.specify "should be able to parse simple integers" <|
             t = table_builder [["X", ["42", "0", "-1"]]]
+            v = [42, 0, -1]
 
             c1 = t.at "X" . parse Value_Type.Integer
             setup.expect_integer_type c1
-            c1.to_vector . should_equal [42, 0, -1]
+            c1.to_vector . should_equal v
 
             c2 = t.parse ["X"] Value_Type.Integer . at "X"
             setup.expect_integer_type c2
-            c2.to_vector . should_equal [42, 0, -1]
+            c2.to_vector . should_equal v
+
+            # Testing that `parse` on a column that already has the right type also works (no-op).
+            t2 = table_builder [["X", v]]
+            ## On most backends, existing_type will be Integer,
+               but e.g. on Snowflake it will be Decimal, so to make this test universal
+               we need to set the actual type as target for parse.
+            setup.expect_integer_type (t2.at "X")
+            existing_type = t2.at "X" . value_type
+
+            c3 = t2.parse ["X"] existing_type . at "X"
+            setup.expect_integer_type c3
+            c3.to_vector . should_equal v
 
         group_builder.specify "should be able to parse simple floats" <|
             t = table_builder [["X", ["42.5", "0.25", "-1.0"]]]
+            v = [42.5, 0.25, -1.0]
 
             c1 = t.at "X" . parse Value_Type.Float
             c1.value_type.is_floating_point . should_be_true
-            c1.to_vector . should_equal [42.5, 0.25, -1.0]
+            c1.to_vector . should_equal v
 
             c2 = t.parse ["X"] Value_Type.Float . at "X"
             c2.value_type.is_floating_point . should_be_true
-            c2.to_vector . should_equal [42.5, 0.25, -1.0]
+            c2.to_vector . should_equal v
+
+            t2 = table_builder [["X", v]]
+            c3 = t2.parse ["X"] Value_Type.Float . at "X"
+            c3.value_type.is_floating_point . should_be_true
+            c3.to_vector . should_equal v
 
         if supports_dates then
             group_builder.specify "should be able to parse dates using a default format" <|
                 t = table_builder [["X", ["2018-01-01", "2023-12-31"]]]
+                v = [Date.new 2018 1 1, Date.new 2023 12 31]
 
                 c1 = t.at "X" . parse Value_Type.Date
                 c1.value_type.should_equal Value_Type.Date
-                c1.to_vector . should_equal [Date.new 2018 1 1, Date.new 2023 12 31]
+                c1.to_vector . should_equal v
 
                 c2 = t.parse ["X"] Value_Type.Date . at "X"
                 c2.value_type.should_equal Value_Type.Date
-                c2.to_vector . should_equal [Date.new 2018 1 1, Date.new 2023 12 31]
+                c2.to_vector . should_equal v
+
+                t2 = table_builder [["X", v]]
+                c3 = t2.parse ["X"] Value_Type.Date . at "X"
+                c3.value_type.should_equal Value_Type.Date
+                c3.to_vector . should_equal v
+
         if supports_dates.not then
             group_builder.specify "should report that date parsing is unsupported" <|
                 t = table_builder [["X", ["2018-01-01", "2023-12-31"]]]
@@ -600,14 +637,20 @@ add_conversion_specs suite_builder setup =
 
         group_builder.specify "should be able to parse booleans with default format" <|
             t = table_builder [["X", ["true", "false", "true"]]]
+            v = [True, False, True]
 
             c1 = t.at "X" . parse Value_Type.Boolean
             c1.value_type.should_equal Value_Type.Boolean
-            c1.to_vector . should_equal [True, False, True]
+            c1.to_vector . should_equal v
 
             c2 = t.parse ["X"] Value_Type.Boolean . at "X"
             c2.value_type.should_equal Value_Type.Boolean
-            c2.to_vector . should_equal [True, False, True]
+            c2.to_vector . should_equal v
+
+            t2 = table_builder [["X", v]]
+            c3 = t2.parse ["X"] Value_Type.Boolean . at "X"
+            c3.value_type.should_equal Value_Type.Boolean
+            c3.to_vector . should_equal v
 
         group_builder.specify "should report missing columns" <|
             t = table_builder [["X", ["42", "0", "-1"]]]

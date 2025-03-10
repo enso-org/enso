@@ -1,10 +1,10 @@
 /** @file The base class from which all `Actions` classes are derived. */
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
-import type { AutocompleteKeybind } from '#/utilities/inputBindings'
+import type { AutocompleteKeybind, ModifierKey } from '#/utilities/inputBindings'
 
 /** `Meta` (`Cmd`) on macOS, and `Control` on all other platforms. */
-async function modModifier(page: Page) {
+export async function modModifier(page: Page) {
   let userAgent = ''
   await test.step('Detect browser OS', async () => {
     userAgent = await page.evaluate(() => navigator.userAgent)
@@ -51,11 +51,17 @@ export default class BaseActions<Context> implements Promise<void> {
   }
 
   /**
-   * Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
-   * on all other platforms.
+   * Return the appropriate key for a shortcut, replacing the text `Mod` with `Meta` (`Cmd`) on macOS,
+   * and `Control` on all other platforms. Similarly, replace the text `Delete` with `Backspace`
+   * on `macOS`, and `Delete` on all other platforms.
    */
-  static press(page: Page, keyOrShortcut: string): Promise<void> {
-    return test.step(`Press '${keyOrShortcut}'`, async () => {
+  static async withNormalizedKey(
+    page: Page,
+    keyOrShortcut: string,
+    callback: (shortcut: string) => Promise<void>,
+    description = 'Normalize',
+  ): Promise<void> {
+    return test.step(`${description} '${keyOrShortcut}'`, async () => {
       if (/\bMod\b|\bDelete\b/.test(keyOrShortcut)) {
         let userAgent = ''
         await test.step('Detect browser OS', async () => {
@@ -65,11 +71,21 @@ export default class BaseActions<Context> implements Promise<void> {
         const ctrlKey = isMacOS ? 'Meta' : 'Control'
         const deleteKey = isMacOS ? 'Backspace' : 'Delete'
         const shortcut = keyOrShortcut.replace(/\bMod\b/, ctrlKey).replace(/\bDelete\b/, deleteKey)
-        await page.keyboard.press(shortcut)
+        return await callback(shortcut)
       } else {
-        await page.keyboard.press(keyOrShortcut)
+        return callback(keyOrShortcut)
       }
     })
+  }
+
+  /** Press a key or shortcut. */
+  static async press(page: Page, keyOrShortcut: string) {
+    await BaseActions.withNormalizedKey(
+      page,
+      keyOrShortcut,
+      (shortcut) => page.keyboard.press(shortcut),
+      'Press and release',
+    )
   }
 
   /** Proxies the `then` method of the internal {@link Promise}. */
@@ -135,8 +151,45 @@ export default class BaseActions<Context> implements Promise<void> {
    * Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
    * on all other platforms.
    */
-  press<Key extends string>(keyOrShortcut: AutocompleteKeybind<Key>) {
-    return this.do((page) => BaseActions.press(page, keyOrShortcut))
+  press<Key extends string>(keyOrShortcut: AutocompleteKeybind<Key> | ModifierKey) {
+    return this.do((page) =>
+      BaseActions.withNormalizedKey(
+        page,
+        keyOrShortcut,
+        (shortcut) => page.keyboard.press(shortcut),
+        'Press and release',
+      ),
+    )
+  }
+
+  /**
+   * Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
+   * on all other platforms.
+   */
+  down<Key extends string>(keyOrShortcut: AutocompleteKeybind<Key> | ModifierKey) {
+    return this.do((page) =>
+      BaseActions.withNormalizedKey(
+        page,
+        keyOrShortcut,
+        (shortcut) => page.keyboard.down(shortcut),
+        'Press',
+      ),
+    )
+  }
+
+  /**
+   * Press a key, replacing the text `Mod` with `Meta` (`Cmd`) on macOS, and `Control`
+   * on all other platforms.
+   */
+  up<Key extends string>(keyOrShortcut: AutocompleteKeybind<Key> | ModifierKey) {
+    return this.do((page) =>
+      BaseActions.withNormalizedKey(
+        page,
+        keyOrShortcut,
+        (shortcut) => page.keyboard.up(shortcut),
+        'Release',
+      ),
+    )
   }
 
   /** Perform actions until a predicate passes. */

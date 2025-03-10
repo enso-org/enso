@@ -793,8 +793,8 @@ type Float
 
              Float.parse "(123,456,789.654)" format="###,###.##;(###,###.##)"
              # => -123456789.654
-    parse : Text -> Locale | Nothing -> Text | Nothing -> Float ! Number_Parse_Error ! Illegal_Argument
-    parse text:Text (locale : Locale | Nothing = Nothing) (format : Text | Nothing = Nothing) -> Float ! Number_Parse_Error ! Illegal_Argument =
+    parse : Text -> Locale | Nothing -> Text | Nothing -> Float ! Number_Parse_Error | Illegal_Argument
+    parse text:Text (locale : Locale | Nothing = Nothing) (format : Text | Nothing = Nothing) -> Float ! Number_Parse_Error | Illegal_Argument =
         case locale.is_nothing && format.is_nothing of
             True ->
                 Panic.catch NumberFormatException (Double.parseDouble text) _->

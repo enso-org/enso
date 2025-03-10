@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import org.openide.util.lookup.Lookups;
 
 final class PerMap {
@@ -34,7 +35,7 @@ final class PerMap {
         throw new IllegalStateException(
             "Multiple registrations for ID " + p.id + " " + prevId + " != " + p);
       }
-      hash += p.id;
+      hash = Objects.hash(hash, p.id);
       var prevType = types.put(p.clazz, p);
       if (prevType != null) {
         throw new IllegalStateException(

@@ -139,7 +139,7 @@ function printHelp(cfg: PrintHelpConfig) {
         }
         const description = firstSentence + defaults + chalk.gray(otherSentences)
         const lines = wordWrap(description, rightWidth).map(
-          line => line + ' '.repeat(rightWidth - stringLength(line)),
+          (line) => line + ' '.repeat(rightWidth - stringLength(line)),
         )
         const right = lines.join('\n' + ' '.repeat(leftWidth))
         console.log(left + right)
@@ -228,7 +228,7 @@ export class ChromeOption {
 function fixArgvNoPrefix(argv: readonly string[]): readonly string[] {
   const singleDashPrefix = '-no-'
   const doubleDashPrefix = '--no-'
-  return argv.map(arg => {
+  return argv.map((arg) => {
     if (arg.startsWith(singleDashPrefix)) {
       return doubleDashPrefix + arg.slice(singleDashPrefix.length)
     } else {
@@ -364,7 +364,6 @@ export function parseArgs(clientArgs: readonly string[] = fileAssociations.CLIEN
     printHelp({
       args,
       groupsOrdering: [
-        args.groups.loader.name,
         args.groups.startup.name,
         args.groups.style.name,
         args.groups.featurePreview.name,
@@ -375,7 +374,6 @@ export function parseArgs(clientArgs: readonly string[] = fileAssociations.CLIEN
         args.groups.debug.name,
         args.groups.profile.name,
         args.groups.authentication.name,
-        args.groups.dataCollection.name,
         args.groups.chrome.name,
       ],
       helpExtended: args.options.helpExtended.value,
@@ -390,7 +388,7 @@ export function parseArgs(clientArgs: readonly string[] = fileAssociations.CLIEN
     logger.error(parseError.message)
     printHelpAndExit(1)
   } else if (unexpectedArgs != null) {
-    const unexpectedArgsString = unexpectedArgs.map(arg => JSON.stringify(arg)).join(' ')
+    const unexpectedArgsString = unexpectedArgs.map((arg) => JSON.stringify(arg)).join(' ')
     logger.error(`Unexpected arguments found: '${unexpectedArgsString}'.`)
     printHelpAndExit(1)
   }

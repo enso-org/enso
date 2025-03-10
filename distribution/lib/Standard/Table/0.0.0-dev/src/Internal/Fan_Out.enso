@@ -140,7 +140,7 @@ fan_out_to_rows_and_columns table input_column_id function column_names at_least
 fan_out_to_rows_and_columns_fixed : Any -> (Any -> Vector (Vector Any)) -> Boolean -> Vector Text -> (Integer -> Any) -> Problem_Builder -> Vector
 fan_out_to_rows_and_columns_fixed input_storage function at_least_one_row:Boolean column_names:Vector column_builder problem_builder =
     num_output_columns = column_names.length
-    num_input_rows = input_storage.size
+    num_input_rows = input_storage.getSize
 
     # Accumulates the outputs of the function.
     output_column_builders = Vector.new num_output_columns _-> column_builder num_input_rows
@@ -176,7 +176,7 @@ fan_out_to_rows_and_columns_dynamic input_storage function at_least_one_row colu
     output_column_builders = Builder.new
 
     # Guess that most of the time, we'll get at least one value for each input.
-    num_input_rows = input_storage.size
+    num_input_rows = input_storage.getSize
 
     # Column Builder add function
     add_column n current_length =
@@ -268,7 +268,7 @@ map_columns_to_multiple input_column function column_count column_builder=make_s
                 ## Add `output_values` to builders; if there are more builders
                    than `output_values`, pad with null.
                 0.up_to builders.length . each i->
-                    builders.at i . appendNoGrow (output_values.get i Nothing)
+                    builders.at i . append (output_values.get i Nothing)
 
             builders.to_vector
 
@@ -282,7 +282,7 @@ map_columns_to_multiple input_column function column_count column_builder=make_s
                 ## Add `output_values` to builders; if there are more builders
                    than `output_values`, pad with null.
                 0.up_to builders.length . each i->
-                    builders.at i . appendNoGrow (output_values.get i Nothing)
+                    builders.at i . append (output_values.get i Nothing)
 
                 output_values.length
 

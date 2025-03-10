@@ -1,0 +1,22 @@
+## Enso Signatures 1.0
+## module Standard.Base.System.File.Generic.Writable_File
+- type Writable_File
+    - Value file:Standard.Base.Any.Any write_strategy:Standard.Base.System.File.Generic.File_Write_Strategy.File_Write_Strategy file_for_return:Standard.Base.Any.Any=
+    - copy_from_local self source:Standard.Base.System.File.File replace_existing:Standard.Base.Data.Boolean.Boolean -> Standard.Base.Any.Any
+    - copy_to self destination:Standard.Base.Any.Any replace_existing:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - exists self -> Standard.Base.Data.Boolean.Boolean
+    - is_local self -> Standard.Base.Data.Boolean.Boolean
+    - name self -> Standard.Base.Data.Text.Text
+    - pretty self -> Standard.Base.Data.Text.Text
+    - replace_resulting_file self file_to_be_returned:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Data.Text.Text
+    - to_text self -> Standard.Base.Data.Text.Text
+    - with_output_stream self open_options:Standard.Base.Data.Vector.Vector action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - with_overridden_return self file_for_return:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - write self existing_file_behavior:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - write_handling_dry_run self existing_file_behavior:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - write_requiring_local_file self existing_file_behavior:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.System.File.Generic.Writable_File.Writable_File.from that:Standard.Base.Data.Text.Text -> Standard.Base.System.File.Generic.Writable_File.Writable_File
+- Standard.Base.System.File_Format_Metadata.File_Format_Metadata.from that:Standard.Base.System.File.Generic.Writable_File.Writable_File -> Standard.Base.System.File_Format_Metadata.File_Format_Metadata
+- Standard.Base.System.File.Generic.File_Like.File_Like.from that:Standard.Base.System.File.Generic.Writable_File.Writable_File -> Standard.Base.System.File.Generic.File_Like.File_Like
+- Standard.Base.System.File.Generic.Writable_File.Writable_File.from that:Standard.Base.System.File.Generic.File_Like.File_Like -> Standard.Base.System.File.Generic.Writable_File.Writable_File

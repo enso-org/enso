@@ -7,8 +7,7 @@ to be worked around.
 
 ### Drag event missing coordinates
 
-Firefox sets `MouseEvent.pageX` and `MouseEvent.pageY` to `0` for `drag`
-events.
+Firefox sets `MouseEvent.pageX` and `MouseEvent.pageY` to `0` for `drag` events.
 
 #### Fix
 

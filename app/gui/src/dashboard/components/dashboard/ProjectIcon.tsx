@@ -93,7 +93,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const { data: projectState, isError } = reactQuery.useQuery({
     ...projectHooks.createGetProjectDetailsQuery({
       assetId: item.id,
-      parentId: item.parentId,
       backend,
     }),
     select: (data) => data.state,
@@ -178,13 +177,14 @@ export default function ProjectIcon(props: ProjectIconProps) {
     case backendModule.ProjectState.created:
       return (
         <ariaComponents.Button
-          size="custom"
+          size="large"
           variant="icon"
           icon={PlayIcon}
           aria-label={getTooltip(getText('openInEditor'))}
           tooltipPlacement="left"
           extraClickZone="xsmall"
           isDisabled={isDisabled || projectState?.type === backendModule.ProjectState.closing}
+          className="shrink-0"
           onPress={doOpenProject}
           testId="open-project"
         />

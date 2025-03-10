@@ -1,5 +1,4 @@
 import { createContextStore } from '@/providers'
-import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { Awareness } from '@/stores/awareness'
 import { ComputedValueRegistry } from '@/stores/project/computedValueRegistry'
 import {
@@ -8,14 +7,17 @@ import {
   type NodeVisualizationConfiguration,
 } from '@/stores/project/executionContext'
 import { VisualizationDataRegistry } from '@/stores/project/visualizationDataRegistry'
+import { type ProjectNameStore } from '@/stores/projectNames'
 import { attachProvider, useObserveYjs } from '@/util/crdt'
 import { nextEvent } from '@/util/data/observable'
 import { type Opt } from '@/util/data/opt'
 import { Err, Ok, type Result } from '@/util/data/result'
 import { ReactiveMapping } from '@/util/database/reactiveDb'
+import { type MethodPointer } from '@/util/methodPointer'
 import { createDataWebsocket, createRpcTransport, useAbortScope } from '@/util/net'
 import { DataServer } from '@/util/net/dataServer'
-import { tryQualifiedName } from '@/util/qualifiedName'
+import { ProjectPath } from '@/util/projectPath'
+import { isIdentifier, tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { computedAsync } from '@vueuse/core'
 import * as random from 'lib0/random'
 import {
@@ -23,7 +25,6 @@ import {
   markRaw,
   onScopeDispose,
   proxyRefs,
-  readonly,
   ref,
   shallowRef,
   watch,
@@ -31,9 +32,10 @@ import {
   type WatchSource,
   type WritableComputedRef,
 } from 'vue'
+import { type Identifier } from 'ydoc-shared/ast'
 import { OutboundPayload, VisualizationUpdate } from 'ydoc-shared/binaryProtocol'
 import { LanguageServer } from 'ydoc-shared/languageServer'
-import type { Diagnostic, ExpressionId, MethodPointer } from 'ydoc-shared/languageServerTypes'
+import type { Diagnostic, ExpressionId } from 'ydoc-shared/languageServerTypes'
 import { type AbortScope } from 'ydoc-shared/util/net'
 import {
   DistributedProject,
@@ -43,38 +45,30 @@ import {
 } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
 
-interface LsUrls {
+export interface LsUrls {
   rpcUrl: string
   dataUrl: string
-  ydocUrl: URL
+  ydocUrl: string
 }
 
-function resolveLsUrl(config: GuiConfig): LsUrls {
-  const engine = config.engine
-  if (engine == null) throw new Error('Missing engine configuration')
-  if (engine.rpcUrl != null && engine.dataUrl != null) {
-    const dataUrl = engine.dataUrl
-    const rpcUrl = engine.rpcUrl
+const VISUALIZATION_PREPROCESSOR_PATH = ProjectPath.create(
+  'Standard.Visualization' as QualifiedName,
+  'Preprocessor' as Identifier,
+)
 
-    let ydocUrl: URL
-    if (engine.ydocUrl == '') {
-      ydocUrl = new URL(location.origin)
-      ydocUrl.protocol = location.protocol.replace(/^http/, 'ws')
-    } else if (URL.canParse(engine.ydocUrl)) {
-      ydocUrl = new URL(engine.ydocUrl)
-    } else {
-      ydocUrl = new URL(rpcUrl)
-      ydocUrl.port = '1234'
-    }
-    ydocUrl.pathname = '/project'
-
-    return {
-      rpcUrl,
-      dataUrl,
-      ydocUrl,
-    }
+function resolveYDocUrl(rpcUrl: string, url: string): URL {
+  let resolved
+  if (url == '') {
+    resolved = new URL(location.origin)
+    resolved.protocol = location.protocol.replace(/^http/, 'ws')
+  } else if (URL.canParse(url)) {
+    resolved = new URL(url)
+  } else {
+    resolved = new URL(rpcUrl)
+    resolved.port = '1234'
   }
-  throw new Error('Incomplete engine configuration')
+  resolved.pathname = '/project'
+  return resolved
 }
 
 function createLsRpcConnection(clientId: Uuid, url: string, abort: AbortScope): LanguageServer {
@@ -97,13 +91,24 @@ function initializeDataConnection(clientId: Uuid, url: string, abort: AbortScope
 export type ProjectStore = ReturnType<typeof useProjectStore>
 
 /**
+ * Properties of the project.
+ *
+ * This is a subset of ProjectView props which is used to set up the store.
+ */
+export interface ProjectProps {
+  projectId: string
+  renameProject: (newName: string) => void
+  engine: LsUrls
+}
+
+/**
  * The project store synchronizes and holds the open project-related data. The synchronization is
  * performed using a CRDT data types from Yjs. Once the data is synchronized with a "LS bridge"
  * client, it is submitted to the language server as a document update.
  */
 export const [provideProjectStore, useProjectStore] = createContextStore(
   'project',
-  (props: { projectId: string; renameProject: (newName: string) => void }) => {
+  (props: ProjectProps, projectNames: ProjectNameStore) => {
     const { projectId, renameProject: renameProjectBackend } = props
     const abort = useAbortScope()
 
@@ -112,26 +117,14 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
     const doc = new Y.Doc()
     const awareness = new Awareness(doc)
 
-    const config = injectGuiConfig()
-    const projectNameFromCfg = config.value.startup?.project
-    if (projectNameFromCfg == null) throw new Error('Missing project name.')
-    const projectName = ref(projectNameFromCfg)
-    // Note that `config` is not deeply reactive. This is fine as the config is an immutable object
-    // passed in from the dashboard, so the entire object will change if any of its nested
-    // properties change.
-    const projectDisplayName = computed(
-      () => config.value.startup?.displayedProjectName ?? projectName,
-    )
-
     const clientId = random.uuidv4() as Uuid
-    const lsUrls = resolveLsUrl(config.value)
-    const lsRpcConnection = createLsRpcConnection(clientId, lsUrls.rpcUrl, abort)
+    const lsRpcConnection = createLsRpcConnection(clientId, props.engine.rpcUrl, abort)
     const projectRootId = lsRpcConnection.contentRoots.then(
       (roots) => roots.find((root) => root.type === 'Project')?.id,
     )
 
-    const dataConnection = initializeDataConnection(clientId, lsUrls.dataUrl, abort)
-    const rpcUrl = new URL(lsUrls.rpcUrl)
+    const dataConnection = initializeDataConnection(clientId, props.engine.dataUrl, abort)
+    const rpcUrl = new URL(props.engine.rpcUrl)
     const isOnLocalBackend =
       rpcUrl.protocol === 'mock:' ||
       rpcUrl.hostname === 'localhost' ||
@@ -139,30 +132,23 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
       rpcUrl.hostname === '[::1]' ||
       rpcUrl.hostname === '0:0:0:0:0:0:0:1'
 
-    const namespace = computed(() => config.value.engine?.namespace)
-    const fullName = computed(() => {
-      const ns = namespace.value
-      if (import.meta.env.PROD && ns == null) {
-        console.warn(
-          'Unknown project\'s namespace. Assuming "local", however it likely won\'t work in cloud',
-        )
-      }
-      return `${ns ?? 'local'}.${projectName.value}`
-    })
-    const modulePath = computed(() => {
+    const moduleProjectPath = computed((): Result<ProjectPath> | undefined => {
       const filePath = observedFileName.value
       if (filePath == null) return undefined
       const withoutFileExt = filePath.replace(/\.enso$/, '')
       const withDotSeparators = withoutFileExt.replace(/\//g, '.')
-      return tryQualifiedName(`${fullName.value}.${withDotSeparators}`)
+      const qn = tryQualifiedName(withDotSeparators)
+      if (!qn.ok) return qn
+      return Ok(ProjectPath.create(undefined, qn.value))
     })
 
+    const ydocUrl = resolveYDocUrl(props.engine.rpcUrl, props.engine.ydocUrl)
     let yDocsProvider: ReturnType<typeof attachProvider> | undefined
     watchEffect((onCleanup) => {
       yDocsProvider = attachProvider(
-        lsUrls.ydocUrl.href,
+        ydocUrl.href,
         'index',
-        { ls: lsUrls.rpcUrl },
+        { ls: props.engine.rpcUrl },
         doc,
         awareness.internal,
       )
@@ -201,9 +187,8 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
     )
 
     const entryPoint = computed<MethodPointer>(() => {
-      const projectName = fullName.value
-      const mainModule = `${projectName}.Main`
-      return { module: mainModule, definedOnType: mainModule, name: 'main' }
+      const mainModule = ProjectPath.create(undefined, 'Main' as Identifier)
+      return { module: mainModule, definedOnType: mainModule, name: 'main' as Identifier }
     })
 
     function createExecutionContextForMain(): ExecutionContext {
@@ -214,6 +199,7 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
           positionalArgumentsExpressions: [],
         },
         abort,
+        projectNames,
       )
     }
 
@@ -228,7 +214,10 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
       executionContext,
       dataConnection,
     )
-    const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(executionContext)
+    const computedValueRegistry = ComputedValueRegistry.WithExecutionContext(
+      executionContext,
+      projectNames,
+    )
 
     const diagnostics = shallowRef<Diagnostic[]>([])
     executionContext.on('executionStatus', (newDiagnostics) => {
@@ -267,9 +256,9 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
             expressionId: id,
             visualizationModule: 'Standard.Visualization.Preprocessor',
             expression: {
-              module: 'Standard.Visualization.Preprocessor',
-              definedOnType: 'Standard.Visualization.Preprocessor',
-              name: 'error_preprocessor',
+              module: VISUALIZATION_PREPROCESSOR_PATH,
+              definedOnType: VISUALIZATION_PREPROCESSOR_PATH,
+              name: 'error_preprocessor' as Identifier,
             },
           }
         : null,
@@ -371,15 +360,18 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
     function renameProject(newDisplayedName: string) {
       try {
         renameProjectBackend(newDisplayedName)
+        if (isIdentifier(newDisplayedName)) {
+          projectNames.onProjectRenameRequested(newDisplayedName)
+        } else {
+          console.error(`Renaming project: Not a valid identifier: ${newDisplayedName}`)
+        }
         return Ok()
       } catch (err) {
         return Err(err)
       }
     }
     lsRpcConnection.on('refactoring/projectRenamed', ({ oldNormalizedName, newNormalizedName }) => {
-      if (oldNormalizedName === projectName.value) {
-        projectName.value = newNormalizedName
-      }
+      projectNames.onProjectRenamed(oldNormalizedName, newNormalizedName)
     })
 
     return proxyRefs({
@@ -390,14 +382,12 @@ export const [provideProjectStore, useProjectStore] = createContextStore(
         return observedFileName.value
       },
       id: projectId,
-      name: readonly(projectName),
-      displayName: readonly(projectDisplayName),
       isOnLocalBackend,
       executionContext,
       firstExecution,
       diagnostics,
       module,
-      modulePath,
+      moduleProjectPath,
       entryPoint,
       projectModel,
       projectRootId,

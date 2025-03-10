@@ -7,23 +7,20 @@
  * default fonts.
  */
 import { defineConfig } from '@playwright/test'
-import net from 'net'
-import path from 'path'
+import net from 'node:net'
+import path from 'node:path'
+import url from 'node:url'
 
 const DEBUG = process.env.DEBUG_TEST === 'true'
 const isCI = process.env.CI === 'true'
 const isProd = process.env.PROD === 'true'
-
-const TIMEOUT_MS =
-  DEBUG ? 100_000_000
-  : isCI ? 25_000
-  : 15_000
+const TIMEOUT_MS = DEBUG ? 100_000_000 : 25_000
 
 // We tend to use less CPU on CI to reduce the number of failures due to timeouts.
 // Instead of using workers on CI, we use shards to run tests in parallel.
 const WORKERS = isCI ? 2 : '35%'
 
-const dirName = path.dirname(new URL(import.meta.url).pathname)
+const dirName = path.dirname(url.fileURLToPath(import.meta.url))
 
 async function findFreePortInRange(min: number, max: number) {
   for (let i = 0; i < 50; i++) {
@@ -153,11 +150,11 @@ export default defineConfig({
   ],
   webServer: [
     {
-      env: { INTEGRATION_TEST: 'true' },
-      command:
-        isCI || isProd ?
-          `corepack pnpm build && corepack pnpm exec vite preview --port ${ports.projectView} --strictPort`
-        : `corepack pnpm exec vite dev --port ${ports.projectView}`,
+      env: {
+        INTEGRATION_TEST: 'true',
+        ENSO_IDE_PROJECT_MANAGER_URL: 'ws://__HOSTNAME__:30536',
+      },
+      command: `corepack pnpm build && corepack pnpm exec vite preview --port ${ports.projectView} --strictPort`,
       // Build from scratch apparently can take a while on CI machines.
       timeout: 240 * 1000,
       port: ports.projectView,
@@ -168,7 +165,7 @@ export default defineConfig({
       command:
         isCI || isProd ?
           `corepack pnpm exec vite -c vite.test.config.ts build && vite -c vite.test.config.ts preview --port ${ports.dashboard} --strictPort`
-        : `corepack pnpm exec vite -c vite.test.config.ts --port ${ports.dashboard}`,
+        : `NODE_ENV=test corepack pnpm exec vite -c vite.test.config.ts --port ${ports.dashboard}`,
       timeout: 240 * 1000,
       port: ports.dashboard,
       reuseExistingServer: false,

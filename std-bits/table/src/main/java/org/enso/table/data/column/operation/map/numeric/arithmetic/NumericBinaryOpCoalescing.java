@@ -2,19 +2,14 @@ package org.enso.table.data.column.operation.map.numeric.arithmetic;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.BitSet;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
-import org.enso.table.data.column.operation.map.numeric.helpers.BigDecimalArrayAdapter;
-import org.enso.table.data.column.operation.map.numeric.helpers.BigIntegerArrayAdapter;
-import org.enso.table.data.column.operation.map.numeric.helpers.DoubleArrayAdapter;
-import org.enso.table.data.column.storage.SpecializedStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
-import org.enso.table.data.column.storage.numeric.AbstractLongStorage;
-import org.enso.table.data.column.storage.numeric.BigDecimalStorage;
-import org.enso.table.data.column.storage.numeric.BigIntegerStorage;
-import org.enso.table.data.column.storage.numeric.DoubleStorage;
-import org.enso.table.data.column.storage.numeric.LongStorage;
-import org.graalvm.polyglot.Context;
+import org.enso.table.data.column.storage.type.FloatType;
 
 /**
  * A variant of NumericBinaryOpImplementation that has different null behaviour: if one of the
@@ -27,248 +22,199 @@ public abstract class NumericBinaryOpCoalescing<T extends Number, I extends Stor
   }
 
   @Override
-  protected DoubleStorage runDoubleZip(
-      DoubleArrayAdapter a, DoubleArrayAdapter b, MapOperationProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    int n = a.size();
-    int m = Math.min(a.size(), b.size());
-    long[] out = new long[n];
-    BitSet isNothing = new BitSet();
-    for (int i = 0; i < m; i++) {
-      boolean aNothing = a.isNothing(i);
-      boolean bNothing = b.isNothing(i);
-      if (aNothing && bNothing) {
-        isNothing.set(i);
-      } else {
-        double r;
-        if (aNothing) {
-          r = b.getItemAsDouble(i);
-        } else if (bNothing) {
-          r = a.getItemAsDouble(i);
-        } else {
-          r = doDouble(a.getItemAsDouble(i), b.getItemAsDouble(i), i, problemAggregator);
-        }
-        out[i] = Double.doubleToRawLongBits(r);
-      }
-
-      context.safepoint();
+  public Storage<?> runBinaryMap(
+      I storage, Object arg, MapOperationProblemAggregator problemAggregator) {
+    if (arg == null) {
+      return storage;
     }
-
-    for (int i = m; i < n; ++i) {
-      if (a.isNothing(i)) {
-        isNothing.set(i);
-      } else {
-        out[i] = Double.doubleToRawLongBits(a.getItemAsDouble(i));
-      }
-
-      context.safepoint();
-    }
-
-    return new DoubleStorage(out, n, isNothing);
+    return super.runBinaryMap(storage, arg, problemAggregator);
   }
 
   @Override
-  protected DoubleStorage runDoubleMap(
-      DoubleArrayAdapter a, Double b, MapOperationProblemAggregator problemAggregator) {
-    if (b == null) {
-      return a.intoStorage();
-    }
-
-    double bNonNull = b;
-    Context context = Context.getCurrent();
-    int n = a.size();
-    long[] out = new long[n];
-    BitSet isNothing = new BitSet();
-    for (int i = 0; i < n; i++) {
-      double r =
-          a.isNothing(i)
-              ? bNonNull
-              : doDouble(a.getItemAsDouble(i), bNonNull, i, problemAggregator);
-      out[i] = Double.doubleToRawLongBits(r);
-      context.safepoint();
-    }
-
-    return new DoubleStorage(out, n, isNothing);
-  }
-
-  @Override
-  protected LongStorage runLongZip(
-      AbstractLongStorage a,
-      AbstractLongStorage b,
+  protected Storage<Double> runDoubleZip(
+      ColumnDoubleStorage a,
+      ColumnDoubleStorage b,
       MapOperationProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    int n = a.size();
-    int m = Math.min(a.size(), b.size());
-    long[] out = new long[n];
-    BitSet isNothing = new BitSet();
-    for (int i = 0; i < m; i++) {
-      boolean aNothing = a.isNothing(i);
-      boolean bNothing = b.isNothing(i);
-      if (aNothing && bNothing) {
-        isNothing.set(i);
-      } else {
-        if (aNothing) {
-          out[i] = b.getItem(i);
-        } else if (bNothing) {
-          out[i] = a.getItem(i);
-        } else {
-          Long r = doLong(a.getItem(i), b.getItem(i), i, problemAggregator);
-          if (r == null) {
-            isNothing.set(i);
-          } else {
-            out[i] = r;
-          }
-        }
-      }
-
-      context.safepoint();
-    }
-
-    for (int i = m; i < n; ++i) {
-      if (a.isNothing(i)) {
-        isNothing.set(i);
-      } else {
-        out[i] = a.getItem(i);
-      }
-
-      context.safepoint();
-    }
-
-    return new LongStorage(out, n, isNothing, INTEGER_RESULT_TYPE);
+    var result =
+        StorageIterators.zipOverDoubleStorages(
+            a,
+            b,
+            s -> Builder.getForDouble(FloatType.FLOAT_64, s, problemAggregator),
+            false,
+            (index, value1, isNothing1, value2, isNothing2) -> {
+              if (isNothing1 && isNothing2) {
+                return null;
+              } else if (isNothing1) {
+                return value2;
+              } else if (isNothing2) {
+                return value1;
+              } else {
+                return doDouble(value1, value2, index, problemAggregator);
+              }
+            });
+    // ToDo: Merge Storage and ColumnStorage
+    return (Storage<Double>) result;
   }
 
+  @Override
+  protected Storage<Double> runDoubleLongMap(
+      ColumnLongStorage a, Double b, MapOperationProblemAggregator problemAggregator) {
+    var result =
+        StorageIterators.buildOverLongStorage(
+            a,
+            false,
+            Builder.getForDouble(FloatType.FLOAT_64, a.getSize(), problemAggregator),
+            (builder, index, value, isNothing) ->
+                builder.append(
+                    isNothing ? b : doDouble((double) value, b, index, problemAggregator)));
+    // ToDo: Merge Storage and ColumnStorage
+    return (Storage<Double>) result;
+  }
+
+  @Override
+  protected Storage<Double> runDoubleMap(
+      ColumnDoubleStorage a, Double b, MapOperationProblemAggregator problemAggregator) {
+    var result =
+        StorageIterators.buildOverDoubleStorage(
+            a,
+            true,
+            Builder.getForDouble(FloatType.FLOAT_64, a.getSize(), problemAggregator),
+            (builder, index, value, isNothing) ->
+                builder.append(isNothing ? b : doDouble(value, b, index, problemAggregator)));
+    // ToDo: Merge Storage and ColumnStorage
+    return (Storage<Double>) result;
+  }
+
+  @Override
+  protected Storage<Long> runLongZip(
+      ColumnLongStorage a, ColumnLongStorage b, MapOperationProblemAggregator problemAggregator) {
+    var result =
+        StorageIterators.zipOverLongStorages(
+            a,
+            b,
+            s -> Builder.getForLong(INTEGER_RESULT_TYPE, s, problemAggregator),
+            false,
+            (index, value1, isNothing1, value2, isNothing2) -> {
+              if (isNothing1 && isNothing2) {
+                return null;
+              } else if (isNothing1) {
+                return value2;
+              } else if (isNothing2) {
+                return value1;
+              } else {
+                return doLong(value1, value2, index, problemAggregator);
+              }
+            });
+    // ToDo: Merge Storage and ColumnStorage
+    return (Storage<Long>) result;
+  }
+
+  @Override
   protected Storage<Long> runLongMap(
-      AbstractLongStorage a, Long b, MapOperationProblemAggregator problemAggregator) {
-    if (b == null) {
-      return a;
-    }
-
-    long bNonNull = b;
-    Context context = Context.getCurrent();
-    int n = a.size();
-    long[] out = new long[n];
-    BitSet isNothing = new BitSet();
-    for (int i = 0; i < n; i++) {
-      if (a.isNothing(i)) {
-        out[i] = bNonNull;
-      } else {
-        Long r = doLong(a.getItem(i), bNonNull, i, problemAggregator);
-        if (r == null) {
-          isNothing.set(i);
-        } else {
-          out[i] = r;
-        }
-      }
-
-      context.safepoint();
-    }
-
-    return new LongStorage(out, n, isNothing, INTEGER_RESULT_TYPE);
+      ColumnLongStorage a, Long b, MapOperationProblemAggregator problemAggregator) {
+    var result =
+        StorageIterators.buildOverLongStorage(
+            a,
+            false,
+            Builder.getForLong(INTEGER_RESULT_TYPE, a.getSize(), problemAggregator),
+            (builder, index, value, isNothing) ->
+                builder.append(isNothing ? b : doLong(value, b, index, problemAggregator)));
+    // ToDo: Merge Storage and ColumnStorage
+    return (Storage<Long>) result;
   }
 
-  protected BigIntegerStorage runBigIntegerZip(
-      BigIntegerArrayAdapter a,
-      BigIntegerArrayAdapter b,
+  @Override
+  protected Storage<BigInteger> runBigIntegerZip(
+      ColumnStorage<BigInteger> a,
+      ColumnStorage<BigInteger> b,
       MapOperationProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    int n = a.size();
-    int m = Math.min(a.size(), b.size());
-    BigInteger[] out = new BigInteger[n];
-    for (int i = 0; i < m; i++) {
-      BigInteger x = a.getItem(i);
-      BigInteger y = b.getItem(i);
-      if (x == null && y == null) {
-        out[i] = null;
-      } else {
-        if (x == null) {
-          out[i] = y;
-        } else if (y == null) {
-          out[i] = x;
-        } else {
-          BigInteger r = doBigInteger(x, y, i, problemAggregator);
-          out[i] = r;
-        }
-      }
-      context.safepoint();
-    }
-
-    return new BigIntegerStorage(out, n);
+    var result =
+        StorageIterators.zipOverStorages(
+            a,
+            b,
+            s -> Builder.getForBigInteger(s, problemAggregator),
+            false,
+            (index, x, y) -> {
+              if (x == null && y == null) {
+                return null;
+              } else if (x == null) {
+                return y;
+              } else if (y == null) {
+                return x;
+              } else {
+                return doBigInteger(x, y, index, problemAggregator);
+              }
+            });
+    // ToDo: Merge Storage and ColumnStorage
+    return (Storage<BigInteger>) result;
   }
 
-  protected BigIntegerStorage runBigIntegerMap(
-      BigIntegerArrayAdapter a, BigInteger b, MapOperationProblemAggregator problemAggregator) {
-    if (b == null) {
-      return a.intoStorage();
-    }
-
-    Context context = Context.getCurrent();
-    int n = a.size();
-    BigInteger[] out = new BigInteger[n];
-    for (int i = 0; i < n; i++) {
-      BigInteger x = a.getItem(i);
-      if (x == null) {
-        out[i] = b;
-      } else {
-        BigInteger r = doBigInteger(x, b, i, problemAggregator);
-        out[i] = r;
-      }
-
-      context.safepoint();
-    }
-
-    return new BigIntegerStorage(out, n);
+  @Override
+  protected Storage<BigInteger> runBigIntegerLongMap(
+      ColumnLongStorage a, BigInteger b, MapOperationProblemAggregator problemAggregator) {
+    var result =
+        StorageIterators.buildOverLongStorage(
+            a,
+            false,
+            Builder.getForBigInteger(a.getSize(), problemAggregator),
+            (builder, index, value, isNothing) ->
+                builder.append(
+                    isNothing
+                        ? b
+                        : doBigInteger(BigInteger.valueOf(value), b, index, problemAggregator)));
+    // ToDo: Merge Storage and ColumnStorage
+    return (Storage<BigInteger>) result;
   }
 
-  protected BigDecimalStorage runBigDecimalZip(
-      BigDecimalArrayAdapter a,
-      BigDecimalArrayAdapter b,
+  @Override
+  protected Storage<BigInteger> runBigIntegerMap(
+      ColumnStorage<BigInteger> a, BigInteger b, MapOperationProblemAggregator problemAggregator) {
+    var result =
+        StorageIterators.mapOverStorage(
+            a,
+            false,
+            Builder.getForBigInteger(a.getSize(), problemAggregator),
+            (index, value) -> value == null ? b : doBigInteger(value, b, index, problemAggregator));
+    // ToDo: Merge Storage and ColumnStorage
+    return (Storage<BigInteger>) result;
+  }
+
+  @Override
+  protected Storage<BigDecimal> runBigDecimalZip(
+      ColumnStorage<BigDecimal> a,
+      ColumnStorage<BigDecimal> b,
       MapOperationProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    int n = a.size();
-    int m = Math.min(a.size(), b.size());
-    BigDecimal[] out = new BigDecimal[n];
-    for (int i = 0; i < m; i++) {
-      BigDecimal x = a.getItem(i);
-      BigDecimal y = b.getItem(i);
-      if (x == null && y == null) {
-        out[i] = null;
-      } else {
-        if (x == null) {
-          out[i] = y;
-        } else if (y == null) {
-          out[i] = x;
-        } else {
-          BigDecimal r = doBigDecimal(x, y, i, problemAggregator);
-          out[i] = r;
-        }
-      }
-      context.safepoint();
-    }
-
-    return new BigDecimalStorage(out, n);
+    var result =
+        StorageIterators.zipOverStorages(
+            a,
+            b,
+            s -> Builder.getForBigDecimal(s),
+            false,
+            (index, x, y) -> {
+              if (x == null && y == null) {
+                return null;
+              } else if (x == null) {
+                return y;
+              } else if (y == null) {
+                return x;
+              } else {
+                return doBigDecimal(x, y, index, problemAggregator);
+              }
+            });
+    // ToDo: Merge Storage and ColumnStorage
+    return (Storage<BigDecimal>) result;
   }
 
-  protected SpecializedStorage<BigDecimal> runBigDecimalMap(
-      BigDecimalArrayAdapter a, BigDecimal b, MapOperationProblemAggregator problemAggregator) {
-    if (b == null) {
-      return a.intoStorage();
-    }
-
-    Context context = Context.getCurrent();
-    int n = a.size();
-    BigDecimal[] out = new BigDecimal[n];
-    for (int i = 0; i < n; i++) {
-      BigDecimal x = a.getItem(i);
-      if (x == null) {
-        out[i] = b;
-      } else {
-        BigDecimal r = doBigDecimal(x, b, i, problemAggregator);
-        out[i] = r;
-      }
-
-      context.safepoint();
-    }
-
-    return new BigDecimalStorage(out, n);
+  @Override
+  protected Storage<BigDecimal> runBigDecimalMap(
+      ColumnStorage<BigDecimal> a, BigDecimal b, MapOperationProblemAggregator problemAggregator) {
+    var result =
+        StorageIterators.mapOverStorage(
+            a,
+            false,
+            Builder.getForBigDecimal(a.getSize()),
+            (index, value) -> value == null ? b : doBigDecimal(value, b, index, problemAggregator));
+    // ToDo: Merge Storage and ColumnStorage
+    return (Storage<BigDecimal>) result;
   }
 }

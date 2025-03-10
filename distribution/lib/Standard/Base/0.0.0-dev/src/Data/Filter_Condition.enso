@@ -270,31 +270,33 @@ type Filter_Condition
                 builder.append (Option "Greater Than Or Equal" "..Equal_Or_Greater" [["than", comparable_types]])
                 builder.append (Option "Between" "..Between" [["lower", comparable_types], ["upper", comparable_types]])
 
+            if include_text then
+                builder.append (Option "Equals Ignore Case" "..Equal_Ignore_Case" [["to", Widget.Text_Input]])
+                builder.append (Option "Starts With" "..Starts_With" [["prefix", Widget.Text_Input]])
+                builder.append (Option "Ends With" "..Ends_With" [["suffix", Widget.Text_Input]])
+                builder.append (Option "Contains" "..Contains" [["substring", Widget.Text_Input]])
+                builder.append (Option "Like" "..Like" [["pattern", Widget.Text_Input]])
+
+            if include_nullable then
+                builder.append (Option "Is Nothing" "..Is_Nothing")
+                builder.append (Option "Is Not Nothing" "..Not_Nothing")
+
+            if include_boolean then
+                builder.append (Option "Is True" "..Is_True")
+                builder.append (Option "Is False" "..Is_False")
+
+            value_editor = Widget.Vector_Editor item_editor=equatable_types display=Display.Always item_default='""'
+            builder.append (Option "Is In" "..Is_In" [["values", value_editor]])
+
             if include_numeric then
                 builder.append (Option "Is Finite" "..Is_Finite")
                 builder.append (Option "Is Infinite" "..Is_Infinite")
                 builder.append (Option "Is NaN" "..Is_Nan")
                 builder.append (Option "Is Not NaN" "..Not_Nan")
 
-            if include_boolean then
-                builder.append (Option "Is True" "..Is_True")
-                builder.append (Option "Is False" "..Is_False")
-
-            if include_nullable then
-                builder.append (Option "Is Nothing" "..Is_Nothing")
-                builder.append (Option "Is Not Nothing" "..Not_Nothing")
-
             if include_text then
-                builder.append (Option "Equals Ignore Case" "..Equal_Ignore_Case" [["to", Widget.Text_Input]])
-                builder.append (Option "Starts With" "..Starts_With" [["prefix", Widget.Text_Input]])
-                builder.append (Option "Ends With" "..Ends_With" [["suffix", Widget.Text_Input]])
-                builder.append (Option "Contains" "..Contains" [["substring", Widget.Text_Input]])
                 builder.append (Option "Is Empty" "..Is_Empty")
                 builder.append (Option "Is Not Empty" "..Not_Empty")
-                builder.append (Option "Like" "..Like" [["pattern", Widget.Text_Input]])
-
-            value_editor = Widget.Vector_Editor item_editor=equatable_types display=Display.Always item_default='""'
-            builder.append (Option "Is In" "..Is_In" [["values", value_editor]])
 
         make_single_choice options display=display
 

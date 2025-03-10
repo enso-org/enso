@@ -7,22 +7,14 @@ import invariant from 'tiny-invariant'
 
 import * as backend from '#/services/Backend'
 import * as appBaseUrl from '#/utilities/appBaseUrl'
-import * as dateTime from '#/utilities/dateTime'
 import * as newtype from '#/utilities/newtype'
 import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
-
-// =================
-// === Constants ===
-// =================
+import * as dateTime from 'enso-common/src/utilities/data/dateTime'
 
 /** Duration before the {@link ProjectManager} tries to create a WebSocket again. */
 const RETRY_INTERVAL_MS = 1000
 /** The maximum amount of time for which the {@link ProjectManager} should try loading. */
 const MAXIMUM_DELAY_MS = 10_000
-
-// =============
-// === Types ===
-// =============
 
 /** Possible actions to take when a component is missing. */
 export enum MissingComponentAction {
@@ -216,10 +208,6 @@ interface OpenedProjectState {
  */
 type ProjectState = OpenedProjectState | OpenInProgressProjectState
 
-// ================================
-// === Parameters for endpoints ===
-// ================================
-
 /** Parameters for the "open project" endpoint. */
 export interface OpenProjectParams {
   readonly projectId: UUID
@@ -264,10 +252,6 @@ export interface DeleteProjectParams {
   readonly projectId: UUID
   readonly projectsDirectory?: Path
 }
-
-// =======================
-// === Project Manager ===
-// =======================
 
 /** Possible events that may be emitted by a {@link ProjectManager}. */
 export enum ProjectManagerEvents {
@@ -503,6 +487,10 @@ export default class ProjectManager {
 
   /** Delete a project. */
   async deleteProject(params: Omit<DeleteProjectParams, 'projectsDirectory'>): Promise<void> {
+    const cached = this.internalProjects.get(params.projectId)
+    if (cached && backend.IS_OPENING_OR_OPENED[cached.state]) {
+      await this.closeProject({ projectId: params.projectId })
+    }
     const path = this.internalProjectPaths.get(params.projectId)
     const directoryPath =
       path == null ? this.rootDirectory : getDirectoryAndName(path).directoryPath

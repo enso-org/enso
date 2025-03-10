@@ -1,73 +1,101 @@
 import { createContextStore } from '@/providers'
 import { type ProjectStore } from '@/stores/project'
-import { entryQn, type SuggestionEntry, type SuggestionId } from '@/stores/suggestionDatabase/entry'
+import { type ProjectNameStore } from '@/stores/projectNames'
+import {
+  entryIsCallable,
+  SuggestionKind,
+  type CallableSuggestionEntry,
+  type SuggestionEntry,
+  type SuggestionId,
+} from '@/stores/suggestionDatabase/entry'
 import { SuggestionUpdateProcessor } from '@/stores/suggestionDatabase/lsUpdate'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
+import { type MethodPointer } from '@/util/methodPointer'
 import { AsyncQueue } from '@/util/net'
-import {
-  normalizeQualifiedName,
-  qnJoin,
-  qnParent,
-  tryQualifiedName,
-  type QualifiedName,
-} from '@/util/qualifiedName'
+import { type ProjectPath } from '@/util/projectPath'
+import { type QualifiedName } from '@/util/qualifiedName'
 import { markRaw, proxyRefs, readonly, ref } from 'vue'
 import { LanguageServer } from 'ydoc-shared/languageServer'
-import type { MethodPointer } from 'ydoc-shared/languageServerTypes'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
 import { exponentialBackoff } from 'ydoc-shared/util/net'
+
+function pathKey({ project, path }: ProjectPath): string {
+  const projectKey = project ?? '$'
+  return path ? `${projectKey}.${path}` : projectKey
+}
 
 /**
  * Suggestion Database.
  *
- * The entries are retrieved (and updated) from engine throug Language Server API. They represent
+ * The entries are retrieved (and updated) from engine through the Language Server API. They represent
  * all entities available in current project (from the project and all imported libraries).
  *
  * It is used for code completion/component browser suggestions (thence the name), but also for
  * retrieving information about method/function in widgets, and many more.
  */
 export class SuggestionDb extends ReactiveDb<SuggestionId, SuggestionEntry> {
-  nameToId = new ReactiveIndex(this, (id, entry) => [[entryQn(entry), id]])
-  childIdToParentId = new ReactiveIndex(this, (id, entry) => {
-    const qualifiedName = entry.memberOf ?? qnParent(entryQn(entry))
-    if (qualifiedName) {
-      const parents = this.nameToId.lookup(qualifiedName)
+  private readonly pathToId = new ReactiveIndex(this, (id, entry) => [
+    [pathKey(entry.definitionPath), id],
+  ])
+  readonly childIdToParentId = new ReactiveIndex(this, (id, entry) => {
+    const parentAndChild = entry.definitionPath.splitAtName()
+    if (parentAndChild) {
+      const [parentPath] = parentAndChild
+      const parents = this.pathToId.lookup(pathKey(parentPath))
       return Array.from(parents, (p) => [id, p])
     }
     return []
   })
-  conflictingNames = new ReactiveIndex(this, (id, entry) => [[entry.name, id]])
+  readonly conflictingNames = new ReactiveIndex(this, (id, entry) => [[entry.name, id]])
 
-  /** Get entry by its fully qualified name */
-  getEntryByQualifiedName(name: QualifiedName): SuggestionEntry | undefined {
-    const [id] = this.nameToId.lookup(name)
-    if (id) {
-      return this.get(id)
-    }
+  /** Constructor. */
+  constructor() {
+    super()
   }
 
-  /**
-   * Get entry of method/function by MethodPointer structure (received through expression
-   * updates.
-   */
+  /** Look up an entry by its path within a project */
+  findByProjectPath(projectPath: ProjectPath): SuggestionId | undefined {
+    const [id] = this.pathToId.lookup(pathKey(projectPath))
+    return id
+  }
+
+  /** Get an entry by its path within a project */
+  getEntryByProjectPath(projectPath: ProjectPath): SuggestionEntry | undefined {
+    const id = this.findByProjectPath(projectPath)
+    if (id != null) return this.get(id)
+  }
+
+  /** Get ID of method/function by MethodPointer structure (received through expression updates). */
   findByMethodPointer(method: MethodPointer): SuggestionId | undefined {
-    if (method == null) return
-    const moduleName = tryQualifiedName(method.definedOnType)
-    const methodName = tryQualifiedName(method.name)
-    if (!moduleName.ok || !methodName.ok) return
-    const qualifiedName = qnJoin(normalizeQualifiedName(moduleName.value), methodName.value)
-    const [suggestionId] = this.nameToId.lookup(qualifiedName)
-    return suggestionId
+    return this.findByProjectPath(method.definedOnType.append(method.name))
+  }
+
+  /** Get entry of method/function by MethodPointer structure (received through expression updates). */
+  entryByMethodPointer(method: MethodPointer): CallableSuggestionEntry | undefined {
+    const id = this.findByMethodPointer(method)
+    if (id == null) return
+    const entry = this.get(id)
+    return entry && entryIsCallable(entry) ? entry : undefined
+  }
+
+  /** Returns the entry's ancestors, starting with its parent. */
+  *ancestors(entry: SuggestionEntry): Iterable<ProjectPath> {
+    while (entry.kind === SuggestionKind.Type && entry.parentType) {
+      yield entry.parentType
+      const parent = this.getEntryByProjectPath(entry.parentType)
+      if (!parent) break
+      entry = parent
+    }
   }
 }
 
 /**
- * Component Group.
+ * Description of a Component Group.
  *
  * These are groups displayed in the Component Browser. Also, nodes being a call to method from
  * given group will inherit its color.
  */
-export interface Group {
+export interface GroupInfo {
   color?: string
   name: string
   project: QualifiedName
@@ -157,7 +185,7 @@ async function loadGroups(lsRpc: LanguageServer, firstExecution: Promise<unknown
     return []
   }
   return groups.value.componentGroups.map(
-    (group): Group => ({
+    (group): GroupInfo => ({
       name: group.name,
       ...(group.color ? { color: group.color } : {}),
       project: group.library as QualifiedName,
@@ -169,22 +197,22 @@ async function loadGroups(lsRpc: LanguageServer, firstExecution: Promise<unknown
 export type SuggestionDbStore = ReturnType<typeof useSuggestionDbStore>
 export const [provideSuggestionDbStore, useSuggestionDbStore] = createContextStore(
   'suggestionDatabase',
-  (projectStore: ProjectStore) => {
+  (projectStore: ProjectStore, projectNames: ProjectNameStore) => {
     const entries = new SuggestionDb()
-    const groups = ref<Group[]>([])
+    const groups = ref<GroupInfo[]>([])
 
     const updateProcessor = loadGroups(
       projectStore.lsRpcConnection,
       projectStore.firstExecution,
     ).then((loadedGroups) => {
       groups.value = loadedGroups
-      return new SuggestionUpdateProcessor(loadedGroups)
+      return new SuggestionUpdateProcessor(loadedGroups, projectNames)
     })
 
     /** Add an entry to the suggestion database. */
     function mockSuggestion(entry: lsTypes.SuggestionEntry) {
-      const id = Math.max(...entries.nameToId.reverse.keys()) + 1
-      new SuggestionUpdateProcessor([]).applyUpdates(entries, [
+      const id = Math.max(...entries.keys()) + 1
+      new SuggestionUpdateProcessor([], projectNames).applyUpdates(entries, [
         {
           type: 'Add',
           id,

@@ -147,7 +147,7 @@ export function keyboardBusyExceptIn(el: Opt<Element>) {
 }
 
 const hasWindow = typeof window !== 'undefined'
-const platform = hasWindow ? window.navigator?.platform ?? '' : ''
+const platform = hasWindow ? (window.navigator?.platform ?? '') : ''
 export const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(platform)
 
 /** Check if `mod` key (ctrl or cmd) appropriate for current platform is used */

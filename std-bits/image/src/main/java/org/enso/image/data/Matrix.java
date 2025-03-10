@@ -7,7 +7,7 @@ import org.opencv.core.*;
 public class Matrix {
 
   static {
-    OpenCV.loadLocally();
+    OpenCV.loadShared();
   }
 
   /**

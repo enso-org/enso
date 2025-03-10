@@ -39,7 +39,7 @@ function UIProvidersWrapper({
 
   return (
     <QueryClientProvider client={queryClient}>
-      <UIProviders portalRoot={document.body} locale="en">
+      <UIProviders appRoot={document.body} portalRoot={document.body} locale="en">
         {typeof children === 'function' ? children({ queryClient }) : children}
       </UIProviders>
     </QueryClientProvider>

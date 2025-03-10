@@ -266,6 +266,7 @@ Text.characters self =
          example_find_insensitive =
              ## This matches `aBc` @ character 11
              "aabbbbccccaaBcaaaa".find "a[ab]c" Case_Sensitivity.Insensitive
+@pattern make_regex_text_widget
 Text.find : (Regex | Text) -> Case_Sensitivity -> Match | Nothing ! Regex_Syntax_Error | Illegal_Argument
 Text.find self pattern:(Regex | Text)=".*" case_sensitivity:Case_Sensitivity=..Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
@@ -299,6 +300,7 @@ Text.find self pattern:(Regex | Text)=".*" case_sensitivity:Case_Sensitivity=..S
          example_find_all_insensitive =
               ## This matches `aABbbbc` @ character 0 and `aBC` @ character 11
              "aABbbbccccaaBCaaaa".find_all "a[ab]+c" Case_Sensitivity.Insensitive
+@pattern make_regex_text_widget
 Text.find_all : Text|Regex -> Case_Sensitivity -> Vector Match ! Regex_Syntax_Error | Illegal_Argument
 Text.find_all self pattern:Text|Regex=".*" case_sensitivity:Case_Sensitivity=..Sensitive =
     case_insensitive = case_sensitivity.is_case_insensitive_in_memory
@@ -783,7 +785,8 @@ Text.bytes self (encoding : Encoding = Encoding.utf_8) (on_problems : Problem_Be
 @encoding Encoding.default_widget
 Text.from_bytes : Vector Integer -> Encoding -> Problem_Behavior -> Text
 Text.from_bytes bytes (encoding : Encoding = Encoding.default) (on_problems : Problem_Behavior = ..Report_Error) =
-    Reporting_Stream_Decoder_Helper.decode_bytes_to_text bytes encoding on_problems
+    byte_vector = Vector.unify_vector_or_element bytes
+    Reporting_Stream_Decoder_Helper.decode_bytes_to_text byte_vector encoding on_problems
 
 ## ICON convert
    Returns a vector containing bytes representing the UTF-8 encoding of the

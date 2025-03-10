@@ -78,9 +78,8 @@ public final class ImportExportCache
   }
 
   @Override
-  public Optional<Metadata> metadataFromBytes(byte[] bytes, TruffleLogger logger)
-      throws IOException {
-    return Optional.of(Metadata.read(bytes));
+  public Metadata metadataFromBytes(byte[] bytes, TruffleLogger logger) throws IOException {
+    return Metadata.read(bytes);
   }
 
   @Override

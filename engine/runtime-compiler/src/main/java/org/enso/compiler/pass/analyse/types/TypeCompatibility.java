@@ -2,9 +2,7 @@ package org.enso.compiler.pass.analyse.types;
 
 /** A class that helps with computing compatibility between types. */
 class TypeCompatibility {
-  TypeCompatibility(BuiltinTypes builtinTypes) {
-    this.builtinTypes = builtinTypes;
-  }
+  TypeCompatibility() {}
 
   /** Denotes if a given provided type can fit into an expected type. */
   enum Compatibility {
@@ -31,8 +29,6 @@ class TypeCompatibility {
     UNKNOWN;
   }
 
-  private final BuiltinTypes builtinTypes;
-
   Compatibility computeTypeCompatibility(TypeRepresentation expected, TypeRepresentation provided) {
     // Exact type match is always OK.
     if (expected.equals(provided)) {
@@ -50,8 +46,8 @@ class TypeCompatibility {
       return Compatibility.UNKNOWN;
     }
 
-    if (expected.equals(builtinTypes.NUMBER)) {
-      if (provided.equals(builtinTypes.INTEGER) || provided.equals(builtinTypes.FLOAT)) {
+    if (expected.equals(BuiltinTypes.NUMBER)) {
+      if (provided.equals(BuiltinTypes.INTEGER) || provided.equals(BuiltinTypes.FLOAT)) {
         return Compatibility.ALWAYS_COMPATIBLE;
       }
     }

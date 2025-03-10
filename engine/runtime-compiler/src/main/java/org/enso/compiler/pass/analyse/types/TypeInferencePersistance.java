@@ -11,7 +11,6 @@ import org.enso.pkg.QualifiedName;
 @Persistable(clazz = TypeRepresentation.IntersectionType.class, id = 34005)
 @Persistable(clazz = TypeRepresentation.SumType.class, id = 34006)
 @Persistable(clazz = TypeRepresentation.UnresolvedSymbol.class, id = 34007)
-@Persistable(clazz = AtomTypeInterfaceFromBindingsMap.class, id = 34010)
 @Persistable(clazz = QualifiedName.class, id = 34012)
 public final class TypeInferencePersistance {
   private TypeInferencePersistance() {}

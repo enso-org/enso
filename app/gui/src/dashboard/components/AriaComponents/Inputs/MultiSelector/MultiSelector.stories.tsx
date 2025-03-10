@@ -2,16 +2,16 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { userEvent, within } from '@storybook/test'
 import { z } from 'zod'
 import { Form } from '../../Form'
-import type { MultiSelectorProps } from './MultiSelector.tsx'
-import { MultiSelector } from './MultiSelector.tsx'
+import type { MultiSelectorProps } from './MultiSelector'
+import { MultiSelector } from './MultiSelector'
 
-type Props = MultiSelectorProps<typeof schema, 'value'>
+type Props = MultiSelectorProps<typeof schema, 'value', unknown>
 type Story = StoryObj<Props>
 
 const schema = z.object({ value: z.array(z.enum(['one', 'two', 'three'])) })
 
 export default {
-  title: 'Components/AriaComponents/Inputs/MultiSelector',
+  title: 'Components/Inputs/MultiSelector',
   component: MultiSelector,
   render: (args) => <MultiSelector {...args} />,
   tags: ['autodocs'],

@@ -1,17 +1,14 @@
-import {
-  SuggestionKind,
-  type SuggestionEntry,
-  type Typename,
-} from '@/stores/suggestionDatabase/entry'
-import type { Opt } from '@/util/data/opt'
-import { Range } from '@/util/data/range'
-import { qnIsTopElement, qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
+import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import { ANY_TYPE } from '@/util/ensoTypes'
+import { type ProjectPath } from '@/util/projectPath'
+import { qnLastSegment } from '@/util/qualifiedName'
 import escapeStringRegexp from '@/util/regexp'
+import { Range } from 'ydoc-shared/util/data/range'
 
 export type SelfArg =
   | {
       type: 'known'
-      typename: Typename
+      typename: ProjectPath
     }
   | { type: 'unknown' }
 
@@ -31,6 +28,8 @@ const ALIAS_PENALTY = 1000
 const OWNER_SCORE_WEIGHT = 0.2
 /** The matches on actual names should be better than matches on owner names only */
 const OWNER_ONLY_MATCH_PENALTY = 6000
+/** Penalty added when selfType is specified, and we match entry from another type */
+const DIFFERENT_TYPE_PENALTY = 1
 
 interface NameMatchResult {
   score: number
@@ -105,7 +104,7 @@ class FilteringName {
     for (let i = 1, pos = 0; i < wordMatch.length; i += 1) {
       // Matches come in groups of three, and the first matched part is `match[2]`.
       if (i % 3 === 2) {
-        result.push(new Range(pos, pos + wordMatch[i]!.length))
+        result.push(Range.fromStartAndLength(pos, wordMatch[i]!.length))
       }
       pos += wordMatch[i]!.length
     }
@@ -117,7 +116,7 @@ class FilteringName {
     for (let i = 1, pos = 0; i < initialsMatch.length; i += 1) {
       // Matches come in groups of two, and the first matched part is `match[2]` (= 0 mod 2).
       if (i % 2 === 0) {
-        result.push(new Range(pos, pos + initialsMatch[i]!.length))
+        result.push(Range.fromStartAndLength(pos, initialsMatch[i]!.length))
       }
       pos += initialsMatch[i]!.length
     }
@@ -180,10 +179,12 @@ class FilteringWithPattern {
     return null
   }
 
-  tryMatch(name: string, aliases: string[], memberOf: QualifiedName): MatchResult | null {
+  tryMatch(name: string, aliases: string[], memberOf: ProjectPath): MatchResult | null {
     const nameMatch: (NameMatchResult & { alias?: string }) | null =
       this.nameFilter.tryMatch(name) ?? this.firstMatchingAlias(aliases)
-    const ownerNameMatch = this.ownerNameFilter.tryMatch(qnLastSegment(memberOf))
+    const ownerNameMatch = this.ownerNameFilter.tryMatch(
+      memberOf.path ? qnLastSegment(memberOf.path) : 'Main',
+    )
     if (!nameMatch && !ownerNameMatch) return null
     if (this.bothFiltersMustMatch && (!nameMatch || !ownerNameMatch)) return null
 
@@ -220,7 +221,7 @@ class FilteringWithPattern {
  *
  * - If `pattern` is specified with dot, the part after dot must match entry name or alias, while
  *   on the left side of the dot must match type/module on which the entry is specified.
- *   there must exists a subsequence of words in name/alias (words are separated by `_`), so each
+ *   there must exist a subsequence of words in name/alias (words are separated by `_`), so each
  *   word:
  *   - starts with respective word in the pattern,
  *   - or starts with respective _letter_ in the pattern (initials match).
@@ -234,28 +235,32 @@ class FilteringWithPattern {
  * name is preferred before alias. See `FilteringWithPattern.tryMatch` implementation for details.
  */
 export class Filtering {
-  pattern?: FilteringWithPattern
-  selfArg?: SelfArg
-  currentModule?: QualifiedName
+  pattern: FilteringWithPattern | undefined
+  selfArg: SelfArg | undefined
 
   /** TODO: Add docs */
-  constructor(filter: Filter, currentModule: Opt<QualifiedName> = undefined) {
+  constructor(
+    filter: Filter,
+    public currentModule: ProjectPath | undefined = undefined,
+  ) {
     const { pattern, selfArg } = filter
-    if (pattern) {
-      this.pattern = new FilteringWithPattern(pattern)
-    }
-    if (selfArg != null) this.selfArg = selfArg
-    if (currentModule != null) this.currentModule = currentModule
+    this.pattern = pattern ? new FilteringWithPattern(pattern) : undefined
+    this.selfArg = selfArg
   }
 
-  private selfTypeMatches(entry: SuggestionEntry, additionalSelfTypes: QualifiedName[]): boolean {
-    if (this.selfArg == null) return entry.selfType == null
-    else if (this.selfArg.type == 'known')
-      return (
-        entry.selfType === this.selfArg.typename ||
-        additionalSelfTypes.some((t) => entry.selfType === t)
-      )
-    else return entry.selfType != null
+  private selfTypeMatches(
+    entry: SuggestionEntry,
+    additionalSelfTypes: ProjectPath[],
+  ): { score: number } | null {
+    if (this.selfArg == null)
+      return entry.kind !== SuggestionKind.Method || entry.selfType == null ? { score: 0 } : null
+    if (entry.kind !== SuggestionKind.Method || entry.selfType == null) return null
+    if (this.selfArg.type !== 'known') return { score: 0 }
+    const entrySelfType = entry.selfType
+    if (entrySelfType.equals(this.selfArg.typename)) return { score: 0 }
+    if (entrySelfType.equals(ANY_TYPE) || additionalSelfTypes.some((t) => entrySelfType.equals(t)))
+      return { score: DIFFERENT_TYPE_PENALTY }
+    return null
   }
 
   /** TODO: Add docs */
@@ -265,30 +270,30 @@ export class Filtering {
 
   private mainViewFilter(entry: SuggestionEntry): MatchResult | null {
     const hasGroup = entry.groupIndex != null
-    const isInTopModule = qnIsTopElement(entry.definedIn)
+    const isInTopModule = entry.definedIn.isTopElement()
     if (hasGroup || isInTopModule) return { score: 0 }
     else return null
   }
 
   private isLocal(entry: SuggestionEntry): boolean {
-    return this.currentModule != null && entry.definedIn === this.currentModule
+    return this.currentModule != null && entry.definedIn.equals(this.currentModule)
   }
 
   /** TODO: Add docs */
-  filter(entry: SuggestionEntry, additionalSelfTypes: QualifiedName[]): MatchResult | null {
-    if (entry.isPrivate || entry.kind != SuggestionKind.Method || entry.memberOf == null)
-      return null
+  filter(entry: SuggestionEntry, additionalSelfTypes: ProjectPath[]): MatchResult | null {
+    if (entry.isPrivate || entry.kind != SuggestionKind.Method) return null
     if (this.selfArg == null && isInternal(entry)) return null
-    if (!this.selfTypeMatches(entry, additionalSelfTypes)) return null
+    const selfTypeMatch = this.selfTypeMatches(entry, additionalSelfTypes)
+    if (selfTypeMatch == null) return null
     if (this.pattern) {
-      if (entry.memberOf == null) return null
       const patternMatch = this.pattern.tryMatch(entry.name, entry.aliases, entry.memberOf)
       if (!patternMatch) return null
       if (this.isLocal(entry)) patternMatch.score *= 2
+      patternMatch.score += selfTypeMatch.score
       return patternMatch
     }
     if (this.isMainView()) return this.mainViewFilter(entry)
-    return { score: 0 }
+    return selfTypeMatch
   }
 }
 
@@ -296,6 +301,6 @@ function isInternal(entry: SuggestionEntry): boolean {
   return isInternalModulePath(entry.definedIn)
 }
 
-function isInternalModulePath(path: string): boolean {
-  return /Standard[.].*Internal(?:[._]|$)/.test(path)
+function isInternalModulePath({ project, path }: ProjectPath): boolean {
+  return !!project && project.startsWith('Standard.') && !!path && /Internal(?:[._]|$)/.test(path)
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { URLString } from '@/util/data/urlString'
-import type { Icon } from '@/util/iconName'
+import type { Icon } from '@/util/iconMetadata/iconName'
 import SvgButton from './SvgButton.vue'
 
 const props = defineProps<{

@@ -1,42 +1,45 @@
 package org.enso.table.data.column.operation.cast;
 
-import org.enso.table.data.column.builder.BoolBuilder;
-import org.enso.table.data.column.storage.BoolStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.StorageIterators;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
-import org.graalvm.polyglot.Context;
+import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
 
 public class ToBooleanStorageConverter implements StorageConverter<Boolean> {
   @Override
-  public Storage<Boolean> cast(Storage<?> storage, CastProblemAggregator problemAggregator) {
-    if (storage instanceof BoolStorage boolStorage) {
-      return boolStorage;
-    } else if (storage.getType() instanceof AnyObjectType) {
-      return castFromMixed(storage, problemAggregator);
+  public boolean canApply(StorageType sourceType) {
+    return sourceType.isNumeric()
+        || sourceType instanceof AnyObjectType
+        || sourceType instanceof NullType;
+  }
+
+  @Override
+  public ColumnStorage<Boolean> cast(
+      ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
+    if (canApply(storage.getType())) {
+      return castFromObject(storage, problemAggregator);
     } else {
       throw new IllegalStateException(
           "No known strategy for casting storage " + storage + " to Boolean.");
     }
   }
 
-  public Storage<Boolean> castFromMixed(
-      Storage<?> mixedStorage, CastProblemAggregator problemAggregator) {
-    Context context = Context.getCurrent();
-    BoolBuilder builder = new BoolBuilder(mixedStorage.size());
-    for (int i = 0; i < mixedStorage.size(); i++) {
-      Object o = mixedStorage.getItemBoxed(i);
-      switch (o) {
-        case null -> builder.appendNulls(1);
-        case Boolean b -> builder.appendBoolean(b);
-        default -> {
-          problemAggregator.reportConversionFailure(o);
-          builder.appendNulls(1);
-        }
-      }
-
-      context.safepoint();
-    }
-
-    return builder.seal();
+  private ColumnStorage<Boolean> castFromObject(
+      ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
+    // As mixed storage is already boxed, use the standard inner loop.
+    return StorageIterators.mapOverStorage(
+        storage,
+        Builder.getForBoolean(storage.getSize()),
+        (index, value) ->
+            switch (value) {
+              case Boolean b -> b;
+              case Number n -> n.doubleValue() != 0;
+              default -> {
+                problemAggregator.reportConversionFailure(value);
+                yield null;
+              }
+            });
   }
 }

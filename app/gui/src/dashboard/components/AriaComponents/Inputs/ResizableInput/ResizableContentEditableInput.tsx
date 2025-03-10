@@ -32,8 +32,13 @@ const CONTENT_EDITABLE_STYLES = tv({
 /** Props for a {@link ResizableContentEditableInput}. */
 export interface ResizableContentEditableInputProps<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
-> extends FieldStateProps<HTMLAttributes<HTMLDivElement> & { value: string }, Schema, TFieldName>,
+  TFieldName extends FieldPath<Schema, string>,
+> extends FieldStateProps<
+      HTMLAttributes<HTMLDivElement> & { value: string },
+      Schema,
+      TFieldName,
+      string
+    >,
     Pick<
       VariantProps<typeof INPUT_STYLES>,
       'disabled' | 'invalid' | 'rounded' | 'size' | 'variant'
@@ -57,13 +62,17 @@ export interface ResizableContentEditableInputProps<
   readonly placeholder?: string
 }
 
+// This is a function, even though it does not contain function syntax.
+// eslint-disable-next-line no-restricted-syntax
+const useStringField = Form.makeUseField<string>()
+
 /**
  * A resizable input that uses a content-editable div.
  * This component might be useful for a text input that needs to have highlighted content inside of it.
  */
 export const ResizableContentEditableInput = forwardRef(function ResizableContentEditableInput<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema>,
+  TFieldName extends FieldPath<Schema, string>,
 >(
   props: ResizableContentEditableInputProps<Schema, TFieldName>,
   ref: ForwardedRef<HTMLDivElement>,
@@ -99,7 +108,7 @@ export const ResizableContentEditableInput = forwardRef(function ResizableConten
     document.execCommand('insertHTML', false, text)
   })
 
-  const { field, fieldState, formInstance } = Form.useField({
+  const { field, fieldState, formInstance } = useStringField({
     name,
     isDisabled,
     form,

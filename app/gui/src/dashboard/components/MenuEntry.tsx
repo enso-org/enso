@@ -79,6 +79,7 @@ export const ACTION_TO_TEXT_ID: Readonly<
   goForward: 'goForwardShortcut',
   aboutThisApp: 'aboutThisAppShortcut',
   openInFileBrowser: 'openInFileBrowserShortcut',
+  ensoDevtools: 'ensoDevtoolsShortcut',
 } satisfies { [Key in inputBindings.DashboardBindingKey]: `${Key}Shortcut` }
 
 /** Props for a {@link MenuEntry}. */
