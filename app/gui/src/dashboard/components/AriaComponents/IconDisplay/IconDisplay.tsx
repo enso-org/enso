@@ -4,7 +4,7 @@ import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { Text, WithVisualTooltip, type IconProp, type TextProps, type TooltipElementType } from '..'
 
 const ICON_DISPLAY_STYLES = tv({
-  base: 'flex items-center gap-2 max-w-48 min-w-4 px-1',
+  base: 'flex items-center gap-2 max-w-[14.5rem] min-w-4 px-2',
   slots: {
     icon: '-mb-0.5',
     // For some reason `min-w-0` is required for the ellipsis to appear.
@@ -19,7 +19,7 @@ const ICON_DISPLAY_STYLES = tv({
       accent: 'bg-accent text-white',
       ghost: 'text-primary',
       submit: 'bg-invite text-white opacity-80',
-      outline: 'border-0.5 rounded-full border-primary/20 text-primary',
+      outline: 'border-0.5 rounded-full border-primary/20 text-primary px-1 mx-1',
     },
   },
   defaultVariants: {
