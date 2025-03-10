@@ -53,18 +53,18 @@ add_specs suite_builder =
         group_builder.specify "Multiple conversions of A & X work" <|
             ax = A:A&X
             converted = to_b_to_c ax
-            converted . to_text . should_equal "(C (B A & X))"
+            converted . to_text . should_equal "(C (B A))"
 
         group_builder.specify "Multiple conversions of A & X work" <|
             xa = A:X&A
             converted = to_b_to_c xa
-            converted . to_text . should_equal "(C (B A & X))"
+            converted . to_text . should_equal "(C (B A))"
 
         group_builder.specify "Multiple conversions of (A & X : A) work" <|
             ax = A:A&X
             a = ax : A
             converted = to_b_to_c a
-            converted . to_text . should_equal "(C (B A & X))"
+            converted . to_text . should_equal "(C (B A))"
 
         group_builder.specify "Multiple conversions of X fail" <|
             x = X
