@@ -983,12 +983,8 @@ test.each([
   ({ original, expected }) => {
     const expression = Ast.parseExpression(original)
     assertDefined(expression)
-    const module = expression.module
-    module.setRoot(expression)
-    const edit = expression.module.edit()
-    substituteQualifiedName(expression, (qn) => qnLastSegment(qn))
-    module.applyEdit(edit)
-    expect(module.root()?.code()).toEqual(expected)
+    const result = substituteQualifiedName(expression, (qn) => qnLastSegment(qn))
+    expect(result.code()).toEqual(expected)
   },
 )
 

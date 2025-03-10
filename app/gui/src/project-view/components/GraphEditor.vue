@@ -31,7 +31,7 @@ import { useDoubleClick } from '@/composables/doubleClick'
 import { keyboardBusy, keyboardBusyExceptIn, unrefElement, useEvent } from '@/composables/events'
 import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
-import { registerHandlers, toggledAction } from '@/providers/action'
+import { registerHandlers } from '@/providers/action'
 import { provideGraphEditorState } from '@/providers/graphEditorState'
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -661,13 +661,12 @@ const groupColors = computed(() => {
         <TopBar
           v-model:recordMode="projectStore.recordMode"
           v-model:showCodeEditor="showCodeEditor"
-          :showDocumentationEditor="rightDock.visible"
+          v-model:showDocumentationEditor="rightDock.visible"
           :zoomLevel="100.0 * graphNavigator.targetScale"
           :class="{ extraRightSpace: !rightDock.visible }"
           @fitToAllClicked="zoomToSelected"
           @zoomIn="graphNavigator.stepZoom(+1)"
           @zoomOut="graphNavigator.stepZoom(-1)"
-          @update:showDocumentationEditor="rightDock.visible = $event"
         />
         <SceneScroller
           :navigator="graphNavigator"

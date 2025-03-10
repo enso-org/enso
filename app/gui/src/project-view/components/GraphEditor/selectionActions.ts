@@ -1,4 +1,4 @@
-import { registerHandlers, toggledAction } from '@/providers/action'
+import { toggledAction } from '@/providers/action'
 import { type Node } from '@/stores/graph'
 import { type ToValue } from '@/util/reactivity'
 import * as iter from 'enso-common/src/utilities/data/iter'
