@@ -284,7 +284,7 @@ public final class NameResolutionTest {
         """
             from local.Lib import all
 
-            foo (obj : local.Lib.Data.Numbers.Integer) = obj.method
+            foo (obj : local.Lib.Data.Numbers.Integer) = obj
             """,
         projDir);
     try (var ctx = createCtx(projDir)) {
