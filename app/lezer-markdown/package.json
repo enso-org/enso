@@ -13,8 +13,6 @@
   "author": "Marijn Haverbeke <marijn@haverbeke.berlin>",
   "license": "MIT",
   "devDependencies": {
-    "ist": "^1.1.1",
-    "mocha": "^10.2.0",
     "@lezer/html": "^1.0.0",
     "@marijn/buildtool": "^0.1.6"
   },
@@ -27,7 +25,6 @@
     "url" : "https://github.com/lezer-parser/markdown.git"
   },
   "scripts": {
-    "prepare": "node build.js",
-    "test": "mocha"
+    "prepare": "node build.js"
   }
 }

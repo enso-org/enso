@@ -4,7 +4,6 @@
   "private": true,
   "description": "Markdown language support for the CodeMirror code editor",
   "scripts": {
-    "test": "cm-runtests",
     "prepare": "cm-buildhelper src/index.ts"
   },
   "keywords": [

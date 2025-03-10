@@ -1,7 +1,7 @@
 import { assert } from '../util/assert'
 import type { ExternalId } from '../yjsModel'
 import { isUuid } from '../yjsModel'
-import { is_ident_or_operator } from './ffi'
+import { is_ident_or_operator, self_arg_separator } from './ffi'
 import * as RawAst from './generated/ast'
 import { newExternalId } from './idMap'
 import type { AstId, DeepReadonly, NodeChild, Owned } from './tree'
@@ -133,6 +133,19 @@ export function isIdentifierOrOperatorIdentifier(
 /** Whether the given code is lexically an identifier. */
 export function isIdentifier(code: string): code is Identifier {
   return is_ident_or_operator(code) === 1
+}
+
+/**
+ * What should separate this expression from self argument applied to it.
+ *
+ * The main case is IDE's Component Browser input: how exactly prefix an expression written by user
+ * with `self` argument. Usually we just put identifier with `.`, but in case of operators,
+ * a proper spacing should be put instead.
+ */
+export function selfArgSeparator(code: string): string {
+  const ffiResult = self_arg_separator(code)
+  if (ffiResult < 0) return '.'
+  else return ' '.repeat(ffiResult)
 }
 
 /**

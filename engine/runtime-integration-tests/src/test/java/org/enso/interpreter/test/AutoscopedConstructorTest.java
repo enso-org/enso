@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Context;
@@ -34,9 +35,10 @@ public class AutoscopedConstructorTest {
   }
 
   @AfterClass
-  public static void disposeCtx() {
+  public static void disposeCtx() throws IOException {
     ctx.close();
     ctx = null;
+    out.close();
   }
 
   @Test

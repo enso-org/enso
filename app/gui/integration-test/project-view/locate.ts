@@ -93,12 +93,12 @@ export const nodeCommentContent = componentLocator('.GraphNodeComment div[conten
  * It may be covered by selected one due to way we display them.
  */
 export function componentBrowserEntry(page: Locator | Page) {
-  return page.locator(`.ComponentBrowser .list-variant:not(.selected) .component`)
+  return page.locator(`.ComponentEntry`)
 }
 
 /** A selected variant of Component Browser Entry */
 export function componentBrowserSelectedEntry(page: Locator | Page) {
-  return page.locator(`.ComponentBrowser .list-variant.selected .component`)
+  return page.locator(`.ComponentEntry.selected`)
 }
 
 /** A not-selected variant of Component Browser entry with given label */
@@ -153,6 +153,11 @@ export const sqlVisualization = visualizationLocator('.SqlVisualization')
 export const geoMapVisualization = visualizationLocator('.GeoMapVisualization')
 export const imageBase64Visualization = visualizationLocator('.ImageBase64Visualization')
 export const warningsVisualization = visualizationLocator('.WarningsVisualization')
+
+/** Type label on the visualisation */
+export function visualisationNodeType(page: Page) {
+  return page.getByTestId('visualisationNodeType')
+}
 
 // === Edge locators ===
 

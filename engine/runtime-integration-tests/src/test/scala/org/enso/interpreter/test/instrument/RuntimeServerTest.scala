@@ -38,40 +38,48 @@ class RuntimeServerTest
 
     val out: ByteArrayOutputStream    = new ByteArrayOutputStream()
     val logOut: ByteArrayOutputStream = new ByteArrayOutputStream()
-    protected val context =
-      Context
-        .newBuilder(LanguageInfo.ID)
-        .allowExperimentalOptions(true)
-        .allowAllAccess(true)
-        .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
-        .option(
-          RuntimeOptions.LOG_LEVEL,
-          java.util.logging.Level.WARNING.getName
-        )
-        .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
-        .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
-        .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "false")
-        .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
-        .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
-        .option(RuntimeOptions.STRICT_ERRORS, "false")
-        .option(
-          RuntimeOptions.DISABLE_IR_CACHES,
-          InstrumentTestContext.DISABLE_IR_CACHE
-        )
-        .option(RuntimeServerInfo.ENABLE_OPTION, "true")
-        .option(RuntimeOptions.INTERACTIVE_MODE, "true")
-        .option(
-          RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
-          Paths
-            .get("../../test/micro-distribution/component")
-            .toFile
-            .getAbsolutePath
-        )
-        .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
-        .logHandler(new TeeOutputStream(logOut, System.err))
-        .out(new TeeOutputStream(out, System.err))
-        .serverTransport(runtimeServerEmulator.makeServerTransport)
-        .build()
+    private var _context: Context     = null;
+    protected def context(): Context = {
+      if (_context == null) {
+        _context = Context
+          .newBuilder(LanguageInfo.ID)
+          .allowExperimentalOptions(true)
+          .allowAllAccess(true)
+          .option(RuntimeOptions.PROJECT_ROOT, pkg.root.getAbsolutePath)
+          .option(
+            RuntimeOptions.LOG_LEVEL,
+            java.util.logging.Level.WARNING.getName
+          )
+          .option(
+            RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION,
+            "true"
+          )
+          .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
+          .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "false")
+          .option(RuntimeOptions.ENABLE_GLOBAL_SUGGESTIONS, "false")
+          .option(RuntimeOptions.ENABLE_EXECUTION_TIMER, "false")
+          .option(RuntimeOptions.STRICT_ERRORS, "false")
+          .option(
+            RuntimeOptions.DISABLE_IR_CACHES,
+            InstrumentTestContext.DISABLE_IR_CACHE
+          )
+          .option(RuntimeServerInfo.ENABLE_OPTION, "true")
+          .option(RuntimeOptions.INTERACTIVE_MODE, "true")
+          .option(
+            RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
+            Paths
+              .get("../../test/micro-distribution/component")
+              .toFile
+              .getAbsolutePath
+          )
+          .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
+          .logHandler(new TeeOutputStream(logOut, System.err))
+          .out(new TeeOutputStream(out, System.err))
+          .serverTransport(runtimeServerEmulator.makeServerTransport)
+          .build()
+      }
+      _context
+    }
 
     lazy val languageContext = executionContext.context
       .getBindings(LanguageInfo.ID)
@@ -79,7 +87,7 @@ class RuntimeServerTest
       .asHostObject[EnsoContext]
 
     private def ensureInstrumentsAvailable() = {
-      val instruments = context.getEngine.getInstruments
+      val instruments = context().getEngine.getInstruments
       if (instruments.get(IdExecutionService.INSTRUMENT_ID) == null) {
         throw new IllegalStateException(
           "RuntimeServerTest cannot be initialized: IdExecutionService instrument must be available on module-path"
@@ -106,6 +114,14 @@ class RuntimeServerTest
       val result = out.toString
       out.reset()
       result.linesIterator.toList
+    }
+
+    override def close(): Unit = {
+      super.close();
+      if (_context != null) {
+        _context.close()
+        _context = null;
+      }
     }
   }
 

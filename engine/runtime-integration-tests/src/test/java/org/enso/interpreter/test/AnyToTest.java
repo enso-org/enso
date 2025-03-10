@@ -3,6 +3,7 @@ package org.enso.interpreter.test;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
@@ -27,9 +28,10 @@ public class AnyToTest {
   }
 
   @AfterClass
-  public static void disposeCtx() {
+  public static void disposeCtx() throws IOException {
     ctx.close();
     ctx = null;
+    out.close();
   }
 
   @Before

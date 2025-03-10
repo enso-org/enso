@@ -51,6 +51,7 @@ public class MetaTypeMethodsTest {
 
   @AfterClass
   public static void disposeCtx() {
+    valuesGenerator.close();
     ctx.close();
     ctx = null;
   }
