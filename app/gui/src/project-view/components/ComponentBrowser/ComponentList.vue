@@ -177,12 +177,12 @@ defineExpose({
         <ComponentEntry :component="component" :color="componentColor(component)" />
       </VirtualizedList>
       <div class="documentation">
-        <!-- eslint-disable-next-line vue/no-v-html -->
-        <p v-if="selectedSuggestion?.docSummaryHtml" v-html="selectedSuggestion.docSummaryHtml" />
-        <div class="docBottomLine">
+        <div class="documentationContent">
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <p v-if="selectedSuggestion?.docSummaryHtml" v-html="selectedSuggestion.docSummaryHtml" />
           <p v-if="selectedSuggestion" v-text="`Returns ${selectedSuggestionReturnType}`" />
-          <ActionButton action="graphEditor.showHelp" />
         </div>
+        <ActionButton class="helpButton" action="graphEditor.showHelp" />
       </div>
     </div>
   </div>
@@ -250,8 +250,14 @@ defineExpose({
 .documentation {
   border-top: 1px solid #d9d9d9;
   padding-top: 9px;
-  /* width: 500px; */
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}
 
+.documentationContent {
+  min-width: 0;
+  flex-grow: 1;
   p {
     white-space: nowrap;
     overflow: hidden;
@@ -261,12 +267,8 @@ defineExpose({
   }
 }
 
-.docBottomLine {
-  display: flex;
-  flex-direction: row;
-
-  > p {
-    flex-grow: 1;
-  }
+.helpButton {
+  width: 24px;
+  height: 24px;
 }
 </style>
