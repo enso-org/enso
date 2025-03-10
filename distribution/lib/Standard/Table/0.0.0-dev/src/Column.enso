@@ -46,7 +46,6 @@ polyglot java import org.enso.table.data.column.operation.cast.CastOperation
 polyglot java import org.enso.table.data.column.operation.CountNonTrivialWhitespace
 polyglot java import org.enso.table.data.column.operation.CountNothing
 polyglot java import org.enso.table.data.column.operation.CountUntrimmed
-polyglot java import org.enso.table.data.column.operation.CountNonTrivialWhitespace
 polyglot java import org.enso.table.data.column.operation.RequiresNumberFormatting
 polyglot java import org.enso.table.data.column.operation.SampleOperation
 polyglot java import org.enso.table.data.column.operation.comparators.Comparators
