@@ -7,7 +7,6 @@ use crate::context::BuildContext;
 use crate::env::ENSO_ADMIN_TOKEN;
 use crate::paths::generated;
 use crate::paths::TargetTriple;
-use crate::paths::EDITION_FILE_ARTIFACT_NAME;
 use crate::project;
 use crate::version;
 use crate::version::promote::Designation;
@@ -153,12 +152,10 @@ pub async fn publish_release(context: &BuildContext) -> Result {
     )
     .edition_yaml;
 
-
-    ide_ci::actions::artifacts::download_single_file_artifact(
-        EDITION_FILE_ARTIFACT_NAME,
-        &edition_file_path,
-    )
-    .await?;
+    ensure!(
+        edition_file_path.exists(),
+        format!("Edition file does not exist at path {}.", edition_file_path)
+    );
 
     debug!("Updating edition in the AWS S3.");
     crate::aws::update_manifest(&remote_repo, &edition_file_path).await?;
