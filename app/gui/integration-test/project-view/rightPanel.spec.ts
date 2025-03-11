@@ -2,7 +2,7 @@ import { test } from 'playwright/test'
 import * as actions from './actions'
 import { expect } from './customExpect'
 import { mockCollapsedFunctionInfo, mockMethodCallInfo } from './expressionUpdates'
-import { CONTROL_KEY } from './keyboard'
+import { CONTROL_KEY, DELETE_KEY } from './keyboard'
 import * as locate from './locate'
 
 test('Main method documentation', async ({ page }) => {
@@ -124,4 +124,26 @@ test('Link in documentation is rendered and interactive', async ({ page, context
   const newPagePromise = new Promise<true>((resolve) => context.once('page', () => resolve(true)))
   await docs.locator('a').click({ modifiers: ['ControlOrMeta'] })
   await expect(() => newPagePromise).toPass({ timeout: 5000 })
+})
+
+test('Insert link button inserts link and focuses editor', async ({ page, context }) => {
+  await actions.goToGraph(page)
+  await page.keyboard.press(`${CONTROL_KEY}+D`)
+  await expect(locate.rightDock(page)).toBeVisible()
+  const docs = locate.editorRoot(locate.rightDock(page)).first()
+  await expect(docs.locator('.cm-line')).toExist()
+
+  // Delete all text and defocus the editor
+  await docs.locator('.cm-line').first().click()
+  await page.keyboard.press(`${CONTROL_KEY}+A`)
+  await page.keyboard.press(DELETE_KEY)
+  await expect(docs.locator('.cm-line')).toBeEmpty()
+  await docs.blur()
+
+  // Push the button
+  await locate.rightDock(page).getByRole('button', { name: 'Insert link' }).click()
+
+  // The link exists and is being edited
+  await expect(docs.locator('a')).toExist()
+  await expect(docs.locator('.LinkEditPopup')).toExist()
 })
