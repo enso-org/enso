@@ -197,7 +197,8 @@ add_specs suite_builder =
 
     suite_builder.group "Online test" group_builder->
         group_builder.specify "can fetch data via HTTPS" <| Test.with_retries <|
-            response = Data.fetch "https://raw.githubusercontent.com/enso-org/enso/refs/heads/develop/README.md"
+            https_readme_url = "https://raw.githubusercontent.com/enso-org/enso/refs/heads/develop/README.md"
+            response = Data.fetch https_readme_url format=Raw_Response
             response.code.code . should_equal 200
 
     suite_builder.group "HTTP in Data.read" pending=pending_has_url group_builder->
