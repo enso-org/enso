@@ -102,8 +102,8 @@ read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Prob
             metadata = Dictionary.empty
                 . insert "size" file_obj.size
                 . insert "extension" file_obj.extension
-            Telemetry.log "Data.read" "read from file" metadata
-            file_content
+            logged = Telemetry.log "Data.read" "read from file" metadata
+            if logged.is_error then file_content else file_content
 
 ## ALIAS load, open
    GROUP Input
