@@ -40,7 +40,7 @@ collect_benches = Bench.build builder->
             mrs.map .take
 
         group_builder.specify "with" <|
-            data.my_value_mrs_50.get.map mr-> mr.with .foo
+            data.my_value_mrs_50.map mr-> mr.with .foo
             Nothing
 
 main = collect_benches . run_main
