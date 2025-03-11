@@ -1,4 +1,4 @@
-import { qnFromSegments, qnJoin } from '@/util/qualifiedName'
+import { qnFromSegments } from '@/util/qualifiedName'
 import type {
   Expression,
   Identifier,

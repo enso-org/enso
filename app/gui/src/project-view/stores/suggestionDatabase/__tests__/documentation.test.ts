@@ -1,6 +1,5 @@
 import { mockProjectNameStore } from '@/stores/projectNames'
 import {
-  documentationData,
   getDocumentationSummary,
   getGroupIndex,
   tagValue,
@@ -8,7 +7,7 @@ import {
 import { unwrap } from '@/util/data/result'
 import { parseDocs } from '@/util/docParser'
 import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
-import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
+import { type QualifiedName } from '@/util/qualifiedName'
 import { expect, test } from 'vitest'
 
 test.each([
