@@ -58,8 +58,10 @@ public final class MapExpressionsMethodGenerator {
         children
             .map(
                 child -> {
+                  var childTypeParameter =
+                      child.getTypeParameter() != null ? child.getTypeParameter() : null;
                   ExecutableElement childsMapExprMethod;
-                  if (child.isList() || child.isOption()) {
+                  if (childTypeParameter != null) {
                     childsMapExprMethod =
                         Utils.findMapExpressionsMethod(
                             child.getTypeParameter(), ctx.getProcessingEnvironment());
@@ -78,12 +80,20 @@ public final class MapExpressionsMethodGenerator {
                   if (child.isList() || child.isOption()) {
                     shouldCast = false;
                   }
+                  if (child.isPersistanceReference()) {
+                    assert childTypeParameter != null;
+                    shouldCast =
+                        !typeUtils.isSameType(
+                            childTypeParameter.asType(), childsMapExprMethodRetType.asType());
+                  }
 
                   String newChildType = childsMapExprMethodRetType.getSimpleName().toString();
                   if (child.isList()) {
                     newChildType = "List<" + newChildType + ">";
                   } else if (child.isOption()) {
                     newChildType = "Option<" + newChildType + ">";
+                  } else if (child.isPersistanceReference()) {
+                    newChildType = child.getSimpleTypeName();
                   }
                   var childIsExpression =
                       Utils.isExpression(
@@ -91,7 +101,20 @@ public final class MapExpressionsMethodGenerator {
 
                   var newChildName = child.getName() + "Mapped";
                   sb.append("  ").append(newChildType).append(" ").append(newChildName);
-                  if (child.isNullable()) {
+                  if (child.isPersistanceReference()) {
+                    sb.append(" = ");
+                    sb.append(
+                        """
+                        Reference.of(
+                          ${childName}
+                              .get(${type}.class)
+                              .${methodName}(fn)
+                        );
+                        """
+                            .replace("${childName}", child.getName())
+                            .replace("${type}", child.getTypeParameter().getSimpleName().toString())
+                            .replace("${methodName}", METHOD_NAME));
+                  } else if (child.isNullable()) {
                     sb.append(" = null;").append(System.lineSeparator());
                     sb.append("  if (")
                         .append(child.getName())

@@ -13,7 +13,7 @@ import java.lang.annotation.Target;
  *
  * <h2>Fields</h2>
  *
- * The generated class will contain 4 <b>meta</b> fields that are required to be present inside
+ * <p>The generated class will contain 4 <b>meta</b> fields that are required to be present inside
  * every IR element:
  *
  * <ul>
@@ -23,7 +23,7 @@ import java.lang.annotation.Target;
  *   <li>{@code private UUID id}
  * </ul>
  *
- * Apart from these <b>meta</b> fields, the generated class will also contain <b>user-defined</b>
+ * <p>Apart from these <b>meta</b> fields, the generated class will also contain <b>user-defined</b>
  * fields. User-defined fields are inferred from all the parameters of the constructor annotated
  * with {@link GenerateFields}. The parameter of the constructor can be one of the following:
  *
@@ -50,25 +50,7 @@ import java.lang.annotation.Target;
  *
  * <p>Other types of constructor parameters are forbidden.
  *
- * <h2>Examples</h2>
- *
- * {@snippet : import scala.Option; import scala.collection.immutable.List; @GenerateIR // NameGen
- * is the name of the class that will be generated. // This can be an arbitrary name. public final
- * class Name extends NameGen { @GenerateFields public Name( // name will not be part of "tree
- * elements" traversal methods. // But it will still be a field in the generated super
- * class. @IRField String name, // Allowing Option as parameter type is mostly for backward
- * compatibility @IRChild Option<IR> expressionOpt, @IRChild List<IR> annotations, // This is pretty
- * much the same as `expressionOpt`, but can be null @IRChild(required = false) IR expression, //
- * IdentifiedLocation is a special "meta" field that is always generated. // Therefore, it does not
- * have to be annotated. IdentifiedLocation identifiedLocation ) { // Annotation processor generates
- * a constructor with the same signature as // this constructor. super(name, expressionOpt,
- * annotations, expression, identifiedLocation); }
- *
- * <p>// Need to override showCode, as the annotation processor cannot generate this // for us. It
- * can, however, generate toString method. @Override public String showCode(int indent) { return "";
- * } } }
- *
- * <p>For other examples, see the tests in {@code
+ * <p>For examples, see the tests in {@code
  * org.enso.runtime.parser.processor.test.TestIRProcessorInline}.
  */
 @Retention(RetentionPolicy.SOURCE)

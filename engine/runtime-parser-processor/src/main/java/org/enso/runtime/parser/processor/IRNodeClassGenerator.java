@@ -348,6 +348,13 @@ final class IRNodeClassGenerator {
                     }
                     """
                         .replace("$childName", childField.getName());
+              } else if (childField.isPersistanceReference()) {
+                addToListCode =
+                    """
+                    list.add(${childName}.get(${childType}.class));
+                    """
+                        .replace("${childName}", childField.getName())
+                        .replace("${childType}", childField.getTypeParameter().getSimpleName());
               } else {
                 addToListCode = "list.add(" + childField.getName() + ");";
               }
@@ -444,19 +451,32 @@ final class IRNodeClassGenerator {
 
   /** Returns string representation of all getters for the user-defined fields. */
   private String userDefinedGetters() {
-    var code =
-        generatedClassContext.getUserFields().stream()
-            .map(
-                field ->
-                    """
-            public $returnType $fieldName() {
-              return $fieldName;
+    var sb = new StringBuilder();
+    for (var field : generatedClassContext.getUserFields()) {
+      String code;
+      if (field.isPersistanceReference()) {
+        code =
+            """
+            public ${returnType} ${fieldName}() {
+              return ${fieldName}.get(${returnType}.class);
             }
             """
-                        .replace("$returnType", field.getSimpleTypeName())
-                        .replace("$fieldName", field.getName()))
-            .collect(Collectors.joining(System.lineSeparator()));
-    return code;
+                .replace("${returnType}", field.getTypeParameter().getSimpleName())
+                .replace("${fieldName}", field.getName());
+      } else {
+        code =
+            """
+            public ${returnType} ${fieldName}() {
+              return ${fieldName};
+            }
+            """
+                .replace("${returnType}", field.getSimpleTypeName())
+                .replace("${fieldName}", field.getName());
+      }
+      sb.append(code);
+      sb.append(System.lineSeparator());
+    }
+    return sb.toString();
   }
 
   private String mapExpressions() {
