@@ -39,6 +39,8 @@ collect_benches = Bench.build builder->
                 Managed_Resource.register v nop_cleanup
             mrs.map .take
 
+        ## Note: this benchmark does not immediately clean up its registered
+           values.
         group_builder.specify "with" <|
             data.my_value_mrs_50.map mr-> mr.with .foo
             Nothing
