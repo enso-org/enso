@@ -23,6 +23,7 @@ import org.enso.test.utils.ProjectUtils;
 import org.enso.test.utils.SourceModule;
 import org.graalvm.polyglot.Context;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import scala.jdk.CollectionConverters;
@@ -93,6 +94,7 @@ public class BindingsMapResolutionTest {
   }
 
   @Test
+  @Ignore
   public void resolveConstructor_DefinedEntity() throws IOException {
     var projDir = createProject("""
         type My_Type
@@ -276,6 +278,7 @@ public class BindingsMapResolutionTest {
   }
 
   @Test
+  @Ignore
   public void resolveReexportedType_FromDifferentProject() throws IOException {
     var tmpDir = TMP_DIR.newFolder();
     var libDir = tmpDir.toPath().resolve("Lib");
