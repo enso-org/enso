@@ -63,61 +63,14 @@
         "name": "org.enso.base.arrays.LongArrayList"
     },
     {
-        "name": "org.enso.base.cache.DiskSpaceGetter",
-        "methods": [
-            {
-                "name": "<init>",
-                "parameterTypes": []
-            }
-        ]
-    },
-    {
         "name": "org.enso.base.cache.LRUCache",
-        "methods": [
-            {
-                "name": "<init>",
-                "parameterTypes": []
-            },
-            {
-                "name": "<init>",
-                "parameterTypes": ["org.enso.base.cache.LRUCacheSettings", "org.enso.base.cache.NowGetter", "org.enso.base.cache.DiskSpaceGetter"]
-            },
-            {
-                "name": "getSettings"
-            },
-            {
-                "name": "getFiles"
-            },
-            {
-                "name": "getFileSizes"
-            },
-            {
-                "name": "getNumEntries"
-            },
-            {
-                "name": "simulateReloadTestOnly"
-            }
-        ]
+        "allPublicMethods": true,
+        "allPublicConstructors": true
     },
     {
         "name": "org.enso.base.cache.LRUCacheSettings",
-        "methods": [
-            {
-                "name": "<init>"
-            },
-            {
-                "name": "getDefault"
-            }
-        ]
-    },
-    {
-        "name": "org.enso.base.cache.NowGetter",
-        "methods": [
-            {
-                "name": "<init>",
-                "parameterTypes": []
-            }
-        ]
+        "allPublicMethods": true,
+        "allPublicConstructors": true
     },
     {
         "name": "org.enso.base.encoding.DecodingProblem"
