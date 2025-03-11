@@ -63,6 +63,28 @@
         "name": "org.enso.base.arrays.LongArrayList"
     },
     {
+        "name": "org.enso.base.cache.LRUCache",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            },
+            {
+                "name": "<init>",
+                "parameterTypes": ["org.enso.base.cache.LRUCacheSettings", "org.enso.base.cache.NowGetter", "org.enso.base.cache.DiskSpaceGetter"]
+            }
+        ]
+    },
+    {
+        "name": "org.enso.base.cache.LRUCacheSettings",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": ["long", "org.enso.base.cache.TotalCacheLimit.Limit"]
+            }
+        ]
+    },
+    {
         "name": "org.enso.base.encoding.DecodingProblem"
     },
     {
@@ -402,6 +424,53 @@
             {
                 "name": "log",
                 "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "java.security.KeyStore",
+        "methods": [
+            {
+                "name": "getInstance",
+                "parameterTypes": ["java.lang.String"]
+            },
+            {
+                "name": "load",
+                "parameterTypes": ["java.io.InputStream", "char[]"]
+            },
+            {
+                "name": "load",
+                "parameterTypes": ["java.security.KeyStore.LoadStoreParameter"]
+            }
+        ]
+    },
+    {
+        "name": "javax.net.ssl.TrustManagerFactory",
+        "methods": [
+            {
+                "name": "getInstance",
+                "parameterTypes": ["java.lang.String"]
+            },
+            {
+                "name": "init",
+                "parameterTypes": ["java.security.KeyStore"]
+            },
+            {
+                "name": "getTrustManagers",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "javax.net.ssl.SSLContext",
+        "methods": [
+            {
+                "name": "getInstance",
+                "parameterTypes": ["java.lang.String"]
+            },
+            {
+                "name": "init",
+                "parameterTypes": ["javax.net.ssl.KeyManager[]", "javax.net.ssl.TrustManager[]", "java.security.SecureRandom"]
             }
         ]
     }

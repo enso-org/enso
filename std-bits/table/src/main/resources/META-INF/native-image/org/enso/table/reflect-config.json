@@ -10,7 +10,6 @@
             }
         ]
     },
-
     {
         "name": "org.enso.table.data.column.storage.Storage",
         "methods": [
