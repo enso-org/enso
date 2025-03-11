@@ -3785,7 +3785,6 @@ lazy val `engine-runner` = project
         `image-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
         `table-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
         `database-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
-        `generic-jdbc-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
         `google-api-polyglot-root`
           .listFiles("*.jar")
           .map(_.getAbsolutePath()) ++
