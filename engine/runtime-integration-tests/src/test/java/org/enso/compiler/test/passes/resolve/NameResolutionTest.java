@@ -264,6 +264,53 @@ public final class NameResolutionTest {
   }
 
   @Test
+  public void nameIsResolved_InExpression_TwoProjects_TypeInSubmodule() throws Exception {
+    var libDir = TMP_DIR.newFolder("Lib").toPath();
+    var projDir = TMP_DIR.newFolder("Proj").toPath();
+    ProjectUtils.createProject(
+        "Lib",
+        Set.of(
+            srcModule("Data.Numbers", """
+                type Integer
+                """),
+            srcModule(
+                "Main",
+                """
+                export project.Data.Numbers.Integer
+                """)),
+        libDir);
+    ProjectUtils.createProject(
+        "Proj",
+        """
+            from local.Lib import all
+
+            main =
+                local.Lib.Data.Numbers.Integer
+            """,
+        projDir);
+    try (var ctx = createCtx(projDir)) {
+      compileAllModules(ctx);
+      var modIr = getModuleIr(ctx, "local.Proj.Main");
+      var internalLitName =
+          findIR(modIr, Name.Literal.class, lit -> lit.name().contains("internal"));
+      assertHasMetadata(
+          internalLitName,
+          GlobalNames$.MODULE$,
+          BindingsMap.Resolution.class,
+          res -> {
+            assertThat(res.target(), instanceOf(BindingsMap.ResolvedModule.class));
+            assertThat(res.target().qualifiedName().toString(), is("local.Lib.Main"));
+          });
+      assertHasFQNMetadata(
+          internalLitName,
+          FullyQualifiedNames.ResolvedModule.class,
+          resMod -> {
+            assertThat(resMod.moduleRef().getName().toString(), is("local.Lib.Main"));
+          });
+    }
+  }
+
+  @Test
   public void nameIsResolved_InInlineAscription_TwoProjects_TypeInSubmodule() throws Exception {
     var libDir = TMP_DIR.newFolder("Lib").toPath();
     var projDir = TMP_DIR.newFolder("Proj").toPath();
