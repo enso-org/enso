@@ -3,6 +3,8 @@ package org.enso.table.data.column.storage.numeric;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.CachedPropertyCheck;
+import org.enso.table.data.column.operation.RequiresNumberFormatting;
 import org.enso.table.data.column.operation.map.MapOperationStorage;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.AddOp;
 import org.enso.table.data.column.operation.map.numeric.arithmetic.DivideOp;
@@ -22,13 +24,23 @@ import org.enso.table.data.column.storage.SpecializedStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.slf4j.Logger;
 
-public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
+public class BigIntegerStorage extends SpecializedStorage<BigInteger>
+    implements NumericFormattingStorage {
+
+  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(BigIntegerStorage.class);
+
+  private CachedPropertyCheck<Boolean> isNumericFormatRequired;
+
   /**
    * @param data the underlying data
    */
   public BigIntegerStorage(BigInteger[] data) {
     super(BigIntegerType.INSTANCE, data, makeOps());
+
+    isNumericFormatRequired =
+        new CachedPropertyCheck<>(() -> RequiresNumberFormatting.compute(this, null), false);
   }
 
   protected static MapOperationStorage<BigInteger, SpecializedStorage<BigInteger>> makeOps() {
@@ -151,5 +163,15 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger> {
 
     // And rely on its shrinking logic.
     return longAdapter.inferPreciseTypeShrunk();
+  }
+
+  /**
+   * Checks if any numbers are large enough for the column to require formatin in the table viz.
+   *
+   * @return true/false if formatting is required
+   */
+  @Override
+  public Boolean cachedNumericFormatCheck() throws InterruptedException {
+    return isNumericFormatRequired.get();
   }
 }

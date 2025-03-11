@@ -220,6 +220,19 @@ export function getCheckoutSessionPath(checkoutSessionId: backend.CheckoutSessio
   return `${GET_CHECKOUT_SESSION_PATH}/${checkoutSessionId}`
 }
 
+/** Relative HTTP path to the "hybrid set open in progress" endpoint of the Cloud backend API. */
+export function getHybridSetOpenInProgress(projectId: backend.ProjectId) {
+  return `projects/${projectId}/hybrid_set_open_in_progress`
+}
+/** Relative HTTP path to the "hybrid set opened" endpoint of the Cloud backend API. */
+export function getHybridSetOpened(projectId: backend.ProjectId) {
+  return `projects/${projectId}/hybrid_set_opened`
+}
+/** Relative HTTP path to the "hybrid ping" endpoint of the Cloud backend API. */
+export function getHybridProjectPing(projectId: backend.ProjectId) {
+  return `projects/${projectId}/hybrid_ping`
+}
+
 /** Unique identifier for a directory. */
 type DirectoryId = Newtype<string, 'DirectoryId'>
 // eslint-disable-next-line @typescript-eslint/no-redeclare

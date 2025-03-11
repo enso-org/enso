@@ -254,7 +254,7 @@ const InternalAssetPanelTabs = memo(function InternalAssetPanelTabs(
             isExpanded={isExpanded}
             onPress={expandTab}
             isDisabled={isLocal}
-            isHidden={!enableAsyncExecution}
+            isHidden={true}
           />
           <AssetPanelTabs.Tab
             id="executionsCalendar"
