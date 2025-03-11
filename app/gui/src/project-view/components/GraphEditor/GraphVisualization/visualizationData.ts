@@ -96,7 +96,7 @@ export function useVisualizationData({
   )
 
   const executeExpression = async (
-    expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.MutableOprApp>,
+    expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.Expression>,
   ) => {
     const dataSourceValue = toValue(dataSource)
     if (dataSourceValue?.type !== 'node') return

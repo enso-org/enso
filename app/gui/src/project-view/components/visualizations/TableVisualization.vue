@@ -24,7 +24,7 @@ import { TableVisualisationTooltip } from './TableVisualization/TableVisualisati
 import {
   convertFilterModel,
   convertSortModel,
-  createExpression,
+  createExpressionTemplate,
 } from './TableVisualization/TableVizDataSourceUtils'
 import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
@@ -277,7 +277,7 @@ async function getFilterValues(params: SetFilterValuesFuncParams) {
 function createServer() {
   return {
     getSetFilterValues: async (columnIndex?: number) => {
-      const expressionFunction = createExpression(
+      const expressionFunction = createExpressionTemplate(
         'Standard.Visualization.Table.Visualization',
         'get_distinct_values_for_column',
         `${columnIndex}`,
@@ -304,7 +304,7 @@ function createServer() {
         colTypeMap.value,
       )
 
-      const expressionFunction = createExpression(
+      const expressionFunction = createExpressionTemplate(
         'Standard.Visualization.Table.Visualization',
         'get_rows_for_table',
         //the index of the next bucket of rows to get

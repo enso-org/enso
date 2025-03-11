@@ -156,7 +156,7 @@ export const convertFilterModel = (
   return { filterColumnIndexList, filterActions, valueList, toValueList }
 }
 
-export const createExpression = (
+export const createExpressionTemplate = (
   visulizationModule: string,
   expressionString: string,
   ...positionalArgumentsExpressions: Argument[]

@@ -27,7 +27,7 @@ export interface VisualizationConfig {
    */
   setToolbarOverlay: (enableOverlay: boolean) => void
   executeExpression: (
-    expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.MutableOprApp>,
+    expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.Expression>,
   ) => any
 }
 
