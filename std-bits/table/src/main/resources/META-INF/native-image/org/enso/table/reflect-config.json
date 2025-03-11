@@ -283,6 +283,14 @@
         ]
     },
     {
+        "name": "org.enso.table.data.column.storage.numeric.BigIntegerStorage",
+        "methods": [
+            {
+                "name": "getMaxPrecisionStored"
+            }
+        ]
+    },
+    {
         "name": "org.enso.table.data.column.storage.type.AnyObjectType"
     },
     {

@@ -63,6 +63,15 @@
         "name": "org.enso.base.arrays.LongArrayList"
     },
     {
+        "name": "org.enso.base.cache.DiskSpaceGetter",
+        "methods": [
+            {
+                "name": "<init>",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
         "name": "org.enso.base.cache.LRUCache",
         "methods": [
             {
@@ -72,6 +81,21 @@
             {
                 "name": "<init>",
                 "parameterTypes": ["org.enso.base.cache.LRUCacheSettings", "org.enso.base.cache.NowGetter", "org.enso.base.cache.DiskSpaceGetter"]
+            },
+            {
+                "name": "getSettings"
+            },
+            {
+                "name": "getFiles"
+            },
+            {
+                "name": "getFileSizes"
+            },
+            {
+                "name": "getNumEntries"
+            },
+            {
+                "name": "simulateReloadTestOnly"
             }
         ]
     },
@@ -79,8 +103,19 @@
         "name": "org.enso.base.cache.LRUCacheSettings",
         "methods": [
             {
+                "name": "<init>"
+            },
+            {
+                "name": "getDefault"
+            }
+        ]
+    },
+    {
+        "name": "org.enso.base.cache.NowGetter",
+        "methods": [
+            {
                 "name": "<init>",
-                "parameterTypes": ["long", "org.enso.base.cache.TotalCacheLimit.Limit"]
+                "parameterTypes": []
             }
         ]
     },
@@ -118,13 +153,31 @@
         "name": "org.enso.base.enso_cloud.DataLinkSPI"
     },
     {
+        "name": "org.enso.base.enso_cloud.EnsoHTTPResponseCache",
+        "methods": [
+            {
+                "name": "setLRUCache",
+                "parameterTypes": ["org.enso.base.cache.LRUCache"]
+            },
+            {
+                 "name": "getLRUCache"
+            }
+        ]
+    },
+    {
         "name": "org.enso.base.enso_cloud.EnsoSecretAccessDenied"
     },
     {
         "name": "org.enso.base.enso_cloud.EnsoSecretHelper"
     },
     {
-        "name": "org.enso.base.enso_cloud.ExternalLibrarySecretHelper"
+        "name": "org.enso.base.enso_cloud.ExternalLibrarySecretHelper",
+        "methods": [
+            {
+                "name": "resolveValue",
+                "parameterTypes": ["org.enso.base.enso_cloud.HideableValue"]
+            }
+        ]
     },
     {
         "name": "org.enso.base.enso_cloud.HideableValue"
@@ -457,6 +510,10 @@
             },
             {
                 "name": "getTrustManagers",
+                "parameterTypes": []
+            },
+            {
+                "name": "getDefaultAlgorithm",
                 "parameterTypes": []
             }
         ]
