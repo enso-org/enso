@@ -14,7 +14,6 @@ import project.Column_Ref.Column_Ref
 import project.Column.Column
 import project.Expression.Expression
 import project.Internal.Table_Ref.Table_Ref
-from project.Internal.Filter_Condition_Helpers import make_filter_column
 
 type Generate_Rows_Range
     ## A integer range
