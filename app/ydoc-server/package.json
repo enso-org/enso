@@ -35,7 +35,7 @@
     "@fast-check/vitest": "^0.0.8",
     "@types/debug": "^4.1.12",
     "@types/node": "^22.10.4",
-    "@types/ws": "^8.5.13",
+    "@types/ws": "8.5.13",
     "typescript": "^5.7.2",
     "vite-plugin-wasm": "^3.4.1",
     "vitest": "3.0.5"
