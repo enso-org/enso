@@ -30,12 +30,6 @@ final class PackageUtils {
         return true;
       }
     }
-    /*
-    System.err.println("Not found ready: " + cfg.namespace() + "." + cfg.name());
-    for (var k : AOT_READY.keySet()) {
-      System.err.println("  Already checked: " + k.namespace() + "." + k.name());
-    }
-    */
     return false;
   }
 }
