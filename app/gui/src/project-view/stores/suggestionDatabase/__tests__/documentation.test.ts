@@ -51,6 +51,7 @@ test.each`
   docstring                                       | expectedSummary
   ${'Just summary'}                               | ${'Just summary'}
   ${'First paragraph\n\nSecond paragraph'}        | ${'First paragraph'}
+  ${'First line\nsecond line'}                    | ${'First line second line'}
   ${'ALIAS alias\n\nSummary'}                     | ${'Summary'}
   ${'Very Long Section. With multiple sentences'} | ${'Very Long Section.'}
   ${'One sentence, but with 0.8 number.'}         | ${'One sentence, but with 0.8 number.'}

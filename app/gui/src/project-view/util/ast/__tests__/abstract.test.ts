@@ -5,6 +5,7 @@ import {
   findModuleMethod,
   substituteIdentifier,
   substituteQualifiedName,
+  substituteQualifiedNameByPattern,
   subtrees,
   tryEnsoToNumber,
   tryNumberToEnso,
@@ -960,12 +961,12 @@ test.each([
   ({ original, pattern, substitution, expected }) => {
     const expression = Ast.parseExpression(original) ?? Ast.parseStatement(original)
     assertDefined(expression)
-    const module = expression.module
-    module.setRoot(expression)
-    const edit = expression.module.edit()
-    substituteQualifiedName(expression, pattern as Ast.Identifier, substitution as Ast.Identifier)
-    module.applyEdit(edit)
-    expect(module.root()?.code()).toEqual(expected)
+    const result = substituteQualifiedNameByPattern(
+      expression,
+      pattern as Ast.Identifier,
+      substitution as Ast.Identifier,
+    )
+    expect(result.code()).toEqual(expected)
   },
 )
 

@@ -1,4 +1,4 @@
-import { qnFromSegments } from '@/util/qualifiedName'
+import { qnFromSegments, qnJoin } from '@/util/qualifiedName'
 import type {
   Expression,
   Identifier,
@@ -203,40 +203,21 @@ export function substituteIdentifier(
   }
 }
 
-export function substituteQualifiedName(
-  expr: MutableAst,
-  pattern: QualifiedName | IdentifierOrOperatorIdentifier,
-  to: QualifiedName,
-): Ast
-export function substituteQualifiedName(
-  expr: MutableAst,
-  substitution: (from: QualifiedName) => Opt<QualifiedName>,
-): Ast
 /**
- * Substitute `pattern` inside `expression` with `to`.
- * Replaces identifier, the whole qualified name, or the beginning of the qualified name (first segments of property access chain).
+ * Substitute some qualified names in `expr`.
+ * @param substitution is called on every qualified name in `expr`, and if non-nullish value
+ *   is returned, it replaces this qualified name.
  */
 export function substituteQualifiedName(
   expr: MutableAst,
-  patternOrF:
-    | QualifiedName
-    | IdentifierOrOperatorIdentifier
-    | ((from: QualifiedName) => Opt<QualifiedName>),
-  to?: QualifiedName,
+  substitution: (from: QualifiedName) => Opt<QualifiedName>,
 ): Ast {
   if (expr instanceof MutablePropertyAccess || expr instanceof MutableIdent) {
     const qn = astToQualifiedName(expr)
     if (!qn) return expr
-    if (typeof patternOrF === 'function') {
-      const replacement = patternOrF(qn) ?? undefined
-      if (replacement != null) {
-        return expr.updateValue(() => parseExpression(replacement, expr.module)!)
-      }
-    } else if (qn === patternOrF) {
-      return expr.updateValue(() => parseExpression(to!, expr.module)!)
-    } else if (qn && qn.startsWith(patternOrF)) {
-      const withoutPattern = qn.replace(patternOrF, '')
-      return expr.updateValue(() => parseExpression(to + withoutPattern, expr.module)!)
+    const replacement = substitution(qn) ?? undefined
+    if (replacement != null) {
+      return expr.updateValue(() => parseExpression(replacement, expr.module)!)
     }
   } else {
     for (const child of expr.children()) {
@@ -244,16 +225,30 @@ export function substituteQualifiedName(
         continue
       }
       const mutableChild = expr.module.getVersion(child)
-      if (typeof patternOrF === 'function') {
-        substituteQualifiedName(mutableChild, patternOrF)
-      } else {
-        substituteQualifiedName(mutableChild, patternOrF, to!)
-      }
+      substituteQualifiedName(mutableChild, substitution)
     }
   }
   return expr
 }
 
+/**
+ * Substitute `pattern` inside `expression` with `to`.
+ * Replaces identifier, the whole qualified name, or the beginning of the qualified name (first segments of property access chain).
+ */
+export function substituteQualifiedNameByPattern(
+  expr: MutableAst,
+  pattern: QualifiedName | IdentifierOrOperatorIdentifier,
+  to: QualifiedName,
+) {
+  return substituteQualifiedName(expr, (qn) => {
+    if (qn === pattern) {
+      return to
+    } else if (qn && qn.startsWith(pattern)) {
+      const withoutPattern = qn.replace(pattern, '')
+      return (to + withoutPattern) as QualifiedName
+    }
+  })
+}
 /**
  * Try to convert the number to an Enso value.
  *
