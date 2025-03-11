@@ -102,7 +102,9 @@ export default function Labels(props: LabelsProps) {
                           })
                           setModal(
                             <DragModal
+                              hideBadge
                               event={event}
+                              className="w-0"
                               onDragEnd={() => {
                                 LABELS.unbind(payload)
                               }}

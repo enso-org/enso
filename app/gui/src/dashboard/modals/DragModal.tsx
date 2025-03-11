@@ -1,4 +1,7 @@
 /** @file Modal for confirming delete of any type of asset. */
+import { DIALOG_BACKGROUND, Underlay } from '#/components/AriaComponents'
+import { Badge } from '#/components/Badge'
+import Portal from '#/components/Portal'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSetModal } from '#/providers/ModalProvider'
 import {
@@ -9,9 +12,6 @@ import {
   type DragEvent,
   type PropsWithChildren,
 } from 'react'
-import { DIALOG_BACKGROUND, Underlay } from '../components/AriaComponents'
-import { Badge } from '../components/Badge'
-import Portal from '../components/Portal'
 
 /** The default offset (up and to the right) of the drag element. */
 const DEFAULT_OFFSET_PX = 16
@@ -20,6 +20,7 @@ const DEFAULT_OFFSET_PX = 16
 export interface DragModalProps
   extends Readonly<PropsWithChildren>,
     Readonly<JSX.IntrinsicElements['div']> {
+  readonly hideBadge?: boolean
   readonly event: DragEvent
   readonly onDragEnd: () => void
   readonly offsetPx?: number
@@ -30,6 +31,7 @@ export interface DragModalProps
 /** A modal for confirming the deletion of an asset. */
 export default function DragModal(props: DragModalProps) {
   const {
+    hideBadge = false,
     event,
     offsetPx,
     offsetXPx = DEFAULT_OFFSET_PX,
@@ -95,9 +97,11 @@ export default function DragModal(props: DragModalProps) {
               ))}
           </div>
 
-          <Underlay className="absolute -right-1 -top-3 rounded-full">
-            <Badge color="primary">{Children.toArray(children).length}</Badge>
-          </Underlay>
+          {!hideBadge && (
+            <Underlay className="absolute -right-1 -top-3 rounded-full">
+              <Badge color="primary">{Children.toArray(children).length}</Badge>
+            </Underlay>
+          )}
         </div>
       </div>
     </Portal>
