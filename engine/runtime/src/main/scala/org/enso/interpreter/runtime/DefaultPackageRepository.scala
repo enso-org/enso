@@ -423,7 +423,7 @@ private class DefaultPackageRepository(
           logger.warn(s"Resolution failed with [$error].", error)
         case Right(resolved) =>
           logger.info(
-            s"Found library ${resolved.name} @ ${resolved.version} " +
+            s"Found library ${resolved.toString(HostEnsoUtils.isAot())} " +
             s"at [${MaskedPath(resolved.root.location).applyMasking()}]."
           )
       }
