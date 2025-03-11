@@ -126,7 +126,7 @@ test('Link in documentation is rendered and interactive', async ({ page, context
   await expect(() => newPagePromise).toPass({ timeout: 5000 })
 })
 
-test('Insert link button inserts link and focuses editor', async ({ page, context }) => {
+test('Insert link button inserts link and focuses editor', async ({ page }) => {
   await actions.goToGraph(page)
   await page.keyboard.press(`${CONTROL_KEY}+D`)
   await expect(locate.rightDock(page)).toBeVisible()
