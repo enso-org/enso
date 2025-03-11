@@ -56,7 +56,7 @@ add_specs suite_builder =
         p_value_type  = ["value_type", value_type]
         p_has_index_col = ["has_index_col", has_index_col]
         p_get_child_node = ["get_child_node_action", get_child_node]
-        p_is_ssrm       = ["is_ssrm", is_ssrm]
+        p_is_ssrm       = ["is_using_server_sort_and_filter", is_ssrm]
         p_requires_number_format = ["requires_number_format", requires_number_format]
         p_number_of_nothing = if number_of_nothing.is_nothing then [] else [JS_Object.from_pairs [["name", "Count nothings"], ["percentage_value", number_of_nothing]]]
         p_number_of_untrimmed_whitespace = if number_of_untrimmed_whitespace.is_nothing then [] else [JS_Object.from_pairs [["name", "Count untrimmed whitespace"], ["percentage_value", number_of_untrimmed_whitespace]]]
@@ -185,7 +185,7 @@ add_specs suite_builder =
             num_table = Table.new [["A", [1, 2, 3]], ["B", [12345678, 5,6]], ["C", [-12345678, -5,6]]]
             vis = Visualization.prepare_visualization num_table 1000
             value_type_int = JS_Object.from_pairs [["type", "Value_Type"], ["constructor", "Integer"], ["display_text", "Integer (64 bits)"], ["bits", 64]]
-            json = make_json header=["A", "B", "C"] data=[[1,2,3],[12345678,5,6],[-12345678,-5,6]] all_rows=3 value_type=[value_type_int, value_type_int, value_type_int] has_index_col=True get_child_node="get_row" number_of_nothing=[0,0,0] number_of_untrimmed_whitespace=[Nothing, Nothing, Nothing] number_non_trivial_ws=[Nothing, Nothing, Nothing] requires_number_format=[False, True, True]
+            json = make_json header=["A", "B", "C"] data=Nothing all_rows=3 value_type=[value_type_int, value_type_int, value_type_int] has_index_col=True is_ssrm=True get_child_node="get_row" number_of_nothing=[0,0,0] number_of_untrimmed_whitespace=[Nothing, Nothing, Nothing] number_non_trivial_ws=[Nothing, Nothing, Nothing] requires_number_format=[False, True, True]
             vis . should_equal json
 
 main filter=Nothing =
