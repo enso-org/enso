@@ -80,7 +80,7 @@ const currentGroups = computed(() => {
     ...(id === 'all' ? { name: 'all' }
     : id === 'suggestions' ? { name: 'suggestions' }
     : (suggestionDbStore.groups[id] ?? { name: 'unknown' })),
-    ...(filtering.value?.pattern != null ? { displayedNumber: components.length } : {}),
+    ...(props.filter.pattern ? { displayedNumber: components.length } : {}),
   }))
 })
 const displayedGroupId = computed(() =>

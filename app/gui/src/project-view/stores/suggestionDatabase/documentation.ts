@@ -14,6 +14,8 @@ export interface DocumentationData {
   iconName: Icon | undefined
   /** An index of a group from group list in suggestionDb store this entry belongs to. */
   groupIndex: number | undefined
+  /** If defined, it's a rank in "suggested" group (lower rank goes first) */
+  suggestedRank: number | undefined
   isPrivate: boolean
   isUnstable: boolean
 }
@@ -67,6 +69,7 @@ export function documentationData(
   const groupName = tagValue(parsed, 'Group')
   const groupIndex = groupName && project ? getGroupIndex(groupName, project, groups) : undefined
   const iconName = tagValue(parsed, 'Icon')
+  const suggestedRank = tagValue(parsed, 'Suggested')
 
   return {
     documentation: parsed,
@@ -79,6 +82,7 @@ export function documentationData(
         .split(/\s*,\s*/g) ?? [],
     isPrivate: isSome(tagValue(parsed, 'Private')),
     isUnstable: isSome(tagValue(parsed, 'Unstable')) || isSome(tagValue(parsed, 'Advanced')),
+    suggestedRank: suggestedRank != null ? parseFloat(suggestedRank) : undefined,
   }
 }
 
