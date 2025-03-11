@@ -6,15 +6,9 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useOpenProject } from '#/hooks/projectHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useDriveStore } from '#/providers/DriveProvider'
 import { useText } from '#/providers/TextProvider'
-import {
-  BackendType,
-  IS_OPENING_OR_OPENED,
-  isNewTitleUnique,
-  type ProjectAsset,
-} from '#/services/Backend'
-import { isDoubleClick, isSingleClick } from '#/utilities/event'
+import { BackendType, isNewTitleUnique, type ProjectAsset } from '#/services/Backend'
+import { isDoubleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
 import { PERMISSION_ACTION_CAN_EXECUTE, tryFindSelfPermission } from '#/utilities/permissions'
 import { twMerge } from '#/utilities/tailwindMerge'
@@ -36,14 +30,12 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const { getText } = useText()
   const getAssetChildren = useGetAssetChildren()
 
-  const driveStore = useDriveStore()
   const doOpenProject = useOpenProject()
   const ownPermission = tryFindSelfPermission(user, item.permissions)
   // This is a workaround for a temporary bad state in the backend causing the `projectState` key
   // to be absent.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const projectState = item.projectState ?? CLOSED_PROJECT_STATE
-  const isRunning = IS_OPENING_OR_OPENED[projectState.type]
   const canExecute =
     isEditable &&
     (backend.type === BackendType.local ||
@@ -80,17 +72,6 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
       onClick={(event) => {
         if (rowState.isEditingName || isOtherUserUsingProject) {
           // The project should neither be edited nor opened in these cases.
-        } else if (
-          !isRunning &&
-          isSingleClick(event) &&
-          driveStore.getState().selectedIds.size === 1
-        ) {
-          const [id] = driveStore.getState().selectedIds
-          if (item.id === id) {
-            event.stopPropagation()
-            setIsEditing(true)
-            return
-          }
         } else if (isDoubleClick(event) && canExecute) {
           doOpenProject({
             id: item.id,

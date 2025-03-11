@@ -34,6 +34,9 @@
 - ["Insert link" button added to documentation panel][12365]
 - [Cloud File Browser, when opened first time after opening project, shows and
   highlights the currently set file][12184]
+- [It's easier to write numeric/text nodes in Component Browser][12420]. When
+  typing digits only, any names containing digits are not the best match
+  anymore. Also unclosed text literals will be automatically closed.
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -56,6 +59,7 @@
 [12386]: https://github.com/enso-org/enso/pull/12386
 [12365]: https://github.com/enso-org/enso/pull/12365
 [12184]: https://github.com/enso-org/enso/pull/12184
+[12420]: https://github.com/enso-org/enso/pull/12420
 
 #### Enso Standard Library
 

@@ -82,6 +82,7 @@
     - print self show_rows:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Nothing.Nothing
     - read self max_rows:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Table.Column.Column
     - rename self name:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - requires_numeric_formatter_check self -> Standard.Base.Any.Any
     - reverse self -> Standard.Table.Column.Column
     - round self decimal_places:Standard.Base.Data.Numbers.Integer= use_bankers:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - running self statistic:Standard.Base.Data.Statistics.Statistic= name:Standard.Base.Data.Text.Text= -> Standard.Table.Column.Column

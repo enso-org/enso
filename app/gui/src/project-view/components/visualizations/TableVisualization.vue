@@ -105,6 +105,7 @@ interface UnknownTable {
   visualization_header: string
   data_quality_metrics?: DataQualityMetric[]
   is_using_server_sort_and_filter: boolean
+  requires_number_format: boolean[]
 }
 
 type DataQualityMetric = {
@@ -135,7 +136,6 @@ const isTruncated = ref(false)
 const isCreateNodeEnabled = ref(false)
 const filterModel = ref<GridFilterModel[]>([])
 const sortModel = ref<SortModel[]>([])
-const dataGroupingMap = shallowRef<Map<string, boolean>>()
 const defaultColDef: Ref<ColDef> = ref({
   editable: false,
   sortable: true,
@@ -184,6 +184,7 @@ const statusBar = computed(() =>
 const textFormatterSelected = ref<TextFormatOptions>('partial')
 
 const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
+const dataGroupingMap = shallowRef<Map<string, boolean>>()
 
 const selectableRowLimits = computed(() => {
   const defaults = [1000, 2500, 5000, 10000, 25000, 50000, 100000].filter(
@@ -619,6 +620,8 @@ watchEffect(() => {
         link_value_type: undefined,
         // eslint-disable-next-line camelcase
         is_using_server_sort_and_filter: undefined,
+        // eslint-disable-next-line camelcase
+        requires_number_format: undefined,
       }
   if ('error' in data_) {
     columnDefs.value = [

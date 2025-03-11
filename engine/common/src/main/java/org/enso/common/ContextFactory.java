@@ -176,7 +176,7 @@ public final class ContextFactory {
     }
     var julLogLevel = Converter.toJavaLevel(logLevel);
     var logLevelName = julLogLevel.getName();
-    var inAOTMode = java.lang.Boolean.getBoolean("com.oracle.graalvm.isaot");
+    var inAOTMode = HostEnsoUtils.isAot();
     java.util.Map<String, String> engineOptions = null;
     if (runtimerServerKey != null) {
       if (!inAOTMode) {
@@ -249,7 +249,7 @@ public final class ContextFactory {
           .allowCreateThread(true);
     }
 
-    if (inAOTMode) {
+    if (engineOptions != null) {
       // In AOT mode one must not use a shared engine; the latter causes issues when initializing
       // message transport - it is set to `null`.
       var eng = Engine.newBuilder().allowExperimentalOptions(true).options(engineOptions);

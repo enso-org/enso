@@ -6,7 +6,13 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.operation.CachedPropertyCheck;
+import org.enso.table.data.column.operation.RequiresNumberFormatting;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnLongStorageIterator;
+import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
+import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -15,14 +21,20 @@ import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
+import org.slf4j.Logger;
 
 /** A column storing 64-bit integers. */
-public final class LongStorage extends AbstractLongStorage implements ColumnStorageWithNothingMap {
+public final class LongStorage extends AbstractLongStorage
+    implements ColumnStorageWithNothingMap, NumericFormattingStorage {
+
+  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(LongStorage.class);
+
   // TODO [RW] at some point we will want to add separate storage classes for byte, short and int,
   // for more compact storage and more efficient handling of smaller integers; for now we will be
   // handling this just by checking the bounds
   final long[] data;
   final BitSet isNothing;
+  private CachedPropertyCheck<Boolean> isNumericFormatRequired;
 
   /**
    * @param data the underlying data
@@ -35,6 +47,9 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
     super(size, type);
     this.data = data;
     this.isNothing = isNothing;
+
+    isNumericFormatRequired =
+        new CachedPropertyCheck<>(() -> RequiresNumberFormatting.compute(this, null), false);
   }
 
   public static LongStorage makeEmpty(long size, IntegerType type) {
@@ -334,5 +349,15 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
         }
       }
     }
+  }
+
+  /**
+   * Checks if any numbers are large enough for the column to require formatin in the table viz.
+   *
+   * @return true/false if formatting is required
+   */
+  @Override
+  public Boolean cachedNumericFormatCheck() throws InterruptedException {
+    return isNumericFormatRequired.get();
   }
 }

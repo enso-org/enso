@@ -637,6 +637,18 @@ impl JobArchetype for UploadBackend {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new("backend upload")
             .cleaning(RELEASE_CLEANING_POLICY)
+            .customize(move |step| {
+                let mut steps = vec![step];
+
+                if target.0 == OS::Linux {
+                    let upload_edition_file = step::upload_artifact("Upload Edition File")
+                        .with_custom_argument("name", paths::EDITION_FILE_ARTIFACT_NAME)
+                        .with_custom_argument("path", "distribution/editions/*.yaml");
+                    steps.push(upload_edition_file);
+                }
+
+                steps
+            })
             .build_job("Upload Backend", target)
     }
 }
