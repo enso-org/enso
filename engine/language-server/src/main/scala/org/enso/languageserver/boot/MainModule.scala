@@ -49,6 +49,7 @@ import org.enso.lockmanager.server.LockManagerService
 import org.enso.logger.masking.Masking
 import org.enso.common.RuntimeOptions
 import org.enso.common.ContextFactory
+import org.enso.common.HostEnsoUtils
 import org.enso.logging.utils.akka.AkkaConverter
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.profiling.events.NoopEventsMonitor
@@ -316,7 +317,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     Runtime.getRuntime.availableProcessors().toString
   )
 
-  if (java.lang.Boolean.getBoolean("com.oracle.graalvm.isaot")) {
+  if (HostEnsoUtils.isAot()) {
     log.info("Running Language Server in AOT mode")
   } else {
     log.info("Running Language Server in JVM mode")

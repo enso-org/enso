@@ -48,7 +48,6 @@ export const ACTION_TO_TEXT_ID: Readonly<
   uploadToCloud: 'uploadToCloudShortcut',
   rename: 'renameShortcut',
   edit: 'editShortcut',
-  editDescription: 'editDescriptionShortcut',
   snapshot: 'snapshotShortcut',
   delete: 'deleteShortcut',
   undelete: 'undeleteShortcut',

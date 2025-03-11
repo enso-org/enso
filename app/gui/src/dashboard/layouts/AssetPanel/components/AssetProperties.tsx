@@ -275,7 +275,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
             level={2}
             className="h-side-panel-heading py-side-panel-heading-y text-lg leading-snug"
           >
-            {getText('settings')}
+            {getText('properties')}
           </Heading>
           <table>
             <tbody>
