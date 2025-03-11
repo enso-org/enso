@@ -252,6 +252,7 @@ function UpButton(props: UpButtonProps) {
 
   return (
     <Button
+      variant="icon"
       icon="arrow-up"
       aria-label={getText('up')}
       onPress={onPress}

@@ -6,6 +6,9 @@
 import { useInteractOutside } from '#/components/aria'
 import { useEffect, useRef } from 'react'
 import { useEventCallback } from './eventCallbackHooks'
+import { useEventListener } from './eventListenerHooks'
+import { useTimeoutAPI, useTimeoutCallback } from './timeoutHooks'
+import { useUnmount } from './unmountHooks'
 
 /** Props for the {@link useAutoFocus} hook. */
 export interface UseAutoFocusProps {
@@ -73,14 +76,9 @@ export function useAutoFocus(props: UseAutoFocusProps) {
     }
   }, [disabled, scheduleFocus, clearScheduledFocus])
 
-  useEffect(() => {
-    if (disabled) {
-      return
-    }
-
-    const body = document.body
-
-    const handleFocus = () => {
+  useEventListener(
+    'focus',
+    () => {
       const activeElement = document.activeElement
       const element = ref instanceof HTMLElement ? ref : ref.current
 
@@ -91,18 +89,19 @@ export function useAutoFocus(props: UseAutoFocusProps) {
       if (activeElement !== element && shouldForceFocus.current) {
         scheduleFocus()
       }
-    }
+    },
+    document.body,
+    { isDisabled: disabled, capture: true, passive: true },
+  )
 
-    const id = setTimeout(() => {
+  const [, stop] = useTimeoutCallback({
+    callback: () => {
       shouldForceFocus.current = false
       clearScheduledFocus()
-    }, FOCUS_TRYOUT_DELAY)
+    },
+    ms: FOCUS_TRYOUT_DELAY,
+    isDisabled: disabled,
+  })
 
-    body.addEventListener('focus', handleFocus, { capture: true, passive: true })
-
-    return () => {
-      body.removeEventListener('focus', handleFocus)
-      clearTimeout(id)
-    }
-  }, [disabled, scheduleFocus, ref, clearScheduledFocus])
+  useUnmount(stop)
 }

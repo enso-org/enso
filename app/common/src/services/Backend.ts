@@ -1,6 +1,7 @@
 /** @file Type definitions common between all backends. */
 
-import type { TextId } from '../text'
+import { z } from 'zod'
+import { getText, resolveDictionary, type TextId } from '../text'
 import * as array from '../utilities/data/array'
 import * as dateTime from '../utilities/data/dateTime'
 import * as newtype from '../utilities/data/newtype'
@@ -53,6 +54,10 @@ export const LoadingAssetId = newtype.newtypeConstructor<LoadingAssetId>()
 /** Unique identifier for an asset representing the nonexistent children of an empty directory. */
 export type EmptyAssetId = newtype.Newtype<string, 'EmptyAssetId'>
 export const EmptyAssetId = newtype.newtypeConstructor<EmptyAssetId>()
+
+/** Unique identifier for an asset representing the parent directory. */
+export type UpAssetId = newtype.Newtype<string, 'UpAssetId'>
+export const UpAssetId = newtype.newtypeConstructor<UpAssetId>()
 
 /**
  * Unique identifier for an asset representing the nonexistent children of a directory
@@ -864,6 +869,8 @@ export enum AssetType {
   specialEmpty = 'specialEmpty',
   /** A special {@link AssetType} representing a directory listing that errored. */
   specialError = 'specialError',
+  /** A special {@link AssetType} representing a button that navigates to the parent directory. */
+  specialUp = 'specialUp',
 }
 
 /** The corresponding ID newtype for each {@link AssetType}. */
@@ -883,6 +890,7 @@ export interface SpecialAssetIdType {
   readonly [AssetType.specialLoading]: LoadingAssetId
   readonly [AssetType.specialEmpty]: EmptyAssetId
   readonly [AssetType.specialError]: ErrorAssetId
+  readonly [AssetType.specialUp]: UpAssetId
 }
 
 /**
@@ -898,6 +906,7 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.specialLoading]: 1000,
   [AssetType.specialEmpty]: 1000,
   [AssetType.specialError]: 1000,
+  [AssetType.specialUp]: -1,
 }
 
 // =============
@@ -1231,6 +1240,10 @@ export function createPlaceholderAssetId<Type extends AssetType>(
       result = ErrorAssetId(id)
       break
     }
+    case AssetType.specialUp: {
+      result = UpAssetId(id)
+      break
+    }
   }
   return result as IdType[Type]
 }
@@ -1358,6 +1371,7 @@ export interface UpdateFileRequestBody {
 export interface UpdateAssetRequestBody {
   readonly parentDirectoryId: DirectoryId | null
   readonly description: string | null
+  readonly title: string | null
 }
 
 /** HTTP request body for the "delete asset" endpoint. */
@@ -1616,6 +1630,41 @@ export function extractProjectExtension(name: string) {
   return { basename: basename ?? name, extension: extension ?? '' }
 }
 
+export interface TitleSchemaOptions {
+  readonly asset: AnyAsset
+  readonly siblings?: readonly AnyAsset[] | null
+}
+
+/**
+ * Check if the title contains invalid characters.
+ */
+export function isTitleContainsInvalidCharacters(name: string) {
+  if (name.includes('/') || name.includes('\\') || name.includes('..')) {
+    return true
+  }
+
+  return false
+}
+
+/**
+ * A Zod schema for validating a title.
+ */
+export function titleSchema(options: TitleSchemaOptions) {
+  const { asset, siblings } = options
+
+  return z
+    .string()
+    .trim()
+    .min(1)
+    .max(512)
+    .refine((value) => isNewTitleUnique(asset, value, siblings), {
+      message: getText(resolveDictionary(), 'nameShouldBeUnique'),
+    })
+    .refine((value) => !isTitleContainsInvalidCharacters(value), {
+      message: getText(resolveDictionary(), 'nameShouldNotContainInvalidCharacters'),
+    })
+}
+
 /**
  * Check whether a new title is unique among the siblings.
  */
@@ -1631,7 +1680,7 @@ export function isNewTitleUnique(
       return true
     }
 
-    const hasSameTitle = sibling.title.toLowerCase() === newTitle.toLowerCase()
+    const hasSameTitle = sibling.title.trim().toLowerCase() === newTitle.trim().toLowerCase()
     return !hasSameTitle
   })
 }
@@ -1645,7 +1694,7 @@ export class NetworkError extends Error {
    */
   constructor(
     message: string,
-    readonly status?: number,
+    readonly status?: number | null,
   ) {
     super(message)
   }
@@ -1903,5 +1952,17 @@ export class DirectoryDoesNotExistError extends Error {
    */
   constructor() {
     super('Directory does not exist.')
+  }
+}
+
+/**
+ * Error thrown when a duplicate asset is found.
+ */
+export class DuplicateAssetError extends Error {
+  /**
+   * Create a new instance of the {@link DuplicateAssetError} class.
+   */
+  constructor(message: string) {
+    super(message)
   }
 }

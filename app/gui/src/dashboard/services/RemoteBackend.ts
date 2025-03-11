@@ -19,6 +19,7 @@ import * as download from '#/utilities/download'
 import type HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 import invariant from 'tiny-invariant'
+import { z } from 'zod'
 
 /** HTTP status indicating that the request was successful. */
 const STATUS_SUCCESS_FIRST = 200
@@ -275,20 +276,21 @@ export default class RemoteBackend extends Backend {
       this.logger.error(textId.message)
 
       throw textId
-    } else {
-      const error =
-        response == null || response.headers.get('Content-Type') !== 'application/json' ?
-          { message: 'unknown error' }
-          // This is SAFE only when the response has been confirmed to have an erroring status code.
-          // eslint-disable-next-line no-restricted-syntax
-        : ((await response.json()) as RemoteBackendError)
-      const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
-      this.logger.error(message)
-
-      const status = response?.status
-
-      throw new backend.NetworkError(message, status)
     }
+
+    const error =
+      response == null || response.headers.get('Content-Type') !== 'application/json' ?
+        { message: 'unknown error' }
+        // This is SAFE only when the response has been confirmed to have an erroring status code.
+        // eslint-disable-next-line no-restricted-syntax
+      : ((await response.json()) as RemoteBackendError)
+
+    const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
+    this.logger.error(message)
+
+    const status = response?.status
+
+    throw new backend.NetworkError(message, status)
   }
 
   /** The path to the root directory of this {@link Backend}. */
@@ -719,10 +721,15 @@ export default class RemoteBackend extends Backend {
   ) {
     const path = remoteBackendPaths.updateAssetPath(assetId)
     const response = await this.patch(path, body)
+
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'updateAssetBackendError', title)
-    } else {
-      return
+      await this.throw(response, 'updateAssetBackendError', title).catch((error) => {
+        if (isDuplicateAssetError(error)) {
+          throw new backend.DuplicateAssetError(error.message)
+        }
+
+        throw error
+      })
     }
   }
 
@@ -773,11 +780,20 @@ export default class RemoteBackend extends Backend {
       remoteBackendPaths.copyAssetPath(assetId),
       { parentDirectoryId },
     )
+
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'copyAssetBackendError', title, parentDirectoryTitle)
-    } else {
-      return await response.json()
+      return await this.throw(response, 'copyAssetBackendError', title, parentDirectoryTitle).catch(
+        (error) => {
+          if (isDuplicateAssetError(error)) {
+            throw new backend.DuplicateAssetError(error.message)
+          }
+
+          throw error
+        },
+      )
     }
+
+    return await response.json()
   }
 
   /**
@@ -1679,4 +1695,17 @@ export default class RemoteBackend extends Backend {
   private delete<T = void>(path: string, payload?: Record<string, unknown>) {
     return this.client.delete<T>(`${$config.API_URL}/${path}`, payload)
   }
+}
+
+/**
+ * Check if the error is a duplicate asset error.
+ */
+function isDuplicateAssetError(error: unknown): error is Error {
+  const schema = z.object({
+    message: z.string().includes('A resource with that title already exists.'),
+  })
+
+  const result = schema.safeParse(error)
+
+  return result.success
 }

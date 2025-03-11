@@ -13,14 +13,17 @@ import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import * as text from '../../Text'
 import { Form } from '../Form'
 import type * as types from './types'
+import type { FieldPath } from './types'
 
 /** Props for Field component */
-export interface FieldComponentProps<Schema extends types.TSchema>
-  extends VariantProps<typeof FIELD_STYLES>,
+export interface FieldComponentProps<
+  Schema extends types.TSchema,
+  TFieldName extends FieldPath<Schema, string>,
+> extends VariantProps<typeof FIELD_STYLES>,
     types.FieldProps {
   readonly 'data-testid'?: string | undefined
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly name: Path<types.FieldValues<Schema>, any>
+
+  readonly name: TFieldName
   readonly form?: types.FormInstance<Schema> | undefined
   readonly isInvalid?: boolean | undefined
   readonly className?: string | undefined
@@ -55,16 +58,15 @@ export const FIELD_STYLES = tv({
     label: text.TEXT_STYLE({ variant: 'body', disableLineHeightCompensation: true }),
     content: 'flex flex-col items-start w-full',
     description: text.TEXT_STYLE({ variant: 'body', color: 'disabled' }),
-    error: text.TEXT_STYLE({ variant: 'body', color: 'danger' }),
   },
   defaultVariants: { fullWidth: true },
 })
 
 /** Field component */
-export const Field = forwardRef(function Field<Schema extends types.TSchema>(
-  props: FieldComponentProps<Schema>,
-  ref: React.ForwardedRef<HTMLDivElement>,
-) {
+export const Field = forwardRef(function Field<
+  Schema extends types.TSchema,
+  TFieldName extends FieldPath<Schema, string>,
+>(props: FieldComponentProps<Schema, TFieldName>, ref: React.ForwardedRef<HTMLDivElement>) {
   const {
     children,
     className,
@@ -138,11 +140,51 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
         </span>
       )}
 
-      {hasError && (
-        <span data-testid="error" id={errorId} className={classes.error()}>
-          {error ?? fieldState.error}
-        </span>
-      )}
+      <FieldError error={error} id={errorId} name={props.name} form={props.form} />
     </div>
   )
 })
+
+export const FIELD_ERROR_STYLES = tv({
+  base: text.TEXT_STYLE({ variant: 'body', color: 'danger', className: 'block' }),
+  variants: { fullWidth: { true: 'w-full' } },
+  defaultVariants: { fullWidth: true },
+})
+
+/**
+ * Props for the {@link FieldError} component.
+ */
+export interface FieldErrorProps<
+  Schema extends types.TSchema,
+  TFieldName extends types.FieldPath<Schema>,
+> extends React.HTMLAttributes<HTMLSpanElement>,
+    VariantProps<typeof FIELD_ERROR_STYLES> {
+  readonly error?: React.ReactNode | string | null | undefined
+  readonly id?: string | undefined
+  readonly form?: types.FormInstance<Schema> | undefined
+  readonly name: TFieldName
+}
+
+/**
+ * Component for displaying an error message for a field.
+ */
+export function FieldError<
+  Schema extends types.TSchema,
+  TFieldName extends types.FieldPath<Schema>,
+>(props: FieldErrorProps<Schema, TFieldName>) {
+  const { error, className, id, variants = FIELD_ERROR_STYLES, fullWidth, ...rest } = props
+
+  const fieldState = Form.useFieldState(props)
+
+  const hasError = (error !== undefined ? error : fieldState.error) != null
+
+  if (!hasError) {
+    return null
+  }
+
+  return (
+    <span data-testid="error" id={id} className={variants({ className, fullWidth })} {...rest}>
+      {error ?? fieldState.error}
+    </span>
+  )
+}

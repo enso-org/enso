@@ -1261,21 +1261,6 @@ function AssetsTable(props: AssetsTableProps) {
   const table = (
     <div
       className="flex flex-none flex-col"
-      onContextMenu={(event) => {
-        event.preventDefault()
-        event.stopPropagation()
-        setModal(
-          <AssetsTableContextMenu
-            backend={backend}
-            category={category}
-            event={event}
-            doCopy={doCopy}
-            doCut={doCut}
-            currentDirectoryId={currentDirectoryId}
-            doPaste={doPaste}
-          />,
-        )
-      }}
       onDragLeave={(event) => {
         const payload = LABELS.lookup(event)
         if (
@@ -1448,7 +1433,24 @@ function AssetsTable(props: AssetsTableProps) {
                 onDragCancel={onSelectionDragCancel}
                 preventDrag={preventSelection}
               />
-              <div className="flex h-max min-h-full w-max min-w-full flex-col">
+              <div
+                className="flex h-max min-h-full w-max min-w-full flex-col"
+                onContextMenu={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  setModal(
+                    <AssetsTableContextMenu
+                      backend={backend}
+                      category={category}
+                      event={event}
+                      doCopy={doCopy}
+                      doCut={doCut}
+                      currentDirectoryId={currentDirectoryId}
+                      doPaste={doPaste}
+                    />,
+                  )
+                }}
+              >
                 <div className="flex h-full w-min min-w-full grow flex-col px-1">
                   {table}
                   <AssetsTableAssetsUnselector />

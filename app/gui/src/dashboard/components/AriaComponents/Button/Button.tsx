@@ -15,6 +15,7 @@ import { forwardRef } from '#/utilities/react'
 import { useContextProps } from '../../hooks/useContextProps'
 import { Icon as IconComponent } from '../../Icon'
 import { StatelessSpinner } from '../../StatelessSpinner'
+import { useDialogContext } from '../Dialog'
 import { Tooltip, TooltipTrigger } from '../Tooltip'
 import { useVisualTooltip } from '../VisualTooltip'
 import { ButtonGroup, ButtonGroupJoin } from './ButtonGroup'
@@ -34,12 +35,15 @@ const ICON_LOADER_DELAY = 150
 // eslint-disable-next-line no-restricted-syntax
 export const Button = memo(
   forwardRef(function Button<IconType extends string>(
-    props: ButtonProps<IconType>,
-    ref: ForwardedRef<HTMLButtonElement>,
+    propsReplacement: ButtonProps<IconType>,
+    refReplacement: ForwardedRef<HTMLButtonElement>,
   ) {
     // @ts-expect-error ts errors are expected here because we are merging props with different types
-    ;[props, ref] = useContextProps(props, ref, ButtonContext)
+    // eslint-disable-next-line prefer-const
+    let [props, ref] = useContextProps(propsReplacement, refReplacement, ButtonContext)
     props = useMergedButtonStyles(props)
+
+    const dialogContext = useDialogContext()
 
     const {
       className,
@@ -151,6 +155,10 @@ export const Button = memo(
           void result.finally(() => {
             setImplicitlyLoading(false)
           })
+        }
+
+        if (dialogContext != null && 'formMethod' in props && props.formMethod === 'dialog') {
+          dialogContext.close()
         }
       }
     })

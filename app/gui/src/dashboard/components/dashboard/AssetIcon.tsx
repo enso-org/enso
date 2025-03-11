@@ -19,7 +19,7 @@ export interface AssetIconProps {
   readonly className?: string
 }
 
-/** Displays a few details of an asset. */
+/** Displays a non-interactable icon for an asset based on its type and name. */
 export default function AssetIcon(props: AssetIconProps) {
   const { asset, className } = props
   switch (asset.type) {

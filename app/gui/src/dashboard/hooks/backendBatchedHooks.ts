@@ -3,12 +3,14 @@ import { backendQueryOptions, mutationOptions } from '#/hooks/backendHooks'
 import { getMessageOrToString } from '#/utilities/error'
 import { useMutationState, type Mutation, type QueryClient } from '@tanstack/react-query'
 import {
+  DuplicateAssetError,
   FilterBy,
   type AssetId,
   type default as Backend,
   type DirectoryId,
   type LabelName,
 } from 'enso-common/src/services/Backend'
+import { resolveDuplications } from '../modals/DuplicateAssetsModal'
 
 /** Call "delete" mutations for a list of assets. */
 export function deleteAssetsMutationOptions(backend: Backend) {
@@ -187,12 +189,52 @@ export function moveAssetsMutationOptions(backend: Backend) {
     mutationFn: async ([ids, parentId]: [ids: readonly AssetId[], parentId: DirectoryId]) => {
       const results = await Promise.allSettled(
         ids.map((id) =>
-          backend.updateAsset(id, { description: null, parentDirectoryId: parentId }, '(unknown)'),
+          backend
+            .updateAsset(id, { description: null, parentDirectoryId: parentId }, '(unknown)')
+            .catch((error) => {
+              if (error instanceof DuplicateAssetError) {
+                return { id, error }
+              }
+              throw error
+            }),
         ),
       )
+
+      const duplicateErrors = results
+        .filter((result) => result.status === 'fulfilled')
+        .map((result) =>
+          typeof result.value === 'object' && 'error' in result.value ? result.value : null,
+        )
+        .filter((error) => error != null)
+
       const errors = results.flatMap((result): unknown =>
         result.status === 'rejected' ? [result.reason] : [],
       )
+
+      if (duplicateErrors.length !== 0) {
+        const resolutions = await resolveDuplications({
+          targetId: parentId,
+          conflictingIds: duplicateErrors.map((error) => error.id),
+        })
+
+        const replacements = resolutions.filter((resolution) => resolution.conclusion === 'replace')
+        const renames = resolutions.filter((resolution) => resolution.conclusion === 'rename')
+
+        await Promise.allSettled([
+          ...replacements.map((resolution) =>
+            backend.copyAsset(resolution.assetId, parentId, '(unknown)', '(unknown)'),
+          ),
+
+          ...renames.map((resolution) =>
+            backend.updateAsset(
+              resolution.assetId,
+              { parentDirectoryId: parentId, description: null, title: resolution.newName },
+              resolution.newName,
+            ),
+          ),
+        ])
+      }
+
       if (errors.length !== 0) {
         throw Object.assign(new Error(errors.map(getMessageOrToString).join('\n')), {
           errors,

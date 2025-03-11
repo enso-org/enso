@@ -14,11 +14,14 @@ import { ZodSchema } from 'zod'
  * Or if the parsed JSON does not match the type assertion.
  */
 export function safeJsonParse<T = unknown>(
-  value: string,
+  value: unknown,
   defaultValue: T,
   predicate?: ZodSchema<T> | ((parsed: unknown) => parsed is T),
 ): T {
   try {
+    if (typeof value !== 'string') {
+      return defaultValue
+    }
     const parsed: unknown = JSON.parse(value)
 
     if (predicate != null) {

@@ -113,7 +113,8 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   switch (type) {
     case backendModule.AssetType.specialLoading:
     case backendModule.AssetType.specialEmpty:
-    case backendModule.AssetType.specialError: {
+    case backendModule.AssetType.specialError:
+    case backendModule.AssetType.specialUp: {
       return <AssetSpecialRow columnsLength={columns.length} type={type} />
     }
     case backendModule.AssetType.project:
@@ -142,6 +143,11 @@ const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialR
   const { getText } = textProvider.useText()
 
   switch (type) {
+    case backendModule.AssetType.specialUp: {
+      // TODO: Implement this.
+      return null
+    }
+
     case backendModule.AssetType.specialLoading: {
       return (
         <tr>
@@ -619,6 +625,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
         </>
       )
     }
+    case backendModule.AssetType.specialUp:
     case backendModule.AssetType.specialLoading:
     case backendModule.AssetType.specialEmpty:
     case backendModule.AssetType.specialError:

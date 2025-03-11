@@ -9,11 +9,24 @@ import * as ariaComponents from '#/components/AriaComponents'
 import AssetSummary from '#/components/dashboard/AssetSummary'
 import Modal from '#/components/Modal'
 
+import type { AnyAsset } from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
+import { setModal, unsetModal } from '#/providers/ModalProvider'
 import * as fileInfo from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
-import { useMutation } from '@tanstack/react-query'
+import {
+  queryOptions,
+  useMutation,
+  useQueryClient,
+  useSuspenseQueries,
+  useSuspenseQuery,
+} from '@tanstack/react-query'
+import invariant from 'tiny-invariant'
+import { z } from 'zod'
+import { Icon } from '../components/Icon'
+import { listDirectoryQueryOptions } from '../hooks/backendHooks'
+import { useCategory } from '../layouts/Drive/Categories/categoriesHooks'
 
 // =============
 // === Types ===
@@ -51,7 +64,10 @@ export interface DuplicateAssetsModalProps {
   readonly doUpdateConflicting: (toUpdate: ConflictingAsset[]) => Promise<void> | void
 }
 
-/** A modal for creating a new label. */
+/**
+ * A modal for creating a new label.
+ * @deprecated Use {@link resolveDuplications} instead.
+ */
 export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   const { conflictingFiles: conflictingFilesRaw } = props
   const { conflictingProjects: conflictingProjectsRaw, doUpdateConflicting } = props
@@ -315,4 +331,381 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
       </form>
     </Modal>
   )
+}
+
+/**
+ * The conclusion of a resolved duplication.
+ */
+export type Conclusion = 'rename' | 'replace' | 'skip'
+
+/**
+ * A resolved duplication.
+ */
+export type ResolvedDuplication = RenameDuplication | ReplaceDuplication | SkipDuplication
+
+/**
+ * A resolved duplication that was skipped.
+ */
+export interface SkipDuplication {
+  readonly assetId: backendModule.AssetId
+  readonly conclusion: 'skip'
+}
+
+/**
+ * A resolved duplication that was renamed.
+ */
+export interface RenameDuplication {
+  readonly assetId: backendModule.AssetId
+  readonly conclusion: 'rename'
+  readonly newName: string
+}
+
+/**
+ * A resolved duplication that was replaced.
+ */
+export interface ReplaceDuplication {
+  readonly assetId: backendModule.AssetId
+  readonly conclusion: 'replace'
+}
+
+/**
+ * Props for a {@link ResolveDuplicationsModal}.
+ */
+export interface ResolveDuplicationsProps {
+  readonly targetId: backendModule.DirectoryId
+  readonly conflictingIds: readonly backendModule.AssetId[]
+  readonly onResolve: (assets: readonly ResolvedDuplication[]) => Promise<void> | void
+  readonly onCancel: () => void
+}
+
+/**
+ * A modal for resolving duplicates.
+ */
+export function ResolveDuplicationsModal(props: ResolveDuplicationsProps) {
+  const { conflictingIds } = props
+  const { getText } = textProvider.useText()
+
+  return (
+    <ariaComponents.Dialog
+      size="xlarge"
+      onDismiss={props.onCancel}
+      title={
+        conflictingIds.length === 1 ?
+          getText('resolveDuplicatesTitleOne')
+        : getText('resolveDuplicatesTitleMany', conflictingIds.length)
+      }
+    >
+      <ResolveDuplicationsModalInner {...props} />
+    </ariaComponents.Dialog>
+  )
+}
+
+const NEW_TITLE_SUFFIX = ' (copy)'
+
+/**
+ * The inner component of a {@link ResolveDuplicationsModal}.
+ */
+function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
+  const { targetId, conflictingIds } = props
+
+  const { category, associatedBackend } = useCategory()
+
+  const { getText } = textProvider.useText()
+
+  const queryClient = useQueryClient()
+
+  const { data: siblingFiles } = useSuspenseQuery({
+    ...listDirectoryQueryOptions({
+      category,
+      backend: associatedBackend,
+      parentId: targetId,
+    }),
+    // We use titles as keys, because they always unique, and we want to find duplicates by title.
+    select: (data) => {
+      const map = new Map(data.map((asset) => [asset.title, asset]))
+      return {
+        map,
+        siblings: data,
+      }
+    },
+  })
+
+  const conflictingAssets = useSuspenseQueries({
+    combine: (queries) => queries.map((query) => query.data).filter((asset) => asset != null),
+    queries: conflictingIds.map((id) =>
+      queryOptions({
+        queryKey: [associatedBackend.type, 'asset', { id }],
+        gcTime: 0,
+        meta: { persist: false },
+        queryFn: () =>
+          queryClient
+            .getQueryCache()
+            .getAll()
+            .map((query) => {
+              const assetSchema = z
+                .object({
+                  id: z.string().refine((value) => value === id),
+                })
+                // eslint-disable-next-line no-restricted-syntax
+                .transform((data) => data as unknown as backendModule.AnyAsset)
+
+              const data = query.state.data
+
+              if (Array.isArray(data)) {
+                // eslint-disable-next-line no-restricted-syntax
+                const asset = data.find(
+                  (maybeAsset) => assetSchema.safeParse(maybeAsset).success,
+                ) as AnyAsset | undefined
+
+                if (asset != null) {
+                  return asset
+                }
+              }
+
+              const result = assetSchema.safeParse(data)
+
+              if (result.success) {
+                return result.data
+              }
+
+              return null
+            })
+            .filter((asset) => asset != null)[0],
+      }),
+    ),
+  })
+
+  return (
+    <ariaComponents.Form
+      defaultValues={Object.fromEntries(
+        conflictingAssets.map((asset) => [asset.id, { assetId: asset.id }]),
+      )}
+      method="dialog"
+      formOptions={{ mode: 'onChange' }}
+      schema={(schema) =>
+        schema.object(
+          Object.fromEntries(
+            conflictingAssets.map((asset) => [
+              asset.id,
+              schema.object({
+                assetId: schema.custom<backendModule.AssetId>(),
+                title: schema.string().trim().optional(),
+                conclusion: schema.enum(['rename', 'replace', 'skip'], {
+                  message: getText('invalidConclusion'),
+                }),
+              }),
+            ]),
+          ),
+        )
+      }
+      onSubmit={async (data) => {
+        console.log(data)
+        // @ts-expect-error This is safe because the keys are the asset IDs.
+        return props.onResolve(Object.values(data))
+      }}
+    >
+      <ariaComponents.Text elementType="p">
+        {conflictingIds.length === 1 ?
+          getText('resolveDuplicatesDescriptionOne')
+        : getText('resolveDuplicatesDescriptionMany', conflictingIds.length)}
+      </ariaComponents.Text>
+
+      {conflictingAssets.map((asset, index, array) => {
+        const isLast = index === array.length - 1
+        const sibling = siblingFiles.map.get(asset.title)
+
+        invariant(sibling != null, 'Sibling was not found, this should never happen.')
+
+        return (
+          <>
+            <div
+              key={asset.id}
+              className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] grid-rows-[auto_auto_auto] gap-2"
+            >
+              <AssetSummary asset={asset} new />
+
+              <Icon icon="arrow_right" size="medium" className="self-center" />
+
+              <AssetSummary asset={sibling} />
+
+              <ariaComponents.Button.Group className="col-span-full row-span-2 mt-1">
+                <ariaComponents.Form.Controller name={`${asset.id}.conclusion`}>
+                  {({ field, fieldState, form }) => {
+                    if (fieldState.isDirty) {
+                      return (
+                        <div className="flex items-center gap-2">
+                          {field.value === 'skip' && (
+                            <ariaComponents.Text>
+                              {getText('assetWillBeSkipped')}
+                            </ariaComponents.Text>
+                          )}
+
+                          {field.value === 'rename' && (
+                            <ariaComponents.Form.FieldValue name={`${asset.id}.title`}>
+                              {(value: string) => (
+                                <ariaComponents.Text>
+                                  {getText('assetWillBeRenamed', value)}
+                                </ariaComponents.Text>
+                              )}
+                            </ariaComponents.Form.FieldValue>
+                          )}
+
+                          {field.value === 'replace' && (
+                            <ariaComponents.Text>
+                              {getText('assetWillBeReplaced')}
+                            </ariaComponents.Text>
+                          )}
+
+                          <ariaComponents.Button
+                            variant="link"
+                            onPress={() => {
+                              form.resetField(`${asset.id}.conclusion`)
+                            }}
+                          >
+                            {getText('change')}
+                          </ariaComponents.Button>
+                        </div>
+                      )
+                    }
+
+                    return (
+                      <ariaComponents.Button.Group>
+                        <ariaComponents.Button
+                          variant="outline"
+                          className="min-w-20"
+                          onPress={() => {
+                            field.onChange('skip')
+                          }}
+                        >
+                          {getText('skip')}
+                        </ariaComponents.Button>
+
+                        <ariaComponents.Popover.Trigger>
+                          <ariaComponents.Button variant="primary" className="min-w-20">
+                            {getText('rename')}
+                          </ariaComponents.Button>
+
+                          <ariaComponents.Popover placement="bottom start">
+                            <ariaComponents.Form
+                              method="dialog"
+                              defaultValues={{ title: asset.title + NEW_TITLE_SUFFIX }}
+                              schema={(schema) =>
+                                schema.object({
+                                  title: backendModule.titleSchema({
+                                    asset,
+                                    siblings: siblingFiles.siblings,
+                                  }),
+                                })
+                              }
+                              onSubmit={(value) => {
+                                field.onChange('rename')
+                                form.setValue(`${asset.id}.title`, value.title)
+                              }}
+                            >
+                              <ariaComponents.Text>
+                                {getText('newNameDescription')}
+                              </ariaComponents.Text>
+
+                              <ariaComponents.Input
+                                label={getText('newName')}
+                                name="title"
+                                autoFocus
+                              />
+
+                              <ariaComponents.Form.Submit>
+                                {getText('apply')}
+                              </ariaComponents.Form.Submit>
+
+                              <ariaComponents.Form.FormError />
+                            </ariaComponents.Form>
+                          </ariaComponents.Popover>
+                        </ariaComponents.Popover.Trigger>
+
+                        <ariaComponents.Button
+                          variant="delete"
+                          className="min-w-20"
+                          onPress={() => {
+                            field.onChange('replace')
+                          }}
+                        >
+                          {getText('replace')}
+                        </ariaComponents.Button>
+                      </ariaComponents.Button.Group>
+                    )
+                  }}
+                </ariaComponents.Form.Controller>
+              </ariaComponents.Button.Group>
+
+              <ariaComponents.Form.FieldError
+                className="col-span-full row-span-3"
+                name={`${asset.id}.conclusion`}
+              />
+            </div>
+
+            {!isLast && <ariaComponents.Separator className="my-2" />}
+          </>
+        )
+      })}
+
+      <ariaComponents.Button.Group className="sticky bottom-0 w-full border-t border-primary/20 pt-4">
+        <ariaComponents.Dialog.Close variant="ghost" onPress={props.onCancel} className="mr-auto">
+          {getText('cancel')}
+        </ariaComponents.Dialog.Close>
+
+        <ariaComponents.Form.Controller name="conclusion">
+          {({ form }) => (
+            <ariaComponents.Form.Submit
+              variant="outline"
+              className="min-w-20"
+              onPress={() => {
+                for (const asset of conflictingAssets) {
+                  form.setValue(`${asset.id}.conclusion`, 'skip')
+                }
+              }}
+            >
+              {getText('skipAll')}
+            </ariaComponents.Form.Submit>
+          )}
+        </ariaComponents.Form.Controller>
+
+        <ariaComponents.Button variant="outline" className="min-w-20">
+          {getText('replaceAll')}
+        </ariaComponents.Button>
+
+        <ariaComponents.Form.Submit className="min-w-20">
+          {getText('apply')}
+        </ariaComponents.Form.Submit>
+      </ariaComponents.Button.Group>
+
+      <ariaComponents.Form.FormError />
+    </ariaComponents.Form>
+  )
+}
+
+/**
+ * Options for resolving duplicates.
+ */
+export interface ResolveDuplicationsOptions
+  extends Pick<ResolveDuplicationsProps, 'conflictingIds' | 'targetId'> {}
+
+/**
+ * Function for resolving duplicates.
+ */
+export async function resolveDuplications(props: ResolveDuplicationsOptions) {
+  const { targetId, conflictingIds } = props
+
+  return new Promise<readonly ResolvedDuplication[]>((resolve, reject) => {
+    setModal(
+      <ResolveDuplicationsModal
+        targetId={targetId}
+        conflictingIds={conflictingIds}
+        onResolve={(result) => {
+          resolve(result)
+        }}
+        onCancel={reject}
+      />,
+    )
+  }).finally(() => {
+    unsetModal()
+  })
 }
