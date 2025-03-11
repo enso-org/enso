@@ -62,7 +62,7 @@
 - [Allow using `/` to access files inside a directory reached through a data
   link.][11926]
 - [Reducing helper methods in `Standard.Base.Meta`.][12031]
-- [Added Table.Offset][12071]
+- [Added Table.offset][12071]
 - [Implemented Generic JDBC connections.][12073]
 - [Added Column.offset][12092]
 - [Progress API][12163]
