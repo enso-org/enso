@@ -12,6 +12,16 @@ import Modal from '#/components/Modal'
 import type { AnyAsset } from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
+import {
+  Button,
+  Dialog,
+  Form,
+  Input,
+  Menu,
+  Popover,
+  Separator,
+  Text,
+} from '#/components/AriaComponents'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import * as fileInfo from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
@@ -387,7 +397,7 @@ export function ResolveDuplicationsModal(props: ResolveDuplicationsProps) {
   const { getText } = textProvider.useText()
 
   return (
-    <ariaComponents.Dialog
+    <Dialog
       size="xxlarge"
       onDismiss={props.onCancel}
       title={
@@ -397,7 +407,7 @@ export function ResolveDuplicationsModal(props: ResolveDuplicationsProps) {
       }
     >
       <ResolveDuplicationsModalInner {...props} />
-    </ariaComponents.Dialog>
+    </Dialog>
   )
 }
 
@@ -477,7 +487,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
   })
 
   return (
-    <ariaComponents.Form
+    <Form
       defaultValues={Object.fromEntries(
         conflictingAssets.map((asset) => [asset.id, { assetId: asset.id, type: asset.type }]),
       )}
@@ -519,11 +529,11 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
       }
       onSubmit={(data) => props.onResolve(Object.values(data))}
     >
-      <ariaComponents.Text elementType="p">
+      <Text elementType="p">
         {conflictingIds.length === 1 ?
           getText('resolveDuplicatesDescriptionOne')
         : getText('resolveDuplicatesDescriptionMany', conflictingIds.length)}
-      </ariaComponents.Text>
+      </Text>
 
       {conflictingAssets.map((asset, index, array) => {
         const isLast = index === array.length - 1
@@ -540,49 +550,41 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
 
               <AssetSummary asset={sibling} />
 
-              <ariaComponents.Button.Group className="col-span-full row-span-2 mt-1">
-                <ariaComponents.Form.Controller name={`${asset.id}.conclusion`}>
+              <Button.Group className="col-span-full row-span-2 mt-1">
+                <Form.Controller name={`${asset.id}.conclusion`}>
                   {({ field, fieldState, form }) => {
                     if (fieldState.isDirty) {
                       return (
                         <div className="flex items-center gap-2">
-                          {field.value === 'skip' && (
-                            <ariaComponents.Text>
-                              {getText('assetWillBeSkipped')}
-                            </ariaComponents.Text>
-                          )}
+                          {field.value === 'skip' && <Text>{getText('assetWillBeSkipped')}</Text>}
 
                           {field.value === 'rename' && (
-                            <ariaComponents.Form.FieldValue name={`${asset.id}.newName`}>
+                            <Form.FieldValue name={`${asset.id}.newName`}>
                               {(value: string) => (
-                                <ariaComponents.Text>
-                                  {getText('assetWillBeRenamed', value)}
-                                </ariaComponents.Text>
+                                <Text>{getText('assetWillBeRenamed', value)}</Text>
                               )}
-                            </ariaComponents.Form.FieldValue>
+                            </Form.FieldValue>
                           )}
 
                           {field.value === 'replace' && (
-                            <ariaComponents.Text>
-                              {getText('assetWillBeReplaced')}
-                            </ariaComponents.Text>
+                            <Text>{getText('assetWillBeReplaced')}</Text>
                           )}
 
-                          <ariaComponents.Button
+                          <Button
                             variant="link"
                             onPress={() => {
                               form.resetField(`${asset.id}.conclusion`)
                             }}
                           >
                             {getText('change')}
-                          </ariaComponents.Button>
+                          </Button>
                         </div>
                       )
                     }
 
                     return (
-                      <ariaComponents.Button.Group buttonVariants={{ size: 'xsmall' }}>
-                        <ariaComponents.Button
+                      <Button.Group buttonVariants={{ size: 'xsmall' }}>
+                        <Button
                           variant="outline"
                           className="min-w-16"
                           onPress={() => {
@@ -590,15 +592,15 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                           }}
                         >
                           {getText('skip')}
-                        </ariaComponents.Button>
+                        </Button>
 
-                        <ariaComponents.Popover.Trigger>
-                          <ariaComponents.Button variant="primary" className="min-w-16">
+                        <Popover.Trigger>
+                          <Button variant="primary" className="min-w-16">
                             {getText('rename')}
-                          </ariaComponents.Button>
+                          </Button>
 
-                          <ariaComponents.Popover placement="bottom start">
-                            <ariaComponents.Form
+                          <Popover placement="bottom start">
+                            <Form
                               method="dialog"
                               defaultValues={{ newName: asset.title + NEW_TITLE_SUFFIX }}
                               schema={(schema) =>
@@ -614,28 +616,20 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                                 form.setValue(`${asset.id}.newName`, value.newName)
                               }}
                             >
-                              <ariaComponents.Text>
-                                {getText('newNameDescription')}
-                              </ariaComponents.Text>
+                              <Text>{getText('newNameDescription')}</Text>
 
-                              <ariaComponents.Input
-                                label={getText('newName')}
-                                name="newName"
-                                autoFocus
-                              />
+                              <Input label={getText('newName')} name="newName" autoFocus />
 
-                              <ariaComponents.Form.Submit>
-                                {getText('apply')}
-                              </ariaComponents.Form.Submit>
+                              <Form.Submit>{getText('apply')}</Form.Submit>
 
-                              <ariaComponents.Form.FormError />
-                            </ariaComponents.Form>
-                          </ariaComponents.Popover>
-                        </ariaComponents.Popover.Trigger>
+                              <Form.FormError />
+                            </Form>
+                          </Popover>
+                        </Popover.Trigger>
 
                         {asset.type === sibling.type &&
                           asset.type !== backendModule.AssetType.directory && (
-                            <ariaComponents.Button
+                            <Button
                               variant="delete"
                               className="min-w-16"
                               onPress={() => {
@@ -643,38 +637,38 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                               }}
                             >
                               {getText('replace')}
-                            </ariaComponents.Button>
+                            </Button>
                           )}
-                      </ariaComponents.Button.Group>
+                      </Button.Group>
                     )
                   }}
-                </ariaComponents.Form.Controller>
-              </ariaComponents.Button.Group>
+                </Form.Controller>
+              </Button.Group>
 
-              <ariaComponents.Form.FieldError
+              <Form.FieldError
                 className="col-span-full row-span-3"
                 name={`${asset.id}.conclusion`}
               />
             </div>
 
-            {!isLast && <ariaComponents.Separator className="my-2" />}
+            {!isLast && <Separator className="my-2" />}
           </Fragment>
         )
       })}
 
-      <ariaComponents.Button.Group
+      <Button.Group
         className={
           'fixed bottom-0 left-0 right-0 border-t-0.5 border-primary/20 bg-background/90 px-3 py-4 backdrop-blur-md'
         }
       >
-        <ariaComponents.Dialog.Close variant="ghost" onPress={props.onCancel} className="mr-auto">
+        <Dialog.Close variant="ghost" onPress={props.onCancel} className="mr-auto">
           {getText('cancel')}
-        </ariaComponents.Dialog.Close>
+        </Dialog.Close>
 
-        <ariaComponents.Form.Controller name="conclusion">
+        <Form.Controller name="conclusion">
           {({ form }) => (
-            <ariaComponents.Button.GroupJoin className="grow-0">
-              <ariaComponents.Button
+            <Button.GroupJoin className="grow-0">
+              <Button
                 variant="outline"
                 className="min-w-20"
                 onPress={() => {
@@ -684,13 +678,13 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                 }}
               >
                 {getText('skipAll')}
-              </ariaComponents.Button>
+              </Button>
 
-              <ariaComponents.Menu.Trigger>
-                <ariaComponents.Button variant="outline" icon="folder_opened" />
+              <Menu.Trigger>
+                <Button variant="outline" icon="folder_opened" />
 
-                <ariaComponents.Menu>
-                  <ariaComponents.Menu.Item
+                <Menu>
+                  <Menu.Item
                     onAction={() => {
                       for (const asset of conflictingAssets) {
                         const conclusion = form.getValues(`${asset.id}.conclusion`)
@@ -702,20 +696,18 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                     }}
                   >
                     {getText('skipRest')}
-                  </ariaComponents.Menu.Item>
-                </ariaComponents.Menu>
-              </ariaComponents.Menu.Trigger>
-            </ariaComponents.Button.GroupJoin>
+                  </Menu.Item>
+                </Menu>
+              </Menu.Trigger>
+            </Button.GroupJoin>
           )}
-        </ariaComponents.Form.Controller>
+        </Form.Controller>
 
-        <ariaComponents.Form.Submit className="min-w-20">
-          {getText('apply')}
-        </ariaComponents.Form.Submit>
-      </ariaComponents.Button.Group>
+        <Form.Submit className="min-w-20">{getText('apply')}</Form.Submit>
+      </Button.Group>
 
-      <ariaComponents.Form.FormError />
-    </ariaComponents.Form>
+      <Form.FormError />
+    </Form>
   )
 }
 
