@@ -1,9 +1,7 @@
 /** @file Modal for confirming delete of any type of asset. */
 import { ButtonGroup, Dialog, DialogDismiss, Form, Input } from '#/components/AriaComponents'
-import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useText } from '#/providers/TextProvider'
 import type { SecretId } from '#/services/Backend'
-import { useEffect } from 'react'
 
 /** Props for a {@link UpsertSecretModal}. */
 export interface UpsertSecretModalProps {
@@ -32,13 +30,6 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
       form.reset({ title, value })
     },
   })
-
-  const resetFormDeps = useSyncRef({ form })
-
-  useEffect(() => {
-    const deps = resetFormDeps.current
-    deps.form.reset({ title: nameRaw ?? '' })
-  }, [nameRaw, resetFormDeps])
 
   const isCreatingSecret = id == null
 
