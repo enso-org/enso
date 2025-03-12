@@ -16,7 +16,7 @@ import * as remoteBackendPaths from '#/services/remoteBackendPaths'
 
 import { DirectoryId, UserGroupId, UserId } from '#/services/Backend'
 import * as download from '#/utilities/download'
-import type HttpClient from '#/utilities/HttpClient'
+import type { HttpClient } from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 import invariant from 'tiny-invariant'
 
@@ -236,7 +236,7 @@ interface RemoteBackendPostOptions {
 }
 
 /** Class for sending requests to the Cloud backend API endpoints. */
-export default class RemoteBackend extends Backend {
+export class RemoteBackend extends Backend {
   static readonly type = backend.BackendType.remote
 
   readonly type = RemoteBackend.type

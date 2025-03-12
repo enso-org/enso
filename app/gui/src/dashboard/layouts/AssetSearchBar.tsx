@@ -30,10 +30,6 @@ import * as tailwindMerge from '#/utilities/tailwindMerge'
 import { createStore, useStore } from '#/utilities/zustand'
 import { AnimatePresence, motion } from 'framer-motion'
 
-// =============
-// === Types ===
-// =============
-
 /** The reason behind a new query. */
 enum QuerySource {
   /**
@@ -56,10 +52,6 @@ export interface Suggestion {
   readonly addToQuery: (query: AssetQuery) => AssetQuery
   readonly deleteFromQuery: (query: AssetQuery) => AssetQuery
 }
-
-// ============
-// === Tags ===
-// ============
 
 /** Props for a {@link Tags}. */
 interface InternalTagsProps {

@@ -16,7 +16,7 @@ export default function AccessedDataColumnHeading(props: AssetColumnHeadingProps
   })
 
   return (
-    <div className="flex h-table-row w-full items-center gap-icon-with-text">
+    <div className="gap-icon-with-text flex h-table-row w-full items-center">
       <Button
         variant="icon"
         icon={AccessedDataIcon}

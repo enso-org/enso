@@ -9,9 +9,9 @@ import * as aria from 'react-aria-components'
 
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 
+import { AnimatedBackground } from '#/components/AnimatedBackground'
 import { twJoin } from '#/utilities/tailwindMerge'
 import { memo } from 'react'
-import { AnimatedBackground } from '../../AnimatedBackground'
 import { Popover } from '../Dialog'
 import { Separator, SEPARATOR_STYLES, type SeparatorProps } from '../Separator'
 import { Text } from '../Text'

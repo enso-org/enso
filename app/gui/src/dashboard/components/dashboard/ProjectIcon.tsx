@@ -22,12 +22,6 @@ import { useMemo } from 'react'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 
-// =================
-// === Constants ===
-// =================
-
-export const CLOSED_PROJECT_STATE = { type: backendModule.ProjectState.closed } as const
-
 /**
  * The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState},
  * when using the remote backend.
@@ -43,6 +37,7 @@ const REMOTE_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, SpinnerS
   [backendModule.ProjectState.scheduled]: 'loading-slow',
   [backendModule.ProjectState.opened]: 'done',
 }
+
 /**
  * The corresponding {@link SpinnerState} for each {@link backendModule.ProjectState},
  * when using the local backend.
@@ -58,10 +53,6 @@ const LOCAL_SPINNER_STATE: Readonly<Record<backendModule.ProjectState, SpinnerSt
   [backendModule.ProjectState.scheduled]: 'loading-medium',
   [backendModule.ProjectState.opened]: 'done',
 }
-
-// ===================
-// === ProjectIcon ===
-// ===================
 
 /** Props for a {@link ProjectIcon}. */
 export interface ProjectIconProps {
@@ -86,8 +77,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  const itemProjectState = item.projectState ?? CLOSED_PROJECT_STATE
   const { data: projectState, isError } = reactQuery.useQuery({
     ...projectHooks.createGetProjectDetailsQuery({
       assetId: item.id,
@@ -103,7 +92,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const isCloud = backend.type === backendModule.BackendType.remote
 
   const isOtherUserUsingProject =
-    isCloud && itemProjectState.openedBy != null && itemProjectState.openedBy !== user.email
+    isCloud && item.projectState.openedBy != null && item.projectState.openedBy !== user.email
 
   const { data: users } = useBackendQuery(backend, 'listUsers', [], {
     enabled: isOtherUserUsingProject,
@@ -112,9 +101,9 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const userOpeningProject = useMemo(
     () =>
       !isOtherUserUsingProject ? null : (
-        users?.find((otherUser) => otherUser.email === itemProjectState.openedBy)
+        users?.find((otherUser) => otherUser.email === item.projectState.openedBy)
       ),
-    [isOtherUserUsingProject, itemProjectState.openedBy, users],
+    [isOtherUserUsingProject, item.projectState.openedBy, users],
   )
 
   const userOpeningProjectTooltip =
@@ -127,7 +116,7 @@ export default function ProjectIcon(props: ProjectIconProps) {
     }
     // Project is closed, show open button
     if (!isOpened) {
-      return (projectState ?? itemProjectState).type
+      return (projectState ?? item.projectState).type
     }
 
     if (status == null) {

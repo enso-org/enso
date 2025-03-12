@@ -16,18 +16,11 @@ import { getDirectoryAndName, joinPath, Path } from '#/utilities/path'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
 
-// =============================
-// === ipWithSocketToAddress ===
-// =============================
-
 /** Convert a {@link projectManager.IpWithSocket} to a {@link backend.Address}. */
 function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
   return backend.Address(`ws://${ipWithSocket.host}:${ipWithSocket.port}`)
 }
 
-// ======================================
-// === Functions for manipulating ids ===
-// ======================================
 export const DIRECTORY_ID_PREFIX = `${backend.AssetType.directory}-`
 export const PROJECT_ID_PREFIX = `${backend.AssetType.project}-`
 export const FILE_ID_PREFIX = `${backend.AssetType.file}-`
@@ -101,15 +94,11 @@ export function extractTypeAndId<Id extends backend.AssetId>(id: Id): AssetTypeA
   }
 }
 
-// ====================
-// === LocalBackend ===
-// ====================
-
 /**
  * Class for sending requests to the Project Manager API endpoints.
  * This is used instead of the cloud backend API when managing local projects from the dashboard.
  */
-export default class LocalBackend extends Backend {
+export class LocalBackend extends Backend {
   static readonly type = backend.BackendType.local
   readonly type = LocalBackend.type
   /** All files that have been uploaded to the Project Manager. */

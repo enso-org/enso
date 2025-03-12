@@ -28,8 +28,8 @@ import {
   type OrganizationInfo,
   type User,
 } from '#/services/Backend'
-import type LocalBackend from '#/services/LocalBackend'
-import type RemoteBackend from '#/services/RemoteBackend'
+import type { LocalBackend } from '#/services/LocalBackend'
+import type { RemoteBackend } from '#/services/RemoteBackend'
 import { normalizePath } from '#/utilities/fileInfo'
 import { pick, unsafeEntries } from '#/utilities/object'
 import { PASSWORD_REGEX } from '#/utilities/validation'

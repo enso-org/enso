@@ -46,7 +46,7 @@ export default function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
           getText('stopSortingByModificationDate')
         : getText('sortByModificationDateDescending')
       }
-      className="group flex h-table-row w-full cursor-pointer items-center gap-icon-with-text"
+      className="gap-icon-with-text group flex h-table-row w-full cursor-pointer items-center"
     >
       <Button
         variant="icon"
@@ -58,7 +58,7 @@ export default function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
       <Button
         size="custom"
         variant="custom"
-        className="flex grow justify-start gap-icon-with-text"
+        className="gap-icon-with-text flex grow justify-start"
         onPress={cycleSortDirection}
       >
         <Text weight="bold" truncate="1" color="custom">

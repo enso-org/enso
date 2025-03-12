@@ -49,14 +49,14 @@ import * as appUtils from '#/appUtils'
 import * as inputBindingsModule from '#/configurations/inputBindings'
 
 import AuthProvider, * as authProvider from '#/providers/AuthProvider'
-import BackendProvider, { useLocalBackend } from '#/providers/BackendProvider'
+import { BackendProvider, useLocalBackend } from '#/providers/BackendProvider'
 import { useHttpClientStrict } from '#/providers/HttpClientProvider'
-import InputBindingsProvider from '#/providers/InputBindingsProvider'
-import LocalStorageProvider, * as localStorageProvider from '#/providers/LocalStorageProvider'
+import { InputBindingsProvider } from '#/providers/InputBindingsProvider'
+import * as localStorageProvider from '#/providers/LocalStorageProvider'
 import { useLogger } from '#/providers/LoggerProvider'
-import ModalProvider, * as modalProvider from '#/providers/ModalProvider'
+import * as modalProvider from '#/providers/ModalProvider'
 import * as navigator2DProvider from '#/providers/Navigator2DProvider'
-import SessionProvider from '#/providers/SessionProvider'
+import { SessionProvider } from '#/providers/SessionProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import ConfirmRegistration from '#/pages/authentication/ConfirmRegistration'
@@ -81,13 +81,13 @@ import AboutModal from '#/modals/AboutModal'
 import { AgreementsModal } from '#/modals/AgreementsModal'
 import { SetupOrganizationAfterSubscribe } from '#/modals/SetupOrganizationAfterSubscribe'
 
-import LocalBackend from '#/services/LocalBackend'
+import { LocalBackend } from '#/services/LocalBackend'
 import ProjectManager, * as projectManager from '#/services/ProjectManager'
-import RemoteBackend from '#/services/RemoteBackend'
+import { RemoteBackend } from '#/services/RemoteBackend'
 
 import * as appBaseUrl from '#/utilities/appBaseUrl'
 import * as eventModule from '#/utilities/event'
-import LocalStorage from '#/utilities/LocalStorage'
+import { LocalStorage } from '#/utilities/LocalStorage'
 import * as object from '#/utilities/object'
 import { Path } from '#/utilities/path'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
@@ -97,10 +97,6 @@ import { InvitedToOrganizationModal } from '#/modals/InvitedToOrganizationModal'
 import { CloudBrowserDisabledLayout } from '#/providers/AuthProvider'
 import { useMutation } from '@tanstack/react-query'
 import { useOffline } from './hooks/offlineHooks'
-
-// ============================
-// === Global configuration ===
-// ============================
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -271,23 +267,19 @@ export default function App(props: AppProps) {
         // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
         future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
       >
-        <LocalStorageProvider>
-          <ModalProvider>
+        <localStorageProvider.LocalStorageProvider>
+          <modalProvider.ModalProvider>
             <AppRouter
               {...props}
               projectManagerInstance={projectManagerInstance}
               projectManagerRootDirectory={projectManagerRootDirectory}
             />
-          </ModalProvider>
-        </LocalStorageProvider>
+          </modalProvider.ModalProvider>
+        </localStorageProvider.LocalStorageProvider>
       </router.BrowserRouter>
     </>
   )
 }
-
-// =================
-// === AppRouter ===
-// =================
 
 /** Props for an {@link AppRouter}. */
 export interface AppRouterProps extends AppProps {

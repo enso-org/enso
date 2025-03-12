@@ -13,11 +13,12 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 
+import { ORGANIZATION_NAME_MAX_LENGTH } from '#/appUtils'
 import { Button } from '#/components/AriaComponents'
 import { Result } from '#/components/Result'
 import { Stepper } from '#/components/Stepper'
 import * as backendModule from '#/services/Backend'
-import type RemoteBackend from '../services/RemoteBackend'
+import type { RemoteBackend } from '#/services/RemoteBackend'
 
 const PLANS_TO_SPECIFY_ORG_NAME = [backendModule.Plan.team, backendModule.Plan.enterprise]
 
@@ -172,16 +173,15 @@ export interface SetOrganizationNameFormProps {
   readonly onSubmit: (name: string) => Promise<void>
 }
 
-export const ORGANIZATION_NAME_MAX_LENGTH = 64
-
-// eslint-disable-next-line no-restricted-syntax
-export const SET_ORGANIZATION_NAME_FORM_SCHEMA = (getText: GetText) =>
-  ariaComponents.Form.schema.object({
+/** Make a schema for {@link SetOrganizationNameForm}. */
+function makeSetOrganizationNameFormSchema(getText: GetText) {
+  return ariaComponents.Form.schema.object({
     name: ariaComponents.Form.schema
       .string()
       .min(1, getText('arbitraryFieldRequired'))
       .max(ORGANIZATION_NAME_MAX_LENGTH, getText('arbitraryFieldTooLong')),
   })
+}
 
 /** Form for setting the organization name. */
 export function SetOrganizationNameForm(props: SetOrganizationNameFormProps) {
@@ -193,7 +193,7 @@ export function SetOrganizationNameForm(props: SetOrganizationNameFormProps) {
       gap="medium"
       className="max-w-96"
       defaultValues={{ name: '' }}
-      schema={SET_ORGANIZATION_NAME_FORM_SCHEMA(getText)}
+      schema={makeSetOrganizationNameFormSchema(getText)}
       onSubmit={({ name }) => onSubmit(name)}
     >
       <ariaComponents.Input

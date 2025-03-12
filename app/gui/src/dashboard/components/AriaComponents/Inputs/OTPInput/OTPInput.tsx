@@ -18,7 +18,7 @@ import type {
   TSchema,
 } from '../../Form'
 import { filterNonDOMFormProps, Form } from '../../Form'
-import { Separator } from '../../Separator'
+import { Separator } from '../../Separator/Separator'
 import { TEXT_STYLE } from '../../Text'
 import type { TestIdProps } from '../../types'
 

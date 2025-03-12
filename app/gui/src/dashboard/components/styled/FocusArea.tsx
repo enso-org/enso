@@ -1,15 +1,14 @@
 /** @file An area that contains focusable children. */
-import { type JSX, type RefCallback, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, type JSX, type RefCallback } from 'react'
 
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 
-import AreaFocusProvider from '#/providers/AreaFocusProvider'
-import FocusClassesProvider, { useFocusClasses } from '#/providers/FocusClassProvider'
-import type { FocusDirection } from '#/providers/FocusDirectionProvider'
-import FocusDirectionProvider from '#/providers/FocusDirectionProvider'
+import { AreaFocusProvider } from '#/providers/AreaFocusProvider'
+import { FocusClassesProvider, useFocusClasses } from '#/providers/FocusClassProvider'
+import { FocusDirectionProvider, type FocusDirection } from '#/providers/FocusDirectionProvider'
 import { useNavigator2D } from '#/providers/Navigator2DProvider'
 
-import { type DOMAttributes, useFocusManager, useFocusWithin } from '#/components/aria'
+import { useFocusManager, useFocusWithin, type DOMAttributes } from '#/components/aria'
 import { withFocusScope } from '#/components/styled/withFocusScope'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'

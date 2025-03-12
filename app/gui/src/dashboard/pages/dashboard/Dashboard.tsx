@@ -11,12 +11,13 @@ import { DashboardTabBar } from './DashboardTabBar'
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 import * as projectHooks from '#/hooks/projectHooks'
 import { CategoriesProvider } from '#/layouts/Drive/Categories/categoriesHooks'
-import DriveProvider from '#/providers/DriveProvider'
+import { DriveProvider } from '#/providers/DriveProvider'
 
 import * as backendProvider from '#/providers/BackendProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
-import ProjectsProvider, {
+import {
+  ProjectsProvider,
   useClearLaunchedProjects,
   usePage,
   useProjectsStore,

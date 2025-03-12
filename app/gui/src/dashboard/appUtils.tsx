@@ -1,10 +1,14 @@
 /** @file Constants related to the application root component. */
+import { LocalStorage } from '#/utilities/LocalStorage'
+import { queryOptions } from '@tanstack/react-query'
+import * as z from 'zod'
 
-// =================
-// === Constants ===
-// =================
-
-// === Paths ===
+export const ORGANIZATION_NAME_MAX_LENGTH = 64
+const TEN_MINUTES_MS = 600_000
+const TOS_SCHEMA = z.object({ versionHash: z.string() })
+const PRIVACY_POLICY_SCHEMA = z.object({ versionHash: z.string() })
+const TOS_ENDPOINT_SCHEMA = z.object({ hash: z.string() })
+const PRIVACY_POLICY_ENDPOINT_SCHEMA = z.object({ hash: z.string() })
 
 export const OPEN_IDE_DEEPLINK = 'enso://'
 
@@ -39,8 +43,6 @@ export const ALL_PATHS_REGEX = new RegExp(
     `${SUBSCRIBE_PATH}|${SUBSCRIBE_SUCCESS_PATH}|${SETUP_PATH})$`,
 )
 
-// === Constants related to URLs ===
-
 export const SEARCH_PARAMS_PREFIX = 'cloud-ide_'
 /** Return the email address for contacting support. */
 export const SUPPORT_EMAIL = 'cloud@enso.org'
@@ -61,3 +63,44 @@ export function getSalesEmail(): string {
 export function getContactSalesURL(): string {
   return 'mailto:contact@enso.org?subject=Upgrading%20to%20Organization%20Plan'
 }
+
+export const latestTermsOfServiceQueryOptions = queryOptions({
+  queryKey: ['termsOfService', 'currentVersion'],
+  queryFn: async () => {
+    const response = await fetch(new URL('/eula.json', $config.ENSO_HOST))
+    if (!response.ok) {
+      throw new Error('Failed to fetch Terms of Service')
+    } else {
+      return TOS_ENDPOINT_SCHEMA.parse(await response.json())
+    }
+  },
+  refetchOnWindowFocus: true,
+  refetchIntervalInBackground: true,
+  refetchInterval: TEN_MINUTES_MS,
+})
+
+export const latestPrivacyPolicyQueryOptions = queryOptions({
+  queryKey: ['privacyPolicy', 'currentVersion'],
+  queryFn: async () => {
+    const response = await fetch(new URL('/privacy.json', $config.ENSO_HOST))
+    if (!response.ok) {
+      throw new Error('Failed to fetch Privacy Policy')
+    } else {
+      return PRIVACY_POLICY_ENDPOINT_SCHEMA.parse(await response.json())
+    }
+  },
+  refetchOnWindowFocus: true,
+  refetchIntervalInBackground: true,
+  refetchInterval: TEN_MINUTES_MS,
+})
+
+declare module '#/utilities/LocalStorage' {
+  /** Metadata containing the version hash of the terms of service that the user has accepted. */
+  interface LocalStorageData {
+    readonly termsOfService: z.infer<typeof TOS_SCHEMA>
+    readonly privacyPolicy: z.infer<typeof PRIVACY_POLICY_SCHEMA>
+  }
+}
+
+LocalStorage.registerKey('termsOfService', { schema: TOS_SCHEMA })
+LocalStorage.registerKey('privacyPolicy', { schema: PRIVACY_POLICY_SCHEMA })

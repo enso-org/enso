@@ -8,14 +8,14 @@ import type {
   UserSession,
 } from '#/authentication/cognito'
 import { render, screen, waitFor } from '#/test'
-import HttpClient from '#/utilities/HttpClient'
+import { HttpClient } from '#/utilities/HttpClient'
 import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { Suspense } from 'react'
 import { Result } from 'ts-results'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { HttpClientProvider } from '../HttpClientProvider'
-import SessionProvider from '../SessionProvider'
+import { SessionProvider } from '../SessionProvider'
 
 class MockAuthService implements ISessionProvider {
   saveAccessToken = vi.fn()

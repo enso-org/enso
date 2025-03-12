@@ -4,7 +4,11 @@ import { useLocation } from 'react-router-dom'
 
 import * as z from 'zod'
 
-import { LOGIN_PATH } from '#/appUtils'
+import {
+  LOGIN_PATH,
+  latestPrivacyPolicyQueryOptions,
+  latestTermsOfServiceQueryOptions,
+} from '#/appUtils'
 import AtIcon from '#/assets/at.svg'
 import GoBackIcon from '#/assets/go_back.svg'
 import LockIcon from '#/assets/lock.svg'
@@ -12,22 +16,14 @@ import { Alert, Button, Checkbox, Form, Input, Password, Text } from '#/componen
 import Link from '#/components/Link'
 import { Stepper, useStepperState } from '#/components/Stepper'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import {
-  latestPrivacyPolicyQueryOptions,
-  latestTermsOfServiceQueryOptions,
-} from '#/modals/AgreementsModal'
 import AuthenticationPage from '#/pages/authentication/AuthenticationPage'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
-import LocalStorage from '#/utilities/LocalStorage'
+import { LocalStorage } from '#/utilities/LocalStorage'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useSessionAPI } from '../../providers/SessionProvider'
-
-// ============================
-// === Global configuration ===
-// ============================
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -42,10 +38,6 @@ LocalStorage.registerKey('loginRedirect', {
 })
 
 const CONFIRM_SIGN_IN_INTERVAL = 5_000
-
-// ====================
-// === Registration ===
-// ====================
 
 /** A form for users to register an account. */
 export default function Registration() {

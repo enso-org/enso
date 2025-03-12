@@ -18,7 +18,7 @@ export default function PathColumnHeading(props: AssetColumnHeadingProps) {
 
   return (
     <div
-      className="isolate flex h-table-row w-full items-center gap-icon-with-text"
+      className="gap-icon-with-text isolate flex h-table-row w-full items-center"
       data-testid="path-column-heading"
     >
       <Button

@@ -14,7 +14,7 @@ import * as paywall from '#/components/Paywall'
 import InviteUsersModal from '#/modals/InviteUsersModal'
 
 import type * as backendModule from '#/services/Backend'
-import type RemoteBackend from '#/services/RemoteBackend'
+import type { RemoteBackend } from '#/services/RemoteBackend'
 
 const LIST_USERS_STALE_TIME_MS = 60_000
 

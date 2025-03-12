@@ -1,6 +1,6 @@
 /** @file The icon and name of a {@link ProjectAsset}. */
 import type { AssetColumnProps } from '#/components/dashboard/column'
-import ProjectIcon, { CLOSED_PROJECT_STATE } from '#/components/dashboard/ProjectIcon'
+import ProjectIcon from '#/components/dashboard/ProjectIcon'
 import EditableSpan from '#/components/EditableSpan'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useOpenProject } from '#/hooks/projectHooks'
@@ -32,17 +32,13 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
 
   const doOpenProject = useOpenProject()
   const ownPermission = tryFindSelfPermission(user, item.permissions)
-  // This is a workaround for a temporary bad state in the backend causing the `projectState` key
-  // to be absent.
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  const projectState = item.projectState ?? CLOSED_PROJECT_STATE
   const canExecute =
     isEditable &&
     (backend.type === BackendType.local ||
       (ownPermission != null && PERMISSION_ACTION_CAN_EXECUTE[ownPermission.permission]))
   const isCloud = backend.type === BackendType.remote
   const isOtherUserUsingProject =
-    isCloud && projectState.openedBy != null && projectState.openedBy !== user.email
+    isCloud && item.projectState.openedBy != null && item.projectState.openedBy !== user.email
 
   const updateProjectMutation = useMutation(backendMutationOptions(backend, 'updateProject'))
 

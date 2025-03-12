@@ -20,10 +20,6 @@ function isSourceChanged(key: string) {
   return isChanged
 }
 
-// ===============================
-// === LocalStorageKeyMetadata ===
-// ===============================
-
 /** Metadata describing runtime behavior associated with a {@link LocalStorageKey}. */
 export interface LocalStorageKeyMetadata<K extends LocalStorageKey> {
   readonly isUserSpecific?: boolean
@@ -35,29 +31,17 @@ export interface LocalStorageKeyMetadata<K extends LocalStorageKey> {
   readonly schema: z.ZodType<LocalStorageData[K]>
 }
 
-// ========================
-// === LocalStorageData ===
-// ========================
-
 /**
  * The data that can be stored in a {@link LocalStorage}.
  * Declaration merge into this interface to add a new key.
  */
 export interface LocalStorageData {}
 
-// =======================
-// === LocalStorageKey ===
-// =======================
-
 /** All possible keys of a {@link LocalStorage}. */
 export type LocalStorageKey = keyof LocalStorageData
 
-// ====================
-// === LocalStorage ===
-// ====================
-
 /** A LocalStorage data manager. */
-export default class LocalStorage {
+export class LocalStorage {
   // This is UNSAFE. It is assumed that `LocalStorage.register` is always called
   // when `LocalStorageData` is declaration merged into.
   // eslint-disable-next-line no-restricted-syntax

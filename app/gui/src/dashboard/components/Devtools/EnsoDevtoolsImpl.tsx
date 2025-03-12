@@ -48,7 +48,7 @@ import {
 } from '#/providers/FeatureFlagsProvider'
 import { useLocalStorage } from '#/providers/LocalStorageProvider'
 import * as backend from '#/services/Backend'
-import LocalStorage, { type LocalStorageData } from '#/utilities/LocalStorage'
+import { LocalStorage, type LocalStorageData } from '#/utilities/LocalStorage'
 import { unsafeKeys } from '#/utilities/object'
 
 /** A component that provides a UI for toggling paywall features. */

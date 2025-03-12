@@ -1,17 +1,9 @@
 /** @file HTTP client definition that includes default HTTP headers for all sent requests. */
 import { NetworkError, OfflineError, isNetworkError } from './error'
 
-// =================
-// === Constants ===
-// =================
-
 export const FETCH_SUCCESS_EVENT_NAME = 'fetch-success'
 export const FETCH_ERROR_EVENT_NAME = 'fetch-error'
 export const OFFLINE_EVENT_NAME = 'offline'
-
-// =============
-// === Types ===
-// =============
 
 /** HTTP method variants that can be used in an HTTP request. */
 enum HttpMethod {
@@ -21,10 +13,6 @@ enum HttpMethod {
   patch = 'PATCH',
   delete = 'DELETE',
 }
-
-// ==================
-// === HttpClient ===
-// ==================
 
 /** A {@link Response} with a properly typed return type for `response.json()`. */
 export interface ResponseWithTypedJson<U> extends Response {
@@ -46,7 +34,7 @@ export interface HttpClientRequestOptions {
 }
 
 /** An HTTP client that can be used to create and send HTTP requests asynchronously. */
-export default class HttpClient {
+export class HttpClient {
   /** Create a new HTTP client with the specified headers to be sent on every request. */
   constructor(
     /**

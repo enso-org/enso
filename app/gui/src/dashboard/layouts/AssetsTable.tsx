@@ -127,7 +127,7 @@ import {
 import { fileExtension } from '#/utilities/fileInfo'
 import { noop } from '#/utilities/functions'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
-import LocalStorage from '#/utilities/LocalStorage'
+import { LocalStorage } from '#/utilities/LocalStorage'
 import { PermissionAction } from '#/utilities/permissions'
 import { withPresence } from '#/utilities/set'
 import invariant from 'tiny-invariant'

@@ -1,7 +1,2 @@
-/**
- * @file
- *
- * Barrel files for utility renderes
- */
-
+/** @file Barrel files for utility renderers. */
 export * from './testUtils'

@@ -1,6 +1,5 @@
 /** @file A menu containing info about the app. */
-import { PRODUCT_NAME } from 'enso-common'
-
+import { LOGIN_PATH } from '#/appUtils'
 import LogoIcon from '#/assets/enso_logo.svg'
 import { Popover, Text } from '#/components/AriaComponents'
 import MenuEntry from '#/components/MenuEntry'
@@ -9,14 +8,10 @@ import SvgMask from '#/components/SvgMask'
 import AboutModal from '#/modals/AboutModal'
 import { useAuth } from '#/providers/AuthProvider'
 import { useSetModal } from '#/providers/ModalProvider'
-import { useSessionAPI } from '#/providers/SessionProvider.tsx'
+import { useSessionAPI } from '#/providers/SessionProvider'
 import { useText } from '#/providers/TextProvider'
+import { PRODUCT_NAME } from 'enso-common'
 import { useNavigate } from 'react-router-dom'
-import { LOGIN_PATH } from '../appUtils'
-
-// ================
-// === InfoMenu ===
-// ================
 
 /** Props for an {@link InfoMenu}. */
 export interface InfoMenuProps {
