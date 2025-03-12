@@ -69,6 +69,7 @@ export interface BreadcrumbItemProps<IconType extends string>
   readonly style?: CSSProperties | ((renderProps: BreadcrumbItemRenderProps) => CSSProperties)
   readonly children: ReactNode | ((renderProps: BreadcrumbItemRenderProps) => ReactNode)
   readonly isLoading?: boolean
+  readonly isDroppable?: boolean
 }
 
 /**
@@ -127,6 +128,7 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
     ping,
     referrerPolicy,
     onPress: onPressRaw,
+    isDroppable = true,
   } = props
   const { id, ...breadcrumbItemProps } = props
 
@@ -151,7 +153,7 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
   // `dropProps` is type-safe, ESLint is being silly.
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const { dropProps, isDropTarget } = useDrop({
-    isDisabled: !onDropSpecified && (isDisabled || isCurrent),
+    isDisabled: !onDropSpecified || isDisabled || !isDroppable,
     ref,
     onDrop: (e) => {
       dropMutation.mutate({ id, e })

@@ -181,6 +181,7 @@ export function DriveBarNavigation() {
                   id={pathItem.id}
                   icon={pathItem.icon}
                   navigateToDirectory={navigateToDirectory}
+                  isDroppable={pathItem.id !== currentDirectoryId}
                 >
                   {pathItem.label}
                 </DriveBarBreadcrumbsItem>
