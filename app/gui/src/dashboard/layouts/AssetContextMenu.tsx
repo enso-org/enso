@@ -35,15 +35,12 @@ import {
   downloadAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import { useBackendQuery, useNewProject } from '#/hooks/backendHooks'
+import { useNewProject } from '#/hooks/backendHooks'
 import { useUploadFileWithToastMutation } from '#/hooks/backendUploadFilesHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { usePasteData } from '#/providers/DriveProvider'
 import * as featureFlagsProvider from '#/providers/FeatureFlagsProvider'
-import { computeFullRemotePath } from '#/services/RemoteBackend'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
-import { normalizePath } from '#/utilities/fileInfo'
-import { mapNonNullish } from '#/utilities/nullable'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
 import { useSetAssetPanelProps, useSetIsAssetPanelTemporarilyVisible } from './AssetPanel'
@@ -71,8 +68,6 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const { asset, state, setRowState } = innerProps
   const { backend, category } = state
 
-  const { data: users = [] } = useBackendQuery(backend, 'listUsers', [])
-  const { data: userGroups = [] } = useBackendQuery(backend, 'listUserGroups', [])
   const getAsset = useGetAsset()
   const canOpenProjects = projectHooks.useCanOpenProjects()
   const { user } = authProvider.useFullUserSession()
@@ -91,16 +86,10 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const downloadAssetsMutation = reactQuery.useMutation(downloadAssetsMutationOptions(backend))
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const isCloud = categoryModule.isCloudCategory(category)
-  const pathComputed =
-    category.type === 'recent' || category.type === 'trash' ? null
-    : isCloud ? computeFullRemotePath(asset, users, userGroups)
-    : asset.type === backendModule.AssetType.project ?
-      mapNonNullish(localBackend?.getProjectPath(asset.id) ?? null, normalizePath)
-    : normalizePath(localBackendModule.extractTypeAndId(asset.id).id)
   const path =
-    pathComputed == null ? null
-    : isCloud ? encodeURI(pathComputed)
-    : pathComputed
+    asset.ensoPath == null ? null
+    : isCloud ? encodeURI(asset.ensoPath)
+    : asset.ensoPath
   const copyMutation = copyHooks.useCopy({ copyText: path ?? '' })
   const uploadFileToCloudMutation = useUploadFileWithToastMutation(remoteBackend)
   const disabledTooltip = !canOpenProjects ? getText('downloadToOpenWorkflow') : undefined
@@ -264,9 +253,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 labels: null,
                 recentProjects: false,
               })
-              const project = assets
-                .filter((item) => item.type === backendModule.AssetType.project)
-                .at(0)
+              const project = assets.filter(backendModule.assetIsProject)[0]
               invariant(project, 'Downloaded cloud project does not exist.')
               openProject({
                 id: project.id,

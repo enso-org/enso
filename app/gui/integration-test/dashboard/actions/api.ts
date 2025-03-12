@@ -1330,9 +1330,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       const state = { type: backend.ProjectState.closed, volumeId: '' }
 
       const project = addProject({
-        description: null,
         id,
-        labels: [],
         modifiedAt: newDate(),
         parentId,
         permissions: [
@@ -1369,9 +1367,7 @@ async function mockApiInternal({ page, setupAPI }: MockParams) {
       const parentId = body.parentId ?? defaultDirectoryId
 
       const directory = addDirectory({
-        description: null,
         id,
-        labels: [],
         parentId,
         projectState: null,
       })

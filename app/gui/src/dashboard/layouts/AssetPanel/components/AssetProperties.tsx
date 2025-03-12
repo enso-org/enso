@@ -25,15 +25,10 @@ import { assetPanelStore, useSetAssetPanelProps } from '#/layouts/AssetPanel/'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useLocalBackend } from '#/providers/BackendProvider'
 import { useFeatureFlags } from '#/providers/FeatureFlagsProvider'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { AssetType, BackendType, Plan, type AnyAsset, type DatalinkId } from '#/services/Backend'
-import { extractTypeAndId } from '#/services/LocalBackend'
-import { computeFullRemotePath } from '#/services/RemoteBackend'
-import { normalizePath } from '#/utilities/fileInfo'
-import { mapNonNullish } from '#/utilities/nullable'
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
 import { useStore } from '#/utilities/zustand'
@@ -105,7 +100,6 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const { user } = useFullUserSession()
   const isEnterprise = user.plan === Plan.enterprise
   const { getText } = useText()
-  const localBackend = useLocalBackend()
   const [isEditingDescriptionRaw, setIsEditingDescriptionRaw] = React.useState(false)
   const isEditingDescription = isEditingDescriptionRaw || spotlightOn === 'description'
   const setIsEditingDescription = useEventCallback(
@@ -148,8 +142,6 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   })
 
   const { data: labels = [] } = useBackendQuery(backend, 'listTags', [])
-  const { data: users = [] } = useBackendQuery(backend, 'listUsers', [])
-  const { data: userGroups = [] } = useBackendQuery(backend, 'listUserGroups', [])
   const self = permissions.tryFindSelfPermission(user, item.permissions)
   const ownsThisAsset = self?.permission === permissions.PermissionAction.own
   const canEditThisAsset =
@@ -159,16 +151,10 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const isSecret = item.type === AssetType.secret
   const isDatalink = item.type === AssetType.datalink
   const isCloud = backend.type === BackendType.remote
-  const pathComputed =
-    category.type === 'recent' || category.type === 'trash' ? null
-    : isCloud ? computeFullRemotePath(item, users, userGroups)
-    : item.type === AssetType.project ?
-      mapNonNullish(localBackend?.getProjectPath(item.id) ?? null, normalizePath)
-    : normalizePath(extractTypeAndId(item.id).id)
   const path =
-    pathComputed == null ? null
-    : isCloud ? encodeURI(pathComputed)
-    : pathComputed
+    item.ensoPath == null ? null
+    : isCloud ? encodeURI(item.ensoPath)
+    : item.ensoPath
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   // Provide an extra `mutationKey` so that it has its own loading state.
   const editDescriptionMutation = useMutation(

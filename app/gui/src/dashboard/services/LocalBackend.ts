@@ -11,23 +11,16 @@ import * as projectManager from '#/services/ProjectManager'
 import { APP_BASE_URL } from '#/utilities/appBaseUrl'
 import { download } from '#/utilities/download'
 import { tryGetMessage } from '#/utilities/error'
-import { fileExtension, getFileName, getFolderPath } from '#/utilities/fileInfo'
-import { getDirectoryAndName, joinPath, Path } from '#/utilities/path'
+import { fileExtension, getFileName, getFolderPath, normalizePath } from '#/utilities/fileInfo'
+import { getDirectoryAndName, joinPath } from '#/utilities/path'
 import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import invariant from 'tiny-invariant'
-
-// =============================
-// === ipWithSocketToAddress ===
-// =============================
 
 /** Convert a {@link projectManager.IpWithSocket} to a {@link backend.Address}. */
 function ipWithSocketToAddress(ipWithSocket: projectManager.IpWithSocket) {
   return backend.Address(`ws://${ipWithSocket.host}:${ipWithSocket.port}`)
 }
 
-// ======================================
-// === Functions for manipulating ids ===
-// ======================================
 export const DIRECTORY_ID_PREFIX = `${backend.AssetType.directory}-`
 export const PROJECT_ID_PREFIX = `${backend.AssetType.project}-`
 export const FILE_ID_PREFIX = `${backend.AssetType.file}-`
@@ -159,7 +152,6 @@ export default class LocalBackend extends Backend {
   override async listDirectory(
     query: backend.ListDirectoryRequestParams,
   ): Promise<readonly backend.AnyAsset[]> {
-    const { rootPath = this.rootPath() } = query
     const parentIdRaw = query.parentId == null ? null : extractTypeAndId(query.parentId).id
     const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
 
@@ -173,43 +165,6 @@ export default class LocalBackend extends Backend {
             case projectManager.FileSystemEntryType.DirectoryEntry: {
               const id = newDirectoryId(entry.path)
 
-              const virtualParentsPath = (() => {
-                let path = entry.path.replace(rootPath, '')
-
-                if (path.startsWith('/')) {
-                  path = path.slice(1)
-                }
-
-                if (path.endsWith('/')) {
-                  path = path.slice(0, -1)
-                }
-
-                return path
-              })()
-
-              const parentsPath = (() => {
-                const parentsPathArray: backend.DirectoryId[] = [newDirectoryId(rootPath)]
-                const splitPath = virtualParentsPath.split('/')
-
-                let previousPath = ''
-
-                for (const directory of splitPath) {
-                  if (directory === '') {
-                    continue
-                  }
-
-                  previousPath = Path(previousPath + '/' + directory)
-
-                  if (previousPath.endsWith('/')) {
-                    previousPath = previousPath.slice(0, -1)
-                  }
-
-                  parentsPathArray.push(newDirectoryId(Path(rootPath + previousPath)))
-                }
-
-                return parentsPathArray.slice(0, -1).join('/')
-              })()
-
               return {
                 id,
                 type: backend.AssetType.directory,
@@ -219,8 +174,9 @@ export default class LocalBackend extends Backend {
                 permissions: [],
                 projectState: null,
                 extension: null,
-                parentsPath: backend.ParentsPath(parentsPath),
-                virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
+                parentsPath: backend.ParentsPath(''),
+                virtualParentsPath: backend.VirtualParentsPath(''),
+                ensoPath: backend.EnsoPath(normalizePath(entry.path)),
               } satisfies backend.DirectoryAsset
             }
             case projectManager.FileSystemEntryType.ProjectEntry: {
@@ -240,6 +196,7 @@ export default class LocalBackend extends Backend {
                 extension: null,
                 parentsPath: backend.ParentsPath(''),
                 virtualParentsPath: backend.VirtualParentsPath(''),
+                ensoPath: backend.EnsoPath(normalizePath(entry.path)),
               } satisfies backend.ProjectAsset
             }
             case projectManager.FileSystemEntryType.FileEntry: {
@@ -254,6 +211,7 @@ export default class LocalBackend extends Backend {
                 extension: fileExtension(entry.path),
                 parentsPath: backend.ParentsPath(''),
                 virtualParentsPath: backend.VirtualParentsPath(''),
+                ensoPath: backend.EnsoPath(normalizePath(entry.path)),
               } satisfies backend.FileAsset
             }
           }
