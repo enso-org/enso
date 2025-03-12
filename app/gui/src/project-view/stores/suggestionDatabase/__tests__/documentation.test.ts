@@ -1,5 +1,9 @@
 import { mockProjectNameStore } from '@/stores/projectNames'
-import { getGroupIndex, tagValue } from '@/stores/suggestionDatabase/documentation'
+import {
+  getDocumentationSummary,
+  getGroupIndex,
+  tagValue,
+} from '@/stores/suggestionDatabase/documentation'
 import { unwrap } from '@/util/data/result'
 import { parseDocs } from '@/util/docParser'
 import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
@@ -40,4 +44,17 @@ test.each([
     unwrap(projectNames.parseProjectPathRaw(definedIn)).project ??
     ('local.Project' as QualifiedName)
   expect(getGroupIndex(name, definedInQn, groups)).toBe(expected)
+})
+
+test.each`
+  docstring                                       | expectedSummary
+  ${'Just summary'}                               | ${'Just summary'}
+  ${'First paragraph\n\nSecond paragraph'}        | ${'First paragraph'}
+  ${'First line\nsecond line'}                    | ${'First line second line'}
+  ${'ALIAS alias\n\nSummary'}                     | ${'Summary'}
+  ${'Very Long Section. With multiple sentences'} | ${'Very Long Section.'}
+  ${'One sentence, but with 0.8 number.'}         | ${'One sentence, but with 0.8 number.'}
+`('Getting summary from docs case %#', ({ docstring, expectedSummary }) => {
+  const sections = parseDocs(docstring)
+  expect(getDocumentationSummary(sections)).toBe(expectedSummary)
 })

@@ -78,6 +78,10 @@ type Feature
     Offset
 
     ## PRIVATE
+       generate rows from a range
+    Generate_Rows
+
+    ## PRIVATE
        Check if a feature is supported by a dialect, and throw an error if it is not.
     if_supported_else_throw self dialect:Any error_name:Text ~action = 
         if dialect.is_feature_supported self then action else

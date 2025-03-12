@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime
 
 import scala.jdk.OptionConverters.RichOption
 
+import org.enso.common.HostEnsoUtils
 import org.enso.compiler.PackageRepository
 import org.enso.compiler.context.CompilerContext
 import org.enso.compiler.core.ir.{Module => IRModule}
@@ -422,7 +423,7 @@ private class DefaultPackageRepository(
           logger.warn(s"Resolution failed with [$error].", error)
         case Right(resolved) =>
           logger.info(
-            s"Found library ${resolved.name} @ ${resolved.version} " +
+            s"Found library ${resolved.toString(HostEnsoUtils.isAot())} " +
             s"at [${MaskedPath(resolved.root.location).applyMasking()}]."
           )
       }
@@ -699,7 +700,8 @@ private object DefaultPackageRepository {
         edition             = edition.get,
         preferLocalLibraries =
           projectPackage.exists(_.getConfig().preferLocalLibraries),
-        projectRoot = projectRoot
+        projectRoot = projectRoot,
+        checkAot    = HostEnsoUtils.isAot()
       )
     new DefaultPackageRepository(
       resolvingLibraryProvider,

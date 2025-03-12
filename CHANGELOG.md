@@ -38,6 +38,7 @@
   typing digits only, any names containing digits are not the best match
   anymore. Also unclosed text literals will be automatically closed.
 - [Disable heatmap and histogram viz][12475].
+- [Component Browser displays short summary of component's documentation][12459]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -62,23 +63,24 @@
 [12184]: https://github.com/enso-org/enso/pull/12184
 [12420]: https://github.com/enso-org/enso/pull/12420
 [12475]: https://github.com/enso-org/enso/pull/12475
+[12459]: https://github.com/enso-org/enso/pull/12459
 
 #### Enso Standard Library
 
 - [Allow using `/` to access files inside a directory reached through a data
   link.][11926]
 - [Reducing helper methods in `Standard.Base.Meta`.][12031]
-- [Added Table.Offset][12071]
+- [Added Table.offset][12071]
 - [Implemented Generic JDBC connections.][12073]
-- [Added Column.Offset][12092]
+- [Added Column.offset][12092]
 - [Progress API][12163]
 - [When reading a Delimited file, if a row with more columns than expected is
   encountered, extra columns can be added to the result.][12231]
   - In `Delimited` format, the `keep_invalid_rows` setting has been renamed to
     `on_invalid_rows`. The default behaviour was also changed to add any extra
     columns instead of discarding them.
-- [Added DB_Table.Offset for SQLServer][12206]
-- [Added DB_Table.Offset for Snowflake, Postgres, SQLite][12251]
+- [Added DB_Table.offset for SQLServer][12206]
+- [Added DB_Table.offset for Snowflake, Postgres, SQLite][12251]
 - [Support for key-pair authentication in Snowflake connector.][12247]
 - [Support for generic JDBC connections through external drivers.][12300]
 - [Support for basic arithmetic operations as numbers in Expressions.][12297]
@@ -86,6 +88,7 @@
 - [Support for pi() and e() in Enso Expressions.][12367]
 - [xlsx reader now does not read empty rows from the end of a worksheet][12345]
 - [Generic JDBC connections can be created with `Database.connect`.][12331]
+- [Added Table.generate_rows][12413]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
@@ -103,6 +106,7 @@
 [12331]: https://github.com/enso-org/enso/pull/12331
 [12367]: https://github.com/enso-org/enso/pull/12367
 [12345]: https://github.com/enso-org/enso/pull/12345
+[12413]: https://github.com/enso-org/enso/pull/12413
 
 #### Enso Language & Runtime
 

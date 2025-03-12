@@ -360,7 +360,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
           for (const _conflict of conflicts) {
             // TODO: Substitution does not work, because we interpret imports wrongly. To be fixed in
             // https://github.com/enso-org/enso/issues/9356
-            // substituteQualifiedName(wholeAssignment, conflict.pattern, conflict.fullyQualified)
+            // substituteQualifiedNameByPattern(wholeAssignment, conflict.pattern, conflict.fullyQualified)
           }
         }
       })

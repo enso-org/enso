@@ -23,6 +23,10 @@ export interface Action {
 export type ActionHandler = Partial<Action> & { action: () => void }
 
 const actions = {
+  'graphEditor.showHelp': {
+    icon: 'help',
+    description: 'Show help',
+  },
   'components.collapse': {
     icon: 'group',
     description: 'Group Selected Components',
