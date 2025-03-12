@@ -97,7 +97,7 @@ test('Code editor with wide content does not take space from doc editor (#12476)
 
   // Note that we compare `x` instead of `width`: This will catch either a change in width, or the
   // viewport becoming larger than the page (causing a change in *apparent* width).
-  expect(docPosWithoutCodeEditor).toBe(docPosWithCodeEditor)
+  expect(docPosWithCodeEditor).toBe(docPosWithoutCodeEditor)
 })
 
 test('Component help', async ({ page }) => {
