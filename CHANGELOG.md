@@ -37,7 +37,9 @@
 - [It's easier to write numeric/text nodes in Component Browser][12420]. When
   typing digits only, any names containing digits are not the best match
   anymore. Also unclosed text literals will be automatically closed.
-- [Use server side filtering and sorting in table viz][12272]. Table viz rows are lazly loaded and filtering/sorting is done serverside improving experience for large datasets. 
+- [Use server side filtering and sorting in table viz][12272]. Table viz rows
+  are lazly loaded and filtering/sorting is done serverside improving experience
+  for large datasets.
 - [Component Browser displays short summary of component's documentation][12459]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
