@@ -4,12 +4,6 @@
  * NOTE: The "Experimental: Use Flat Config" option must be enabled.
  * Flat config is still not quite mature, so is disabled by default.
  */
-import * as path from 'node:path'
-import * as url from 'node:url'
-
-// The preferred syntax is `import * as name`, however these modules do not support it.
-// This is specialcased in other files, but these modules shouldn't be used in other files anyway.
-
 import eslintJs from '@eslint/js'
 import tsEslint from '@typescript-eslint/eslint-plugin'
 import vueTsEslintConfig from '@vue/eslint-config-typescript'
@@ -17,12 +11,11 @@ import jsdoc from 'eslint-plugin-jsdoc'
 import react from 'eslint-plugin-react'
 import reactCompiler from 'eslint-plugin-react-compiler'
 import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
 import pluginVue from 'eslint-plugin-vue'
 import globals from 'globals'
-
-// =================
-// === Constants ===
-// =================
+import * as path from 'node:path'
+import * as url from 'node:url'
 
 const DEBUG_STATEMENTS_MESSAGE = 'Avoid leaving debugging statements when committing code'
 const DIR_NAME = path.dirname(url.fileURLToPath(import.meta.url))
@@ -610,8 +603,11 @@ const config = [
       '**/configuration/*',
       '**/index.ts',
     ],
-    plugins: { 'react-compiler': reactCompiler },
-    rules: { 'react-compiler/react-compiler': 'error' },
+    plugins: { 'react-compiler': reactCompiler, 'react-refresh': reactRefresh },
+    rules: {
+      'react-compiler/react-compiler': 'error',
+      'react-refresh/only-export-components': 'error',
+    },
   },
   // === Index Files ===
   {
