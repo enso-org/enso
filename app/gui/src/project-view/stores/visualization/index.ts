@@ -67,8 +67,6 @@ const builtinVisualizations: VisualizationModule[] = [
   jsonVisualization,
   tableVisualization,
   scatterplotVisualization,
-  histogramVisualization,
-  heatmapVisualization,
   sqlVisualization,
   geoMapVisualization,
   imageBase64Visualization,
