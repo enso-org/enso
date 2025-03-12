@@ -80,9 +80,7 @@ export const ICON_STYLES = tv({
   },
 })
 
-/**
- * Icon component that displays an icon based on different input.
- */
+/** Icon component that displays an icon based on different input. */
 // eslint-disable-next-line no-restricted-syntax
 export const Icon = memo(function Icon<Render = never>(props: IconProps<Render>) {
   const { className, variants = ICON_STYLES, size, testId, renderProps, color } = props
@@ -110,9 +108,7 @@ export const Icon = memo(function Icon<Render = never>(props: IconProps<Render>)
   )
 }) as <Render = never>(props: IconProps<Render>) => React.JSX.Element
 
-/**
- * Props for {@link IconInternal}.
- */
+/** Props for {@link IconInternal}. */
 interface IconInternalProps<Render = never> extends TestIdProps {
   readonly className?: string | undefined
   readonly icon: IconType<string, Render>

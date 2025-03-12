@@ -4,9 +4,9 @@ import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import { Text, WithVisualTooltip, type IconProp, type TextProps, type TooltipElementType } from '..'
 
 const ICON_DISPLAY_STYLES = tv({
-  base: 'flex items-center gap-2 max-w-[14.5rem] min-w-4 px-2',
+  base: 'flex items-center gap-2 max-w-[14.5rem] min-w-4 px-[7px] border-0.5 border-transparent',
   slots: {
-    icon: 'mb-0.5',
+    icon: '',
     // For some reason `min-w-0` is required for the ellipsis to appear.
     container: 'flex mx-auto min-w-0',
     text: 'block truncate',
@@ -24,6 +24,7 @@ const ICON_DISPLAY_STYLES = tv({
   },
   defaultVariants: {
     variant: 'custom',
+    iconPosition: 'default',
   },
 })
 
@@ -51,7 +52,7 @@ export function IconDisplay<IconType extends string>(props: IconDisplayProps<Ico
 
   return (
     <div className={styles.base({ className })}>
-      <WithVisualTooltip tooltip={tooltip} tooltipPlacement="left">
+      <WithVisualTooltip className="flex" tooltip={tooltip} tooltipPlacement="left">
         <Icon className={styles.icon()} size="medium">
           {icon}
         </Icon>
