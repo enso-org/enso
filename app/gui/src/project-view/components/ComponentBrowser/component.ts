@@ -136,7 +136,7 @@ export function makeComponentLists(
   const matched = Array.from(matchSuggestions()).sort(compareSuggestions)
   const groups = new Map<GroupId, Component[]>()
   const allGroup: Component[] = []
-  const suggestionsGroup: (Component & { rank: number })[] = []
+  const suggestionsGroup: SuggestedComponent[] = []
   // Pre-set special groups, as they should go before any other group.
   groups.set('all', allGroup)
   groups.set('suggestions', suggestionsGroup)
