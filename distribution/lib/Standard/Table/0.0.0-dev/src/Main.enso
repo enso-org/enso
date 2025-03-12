@@ -18,6 +18,8 @@ export project.Data_Formatter.Data_Formatter
 export project.Delimited.Delimited_Format.Delimited_Format
 export project.Delimited.Quote_Style.Quote_Style
 
+export project.Generate_Rows_Range.Generate_Rows_Range
+
 export project.Excel.Excel_Format.Excel_Format
 export project.Excel.Excel_Range.Excel_Range
 export project.Excel.Excel_Workbook.Excel_Workbook
