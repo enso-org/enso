@@ -624,19 +624,6 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                             </Form>
                           </Popover>
                         </Popover.Trigger>
-
-                        {asset.type === sibling.type &&
-                          asset.type !== backendModule.AssetType.directory && (
-                            <Button
-                              variant="delete"
-                              className="min-w-16"
-                              onPress={() => {
-                                field.onChange('replace')
-                              }}
-                            >
-                              {getText('replace')}
-                            </Button>
-                          )}
                       </Button.Group>
                     )
                   }}
