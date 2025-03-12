@@ -12,7 +12,6 @@ import Modal from '#/components/Modal'
 import type { AnyAsset } from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
-import { DIALOG_BACKGROUND } from '#/components/AriaComponents'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import * as fileInfo from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
@@ -680,9 +679,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                 className="min-w-20"
                 onPress={() => {
                   for (const asset of conflictingAssets) {
-                    console.log(asset, form.getValues(`${asset.id}.conclusion`))
                     form.setValue(`${asset.id}.conclusion`, 'skip', { shouldDirty: true })
-                    console.log(asset, form.getValues(`${asset.id}.conclusion`))
                   }
                 }}
               >
