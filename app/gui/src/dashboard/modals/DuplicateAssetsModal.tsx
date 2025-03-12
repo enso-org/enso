@@ -1,7 +1,6 @@
 /** @file A modal opened when uploaded assets. */
 import * as React from 'react'
 
-import * as modalProvider from '#/providers/ModalProvider'
 import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
@@ -85,7 +84,6 @@ export default function DuplicateAssetsModal(props: DuplicateAssetsModalProps) {
   const { siblingFileNames: siblingFileNamesRaw } = props
   const { siblingProjectNames: siblingProjectNamesRaw } = props
   const { nonConflictingFileCount, nonConflictingProjectCount, doUploadNonConflicting } = props
-  const { unsetModal } = modalProvider.useSetModal()
   const { getText } = textProvider.useText()
   const [conflictingFiles, setConflictingFiles] = React.useState(conflictingFilesRaw)
   const [conflictingProjects, setConflictingProjects] = React.useState(conflictingProjectsRaw)
