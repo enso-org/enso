@@ -94,7 +94,12 @@ public class PostLogHandler implements CloudHandler {
     String userEmail = usersService.currentUserEmail();
     String timestamp = ZonedDateTime.now().withZoneSameInstant(ZoneId.of("UTC")).toString();
     JsonNode metadata = json.get("metadata");
-    String projectId = json.get("projectId").asText();
+    String projectId;
+    if (json.has("projectId")) {
+      projectId = json.get("projectId").asText();
+    } else {
+      projectId = null;
+    }
     return new EventsService.LogEvent(
         organizationId, userEmail, timestamp, metadata, message, projectId);
   }

@@ -17,7 +17,7 @@ import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { useGraphEditorClipboard } from '@/components/GraphEditor/clipboard'
 import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
-import { registerSelectionActionHandlers } from '@/components/GraphEditor/selectionActions'
+import { selectionActionHandlers } from '@/components/GraphEditor/selectionActions'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { uploadedExpression, Uploader } from '@/components/GraphEditor/upload'
 import GraphMissingView from '@/components/GraphMissingView.vue'
@@ -31,6 +31,7 @@ import { useDoubleClick } from '@/composables/doubleClick'
 import { keyboardBusy, keyboardBusyExceptIn, unrefElement, useEvent } from '@/composables/events'
 import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
+import { registerHandlers } from '@/providers/action'
 import { provideGraphEditorState } from '@/providers/graphEditorState'
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -49,7 +50,7 @@ import { providePersisted } from '@/stores/persisted'
 import { useProjectStore } from '@/stores/project'
 import { provideNodeExecution } from '@/stores/project/nodeExecution'
 import { injectProjectNames } from '@/stores/projectNames'
-import { provideRightDock, StorageMode } from '@/stores/rightDock'
+import { provideRightDock } from '@/stores/rightDock'
 import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId, Typename } from '@/stores/suggestionDatabase/entry'
 import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
@@ -218,22 +219,28 @@ const { scheduleCreateNode, createNodes, placeNode } = provideNodeCreation(
 
 const { copyNodesToClipboard, createNodesFromClipboard } = useGraphEditorClipboard(createNodes)
 
-// === Selection Buttons ===
+// === Action Handlers ===
 
-const selectionHandlers = registerSelectionActionHandlers(
-  () =>
-    iter.filterDefined(
-      iter.map(
-        nodeSelection.selected,
-        graphStore.db.nodeIdToNode.get.bind(graphStore.db.nodeIdToNode),
-      ),
-    ),
-  {
-    collapseNodes,
-    copyNodesToClipboard,
-    deleteNodes: (nodes) => graphStore.deleteNodes(nodes.map(nodeId)),
+const actionHandlers = registerHandlers({
+  'graphEditor.showHelp': {
+    action: () => rightDock.toggleVisible('help'),
+    toggled: computed(() => rightDock.visible && rightDock.displayedTab === 'help'),
   },
-)
+  ...selectionActionHandlers(
+    () =>
+      iter.filterDefined(
+        iter.map(
+          nodeSelection.selected,
+          graphStore.db.nodeIdToNode.get.bind(graphStore.db.nodeIdToNode),
+        ),
+      ),
+    {
+      collapseNodes,
+      copyNodesToClipboard,
+      deleteNodes: (nodes) => graphStore.deleteNodes(nodes.map(nodeId)),
+    },
+  ),
+})
 
 // === Interactions ===
 
@@ -285,7 +292,7 @@ const graphBindingsHandler = graphBindings.handler({
       createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
     }
   },
-  deleteSelected: selectionHandlers['components.deleteSelected'].action,
+  deleteSelected: actionHandlers['components.deleteSelected'].action,
   zoomToSelected() {
     zoomToSelected()
   },
@@ -309,11 +316,11 @@ const graphBindingsHandler = graphBindings.handler({
       }
     })
   },
-  copyNode: selectionHandlers['components.copy'].action,
+  copyNode: actionHandlers['components.copy'].action,
   pasteNode() {
     createNodesFromClipboard()
   },
-  collapse: selectionHandlers['components.collapse'].action,
+  collapse: actionHandlers['components.collapse'].action,
   enterNode() {
     const selectedNode = set.first(nodeSelection.selected)
     if (selectedNode) {
@@ -324,7 +331,7 @@ const graphBindingsHandler = graphBindings.handler({
     stackNavigator.exitNode()
   },
   changeColorSelectedNodes() {
-    selectionHandlers['components.pickColorMulti'].toggled.value = true
+    actionHandlers['components.pickColorMulti'].toggled.value = true
   },
   openDocumentation() {
     const result = tryGetSelectionDocUrl()
@@ -390,10 +397,6 @@ const { componentBrowserOpened } = provideGraphEditorState({
 })
 const componentBrowserNodePosition = ref<Vec2>(Vec2.Zero)
 const componentBrowserUsage = ref<Usage>({ type: 'newNode' })
-
-watch(componentBrowserOpened, (v) =>
-  rightDock.setStorageMode(v ? StorageMode.ComponentBrowser : StorageMode.Default),
-)
 
 function openComponentBrowser(usage: Usage, position: Vec2) {
   componentBrowserUsage.value = usage
@@ -658,13 +661,12 @@ const groupColors = computed(() => {
         <TopBar
           v-model:recordMode="projectStore.recordMode"
           v-model:showCodeEditor="showCodeEditor"
-          :showDocumentationEditor="rightDock.visible"
+          v-model:showDocumentationEditor="rightDock.visible"
           :zoomLevel="100.0 * graphNavigator.targetScale"
           :class="{ extraRightSpace: !rightDock.visible }"
           @fitToAllClicked="zoomToSelected"
           @zoomIn="graphNavigator.stepZoom(+1)"
           @zoomOut="graphNavigator.stepZoom(-1)"
-          @update:showDocumentationEditor="rightDock.setVisible"
         />
         <SceneScroller
           :navigator="graphNavigator"
