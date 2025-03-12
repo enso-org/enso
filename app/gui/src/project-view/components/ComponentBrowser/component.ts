@@ -137,6 +137,7 @@ export function makeComponentLists(
   const groups = new Map<GroupId, Component[]>()
   const allGroup: Component[] = []
   const suggestionsGroup: (Component & { rank: number })[] = []
+  // Pre-set special groups, as they should go before any other group.
   groups.set('all', allGroup)
   groups.set('suggestions', suggestionsGroup)
 
