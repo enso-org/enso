@@ -217,18 +217,15 @@ export function moveAssetsMutationOptions(backend: Backend) {
           conflictingIds: duplicateErrors.map((error) => error.id),
         })
 
-        const replacements = resolutions.filter((resolution) => resolution.conclusion === 'replace')
+        // TODO: support replacements
         const renames = resolutions.filter((resolution) => resolution.conclusion === 'rename')
 
         await Promise.allSettled([
-          ...replacements.map((resolution) =>
-            backend.copyAsset(resolution.assetId, parentId, '(unknown)', '(unknown)'),
-          ),
-
           ...renames.map((resolution) =>
             backend.updateAsset(
               resolution.assetId,
-              { parentDirectoryId: parentId, description: null, title: resolution.newName },
+              // TODO: We should also update the title here.
+              { parentDirectoryId: parentId, description: null },
               resolution.newName,
             ),
           ),

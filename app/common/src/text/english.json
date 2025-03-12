@@ -196,6 +196,7 @@
   "fileAssetType": "file",
   "datalinkAssetType": "Datalink",
   "secretAssetType": "secret",
+  "specialUpAssetType": "up",
   "specialLoadingAssetType": "special loading asset",
   "specialEmptyAssetType": "special empty asset",
   "specialErrorAssetType": "special error asset",

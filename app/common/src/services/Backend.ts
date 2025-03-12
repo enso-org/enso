@@ -967,6 +967,9 @@ export type SpecialEmptyAsset = Asset<AssetType.specialEmpty>
 /** A convenience alias for {@link Asset}<{@link AssetType.specialError}>. */
 export type SpecialErrorAsset = Asset<AssetType.specialError>
 
+/** A convenience alias for {@link Asset}<{@link AssetType.specialUp}>. */
+export type SpecialUpAsset = Asset<AssetType.specialUp>
+
 const PLACEHOLDER_SIGNATURE = Symbol('placeholder')
 
 /** Creates a new placeholder id. */
@@ -1184,7 +1187,8 @@ export type AnyAsset<Type extends AssetType = AssetType> = Extract<
   | SecretAsset
   | SpecialEmptyAsset
   | SpecialErrorAsset
-  | SpecialLoadingAsset,
+  | SpecialLoadingAsset
+  | SpecialUpAsset,
   HasType<Type>
 >
 
@@ -1378,7 +1382,6 @@ export interface UpdateFileRequestBody {
 export interface UpdateAssetRequestBody {
   readonly parentDirectoryId: DirectoryId | null
   readonly description: string | null
-  readonly title: string | null
 }
 
 /** HTTP request body for the "delete asset" endpoint. */

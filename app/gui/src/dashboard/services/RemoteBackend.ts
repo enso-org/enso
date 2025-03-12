@@ -33,6 +33,7 @@ const STATUS_SERVER_ERROR = 500
 const STATUS_NOT_AUTHORIZED = 401
 /** HTTP status indicating that authorized user doesn't have access to the given resource */
 const STATUS_NOT_ALLOWED = 403
+
 const TYPE_TO_EXTENSION: Record<backend.AssetType, string> = {
   directory: '/',
   project: '.project',
@@ -42,6 +43,7 @@ const TYPE_TO_EXTENSION: Record<backend.AssetType, string> = {
   specialEmpty: '',
   specialError: '',
   specialLoading: '',
+  specialUp: '',
 }
 
 /** The format of all errors returned by the backend. */
@@ -1536,6 +1538,7 @@ export default class RemoteBackend extends Backend {
       case backend.AssetType.specialLoading:
       case backend.AssetType.specialEmpty:
       case backend.AssetType.specialError:
+      case backend.AssetType.specialUp:
       default: {
         invariant(`'${asset.type}' assets cannot be downloaded.`)
         break

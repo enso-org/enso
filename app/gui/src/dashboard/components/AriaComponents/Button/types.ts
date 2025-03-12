@@ -84,10 +84,10 @@ export interface BaseButtonProps<IconType extends string, Render>
     | ((event: aria.PressEvent) => Promise<unknown> | unknown)
     | null
     | undefined
-  readonly contentClassName?: string
-  readonly isDisabled?: boolean
-  readonly formnovalidate?: boolean
-  readonly isLoading?: boolean
+  readonly contentClassName?: string | undefined
+  readonly isDisabled?: boolean | undefined
+  readonly formnovalidate?: boolean | undefined
+  readonly isLoading?: boolean | undefined
   /**
    * @deprecated Use `isLoading` instead.
    */

@@ -13,6 +13,14 @@ import { useStore } from '../hooks/storeHooks'
 /** The type of a modal. */
 export type Modal = React.JSX.Element
 
+/**
+ * A modal or a function that returns a modal.
+ *
+ * If a function is provided, it will be called with the previous modal as an argument,
+ * and the return value will become the new modal.
+ */
+export type ModalOrCallback = Modal | ((prevModal: Modal | null) => Modal | null)
+
 /** State contained in a `ModalStaticContext`. */
 interface ModalStaticContextType {
   readonly setModal: React.Dispatch<React.SetStateAction<Modal | null>>
@@ -28,8 +36,8 @@ interface ModalContextType {
 const ModalsStore = createStore<{
   readonly key: number
   readonly modal: Modal | null
-  readonly setModal: (modal: Modal | ((prevModal: Modal | null) => Modal | null) | null) => void
-  readonly updateModal: (modal: Modal) => void
+  readonly setModal: (modal: ModalOrCallback | null) => void
+  readonly updateModal: (modal: ModalOrCallback) => void
 }>((set, get) => ({
   key: 0,
   modal: null,
@@ -51,7 +59,11 @@ const ModalsStore = createStore<{
       throw new Error('Calling updateModal while no modal is set is forbidden.')
     }
 
-    set({ modal })
+    if (typeof modal === 'function') {
+      set({ modal: modal(existingModal) })
+    } else {
+      set({ modal })
+    }
   },
 }))
 
@@ -59,7 +71,7 @@ const ModalsStore = createStore<{
  * Set the currently active modal.
  * @throws An error if a modal is already set.
  */
-export function setModal(modal: Modal) {
+export function setModal(modal: ModalOrCallback) {
   const modalsStore = ModalsStore.getState()
   modalsStore.setModal(modal)
 }
@@ -68,7 +80,7 @@ export function setModal(modal: Modal) {
  * Update the currently active modal.
  * @throws An error if no modal is set.
  */
-export function updateModal(modal: Modal) {
+export function updateModal(modal: ModalOrCallback) {
   const modalsStore = ModalsStore.getState()
   modalsStore.updateModal(modal)
 }
