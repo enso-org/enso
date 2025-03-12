@@ -37,6 +37,7 @@
 - [It's easier to write numeric/text nodes in Component Browser][12420]. When
   typing digits only, any names containing digits are not the best match
   anymore. Also unclosed text literals will be automatically closed.
+- [Disable heatmap and histogram viz][12475].
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -60,6 +61,7 @@
 [12365]: https://github.com/enso-org/enso/pull/12365
 [12184]: https://github.com/enso-org/enso/pull/12184
 [12420]: https://github.com/enso-org/enso/pull/12420
+[12475]: https://github.com/enso-org/enso/pull/12475
 
 #### Enso Standard Library
 
