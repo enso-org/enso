@@ -219,8 +219,6 @@ export default class LocalBackend extends Backend {
                 permissions: [],
                 projectState: null,
                 extension: null,
-                labels: [],
-                description: null,
                 parentsPath: backend.ParentsPath(parentsPath),
                 virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
               } satisfies backend.DirectoryAsset
@@ -240,8 +238,6 @@ export default class LocalBackend extends Backend {
                   volumeId: '',
                 },
                 extension: null,
-                labels: [],
-                description: null,
                 parentsPath: backend.ParentsPath(''),
                 virtualParentsPath: backend.VirtualParentsPath(''),
               } satisfies backend.ProjectAsset
@@ -256,8 +252,6 @@ export default class LocalBackend extends Backend {
                 permissions: [],
                 projectState: null,
                 extension: fileExtension(entry.path),
-                labels: [],
-                description: null,
                 parentsPath: backend.ParentsPath(''),
                 virtualParentsPath: backend.VirtualParentsPath(''),
               } satisfies backend.FileAsset
