@@ -581,7 +581,11 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                                 >
                                   <Text>{getText('newNameDescription')}</Text>
 
-                                  <Input label={getText('newName')} name="newName" autoFocus />
+                                  <Input
+                                    label={getText('newName')}
+                                    name="newName"
+                                    autoFocus="select"
+                                  />
 
                                   <Form.Submit>{getText('apply')}</Form.Submit>
 

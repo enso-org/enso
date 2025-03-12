@@ -192,7 +192,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
       if (description !== item.description) {
         await editDescriptionMutation.mutateAsync([
           item.id,
-          { parentDirectoryId: null, description, title: item.title },
+          { parentDirectoryId: null, description },
           item.title,
         ])
       }

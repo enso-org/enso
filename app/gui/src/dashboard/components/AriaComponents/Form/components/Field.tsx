@@ -13,7 +13,6 @@ import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import * as text from '../../Text'
 import { Form } from '../Form'
 import type * as types from './types'
-import type { FieldPath } from './types'
 
 /** Props for Field component */
 export interface FieldComponentProps<Schema extends types.TSchema>

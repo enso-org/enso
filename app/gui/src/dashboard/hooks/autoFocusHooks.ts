@@ -7,16 +7,22 @@ import { useInteractOutside } from '#/components/aria'
 import { useEffect, useRef } from 'react'
 import { useEventCallback } from './eventCallbackHooks'
 import { useEventListener } from './eventListenerHooks'
-import { useTimeoutAPI, useTimeoutCallback } from './timeoutHooks'
+import { useTimeoutCallback } from './timeoutHooks'
 import { useUnmount } from './unmountHooks'
 
 /** Props for the {@link useAutoFocus} hook. */
 export interface UseAutoFocusProps {
   readonly ref: React.RefObject<HTMLElement>
   readonly disabled?: boolean | undefined
+  /**
+   * Called when the element is focused.
+   * MAY be called multiple times, in case
+   * if the element struggles to fight for focus.
+   */
+  readonly onFocused?: () => void
 }
 
-const FOCUS_TRYOUT_DELAY = 1_000
+const FOCUS_TRYOUT_DELAY = 1_500
 const FOCUS_DELAY = 100
 
 /**
@@ -26,7 +32,7 @@ const FOCUS_DELAY = 100
  * If user interacts with the page, the focus will be cancelled.
  */
 export function useAutoFocus(props: UseAutoFocusProps) {
-  const { ref, disabled = false } = props
+  const { ref, disabled = false, onFocused } = props
 
   const shouldForceFocus = useRef(false)
   const scheduledFocusRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -44,17 +50,14 @@ export function useAutoFocus(props: UseAutoFocusProps) {
     clearScheduledFocus()
 
     scheduledFocusRef.current = setTimeout(() => {
-      const element = ref.current
-      if (element != null) {
-        element.focus()
-      }
+      ref.current?.focus()
+
+      onFocused?.()
 
       scheduledFocusRef.current = null
     }, FOCUS_DELAY)
 
-    return () => {
-      clearScheduledFocus()
-    }
+    return clearScheduledFocus
   })
 
   const clearScheduledFocus = useEventCallback(() => {
@@ -74,7 +77,7 @@ export function useAutoFocus(props: UseAutoFocusProps) {
     if (!disabled && shouldForceFocus.current) {
       return scheduleFocus()
     }
-  }, [disabled, scheduleFocus, clearScheduledFocus])
+  }, [disabled, scheduleFocus])
 
   useEventListener(
     'focus',
