@@ -522,6 +522,11 @@ val helidon = Seq(
 // === Jackson ================================================================
 
 val jacksonVersion = "2.15.2"
+val jackson = Seq(
+  "com.fasterxml.jackson.core" % "jackson-core"        % jacksonVersion,
+  "com.fasterxml.jackson.core" % "jackson-annotations" % jacksonVersion,
+  "com.fasterxml.jackson.core" % "jackson-databind"    % jacksonVersion
+)
 
 // === JAXB ================================================================
 
@@ -1109,8 +1114,8 @@ lazy val `logging-service-logback` = project
       "org.slf4j"        % "slf4j-api"               % slf4jVersion,
       "org.scalatest"   %% "scalatest"               % scalatestVersion   % Test,
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
-    ) ++ logbackPkg ++ ioSentry,
-    Compile / moduleDependencies ++= logbackPkg ++ ioSentry ++ Seq(
+    ) ++ logbackPkg ++ ioSentry ++ jackson,
+    Compile / moduleDependencies ++= logbackPkg ++ ioSentry ++ jackson ++ Seq(
       "org.slf4j"        % "slf4j-api"               % slf4jVersion,
       "org.netbeans.api" % "org-openide-util-lookup" % netbeansApiVersion % "provided"
     ),
