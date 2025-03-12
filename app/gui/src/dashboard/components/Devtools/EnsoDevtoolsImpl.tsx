@@ -11,6 +11,7 @@ import { IS_DEV_MODE } from 'enso-common/src/detect'
 
 import CrossIcon from '#/assets/cross.svg'
 import DevtoolsLogo from '#/assets/enso_logo.svg'
+import EditIcon from '#/assets/pen.svg'
 
 import { SETUP_PATH } from '#/appUtils'
 
@@ -385,7 +386,7 @@ export function EnsoDevtools() {
             />
           </div>
 
-          <div className="flex flex-col gap-0.5">
+          <div className="flex flex-col gap-1.5">
             {LocalStorage.getAllKeys().map((key) => {
               const metadata = LocalStorage.getKeyMetadata(key)
               const title = key
@@ -409,7 +410,7 @@ export function EnsoDevtools() {
                     buttonVariants={{ size: 'small', variant: 'icon', extraClickZone: 'small' }}
                   >
                     <Dialog.Trigger>
-                      <Button aria-label="Edit" icon="edit" />
+                      <Button aria-label="Edit" icon={EditIcon} />
 
                       <Dialog title={`Edit ${title}`}>
                         <Form
@@ -426,9 +427,10 @@ export function EnsoDevtools() {
                                   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
                                   return value
                                 })
-                                .refine((value) => {
-                                  return metadata.schema.safeParse(value).success
-                                }, 'Invalid JSON or value does not match schema')
+                                .refine(
+                                  (value) => metadata.schema.safeParse(value).success,
+                                  'Invalid JSON or value does not match schema',
+                                )
                                 // Piping the value only for type inference.
                                 .pipe(metadata.schema),
                             })
