@@ -28,6 +28,7 @@ import org.enso.logging.config.LoggerSetup;
 import org.enso.logging.config.LoggersLevels;
 import org.enso.logging.config.LoggingServiceConfig;
 import org.enso.logging.config.MissingConfigurationField;
+import org.enso.logging.service.logback.telemetry.TelemetryAppender;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
@@ -300,6 +301,15 @@ public final class LogbackSetup extends LoggerSetup {
       e.printStackTrace();
       return false;
     }
+    return true;
+  }
+
+  @Override
+  public boolean setupTelemetryAppender() {
+    LoggerAndContext env = contextInit(Level.DEBUG, config, true);
+    var telemetryAppender = TelemetryAppender.create();
+    telemetryAppender.setName("telemetry");
+    env.finalizeAppender(telemetryAppender);
     return true;
   }
 

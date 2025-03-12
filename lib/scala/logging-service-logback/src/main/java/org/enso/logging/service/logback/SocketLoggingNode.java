@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.UUID;
+import org.enso.logging.service.logback.telemetry.TelemetryAppender;
 
 // Contributors: Moses Hohman <mmhohman@rainbow.uchicago.edu>
 
@@ -30,6 +31,8 @@ public class SocketLoggingNode implements Runnable {
   LoggerContext context;
   HardenedLoggingEventInputStream hardenedLoggingEventInputStream;
   SocketAddress remoteSocketAddress;
+  private static final String TELEMETRY_LOGGER_NAME = "org.enso.telemetry";
+  private static final String TELEMETRY_APPENDER_NAME = "telemetry";
 
   Logger logger;
 
@@ -84,13 +87,17 @@ public class SocketLoggingNode implements Runnable {
             // ignore
           }
         }
-        // get a logger from the hierarchy. The name of the logger is taken to
-        // be the name contained in the event.
-        remoteLogger = context.getLogger(event.getLoggerName());
-        // apply the logger-level filter
-        if (remoteLogger.isEnabledFor(event.getLevel())) {
-          // finally log the event as if was generated locally
-          remoteLogger.callAppenders(event);
+        if (event.getLoggerName().startsWith(TELEMETRY_LOGGER_NAME)) {
+          logTelemetryEvent(event);
+        } else {
+          // get a logger from the hierarchy. The name of the logger is taken to
+          // be the name contained in the event.
+          remoteLogger = context.getLogger(event.getLoggerName());
+          // apply the logger-level filter
+          if (remoteLogger.isEnabledFor(event.getLevel())) {
+            // finally log the event as if was generated locally
+            remoteLogger.callAppenders(event);
+          }
         }
       }
     } catch (java.io.EOFException e) {
@@ -137,6 +144,19 @@ public class SocketLoggingNode implements Runnable {
         hardenedLoggingEventInputStream = null;
       }
     }
+  }
+
+  private void logTelemetryEvent(ILoggingEvent event) {
+    var telemetryLogger = context.getLogger(TELEMETRY_LOGGER_NAME);
+    var telemetryAppender = telemetryLogger.getAppender(TELEMETRY_APPENDER_NAME);
+    if (telemetryAppender == null) {
+      telemetryAppender = TelemetryAppender.create();
+      telemetryAppender.setContext(context);
+      telemetryAppender.setName(TELEMETRY_APPENDER_NAME);
+      telemetryAppender.start();
+      telemetryLogger.addAppender(telemetryAppender);
+    }
+    telemetryLogger.callAppenders(event);
   }
 
   @Override

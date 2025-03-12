@@ -55,7 +55,7 @@ public class SocketServer extends Thread {
         logger.debug("Waiting to accept a new client.");
         signalAlmostReadiness();
         Socket socket = serverSocket.accept();
-        logger.debug("Connected to client at " + socket.getInetAddress());
+        logger.debug("Connected to client at " + socket.getInetAddress() + ":" + socket.getPort());
         logger.debug("Starting new socket node.");
         SocketLoggingNode newSocketNode = new SocketLoggingNode(this, socket, lc);
         synchronized (socketNodeList) {
