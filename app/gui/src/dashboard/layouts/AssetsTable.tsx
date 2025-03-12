@@ -691,6 +691,7 @@ function AssetsTable(props: AssetsTableProps) {
               case AssetType.specialLoading:
               case AssetType.specialEmpty:
               case AssetType.specialError:
+              case AssetType.specialUp:
               default: {
                 break
               }
