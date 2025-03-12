@@ -19,6 +19,7 @@ import project.Common_Table_Operations.Derived_Columns_Spec
 import project.Common_Table_Operations.Distinct_Spec
 import project.Common_Table_Operations.Expression_Spec
 import project.Common_Table_Operations.Filter_Spec
+import project.Common_Table_Operations.Generate_Rows_Spec
 import project.Common_Table_Operations.Integration_Tests
 import project.Common_Table_Operations.Join.Join_Spec
 import project.Common_Table_Operations.Join.Cross_Join_Spec
@@ -134,6 +135,7 @@ add_specs suite_builder setup =
     Distinct_Spec.add_specs suite_builder setup
     Expression_Spec.add_specs suite_builder detailed=False setup
     Filter_Spec.add_specs suite_builder setup
+    Generate_Rows_Spec.add_specs suite_builder setup
     Integration_Tests.add_specs suite_builder setup
     Join_Spec.add_specs suite_builder setup
     Lookup_Spec.add_specs suite_builder setup
