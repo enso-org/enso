@@ -873,6 +873,13 @@ export enum AssetType {
   specialUp = 'specialUp',
 }
 
+export enum ReplaceableAssetType {
+  project = 'project',
+  file = 'file',
+  datalink = 'datalink',
+  secret = 'secret',
+}
+
 /** The corresponding ID newtype for each {@link AssetType}. */
 export interface IdType extends RealAssetIdType, SpecialAssetIdType {}
 

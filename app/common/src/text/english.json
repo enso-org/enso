@@ -340,7 +340,7 @@
   "existing": "Existing",
   "new": "New",
   "skipAll": "Skip All",
-  "replaceAll": "Replace All",
+  "skipRest": "Skip the rest",
   "apply": "Apply",
   "newName": "New Name",
   "newNameDescription": "Update the name of the file or project.",

@@ -124,7 +124,7 @@ const DIALOG_STYLES = tv({
   },
   slots: {
     header:
-      'sticky z-1 top-0 grid grid-cols-[1fr_auto_1fr] items-center border-b border-primary/10 transition-[border-color] duration-150',
+      'sticky z-1 top-0 grid grid-cols-[1fr_auto_1fr] items-center border-b-0.5 border-primary/10 transition-[border-color] duration-150',
     closeButton: 'col-start-1 col-end-1 mr-auto',
     heading: 'col-start-2 col-end-2 my-0 text-center',
     scroller: 'flex flex-col h-full overflow-y-auto max-h-[inherit]',

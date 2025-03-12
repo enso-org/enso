@@ -12,6 +12,7 @@ import Modal from '#/components/Modal'
 import type { AnyAsset } from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
+import { DIALOG_BACKGROUND } from '#/components/AriaComponents'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import * as fileInfo from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
@@ -22,6 +23,7 @@ import {
   useSuspenseQueries,
   useSuspenseQuery,
 } from '@tanstack/react-query'
+import { Fragment } from 'react'
 import invariant from 'tiny-invariant'
 import { z } from 'zod'
 import { Icon } from '../components/Icon'
@@ -387,7 +389,7 @@ export function ResolveDuplicationsModal(props: ResolveDuplicationsProps) {
 
   return (
     <ariaComponents.Dialog
-      size="xlarge"
+      size="xxlarge"
       onDismiss={props.onCancel}
       title={
         conflictingIds.length === 1 ?
@@ -478,31 +480,45 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
   return (
     <ariaComponents.Form
       defaultValues={Object.fromEntries(
-        conflictingAssets.map((asset) => [asset.id, { assetId: asset.id }]),
+        conflictingAssets.map((asset) => [asset.id, { assetId: asset.id, type: asset.type }]),
       )}
       method="dialog"
-      formOptions={{ mode: 'onChange' }}
+      className="pb-20"
       schema={(schema) =>
         schema.object(
           Object.fromEntries(
             conflictingAssets.map((asset) => [
               asset.id,
-              schema.object({
-                assetId: schema.custom<backendModule.AssetId>(),
-                title: schema.string().trim().optional(),
-                conclusion: schema.enum(['rename', 'replace', 'skip'], {
-                  message: getText('invalidConclusion'),
-                }),
-              }),
+              schema
+                .object({
+                  assetId: schema.custom<backendModule.AssetId>(),
+                  type: schema.nativeEnum(backendModule.AssetType),
+                  newName: schema.string().trim(),
+                  conclusion: schema.literal('rename', { message: getText('invalidConclusion') }),
+                })
+                .or(
+                  schema.object({
+                    assetId: schema.custom<backendModule.AssetId>(),
+                    type: schema.nativeEnum(backendModule.AssetType),
+                    conclusion: schema.literal('skip', { message: getText('invalidConclusion') }),
+                  }),
+                )
+                .or(
+                  schema.object({
+                    assetId: schema.custom<backendModule.AssetId>(),
+                    type: schema.nativeEnum(backendModule.ReplaceableAssetType, {
+                      message: getText('invalidConclusion'),
+                    }),
+                    conclusion: schema.literal('replace', {
+                      message: getText('invalidConclusion'),
+                    }),
+                  }),
+                ),
             ]),
           ),
         )
       }
-      onSubmit={async (data) => {
-        console.log(data)
-        // @ts-expect-error This is safe because the keys are the asset IDs.
-        return props.onResolve(Object.values(data))
-      }}
+      onSubmit={(data) => props.onResolve(Object.values(data))}
     >
       <ariaComponents.Text elementType="p">
         {conflictingIds.length === 1 ?
@@ -517,11 +533,8 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
         invariant(sibling != null, 'Sibling was not found, this should never happen.')
 
         return (
-          <>
-            <div
-              key={asset.id}
-              className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] grid-rows-[auto_auto_auto] gap-2"
-            >
+          <Fragment key={asset.id}>
+            <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] grid-rows-[auto_auto_auto] gap-2">
               <AssetSummary asset={asset} new />
 
               <Icon icon="arrow_right" size="medium" className="self-center" />
@@ -541,7 +554,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                           )}
 
                           {field.value === 'rename' && (
-                            <ariaComponents.Form.FieldValue name={`${asset.id}.title`}>
+                            <ariaComponents.Form.FieldValue name={`${asset.id}.newName`}>
                               {(value: string) => (
                                 <ariaComponents.Text>
                                   {getText('assetWillBeRenamed', value)}
@@ -569,10 +582,10 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                     }
 
                     return (
-                      <ariaComponents.Button.Group>
+                      <ariaComponents.Button.Group buttonVariants={{ size: 'xsmall' }}>
                         <ariaComponents.Button
                           variant="outline"
-                          className="min-w-20"
+                          className="min-w-16"
                           onPress={() => {
                             field.onChange('skip')
                           }}
@@ -581,17 +594,17 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                         </ariaComponents.Button>
 
                         <ariaComponents.Popover.Trigger>
-                          <ariaComponents.Button variant="primary" className="min-w-20">
+                          <ariaComponents.Button variant="primary" className="min-w-16">
                             {getText('rename')}
                           </ariaComponents.Button>
 
                           <ariaComponents.Popover placement="bottom start">
                             <ariaComponents.Form
                               method="dialog"
-                              defaultValues={{ title: asset.title + NEW_TITLE_SUFFIX }}
+                              defaultValues={{ newName: asset.title + NEW_TITLE_SUFFIX }}
                               schema={(schema) =>
                                 schema.object({
-                                  title: backendModule.titleSchema({
+                                  newName: backendModule.titleSchema({
                                     asset,
                                     siblings: siblingFiles.siblings,
                                   }),
@@ -599,7 +612,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                               }
                               onSubmit={(value) => {
                                 field.onChange('rename')
-                                form.setValue(`${asset.id}.title`, value.title)
+                                form.setValue(`${asset.id}.newName`, value.newName)
                               }}
                             >
                               <ariaComponents.Text>
@@ -608,7 +621,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
 
                               <ariaComponents.Input
                                 label={getText('newName')}
-                                name="title"
+                                name="newName"
                                 autoFocus
                               />
 
@@ -621,15 +634,18 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                           </ariaComponents.Popover>
                         </ariaComponents.Popover.Trigger>
 
-                        <ariaComponents.Button
-                          variant="delete"
-                          className="min-w-20"
-                          onPress={() => {
-                            field.onChange('replace')
-                          }}
-                        >
-                          {getText('replace')}
-                        </ariaComponents.Button>
+                        {asset.type === sibling.type &&
+                          asset.type !== backendModule.AssetType.directory && (
+                            <ariaComponents.Button
+                              variant="delete"
+                              className="min-w-16"
+                              onPress={() => {
+                                field.onChange('replace')
+                              }}
+                            >
+                              {getText('replace')}
+                            </ariaComponents.Button>
+                          )}
                       </ariaComponents.Button.Group>
                     )
                   }}
@@ -643,34 +659,58 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
             </div>
 
             {!isLast && <ariaComponents.Separator className="my-2" />}
-          </>
+          </Fragment>
         )
       })}
 
-      <ariaComponents.Button.Group className="sticky bottom-0 w-full border-t border-primary/20 pt-4">
+      <ariaComponents.Button.Group
+        className={
+          'fixed bottom-0 left-0 right-0 border-t-0.5 border-primary/20 bg-background/90 px-3 py-4 backdrop-blur-md'
+        }
+      >
         <ariaComponents.Dialog.Close variant="ghost" onPress={props.onCancel} className="mr-auto">
           {getText('cancel')}
         </ariaComponents.Dialog.Close>
 
         <ariaComponents.Form.Controller name="conclusion">
           {({ form }) => (
-            <ariaComponents.Form.Submit
-              variant="outline"
-              className="min-w-20"
-              onPress={() => {
-                for (const asset of conflictingAssets) {
-                  form.setValue(`${asset.id}.conclusion`, 'skip')
-                }
-              }}
-            >
-              {getText('skipAll')}
-            </ariaComponents.Form.Submit>
+            <ariaComponents.Button.GroupJoin className="grow-0">
+              <ariaComponents.Button
+                variant="outline"
+                className="min-w-20"
+                onPress={() => {
+                  for (const asset of conflictingAssets) {
+                    console.log(asset, form.getValues(`${asset.id}.conclusion`))
+                    form.setValue(`${asset.id}.conclusion`, 'skip', { shouldDirty: true })
+                    console.log(asset, form.getValues(`${asset.id}.conclusion`))
+                  }
+                }}
+              >
+                {getText('skipAll')}
+              </ariaComponents.Button>
+
+              <ariaComponents.Menu.Trigger>
+                <ariaComponents.Button variant="outline" icon="folder_opened" />
+
+                <ariaComponents.Menu>
+                  <ariaComponents.Menu.Item
+                    onAction={() => {
+                      for (const asset of conflictingAssets) {
+                        const conclusion = form.getValues(`${asset.id}.conclusion`)
+
+                        if (conclusion == null) {
+                          form.setValue(`${asset.id}.conclusion`, 'skip')
+                        }
+                      }
+                    }}
+                  >
+                    {getText('skipRest')}
+                  </ariaComponents.Menu.Item>
+                </ariaComponents.Menu>
+              </ariaComponents.Menu.Trigger>
+            </ariaComponents.Button.GroupJoin>
           )}
         </ariaComponents.Form.Controller>
-
-        <ariaComponents.Button variant="outline" className="min-w-20">
-          {getText('replaceAll')}
-        </ariaComponents.Button>
 
         <ariaComponents.Form.Submit className="min-w-20">
           {getText('apply')}
