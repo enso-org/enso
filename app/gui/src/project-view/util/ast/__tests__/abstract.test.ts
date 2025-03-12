@@ -5,12 +5,14 @@ import {
   findModuleMethod,
   substituteIdentifier,
   substituteQualifiedName,
+  substituteQualifiedNameByPattern,
   subtrees,
   tryEnsoToNumber,
   tryNumberToEnso,
   unescapeTextLiteral,
   type Identifier,
 } from '@/util/ast/abstract'
+import { qnLastSegment } from '@/util/qualifiedName'
 import { fc, test } from '@fast-check/vitest'
 import { describe, expect } from 'vitest'
 import { BodyBlock } from 'ydoc-shared/ast'
@@ -959,12 +961,31 @@ test.each([
   ({ original, pattern, substitution, expected }) => {
     const expression = Ast.parseExpression(original) ?? Ast.parseStatement(original)
     assertDefined(expression)
-    const module = expression.module
-    module.setRoot(expression)
-    const edit = expression.module.edit()
-    substituteQualifiedName(expression, pattern as Ast.Identifier, substitution as Ast.Identifier)
-    module.applyEdit(edit)
-    expect(module.root()?.code()).toEqual(expected)
+    const result = substituteQualifiedNameByPattern(
+      expression,
+      pattern as Ast.Identifier,
+      substitution as Ast.Identifier,
+    )
+    expect(result.code()).toEqual(expected)
+  },
+)
+
+test.each([
+  {
+    original: 'Standard.Base.Vector Standard.Base.Number',
+    expected: 'Vector Number',
+  },
+  {
+    original: 'Standard.Base.Any.Any',
+    expected: 'Any',
+  },
+])(
+  'Substitute qualified name with function returning last segment in $original',
+  ({ original, expected }) => {
+    const expression = Ast.parseExpression(original)
+    assertDefined(expression)
+    const result = substituteQualifiedName(expression, (qn) => qnLastSegment(qn))
+    expect(result.code()).toEqual(expected)
   },
 )
 

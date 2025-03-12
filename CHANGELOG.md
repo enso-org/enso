@@ -38,6 +38,7 @@
   typing digits only, any names containing digits are not the best match
   anymore. Also unclosed text literals will be automatically closed.
 - [Use server side filtering and sorting in table viz][12272]. Table viz rows are lazly loaded and filtering/sorting is done serverside improving experience for large datasets. 
+- [Component Browser displays short summary of component's documentation][12459]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -62,6 +63,7 @@
 [12184]: https://github.com/enso-org/enso/pull/12184
 [12420]: https://github.com/enso-org/enso/pull/12420
 [12272]: https://github.com/enso-org/enso/pull/12272
+[12459]: https://github.com/enso-org/enso/pull/12459
 
 #### Enso Standard Library
 

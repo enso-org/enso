@@ -36,6 +36,7 @@ import {
   setExternalIds,
 } from 'ydoc-shared/ast'
 import { spanMapToIdMap, spanMapToSpanGetter } from 'ydoc-shared/ast/idMap'
+import { Opt } from 'ydoc-shared/util/data/opt'
 import { IdMap } from 'ydoc-shared/yjsModel'
 
 export * from 'ydoc-shared/ast'
@@ -203,21 +204,20 @@ export function substituteIdentifier(
 }
 
 /**
- * Substitute `pattern` inside `expression` with `to`.
- * Replaces identifier, the whole qualified name, or the beginning of the qualified name (first segments of property access chain).
+ * Substitute some qualified names in `expr`.
+ * @param substitution is called on every qualified name in `expr`, and if non-nullish value
+ *   is returned, it replaces this qualified name.
  */
 export function substituteQualifiedName(
   expr: MutableAst,
-  pattern: QualifiedName | IdentifierOrOperatorIdentifier,
-  to: QualifiedName,
-) {
+  substitution: (from: QualifiedName) => Opt<QualifiedName>,
+): Ast {
   if (expr instanceof MutablePropertyAccess || expr instanceof MutableIdent) {
     const qn = astToQualifiedName(expr)
-    if (qn === pattern) {
-      expr.updateValue(() => parseExpression(to, expr.module)!)
-    } else if (qn && qn.startsWith(pattern)) {
-      const withoutPattern = qn.replace(pattern, '')
-      expr.updateValue(() => parseExpression(to + withoutPattern, expr.module)!)
+    if (!qn) return expr
+    const replacement = substitution(qn)
+    if (replacement != null) {
+      return expr.updateValue(() => parseExpression(replacement, expr.module)!)
     }
   } else {
     for (const child of expr.children()) {
@@ -225,11 +225,30 @@ export function substituteQualifiedName(
         continue
       }
       const mutableChild = expr.module.getVersion(child)
-      substituteQualifiedName(mutableChild, pattern, to)
+      substituteQualifiedName(mutableChild, substitution)
     }
   }
+  return expr
 }
 
+/**
+ * Substitute `pattern` inside `expression` with `to`.
+ * Replaces identifier, the whole qualified name, or the beginning of the qualified name (first segments of property access chain).
+ */
+export function substituteQualifiedNameByPattern(
+  expr: MutableAst,
+  pattern: QualifiedName | IdentifierOrOperatorIdentifier,
+  to: QualifiedName,
+) {
+  return substituteQualifiedName(expr, (qn) => {
+    if (qn === pattern) {
+      return to
+    } else if (qn && qn.startsWith(pattern)) {
+      const withoutPattern = qn.replace(pattern, '')
+      return (to + withoutPattern) as QualifiedName
+    }
+  })
+}
 /**
  * Try to convert the number to an Enso value.
  *
