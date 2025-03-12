@@ -696,7 +696,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                         const conclusion = form.getValues(`${asset.id}.conclusion`)
 
                         if (conclusion == null) {
-                          form.setValue(`${asset.id}.conclusion`, 'skip')
+                          form.setValue(`${asset.id}.conclusion`, 'skip', { shouldDirty: true })
                         }
                       }
                     }}
