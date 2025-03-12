@@ -399,8 +399,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     localLibraryManager      = localLibraryManager,
     editionReferenceResolver = editionReferenceResolver,
     editionManager           = editionManager,
-    localLibraryProvider = DefaultLocalLibraryProvider
-      .make(libraryLocations, org.graalvm.nativeimage.ImageInfo.inImageCode()),
+    localLibraryProvider =
+      DefaultLocalLibraryProvider.make(libraryLocations, HostEnsoUtils.isAot()),
     publishedLibraryCache =
       PublishedLibraryCache.makeReadOnlyCache(libraryLocations),
     installerConfig = LibraryInstallerConfig(
