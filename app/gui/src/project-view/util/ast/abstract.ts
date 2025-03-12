@@ -215,7 +215,7 @@ export function substituteQualifiedName(
   if (expr instanceof MutablePropertyAccess || expr instanceof MutableIdent) {
     const qn = astToQualifiedName(expr)
     if (!qn) return expr
-    const replacement = substitution(qn) ?? undefined
+    const replacement = substitution(qn)
     if (replacement != null) {
       return expr.updateValue(() => parseExpression(replacement, expr.module)!)
     }
