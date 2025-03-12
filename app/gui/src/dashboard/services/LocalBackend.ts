@@ -152,6 +152,7 @@ export default class LocalBackend extends Backend {
   override async listDirectory(
     query: backend.ListDirectoryRequestParams,
   ): Promise<readonly backend.AnyAsset[]> {
+    const { rootPath = this.rootPath() } = query
     const parentIdRaw = query.parentId == null ? null : extractTypeAndId(query.parentId).id
     const parentId = query.parentId ?? newDirectoryId(this.projectManager.rootDirectory)
 
@@ -161,6 +162,43 @@ export default class LocalBackend extends Backend {
       const entries = await this.projectManager.listDirectory(parentIdRaw)
       result = entries
         .map((entry) => {
+          const virtualParentsPath = (() => {
+            let path = entry.path.replace(rootPath, '')
+
+            if (path.startsWith('/')) {
+              path = path.slice(1)
+            }
+
+            if (path.endsWith('/')) {
+              path = path.slice(0, -1)
+            }
+
+            return path
+          })()
+
+          const parentsPath = (() => {
+            const parentsPathArray: backend.DirectoryId[] = [newDirectoryId(rootPath)]
+            const splitPath = virtualParentsPath.split('/')
+
+            let previousPath = ''
+
+            for (const directory of splitPath) {
+              if (directory === '') {
+                continue
+              }
+
+              previousPath = backend.Path(previousPath + '/' + directory)
+
+              if (previousPath.endsWith('/')) {
+                previousPath = previousPath.slice(0, -1)
+              }
+
+              parentsPathArray.push(newDirectoryId(backend.Path(rootPath + previousPath)))
+            }
+
+            return parentsPathArray.slice(0, -1).join('/')
+          })()
+
           switch (entry.type) {
             case projectManager.FileSystemEntryType.DirectoryEntry: {
               const id = newDirectoryId(entry.path)
@@ -174,8 +212,8 @@ export default class LocalBackend extends Backend {
                 permissions: [],
                 projectState: null,
                 extension: null,
-                parentsPath: backend.ParentsPath(''),
-                virtualParentsPath: backend.VirtualParentsPath(''),
+                parentsPath: backend.ParentsPath(parentsPath),
+                virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
                 ensoPath: backend.EnsoPath(normalizePath(entry.path)),
               } satisfies backend.DirectoryAsset
             }
@@ -194,8 +232,8 @@ export default class LocalBackend extends Backend {
                   volumeId: '',
                 },
                 extension: null,
-                parentsPath: backend.ParentsPath(''),
-                virtualParentsPath: backend.VirtualParentsPath(''),
+                parentsPath: backend.ParentsPath(parentsPath),
+                virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
                 ensoPath: backend.EnsoPath(normalizePath(entry.path)),
               } satisfies backend.ProjectAsset
             }
@@ -209,8 +247,8 @@ export default class LocalBackend extends Backend {
                 permissions: [],
                 projectState: null,
                 extension: fileExtension(entry.path),
-                parentsPath: backend.ParentsPath(''),
-                virtualParentsPath: backend.VirtualParentsPath(''),
+                parentsPath: backend.ParentsPath(parentsPath),
+                virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
                 ensoPath: backend.EnsoPath(normalizePath(entry.path)),
               } satisfies backend.FileAsset
             }
