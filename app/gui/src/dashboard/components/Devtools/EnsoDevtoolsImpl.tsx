@@ -398,11 +398,11 @@ export function EnsoDevtools() {
                   <div className="flex items-center gap-1">
                     <Text variant="body">{title}</Text>
 
-                    <VisualTooltip tooltip="User specific storage item">
-                      {metadata.isUserSpecific === true && (
+                    {metadata.isUserSpecific === true && (
+                      <VisualTooltip tooltip="User specific storage item">
                         <Icon icon="default_user" size="small" />
-                      )}
-                    </VisualTooltip>
+                      </VisualTooltip>
+                    )}
                   </div>
 
                   <Button.Group
