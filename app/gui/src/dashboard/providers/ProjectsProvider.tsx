@@ -28,17 +28,19 @@ declare module '#/utilities/LocalStorage' {
 const PROJECT_ID_SCHEMA = z.custom<backendModule.ProjectId>(
   (x) => typeof x === 'string' && x.startsWith('project-'),
 )
+const DIRECTORY_ID_SCHEMA = z.custom<backendModule.DirectoryId>(
+  (x) => typeof x === 'string' && x.startsWith('directory-'),
+)
 const PROJECT_SCHEMA = z
   .object({
     id: PROJECT_ID_SCHEMA,
-    parentId: z.custom<backendModule.DirectoryId>(
-      (x) => typeof x === 'string' && x.startsWith('directory-'),
-    ),
+    parentId: DIRECTORY_ID_SCHEMA,
     title: z.string(),
     type: z.nativeEnum(backendModule.BackendType),
     hybrid: z.optional(
       z.object({
         cloudProjectId: PROJECT_ID_SCHEMA,
+        parentId: DIRECTORY_ID_SCHEMA,
       }),
     ),
   })
