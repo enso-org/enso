@@ -736,9 +736,9 @@ watchEffect(() => {
       rowData.value =
         data_.data ? createRowsForTable(data_.data, 0, data_.is_using_server_sort_and_filter) : []
     }
-      const headers = data_.header
-      if(headers) {
-        const headerGroupingMap = new Map()
+    const headers = data_.header
+    if (headers) {
+      const headerGroupingMap = new Map()
       if (data_.requires_number_format) {
         columnDefs.value.map((col) => {
           if (col.headerName === INDEX_FIELD_NAME) {
@@ -767,8 +767,8 @@ watchEffect(() => {
         })
       }
       dataGroupingMap.value = headerGroupingMap
-      }
     }
+  }
   // Update paging
   const newRowCount = data_.all_rows_count == null ? 1 : data_.all_rows_count
   showRowCount.value = !(data_.all_rows_count == null)

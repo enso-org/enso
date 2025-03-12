@@ -19,7 +19,7 @@ const props = defineProps<{
     overflow?: boolean
     toolbarOverflow?: boolean
     executeExpression: (
-      expressionFunction: (nodeIdentifier: any) => Ast.Owned<Ast.MutableOprApp>,
+      expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.Expression>,
     ) => any
   }
 }>()
@@ -55,7 +55,7 @@ provideVisualizationConfig({
   setToolbar: (items) => emit('updateToolbar', items),
   setToolbarOverlay: (overlay) => emit('updateToolbarOverlay', overlay),
   createNodes: (...nodes) => emit('createNodes', nodes),
-  executeExpression: (expressionFunction: (nodeIdentifier: any) => Ast.Owned<Ast.MutableOprApp>) =>
+  executeExpression: (expressionFunction: (nodeIdentifier: string) => Ast.Owned<Ast.Expression>) =>
     props.params.executeExpression(expressionFunction),
 })
 </script>
