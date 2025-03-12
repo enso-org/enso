@@ -8,7 +8,6 @@ import * as ariaComponents from '#/components/AriaComponents'
 import AssetSummary from '#/components/dashboard/AssetSummary'
 import Modal from '#/components/Modal'
 
-import type { AnyAsset } from '#/services/Backend'
 import * as backendModule from '#/services/Backend'
 
 import {
@@ -21,11 +20,13 @@ import {
   Separator,
   Text,
 } from '#/components/AriaComponents'
+import { Icon } from '#/components/Icon'
+import { assetFromCacheQueryOptions, listDirectoryQueryOptions } from '#/hooks/backendHooks'
+import { useCategory } from '#/layouts/Drive/Categories/categoriesHooks'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import * as fileInfo from '#/utilities/fileInfo'
 import * as object from '#/utilities/object'
 import {
-  queryOptions,
   useMutation,
   useQueryClient,
   useSuspenseQueries,
@@ -33,10 +34,6 @@ import {
 } from '@tanstack/react-query'
 import { Fragment } from 'react'
 import invariant from 'tiny-invariant'
-import { z } from 'zod'
-import { Icon } from '../components/Icon'
-import { listDirectoryQueryOptions } from '../hooks/backendHooks'
-import { useCategory } from '../layouts/Drive/Categories/categoriesHooks'
 
 // =============
 // === Types ===
@@ -386,7 +383,7 @@ export interface ReplaceDuplication {
 export interface ResolveDuplicationsProps {
   readonly targetId: backendModule.DirectoryId
   readonly conflictingIds: readonly backendModule.AssetId[]
-  readonly onResolve: (assets: readonly ResolvedDuplication[]) => Promise<void> | void
+  readonly onSubmit: (assets: readonly ResolvedDuplication[]) => Promise<void> | void
   readonly onCancel: () => void
 }
 
@@ -432,59 +429,18 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
       backend: associatedBackend,
       parentId: targetId,
     }),
-    // We use titles as keys, because they always unique, and we want to find duplicates by title.
     select: (data) => {
+      // We use titles as keys, because they always unique, and we want to find duplicates by title.
       const map = new Map(data.map((asset) => [asset.title, asset]))
-      return {
-        map,
-        siblings: data,
-      }
+      return { map, siblings: data }
     },
   })
 
   const conflictingAssets = useSuspenseQueries({
-    combine: (queries) => queries.map((query) => query.data).filter((asset) => asset != null),
     queries: conflictingIds.map((id) =>
-      queryOptions({
-        queryKey: [associatedBackend.type, 'asset', { id }],
-        gcTime: 0,
-        meta: { persist: false },
-        queryFn: () =>
-          queryClient
-            .getQueryCache()
-            .getAll()
-            .map((query) => {
-              const assetSchema = z
-                .object({
-                  id: z.string().refine((value) => value === id),
-                })
-                // eslint-disable-next-line no-restricted-syntax
-                .transform((data) => data as unknown as backendModule.AnyAsset)
-
-              const data = query.state.data
-
-              if (Array.isArray(data)) {
-                // eslint-disable-next-line no-restricted-syntax
-                const asset = data.find(
-                  (maybeAsset) => assetSchema.safeParse(maybeAsset).success,
-                ) as AnyAsset | undefined
-
-                if (asset != null) {
-                  return asset
-                }
-              }
-
-              const result = assetSchema.safeParse(data)
-
-              if (result.success) {
-                return result.data
-              }
-
-              return null
-            })
-            .filter((asset) => asset != null)[0],
-      }),
+      assetFromCacheQueryOptions({ backend: associatedBackend, assetId: id, queryClient }),
     ),
+    combine: (queries) => queries.map((query) => query.data).filter((asset) => asset != null),
   })
 
   return (
@@ -528,7 +484,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
           ),
         )
       }
-      onSubmit={(data) => props.onResolve(Object.values(data))}
+      onSubmit={(data) => props.onSubmit(Object.values(data))}
     >
       {({ form }) => (
         <>
@@ -723,13 +679,9 @@ export async function resolveDuplications(props: ResolveDuplicationsOptions) {
       <ResolveDuplicationsModal
         targetId={targetId}
         conflictingIds={conflictingIds}
-        onResolve={(result) => {
-          resolve(result)
-        }}
+        onSubmit={resolve}
         onCancel={reject}
       />,
     )
-  }).finally(() => {
-    unsetModal()
-  })
+  }).finally(unsetModal)
 }
