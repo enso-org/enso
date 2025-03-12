@@ -145,6 +145,7 @@ const nodeIdsWithOutputPorts = computed(() =>
           "
           @portClick="(event, portId) => graph.createEdgeFromOutput(portId, event)"
           @portDoubleClick="(_event, portId) => emit('outputPortDoubleClick', portId)"
+          @update:hover="graph.setNodeOutputHovered(id, $event)"
           @update:hoverAnim="graph.updateNodeOutputHoverAnim(id, $event)"
         />
       </template>

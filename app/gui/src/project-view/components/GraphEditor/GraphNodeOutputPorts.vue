@@ -15,6 +15,7 @@ const emit = defineEmits<{
   portClick: [event: PointerEvent, portId: AstId]
   portDoubleClick: [event: PointerEvent, portId: AstId]
   newNodeClick: [portId: AstId]
+  'update:hover': [hovered: boolean]
   'update:hoverAnim': [progress: number]
 }>()
 
@@ -85,6 +86,7 @@ const portsVisible = computed(
 
 const portsHoverAnimation = useApproach(() => (portsVisible.value ? 1 : 0), 50, 0.01)
 
+watchEffect(() => emit('update:hover', portsVisible.value))
 watchEffect(() => emit('update:hoverAnim', portsHoverAnimation.value))
 
 const hoverAnimations = new Map<AstId, [ReturnType<typeof useApproach>, EffectScope]>()
