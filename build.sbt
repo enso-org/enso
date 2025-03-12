@@ -966,7 +966,7 @@ lazy val pkg = (project in file("lib/scala/pkg"))
   .settings(
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
-    compileOrder := CompileOrder.ScalaThenJava,
+    mixedJavaScalaProjectSetting,
     version := "0.1",
     Compile / run / mainClass := Some("org.enso.pkg.Main"),
     libraryDependencies ++= Seq(

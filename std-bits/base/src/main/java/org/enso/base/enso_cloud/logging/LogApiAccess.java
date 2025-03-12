@@ -1,4 +1,4 @@
-package org.enso.base.enso_cloud.audit;
+package org.enso.base.enso_cloud.logging;
 
 import java.io.IOException;
 import java.net.URI;
@@ -23,9 +23,7 @@ import org.enso.base.enso_cloud.CloudAPI;
  * Gives access to the low-level log event API in the Cloud and manages asynchronously submitting
  * the logs.
  */
-class AuditLogApiAccess {
-  private static final Logger logger = Logger.getLogger(AuditLogApiAccess.class.getName());
-
+public final class LogApiAccess {
   /**
    * We still want to limit the batch size to some reasonable number - sending too many logs in one
    * request could also be problematic.
@@ -33,14 +31,15 @@ class AuditLogApiAccess {
   private static final int MAX_BATCH_SIZE = 100;
 
   private static final int MAX_RETRIES = 5;
-
-  public static AuditLogApiAccess INSTANCE = new AuditLogApiAccess();
+  private static final Logger LOGGER = Logger.getLogger(LogApiAccess.class.getName());
+  public static final LogApiAccess INSTANCE = new LogApiAccess();
 
   private HttpClient httpClient;
   private final LogJobsQueue logQueue = new LogJobsQueue();
   private final ThreadPoolExecutor backgroundThreadService;
+  private RequestConfig cachedRequestConfig = null;
 
-  private AuditLogApiAccess() {
+  private LogApiAccess() {
     // We set-up a thread 'pool' that will contain at most one thread.
     // If the thread is idle for 60 seconds, it will be shut down.
     backgroundThreadService =
@@ -57,6 +56,10 @@ class AuditLogApiAccess {
   public void logWithoutConfirmation(LogMessage message) {
     var currentRequestConfig = getRequestConfig();
     enqueueJob(new LogJob(message, null, currentRequestConfig));
+  }
+
+  public void resetCache() {
+    cachedRequestConfig = null;
   }
 
   private void enqueueJob(LogJob job) {
@@ -109,10 +112,10 @@ class AuditLogApiAccess {
     assert !batch.isEmpty() : "The batch must not be empty.";
     // We use the request config from the first message - all messages in the batch should have the
     // same request config.
-    var requestConfig = batch.get(0).requestConfig();
+    var requestConfig = batch.get(0).getRequestConfig();
     assert requestConfig != null
         : "The request configuration must be set before building a request.";
-    assert batch.stream().allMatch(job -> job.requestConfig().equals(requestConfig))
+    assert batch.stream().allMatch(job -> job.getRequestConfig().equals(requestConfig))
         : "All messages in a batch must have the same request configuration.";
 
     try {
@@ -129,10 +132,10 @@ class AuditLogApiAccess {
    * configs (when the config changes between tests). To send each message where it is intended, we
    * split up the batch by the config.
    */
-  Collection<List<LogJob>> splitMessagesByConfig(List<LogJob> messages) {
+  private Collection<List<LogJob>> splitMessagesByConfig(List<LogJob> messages) {
     HashMap<RequestConfig, List<LogJob>> hashMap = new HashMap<>();
     for (var message : messages) {
-      var list = hashMap.computeIfAbsent(message.requestConfig(), k -> new ArrayList<>());
+      var list = hashMap.computeIfAbsent(message.getRequestConfig(), k -> new ArrayList<>());
       list.add(message);
     }
 
@@ -141,16 +144,16 @@ class AuditLogApiAccess {
 
   private void notifyJobsAboutSuccess(List<LogJob> jobs) {
     for (var job : jobs) {
-      if (job.completionNotification() != null) {
-        job.completionNotification().complete(null);
+      if (job.getCompletionNotification() != null) {
+        job.getCompletionNotification().complete(null);
       }
     }
   }
 
   private void notifyJobsAboutFailure(List<LogJob> jobs, RequestFailureException e) {
     for (var job : jobs) {
-      if (job.completionNotification() != null) {
-        job.completionNotification().completeExceptionally(e);
+      if (job.getCompletionNotification() != null) {
+        job.getCompletionNotification().completeExceptionally(e);
       }
     }
   }
@@ -160,8 +163,8 @@ class AuditLogApiAccess {
         : "The request configuration must be set before building a request.";
     var payload = buildPayload(messages);
     return HttpRequest.newBuilder()
-        .uri(requestConfig.apiUri)
-        .header("Authorization", "Bearer " + requestConfig.accessToken)
+        .uri(requestConfig.apiUri())
+        .header("Authorization", "Bearer " + requestConfig.accessToken())
         .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
         .build();
   }
@@ -170,7 +173,7 @@ class AuditLogApiAccess {
     var payload = new StringBuilder();
     payload.append("{\"logs\": [");
     for (var message : messages) {
-      payload.append(message.message().payload()).append(",");
+      payload.append(message.getLogMessage().payload()).append(",");
     }
 
     // Remove the trailing comma.
@@ -178,8 +181,6 @@ class AuditLogApiAccess {
     payload.append("]}");
     return payload.toString();
   }
-
-  private RequestConfig cachedRequestConfig = null;
 
   /**
    * Builds a request configuration based on runtime information.
@@ -193,25 +194,11 @@ class AuditLogApiAccess {
     if (cachedRequestConfig != null) {
       return cachedRequestConfig;
     }
-
     var uri = URI.create(CloudAPI.getAPIRootURI() + "logs");
     var config = new RequestConfig(uri, AuthenticationProvider.getAccessToken());
     cachedRequestConfig = config;
     return config;
   }
-
-  /**
-   * Contains information needed to build a request to the Cloud Logs API.
-   *
-   * <p>This information must be gathered on the main Enso thread, as only there we have access to
-   * the {@link AuthenticationProvider}.
-   *
-   * <p>We associate an instance with every message to be sent. When sending multiple messages in a
-   * batch, we will use the config from one of them. This should not matter as in normal operations
-   * the configs will be the same, they only change during testing. Tests should this into account,
-   * by sending the last message in synchronous mode.
-   */
-  private record RequestConfig(URI apiUri, String accessToken) {}
 
   private void sendLogRequest(HttpRequest request, int retryCount) throws RequestFailureException {
     try {
@@ -232,37 +219,12 @@ class AuditLogApiAccess {
       }
     } catch (RequestFailureException e) {
       if (retryCount < 0) {
-        logger.severe("Failed to send log messages after retrying: " + e.getMessage());
+        LOGGER.severe("Failed to send log messages after retrying: " + e.getMessage());
         throw e;
       } else {
-        logger.warning("Exception when sending log messages: " + e.getMessage() + ". Retrying...");
+        LOGGER.warning("Exception when sending log messages: " + e.getMessage() + ". Retrying...");
         sendLogRequest(request, retryCount - 1);
       }
     }
-  }
-
-  interface LogMessage {
-    String payload();
-  }
-
-  static class RequestFailureException extends RuntimeException {
-    public RequestFailureException(String message, Throwable cause) {
-      super(message, cause);
-    }
-  }
-
-  /**
-   * A record that represents a single log to be sent.
-   *
-   * <p>It may contain the `completionNotification` future that will be completed when the log is
-   * sent. If no-one is listening for confirmation, that field will be `null`.
-   */
-  record LogJob(
-      LogMessage message,
-      CompletableFuture<Void> completionNotification,
-      RequestConfig requestConfig) {}
-
-  void resetCache() {
-    cachedRequestConfig = null;
   }
 }

@@ -8,6 +8,7 @@ import { type DeepReadonly } from 'vue'
 
 export interface DocumentationData {
   documentation: Doc.Section[]
+  docSummaryHtml: string | undefined
   aliases: string[]
   /** A name of a custom icon to use when displaying the entry. */
   iconName: Icon | undefined
@@ -19,7 +20,7 @@ export interface DocumentationData {
 
 function isTagNamed(tag: string) {
   return (section: Doc.Section): section is { Tag: Doc.Section.Tag } => {
-    return 'Tag' in section ? section.Tag.tag == tag : false
+    return 'Tag' in section && section.Tag.tag == tag
   }
 }
 
@@ -45,7 +46,18 @@ export function getGroupIndex(
   return index == null ? undefined : index
 }
 
-/** TODO: Add docs */
+/** @internal */
+export function getDocumentationSummary(sections: Doc.Section[]) {
+  const firstParagraph = sections.find(
+    (section): section is { Paragraph: Doc.Section.Paragraph } => 'Paragraph' in section,
+  )?.Paragraph.body
+  if (firstParagraph == null) return undefined
+  const endOfSummary = firstParagraph.search(/<\s*p|(?<=\.)\W/)
+  if (endOfSummary < 0) return firstParagraph
+  else return firstParagraph.substring(0, endOfSummary)
+}
+
+/** Retrieve {@link DocumentationData } from raw entry's documentation. */
 export function documentationData(
   documentation: Opt<string>,
   project: QualifiedName | undefined,
@@ -58,6 +70,7 @@ export function documentationData(
 
   return {
     documentation: parsed,
+    docSummaryHtml: getDocumentationSummary(parsed),
     iconName: iconName != null ? (iconName as Icon) : undefined,
     groupIndex,
     aliases:
