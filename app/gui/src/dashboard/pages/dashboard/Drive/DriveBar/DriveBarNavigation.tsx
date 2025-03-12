@@ -8,7 +8,7 @@ import { Scroller } from '#/components/Scroller/Scroller'
 import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { listDirectoryQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { AssetPanelToggle } from '#/layouts/AssetPanel'
+import { AssetPanelToggle, useSetAssetPanelDefaultItem } from '#/layouts/AssetPanel'
 import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import { useDriveStore } from '#/providers/DriveProvider'
@@ -16,7 +16,7 @@ import { useText } from '#/providers/TextProvider'
 import { isDirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
-import { useTransition } from 'react'
+import { useEffect, useTransition } from 'react'
 import { toast } from 'react-toastify'
 
 /**
@@ -30,6 +30,8 @@ export function DriveBarNavigation() {
 
   const { rootDirectoryId, currentDirectoryId, parentDirectoryId, setCurrentDirectoryId } =
     useDirectoryIds({ category })
+
+  const setAssetPanelDefaultItem = useSetAssetPanelDefaultItem()
 
   const driveStore = useDriveStore()
 
@@ -76,9 +78,14 @@ export function DriveBarNavigation() {
       return {
         parentsPath: directory.parentsPath + '/' + directory.id,
         virtualParentsPath: virtualParentsPath(),
+        asset: directory,
       }
     },
   })
+
+  useEffect(() => {
+    setAssetPanelDefaultItem(directoryData?.asset ?? null)
+  }, [directoryData?.asset, setAssetPanelDefaultItem])
 
   const { finalPath } = parseDirectoriesPath({
     parentsPath: directoryData?.parentsPath ?? '',
