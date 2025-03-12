@@ -86,10 +86,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
   const downloadAssetsMutation = reactQuery.useMutation(downloadAssetsMutationOptions(backend))
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
   const isCloud = categoryModule.isCloudCategory(category)
-  const path =
-    asset.ensoPath == null ? null
-    : isCloud ? encodeURI(asset.ensoPath)
-    : asset.ensoPath
+  const path = asset.ensoPathValue
   const copyMutation = copyHooks.useCopy({ copyText: path ?? '' })
   const uploadFileToCloudMutation = useUploadFileWithToastMutation(remoteBackend)
   const disabledTooltip = !canOpenProjects ? getText('downloadToOpenWorkflow') : undefined

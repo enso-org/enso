@@ -610,6 +610,9 @@ export default class RemoteBackend extends Backend {
         .map((asset) =>
           object.merge(asset, {
             permissions: [...(asset.permissions ?? [])].sort(backend.compareAssetPermissions),
+            ...(asset.ensoPath != null ?
+              { ensoPathValue: backend.EnsoPathValue(String(encodeURI(asset.ensoPath))) }
+            : {}),
           }),
         )
         .map((asset) => this.dynamicAssetUser(asset))

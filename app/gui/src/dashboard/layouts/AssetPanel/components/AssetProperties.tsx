@@ -151,10 +151,6 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
   const isSecret = item.type === AssetType.secret
   const isDatalink = item.type === AssetType.datalink
   const isCloud = backend.type === BackendType.remote
-  const path =
-    item.ensoPath == null ? null
-    : isCloud ? encodeURI(item.ensoPath)
-    : item.ensoPath
   const createDatalinkMutation = useMutation(backendMutationOptions(backend, 'createDatalink'))
   // Provide an extra `mutationKey` so that it has its own loading state.
   const editDescriptionMutation = useMutation(
@@ -265,7 +261,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
           </Heading>
           <table>
             <tbody>
-              {path != null && (
+              {item.ensoPath != null && item.ensoPathValue && (
                 <tr data-testid="asset-panel-permissions" className="h-row">
                   <td className="text my-auto min-w-side-panel-label p-0">
                     <Text>{getText('path')}</Text>
@@ -273,9 +269,9 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
                   <td className="w-full p-0">
                     <div className="flex items-center gap-2">
                       <Text className="w-0 grow" truncate="1">
-                        {decodeURI(path)}
+                        {item.ensoPath}
                       </Text>
-                      <CopyButton copyText={path} />
+                      <CopyButton copyText={item.ensoPathValue} />
                     </div>
                   </td>
                 </tr>

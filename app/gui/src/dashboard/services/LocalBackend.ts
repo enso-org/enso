@@ -199,57 +199,56 @@ export default class LocalBackend extends Backend {
             return parentsPathArray.slice(0, -1).join('/')
           })()
 
+          const ensoPathRaw = normalizePath(entry.path)
+          const ensoPath = backend.EnsoPath(ensoPathRaw)
+          const shared = {
+            permissions: [],
+            projectState: null,
+            extension: null,
+            parentsPath: backend.ParentsPath(parentsPath),
+            virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
+            ensoPath,
+            ensoPathValue: backend.EnsoPathValue(ensoPathRaw),
+          } satisfies Partial<backend.DirectoryAsset>
+
           switch (entry.type) {
             case projectManager.FileSystemEntryType.DirectoryEntry: {
               const id = newDirectoryId(entry.path)
 
               return {
+                ...shared,
                 id,
                 type: backend.AssetType.directory,
                 modifiedAt: entry.attributes.lastModifiedTime,
                 parentId,
                 title: getFileName(entry.path),
-                permissions: [],
-                projectState: null,
-                extension: null,
-                parentsPath: backend.ParentsPath(parentsPath),
-                virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
-                ensoPath: backend.EnsoPath(normalizePath(entry.path)),
               } satisfies backend.DirectoryAsset
             }
             case projectManager.FileSystemEntryType.ProjectEntry: {
               return {
+                ...shared,
                 type: backend.AssetType.project,
                 id: newProjectId(entry.metadata.id, extractTypeAndId(parentId).id),
                 title: entry.metadata.name,
                 modifiedAt: entry.metadata.lastOpened ?? entry.metadata.created,
                 parentId,
-                permissions: [],
                 projectState: {
                   type:
                     this.projectManager.projects.get(entry.metadata.id)?.state ??
                     backend.ProjectState.closed,
                   volumeId: '',
                 },
-                extension: null,
-                parentsPath: backend.ParentsPath(parentsPath),
-                virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
-                ensoPath: backend.EnsoPath(normalizePath(entry.path)),
               } satisfies backend.ProjectAsset
             }
             case projectManager.FileSystemEntryType.FileEntry: {
               return {
+                ...shared,
                 type: backend.AssetType.file,
                 id: newFileId(entry.path),
                 title: getFileName(entry.path),
                 modifiedAt: entry.attributes.lastModifiedTime,
                 parentId,
-                permissions: [],
-                projectState: null,
                 extension: fileExtension(entry.path),
-                parentsPath: backend.ParentsPath(parentsPath),
-                virtualParentsPath: backend.VirtualParentsPath(virtualParentsPath),
-                ensoPath: backend.EnsoPath(normalizePath(entry.path)),
               } satisfies backend.FileAsset
             }
           }

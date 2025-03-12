@@ -144,9 +144,13 @@ export const ParentsPath = newtype.newtypeConstructor<ParentsPath>()
 export type VirtualParentsPath = newtype.Newtype<string, 'VirtualParentsPath'>
 export const VirtualParentsPath = newtype.newtypeConstructor<VirtualParentsPath>()
 
-/** The path of directory names to this asset, including the root directory. */
+/** The path of this asset, including the root directory. */
 export type EnsoPath = newtype.Newtype<string, 'EnsoPath'>
 export const EnsoPath = newtype.newtypeConstructor<EnsoPath>()
+
+/** The path string of this asset, including the root directory. */
+export type EnsoPathValue = newtype.Newtype<string, 'EnsoPathValue'>
+export const EnsoPathValue = newtype.newtypeConstructor<EnsoPathValue>()
 
 const PLACEHOLDER_USER_GROUP_PREFIX = 'usergroup-placeholder-'
 
@@ -921,7 +925,10 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly extension: Type extends AssetType.file ? string : null
   readonly parentsPath: ParentsPath
   readonly virtualParentsPath: VirtualParentsPath
+  /** The display path. */
   readonly ensoPath?: EnsoPath
+  /** The actual path (URL encoded when on the Remote backend). */
+  readonly ensoPathValue?: EnsoPathValue
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
