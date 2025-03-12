@@ -17,7 +17,7 @@ import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { shallowEqual } from '#/utilities/array'
 import type AssetQuery from '#/utilities/AssetQuery'
-import { LABELS, setDragImageToBlank, type LabelsDragPayload } from '#/utilities/drag'
+import { setDragImageToBlank } from '#/utilities/drag'
 import { useMutation } from '@tanstack/react-query'
 import type { Dispatch, SetStateAction } from 'react'
 
@@ -86,9 +86,6 @@ export default function Labels(props: LabelsProps) {
                             return otherAsset ? [otherAsset] : []
                           })
                           setDragImageToBlank(event)
-                          const payloadLabels = [label.value]
-                          const payload: LabelsDragPayload = new Set(payloadLabels)
-                          LABELS.bind(event, payload)
                           let count = 0
                           for (const asset of selectedAssets) {
                             if (asset.labels?.includes(label.value) === true) {
@@ -98,7 +95,7 @@ export default function Labels(props: LabelsProps) {
                           setLabelsDragPayload({
                             typeWhenAppliedToSelection:
                               count * 2 < selectedAssets.length ? 'add' : 'remove',
-                            labels: payloadLabels,
+                            labels: [label.value],
                           })
                           setModal(
                             <DragModal
@@ -106,7 +103,7 @@ export default function Labels(props: LabelsProps) {
                               event={event}
                               className="w-0"
                               onDragEnd={() => {
-                                LABELS.unbind(payload)
+                                setLabelsDragPayload(null)
                               }}
                             >
                               <Label active color={label.color} onPress={() => {}}>
