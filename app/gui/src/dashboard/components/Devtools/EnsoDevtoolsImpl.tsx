@@ -52,6 +52,7 @@ import * as backend from '#/services/Backend'
 import LocalStorage, { type LocalStorageData } from '#/utilities/LocalStorage'
 import { unsafeKeys } from '#/utilities/object'
 import { safeJsonParse } from '#/utilities/safeJsonParse'
+import { toast } from 'react-toastify'
 import { Icon } from '../Icon'
 
 /** A component that provides a UI for toggling paywall features. */
@@ -342,8 +343,34 @@ export function EnsoDevtools() {
 
           <Separator orientation="horizontal" className="my-3" />
 
-          <div className="mb-2 flex w-full items-center justify-between">
+          <div className="mb-2 flex w-full items-center justify-between gap-3">
             <Text variant="subtitle">{getText('localStorage')}</Text>
+
+            <ariaComponents.TooltipTrigger>
+              <ariaComponents.CopyButton
+                className="ml-auto"
+                copyText={JSON.stringify(localStorageState, null, 2)}
+              />
+
+              <ariaComponents.Tooltip>
+                <ariaComponents.Text>Copy everything to clipboard</ariaComponents.Text>
+              </ariaComponents.Tooltip>
+            </ariaComponents.TooltipTrigger>
+
+            <ariaComponents.TooltipTrigger>
+              <Button
+                variant="icon"
+                size="small"
+                icon="paste"
+                onPress={async () => {
+                  const text = await navigator.clipboard.readText()
+                  localStorage.setManyFromUntrustedSource(safeJsonParse(text, null))
+                  toast.success('State pasted')
+                }}
+              />
+
+              <ariaComponents.Tooltip>Paste state from clipboard</ariaComponents.Tooltip>
+            </ariaComponents.TooltipTrigger>
 
             <Button
               aria-label={getText('deleteAll')}

@@ -70,7 +70,7 @@ export interface ComboBoxProps<Schema extends TSchema, TFieldName extends FieldP
       string
     >,
     FieldProps,
-    Pick<FieldComponentProps<Schema, TFieldName>, 'className' | 'style'>,
+    Pick<FieldComponentProps<Schema>, 'className' | 'style'>,
     VariantProps<typeof COMBO_BOX_STYLES>,
     Pick<InputProps<Schema, TFieldName, string>, 'addonEnd' | 'addonStart' | 'placeholder'> {
   /** This may change as the user types in the input. */

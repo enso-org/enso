@@ -16,14 +16,12 @@ import type * as types from './types'
 import type { FieldPath } from './types'
 
 /** Props for Field component */
-export interface FieldComponentProps<
-  Schema extends types.TSchema,
-  TFieldName extends FieldPath<Schema, string>,
-> extends VariantProps<typeof FIELD_STYLES>,
+export interface FieldComponentProps<Schema extends types.TSchema>
+  extends VariantProps<typeof FIELD_STYLES>,
     types.FieldProps {
   readonly 'data-testid'?: string | undefined
-
-  readonly name: TFieldName
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  readonly name: Path<types.FieldValues<Schema>, any>
   readonly form?: types.FormInstance<Schema> | undefined
   readonly isInvalid?: boolean | undefined
   readonly className?: string | undefined
@@ -63,10 +61,10 @@ export const FIELD_STYLES = tv({
 })
 
 /** Field component */
-export const Field = forwardRef(function Field<
-  Schema extends types.TSchema,
-  TFieldName extends FieldPath<Schema, string>,
->(props: FieldComponentProps<Schema, TFieldName>, ref: React.ForwardedRef<HTMLDivElement>) {
+export const Field = forwardRef(function Field<Schema extends types.TSchema>(
+  props: FieldComponentProps<Schema>,
+  ref: React.ForwardedRef<HTMLDivElement>,
+) {
   const {
     children,
     className,
@@ -140,7 +138,14 @@ export const Field = forwardRef(function Field<
         </span>
       )}
 
-      <FieldError error={error} id={errorId} name={props.name} form={props.form} />
+      <FieldError
+        error={error}
+        id={errorId}
+        /* This is SAFE, we are just using a type with added constraint. */
+        /* eslint-disable-next-line no-restricted-syntax */
+        name={props.name as types.FieldPath<Schema, string>}
+        form={props.form}
+      />
     </div>
   )
 })
@@ -156,7 +161,7 @@ export const FIELD_ERROR_STYLES = tv({
  */
 export interface FieldErrorProps<
   Schema extends types.TSchema,
-  TFieldName extends types.FieldPath<Schema>,
+  TFieldName extends types.FieldPath<Schema, string>,
 > extends React.HTMLAttributes<HTMLSpanElement>,
     VariantProps<typeof FIELD_ERROR_STYLES> {
   readonly error?: React.ReactNode | string | null | undefined
@@ -170,11 +175,13 @@ export interface FieldErrorProps<
  */
 export function FieldError<
   Schema extends types.TSchema,
-  TFieldName extends types.FieldPath<Schema>,
+  TFieldName extends types.FieldPath<Schema, string>,
 >(props: FieldErrorProps<Schema, TFieldName>) {
   const { error, className, id, variants = FIELD_ERROR_STYLES, fullWidth, ...rest } = props
 
-  const fieldState = Form.useFieldState(props)
+  // This is SAFE, we are just using a type with added constraint.
+  // eslint-disable-next-line no-restricted-syntax
+  const fieldState = Form.useFieldState(props as never)
 
   const hasError = (error !== undefined ? error : fieldState.error) != null
 

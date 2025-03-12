@@ -3,8 +3,7 @@
  *
  * Barrel file for form components.
  */
-export { useWatch } from 'react-hook-form'
-export * from './Controller'
+export { Controller, useWatch } from 'react-hook-form'
 export * from './Field'
 export * from './FieldValue'
 export * from './FormError'

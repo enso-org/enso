@@ -374,6 +374,9 @@ export interface RenameDuplication {
  */
 export interface ReplaceDuplication {
   readonly assetId: backendModule.AssetId
+  /**
+   * Requires backend to support that.
+   */
   readonly conclusion: 'replace'
 }
 
@@ -527,131 +530,136 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
       }
       onSubmit={(data) => props.onResolve(Object.values(data))}
     >
-      <Text elementType="p">
-        {conflictingIds.length === 1 ?
-          getText('resolveDuplicatesDescriptionOne')
-        : getText('resolveDuplicatesDescriptionMany', conflictingIds.length)}
-      </Text>
+      {({ form }) => (
+        <>
+          <Text elementType="p">
+            {conflictingIds.length === 1 ?
+              getText('resolveDuplicatesDescriptionOne')
+            : getText('resolveDuplicatesDescriptionMany', conflictingIds.length)}
+          </Text>
 
-      {conflictingAssets.map((asset, index, array) => {
-        const isLast = index === array.length - 1
-        const sibling = siblingFiles.map.get(asset.title)
+          {conflictingAssets.map((asset, index, array) => {
+            const isLast = index === array.length - 1
+            const sibling = siblingFiles.map.get(asset.title)
 
-        invariant(sibling != null, 'Sibling was not found, this should never happen.')
+            invariant(sibling != null, 'Sibling was not found, this should never happen.')
 
-        return (
-          <Fragment key={asset.id}>
-            <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] grid-rows-[auto_auto_auto] gap-2">
-              <AssetSummary asset={asset} new />
+            return (
+              <Fragment key={asset.id}>
+                <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] grid-rows-[auto_auto_auto] gap-2">
+                  <AssetSummary asset={asset} new />
 
-              <Icon icon="arrow_right" size="medium" className="self-center" />
+                  <Icon icon="arrow_right" size="medium" className="self-center" />
 
-              <AssetSummary asset={sibling} />
+                  <AssetSummary asset={sibling} />
 
-              <Button.Group className="col-span-full row-span-2 mt-1">
-                <Form.Controller name={`${asset.id}.conclusion`}>
-                  {({ field, fieldState, form }) => {
-                    if (fieldState.isDirty) {
-                      return (
-                        <div className="flex items-center gap-2">
-                          {field.value === 'skip' && <Text>{getText('assetWillBeSkipped')}</Text>}
-
-                          {field.value === 'rename' && (
-                            <Form.FieldValue name={`${asset.id}.newName`}>
-                              {(value: string) => (
-                                <Text>{getText('assetWillBeRenamed', value)}</Text>
+                  <Button.Group className="col-span-full row-span-2 mt-1">
+                    <Form.Controller
+                      control={form.control}
+                      name={`${asset.id}.conclusion`}
+                      render={({ field, fieldState }) => {
+                        if (fieldState.isDirty) {
+                          return (
+                            <div className="flex items-center gap-2">
+                              {field.value === 'skip' && (
+                                <Text>{getText('assetWillBeSkipped')}</Text>
                               )}
-                            </Form.FieldValue>
-                          )}
 
-                          {field.value === 'replace' && (
-                            <Text>{getText('assetWillBeReplaced')}</Text>
-                          )}
+                              {field.value === 'rename' && (
+                                <Form.FieldValue name={`${asset.id}.newName`}>
+                                  {(value: string) => (
+                                    <Text>{getText('assetWillBeRenamed', value)}</Text>
+                                  )}
+                                </Form.FieldValue>
+                              )}
 
-                          <Button
-                            variant="link"
-                            onPress={() => {
-                              form.resetField(`${asset.id}.conclusion`)
-                            }}
-                          >
-                            {getText('change')}
-                          </Button>
-                        </div>
-                      )
-                    }
+                              {field.value === 'replace' && (
+                                <Text>{getText('assetWillBeReplaced')}</Text>
+                              )}
 
-                    return (
-                      <Button.Group buttonVariants={{ size: 'xsmall' }}>
-                        <Button
-                          variant="outline"
-                          className="min-w-16"
-                          onPress={() => {
-                            field.onChange('skip')
-                          }}
-                        >
-                          {getText('skip')}
-                        </Button>
+                              <Button
+                                variant="link"
+                                onPress={() => {
+                                  form.resetField(`${asset.id}.conclusion`)
+                                }}
+                              >
+                                {getText('change')}
+                              </Button>
+                            </div>
+                          )
+                        }
 
-                        <Popover.Trigger>
-                          <Button variant="primary" className="min-w-16">
-                            {getText('rename')}
-                          </Button>
-
-                          <Popover placement="bottom start">
-                            <Form
-                              method="dialog"
-                              defaultValues={{ newName: asset.title + NEW_TITLE_SUFFIX }}
-                              schema={(schema) =>
-                                schema.object({
-                                  newName: backendModule.titleSchema({
-                                    asset,
-                                    siblings: siblingFiles.siblings,
-                                  }),
-                                })
-                              }
-                              onSubmit={(value) => {
-                                field.onChange('rename')
-                                form.setValue(`${asset.id}.newName`, value.newName)
+                        return (
+                          <Button.Group buttonVariants={{ size: 'xsmall' }}>
+                            <Button
+                              variant="outline"
+                              className="min-w-16"
+                              onPress={() => {
+                                field.onChange('skip')
                               }}
                             >
-                              <Text>{getText('newNameDescription')}</Text>
+                              {getText('skip')}
+                            </Button>
 
-                              <Input label={getText('newName')} name="newName" autoFocus />
+                            <Popover.Trigger>
+                              <Button variant="primary" className="min-w-16">
+                                {getText('rename')}
+                              </Button>
 
-                              <Form.Submit>{getText('apply')}</Form.Submit>
+                              <Popover placement="bottom start">
+                                <Form
+                                  method="dialog"
+                                  defaultValues={{ newName: asset.title + NEW_TITLE_SUFFIX }}
+                                  schema={(schema) =>
+                                    schema.object({
+                                      newName: backendModule.titleSchema({
+                                        asset,
+                                        siblings: siblingFiles.siblings,
+                                      }),
+                                    })
+                                  }
+                                  onSubmit={(value) => {
+                                    field.onChange('rename')
+                                    form.setValue(`${asset.id}.newName`, value.newName)
+                                  }}
+                                >
+                                  <Text>{getText('newNameDescription')}</Text>
 
-                              <Form.FormError />
-                            </Form>
-                          </Popover>
-                        </Popover.Trigger>
-                      </Button.Group>
-                    )
-                  }}
-                </Form.Controller>
-              </Button.Group>
+                                  <Input label={getText('newName')} name="newName" autoFocus />
 
-              <Form.FieldError
-                className="col-span-full row-span-3"
-                name={`${asset.id}.conclusion`}
-              />
-            </div>
+                                  <Form.Submit>{getText('apply')}</Form.Submit>
 
-            {!isLast && <Separator className="my-2" />}
-          </Fragment>
-        )
-      })}
+                                  <Form.FormError />
+                                </Form>
+                              </Popover>
+                            </Popover.Trigger>
+                          </Button.Group>
+                        )
+                      }}
+                    />
+                  </Button.Group>
 
-      <Button.Group
-        className={
-          'fixed bottom-0 left-0 right-0 border-t-0.5 border-primary/20 bg-background/90 px-3 py-4 backdrop-blur-md'
-        }
-      >
-        <Dialog.Close variant="ghost" onPress={props.onCancel} className="mr-auto">
-          {getText('cancel')}
-        </Dialog.Close>
+                  <Form.FieldError
+                    form={form}
+                    className="col-span-full row-span-3"
+                    name={`${asset.id}.conclusion` as const}
+                  />
+                </div>
 
-        <Form.Controller name="conclusion">
-          {({ form }) => (
+                {!isLast && <Separator className="my-2" />}
+              </Fragment>
+            )
+          })}
+
+          <Button.Group
+            className={
+              'fixed bottom-0 left-0 right-0 border-t-0.5 border-primary/20 bg-background/90 px-3 py-4 backdrop-blur-md'
+            }
+          >
+            <Dialog.Close variant="ghost" onPress={props.onCancel} className="mr-auto">
+              {getText('cancel')}
+            </Dialog.Close>
+
             <Button.GroupJoin className="grow-0">
               <Button
                 variant="outline"
@@ -674,6 +682,8 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                       for (const asset of conflictingAssets) {
                         const conclusion = form.getValues(`${asset.id}.conclusion`)
 
+                        // The value COULD be `null` or `undefined`, might be unset by the moment
+                        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                         if (conclusion == null) {
                           form.setValue(`${asset.id}.conclusion`, 'skip', { shouldDirty: true })
                         }
@@ -685,13 +695,13 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                 </Menu>
               </Menu.Trigger>
             </Button.GroupJoin>
-          )}
-        </Form.Controller>
 
-        <Form.Submit className="min-w-20">{getText('apply')}</Form.Submit>
-      </Button.Group>
+            <Form.Submit className="min-w-20">{getText('apply')}</Form.Submit>
+          </Button.Group>
 
-      <Form.FormError />
+          <Form.FormError />
+        </>
+      )}
     </Form>
   )
 }
