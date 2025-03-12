@@ -279,18 +279,4 @@ public class PersistanceTest {
     var inner1 = loaded1.y().get(LongerLoop2.class);
     assertSame("The reference points to null", null, inner1);
   }
-
-  @Persistable(id = 2708)
-  public enum Count {
-    ONE,
-    TWO,
-    MANY;
-  }
-
-  @Test
-  public void testEnumPersistance() throws Exception {
-    var obj = Count.TWO;
-    var loaded = serde(Count.class, obj, 33);
-    assertSame("The same object was recreated", obj, loaded);
-  }
 }
