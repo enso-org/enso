@@ -159,6 +159,7 @@ make_filter_condition_selector table display:Display=..Always cache=Nothing =
             builder.append (Option "Ends With" "..Ends_With" [["suffix", column_chooser]])
             builder.append (Option "Contains" "..Contains" [["substring", column_chooser]])
             builder.append (Option "Like" "..Like" [["pattern", column_chooser]])
+            builder.append (Option "Regex Match" "..Regex_Match" [["pattern", column_chooser]])
 
         builder.append (Option "Is Nothing" "..Is_Nothing")
         builder.append (Option "Is Not Nothing" "..Not_Nothing")

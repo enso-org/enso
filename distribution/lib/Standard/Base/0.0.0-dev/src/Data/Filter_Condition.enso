@@ -135,6 +135,9 @@ type Filter_Condition
          's\u0301' will not be matched.
     Like (pattern = (Missing_Argument.throw "pattern")) keep_or_remove:Filter_Action=..Keep
 
+    ## TODO
+    Regex_Match (pattern = (Missing_Argument.throw "pattern")) keep_or_remove:Filter_Action=..Keep
+
     ## Is the value contained in `values`?
 
        ? Table Operations
@@ -159,6 +162,7 @@ type Filter_Condition
         Filter_Condition.Ends_With _ _ action -> action
         Filter_Condition.Contains _ _ action -> action
         Filter_Condition.Like _ action -> action
+        Filter_Condition.Regex_Match _ action -> action
         Filter_Condition.Is_In _ action -> action
         _ -> Filter_Action.Keep
 
@@ -276,6 +280,7 @@ type Filter_Condition
                 builder.append (Option "Ends With" "..Ends_With" [["suffix", Widget.Text_Input]])
                 builder.append (Option "Contains" "..Contains" [["substring", Widget.Text_Input]])
                 builder.append (Option "Like" "..Like" [["pattern", Widget.Text_Input]])
+                builder.append (Option "Regex Match" "..Regex_Match" [["pattern", Widget.Text_Input]])
 
             if include_nullable then
                 builder.append (Option "Is Nothing" "..Is_Nothing")
