@@ -98,7 +98,7 @@ export function compareSuggestions(a: MatchedSuggestion, b: MatchedSuggestion): 
 }
 
 /** Create {@link Component} from information about suggestion and matching. */
-function makeComponent(id: number, entry: SuggestionEntry, match: MatchResult): Component {
+export function makeComponent({ id, entry, match }: MatchedSuggestion): Component {
   return {
     ...formatLabel(labelOfEntry(entry, match)),
     suggestionId: id,
@@ -117,7 +117,7 @@ export type GroupId = 'all' | 'suggestions' | number
 export function makeComponentLists(
   db: SuggestionDb,
   filtering: Filtering,
-): Map<GroupId, Component[]> {
+): Map<GroupId, ReadonlyArray<Component>> {
   function* matchSuggestions() {
     const additionalSelfTypes: ProjectPath[] = []
     if (filtering.selfArg?.type === 'known') {
@@ -129,34 +129,35 @@ export function makeComponentLists(
       if (!entry) continue
       const match = filtering.filter(entry, additionalSelfTypes)
       if (isSome(match)) {
-        yield { id, entry, match }
+        const component = makeComponent({ id, entry, match })
+        yield { id, entry, match, component }
       }
     }
   }
   const matched = Array.from(matchSuggestions()).sort(compareSuggestions)
   const groups = new Map<GroupId, Component[]>()
-  const allGroup: Component[] = []
-  const suggestionsGroup: SuggestedComponent[] = []
-  // Pre-set special groups, as they should go before any other group.
-  groups.set('all', allGroup)
-  groups.set('suggestions', suggestionsGroup)
-
-  for (const { id, entry, match } of matched) {
-    const component = makeComponent(id, entry, match)
-    allGroup.push(component)
-    if (filtering.pattern == null && entry.suggestedRank != null) {
-      suggestionsGroup.push({ rank: entry.suggestedRank, ...component })
-    }
-    if (entry.groupIndex != null) {
-      const list = map.setIfUndefined(groups, entry.groupIndex, (): Component[] => [])
-      list.push(component)
+  const suggested: SuggestedComponent[] = []
+  if (filtering.pattern == null) {
+    for (const { entry, component } of matched) {
+      if (entry.suggestedRank != null) {
+        suggested.push({ rank: entry.suggestedRank, ...component })
+      }
     }
   }
-  if (suggestionsGroup.length > 0) {
-    suggestionsGroup.sort((a, b) => a.rank - b.rank)
-    groups.delete('all')
+  if (suggested.length > 0) {
+    suggested.sort((a, b) => a.rank - b.rank)
+    groups.set('suggestions', suggested)
   } else {
-    groups.delete('suggestions')
+    groups.set(
+      'all',
+      Array.from(matched, ({ component }) => component),
+    )
+  }
+
+  for (const { entry, component } of matched) {
+    if (entry.groupIndex != null) {
+      map.setIfUndefined(groups, entry.groupIndex, (): Component[] => []).push(component)
+    }
   }
 
   return groups

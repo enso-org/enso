@@ -2,6 +2,7 @@ import { mockProjectNameStore } from '@/stores/projectNames'
 import {
   getDocumentationSummary,
   getGroupIndex,
+  getSuggestedRank,
   tagValue,
 } from '@/stores/suggestionDatabase/documentation'
 import { unwrap } from '@/util/data/result'
@@ -57,4 +58,15 @@ test.each`
 `('Getting summary from docs case %#', ({ docstring, expectedSummary }) => {
   const sections = parseDocs(docstring)
   expect(getDocumentationSummary(sections)).toBe(expectedSummary)
+})
+
+test.each`
+  docstring                           | expectedRank
+  ${'No tags'}                        | ${undefined}
+  ${'SUGGESTED 1\n\nDocs'}            | ${1}
+  ${'SUGGESTED\n\nDocs'}              | ${Infinity}
+  ${'SUGGESTED Not a number\n\nDocs'} | ${Infinity}
+`('Parsing Suggested rank case %#', ({ docstring, expectedRank }) => {
+  const sections = parseDocs(docstring)
+  expect(getSuggestedRank(sections)).toBe(expectedRank)
 })

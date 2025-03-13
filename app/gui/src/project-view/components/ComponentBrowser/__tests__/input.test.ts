@@ -43,7 +43,6 @@ test.each`
   ${"'text"}     | ${"'text'"}
   ${"'''text"}   | ${"'''text"}
 `('Reading literal from $inputContent', ({ inputContent, expectedLiteral }) => {
-  console.log(parseExpression(inputContent))
   const input = useComponentBrowserInput(mockGraphDb(), new SuggestionDb(), aiMock)
   input.reset({ type: 'newNode' })
   input.content = { text: inputContent, selection: Range.empty }

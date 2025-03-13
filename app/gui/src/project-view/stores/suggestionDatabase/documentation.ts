@@ -59,6 +59,16 @@ export function getDocumentationSummary(sections: Doc.Section[]) {
   else return firstParagraph.substring(0, endOfSummary)
 }
 
+/** @internal */
+export function getSuggestedRank(sections: Doc.Section[]): number | undefined {
+  const str = tagValue(sections, 'Suggested')
+  if (str == null) return
+  const rank = parseFloat(str)
+  // Rank which is not a number is placed last.
+  if (isNaN(rank)) return Infinity
+  return rank
+}
+
 /** Retrieve {@link DocumentationData } from raw entry's documentation. */
 export function documentationData(
   documentation: Opt<string>,
@@ -69,7 +79,6 @@ export function documentationData(
   const groupName = tagValue(parsed, 'Group')
   const groupIndex = groupName && project ? getGroupIndex(groupName, project, groups) : undefined
   const iconName = tagValue(parsed, 'Icon')
-  const suggestedRank = tagValue(parsed, 'Suggested')
 
   return {
     documentation: parsed,
@@ -82,7 +91,7 @@ export function documentationData(
         .split(/\s*,\s*/g) ?? [],
     isPrivate: isSome(tagValue(parsed, 'Private')),
     isUnstable: isSome(tagValue(parsed, 'Unstable')) || isSome(tagValue(parsed, 'Advanced')),
-    suggestedRank: suggestedRank != null ? parseFloat(suggestedRank) : undefined,
+    suggestedRank: getSuggestedRank(parsed),
   }
 }
 
