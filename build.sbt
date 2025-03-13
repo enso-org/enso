@@ -162,7 +162,10 @@ GatherLicenses.distributions := Seq(
     Distribution.sbtProjects(`project-manager`)
   ),
   makeStdLibDistribution("Base", Distribution.sbtProjects(`std-base`)),
-  makeStdLibDistribution("Generic_JDBC", Distribution.sbtProjects(`std-generic-jdbc`)),
+  makeStdLibDistribution(
+    "Generic_JDBC",
+    Distribution.sbtProjects(`std-generic-jdbc`)
+  ),
   makeStdLibDistribution(
     "Google_Api",
     Distribution.sbtProjects(`std-google-api`)
@@ -4645,8 +4648,10 @@ val `base-polyglot-root`  = stdLibComponentRoot("Base") / "polyglot" / "java"
 val `table-polyglot-root` = stdLibComponentRoot("Table") / "polyglot" / "java"
 val `image-polyglot-root` = stdLibComponentRoot("Image") / "polyglot" / "java"
 val `image-native-libs`   = stdLibComponentRoot("Image") / "polyglot" / "lib"
-val `generic-jdbc-polyglot-root` = stdLibComponentRoot("Generic_JDBC") / "polyglot" / "java"
-val `generic-jdbc-native-libs`   = stdLibComponentRoot("Generic_JDBC") / "polyglot" / "lib"
+val `generic-jdbc-polyglot-root` =
+  stdLibComponentRoot("Generic_JDBC") / "polyglot" / "java"
+val `generic-jdbc-native-libs` =
+  stdLibComponentRoot("Generic_JDBC") / "polyglot" / "lib"
 val `google-api-polyglot-root` =
   stdLibComponentRoot("Google_Api") / "polyglot" / "java"
 val `google-api-native-libs` =
@@ -4937,7 +4942,7 @@ lazy val `std-generic-jdbc` = project
       `generic-jdbc-polyglot-root` / "std-generic-jdbc.jar",
     libraryDependencies ++= Seq(
       "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion % "provided",
-      "org.netbeans.api"           % "org-openide-util-lookup" % netbeansApiVersion % "provided",
+      "org.netbeans.api"     % "org-openide-util-lookup" % netbeansApiVersion        % "provided"
     ),
     Compile / packageBin := {
       val result = (Compile / packageBin).value
