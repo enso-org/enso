@@ -433,7 +433,7 @@ function getFilterType(valueType: string) {
 
 function getFilterOptions(valueType: string) {
   if (valueType === 'Date') {
-    return ['equals', 'notEqual', 'greaterThan', 'lessThan', 'inRange', 'blank', 'notBlank']
+    return ['equals', 'notEqual', 'greaterThan', 'lessThan', 'blank', 'notBlank']
   } else if (isNumericType(valueType)) {
     return [
       'equals',
@@ -442,7 +442,6 @@ function getFilterOptions(valueType: string) {
       'greaterThanOrEqual',
       'lessThan',
       'lessThanOrEqual',
-      'inRange',
       'blank',
       'notBlank',
     ]
