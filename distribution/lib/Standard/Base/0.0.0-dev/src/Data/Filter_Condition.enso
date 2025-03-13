@@ -261,7 +261,7 @@ type Filter_Condition
         "Filter Condition: " + condition + (if self.action == Filter_Action.Keep then "" else " (Remove)")
 
     ## PRIVATE
-       Creates a Single_Choice Widget for delimiters.
+       Creates a Single_Choice Widget for Filter_Conditions.
     default_widget include_comparable:Boolean=True include_text:Boolean=True include_boolean:Boolean=True include_nullable:Boolean=True include_numeric:Boolean=True include_date:Boolean=True include_time:Boolean=True include_date_time:Boolean=True display:Display=..When_Modified -> Widget =
         options = Vector.build builder->
             equatable_types = make_any_selector add_text=include_text add_boolean=include_boolean add_number=include_numeric add_date=include_date add_time=include_time add_date_time=include_date_time

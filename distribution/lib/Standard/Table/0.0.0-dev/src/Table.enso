@@ -2034,7 +2034,7 @@ type Table
     expand_to_rows self (column : Text | Integer) at_least_one_row:Boolean=False -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds =
         Expand_Objects_Helpers.expand_to_rows self column at_least_one_row sequences_only=False
 
-    ## ALIAS filter rows, where
+    ## ALIAS filter rows, where, regex
        GROUP Standard.Base.Selections
        ICON preparation
 
