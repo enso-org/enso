@@ -349,10 +349,3 @@ handle_nothing : (Any -> Boolean) -> (Any -> Boolean)
 handle_nothing f = elem-> case elem of
     Nothing -> False
     _ -> f elem
-
-
-_get_regex_matcher pattern =
-    compiled_regex = case pattern of
-        Regex.Value _ _ -> pattern
-        _ -> Regex.compile pattern
-    compiled_regex.matches
