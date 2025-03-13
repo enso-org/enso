@@ -30,7 +30,6 @@ import {
 } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
-import { useFullUserSession } from '#/providers/AuthProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
 import { useMutation } from '@tanstack/react-query'
@@ -69,7 +68,6 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     doPaste,
   } = props
 
-  const { user } = useFullUserSession()
   const { setModal, unsetModal } = useSetModal()
   const { getText } = useText()
 
@@ -85,7 +83,7 @@ export default function AssetsTableContextMenu(props: AssetsTableContextMenuProp
     const effectivePasteData =
       (
         pasteData?.data.backendType === backend.type &&
-        canTransferBetweenCategories(pasteData.data.category, category, user)
+        canTransferBetweenCategories(pasteData.data.category, category)
       ) ?
         pasteData
       : null

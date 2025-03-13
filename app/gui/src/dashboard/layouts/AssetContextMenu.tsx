@@ -180,6 +180,8 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
       doAction={() => {
         const directoryId =
           asset.type === backendModule.AssetType.directory ? asset.id : asset.parentId
+
+        console.log('directoryId', directoryId)
         doPaste(directoryId, directoryId)
       }}
     />

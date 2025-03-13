@@ -44,7 +44,6 @@ import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
-import { useFullUserSession } from '#/providers/AuthProvider'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { useSetModal } from '#/providers/ModalProvider'
@@ -79,7 +78,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
   const isCloud = isCloudCategory(category)
   const { isOffline } = useOffline()
-  const { user } = useFullUserSession()
   const canDownload = useCanDownload()
 
   const { currentDirectoryId, rootDirectoryId } = useDirectoryIds({ category })
@@ -99,7 +97,7 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const effectivePasteData =
     (
       pasteData?.data.backendType === backend.type &&
-      canTransferBetweenCategories(pasteData.data.category, category, user)
+      canTransferBetweenCategories(pasteData.data.category, category)
     ) ?
       pasteData
     : null
