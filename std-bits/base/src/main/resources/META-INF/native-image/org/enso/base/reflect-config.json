@@ -63,6 +63,16 @@
         "name": "org.enso.base.arrays.LongArrayList"
     },
     {
+        "name": "org.enso.base.cache.LRUCache",
+        "allPublicMethods": true,
+        "allPublicConstructors": true
+    },
+    {
+        "name": "org.enso.base.cache.LRUCacheSettings",
+        "allPublicMethods": true,
+        "allPublicConstructors": true
+    },
+    {
         "name": "org.enso.base.encoding.DecodingProblem"
     },
     {
@@ -96,13 +106,31 @@
         "name": "org.enso.base.enso_cloud.DataLinkSPI"
     },
     {
+        "name": "org.enso.base.enso_cloud.EnsoHTTPResponseCache",
+        "methods": [
+            {
+                "name": "setLRUCache",
+                "parameterTypes": ["org.enso.base.cache.LRUCache"]
+            },
+            {
+                 "name": "getLRUCache"
+            }
+        ]
+    },
+    {
         "name": "org.enso.base.enso_cloud.EnsoSecretAccessDenied"
     },
     {
         "name": "org.enso.base.enso_cloud.EnsoSecretHelper"
     },
     {
-        "name": "org.enso.base.enso_cloud.ExternalLibrarySecretHelper"
+        "name": "org.enso.base.enso_cloud.ExternalLibrarySecretHelper",
+        "methods": [
+            {
+                "name": "resolveValue",
+                "parameterTypes": ["org.enso.base.enso_cloud.HideableValue"]
+            }
+        ]
     },
     {
         "name": "org.enso.base.enso_cloud.HideableValue"
@@ -402,6 +430,57 @@
             {
                 "name": "log",
                 "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "java.security.KeyStore",
+        "methods": [
+            {
+                "name": "getInstance",
+                "parameterTypes": ["java.lang.String"]
+            },
+            {
+                "name": "load",
+                "parameterTypes": ["java.io.InputStream", "char[]"]
+            },
+            {
+                "name": "load",
+                "parameterTypes": ["java.security.KeyStore.LoadStoreParameter"]
+            }
+        ]
+    },
+    {
+        "name": "javax.net.ssl.TrustManagerFactory",
+        "methods": [
+            {
+                "name": "getInstance",
+                "parameterTypes": ["java.lang.String"]
+            },
+            {
+                "name": "init",
+                "parameterTypes": ["java.security.KeyStore"]
+            },
+            {
+                "name": "getTrustManagers",
+                "parameterTypes": []
+            },
+            {
+                "name": "getDefaultAlgorithm",
+                "parameterTypes": []
+            }
+        ]
+    },
+    {
+        "name": "javax.net.ssl.SSLContext",
+        "methods": [
+            {
+                "name": "getInstance",
+                "parameterTypes": ["java.lang.String"]
+            },
+            {
+                "name": "init",
+                "parameterTypes": ["javax.net.ssl.KeyManager[]", "javax.net.ssl.TrustManager[]", "java.security.SecureRandom"]
             }
         ]
     }

@@ -1,0 +1,80 @@
+from Standard.Base import all
+import project.Internal.Widget_Helpers
+import Standard.Base.Errors.Common.Missing_Argument
+import Standard.Base.Errors.Deprecated.Deprecated
+import Standard.Base.Metadata.Display
+import Standard.Base.Metadata.Widget
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Widget_Helpers import make_any_selector, make_format_chooser
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+from Standard.Table import Value_Type
+
+import project.Column_Ref.Column_Ref
+import project.Column.Column
+import project.Expression.Expression
+import project.Internal.Table_Ref.Table_Ref
+
+type Generate_Rows_Range
+    ## A integer range
+    Integer_Range from:(Integer | Column_Ref | Expression)=(Missing_Argument.throw "from") to:(Integer | Column_Ref | Expression)=(Missing_Argument.throw "to") include_end:Boolean=False step:Integer=1
+
+    ## A date range
+    Date_Range from:(Date | Column_Ref | Expression)=(Missing_Argument.throw "from") to:(Date | Column_Ref | Expression)=(Missing_Argument.throw "to") include_end:Boolean=False step:(Date_Period|Period)=..Day
+
+    ## An existing range that will be used for each row
+    Range value
+
+    ## An existing colummn of integers that will be used to to create a 0 to n range for each row
+    Integer_Column value:Column
+
+    ## PRIVATE
+       Gets the column of ranges to use for generating rows
+    get_range_column self table on_problems -> Column =
+        resolve_to_from value col_type arg_name -> Column =
+            col = case value of
+                _ : Integer -> table.make_constant_column value
+                _ : Date -> table.make_constant_column value
+                _ : Column_Ref -> (table:Table_Ref).resolve value
+                _ : Expression -> table.evaluate_expression value on_problems
+            is_correct_type = case col_type of
+                Value_Type.Integer _ -> col.value_type.is_integer
+                Value_Type.Date -> col.value_type.is_date
+            if is_correct_type.not then Error.throw (Illegal_Argument.Error "Expected an "+col_type.to_display_text+" column for argument `"+arg_name+"` but got a "+col.value_type.to_display_text+"") else
+                col
+
+        resolve_from_to_range from to include_end step col_type -> Column =
+            from_column = resolve_to_from from col_type "from"
+            to_column = resolve_to_from to col_type "to"
+            from_column.zip to_column f->t->(f.up_to t include_end step)
+
+        case self of
+            Generate_Rows_Range.Integer_Range from to include_end step ->
+                resolve_from_to_range from to include_end step Value_Type.Integer
+            Generate_Rows_Range.Date_Range from to include_end step ->
+                resolve_from_to_range from to include_end step Value_Type.Date
+            Generate_Rows_Range.Range value ->
+                table.make_constant_column value
+            Generate_Rows_Range.Integer_Column column ->
+                column.map t->(0.up_to t)
+   
+    ## PRIVATE
+       Create a widget for operation
+    default_widget table:Table_Ref display:Display=..Always -> Widget =
+        integer_input_column = Widget_Helpers.make_column_ref_by_name_selector table add_number=True
+        integer_range = Option "..Integer_Range" "..Integer_Range" [["from", integer_input_column], ["to", integer_input_column]]
+        date_input_column = Widget_Helpers.make_column_ref_by_name_selector table add_date=True
+        date_range = Option "..Date_Range" "..Date_Range" [["from", date_input_column], ["to", date_input_column]]
+        Single_Choice [integer_range, date_range] display=display
+
+Generate_Rows_Range.from (that:Integer) =
+    Generate_Rows_Range.Integer_Range 0 that
+
+Generate_Rows_Range.from (that:Range) =
+    Generate_Rows_Range.Range that
+
+Generate_Rows_Range.from (that:Date_Range) =
+    Generate_Rows_Range.Range that
+
+Generate_Rows_Range.from (that:Column) =
+    Generate_Rows_Range.Integer_Column that

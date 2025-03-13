@@ -195,6 +195,12 @@ add_specs suite_builder =
             header_names.should_not_contain "http2-settings"
             header_names.should_not_contain "upgrade"
 
+    suite_builder.group "Online test" group_builder->
+        group_builder.specify "can fetch data via HTTPS" <| Test.with_retries <|
+            https_readme_url = "https://raw.githubusercontent.com/enso-org/enso/refs/heads/develop/README.md"
+            response = Data.fetch https_readme_url format=Raw_Response
+            response.code.code . should_equal 200
+
     suite_builder.group "HTTP in Data.read" pending=pending_has_url group_builder->
         group_builder.specify "can use URI in Data.read" <| Test.with_retries <|
             r = Data.read (URI.from url_get)

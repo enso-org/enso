@@ -700,7 +700,7 @@ const groupColors = computed(() => {
   }
   & .vertical {
     flex: auto;
-    min-width: 0;
+    overflow-x: hidden;
   }
 }
 

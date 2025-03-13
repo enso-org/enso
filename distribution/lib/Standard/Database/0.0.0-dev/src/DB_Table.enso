@@ -46,7 +46,7 @@ import Standard.Table.Row.Row
 import Standard.Table.Row_Limit.Row_Limit
 import Standard.Table.Rows_To_Read.Rows_To_Read
 import Standard.Table.Value_Type.By_Type
-from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Fill_With, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Report_Unmatched, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
+from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column_Ref, Data_Formatter, Fill_With, Generate_Rows_Range, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Report_Unmatched, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
 from Standard.Table.Errors import all
 from Standard.Table.Internal.Filter_Condition_Helpers import make_filter_column
 from Standard.Table.Table import make_fill_nothing_default_widget
@@ -3142,6 +3142,47 @@ type DB_Table
                 updated_table = new_columns.fold self t-> col->
                     t.set (self.make_column col)
                 updated_table.as_subquery
+
+    ## ALIAS duplicate, expand, repeat, replicate
+       GROUP Standard.Base.Values
+       ICON row_add
+
+       Generates additional rows of data by repeating existing rows based on a provided range.
+
+       Arguments:
+       - over: The range of values to use for the generation. This can be: ..Integer_Range or ..Date_Range
+          - from: The starting value for the range. (Constant, existing column or expression)
+          - to: The ending value for the range. (Constant, existing column or expression)
+          - include_end: Whether to include the end value in the range. (Defaults to False)
+          - step: The column with the step value for the range. (Defaults to 1 or ..Day)
+       - as: Optional new name for the expanded range column.
+       - on_problems: Missing columns are always an error. Other warnings like grouping on floating point numbers can be ignored or made an error with this argument.
+
+       Returns:
+       - A Table of records with each incoming record duplicated by the number of times specified in the range.
+
+       ! Error Conditions
+
+         - If the columns specified in `from` or `to` are not present
+           in the table, a `No_Such_Column` error is raised.
+
+        > Example
+          Generate 2 copies of each incoming row
+
+            table = Table.new [["Input"], ["Hello"], ["World"]]
+            generated = table.generate_rows (..Integer_Range 0 2)
+
+            ## Returns a Table
+               | Input | Generated Row |
+               |-------|---------------| 
+               | Hello | 0             |
+               | Hello | 1             |
+               | World | 0             |
+               | World | 1             |
+    @over Generate_Rows_Range.default_widget
+    generate_rows self over:Generate_Rows_Range=(Missing_Argument.throw "over") as:Text="" on_problems:Problem_Behavior=..Report_Warning =
+        _ = [over, as, on_problems]
+        Error.throw (Unsupported_Database_Operation.Error "generate_rows")
 
 ## PRIVATE
 
