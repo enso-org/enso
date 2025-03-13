@@ -314,6 +314,11 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 const projectResponse = await fetch(
                   `./api/project-manager/projects/${localBackendModule.extractTypeAndId(asset.id).id}/enso-project`,
                 )
+
+                if (!projectResponse.ok) {
+                  throw new Error('Something went wrong, please try again')
+                }
+
                 const fileName = `${asset.title}.enso-project`
                 await uploadFileToCloudMutation.mutateAsync([
                   {
