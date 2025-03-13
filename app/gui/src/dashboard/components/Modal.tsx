@@ -1,16 +1,9 @@
 /** @file Base modal component that provides the full-screen element that blocks mouse events. */
-import * as React from 'react'
-
-import * as modalProvider from '#/providers/ModalProvider'
-
-import FocusRoot from '#/components/styled/FocusRoot'
-
 import { ClearPressResponder } from '#/components/aria'
+import { FocusRoot } from '#/components/styled/FocusRoot'
+import * as modalProvider from '#/providers/ModalProvider'
 import * as tailwindVariants from '#/utilities/tailwindVariants'
-
-// =================
-// === Constants ===
-// =================
+import * as React from 'react'
 
 const MODAL_VARIANTS = tailwindVariants.tv({
   base: 'inset z-1',
@@ -18,10 +11,6 @@ const MODAL_VARIANTS = tailwindVariants.tv({
     centered: { true: 'size-screen fixed grid place-items-center' },
   },
 })
-
-// =================
-// === Component ===
-// =================
 
 /** Props for a {@link Modal}. */
 export interface ModalProps

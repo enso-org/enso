@@ -34,7 +34,7 @@ import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { AssetPanelToggle } from '#/layouts/AssetPanel'
-import AssetSearchBar from '#/layouts/AssetSearchBar'
+import { AssetSearchBar } from '#/layouts/AssetSearchBar'
 import {
   canTransferBetweenCategories,
   isCloudCategory,

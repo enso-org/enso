@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
-import FocusArea from '#/components/styled/FocusArea'
+import { FocusArea } from '#/components/styled/FocusArea'
 
 import * as backend from '#/services/Backend'
 

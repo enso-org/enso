@@ -1,14 +1,14 @@
 /**
  * @file
  *
- * Checkboxes allow users to select multiple items from a list of individual items, or to mark one individual item as selected.
+ * Checkboxes allow users to select multiple items from a list of individual items,
+ * or to mark one individual item as selected.
  */
 import type { CheckboxProps as AriaCheckboxProps } from '#/components/aria'
 import { Checkbox as AriaCheckbox, CheckboxGroupStateContext } from '#/components/aria'
 import { mergeRefs, useMergedRef } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
-import { tv } from '#/utilities/tailwindVariants'
 import { useStore } from '#/utilities/zustand'
 import {
   useContext,
@@ -34,6 +34,7 @@ import { Text } from '../Text'
 import type { TestIdProps } from '../types'
 import { CheckboxStandaloneProvider, useCheckboxContext } from './CheckboxContext'
 import { CheckboxGroup } from './CheckboxGroup'
+import { CHECKBOX_STYLES } from './constants'
 
 /** Props for the {@link Checkbox} component. */
 export type CheckboxProps<
@@ -58,51 +59,6 @@ type StandaloneCheckboxProps<
   Schema extends TSchema,
   TFieldName extends FieldPath<Schema, boolean>,
 > = FieldProps & FieldStateProps<AriaCheckboxProps, Schema, TFieldName, boolean> & FieldVariantProps
-
-export const CHECKBOX_STYLES = tv({
-  base: 'group flex gap-2 items-center cursor-pointer select-none',
-  variants: {
-    isInvalid: {
-      true: {
-        base: 'text-danger',
-        icon: 'border-danger focus-within:border-danger focus-within:outline-danger',
-      },
-    },
-    isReadOnly: {
-      true: { icon: 'bg-primary/50 border-primary/50' },
-    },
-    isDisabled: {
-      true: { icon: 'bg-primary/30 border-primary/30 cursor-not-allowed' },
-      false: '',
-    },
-    isSelected: {
-      true: { icon: 'bg-primary text-white' },
-      false: { icon: 'bg-transparent text-primary' },
-    },
-    size: { medium: { icon: 'w-4 h-4' } },
-  },
-  slots: {
-    icon: [
-      'border-[0.5px] rounded-md transition-[outline-offset,border-width] duration-200',
-      'outline -outline-offset-2 outline-transparent group-focus-visible:outline-offset-0 group-focus-visible:outline-primary',
-      'border-primary group-selected:border-transparent',
-      'group-pressed:border',
-      'shrink-0',
-    ],
-  },
-  defaultVariants: {
-    size: 'medium',
-  },
-  compoundVariants: [
-    {
-      isInvalid: true,
-      isSelected: true,
-      class: {
-        icon: 'bg-danger border-danger focus-within:border-danger focus-within:outline-danger',
-      },
-    },
-  ],
-})
 
 /** Checkboxes allow users to select multiple items from a list of individual items, or to mark one individual item as selected. */
 // eslint-disable-next-line no-restricted-syntax

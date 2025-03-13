@@ -134,7 +134,7 @@ export const Form = forwardRef(function Form<
   Provider: typeof components.FormProvider
   useFormSchema: typeof components.useFormSchema
   Controller: typeof components.Controller
-  FIELD_STYLES: typeof components.FIELD_STYLES
+  FIELD_STYLES: typeof styles.FIELD_STYLES
   useFormContext: typeof components.useFormContext
   useOptionalFormContext: typeof components.useOptionalFormContext
   useWatch: typeof components.useWatch
@@ -159,7 +159,7 @@ Form.Field = components.Field
 Form.Controller = components.Controller
 Form.Provider = components.FormProvider
 Form.useWatch = components.useWatch
-Form.FIELD_STYLES = components.FIELD_STYLES
+Form.FIELD_STYLES = styles.FIELD_STYLES
 Form.useFieldRegister = components.useFieldRegister
 Form.useFieldState = components.useFieldState
 Form.useFormError = components.useFormError

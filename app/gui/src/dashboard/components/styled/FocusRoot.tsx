@@ -1,9 +1,9 @@
 /** @file An element that prevents navigation outside of itself. */
-import * as React from 'react'
-import * as detect from 'enso-common/src/detect'
-import * as navigator2DProvider from '#/providers/Navigator2DProvider'
 import * as aria from '#/components/aria'
-import * as withFocusScope from '#/components/styled/withFocusScope'
+import { withFocusScope } from '#/components/styled/withFocusScope'
+import * as navigator2DProvider from '#/providers/Navigator2DProvider'
+import * as detect from 'enso-common/src/detect'
+import * as React from 'react'
 
 /** Props passed to the inner handler of a {@link FocusRoot}. */
 export interface FocusRootInnerProps {
@@ -18,7 +18,7 @@ export interface FocusRootProps {
 }
 
 /** An element that prevents navigation outside of itself. */
-function FocusRoot(props: FocusRootProps) {
+function FocusRootInternal(props: FocusRootProps) {
   const { active = true, children } = props
   const navigator2D = navigator2DProvider.useNavigator2D()
   const cleanupRef = React.useRef(() => {})
@@ -58,4 +58,6 @@ function FocusRoot(props: FocusRootProps) {
 }
 
 /** An area that can be focused within. */
-export default withFocusScope.withFocusScope(FocusRoot)
+// This is a function, even though it does not contain function syntax.
+// eslint-disable-next-line no-restricted-syntax
+export const FocusRoot = withFocusScope(FocusRootInternal)

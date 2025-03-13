@@ -32,7 +32,7 @@ export interface FocusAreaProps {
 }
 
 /** An area that can be focused within. */
-function FocusArea(props: FocusAreaProps) {
+function FocusAreaInternal(props: FocusAreaProps) {
   const { active = true, direction, children } = props
   const { focusChildClass = 'focus-child', focusDefaultClass = 'focus-default' } = props
   const { focusChildClass: outerFocusChildClass } = useFocusClasses()
@@ -138,4 +138,6 @@ function FocusArea(props: FocusAreaProps) {
 }
 
 /** An area that can be focused within. */
-export default withFocusScope(FocusArea)
+// This is a function, even though it does not contain function syntax.
+// eslint-disable-next-line no-restricted-syntax
+export const FocusArea = withFocusScope(FocusAreaInternal)

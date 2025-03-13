@@ -6,7 +6,7 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
-import FocusArea from '#/components/styled/FocusArea'
+import { FocusArea } from '#/components/styled/FocusArea'
 
 import ConfirmDeleteUserModal from '#/modals/ConfirmDeleteUserModal'
 

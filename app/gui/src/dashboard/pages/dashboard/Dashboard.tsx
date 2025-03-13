@@ -28,7 +28,7 @@ import {
 import type * as assetTable from '#/layouts/AssetsTable'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
-import UserBar from '#/layouts/UserBar'
+import { UserBar } from '#/layouts/UserBar'
 
 import * as aria from '#/components/aria'
 import Page from '#/components/Page'

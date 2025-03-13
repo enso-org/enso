@@ -1,13 +1,11 @@
 /** @file Text component */
-import * as React from 'react'
-
 import * as aria from '#/components/aria'
-
-import * as mergeRefs from '#/utilities/mergeRefs'
-import * as twv from '#/utilities/tailwindVariants'
-
+import { TEXT_STYLE } from '#/components/AriaComponents/Text/variants'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import * as mergeRefs from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
+import type { VariantProps } from '#/utilities/tailwindVariants'
+import * as React from 'react'
 import { memo } from 'react'
 import type { TestIdProps } from '../types'
 import * as textProvider from './TextProvider'
@@ -16,7 +14,7 @@ import * as visualTooltip from './useVisualTooltip'
 /** Props for the Text component */
 export interface TextProps
   extends Omit<aria.TextProps, 'color'>,
-    twv.VariantProps<typeof TEXT_STYLE>,
+    VariantProps<typeof TEXT_STYLE>,
     TestIdProps {
   readonly elementType?: keyof HTMLElementTagNameMap
   readonly lineClamp?: number
@@ -27,106 +25,6 @@ export interface TextProps
   readonly tooltipOffset?: number
   readonly tooltipCrossOffset?: number
 }
-
-export const TEXT_STYLE = twv.tv({
-  base: '',
-  variants: {
-    color: {
-      custom: '',
-      primary: 'text-primary',
-      danger: 'text-danger',
-      success: 'text-accent-dark',
-      accent: 'text-accent-dark',
-      muted: 'text-primary/40',
-      disabled: 'text-disabled',
-      invert: 'text-invert',
-      inherit: 'text-inherit',
-      current: 'text-current',
-    },
-    font: {
-      default: '',
-      naming: 'font-naming',
-    },
-    // we use custom padding for the text variants to make sure the text is aligned with the grid
-    // leading is also adjusted to make sure the text is aligned with the grid
-    // leading should always be after the text size to make sure it is not stripped by twMerge
-    variant: {
-      custom: '',
-      body: 'text-xs leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-medium',
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      'body-sm':
-        'text-[10.5px] leading-[16px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-medium',
-      h1: 'text-xl leading-[29px] before:h-0.5 after:h-[5px] macos:before:h-[3px] macos:after:h-[3px] font-bold',
-      subtitle:
-        'text-[13.5px] leading-[20px] before:h-[2px] after:h-[2px] macos:before:h-[1px] macos:after:h-[3px] font-bold',
-      caption:
-        'text-[8.5px] leading-[12px] before:h-[1px] after:h-[1px] macos:before:h-[0.5px] macos:after:h-[1.5px]',
-      overline:
-        'text-[8.5px] leading-[16px] before:h-[1px] after:h-[1px] macos:before:h-[0.5px] macos:after:h-[1.5px] uppercase',
-    },
-    weight: {
-      custom: '',
-      bold: 'font-bold',
-      semibold: 'font-semibold',
-      extraBold: 'font-extrabold',
-      medium: 'font-medium',
-      normal: 'font-normal',
-      thin: 'font-thin',
-    },
-    balance: {
-      true: 'text-balance',
-    },
-    transform: {
-      none: '',
-      normal: 'normal-case',
-      capitalize: 'capitalize',
-      lowercase: 'lowercase',
-      uppercase: 'uppercase',
-    },
-    truncate: {
-      /* eslint-disable @typescript-eslint/naming-convention */
-      '1': 'block truncate ellipsis',
-      '2': 'line-clamp-2 ellipsis',
-      '3': 'line-clamp-3 ellipsis',
-      '4': 'line-clamp-4 ellipsis',
-      '5': 'line-clamp-5 ellipsis',
-      '6': 'line-clamp-6 ellipsis',
-      '7': 'line-clamp-7 ellipsis',
-      '8': 'line-clamp-8 ellipsis',
-      '9': 'line-clamp-9 ellipsis',
-      custom: 'line-clamp-[var(--line-clamp)] ellipsis',
-      /* eslint-enable @typescript-eslint/naming-convention */
-    },
-    monospace: { true: 'font-mono' },
-    italic: { true: 'italic' },
-    nowrap: { true: 'whitespace-nowrap', normal: 'whitespace-normal', false: '' },
-    textSelection: {
-      auto: '',
-      none: 'select-none',
-      word: 'select-text',
-      all: 'select-all',
-    },
-    disableLineHeightCompensation: {
-      true: 'before:hidden after:hidden before:w-0 after:w-0',
-      false:
-        'flex-col before:block after:block before:flex-none after:flex-none before:w-full after:w-full',
-      top: 'flex-col before:hidden before:w-0 after:block after:flex-none after:w-full',
-      bottom: 'flex-col before:block before:flex-none before:w-full after:hidden after:w-0',
-    },
-  },
-  defaultVariants: {
-    variant: 'body',
-    font: 'default',
-    weight: 'medium',
-    transform: 'none',
-    color: 'primary',
-    italic: false,
-    nowrap: false,
-    monospace: false,
-    disableLineHeightCompensation: false,
-    textSelection: 'auto',
-  },
-})
 
 /** Text component that supports truncation and show a tooltip on hover when text is truncated */
 // eslint-disable-next-line no-restricted-syntax
@@ -155,13 +53,14 @@ export const Text = memo(
       tooltipCrossOffset,
       textSelection,
       disableLineHeightCompensation = false,
+      variants = TEXT_STYLE,
       ...ariaProps
     } = props
 
     const textElementRef = React.useRef<HTMLElement>(null)
     const textContext = textProvider.useTextContext()
 
-    const textClasses = TEXT_STYLE({
+    const textClasses = variants({
       variant,
       font,
       weight,

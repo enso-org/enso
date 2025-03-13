@@ -1,7 +1,7 @@
 /** @file Constants related to suggestions for the asset search bar. */
-import type * as assetSearchBar from '#/layouts/AssetSearchBar'
+import type { Suggestion } from '#/layouts/AssetSearchBar'
 
-export const SUGGESTIONS_FOR_NO: assetSearchBar.Suggestion[] = [
+export const SUGGESTIONS_FOR_NO: Suggestion[] = [
   {
     key: 'no:label',
     render: () => 'no:label',
@@ -15,7 +15,7 @@ export const SUGGESTIONS_FOR_NO: assetSearchBar.Suggestion[] = [
     deleteFromQuery: (query) => query.deleteFromLastTerm({ nos: ['description'] }),
   },
 ]
-export const SUGGESTIONS_FOR_HAS: assetSearchBar.Suggestion[] = [
+export const SUGGESTIONS_FOR_HAS: Suggestion[] = [
   {
     key: 'has:label',
     render: () => 'has:label',
@@ -29,7 +29,7 @@ export const SUGGESTIONS_FOR_HAS: assetSearchBar.Suggestion[] = [
     deleteFromQuery: (query) => query.deleteFromLastTerm({ negativeNos: ['description'] }),
   },
 ]
-export const SUGGESTIONS_FOR_TYPE: assetSearchBar.Suggestion[] = [
+export const SUGGESTIONS_FOR_TYPE: Suggestion[] = [
   {
     key: 'type:project',
     render: () => 'type:project',
@@ -61,7 +61,7 @@ export const SUGGESTIONS_FOR_TYPE: assetSearchBar.Suggestion[] = [
     deleteFromQuery: (query) => query.deleteFromLastTerm({ types: ['datalink'] }),
   },
 ]
-export const SUGGESTIONS_FOR_NEGATIVE_TYPE: assetSearchBar.Suggestion[] = [
+export const SUGGESTIONS_FOR_NEGATIVE_TYPE: Suggestion[] = [
   {
     key: 'type:project',
     render: () => 'type:project',

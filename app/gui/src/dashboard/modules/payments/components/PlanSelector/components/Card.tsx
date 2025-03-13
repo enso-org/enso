@@ -13,7 +13,8 @@ import * as textProvider from '#/providers/TextProvider'
 
 import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
-import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import type { VariantProps } from '#/utilities/tailwindVariants'
+import { CARD_STYLES } from './constants'
 
 /** Card props */
 export interface CardProps extends React.PropsWithChildren, VariantProps<typeof CARD_STYLES> {
@@ -28,48 +29,6 @@ export interface CardProps extends React.PropsWithChildren, VariantProps<typeof 
   readonly learnMore?: React.ReactNode
   readonly className?: string
 }
-
-export const CARD_STYLES = tv({
-  base: 'flex flex-col border-0.5',
-  variants: {
-    elevated: {
-      none: '',
-      true: 'shadow-primary/15 shadow',
-      small: 'shadow-primary/15 shadow-sm',
-      medium: 'shadow-primary/15 shadow-md',
-      large: 'shadow-primary/15 shadow-lg',
-      xlarge: 'shadow-primary/15 shadow-xl',
-      xxlarge: 'shadow-primary/15 shadow-2xl',
-      xxxlarge: 'shadow-primary/15 shadow-3xl',
-    },
-    highlighted: {
-      true: 'outline outline-1.5 -outline-offset-1 outline-primary',
-      false: 'border-primary/30',
-    },
-    rounded: {
-      none: '',
-      small: 'rounded-sm',
-      medium: 'rounded-md',
-      large: 'rounded-lg',
-      xlarge: 'rounded-xl',
-      xxlarge: 'rounded-2xl',
-      xxxlarge: 'rounded-3xl',
-      xxxxlarge: 'rounded-4xl',
-    },
-    size: {
-      medium: { base: 'p-[19.5px]', separator: '-mx-[19.5px]' },
-    },
-  },
-  slots: {
-    features: '',
-    separator: 'w-auto',
-  },
-  defaultVariants: {
-    elevated: 'none',
-    rounded: 'xxxxlarge',
-    size: 'medium',
-  },
-})
 
 /** Card component */
 export function Card(props: CardProps) {

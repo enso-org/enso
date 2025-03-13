@@ -1,27 +1,21 @@
-/**
- * @file
- *
- * Field component
- */
-import * as React from 'react'
-
+/** @file Field component. */
 import * as aria from '#/components/aria'
-
 import type { Path } from '#/utilities/objectPath'
 import { forwardRef } from '#/utilities/react'
-import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import * as text from '../../Text'
+import type { VariantProps } from '#/utilities/tailwindVariants'
+import * as React from 'react'
 import { Form } from '../Form'
-import type * as types from './types'
+import { FIELD_STYLES } from '../styles'
+import type { FieldProps, FieldValues, FormInstance, TSchema } from './types'
 
 /** Props for Field component */
-export interface FieldComponentProps<Schema extends types.TSchema>
+export interface FieldComponentProps<Schema extends TSchema>
   extends VariantProps<typeof FIELD_STYLES>,
-    types.FieldProps {
+    FieldProps {
   readonly 'data-testid'?: string | undefined
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  readonly name: Path<types.FieldValues<Schema>, any>
-  readonly form?: types.FormInstance<Schema> | undefined
+  readonly name: Path<FieldValues<Schema>, any>
+  readonly form?: FormInstance<Schema> | undefined
   readonly isInvalid?: boolean | undefined
   readonly className?: string | undefined
   readonly children?: React.ReactNode | ((props: FieldChildrenRenderProps) => React.ReactNode)
@@ -43,25 +37,8 @@ export interface FieldChildrenRenderProps {
   readonly error?: string | null | undefined
 }
 
-export const FIELD_STYLES = tv({
-  base: 'flex flex-col gap-0.5 items-start',
-  variants: {
-    fullWidth: { true: 'w-full' },
-    isInvalid: { true: { label: 'text-danger' } },
-    isHidden: { true: { base: 'hidden' } },
-  },
-  slots: {
-    labelContainer: 'contents',
-    label: text.TEXT_STYLE({ variant: 'body', disableLineHeightCompensation: true }),
-    content: 'flex flex-col items-start w-full',
-    description: text.TEXT_STYLE({ variant: 'body', color: 'disabled' }),
-    error: text.TEXT_STYLE({ variant: 'body', color: 'danger' }),
-  },
-  defaultVariants: { fullWidth: true },
-})
-
 /** Field component */
-export const Field = forwardRef(function Field<Schema extends types.TSchema>(
+export const Field = forwardRef(function Field<Schema extends TSchema>(
   props: FieldComponentProps<Schema>,
   ref: React.ForwardedRef<HTMLDivElement>,
 ) {

@@ -14,7 +14,7 @@ import * as textProvider from '#/providers/TextProvider'
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
 import Label from '#/components/dashboard/Label'
-import FocusArea from '#/components/styled/FocusArea'
+import { FocusArea } from '#/components/styled/FocusArea'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
@@ -27,8 +27,9 @@ import AssetQuery from '#/utilities/AssetQuery'
 import * as eventModule from '#/utilities/event'
 import * as string from '#/utilities/string'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-import { createStore, useStore } from '#/utilities/zustand'
+import { useStore } from '#/utilities/zustand'
 import { AnimatePresence, motion } from 'framer-motion'
+import { searchbarSuggestionsStore, type Suggestion } from './constants'
 
 /** The reason behind a new query. */
 enum QuerySource {
@@ -45,39 +46,12 @@ enum QuerySource {
   external = 'external',
 }
 
-/** A suggested query. */
-export interface Suggestion {
-  readonly key: string
-  readonly render: () => React.ReactNode
-  readonly addToQuery: (query: AssetQuery) => AssetQuery
-  readonly deleteFromQuery: (query: AssetQuery) => AssetQuery
-}
-
 /** Props for a {@link Tags}. */
 interface InternalTagsProps {
   readonly isCloud: boolean
   readonly querySource: React.MutableRefObject<QuerySource>
   readonly query: AssetQuery
   readonly setQuery: React.Dispatch<React.SetStateAction<AssetQuery>>
-}
-
-export const searchbarSuggestionsStore = createStore<{
-  readonly suggestions: readonly Suggestion[]
-  readonly setSuggestions: (suggestions: readonly Suggestion[]) => void
-}>((set) => ({
-  suggestions: [],
-  setSuggestions: (suggestions) => {
-    set({ suggestions })
-  },
-}))
-
-/**
- * Sets the suggestions.
- */
-export function useSetSuggestions() {
-  return useStore(searchbarSuggestionsStore, (state) => state.setSuggestions, {
-    unsafeEnableTransition: true,
-  })
 }
 
 /** Tags (`name:`, `modified:`, etc.) */
@@ -129,10 +103,6 @@ function Tags(props: InternalTagsProps) {
   )
 }
 
-// ======================
-// === AssetSearchBar ===
-// ======================
-
 /** Props for a {@link AssetSearchBar}. */
 export interface AssetSearchBarProps {
   readonly backend: Backend | null
@@ -142,7 +112,7 @@ export interface AssetSearchBarProps {
 }
 
 /** A search bar containing a text input, and a list of suggestions. */
-function AssetSearchBar(props: AssetSearchBarProps) {
+export const AssetSearchBar = React.memo(function AssetSearchBar(props: AssetSearchBarProps) {
   const { backend, isCloud, query, setQuery } = props
   const { modalRef } = modalProvider.useModalRef()
   /** A cached query as of the start of tabbing. */
@@ -388,7 +358,7 @@ function AssetSearchBar(props: AssetSearchBarProps) {
       )}
     </FocusArea>
   )
-}
+})
 
 /** Props for a {@link AssetSearchBarInput}. */
 interface AssetSearchBarInputProps {
@@ -400,10 +370,7 @@ interface AssetSearchBarInputProps {
   readonly searchInputOnKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void
 }
 
-/**
- * Renders the search field.
- */
-
+/** The search field. */
 const AssetSearchBarInput = React.memo(function AssetSearchBarInput(
   props: AssetSearchBarInputProps,
 ) {
@@ -682,5 +649,3 @@ const Labels = React.memo(function Labels(props: LabelsProps) {
     </>
   )
 })
-
-export default React.memo(AssetSearchBar)

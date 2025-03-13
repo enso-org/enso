@@ -11,7 +11,7 @@ import SortAscendingIcon from '#/assets/sort_ascending.svg'
 import TrashIcon from '#/assets/trash.svg'
 import { Button, DatePicker, Dropdown, Form, Text } from '#/components/AriaComponents'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
-import FocusArea from '#/components/styled/FocusArea'
+import { FocusArea } from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 import { useBackendQuery } from '#/hooks/backendHooks'
 import { useText } from '#/providers/TextProvider'
@@ -225,7 +225,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     getText('stopSortingByName')
                   : getText('sortByNameDescending')
                 }
-                className="gap-icon-with-text group flex h-table-row w-full items-center justify-start border-0 px-name-column-x"
+                className="group flex h-table-row w-full items-center justify-start gap-icon-with-text border-0 px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.type ?
@@ -270,7 +270,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     getText('stopSortingByEmail')
                   : getText('sortByEmailDescending')
                 }
-                className="gap-icon-with-text group flex h-table-row w-full items-center justify-start border-0 px-name-column-x"
+                className="group flex h-table-row w-full items-center justify-start gap-icon-with-text border-0 px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.email ?
@@ -316,7 +316,7 @@ export default function ActivityLogSettingsSection(props: ActivityLogSettingsSec
                     getText('stopSortingByTimestamp')
                   : getText('sortByTimestampDescending')
                 }
-                className="gap-icon-with-text group flex h-table-row w-full items-center justify-start border-0 px-name-column-x"
+                className="group flex h-table-row w-full items-center justify-start gap-icon-with-text border-0 px-name-column-x"
                 onPress={() => {
                   const nextDirection =
                     sortInfo?.field === ActivityLogSortableColumn.timestamp ?

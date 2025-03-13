@@ -3,7 +3,7 @@ import * as z from 'zod'
 
 import { ButtonGroup, DialogDismiss, Form, Input, Popover, Text } from '#/components/AriaComponents'
 import ColorPicker from '#/components/ColorPicker'
-import FocusArea from '#/components/styled/FocusArea'
+import { FocusArea } from '#/components/styled/FocusArea'
 import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useText } from '#/providers/TextProvider'

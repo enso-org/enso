@@ -3,7 +3,7 @@ import { memo, type Dispatch, type SetStateAction } from 'react'
 
 import { Header } from '#/components/aria'
 import { ButtonGroup } from '#/components/AriaComponents'
-import FocusArea from '#/components/styled/FocusArea'
+import { FocusArea } from '#/components/styled/FocusArea'
 import SidebarTabButton from '#/components/styled/SidebarTabButton'
 import { useText } from '#/providers/TextProvider'
 import { twMerge } from '#/utilities/tailwindMerge'

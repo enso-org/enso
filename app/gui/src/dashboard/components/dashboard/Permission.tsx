@@ -11,7 +11,7 @@ import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
 import * as textProvider from '#/providers/TextProvider'
 
 import PermissionSelector from '#/components/dashboard/PermissionSelector'
-import FocusArea from '#/components/styled/FocusArea'
+import { FocusArea } from '#/components/styled/FocusArea'
 
 import type Backend from '#/services/Backend'
 import * as backendModule from '#/services/Backend'

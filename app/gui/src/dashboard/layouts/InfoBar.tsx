@@ -2,7 +2,7 @@
 import ChatIcon from '#/assets/chat.svg'
 import LogoIcon from '#/assets/enso_logo.svg'
 import { Button, DialogTrigger } from '#/components/AriaComponents'
-import FocusArea from '#/components/styled/FocusArea'
+import { FocusArea } from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 import InfoMenu from '#/layouts/InfoMenu'
 import { useText } from '#/providers/TextProvider'

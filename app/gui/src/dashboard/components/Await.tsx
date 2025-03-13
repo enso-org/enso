@@ -1,8 +1,4 @@
-/**
- * @file
- *
- * Await a promise and render the children when the promise is resolved.
- */
+/** @file Await a promise and render the children when the promise is resolved. */
 import { type ReactNode } from 'react'
 
 import invariant from 'tiny-invariant'

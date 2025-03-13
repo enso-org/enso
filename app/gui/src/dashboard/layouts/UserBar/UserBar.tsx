@@ -35,7 +35,7 @@ export interface UserBarProps {
 }
 
 /** A toolbar containing chat and the user menu. */
-export default function UserBar(props: UserBarProps) {
+export function UserBar(props: UserBarProps) {
   const { setIsHelpChatOpen, goToSettingsPage, onSignOut } = props
 
   const { user } = useFullUserSession()

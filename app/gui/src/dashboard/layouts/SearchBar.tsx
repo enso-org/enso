@@ -4,7 +4,7 @@ import * as React from 'react'
 import FindIcon from '#/assets/find.svg'
 
 import * as aria from '#/components/aria'
-import FocusArea from '#/components/styled/FocusArea'
+import { FocusArea } from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 
 // =================

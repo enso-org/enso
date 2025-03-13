@@ -1,0 +1,47 @@
+/** @file Constants for `MenuEntry`. */
+import type { DashboardBindingKey } from '#/configurations/inputBindings'
+import type { TextId } from 'enso-common/src/text'
+
+export const ACTION_TO_TEXT_ID: Readonly<
+  Record<DashboardBindingKey, Extract<TextId, `${DashboardBindingKey}Shortcut`>>
+> = {
+  settings: 'settingsShortcut',
+  closeTab: 'closeTabShortcut',
+  open: 'openShortcut',
+  run: 'runShortcut',
+  close: 'closeShortcut',
+  uploadToCloud: 'uploadToCloudShortcut',
+  rename: 'renameShortcut',
+  edit: 'editShortcut',
+  snapshot: 'snapshotShortcut',
+  delete: 'deleteShortcut',
+  undelete: 'undeleteShortcut',
+  share: 'shareShortcut',
+  label: 'labelShortcut',
+  duplicate: 'duplicateShortcut',
+  copy: 'copyShortcut',
+  copyAsPath: 'copyAsPathShortcut',
+  cut: 'cutShortcut',
+  paste: 'pasteShortcut',
+  download: 'downloadShortcut',
+  uploadFiles: 'uploadFilesShortcut',
+  newProject: 'newProjectShortcut',
+  newFolder: 'newFolderShortcut',
+  newDatalink: 'newDatalinkShortcut',
+  newSecret: 'newSecretShortcut',
+  useInNewProject: 'useInNewProjectShortcut',
+  closeModal: 'closeModalShortcut',
+  cancelEditName: 'cancelEditNameShortcut',
+  signIn: 'signInShortcut',
+  signOut: 'signOutShortcut',
+  downloadApp: 'downloadAppShortcut',
+  cancelCut: 'cancelCutShortcut',
+  selectAdditional: 'selectAdditionalShortcut',
+  selectRange: 'selectRangeShortcut',
+  selectAdditionalRange: 'selectAdditionalRangeShortcut',
+  goBack: 'goBackShortcut',
+  goForward: 'goForwardShortcut',
+  aboutThisApp: 'aboutThisAppShortcut',
+  openInFileBrowser: 'openInFileBrowserShortcut',
+  ensoDevtools: 'ensoDevtoolsShortcut',
+} satisfies { [Key in DashboardBindingKey]: `${Key}Shortcut` }

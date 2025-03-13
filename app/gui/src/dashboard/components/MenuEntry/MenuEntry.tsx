@@ -20,6 +20,7 @@ import KeyboardShortcut from '#/components/dashboard/KeyboardShortcut'
 import FocusRing from '#/components/styled/FocusRing'
 import SvgMask from '#/components/SvgMask'
 
+import { ACTION_TO_TEXT_ID } from '#/components/MenuEntry/constants'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import * as tailwindVariants from '#/utilities/tailwindVariants'
@@ -33,53 +34,6 @@ const MENU_ENTRY_VARIANTS = tailwindVariants.tv({
     },
   },
 })
-
-export const ACTION_TO_TEXT_ID: Readonly<
-  Record<
-    inputBindings.DashboardBindingKey,
-    Extract<text.TextId, `${inputBindings.DashboardBindingKey}Shortcut`>
-  >
-> = {
-  settings: 'settingsShortcut',
-  closeTab: 'closeTabShortcut',
-  open: 'openShortcut',
-  run: 'runShortcut',
-  close: 'closeShortcut',
-  uploadToCloud: 'uploadToCloudShortcut',
-  rename: 'renameShortcut',
-  edit: 'editShortcut',
-  snapshot: 'snapshotShortcut',
-  delete: 'deleteShortcut',
-  undelete: 'undeleteShortcut',
-  share: 'shareShortcut',
-  label: 'labelShortcut',
-  duplicate: 'duplicateShortcut',
-  copy: 'copyShortcut',
-  copyAsPath: 'copyAsPathShortcut',
-  cut: 'cutShortcut',
-  paste: 'pasteShortcut',
-  download: 'downloadShortcut',
-  uploadFiles: 'uploadFilesShortcut',
-  newProject: 'newProjectShortcut',
-  newFolder: 'newFolderShortcut',
-  newDatalink: 'newDatalinkShortcut',
-  newSecret: 'newSecretShortcut',
-  useInNewProject: 'useInNewProjectShortcut',
-  closeModal: 'closeModalShortcut',
-  cancelEditName: 'cancelEditNameShortcut',
-  signIn: 'signInShortcut',
-  signOut: 'signOutShortcut',
-  downloadApp: 'downloadAppShortcut',
-  cancelCut: 'cancelCutShortcut',
-  selectAdditional: 'selectAdditionalShortcut',
-  selectRange: 'selectRangeShortcut',
-  selectAdditionalRange: 'selectAdditionalRangeShortcut',
-  goBack: 'goBackShortcut',
-  goForward: 'goForwardShortcut',
-  aboutThisApp: 'aboutThisAppShortcut',
-  openInFileBrowser: 'openInFileBrowserShortcut',
-  ensoDevtools: 'ensoDevtoolsShortcut',
-} satisfies { [Key in inputBindings.DashboardBindingKey]: `${Key}Shortcut` }
 
 /** Props for a {@link MenuEntry}. */
 export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MENU_ENTRY_VARIANTS> {
@@ -96,7 +50,7 @@ export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MEN
 }
 
 /** An item in a menu. */
-export default function MenuEntry(props: MenuEntryProps) {
+export function MenuEntry(props: MenuEntryProps) {
   const {
     hidden = false,
     action,

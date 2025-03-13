@@ -1,30 +1,15 @@
 /** @file Context for a button group. */
-import { createContext, useContext, type PropsWithChildren, type RefObject } from 'react'
-import type { ButtonGroupSharedButtonProps, ButtonProps, PrivateJoinedButtonProps } from './types'
-import { type ButtonVariants } from './variants'
+import type { PropsWithChildren } from 'react'
+import {
+  ButtonContext,
+  ButtonGroupContext,
+  JoinedButtonPrivateContext,
+  type ButtonGroupContextType,
+} from './constants'
+import type { PrivateJoinedButtonProps } from './types'
 
-/**
- * Context for a button group.
- * Allows to specify unified styles for a group of buttons
- * Or provide additional information, like if the buttons are joined
- */
-export interface ButtonGroupContextType extends ButtonGroupSharedButtonProps {}
-
-const ButtonGroupContext = createContext<ButtonGroupContextType>({})
-
-/**
- * Button context, allows passing props using the context API
- */
-export type ButtonContextType<IconType extends string> = ButtonProps<IconType> & {
-  readonly ref?: RefObject<HTMLButtonElement>
-}
-
-export const ButtonContext = createContext<ButtonContextType<string> | null>(null)
-
-/**
- * Provider for a button group context
- */
-export function ButtonGroupProvider(props: ButtonGroupContextType & PropsWithChildren) {
+/** Provider for a button group context. */
+export function ButtonGroupProvider(props: ButtonGroupContextType & Readonly<PropsWithChildren>) {
   const {
     children,
     extraClickZone,
@@ -73,9 +58,7 @@ export function ButtonGroupProvider(props: ButtonGroupContextType & PropsWithChi
 
 const EMPTY_CONTEXT: ButtonGroupContextType = {}
 
-/**
- * A wrapper that resets the button group context
- */
+/** A wrapper that resets the button group context. */
 export function ResetButtonGroupContext(props: PropsWithChildren) {
   const { children } = props
 
@@ -88,32 +71,9 @@ export function ResetButtonGroupContext(props: PropsWithChildren) {
   )
 }
 
-/**
- * Hook to use the button group context
- */
-export function useButtonGroupContext() {
-  return useContext(ButtonGroupContext)
-}
-
-/**
- * Hook to merge button styles with the button group context
- */
-export function useMergedButtonStyles<Props extends ButtonVariants>(props: Props) {
-  const context = useButtonGroupContext()
-
-  return { ...context, ...props }
-}
-
-const JoinedButtonPrivateContext = createContext<PrivateJoinedButtonProps>({
-  isJoined: false,
-  position: undefined,
-})
-
-/**
- * A provider for the joined button private context
- */
+/** A provider for the joined button private context. */
 export function JoinedButtonPrivateContextProvider(
-  props: PrivateJoinedButtonProps & PropsWithChildren,
+  props: PrivateJoinedButtonProps & Readonly<PropsWithChildren>,
 ) {
   const { children, isJoined, position } = props
 
@@ -124,23 +84,7 @@ export function JoinedButtonPrivateContextProvider(
   )
 }
 
-/**
- * Hook to get the joined button private context
- */
-export function useJoinedButtonPrivateContext() {
-  return useContext(JoinedButtonPrivateContext)
-}
-
-/**
- * Hook to get the button context
- */
-export function useButtonContext() {
-  return useContext(ButtonContext)
-}
-
-/**
- * A wrapper that resets the button context
- */
+/** A wrapper that resets the button context. */
 export function ResetButtonContext(props: PropsWithChildren) {
   const { children } = props
 

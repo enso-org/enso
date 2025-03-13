@@ -1,7 +1,7 @@
 /** @file Functions for AddPaymentMethodForm. */
 import type { schema } from '#/components/AriaComponents'
 import type { GetText } from '#/providers/TextProvider'
-import { Stripe, StripeCardElement } from '@stripe/stripe-js'
+import type { Stripe, StripeCardElement } from '@stripe/stripe-js'
 
 /** The validation schema for this form. */
 export function createAddPaymentMethodFormSchema(z: typeof schema, getText: GetText) {

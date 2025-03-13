@@ -1,60 +1,13 @@
-/** @file */
+/** @file Context for Checkbox. */
+import {
+  CheckboxContext,
+  type CheckBoxGroupPropsStateInsideGroup,
+} from '#/components/AriaComponents/Checkbox/constants'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { type StoreApi, createStore } from '#/utilities/zustand'
+import { createStore } from '#/utilities/zustand'
 import type { PropsWithChildren } from 'react'
-import { createContext, useContext, useState } from 'react'
+import { useState } from 'react'
 import type { TSchema, UseFormRegisterReturn } from '../Form'
-
-/** Context for the checkbox. */
-interface CheckboxContextType {
-  readonly store: StoreApi<CheckGroupPropsState>
-  readonly addSelected: (selected: string) => void
-  readonly removeSelected: (selected: string) => void
-  readonly toggleSelected: (selected: string) => void
-}
-
-const CheckboxContext = createContext<CheckboxContextType>({
-  store: createStore<CheckBoxGroupPropsStateOutsideGroup>(() => ({ insideGroup: false })),
-  addSelected: () => {},
-  removeSelected: () => {},
-  toggleSelected: () => {},
-})
-
-/** Gets the context for the checkbox. */
-export function useCheckboxContext() {
-  return useContext(CheckboxContext)
-}
-
-/**
- * Gets the store for the checkbox group.
- * Returns store no matter if the checkbox is inside a group or not.
- * If the checkbox is not inside a group, the `insideGroup` property will be `false`.
- */
-export function useCheckboxGroupState() {
-  const { store } = useCheckboxContext()
-  return store
-}
-
-/**
- * State for a checkbox group.
- * If `insideGroup` is `true`, then the checkbox is inside a group, and `selected` and `setSelected` will be defined.
- * If `insideGroup` is `false`, then the checkbox is not inside a group, and `selected` and `setSelected` will be `undefined`.
- * that means that the checkbox should be controlled manually.
- */
-type CheckGroupPropsState = CheckBoxGroupPropsStateInsideGroup | CheckBoxGroupPropsStateOutsideGroup
-
-/** Checkbox group state when the checkbox is inside a group. */
-interface CheckBoxGroupPropsStateInsideGroup {
-  readonly insideGroup: true
-  readonly selected: Set<string>
-  readonly name: string
-  readonly field: UseFormRegisterReturn<TSchema>
-}
-
-/** Checkbox group state when the checkbox is not inside a group. */
-interface CheckBoxGroupPropsStateOutsideGroup {
-  readonly insideGroup: false
-}
 
 /** Props for {@link CheckboxGroupProvider}. */
 export interface CheckboxGroupProviderProps extends PropsWithChildren {

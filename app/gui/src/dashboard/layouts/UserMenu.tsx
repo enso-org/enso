@@ -1,8 +1,8 @@
 /** @file A dropdown menu of user actions and settings. */
 import DefaultUserIcon from '#/assets/default_user.svg'
 import { Popover, Text } from '#/components/AriaComponents'
-import MenuEntry from '#/components/MenuEntry'
-import FocusArea from '#/components/styled/FocusArea'
+import { MenuEntry } from '#/components/MenuEntry'
+import { FocusArea } from '#/components/styled/FocusArea'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import AboutModal from '#/modals/AboutModal'
 import { useFullUserSession } from '#/providers/AuthProvider'

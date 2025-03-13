@@ -3,7 +3,7 @@ import * as React from 'react'
 
 import * as detect from 'enso-common/src/detect'
 
-import FocusArea from '#/components/styled/FocusArea'
+import { FocusArea } from '#/components/styled/FocusArea'
 
 import { forwardRef } from '#/utilities/react'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
