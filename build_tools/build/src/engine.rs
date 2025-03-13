@@ -38,7 +38,7 @@ const PARALLEL_ENSO_TESTS: AsyncPolicy = AsyncPolicy::Sequential;
 pub async fn download_project_templates(client: reqwest::Client, enso_root: PathBuf) -> Result {
     // Download Project Template Files
     let output_base = enso_root.join("lib/scala/pkg/src/main/resources/");
-    let url_base = Url::parse("https://github.com/enso-org/project-templates/raw/main/")?;
+    let url_base = Url::parse("https://github.com/enso-org/project-templates/raw/ccb7679434d1333f6b3bab9490acdbc740a5e2f2/")?;
     let to_handle = [
         ("Orders", vec![
             "data/store_data.xlsx",
@@ -89,7 +89,6 @@ pub async fn download_project_templates(client: reqwest::Client, enso_root: Path
             "src/table_viz.png",
         ]),
         ("Getting_Started_Aggregating", vec![
-            "data/sample_bank_data.xlsx",
             "src/answer_table.png",
             "src/eags.png",
             "src/Main.enso",
