@@ -1,5 +1,7 @@
 package org.enso.ydoc.polyfill;
 
+import java.net.URL;
+import java.util.function.Function;
 import org.enso.syntax2.Parser;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
@@ -7,9 +9,6 @@ import org.graalvm.polyglot.Value;
 import org.graalvm.polyglot.proxy.ProxyExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.net.URL;
-import java.util.function.Function;
 
 public final class ParserPolyfill implements ProxyExecutable {
 

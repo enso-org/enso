@@ -13,10 +13,15 @@ import io.helidon.websocket.WsListener;
 import io.helidon.websocket.WsSession;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.Queue;
+import java.util.Random;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.enso.ydoc.polyfill.Arguments;
 import org.graalvm.polyglot.Value;
@@ -46,9 +51,9 @@ final class WebSocket implements ProxyExecutable {
 
   private static final String WEBSOCKET_JS = "websocket.js";
 
-  private final ExecutorService executor;
+  private final ScheduledExecutorService executor;
 
-  WebSocket(ExecutorService executor) {
+  WebSocket(ScheduledExecutorService executor) {
     this.executor = executor;
   }
 
@@ -235,7 +240,7 @@ final class WebSocket implements ProxyExecutable {
 
   private static final class WebSocketConnection implements WsListener {
 
-    private final ExecutorService executor;
+    private final Executor executor;
 
     private final Value handleOpen;
     private final Value handleClose;
@@ -248,7 +253,7 @@ final class WebSocket implements ProxyExecutable {
     private WsSession session;
 
     private WebSocketConnection(
-        ExecutorService executor,
+        ScheduledExecutorService executor,
         Value handleOpen,
         Value handleClose,
         Value handleError,
@@ -256,7 +261,7 @@ final class WebSocket implements ProxyExecutable {
         Value handlePing,
         Value handlePong,
         Value handleUpgrade) {
-      this.executor = executor;
+      this.executor = new ReTryingExecutor(executor);
       this.handleOpen = handleOpen;
       this.handleClose = handleClose;
       this.handleError = handleError;
@@ -337,6 +342,52 @@ final class WebSocket implements ProxyExecutable {
       executor.execute(() -> handleUpgrade.executeVoid(url));
 
       return Optional.empty();
+    }
+  }
+
+  /*
+   * This would be way more simpler if we could use
+   * <a href="https://github.com/oracle/graal/pull/8266">Allow control of throwDeniedThreadAccess via TruffleContext.threadAccessDeniedHandler</a>.
+   */
+  private static final class ReTryingExecutor implements Executor, Runnable {
+    private final ScheduledExecutorService executor;
+    private final Random delayer = new Random();
+    private final Queue<Runnable> pending = new ArrayDeque<>();
+
+    private ReTryingExecutor(ScheduledExecutorService executor) {
+      this.executor = executor;
+    }
+
+    @Override
+    public void execute(Runnable command) {
+      pending.add(command);
+      executor.execute(this);
+    }
+
+    @Override
+    public void run() {
+      for (; ; ) {
+        var toProcess = pending.peek();
+        if (toProcess == null) {
+          break;
+        }
+        try {
+          toProcess.run();
+        } catch (IllegalStateException ex) {
+          if (ex.getMessage().startsWith("Multi threaded access requested by thread")) {
+            // don't remove this as processed
+            toProcess = null;
+            // schedule another processing "later"
+            var delay = delayer.nextInt(10, 100);
+            executor.schedule(this, delay, TimeUnit.MILLISECONDS);
+            return;
+          }
+          throw ex;
+        } finally {
+          // remove as processed
+          pending.remove(toProcess);
+        }
+      }
     }
   }
 }
