@@ -102,7 +102,8 @@ test('move to trash', ({ page }) =>
     .driveTable.expectPlaceholderRow()
     .goToCategory.trash()
     .driveTable.withRows(async (rows) => {
-      await expect(rows).toHaveText([/^New Folder 1/, /^New Folder 2/])
+      await expect(rows).toHaveText(/^New Folder 1/)
+      await expect(rows).toHaveText(/^New Folder 2/)
     }))
 
 test('move (keyboard)', ({ page }) =>
