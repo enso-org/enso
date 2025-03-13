@@ -220,6 +220,7 @@ type Filter_Condition
             Like sql_pattern _ ->
                 regex = sql_like_to_regex sql_pattern
                 handle_nothing <| regex.matches
+            Regex_Match regex _ -> handle_nothing <| regex.matches
             Is_In values _ -> Hashset.from_vector values . contains
         if self.action == Filter_Action.Keep then base else v -> (base v).not
 
@@ -255,6 +256,7 @@ type Filter_Condition
             Is_Empty -> "is Empty"
             Not_Empty -> "is not Empty"
             Like sql_pattern _ -> "Like " + sql_pattern.to_display_text
+            Regex_Match pattern _ -> "Regex_Match " + pattern.to_display_text
             Is_In values _ -> "is in " + values.to_display_text
         "Filter Condition: " + condition + (if self.action == Filter_Action.Keep then "" else " (Remove)")
 
