@@ -22,6 +22,7 @@ import {
 } from '#/components/AriaComponents'
 import { Icon } from '#/components/Icon'
 import { assetFromCacheQueryOptions, listDirectoryQueryOptions } from '#/hooks/backendHooks'
+import { useMount } from '#/hooks/mountHooks'
 import { useCategory } from '#/layouts/Drive/Categories/categoriesHooks'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import * as fileInfo from '#/utilities/fileInfo'
@@ -441,6 +442,17 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
       assetFromCacheQueryOptions({ backend: associatedBackend, assetId: id, queryClient }),
     ),
     combine: (queries) => queries.map((query) => query.data).filter((asset) => asset != null),
+  })
+
+  useMount(() => {
+    const onlyExistingConflicts = conflictingAssets.filter(
+      (asset) => siblingFiles.map.get(asset.title) != null,
+    )
+
+    // If there are no conflicts, we can just skip the modal and return nothing.
+    if (onlyExistingConflicts.length === 0) {
+      void props.onSubmit([])
+    }
   })
 
   return (
