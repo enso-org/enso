@@ -219,7 +219,7 @@ function ensureSelected() {
   }
 }
 
-const outputHovered = computed(() => graph.nodeOutputHovered.get(nodeId.value) ?? false)
+const outputHovered = computed(() => graph.nodeOutputVisible.get(nodeId.value) ?? false)
 const keyboard = injectKeyboard()
 
 const visualizationWidth = computed(() => props.node.vis?.width ?? null)
