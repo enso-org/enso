@@ -10,6 +10,7 @@ import project.Delimited.Invalid_Rows.Invalid_Rows
 import project.Delimited.Quote_Style.Quote_Style
 import project.Headers.Headers
 import project.Internal.Java_Problems
+import project.Internal.Telemetry
 import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 from project.Errors import Empty_File_Error, Mismatched_Quote, Parser_Error
@@ -48,6 +49,10 @@ read_file format file on_problems:Problem_Behavior =
        reached and restart parsing with an increased limit.
     result = file.with_input_stream [File_Access.Read] stream->
         read_stream format stream on_problems related_file=file
+
+    if result.is_error.not then
+        Telemetry.log "Delimited_Reader" "Read CSV file: column_count={}, row_count={}" [result.column_count, result.row_count]
+
     # With file reading, we convert the `Mismatched_Quote` into a `File_Error.Corrupted_Format`.
     result.catch Mismatched_Quote error->
         Error.throw (File_Error.Corrupted_Format file error.to_display_text error)

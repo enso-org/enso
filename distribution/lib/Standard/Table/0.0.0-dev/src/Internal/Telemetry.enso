@@ -1,0 +1,15 @@
+private
+
+import Standard.Base.Nothing.Nothing
+import Standard.Base.Data.Text.Text
+import Standard.Base.Data.Vector.Vector
+
+polyglot java import org.slf4j.LoggerFactory
+
+
+log logger_name:Text msg:Text args:Vector -> Nothing =
+    telemetry_logger = LoggerFactory.getLogger (_root_logger_name + "." + logger_name)
+    telemetry_logger.trace msg args
+
+
+_root_logger_name = "org.enso.telemetry"
