@@ -2,7 +2,7 @@
 import * as React from 'react'
 
 import { useStore } from '#/utilities/zustand'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import invariant from 'tiny-invariant'
 
 import BlankIcon from '#/assets/blank.svg'
@@ -38,11 +38,7 @@ import {
   useMoveAssetsMutationState,
   useRestoreAssetsMutationState,
 } from '#/hooks/backendBatchedHooks'
-import {
-  backendMutationOptions,
-  useBackendMutationState,
-  useBackendQuery,
-} from '#/hooks/backendHooks'
+import { useBackendMutationState, useBackendQuery } from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useCutAndPaste } from '#/hooks/cutAndPasteHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
@@ -255,7 +251,8 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   )
   const isSoleSelected = useStore(
     driveStore,
-    ({ selectedIds }) => selected && selectedIds.size === 1,
+    ({ selectedIds, visuallySelectedKeys }) =>
+      selected && (visuallySelectedKeys ?? selectedIds).size === 1,
   )
   const allowContextMenu = useStore(
     driveStore,
@@ -315,6 +312,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
       predicate: ({ state: { variables: [assetIds = []] = [] } }) => assetIds.includes(asset.id),
       select: () => null,
     }).length !== 0
+
   const isUpdating = isUpdatingSingleAsset || isMovingMultipleAssets
 
   const { data: projectState } = useQuery({
@@ -330,29 +328,14 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   })
 
   const uploadFiles = useUploadFiles(backend, category)
-  const createPermissionMutation = useMutation(
-    backendMutationOptions(backend, 'createPermission', {
-      meta: {
-        invalidates: [[backend.type, 'listDirectory', asset.parentId]],
-        awaitInvalidates: true,
-      },
-    }),
-  )
 
   const insertionVisibility = useStore(driveStore, (driveState) =>
     driveState.pasteData?.type === 'move' && driveState.pasteData.data.ids.has(id) ?
       Visibility.faded
     : Visibility.visible,
   )
-  const createPermissionVariables = createPermissionMutation.variables?.[0]
-  const isRemovingSelf =
-    createPermissionVariables?.actorsIds[0] === user.userId &&
-    createPermissionVariables.action == null
   const visibility =
-    isDeleting || isRestoring || isUpdating ? Visibility.faded
-    : isRemovingSelf ? Visibility.hidden
-    : insertionVisibility
-  const hidden = visibility === Visibility.hidden
+    isDeleting || isRestoring || isUpdating ? Visibility.faded : insertionVisibility
 
   const setSelected = useEventCallback((newSelected: boolean) => {
     const { selectedAssets } = driveStore.getState()
@@ -434,10 +417,6 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
         state,
         rowState,
         setRowState,
-      }
-
-      if (hidden) {
-        return null
       }
 
       return (

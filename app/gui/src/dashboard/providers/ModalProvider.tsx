@@ -190,7 +190,10 @@ export function useModalRef() {
 // === useSetModal ===
 // ===================
 
-/** A React context hook exposing functions to set and unset the currently active modal. */
+/**
+ * A React context hook exposing functions to set and unset the currently active modal.
+ * @deprecated Use directly imported `setModal`, `updateModal`, and `unsetModal` functions instead.
+ */
 export function useSetModal() {
   return { setModal, updateModal, unsetModal } as const
 }
