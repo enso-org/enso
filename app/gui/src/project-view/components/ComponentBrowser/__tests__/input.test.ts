@@ -5,7 +5,6 @@ import { SuggestionDb } from '@/stores/suggestionDatabase'
 import { unwrap } from '@/util/data/result'
 import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
 import { expect, test } from 'vitest'
-import { parseExpression } from 'ydoc-shared/ast'
 import { assert, assertUnreachable } from 'ydoc-shared/util/assert'
 import { Range } from 'ydoc-shared/util/data/range'
 
