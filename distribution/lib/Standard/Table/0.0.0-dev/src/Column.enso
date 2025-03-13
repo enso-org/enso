@@ -2616,8 +2616,8 @@ private _run_vectorized_many_op column:Column name:Text fallback_fn:(Any -> Any 
             folded = effective_operands.fold column.java_column current-> operand-> if Nothing == operand then current else
                 java_object = if operand.is_a Column then operand.java_column else operand
                 Polyglot_Helpers.handle_polyglot_dataflow_errors <| case name of
-                    "min" -> BinaryCoalescingOperation.min current java_object fallback_fn effective_new_name problem_builder
-                    "max" -> BinaryCoalescingOperation.max current java_object fallback_fn effective_new_name problem_builder
+                    "min" -> BinaryCoalescingOperation.min current java_object fallback_fn storage_type effective_new_name problem_builder
+                    "max" -> BinaryCoalescingOperation.max current java_object fallback_fn storage_type effective_new_name problem_builder
             Column.from_java_column effective_new_name folded
 
 ## PRIVATE

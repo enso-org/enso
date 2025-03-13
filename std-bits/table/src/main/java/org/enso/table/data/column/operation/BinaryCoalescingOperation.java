@@ -5,7 +5,6 @@ import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.time.temporal.Temporal;
 import java.util.function.BiFunction;
-
 import org.enso.table.data.column.operation.map.MapOperationProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
@@ -19,16 +18,33 @@ import org.enso.table.error.UnexpectedTypeException;
 import org.enso.table.problems.BlackholeProblemAggregator;
 
 public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
-  private static Column applyOperation(Column left, Object right, BiFunction<Object, Object, Object> fallback, String name, MapOperationProblemAggregator problemBuilder, BinaryOperation<? extends Temporal> operation, Storage<?> leftStorage, String fallbackName) {
+  private static Column applyOperation(
+      Column left,
+      Object right,
+      BiFunction<Object, Object, Object> fallback,
+      StorageType<?> fallbackType,
+      String name,
+      MapOperationProblemAggregator problemBuilder,
+      BinaryOperation<? extends Temporal> operation,
+      Storage<?> leftStorage,
+      String fallbackName) {
     if (right instanceof Column rightColumn) {
       if (operation != null) {
         var rightStorage = rightColumn.getStorage();
         if (!operation.canApplyZip(leftStorage, rightStorage)) {
-          throw new UnexpectedTypeException("Unsupported right column type: " + rightStorage.getType());
+          throw new UnexpectedTypeException(
+              "Unsupported right column type: " + rightStorage.getType());
         }
         return operation.apply(left, rightColumn, name);
       } else {
-        var result = leftStorage.vectorizedOrFallbackZip(fallbackName, problemBuilder, fallback, rightColumn.getStorage(), false, leftStorage.getType());
+        var result =
+            leftStorage.vectorizedOrFallbackZip(
+                fallbackName,
+                problemBuilder,
+                fallback,
+                rightColumn.getStorage(),
+                false,
+                fallbackType);
         return new Column(name, result);
       }
     }
@@ -39,7 +55,9 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
       }
       return operation.apply(left, right, name);
     } else {
-      var result = leftStorage.vectorizedOrFallbackBinaryMap(fallbackName, problemBuilder, fallback, right, false, leftStorage.getType());
+      var result =
+          leftStorage.vectorizedOrFallbackBinaryMap(
+              fallbackName, problemBuilder, fallback, right, false, leftStorage.getType());
       return new Column(name, result);
     }
   }
@@ -51,15 +69,23 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
   private static final BinaryOperation<LocalTime> TIME_MIN =
       new BinaryCoalescingOperation<>(TimeOfDayType.INSTANCE, (a, b) -> a.isBefore(b) ? a : b);
 
-  public static Column min(Column left, Object right, BiFunction<Object, Object, Object> fallback, String name, MapOperationProblemAggregator problemBuilder) {
+  public static Column min(
+      Column left,
+      Object right,
+      BiFunction<Object, Object, Object> fallback,
+      StorageType<?> fallbackType,
+      String name,
+      MapOperationProblemAggregator problemBuilder) {
     var leftStorage = left.getStorage();
-    var operation = switch (leftStorage.getType()) {
-      case DateType d -> DATE_MIN;
-      case DateTimeType dt -> DATE_TIME_MIN;
-      case TimeOfDayType t -> TIME_MIN;
-      default -> null;
-    };
-    return applyOperation(left, right, fallback, name, problemBuilder, operation, leftStorage, "min");
+    var operation =
+        switch (leftStorage.getType()) {
+          case DateType d -> DATE_MIN;
+          case DateTimeType dt -> DATE_TIME_MIN;
+          case TimeOfDayType t -> TIME_MIN;
+          default -> null;
+        };
+    return applyOperation(
+        left, right, fallback, fallbackType, name, problemBuilder, operation, leftStorage, "min");
   }
 
   private static final BinaryOperation<LocalDate> DATE_MAX =
@@ -69,15 +95,23 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
   private static final BinaryOperation<LocalTime> TIME_MAX =
       new BinaryCoalescingOperation<>(TimeOfDayType.INSTANCE, (a, b) -> a.isBefore(b) ? a : b);
 
-  public static Column max(Column left, Object right, BiFunction<Object, Object, Object> fallback, String name, MapOperationProblemAggregator problemBuilder) {
+  public static Column max(
+      Column left,
+      Object right,
+      BiFunction<Object, Object, Object> fallback,
+      StorageType<?> fallbackType,
+      String name,
+      MapOperationProblemAggregator problemBuilder) {
     var leftStorage = left.getStorage();
-    var operation = switch (leftStorage.getType()) {
-      case DateType d -> DATE_MAX;
-      case DateTimeType dt -> DATE_TIME_MAX;
-      case TimeOfDayType t -> TIME_MAX;
-      default -> null;
-    };
-    return applyOperation(left, right, fallback, name, problemBuilder, operation, leftStorage, "max");
+    var operation =
+        switch (leftStorage.getType()) {
+          case DateType d -> DATE_MAX;
+          case DateTimeType dt -> DATE_TIME_MAX;
+          case TimeOfDayType t -> TIME_MAX;
+          default -> null;
+        };
+    return applyOperation(
+        left, right, fallback, fallbackType, name, problemBuilder, operation, leftStorage, "max");
   }
 
   private final StorageType<T> validType;
