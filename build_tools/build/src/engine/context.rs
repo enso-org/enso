@@ -1,7 +1,6 @@
 use crate::prelude::*;
 
 use crate::engine;
-use crate::engine::download_project_templates;
 use crate::engine::env;
 use crate::engine::sbt::SbtCommandProvider;
 use crate::engine::BenchmarkType;
@@ -251,10 +250,6 @@ impl RunContext {
             ide_ci::future::perhaps(self.config.generate_java_from_rust, || {
                 crate::rust::parser::generate_java(&self.paths.repo_root)
             });
-
-        // Download Project Template Files
-        let client = reqwest::Client::new();
-        download_project_templates(client.clone(), self.paths.repo_root.path.clone()).await?;
 
         // let sbt = WithCwd::new(Sbt, &self.paths.repo_root);
 
