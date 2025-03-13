@@ -101,7 +101,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetFunctionName WidgetFunctionName">
+  <div class="WidgetFunctionName">
     <NodeWidget v-if="thisArg" :input="WidgetInput.FromAst(thisArg)" />
     <NodeWidget v-if="operator" :input="WidgetInput.FromAst(operator)" />
     <AutoSizedInput
