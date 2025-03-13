@@ -298,7 +298,7 @@ function createServer() {
 
       const { sortColIndexes, sortDirections } = convertSortModel(request, columnHeaders)
 
-      const { filterColumnIndexList, filterActions, valueList} = convertFilterModel(
+      const { filterColumnIndexList, filterActions, valueList } = convertFilterModel(
         request,
         columnHeaders,
         colTypeMap.value,
@@ -317,7 +317,7 @@ function createServer() {
         filterColumnIndexList,
         //column actions i.e Greater Than, Between...
         filterActions,
-        //values to filter on 
+        //values to filter on
         valueList,
       )
       const response = await config.executeExpression(expressionFunction)
