@@ -690,6 +690,7 @@ lazy val componentModulesPaths =
     GraalVM.toolsPkgs ++
     scalaReflect ++
     helidon ++
+    jackson ++
     scalaLibrary ++
     ioSentry ++
     logbackPkg ++
