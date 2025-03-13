@@ -139,21 +139,7 @@ export const convertFilterModel = (
       })
     : 'Nothing'
 
-  const toValueList =
-    valueMap.length ?
-      valueMap.map((value) => {
-        if (
-          value.action === '..Between' &&
-          typeof value.value === 'object' &&
-          'fromValue' in value.value
-        ) {
-          return `${value.value.toValue}`
-        }
-        return 'Nothing'
-      })
-    : 'Nothing'
-
-  return { filterColumnIndexList, filterActions, valueList, toValueList }
+  return { filterColumnIndexList, filterActions, valueList }
 }
 
 export const createExpressionTemplate = (
