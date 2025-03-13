@@ -24,7 +24,9 @@ type H2_JDBC_Config
         url = "jdbc:h2:" + database_root.path + "/test"
         cleanup =
             database_root . delete_if_exists recursive=True
+        IO.println "AAAAA exists before "+database_root.exists
         cleanup
+        IO.println "AAAAA exists after "+database_root.exists
         Panic.with_finalizer cleanup <|
             database_root . create_directory
             action url
