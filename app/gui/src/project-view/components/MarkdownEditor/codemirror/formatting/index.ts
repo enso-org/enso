@@ -14,7 +14,13 @@ import {
 } from '@/components/MarkdownEditor/codemirror/formatting/inline'
 import { type SupportedBlockType as BlockType } from '@/components/MarkdownEditor/markdown/types'
 import { assert } from '@/util/assert'
-import { type Extension, Facet, Prec } from '@codemirror/state'
+import {
+  type EditorState,
+  type Extension,
+  Facet,
+  Prec,
+  type TransactionSpec,
+} from '@codemirror/state'
 import { type EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { computed, proxyRefs, readonly, type Ref, ref } from 'vue'
@@ -33,8 +39,12 @@ const reactiveFormattingFacet = Facet.define<ReactiveFormatting, ReactiveFormatt
 /** Supports watching and modifying the formatting of the selected text. */
 export function useMarkdownFormatting(view: EditorView) {
   const reactiveFormatting = view.state.facet(reactiveFormattingFacet)
+  function doEdit(edit: (state: EditorState) => TransactionSpec) {
+    view.dispatch(edit(view.state))
+    view.focus()
+  }
   function inlineFormat(type: InlineFormattingNode) {
-    const setter = (value: boolean) => view.dispatch(setInlineFormatting(view.state, type, value))
+    const setter = (value: boolean) => doEdit((state) => setInlineFormatting(state, type, value))
     return proxyRefs({
       value: computed(() => !!reactiveFormatting.inline[type].value),
       set: computed(() => (reactiveFormatting.inline[type] === undefined ? undefined : setter)),
@@ -44,13 +54,9 @@ export function useMarkdownFormatting(view: EditorView) {
     italic: inlineFormat('Emphasis'),
     bold: inlineFormat('StrongEmphasis'),
     strikethrough: inlineFormat('Strikethrough'),
-    insertLink: computed(
-      () => canInsertLink(view.state) && (() => view.dispatch(insertLink(view.state))),
-    ),
+    insertLink: computed(() => (canInsertLink(view.state) ? () => doEdit(insertLink) : undefined)),
     insertCodeBlock: computed(() =>
-      reactiveFormatting.unformattable.value ?
-        undefined
-      : () => view.dispatch(insertCodeBlock(view.state)),
+      reactiveFormatting.unformattable.value ? undefined : () => doEdit(insertCodeBlock),
     ),
     blockType: proxyRefs({
       value: readonly(reactiveFormatting.blockType),
@@ -58,10 +64,8 @@ export function useMarkdownFormatting(view: EditorView) {
         const currentType = getBlockType(view.state)
         if (type === currentType) return
         assert(type !== 'FencedCode')
-        view.dispatch(
-          currentType === 'FencedCode' ?
-            removeCodeBlock(view.state)
-          : setBlockType(view.state, type),
+        doEdit((state) =>
+          currentType === 'FencedCode' ? removeCodeBlock(state) : setBlockType(state, type),
         )
       },
     }),
