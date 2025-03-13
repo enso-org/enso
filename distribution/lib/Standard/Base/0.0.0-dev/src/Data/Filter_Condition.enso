@@ -220,7 +220,11 @@ type Filter_Condition
             Like sql_pattern _ ->
                 regex = sql_like_to_regex sql_pattern
                 handle_nothing <| regex.matches
-            Regex_Match regex _ -> handle_nothing <| regex.matches
+            Regex_Match regex _ -> handle_nothing <|
+                compiled_regex = case regex of
+                    Regex.Value _ _ -> regex
+                    _ -> Regex.compile regex
+                compiled_regex.matches
             Is_In values _ -> Hashset.from_vector values . contains
         if self.action == Filter_Action.Keep then base else v -> (base v).not
 
@@ -345,3 +349,10 @@ handle_nothing : (Any -> Boolean) -> (Any -> Boolean)
 handle_nothing f = elem-> case elem of
     Nothing -> False
     _ -> f elem
+
+
+_get_regex_matcher pattern =
+    compiled_regex = case pattern of
+        Regex.Value _ _ -> pattern
+        _ -> Regex.compile pattern
+    compiled_regex.matches
