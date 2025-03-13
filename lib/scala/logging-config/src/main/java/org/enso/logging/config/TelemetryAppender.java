@@ -22,20 +22,4 @@ public final class TelemetryAppender extends Appender {
   public boolean setup(Level logLevel, LoggerSetup loggerSetup) {
     return loggerSetup.setupTelemetryAppender();
   }
-
-  private Path credentialsFile() {
-    var home = Path.of(System.getProperty("user.home"));
-    var credentials = home.resolve(".enso").resolve("credentials");
-    if (!credentials.toFile().exists()) {
-      throw new IllegalStateException("User not logged in");
-    }
-    return credentials;
-  }
-
-  private static Credentials readCredentials() {
-    // TODO: Parse JSON from credentials
-    throw new UnsupportedOperationException("unimplemented");
-  }
-
-  private record Credentials(String accessToken, LocalDateTime expireAt) {}
 }
