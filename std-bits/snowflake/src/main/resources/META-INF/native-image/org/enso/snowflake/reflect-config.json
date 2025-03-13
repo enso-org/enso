@@ -1246,5 +1246,9 @@
                 ]
             }
         ]
+    },
+    {
+        "name": "org.enso.snowflake_helpers.TestKeyGenerator",
+        "allPublicMethods": true
     }
 ]
