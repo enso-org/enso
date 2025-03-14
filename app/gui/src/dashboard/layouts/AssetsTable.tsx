@@ -30,17 +30,17 @@ import { Button, Text } from '#/components/AriaComponents'
 import type { AssetRowInnerProps } from '#/components/dashboard/AssetRow'
 import { AssetRow } from '#/components/dashboard/AssetRow'
 import { INITIAL_ROW_STATE } from '#/components/dashboard/AssetRow/assetRowUtils'
-import type { SortableColumn } from '#/components/dashboard/column/columnUtils'
 import {
   Column,
   COLUMN_CSS_CLASS,
+  COLUMN_HEADING,
   COLUMN_ICONS,
   COLUMN_SHOW_TEXT_ID,
   DEFAULT_ENABLED_COLUMNS,
   getColumnList,
-} from '#/components/dashboard/column/columnUtils'
+  type SortableColumn,
+} from '#/components/dashboard/column'
 import NameColumn from '#/components/dashboard/column/NameColumn'
-import { COLUMN_HEADING } from '#/components/dashboard/columnHeading'
 import Label from '#/components/dashboard/Label'
 import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { IsolateLayout } from '#/components/IsolateLayout'

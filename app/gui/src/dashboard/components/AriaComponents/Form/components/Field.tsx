@@ -4,9 +4,9 @@ import type { Path } from '#/utilities/objectPath'
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import * as React from 'react'
-import { Form } from '../Form'
 import { FIELD_STYLES } from '../styles'
 import type { FieldProps, FieldValues, FormInstance, TSchema } from './types'
+import { useFieldState } from './useFieldState'
 
 /** Props for Field component */
 export interface FieldComponentProps<Schema extends TSchema>
@@ -61,7 +61,7 @@ export const Field = forwardRef(function Field<Schema extends TSchema>(
 
   // This is SAFE, we are just using a type with added constraint.
   // eslint-disable-next-line no-restricted-syntax
-  const fieldState = Form.useFieldState(props as never)
+  const fieldState = useFieldState(props as never)
 
   const invalid = isInvalid || fieldState.hasError
 

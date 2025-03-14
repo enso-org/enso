@@ -10,26 +10,24 @@ import {
   ListBoxItem,
   type ComboBoxProps as AriaComboBoxProps,
 } from '#/components/aria'
-import { useText } from '#/providers/TextProvider'
-import { forwardRef } from '#/utilities/react'
-import type { VariantProps } from '#/utilities/tailwindVariants'
-import { tv } from '#/utilities/tailwindVariants'
+import { Button } from '#/components/AriaComponents/Button'
+import { Popover } from '#/components/AriaComponents/Dialog'
 import {
-  BasicInput,
-  Button,
   Form,
-  Popover,
-  Text,
   type FieldComponentProps,
   type FieldPath,
   type FieldProps,
   type FieldStateProps,
   type FieldValues,
-  type InputProps,
   type TSchema,
-} from '../..'
-// This cannot be added to the import above or else it is `undefined` due to a circular import.
-import { makeRoundedStyles } from '../../utilities'
+} from '#/components/AriaComponents/Form'
+import { Text } from '#/components/AriaComponents/Text'
+import { makeRoundedStyles } from '#/components/AriaComponents/utilities'
+import { useText } from '#/providers/TextProvider'
+import { forwardRef } from '#/utilities/react'
+import type { VariantProps } from '#/utilities/tailwindVariants'
+import { tv } from '#/utilities/tailwindVariants'
+import { BasicInput, InputProps } from '../Input'
 
 const COMBO_BOX_STYLES = tv({
   base: 'w-full',

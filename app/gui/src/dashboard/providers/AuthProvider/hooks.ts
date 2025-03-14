@@ -1,7 +1,7 @@
 /** @file Hooks for `AuthProvider`. */
 import { useContext } from 'react'
 import invariant from 'tiny-invariant'
-import type { FullUserSession } from './AuthProvider'
+import type { FullUserSession } from './constants'
 import { AuthContext, UserSessionType } from './constants'
 
 /**

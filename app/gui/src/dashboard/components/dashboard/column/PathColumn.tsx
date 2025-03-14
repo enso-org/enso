@@ -11,7 +11,7 @@ import type { DirectoryId } from '#/services/Backend'
 import { parseDirectoriesPath } from '#/services/utilities'
 import { Fragment, useTransition } from 'react'
 import invariant from 'tiny-invariant'
-import type { AssetColumnProps } from '../column'
+import type { AssetColumnProps } from './types'
 
 /** A column displaying the path of the asset. */
 export default function PathColumn(props: AssetColumnProps) {

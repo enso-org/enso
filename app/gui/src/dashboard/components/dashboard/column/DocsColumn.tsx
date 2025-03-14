@@ -1,5 +1,5 @@
 /** @file A column listing the users with which this asset is shared. */
-import type { AssetColumnProps } from '#/components/dashboard/column'
+import type { AssetColumnProps } from './types'
 
 /** A column listing the users with which this asset is shared. */
 export default function DocsColumn(props: AssetColumnProps) {

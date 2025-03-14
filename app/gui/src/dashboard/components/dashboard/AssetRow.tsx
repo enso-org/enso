@@ -1,37 +1,8 @@
 /** @file A table row for an arbitrary asset. */
-import * as React from 'react'
-
-import { useStore } from '#/utilities/zustand'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import invariant from 'tiny-invariant'
-
 import BlankIcon from '#/assets/blank.svg'
-
-import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
-
-import type { DrivePastePayload } from '#/providers/DriveProvider'
-import {
-  useDriveStore,
-  useSetCurrentDirectoryId,
-  useSetDragTargetAssetId,
-  useSetIsDraggingOverSelectedRow,
-  useSetLabelsDragPayload,
-  useSetSelectedAssets,
-} from '#/providers/DriveProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
-
+import { Text } from '#/components/AriaComponents'
 import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
 import * as columnModule from '#/components/dashboard/column'
-import * as columnUtils from '#/components/dashboard/column/columnUtils'
-import AssetContextMenu from '#/layouts/AssetContextMenu'
-import type * as assetsTable from '#/layouts/AssetsTable'
-import { isLocalCategory } from '#/layouts/CategorySwitcher/Category'
-
-import * as backendModule from '#/services/Backend'
-
-import { Text } from '#/components/AriaComponents'
 import { IndefiniteSpinner } from '#/components/Spinner'
 import {
   useDeleteAssetsMutationState,
@@ -45,10 +16,27 @@ import {
 } from '#/hooks/backendHooks'
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useCutAndPaste } from '#/hooks/cutAndPasteHooks'
+import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
+import AssetContextMenu from '#/layouts/AssetContextMenu'
+import type * as assetsTable from '#/layouts/AssetsTable'
+import { isLocalCategory } from '#/layouts/CategorySwitcher/Category'
 import { useAsset, useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
+import type { DrivePastePayload } from '#/providers/DriveProvider'
+import {
+  useDriveStore,
+  useSetCurrentDirectoryId,
+  useSetDragTargetAssetId,
+  useSetIsDraggingOverSelectedRow,
+  useSetLabelsDragPayload,
+  useSetSelectedAssets,
+} from '#/providers/DriveProvider'
+import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
+import * as backendModule from '#/services/Backend'
 import * as drag from '#/utilities/drag'
 import * as eventModule from '#/utilities/event'
 import * as object from '#/utilities/object'
@@ -59,7 +47,11 @@ import {
 } from '#/utilities/permissions'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
+import { useStore } from '#/utilities/zustand'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import * as React from 'react'
 import { useTransition } from 'react'
+import invariant from 'tiny-invariant'
 
 /** Common properties for state and setters passed to event handlers on an {@link AssetRow}. */
 export interface AssetRowInnerProps {
@@ -77,7 +69,7 @@ export interface AssetRowProps {
   readonly parentId: backendModule.DirectoryId
   readonly type: backendModule.AssetType
   readonly state: assetsTable.AssetsTableState
-  readonly columns: columnUtils.Column[]
+  readonly columns: columnModule.Column[]
   readonly isKeyboardSelected: boolean
   readonly grabKeyboardFocus: (item: backendModule.AnyAsset) => void
   readonly onClick: (props: AssetRowInnerProps, event: React.MouseEvent) => void
@@ -582,7 +574,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
             {columns.map((column) => {
               const Render = columnModule.COLUMN_RENDERER[column]
               return (
-                <td key={column} className={columnUtils.COLUMN_CSS_CLASS[column]}>
+                <td key={column} className={columnModule.COLUMN_CSS_CLASS[column]}>
                   <Render
                     isPlaceholder={isPlaceholder}
                     isOpened={isOpened}

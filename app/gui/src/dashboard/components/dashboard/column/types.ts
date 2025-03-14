@@ -1,19 +1,23 @@
-/** @file Column types and column display modes. */
-import { memo, type Dispatch, type JSX, type SetStateAction } from 'react'
-
 import type { AssetRowState, AssetsTableState } from '#/layouts/AssetsTable'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import type { AnyAsset, BackendType } from '#/services/Backend'
 import type { SortInfo } from '#/utilities/sorting'
-import type { SortableColumn } from './column/columnUtils'
-import { Column } from './column/columnUtils'
-import DocsColumn from './column/DocsColumn'
-import LabelsColumn from './column/LabelsColumn'
-import ModifiedColumn from './column/ModifiedColumn'
-import NameColumn from './column/NameColumn'
-import PathColumn from './column/PathColumn'
-import PlaceholderColumn from './column/PlaceholderColumn'
-import SharedWithColumn from './column/SharedWithColumn'
+import type { Dispatch, JSX, SetStateAction } from 'react'
+
+/** Column type. */
+export enum Column {
+  name = 'name',
+  modified = 'modified',
+  sharedWith = 'sharedWith',
+  labels = 'labels',
+  path = 'path',
+  accessedByProjects = 'accessedByProjects',
+  accessedData = 'accessedData',
+  docs = 'docs',
+}
+
+/** Columns that can be used as a sort column. */
+export type SortableColumn = Column.modified | Column.name
 
 /** Props for an arbitrary variant of {@link Asset}. */
 export interface AssetColumnProps {
@@ -42,22 +46,4 @@ export interface AssetColumn {
   readonly className?: string
   readonly heading: (props: AssetColumnHeadingProps) => JSX.Element
   readonly render: (props: AssetColumnProps) => JSX.Element
-}
-
-// =======================
-// === COLUMN_RENDERER ===
-// =======================
-
-/** React components for every column. */
-export const COLUMN_RENDERER: Readonly<
-  Record<Column, React.MemoExoticComponent<(props: AssetColumnProps) => React.JSX.Element>>
-> = {
-  [Column.name]: memo(NameColumn),
-  [Column.modified]: memo(ModifiedColumn),
-  [Column.sharedWith]: memo(SharedWithColumn),
-  [Column.labels]: memo(LabelsColumn),
-  [Column.accessedByProjects]: memo(PlaceholderColumn),
-  [Column.accessedData]: memo(PlaceholderColumn),
-  [Column.docs]: memo(DocsColumn),
-  [Column.path]: memo(PathColumn),
 }

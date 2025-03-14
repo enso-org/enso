@@ -2,7 +2,7 @@
 import { Button, ButtonGroup, Dialog, Text } from '#/components/AriaComponents'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
-import { setShouldClose } from './hooks'
+import { setShouldClose } from './utilities'
 
 /** Props for a {@link ConfirmCloseModal}. */
 interface ConfirmCloseModalProps {

@@ -3,8 +3,7 @@ import DirectoryIcon from '#/assets/folder.svg'
 import { Button, Text } from '#/components/AriaComponents'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useText } from '#/providers/TextProvider'
-import type { AssetColumnHeadingProps } from '../column'
-import { Column } from '../column/columnUtils'
+import { Column, type AssetColumnHeadingProps } from '../types'
 
 /** A heading for the "Path" column. */
 export default function PathColumnHeading(props: AssetColumnHeadingProps) {
@@ -18,7 +17,7 @@ export default function PathColumnHeading(props: AssetColumnHeadingProps) {
 
   return (
     <div
-      className="gap-icon-with-text isolate flex h-table-row w-full items-center"
+      className="isolate flex h-table-row w-full items-center gap-icon-with-text"
       data-testid="path-column-heading"
     >
       <Button

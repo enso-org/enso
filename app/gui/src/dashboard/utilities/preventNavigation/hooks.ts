@@ -4,15 +4,7 @@ import { useSetModal } from '#/providers/ModalProvider'
 import { isOnElectron } from 'enso-common/src/detect'
 import { createElement, useEffect } from 'react'
 import { ConfirmCloseModal } from './ConfirmCloseModal'
-
-// This variable must be mutable because it is set by the hook below.
-// eslint-disable-next-line no-restricted-syntax
-export let shouldClose = false
-
-/** Set `shouldClose`. */
-export function setShouldClose(newShouldClose: boolean) {
-  shouldClose = newShouldClose
-}
+import { setShouldClose, shouldClose } from './utilities'
 
 /** Options for {@link usePreventNavigation}. */
 export interface PreventNavigationOptions {

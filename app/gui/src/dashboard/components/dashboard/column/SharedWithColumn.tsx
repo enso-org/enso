@@ -1,8 +1,8 @@
 /** @file A column listing the users with which this asset is shared. */
-import type { AssetColumnProps } from '#/components/dashboard/column'
 import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
 import { getAssetPermissionId, getAssetPermissionName } from '#/services/Backend'
 import { PermissionAction } from '#/utilities/permissions'
+import type { AssetColumnProps } from './types'
 
 /** The type of the `state` prop of a {@link SharedWithColumn}. */
 interface SharedWithColumnStateProp

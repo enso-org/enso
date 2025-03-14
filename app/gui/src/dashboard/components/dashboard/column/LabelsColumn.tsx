@@ -1,31 +1,24 @@
 /** @file A column listing the labels on this asset. */
-import * as React from 'react'
-
 import Plus2Icon from '#/assets/plus2.svg'
-
-import * as backendHooks from '#/hooks/backendHooks'
-
-import * as authProvider from '#/providers/AuthProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
-
 import { Button, DialogTrigger } from '#/components/AriaComponents'
 import ContextMenu from '#/components/ContextMenu'
-import type * as column from '#/components/dashboard/column'
 import Label from '#/components/dashboard/Label'
 import { MenuEntry } from '#/components/MenuEntry'
-
-import ManageLabelsModal from '#/modals/ManageLabelsModal'
-
-import * as backendModule from '#/services/Backend'
-
+import * as backendHooks from '#/hooks/backendHooks'
 import { useStore } from '#/hooks/storeHooks'
+import ManageLabelsModal from '#/modals/ManageLabelsModal'
+import * as authProvider from '#/providers/AuthProvider'
 import { useDriveStore } from '#/providers/DriveProvider'
+import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
+import * as backendModule from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
+import * as React from 'react'
+import type { AssetColumnProps } from './types'
 
 /** A column listing the labels on this asset. */
-export default function LabelsColumn(props: column.AssetColumnProps) {
+export default function LabelsColumn(props: AssetColumnProps) {
   const { item, state } = props
   const { backend, category, setQuery } = state
   const { user } = authProvider.useFullUserSession()

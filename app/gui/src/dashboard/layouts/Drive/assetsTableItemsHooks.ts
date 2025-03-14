@@ -1,9 +1,5 @@
 /** @file A hook to return the items in the assets table. */
-import type { AnyAsset, AssetId } from 'enso-common/src/services/Backend'
-import { AssetType, getAssetPermissionName } from 'enso-common/src/services/Backend'
-import { PermissionAction } from 'enso-common/src/utilities/permissions'
-
-import type { SortableColumn } from '#/components/dashboard/column/columnUtils'
+import type { SortableColumn } from '#/components/dashboard/column'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { assetCompareFunction } from '#/layouts/Drive/compareAssets'
 import { useText } from '#/providers/TextProvider'
@@ -13,6 +9,9 @@ import { fileExtension } from '#/utilities/fileInfo'
 import type { SortInfo } from '#/utilities/sorting'
 import { regexEscape } from '#/utilities/string'
 import { createStore, useStore } from '#/utilities/zustand.ts'
+import type { AnyAsset, AssetId } from 'enso-common/src/services/Backend'
+import { AssetType, getAssetPermissionName } from 'enso-common/src/services/Backend'
+import { PermissionAction } from 'enso-common/src/utilities/permissions'
 import { useEffect } from 'react'
 import invariant from 'tiny-invariant'
 

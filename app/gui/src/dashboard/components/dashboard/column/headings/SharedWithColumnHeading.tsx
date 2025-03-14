@@ -1,10 +1,9 @@
 /** @file A heading for the "Shared with" column. */
 import PeopleIcon from '#/assets/people.svg'
 import { Button, Text } from '#/components/AriaComponents'
-import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
-import { Column } from '#/components/dashboard/column/columnUtils'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useText } from '#/providers/TextProvider'
+import { Column, type AssetColumnHeadingProps } from '../types'
 
 /** A heading for the "Shared with" column. */
 export default function SharedWithColumnHeading(props: AssetColumnHeadingProps) {
@@ -17,7 +16,7 @@ export default function SharedWithColumnHeading(props: AssetColumnHeadingProps) 
   })
 
   return (
-    <div className="gap-icon-with-text isolate flex h-table-row w-full items-center">
+    <div className="isolate flex h-table-row w-full items-center gap-icon-with-text">
       <Button
         variant="icon"
         icon={PeopleIcon}

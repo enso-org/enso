@@ -1,39 +1,38 @@
-/** @file The icon and name of an {@link backendModule.Asset}. */
-import type { AssetColumnProps } from '#/components/dashboard/column'
+/** @file The icon and name of an {@link Asset}. */
 import DatalinkNameColumn from '#/components/dashboard/DatalinkNameColumn'
 import DirectoryNameColumn from '#/components/dashboard/DirectoryNameColumn'
 import FileNameColumn from '#/components/dashboard/FileNameColumn'
 import ProjectNameColumn from '#/components/dashboard/ProjectNameColumn'
 import SecretNameColumn from '#/components/dashboard/SecretNameColumn'
-
-import * as backendModule from '#/services/Backend'
+import { AssetType, type Asset } from '#/services/Backend'
+import type { AssetColumnProps } from './types'
 
 /** Props for a {@link AssetNameColumn}. */
 export type AssetNameColumnProps = AssetColumnProps
 
-/** The icon and name of an {@link backendModule.Asset}. */
+/** The icon and name of an {@link Asset}. */
 export default function AssetNameColumn(props: AssetNameColumnProps) {
   const { item } = props
 
   switch (item.type) {
-    case backendModule.AssetType.directory: {
+    case AssetType.directory: {
       return <DirectoryNameColumn {...props} item={item} />
     }
-    case backendModule.AssetType.project: {
+    case AssetType.project: {
       return <ProjectNameColumn {...props} item={item} />
     }
-    case backendModule.AssetType.file: {
+    case AssetType.file: {
       return <FileNameColumn {...props} item={item} />
     }
-    case backendModule.AssetType.datalink: {
+    case AssetType.datalink: {
       return <DatalinkNameColumn {...props} item={item} />
     }
-    case backendModule.AssetType.secret: {
+    case AssetType.secret: {
       return <SecretNameColumn {...props} item={item} />
     }
-    case backendModule.AssetType.specialLoading:
-    case backendModule.AssetType.specialEmpty:
-    case backendModule.AssetType.specialError: {
+    case AssetType.specialLoading:
+    case AssetType.specialEmpty:
+    case AssetType.specialError: {
       // Special rows do not display columns at all.
       return <></>
     }

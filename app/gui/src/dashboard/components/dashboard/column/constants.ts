@@ -1,41 +1,58 @@
-/** @file Types and constants related to `Column`s. */
-import type * as text from 'enso-common/src/text'
-
-import DirectoryIcon from '#/assets/folder.svg'
-
+/** @file Column types and column display modes. */
 import AccessedByProjectsIcon from '#/assets/accessed_by_projects.svg'
 import AccessedDataIcon from '#/assets/accessed_data.svg'
 import BlankIcon from '#/assets/blank.svg'
 import DocsIcon from '#/assets/docs.svg'
+import DirectoryIcon from '#/assets/folder.svg'
 import PeopleIcon from '#/assets/people.svg'
 import TagIcon from '#/assets/tag.svg'
 import TimeIcon from '#/assets/time.svg'
+import type { TextId } from 'enso-common/src/text'
+import { memo } from 'react'
+import DocsColumn from './DocsColumn'
+import AccessedByProjectsColumnHeading from './headings/AccessedByProjectsColumnHeading'
+import AccessedDataColumnHeading from './headings/AccessedDataColumnHeading'
+import DocsColumnHeading from './headings/DocsColumnHeading'
+import LabelsColumnHeading from './headings/LabelsColumnHeading'
+import ModifiedColumnHeading from './headings/ModifiedColumnHeading'
+import NameColumnHeading from './headings/NameColumnHeading'
+import PathColumnHeading from './headings/PathColumnHeading'
+import SharedWithColumnHeading from './headings/SharedWithColumnHeading'
+import LabelsColumn from './LabelsColumn'
+import ModifiedColumn from './ModifiedColumn'
+import NameColumn from './NameColumn'
+import PathColumn from './PathColumn'
+import PlaceholderColumn from './PlaceholderColumn'
+import SharedWithColumn from './SharedWithColumn'
+import { Column, type AssetColumnHeadingProps, type AssetColumnProps } from './types'
 
-import type { Category } from '#/layouts/CategorySwitcher/Category'
-import * as backend from '#/services/Backend'
-
-// =============
-// === Types ===
-// =============
-
-/** Column type. */
-export enum Column {
-  name = 'name',
-  modified = 'modified',
-  sharedWith = 'sharedWith',
-  labels = 'labels',
-  path = 'path',
-  accessedByProjects = 'accessedByProjects',
-  accessedData = 'accessedData',
-  docs = 'docs',
+/** React components for every column. */
+export const COLUMN_RENDERER: Readonly<
+  Record<Column, React.MemoExoticComponent<(props: AssetColumnProps) => React.JSX.Element>>
+> = {
+  [Column.name]: memo(NameColumn),
+  [Column.modified]: memo(ModifiedColumn),
+  [Column.sharedWith]: memo(SharedWithColumn),
+  [Column.labels]: memo(LabelsColumn),
+  [Column.accessedByProjects]: memo(PlaceholderColumn),
+  [Column.accessedData]: memo(PlaceholderColumn),
+  [Column.docs]: memo(DocsColumn),
+  [Column.path]: memo(PathColumn),
 }
 
-/** Columns that can be used as a sort column. */
-export type SortableColumn = Column.modified | Column.name
-
-// =================
-// === Constants ===
-// =================
+/** React components for every column heading. */
+export const COLUMN_HEADING: Readonly<
+  Record<Column, React.MemoExoticComponent<(props: AssetColumnHeadingProps) => React.JSX.Element>>
+> = {
+  [Column.name]: memo(NameColumnHeading),
+  [Column.modified]: memo(ModifiedColumnHeading),
+  [Column.sharedWith]: memo(SharedWithColumnHeading),
+  [Column.labels]: memo(LabelsColumnHeading),
+  [Column.accessedByProjects]: memo(AccessedByProjectsColumnHeading),
+  [Column.accessedData]: memo(AccessedDataColumnHeading),
+  [Column.docs]: memo(DocsColumnHeading),
+  [Column.path]: memo(PathColumnHeading),
+}
 
 export const DEFAULT_ENABLED_COLUMNS: ReadonlySet<Column> = new Set([
   Column.name,
@@ -58,7 +75,7 @@ export const COLUMN_ICONS: Readonly<Record<Column, string>> = {
   [Column.path]: DirectoryIcon,
 }
 
-export const COLUMN_SHOW_TEXT_ID: Readonly<Record<Column, text.TextId>> = {
+export const COLUMN_SHOW_TEXT_ID: Readonly<Record<Column, TextId>> = {
   [Column.name]: 'nameColumnShow',
   [Column.modified]: 'modifiedColumnShow',
   [Column.sharedWith]: 'sharedWithColumnShow',
@@ -73,7 +90,7 @@ const COLUMN_CSS_CLASSES =
   'max-w-96 text-left bg-clip-padding last:border-r-0 last:rounded-r-full last:w-full'
 const NORMAL_COLUMN_CSS_CLASSES = `px-cell-x py ${COLUMN_CSS_CLASSES}`
 
-/** CSS classes for every column. */
+/** CSS classes for every  */
 export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
   [Column.name]: `z-10 sticky left-0 bg-dashboard rounded-rows-skip-level min-w-drive-name-column h-full p-0 border-l-0 after:absolute after:right-0 after:top-0 after:bottom-0 after:border-r-[1.5px] after:border-primary/5 ${COLUMN_CSS_CLASSES}`,
   [Column.modified]: `min-w-drive-modified-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
@@ -83,51 +100,4 @@ export const COLUMN_CSS_CLASS: Readonly<Record<Column, string>> = {
   [Column.accessedData]: `min-w-drive-accessed-data-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
   [Column.docs]: `min-w-drive-docs-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
   [Column.path]: `min-w-drive-path-column rounded-rows-have-level ${NORMAL_COLUMN_CSS_CLASSES}`,
-}
-
-// =====================
-// === getColumnList ===
-// =====================
-
-/** Return the full list of columns given the relevant current state. */
-export function getColumnList(
-  user: backend.User,
-  backendType: backend.BackendType,
-  category: Category,
-): readonly Column[] {
-  const isCloud = backendType === backend.BackendType.remote
-  const isEnterprise = user.plan === backend.Plan.enterprise
-
-  const isTrash = category.type === 'trash'
-  const isRecent = category.type === 'recent'
-  const isRoot = category.type === 'cloud'
-
-  const sharedWithColumn = () => {
-    if (isTrash) return false
-    if (isRecent) return false
-    if (isRoot) return false
-    return isCloud && isEnterprise && Column.sharedWith
-  }
-
-  const pathColumn = () => {
-    if (isTrash) return Column.path
-    if (isRecent) return Column.path
-
-    return false
-  }
-
-  const columns = [
-    Column.name,
-    Column.modified,
-    sharedWithColumn(),
-    pathColumn(),
-    isCloud && Column.labels,
-    // FIXME[sb]: https://github.com/enso-org/cloud-v2/issues/1525
-    // Bring back these columns when they are ready for use again.
-    // isCloud && Column.accessedByProjects,
-    // isCloud && Column.accessedData,
-    isCloud && Column.docs,
-  ] as const
-
-  return columns.flatMap((column) => (column !== false ? [column] : []))
 }

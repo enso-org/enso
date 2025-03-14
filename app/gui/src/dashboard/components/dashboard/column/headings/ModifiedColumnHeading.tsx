@@ -2,12 +2,11 @@
 import SortAscendingIcon from '#/assets/sort_ascending.svg'
 import TimeIcon from '#/assets/time.svg'
 import { Button, Text } from '#/components/AriaComponents'
-import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
-import { Column } from '#/components/dashboard/column/columnUtils'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useText } from '#/providers/TextProvider'
 import { SortDirection, nextSortDirection } from '#/utilities/sorting'
 import { twJoin } from '#/utilities/tailwindMerge'
+import { Column, type AssetColumnHeadingProps } from '../types'
 
 /** A heading for the "Modified" column. */
 export default function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
@@ -46,7 +45,7 @@ export default function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
           getText('stopSortingByModificationDate')
         : getText('sortByModificationDateDescending')
       }
-      className="gap-icon-with-text group flex h-table-row w-full cursor-pointer items-center"
+      className="group flex h-table-row w-full cursor-pointer items-center gap-icon-with-text"
     >
       <Button
         variant="icon"
@@ -58,7 +57,7 @@ export default function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
       <Button
         size="custom"
         variant="custom"
-        className="gap-icon-with-text flex grow justify-start"
+        className="flex grow justify-start gap-icon-with-text"
         onPress={cycleSortDirection}
       >
         <Text weight="bold" truncate="1" color="custom">

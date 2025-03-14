@@ -1,6 +1,4 @@
 /** @file A styled dropdown. */
-import { useEffect, useMemo, useRef, useState, type ForwardedRef, type ReactNode } from 'react'
-
 import CheckMarkIcon from '#/assets/check_mark.svg'
 import ArrowIcon from '#/assets/folder_arrow.svg'
 import {
@@ -12,12 +10,6 @@ import {
   useFocusWithin,
   type InputProps,
 } from '#/components/aria'
-import FocusRing from '#/components/styled/FocusRing'
-import SvgMask from '#/components/SvgMask'
-import { useSyncRef } from '#/hooks/syncRefHooks'
-import { mergeRefs } from '#/utilities/mergeRefs'
-import { forwardRef } from '#/utilities/react'
-import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import {
   Form,
   type FieldComponentProps,
@@ -28,9 +20,15 @@ import {
   type FieldVariantProps,
   type FormInstance,
   type TSchema,
-} from '../..'
-// This cannot be added to the import above or else it is `undefined` due to a circular import.
-import { makeRoundedStyles } from '../../utilities'
+} from '#/components/AriaComponents/Form'
+import { makeRoundedStyles } from '#/components/AriaComponents/utilities'
+import FocusRing from '#/components/styled/FocusRing'
+import SvgMask from '#/components/SvgMask'
+import { useSyncRef } from '#/hooks/syncRefHooks'
+import { mergeRefs } from '#/utilities/mergeRefs'
+import { forwardRef } from '#/utilities/react'
+import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import { useEffect, useMemo, useRef, useState, type ForwardedRef, type ReactNode } from 'react'
 
 const DROPDOWN_STYLES = tv({
   base: 'focus-child group relative flex w-max cursor-pointer flex-col items-start whitespace-nowrap rounded-input leading-cozy',

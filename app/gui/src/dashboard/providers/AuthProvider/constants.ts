@@ -1,8 +1,39 @@
 /** @file Constants for `AuthProvider`. */
+import type { UserSession as CognitoUserSession } from '#/authentication/cognito'
 import type { User } from '#/services/Backend'
 import type { QueryKey, QueryObserverResult, RefetchOptions } from '@tanstack/react-query'
 import { createContext } from 'react'
-import type { UserSession } from './AuthProvider'
+
+/** Properties common to all {@link UserSession}s. */
+interface BaseUserSession extends CognitoUserSession {
+  /** A discriminator for TypeScript to be able to disambiguate between `UserSession` variants. */
+  readonly type: UserSessionType
+}
+
+/**
+ * Object containing the currently signed-in user's session data, if the user has not yet set their
+ * username.
+ *
+ * If a user has not yet set their username, they do not yet have an organization associated with
+ * their account. Otherwise, this type is identical to the `Session` type. This type should ONLY be
+ * used by the `SetUsername` component.
+ */
+export interface PartialUserSession extends BaseUserSession {
+  readonly type: UserSessionType.partial
+}
+
+/** Object containing the currently signed-in user's session data. */
+export interface FullUserSession extends BaseUserSession {
+  /** User's organization information. */
+  readonly type: UserSessionType.full
+  readonly user: User
+}
+
+/**
+ * A user session for a user that may be either fully registered,
+ * or in the process of registering.
+ */
+export type UserSession = FullUserSession | PartialUserSession
 
 /** Possible types of {@link BaseUserSession}. */
 export enum UserSessionType {

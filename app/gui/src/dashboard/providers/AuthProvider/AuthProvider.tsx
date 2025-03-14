@@ -39,38 +39,13 @@ import { ErrorBoundary } from 'react-error-boundary'
 import * as router from 'react-router-dom'
 import * as toast from 'react-toastify'
 import invariant from 'tiny-invariant'
-import { AuthContext, UserSessionType, type AuthContextType } from './constants'
-
-/** Properties common to all {@link UserSession}s. */
-interface BaseUserSession extends cognitoModule.UserSession {
-  /** A discriminator for TypeScript to be able to disambiguate between `UserSession` variants. */
-  readonly type: UserSessionType
-}
-
-/**
- * Object containing the currently signed-in user's session data, if the user has not yet set their
- * username.
- *
- * If a user has not yet set their username, they do not yet have an organization associated with
- * their account. Otherwise, this type is identical to the `Session` type. This type should ONLY be
- * used by the `SetUsername` component.
- */
-export interface PartialUserSession extends BaseUserSession {
-  readonly type: UserSessionType.partial
-}
-
-/** Object containing the currently signed-in user's session data. */
-export interface FullUserSession extends BaseUserSession {
-  /** User's organization information. */
-  readonly type: UserSessionType.full
-  readonly user: backendModule.User
-}
-
-/**
- * A user session for a user that may be either fully registered,
- * or in the process of registering.
- */
-export type UserSession = FullUserSession | PartialUserSession
+import {
+  AuthContext,
+  UserSessionType,
+  type AuthContextType,
+  type FullUserSession,
+  type PartialUserSession,
+} from './constants'
 
 /** Query to fetch the user's session data from the backend. */
 function createUsersMeQuery(
@@ -84,11 +59,11 @@ function createUsersMeQuery(
         return Promise.resolve(null)
       }
 
-      return remoteBackend.usersMe().then((user) => {
-        return user == null ?
-            ({ type: UserSessionType.partial, ...session } satisfies PartialUserSession)
-          : ({ type: UserSessionType.full, user, ...session } satisfies FullUserSession)
-      })
+      const user = await remoteBackend.usersMe()
+
+      return user == null ?
+          ({ type: UserSessionType.partial, ...session } satisfies PartialUserSession)
+        : ({ type: UserSessionType.full, user, ...session } satisfies FullUserSession)
     },
   })
 }

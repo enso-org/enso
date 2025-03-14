@@ -1,10 +1,9 @@
 /** @file A heading for the "Accessed data" column. */
 import AccessedDataIcon from '#/assets/accessed_data.svg'
 import { Button, Text } from '#/components/AriaComponents'
-import type { AssetColumnHeadingProps } from '#/components/dashboard/column'
-import { Column } from '#/components/dashboard/column/columnUtils'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useText } from '#/providers/TextProvider'
+import { Column, type AssetColumnHeadingProps } from '../types'
 
 /** A heading for the "Accessed data" column. */
 export default function AccessedDataColumnHeading(props: AssetColumnHeadingProps) {
@@ -16,7 +15,7 @@ export default function AccessedDataColumnHeading(props: AssetColumnHeadingProps
   })
 
   return (
-    <div className="gap-icon-with-text flex h-table-row w-full items-center">
+    <div className="flex h-table-row w-full items-center gap-icon-with-text">
       <Button
         variant="icon"
         icon={AccessedDataIcon}

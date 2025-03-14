@@ -3,8 +3,7 @@ import type { Path } from '#/utilities/objectPath'
 import type * as React from 'react'
 import type { FormEvent } from 'react'
 import type * as reactHookForm from 'react-hook-form'
-import type * as z from 'zod'
-import type * as schemaModule from './schema'
+import type { z } from 'zod'
 
 /** The type of the inputs to the form, used for UI inputs. */
 export type FieldValues<Schema extends TSchema | undefined> =
@@ -33,7 +32,7 @@ export type TSchema =
 export type SchemaCallback<Schema extends TSchema = TSchema> = (z: SchemaBuilder) => Schema
 
 /** The schema builder. */
-export type SchemaBuilder = typeof schemaModule.schema
+export type SchemaBuilder = typeof z
 
 /** OnSubmitCallbacks type. */
 export interface OnSubmitCallbacks<Schema extends TSchema, SubmitResult = void> {
