@@ -40,7 +40,7 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
   private static final Logger LOGGER = LoggerFactory.getLogger(TelemetryAppender.class.getName());
   private static TelemetryAppender instance;
 
-  private final Credentials credentials;
+  private Credentials credentials;
   private final LogJobsQueue logQueue = new LogJobsQueue();
   private final ThreadPoolExecutor backgroundThreadService;
   private final URI endpoint;
@@ -48,8 +48,7 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
   private HttpClient httpClient;
 
   private TelemetryAppender(
-      Credentials credentials, ThreadPoolExecutor backgroundThreadService, URI endpoint) {
-    this.credentials = credentials;
+      ThreadPoolExecutor backgroundThreadService, URI endpoint) {
     this.backgroundThreadService = backgroundThreadService;
     this.endpoint = endpoint;
   }
@@ -62,20 +61,12 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
   }
 
   private static TelemetryAppender create() {
-    var credentialsFile = credentialsFile();
-    if (!credentialsFile.toFile().exists()) {
-      return null;
-    }
-    var credentials = parseCredentials(credentialsFile);
-    if (credentials == null) {
-      return null;
-    }
     // We set-up a thread 'pool' that will contain at most one thread.
     // If the thread is idle for 60 seconds, it will be shut down.
     var executor = new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
 
     var endpoint = URI.create(getCloudLogsAPIEndpoint());
-    return new TelemetryAppender(credentials, executor, endpoint);
+    return new TelemetryAppender(executor, endpoint);
   }
 
   @Override
@@ -116,14 +107,10 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
     return credentials;
   }
 
-  private static Credentials parseCredentials(Path file) {
+  private static Credentials parseCredentials(Path file) throws IOException {
     assert file.toFile().exists();
     var objectMapper = new ObjectMapper();
-    try {
-      return objectMapper.readValue(file.toFile(), Credentials.class);
-    } catch (IOException e) {
-      return null;
-    }
+    return objectMapper.readValue(file.toFile(), Credentials.class);
   }
 
   private static String getCloudLogsAPIEndpoint() {
@@ -167,7 +154,12 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
         // `logQueue.enqueue` will return 1, thus ensuring that at least one new job is scheduled.
         return;
       }
-      sendBatch(pendingMessages);
+      try {
+        sendBatch(pendingMessages);
+      } catch (RequestFailureException e) {
+        LOGGER.warn("Stopping the Telemetry appender - requests cannot be send", e);
+        return;
+      }
     }
   }
 
@@ -176,18 +168,28 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
    *
    * <p>The batch must not be empty and all messages must share the same request config.
    */
-  private void sendBatch(List<ILoggingEvent> batch) {
+  private void sendBatch(List<ILoggingEvent> batch) throws RequestFailureException {
     assert !batch.isEmpty() : "The batch must not be empty.";
 
-    try {
-      var request = buildRequest(batch);
-      sendLogRequest(request, MAX_RETRIES);
-    } catch (RequestFailureException e) {
-      throw new IllegalStateException(e);
-    }
+    var request = buildRequest(batch);
+    sendLogRequest(request, MAX_RETRIES);
   }
 
-  private HttpRequest buildRequest(List<ILoggingEvent> logEvents) {
+  private HttpRequest buildRequest(List<ILoggingEvent> logEvents) throws RequestFailureException {
+    if (credentials == null) {
+      var credentialsFile = credentialsFile();
+      if (!credentialsFile.toFile().exists()) {
+        LOGGER.warn("Credentials file not found at '{}'. Will not send telemetry", credentialsFile);
+        throw new RequestFailureException("Credentials file not found", null);
+      }
+      try {
+        credentials = parseCredentials(credentialsFile);
+      } catch (IOException e) {
+        LOGGER.warn("Failed to parse credentials from '{}'. Will not send telemetry", credentialsFile);
+        throw new RequestFailureException("Failed to parse credentials", null);
+      }
+      assert credentials != null;
+    }
     var payload = buildPayload(logEvents);
     LOGGER.info(
         "Building HTTP POST request. endpoint = '{}', payload = {}, auth = '{}'",
