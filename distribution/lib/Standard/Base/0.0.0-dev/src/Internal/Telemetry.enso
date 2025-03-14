@@ -1,0 +1,42 @@
+private
+
+import project.Any.Any
+import project.Data.Dictionary.Dictionary
+import project.Data.Json.JS_Object
+import project.Data.Text.Text
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Panic.Panic
+
+from project.Logging import all
+from project.Data.Boolean import Boolean, True, False
+
+polyglot java import org.enso.base.enso_cloud.telemetry.TelemetryLog
+polyglot java import org.enso.base.enso_cloud.telemetry.TelemetryLog.TelemetryLogError
+
+## Heavily inspired by `Standard.Base.Enso_Cloud.Internal.Audit_Log`.
+type Telemetry
+    logger_root = "org.enso.telemetry"
+
+    ## Reports an event to the telemetry log.
+       The event is submitted asynchronously.
+
+       Arguments:
+       - name: Name of the telemetry logger
+       - message: The message associated with the event.
+       - metadata: Additional metadata to include with the event.
+         Note that there are some _restricted_ keys that are added automatically.
+         See `Standard.Base.Enso_Cloud.Internal.Audit_Log`.
+    log self name:Text message:Text (metadata:Dictionary Text Any = Dictionary.empty) =
+        logger_name = Telemetry.logger_root + "." + name
+        metadata_js = JS_Object.from_pairs <| metadata.to_vector
+        handler = err ->
+            msg = "Telemetry event: {"
+                  + "logger_name="
+                  + logger_name
+                  + ", metadata="
+                  + metadata.to_text
+                  + "} was dropped because of: "
+                  + err.to_text
+            Telemetry.log_message msg ..Fine
+        Panic.catch Any handler=handler <|
+            TelemetryLog.logAsync logger_name message metadata_js.object_node

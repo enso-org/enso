@@ -17,7 +17,7 @@ import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
 import { useGraphEditorClipboard } from '@/components/GraphEditor/clipboard'
 import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
-import { defineSelectionActionHandlers } from '@/components/GraphEditor/selectionActions'
+import { selectionActionHandlers } from '@/components/GraphEditor/selectionActions'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { uploadedExpression, Uploader } from '@/components/GraphEditor/upload'
 import GraphMissingView from '@/components/GraphMissingView.vue'
@@ -49,7 +49,7 @@ import { providePersisted } from '@/stores/persisted'
 import { useProjectStore } from '@/stores/project'
 import { provideNodeExecution } from '@/stores/project/nodeExecution'
 import { injectProjectNames } from '@/stores/projectNames'
-import { provideRightDock, StorageMode } from '@/stores/rightDock'
+import { provideRightDock } from '@/stores/rightDock'
 import { provideSuggestionDbStore } from '@/stores/suggestionDatabase'
 import type { SuggestionId, Typename } from '@/stores/suggestionDatabase/entry'
 import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
@@ -222,6 +222,10 @@ const { copyNodesToClipboard, createNodesFromClipboard } = useGraphEditorClipboa
 // === Action handlers ===
 
 const actionHandlers = registerHandlers({
+  'graphEditor.showHelp': {
+    action: () => rightDock.toggleVisible('help'),
+    toggled: computed(() => rightDock.visible && rightDock.displayedTab === 'help'),
+  },
   'graph.renameProject': toggledAction(projectNameEdited),
   'graph.addComponent': {
     action: () => {
@@ -427,10 +431,6 @@ const { componentBrowserOpened } = provideGraphEditorState({
 })
 const componentBrowserNodePosition = ref<Vec2>(Vec2.Zero)
 const componentBrowserUsage = ref<Usage>({ type: 'newNode' })
-
-watch(componentBrowserOpened, (v) =>
-  rightDock.setStorageMode(v ? StorageMode.ComponentBrowser : StorageMode.Default),
-)
 
 function openComponentBrowser(usage: Usage, position: Vec2) {
   componentBrowserUsage.value = usage
@@ -690,10 +690,9 @@ const groupColors = computed(() => {
           v-model:recordMode="projectStore.recordMode"
           v-model:showCodeEditor="showCodeEditor"
           v-model:projectNameEdited="projectNameEdited"
-          :showDocumentationEditor="rightDock.visible"
+          v-model:showDocumentationEditor="rightDock.visible"
           :zoomLevel="100.0 * graphNavigator.targetScale"
           :class="{ extraRightSpace: !rightDock.visible }"
-          @update:showDocumentationEditor="rightDock.setVisible"
         />
         <SceneScroller
           :navigator="graphNavigator"
@@ -727,7 +726,7 @@ const groupColors = computed(() => {
   }
   & .vertical {
     flex: auto;
-    min-width: 0;
+    overflow-x: hidden;
   }
 }
 

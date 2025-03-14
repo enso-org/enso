@@ -6,12 +6,17 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import VirtualizedList from '@/components/VirtualizedList.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
 import { useProjectStore } from '@/stores/project'
+import { injectProjectNames } from '@/stores/projectNames'
 import { useSuggestionDbStore } from '@/stores/suggestionDatabase'
 import { Ast } from '@/util/ast'
+import { substituteQualifiedName } from '@/util/ast/abstract'
 import { tryGetIndex } from '@/util/data/array'
+import { qnLastSegment } from '@/util/qualifiedName'
 import * as map from 'lib0/map'
 import { computed, ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
+import { parseExpression } from 'ydoc-shared/ast'
+import ActionButton from '../ActionButton.vue'
 
 const ITEM_SIZE = 24
 const SCROLL_TO_SELECTION_MARGIN = ITEM_SIZE / 2
@@ -56,6 +61,7 @@ watch(filtering, () => (displayedSelectedComponentIndex.value = 0))
 watch(selectedGroupIndex, () => (selectedComponentIndex.value = 0))
 
 const suggestionDbStore = useSuggestionDbStore()
+const projectNames = injectProjectNames()
 const components = computed(() => {
   const lists = makeComponentLists(suggestionDbStore.entries, filtering.value)
   if (props.literal != null) {
@@ -96,6 +102,21 @@ const selectedComponent = computed(() =>
     null
   : (currentComponents.value[selectedComponentIndex.value] ?? null),
 )
+
+const selectedSuggestion = computed(() => {
+  if (selectedComponent.value?.suggestionId == null) return null
+  return suggestionDbStore.entries.get(selectedComponent.value.suggestionId)
+})
+
+const selectedSuggestionReturnType = computed(() => {
+  if (selectedSuggestion.value == null) return undefined
+  const typename = selectedSuggestion.value.returnType(projectNames)
+
+  const parsedType = parseExpression(typename)
+  if (parsedType == null) return typename
+  const substituted = substituteQualifiedName(parsedType, (qn) => qnLastSegment(qn))
+  return substituted.code()
+})
 
 watch(selectedComponent, (component) => emit('update:selectedComponent', component), {
   immediate: true,
@@ -139,27 +160,37 @@ defineExpose({
         <SvgIcon v-if="selected" class="groupEntryIcon" name="folder_closed" />
       </div>
     </VirtualizedList>
-    <VirtualizedList
-      ref="componentsPanel"
-      v-slot="{ item: component }"
-      v-model:selected="displayedSelectedComponentIndex"
-      class="components"
-      :items="currentComponents"
-      :itemHeight="ITEM_SIZE"
-      :scrollToSelectionMargin="SCROLL_TO_SELECTION_MARGIN"
-      :autoSelectFirst="focusedPanel === 'componentsPanel'"
-      :debounceMouseSelection="MOUSE_SELECTION_DEBOUNCE"
-      @itemAccepted="emit('acceptSuggestion', $event)"
-    >
-      <ComponentEntry :component="component" :color="componentColor(component)" />
-    </VirtualizedList>
+    <div class="rightPane">
+      <VirtualizedList
+        ref="componentsPanel"
+        v-slot="{ item: component }"
+        v-model:selected="displayedSelectedComponentIndex"
+        class="components"
+        :items="currentComponents"
+        :itemHeight="ITEM_SIZE"
+        :scrollToSelectionMargin="SCROLL_TO_SELECTION_MARGIN"
+        :autoSelectFirst="focusedPanel === 'componentsPanel'"
+        :debounceMouseSelection="MOUSE_SELECTION_DEBOUNCE"
+        @itemAccepted="emit('acceptSuggestion', $event)"
+      >
+        <ComponentEntry :component="component" :color="componentColor(component)" />
+      </VirtualizedList>
+      <div class="documentation">
+        <div class="documentationContent">
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <p v-if="selectedSuggestion?.docSummaryHtml" v-html="selectedSuggestion.docSummaryHtml" />
+          <p v-if="selectedSuggestion" v-text="`Returns: ${selectedSuggestionReturnType}`" />
+        </div>
+        <ActionButton class="helpButton" action="graphEditor.showHelp" />
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .ComponentList {
   width: 661px;
-  height: 370px;
+  height: 386px;
   border: none;
   border-radius: var(--radius-default);
   background-color: var(--background-color);
@@ -169,6 +200,7 @@ defineExpose({
 
 .groups {
   width: 129px;
+  min-width: 129px;
   height: 100%;
   flex-grow: 0;
   padding: 9px;
@@ -201,8 +233,41 @@ defineExpose({
   --icon-size: 12px;
 }
 
-.components {
+.rightPane {
   flex-grow: 1;
   padding: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+}
+
+.components {
+  flex-grow: 1;
+}
+
+.documentation {
+  border-top: 1px solid #d9d9d9;
+  padding-top: 9px;
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}
+
+.documentationContent {
+  min-width: 0;
+  flex-grow: 1;
+  p {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* If help contains <code> tags, it is a bit higher, resulting in panel hight jump. */
+    height: 23px;
+  }
+}
+
+.helpButton {
+  width: 24px;
+  height: 24px;
 }
 </style>

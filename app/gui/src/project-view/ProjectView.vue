@@ -72,6 +72,7 @@ onDeactivated(() => (visible.value = false))
 
 <style scoped>
 .ProjectView {
+  width: 100%;
   flex: 1;
   color: var(--color-text);
   font-family: var(--font-sans);

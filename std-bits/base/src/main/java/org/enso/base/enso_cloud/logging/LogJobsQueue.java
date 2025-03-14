@@ -1,16 +1,15 @@
-package org.enso.base.enso_cloud.audit;
+package org.enso.base.enso_cloud.logging;
 
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
 
-class LogJobsQueue {
-
-  private final Deque<AuditLogApiAccess.LogJob> queue = new LinkedList<>();
+final class LogJobsQueue {
+  private final Deque<LogJob> queue = new LinkedList<>();
 
   /** Enqueues a log message to be sent and returns the number of messages in the queue. */
-  synchronized int enqueue(AuditLogApiAccess.LogJob job) {
+  synchronized int enqueue(LogJob job) {
     int previousSize = queue.size();
     queue.addLast(job);
     int newSize = queue.size();
@@ -20,14 +19,14 @@ class LogJobsQueue {
   }
 
   /** Removes and returns up to {@code limit} enqueued jobs. */
-  synchronized List<AuditLogApiAccess.LogJob> popEnqueuedJobs(int limit) {
+  synchronized List<LogJob> popEnqueuedJobs(int limit) {
     assert limit > 0;
     if (queue.isEmpty()) {
       return List.of();
     }
 
     int n = Math.min(limit, queue.size());
-    List<AuditLogApiAccess.LogJob> result = new ArrayList<>(n);
+    List<LogJob> result = new ArrayList<>(n);
     for (int i = 0; i < n; i++) {
       result.add(queue.removeFirst());
     }

@@ -7,7 +7,7 @@ import { computed, type ComputedRef, toValue } from 'vue'
 /**
  * Register handlers of actions for many selected components.
  */
-export function defineSelectionActionHandlers(
+export function selectionActionHandlers(
   selectedNodes: ToValue<Iterable<Node>>,
   actions: {
     collapseNodes: (nodes: Node[]) => void
