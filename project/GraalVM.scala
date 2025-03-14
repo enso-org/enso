@@ -77,7 +77,9 @@ object GraalVM {
     "espresso".equals(System.getenv("ENSO_JAVA"))
 
   // Keep in sync with graalMavenPackagesVersion in build.sbt
-  private val version: String = "24.0.0"
+  private val version: String = "24.2.0"
+
+  final def mavenPackagesVersion: String = version
 
   /** The list of modules that are included in the `component` directory in engine distribution.
     * When invoking the `java` command, these modules need to be put on the module-path.
