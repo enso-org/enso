@@ -1,9 +1,9 @@
 /** @file Types for `Form`. */
 import type * as React from 'react'
-import type * as reactHookForm from 'react-hook-form'
 import type { TestIdProps } from '../types'
 import type * as components from './components'
 import type * as styles from './styles'
+export type * from './components/types'
 
 /** Props for the Form component */
 export type FormProps<
@@ -77,30 +77,6 @@ interface FormPropsWithOptions<Schema extends components.TSchema, SubmitResult =
   readonly form?: never
 }
 
-/** Register function for a form field. */
-export type UseFormRegister<Schema extends components.TSchema> = <
-  FieldName extends components.FieldPath<Schema> = components.FieldPath<Schema>,
->(
-  name: FieldName,
-  options?: reactHookForm.RegisterOptions<components.FieldValues<Schema>, FieldName>,
-) => UseFormRegisterReturn<Schema, FieldName>
-
-/** UseFormRegister return type. */
-export interface UseFormRegisterReturn<
-  Schema extends components.TSchema,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  FieldName extends components.FieldPath<Schema, Constraint> = components.FieldPath<Schema, any>,
-  Constraint = unknown,
-> extends Omit<reactHookForm.UseFormRegisterReturn<FieldName>, 'onBlur' | 'onChange'> {
-  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-  readonly onChange: <Value>(value: Value) => Promise<boolean | void> | void
-  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-  readonly onBlur: <Value>(value: Value) => Promise<boolean | void> | void
-  readonly isDisabled?: boolean
-  readonly isRequired?: boolean
-  readonly isInvalid?: boolean
-}
-
 /** Form Render Props. */
 export type FormStateRenderProps<Schema extends components.TSchema> = Pick<
   components.FormInstance<Schema>,
@@ -115,7 +91,7 @@ export type FormStateRenderProps<Schema extends components.TSchema> = Pick<
   | 'unregister'
 > & {
   /** The form register function. Adds a field to the form state. */
-  readonly register: UseFormRegister<Schema>
+  readonly register: components.UseFormRegister<Schema>
   /** The form instance. */
   readonly form: components.FormInstance<Schema>
 }

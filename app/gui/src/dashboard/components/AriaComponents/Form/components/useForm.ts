@@ -147,7 +147,6 @@ export function useForm<Schema extends types.TSchema, SubmitResult = void>(
         ...registered,
         disabled: registered.disabled ?? false,
         isDisabled: registered.disabled ?? false,
-        invalid: !!formInstance.formState.errors[name],
         isInvalid: !!formInstance.formState.errors[name],
         required: registered.required ?? false,
         isRequired: registered.required ?? false,

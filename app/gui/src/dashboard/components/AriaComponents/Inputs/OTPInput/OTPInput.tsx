@@ -143,7 +143,7 @@ export const OTPInput = forwardRef(function OTPInput<
         render={({ slots }) => (
           <OTPInputRenderer
             slots={slots}
-            isInvalid={fieldProps.isInvalid}
+            isInvalid={fieldProps.isInvalid ?? false}
             slotsContainerClassName={classes.slotsContainer()}
           />
         )}

@@ -4,11 +4,9 @@
  * Submit button for forms.
  * Manages the form state and displays a loading spinner when the form is submitting.
  */
-import type { JSX } from 'react'
-
-import { Button, type ButtonProps } from '#/components/AriaComponents'
+import { Button, useFormContext, type ButtonProps } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
-import { useFormContext } from './FormProvider'
+import type { JSX } from 'react'
 import type { FormInstance } from './types'
 
 /** Additional props for the Submit component. */

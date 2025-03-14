@@ -1,10 +1,7 @@
-/**
- * @file
- * Component that passes the value of a field to its children.
- */
+/** @file Component that passes the value of a field to its children. */
 import { memo, useDeferredValue, type ReactNode } from 'react'
 import { useWatch } from 'react-hook-form'
-import { useFormContext } from './FormProvider'
+import { useFormContext } from './hooks'
 import type { FieldPath, FieldValues, FormInstanceValidated, TSchema } from './types'
 
 /**

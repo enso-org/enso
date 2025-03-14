@@ -1,5 +1,5 @@
 /** @file Hook to get the state of a field. */
-import { useFormContext } from './FormProvider'
+import { useFormContext } from './hooks'
 import type { FieldPath, FormInstanceValidated, TSchema } from './types'
 
 /** Options for the `useFieldState` hook. */

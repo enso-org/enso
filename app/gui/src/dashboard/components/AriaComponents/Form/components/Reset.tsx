@@ -1,9 +1,8 @@
 /** @file Reset button for forms. */
-import * as React from 'react'
-
+import { Button, type ButtonProps } from '#/components/AriaComponents/Button'
 import { useText } from '#/providers/TextProvider'
-import { Button, type ButtonProps } from '../../Button'
-import * as formContext from './FormProvider'
+import * as React from 'react'
+import { useFormContext } from './hooks'
 import type * as types from './types'
 
 /** Props for the Reset component. */
@@ -33,7 +32,7 @@ export function Reset<IconType extends string>(props: ResetProps<IconType>): Rea
     ...buttonProps
   } = props
 
-  const formInstance = formContext.useFormContext(form)
+  const formInstance = useFormContext(form)
   const { formState } = formInstance
 
   return (

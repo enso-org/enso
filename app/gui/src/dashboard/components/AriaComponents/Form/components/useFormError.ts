@@ -1,24 +1,16 @@
-/**
- * @file
- *
- * Hook to get the error message from the form.
- */
+/** @file Hook to get the error message from the form. */
 import { useText } from '#/providers/TextProvider'
-import { useFormContext } from './FormProvider'
+import { useFormContext } from './hooks'
 import type { FormInstance } from './types'
 
-/**
- * Props for {@link useFormError}.
- */
+/** Props for {@link useFormError}. */
 export interface UseFormErrorProps {
   // We do not need to know the form fields.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   readonly form?: FormInstance<any>
 }
 
-/**
- * Error type.
- */
+/** Error type. */
 interface Error {
   /** The type of the error, either caused by a form field or by an offline error. */
   readonly type: 'error' | 'offline'
@@ -26,9 +18,7 @@ interface Error {
   readonly message: string
 }
 
-/**
- * Hook to get the error message from the form.
- */
+/** Hook to get the error message from the form. */
 export function useFormError(props: UseFormErrorProps) {
   const form = useFormContext(props.form)
 
