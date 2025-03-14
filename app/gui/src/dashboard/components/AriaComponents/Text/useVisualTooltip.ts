@@ -1,20 +1,35 @@
 /** @file A hook for creating a visual tooltip that appears when the target element is hovered over. */
-import * as aria from '#/components/aria'
-import type * as ariaComponents from '#/components/AriaComponents'
+import {
+  mergeProps,
+  useHover,
+  useTooltipTriggerState,
+  type AriaPositionProps,
+  type DOMAttributes,
+  type FocusableElement,
+} from '#/components/aria'
+import type { TooltipProps } from '#/components/AriaComponents'
 import { VisualTooltipInner } from '#/components/AriaComponents/Text/VisualTooltipInner'
-import * as eventCallback from '#/hooks/eventCallbackHooks'
-import * as React from 'react'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import {
+  createElement,
+  startTransition,
+  useId,
+  useState,
+  type HTMLAttributes,
+  type ReactNode,
+  type RefObject,
+} from 'react'
 
 /** Props for {@link useVisualTooltip}. */
 export interface VisualTooltipProps
-  extends Pick<ariaComponents.TooltipProps, 'maxWidth' | 'rounded' | 'size' | 'variant'> {
-  readonly children: React.ReactNode
+  extends Pick<TooltipProps, 'maxWidth' | 'rounded' | 'size' | 'variant'> {
+  readonly children: ReactNode
   readonly className?: string
-  readonly targetRef: React.RefObject<HTMLElement>
-  readonly triggerRef?: React.RefObject<HTMLElement> | undefined
+  readonly targetRef: RefObject<HTMLElement>
+  readonly triggerRef?: RefObject<HTMLElement> | undefined
   readonly isDisabled?: boolean
   readonly overlayPositionProps?: Pick<
-    aria.AriaPositionProps,
+    AriaPositionProps,
     'containerPadding' | 'crossOffset' | 'offset' | 'placement'
   >
   /**
@@ -29,7 +44,7 @@ export interface VisualTooltipProps
 
 /** The return value of the {@link useVisualTooltip} hook. */
 export interface VisualTooltipReturn {
-  readonly targetProps: aria.DOMAttributes<aria.FocusableElement> & { readonly id: string }
+  readonly targetProps: DOMAttributes<FocusableElement> & { readonly id: string }
   readonly tooltip: JSX.Element | null
 }
 
@@ -61,19 +76,19 @@ export function useVisualTooltip(props: VisualTooltipProps): VisualTooltipReturn
     maxWidth,
   } = props
 
-  const [isTooltipDisabled, setIsTooltipDisabled] = React.useState(true)
+  const [isTooltipDisabled, setIsTooltipDisabled] = useState(true)
 
-  const id = React.useId()
+  const id = useId()
 
   const disabled = isDisabled || isTooltipDisabled
 
-  const state = aria.useTooltipTriggerState({
+  const state = useTooltipTriggerState({
     closeDelay: DEFAULT_DELAY,
     delay: DEFAULT_DELAY,
     isDisabled: disabled,
   })
 
-  const handleHoverChange = eventCallback.useEventCallback((isHovered: boolean) => {
+  const handleHoverChange = useEventCallback((isHovered: boolean) => {
     const shouldDisplay = () => {
       if (isHovered && targetRef.current != null) {
         return typeof display === 'function' ?
@@ -84,7 +99,7 @@ export function useVisualTooltip(props: VisualTooltipProps): VisualTooltipReturn
       }
     }
 
-    React.startTransition(() => {
+    startTransition(() => {
       setIsTooltipDisabled(!shouldDisplay())
 
       if (shouldDisplay()) {
@@ -95,16 +110,16 @@ export function useVisualTooltip(props: VisualTooltipProps): VisualTooltipReturn
     })
   })
 
-  const { hoverProps: targetHoverProps } = aria.useHover({
+  const { hoverProps: targetHoverProps } = useHover({
     isDisabled,
     onHoverChange: handleHoverChange,
   })
 
   return {
-    targetProps: aria.mergeProps<React.HTMLAttributes<HTMLElement>>()(targetHoverProps, { id }),
+    targetProps: mergeProps<HTMLAttributes<HTMLElement>>()(targetHoverProps, { id }),
     tooltip:
       state.isOpen ?
-        React.createElement(VisualTooltipInner, {
+        createElement(VisualTooltipInner, {
           id,
           overlayPositionProps,
           className,

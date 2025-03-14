@@ -1,18 +1,12 @@
 /** @file Display the result of an operation. */
-import * as React from 'react'
-
 import Success from '#/assets/check_mark.svg'
 import Error from '#/assets/cross.svg'
-
+import type { TestIdProps } from '#/components/AriaComponents'
+import { Text } from '#/components/AriaComponents/Text'
+import * as loader from '#/components/Loader'
+import SvgMask from '#/components/SvgMask'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import type { TestIdProps } from './AriaComponents'
-import { Text } from './AriaComponents/Text'
-import * as loader from './Loader'
-import SvgMask from './SvgMask'
-
-// =================
-// === Constants ===
-// =================
+import * as React from 'react'
 
 const INFO_ICON = (
   // eslint-disable-next-line no-restricted-syntax

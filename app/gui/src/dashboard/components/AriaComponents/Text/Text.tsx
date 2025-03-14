@@ -1,28 +1,37 @@
 /** @file Text component */
-import * as aria from '#/components/aria'
+import { mergeProps, type TextProps as AriaTextProps, type Placement } from '#/components/aria'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import * as mergeRefs from '#/utilities/mergeRefs'
+import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
-import * as React from 'react'
-import { memo } from 'react'
+import {
+  memo,
+  useRef,
+  type FC,
+  type HTMLAttributes,
+  type PropsWithChildren,
+  type ReactElement,
+  type Ref,
+  type RefAttributes,
+  type RefObject,
+} from 'react'
 import type { TestIdProps } from '../types'
 import { useTextContext } from './hooks'
-import * as textProvider from './TextProvider'
-import * as visualTooltip from './useVisualTooltip'
+import { TextProvider } from './TextProvider'
+import { useVisualTooltip, type VisualTooltipProps } from './useVisualTooltip'
 import { TEXT_STYLE } from './variants'
 
 /** Props for the Text component */
 export interface TextProps
-  extends Omit<aria.TextProps, 'color'>,
+  extends Omit<AriaTextProps, 'color'>,
     VariantProps<typeof TEXT_STYLE>,
     TestIdProps {
   readonly elementType?: keyof HTMLElementTagNameMap
   readonly lineClamp?: number
-  readonly tooltip?: React.ReactElement | string | false | null
-  readonly tooltipTriggerRef?: React.RefObject<HTMLElement>
-  readonly tooltipDisplay?: visualTooltip.VisualTooltipProps['display']
-  readonly tooltipPlacement?: aria.Placement
+  readonly tooltip?: ReactElement | string | false | null
+  readonly tooltipTriggerRef?: RefObject<HTMLElement>
+  readonly tooltipDisplay?: VisualTooltipProps['display']
+  readonly tooltipPlacement?: Placement
   readonly tooltipOffset?: number
   readonly tooltipCrossOffset?: number
 }
@@ -30,7 +39,7 @@ export interface TextProps
 /** Text component that supports truncation and show a tooltip on hover when text is truncated */
 // eslint-disable-next-line no-restricted-syntax
 export const Text = memo(
-  forwardRef(function Text(props: TextProps, ref: React.Ref<HTMLSpanElement>) {
+  forwardRef(function Text(props: TextProps, ref: Ref<HTMLSpanElement>) {
     const {
       className,
       variant,
@@ -58,7 +67,7 @@ export const Text = memo(
       ...ariaProps
     } = props
 
-    const textElementRef = React.useRef<HTMLElement>(null)
+    const textElementRef = useRef<HTMLElement>(null)
     const textContext = useTextContext()
 
     const textClasses = variants({
@@ -90,7 +99,7 @@ export const Text = memo(
       }
     })
 
-    const { tooltip, targetProps } = visualTooltip.useVisualTooltip({
+    const { tooltip, targetProps } = useVisualTooltip({
       isDisabled: isTooltipDisabled(),
       targetRef: textElementRef,
       display: tooltipDisplay,
@@ -107,21 +116,21 @@ export const Text = memo(
     })
 
     return (
-      <textProvider.TextProvider value={{ isInsideTextComponent: true }}>
+      <TextProvider value={{ isInsideTextComponent: true }}>
         <ElementType
           // @ts-expect-error This is caused by the type-safe `elementType` type.
           ref={(el) => {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-            mergeRefs.mergeRefs(ref, textElementRef)(el)
+            mergeRefs(ref, textElementRef)(el)
           }}
           data-testid={testId}
           className={textClasses}
-          {...aria.mergeProps<React.HTMLAttributes<HTMLElement>>()(
+          {...mergeProps<HTMLAttributes<HTMLElement>>()(
             ariaProps,
             targetProps,
             truncate === 'custom' ?
               // eslint-disable-next-line @typescript-eslint/naming-convention,no-restricted-syntax
-              ({ style: { '--line-clamp': `${lineClamp}` } } as React.HTMLAttributes<HTMLElement>)
+              ({ style: { '--line-clamp': `${lineClamp}` } } as HTMLAttributes<HTMLElement>)
             : {},
           )}
         >
@@ -129,14 +138,14 @@ export const Text = memo(
         </ElementType>
 
         {tooltip}
-      </textProvider.TextProvider>
+      </TextProvider>
     )
   }),
-) as unknown as React.FC<React.RefAttributes<HTMLSpanElement> & TextProps> & {
+) as unknown as FC<RefAttributes<HTMLSpanElement> & TextProps> & {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   Heading: typeof Heading
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  Group: React.FC<React.PropsWithChildren>
+  Group: FC<PropsWithChildren>
 }
 
 /** Heading props */
@@ -147,19 +156,15 @@ export interface HeadingProps extends Omit<TextProps, 'elementType'> {
 
 /** Heading component */
 const Heading = memo(
-  forwardRef(function Heading(props: HeadingProps, ref: React.Ref<HTMLHeadingElement>) {
+  forwardRef(function Heading(props: HeadingProps, ref: Ref<HTMLHeadingElement>) {
     const { level = 1, ...textProps } = props
     return <Text ref={ref} elementType={`h${level}`} variant="h1" balance {...textProps} />
   }),
 )
 
 /** Text group component. It's used to visually group text elements together */
-function TextGroup(props: React.PropsWithChildren) {
-  return (
-    <textProvider.TextProvider value={{ isInsideTextComponent: true }}>
-      {props.children}
-    </textProvider.TextProvider>
-  )
+function TextGroup(props: PropsWithChildren) {
+  return <TextProvider value={{ isInsideTextComponent: true }}>{props.children}</TextProvider>
 }
 
 Text.Heading = Heading
