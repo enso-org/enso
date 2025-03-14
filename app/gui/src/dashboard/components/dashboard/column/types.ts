@@ -1,3 +1,4 @@
+/** @file Types for columns. */
 import type { AssetRowState, AssetsTableState } from '#/layouts/AssetsTable'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import type { AnyAsset, BackendType } from '#/services/Backend'

@@ -4,7 +4,7 @@ import DirectoryNameColumn from '#/components/dashboard/DirectoryNameColumn'
 import FileNameColumn from '#/components/dashboard/FileNameColumn'
 import ProjectNameColumn from '#/components/dashboard/ProjectNameColumn'
 import SecretNameColumn from '#/components/dashboard/SecretNameColumn'
-import { AssetType, type Asset } from '#/services/Backend'
+import { AssetType } from '#/services/Backend'
 import type { AssetColumnProps } from './types'
 
 /** Props for a {@link AssetNameColumn}. */

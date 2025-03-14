@@ -27,7 +27,7 @@ import { useText } from '#/providers/TextProvider'
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
-import { BasicInput, InputProps } from '../Input'
+import { BasicInput, type InputProps } from '../Input'
 
 const COMBO_BOX_STYLES = tv({
   base: 'w-full',
