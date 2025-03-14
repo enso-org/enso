@@ -434,6 +434,7 @@ function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef 
         null
       : `Double click to view this ${tooltipValue ?? 'value'} in a separate component`,
     cellRenderer: (params: ICellRendererParams) => `<div class='link'> ${params.value} </div>`,
+    filter: fieldName != INDEX_FIELD_NAME
   }
 }
 
