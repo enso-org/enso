@@ -205,8 +205,8 @@ export interface DropdownEntry {
 }
 
 .menu-icon {
-  margin-left: -4px; 
-  margin-right: 6px; /* Adjust spacing as needed */
+  margin-left: -4px;
+  margin-right: 6px;
 }
 
 
