@@ -14,7 +14,7 @@ import {
   canTransferBetweenCategories,
   type Category,
   isCloudCategory,
-} from '#/layouts/CategorySwitcher/Category'
+} from '#/layouts/Drive/Categories/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { GlobalContextMenu } from '#/layouts/GlobalContextMenu'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'

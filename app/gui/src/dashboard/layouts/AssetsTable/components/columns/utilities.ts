@@ -1,5 +1,5 @@
 /** @file Utility functions for columns. */
-import type { Category } from '#/layouts/CategorySwitcher/Category'
+import type { Category } from '#/layouts/Drive/Categories/Category'
 import * as backend from '#/services/Backend'
 import { Column } from './types'
 

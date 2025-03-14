@@ -28,7 +28,7 @@ import {
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOpenProject } from '#/hooks/projectHooks'
-import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
+import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/Drive/Categories/Category'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useSetNewestFolderId, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'

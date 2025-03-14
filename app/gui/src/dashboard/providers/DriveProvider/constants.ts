@@ -1,5 +1,5 @@
 /** @file Constants for `DriveProvider`. */
-import type { Category } from '#/layouts/CategorySwitcher/Category'
+import type { Category } from '#/layouts/Drive/Categories/Category'
 import type { PasteData } from '#/utilities/pasteData'
 import type { StoreApi } from '#/utilities/zustand'
 import type {

@@ -17,7 +17,7 @@ import {
   canTransferBetweenCategories,
   useTransferBetweenCategories,
   type Category,
-} from '#/layouts/CategorySwitcher/Category'
+} from '#/layouts/Drive/Categories/Category'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import * as authProvider from '#/providers/AuthProvider'
 import * as backendProvider from '#/providers/BackendProvider'

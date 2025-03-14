@@ -3,7 +3,7 @@
 import { backendMutationOptions, useEnsureListDirectory } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useToastAndLog, useToastAndLogWithId } from '#/hooks/toastAndLogHooks'
-import type { Category } from '#/layouts/CategorySwitcher/Category'
+import type { Category } from '#/layouts/Drive/Categories/Category'
 import DuplicateAssetsModal from '#/modals/DuplicateAssetsModal'
 import { useSetSelectedAssets, type SelectedAssetInfo } from '#/providers/DriveProvider'
 import { useSetModal } from '#/providers/ModalProvider'

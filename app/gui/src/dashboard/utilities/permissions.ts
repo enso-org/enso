@@ -1,5 +1,5 @@
 /** @file Utilities for working with permissions. */
-import type { Category } from '#/layouts/CategorySwitcher/Category'
+import type { Category } from '#/layouts/Drive/Categories/Category'
 import * as backend from '#/services/Backend'
 import { directoryIdToUserGroupId, directoryIdToUserId } from '#/services/RemoteBackend'
 import {

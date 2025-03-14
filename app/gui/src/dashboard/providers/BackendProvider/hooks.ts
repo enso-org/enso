@@ -1,5 +1,5 @@
 /** @file Hooks for `BackendProvider`. */
-import { type Category, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
+import { type Category, isCloudCategory } from '#/layouts/Drive/Categories/Category'
 import { BackendType } from '#/services/Backend'
 import { PRODUCT_NAME } from 'enso-common'
 import { useContext } from 'react'
