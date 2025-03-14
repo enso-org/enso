@@ -1,10 +1,10 @@
 package org.enso.table.data.column.operation.text;
 
+import com.ibm.icu.impl.UnicodeRegex;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiPredicate;
 import java.util.regex.Pattern;
-
 import org.enso.base.Regex_Utils;
 import org.enso.base.Text_Utils;
 import org.enso.table.data.column.operation.comparators.GenericComparators;
@@ -13,14 +13,13 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.error.UnexpectedTypeException;
 
-import com.ibm.icu.impl.UnicodeRegex;
-
 public final class TextPredicates extends GenericComparators<String> {
   public static final TextPredicates STARTS_WITH = new TextPredicates(Text_Utils::starts_with);
   public static final TextPredicates ENDS_WITH = new TextPredicates(Text_Utils::ends_with);
   public static final TextPredicates CONTAINS = new TextPredicates(Text_Utils::contains);
   public static final TextPredicates LIKE = new TextPredicates(TextPredicates::LikePredicate);
-  public static final TextPredicates REGEX_MATCH = new TextPredicates(TextPredicates::RegexMatchPredicate);
+  public static final TextPredicates REGEX_MATCH =
+      new TextPredicates(TextPredicates::RegexMatchPredicate);
 
   private TextPredicates(BiPredicate<String, String> predicate) {
     super(predicate, true);
