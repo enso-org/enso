@@ -264,7 +264,7 @@ const actionHandlers = registerHandlers({
   'graph.zoomOut': {
     action: () => graphNavigator.stepZoom(-1),
   },
-  ...defineSelectionActionHandlers(
+  ...selectionActionHandlers(
     () =>
       iter.filterDefined(
         iter.map(
