@@ -7,6 +7,7 @@
 import eslintJs from '@eslint/js'
 import tsEslint from '@typescript-eslint/eslint-plugin'
 import vueTsEslintConfig from '@vue/eslint-config-typescript'
+import importPlugin from 'eslint-plugin-import'
 import jsdoc from 'eslint-plugin-jsdoc'
 import react from 'eslint-plugin-react'
 import reactCompiler from 'eslint-plugin-react-compiler'
@@ -297,6 +298,8 @@ const config = [
       '@typescript-eslint': tsEslint,
       react: react,
       'react-hooks': reactHooks,
+      import: importPlugin,
+      'react-refresh': reactRefresh,
     },
     languageOptions: {
       parserOptions: {
@@ -315,6 +318,8 @@ const config = [
       ...tsEslint.configs['recommended-requiring-type-checking']?.rules,
       ...tsEslint.configs.strict?.rules,
       ...react.configs['jsx-runtime'].rules,
+      'react-refresh/only-export-components': 'error',
+      'import/no-cycle': 'error',
       eqeqeq: ['error', 'always', { null: 'never' }],
       // Any extra semicolons that exist, are required by Prettier.
       'no-extra-semi': 'off',
@@ -603,10 +608,9 @@ const config = [
       '**/configuration/*',
       '**/index.ts',
     ],
-    plugins: { 'react-compiler': reactCompiler, 'react-refresh': reactRefresh },
+    plugins: { 'react-compiler': reactCompiler },
     rules: {
       'react-compiler/react-compiler': 'error',
-      'react-refresh/only-export-components': 'error',
     },
   },
   // === Index Files ===
