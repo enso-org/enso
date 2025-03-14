@@ -1,6 +1,7 @@
 package org.enso.table.data.column.storage.type;
 
 import java.time.LocalTime;
+import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -31,6 +32,7 @@ public record TimeOfDayType() implements StorageType<LocalTime> {
 
   @Override
   public LocalTime valueAsType(Object value) {
+    value = Polyglot_Utils.convertPolyglotValue(value);
     return (value instanceof LocalTime time) ? time : null;
   }
 

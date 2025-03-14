@@ -2605,7 +2605,7 @@ type Column
      It should never raise dataflow errors.
    - operands: The vector of operands to apply to the function after `column`.
    - new_name: The name of the column created as the result of this operation.
-private _run_vectorized_many_op column:Column name:Text fallback_fn:(Any -> Any -> Any) operands:Vector new_name:(Text | Nothing)=Nothing -> Column =
+private _run_vectorized_many_op column:Column name:Text fallback_fn:(Any -> Any -> Any) operands new_name:(Text | Nothing)=Nothing -> Column =
     effective_operands = Vector.unify_vector_or_element operands
     all_operands = [column]+effective_operands
     effective_new_name = new_name.if_nothing (naming_helper.function_name name all_operands)
@@ -2618,7 +2618,7 @@ private _run_vectorized_many_op column:Column name:Text fallback_fn:(Any -> Any 
                 Polyglot_Helpers.handle_polyglot_dataflow_errors <| case name of
                     "min" -> BinaryCoalescingOperation.min current java_object fallback_fn storage_type effective_new_name problem_builder
                     "max" -> BinaryCoalescingOperation.max current java_object fallback_fn storage_type effective_new_name problem_builder
-            Column.from_java_column effective_new_name folded
+            Column.from_java_column folded
 
 ## PRIVATE
 

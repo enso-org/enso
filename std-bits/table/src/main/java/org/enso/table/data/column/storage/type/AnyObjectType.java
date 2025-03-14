@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage.type;
 
+import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -30,7 +31,7 @@ public record AnyObjectType() implements StorageType<Object> {
 
   @Override
   public Object valueAsType(Object value) {
-    return value;
+    return Polyglot_Utils.convertPolyglotValue(value);
   }
 
   @Override

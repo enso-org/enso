@@ -93,7 +93,7 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
   private static final BinaryOperation<ZonedDateTime> DATE_TIME_MAX =
       new BinaryCoalescingOperation<>(DateTimeType.INSTANCE, (a, b) -> a.isAfter(b) ? a : b);
   private static final BinaryOperation<LocalTime> TIME_MAX =
-      new BinaryCoalescingOperation<>(TimeOfDayType.INSTANCE, (a, b) -> a.isBefore(b) ? a : b);
+      new BinaryCoalescingOperation<>(TimeOfDayType.INSTANCE, (a, b) -> a.isAfter(b) ? a : b);
 
   public static Column max(
       Column left,
@@ -141,7 +141,8 @@ public class BinaryCoalescingOperation<T> implements BinaryOperation<T> {
 
     T rightValueTyped = validType.valueAsType(rightValue);
     if (rightValueTyped == null) {
-      throw new IllegalArgumentException("Unsupported right value type.");
+      throw new IllegalArgumentException(
+          "Unsupported right value type " + rightValue.getClass() + ".");
     }
 
     return StorageIterators.mapOverStorage(
