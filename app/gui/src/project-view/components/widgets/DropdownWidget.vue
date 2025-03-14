@@ -90,10 +90,10 @@ export interface DropdownEntry {
         class="item clickable"
         @click.stop="handleClick(entry, $event.altKey, $event.currentTarget)"
       >
-      <div class="item-inner">
-        <SvgIcon v-if="entry.icon" :name="entry.icon" class="menu-icon" />
-        <div class="itemContent" v-text="entry.value"></div>
-      </div>
+        <div class="item-inner">
+          <SvgIcon v-if="entry.icon" :name="entry.icon" class="menu-icon" />
+          <div class="itemContent" v-text="entry.value"></div>
+        </div>
       </li>
     </ul>
     <div v-if="enableSortButton" class="sort">
@@ -208,7 +208,6 @@ export interface DropdownEntry {
   margin-left: -4px;
   margin-right: 6px;
 }
-
 
 @keyframes text-scroll {
   0%,
