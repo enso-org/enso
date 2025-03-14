@@ -553,7 +553,8 @@ val scalaCollectionCompatVersion  = "2.8.1"
 
 // === std-lib ================================================================
 
-val antlrVersion            = "4.13.0"
+// Has to match Truffle's ANTLR dependency version to avoid spurious warnings in Native Image
+val antlrVersion            = "4.12.0"
 val awsJavaSdkV1Version     = "1.12.480"
 val awsJavaSdkV2Version     = "2.25.36"
 val icuVersion              = "73.1"
