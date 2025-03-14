@@ -3,7 +3,10 @@ import SvgButton from '@/components/SvgButton.vue'
 import { computed, toValue } from 'vue'
 import { Action, ActionName, resolveAction } from '../providers/action'
 
-const { action: actionOrName } = defineProps<{ action: Action | ActionName }>()
+const { action: actionOrName, label } = defineProps<{
+  action: Action | ActionName
+  label?: string
+}>()
 const action = computed(() => resolveAction(actionOrName))
 
 const descriptionWithShortcut = computed(() =>
@@ -18,6 +21,7 @@ const descriptionWithShortcut = computed(() =>
     :name="toValue(action.icon)"
     :disabled="toValue(action.disabled)"
     :title="descriptionWithShortcut"
+    :label="label"
     @click.stop="action.action"
   />
 </template>

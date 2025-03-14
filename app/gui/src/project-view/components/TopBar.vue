@@ -26,7 +26,7 @@ const selection = injectGraphSelection()
     </ControlGroup>
     <SelectionMenu v-if="selection.selected.size > 1" />
     <ControlGroup v-else>
-      <ActionButton action="graph.addComponent" />
+      <ActionButton action="graph.addComponent" label="Input" />
     </ControlGroup>
 
     <div class="invisible flex-1"></div>
