@@ -9,7 +9,11 @@ polyglot java import org.slf4j.LoggerFactory
 
 log logger_name:Text msg:Text args:Vector -> Nothing =
     telemetry_logger = LoggerFactory.getLogger (_root_logger_name + "." + logger_name)
-    telemetry_logger.trace msg args
+    bldr = telemetry_logger.atTrace
+    bldr.setMessage msg
+    args.each \arg ->
+        bldr.addArgument arg
+    bldr.log
 
 
 _root_logger_name = "org.enso.telemetry"
