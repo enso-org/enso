@@ -135,7 +135,8 @@ type Delimited_Format
        Create a clone of this with specified quoting settings.
     with_quotes : Text -> Text -> Boolean -> Delimited_Format
     with_quotes self quote='"' quote_escape=quote always_quote=False =
-        self.clone quote_style=(Quote_Style.With_Quotes always_quote=always_quote quote=quote quote_escape=quote_escape)
+        quote_style = if always_quote then Quote_Style.Always_Quote quote quote_escape else Quote_Style.With_Quotes  quote quote_escape
+        self.clone quote_style=quote_style
 
     ## ICON data_input
        Create a clone of this with specified quoting settings.

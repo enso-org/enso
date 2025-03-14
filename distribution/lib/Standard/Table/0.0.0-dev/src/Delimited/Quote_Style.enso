@@ -2,9 +2,8 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 type Quote_Style
-    ## Does not handle quotes at all.
+    ## Do not quote any values or parse quotes when reading a `Delimited` file.
 
-       No quote parsing is done when reading the file.
        In write mode, values are not quoted even if this would result in an
        invalid file.
     No_Quotes
@@ -12,10 +11,6 @@ type Quote_Style
     ## Specifies the style of quotes when reading or writing a `Delimited` file.
 
        Arguments:
-       - always_quote: Applies only to write mode. Specifies if all values
-         should be quoted even if the quotes are not necessary. If set to
-         `False`, only empty values and values containing the delimiter or the
-         quote character are quoted.
        - quote: The quote character denotes the start and end of a quoted value.
          Quoted items are not split on the delimiter and can also contain
          newlines. Empty input strings must be quoted (e.g. "") as otherwise an
@@ -31,7 +26,27 @@ type Quote_Style
          The quote and escape characters must consist of exactly one code-point
          (i.e. it can be only one character and complex characters like emojis
          may not be used).
-    With_Quotes (always_quote : Boolean = False) (quote : Text = '"') (quote_escape : Text = quote)
+    With_Quotes (quote : Text = '"') (quote_escape : Text = quote)
+
+    ## Always quote text values when reading or writing a `Delimited` file.
+
+       Arguments:
+       - quote: The quote character denotes the start and end of a quoted value.
+         Quoted items are not split on the delimiter and can also contain
+         newlines. Empty input strings must be quoted (e.g. "") as otherwise an
+         empty value is treated as `Nothing`.
+       - quote_escape: The character to escape the quote character in a quoted
+         value. For example, if both `quote` and `quote_escape` are set to `"`,
+         then escaping quotes is done by double quotes: `"ab""cd"` will yield
+         the text `ab"cd`. Another popular choice for `quote_escape` is the `\`
+         character. Then `"ab\"cd"` will yield the same text.
+
+       ! Quote Character
+
+         The quote and escape characters must consist of exactly one code-point
+         (i.e. it can be only one character and complex characters like emojis
+         may not be used).
+    Always_Quote (quote : Text = '"') (quote_escape : Text = quote)
 
 ## PRIVATE
 Quote_Style.from (that : JS_Object) =
@@ -42,5 +57,10 @@ Quote_Style.from (that : JS_Object) =
             always_quote = that.get "alwaysQuote" if_missing=False
             quote = that.get "quote" if_missing='"'
             escape = that.get "escape" if_missing=quote
-            Quote_Style.With_Quotes always_quote quote escape
+            if always_quote then Quote_Style.Always_Quote quote escape else
+                Quote_Style.With_Quotes quote escape
+        "always_quote" ->
+            quote = that.get "quote" if_missing='"'
+            escape = that.get "escape" if_missing=quote
+            Quote_Style.Always_Quote quote escape
         _ -> Error.throw (Illegal_Argument.Error ("Unknown quote style: " + sub_type))

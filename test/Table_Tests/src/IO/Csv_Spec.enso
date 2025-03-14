@@ -95,7 +95,7 @@ add_specs suite_builder =
                 "This;Name;;Is""""Strange",20
                 "Marcin,,","hello;world"
 
-            res = t.to_delimited "," quote_style=(..With_Quotes always_quote=True)
+            res = t.to_delimited "," quote_style=(..Always_Quote)
             res.should_equal expected
 
 
