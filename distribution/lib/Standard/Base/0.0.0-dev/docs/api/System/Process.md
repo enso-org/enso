@@ -2,4 +2,3 @@
 ## module Standard.Base.System.Process
 - new_builder command:Standard.Base.Any.Any arguments:Standard.Base.Any.Any= stdin:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - run command:Standard.Base.Data.Text.Text arguments:Standard.Base.Any.Any= stdin:Standard.Base.Data.Text.Text= redirect_out_err:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
-- foo -> Standard.Base.Any.Any
