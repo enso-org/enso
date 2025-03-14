@@ -81,7 +81,6 @@ function makeExpressionFilter(pattern: Ast.Ast | string): ExpressionFilter | und
 
 const staticTags = computed<ExpressionTag[]>(() => {
   const tags = props.input[ArgumentInfoKey]?.info?.tagValues
-  const reprType = props.input[ArgumentInfoKey]?.info?.reprType
   if (tags == null) return []
   return tags.map((t) => ExpressionTag.FromExpression(suggestions, projectNames, t))
 })
