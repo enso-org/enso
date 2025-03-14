@@ -1,9 +1,6 @@
 package org.enso.logging.config;
 
 import com.typesafe.config.Config;
-import java.net.URI;
-import java.nio.file.Path;
-import java.time.LocalDateTime;
 import org.slf4j.event.Level;
 
 public final class TelemetryAppender extends Appender {

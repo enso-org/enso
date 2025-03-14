@@ -2,25 +2,65 @@ package org.enso.logging.service.logback.telemetry;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.AppenderBase;
-import com.fasterxml.jackson.core.exc.StreamReadException;
-import com.fasterxml.jackson.databind.DatabindException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.time.LocalDateTime;
-import java.util.Arrays;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-// TODO: Presunout sem LogJob, apod.
-
+/**
+ * Background job processing inspired by {@code org.enso.base.enso_cloud.logging.LogApiAccess}.
+ * Singleton.
+ */
 public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
   private static final String CREDENTIALS_FILE_ENV = "ENSO_CLOUD_CREDENTIALS_FILE";
 
-  private TelemetryAppender() {}
+  /**
+   * We still want to limit the batch size to some reasonable number - sending too many logs in one
+   * request could also be problematic.
+   */
+  private static final int MAX_BATCH_SIZE = 100;
 
-  public static TelemetryAppender create() {
-    // TODO: Read URL endpoint from env vars
-    // TODO: No virtual thread executor
+  private static final int MAX_RETRIES = 5;
+  private static final Logger LOGGER = LoggerFactory.getLogger(TelemetryAppender.class.getName());
+  private static TelemetryAppender instance;
+
+  private final Credentials credentials;
+  private final LogJobsQueue logQueue = new LogJobsQueue();
+  private final ThreadPoolExecutor backgroundThreadService;
+  private final URI endpoint;
+
+  private HttpClient httpClient;
+
+  private TelemetryAppender(
+      Credentials credentials, ThreadPoolExecutor backgroundThreadService, URI endpoint) {
+    this.credentials = credentials;
+    this.backgroundThreadService = backgroundThreadService;
+    this.endpoint = endpoint;
+  }
+
+  public static TelemetryAppender getInstance() {
+    if (instance == null) {
+      instance = create();
+    }
+    return instance;
+  }
+
+  private static TelemetryAppender create() {
     var credentialsFile = credentialsFile();
     if (!credentialsFile.toFile().exists()) {
       return null;
@@ -29,7 +69,12 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
     if (credentials == null) {
       return null;
     }
-    return new TelemetryAppender();
+    // We set-up a thread 'pool' that will contain at most one thread.
+    // If the thread is idle for 60 seconds, it will be shut down.
+    var executor = new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+
+    var endpoint = URI.create(getCloudLogsAPIEndpoint());
+    return new TelemetryAppender(credentials, executor, endpoint);
   }
 
   @Override
@@ -43,6 +88,14 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
         eventObject.getLoggerName(),
         eventObject.getThreadName(),
         mdcMap);
+    enqueueJob(eventObject);
+  }
+
+  private ObjectNode logEventToPayload(ILoggingEvent logEvent) {
+    var payload = new ObjectNode(JsonNodeFactory.instance);
+    payload.set("message", TextNode.valueOf(logEvent.getMessage()));
+    payload.set("kind", TextNode.valueOf("telemetry"));
+    return payload;
   }
 
   private static Path credentialsFile() {
@@ -65,19 +118,132 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
     }
   }
 
+  private static String getCloudLogsAPIEndpoint() {
+    var envUri = System.getenv("ENSO_CLOUD_API_URI");
+    var effectiveUri =
+        envUri == null ? "https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com/" : envUri;
+    var uriWithSlash = effectiveUri.endsWith("/") ? effectiveUri : effectiveUri + "/";
+    return uriWithSlash + "logs";
+  }
+
+  private void enqueueJob(ILoggingEvent logEvent) {
+    int queuedJobs = logQueue.enqueue(logEvent);
+    if (queuedJobs == 1 && backgroundThreadService.getQueue().isEmpty()) {
+      // If we are the first message in the queue, we need to start the background thread.
+      // It is possible that a job was already running, but adding a new one will not hurt - once
+      // the queue is empty, the currently running job will finish and any additional jobs will also
+      // terminate immediately.
+      backgroundThreadService.execute(this::logThreadEntryPoint);
+    }
+
+    /*
+     * Liveness is guaranteed, because the queue size always increments exactly by 1,
+     * so `enqueue` returns 1 if and only if the queue was empty beforehand.
+     *
+     * If the queue was empty before adding a message, we always schedule a `logThreadEntryPoint` to run,
+     * unless it was already pending on the job queue.
+     *
+     * Any running `logThreadEntryPoint` will not finish until the queue is empty.
+     * So after every append, either a job is already running or scheduled to be run.
+     */
+  }
+
+  /** Runs as long as there are any pending log messages queued and sends them in batches. */
+  private void logThreadEntryPoint() {
+    while (true) {
+      List<ILoggingEvent> pendingMessages = logQueue.popEnqueuedJobs(MAX_BATCH_SIZE);
+      if (pendingMessages.isEmpty()) {
+        // If there are no more pending messages, we can stop the thread for now.
+        // If during this teardown a new message is added, it will see no elements on `logQueue` and
+        // thus,
+        // `logQueue.enqueue` will return 1, thus ensuring that at least one new job is scheduled.
+        return;
+      }
+      sendBatch(pendingMessages);
+    }
+  }
+
   /**
-   * The credentials file is created by the IDE once user logs in.
-   * We are just reading it.
+   * Sends a batch of log messages.
+   *
+   * <p>The batch must not be empty and all messages must share the same request config.
    */
+  private void sendBatch(List<ILoggingEvent> batch) {
+    assert !batch.isEmpty() : "The batch must not be empty.";
+
+    try {
+      var request = buildRequest(batch);
+      sendLogRequest(request, MAX_RETRIES);
+    } catch (RequestFailureException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  private HttpRequest buildRequest(List<ILoggingEvent> logEvents) {
+    var payload = buildPayload(logEvents);
+    LOGGER.info(
+        "Building HTTP POST request. endpoint = '{}', payload = {}, auth = '{}'",
+        endpoint,
+        payload,
+        credentials.accessToken.substring(0, 10));
+    return HttpRequest.newBuilder()
+        .uri(endpoint)
+        .header("Authorization", "Bearer " + credentials.accessToken)
+        .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
+        .build();
+  }
+
+  private String buildPayload(List<ILoggingEvent> logEvents) {
+    var payload = new StringBuilder();
+    payload.append("{\"logs\": [");
+    for (var logEvent : logEvents) {
+      payload.append(logEventToPayload(logEvent)).append(",");
+    }
+    // Remove the trailing comma.
+    payload.deleteCharAt(payload.length() - 1);
+    payload.append("]}");
+    return payload.toString();
+  }
+
+  private void sendLogRequest(HttpRequest request, int retryCount) throws RequestFailureException {
+    try {
+      try {
+        if (httpClient == null) {
+          httpClient = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build();
+        }
+        HttpResponse<String> response =
+            httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+          throw new RequestFailureException(
+              "Unexpected status code: " + response.statusCode() + " " + response.body(), null);
+        }
+      } catch (IOException | InterruptedException e) {
+        // Promote a checked exception to a runtime exception to simplify the code.
+        var errorMessage = e.getMessage() != null ? e.getMessage() : e.toString();
+        throw new RequestFailureException("Failed to send log messages: " + errorMessage, e);
+      }
+    } catch (RequestFailureException e) {
+      if (retryCount < 0) {
+        LOGGER.warn("Failed to send log messages after retrying", e);
+        throw e;
+      } else {
+        LOGGER.warn("Exception when sending log messages. Retrying...", e);
+        sendLogRequest(request, retryCount - 1);
+      }
+    }
+  }
+
+  private static final class RequestFailureException extends Exception {
+    public RequestFailureException(String message, Throwable cause) {
+      super(message, cause);
+    }
+  }
+
+  /** The credentials file is created by the IDE once user logs in. We are just reading it. */
   private record Credentials(
-      @JsonProperty("client_id")
-      String clientId,
-      @JsonProperty("access_token")
-      String accessToken,
-      @JsonProperty("refresh_token")
-      String refreshToken,
-      @JsonProperty("refresh_url")
-      String refreshUrl,
-      @JsonProperty("expire_at")
-      String expireAt) {}
+      @JsonProperty("client_id") String clientId,
+      @JsonProperty("access_token") String accessToken,
+      @JsonProperty("refresh_token") String refreshToken,
+      @JsonProperty("refresh_url") String refreshUrl,
+      @JsonProperty("expire_at") String expireAt) {}
 }

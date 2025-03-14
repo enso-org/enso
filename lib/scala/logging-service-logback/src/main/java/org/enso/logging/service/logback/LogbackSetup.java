@@ -311,7 +311,7 @@ public final class LogbackSetup extends LoggerSetup {
     LoggerAndContext env = contextInit(Level.DEBUG, config, false);
     TelemetryAppender telemetryAppender;
     try {
-      telemetryAppender = TelemetryAppender.create();
+      telemetryAppender = TelemetryAppender.getInstance();
     } catch (Exception e) {
       return false;
     }
