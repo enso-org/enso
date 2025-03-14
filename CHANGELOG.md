@@ -38,6 +38,8 @@
   typing digits only, any names containing digits are not the best match
   anymore. Also unclosed text literals will be automatically closed.
 - [Component Browser displays short summary of component's documentation][12459]
+- [Warning and Error messages does not obstruct output port][12482] - they become
+  semi-transparent on port hover and pass all mouse interactions.
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -62,6 +64,7 @@
 [12184]: https://github.com/enso-org/enso/pull/12184
 [12420]: https://github.com/enso-org/enso/pull/12420
 [12459]: https://github.com/enso-org/enso/pull/12459
+[12482]: https://github.com/enso-org/enso/pull/12482
 
 #### Enso Standard Library
 
