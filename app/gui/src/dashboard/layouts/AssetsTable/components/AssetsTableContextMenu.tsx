@@ -2,39 +2,32 @@
  * @file A context menu for an `AssetsTable`, when no row is selected, or multiple rows
  * are selected.
  */
-import * as React from 'react'
-
-import { useStore } from '#/utilities/zustand'
-
-import { useDriveStore, useSelectedAssets, useSetSelectedAssets } from '#/providers/DriveProvider'
-
-import {
-  canTransferBetweenCategories,
-  type Category,
-  isCloudCategory,
-} from '#/layouts/CategorySwitcher/Category'
-import { GlobalContextMenu } from '#/layouts/GlobalContextMenu'
-
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
-
-import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
-
-import type Backend from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
-
 import Separator from '#/components/styled/Separator'
 import {
   deleteAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import {
+  canTransferBetweenCategories,
+  type Category,
+  isCloudCategory,
+} from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
+import { GlobalContextMenu } from '#/layouts/GlobalContextMenu'
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
+import { useDriveStore, useSelectedAssets, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { useSetModal } from '#/providers/ModalProvider'
 import { useText } from '#/providers/TextProvider'
+import type Backend from '#/services/Backend'
+import * as backendModule from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
+import { useStore } from '#/utilities/zustand'
 import { useMutation } from '@tanstack/react-query'
+import * as React from 'react'
 
 /** Props for an {@link AssetsTableContextMenu}. */
 export interface AssetsTableContextMenuProps {
@@ -55,7 +48,7 @@ export interface AssetsTableContextMenuProps {
  * A context menu for an `AssetsTable`, when no row is selected, or multiple rows
  * are selected.
  */
-export default function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
+export function AssetsTableContextMenu(props: AssetsTableContextMenuProps) {
   // eslint-disable-next-line react-compiler/react-compiler
   'use no memo'
   const {

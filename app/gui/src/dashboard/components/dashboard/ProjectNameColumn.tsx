@@ -1,9 +1,9 @@
 /** @file The icon and name of a {@link ProjectAsset}. */
-import type { AssetColumnProps } from '#/components/dashboard/column'
 import ProjectIcon from '#/components/dashboard/ProjectIcon'
 import EditableSpan from '#/components/EditableSpan'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useOpenProject } from '#/hooks/projectHooks'
+import type { AssetColumnProps } from '#/layouts/AssetsTable/components/columns/types'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useText } from '#/providers/TextProvider'

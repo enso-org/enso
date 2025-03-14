@@ -1,7 +1,4 @@
-/**
- * @file
- * Barrels for the `AssetPanel` component.
- */
+/** @file Barrel file for `AssetPanel`. */
 export * from './AssetPanel'
-export * from './AssetPanelState'
 export { AssetPanelToggle, type AssetPanelToggleProps } from './components/AssetPanelToggle'
+export * from './constants'

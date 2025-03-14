@@ -11,7 +11,7 @@ import { useCallback } from 'react'
 import * as ast from 'ydoc-shared/ast'
 import { splitFileContents } from 'ydoc-shared/ensoFile'
 import { versionContentQueryOptions } from '../AssetDiffView/useFetchVersionContent'
-import { assetPanelStore } from '../AssetPanel'
+import { assetPanelStore } from '../AssetPanel/constants'
 
 /** Props for a {@link AssetDocs}. */
 export interface AssetDocsProps {

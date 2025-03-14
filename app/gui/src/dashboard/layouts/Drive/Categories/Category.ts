@@ -1,13 +1,9 @@
 /** @file The categories available in the category switcher. */
-import { useMutation } from '@tanstack/react-query'
-import invariant from 'tiny-invariant'
-import * as z from 'zod'
-
 import { deleteAssetsMutationOptions, moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useBackendQuery } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
-import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider'
+import { useBackend, useLocalBackend, useRemoteBackend } from '#/providers/BackendProvider/hooks'
 import type { UserId } from '#/services/Backend'
 import {
   FilterBy,
@@ -20,6 +16,9 @@ import {
   type UserGroupId,
 } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
+import { useMutation } from '@tanstack/react-query'
+import invariant from 'tiny-invariant'
+import * as z from 'zod'
 
 const PATH_SCHEMA = z.string().refine((s): s is Path => true)
 const DIRECTORY_ID_SCHEMA = z.string().refine((s): s is DirectoryId => true)

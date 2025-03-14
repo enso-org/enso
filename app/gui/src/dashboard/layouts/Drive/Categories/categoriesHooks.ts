@@ -12,17 +12,17 @@ import PeopleIcon from '#/assets/people.svg'
 import RecentIcon from '#/assets/recent.svg'
 import Trash2Icon from '#/assets/trash2.svg'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { CategoriesContext } from '#/layouts/Drive/Categories/constants'
 import { useUser } from '#/providers/AuthProvider'
 import { useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
+import type Backend from '#/services/Backend'
 import { Path, type DirectoryId } from '#/services/Backend'
 import { newDirectoryId } from '#/services/LocalBackend'
 import { userIdToDirectoryId } from '#/services/RemoteBackend'
 import { getFileName } from '#/utilities/fileInfo'
 import { LocalStorage } from '#/utilities/LocalStorage'
-import { useContext } from 'react'
+import { createContext, useContext } from 'react'
 import invariant from 'tiny-invariant'
 import { z } from 'zod'
 import type {
@@ -51,6 +51,18 @@ declare module '#/utilities/LocalStorage' {
 const LOCAL_ROOT_DIRECTORIES_SCHEMA = z.string().array().readonly()
 
 LocalStorage.registerKey('localRootDirectories', { schema: LOCAL_ROOT_DIRECTORIES_SCHEMA })
+
+/** Context value for the categories. */
+export interface CategoriesContextValue {
+  readonly cloudCategories: CloudCategoryResult
+  readonly localCategories: LocalCategoryResult
+  readonly category: Category
+  readonly setCategory: (category: CategoryId) => void
+  readonly resetCategory: () => void
+  readonly associatedBackend: Backend
+}
+
+export const CategoriesContext = createContext<CategoriesContextValue | null>(null)
 
 /** Result of the useCloudCategoryList hook. */
 export type CloudCategoryResult = ReturnType<typeof useCloudCategoryList>

@@ -9,6 +9,7 @@ import TagIcon from '#/assets/tag.svg'
 import TimeIcon from '#/assets/time.svg'
 import type { TextId } from 'enso-common/src/text'
 import { memo } from 'react'
+import type { AssetColumnHeadingProps, AssetColumnProps } from './columnProps'
 import DocsColumn from './DocsColumn'
 import AccessedByProjectsColumnHeading from './headings/AccessedByProjectsColumnHeading'
 import AccessedDataColumnHeading from './headings/AccessedDataColumnHeading'
@@ -24,7 +25,7 @@ import NameColumn from './NameColumn'
 import PathColumn from './PathColumn'
 import PlaceholderColumn from './PlaceholderColumn'
 import SharedWithColumn from './SharedWithColumn'
-import { Column, type AssetColumnHeadingProps, type AssetColumnProps } from './types'
+import { Column } from './types'
 
 /** React components for every column. */
 export const COLUMN_RENDERER: Readonly<

@@ -1,46 +1,7 @@
 /** @file Table displaying a list of projects. */
-import {
-  Children,
-  cloneElement,
-  isValidElement,
-  memo,
-  startTransition,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  useState,
-  type Dispatch,
-  type DragEvent,
-  type KeyboardEvent,
-  type MouseEvent as ReactMouseEvent,
-  type ReactNode,
-  type Ref,
-  type RefObject,
-  type SetStateAction,
-} from 'react'
-
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'react-toastify'
-import * as z from 'zod'
-
 import DropFilesImage from '#/assets/drop_files.svg'
 import { FileTrigger, mergeProps } from '#/components/aria'
 import { Button, Text } from '#/components/AriaComponents'
-import type { AssetRowInnerProps } from '#/components/dashboard/AssetRow'
-import { AssetRow } from '#/components/dashboard/AssetRow'
-import { INITIAL_ROW_STATE } from '#/components/dashboard/AssetRow/assetRowUtils'
-import {
-  Column,
-  COLUMN_CSS_CLASS,
-  COLUMN_HEADING,
-  COLUMN_ICONS,
-  COLUMN_SHOW_TEXT_ID,
-  DEFAULT_ENABLED_COLUMNS,
-  getColumnList,
-  type SortableColumn,
-} from '#/components/dashboard/column'
-import NameColumn from '#/components/dashboard/column/NameColumn'
 import Label from '#/components/dashboard/Label'
 import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { IsolateLayout } from '#/components/IsolateLayout'
@@ -76,10 +37,15 @@ import {
 } from '#/layouts/AssetPanel'
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
-import AssetsTableContextMenu from '#/layouts/AssetsTableContextMenu'
 import { canTransferBetweenCategories, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useAssetsTableItems, useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
+import {
+  SUGGESTIONS_FOR_HAS,
+  SUGGESTIONS_FOR_NEGATIVE_TYPE,
+  SUGGESTIONS_FOR_NO,
+  SUGGESTIONS_FOR_TYPE,
+} from '#/layouts/Drive/suggestionsConstants'
 import DragModal from '#/modals/DragModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
@@ -104,7 +70,6 @@ import { useSetModal } from '#/providers/ModalProvider'
 import { useNavigator2D } from '#/providers/Navigator2DProvider'
 import { useLaunchedProjects } from '#/providers/ProjectsProvider'
 import { useText } from '#/providers/TextProvider'
-import type Backend from '#/services/Backend'
 import type { AssetId } from '#/services/Backend'
 import {
   assetIsProject,
@@ -130,15 +95,45 @@ import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
 import { LocalStorage } from '#/utilities/LocalStorage'
 import { PermissionAction } from '#/utilities/permissions'
 import { withPresence } from '#/utilities/set'
-import invariant from 'tiny-invariant'
-import type { SortInfo } from '../utilities/sorting'
-import { twMerge } from '../utilities/tailwindMerge'
+import type { SortInfo } from '#/utilities/sorting'
+import { twMerge } from '#/utilities/tailwindMerge'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  SUGGESTIONS_FOR_HAS,
-  SUGGESTIONS_FOR_NEGATIVE_TYPE,
-  SUGGESTIONS_FOR_NO,
-  SUGGESTIONS_FOR_TYPE,
-} from './Drive/suggestionsConstants'
+  Children,
+  cloneElement,
+  isValidElement,
+  memo,
+  startTransition,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type DragEvent,
+  type KeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+  type Ref,
+  type SetStateAction,
+} from 'react'
+import { toast } from 'react-toastify'
+import invariant from 'tiny-invariant'
+import * as z from 'zod'
+import { AssetRow, INITIAL_ROW_STATE } from './components/AssetRow'
+import { AssetsTableContextMenu } from './components/AssetsTableContextMenu'
+import {
+  Column,
+  COLUMN_CSS_CLASS,
+  COLUMN_HEADING,
+  COLUMN_ICONS,
+  COLUMN_SHOW_TEXT_ID,
+  DEFAULT_ENABLED_COLUMNS,
+  getColumnList,
+  type SortableColumn,
+} from './components/columns'
+import NameColumn from './components/columns/NameColumn'
+import type { AssetRowInnerProps, AssetsTableState } from './types'
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -171,28 +166,6 @@ interface DragSelectionInfo {
   readonly end: number
 }
 
-/** State passed through from a {@link AssetsTable} to every cell. */
-export interface AssetsTableState {
-  readonly backend: Backend
-  readonly currentDirectoryId: DirectoryId
-  readonly scrollContainerRef: RefObject<HTMLElement>
-  readonly category: Category
-  readonly sortInfo: SortInfo<SortableColumn> | null
-  readonly setSortInfo: (sortInfo: SortInfo<SortableColumn> | null) => void
-  readonly query: AssetQuery
-  readonly setQuery: Dispatch<SetStateAction<AssetQuery>>
-  readonly hideColumn: (column: Column) => void
-  readonly doCopy: () => void
-  readonly doCut: () => void
-  readonly doPaste: (newParentKey: DirectoryId, newParentId: DirectoryId) => void
-  readonly getAssetNodeById: (id: AssetId) => AnyAsset | null
-}
-
-/** Data associated with a {@link AssetRow}, used for rendering. */
-export interface AssetRowState {
-  readonly isEditingName: boolean
-}
-
 /** Props for a {@link AssetsTable}. */
 export interface AssetsTableProps {
   readonly hidden: boolean
@@ -210,7 +183,7 @@ export interface AssetManagementApi {
 }
 
 /** The table of project assets. */
-function AssetsTable(props: AssetsTableProps) {
+export const AssetsTable = memo(function AssetsTable(props: AssetsTableProps) {
   const { hidden, query, setQuery, category, assetManagementApiRef } = props
   const { initialProjectName } = props
 
@@ -1483,7 +1456,7 @@ function AssetsTable(props: AssetsTableProps) {
       )}
     </div>
   )
-}
+})
 
 /** Props for the {@link HiddenColumn} component. */
 interface HiddenColumnProps {
@@ -1570,5 +1543,3 @@ export function AssetsTableAssetsUnselector(props: AssetsTableAssetsUnselectorPr
     </div>
   )
 }
-
-export default memo(AssetsTable)

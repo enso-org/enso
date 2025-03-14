@@ -15,3 +15,6 @@ export const ASSET_PANEL_TABS = [
 
 /** Determines the content of the {@link import('./AssetPanel').AssetPanel}. */
 export type AssetPanelTab = (typeof ASSET_PANEL_TABS)[number]
+
+/** Possible elements in this screen to spotlight on. */
+export type AssetPropertiesSpotlight = 'datalink' | 'description' | 'secret'

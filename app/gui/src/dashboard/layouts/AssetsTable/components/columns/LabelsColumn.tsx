@@ -15,7 +15,7 @@ import * as backendModule from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 import * as React from 'react'
-import type { AssetColumnProps } from './types'
+import type { AssetColumnProps } from './columnProps'
 
 /** A column listing the labels on this asset. */
 export default function LabelsColumn(props: AssetColumnProps) {

@@ -1,8 +1,8 @@
 /** @file The icon and name of a {@link FileAsset}. */
-import type { AssetColumnProps } from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 import SvgMask from '#/components/SvgMask'
 import { backendMutationOptions } from '#/hooks/backendHooks'
+import type { AssetColumnProps } from '#/layouts/AssetsTable/components/columns/types'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useText } from '#/providers/TextProvider'
 import { isNewTitleUnique, type FileAsset } from '#/services/Backend'

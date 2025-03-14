@@ -3,7 +3,8 @@ import PeopleIcon from '#/assets/people.svg'
 import { Button, Text } from '#/components/AriaComponents'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useText } from '#/providers/TextProvider'
-import { Column, type AssetColumnHeadingProps } from '../types'
+import type { AssetColumnHeadingProps } from '../columnProps'
+import { Column } from '../types'
 
 /** A heading for the "Shared with" column. */
 export default function SharedWithColumnHeading(props: AssetColumnHeadingProps) {

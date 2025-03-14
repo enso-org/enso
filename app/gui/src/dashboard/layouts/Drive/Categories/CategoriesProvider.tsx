@@ -4,9 +4,8 @@ import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import { useBackend, useLocalBackend } from '#/providers/BackendProvider'
 import type { ReactNode } from 'react'
-import { useCategories } from './categoriesHooks'
+import { CategoriesContext, useCategories, type CategoriesContextValue } from './categoriesHooks'
 import type { Category, CategoryId } from './Category'
-import { CategoriesContext, type CategoriesContextValue } from './constants'
 
 /** Props for the {@link CategoriesProvider}. */
 export interface CategoriesProviderProps {

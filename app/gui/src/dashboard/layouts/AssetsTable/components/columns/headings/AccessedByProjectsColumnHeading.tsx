@@ -1,30 +1,31 @@
-/** @file A heading for the "Accessed data" column. */
-import AccessedDataIcon from '#/assets/accessed_data.svg'
+/** @file A heading for the "Accessed by projects" column. */
+import AccessedByProjectsIcon from '#/assets/accessed_by_projects.svg'
 import { Button, Text } from '#/components/AriaComponents'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useText } from '#/providers/TextProvider'
-import { Column, type AssetColumnHeadingProps } from '../types'
+import type { AssetColumnHeadingProps } from '../columnProps'
+import { Column } from '../types'
 
-/** A heading for the "Accessed data" column. */
-export default function AccessedDataColumnHeading(props: AssetColumnHeadingProps) {
+/** A heading for the "Accessed by projects" column. */
+export default function AccessedByProjectsColumnHeading(props: AssetColumnHeadingProps) {
   const { hideColumn } = props
   const { getText } = useText()
 
   const hideThisColumn = useEventCallback(() => {
-    hideColumn(Column.accessedData)
+    hideColumn(Column.accessedByProjects)
   })
 
   return (
     <div className="flex h-table-row w-full items-center gap-icon-with-text">
       <Button
         variant="icon"
-        icon={AccessedDataIcon}
-        aria-label={getText('accessedDataColumnHide')}
+        icon={AccessedByProjectsIcon}
+        aria-label={getText('accessedByProjectsColumnHide')}
         tooltip={false}
         onPress={hideThisColumn}
       />
       <Text weight="bold" truncate="1" color="custom">
-        {getText('accessedDataColumnName')}
+        {getText('accessedByProjectsColumnName')}
       </Text>
     </div>
   )

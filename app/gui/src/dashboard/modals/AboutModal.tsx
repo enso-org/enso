@@ -1,24 +1,16 @@
 /** @file Modal for confirming delete of any type of asset. */
-import * as React from 'react'
-
-import type * as text from 'enso-common/src/text'
-
 import LogoIcon from '#/assets/enso_logo.svg'
-
-import * as backendProvider from '#/providers/BackendProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import * as ariaComponents from '#/components/AriaComponents'
+import { ButtonGroup, CopyButton, Dialog, Text } from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
-
-// ==================
-// === AboutModal ===
-// ==================
+import { useLocalBackend } from '#/providers/BackendProvider/hooks'
+import { useText } from '#/providers/TextProvider'
+import type { TextId } from 'enso-common/src/text'
+import { useMemo } from 'react'
 
 /** A modal for confirming the deletion of an asset. */
 export default function AboutModal() {
-  const localBackend = backendProvider.useLocalBackend()
-  const { getText } = textProvider.useText()
+  const localBackend = useLocalBackend()
+  const { getText } = useText()
 
   const versionsEntries = [
     ...(window.versionInfo != null ?
@@ -33,27 +25,24 @@ export default function AboutModal() {
         ...($config.COMMIT_HASH == null ? [] : ([['build', $config.COMMIT_HASH]] as const)),
       ]),
     ['userAgent', navigator.userAgent],
-  ] satisfies readonly (readonly [text.TextId, string])[]
+  ] satisfies readonly (readonly [TextId, string])[]
 
-  const copyText = React.useMemo(
+  const copyText = useMemo(
     () => versionsEntries.map(([textId, version]) => `${getText(textId)} ${version}`).join('\n'),
     [getText, versionsEntries],
   )
 
   return (
-    <ariaComponents.Dialog
-      title={getText('aboutThisAppShortcut')}
-      modalProps={{ defaultOpen: true }}
-    >
+    <Dialog title={getText('aboutThisAppShortcut')} modalProps={{ defaultOpen: true }}>
       <div className="relative flex items-center gap-4">
         <SvgMask src={LogoIcon} className="size-16 shrink-0 self-start" />
 
         <div className="flex flex-col">
-          <ariaComponents.Text variant="subtitle">
+          <Text variant="subtitle">
             {localBackend != null ?
               getText('appNameDesktopEdition')
             : getText('appNameCloudEdition')}
-          </ariaComponents.Text>
+          </Text>
 
           <table>
             <tbody>
@@ -63,10 +52,10 @@ export default function AboutModal() {
                 return (
                   <tr key={textId}>
                     <td className="pr-cell-x align-text-top">
-                      <ariaComponents.Text nowrap>{getText(textId)}</ariaComponents.Text>
+                      <Text nowrap>{getText(textId)}</Text>
                     </td>
                     <td>
-                      <ariaComponents.Text>{version}</ariaComponents.Text>
+                      <Text>{version}</Text>
                     </td>
                   </tr>
                 )
@@ -74,13 +63,13 @@ export default function AboutModal() {
             </tbody>
           </table>
 
-          <ariaComponents.ButtonGroup className="mt-4">
-            <ariaComponents.CopyButton copyText={copyText} size="medium" variant="submit">
+          <ButtonGroup className="mt-4">
+            <CopyButton copyText={copyText} size="medium" variant="submit">
               {getText('copy')}
-            </ariaComponents.CopyButton>
-          </ariaComponents.ButtonGroup>
+            </CopyButton>
+          </ButtonGroup>
         </div>
       </div>
-    </ariaComponents.Dialog>
+    </Dialog>
   )
 }

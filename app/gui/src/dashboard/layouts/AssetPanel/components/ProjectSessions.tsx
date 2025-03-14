@@ -6,7 +6,7 @@ import type Backend from '#/services/Backend'
 import { AssetType, BackendType, type ProjectAsset } from '#/services/Backend'
 import { useStore } from '#/utilities/zustand'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { assetPanelStore } from '../AssetPanelState'
+import { assetPanelStore } from '../constants'
 import { ProjectSession } from './ProjectSession'
 
 /** Props for a {@link ProjectSessions}. */

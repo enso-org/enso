@@ -1,10 +1,10 @@
 /** @file The icon and name of a {@link SecretAsset}. */
 import KeyIcon from '#/assets/key.svg'
-import type { AssetColumnProps } from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 import SvgMask from '#/components/SvgMask'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import type { AssetColumnProps } from '#/layouts/AssetsTable/components/columns/types'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useSetModal } from '#/providers/ModalProvider'

@@ -1,9 +1,9 @@
 /** @file The icon and name of a {@link DirectoryAsset}. */
 import FolderIcon from '#/assets/folder.svg'
 import { Button } from '#/components/AriaComponents'
-import type { AssetColumnProps } from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 import { backendMutationOptions } from '#/hooks/backendHooks'
+import type { AssetColumnProps } from '#/layouts/AssetsTable/components/columns/types'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDriveStore, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { useText } from '#/providers/TextProvider'

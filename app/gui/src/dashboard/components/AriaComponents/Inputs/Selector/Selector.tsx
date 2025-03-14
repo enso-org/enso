@@ -9,7 +9,7 @@ import {
   type FieldStateProps,
   type FieldVariantProps,
   type TSchema,
-} from '#/components/AriaComponents'
+} from '#/components/AriaComponents/Form'
 import RadioGroup from '#/components/styled/RadioGroup'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'

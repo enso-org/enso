@@ -1,8 +1,6 @@
 /** @file A table row for an arbitrary asset. */
 import BlankIcon from '#/assets/blank.svg'
 import { Text } from '#/components/AriaComponents'
-import * as assetRowUtils from '#/components/dashboard/AssetRow/assetRowUtils'
-import * as columnModule from '#/components/dashboard/column'
 import { IndefiniteSpinner } from '#/components/Spinner'
 import {
   useDeleteAssetsMutationState,
@@ -20,8 +18,7 @@ import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
-import AssetContextMenu from '#/layouts/AssetContextMenu'
-import type * as assetsTable from '#/layouts/AssetsTable'
+import * as columnModule from '#/layouts/AssetsTable/components/columns'
 import { isLocalCategory } from '#/layouts/CategorySwitcher/Category'
 import { useAsset, useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
@@ -52,14 +49,9 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import * as React from 'react'
 import { useTransition } from 'react'
 import invariant from 'tiny-invariant'
-
-/** Common properties for state and setters passed to event handlers on an {@link AssetRow}. */
-export interface AssetRowInnerProps {
-  readonly asset: backendModule.AnyAsset
-  readonly state: assetsTable.AssetsTableState
-  readonly rowState: assetsTable.AssetRowState
-  readonly setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
-}
+import type { AssetRowInnerProps, AssetRowState, AssetsTableState } from '../../types'
+import { AssetContextMenu } from '../AssetContextMenu'
+import { INITIAL_ROW_STATE } from './utilities'
 
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps {
@@ -68,7 +60,7 @@ export interface AssetRowProps {
   readonly id: backendModule.AssetId
   readonly parentId: backendModule.DirectoryId
   readonly type: backendModule.AssetType
-  readonly state: assetsTable.AssetsTableState
+  readonly state: AssetsTableState
   readonly columns: columnModule.Column[]
   readonly isKeyboardSelected: boolean
   readonly grabKeyboardFocus: (item: backendModule.AnyAsset) => void
@@ -256,9 +248,7 @@ export function RealAssetInternalRow(props: RealAssetRowInternalProps) {
   const rootRef = React.useRef<HTMLElement | null>(null)
   const dragOverTimeoutHandle = React.useRef<number | null>(null)
   const grabKeyboardFocusRef = useSyncRef(grabKeyboardFocus)
-  const [innerRowState, setRowState] = React.useState<assetsTable.AssetRowState>(
-    assetRowUtils.INITIAL_ROW_STATE,
-  )
+  const [innerRowState, setRowState] = React.useState<AssetRowState>(INITIAL_ROW_STATE)
   const cutAndPaste = useCutAndPaste(backend, category)
   const setLabelsDragPayload = useSetLabelsDragPayload()
 

@@ -3,17 +3,14 @@
  * The state of the asset panel. Can be used to control the asset panel's visibility,
  * selected tab, and other properties from outside the component.
  */
-import { startTransition } from 'react'
-
-import { z } from 'zod'
-
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type Backend from '#/services/Backend'
 import type { AnyAsset } from '#/services/Backend'
 import { LocalStorage } from '#/utilities/LocalStorage'
-import * as zustand from '#/utilities/zustand'
-import type { AssetPropertiesSpotlight } from './components/AssetProperties'
-import { ASSET_PANEL_TABS, type AssetPanelTab } from './types'
+import { createStore, useStore } from '#/utilities/zustand'
+import { startTransition } from 'react'
+import { z } from 'zod'
+import { ASSET_PANEL_TABS, type AssetPanelTab, type AssetPropertiesSpotlight } from './types'
 
 declare module '#/utilities/LocalStorage' {
   /** */
@@ -51,7 +48,7 @@ export interface AssetPanelState {
   readonly setIsAssetPanelHidden: (isAssetPanelHidden: boolean) => void
 }
 
-export const assetPanelStore = zustand.createStore<AssetPanelState>((set, get) => {
+export const assetPanelStore = createStore<AssetPanelState>((set, get) => {
   const localStorage = LocalStorage.getInstance()
   return {
     selectedTab: localStorage.get('assetPanelTab') ?? 'settings',
@@ -132,28 +129,28 @@ export interface AssetPanelContextProps {
 
 /** Whether the Asset Panel is toggled on. */
 export function useIsAssetPanelPermanentlyVisible() {
-  return zustand.useStore(assetPanelStore, (state) => state.isAssetPanelPermanentlyVisible, {
+  return useStore(assetPanelStore, (state) => state.isAssetPanelPermanentlyVisible, {
     unsafeEnableTransition: true,
   })
 }
 
 /** A function to set whether the Asset Panel is toggled on. */
 export function useSetIsAssetPanelPermanentlyVisible() {
-  return zustand.useStore(assetPanelStore, (state) => state.setIsAssetPanelPermanentlyVisible, {
+  return useStore(assetPanelStore, (state) => state.setIsAssetPanelPermanentlyVisible, {
     unsafeEnableTransition: true,
   })
 }
 
 /** Whether the Asset Panel is currently visible (e.g. for editing a Datalink). */
 export function useIsAssetPanelTemporarilyVisible() {
-  return zustand.useStore(assetPanelStore, (state) => state.isAssetPanelTemporarilyVisible, {
+  return useStore(assetPanelStore, (state) => state.isAssetPanelTemporarilyVisible, {
     unsafeEnableTransition: true,
   })
 }
 
 /** A function to set whether the Asset Panel is currently visible (e.g. for editing a Datalink). */
 export function useSetIsAssetPanelTemporarilyVisible() {
-  return zustand.useStore(assetPanelStore, (state) => state.setIsAssetPanelTemporarilyVisible, {
+  return useStore(assetPanelStore, (state) => state.setIsAssetPanelTemporarilyVisible, {
     unsafeEnableTransition: true,
   })
 }
@@ -167,7 +164,7 @@ export function useIsAssetPanelVisible() {
 
 /** Whether the Asset Panel is expanded. */
 export function useIsAssetPanelExpanded() {
-  return zustand.useStore(
+  return useStore(
     assetPanelStore,
     ({ isAssetPanelPermanentlyVisible, isAssetPanelTemporarilyVisible }) =>
       isAssetPanelPermanentlyVisible || isAssetPanelTemporarilyVisible,
@@ -177,14 +174,14 @@ export function useIsAssetPanelExpanded() {
 
 /** A function to set whether the Asset Panel is expanded. */
 export function useSetIsAssetPanelExpanded() {
-  return zustand.useStore(assetPanelStore, (state) => state.setIsAssetPanelExpanded, {
+  return useStore(assetPanelStore, (state) => state.setIsAssetPanelExpanded, {
     unsafeEnableTransition: true,
   })
 }
 
 /** Props for the Asset Panel. */
 export function useAssetPanelProps() {
-  return zustand.useStore(assetPanelStore, (state) => state.assetPanelProps, {
+  return useStore(assetPanelStore, (state) => state.assetPanelProps, {
     unsafeEnableTransition: true,
     areEqual: 'shallow',
   })
@@ -192,14 +189,14 @@ export function useAssetPanelProps() {
 
 /** The selected tab of the Asset Panel. */
 export function useAssetPanelSelectedTab() {
-  return zustand.useStore(assetPanelStore, (state) => state.assetPanelProps.selectedTab, {
+  return useStore(assetPanelStore, (state) => state.assetPanelProps.selectedTab, {
     unsafeEnableTransition: true,
   })
 }
 
 /** A function to set props for the Asset Panel. */
 export function useSetAssetPanelProps() {
-  return zustand.useStore(assetPanelStore, (state) => state.setAssetPanelProps, {
+  return useStore(assetPanelStore, (state) => state.setAssetPanelProps, {
     unsafeEnableTransition: true,
   })
 }
@@ -237,14 +234,14 @@ export function useSetAssetPanelSelectedTab() {
 
 /** Whether the Asset Panel is hidden. */
 export function useIsAssetPanelHidden() {
-  return zustand.useStore(assetPanelStore, (state) => state.isAssetPanelHidden, {
+  return useStore(assetPanelStore, (state) => state.isAssetPanelHidden, {
     unsafeEnableTransition: true,
   })
 }
 
 /** A function to set whether the Asset Panel is hidden. */
 export function useSetIsAssetPanelHidden() {
-  return zustand.useStore(assetPanelStore, (state) => state.setIsAssetPanelHidden, {
+  return useStore(assetPanelStore, (state) => state.setIsAssetPanelHidden, {
     unsafeEnableTransition: true,
   })
 }

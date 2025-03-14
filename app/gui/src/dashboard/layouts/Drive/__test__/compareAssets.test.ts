@@ -1,5 +1,5 @@
 /** @file Tests for comparing assets. */
-import { Column, type SortableColumn } from '#/components/dashboard/column'
+import { Column, type SortableColumn } from '#/layouts/AssetsTable/components/columns'
 import { assetCompareFunction } from '#/layouts/Drive/compareAssets'
 import { SortDirection, type SortInfo } from '#/utilities/sorting'
 import * as fc from '@fast-check/vitest'

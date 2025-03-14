@@ -3,26 +3,23 @@
  * wrapper, along with some convenience callbacks to make URL redirects for the authentication flows
  * work with Electron.
  */
-import * as React from 'react'
-
-import * as amplify from '@aws-amplify/auth'
-import { useNavigate } from 'react-router'
-
-import * as common from 'enso-common'
-import * as detect from 'enso-common/src/detect'
-
-import * as appUtils from '#/appUtils'
-
+import {
+  CONFIRM_REGISTRATION_PATH,
+  DASHBOARD_PATH,
+  LOGIN_PATH,
+  REGISTRATION_PATH,
+  RESET_PASSWORD_PATH,
+  SETUP_PATH,
+} from '#/appUtils'
+import { Cognito } from '#/authentication/cognito'
+import { registerAuthEventListener, type ListenFunction } from '#/authentication/listen'
 import { useLogger, type Logger } from '#/providers/LoggerProvider'
-
+import { Auth } from '@aws-amplify/auth'
+import { DEEP_LINK_SCHEME } from 'enso-common'
 import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
-
-import * as cognitoModule from '#/authentication/cognito'
-import * as listen from '#/authentication/listen'
-
-// =====================
-// === AmplifyConfig ===
-// =====================
+import { isOnElectron } from 'enso-common/src/detect'
+import * as React from 'react'
+import { useNavigate } from 'react-router'
 
 /**
  * Configuration for the AWS Amplify library.
@@ -98,10 +95,6 @@ export function toNestedAmplifyConfig(config: AmplifyConfig): NestedAmplifyConfi
   }
 }
 
-// ==================
-// === AuthConfig ===
-// ==================
-
 /** Configuration for the authentication service. */
 export interface AuthConfig {
   /**
@@ -111,16 +104,12 @@ export interface AuthConfig {
   readonly supportsDeepLinks: boolean
 }
 
-// ===================
-// === AuthService ===
-// ===================
-
 /** API for the authentication service. */
 export interface AuthService {
-  /** @see {@link cognitoModule.Cognito}. */
-  readonly cognito: cognitoModule.Cognito
-  /** @see {@link listen.ListenFunction}. */
-  readonly registerAuthEventListener: listen.ListenFunction
+  /** @see {@link Cognito}. */
+  readonly cognito: Cognito
+  /** @see {@link ListenFunction}. */
+  readonly registerAuthEventListener: ListenFunction
 }
 
 /**
@@ -139,9 +128,9 @@ export function useInitAuthService(authConfig: AuthConfig): AuthService {
 
   return React.useMemo(() => {
     const amplifyConfig = loadAmplifyConfig(logger, supportsDeepLinks, navigate)
-    const cognito = new cognitoModule.Cognito(logger, supportsDeepLinks, amplifyConfig)
+    const cognito = new Cognito(logger, supportsDeepLinks, amplifyConfig)
 
-    return { cognito, registerAuthEventListener: listen.registerAuthEventListener }
+    return { cognito, registerAuthEventListener: registerAuthEventListener }
   }, [logger, navigate, supportsDeepLinks])
 }
 
@@ -177,7 +166,7 @@ function loadAmplifyConfig(
       window.authenticationApi.openUrlInSystemBrowser(url)
     }
   }
-  if (detect.isOnElectron()) {
+  if (isOnElectron()) {
     // To handle redirects back to the application from the system browser, a custom URL handler
     // needs to be registered.
     setDeepLinkHandler(logger, navigate)
@@ -185,7 +174,7 @@ function loadAmplifyConfig(
 
   /** Load the platform-specific Amplify configuration. */
   const signInOutRedirect =
-    supportsDeepLinks ? `${common.DEEP_LINK_SCHEME}://auth` : window.location.origin
+    supportsDeepLinks ? `${DEEP_LINK_SCHEME}://auth` : window.location.origin
   return {
     endpoint: $config.AUTH_ENDPOINT,
     userPoolId: $config.COGNITO_USER_POOL_ID ?? '',
@@ -237,11 +226,11 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
         // In case if the verifaction code is present, then we need to navigate to the confirmation
         // page, because the URL is a deep link for confirmation page and user is not yet confirmed.
         if (verificationCode != null) {
-          redirectUrl = `${appUtils.CONFIRM_REGISTRATION_PATH}${url.search}`
+          redirectUrl = `${CONFIRM_REGISTRATION_PATH}${url.search}`
         } else {
           // Otherwise, we need to navigate to the setup page, because user is already confirmed.
           // but the redirect link navigates to the confirmation page, for some reason.
-          redirectUrl = `${appUtils.SETUP_PATH}${url.search}`
+          redirectUrl = `${SETUP_PATH}${url.search}`
         }
         navigate(redirectUrl)
 
@@ -250,7 +239,7 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
       case '//auth': {
         if (url.search === '') {
           // Signing out.
-          navigate(appUtils.LOGIN_PATH)
+          navigate(LOGIN_PATH)
         } else {
           // Signing in.
           void (async () => {
@@ -266,9 +255,9 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
             try {
               // @ts-expect-error `_handleAuthResponse` is a private method without typings.
               // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-              await amplify.Auth._handleAuthResponse(url.toString())
+              await Auth._handleAuthResponse(url.toString())
 
-              navigate(appUtils.DASHBOARD_PATH)
+              navigate(DASHBOARD_PATH)
             } finally {
               // Restore the original `history.replaceState` function.
               history.replaceState = replaceState
@@ -280,17 +269,17 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
       // If the user is being redirected after finishing the password reset flow, then the URL will
       // be for the login page.
       case '//auth/login': {
-        navigate(appUtils.LOGIN_PATH)
+        navigate(LOGIN_PATH)
         break
       }
       case '//auth/registration': {
-        navigate(`${appUtils.REGISTRATION_PATH}${url.search}`)
+        navigate(`${REGISTRATION_PATH}${url.search}`)
         break
       }
       // If the user is being redirected from a password reset email, navigate to the password
       // reset page, with the verification code and email prefilled.
-      case appUtils.RESET_PASSWORD_PATH: {
-        navigate(`${appUtils.RESET_PASSWORD_PATH}${url.search}`)
+      case RESET_PASSWORD_PATH: {
+        navigate(`${RESET_PASSWORD_PATH}${url.search}`)
         break
       }
       default: {

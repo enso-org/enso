@@ -16,7 +16,7 @@ import { AssetType, BackendType, type S3ObjectVersion, S3ObjectVersionId } from 
 import { noop } from '#/utilities/functions'
 import { useStore } from '#/utilities/zustand'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
-import { assetPanelStore } from '../AssetPanelState'
+import { assetPanelStore } from '../constants'
 import { AssetVersion } from './AssetVersion'
 import { assetVersionsQueryOptions } from './useAssetVersions'
 

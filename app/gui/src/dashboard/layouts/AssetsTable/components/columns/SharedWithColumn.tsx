@@ -2,7 +2,7 @@
 import PermissionDisplay from '#/components/dashboard/PermissionDisplay'
 import { getAssetPermissionId, getAssetPermissionName } from '#/services/Backend'
 import { PermissionAction } from '#/utilities/permissions'
-import type { AssetColumnProps } from './types'
+import type { AssetColumnProps } from './columnProps'
 
 /** The type of the `state` prop of a {@link SharedWithColumn}. */
 interface SharedWithColumnStateProp

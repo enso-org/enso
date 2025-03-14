@@ -22,11 +22,6 @@ import { useBackend } from '#/providers/BackendProvider'
 import { useText } from '#/providers/TextProvider'
 import { useStore } from '#/utilities/zustand'
 import { useFeatureFlag } from '../../providers/FeatureFlagsProvider'
-import {
-  assetPanelStore,
-  useIsAssetPanelExpanded,
-  useSetIsAssetPanelExpanded,
-} from './AssetPanelState'
 import { AssetPanelTabs } from './components/AssetPanelTabs'
 import { AssetPanelToggle } from './components/AssetPanelToggle'
 import { AssetProperties } from './components/AssetProperties'
@@ -34,6 +29,7 @@ import { AssetVersions } from './components/AssetVersions'
 import { ProjectExecutions } from './components/ProjectExecutions'
 import { ProjectExecutionsCalendar } from './components/ProjectExecutionsCalendar'
 import { ProjectSessions } from './components/ProjectSessions'
+import { assetPanelStore, useIsAssetPanelExpanded, useSetIsAssetPanelExpanded } from './constants'
 import type { AssetPanelTab } from './types'
 
 const ASSET_SIDEBAR_COLLAPSED_WIDTH = 48

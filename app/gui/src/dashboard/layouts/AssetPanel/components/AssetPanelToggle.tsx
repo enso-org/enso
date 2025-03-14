@@ -8,7 +8,7 @@ import { Button } from '#/components/AriaComponents'
 import { useText } from '#/providers/TextProvider'
 import { AnimatePresence, motion } from 'framer-motion'
 import { memo } from 'react'
-import { useIsAssetPanelHidden, useSetIsAssetPanelHidden } from '../AssetPanelState'
+import { useIsAssetPanelHidden, useSetIsAssetPanelHidden } from '../constants'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 

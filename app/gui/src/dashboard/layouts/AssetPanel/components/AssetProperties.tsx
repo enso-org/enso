@@ -11,7 +11,6 @@ import {
   ResizableContentEditableInput,
   Text,
 } from '#/components/AriaComponents'
-import SharedWithColumn from '#/components/dashboard/column/SharedWithColumn'
 import { DatalinkFormInput } from '#/components/dashboard/DatalinkInput'
 import Label from '#/components/dashboard/Label'
 import { Result } from '#/components/Result'
@@ -21,7 +20,8 @@ import { backendMutationOptions, useBackendQuery } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSpotlight } from '#/hooks/spotlightHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
-import { assetPanelStore, useSetAssetPanelProps } from '#/layouts/AssetPanel/'
+import { assetPanelStore, useSetAssetPanelProps } from '#/layouts/AssetPanel/constants'
+import SharedWithColumn from '#/layouts/AssetsTable/components/columns/SharedWithColumn'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useFullUserSession } from '#/providers/AuthProvider'
@@ -38,6 +38,7 @@ import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
 import { useStore } from '#/utilities/zustand'
 import { useMutation } from '@tanstack/react-query'
+import { AssetPropertiesSpotlight } from '../types'
 
 const ASSET_PROPERTIES_VARIANTS = tv({
   base: '',
@@ -45,9 +46,6 @@ const ASSET_PROPERTIES_VARIANTS = tv({
     section: 'pointer-events-auto flex flex-col items-start gap-side-panel-section rounded-default',
   },
 })
-
-/** Possible elements in this screen to spotlight on. */
-export type AssetPropertiesSpotlight = 'datalink' | 'description' | 'secret'
 
 /** Props for an {@link AssetPropertiesProps}. */
 export interface AssetPropertiesProps {

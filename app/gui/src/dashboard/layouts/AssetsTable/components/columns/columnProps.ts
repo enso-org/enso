@@ -1,24 +1,10 @@
-/** @file Types for columns. */
-import type { AssetRowState, AssetsTableState } from '#/layouts/AssetsTable'
+/** @file Props types for columns. */
 import type { Category } from '#/layouts/CategorySwitcher/Category'
 import type { AnyAsset, BackendType } from '#/services/Backend'
 import type { SortInfo } from '#/utilities/sorting'
 import type { Dispatch, JSX, SetStateAction } from 'react'
-
-/** Column type. */
-export enum Column {
-  name = 'name',
-  modified = 'modified',
-  sharedWith = 'sharedWith',
-  labels = 'labels',
-  path = 'path',
-  accessedByProjects = 'accessedByProjects',
-  accessedData = 'accessedData',
-  docs = 'docs',
-}
-
-/** Columns that can be used as a sort column. */
-export type SortableColumn = Column.modified | Column.name
+import type { AssetRowState, AssetsTableState } from '../../types'
+import type { Column, SortableColumn } from './types'
 
 /** Props for an arbitrary variant of {@link Asset}. */
 export interface AssetColumnProps {

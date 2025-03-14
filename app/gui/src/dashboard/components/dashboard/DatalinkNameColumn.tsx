@@ -1,8 +1,8 @@
 /** @file The icon and name of a {@link SecretAsset}. */
 import DatalinkIcon from '#/assets/datalink.svg'
-import type { AssetColumnProps } from '#/components/dashboard/column'
 import EditableSpan from '#/components/EditableSpan'
 import { useSetIsAssetPanelTemporarilyVisible } from '#/layouts/AssetPanel'
+import type { AssetColumnProps } from '#/layouts/AssetsTable/components/columns/types'
 import type { DatalinkAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'

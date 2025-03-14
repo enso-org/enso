@@ -1,34 +1,8 @@
 /** @file The context menu for an arbitrary {@link backendModule.Asset}. */
-import * as React from 'react'
-import invariant from 'tiny-invariant'
-
-import * as reactQuery from '@tanstack/react-query'
-import * as toast from 'react-toastify'
-
-import * as copyHooks from '#/hooks/copyHooks'
-import * as projectHooks from '#/hooks/projectHooks'
-import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import * as categoryModule from '#/layouts/CategorySwitcher/Category'
-import { GlobalContextMenu } from '#/layouts/GlobalContextMenu'
-
 import ContextMenu from '#/components/ContextMenu'
 import ContextMenuEntry from '#/components/ContextMenuEntry'
-import type * as assetRow from '#/components/dashboard/AssetRow'
-import Separator from '#/components/styled/Separator'
-
-import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
-import ManageLabelsModal from '#/modals/ManageLabelsModal'
-
-import * as backendModule from '#/services/Backend'
-import * as localBackendModule from '#/services/LocalBackend'
-
 import { ContextMenuEntry as PaywallContextMenuEntry } from '#/components/Paywall'
+import Separator from '#/components/styled/Separator'
 import {
   copyAssetsMutationOptions,
   deleteAssetsMutationOptions,
@@ -37,21 +11,39 @@ import {
 } from '#/hooks/backendBatchedHooks'
 import { useBackendQuery, useNewProject } from '#/hooks/backendHooks'
 import { useUploadFileWithToastMutation } from '#/hooks/backendUploadFilesHooks'
+import * as copyHooks from '#/hooks/copyHooks'
+import * as projectHooks from '#/hooks/projectHooks'
+import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
+import { AssetRowInnerProps } from '#/layouts/AssetsTable/types'
+import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
+import { GlobalContextMenu } from '#/layouts/GlobalContextMenu'
+import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
+import ManageLabelsModal from '#/modals/ManageLabelsModal'
+import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
 import { usePasteData } from '#/providers/DriveProvider'
 import * as featureFlagsProvider from '#/providers/FeatureFlagsProvider'
+import * as modalProvider from '#/providers/ModalProvider'
+import * as textProvider from '#/providers/TextProvider'
+import * as backendModule from '#/services/Backend'
+import * as localBackendModule from '#/services/LocalBackend'
 import { computeFullRemotePath } from '#/services/RemoteBackend'
 import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackendPaths'
 import { normalizePath } from '#/utilities/fileInfo'
 import { mapNonNullish } from '#/utilities/nullable'
 import * as object from '#/utilities/object'
 import * as permissions from '#/utilities/permissions'
-import { useSetAssetPanelProps, useSetIsAssetPanelTemporarilyVisible } from './AssetPanel'
+import * as reactQuery from '@tanstack/react-query'
+import * as React from 'react'
+import * as toast from 'react-toastify'
+import invariant from 'tiny-invariant'
+import { useSetAssetPanelProps, useSetIsAssetPanelTemporarilyVisible } from '../../AssetPanel'
 
 /** Props for a {@link AssetContextMenu}. */
 export interface AssetContextMenuProps {
   readonly hidden?: boolean
-  readonly innerProps: assetRow.AssetRowInnerProps
+  readonly innerProps: AssetRowInnerProps
   readonly triggerRef: React.MutableRefObject<HTMLElement | null>
   readonly currentDirectoryId: backendModule.DirectoryId
   readonly event: Pick<React.MouseEvent, 'pageX' | 'pageY'>
@@ -65,7 +57,7 @@ export interface AssetContextMenuProps {
 }
 
 /** The context menu for an arbitrary {@link backendModule.Asset}. */
-export default function AssetContextMenu(props: AssetContextMenuProps) {
+export function AssetContextMenu(props: AssetContextMenuProps) {
   const { innerProps, event, hidden = false, triggerRef, currentDirectoryId } = props
   const { doCopy, doCut, doPaste } = props
   const { asset, state, setRowState } = innerProps
@@ -264,9 +256,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
                 labels: null,
                 recentProjects: false,
               })
-              const project = assets
-                .filter((item) => item.type === backendModule.AssetType.project)
-                .at(0)
+              const project = assets.filter(backendModule.assetIsProject)[0]
               invariant(project, 'Downloaded cloud project does not exist.')
               openProject({
                 id: project.id,

@@ -3,7 +3,8 @@ import TagIcon from '#/assets/tag.svg'
 import { Button, Text } from '#/components/AriaComponents'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useText } from '#/providers/TextProvider'
-import { Column, type AssetColumnHeadingProps } from '../types'
+import type { AssetColumnHeadingProps } from '../columnProps'
+import { Column } from '../types'
 
 /** A heading for the "Labels" column. */
 export default function LabelsColumnHeading(props: AssetColumnHeadingProps) {

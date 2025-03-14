@@ -1,6 +1,6 @@
 /** @file A hook to return the items in the assets table. */
-import type { SortableColumn } from '#/components/dashboard/column'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import type { SortableColumn } from '#/layouts/AssetsTable/components/columns'
 import { assetCompareFunction } from '#/layouts/Drive/compareAssets'
 import { useText } from '#/providers/TextProvider'
 import type { DirectoryId } from '#/services/ProjectManager'
