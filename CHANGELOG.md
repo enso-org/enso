@@ -87,7 +87,7 @@
 - [xlsx reader now does not read empty rows from the end of a worksheet][12345]
 - [Generic JDBC connections can be created with `Database.connect`.][12331]
 - [Added Table.generate_rows][12413]
-- [Added Regex_match to filter. Added Column.regex_match. Support for 
+- [Added Regex_match to filter. Added Column.regex_match. Support for
   regex_match in the expression language][12492]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
