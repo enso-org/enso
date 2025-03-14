@@ -1397,6 +1397,21 @@ type Column
             Error.throw (Illegal_Argument.Error "LIKE operation is not supported for the given types.")
         _apply_case_sensitive_text_operation self pattern ..Default TextPredicates.LIKE fallback new_name
 
+    ## GROUP Standard.Base.Logical
+       ICON preparation
+       Checks for each element of the column if it matches a regular expression.
+
+       Arguments:
+       - pattern: The pattern to match `self` against. If it is a column, the
+         operation is performed pairwise between corresponding elements of
+         `self` and that column.
+
+       > Example
+         Check if elements of a column start with 'A' and end with a 'M'.
+
+             import Standard.Examples
+
+             example_contains = Examples.text_column_1.regex_match (regex "A.*M")
     regex_match self (pattern : Column | Text | Any) -> Column =
         string_pattern = case pattern of 
             Regex.Value _ _ -> pattern.pattern 
