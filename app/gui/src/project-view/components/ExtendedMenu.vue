@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import DropdownMenu from '@/components/DropdownMenu.vue'
-import MenuEntry from '@/components/MenuEntry.vue'
-import MenuPanel from '@/components/MenuPanel.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import ActionMenu from './ActionMenu.vue'
 
 const open = defineModel<boolean>('open', { default: false })
 </script>
@@ -16,17 +15,20 @@ const open = defineModel<boolean>('open', { default: false })
   >
     <template #button><SvgIcon name="3_dot_menu" class="moreIcon" /></template>
     <template #menu>
-      <MenuPanel>
-        <MenuEntry action="graph.renameProject" @click="open = false" />
-        <MenuEntry action="graph.refreshExecution" />
-        <MenuEntry action="graph.recomputeAll" />
-        <MenuEntry action="graph.undo" />
-        <MenuEntry action="graph.redo" />
-        <MenuEntry action="graph.addComponent" />
-        <MenuEntry action="graph.fitAll" />
-        <MenuEntry action="graph.toggleCodeEditor" />
-        <MenuEntry action="graph.toggleDocumentationEditor" />
-      </MenuPanel>
+      <ActionMenu
+        :actions="[
+          'graph.renameProject',
+          'graph.refreshExecution',
+          'graph.recomputeAll',
+          'graph.undo',
+          'graph.redo',
+          'graph.addComponent',
+          'graph.fitAll',
+          'graph.toggleCodeEditor',
+          'graph.toggleDocumentationEditor',
+        ]"
+        @close="open = false"
+      />
     </template>
   </DropdownMenu>
 </template>
@@ -41,9 +43,5 @@ const open = defineModel<boolean>('open', { default: false })
 
 .moreIcon {
   margin: 4px;
-}
-
-.MenuPanel {
-  margin-top: 2px;
 }
 </style>

@@ -234,7 +234,7 @@ export function toggledAction(toggleState = ref(false)) {
 }
 
 /**
- *
+ * Potentially resolve an action by name from context. Raises an assertion if such action is not found.
  */
 export function resolveAction(actionOrName: Action | ActionName): Action {
   if (typeof actionOrName === 'string') {

@@ -219,7 +219,7 @@ const { scheduleCreateNode, createNodes, placeNode } = provideNodeCreation(
 
 const { copyNodesToClipboard, createNodesFromClipboard } = useGraphEditorClipboard(createNodes)
 
-// === Action handlers ===
+// === Action Handlers ===
 
 const actionHandlers = registerHandlers({
   'graphEditor.showHelp': {
