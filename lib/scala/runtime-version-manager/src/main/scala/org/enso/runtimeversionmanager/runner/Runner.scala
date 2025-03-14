@@ -164,8 +164,8 @@ class Runner(
   def withCommand[R](runSettings: RunSettings, jvmSettings: JVMSettings)(
     action: RawCommand => R
   ): R = {
+    val jvmOptsFromEnvironment = environment.getEnvVar(JVM_OPTIONS_ENV_VAR)
     def prepareAndRunCommand(engine: Engine, cmd: ExecCommand): R = {
-      val jvmOptsFromEnvironment = environment.getEnvVar(JVM_OPTIONS_ENV_VAR)
       jvmOptsFromEnvironment.foreach { opts =>
         logger.debug(
           "Picking up additional JVM options [{}] from the " +
@@ -225,6 +225,7 @@ class Runner(
         runtimeVersionManager.withEngineAndRuntime(engineVersion) {
           (engine, runtime) =>
             NativeExecCommand.apply(
+              jvmOptsFromEnvironment,
               engineVersion.toString,
               engine,
               logger
