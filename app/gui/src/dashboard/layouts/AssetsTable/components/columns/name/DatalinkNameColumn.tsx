@@ -2,10 +2,10 @@
 import DatalinkIcon from '#/assets/datalink.svg'
 import EditableSpan from '#/components/EditableSpan'
 import { useSetIsAssetPanelTemporarilyVisible } from '#/layouts/AssetPanel'
-import type { AssetColumnProps } from '#/layouts/AssetsTable/components/columns/types'
 import type { DatalinkAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
+import type { AssetColumnProps } from '../columnProps'
 
 /** Props for a {@link DatalinkNameColumn}. */
 export interface DatalinkNameColumnProps extends AssetColumnProps {

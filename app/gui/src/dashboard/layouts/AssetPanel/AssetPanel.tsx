@@ -3,11 +3,6 @@
  * A sidebar that can be expanded or collapsed.
  * It is used to view and interact with assets in the drive.
  */
-import { AnimatePresence, motion } from 'framer-motion'
-import { memo, startTransition } from 'react'
-
-import type { BackendType } from 'enso-common/src/services/Backend'
-
 import RepeatIcon from '#/assets/arrows_repeat.svg'
 import CalendarIcon from '#/assets/calendar_repeat_outline.svg'
 import DocsIcon from '#/assets/file_text.svg'
@@ -21,6 +16,9 @@ import { isLocalCategory, type Category } from '#/layouts/Drive/Categories/Categ
 import { useBackend } from '#/providers/BackendProvider'
 import { useText } from '#/providers/TextProvider'
 import { useStore } from '#/utilities/zustand'
+import type { BackendType } from 'enso-common/src/services/Backend'
+import { AnimatePresence, motion } from 'framer-motion'
+import { memo, startTransition } from 'react'
 import { useFeatureFlag } from '../../providers/FeatureFlagsProvider'
 import { AssetPanelTabs } from './components/AssetPanelTabs'
 import { AssetPanelToggle } from './components/AssetPanelToggle'

@@ -28,9 +28,7 @@ import {
 import { Button, DialogTrigger, Form, Text } from '#/components/AriaComponents'
 import { listProjectExecutionsQueryOptions } from '#/hooks/backendHooks'
 import { useStore } from '#/hooks/storeHooks'
-import { assetPanelStore } from '#/layouts/AssetPanel/AssetPanelState'
-import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
-import { ProjectExecution } from '#/layouts/AssetPanel/components/ProjectExecution'
+import { assetPanelStore } from '#/layouts/AssetPanel/constants'
 import { NewProjectExecutionModal } from '#/layouts/NewProjectExecutionModal'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'
@@ -42,6 +40,8 @@ import {
   type ProjectAsset,
 } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
+import { AssetPanelPlaceholder } from './AssetPanelPlaceholder'
+import { ProjectExecution } from './ProjectExecution'
 
 const PROJECT_EXECUTIONS_CALENDAR_STYLES = tv({
   base: '',

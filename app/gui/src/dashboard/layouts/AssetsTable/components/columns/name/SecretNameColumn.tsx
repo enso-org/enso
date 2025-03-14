@@ -4,7 +4,6 @@ import EditableSpan from '#/components/EditableSpan'
 import SvgMask from '#/components/SvgMask'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import type { AssetColumnProps } from '#/layouts/AssetsTable/components/columns/types'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useSetModal } from '#/providers/ModalProvider'
@@ -13,6 +12,7 @@ import { isNewTitleUnique, type SecretAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
 import { useMutation } from '@tanstack/react-query'
+import type { AssetColumnProps } from '../columnProps'
 
 /** Props for a {@link SecretNameColumn}. */
 export interface SecretNameColumnProps extends AssetColumnProps {

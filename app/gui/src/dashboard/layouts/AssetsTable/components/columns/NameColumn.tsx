@@ -1,11 +1,11 @@
 /** @file The icon and name of an {@link Asset}. */
-import DatalinkNameColumn from '#/components/dashboard/DatalinkNameColumn'
-import DirectoryNameColumn from '#/components/dashboard/DirectoryNameColumn'
-import FileNameColumn from '#/components/dashboard/FileNameColumn'
-import ProjectNameColumn from '#/components/dashboard/ProjectNameColumn'
-import SecretNameColumn from '#/components/dashboard/SecretNameColumn'
 import { AssetType } from '#/services/Backend'
 import type { AssetColumnProps } from './columnProps'
+import DatalinkNameColumn from './name/DatalinkNameColumn'
+import DirectoryNameColumn from './name/DirectoryNameColumn'
+import FileNameColumn from './name/FileNameColumn'
+import ProjectNameColumn from './name/ProjectNameColumn'
+import SecretNameColumn from './name/SecretNameColumn'
 
 /** Props for a {@link AssetNameColumn}. */
 export type AssetNameColumnProps = AssetColumnProps

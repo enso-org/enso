@@ -3,7 +3,6 @@ import ProjectIcon from '#/components/dashboard/ProjectIcon'
 import EditableSpan from '#/components/EditableSpan'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useOpenProject } from '#/hooks/projectHooks'
-import type { AssetColumnProps } from '#/layouts/AssetsTable/components/columns/types'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useText } from '#/providers/TextProvider'
@@ -14,6 +13,7 @@ import { PERMISSION_ACTION_CAN_EXECUTE, tryFindSelfPermission } from '#/utilitie
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutation } from '@tanstack/react-query'
 import { isOnMacOS } from 'enso-common/src/detect'
+import type { AssetColumnProps } from '../columnProps'
 
 /** Props for a {@link ProjectNameColumn}. */
 export interface ProjectNameColumnProps extends AssetColumnProps {

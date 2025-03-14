@@ -3,7 +3,6 @@ import FolderIcon from '#/assets/folder.svg'
 import { Button } from '#/components/AriaComponents'
 import EditableSpan from '#/components/EditableSpan'
 import { backendMutationOptions } from '#/hooks/backendHooks'
-import type { AssetColumnProps } from '#/layouts/AssetsTable/components/columns/types'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDriveStore, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { useText } from '#/providers/TextProvider'
@@ -13,6 +12,7 @@ import { twMerge } from '#/utilities/tailwindMerge'
 import { isDirectoryNameContainInvalidCharacters } from '#/utilities/validation'
 import { useMutation } from '@tanstack/react-query'
 import { useTransition } from 'react'
+import type { AssetColumnProps } from '../columnProps'
 
 /** Props for a {@link DirectoryNameColumn}. */
 export interface DirectoryNameColumnProps extends AssetColumnProps {

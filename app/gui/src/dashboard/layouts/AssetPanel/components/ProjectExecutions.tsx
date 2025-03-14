@@ -1,15 +1,14 @@
 /** @file A list of exeuctions of a project. */
-import { useSuspenseQuery } from '@tanstack/react-query'
-
 import { Button, DialogTrigger, Text } from '#/components/AriaComponents'
 import { listProjectExecutionsQueryOptions } from '#/hooks/backendHooks'
 import { useStore } from '#/hooks/storeHooks'
-import { assetPanelStore } from '#/layouts/AssetPanel/AssetPanelState'
-import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
 import { NewProjectExecutionModal } from '#/layouts/NewProjectExecutionModal'
 import { useText } from '#/providers/TextProvider'
 import type Backend from '#/services/Backend'
 import { AssetType, BackendType, type ProjectAsset } from '#/services/Backend'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { assetPanelStore } from '../constants'
+import { AssetPanelPlaceholder } from './AssetPanelPlaceholder'
 import { ProjectExecution } from './ProjectExecution'
 
 /** Props for a {@link ProjectExecutions}. */

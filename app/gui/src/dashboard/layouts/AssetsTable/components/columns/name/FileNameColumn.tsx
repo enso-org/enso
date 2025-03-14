@@ -2,13 +2,13 @@
 import EditableSpan from '#/components/EditableSpan'
 import SvgMask from '#/components/SvgMask'
 import { backendMutationOptions } from '#/hooks/backendHooks'
-import type { AssetColumnProps } from '#/layouts/AssetsTable/components/columns/types'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useText } from '#/providers/TextProvider'
 import { isNewTitleUnique, type FileAsset } from '#/services/Backend'
 import { fileIcon } from '#/utilities/fileIcon'
 import { merger } from '#/utilities/object'
 import { useMutation } from '@tanstack/react-query'
+import type { AssetColumnProps } from '../columnProps'
 
 /** Props for a {@link FileNameColumn}. */
 export interface FileNameColumnProps extends AssetColumnProps {
