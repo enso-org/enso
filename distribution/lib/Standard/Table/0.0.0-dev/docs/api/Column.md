@@ -81,6 +81,7 @@
     - pretty self -> Standard.Base.Any.Any
     - print self show_rows:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Nothing.Nothing
     - read self max_rows:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Table.Column.Column
+    - regex_match self pattern:(Standard.Table.Column.Column|Standard.Base.Data.Text.Text|Standard.Base.Any.Any) -> Standard.Table.Column.Column
     - rename self name:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
     - requires_numeric_formatter_check self -> Standard.Base.Any.Any
     - reverse self -> Standard.Table.Column.Column
