@@ -16,6 +16,9 @@ const props = withDefaults(
   }>(),
   { toolbar: true },
 )
+defineOptions({
+  inheritAttrs: false,
+})
 
 const inner = ref<ComponentInstance<typeof LazyMarkdownEditor>>()
 
@@ -38,7 +41,12 @@ defineExpose({
 
 <template>
   <Suspense>
-    <LazyMarkdownEditor ref="inner" :content="props.content" :toolbar="props.toolbar">
+    <LazyMarkdownEditor
+      ref="inner"
+      v-bind="$attrs"
+      :content="props.content"
+      :toolbar="props.toolbar"
+    >
       <template #toolbarLeft>
         <slot name="toolbarLeft" />
       </template>

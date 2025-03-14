@@ -8,8 +8,12 @@ import type { ComponentProps } from 'vue-component-type-helpers'
 /** Extracts the properties defined by a component, excluding various Vue internals. */
 type VueComponentProps<T> = Omit<ComponentProps<T>, keyof AllowedComponentProps | keyof VNodeProps>
 
-/** Creates a React component wrapping a Vue component. */
-export function vueComponent<T extends { default?: unknown }>(
+/**
+ * Creates a lazy React component wrapping a Vue component.
+ *
+ * This adds type information and lazy-loading to {@link applyPureVueInReact}.
+ */
+export function lazyVueComponent<T extends { default?: unknown }>(
   lazyImport: () => Promise<T>,
 ): React.LazyExoticComponent<(props: VueComponentProps<T['default']>) => React.JSX.Element> {
   return React.lazy(async () => {

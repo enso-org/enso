@@ -9,12 +9,12 @@ import type { LaunchedProject } from '#/providers/ProjectsProvider'
 import * as textProvider from '#/providers/TextProvider'
 import * as backendModule from '#/services/Backend'
 import * as twMerge from '#/utilities/tailwindMerge'
-import { vueComponent } from '#/utilities/vue'
+import { lazyVueComponent } from '#/utilities/vue'
 import * as reactQuery from '@tanstack/react-query'
 import * as React from 'react'
 import { useTimeoutCallback } from '../hooks/timeoutHooks'
 
-const ProjectViewTab = vueComponent(() => import('@/ProjectViewTab.vue'))
+const ProjectViewTab = lazyVueComponent(() => import('@/ProjectViewTab.vue'))
 
 /** Props for the GUI editor root component. */
 export type ProjectViewTabProps = React.ComponentProps<typeof ProjectViewTab>

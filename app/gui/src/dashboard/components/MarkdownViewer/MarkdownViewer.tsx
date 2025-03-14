@@ -1,8 +1,9 @@
 /** @file A Markdown viewer component. */
-import { vueComponent } from '#/utilities/vue'
+import { MarkdownEditor } from '#/components/MarkdownViewer/defaultRenderer'
+import { useLogger } from '#/providers/LoggerProvider'
+import { useText } from '#/providers/TextProvider'
 import { type UrlTransformer } from '@/components/MarkdownEditor/imageUrlTransformer'
-
-const MarkdownEditor = vueComponent(() => import('@/components/MarkdownEditor.vue'))
+import { Err, Ok } from '@/util/data/result'
 
 /** Props for a {@link MarkdownViewer}. */
 export interface MarkdownViewerProps {
@@ -17,10 +18,20 @@ export interface MarkdownViewerProps {
  */
 export function MarkdownViewer(props: MarkdownViewerProps) {
   const { text, imgUrlResolver } = props
+
+  const logger = useLogger()
+  const { getText } = useText()
+
   const transformImageUrl: UrlTransformer = (path: string) =>
     /^https?:/.test(path) ?
-      Promise.resolve({ ok: true, value: { url: path } })
-    : imgUrlResolver(path).then((url) => ({ ok: true, value: { url } }))
+      Promise.resolve(Ok({ url: path }))
+    : imgUrlResolver(path).then(
+        (url) => Ok({ url }),
+        (error) => {
+          logger.error(error)
+          return Err(getText('arbitraryFetchImageError'))
+        },
+      )
 
   return <MarkdownEditor content={text} transformImageUrl={transformImageUrl} toolbar={false} />
 }
