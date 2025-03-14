@@ -553,7 +553,8 @@ val scalaCollectionCompatVersion  = "2.8.1"
 
 // === std-lib ================================================================
 
-val antlrVersion            = "4.13.0"
+// Has to match Truffle's ANTLR dependency version to avoid spurious warnings in Native Image
+val antlrVersion            = "4.12.0"
 val awsJavaSdkV1Version     = "1.12.480"
 val awsJavaSdkV2Version     = "2.25.36"
 val icuVersion              = "73.1"
@@ -966,7 +967,7 @@ lazy val pkg = (project in file("lib/scala/pkg"))
   .settings(
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
-    compileOrder := CompileOrder.ScalaThenJava,
+    mixedJavaScalaProjectSetting,
     version := "0.1",
     Compile / run / mainClass := Some("org.enso.pkg.Main"),
     libraryDependencies ++= Seq(
@@ -2159,12 +2160,15 @@ lazy val `engine-common` = project
     commands += WithDebugCommand.withDebug,
     Test / envVars ++= distributionEnvironmentOverrides,
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot" % "polyglot" % graalMavenPackagesVersion % "provided"
+      "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion % "provided"
     ),
     Compile / moduleDependencies ++= {
       Seq(
-        "org.graalvm.polyglot" % "polyglot"  % graalMavenPackagesVersion,
-        "org.slf4j"            % "slf4j-api" % slf4jVersion
+        "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
+        "org.slf4j"            % "slf4j-api"   % slf4jVersion
       )
     },
     Compile / internalModuleDependencies := Seq(
@@ -3806,7 +3810,7 @@ lazy val `engine-runner` = project
       val NI_MODULES =
         "org.graalvm.nativeimage,org.graalvm.nativeimage.builder,org.graalvm.nativeimage.base,org.graalvm.nativeimage.driver,org.graalvm.nativeimage.librarysupport,org.graalvm.nativeimage.objectfile,org.graalvm.nativeimage.pointsto,com.oracle.graal.graal_enterprise,com.oracle.svm.svm_enterprise"
       val JDK_MODULES =
-        "jdk.localedata,jdk.httpserver,java.naming,java.net.http,java.desktop"
+        "jdk.charsets,jdk.localedata,jdk.httpserver,java.naming,java.net.http,java.desktop,jdk.crypto.ec"
       val DEBUG_MODULES  = "jdk.jdwp.agent"
       val PYTHON_MODULES = "jdk.security.auth,java.naming"
 
@@ -3878,7 +3882,6 @@ lazy val `engine-runner` = project
             ),
             additionalOptions = Seq(
               "-Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.NoOpLog",
-              "-H:IncludeResources=.*Main.enso$",
               "-H:+AddAllCharsets",
               "-H:+IncludeAllLocales",
               // Workaround a problem with build-/runtime-initialization conflict

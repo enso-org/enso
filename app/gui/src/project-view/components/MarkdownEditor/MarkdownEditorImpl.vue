@@ -86,15 +86,15 @@ defineExpose({
         />
         <SvgButton
           name="connector_add"
-          :disabled="!editing || !insertLink"
+          :disabled="insertLink == null"
           title="Insert link"
-          @click.stop="insertLink!"
+          @click.stop="insertLink?.()"
         />
         <SvgButton
           name="code"
-          :disabled="!editing || !insertCodeBlock"
+          :disabled="insertCodeBlock == null"
           title="Insert code block"
-          @click.stop="insertCodeBlock!"
+          @click.stop="insertCodeBlock?.()"
         />
       </template>
       <slot name="toolbarRight" />

@@ -804,7 +804,7 @@ importers:
         specifier: ^22.10.4
         version: 22.10.4
       '@types/ws':
-        specifier: ^8.5.13
+        specifier: 8.5.13
         version: 8.5.13
       typescript:
         specifier: ^5.7.2

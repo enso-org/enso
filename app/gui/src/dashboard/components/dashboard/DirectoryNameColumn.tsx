@@ -8,7 +8,6 @@ import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDriveStore, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
 import { useText } from '#/providers/TextProvider'
 import { isNewTitleUnique, type DirectoryAsset } from '#/services/Backend'
-import { isSingleClick } from '#/utilities/event'
 import { merger } from '#/utilities/object'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { isDirectoryNameContainInvalidCharacters } from '#/utilities/validation'
@@ -59,16 +58,6 @@ export default function DirectoryNameColumn(props: DirectoryNameColumnProps) {
       onKeyDown={(event) => {
         if (rowState.isEditingName && event.key === 'Enter') {
           event.stopPropagation()
-        }
-      }}
-      onClick={(event) => {
-        if (isSingleClick(event) && driveStore.getState().selectedIds.size === 1) {
-          const [id] = driveStore.getState().selectedIds
-          if (item.id === id) {
-            event.stopPropagation()
-            setIsEditing(true)
-            return
-          }
         }
       }}
     >

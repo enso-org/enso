@@ -62,6 +62,9 @@ type Process_Builder
     ## ICON system
        Create a process using a builder returning the result of execution.
 
+       Arguments:
+       - redirect_out_err: Redirect stdout/stderr to `Process_Result`.
+
        > Example
          Execute the process contained in the builder.
 
@@ -71,9 +74,9 @@ type Process_Builder
                  builder = Process.new_builder "echo"
                  with_args = builder.set_arguments ["hello, world!"]
                  with_args.create
-    create : Process_Result
-    create self =
-        result = System.create_process self.command self.arguments self.stdin redirect_in=(self.stdin == False) redirect_out=False redirect_err=False
+    create : Boolean -> Process_Result
+    create self redirect_out_err:Boolean=False =
+        result = System.create_process self.command self.arguments self.stdin redirect_in=(self.stdin == False) redirect_out=redirect_out_err redirect_err=redirect_out_err
         exit_code = Exit_Code.from_number result.exit_code
         Process_Result.Value exit_code result.stdout result.stderr
 

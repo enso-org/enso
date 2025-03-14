@@ -59,6 +59,9 @@ pub enum Command {
     CiCheck {},
     /// Perform the stdlib API checks
     StdlibApiCheck {},
+
+    /// Generate Cloud credentials
+    GenerateCloudCredentials {},
 }
 
 #[derive(Args, Clone, Debug, PartialEq)]

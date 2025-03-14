@@ -95,6 +95,7 @@ interface UnknownTable {
   child_label: string
   visualization_header: string
   data_quality_metrics?: DataQualityMetric[]
+  requires_number_format: boolean[]
 }
 
 type DataQualityMetric = {
@@ -125,7 +126,6 @@ const isTruncated = ref(false)
 const isCreateNodeEnabled = ref(false)
 const filterModel = ref<GridFilterModel[]>([])
 const sortModel = ref<SortModel[]>([])
-const dataGroupingMap = shallowRef<Map<string, boolean>>()
 const defaultColDef: Ref<ColDef> = ref({
   editable: false,
   sortable: true,
@@ -148,6 +148,7 @@ const columnDefs: Ref<ColDef[]> = ref([])
 const textFormatterSelected = ref<TextFormatOptions>('partial')
 
 const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
+const dataGroupingMap = shallowRef<Map<string, boolean>>()
 
 const selectableRowLimits = computed(() => {
   const defaults = [1000, 2500, 5000, 10000, 25000, 50000, 100000].filter(
@@ -467,6 +468,8 @@ watchEffect(() => {
         visualization_header: undefined,
         // eslint-disable-next-line camelcase
         link_value_type: undefined,
+        // eslint-disable-next-line camelcase
+        requires_number_format: undefined,
       }
   if ('error' in data_) {
     columnDefs.value = [
@@ -589,6 +592,40 @@ watchEffect(() => {
       )
     })
     isTruncated.value = data_.all_rows_count !== rowData.value.length
+
+    if (rowData.value[0]) {
+      const headers = Object.keys(rowData.value[0])
+      const headerGroupingMap = new Map()
+      if (data_.requires_number_format) {
+        columnDefs.value.map((col) => {
+          if (col.headerName === INDEX_FIELD_NAME) {
+            headerGroupingMap.set(INDEX_FIELD_NAME, false)
+          }
+          if (typeof props.data == 'object' && 'header' in props.data) {
+            const dataHeaderIndex = props.data.header?.findIndex(
+              (h: string) => h === col.headerName,
+            )
+            const needsGrouping =
+              dataHeaderIndex !== null && dataHeaderIndex !== undefined ?
+                data_.requires_number_format[dataHeaderIndex]
+              : false
+
+            headerGroupingMap.set(col.headerName, needsGrouping)
+          }
+        })
+      } else {
+        headers.forEach((header) => {
+          const needsGrouping = rowData.value.some((row) => {
+            if (header in row && row[header] != null) {
+              const value = typeof row[header] === 'object' ? row[header].value : row[header]
+              return value > 999999 || value < -999999
+            }
+          })
+          headerGroupingMap.set(header, needsGrouping)
+        })
+      }
+      dataGroupingMap.value = headerGroupingMap
+    }
   }
 
   // Update paging
@@ -599,21 +636,6 @@ watchEffect(() => {
   pageLimit.value = newPageLimit
   if (page.value > newPageLimit) {
     page.value = newPageLimit
-  }
-
-  if (rowData.value[0]) {
-    const headers = Object.keys(rowData.value[0])
-    const headerGroupingMap = new Map()
-    headers.forEach((header) => {
-      const needsGrouping = rowData.value.some((row) => {
-        if (header in row && row[header] != null) {
-          const value = typeof row[header] === 'object' ? row[header].value : row[header]
-          return value > 999999 || value < -999999
-        }
-      })
-      headerGroupingMap.set(header, needsGrouping)
-    })
-    dataGroupingMap.value = headerGroupingMap
   }
 
   // If data is truncated, we cannot rely on sorting/filtering so will disable.

@@ -59,6 +59,10 @@ abstract class BaseSuggestionEntry implements SuggestionEntryCommon {
   get documentation() {
     return this.documentationData.documentation
   }
+
+  get docSummaryHtml() {
+    return this.documentationData.docSummaryHtml
+  }
   get aliases() {
     return this.documentationData.aliases
   }
