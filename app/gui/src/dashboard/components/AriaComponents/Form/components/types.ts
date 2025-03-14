@@ -129,21 +129,21 @@ export type FormInstance<Schema extends TSchema> = UseFormReturn<Schema>
 export interface FormWithValueValidation<
   BaseValueType,
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, Constraint>,
+  FieldName extends FieldPath<Schema, Constraint>,
   Constraint,
   // It is not ideal to have this as a parameter as it can be edited, but this is the simplest way
   // to avoid distributive conditional types to affect the error message. We want distributivity
   // to happen, just not for the error message itself.
   ErrorType = [
     'Type mismatch: Expected',
-    FieldValues<Schema>[TFieldName],
+    FieldValues<Schema>[FieldName],
     'got',
     BaseValueType,
     'instead.',
   ],
 > {
   readonly form?:
-    | (BaseValueType extends FieldValues<Schema>[TFieldName] ? FormInstance<Schema> : ErrorType)
+    | (BaseValueType extends FieldValues<Schema>[FieldName] ? FormInstance<Schema> : ErrorType)
     | undefined
 }
 
@@ -195,13 +195,13 @@ export interface FieldProps {
 export interface FormFieldProps<
   BaseValueType,
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, Constraint>,
+  FieldName extends FieldPath<Schema, Constraint>,
   Constraint,
-> extends FormWithValueValidation<BaseValueType, Schema, TFieldName, Constraint> {
-  readonly name: TFieldName
-  readonly value?: BaseValueType extends FieldValues<Schema> ? FieldValues<Schema>[TFieldName]
+> extends FormWithValueValidation<BaseValueType, Schema, FieldName, Constraint> {
+  readonly name: FieldName
+  readonly value?: BaseValueType extends FieldValues<Schema> ? FieldValues<Schema>[FieldName]
   : never
-  readonly defaultValue?: FieldValues<Schema>[TFieldName] | undefined
+  readonly defaultValue?: FieldValues<Schema>[FieldName] | undefined
   readonly isDisabled?: boolean | undefined
   readonly isRequired?: boolean | undefined
   readonly isInvalid?: boolean | undefined
@@ -211,12 +211,12 @@ export interface FormFieldProps<
 export type FieldStateProps<
   BaseProps extends { value?: unknown },
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, Constraint>,
+  FieldName extends FieldPath<Schema, Constraint>,
   Constraint,
-> = FormFieldProps<BaseProps['value'], Schema, TFieldName, Constraint> & {
+> = FormFieldProps<BaseProps['value'], Schema, FieldName, Constraint> & {
   // to avoid conflicts with the FormFieldProps we need to omit the FormFieldProps from the BaseProps
   [K in keyof Omit<
     BaseProps,
-    keyof FormFieldProps<BaseProps['value'], Schema, TFieldName, Constraint>
+    keyof FormFieldProps<BaseProps['value'], Schema, FieldName, Constraint>
   >]: BaseProps[K]
 }

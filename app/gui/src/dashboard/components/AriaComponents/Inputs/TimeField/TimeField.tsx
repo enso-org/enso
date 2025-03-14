@@ -67,15 +67,15 @@ const DATE_PICKER_STYLES = tv({
 /** Props for a {@link TimeField}. */
 export interface TimeFieldProps<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, TimeValue>,
+  FieldName extends FieldPath<Schema, TimeValue>,
 > extends Pick<AriaTimeFieldProps<TimeValue>, 'granularity'>,
     FieldStateProps<
       Omit<
-        AriaTimeFieldProps<Extract<FieldValues<Schema>[TFieldName], TimeValue>>,
+        AriaTimeFieldProps<Extract<FieldValues<Schema>[FieldName], TimeValue>>,
         'children' | 'className' | 'style'
       >,
       Schema,
-      TFieldName,
+      FieldName,
       TimeValue
     >,
     FieldProps,
@@ -92,8 +92,8 @@ const useTimeValueField = Form.makeUseField<TimeValue>()
 /** A date picker. */
 export const TimeField = forwardRef(function TimeField<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, TimeValue>,
->(props: TimeFieldProps<Schema, TFieldName>, ref: ForwardedRef<HTMLDivElement>) {
+  FieldName extends FieldPath<Schema, TimeValue>,
+>(props: TimeFieldProps<Schema, FieldName>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     isRequired = false,
     noResetButton = isRequired,

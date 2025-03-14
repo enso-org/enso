@@ -83,15 +83,15 @@ const DATE_PICKER_STYLES = tv({
 /** Props for a {@link DatePicker}. */
 export interface DatePickerProps<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, DateValue>,
+  FieldName extends FieldPath<Schema, DateValue>,
 > extends Pick<AriaDatePickerProps<DateValue>, 'granularity'>,
     FieldStateProps<
       Omit<
-        AriaDatePickerProps<Extract<FieldValues<Schema>[TFieldName], DateValue>>,
+        AriaDatePickerProps<Extract<FieldValues<Schema>[FieldName], DateValue>>,
         'children' | 'className' | 'style'
       >,
       Schema,
-      TFieldName,
+      FieldName,
       DateValue
     >,
     FieldProps,
@@ -109,8 +109,8 @@ const useDateValueField = Form.makeUseField<DateValue>()
 /** A date picker. */
 export const DatePicker = forwardRef(function DatePicker<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, DateValue>,
->(props: DatePickerProps<Schema, TFieldName>, ref: ForwardedRef<HTMLDivElement>) {
+  FieldName extends FieldPath<Schema, DateValue>,
+>(props: DatePickerProps<Schema, FieldName>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     isRequired = false,
     noResetButton = isRequired,

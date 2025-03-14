@@ -19,11 +19,11 @@ import { SelectorOption } from './SelectorOption'
 import { SELECTOR_STYLES } from './variants'
 
 /** * Props for the Selector component. */
-export interface SelectorProps<Schema extends TSchema, TFieldName extends FieldPath<Schema, T>, T>
+export interface SelectorProps<Schema extends TSchema, FieldName extends FieldPath<Schema, T>, T>
   extends FieldStateProps<
       Omit<RadioGroupProps, 'children' | 'value'> & { value: T },
       Schema,
-      TFieldName,
+      FieldName,
       T
     >,
     FieldProps,
@@ -41,9 +41,9 @@ export interface SelectorProps<Schema extends TSchema, TFieldName extends FieldP
 /** A horizontal selector. */
 export const Selector = forwardRef(function Selector<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, T>,
+  FieldName extends FieldPath<Schema, T>,
   T,
->(props: SelectorProps<Schema, TFieldName, T>, ref: React.ForwardedRef<HTMLDivElement>) {
+>(props: SelectorProps<Schema, FieldName, T>, ref: React.ForwardedRef<HTMLDivElement>) {
   const {
     name,
     items,

@@ -15,8 +15,8 @@ import { CheckboxGroupProvider } from './CheckboxContext'
 /** Props for the {@link CheckboxGroup} component. */
 export interface CheckboxGroupProps<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, readonly string[]>,
-> extends FieldStateProps<AriaCheckboxGroupProps, Schema, TFieldName, readonly string[]>,
+  FieldName extends FieldPath<Schema, readonly string[]>,
+> extends FieldStateProps<AriaCheckboxGroupProps, Schema, FieldName, readonly string[]>,
     FieldProps,
     FieldVariantProps,
     Omit<VariantProps<typeof CHECKBOX_GROUP_STYLES>, 'disabled' | 'invalid'>,
@@ -34,8 +34,8 @@ const CHECKBOX_GROUP_STYLES = tv({
 
 /** A selector for one or more items from a list of choices. */
 export const CheckboxGroup = forwardRef(
-  <Schema extends TSchema, TFieldName extends FieldPath<Schema, readonly string[]>>(
-    props: CheckboxGroupProps<Schema, TFieldName>,
+  <Schema extends TSchema, FieldName extends FieldPath<Schema, readonly string[]>>(
+    props: CheckboxGroupProps<Schema, FieldName>,
     ref: ForwardedRef<HTMLDivElement>,
   ): ReactElement => {
     const {

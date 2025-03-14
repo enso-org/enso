@@ -79,19 +79,19 @@ interface FormPropsWithOptions<Schema extends components.TSchema, SubmitResult =
 
 /** Register function for a form field. */
 export type UseFormRegister<Schema extends components.TSchema> = <
-  TFieldName extends components.FieldPath<Schema> = components.FieldPath<Schema>,
+  FieldName extends components.FieldPath<Schema> = components.FieldPath<Schema>,
 >(
-  name: TFieldName,
-  options?: reactHookForm.RegisterOptions<components.FieldValues<Schema>, TFieldName>,
-) => UseFormRegisterReturn<Schema, TFieldName>
+  name: FieldName,
+  options?: reactHookForm.RegisterOptions<components.FieldValues<Schema>, FieldName>,
+) => UseFormRegisterReturn<Schema, FieldName>
 
 /** UseFormRegister return type. */
 export interface UseFormRegisterReturn<
   Schema extends components.TSchema,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  TFieldName extends components.FieldPath<Schema, Constraint> = components.FieldPath<Schema, any>,
+  FieldName extends components.FieldPath<Schema, Constraint> = components.FieldPath<Schema, any>,
   Constraint = unknown,
-> extends Omit<reactHookForm.UseFormRegisterReturn<TFieldName>, 'onBlur' | 'onChange'> {
+> extends Omit<reactHookForm.UseFormRegisterReturn<FieldName>, 'onBlur' | 'onChange'> {
   // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
   readonly onChange: <Value>(value: Value) => Promise<boolean | void> | void
   // eslint-disable-next-line @typescript-eslint/no-invalid-void-type

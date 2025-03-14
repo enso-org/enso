@@ -18,26 +18,26 @@ import { AnimatePresence, motion } from 'framer-motion'
 // ================
 
 /** Props for a {@link Password}. */
-export interface PasswordProps<Schema extends TSchema, TFieldName extends FieldPath<Schema, string>>
-  extends Omit<InputProps<Schema, TFieldName, string>, 'type'> {}
+export interface PasswordProps<Schema extends TSchema, FieldName extends FieldPath<Schema, string>>
+  extends Omit<InputProps<Schema, FieldName, string>, 'type'> {}
 
 /** A component wrapping {@link Input} with the ability to show and hide password. */
-export function Password<Schema extends TSchema, TFieldName extends FieldPath<Schema, string>>(
-  props: PasswordProps<Schema, TFieldName>,
+export function Password<Schema extends TSchema, FieldName extends FieldPath<Schema, string>>(
+  props: PasswordProps<Schema, FieldName>,
 ) {
   const [showPassword, setShowPassword] = useState(false)
 
   const form = Form.useFormContext(props.form)
 
   return (
-    <Input<Schema, TFieldName, string>
+    <Input<Schema, FieldName, string>
       {...props}
       type={showPassword ? 'text' : 'password'}
       addonEnd={
         <>
           {props.addonEnd}
 
-          <Form.FieldValue<Schema, TFieldName, string> form={form} name={props.name}>
+          <Form.FieldValue<Schema, FieldName, string> form={form} name={props.name}>
             {(value) => (
               <AnimatePresence>
                 {value != null && value.length > 0 && (

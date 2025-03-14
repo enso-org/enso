@@ -7,21 +7,21 @@ import type { FieldPath, FieldValues, FormWithValueValidation, TSchema } from '.
 export interface UseFieldOptions<
   BaseValueType,
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, Constraint>,
+  FieldName extends FieldPath<Schema, Constraint>,
   Constraint,
-> extends FormWithValueValidation<BaseValueType, Schema, TFieldName, Constraint> {
-  readonly name: TFieldName
+> extends FormWithValueValidation<BaseValueType, Schema, FieldName, Constraint> {
+  readonly name: FieldName
   readonly isDisabled?: boolean | undefined
-  readonly defaultValue?: FieldValues<Schema>[TFieldName] | undefined
+  readonly defaultValue?: FieldValues<Schema>[FieldName] | undefined
 }
 
 /** A hook that connects a field to a form state. */
 export function useField<
   BaseValueType,
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, Constraint>,
+  FieldName extends FieldPath<Schema, Constraint>,
   Constraint,
->(options: UseFieldOptions<BaseValueType, Schema, TFieldName, Constraint>) {
+>(options: UseFieldOptions<BaseValueType, Schema, FieldName, Constraint>) {
   const { name, defaultValue, isDisabled = false } = options
 
   const formInstance = Form.useFormContext(options.form)
@@ -41,8 +41,8 @@ export function makeUseField<Constraint>() {
   return function useFieldWithConstraint<
     BaseValueType,
     Schema extends TSchema,
-    TFieldName extends FieldPath<Schema, Constraint>,
-  >(options: UseFieldOptions<BaseValueType, Schema, TFieldName, Constraint>) {
+    FieldName extends FieldPath<Schema, Constraint>,
+  >(options: UseFieldOptions<BaseValueType, Schema, FieldName, Constraint>) {
     return useField(options)
   }
 }

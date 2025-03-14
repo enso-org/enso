@@ -12,11 +12,11 @@ import { Form, type FieldPath, type FieldProps, type FieldStateProps, type TSche
 import { SWITCH_STYLES } from './variants'
 
 /** Props for a {@link Switch}. */
-export interface SwitchProps<Schema extends TSchema, TFieldName extends FieldPath<Schema, boolean>>
+export interface SwitchProps<Schema extends TSchema, FieldName extends FieldPath<Schema, boolean>>
   extends FieldStateProps<
       Omit<AriaSwitchProps, 'children' | 'size' | 'value'> & { value: boolean },
       Schema,
-      TFieldName,
+      FieldName,
       boolean
     >,
     FieldProps,
@@ -33,8 +33,8 @@ const useBooleanField = Form.makeUseField<boolean>()
 /** A switch allows a user to turn a setting on or off. */
 export const Switch = forwardRef(function Switch<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, boolean>,
->(props: SwitchProps<Schema, TFieldName>, ref: ForwardedRef<HTMLDivElement>) {
+  FieldName extends FieldPath<Schema, boolean>,
+>(props: SwitchProps<Schema, FieldName>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     label,
     isDisabled = false,

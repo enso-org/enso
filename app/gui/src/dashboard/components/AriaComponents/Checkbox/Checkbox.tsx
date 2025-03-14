@@ -40,13 +40,13 @@ import { CHECKBOX_STYLES } from './constants'
 /** Props for the {@link Checkbox} component. */
 export type CheckboxProps<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, boolean>,
+  FieldName extends FieldPath<Schema, boolean>,
 > = Omit<VariantProps<typeof CHECKBOX_STYLES>, 'isDisabled' | 'isInvalid'> &
   TestIdProps & {
     readonly className?: string
     readonly style?: CSSProperties
     readonly checkboxRef?: MutableRefObject<HTMLInputElement>
-  } & (CheckboxGroupCheckboxProps | StandaloneCheckboxProps<Schema, TFieldName>)
+  } & (CheckboxGroupCheckboxProps | StandaloneCheckboxProps<Schema, FieldName>)
 
 /** Props for the {@link Checkbox} component when used inside a {@link CheckboxGroup}. */
 interface CheckboxGroupCheckboxProps extends AriaCheckboxProps {
@@ -58,15 +58,15 @@ interface CheckboxGroupCheckboxProps extends AriaCheckboxProps {
 /** Props for the {@link Checkbox} component when used outside of a {@link CheckboxGroup}. */
 type StandaloneCheckboxProps<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, boolean>,
-> = FieldProps & FieldStateProps<AriaCheckboxProps, Schema, TFieldName, boolean> & FieldVariantProps
+  FieldName extends FieldPath<Schema, boolean>,
+> = FieldProps & FieldStateProps<AriaCheckboxProps, Schema, FieldName, boolean> & FieldVariantProps
 
 /** Checkboxes allow users to select multiple items from a list of individual items, or to mark one individual item as selected. */
 // eslint-disable-next-line no-restricted-syntax
 export const Checkbox = forwardRef(function Checkbox<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, boolean>,
->(props: CheckboxProps<Schema, TFieldName>, ref: ForwardedRef<HTMLLabelElement>) {
+  FieldName extends FieldPath<Schema, boolean>,
+>(props: CheckboxProps<Schema, FieldName>, ref: ForwardedRef<HTMLLabelElement>) {
   const { form, name } = props
 
   const { store } = useCheckboxContext()
@@ -92,7 +92,7 @@ export const Checkbox = forwardRef(function Checkbox<
       // This is safe, because we know that the checkbox is standalone, and
       // name is specified in the props.
       // eslint-disable-next-line no-restricted-syntax
-    } = props as StandaloneCheckboxProps<Schema, TFieldName>
+    } = props as StandaloneCheckboxProps<Schema, FieldName>
 
     return (
       <Form.Controller
@@ -130,8 +130,8 @@ export const Checkbox = forwardRef(function Checkbox<
   }
 
   return <CheckboxInternal ref={ref} {...props} />
-}) as unknown as (<Schema extends TSchema, TFieldName extends FieldPath<Schema, boolean>>(
-  props: CheckboxProps<Schema, TFieldName> & RefAttributes<HTMLLabelElement>,
+}) as unknown as (<Schema extends TSchema, FieldName extends FieldPath<Schema, boolean>>(
+  props: CheckboxProps<Schema, FieldName> & RefAttributes<HTMLLabelElement>,
 ) => ReactElement) & {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   Group: typeof CheckboxGroup
@@ -142,16 +142,16 @@ export const Checkbox = forwardRef(function Checkbox<
  */
 type CheckboxInternalProps<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, boolean>,
-> = Omit<CheckboxProps<Schema, TFieldName>, 'name'> & {
+  FieldName extends FieldPath<Schema, boolean>,
+> = Omit<CheckboxProps<Schema, FieldName>, 'name'> & {
   name?: string
 }
 
 // eslint-disable-next-line no-restricted-syntax
 const CheckboxInternal = forwardRef(function CheckboxInternal<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, boolean>,
->(props: CheckboxInternalProps<Schema, TFieldName>, ref: ForwardedRef<HTMLLabelElement>) {
+  FieldName extends FieldPath<Schema, boolean>,
+>(props: CheckboxInternalProps<Schema, FieldName>, ref: ForwardedRef<HTMLLabelElement>) {
   const {
     variants = CHECKBOX_STYLES,
     isDisabled = false,
@@ -185,9 +185,9 @@ const CheckboxInternal = forwardRef(function CheckboxInternal<
         // This is safe, because the name is handled by the `CheckboxGroup` component
         // and checked there
         // eslint-disable-next-line no-restricted-syntax
-        field: state.field as UseFormRegisterReturn<Schema, TFieldName, boolean>,
+        field: state.field as UseFormRegisterReturn<Schema, FieldName, boolean>,
         // eslint-disable-next-line no-restricted-syntax
-        name: state.name as TFieldName,
+        name: state.name as FieldName,
         onChange: (checked: boolean) => {
           if (checked) {
             addSelected(value)
@@ -263,8 +263,8 @@ const CheckboxInternal = forwardRef(function CheckboxInternal<
       )}
     </AriaCheckbox>
   )
-}) as unknown as (<Schema extends TSchema, TFieldName extends FieldPath<Schema, boolean>>(
-  props: CheckboxInternalProps<Schema, TFieldName> & RefAttributes<HTMLLabelElement>,
+}) as unknown as (<Schema extends TSchema, FieldName extends FieldPath<Schema, boolean>>(
+  props: CheckboxInternalProps<Schema, FieldName> & RefAttributes<HTMLLabelElement>,
 ) => ReactElement) & {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   Group: typeof CheckboxGroup

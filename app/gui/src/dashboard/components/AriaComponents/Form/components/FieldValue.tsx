@@ -12,12 +12,12 @@ import type { FieldPath, FieldValues, FormInstanceValidated, TSchema } from './t
  */
 export interface FieldValueProps<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, Constraint>,
+  FieldName extends FieldPath<Schema, Constraint>,
   Constraint,
 > {
   readonly form?: FormInstanceValidated<Schema>
-  readonly name: TFieldName
-  readonly children: (value: FieldValues<Schema>[TFieldName]) => ReactNode
+  readonly name: FieldName
+  readonly children: (value: FieldValues<Schema>[FieldName]) => ReactNode
   readonly disabled?: boolean
 }
 
@@ -26,9 +26,9 @@ export interface FieldValueProps<
  */
 export function FieldValue<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, Constraint>,
+  FieldName extends FieldPath<Schema, Constraint>,
   Constraint,
->(props: FieldValueProps<Schema, TFieldName, Constraint>) {
+>(props: FieldValueProps<Schema, FieldName, Constraint>) {
   const { form, name, children, disabled = false } = props
 
   const formInstance = useFormContext(form)

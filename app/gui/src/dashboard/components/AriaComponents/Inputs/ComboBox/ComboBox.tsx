@@ -59,29 +59,29 @@ const COMBO_BOX_STYLES = tv({
 })
 
 /** Props for a {@link ComboBox}. */
-export interface ComboBoxProps<Schema extends TSchema, TFieldName extends FieldPath<Schema, string>>
+export interface ComboBoxProps<Schema extends TSchema, FieldName extends FieldPath<Schema, string>>
   extends FieldStateProps<
       Omit<
-        AriaComboBoxProps<FieldValues<Schema>[TFieldName]>,
+        AriaComboBoxProps<FieldValues<Schema>[FieldName]>,
         'children' | 'className' | 'style'
-      > & { value?: FieldValues<Schema>[TFieldName] },
+      > & { value?: FieldValues<Schema>[FieldName] },
       Schema,
-      TFieldName,
+      FieldName,
       string
     >,
     FieldProps,
     Pick<FieldComponentProps<Schema>, 'className' | 'style'>,
     VariantProps<typeof COMBO_BOX_STYLES>,
-    Pick<InputProps<Schema, TFieldName, string>, 'addonEnd' | 'addonStart' | 'placeholder'> {
+    Pick<InputProps<Schema, FieldName, string>, 'addonEnd' | 'addonStart' | 'placeholder'> {
   /** This may change as the user types in the input. */
-  readonly items: readonly FieldValues<Schema>[TFieldName][]
+  readonly items: readonly FieldValues<Schema>[FieldName][]
   /** A text representation of the item to be shown on each option. */
-  readonly children: (item: FieldValues<Schema>[TFieldName]) => string
+  readonly children: (item: FieldValues<Schema>[FieldName]) => string
   /**
    * Convert an item to a unique text id, if the default text format returned by
    * `children` is not guaranteed (or not supposed) to be unique.
    */
-  readonly toTextValue?: (item: FieldValues<Schema>[TFieldName]) => string
+  readonly toTextValue?: (item: FieldValues<Schema>[FieldName]) => string
   /** Hide the `x` button to disable resetting the input. */
   readonly noResetButton?: boolean
 }
@@ -93,8 +93,8 @@ const useStringField = Form.makeUseField<string>()
 /** A combo box with a list of items that can be filtered. */
 export const ComboBox = forwardRef(function ComboBox<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, string>,
->(props: ComboBoxProps<Schema, TFieldName>, ref: ForwardedRef<HTMLDivElement>) {
+  FieldName extends FieldPath<Schema, string>,
+>(props: ComboBoxProps<Schema, FieldName>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     name,
     items,
@@ -183,7 +183,7 @@ export const ComboBox = forwardRef(function ComboBox<
                       // @ts-expect-error When items are strings, they are mapped to
                       // `{ id: item }`.
                       item.id
-                    : item) as FieldValues<Schema>[TFieldName]
+                    : item) as FieldValues<Schema>[FieldName]
                   const text = children(fieldValue)
                   const textValue = toTextValue?.(fieldValue) ?? text
                   return (

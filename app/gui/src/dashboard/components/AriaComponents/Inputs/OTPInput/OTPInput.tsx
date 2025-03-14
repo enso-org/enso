@@ -23,8 +23,8 @@ import { TEXT_STYLE } from '../../Text'
 import type { TestIdProps } from '../../types'
 
 /** Props for an {@link OTPInput}. */
-export interface OtpInputProps<Schema extends TSchema, TFieldName extends FieldPath<Schema, string>>
-  extends FieldStateProps<Omit<OTPInputProps, 'children' | 'render'>, Schema, TFieldName, string>,
+export interface OtpInputProps<Schema extends TSchema, FieldName extends FieldPath<Schema, string>>
+  extends FieldStateProps<Omit<OTPInputProps, 'children' | 'render'>, Schema, FieldName, string>,
     FieldProps,
     FieldVariantProps,
     Omit<VariantProps<typeof STYLES>, 'disabled' | 'invalid'>,
@@ -70,8 +70,8 @@ const SLOT_STYLES = tv({
 /** Accessible one-time password component with copy paste functionality. */
 export const OTPInput = forwardRef(function OTPInput<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, string>,
->(props: OtpInputProps<Schema, TFieldName>, ref: ForwardedRef<HTMLDivElement>) {
+  FieldName extends FieldPath<Schema, string>,
+>(props: OtpInputProps<Schema, FieldName>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     maxLength,
     variants = STYLES,
@@ -102,7 +102,7 @@ export const OTPInput = forwardRef(function OTPInput<
       formInstance.setValue(
         name,
         // eslint-disable-next-line no-restricted-syntax
-        innerOtpInputRef.current.value as FieldValues<Schema>[TFieldName],
+        innerOtpInputRef.current.value as FieldValues<Schema>[FieldName],
         { shouldValidate: true },
       )
       void formInstance.submit()

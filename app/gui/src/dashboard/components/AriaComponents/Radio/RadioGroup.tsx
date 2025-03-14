@@ -13,11 +13,11 @@ import { RadioGroupProvider } from './RadioGroupContext'
 /** Props for {@link RadioGroup}. */
 export interface RadioGroupProps<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, string>,
+  FieldName extends FieldPath<Schema, string>,
 > extends FieldStateProps<
       Omit<aria.AriaRadioGroupProps, 'description' | 'label'>,
       Schema,
-      TFieldName,
+      FieldName,
       string
     >,
     VariantProps<typeof RADIO_GROUP_STYLES>,
@@ -35,8 +35,8 @@ const useStringField = Form.makeUseField<string>()
 /** A radio group. */
 export const RadioGroup = forwardRef(function RadioGroup<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, string>,
->(props: RadioGroupProps<Schema, TFieldName>, ref: React.ForwardedRef<HTMLDivElement>) {
+  FieldName extends FieldPath<Schema, string>,
+>(props: RadioGroupProps<Schema, FieldName>, ref: React.ForwardedRef<HTMLDivElement>) {
   const {
     children,
     isRequired = false,

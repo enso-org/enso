@@ -32,11 +32,11 @@ const CONTENT_EDITABLE_STYLES = tv({
 /** Props for a {@link ResizableContentEditableInput}. */
 export interface ResizableContentEditableInputProps<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, string>,
+  FieldName extends FieldPath<Schema, string>,
 > extends FieldStateProps<
       HTMLAttributes<HTMLDivElement> & { value: string },
       Schema,
-      TFieldName,
+      FieldName,
       string
     >,
     Pick<
@@ -72,11 +72,8 @@ const useStringField = Form.makeUseField<string>()
  */
 export const ResizableContentEditableInput = forwardRef(function ResizableContentEditableInput<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, string>,
->(
-  props: ResizableContentEditableInputProps<Schema, TFieldName>,
-  ref: ForwardedRef<HTMLDivElement>,
-) {
+  FieldName extends FieldPath<Schema, string>,
+>(props: ResizableContentEditableInputProps<Schema, FieldName>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     mode = 'onInput',
     placeholder = '',

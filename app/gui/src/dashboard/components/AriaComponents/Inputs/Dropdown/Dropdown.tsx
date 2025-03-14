@@ -327,28 +327,28 @@ export const Dropdown = forwardRef(function Dropdown<T>(
 /** Props for a {@link FormDropdown}. */
 export interface FormDropdownProps<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, Constraint>,
+  FieldName extends FieldPath<Schema, Constraint>,
   Constraint,
 > extends FieldStateProps<
       Omit<DropdownProps<Constraint>, 'aria-label' | 'multiple' | 'onChange'> & {
-        value: FieldValues<Schema>[TFieldName]
+        value: FieldValues<Schema>[FieldName]
       },
       Schema,
-      TFieldName,
+      FieldName,
       Constraint
     >,
     FieldProps,
     FieldVariantProps {
   readonly form?: FormInstance<Schema>
-  readonly name: TFieldName
+  readonly name: FieldName
 }
 
 /** A dynamic wizard for creating an arbitrary type of Datalink. */
 export function FormDropdown<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, Constraint>,
+  FieldName extends FieldPath<Schema, Constraint>,
   Constraint,
->(props: FormDropdownProps<Schema, TFieldName, Constraint>) {
+>(props: FormDropdownProps<Schema, FieldName, Constraint>) {
   const { name, children, rounded, size, variants, ...inputProps } = props
   const { items } = inputProps
 
@@ -357,7 +357,7 @@ export function FormDropdown<
   const { fieldProps, formInstance } = Form.useFieldRegister<
     Omit<InputProps, 'children' | 'size'>,
     Schema,
-    TFieldName,
+    FieldName,
     Constraint
   >({ ...props, form })
 

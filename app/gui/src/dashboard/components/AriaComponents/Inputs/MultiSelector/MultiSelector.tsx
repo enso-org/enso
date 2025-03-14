@@ -36,12 +36,12 @@ const OPTION_VARIANTS: Record<
 /** * Props for the MultiSelector component. */
 export interface MultiSelectorProps<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, readonly T[]>,
+  FieldName extends FieldPath<Schema, readonly T[]>,
   T,
 > extends FieldStateProps<
-      Omit<ListBoxItemProps, 'children' | 'value'> & { value: FieldValues<Schema>[TFieldName] },
+      Omit<ListBoxItemProps, 'children' | 'value'> & { value: FieldValues<Schema>[FieldName] },
       Schema,
-      TFieldName,
+      FieldName,
       readonly T[]
     >,
     FieldProps,
@@ -62,9 +62,9 @@ const useReadonlyArrayField = Form.makeUseField<readonly any[]>()
 /** A horizontal multi-selector. */
 export const MultiSelector = forwardRef(function MultiSelector<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, readonly T[]>,
+  FieldName extends FieldPath<Schema, readonly T[]>,
   T,
->(props: MultiSelectorProps<Schema, TFieldName, T>, ref: ForwardedRef<HTMLDivElement>) {
+>(props: MultiSelectorProps<Schema, FieldName, T>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     name,
     items,
@@ -133,7 +133,7 @@ export const MultiSelector = forwardRef(function MultiSelector<
                 orientation="horizontal"
                 selectionMode="multiple"
                 {...(inputProps.id != null && { id: String(inputProps.id) })}
-                {...mergeProps<ListBoxProps<FieldValues<Schema>[TFieldName]>>()(
+                {...mergeProps<ListBoxProps<FieldValues<Schema>[FieldName]>>()(
                   {
                     className: classes.listBox(),
                     style: { gridTemplateColumns: `repeat(${columns ?? items.length}, 1fr)` },
@@ -146,7 +146,7 @@ export const MultiSelector = forwardRef(function MultiSelector<
                 // This is SAFE, as there is a constraint on `items` that prevents using keys
                 // that do not correspond to array values.
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-                defaultSelectedKeys={value?.map((item: FieldValues<Schema>[TFieldName]) =>
+                defaultSelectedKeys={value?.map((item: FieldValues<Schema>[FieldName]) =>
                   items.indexOf(item),
                 )}
                 onSelectionChange={(selection) => {

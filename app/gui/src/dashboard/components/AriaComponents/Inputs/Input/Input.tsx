@@ -30,12 +30,12 @@ import { INPUT_STYLES } from '../variants'
 /** Props for an {@link Input}. */
 export interface InputProps<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, Constraint>,
+  FieldName extends FieldPath<Schema, Constraint>,
   Constraint extends number | string = number | string,
 > extends FieldStateProps<
       Omit<aria.InputProps, 'children' | 'size'>,
       Schema,
-      TFieldName,
+      FieldName,
       Constraint
     >,
     FieldProps,
@@ -56,9 +56,9 @@ export interface InputProps<
 /** Basic input component. Input component is a component that is used to get user input in a text field. */
 export const Input = forwardRef(function Input<
   Schema extends TSchema,
-  TFieldName extends FieldPath<Schema, Constraint>,
+  FieldName extends FieldPath<Schema, Constraint>,
   Constraint extends number | string = number | string,
->(props: InputProps<Schema, TFieldName, Constraint>, ref: ForwardedRef<HTMLDivElement>) {
+>(props: InputProps<Schema, FieldName, Constraint>, ref: ForwardedRef<HTMLDivElement>) {
   const {
     name,
     inputRef,
@@ -81,7 +81,7 @@ export const Input = forwardRef(function Input<
   const { fieldProps, formInstance } = Form.useFieldRegister<
     Omit<aria.InputProps, 'children' | 'size'>,
     Schema,
-    TFieldName,
+    FieldName,
     Constraint
   >({
     ...props,
