@@ -7,8 +7,7 @@
 import eslintJs from '@eslint/js'
 import tsEslint from '@typescript-eslint/eslint-plugin'
 import vueTsEslintConfig from '@vue/eslint-config-typescript'
-import { createTypeScriptImportResolver } from 'eslint-import-resolver-typescript'
-import importX from 'eslint-plugin-import-x'
+import importPlugin from 'eslint-plugin-import'
 import jsdoc from 'eslint-plugin-jsdoc'
 import react from 'eslint-plugin-react'
 import reactCompiler from 'eslint-plugin-react-compiler'
@@ -293,19 +292,13 @@ const config = [
       react: {
         version: '18.2',
       },
-      'import-x/resolver-next': [
-        createTypeScriptImportResolver({
-          alwaysTryTypes: true,
-          project: 'app/gui/tsconfig.*.json',
-        }),
-      ],
     },
     plugins: {
       jsdoc: jsdoc,
       '@typescript-eslint': tsEslint,
       react: react,
       'react-hooks': reactHooks,
-      'import-x': importX,
+      import: importPlugin,
       'react-refresh': reactRefresh,
     },
     languageOptions: {
@@ -326,7 +319,7 @@ const config = [
       ...tsEslint.configs.strict?.rules,
       ...react.configs['jsx-runtime'].rules,
       'react-refresh/only-export-components': 'error',
-      'import-x/no-cycle': 'error',
+      'import/no-cycle': 'error',
       eqeqeq: ['error', 'always', { null: 'never' }],
       // Any extra semicolons that exist, are required by Prettier.
       'no-extra-semi': 'off',
