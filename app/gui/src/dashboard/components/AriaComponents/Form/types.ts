@@ -1,17 +1,9 @@
-/**
- * @file
- * Types for the Form component.
- */
-
+/** @file Types for `Form`. */
 import type * as React from 'react'
-
 import type * as reactHookForm from 'react-hook-form'
-
 import type { TestIdProps } from '../types'
 import type * as components from './components'
 import type * as styles from './styles'
-
-export type * from './components'
 
 /** Props for the Form component */
 export type FormProps<

@@ -2,7 +2,7 @@
 import { LOGIN_PATH } from '#/appUtils'
 import LogoIcon from '#/assets/enso_logo.svg'
 import { Popover, Text } from '#/components/AriaComponents'
-import MenuEntry from '#/components/MenuEntry'
+import { MenuEntry } from '#/components/MenuEntry'
 import { FocusArea } from '#/components/styled/FocusArea'
 import SvgMask from '#/components/SvgMask'
 import AboutModal from '#/modals/AboutModal'

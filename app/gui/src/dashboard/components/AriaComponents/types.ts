@@ -1,8 +1,7 @@
 /** @file Common types for ARIA components. */
 import type { Icon as PossibleIcon } from '@/util/iconMetadata/iconName'
 import type { ReactElement } from 'react'
-
-import type * as reactAria from 'react-aria'
+export type { Placement } from 'react-aria'
 
 /** Props for adding a test id to a component */
 export interface TestIdProps {
@@ -11,32 +10,20 @@ export interface TestIdProps {
   readonly testId?: string | undefined
 }
 
-/**
- * A type alias for the Placement type from react-aria.
- * This type represents the possible positions where an element can be placed relative to a reference element.
- */
-export type Placement = reactAria.Placement
-
-/**
- * Type for any icon
- */
+/** An arbitrary icon. */
 export type IconProp<Icon extends string = string, Render = never> =
   | IconPropSvgUse<Render>
   | LegacyIconProp<Icon, Render>
 
-/**
- * A type that represents the possible return values for a legacy icon.
- */
-export type LegacyAvialableIconReturn<Icon extends string> =
+/** The possible return values for a legacy icon. */
+export type LegacyAvailableIconReturn<Icon extends string> =
   | LegacyIcon<Icon>
   | ReactElement
   | false
   | null
   | undefined
 
-/**
- * A type that represents the possible return values for a legacy icon.
- */
+/** The possible return values for a non-legacy icon. */
 export type AvailableIconReturn = ReactElement | SvgUseIcon | false | null | undefined
 
 /**
@@ -44,26 +31,19 @@ export type AvailableIconReturn = ReactElement | SvgUseIcon | false | null | und
  * @deprecated Prefer defined keys over importing from `#/assets/*.svg
  */
 export type LegacyIconProp<Icon extends string, Render> =
-  | LegacyAvialableIconReturn<Icon>
-  | ((render: Render) => LegacyAvialableIconReturn<Icon>)
+  | LegacyAvailableIconReturn<Icon>
+  | ((render: Render) => LegacyAvailableIconReturn<Icon>)
 
-/**
- * Generic type for imported from figma icons
- */
+/** Generic type for icons imported from Figma. */
 export type IconPropSvgUse<Render> = AvailableIconReturn | ((render: Render) => AvailableIconReturn)
 
-/**
- * @deprecated
- */
+/** @deprecated */
 export type LegacyIcon<T extends string> = Exclude<T, PossibleIcon> & {}
 
-/**
- * Type for any icon imported from figma
- */
+/** An icon imported from Figma. */
 export type SvgUseIcon = PossibleIcon
-/**
- * Generic type for any addon
- */
+
+/** Generic type for any addon element. */
 export type Addon<Render> =
   | ReactElement
   | string

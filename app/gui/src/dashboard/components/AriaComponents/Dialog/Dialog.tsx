@@ -21,6 +21,7 @@ import { tv } from '#/utilities/tailwindVariants'
 import { unsafeWriteValue } from '#/utilities/write'
 import { useRootContext } from '../../UIProviders'
 import { Close } from './Close'
+import { DialogStackItem } from './constants'
 import * as dialogProvider from './DialogProvider'
 import * as dialogStackProvider from './DialogStackProvider'
 import { DialogTrigger } from './DialogTrigger'
@@ -161,10 +162,6 @@ const TRANSITION: Spring = {
   mass: 3,
 }
 
-// ==============
-// === Dialog ===
-// ==============
-
 /** Props for the {@link Dialog} component. */
 export interface DialogProps
   extends types.DialogProps,
@@ -214,10 +211,7 @@ export function Dialog(props: DialogProps) {
   )
 }
 
-const TYPE_TO_DIALOG_TYPE: Record<
-  NonNullable<DialogProps['type']>,
-  dialogStackProvider.DialogStackItem['type']
-> = {
+const TYPE_TO_DIALOG_TYPE: Record<NonNullable<DialogProps['type']>, DialogStackItem['type']> = {
   modal: 'dialog',
   fullscreen: 'dialog-fullscreen',
 }

@@ -10,6 +10,10 @@ import {
 } from 'react'
 
 import * as aria from '#/components/aria'
+import {
+  useJoinedButtonPrivateContext,
+  useMergedButtonStyles,
+} from '#/components/AriaComponents/Button/hooks'
 import { Text, useVisualTooltip } from '#/components/AriaComponents/Text'
 import { Tooltip, TooltipTrigger } from '#/components/AriaComponents/Tooltip'
 import { Icon as IconComponent } from '#/components/Icon'
@@ -18,12 +22,7 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { forwardRef } from '#/utilities/react'
 import { useContextProps } from '../../hooks/useContextProps'
 import { ButtonGroup, ButtonGroupJoin } from './ButtonGroup'
-import {
-  ButtonContext,
-  ButtonGroupProvider,
-  useJoinedButtonPrivateContext,
-  useMergedButtonStyles,
-} from './shared'
+import { ButtonGroupProvider } from './shared'
 import type { ButtonProps } from './types'
 import { BUTTON_STYLES } from './variants'
 

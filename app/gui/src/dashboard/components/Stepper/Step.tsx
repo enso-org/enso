@@ -2,17 +2,13 @@
  * @file Step component.
  * A step component is used to represent a single step in a stepper component.
  */
-import * as React from 'react'
-
-import { AnimatePresence, motion } from 'framer-motion'
-
 import DoneIcon from '#/assets/check_mark.svg'
-
 import * as ariaComponents from '#/components/AriaComponents'
 import SvgMask from '#/components/SvgMask'
-
 import { tv } from '#/utilities/tailwindVariants'
-import * as stepperProvider from './StepperProvider'
+import { AnimatePresence, motion } from 'framer-motion'
+import * as React from 'react'
+import { useStepperContext } from './hooks'
 import type { RenderStepProps } from './types'
 import type * as stepperState from './useStepperState'
 
@@ -76,7 +72,7 @@ export function Step(props: StepProps) {
     completeIcon = DoneIcon,
   } = props
 
-  const { state } = stepperProvider.useStepperContext()
+  const { state } = useStepperContext()
 
   const renderStepProps = {
     isCompleted,

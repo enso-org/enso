@@ -13,7 +13,7 @@ import { Button, DialogTrigger } from '#/components/AriaComponents'
 import ContextMenu from '#/components/ContextMenu'
 import type * as column from '#/components/dashboard/column'
 import Label from '#/components/dashboard/Label'
-import MenuEntry from '#/components/MenuEntry'
+import { MenuEntry } from '#/components/MenuEntry'
 
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 

@@ -1,10 +1,12 @@
 /** @file A single breadcrumb item. */
+import {
+  BreadcrumbItemContext,
+  type BreadcrumbItemContextType,
+} from '#/components/Breadcrumbs/constant'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { noop } from '#/utilities/functions'
-import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import type { VariantProps } from '#/utilities/tailwindVariants'
 import { useMutation } from '@tanstack/react-query'
 import {
-  createContext,
   useContext,
   useRef,
   type CSSProperties,
@@ -22,28 +24,7 @@ import type * as aria from 'react-aria-components'
 import invariant from 'tiny-invariant'
 import { Button, Text, type Addon, type IconProp, type TestIdProps } from '../AriaComponents'
 import { Icon as IconComponent } from '../Icon'
-
-export const BREADCRUMB_ITEM_STYLES = tv({
-  base: 'flex items-center gap-2 bg-transparent transition-colors',
-  slots: {
-    link: 'block max-w-48 min-w-4 w-auto',
-    more: 'aspect-square',
-    container: 'flex items-center gap-2',
-    icon: '-mb-0.5',
-  },
-  variants: {
-    isCurrent: {
-      true: { link: 'flex justify-center px-2 h-8' },
-    },
-    isDropTarget: {
-      true: { base: 'bg-primary/10 rounded-4xl cursor-copy' },
-    },
-  },
-  defaultVariants: {
-    isCurrent: false,
-    isDropTarget: false,
-  },
-})
+import { BREADCRUMB_ITEM_STYLES } from './variants'
 
 /** Render props for {@link BreadcrumbItem}. */
 export interface BreadcrumbItemRenderProps {
@@ -69,36 +50,6 @@ export interface BreadcrumbItemProps<IconType extends string>
   readonly children: ReactNode | ((renderProps: BreadcrumbItemRenderProps) => ReactNode)
   readonly isLoading?: boolean
 }
-
-/**
- * Context props for {@link BreadcrumbItemProvider}
- */
-export interface BreadcrumbItemContextType {
-  readonly isCurrent: boolean
-  /**
-   * Workaround to have optimized `onAction` callback using `useEventCallback` hook.
-   * And be able to check if `onAction` prop was specified and id is not.
-   */
-  readonly onActionSpecified: boolean
-  readonly onAction: (key: Key) => Promise<void> | void
-  /**
-   * Workaround to have optimized `onDrop` callback using `useEventCallback` hook.
-   * And be able to check if `onDrop` prop was specified and id is not.
-   */
-  readonly onDropSpecified: boolean
-  readonly onDrop: (key: Key, e: DropEvent) => Promise<void> | void
-}
-
-/**
- * Context for the breadcrumb item.
- */
-export const BreadcrumbItemContext = createContext<BreadcrumbItemContextType>({
-  isCurrent: false,
-  onActionSpecified: false,
-  onAction: noop,
-  onDropSpecified: false,
-  onDrop: noop,
-})
 
 /** Provider for the breadcrumb item context. */
 export function BreadcrumbItemProvider(props: PropsWithChildren<BreadcrumbItemContextType>) {

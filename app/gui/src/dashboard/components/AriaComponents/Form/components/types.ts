@@ -1,14 +1,10 @@
-/**
- * @file
- * Types for the Form component.
- */
+/** @file Types for `Form`. */
+import { UseFormRegister } from '#/components/AriaComponents/Form/types'
+import type { Path } from '#/utilities/objectPath'
 import type * as React from 'react'
-
+import type { FormEvent } from 'react'
 import type * as reactHookForm from 'react-hook-form'
 import type * as z from 'zod'
-
-import type { Path } from '#/utilities/objectPath'
-import type { FormEvent } from 'react'
 import type * as schemaModule from './schema'
 
 /** The type of the inputs to the form, used for UI inputs. */
@@ -93,32 +89,6 @@ export interface UseFormOptions<Schema extends TSchema, SubmitResult = void>
   /** When set to `dialog`, form submission will close the parent dialog on successful submission. */
   readonly method?: 'dialog' | (string & {}) | undefined
   readonly resetOnSubmit?: boolean
-}
-
-/** Register function for a form field. */
-export type UseFormRegister<Schema extends TSchema> = <
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  TFieldName extends FieldPath<Schema, any> = FieldPath<Schema>,
->(
-  name: TFieldName,
-  options?: reactHookForm.RegisterOptions<FieldValues<Schema>, TFieldName>,
-) => UseFormRegisterReturn<Schema, TFieldName>
-
-/** UseFormRegister return type. */
-export interface UseFormRegisterReturn<
-  Schema extends TSchema,
-  TFieldName extends FieldPath<Schema> = FieldPath<Schema>,
-> extends Omit<reactHookForm.UseFormRegisterReturn<TFieldName>, 'onBlur' | 'onChange'> {
-  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-  readonly onChange: <Value>(value: Value) => Promise<boolean | void>
-  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-  readonly onBlur: <Value>(value: Value) => Promise<boolean | void>
-  readonly isDisabled: boolean
-  readonly isRequired: boolean
-  readonly isInvalid: boolean
-  readonly disabled: boolean
-  readonly required: boolean
-  readonly invalid: boolean
 }
 
 /**

@@ -1,17 +1,10 @@
-/**
- * @file
- *
- * Re-exports the Dialog component.
- */
+/** @file Barrel file for `Dialog`. */
 export * from './Close'
+export * from './constants'
 export * from './Dialog'
 export * from './DialogDismiss'
-export { useDialogContext, type DialogContextValue } from './DialogProvider'
-export {
-  DialogStackProvider,
-  type DialogStackContextType,
-  type DialogStackItem,
-} from './DialogStackProvider'
+export { DialogStackProvider } from './DialogStackProvider'
 export * from './DialogTrigger'
+export * from './hooks'
 export * from './Popover'
 export * from './variants'

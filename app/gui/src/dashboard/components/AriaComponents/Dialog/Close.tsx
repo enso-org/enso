@@ -1,9 +1,6 @@
-/**
- * @file
- *
- * Close button for a dialog.
- */
+/** @file Close button for a dialog. */
 
+import { useDialogStrictContext } from '#/components/AriaComponents/Dialog'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { type ButtonProps, Button } from '../Button'
 import * as dialogProvider from './DialogProvider'
@@ -13,7 +10,7 @@ export type CloseProps<IconType extends string> = ButtonProps<IconType>
 
 /** Close button for a dialog. */
 export function Close<IconType extends string>(props: CloseProps<IconType>) {
-  const dialogContext = dialogProvider.useDialogStrictContext()
+  const dialogContext = useDialogStrictContext()
 
   const onPressCallback = useEventCallback<NonNullable<ButtonProps<IconType>['onPress']>>(
     (event) => {

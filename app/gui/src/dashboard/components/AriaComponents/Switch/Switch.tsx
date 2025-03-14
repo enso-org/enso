@@ -1,10 +1,4 @@
-/**
- * @file
- *
- * A switch allows a user to turn a setting on or off.
- */
-import { useRef, type CSSProperties, type ForwardedRef } from 'react'
-
+/** @file A switch allows a user to turn a setting on or off. */
 import {
   Switch as AriaSwitch,
   mergeProps,
@@ -12,9 +6,10 @@ import {
 } from '#/components/aria'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
-import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import type { VariantProps } from '#/utilities/tailwindVariants'
+import { useRef, type CSSProperties, type ForwardedRef } from 'react'
 import { Form, type FieldPath, type FieldProps, type FieldStateProps, type TSchema } from '../Form'
-import { TEXT_STYLE } from '../Text'
+import { SWITCH_STYLES } from './variants'
 
 /** Props for a {@link Switch}. */
 export interface SwitchProps<Schema extends TSchema, TFieldName extends FieldPath<Schema, boolean>>
@@ -30,34 +25,6 @@ export interface SwitchProps<Schema extends TSchema, TFieldName extends FieldPat
   readonly style?: CSSProperties
   readonly labelPosition?: 'after' | 'before' | undefined
 }
-
-export const SWITCH_STYLES = tv({
-  base: '',
-  variants: {
-    disabled: { true: 'cursor-not-allowed opacity-50' },
-    size: {
-      small: {
-        background: 'h-4 w-7 p-0.5',
-      },
-    },
-  },
-  slots: {
-    switch: 'group flex items-center gap-1',
-    label: TEXT_STYLE({
-      variant: 'body',
-      color: 'primary',
-      className: 'flex-1',
-    }),
-    background:
-      'flex shrink-0 cursor-default items-center rounded-full bg-primary/30 bg-clip-padding shadow-inner outline-none ring-black transition duration-200 ease-in-out group-focus-visible:ring-2 group-pressed:bg-primary/60 group-selected:bg-primary group-selected:group-pressed:bg-primary/50',
-    thumb:
-      'aspect-square h-full flex-none translate-x-0 transform rounded-full bg-white transition duration-200 ease-in-out group-selected:translate-x-[100%]',
-  },
-  defaultVariants: {
-    size: 'small',
-    disabled: false,
-  },
-})
 
 // This is a function, even though it does not contain function syntax.
 // eslint-disable-next-line no-restricted-syntax

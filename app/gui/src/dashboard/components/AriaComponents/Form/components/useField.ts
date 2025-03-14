@@ -1,11 +1,6 @@
-/**
- * @file
- *
- * A hook for creating a field and field state for a form.
- */
+/** @file A hook for creating a field and field state for a form. */
+import { Form } from '#/components/AriaComponents/Form'
 import { useController } from 'react-hook-form'
-
-import { useFormContext } from './FormProvider'
 import type { FieldPath, FieldValues, FormWithValueValidation, TSchema } from './types'
 
 /** Options for {@link useField} hook. */
@@ -29,7 +24,7 @@ export function useField<
 >(options: UseFieldOptions<BaseValueType, Schema, TFieldName, Constraint>) {
   const { name, defaultValue, isDisabled = false } = options
 
-  const formInstance = useFormContext(options.form)
+  const formInstance = Form.useFormContext(options.form)
 
   const { field, fieldState, formState } = useController({
     name,
@@ -41,9 +36,7 @@ export function useField<
   return { field, fieldState, formState, formInstance } as const
 }
 
-/**
- * A hook that connects a field to a form state.
- */
+/** A hook that connects a field to a form state. */
 export function makeUseField<Constraint>() {
   return function useFieldWithConstraint<
     BaseValueType,

@@ -1,6 +1,5 @@
 /** @file Text component */
 import * as aria from '#/components/aria'
-import { TEXT_STYLE } from '#/components/AriaComponents/Text/variants'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import * as mergeRefs from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
@@ -8,8 +7,10 @@ import type { VariantProps } from '#/utilities/tailwindVariants'
 import * as React from 'react'
 import { memo } from 'react'
 import type { TestIdProps } from '../types'
+import { useTextContext } from './hooks'
 import * as textProvider from './TextProvider'
 import * as visualTooltip from './useVisualTooltip'
+import { TEXT_STYLE } from './variants'
 
 /** Props for the Text component */
 export interface TextProps
@@ -58,7 +59,7 @@ export const Text = memo(
     } = props
 
     const textElementRef = React.useRef<HTMLElement>(null)
-    const textContext = textProvider.useTextContext()
+    const textContext = useTextContext()
 
     const textClasses = variants({
       variant,

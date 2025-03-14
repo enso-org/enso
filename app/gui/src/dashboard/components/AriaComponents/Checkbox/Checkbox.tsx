@@ -6,6 +6,7 @@
  */
 import type { CheckboxProps as AriaCheckboxProps } from '#/components/aria'
 import { Checkbox as AriaCheckbox, CheckboxGroupStateContext } from '#/components/aria'
+import { useCheckboxContext } from '#/components/AriaComponents/Checkbox/hooks'
 import { mergeRefs, useMergedRef } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import type { VariantProps } from '#/utilities/tailwindVariants'
@@ -32,7 +33,7 @@ import type {
 import { Form } from '../Form'
 import { Text } from '../Text'
 import type { TestIdProps } from '../types'
-import { CheckboxStandaloneProvider, useCheckboxContext } from './CheckboxContext'
+import { CheckboxStandaloneProvider } from './CheckboxContext'
 import { CheckboxGroup } from './CheckboxGroup'
 import { CHECKBOX_STYLES } from './constants'
 

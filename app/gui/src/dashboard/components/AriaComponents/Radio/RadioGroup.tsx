@@ -1,13 +1,11 @@
 /** @file A radio group. */
-import * as React from 'react'
-
 import * as aria from '#/components/aria'
-
+import { RADIO_GROUP_STYLES } from '#/components/AriaComponents/Radio/variants'
 import * as mergeRefs from '#/utilities/mergeRefs'
-import * as twv from '#/utilities/tailwindVariants'
-
 import { omit } from '#/utilities/object'
 import { forwardRef } from '#/utilities/react'
+import type { VariantProps } from '#/utilities/tailwindVariants'
+import * as React from 'react'
 import type { FieldVariantProps } from '../Form'
 import { Form, type FieldPath, type FieldProps, type FieldStateProps, type TSchema } from '../Form'
 import { RadioGroupProvider } from './RadioGroupContext'
@@ -22,18 +20,13 @@ export interface RadioGroupProps<
       TFieldName,
       string
     >,
-    twv.VariantProps<typeof RADIO_GROUP_STYLES>,
+    VariantProps<typeof RADIO_GROUP_STYLES>,
     FieldProps,
     FieldVariantProps {
   readonly children?: React.ReactNode
   readonly className?: string
   readonly style?: React.CSSProperties
 }
-
-export const RADIO_GROUP_STYLES = twv.tv({
-  base: 'flex flex-col gap-0.5 items-start',
-  variants: { fullWidth: { true: 'w-full' } },
-})
 
 // This is a function, even though it does not contain function syntax.
 // eslint-disable-next-line no-restricted-syntax

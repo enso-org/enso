@@ -1,9 +1,8 @@
 /** @file A button to close a dialog without submitting it. */
-import type { JSX } from 'react'
-
 import { useText } from '#/providers/TextProvider'
+import type { JSX } from 'react'
 import { Button, type ButtonProps } from '../Button'
-import { useDialogContext } from './DialogProvider'
+import { useDialogContext } from './hooks'
 
 /** Additional props for the Cancel component. */
 interface DialogDismissBaseProps<IconType extends string> {

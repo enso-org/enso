@@ -1,13 +1,4 @@
 /** @file Text input. */
-import {
-  useRef,
-  type CSSProperties,
-  type ForwardedRef,
-  type ReactElement,
-  type ReactNode,
-  type Ref,
-} from 'react'
-
 import * as aria from '#/components/aria'
 import {
   Form,
@@ -26,6 +17,14 @@ import { mergeRefs } from '#/utilities/mergeRefs'
 import { forwardRef } from '#/utilities/react'
 import type { ExtractFunction, VariantProps } from '#/utilities/tailwindVariants'
 import { omit } from 'enso-common/src/utilities/data/object'
+import {
+  useRef,
+  type CSSProperties,
+  type ForwardedRef,
+  type ReactElement,
+  type ReactNode,
+  type Ref,
+} from 'react'
 import { INPUT_STYLES } from '../variants'
 
 /** Props for an {@link Input}. */
@@ -154,7 +153,7 @@ export const Input = forwardRef(function Input<
             variants,
           },
           omit(inputProps, 'isInvalid', 'isRequired', 'isDisabled'),
-          omit(fieldProps, 'isInvalid', 'isRequired', 'isDisabled', 'invalid'),
+          omit(fieldProps, 'isInvalid', 'isRequired', 'isDisabled'),
         )}
         ref={(el) => {
           mergeRefs(inputRef, fieldProps.ref)(el)

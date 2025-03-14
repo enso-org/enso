@@ -1,9 +1,6 @@
-/**
- * @file
- * Component to render the step content.
- */
+/** @file Step content. */
 import type { ReactElement, ReactNode } from 'react'
-import { useStepperContext } from './StepperProvider'
+import { useStepperContext } from './hooks'
 import type { RenderChildrenProps } from './types'
 
 /** Props for {@link StepContent} component. */

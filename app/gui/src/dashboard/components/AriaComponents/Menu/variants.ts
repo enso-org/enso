@@ -1,4 +1,5 @@
 /** @file Variants for `MenuItem`. */
+import { SEPARATOR_STYLES } from '#/components/AriaComponents/Separator'
 import { TEXT_STYLE } from '#/components/AriaComponents/Text'
 import { tv } from '#/utilities/tailwindVariants'
 
@@ -22,4 +23,23 @@ export const MENU_ITEM_STYLES = tv({
   },
   compoundSlots: [{ slots: ['checkContainer', 'icon'], className: 'mt-[3.5px] text-primary' }],
   defaultVariants: { isDisabled: false, isSelected: false },
+})
+
+export const MENU_STYLES = tv({
+  base: 'flex flex-col [clip-path:inset(0_0_0_0_round_.75rem)] overflow-x-hidden',
+  slots: {
+    popover: 'min-w-[200px] w-auto max-w-[300px]',
+  },
+})
+
+export const MENU_SECTION_STYLES = tv({
+  base: 'flex flex-col',
+  slots: {
+    header: 'px-3.5 py-0.5',
+  },
+})
+
+export const MENU_SEPARATOR_STYLES = tv({
+  extend: SEPARATOR_STYLES,
+  base: 'my-1.5 mx-2',
 })

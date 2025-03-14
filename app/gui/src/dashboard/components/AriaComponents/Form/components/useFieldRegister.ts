@@ -4,7 +4,7 @@
  * Form field registration hook.
  * Use this hook to register a field in the form.
  */
-import { useFormContext } from './FormProvider'
+import { useFormContext } from '#/components/AriaComponents/Form'
 import type {
   FieldPath,
   FieldValues,

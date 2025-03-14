@@ -1,42 +1,18 @@
-/**
- * @file
- * A menu displays a list of actions or options that a user can choose.
- */
-import * as React from 'react'
-
-import { createHideableComponent, createLeafComponent } from '@react-aria/collections'
-import * as aria from 'react-aria-components'
-
-import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-
+/** @file A display for a list of actions or options that a user can choose. */
 import { AnimatedBackground } from '#/components/AnimatedBackground'
 import { twJoin } from '#/utilities/tailwindMerge'
+import type { VariantProps } from '#/utilities/tailwindVariants'
+import { createHideableComponent, createLeafComponent } from '@react-aria/collections'
+import * as React from 'react'
 import { memo } from 'react'
+import * as aria from 'react-aria-components'
 import { Popover } from '../Dialog'
-import { Separator, SEPARATOR_STYLES, type SeparatorProps } from '../Separator'
+import { Separator, type SeparatorProps } from '../Separator'
 import { Text } from '../Text'
 import type { TestIdProps } from '../types'
 import { MenuItem } from './MenuItem'
 import { MenuTrigger } from './MenuTrigger'
-
-export const MENU_STYLES = tv({
-  base: 'flex flex-col [clip-path:inset(0_0_0_0_round_.75rem)] overflow-x-hidden',
-  slots: {
-    popover: 'min-w-[200px] w-auto max-w-[300px]',
-  },
-})
-
-export const MENU_SECTION_STYLES = tv({
-  base: 'flex flex-col',
-  slots: {
-    header: 'px-3.5 py-0.5',
-  },
-})
-
-export const MENU_SEPARATOR_STYLES = tv({
-  extend: SEPARATOR_STYLES,
-  base: 'my-1.5 mx-2',
-})
+import { MENU_SECTION_STYLES, MENU_SEPARATOR_STYLES, MENU_STYLES } from './variants'
 
 /** Props for {@link Menu} */
 export interface MenuProps<T extends object>
@@ -53,34 +29,26 @@ export type MenuSectionProps<T extends object> = BaseMenuSectionProps &
   VariantProps<typeof MENU_SECTION_STYLES> &
   (MenuSectionDynamicProps<T> | MenuSectionStaticProps)
 
-/**
- * Base props for a menu section.
- */
+/** Base props for a menu section. */
 interface BaseMenuSectionProps {
   readonly title: string
   readonly className?: string
   readonly id?: aria.Key
 }
 
-/**
- * Props for a dynamic menu section.
- */
+/** Props for a dynamic menu section. */
 interface MenuSectionDynamicProps<T extends object> {
   readonly items: Iterable<T>
   readonly children: (item: T) => React.ReactNode
 }
 
-/**
- * Props for a static menu section.
- */
+/** Props for a static menu section. */
 interface MenuSectionStaticProps {
   readonly items?: never
   readonly children: React.ReactNode
 }
 
-/**
- * A menu displays a list of actions or options that a user can choose.
- */
+/** A menu displays a list of actions or options that a user can choose. */
 // `createHideableComponent` wrapper is a workaround for a bug in react-aria-components,
 //  when you can't display a menu inside a tabs component.
 // see: https://github.com/adobe/react-spectrum/issues/6885
@@ -119,9 +87,7 @@ export const Menu = createHideableComponent(function Menu<T extends object>(prop
   /* eslint-enable @typescript-eslint/naming-convention */
 }
 
-/**
- * A section within a menu.
- */
+/** A section within a menu. */
 function MenuSection<T extends object>(props: MenuSectionProps<T>) {
   const {
     className,
@@ -159,9 +125,7 @@ export interface MenuSectionHeaderProps
   readonly className?: string
 }
 
-/**
- * A header for a menu section.
- */
+/** A header for a menu section. */
 // eslint-disable-next-line no-restricted-syntax
 export const MenuSectionHeader = createLeafComponent(
   'header',
@@ -196,9 +160,7 @@ export interface MenuSeparatorProps
   extends SeparatorProps,
     VariantProps<typeof MENU_SEPARATOR_STYLES> {}
 
-/**
- * A separator in a menu.
- */
+/** A separator in a menu. */
 export const MenuSeparator = memo(function MenuSeparator(props: MenuSeparatorProps) {
   const { variants = MENU_SEPARATOR_STYLES, ...rest } = props
 

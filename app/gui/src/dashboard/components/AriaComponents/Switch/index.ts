@@ -1,6 +1,3 @@
-/**
- * @file
- *
- * Barrel file for Switch component.
- */
+/** @file Barrel file for Switch. */
 export * from './Switch'
+export * from './variants'

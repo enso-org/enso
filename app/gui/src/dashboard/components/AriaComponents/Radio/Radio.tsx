@@ -1,23 +1,15 @@
-/**
- * @file
- *
- * A radio button.
- */
-
-import * as React from 'react'
-
+/** @file A radio button. */
 import * as aria from '#/components/aria'
-
+import { useRadioGroupContext } from '#/components/AriaComponents/Radio/hooks'
 import * as mergeRefs from '#/utilities/mergeRefs'
-import * as twv from '#/utilities/tailwindVariants'
-
 import { forwardRef } from '#/utilities/react'
+import { tv } from '#/utilities/tailwindVariants'
+import * as React from 'react'
 import invariant from 'tiny-invariant'
-import * as text from '../Text'
-import * as radioGroup from './RadioGroup'
-import * as radioGroupContext from './RadioGroupContext'
+import { Text } from '../Text'
+import { RadioGroup } from './RadioGroup'
 
-const RADIO_STYLES = twv.tv({
+const RADIO_STYLES = tv({
   base: 'flex items-center gap-2 cursor-pointer group w-full',
   variants: {
     isFocused: { true: 'outline-none' },
@@ -63,7 +55,7 @@ export const Radio = forwardRef(function Radio(
   const id = aria.useId(ariaProps.id)
 
   const state = React.useContext(aria.RadioGroupStateContext)
-  const { setPressed, clearPressed, isSiblingPressed } = radioGroupContext.useRadioGroupContext({
+  const { setPressed, clearPressed, isSiblingPressed } = useRadioGroupContext({
     value: props.value,
   })
 
@@ -146,16 +138,16 @@ export const Radio = forwardRef(function Radio(
 
       <div className={radio()} />
 
-      <text.Text className={labelClasses()} variant="body" truncate="1">
+      <Text className={labelClasses()} variant="body" truncate="1">
         {label ?? renderedChildren}
-      </text.Text>
+      </Text>
     </label>
   )
 }) as unknown as ((
   props: RadioProps & React.RefAttributes<HTMLLabelElement>,
 ) => React.JSX.Element) & {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  Group: typeof radioGroup.RadioGroup
+  Group: typeof RadioGroup
 }
 
-Radio.Group = radioGroup.RadioGroup
+Radio.Group = RadioGroup

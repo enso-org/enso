@@ -1,8 +1,6 @@
-/**
- * @file Breadcrumbs component implementation.
- */
+/** @file Breadcrumbs component implementation. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { tv, type VariantProps } from '#/utilities/tailwindVariants'
+import type { VariantProps } from '#/utilities/tailwindVariants'
 import {
   Fragment,
   memo,
@@ -16,20 +14,12 @@ import { useBreadcrumbs, type AriaBreadcrumbsProps, type DropEvent } from '../ar
 import { Button, type IconProp, type TestIdProps } from '../AriaComponents'
 import { Icon } from '../Icon'
 import { BreadcrumbItem, BreadcrumbItemProvider } from './BreadcrumbItem'
+import { BREADCRUMBS_STYLES } from './variants'
 
-export const BREADCRUMBS_STYLES = tv({
-  base: 'flex items-center w-full',
-  slots: { separator: 'text-primary last:hidden w-2.5 h-2.5 mt-[0.5px]' },
-})
-
-/**
- * The type of the `onDrop` callback.
- */
+/** The type of the `onDrop` callback. */
 export type OnDrop = (key: Key, e: DropEvent) => Promise<void> | void
 
-/**
- * Props for {@link Breadcrumbs}
- */
+/** Props for {@link Breadcrumbs}. */
 export interface BreadcrumbsProps
   extends AriaBreadcrumbsProps,
     VariantProps<typeof BREADCRUMBS_STYLES>,
@@ -42,9 +32,7 @@ export interface BreadcrumbsProps
   readonly onDrop?: OnDrop
 }
 
-/**
- * A breadcrumb navigation component.
- */
+/** A breadcrumb navigation component. */
 export function Breadcrumbs(props: BreadcrumbsProps) {
   const {
     children,

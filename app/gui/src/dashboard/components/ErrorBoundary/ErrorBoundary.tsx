@@ -13,8 +13,8 @@ import * as detect from 'enso-common/src/detect'
 import * as React from 'react'
 import type { FallbackProps } from 'react-error-boundary'
 import * as errorBoundary from 'react-error-boundary'
-import { Icon } from './Icon'
-import SvgMask from './SvgMask'
+import { Icon } from '../Icon'
+import SvgMask from '../SvgMask'
 
 /** Arguments for the {@link ErrorBoundaryProps.onBeforeFallbackShown} callback. */
 export interface OnBeforeFallbackShownArgs {

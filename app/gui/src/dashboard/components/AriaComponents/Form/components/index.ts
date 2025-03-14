@@ -1,8 +1,4 @@
-/**
- * @file
- *
- * Barrel file for form components.
- */
+/** @file Barrel file for `Form`. */
 export { Controller, useWatch } from 'react-hook-form'
 export * from './Field'
 export * from './FieldValue'

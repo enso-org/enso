@@ -1,7 +1,6 @@
-/**
- * @file Exports for the Breadcrumbs component.
- */
-export { BREADCRUMB_ITEM_STYLES, BreadcrumbItem } from './BreadcrumbItem'
+/** @file Barrel file for `Breadcrumbs`. */
+export { BreadcrumbItem } from './BreadcrumbItem'
 export type { BreadcrumbItemProps } from './BreadcrumbItem'
-export { BREADCRUMBS_STYLES, Breadcrumbs } from './Breadcrumbs'
+export { Breadcrumbs } from './Breadcrumbs'
 export type { BreadcrumbsProps, OnDrop } from './Breadcrumbs'
+export * from './variants'
