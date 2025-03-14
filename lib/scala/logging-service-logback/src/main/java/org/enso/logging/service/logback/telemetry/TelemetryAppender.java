@@ -4,6 +4,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.AppenderBase;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
@@ -95,6 +96,13 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
     var payload = new ObjectNode(JsonNodeFactory.instance);
     payload.set("message", TextNode.valueOf(logEvent.getMessage()));
     payload.set("kind", TextNode.valueOf("telemetry"));
+    var args = new ArrayNode(JsonNodeFactory.instance);
+    for (var arg : logEvent.getArgumentArray()) {
+      args.add(TextNode.valueOf(arg.toString()));
+    }
+    var metadata = new ObjectNode(JsonNodeFactory.instance);
+    metadata.set("args", args);
+    payload.set("metadata", metadata);
     return payload;
   }
 
