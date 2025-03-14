@@ -219,6 +219,63 @@ const { scheduleCreateNode, createNodes, placeNode } = provideNodeCreation(
 
 const { copyNodesToClipboard, createNodesFromClipboard } = useGraphEditorClipboard(createNodes)
 
+// === Action handlers ===
+
+const actionHandlers = registerHandlers({
+  'graph.renameProject': toggledAction(projectNameEdited),
+  'graph.addComponent': {
+    action: () => {
+      nodeSelection.deselectAll()
+      createWithComponentBrowser({ placement: { type: 'viewport' } })
+    },
+  },
+  'graph.toggleCodeEditor': {
+    action: () => (showCodeEditor.value = !showCodeEditor.value),
+    toggled: () => showCodeEditor.value,
+  },
+  'graph.toggleDocumentationEditor': {
+    action: () => rightDock.toggleVisible(),
+    toggled: () => rightDock.visible,
+  },
+  'graph.refreshExecution': {
+    action: () => nodeExecution.recomputeAll(),
+  },
+  'graph.recomputeAll': {
+    action: () => nodeExecution.recomputeAll('Live'),
+  },
+  'graph.undo': {
+    action: () => graphStore.undoManager.undo(),
+    disabled: () => !graphStore.undoManager.canUndo.value,
+  },
+  'graph.redo': {
+    action: () => graphStore.undoManager.redo(),
+    disabled: () => !graphStore.undoManager.canRedo.value,
+  },
+  'graph.fitAll': {
+    action: () => zoomToSelected(),
+  },
+  'graph.zoomIn': {
+    action: () => graphNavigator.stepZoom(+1),
+  },
+  'graph.zoomOut': {
+    action: () => graphNavigator.stepZoom(-1),
+  },
+  ...defineSelectionActionHandlers(
+    () =>
+      iter.filterDefined(
+        iter.map(
+          nodeSelection.selected,
+          graphStore.db.nodeIdToNode.get.bind(graphStore.db.nodeIdToNode),
+        ),
+      ),
+    {
+      collapseNodes,
+      copyNodesToClipboard,
+      deleteNodes: (nodes) => graphStore.deleteNodes(nodes.map(nodeId)),
+    },
+  ),
+})
+
 // === Interactions ===
 
 const interaction = provideInteractionHandler()
@@ -265,6 +322,76 @@ const { handleClick } = useDoubleClick(
     stackNavigator.exitNode()
   },
 )
+
+// === Keyboard/Mouse bindings ===
+
+const undoBindingsHandler = undoBindings.handler({
+  undo: actionHandlers['graph.undo'].action,
+  redo: actionHandlers['graph.redo'].action,
+})
+
+const graphBindingsHandler = graphBindings.handler({
+  startProfiling() {
+    projectStore.lsRpcConnection.profilingStart(true)
+  },
+  stopProfiling() {
+    projectStore.lsRpcConnection.profilingStop()
+  },
+  openComponentBrowser() {
+    if (graphNavigator.sceneMousePos != null && !componentBrowserOpened.value) {
+      createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
+    }
+  },
+  deleteSelected: actionHandlers['components.deleteSelected'].action,
+  zoomToSelected() {
+    zoomToSelected()
+  },
+  selectAll() {
+    nodeSelection.selectAll()
+  },
+  deselectAll() {
+    nodeSelection.deselectAll()
+    clearFocus()
+    graphStore.undoManager.undoStackBoundary()
+  },
+  toggleVisualization() {
+    const selected = nodeSelection.selected
+    const allVisible = iter.every(
+      selected,
+      (id) => graphStore.db.nodeIdToNode.get(id)?.vis?.visible === true,
+    )
+    graphStore.batchEdits(() => {
+      for (const nodeId of selected) {
+        graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
+      }
+    })
+  },
+  copyNode: actionHandlers['components.copy'].action,
+  pasteNode() {
+    createNodesFromClipboard()
+  },
+  collapse: actionHandlers['components.collapse'].action,
+  enterNode() {
+    const selectedNode = set.first(nodeSelection.selected)
+    if (selectedNode) {
+      stackNavigator.enterNode(selectedNode)
+    }
+  },
+  exitNode() {
+    stackNavigator.exitNode()
+  },
+  changeColorSelectedNodes() {
+    actionHandlers['components.pickColorMulti'].toggled.value = true
+  },
+  openDocumentation() {
+    const result = tryGetSelectionDocUrl()
+    if (!result.ok) {
+      toasts.userActionFailed.show(result.error.message('Unable to show node documentation'))
+      return
+    }
+    window.open(result.value, '_blank')
+  },
+})
 
 // === Code Editor ===
 
@@ -518,130 +645,6 @@ const groupColors = computed(() => {
     styles[groupColorVar(group)] = group.color ?? colorFromString(group.name)
   }
   return styles
-})
-
-// === Action handlers ===
-
-const actionHandlers = registerHandlers({
-  'graph.renameProject': toggledAction(projectNameEdited),
-  'graph.addComponent': {
-    action: () => {
-      nodeSelection.deselectAll()
-      createWithComponentBrowser({ placement: { type: 'viewport' } })
-    },
-  },
-  'graph.toggleCodeEditor': toggledAction(showCodeEditor),
-  'graph.toggleDocumentationEditor': {
-    action: () => rightDock.toggleVisible(),
-    toggled: () => rightDock.visible,
-  },
-  'graph.refreshExecution': {
-    action: () => nodeExecution.recomputeAll(),
-  },
-  'graph.recomputeAll': {
-    action: () => nodeExecution.recomputeAll('Live'),
-  },
-  'graph.undo': {
-    action: () => graphStore.undoManager.undo(),
-    disabled: () => !graphStore.undoManager.canUndo.value,
-  },
-  'graph.redo': {
-    action: () => graphStore.undoManager.redo(),
-    disabled: () => !graphStore.undoManager.canRedo.value,
-  },
-  'graph.fitAll': {
-    action: () => zoomToSelected(),
-  },
-  'graph.zoomIn': {
-    action: () => graphNavigator.stepZoom(+1),
-  },
-  'graph.zoomOut': {
-    action: () => graphNavigator.stepZoom(-1),
-  },
-  ...defineSelectionActionHandlers(
-    () =>
-      iter.filterDefined(
-        iter.map(
-          nodeSelection.selected,
-          graphStore.db.nodeIdToNode.get.bind(graphStore.db.nodeIdToNode),
-        ),
-      ),
-    {
-      collapseNodes,
-      copyNodesToClipboard,
-      deleteNodes: (nodes) => graphStore.deleteNodes(nodes.map(nodeId)),
-    },
-  ),
-})
-
-// === Keyboard/Mouse bindings ===
-
-const undoBindingsHandler = undoBindings.handler({
-  undo: actionHandlers['graph.undo'].action,
-  redo: actionHandlers['graph.redo'].action,
-})
-
-const graphBindingsHandler = graphBindings.handler({
-  startProfiling() {
-    projectStore.lsRpcConnection.profilingStart(true)
-  },
-  stopProfiling() {
-    projectStore.lsRpcConnection.profilingStop()
-  },
-  openComponentBrowser() {
-    if (graphNavigator.sceneMousePos != null && !componentBrowserOpened.value) {
-      createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
-    }
-  },
-  deleteSelected: actionHandlers['components.deleteSelected'].action,
-  zoomToSelected() {
-    zoomToSelected()
-  },
-  selectAll() {
-    nodeSelection.selectAll()
-  },
-  deselectAll() {
-    nodeSelection.deselectAll()
-    clearFocus()
-    graphStore.undoManager.undoStackBoundary()
-  },
-  toggleVisualization() {
-    const selected = nodeSelection.selected
-    const allVisible = iter.every(
-      selected,
-      (id) => graphStore.db.nodeIdToNode.get(id)?.vis?.visible === true,
-    )
-    graphStore.batchEdits(() => {
-      for (const nodeId of selected) {
-        graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
-      }
-    })
-  },
-  copyNode: actionHandlers['components.copy'].action,
-  pasteNode() {
-    createNodesFromClipboard()
-  },
-  collapse: actionHandlers['components.collapse'].action,
-  enterNode() {
-    const selectedNode = set.first(nodeSelection.selected)
-    if (selectedNode) {
-      stackNavigator.enterNode(selectedNode)
-    }
-  },
-  exitNode() {
-    stackNavigator.exitNode()
-  },
-  changeColorSelectedNodes() {
-    actionHandlers['components.pickColorMulti'].toggled.value = true
-  },
-  openDocumentation() {
-    const result = tryGetSelectionDocUrl()
-    if (!result.ok) {
-      toasts.userActionFailed.show(result.error.message('Unable to show node documentation'))
-      return
-    }
-    window.open(result.value, '_blank')
-  },
 })
 </script>
 
