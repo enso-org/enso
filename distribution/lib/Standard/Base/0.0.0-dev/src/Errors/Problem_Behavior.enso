@@ -6,16 +6,13 @@ import project.Warning.Warning
 ## Specifies how to handle problems.
 @Builtin_Type
 type Problem_Behavior
-    ## ICON not_exclamation
-       Ignore the problem and attempt to complete the operation
+    ## Ignore the problem and attempt to complete the operation
     Ignore
 
-    ## ICON warning
-       Report the problem as a warning and attempt to complete the operation
+    ## Report the problem as a warning and attempt to complete the operation
     Report_Warning
 
-    ## ICON error
-       Report the problem as a dataflow error and abort the operation
+    ## Report the problem as a dataflow error and abort the operation
     Report_Error
 
     ## PRIVATE
