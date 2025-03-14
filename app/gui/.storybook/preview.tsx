@@ -1,18 +1,14 @@
-/**
- * @file Storybook preview
- */
+/** @file Storybook preview. */
 import type { Preview as ReactPreview } from '@storybook/react'
 import type { Preview as VuePreview } from '@storybook/vue3'
-import isChromatic from 'chromatic/isChromatic'
-import { StrictMode, useLayoutEffect, useState } from 'react'
-
-import invariant from 'tiny-invariant'
-import UIProviders from '../src/dashboard/components/UIProviders'
-
 import { QueryClientProvider } from '@tanstack/react-query'
+import isChromatic from 'chromatic/isChromatic'
 import { createQueryClient } from 'enso-common/src/queryClient'
 import { MotionGlobalConfig } from 'framer-motion'
+import { StrictMode, useLayoutEffect, useState } from 'react'
+import invariant from 'tiny-invariant'
 import z from 'zod'
+import { UIProviders } from '../src/dashboard/providers/UIProviders'
 import '../src/dashboard/tailwind.css'
 import './storybook.css'
 

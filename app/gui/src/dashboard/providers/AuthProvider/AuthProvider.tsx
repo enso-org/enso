@@ -5,53 +5,41 @@
  * can be used from any React component to access the currently logged-in user's session data. The
  * hook also provides methods for registering a user, logging in, logging out, etc.
  */
-import * as React from 'react'
-
-import * as sentry from '@sentry/react'
-import * as reactQuery from '@tanstack/react-query'
-import * as router from 'react-router-dom'
-import * as toast from 'react-toastify'
-import invariant from 'tiny-invariant'
-
-import * as detect from 'enso-common/src/detect'
-
 import * as appUtils from '#/appUtils'
-
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import * as gtagHooks from '#/hooks/gtagHooks'
-
-import * as backendProvider from '#/providers/BackendProvider'
-import * as localStorageProvider from '#/providers/LocalStorageProvider'
-import * as sessionProvider from '#/providers/SessionProvider'
-import * as textProvider from '#/providers/TextProvider'
-
-import * as backendModule from '#/services/Backend'
-import type { RemoteBackend } from '#/services/RemoteBackend'
-
 import type * as cognitoModule from '#/authentication/cognito'
-import { isOrganizationId } from '#/services/RemoteBackend'
-import { Suspense } from 'react'
-import { ErrorBoundary } from 'react-error-boundary'
-import { Button, Text } from '../components/AriaComponents'
-import { EnsoDevtools } from '../components/Devtools'
-import Page from '../components/Page'
-import { Result } from '../components/Result'
-import { useTimeoutCallback } from '../hooks/timeoutHooks'
-import { download } from '../utilities/download'
-import { getDownloadUrl } from '../utilities/github'
-import { unsafeWriteValue } from '../utilities/write'
+import { Button, Text } from '#/components/AriaComponents'
+import { EnsoDevtools } from '#/components/Devtools'
+import Page from '#/components/Page'
+import { Result } from '#/components/Result'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { event, gtag, gtagOpenCloseCallback } from '#/hooks/gtagHooks'
+import { useTimeoutCallback } from '#/hooks/timeoutHooks'
+import { useAuth } from '#/providers/AuthProvider/hooks'
+import * as backendProvider from '#/providers/BackendProvider'
 import {
   featureFlagsForInternalTesting,
   useFeatureFlag,
   useSetFeatureFlags,
-} from './FeatureFlagsProvider'
-
-/** Possible types of {@link BaseUserSession}. */
-export enum UserSessionType {
-  offline = 'offline',
-  partial = 'partial',
-  full = 'full',
-}
+} from '#/providers/FeatureFlagsProvider'
+import * as localStorageProvider from '#/providers/LocalStorageProvider'
+import * as sessionProvider from '#/providers/SessionProvider'
+import * as textProvider from '#/providers/TextProvider'
+import * as backendModule from '#/services/Backend'
+import type { RemoteBackend } from '#/services/RemoteBackend'
+import { isOrganizationId } from '#/services/RemoteBackend'
+import { download } from '#/utilities/download'
+import { getDownloadUrl } from '#/utilities/github'
+import { unsafeWriteValue } from '#/utilities/write'
+import * as sentry from '@sentry/react'
+import * as reactQuery from '@tanstack/react-query'
+import * as detect from 'enso-common/src/detect'
+import * as React from 'react'
+import { Suspense } from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
+import * as router from 'react-router-dom'
+import * as toast from 'react-toastify'
+import invariant from 'tiny-invariant'
+import { AuthContext, UserSessionType, type AuthContextType } from './constants'
 
 /** Properties common to all {@link UserSession}s. */
 interface BaseUserSession extends cognitoModule.UserSession {
@@ -84,41 +72,6 @@ export interface FullUserSession extends BaseUserSession {
  */
 export type UserSession = FullUserSession | PartialUserSession
 
-/**
- * Interface returned by the `useAuth` hook.
- *
- * Contains the currently authenticated user's session data, as well as methods for signing in,
- * signing out, etc. All interactions with the authentication API should be done through this
- * interface.
- *
- * See `Cognito` for details on each of the authentication functions.
- */
-interface AuthContextType {
-  readonly authQueryKey: reactQuery.QueryKey
-  readonly setUsername: (username: string) => Promise<boolean>
-  /** @deprecated Never use this function. Prefer particular functions like `setUsername` or `deleteUser`. */
-  readonly setUser: (user: Partial<backendModule.User>) => void
-  readonly deleteUser: () => Promise<boolean>
-  readonly restoreUser: () => Promise<boolean>
-  readonly refetchSession: (
-    options?: reactQuery.RefetchOptions,
-  ) => Promise<reactQuery.QueryObserverResult<UserSession | null>>
-  /**
-   * Session containing the currently authenticated user's authentication information.
-   *
-   * If the user has not signed in, the session will be `null`.
-   */
-  readonly session: UserSession | null
-  /** Return `true` if the user is marked for deletion. */
-  readonly isUserMarkedForDeletion: () => boolean
-  /** Return `true` if the user is deleted completely. */
-  readonly isUserDeleted: () => boolean
-  /** Return `true` if the user is soft deleted. */
-  readonly isUserSoftDeleted: () => boolean
-}
-
-const AuthContext = React.createContext<AuthContextType | null>(null)
-
 /** Query to fetch the user's session data from the backend. */
 function createUsersMeQuery(
   session: cognitoModule.UserSession | null,
@@ -148,7 +101,7 @@ export interface AuthProviderProps {
 }
 
 /** A React provider for the Cognito API. */
-export default function AuthProvider(props: AuthProviderProps) {
+export function AuthProvider(props: AuthProviderProps) {
   const { onAuthenticated, children } = props
 
   const remoteBackend = backendProvider.useRemoteBackend()
@@ -163,7 +116,7 @@ export default function AuthProvider(props: AuthProviderProps) {
   // This component cannot use `useGtagEvent` because `useGtagEvent` depends on the React Context
   // defined by this component.
   const gtagEvent = React.useCallback((name: string, params?: object) => {
-    gtagHooks.event(name, params)
+    event(name, params)
   }, [])
 
   const usersMeQueryOptions = createUsersMeQuery(session, remoteBackend)
@@ -310,8 +263,8 @@ export default function AuthProvider(props: AuthProviderProps) {
   }, [userData])
 
   React.useEffect(() => {
-    gtagHooks.gtag('set', { platform: detect.platform(), architecture: detect.architecture() })
-    return gtagHooks.gtagOpenCloseCallback(gtagEvent, 'open_app', 'close_app')
+    gtag('set', { platform: detect.platform(), architecture: detect.architecture() })
+    return gtagOpenCloseCallback(gtagEvent, 'open_app', 'close_app')
   }, [gtagEvent])
 
   React.useEffect(() => {
@@ -340,21 +293,6 @@ export default function AuthProvider(props: AuthProviderProps) {
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-/**
- * A React hook that provides access to the authentication context.
- *
- * Only the hook is exported, and not the context, because we only want to use the hook directly and
- * never the context component.
- * @throws {Error} when used outside a {@link AuthProvider}.
- */
-export function useAuth() {
-  const context = React.useContext(AuthContext)
-
-  invariant(context != null, '`useAuth` must be used within an `<AuthProvider />`.')
-
-  return context
 }
 
 /** A React Router layout route containing routes only accessible by users that are logged in. */
@@ -550,37 +488,4 @@ export function CloudBrowserDisabledLayout(props: CloudBrowserDisabledLayoutProp
       </Result>
     </Page>
   )
-}
-
-/**
- * A React context hook returning the user session
- * for a user that has not yet completed registration.
- */
-export function usePartialUserSession() {
-  const { session } = useAuth()
-
-  invariant(session?.type === UserSessionType.partial, 'Expected a partial user session.')
-
-  return session
-}
-
-/** A React context hook returning the user session for a user that may or may not be logged in. */
-export function useUserSession() {
-  return useAuth().session
-}
-
-/** A React context hook returning the user session for a user that is fully logged in. */
-export function useFullUserSession(): FullUserSession {
-  const { session } = useAuth()
-
-  invariant(session?.type === UserSessionType.full, 'Expected a full user session.')
-
-  return session
-}
-
-/** A React context hook returning the user session for a user that is fully logged in. */
-export function useUser() {
-  const { user } = useFullUserSession()
-
-  return user
 }

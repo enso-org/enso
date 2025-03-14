@@ -1,14 +1,13 @@
-/** @file A file containing setup for React part of application. */
-
+/** @file Setup for the React part of the application. */
 import App from '#/App.tsx'
 import { ReactQueryDevtools } from '#/components/Devtools'
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { OfflineNotificationManager } from '#/components/OfflineNotificationManager'
 import { Suspense } from '#/components/Suspense'
-import UIProviders from '#/components/UIProviders'
 import LoadingScreen from '#/pages/authentication/LoadingScreen'
 import { HttpClientProvider } from '#/providers/HttpClientProvider'
 import { LoggerProvider } from '#/providers/LoggerProvider'
+import { UIProviders } from '#/providers/UIProviders'
 import { HttpClient } from '#/utilities/HttpClient'
 import { ApplicationConfigValue } from '@/util/config'
 import { QueryClientProvider } from '@tanstack/react-query'
@@ -28,9 +27,7 @@ function resolveEnvUrl(url: string | undefined) {
   return url?.replace('__HOSTNAME__', window.location.hostname)
 }
 
-/**
- * A component gathering all views written currently in React with necessary contexts.
- */
+/** A component gathering all views written currently in React with necessary contexts. */
 export default function ReactRoot(props: ReactRootProps) {
   const { config, queryClient, onAuthenticated } = props
 

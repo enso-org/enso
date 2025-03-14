@@ -1,51 +1,18 @@
 /** @file A component that provides a Stripe context. */
-import { OfflineError } from '#/utilities/error'
-import * as stripeReact from '@stripe/react-stripe-js'
-import type * as stripeTypes from '@stripe/stripe-js'
-import * as stripe from '@stripe/stripe-js/pure'
-import * as reactQuery from '@tanstack/react-query'
-import * as React from 'react'
-import invariant from 'tiny-invariant'
+import { Elements, ElementsConsumer } from '@stripe/react-stripe-js'
+import type { Stripe, StripeElements } from '@stripe/stripe-js'
+import type { ReactNode } from 'react'
+import { useStripeLoader } from './hooks'
 
 /** Props for a {@link StripeProvider}. */
 export interface StripeProviderProps {
-  readonly children: React.ReactNode | ((props: StripeProviderRenderProps) => React.ReactNode)
+  readonly children: ReactNode | ((props: StripeProviderRenderProps) => ReactNode)
 }
 
 /** Render props for children of a {@link StripeProvider}. */
 export interface StripeProviderRenderProps {
-  readonly stripe: stripeTypes.Stripe
-  readonly elements: stripeTypes.StripeElements
-}
-
-/** Creates options for querying stripe instance. */
-export function stripeQueryOptions() {
-  return reactQuery.queryOptions({
-    queryKey: ['stripe', $config.STRIPE_KEY] as const,
-    staleTime: Infinity,
-    gcTime: Infinity,
-    meta: { persist: false },
-    queryFn: async ({ queryKey }) => {
-      const isOnline = reactQuery.onlineManager.isOnline()
-      const stripeKey = queryKey[1]
-
-      if (stripeKey == null) {
-        throw new Error('Stripe key not found')
-      }
-
-      if (!isOnline) {
-        throw new OfflineError()
-      }
-
-      return stripe.loadStripe(stripeKey).then((maybeStripeInstance) => {
-        if (maybeStripeInstance == null) {
-          throw new Error('Stripe instance not found')
-        }
-
-        return maybeStripeInstance
-      })
-    },
-  })
+  readonly stripe: Stripe
+  readonly elements: StripeElements
 }
 
 /** A component that provides a Stripe context. */
@@ -55,8 +22,8 @@ export function StripeProvider(props: StripeProviderProps) {
   const stripeInstance = useStripeLoader()
 
   return (
-    <stripeReact.Elements stripe={stripeInstance.data}>
-      <stripeReact.ElementsConsumer>
+    <Elements stripe={stripeInstance.data}>
+      <ElementsConsumer>
         {({ elements }) => {
           if (elements == null) {
             // This should never happen since we always pass the `stripe` instance to the `Elements` component
@@ -70,28 +37,7 @@ export function StripeProvider(props: StripeProviderProps) {
               : children
           }
         }}
-      </stripeReact.ElementsConsumer>
-    </stripeReact.Elements>
+      </ElementsConsumer>
+    </Elements>
   )
-}
-
-/** Hook that gets the Stripe instance and elements from the Stripe context. */
-export function useStripe() {
-  const stripeInstance = stripeReact.useStripe()
-  const elements = stripeReact.useElements()
-
-  invariant(
-    stripeInstance != null && elements != null,
-    'Stripe instance not found. Make sure you are using the `StripeProvider` component.',
-  )
-
-  return { stripe: stripeInstance, elements }
-}
-
-/**
- * Hook that loads the Stripe instance using React Suspense.
- * @returns The Stripe instance.
- */
-export function useStripeLoader() {
-  return reactQuery.useSuspenseQuery(stripeQueryOptions())
 }

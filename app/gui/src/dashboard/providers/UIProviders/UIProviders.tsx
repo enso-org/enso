@@ -1,6 +1,7 @@
 /** @file A wrapper containing all UI-related React Provdiers. */
 import { DialogStackProvider } from '#/components/AriaComponents'
 import { PortalProvider } from '#/components/Portal'
+import { RootContext } from '#/providers/UIProviders/constants'
 import type { Spring } from 'framer-motion'
 import { MotionConfig } from 'framer-motion'
 import * as React from 'react'
@@ -16,19 +17,6 @@ const DEFAULT_TRANSITION_OPTIONS: Spring = {
   velocity: 0,
 }
 
-/**
- * A context containing the root elements for the application.
- */
-interface RootContextType {
-  readonly portalRoot: HTMLElement
-  readonly appRoot: HTMLElement
-}
-
-const RootContext = React.createContext<RootContextType>({
-  portalRoot: document.body,
-  appRoot: document.body,
-})
-
 /** Props for a {@link UIProviders}. */
 export interface UIProvidersProps extends Readonly<React.PropsWithChildren> {
   readonly portalRoot: HTMLElement
@@ -37,7 +25,7 @@ export interface UIProvidersProps extends Readonly<React.PropsWithChildren> {
 }
 
 /** A wrapper containing all UI-related React Provdiers. */
-export default function UIProviders(props: UIProvidersProps) {
+export function UIProviders(props: UIProvidersProps) {
   const { portalRoot, appRoot, locale, children } = props
 
   return (
@@ -51,11 +39,4 @@ export default function UIProviders(props: UIProvidersProps) {
       </MotionConfig>
     </RootContext.Provider>
   )
-}
-
-/**
- * A hook to get the root elements for the application.
- */
-export function useRootContext() {
-  return React.useContext(RootContext)
 }

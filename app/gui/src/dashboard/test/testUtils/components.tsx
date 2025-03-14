@@ -1,6 +1,6 @@
 /** @file Components for `testUtils`. */
 import { Form, type FormProps, type TSchema } from '#/components/AriaComponents'
-import UIProviders from '#/components/UIProviders'
+import { UIProviders } from '#/providers/UIProviders'
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
 import { createQueryClient } from 'enso-common/src/queryClient'
 import { useState, type PropsWithChildren, type ReactNode } from 'react'

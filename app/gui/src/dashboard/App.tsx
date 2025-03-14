@@ -48,7 +48,7 @@ import * as appUtils from '#/appUtils'
 
 import * as inputBindingsModule from '#/configurations/inputBindings'
 
-import AuthProvider, * as authProvider from '#/providers/AuthProvider'
+import * as authProvider from '#/providers/AuthProvider'
 import { BackendProvider, useLocalBackend } from '#/providers/BackendProvider'
 import { useHttpClientStrict } from '#/providers/HttpClientProvider'
 import { InputBindingsProvider } from '#/providers/InputBindingsProvider'
@@ -548,13 +548,13 @@ function AppRouter(props: AppRouterProps) {
         registerAuthEventListener={registerAuthEventListener}
       >
         <BackendProvider remoteBackend={remoteBackend} localBackend={localBackend}>
-          <AuthProvider onAuthenticated={onAuthenticated}>
+          <authProvider.AuthProvider onAuthenticated={onAuthenticated}>
             <InputBindingsProvider inputBindings={inputBindings}>
               <LocalBackendPathSynchronizer />
               <VersionChecker />
               {routes}
             </InputBindingsProvider>
-          </AuthProvider>
+          </authProvider.AuthProvider>
         </BackendProvider>
       </SessionProvider>
     </RouterProvider>
