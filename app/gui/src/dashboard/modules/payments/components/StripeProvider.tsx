@@ -1,16 +1,10 @@
-/**
- * @file
- *
- * A component that provides a Stripe context.
- */
-
-import * as React from 'react'
-
+/** @file A component that provides a Stripe context. */
 import { OfflineError } from '#/utilities/error'
 import * as stripeReact from '@stripe/react-stripe-js'
 import type * as stripeTypes from '@stripe/stripe-js'
 import * as stripe from '@stripe/stripe-js/pure'
 import * as reactQuery from '@tanstack/react-query'
+import * as React from 'react'
 import invariant from 'tiny-invariant'
 
 /** Props for a {@link StripeProvider}. */
@@ -24,9 +18,7 @@ export interface StripeProviderRenderProps {
   readonly elements: stripeTypes.StripeElements
 }
 
-/**
- * Creates options for quering stripe instance
- */
+/** Creates options for querying stripe instance. */
 export function stripeQueryOptions() {
   return reactQuery.queryOptions({
     queryKey: ['stripe', $config.STRIPE_KEY] as const,

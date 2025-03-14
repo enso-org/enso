@@ -102,7 +102,7 @@ export const Input = forwardRef(function Input<
   })
 
   const invalid = inputProps.isInvalid ?? fieldProps.isInvalid
-  const disabled = fieldProps.disabled || formInstance.formState.isSubmitting
+  const disabled = (fieldProps.disabled ?? false) || formInstance.formState.isSubmitting
 
   const classes = variants({
     variant,

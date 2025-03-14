@@ -1,7 +1,7 @@
 /** @file Constants for `Breadcrumbs`. */
 import type { DropEvent } from '#/components/aria'
 import { noop } from '#/utilities/functions'
-import { Key, createContext } from 'react'
+import { createContext, type Key } from 'react'
 
 /** Context props for {@link BreadcrumbItemProvider}. */
 export interface BreadcrumbItemContextType {

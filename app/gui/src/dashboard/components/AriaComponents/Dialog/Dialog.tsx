@@ -2,26 +2,23 @@
  * @file A dialog is an overlay shown above other content in an application.
  * Can be used to display alerts, confirmations, or other content.
  */
-import * as React from 'react'
-
 import * as aria from '#/components/aria'
 import * as ariaComponents from '#/components/AriaComponents'
+import { DialogDismiss, ResetButtonGroupContext } from '#/components/AriaComponents'
 import * as errorBoundary from '#/components/ErrorBoundary'
 import * as portal from '#/components/Portal'
 import * as suspense from '#/components/Suspense'
-
-import * as mergeRefs from '#/utilities/mergeRefs'
-
-import { DialogDismiss, ResetButtonGroupContext } from '#/components/AriaComponents'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasure } from '#/hooks/measureHooks'
+import * as mergeRefs from '#/utilities/mergeRefs'
 import { LayoutGroup, motion, type Spring } from '#/utilities/motion'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import { unsafeWriteValue } from '#/utilities/write'
+import * as React from 'react'
 import { useRootContext } from '../../UIProviders'
 import { Close } from './Close'
-import { DialogStackItem } from './constants'
+import type { DialogStackItem } from './constants'
 import * as dialogProvider from './DialogProvider'
 import * as dialogStackProvider from './DialogStackProvider'
 import { DialogTrigger } from './DialogTrigger'

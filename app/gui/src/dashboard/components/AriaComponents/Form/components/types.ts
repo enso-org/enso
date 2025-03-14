@@ -102,6 +102,7 @@ export type UseFormRegister<Schema extends TSchema> = <
 /** UseFormRegister return type. */
 export interface UseFormRegisterReturn<
   Schema extends TSchema,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   FieldName extends FieldPath<Schema, Constraint> = FieldPath<Schema, any>,
   Constraint = unknown,
 > extends Omit<reactHookForm.UseFormRegisterReturn<FieldName>, 'onBlur' | 'onChange'> {

@@ -12,12 +12,10 @@ import FolderFilledIcon from '#/assets/folder_filled.svg'
 import PeopleIcon from '#/assets/people.svg'
 import RecentIcon from '#/assets/recent.svg'
 import Trash2Icon from '#/assets/trash2.svg'
-
-import { useUser } from '#/providers/AuthProvider'
-
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
+import { useUser } from '#/providers/AuthProvider'
 import { useBackend, useLocalBackend } from '#/providers/BackendProvider'
 import { useLocalStorageState } from '#/providers/LocalStorageProvider'
 import { useText } from '#/providers/TextProvider'

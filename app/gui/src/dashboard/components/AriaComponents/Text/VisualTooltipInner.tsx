@@ -1,14 +1,15 @@
+/** @file The inner component of the tooltip. */
 import {
-  AriaPositionProps,
-  TooltipTriggerState,
   mergeProps,
   useHover,
   useOverlayPosition,
   useTooltipTrigger,
+  type AriaPositionProps,
+  type TooltipTriggerState,
 } from '#/components/aria'
 import Portal from '#/components/Portal'
 import { useRef } from 'react'
-import { TOOLTIP_STYLES, TooltipProps } from '../Tooltip'
+import { TOOLTIP_STYLES, type TooltipProps } from '../Tooltip'
 
 const DEFAULT_OVERLAY_OFFSET_PX = 6
 

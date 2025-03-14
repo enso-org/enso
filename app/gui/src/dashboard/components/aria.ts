@@ -1,7 +1,6 @@
 /** @file Barrel re-export of `react-aria` and `react-aria-components`. */
 import type { Mutable } from 'enso-common/src/utilities/data/object'
 import * as aria from 'react-aria'
-
 export * from '@react-aria/interactions'
 export { ClearPressResponder } from '@react-aria/interactions'
 export type * from '@react-types/shared'
@@ -15,10 +14,6 @@ export {
   type OverlayTriggerState,
   type TooltipTriggerState,
 } from 'react-stately'
-
-// ==================
-// === mergeProps ===
-// ==================
 
 /**
  * Merges multiple props objects together.
