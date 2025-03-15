@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.function.Function;
+import org.enso.base.cache.ReloadDetector;
 import org.graalvm.polyglot.Value;
 
 /**
@@ -16,12 +17,23 @@ import org.graalvm.polyglot.Value;
  */
 public class APIRequestCache {
   private final HashMap<String, CacheEntry> cache = new HashMap<>();
+  private final ReloadDetector reloadDetector;
+
+  protected APIRequestCache() {
+    this(null);
+  }
+
+  protected APIRequestCache(ReloadDetector reloadDetector) {
+    this.reloadDetector = reloadDetector;
+  }
 
   public void clear() {
     cache.clear();
   }
 
   public Object getOrCompute(String key, Function<String, Value> compute, Duration ttl) {
+    clearOnReload();
+
     if (ttl == null) {
       // If the TTL is null, we deliberately ignore the cache.
       return compute.apply(key);
@@ -40,14 +52,20 @@ public class APIRequestCache {
   }
 
   public void invalidateEntry(String key) {
+    clearOnReload();
+
     cache.remove(key);
   }
 
   public void invalidatePrefix(String prefix) {
+    clearOnReload();
+
     cache.keySet().removeIf(key -> key.startsWith(prefix));
   }
 
   public void cleanExpiredEntries() {
+    clearOnReload();
+
     boolean hasExpiredEntries =
         firstToExpire != null && firstToExpire.isBefore(LocalDateTime.now());
     if (hasExpiredEntries) {
@@ -61,6 +79,8 @@ public class APIRequestCache {
   }
 
   public void put(String key, Value value, Duration ttl) {
+    clearOnReload();
+
     if (ttl == null) {
       // If the TTL is null, we deliberately ignore the cache.
       return;
@@ -72,6 +92,24 @@ public class APIRequestCache {
     }
 
     cache.put(key, new CacheEntry(value, expiresAt));
+  }
+
+  private void clearOnReload() {
+    if (reloadDetector != null && reloadDetector.hasReloadOccurred()) {
+      clear();
+    }
+  }
+
+  /** Public for testing. */
+  public void simulateReloadTestOnly() {
+    if (reloadDetector != null) {
+      reloadDetector.simulateReloadTestOnly();
+    }
+  }
+
+  /** Public for testing. */
+  public boolean isCachedTestOnly(String key) {
+    return cache.containsKey(key);
   }
 
   private LocalDateTime firstToExpire = null;
