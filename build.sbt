@@ -3810,7 +3810,7 @@ lazy val `engine-runner` = project
       val NI_MODULES =
         "org.graalvm.nativeimage,org.graalvm.nativeimage.builder,org.graalvm.nativeimage.base,org.graalvm.nativeimage.driver,org.graalvm.nativeimage.librarysupport,org.graalvm.nativeimage.objectfile,org.graalvm.nativeimage.pointsto,com.oracle.graal.graal_enterprise,com.oracle.svm.svm_enterprise"
       val JDK_MODULES =
-        "jdk.charsets,jdk.localedata,jdk.httpserver,java.naming,java.net.http,java.desktop,jdk.crypto.ec"
+        "java.desktop,java.naming,java.net.http,jdk.charsets,jdk.crypto.ec,jdk.localedata,jdk.httpserver,java.rmi"
       val DEBUG_MODULES  = "jdk.jdwp.agent"
       val PYTHON_MODULES = "jdk.security.auth,java.naming"
 

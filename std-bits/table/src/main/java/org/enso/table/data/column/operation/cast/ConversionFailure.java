@@ -6,7 +6,7 @@ import org.enso.table.problems.Problem;
 
 public record ConversionFailure(
     ConversionFailureType errorType,
-    StorageType targetType,
+    StorageType<?> targetType,
     String relatedColumn,
     long affectedRowCount,
     List<?> examples)
