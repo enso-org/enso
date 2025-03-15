@@ -26,7 +26,7 @@ jobs:
           fetch-depth: 2
       - id: AWS-changed-files
         name: AWS-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
           files: distribution/lib/Standard/AWS/**/docs/api/**/**.md
       - name: List all changed files in AWS
@@ -51,7 +51,7 @@ jobs:
           fetch-depth: 2
       - id: Base-changed-files
         name: Base-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
           files: distribution/lib/Standard/Base/**/docs/api/**/**.md
       - name: List all changed files in Base
@@ -76,7 +76,7 @@ jobs:
           fetch-depth: 2
       - id: Database-changed-files
         name: Database-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
           files: distribution/lib/Standard/Database/**/docs/api/**/**.md
       - name: List all changed files in Database
@@ -101,7 +101,7 @@ jobs:
           fetch-depth: 2
       - id: Google_Api-changed-files
         name: Google_Api-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
           files: distribution/lib/Standard/Google_Api/**/docs/api/**/**.md
       - name: List all changed files in Google_Api
@@ -126,7 +126,7 @@ jobs:
           fetch-depth: 2
       - id: Image-changed-files
         name: Image-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
           files: distribution/lib/Standard/Image/**/docs/api/**/**.md
       - name: List all changed files in Image
@@ -151,7 +151,7 @@ jobs:
           fetch-depth: 2
       - id: Microsoft-changed-files
         name: Microsoft-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
           files: distribution/lib/Standard/Microsoft/**/docs/api/**/**.md
       - name: List all changed files in Microsoft
@@ -176,7 +176,7 @@ jobs:
           fetch-depth: 2
       - id: Snowflake-changed-files
         name: Snowflake-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
           files: distribution/lib/Standard/Snowflake/**/docs/api/**/**.md
       - name: List all changed files in Snowflake
@@ -201,7 +201,7 @@ jobs:
           fetch-depth: 2
       - id: Table-changed-files
         name: Table-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
           files: distribution/lib/Standard/Table/**/docs/api/**/**.md
       - name: List all changed files in Table
@@ -226,7 +226,7 @@ jobs:
           fetch-depth: 2
       - id: Tableau-changed-files
         name: Tableau-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
           files: distribution/lib/Standard/Tableau/**/docs/api/**/**.md
       - name: List all changed files in Tableau
@@ -251,7 +251,7 @@ jobs:
           fetch-depth: 2
       - id: Test-changed-files
         name: Test-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
           files: distribution/lib/Standard/Test/**/docs/api/**/**.md
       - name: List all changed files in Test
@@ -276,7 +276,7 @@ jobs:
           fetch-depth: 2
       - id: Visualization-changed-files
         name: Visualization-changed-files
-        uses: tj-actions/changed-files@v45
+        uses: step-security/changed-files@v45
         with:
           files: distribution/lib/Standard/Visualization/**/docs/api/**/**.md
       - name: List all changed files in Visualization

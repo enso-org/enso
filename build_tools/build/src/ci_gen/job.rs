@@ -376,7 +376,7 @@ impl StandardLibraryLabelCheck {
     fn changed_files_step(&self) -> Step {
         let changed_files_pattern =
             format!("distribution/lib/Standard/{}/**/docs/api/**/**.md", self.lib_name);
-        let changed_files_action = "tj-actions/changed-files@v45".to_string();
+        let changed_files_action = "step-security/changed-files@v45".to_string();
         Step {
             id: Some(self.changed_files_step_name()),
             name: Some(self.changed_files_step_name()),
