@@ -5,7 +5,6 @@ import { SuggestionDb } from '@/stores/suggestionDatabase'
 import { unwrap } from '@/util/data/result'
 import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
 import { expect, test } from 'vitest'
-import { parseExpression } from 'ydoc-shared/ast'
 import { assert, assertUnreachable } from 'ydoc-shared/util/assert'
 import { Range } from 'ydoc-shared/util/data/range'
 
@@ -43,7 +42,6 @@ test.each`
   ${"'text"}     | ${"'text'"}
   ${"'''text"}   | ${"'''text"}
 `('Reading literal from $inputContent', ({ inputContent, expectedLiteral }) => {
-  console.log(parseExpression(inputContent))
   const input = useComponentBrowserInput(mockGraphDb(), new SuggestionDb(), aiMock)
   input.reset({ type: 'newNode' })
   input.content = { text: inputContent, selection: Range.empty }

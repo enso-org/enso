@@ -14,6 +14,8 @@ export interface DocumentationData {
   iconName: Icon | undefined
   /** An index of a group from group list in suggestionDb store this entry belongs to. */
   groupIndex: number | undefined
+  /** If defined, it's a rank in "suggested" group (lower rank goes first) */
+  suggestedRank: number | undefined
   isPrivate: boolean
   isUnstable: boolean
 }
@@ -57,6 +59,16 @@ export function getDocumentationSummary(sections: Doc.Section[]) {
   else return firstParagraph.substring(0, endOfSummary)
 }
 
+/** @internal */
+export function getSuggestedRank(sections: Doc.Section[]): number | undefined {
+  const str = tagValue(sections, 'Suggested')
+  if (str == null) return
+  const rank = parseFloat(str)
+  // Rank which is not a number is placed last.
+  if (isNaN(rank)) return Infinity
+  return rank
+}
+
 /** Retrieve {@link DocumentationData } from raw entry's documentation. */
 export function documentationData(
   documentation: Opt<string>,
@@ -79,6 +91,7 @@ export function documentationData(
         .split(/\s*,\s*/g) ?? [],
     isPrivate: isSome(tagValue(parsed, 'Private')),
     isUnstable: isSome(tagValue(parsed, 'Unstable')) || isSome(tagValue(parsed, 'Advanced')),
+    suggestedRank: getSuggestedRank(parsed),
   }
 }
 
