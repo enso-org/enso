@@ -2,6 +2,7 @@
 
 #### Enso IDE
 
+- Let's use _native image_ mode by default[12501].
 - [ENSO_IDE_MAPBOX_API_TOKEN environment variable should be provided to enable
   GeoMap visualization][11889].
 - [Round ‘Add component’ button under the component menu replaced by a small
@@ -40,6 +41,7 @@
 - [Disable heatmap and histogram viz][12475].
 - [Component Browser displays short summary of component's documentation][12459]
 
+[12501]: https://github.com/enso-org/enso/pull/12501
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
 [12051]: https://github.com/enso-org/enso/pull/12051
