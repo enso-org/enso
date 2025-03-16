@@ -228,12 +228,13 @@ test('Navigating groups', async ({ page }) => {
   await actions.goToGraph(page)
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowserSelectedEntry(page)).toExist()
-  await expect(page.locator('.groupEntry')).toHaveText(['all', 'Input', 'Output'])
-  await expect(locate.componentBrowserEntryByLabel(page, 'Data.read')).toExist()
-  await expect(locate.componentBrowserEntryByLabel(page, 'Data.every_tag')).toExist()
+  await expect(page.locator('.groupEntry')).toHaveText(['suggestions', 'Input', 'Output'])
+  await expect(locate.componentBrowserEntry(page)).toHaveText(['Data.read', 'Data.read_text'])
 
-  // Hover first group: `Data.read` is filtered out
+  // Hover first group
   await page.locator('.groupEntry').nth(1).hover()
+  // Wait for view update: "Input" group have more entries than "suggestions"
+  await expect(locate.componentBrowserEntry(page)).toHaveCountGreaterThan(2)
   await expect(locate.componentBrowserEntryByLabel(page, 'Data.read')).toExist()
   await expect(locate.componentBrowserEntryByLabel(page, 'Data.every_tag')).toHaveCount(0)
   await expect(locate.componentBrowserSelectedEntry(page)).toExist() // component list didn't lose focus.

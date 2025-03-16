@@ -126,7 +126,7 @@ public final class LongStorage extends AbstractLongStorage
 
   @Override
   public Storage<?> fillMissing(
-      Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
+      Value arg, StorageType<?> commonType, ProblemAggregator problemAggregator) {
     if (arg.isNumber()) {
       if (NumericConverter.isCoercibleToLong(arg.as(Object.class))) {
         return fillMissingLong(arg.asLong(), problemAggregator);

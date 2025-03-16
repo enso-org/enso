@@ -18,7 +18,7 @@ import org.enso.table.problems.ProblemAggregator;
 
 /** Perform a cast operation on a Column */
 public class CastOperation {
-  public static boolean canApply(StorageType sourceType, StorageType targetType) {
+  public static boolean canApply(StorageType<?> sourceType, StorageType<?> targetType) {
     if (targetType instanceof NullType) {
       return false;
     }
@@ -28,7 +28,7 @@ public class CastOperation {
   }
 
   public static Column apply(
-      Column source, StorageType targetType, ProblemAggregator problemAggregator) {
+      Column source, StorageType<?> targetType, ProblemAggregator problemAggregator) {
     if (source.getStorage().getType().equals(targetType)) {
       return source;
     }
@@ -43,7 +43,7 @@ public class CastOperation {
   }
 
   /** Construct a StorageConverter for the given target type. */
-  private static StorageConverter<?> fromStorageType(StorageType storageType) {
+  private static StorageConverter<?> fromStorageType(StorageType<?> storageType) {
     return switch (storageType) {
       case AnyObjectType anyObjectType -> new ToMixedStorageConverter();
       case BooleanType booleanType -> new ToBooleanStorageConverter();

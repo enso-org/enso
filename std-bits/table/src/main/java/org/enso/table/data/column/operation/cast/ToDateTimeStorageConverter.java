@@ -14,7 +14,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 
 public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTime> {
   @Override
-  public boolean canApply(StorageType sourceType) {
+  public boolean canApply(StorageType<?> sourceType) {
     return sourceType instanceof DateType
         || sourceType instanceof AnyObjectType
         || sourceType instanceof NullType;

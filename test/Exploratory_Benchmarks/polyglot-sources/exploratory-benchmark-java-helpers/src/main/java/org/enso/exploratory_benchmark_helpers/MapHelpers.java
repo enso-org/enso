@@ -90,7 +90,7 @@ public class MapHelpers {
   public static Storage<?> mapCallback(
       Storage<?> storage,
       Function<Object, Object> fn,
-      StorageType expectedType,
+      StorageType<?> expectedType,
       ProblemAggregator problemAggregator) {
     long n = storage.getSize();
     Builder builder = Builder.getForType(expectedType, n, problemAggregator);
