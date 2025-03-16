@@ -281,6 +281,7 @@ impl RunContext {
         // we don't want to call this in environments like GH-hosted runners.
 
         // === Build project-manager distribution and native image ===
+        env::ENSO_LAUNCHER.set(&engine::EngineLauncher::Native)?;
         let mut tasks = vec![];
         if self.config.build_engine_package() {
             tasks.push("buildEngineDistribution");

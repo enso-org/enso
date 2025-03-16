@@ -224,18 +224,28 @@ class Runner(
       case None =>
         runtimeVersionManager.withEngineAndRuntime(engineVersion) {
           (engine, runtime) =>
-            NativeExecCommand.apply(
-              engineVersion.toString,
-              engine,
-              logger
-            ) match {
-              case Some(cmd) =>
-                prepareAndRunCommand(engine, cmd)
-              case None =>
-                prepareAndRunCommand(
-                  engine,
-                  JavaExecCommand.forRuntime(runtime)
-                )
+            val ensoLauncher      = Option(System.getenv(Runner.LAUNCHER_ENV_NAME))
+            val requiresJVMRunner = ensoLauncher.exists(_.equals("shell"))
+            if (requiresJVMRunner) {
+              prepareAndRunCommand(
+                engine,
+                JavaExecCommand.forRuntime(runtime)
+              )
+            } else {
+              NativeExecCommand.apply(
+                engineVersion.toString,
+                engine,
+                logger
+              ) match {
+                case Some(cmd) =>
+                  prepareAndRunCommand(engine, cmd)
+                case None =>
+                  // Fallback, JVM-mode
+                  prepareAndRunCommand(
+                    engine,
+                    JavaExecCommand.forRuntime(runtime)
+                  )
+              }
             }
         }
     }
@@ -302,4 +312,10 @@ class Runner(
         globalConfigurationManager.defaultVersion
     }
   }
+}
+
+object Runner {
+
+  private val LAUNCHER_ENV_NAME = "ENSO_LAUNCHER"
+
 }
