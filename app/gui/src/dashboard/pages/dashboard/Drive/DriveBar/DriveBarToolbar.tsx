@@ -39,7 +39,7 @@ import {
   canTransferBetweenCategories,
   isCloudCategory,
   type Category,
-} from '#/layouts/Drive/Categories/Category'
+} from '#/layouts/Drive/CategorySwitcher'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'

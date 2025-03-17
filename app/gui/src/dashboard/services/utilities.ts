@@ -1,14 +1,11 @@
-/**
- * @file Module containing utility functions related to any backend.
- */
+/** @file Utility functions applicable to all backends. */
 import FolderIcon from '#/assets/folder.svg'
-import type { AnyCategory } from '../layouts/Drive/Categories/Category'
+import type { AnyCategory } from '#/layouts/Drive/CategorySwitcher'
 import type { DirectoryId } from './Backend'
 import { Path } from './Backend'
 import { DIRECTORY_ID_PREFIX, newDirectoryId } from './LocalBackend'
-/**
- * Options for the parseDirectoriesPath function.
- */
+
+/** Options for the `parseDirectoriesPath` function. */
 export interface ParsedDirectoriesPathOptions {
   readonly rootDirectoryId: DirectoryId
   readonly getCategoryByDirectoryId: (id: DirectoryId) => AnyCategory | null
@@ -24,9 +21,7 @@ export interface PathItem {
   readonly icon: AnyCategory['icon']
 }
 
-/**
- * Parse the parents path and virtual parents path into a list of {@link PathItem}.
- */
+/** Parse the parents path and virtual parents path into a list of {@link PathItem}. */
 export function parseDirectoriesPath(options: ParsedDirectoriesPathOptions) {
   const { getCategoryByDirectoryId, parentsPath, rootDirectoryId, virtualParentsPath } = options
 

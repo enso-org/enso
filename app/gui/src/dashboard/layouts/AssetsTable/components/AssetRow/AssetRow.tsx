@@ -20,7 +20,7 @@ import { createGetProjectDetailsQuery } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import * as columnModule from '#/layouts/AssetsTable/components/columns'
 import { useAsset, useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
-import { isLocalCategory } from '#/layouts/Drive/Categories/Category'
+import { isLocalCategory } from '#/layouts/Drive/CategorySwitcher'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import type { DrivePastePayload } from '#/providers/DriveProvider'
 import {

@@ -4,8 +4,8 @@ import { useOffline } from '#/hooks/offlineHooks'
 import { useSearchParamsState } from '#/hooks/searchParamsStateHooks'
 import { useBackend, useLocalBackend } from '#/providers/BackendProvider'
 import type { ReactNode } from 'react'
-import { CategoriesContext, useCategories, type CategoriesContextValue } from './categoriesHooks'
 import type { Category, CategoryId } from './Category'
+import { CategoriesContext, useCategories, type CategoriesContextValue } from './hooks'
 
 /** Props for the {@link CategoriesProvider}. */
 export interface CategoriesProviderProps {
@@ -14,7 +14,7 @@ export interface CategoriesProviderProps {
 }
 
 /** Provider for categories. */
-export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.Element {
+export function CategoriesProvider(props: CategoriesProviderProps) {
   const { children, onCategoryChange = () => {} } = props
 
   const { cloudCategories, localCategories, findCategoryById } = useCategories()
@@ -54,7 +54,7 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
   // We reset the category to the default.
   if (category == null) {
     resetCategoryId(true)
-    return <></>
+    return null
   }
 
   const contextValue = {

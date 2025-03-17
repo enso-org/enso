@@ -38,7 +38,7 @@ import {
 import type * as assetSearchBar from '#/layouts/AssetSearchBar'
 import { useSetSuggestions } from '#/layouts/AssetSearchBar'
 import { useAssetsTableItems, useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
-import { canTransferBetweenCategories, type Category } from '#/layouts/Drive/Categories/Category'
+import { canTransferBetweenCategories, type Category } from '#/layouts/Drive/CategorySwitcher'
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import {
   SUGGESTIONS_FOR_HAS,

@@ -2,7 +2,10 @@
 import { copyAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useBackendQuery } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useTransferBetweenCategories, type Category } from '#/layouts/Drive/Categories/Category'
+import {
+  useTransferBetweenCategories,
+  type Category,
+} from '#/layouts/Drive/CategorySwitcher'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import type { DrivePastePayload } from '#/providers/DriveProvider'
 import type Backend from '#/services/Backend'

@@ -1,5 +1,5 @@
 /** @file Props types for columns. */
-import type { Category } from '#/layouts/Drive/Categories/Category'
+import type { Category } from '#/layouts/Drive/CategorySwitcher'
 import type { AnyAsset, BackendType } from '#/services/Backend'
 import type { SortInfo } from '#/utilities/sorting'
 import type { Dispatch, JSX, SetStateAction } from 'react'

@@ -1,55 +1,43 @@
 /** @file The directory header bar and directory item listing. */
-import * as React from 'react'
-
 import * as appUtils from '#/appUtils'
 import Offline from '#/assets/offline_filled.svg'
-
+import * as ariaComponents from '#/components/AriaComponents'
+import { ErrorBoundary } from '#/components/ErrorBoundary'
+import * as result from '#/components/Result'
+import { Suspense } from '#/components/Suspense'
+import SvgMask from '#/components/SvgMask'
 import * as offlineHooks from '#/hooks/offlineHooks'
 import * as toastAndLogHooks from '#/hooks/toastAndLogHooks'
-
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as textProvider from '#/providers/TextProvider'
-
 import { AssetPanel } from '#/layouts/AssetPanel'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import { AssetsTable, AssetsTableAssetsUnselector } from '#/layouts/AssetsTable'
-import CategorySwitcher from '#/layouts/CategorySwitcher'
-import * as categoryModule from '#/layouts/Drive/Categories/Category'
+import * as categoryModule from '#/layouts/Drive/CategorySwitcher'
+import { CategorySwitcher, type Category } from '#/layouts/Drive/CategorySwitcher'
 import Labels from '#/layouts/Labels'
 import { DriveBar } from '#/pages/dashboard/Drive/DriveBar'
-
-import * as ariaComponents from '#/components/AriaComponents'
-import * as result from '#/components/Result'
-
-import { ErrorBoundary } from '#/components/ErrorBoundary'
-import SvgMask from '#/components/SvgMask'
-import type { Category } from '#/layouts/Drive/Categories/Category'
+import * as authProvider from '#/providers/AuthProvider'
+import * as backendProvider from '#/providers/BackendProvider'
+import * as textProvider from '#/providers/TextProvider'
 import { DirectoryDoesNotExistError } from '#/services/Backend'
 import AssetQuery from '#/utilities/AssetQuery'
 import * as download from '#/utilities/download'
 import * as github from '#/utilities/github'
 import { OfflineError } from '#/utilities/HttpClient'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
-import { useDeferredValue } from 'react'
+import { memo, useDeferredValue, useState, type Ref } from 'react'
 import { toast } from 'react-toastify'
-import { Suspense } from '../components/Suspense'
-import { useCategoriesAPI } from './Drive/Categories/categoriesHooks'
-import { useDirectoryIds } from './Drive/directoryIdsHooks'
-
-// =============
-// === Drive ===
-// =============
+import { useCategoriesAPI } from './CategorySwitcher'
+import { useDirectoryIds } from './directoryIdsHooks'
 
 /** Props for a {@link Drive}. */
 export interface DriveProps {
   readonly hidden: boolean
   readonly initialProjectName: string | null
-  readonly assetsManagementApiRef: React.Ref<assetsTable.AssetManagementApi>
+  readonly assetsManagementApiRef: Ref<assetsTable.AssetManagementApi>
 }
 
 /** Contains directory path and directory contents (projects, folders, secrets and files). */
-function Drive(props: DriveProps) {
+export const Drive = memo(function Drive(props: DriveProps) {
   const { isOffline } = offlineHooks.useOffline()
   const toastAndLog = toastAndLogHooks.useToastAndLog()
   const { user } = authProvider.useFullUserSession()
@@ -136,7 +124,7 @@ function Drive(props: DriveProps) {
       )
     }
   }
-}
+})
 
 /** Props for a {@link DriveAssetsView}. */
 interface DriveAssetsViewProps extends DriveProps {
@@ -163,7 +151,7 @@ function DriveAssetsView(props: DriveAssetsViewProps) {
   const localBackend = backendProvider.useLocalBackend()
   const backend = backendProvider.useBackend(category)
 
-  const [query, setQuery] = React.useState(() => AssetQuery.fromString(''))
+  const [query, setQuery] = useState(() => AssetQuery.fromString(''))
 
   const isCloud = categoryModule.isCloudCategory(category)
   const supportLocalBackend = localBackend != null
@@ -267,5 +255,3 @@ function OfflineMessage(props: OfflineMessageProps) {
     </result.Result>
   )
 }
-
-export default React.memo(Drive)

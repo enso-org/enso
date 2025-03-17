@@ -2,18 +2,18 @@
  * @file Main dashboard component, responsible for listing user's projects as well as other
  * interactive components.
  */
-import * as React from 'react'
-
-import * as detect from 'enso-common/src/detect'
-
-import { DashboardTabBar } from './DashboardTabBar'
-
+import * as aria from '#/components/aria'
+import Page from '#/components/Page'
 import * as eventCallbacks from '#/hooks/eventCallbackHooks'
 import * as projectHooks from '#/hooks/projectHooks'
-import { CategoriesProvider } from '#/layouts/Drive/Categories/CategoriesProvider'
-import { DriveProvider } from '#/providers/DriveProvider'
-
+import type * as assetTable from '#/layouts/AssetsTable'
+import Chat from '#/layouts/Chat'
+import ChatPlaceholder from '#/layouts/ChatPlaceholder'
+import { CategoriesProvider, useCategoriesAPI } from '#/layouts/Drive/CategorySwitcher'
+import { useRefetchDirectories } from '#/layouts/Drive/fetchDirectoriesHooks'
+import { UserBar } from '#/layouts/UserBar'
 import * as backendProvider from '#/providers/BackendProvider'
+import { DriveProvider } from '#/providers/DriveProvider'
 import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import * as modalProvider from '#/providers/ModalProvider'
 import {
@@ -24,25 +24,16 @@ import {
   useSetPage,
   type TabType,
 } from '#/providers/ProjectsProvider'
-
-import type * as assetTable from '#/layouts/AssetsTable'
-import Chat from '#/layouts/Chat'
-import ChatPlaceholder from '#/layouts/ChatPlaceholder'
-import { UserBar } from '#/layouts/UserBar'
-
-import * as aria from '#/components/aria'
-import Page from '#/components/Page'
-
-import * as backendModule from '#/services/Backend'
-import * as localBackendModule from '#/services/LocalBackend'
-import * as projectManager from '#/services/ProjectManager'
-
-import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
-import { useRefetchDirectories } from '#/layouts/Drive/fetchDirectoriesHooks'
+import { BackendType, Path } from '#/services/Backend'
+import { newDirectoryId, newProjectId } from '#/services/LocalBackend'
+import { UUID } from '#/services/ProjectManager'
 import { baseName } from '#/utilities/fileInfo'
 import { STATIC_QUERY_OPTIONS } from '#/utilities/reactQuery'
-import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
+import { document } from '#/utilities/sanitizedEventTargets'
 import { usePrefetchQuery } from '@tanstack/react-query'
+import { isOnElectron, platform, Platform } from 'enso-common/src/detect'
+import * as React from 'react'
+import { DashboardTabBar } from './DashboardTabBar'
 import { DashboardTabPanels } from './DashboardTabPanels'
 
 /** Props for {@link Dashboard}s that are common to all platforms. */
@@ -76,7 +67,7 @@ function fileURLToPath(url: string): string | null {
     const parsed = new URL(url)
     if (parsed.protocol === 'file:') {
       return decodeURIComponent(
-        detect.platform() === detect.Platform.windows ?
+        platform() === Platform.windows ?
           // On Windows, we must remove leading `/` from URL.
           parsed.pathname.slice(1)
         : parsed.pathname,
@@ -106,8 +97,8 @@ function DashboardInner(props: DashboardProps) {
 
   const categoriesAPI = useCategoriesAPI()
 
-  useRefetchDirectories(backendModule.BackendType.local)
-  useRefetchDirectories(backendModule.BackendType.remote)
+  useRefetchDirectories(BackendType.local)
+  useRefetchDirectories(BackendType.remote)
 
   const projectsStore = useProjectsStore()
   const page = usePage()
@@ -132,10 +123,10 @@ function DashboardInner(props: DashboardProps) {
           projectName,
         )
         openProject({
-          type: backendModule.BackendType.local,
-          id: localBackendModule.newProjectId(projectManager.UUID(id), localBackend.rootPath()),
+          type: BackendType.local,
+          id: newProjectId(UUID(id), localBackend.rootPath()),
           title: projectName,
-          parentId: localBackendModule.newDirectoryId(localBackend.rootPath()),
+          parentId: newDirectoryId(localBackend.rootPath()),
         })
       }
       return null
@@ -147,16 +138,13 @@ function DashboardInner(props: DashboardProps) {
     window.projectManagementApi?.setOpenProjectHandler((project) => {
       categoriesAPI.setCategory('local')
 
-      const projectId = localBackendModule.newProjectId(
-        projectManager.UUID(project.id),
-        projectManager.Path(project.parentDirectory),
-      )
+      const projectId = newProjectId(UUID(project.id), Path(project.parentDirectory))
 
       openProject({
-        type: backendModule.BackendType.local,
+        type: BackendType.local,
         id: projectId,
         title: project.name,
-        parentId: localBackendModule.newDirectoryId(backendModule.Path(project.parentDirectory)),
+        parentId: newDirectoryId(Path(project.parentDirectory)),
       })
     })
 
@@ -167,7 +155,7 @@ function DashboardInner(props: DashboardProps) {
 
   React.useEffect(
     () =>
-      inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+      inputBindings.attach(document.body, 'keydown', {
         closeModal: () => {
           updateModal((oldModal) => {
             if (oldModal == null) {
@@ -187,9 +175,9 @@ function DashboardInner(props: DashboardProps) {
   )
 
   React.useEffect(() => {
-    if (detect.isOnElectron()) {
+    if (isOnElectron()) {
       // We want to handle the back and forward buttons in electron the same way as in the browser.
-      return inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
+      return inputBindings.attach(document.body, 'keydown', {
         goBack: () => {
           window.navigationApi.goBack()
         },

@@ -19,7 +19,7 @@ export interface DashboardTabPanelsProps {
   readonly assetManagementApiRef: React.RefObject<AssetManagementApi> | null
 }
 
-const LazyDrive = lazy(() => import('#/layouts/Drive'))
+const LazyDrive = lazy(async () => ({ default: (await import('#/layouts/Drive')).Drive }))
 const LazyEditor = lazy(() => import('#/layouts/Editor'))
 const LazySettings = lazy(() => import('#/layouts/Settings'))
 

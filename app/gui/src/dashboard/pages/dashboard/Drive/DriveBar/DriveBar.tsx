@@ -3,7 +3,7 @@
  * the current directory and some configuration options.
  */
 
-import type { Category } from '#/layouts/Drive/Categories/Category'
+import type { Category } from '#/layouts/Drive/CategorySwitcher'
 import type Backend from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
 

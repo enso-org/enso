@@ -1,36 +1,28 @@
 /** @file Switcher to choose the currently visible assets table category. */
-import * as React from 'react'
-
-import { useSearchParams } from 'react-router-dom'
-
 import { SEARCH_PARAMS_PREFIX } from '#/appUtils'
 import FolderAddIcon from '#/assets/folder_add.svg'
 import Minus2Icon from '#/assets/minus2.svg'
 import SettingsIcon from '#/assets/settings.svg'
-import * as aria from '#/components/aria'
-import * as ariaComponents from '#/components/AriaComponents'
+import { AnimatedBackground } from '#/components/AnimatedBackground'
+import { DropZone, type DropEvent } from '#/components/aria'
+import { BUTTON_STYLES, Button, DialogTrigger, Text } from '#/components/AriaComponents'
 import { Badge } from '#/components/Badge'
-import * as mimeTypes from '#/data/mimeTypes'
-import * as offlineHooks from '#/hooks/offlineHooks'
-import {
-  areCategoriesEqual,
-  canTransferBetweenCategories,
-  useTransferBetweenCategories,
-  type Category,
-} from '#/layouts/Drive/Categories/Category'
+import { ASSETS_MIME_TYPE } from '#/data/mimeTypes'
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
+import { useOffline } from '#/hooks/offlineHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
-import * as authProvider from '#/providers/AuthProvider'
-import * as backendProvider from '#/providers/BackendProvider'
-import * as modalProvider from '#/providers/ModalProvider'
-import * as textProvider from '#/providers/TextProvider'
-import type * as backend from '#/services/Backend'
+import { useFullUserSession } from '#/providers/AuthProvider'
+import { useLocalBackend } from '#/providers/BackendProvider'
+import { useSetCurrentDirectoryId } from '#/providers/DriveProvider'
+import { useSetModal } from '#/providers/ModalProvider'
+import { useText } from '#/providers/TextProvider'
+import type { AssetId } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
+import { memo, useTransition, type ReactNode } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { twJoin } from 'tailwind-merge'
-import { AnimatedBackground } from '../components/AnimatedBackground'
-import { useEventCallback } from '../hooks/eventCallbackHooks'
-
-import { useSetCurrentDirectoryId } from '../providers/DriveProvider'
-import { useCloudCategoryList, useLocalCategoryList } from './Drive/Categories/categoriesHooks'
+import { areCategoriesEqual, canTransferBetweenCategories, type Category } from './Category'
+import { useCloudCategoryList, useLocalCategoryList, useTransferBetweenCategories } from './hooks'
 
 /** Metadata for a categoryModule.categoryType. */
 interface CategoryMetadata {
@@ -48,12 +40,12 @@ interface CategoryMetadata {
 interface InternalCategorySwitcherItemProps extends CategoryMetadata {
   readonly currentCategory: Category
   readonly setCategoryId: (categoryId: Category['id']) => void
-  readonly badgeContent?: React.ReactNode
+  readonly badgeContent?: ReactNode
   readonly isDisabled: boolean
 }
 
 const CATEGORY_SWITCHER_VARIANTS = tv({
-  extend: ariaComponents.BUTTON_STYLES,
+  extend: BUTTON_STYLES,
   base: 'group opacity-50 transition-opacity group-hover:opacity-100 w-auto max-w-full',
   slots: {
     wrapper: 'w-full',
@@ -66,13 +58,13 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const { currentCategory, setCategoryId, badgeContent, isDisabled: isDisabledRaw } = props
   const { isNested = false, category, icon, label, buttonLabel, dropZoneLabel } = props
 
-  const [isTransitioning, startTransition] = React.useTransition()
+  const [isTransitioning, startTransition] = useTransition()
 
-  const { user } = authProvider.useFullUserSession()
-  const { unsetModal } = modalProvider.useSetModal()
-  const { getText } = textProvider.useText()
-  const localBackend = backendProvider.useLocalBackend()
-  const { isOffline } = offlineHooks.useOffline()
+  const { user } = useFullUserSession()
+  const { unsetModal } = useSetModal()
+  const { getText } = useText()
+  const localBackend = useLocalBackend()
+  const { isOffline } = useOffline()
   const setCurrentDirectoryId = useSetCurrentDirectoryId()
 
   const isCurrent = areCategoriesEqual(currentCategory, category)
@@ -111,7 +103,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   const isDropTarget =
     !areCategoriesEqual(currentCategory, category) &&
     canTransferBetweenCategories(currentCategory, category, user)
-  const acceptedDragTypes = isDropTarget ? [mimeTypes.ASSETS_MIME_TYPE] : []
+  const acceptedDragTypes = isDropTarget ? [ASSETS_MIME_TYPE] : []
 
   const onPress = useEventCallback(() => {
     if (error == null) {
@@ -128,19 +120,19 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
     }
   })
 
-  const onDrop = useEventCallback((event: aria.DropEvent) => {
+  const onDrop = useEventCallback((event: DropEvent) => {
     unsetModal()
     void Promise.all(
       event.items.flatMap(async (item) => {
         if (item.kind === 'text') {
-          const text = await item.getText(mimeTypes.ASSETS_MIME_TYPE)
+          const text = await item.getText(ASSETS_MIME_TYPE)
           const payload: unknown = JSON.parse(text)
           return Array.isArray(payload) ?
               payload.flatMap((key) =>
                 // This is SAFE, assuming only this app creates payloads with
                 // the specific mimetype above.
                 // eslint-disable-next-line no-restricted-syntax
-                typeof key === 'string' ? [key as backend.AssetId] : [],
+                typeof key === 'string' ? [key as AssetId] : [],
               )
             : []
         } else {
@@ -153,7 +145,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
   })
 
   const element = (
-    <aria.DropZone
+    <DropZone
       aria-label={dropZoneLabel}
       getDropOperation={(types) =>
         acceptedDragTypes.some((type) => types.has(type)) ? 'move' : 'cancel'
@@ -166,7 +158,7 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
         className="w-auto max-w-[calc(100%-24px)]"
         animationClassName="bg-invert rounded-full"
       >
-        <ariaComponents.Button
+        <Button
           size="medium"
           variant="custom"
           tooltip={tooltip}
@@ -188,20 +180,15 @@ function CategorySwitcherItem(props: InternalCategorySwitcherItemProps) {
             )
           }
         >
-          <ariaComponents.Text
-            disableLineHeightCompensation
-            weight="semibold"
-            color="current"
-            truncate="1"
-          >
+          <Text disableLineHeightCompensation weight="semibold" color="current" truncate="1">
             {label}
-          </ariaComponents.Text>
-        </ariaComponents.Button>
+          </Text>
+        </Button>
       </AnimatedBackground.Item>
       <div className="absolute left-full ml-2 hidden group-focus-visible:block">
         {getText('drop')}
       </div>
-    </aria.DropZone>
+    </DropZone>
   )
 
   return isNested ?
@@ -219,13 +206,13 @@ export interface CategorySwitcherProps {
 }
 
 /** A switcher to choose the currently visible assets table categoryModule.categoryType. */
-function CategorySwitcher(props: CategorySwitcherProps) {
+export const CategorySwitcher = memo(function CategorySwitcher(props: CategorySwitcherProps) {
   const { category, setCategoryId } = props
 
-  const { getText } = textProvider.useText()
+  const { getText } = useText()
   const [, setSearchParams] = useSearchParams()
 
-  const { isOffline } = offlineHooks.useOffline()
+  const { isOffline } = useOffline()
 
   const cloudCategories = useCloudCategoryList()
   const localCategories = useLocalCategoryList()
@@ -238,9 +225,9 @@ function CategorySwitcher(props: CategorySwitcherProps) {
   return (
     <div className="flex flex-col gap-2">
       <AnimatedBackground>
-        <ariaComponents.Text variant="subtitle" weight="semibold">
+        <Text variant="subtitle" weight="semibold">
           {getText('category')}
-        </ariaComponents.Text>
+        </Text>
 
         <div
           aria-label={getText('categorySwitcherMenuLabel')}
@@ -309,7 +296,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                 dropZoneLabel={getText('localCategoryDropZoneLabel')}
               />
 
-              <ariaComponents.Button
+              <Button
                 size="medium"
                 variant="icon"
                 extraClickZone="small"
@@ -339,8 +326,8 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                   dropZoneLabel={getText('localCategoryDropZoneLabel')}
                 />
 
-                <ariaComponents.DialogTrigger>
-                  <ariaComponents.Button
+                <DialogTrigger>
+                  <Button
                     size="medium"
                     variant="icon"
                     extraClickZone={false}
@@ -357,7 +344,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                       await Promise.resolve()
                     }}
                   />
-                </ariaComponents.DialogTrigger>
+                </DialogTrigger>
               </div>
             ))}
 
@@ -365,7 +352,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
             <div className="flex">
               <div className="ml-[15px] mr-1.5 rounded-full border-r border-primary/20" />
 
-              <ariaComponents.Button
+              <Button
                 size="medium"
                 variant="icon"
                 icon={FolderAddIcon}
@@ -379,13 +366,11 @@ function CategorySwitcher(props: CategorySwitcherProps) {
                 }}
               >
                 {getText('addLocalDirectory')}
-              </ariaComponents.Button>
+              </Button>
             </div>
           )}
         </div>
       </AnimatedBackground>
     </div>
   )
-}
-
-export default React.memo(CategorySwitcher)
+})

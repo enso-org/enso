@@ -1,5 +1,5 @@
 /** @file Types for `AssetsTable`. */
-import type { Category } from '#/layouts/Drive/Categories/Category'
+import type { Category } from '#/layouts/Drive/CategorySwitcher'
 import type Backend from '#/services/Backend'
 import type { AnyAsset, AssetId, DirectoryId } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'

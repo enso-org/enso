@@ -4,7 +4,7 @@ import invariant from 'tiny-invariant'
 
 import { Path } from 'enso-common/src/services/Backend'
 
-import type { Category } from '#/layouts/Drive/Categories/Category'
+import type { Category } from '#/layouts/Drive/CategorySwitcher'
 import { useFullUserSession } from '#/providers/AuthProvider'
 import { useBackend } from '#/providers/BackendProvider'
 import { useCurrentDirectoryId, useSetCurrentDirectoryId } from '#/providers/DriveProvider'
