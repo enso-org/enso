@@ -39,6 +39,7 @@
   anymore. Also unclosed text literals will be automatically closed.
 - [Disable heatmap and histogram viz][12475].
 - [Component Browser displays short summary of component's documentation][12459]
+- [Updated Top Bar actions menu and made zoom controls always visible.][12496]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -64,6 +65,7 @@
 [12420]: https://github.com/enso-org/enso/pull/12420
 [12475]: https://github.com/enso-org/enso/pull/12475
 [12459]: https://github.com/enso-org/enso/pull/12459
+[12496]: https://github.com/enso-org/enso/pull/12496
 
 #### Enso Standard Library
 
