@@ -31,22 +31,14 @@
  * `kind` field provides a unique string that can be used to brand the error in place of the
  * `internalCode`, when rethrowing the error.
  */
+import type * as loggerProvider from '#/providers/LoggerProvider'
 import * as amplify from '@aws-amplify/auth'
 import * as cognito from 'amazon-cognito-identity-js'
-import * as results from 'ts-results'
-
-import * as detect from 'enso-common/src/detect'
-
-import type * as loggerProvider from '#/providers/LoggerProvider'
-
 import type * as saveAccessToken from 'enso-common/src/accessToken'
+import * as detect from 'enso-common/src/detect'
 import * as dateTime from 'enso-common/src/utilities/data/dateTime'
-
-import * as service from '#/authentication/service'
-
-// =================
-// === Constants ===
-// =================
+import * as results from 'ts-results'
+import { toNestedAmplifyConfig, type AmplifyConfig } from './AmplifyConfig'
 
 /**
  * String used to identify the GitHub federated identity provider in AWS Amplify.
@@ -57,10 +49,6 @@ import * as service from '#/authentication/service'
 const GITHUB_PROVIDER = 'Github'
 /** One second, in milliseconds. */
 const SEC_MS = 1_000
-
-// ================
-// === UserInfo ===
-// ================
 
 // The names come from a third-party API and cannot be changed.
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -94,10 +82,6 @@ interface UserInfo {
   readonly id: undefined
   readonly attributes: UserAttributes
 }
-
-// ====================
-// === AmplifyError ===
-// ====================
 
 /**
  * Error thrown by the AWS Amplify library when an Amplify error occurs.
@@ -141,10 +125,6 @@ export function intoAmplifyErrorOrThrow(error: unknown): AmplifyError {
   }
 }
 
-// =================
-// === AuthError ===
-// =================
-
 /** Object returned by the AWS Amplify library when an auth error occurs. */
 interface AuthError {
   readonly name: string
@@ -159,10 +139,6 @@ function isAuthError(error: unknown): error is AuthError {
     return false
   }
 }
-
-// ====================
-// === CognitoError ===
-// ====================
 
 /** Internal IDs of Cognito errors that may occur when requesting a password reset. */
 export enum CognitoErrorType {
@@ -188,9 +164,7 @@ interface CognitoError {
   readonly message: string
 }
 
-/**
- * Return type for Confirm sign up endpoint
- */
+/** Return type for Confirm sign up endpoint. */
 export type ConfirmSignInReturn = Promise<
   results.Err<AmplifyError> | results.Ok<cognito.CognitoUser>
 >
@@ -264,10 +238,6 @@ export interface ISessionProvider {
   ) => ConfirmSignInReturn
 }
 
-// ===============
-// === Cognito ===
-// ===============
-
 /**
  * Thin wrapper around Cognito endpoints from the AWS Amplify library with error handling added.
  * This way, the methods don't throw all errors, but define exactly which errors they return.
@@ -278,7 +248,7 @@ export class Cognito implements ISessionProvider {
   constructor(
     private readonly logger: loggerProvider.Logger,
     private readonly supportsDeepLinks: boolean,
-    private readonly amplifyConfig: service.AmplifyConfig,
+    private readonly amplifyConfig: AmplifyConfig,
   ) {
     /**
      * Amplify expects `Auth.configure` to be called before any other `Auth` methods are
@@ -286,7 +256,7 @@ export class Cognito implements ISessionProvider {
      * object containing them, we ensure that `Auth.configure` is called before any other `Auth`
      * methods are called.
      */
-    const nestedAmplifyConfig = service.toNestedAmplifyConfig(amplifyConfig)
+    const nestedAmplifyConfig = toNestedAmplifyConfig(amplifyConfig)
     amplify.Auth.configure(nestedAmplifyConfig)
   }
 
@@ -630,10 +600,6 @@ export class Cognito implements ISessionProvider {
   }
 }
 
-// ===================
-// === UserSession ===
-// ===================
-
 /** User's session, provides information for identifying and authenticating the user. */
 export interface UserSession {
   /**
@@ -717,10 +683,6 @@ export function intoCurrentSessionErrorType(error: unknown): CognitoErrorType.no
   }
 }
 
-// ==============
-// === SignUp ===
-// ==============
-
 /** Format a username and password as an {@link amplify.SignUpParams}. */
 function intoSignUpParams(
   supportsDeepLinks: boolean,
@@ -787,10 +749,6 @@ export function intoSignUpErrorOrThrow(error: AmplifyError): SignUpError {
   }
 }
 
-// =====================
-// === ConfirmSignUp ===
-// =====================
-
 /** An error that may occur when confirming registration. */
 export interface ConfirmSignUpError extends CognitoError {
   readonly type: CognitoErrorType.userAlreadyConfirmed | CognitoErrorType.userNotFound
@@ -834,10 +792,6 @@ export function intoConfirmSignUpErrorOrThrow(error: AmplifyError): ConfirmSignU
   }
 }
 
-// ==========================
-// === SignInWithPassword ===
-// ==========================
-
 /** An error that may occur when signing in with a password. */
 export interface SignInWithPasswordError extends CognitoError {
   readonly type:
@@ -873,10 +827,6 @@ export function intoSignInWithPasswordErrorOrThrow(error: AmplifyError): SignInW
       throw error
   }
 }
-
-// ======================
-// === ForgotPassword ===
-// ======================
 
 /** An error that may occur when requesting a password reset. */
 export interface ForgotPasswordError extends CognitoError {
@@ -923,10 +873,6 @@ export function intoForgotPasswordErrorOrThrow(error: AmplifyError): ForgotPassw
   }
 }
 
-// ============================
-// === ForgotPasswordSubmit ===
-// ============================
-
 /** An error that may occur when resetting a password. */
 export interface ForgotPasswordSubmitError extends CognitoError {
   readonly type: CognitoErrorType.amplifyError | CognitoErrorType.authError
@@ -953,10 +899,6 @@ export function intoForgotPasswordSubmitErrorOrThrow(error: unknown): ForgotPass
     throw error
   }
 }
-
-// ======================
-// === ChangePassword ===
-// ======================
 
 /**
  * A wrapper around the Amplify "current authenticated user" endpoint that converts known errors
