@@ -136,6 +136,7 @@ make_fill_default_value_selector column_source=Nothing display:Display=..Always 
 make_filter_condition_selector table display:Display=..Always cache=Nothing =
     column_value_type = get_column_value_type table cache
     column_chooser = make_column_ref_by_name_selector_for_type table display add_nothing=False value_type=column_value_type
+    regex_chooser = make_column_ref_by_name_selector table display add_regex=True
 
     is_all = include_all column_value_type
     include_text = is_all || column_value_type.is_text
@@ -159,6 +160,7 @@ make_filter_condition_selector table display:Display=..Always cache=Nothing =
             builder.append (Option "Ends With" "..Ends_With" [["suffix", column_chooser]])
             builder.append (Option "Contains" "..Contains" [["substring", column_chooser]])
             builder.append (Option "Like" "..Like" [["pattern", column_chooser]])
+            builder.append (Option "Regex Match" "..Regex_Match" [["pattern", regex_chooser]])
 
         builder.append (Option "Is Nothing" "..Is_Nothing")
         builder.append (Option "Is Not Nothing" "..Not_Nothing")

@@ -1,7 +1,6 @@
 /** @file An interactive button indicating the status of a project. */
 import * as reactQuery from '@tanstack/react-query'
 
-import ArrowUpIcon from '#/assets/arrow_up.svg'
 import PlayIcon from '#/assets/play.svg'
 import StopIcon from '#/assets/stop.svg'
 
@@ -83,7 +82,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
 
   const openProject = projectHooks.useOpenProject()
   const closeProject = projectHooks.useCloseProject()
-  const openProjectTab = projectHooks.useOpenEditor()
 
   const { user } = authProvider.useFullUserSession()
   const { getText } = textProvider.useText()
@@ -163,9 +161,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
   const doCloseProject = useEventCallback(() => {
     closeProject({ ...item, type: backend.type })
   })
-  const doOpenProjectTab = useEventCallback(() => {
-    openProjectTab(item.id)
-  })
 
   const getTooltip = (defaultTooltip: string) =>
     disabledTooltip ?? userOpeningProjectTooltip ?? defaultTooltip
@@ -241,20 +236,6 @@ export default function ProjectIcon(props: ProjectIconProps) {
               )}
             />
           </div>
-
-          {!isOtherUserUsingProject && !isRunningInBackground && (
-            <ariaComponents.Button
-              size="large"
-              variant="icon"
-              extraClickZone="xsmall"
-              icon={ArrowUpIcon}
-              aria-label={getTooltip(getText('openInEditor'))}
-              isDisabled={isDisabled}
-              tooltipPlacement="right"
-              onPress={doOpenProjectTab}
-              testId="switch-to-project"
-            />
-          )}
         </div>
       )
   }

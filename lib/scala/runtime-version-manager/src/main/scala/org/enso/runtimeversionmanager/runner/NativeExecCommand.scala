@@ -15,7 +15,7 @@ case class NativeExecCommand(executablePath: Path) extends ExecCommand {
     engine: Engine,
     jvmSettings: JVMSettings
   ): Seq[String] =
-    Seq("-Dcom.oracle.graalvm.isaot=true")
+    Seq()
 
   override def javaHome: Option[String] = None
 }

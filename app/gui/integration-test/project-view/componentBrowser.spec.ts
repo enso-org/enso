@@ -19,7 +19,6 @@ async function expectAndCancelBrowser(
   const nodeCount = await locate.graphNode(page).count()
   await expect(locate.componentBrowser(page)).toExist()
   await expect(locate.componentBrowserEntry(page)).toExist()
-  await expect(locate.rightDock(page)).toBeVisible()
   await expect(page.locator('[data-transitioning]')).toHaveCount(0)
   if (expectedSelfArgument != null)
     await expect(locate.componentBrowser(page)).toHaveAttribute(
@@ -206,16 +205,36 @@ test('Filtering list', async ({ page }) => {
   await expect(page.locator('.groupEntry')).toHaveText(['all (1)', 'Input (1)'])
 })
 
+test('Navigating components', async ({ page }) => {
+  await actions.goToGraph(page)
+  await locate.addNewNodeButton(page).click()
+  await expect(locate.componentBrowserSelectedEntry(page)).toExist()
+  await expect(locate.componentBrowserSelectedEntry(page)).toHaveText('Data.read')
+  await expect(page.locator('.documentationContent > p')).toHaveText([
+    'Reads a file into Enso.',
+    'Returns: Any',
+  ])
+  await page.keyboard.press('ArrowDown')
+  await expect(locate.componentBrowserSelectedEntry(page)).toHaveText('Data.read_text')
+  await expect(page.locator('.documentationContent > p')).toHaveText([
+    'Open and read the file at the provided path.',
+    'Returns: Text',
+  ])
+  await page.getByRole('button', { name: 'Show Help' }).click()
+  await expect(locate.rightDock(page)).toBeVisible()
+})
+
 test('Navigating groups', async ({ page }) => {
   await actions.goToGraph(page)
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowserSelectedEntry(page)).toExist()
-  await expect(page.locator('.groupEntry')).toHaveText(['all', 'Input', 'Output'])
-  await expect(locate.componentBrowserEntryByLabel(page, 'Data.read')).toExist()
-  await expect(locate.componentBrowserEntryByLabel(page, 'Data.every_tag')).toExist()
+  await expect(page.locator('.groupEntry')).toHaveText(['suggestions', 'Input', 'Output'])
+  await expect(locate.componentBrowserEntry(page)).toHaveText(['Data.read', 'Data.read_text'])
 
-  // Hover first group: `Data.read` is filtered out
+  // Hover first group
   await page.locator('.groupEntry').nth(1).hover()
+  // Wait for view update: "Input" group have more entries than "suggestions"
+  await expect(locate.componentBrowserEntry(page)).toHaveCountGreaterThan(2)
   await expect(locate.componentBrowserEntryByLabel(page, 'Data.read')).toExist()
   await expect(locate.componentBrowserEntryByLabel(page, 'Data.every_tag')).toHaveCount(0)
   await expect(locate.componentBrowserSelectedEntry(page)).toExist() // component list didn't lose focus.

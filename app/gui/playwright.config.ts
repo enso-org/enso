@@ -156,7 +156,7 @@ export default defineConfig({
       },
       command: `corepack pnpm build && corepack pnpm exec vite preview --port ${ports.projectView} --strictPort`,
       // Build from scratch apparently can take a while on CI machines.
-      timeout: 240 * 1000,
+      timeout: 480 * 1000,
       port: ports.projectView,
       // We use our special, mocked version of server, thus do not want to re-use user's one.
       reuseExistingServer: false,
@@ -165,8 +165,8 @@ export default defineConfig({
       command:
         isCI || isProd ?
           `corepack pnpm exec vite -c vite.test.config.ts build && vite -c vite.test.config.ts preview --port ${ports.dashboard} --strictPort`
-        : `NODE_ENV=test corepack pnpm exec vite -c vite.test.config.ts --port ${ports.dashboard}`,
-      timeout: 240 * 1000,
+        : `cross-env NODE_ENV=test corepack pnpm exec vite -c vite.test.config.ts --port ${ports.dashboard}`,
+      timeout: 480 * 1000,
       port: ports.dashboard,
       reuseExistingServer: false,
     },

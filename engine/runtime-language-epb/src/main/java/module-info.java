@@ -1,5 +1,6 @@
 open module org.enso.runtime.language.epb {
   requires java.logging;
+  requires org.graalvm.polyglot;
   requires org.graalvm.truffle;
   requires org.enso.ydoc.polyfill;
 
