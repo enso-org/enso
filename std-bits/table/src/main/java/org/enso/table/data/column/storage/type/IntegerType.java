@@ -1,9 +1,14 @@
 package org.enso.table.data.column.storage.type;
 
 import java.math.BigInteger;
+import org.enso.base.polyglot.NumericConverter;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.BuilderForType;
+import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.problems.ProblemAggregator;
 
-public record IntegerType(Bits bits) implements StorageType {
+public record IntegerType(Bits bits) implements StorageType<Long> {
   public static final IntegerType INT_64 = new IntegerType(Bits.BITS_64);
   public static final IntegerType INT_32 = new IntegerType(Bits.BITS_32);
   public static final IntegerType INT_16 = new IntegerType(Bits.BITS_16);
@@ -85,10 +90,29 @@ public record IntegerType(Bits bits) implements StorageType {
     return INT_64;
   }
 
-  public ColumnStorage<Long> asTypedStorage(ColumnStorage<?> storage) {
+  @Override
+  public boolean isOfType(StorageType<?> other) {
+    return other instanceof IntegerType;
+  }
+
+  @Override
+  public Long valueAsType(Object value) {
+    if (NumericConverter.isCoercibleToLong(value)) {
+      return NumericConverter.coerceToLong(value);
+    }
+    return null;
+  }
+
+  @Override
+  public BuilderForType<Long> makeBuilder(
+      long initialCapacity, ProblemAggregator problemAggregator) {
+    return Builder.getForLong(this, initialCapacity, problemAggregator);
+  }
+
+  @Override
+  public ColumnLongStorage asTypedStorage(ColumnStorage<?> storage) {
     if (storage.getType() instanceof IntegerType) {
-      @SuppressWarnings("unchecked")
-      var output = (ColumnStorage<Long>) storage;
+      var output = (ColumnLongStorage) storage;
       return output;
     }
     throw new IllegalArgumentException("Storage is not of IntegerType");

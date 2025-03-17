@@ -90,6 +90,8 @@ main =
     aggregated = data.aggregate
     autoscoped = data.aggregate [..Group_By]
     selected = data.select_columns
+
+# To test for regressions in #12476, this line is really long and we test that the code editor doesn't resize to fit it. This line is really really long. This line is really REALLY long.
 `
 
 const fileTree = {

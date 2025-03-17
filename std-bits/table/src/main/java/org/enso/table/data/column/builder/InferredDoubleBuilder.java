@@ -138,12 +138,12 @@ public final class InferredDoubleBuilder extends DoubleBuilder implements Builde
   }
 
   @Override
-  public boolean canRetypeTo(StorageType type) {
+  public boolean canRetypeTo(StorageType<?> type) {
     return type instanceof BigDecimalType;
   }
 
   @Override
-  public Builder retypeTo(StorageType type) {
+  public Builder retypeTo(StorageType<?> type) {
     if (type instanceof BigDecimalType) {
       Builder res = Builder.getForBigDecimal(data.length);
       for (int i = 0; i < currentSize; i++) {

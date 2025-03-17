@@ -445,6 +445,12 @@ add_expression_specs suite_builder detailed setup =
             expression_test "text_replace([C], regex('L{2}'), '')" ["Hello", "World", "Hello World!", "", Nothing]
             expression_test "text_replace([C], r/l{2}/, '')" ["Heo", "World", "Heo World!", "", Nothing]
 
+        if setup.is_database.not then specify_test "should be able to use regex_match" group_builder expression_test->
+            ## column_c = ["C", ["Hello", "World", "Hello World!", "", Nothing]]
+            expression_test "regex_match([C], regex('.*l{2}.*'))" [True, False, True, False, Nothing]
+            expression_test "regex_match([C], regex('.*L{2}.*'))" [False, False, False, False, Nothing]
+            expression_test "regex_match([C], r/.*l{2}.*/)" [True, False, True, False, Nothing]
+
         if setup.is_database.not then specify_test "can use forward slash in regex literal by escaping it" group_builder expression_test->
             expression_test "text_replace([D], r/\//, '*')" ["A*B", "C**D", "E\F", "", Nothing]
             expression_test "text_replace([D], regex('/'), '*')" ["A*B", "C**D", "E\F", "", Nothing]

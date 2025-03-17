@@ -334,6 +334,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     .err(stdErr)
     .in(stdIn)
     .options(extraOptions)
+    .disableLinting(true)
     .enableRuntimeServerInfoKey(RuntimeServerInfo.ENABLE_OPTION)
     .messageTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.toString == RuntimeServerInfo.URI) {
@@ -399,7 +400,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     localLibraryManager      = localLibraryManager,
     editionReferenceResolver = editionReferenceResolver,
     editionManager           = editionManager,
-    localLibraryProvider     = DefaultLocalLibraryProvider.make(libraryLocations),
+    localLibraryProvider =
+      DefaultLocalLibraryProvider.make(libraryLocations, HostEnsoUtils.isAot()),
     publishedLibraryCache =
       PublishedLibraryCache.makeReadOnlyCache(libraryLocations),
     installerConfig = LibraryInstallerConfig(

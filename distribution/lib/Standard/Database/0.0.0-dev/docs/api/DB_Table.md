@@ -35,6 +35,7 @@
     - first_row self -> Standard.Base.Any.Any
     - first_value self -> Standard.Base.Any.Any
     - format self columns:(Standard.Base.Any.Any|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Text.Regex.Regex|Standard.Table.Value_Type.By_Type) format:(Standard.Base.Data.Text.Text|Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter|Standard.Database.DB_Column.DB_Column)= locale:Standard.Base.Data.Locale.Locale= error_on_missing_columns:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+    - generate_rows self over:Standard.Table.Generate_Rows_Range.Generate_Rows_Range= as:Standard.Base.Data.Text.Text= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
     - get self selector:(Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Text.Text)= ~if_missing:Standard.Base.Any.Any= -> (Standard.Database.DB_Column.DB_Column|Standard.Base.Any.Any)
     - get_primary_key self -> Standard.Base.Any.Any
     - get_row self index:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> (Standard.Table.Row.Row|Standard.Base.Any.Any)

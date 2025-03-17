@@ -83,16 +83,14 @@ import type {
   ICellEditorComp,
   IHeaderComp,
   IHeaderParams,
+  IServerSideDatasource,
   MenuItemDef,
   ProcessDataFromClipboardParams,
   RowDataUpdatedEvent,
   RowEditingStartedEvent,
   RowEditingStoppedEvent,
-  RowHeightParams,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
-import * as iter from 'enso-common/src/utilities/data/iter'
-import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
 import {
   Component,
   type ComponentInstance,
@@ -110,8 +108,6 @@ import {
   tableToEnsoExpression,
 } from '../GraphEditor/widgets/WidgetTableEditor/tableParsing'
 
-const DEFAULT_ROW_HEIGHT = 22
-
 const props = defineProps<{
   rowData: TData[]
   columnDefs: (ColDef<TData, TValue> | ColGroupDef<TData>)[] | null
@@ -124,6 +120,9 @@ const props = defineProps<{
   suppressMoveWhenColumnDragging?: boolean
   textFormatOption?: TextFormatOptions
   processDataFromClipboard?: (params: ProcessDataFromClipboardParams<TData>) => string[][] | null
+  datasource?: IServerSideDatasource
+  rowCount?: number
+  isServerSideModel?: boolean
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -145,24 +144,7 @@ function onGridReady(event: GridReadyEvent<TData>) {
   gridApi.value = event.api
 }
 
-function getRowHeight(params: RowHeightParams): number {
-  if (props.textFormatOption === 'off') {
-    return DEFAULT_ROW_HEIGHT
-  }
-  const rowData = Object.values(params.data)
-  const textValues = rowData.filter((r): r is string => typeof r === 'string')
-
-  if (!textValues.length) {
-    return DEFAULT_ROW_HEIGHT
-  }
-
-  const returnCharsCount = iter.map(textValues, (text) =>
-    iter.count(text.matchAll(LINE_BOUNDARIES)),
-  )
-
-  const maxReturnCharsCount = iter.reduce(returnCharsCount, Math.max, 0)
-  return (maxReturnCharsCount + 1) * DEFAULT_ROW_HEIGHT
-}
+const rowModelType = computed(() => (props.isServerSideModel ? 'serverSide' : 'clientSide'))
 
 watch(
   () => props.textFormatOption,
@@ -360,8 +342,10 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
       ref="grid"
       class="ag-theme-alpine inner"
       :headerHeight="26"
-      :getRowHeight="getRowHeight"
-      :rowData="rowData"
+      :rowModelType="rowModelType"
+      :serverSideDatasource="datasource"
+      :rowCount="rowCount"
+      :rowData="rowModelType === 'clientSide' ? rowData : null"
       :columnDefs="columnDefs"
       :defaultColDef="defaultColDef"
       :copyHeadersToClipboard="true"

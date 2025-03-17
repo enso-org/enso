@@ -91,6 +91,7 @@ from project.System.File_Format import Auto_Detect, File_Format
 @format File_Format.default_widget
 read : Text | URI | File -> File_Format -> Problem_Behavior -> Any ! File_Error
 read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) = case path of
+    _ : Vector -> Error.throw (Illegal_Argument.Error "Data.read cannot be used with a Vector. Please use Data.read_many.")
     _ : Text -> if Data_Read_Helpers.looks_like_uri path then Data_Read_Helpers.fetch_following_data_links path format=format else
         read (File.new path) format on_problems
     uri : URI ->
