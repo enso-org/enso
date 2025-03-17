@@ -451,6 +451,10 @@
         ]
     },
     {
+        "name": "java.security.KeyPair",
+        "allPublicMethods": true
+    },
+    {
         "name": "javax.net.ssl.TrustManagerFactory",
         "methods": [
             {

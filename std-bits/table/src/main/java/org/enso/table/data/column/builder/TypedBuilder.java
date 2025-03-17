@@ -7,17 +7,17 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 
 public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T> {
-  private final StorageType storageType;
+  private final StorageType<?> storageType;
   protected T[] data;
   protected int currentSize = 0;
 
-  protected TypedBuilder(StorageType storageType, T[] data) {
+  protected TypedBuilder(StorageType<?> storageType, T[] data) {
     this.data = data;
     this.storageType = storageType;
   }
 
   @Override
-  public StorageType getType() {
+  public StorageType<?> getType() {
     return storageType;
   }
 
@@ -29,12 +29,12 @@ public abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderFor
   }
 
   @Override
-  public boolean canRetypeTo(StorageType type) {
+  public boolean canRetypeTo(StorageType<?> type) {
     return false;
   }
 
   @Override
-  public Builder retypeTo(StorageType type) {
+  public Builder retypeTo(StorageType<?> type) {
     throw new UnsupportedOperationException();
   }
 

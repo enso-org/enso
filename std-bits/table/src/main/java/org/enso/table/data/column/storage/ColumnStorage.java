@@ -8,7 +8,7 @@ public interface ColumnStorage<T> extends Iterable<T> {
   long getSize();
 
   /* Gets the value type of the storage. */
-  StorageType getType();
+  StorageType<T> getType();
 
   /**
    * Checks whether the value at idx is Nothing.

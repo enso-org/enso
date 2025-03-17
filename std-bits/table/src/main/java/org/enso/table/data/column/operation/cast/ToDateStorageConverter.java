@@ -13,7 +13,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 
 public class ToDateStorageConverter implements StorageConverter<LocalDate> {
   @Override
-  public boolean canApply(StorageType sourceType) {
+  public boolean canApply(StorageType<?> sourceType) {
     return sourceType instanceof DateTimeType
         || sourceType instanceof AnyObjectType
         || sourceType instanceof NullType;

@@ -219,7 +219,7 @@ function ensureSelected() {
   }
 }
 
-const outputHovered = computed(() => (graph.nodeOutputHoverAnimations.get(nodeId.value) ?? 0) !== 0)
+const outputHovered = computed(() => graph.nodeOutputVisible.get(nodeId.value) ?? false)
 const keyboard = injectKeyboard()
 
 const visualizationWidth = computed(() => props.node.vis?.width ?? null)
@@ -479,9 +479,6 @@ onWindowBlur(() => {
     :class="nodeClass"
     :data-node-id="nodeId"
     @pointerdown.stop
-    @pointerenter="(graph.setNodeHovered(nodeId, true), updateNodeHover($event))"
-    @pointerleave="(graph.setNodeHovered(nodeId, false), updateNodeHover(undefined))"
-    @pointermove="updateNodeHover"
   >
     <div class="binding" v-text="node.pattern?.code()" />
     <button
@@ -556,6 +553,9 @@ onWindowBlur(() => {
         :style="contentNodeStyle"
         v-on="dragPointer.events"
         @click="handleNodeClick"
+        @pointerenter="(graph.setNodeHovered(nodeId, true), updateNodeHover($event))"
+        @pointerleave="(graph.setNodeHovered(nodeId, false), updateNodeHover(undefined))"
+        @pointermove="updateNodeHover"
       >
         <ComponentWidgetTree
           :ast="props.node.innerExpr"
@@ -580,6 +580,7 @@ onWindowBlur(() => {
       class="afterNode shiftWhenMenuVisible"
       :message="visibleMessage.text"
       :type="visibleMessage.type"
+      :outputPortHovered="outputHovered"
     />
     <div class="nodeBackground"></div>
   </div>
@@ -665,7 +666,9 @@ onWindowBlur(() => {
 }
 .shiftWhenMenuVisible {
   left: 0;
-  transition: left 0.1s ease-out;
+  transition:
+    left 0.1s ease-out,
+    opacity 0.2s ease;
 }
 .menuVisible .shiftWhenMenuVisible {
   left: 40px;
