@@ -15,7 +15,8 @@ const emit = defineEmits<{
   portClick: [event: PointerEvent, portId: AstId]
   portDoubleClick: [event: PointerEvent, portId: AstId]
   newNodeClick: [portId: AstId]
-  'update:hoverAnim': [progress: number]
+  'update:visible': [hovered: boolean]
+  'update:animation': [progress: number]
 }>()
 
 const graph = useGraphStore()
@@ -85,7 +86,8 @@ const portsVisible = computed(
 
 const portsHoverAnimation = useApproach(() => (portsVisible.value ? 1 : 0), 50, 0.01)
 
-watchEffect(() => emit('update:hoverAnim', portsHoverAnimation.value))
+watchEffect(() => emit('update:visible', portsVisible.value))
+watchEffect(() => emit('update:animation', portsHoverAnimation.value))
 
 const hoverAnimations = new Map<AstId, [ReturnType<typeof useApproach>, EffectScope]>()
 watchEffect(() => {

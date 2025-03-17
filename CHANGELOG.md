@@ -43,6 +43,8 @@
 - [Disable heatmap and histogram viz][12475].
 - [Component Browser displays short summary of component's documentation][12459]
 - [Fixed color picker for selected nodes][12508]
+- [Warning and Error messages does not obstruct output port][12482] - they
+  become semi-transparent on port hover and pass all mouse interactions.
 - [For some types, Component Browser display special "suggestions" group][12477]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
@@ -71,6 +73,7 @@
 [12475]: https://github.com/enso-org/enso/pull/12475
 [12459]: https://github.com/enso-org/enso/pull/12459
 [12508]: https://github.com/enso-org/enso/pull/12508
+[12482]: https://github.com/enso-org/enso/pull/12482
 [12477]: https://github.com/enso-org/enso/pull/12477
 
 #### Enso Standard Library
