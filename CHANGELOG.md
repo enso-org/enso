@@ -39,6 +39,7 @@
   anymore. Also unclosed text literals will be automatically closed.
 - [Disable heatmap and histogram viz][12475].
 - [Component Browser displays short summary of component's documentation][12459]
+- [Fixed color picker for selected nodes][12508]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -64,6 +65,7 @@
 [12420]: https://github.com/enso-org/enso/pull/12420
 [12475]: https://github.com/enso-org/enso/pull/12475
 [12459]: https://github.com/enso-org/enso/pull/12459
+[12508]: https://github.com/enso-org/enso/pull/12508
 
 #### Enso Standard Library
 
