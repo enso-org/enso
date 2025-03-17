@@ -102,10 +102,10 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger>
     return cachedMaxPrecisionStored;
   }
 
-  private StorageType inferredType = null;
+  private StorageType<?> inferredType = null;
 
   @Override
-  public StorageType inferPreciseType() {
+  public StorageType<?> inferPreciseType() {
     if (inferredType == null) {
       boolean allFitInLong = true;
       int visitedCount = 0;
@@ -132,8 +132,8 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger>
   }
 
   @Override
-  public StorageType inferPreciseTypeShrunk() {
-    StorageType preciseType = inferPreciseType();
+  public StorageType<?> inferPreciseTypeShrunk() {
+    StorageType<?> preciseType = inferPreciseType();
     if (preciseType instanceof IntegerType) {
       return findSmallestIntegerTypeThatFits();
     }
@@ -141,7 +141,7 @@ public class BigIntegerStorage extends SpecializedStorage<BigInteger>
     return preciseType;
   }
 
-  private StorageType findSmallestIntegerTypeThatFits() {
+  private StorageType<?> findSmallestIntegerTypeThatFits() {
     // This method assumes that all values _do_ fit in some integer type.
     assert inferredType instanceof IntegerType;
 
