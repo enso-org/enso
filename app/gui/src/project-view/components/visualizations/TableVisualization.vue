@@ -450,6 +450,20 @@ function getFilterOptions(valueType: string) {
   }
 }
 
+function getCellDataType(valueType: string) {
+  if (valueType === 'Date') {
+    return 'date'
+  } else if (isNumericType(valueType)) {
+    return 'number'
+  } else if (valueType === 'Char') {
+    return 'text'
+  } else if (valueType === 'Boolean') {
+    return 'boolean'
+  } else {
+    return false
+  }
+}
+
 /**
  * Generates the column definition for the table vizulization, including displaying the data value type and
  * data quality indicators.
@@ -470,6 +484,7 @@ function toField(
   const icon = valueType ? getValueTypeIcon(valueType.constructor) : null
   const filterType = valueType ? getFilterType(valueType.constructor) : null
   const filterOptions = valueType ? getFilterOptions(valueType.constructor) : null
+  const cellValueType = valueType ? getCellDataType(valueType.constructor) : false
 
   const dataQualityMetrics =
     typeof props.data === 'object' && 'data_quality_metrics' in props.data ?
@@ -520,6 +535,7 @@ function toField(
       total: typeof props.data === 'object' ? props.data.all_rows_count : 0,
       showDataQuality,
     },
+    cellDataType: cellValueType,
   }
 }
 
