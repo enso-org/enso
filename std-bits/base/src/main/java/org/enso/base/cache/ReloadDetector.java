@@ -6,12 +6,20 @@ import org.enso.base.polyglot.EnsoMeta;
 import org.graalvm.polyglot.Value;
 
 /**
- * Detects that the reload button has been pressed.
+ * Register caches so they can be cleared when the reload button is pressed.
  *
- * <p>.hasReloadOccurred() returns true if the reload button was pressed since the last call to
- * .hasReloadOccurred().
+ * Cache clearing does not happen automatically in the background. A cache must
+ * implement HasClearableCache, and then poll using
+ * ReloadDetector.INSTANCE.clearOnReload(this), which will invoke the
+ * clearCache() callback if a reload has just happenend.
  *
- * <p>This uses a `Managed_Resource` (created in eval'd Enso code) that is cleared on reload.
+ * A separate ReloadSentinel is created for each registration. The sentinel's
+ * hasReloadOccurred() method will return true exactly one time, for that cache,
+ * after a reload has occurred.
+ *
+ * If clearOnReload() is called on an object that wasn't registered, an
+ * exception is thrown. A cache object that doesn't know if it was registered
+ * can safely call clearOnReloadIfRegistered() on itself in this case.
  */
 public class ReloadDetector {
   public static final ReloadDetector INSTANCE = new ReloadDetector();
@@ -20,21 +28,6 @@ public class ReloadDetector {
 
   public void register(HasClearableCache o) {
     registrations.put(o, new ReloadSentinel());
-  }
-
-  private ReloadSentinel getSentinel(HasClearableCache o) {
-    if (!registrations.containsKey(o)) {
-      throw new HasClearableCacheNotRegisteredException("Clearable cache object is not registered: " + o);
-    }
-    return registrations.get(o);
-  }
-
-  public boolean hasReloadOccurred(HasClearableCache o) {
-    return getSentinel(o).hasReloadOccurred();
-  }
-
-  public void simulateReloadTestOnly(HasClearableCache o) {
-    getSentinel(o).simulateReloadTestOnly();
   }
 
   public void clearOnReload(HasClearableCache o) {
@@ -49,10 +42,29 @@ public class ReloadDetector {
     }
   }
 
+  public void simulateReloadTestOnly(HasClearableCache o) {
+    getSentinel(o).simulateReloadTestOnly();
+  }
+
+  private ReloadSentinel getSentinel(HasClearableCache o) {
+    if (!registrations.containsKey(o)) {
+      throw new HasClearableCacheNotRegisteredException("Clearable cache object is not registered: " + o);
+    }
+    return registrations.get(o);
+  }
+
   public interface HasClearableCache {
     void clearCache();
   }
 
+  /**
+   * Detects that the reload button has been pressed.
+   *
+   * <p>.hasReloadOccurred() returns true if the reload button was pressed since the last call to
+   * .hasReloadOccurred().
+   *
+   * <p>This uses a `Managed_Resource` (created in eval'd Enso code) that is cleared on reload.
+   */
   private static class ReloadSentinel {
     private Value ensoReloadSentinel;
 
