@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
 
 import Standard.Table.Row.Row
-from Standard.Table import Column, Excel_Workbook, Table, Value_Type
+from Standard.Table import Column, Excel_Workbook, Table, Value_Type, Sort_Column
 
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
@@ -32,12 +32,12 @@ prepare_visualization y max_rows=1000 = if y.is_error then (make_json_for_error 
         v : Row -> make_json_for_row v
         t : Table ->
             all_rows_count = t.row_count
-            make_json_for_table t max_rows all_rows_count True False
+            make_json_for_table t max_rows all_rows_count False
         c : Column -> prepare_visualization c.to_table max_rows
         t : DB_Table ->
             dataframe = t.read (..First max_rows)
             all_rows_count = t.row_count
-            make_json_for_table dataframe max_rows all_rows_count True True
+            make_json_for_table dataframe max_rows all_rows_count True
         c : DB_Column -> prepare_visualization c.to_table max_rows
         f : Function ->
             pairs = [['_display_text_', '[Function '+f.to_text+']']]
@@ -191,18 +191,18 @@ make_json_for_xml_element xml_element max_items type:Text="XML_Element" =
      to display.
    - all_rows_count: the number of all rows in the underlying data, useful if
      only a fragment is displayed.
-make_json_for_table : Table -> Integer -> Integer -> Boolean -> Boolean -> JS_Object
-make_json_for_table dataframe max_rows all_rows_count include_index_col is_db_table =
+make_json_for_table : Table -> Integer -> Integer -> Boolean -> JS_Object
+make_json_for_table dataframe max_rows all_rows_count is_db_table =
     act_max = if max_rows < all_rows_count then max_rows else all_rows_count
     get_vector c         = Warning.set (Vector.new act_max i-> make_json_for_value (c.get i)) []
     columns              = dataframe.columns
     header               = ["header", columns.map .name]
     value_type           = ["value_type", columns.map .value_type]
-    data                 = ["data",   columns.map get_vector]
     all_rows             = ["all_rows_count", all_rows_count]
-    has_index_col        = ["has_index_col", include_index_col]
+    has_index_col        = ["has_index_col", True]
     links                = ["get_child_node_action", "get_row"]
     child_label          = ["child_label", "row"]
+    data                 = if is_db_table then columns.map get_vector else Nothing
     requires_number_formatting = ["requires_number_format", columns.map .requires_numeric_formatter_check]
     data_quality_metrics = if is_db_table then [] else
         number_nothing = JS_Object.from_pairs [["name", "Count nothings"], ["percentage_value", columns.map .count_nothing]]
@@ -211,8 +211,98 @@ make_json_for_table dataframe max_rows all_rows_count include_index_col is_db_ta
         number_non_triv = JS_Object.from_pairs [["name", "Count non trivial whitespace" + sampled_label], ["percentage_value", columns.map .count_non_trivial_whitespace]]
         JS_Object.from_pairs
         [number_nothing, number_untrimmed, number_non_triv]
-    pairs                = [header, value_type, data, all_rows, has_index_col, links, ["data_quality_metrics", data_quality_metrics] ,["type", "Table"], child_label, requires_number_formatting]
+    pairs                = [header, value_type, ["data", data], all_rows, has_index_col, links, ["data_quality_metrics", data_quality_metrics] ,["type", "Table"], child_label, ["is_using_server_sort_and_filter", is_db_table.not], requires_number_formatting]
     JS_Object.from_pairs pairs
+
+## PRIVATE
+
+   gets the distinct values of a column, used for filter options 
+
+   Arguments:
+   - table: table containing columns 
+   - column_index: the index of the column to get the distinct values for
+
+get_distinct_values_for_column : Table -> Integer -> JS_Object
+get_distinct_values_for_column table column_index =
+    column = table.at column_index
+    values = column.to_vector.distinct
+    result = JS_Object.from_pairs [["distinct_vals", values]]
+    result.to_text
+
+## PRIVATE
+
+   applies the sort model to the table.
+
+   Arguments:
+   - x: table to sort
+   - sort_col_index_list: indexes of columns to sort
+   - sort_direction_list: list of sort directions 1 for ascending -1 for descending
+
+apply_sort_to_table : Table -> Vector -> Vector -> Table
+apply_sort_to_table table sort_col_index_list sort_direction_list =
+    parse_direction d = if d == -1 then Sort_Direction.Descending else Sort_Direction.Ascending
+    get_pattern i = (Sort_Column.Index (sort_col_index_list.get i) (parse_direction (sort_direction_list.get i)))
+    sort_pattern = ((0.up_to sort_col_index_list.length).map idx-> get_pattern idx)
+    table.sort sort_pattern
+
+## PRIVATE
+
+   applies one filter to the table.
+
+   Arguments:
+   - table: table to sort
+   - filter_col: the column index to filter
+   - filter_action: filter action
+   - filter_val: values to filter
+
+apply_single_filter_to_table : Table -> Text -> Filter_Condition -> Any -> Table
+apply_single_filter_to_table table filter_col filter_action filter_val =
+    case filter_action of
+      Filter_Condition.Is_In _ _ -> if filter_val.length > 0 then table.filter (filter_col+1) (Filter_Condition.Is_In filter_val) else table.filter filter_col (Filter_Condition.Is_In [""])
+      _ -> table.filter (filter_col+1) (filter_action (filter_val)) 
+
+## PRIVATE
+
+   applies the filter model to the table.
+
+   Arguments:
+   - table: table to sort
+   - i: initially 0 and incremented for number of filters
+   - filter_col: indexes of columns with sorts applies
+   - filter_action: list of filter actions 
+   - filter_val: values to filter
+
+apply_filter_to_table : Table -> Integer -> Vector -> Vector -> Vector -> Table
+apply_filter_to_table table i filter_col filter_action filter_val = 
+    if i == filter_col.length then table else
+        col = filter_col.get i
+        action = filter_action.get i
+        val = filter_val.get i
+        filtered_table = apply_single_filter_to_table table col action val
+        @Tail_Call apply_filter_to_table filtered_table i+1 filter_col filter_action filter_val
+
+## PRIVATE
+
+   Prepares the row data table for visualizations using the server side row model.
+
+   Arguments:
+   - start_number: the start index of the next 100 rows to get
+
+get_rows_for_table : Any -> Integer -> Vector | Nothing -> Vector | Nothing -> Vector | Nothing -> Vector | Nothing -> Vector | Nothing-> JS_Object
+get_rows_for_table table start_number sort_col_index_list=Nothing sort_direction_list=Nothing filter_col=Nothing filter_action=Nothing filter_val=Nothing =
+    max_rows=100
+    col_name = table.make_temp_column_name
+    table_with_index = table.add_row_number col_name
+    table_with_index_ordered = table_with_index.reorder_columns [col_name] ..Before_Other_Columns
+    filtered_table = if filter_col.is_nothing then table_with_index_ordered else apply_filter_to_table table_with_index_ordered 0 filter_col filter_action filter_val
+    sorted_table = if sort_col_index_list.is_nothing then filtered_table else apply_sort_to_table filtered_table sort_col_index_list sort_direction_list
+    all_rows_count = filtered_table.row_count
+    bucket_size = if all_rows_count > start_number + max_rows then max_rows else (all_rows_count - (start_number))
+    get_vector c         = Warning.set (Vector.new bucket_size i-> make_json_for_value (c.get (i + start_number))) []
+    columns              = sorted_table.columns
+    rows = columns.map get_vector
+    result = JS_Object.from_pairs [["rows", rows]]
+    result.to_text
 
 ## PRIVATE
    Create JSON serialization of values.
