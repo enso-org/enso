@@ -15,24 +15,15 @@ import org.graalvm.polyglot.Value;
  * small. If the result is not cached or the cache entry is expired, the cache will recompute the
  * value using the provided callback.
  */
-public class APIRequestCache {
+public class APIRequestCache implements ReloadDetector.HasClearableCache {
   private final HashMap<String, CacheEntry> cache = new HashMap<>();
-  private final ReloadDetector reloadDetector;
-
-  protected APIRequestCache() {
-    this(null);
-  }
-
-  protected APIRequestCache(ReloadDetector reloadDetector) {
-    this.reloadDetector = reloadDetector;
-  }
 
   public void clear() {
     cache.clear();
   }
 
   public Object getOrCompute(String key, Function<String, Value> compute, Duration ttl) {
-    clearOnReload();
+    ReloadDetector.INSTANCE.clearOnReloadIfRegistered(this);
 
     if (ttl == null) {
       // If the TTL is null, we deliberately ignore the cache.
@@ -52,19 +43,19 @@ public class APIRequestCache {
   }
 
   public void invalidateEntry(String key) {
-    clearOnReload();
+    ReloadDetector.INSTANCE.clearOnReloadIfRegistered(this);
 
     cache.remove(key);
   }
 
   public void invalidatePrefix(String prefix) {
-    clearOnReload();
+    ReloadDetector.INSTANCE.clearOnReloadIfRegistered(this);
 
     cache.keySet().removeIf(key -> key.startsWith(prefix));
   }
 
   public void cleanExpiredEntries() {
-    clearOnReload();
+    ReloadDetector.INSTANCE.clearOnReloadIfRegistered(this);
 
     boolean hasExpiredEntries =
         firstToExpire != null && firstToExpire.isBefore(LocalDateTime.now());
@@ -79,7 +70,7 @@ public class APIRequestCache {
   }
 
   public void put(String key, Value value, Duration ttl) {
-    clearOnReload();
+    ReloadDetector.INSTANCE.clearOnReloadIfRegistered(this);
 
     if (ttl == null) {
       // If the TTL is null, we deliberately ignore the cache.
@@ -94,17 +85,9 @@ public class APIRequestCache {
     cache.put(key, new CacheEntry(value, expiresAt));
   }
 
-  private void clearOnReload() {
-    if (reloadDetector != null && reloadDetector.hasReloadOccurred()) {
-      clear();
-    }
-  }
-
-  /** Public for testing. */
-  public void simulateReloadTestOnly() {
-    if (reloadDetector != null) {
-      reloadDetector.simulateReloadTestOnly();
-    }
+  @Override /* HasClearableCache */
+  public void clearCache() {
+    cache.clear();
   }
 
   /** Public for testing. */

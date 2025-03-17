@@ -12,10 +12,11 @@ from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Mock_Credentials
-import project.Network.Enso_Cloud.Cloud_Tests_Setup.Temporary_Directory
 
 polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
 polyglot java import org.enso.base.enso_cloud.CloudRequestCache
+polyglot java import org.enso.base.cache.ReloadDetector
+polyglot java import java.time.Duration as Java_Duration
 
 ## To run this test locally:
    $ sbt 'http-test-helper/run localhost 8080'
@@ -155,21 +156,15 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
                 err.to_display_text . should_contain "Expected field `TokenType` to be of type Text, but got Integer."
 
     suite_builder.group "Clear cache on reload" pending=setup.httpbin_pending group_builder->
-        fake_reload =
-            CloudRequestCache.INSTANCE.simulateReloadTestOnly
-
-        test_dir = Temporary_Directory.make "Enso_Cloud_Spec_Clear_Cache"
-        group_builder.teardown test_dir.cleanup
-
-        group_builder.specify "Cache should be cleared when a reload is detected" <|
-            trigger_cache =
-                test_dir.list
-
-            Enso_User.current . should_succeed
-            CloudRequestCache.INSTANCE.isCachedTestOnly "users/me" . should_be_true
-            fake_reload
-            trigger_cache
-            CloudRequestCache.INSTANCE.isCachedTestOnly "users/me" . should_be_false
+        group_builder.specify "CloudRequestCache should be cleared when a reload is detected" <|
+            dur = Java_Duration.ofDays 1
+            cache = CloudRequestCache.INSTANCE
+            cache.getOrCompute "key1" (_-> ["key1"]) dur
+            cache.isCachedTestOnly "key1" . should_be_true
+            ReloadDetector.INSTANCE.simulateReloadTestOnly cache
+            ## Another cache action must be called to trigger cache cleaering
+            cache.getOrCompute "key2" (_-> ["key2"]) dur
+            cache.isCachedTestOnly "key1" . should_be_false
 
 type Lazy_Ref
     Value ~get

@@ -8,7 +8,7 @@ import org.enso.base.cache.ReloadDetector;
  */
 public final class CloudRequestCache extends APIRequestCache {
   public CloudRequestCache() {
-    super(new ReloadDetector());
+    ReloadDetector.INSTANCE.register(this);
   }
 
   public static final CloudRequestCache INSTANCE = new CloudRequestCache();
