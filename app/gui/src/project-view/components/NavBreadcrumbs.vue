@@ -4,15 +4,15 @@ import SvgButton from '@/components/SvgButton.vue'
 import { injectStackNavigator } from '@/providers/graphStackNavigator'
 import { useProjectStore } from '@/stores/project'
 import { useToast } from '@/util/toast'
-import { ref } from 'vue'
 
 export interface BreadcrumbItem {
   label: string
   active: boolean
   isCurrentTop: boolean
 }
+
 const renameError = useToast.error()
-const projectNameEdited = ref(false)
+const projectNameEdited = defineModel<boolean>('projectNameEdited', { default: false })
 
 const stackNavigator = injectStackNavigator()
 const project = useProjectStore()
@@ -31,7 +31,6 @@ async function renameBreadcrumb(index: number, newName: string) {
 <template>
   <div class="NavBar">
     <div class="NavBreadcrumbs">
-      <SvgButton name="edit" title="Edit Project Name" @click.stop="projectNameEdited = true" />
       <template v-for="(breadcrumb, index) in stackNavigator.breadcrumbLabels.value" :key="index">
         <SvgButton
           v-if="index > 0"
