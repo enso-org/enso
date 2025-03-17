@@ -20,7 +20,8 @@ object configuration {
   case class MainProcessConfig(
     logLevel: Level,
     profilingPath: Option[Path],
-    profilingTime: Option[FiniteDuration]
+    profilingTime: Option[FiniteDuration],
+    jvmMode: Boolean
   )
 
   /** A configuration object for properties of the Project Manager.

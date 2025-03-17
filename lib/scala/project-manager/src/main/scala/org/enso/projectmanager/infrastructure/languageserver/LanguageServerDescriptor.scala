@@ -44,6 +44,7 @@ case class LanguageServerDescriptor(
   distributionConfiguration: DistributionConfiguration,
   engineVersion: SemVer,
   jvmSettings: JVMSettings,
+  jvmMode: Boolean,
   discardOutput: Boolean,
   profilingPath: Option[Path],
   profilingTime: Option[FiniteDuration],

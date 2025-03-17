@@ -43,6 +43,7 @@ class Runner(
     path: Path,
     name: String,
     engineVersion: SemVer,
+    jvmMode: Boolean,
     normalizedName: Option[String],
     projectTemplate: Option[String],
     authorName: Option[String],
@@ -78,6 +79,7 @@ class Runner(
       }
       RunSettings(
         engineVersion,
+        jvmMode,
         arguments,
         workingDirectory         = None,
         connectLoggerIfAvailable = false
@@ -142,6 +144,7 @@ class Runner(
         Option.unless(logMasking)(Seq("--no-log-masking")).getOrElse(Seq.empty)
       RunSettings(
         version,
+        options.jvmMode,
         arguments ++ additionalArguments,
         workingDirectory         = Some(workingDirectory),
         connectLoggerIfAvailable = true
@@ -224,8 +227,9 @@ class Runner(
       case None =>
         runtimeVersionManager.withEngineAndRuntime(engineVersion) {
           (engine, runtime) =>
-            val ensoLauncher      = Option(System.getenv(Runner.LAUNCHER_ENV_NAME))
-            val requiresJVMRunner = ensoLauncher.exists(_.equals("shell"))
+            val ensoLauncher = Option(System.getenv(Runner.LAUNCHER_ENV_NAME))
+            val requiresJVMRunner =
+              ensoLauncher.exists(_.equals("shell")) || runSettings.jvmMode
             if (requiresJVMRunner) {
               prepareAndRunCommand(
                 engine,

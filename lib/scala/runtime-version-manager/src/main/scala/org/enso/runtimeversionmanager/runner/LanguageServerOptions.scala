@@ -19,5 +19,6 @@ case class LanguageServerOptions(
   rpcPort: Int,
   secureRpcPort: Option[Int],
   dataPort: Int,
-  secureDataPort: Option[Int]
+  secureDataPort: Option[Int],
+  jvmMode: Boolean
 )
