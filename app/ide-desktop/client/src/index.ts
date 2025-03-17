@@ -349,8 +349,7 @@ class App {
         this.args.groups.debug.options.profile.value ?
           ['--profiling-path', 'profiling.npss', ...backendProfileTime]
         : []
-      const backendJvmOpts =
-        this.args.options.jvm.value ? ['--jvm'] : []
+      const backendJvmOpts = this.args.options.jvm.value ? ['--jvm'] : []
       const backendOpts = [...backendVerboseOpts, ...backendProfileOpts, ...backendJvmOpts]
       const backendEnv = Object.assign({}, process.env, {
         SERVER_HOST: this.projectManagerHost,
