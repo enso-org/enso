@@ -202,6 +202,7 @@ case class Launcher(cliOptions: GlobalCLIOptions) {
     * @param useSystemJVM if set, forces to use the default configured JVM,
     *                     instead of the JVM associated with the engine version
     * @param jvmOpts additional options to pass to the launched JVM
+    * @param jvmMode if true, enables JVM mode
     * @param additionalArguments additional arguments to pass to the runner
     * @return exit code of the launched program
     */

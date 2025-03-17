@@ -16,6 +16,7 @@ object configuration {
     *  @param logLevel the logging level
     *  @param profilingPath the path to the profiling out file
     *  @param profilingTime the time limiting the profiling duration
+    * @param jvmMode if true, enables JVM mode
     */
   case class MainProcessConfig(
     logLevel: Level,

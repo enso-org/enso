@@ -43,7 +43,7 @@ object NativeExecCommand {
       ) {
         Some(NativeExecCommand(fallbackExecPath))
       } else {
-        logger.debug(
+        logger.warn(
           "Failed to find native launcher at a pre-determined location: {}",
           fallbackExecPath
         )
