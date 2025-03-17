@@ -8,22 +8,24 @@ import org.graalvm.polyglot.Value;
 /**
  * Register caches so they can be cleared when the reload button is pressed.
  *
- * Cache clearing does not happen automatically in the background. A cache must
- * implement HasClearableCache, and then poll using
- * ReloadDetector.INSTANCE.clearOnReload(this), which will invoke the
- * clearCache() callback if a reload has just happenend.
+ * <p>Cache clearing does not happen automatically in the background. A cache must implement
+ * HasClearableCache, register itself, and then poll using
+ * ReloadDetector.INSTANCE.clearOnReload(this), which will invoke the clearCache() callback if a
+ * reload has just happenend. Thus, a client cache decides exactly when it wants caches to be
+ * cleared.
  *
- * A separate ReloadSentinel is created for each registration. The sentinel's
- * hasReloadOccurred() method will return true exactly one time, for that cache,
- * after a reload has occurred.
- *
- * If clearOnReload() is called on an object that wasn't registered, an
- * exception is thrown. A cache object that doesn't know if it was registered
- * can safely call clearOnReloadIfRegistered() on itself in this case.
+ * <p>If clearOnReload() is called on an object that wasn't registered, an exception is thrown. A
+ * cache object that doesn't know if it was registered can safely call clearOnReloadIfRegistered()
+ * on itself in this case.
  */
 public class ReloadDetector {
   public static final ReloadDetector INSTANCE = new ReloadDetector();
 
+  /**
+   * Internally, a separate ReloadSentinel is created for each registration. The sentinel's
+   * hasReloadOccurred() method will return true exactly one time, for that cache, after a reload
+   * has occurred.
+   */
   private Map<HasClearableCache, ReloadSentinel> registrations = new WeakHashMap<>();
 
   public void register(HasClearableCache o) {
@@ -31,7 +33,7 @@ public class ReloadDetector {
   }
 
   public void clearOnReload(HasClearableCache o) {
-    if (getSentinel(o).hasReloadOccurred())  {
+    if (getSentinel(o).hasReloadOccurred()) {
       o.clearCache();
     }
   }
@@ -48,7 +50,8 @@ public class ReloadDetector {
 
   private ReloadSentinel getSentinel(HasClearableCache o) {
     if (!registrations.containsKey(o)) {
-      throw new HasClearableCacheNotRegisteredException("Clearable cache object is not registered: " + o);
+      throw new HasClearableCacheNotRegisteredException(
+          "Clearable cache object is not registered: " + o);
     }
     return registrations.get(o);
   }

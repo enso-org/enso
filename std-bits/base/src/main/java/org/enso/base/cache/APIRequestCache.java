@@ -4,7 +4,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.function.Function;
-import org.enso.base.cache.ReloadDetector;
 import org.graalvm.polyglot.Value;
 
 /**
