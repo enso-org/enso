@@ -42,8 +42,8 @@
   for large datasets.
 - [Disable heatmap and histogram viz][12475].
 - [Component Browser displays short summary of component's documentation][12459]
-- [Warning and Error messages does not obstruct output port][12482] - they become
-  semi-transparent on port hover and pass all mouse interactions.
+- [Warning and Error messages does not obstruct output port][12482] - they
+  become semi-transparent on port hover and pass all mouse interactions.
 - [For some types, Component Browser display special "suggestions" group][12477]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
