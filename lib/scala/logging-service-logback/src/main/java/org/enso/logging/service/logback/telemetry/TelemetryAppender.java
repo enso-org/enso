@@ -4,7 +4,9 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.AppenderBase;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.DoubleNode;
+import com.fasterxml.jackson.databind.node.FloatNode;
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
@@ -47,8 +49,7 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
 
   private HttpClient httpClient;
 
-  private TelemetryAppender(
-      ThreadPoolExecutor backgroundThreadService, URI endpoint) {
+  private TelemetryAppender(ThreadPoolExecutor backgroundThreadService, URI endpoint) {
     this.backgroundThreadService = backgroundThreadService;
     this.endpoint = endpoint;
   }
@@ -87,12 +88,17 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
     var payload = new ObjectNode(JsonNodeFactory.instance);
     payload.set("message", TextNode.valueOf(logEvent.getMessage()));
     payload.set("kind", TextNode.valueOf("Telemetry"));
-    var args = new ArrayNode(JsonNodeFactory.instance);
-    for (var arg : logEvent.getArgumentArray()) {
-      args.add(TextNode.valueOf(arg.toString()));
-    }
     var metadata = new ObjectNode(JsonNodeFactory.instance);
-    metadata.set("args", args);
+    if (logEvent.getKeyValuePairs() != null) {
+      for (var pair : logEvent.getKeyValuePairs()) {
+        switch (pair.value) {
+          case Double d -> metadata.set(pair.key, DoubleNode.valueOf(d));
+          case Float f -> metadata.set(pair.key, FloatNode.valueOf(f));
+          case Integer i -> metadata.set(pair.key, IntNode.valueOf(i));
+          default -> metadata.set(pair.key, TextNode.valueOf(pair.value.toString()));
+        }
+      }
+    }
     payload.set("metadata", metadata);
     return payload;
   }
@@ -185,7 +191,8 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
       try {
         credentials = parseCredentials(credentialsFile);
       } catch (IOException e) {
-        LOGGER.warn("Failed to parse credentials from '{}'. Will not send telemetry", credentialsFile);
+        LOGGER.warn(
+            "Failed to parse credentials from '{}'. Will not send telemetry", credentialsFile);
         throw new RequestFailureException("Failed to parse credentials", null);
       }
       assert credentials != null;

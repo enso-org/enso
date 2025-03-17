@@ -2,17 +2,18 @@ private
 
 import Standard.Base.Nothing.Nothing
 import Standard.Base.Data.Text.Text
+import Standard.Base.Data.Dictionary.Dictionary
 import Standard.Base.Data.Vector.Vector
 
 polyglot java import org.slf4j.LoggerFactory
 
 
-log logger_name:Text msg:Text args:Vector -> Nothing =
+log logger_name:Text msg:Text dict:Dictionary -> Nothing =
     telemetry_logger = LoggerFactory.getLogger (_root_logger_name + "." + logger_name)
     bldr = telemetry_logger.atTrace
     bldr.setMessage msg
-    args.each \arg ->
-        bldr.addArgument arg
+    dict.each_with_key \key value ->
+        bldr.addKeyValue key.to_text value
     bldr.log
 
 
