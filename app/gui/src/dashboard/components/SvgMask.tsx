@@ -1,8 +1,7 @@
 /** @file File containing SVG icon definitions. */
-import * as React from 'react'
-
-import * as tailwindMerge from '#/utilities/tailwindMerge'
-import type { TestIdProps } from './AriaComponents'
+import type { TestIdProps } from '#/components/AriaComponents/types'
+import { twMerge } from '#/utilities/tailwindMerge'
+import { forwardRef, memo, useMemo, type CSSProperties, type ForwardedRef } from 'react'
 
 /** Props for a {@link SvgMask}. */
 export interface SvgMaskProps extends TestIdProps {
@@ -11,7 +10,7 @@ export interface SvgMaskProps extends TestIdProps {
   /** The URL of the SVG to use as the mask. */
   readonly src: string
   readonly title?: string
-  readonly style?: React.CSSProperties
+  readonly style?: CSSProperties
   readonly color?: string | undefined
   readonly className?: string | undefined
 }
@@ -20,16 +19,16 @@ export interface SvgMaskProps extends TestIdProps {
  * Use an SVG as a mask. This lets the SVG use the text color (`currentColor`).
  * @deprecated Prefer `<Icon />` or `<SvgUse />` instead.
  */
-const SvgMask = React.forwardRef(function SvgMask(
+const SvgMask = forwardRef(function SvgMask(
   props: SvgMaskProps,
-  ref: React.ForwardedRef<HTMLDivElement>,
+  ref: ForwardedRef<HTMLDivElement>,
 ) {
   const { invert = false, alt = '', src, style, color, className, testId = 'svg-mask' } = props
   const urlSrc = `url(${JSON.stringify(src)})`
   const mask = invert ? `${urlSrc}, linear-gradient(white 0 0)` : urlSrc
 
-  const classes = React.useMemo(
-    () => tailwindMerge.twMerge('inline-block h-max w-max flex-none', className),
+  const classes = useMemo(
+    () => twMerge('inline-block h-max w-max flex-none', className),
     [className],
   )
 
@@ -62,7 +61,5 @@ const SvgMask = React.forwardRef(function SvgMask(
   )
 })
 
-/**
- * @deprecated Prefer `<Icon />` or `<SvgUse />` instead.
- */
-export default React.memo(SvgMask)
+/** @deprecated Prefer `<Icon />` or `<SvgUse />` instead. */
+export default memo(SvgMask)
