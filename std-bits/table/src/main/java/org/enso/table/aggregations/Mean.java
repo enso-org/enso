@@ -31,8 +31,8 @@ public class Mean extends KnownTypeAggregator {
     this.columnName = column.getName();
   }
 
-  private static StorageType resultTypeFromInput(Storage<?> inputStorage) {
-    StorageType inputType = inputStorage.getType();
+  private static StorageType<?> resultTypeFromInput(Storage<?> inputStorage) {
+    StorageType<?> inputType = inputStorage.getType();
     if (inputType instanceof AnyObjectType) {
       inputType = inputStorage.inferPreciseType();
     }

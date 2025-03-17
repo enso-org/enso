@@ -228,6 +228,12 @@ add_specs suite_builder =
             plain_response = Data.read url_get format=..Plain_Text
             plain_response.should_be_a Text
 
+    suite_builder.group "read_many" group_builder->
+        group_builder.specify "Data.read with a Vector tells the user to use read_many" <| Test.with_retries <|
+            err = Data.read ['http://abc.com']
+            err.should_fail_with Illegal_Argument
+            err.catch.message.should_equal "Data.read cannot be used with a Vector. Please use Data.read_many."
+
     suite_builder.group "post" pending=pending_has_url group_builder->
         url_post = base_url_with_slash + "post"
         url_put = base_url_with_slash + "put"

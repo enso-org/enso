@@ -6,52 +6,21 @@ import type { ToValue } from '@/util/reactivity'
 import { computed, type ComputedRef, type Ref, toValue } from 'vue'
 import { Expression, MutableExpression } from 'ydoc-shared/ast'
 import { TextFormatOptions } from '../TableVisualization.vue'
+import {
+  actionMap,
+  FilterAction,
+  FilterType,
+  FilterValue,
+  FilterValueRange,
+  getFilterValue,
+  GridFilterModel,
+} from './tableVizFilterUtils'
 
 type SortDirection = 'asc' | 'desc'
 export type SortModel = {
   columnName: string
   sortDirection: SortDirection
   sortIndex: number
-}
-type FilterType = 'number' | 'date' | 'set' | 'text'
-
-/**
- * Represents the value used for filtering.
- *
- * - For comparisons such as 'equals' or 'greater than,' the filter value is a single value (string).
- * - For 'is in' filtering, the filter value is a list of strings.
- * - For range filtering, the filter value consists of two values that define the range.
- */
-type FilterValue = string | string[] | FilterValueRange
-
-const actionMap = {
-  equals: '..Equal',
-  notEqual: '..Not_Equal',
-  greaterThan: '..Greater',
-  greaterThanOrEqual: '..Equal_Or_Greater',
-  lessThan: '..Less',
-  lessThanOrEqual: '..Equal_Or_Less',
-  inRange: '..Between',
-  blank: '..Is_Nothing',
-  notBlank: '..Not_Nothing',
-  contains: '..Contains',
-  startsWith: '..Starts_With',
-  endsWith: '..Ends_With',
-}
-type FilterAction = keyof typeof actionMap
-export type GridFilterModel = {
-  columnName: string
-  filterType: FilterType
-  filter?: string
-  filterTo?: string
-  dateFrom?: string
-  dateTo?: string
-  values?: string[]
-  filterAction?: FilterAction
-}
-type FilterValueRange = {
-  toValue: string
-  fromValue: string
 }
 
 export interface SortFilterNodesButtonOptions {
@@ -269,26 +238,8 @@ function useSortFilterNodesButton({
           patterns.push(filterPatterns)
         }
 
-        let value: FilterValue
-        switch (filterType) {
-          case 'number':
-            value =
-              filterAction === 'inRange' ?
-                { toValue: filterModel.filterTo!, fromValue: filterModel.filter! }
-              : (filterModel.filter as FilterValue)
-            break
-          case 'date':
-            value =
-              filterAction === 'inRange' ?
-                { toValue: filterModel.dateTo!, fromValue: filterModel.dateFrom! }
-              : (filterModel.dateFrom as FilterValue)
-            break
-          case 'text':
-            value = filterModel.filter as FilterValue
-            break
-          default:
-            value = filterModel.values as FilterValue
-        }
+        const value = getFilterValue(filterModel)
+
         if (value) {
           const filterPatterns =
             sortModelValue.length ?

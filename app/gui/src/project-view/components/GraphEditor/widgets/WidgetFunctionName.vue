@@ -51,7 +51,7 @@ async function newNameAccepted(newName: string | undefined) {
 
 async function renameFunction(newName: string): Promise<Result> {
   if (!project.moduleProjectPath?.ok) return project.moduleProjectPath ?? Err('Unknown module Path')
-  const modPath = projectNames.printProjectPath(project.moduleProjectPath.value)
+  const modPath = projectNames.serializeProjectPathForBackend(project.moduleProjectPath.value)
   const editedName = props.input[FunctionName].editableNameExpression
   const oldMethodPointer = props.input[FunctionName].methodPointer
   const refactorResult = await project.lsRpcConnection.renameSymbol(modPath, editedName, newName)

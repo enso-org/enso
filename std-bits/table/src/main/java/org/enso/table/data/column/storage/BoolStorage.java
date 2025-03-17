@@ -66,7 +66,7 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public StorageType getType() {
+  public StorageType<Boolean> getType() {
     return BooleanType.INSTANCE;
   }
 
@@ -136,7 +136,7 @@ public final class BoolStorage extends Storage<Boolean>
 
   @Override
   public Storage<?> fillMissing(
-      Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
+      Value arg, StorageType<?> commonType, ProblemAggregator problemAggregator) {
     if (arg.isBoolean()) {
       return fillMissingBoolean(arg.asBoolean());
     } else {
@@ -214,7 +214,7 @@ public final class BoolStorage extends Storage<Boolean>
   public Storage<?> iif(
       Value when_true,
       Value when_false,
-      StorageType resultStorageType,
+      StorageType<?> resultStorageType,
       ProblemAggregator problemAggregator) {
     Context context = Context.getCurrent();
     var on_true = makeRowProvider(when_true);
