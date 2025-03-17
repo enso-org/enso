@@ -59,7 +59,6 @@ const isDropdownOpened = ref(false)
     </template>
     <ColorRing
       v-else
-      class="colorRing"
       :modelValue="currentNodeColor"
       :matchableColors="matchableColors"
       :initialColorAngle="90"
@@ -116,12 +115,12 @@ const isDropdownOpened = ref(false)
   }
 }
 
-.colorRing {
+.ColorRing {
   /* Cut a hole inside color ring. First we draw a rectangle containing entire ColorRing (with the
    arrow), and then define circle inside. */
   clip-path: path(
     evenodd,
-    'M -52,52 L -52,-52 L 154,-52 L 154,154 L -52,154 z M52,32 A20,20 0,1,1 52,72 20,20 0,1,1 52,32'       
+    'M -52,52 L -52,-52 L 154,-52 L 154,154 L -52,154 z M52,32 A20,20 0,1,1 52,72 20,20 0,1,1 52,32'
   );
 }
 
