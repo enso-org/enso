@@ -41,11 +41,12 @@ type H2_JDBC_Config
 add_specs suite_builder =
     config = H2_JDBC_Config.Value
 
-    Generic_JDBC_Connection_Spec.add_specs_for_backend config suite_builder
+    # Uncomment after https://github.com/enso-org/enso/issues/12489
+    # Generic_JDBC_Connection_Spec.add_specs_for_backend config suite_builder
 
     ## These tests are here instead of in Generic_JDBC_Connection_Spec because
        they are backend-dependent.
-    suite_builder.group "(H2) Generic JDBC Connection" group_builder->
+    suite_builder.group "(H2) Generic JDBC Connection" pending="https://github.com/enso-org/enso/issues/12489" group_builder->
         with_connection = config.with_connection
 
         # Cleans things up afterwards, but also before for easier debugging.

@@ -459,6 +459,7 @@ type Table
     ## ALIAS select fields
        GROUP Standard.Base.Selections
        ICON select_column
+       SUGGESTED 1
 
        Creates a new table with a chosen subset of columns, as specified by the
        `columns`, from the input table. Any unmatched input columns will be
@@ -1068,6 +1069,7 @@ type Table
     ## ALIAS average, count, count distinct, first, group by, last, longest, maximum, mean, median, minimum, mode, percentile, shortest, standard deviation, sum, summarize, variance
        GROUP Standard.Base.Calculations
        ICON transform4
+       SUGGESTED 7
 
        Aggregates the rows in a table using `group_by` columns.
        The columns argument specifies which additional aggregations to perform
@@ -1165,6 +1167,7 @@ type Table
     ## ALIAS order_by
        GROUP Standard.Base.Selections
        ICON order
+       SUGGESTED 8
        Reorders the table by sorting them based on the specified columns.
        Optionally, the method of ordering text values can be specified allowing
        for case-insensitively or dictionary ordering.
@@ -1280,6 +1283,7 @@ type Table
     ## ALIAS deduplicate, unique
        GROUP Standard.Base.Selections
        ICON preparation
+       SUGGESTED 5
        Returns the distinct set of rows within the specified columns from the
        input table.
 
@@ -2034,9 +2038,10 @@ type Table
     expand_to_rows self (column : Text | Integer) at_least_one_row:Boolean=False -> Table ! Type_Error | No_Such_Column | Index_Out_Of_Bounds =
         Expand_Objects_Helpers.expand_to_rows self column at_least_one_row sequences_only=False
 
-    ## ALIAS filter rows, where
+    ## ALIAS filter rows, where, regex
        GROUP Standard.Base.Selections
        ICON preparation
+       SUGGESTED 2
 
        Filter is used to select data from a table using a condition. The rows
        that meet the condition will remain after the filter. Filters can compare
@@ -2259,6 +2264,7 @@ type Table
     ## ALIAS add index column, rank, record id
        GROUP Standard.Base.Values
        ICON column_add
+       SUGGESTED 6
        Adds a new column to the table enumerating the rows.
 
        Arguments:
@@ -2391,6 +2397,7 @@ type Table
     ## ALIAS add column, expression, formula, new column, update column
        GROUP Standard.Base.Values
        ICON column_add
+       SUGGESTED 3
        Sets the column value at the given name.
 
        Arguments:
@@ -2605,6 +2612,7 @@ type Table
     ## ALIAS hlookup, lookup, merge, vlookup, xlookup
        GROUP Standard.Base.Calculations
        ICON join
+       SUGGESTED 4
        Joins two tables according to the specified join conditions.
 
        Arguments:
@@ -3178,6 +3186,7 @@ type Table
     ## ALIAS pivot, unpivot
        GROUP Standard.Base.Calculations
        ICON map_row
+       SUGGESTED 10
        Returns a new table with a chosen subset of columns left unchanged and
        the other columns pivoted to rows with a single name field and a single
        value field.
@@ -3251,6 +3260,7 @@ type Table
     ## ALIAS pivot, unpivot
        GROUP Standard.Base.Calculations
        ICON column_add
+       SUGGESTED 11
        Returns a new table using a chosen field as the column header and then
        aggregating the rows within each value as specified. Optionally, a set of
        fields can be used to group the rows.
@@ -3391,6 +3401,7 @@ type Table
     ## ALIAS export, output, save, to_file
        GROUP Standard.Base.Output
        ICON data_output
+       SUGGESTED 9
        This function writes a table from memory into a file.
 
        The specific behavior of the various `File_Format`s is specified below.
