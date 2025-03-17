@@ -43,6 +43,7 @@
 - [Disable heatmap and histogram viz][12475].
 - [Component Browser displays short summary of component's documentation][12459]
 - [For some types, Component Browser display special "suggestions" group][12477]
+- [Native Image mode is now on by default][12515]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -70,6 +71,7 @@
 [12475]: https://github.com/enso-org/enso/pull/12475
 [12459]: https://github.com/enso-org/enso/pull/12459
 [12477]: https://github.com/enso-org/enso/pull/12477
+[12515]: https://github.com/enso-org/enso/pull/12515
 
 #### Enso Standard Library
 
