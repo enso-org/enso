@@ -101,11 +101,11 @@ macro_rules! macro_definition {
 
 fn matched_segments_into_multi_segment_app<'s>(
     matched_segments: NonEmptyVec<pattern::MatchedSegment<'s>>,
-    precedence: &mut syntax::expression::ExpressionParser<'s>,
+    expression_parser: &mut syntax::expression::ExpressionParser<'s>,
 ) -> syntax::Tree<'s> {
     let segments = matched_segments.mapped(|segment| {
         let header = segment.header;
-        let body = precedence.parse(&mut segment.result.tokens());
+        let body = expression_parser.parse(&mut segment.result.tokens());
         syntax::tree::MultiSegmentAppSegment { header, body }
     });
     syntax::Tree::multi_segment_app(segments)

@@ -44,13 +44,13 @@ impl<'s> BodyBlockParser<'s> {
     pub fn parse_body_block(
         &mut self,
         lines: &mut Vec<item::Line<'s>>,
-        precedence: &mut ExpressionParser<'s>,
+        expression_parser: &mut ExpressionParser<'s>,
     ) -> Tree<'s> {
         let lines = compound_lines_with_tail_expression(lines, |prefixes, line, is_tail| {
             if is_tail {
-                self.statement_parser.parse_tail_expression(prefixes, line, precedence)
+                self.statement_parser.parse_tail_expression(prefixes, line, expression_parser)
             } else {
-                self.statement_parser.parse_statement(prefixes, line, precedence)
+                self.statement_parser.parse_statement(prefixes, line, expression_parser)
             }
         });
         Tree::body_block(block::compound_lines(lines).collect())
@@ -60,10 +60,10 @@ impl<'s> BodyBlockParser<'s> {
     pub fn parse_module(
         &mut self,
         lines: &mut Vec<item::Line<'s>>,
-        precedence: &mut ExpressionParser<'s>,
+        expression_parser: &mut ExpressionParser<'s>,
     ) -> Tree<'s> {
         let lines = compound_lines(lines, |prefixes, line| {
-            self.statement_parser.parse_module_statement(prefixes, line, precedence)
+            self.statement_parser.parse_module_statement(prefixes, line, expression_parser)
         });
         Tree::body_block(block::compound_lines(lines).collect())
     }
@@ -159,39 +159,57 @@ impl<'s> StatementParser<'s> {
         &mut self,
         prefixes: &mut StatementPrefixes<'s>,
         line: item::Line<'s>,
-        precedence: &mut ExpressionParser<'s>,
+        expression_parser: &mut ExpressionParser<'s>,
     ) -> Line<'s, StatementOrPrefix<'s>> {
-        parse_statement(prefixes, line, precedence, &mut self.args_buffer, StatementContext {
-            evaluation_context: EvaluationContext::Eager,
-            visibility_context: VisibilityContext::Private,
-            tail_expression:    false,
-        })
+        parse_statement(
+            prefixes,
+            line,
+            expression_parser,
+            &mut self.args_buffer,
+            StatementContext {
+                evaluation_context: EvaluationContext::Eager,
+                visibility_context: VisibilityContext::Private,
+                tail_expression:    false,
+            },
+        )
     }
 
     fn parse_tail_expression(
         &mut self,
         prefixes: &mut StatementPrefixes<'s>,
         line: item::Line<'s>,
-        precedence: &mut ExpressionParser<'s>,
+        expression_parser: &mut ExpressionParser<'s>,
     ) -> Line<'s, StatementOrPrefix<'s>> {
-        parse_statement(prefixes, line, precedence, &mut self.args_buffer, StatementContext {
-            evaluation_context: EvaluationContext::Eager,
-            visibility_context: VisibilityContext::Private,
-            tail_expression:    true,
-        })
+        parse_statement(
+            prefixes,
+            line,
+            expression_parser,
+            &mut self.args_buffer,
+            StatementContext {
+                evaluation_context: EvaluationContext::Eager,
+                visibility_context: VisibilityContext::Private,
+                tail_expression:    true,
+            },
+        )
     }
 
     fn parse_module_statement(
         &mut self,
         prefixes: &mut StatementPrefixes<'s>,
         line: item::Line<'s>,
-        precedence: &mut ExpressionParser<'s>,
+        expression_parser: &mut ExpressionParser<'s>,
     ) -> Line<'s, StatementOrPrefix<'s>> {
-        parse_statement(prefixes, line, precedence, &mut self.args_buffer, StatementContext {
-            evaluation_context: EvaluationContext::Lazy,
-            visibility_context: VisibilityContext::Public,
-            tail_expression:    false,
-        })
+        parse_statement(
+            prefixes,
+            line,
+            expression_parser,
+            &mut self.args_buffer,
+            StatementContext {
+                evaluation_context: EvaluationContext::Lazy,
+                visibility_context: VisibilityContext::Public,
+                tail_expression:    false,
+            },
+        )
         .map_content(|statement_or_prefix| {
             statement_or_prefix.map_statement(|statement| {
                 let error = match &statement.variant {
@@ -281,7 +299,7 @@ impl<'s> StatementPrefixLine<'s> {
 fn parse_statement<'s>(
     prefixes: &mut StatementPrefixes<'s>,
     mut line: item::Line<'s>,
-    precedence: &mut ExpressionParser<'s>,
+    expression_parser: &mut ExpressionParser<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
     statement_context: StatementContext,
 ) -> Line<'s, StatementOrPrefix<'s>> {
@@ -292,12 +310,12 @@ fn parse_statement<'s>(
     let items = &mut line.items;
     let parsed = None
         .or_else(|| {
-            try_parse_annotation(items, start, precedence)
+            try_parse_annotation(items, start, expression_parser)
                 .map(StatementPrefix::Annotation)
                 .map(StatementOrPrefix::Prefix)
         })
         .or_else(|| {
-            try_parse_type_def(items, start, precedence, args_buffer)
+            try_parse_type_def(items, start, expression_parser, args_buffer)
                 .map(StatementOrPrefix::Statement)
         })
         .or_else(|| {
@@ -321,7 +339,9 @@ fn parse_statement<'s>(
         Err(e) =>
             return Line {
                 newline,
-                content: Some(precedence.parse_non_section(items).unwrap().with_error(e).into()),
+                content: Some(
+                    expression_parser.parse_non_section(items).unwrap().with_error(e).into(),
+                ),
             },
     };
     match top_level_operator {
@@ -331,7 +351,7 @@ fn parse_statement<'s>(
                 item::Line { newline, items: mem::take(items) },
                 start,
                 i,
-                precedence,
+                expression_parser,
                 args_buffer,
                 statement_context,
             )
@@ -341,7 +361,7 @@ fn parse_statement<'s>(
                 items,
                 start,
                 i,
-                precedence,
+                expression_parser,
                 statement_context.tail_expression,
             );
             Line {
@@ -358,7 +378,7 @@ fn parse_statement<'s>(
             prefixes,
             start,
             item::Line { newline, items: mem::take(items) },
-            precedence,
+            expression_parser,
             statement_context.visibility_context,
         )
         .map_content(StatementOrPrefix::Statement),
@@ -433,10 +453,10 @@ fn parse_expression_statement<'s>(
     prefixes: &mut StatementPrefixes<'s>,
     start: usize,
     mut line: item::Line<'s>,
-    precedence: &mut ExpressionParser<'s>,
+    expression_parser: &mut ExpressionParser<'s>,
     visibility_context: VisibilityContext,
 ) -> Line<'s, Tree<'s>> {
-    let expression = precedence.parse_offset(start, &mut line.items);
+    let expression = expression_parser.parse_offset(start, &mut line.items);
     debug_assert!(line.items.len() <= start);
     let expression = apply_private_keywords(expression, line.items.drain(..), visibility_context);
     let mut first_newline = line.newline;
@@ -544,7 +564,7 @@ pub fn try_parse_doc_comment<'s>(items: &mut Vec<Item<'s>>) -> Option<DocComment
 fn try_parse_annotation<'s>(
     items: &mut Vec<Item<'s>>,
     start: usize,
-    precedence: &mut ExpressionParser<'s>,
+    expression_parser: &mut ExpressionParser<'s>,
 ) -> Option<FunctionAnnotation<'s>> {
     match &items[..] {
         [Item::Token(Token { variant: token::Variant::AnnotationOperator(opr), .. }), Item::Token(Token { variant: token::Variant::Ident(ident), .. }), ..]
@@ -552,7 +572,7 @@ fn try_parse_annotation<'s>(
         {
             let ident = *ident;
             let opr = *opr;
-            let argument = precedence.parse_non_section_offset(start + 2, items);
+            let argument = expression_parser.parse_non_section_offset(start + 2, items);
             let annotation = items.pop().unwrap().into_token().unwrap().with_variant(ident);
             let operator = items.pop().unwrap().into_token().unwrap().with_variant(opr);
             Some(FunctionAnnotation { operator, annotation, argument })
@@ -565,13 +585,13 @@ fn parse_type_annotation_statement<'s>(
     items: &mut Vec<Item<'s>>,
     start: usize,
     operator_index: usize,
-    precedence: &mut ExpressionParser<'s>,
+    expression_parser: &mut ExpressionParser<'s>,
     tail_expression: bool,
 ) -> StatementOrPrefix<'s> {
-    let type_ = precedence.parse_non_section_offset(operator_index + 1, items);
+    let type_ = expression_parser.parse_non_section_offset(operator_index + 1, items);
     let operator: token::TypeAnnotationOperator =
         items.pop().unwrap().into_token().unwrap().try_into().unwrap();
-    let lhs = precedence.parse_non_section_offset(start, items);
+    let lhs = expression_parser.parse_non_section_offset(start, items);
     let type_ = type_.unwrap_or_else(|| {
         empty_tree(operator.code.position_after()).with_error(SyntaxError::ExpectedType)
     });
@@ -664,14 +684,14 @@ fn parse_assignment_like_statement<'s>(
     mut line: item::Line<'s>,
     start: usize,
     operator: usize,
-    precedence: &mut ExpressionParser<'s>,
+    expression_parser: &mut ExpressionParser<'s>,
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
     StatementContext { evaluation_context, visibility_context, .. }: StatementContext,
 ) -> Line<'s, Tree<'s>> {
     let items = &mut line.items;
     let newline = line.newline;
     if operator == start {
-        let error = precedence
+        let error = expression_parser
             .parse_non_section_offset(start, items)
             .unwrap()
             .with_error(SyntaxError::StmtInvalidAssignmentOrMethod);
@@ -681,7 +701,7 @@ fn parse_assignment_like_statement<'s>(
         };
     }
 
-    let mut expression = precedence.parse_offset(operator + 1, items);
+    let mut expression = expression_parser.parse_offset(operator + 1, items);
 
     let operator = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
 
@@ -699,7 +719,7 @@ fn parse_assignment_like_statement<'s>(
         start,
         &mut operator,
         &mut expression,
-        precedence,
+        expression_parser,
         args_buffer,
     ) {
         return Line {
@@ -729,14 +749,14 @@ fn parse_assignment_like_statement<'s>(
             item::Line { newline, items: mem::take(items) },
             operator,
             expression,
-            precedence,
+            expression_parser,
         )
         .build(prefixes, visibility_context),
         Type::Function { expression, qn_len } => FunctionBuilder::new(
             item::Line { newline, items: mem::take(items) },
             start,
             qn_len,
-            precedence,
+            expression_parser,
             args_buffer,
         )
         .build(prefixes, operator, expression, visibility_context),
@@ -744,7 +764,7 @@ fn parse_assignment_like_statement<'s>(
             newline,
             content: Some(
                 Tree::opr_app(
-                    precedence.parse_non_section(items),
+                    expression_parser.parse_non_section(items),
                     Ok(operator.with_variant(token::variant::Operator())),
                     None,
                 )
@@ -768,10 +788,10 @@ impl<'s> AssignmentBuilder<'s> {
         mut line: item::Line<'s>,
         operator: token::AssignmentOperator<'s>,
         expression: Tree<'s>,
-        precedence: &mut ExpressionParser<'s>,
+        expression_parser: &mut ExpressionParser<'s>,
     ) -> Self {
         let pattern = expression_to_pattern(
-            precedence.parse_non_section_offset(start, &mut line.items).unwrap(),
+            expression_parser.parse_non_section_offset(start, &mut line.items).unwrap(),
         );
         Self { newline: line.newline, pattern, operator, expression, excess_items: line.items }
     }
@@ -798,7 +818,7 @@ impl<'s> AssignmentBuilder<'s> {
 fn parse_pattern<'s>(
     items: &mut Vec<Item<'s>>,
     arg_start: usize,
-    precedence: &mut ExpressionParser<'s>,
+    expression_parser: &mut ExpressionParser<'s>,
 ) -> (Option<token::SuspensionOperator<'s>>, Option<Tree<'s>>) {
     let have_suspension = matches!(
         items.get(arg_start),
@@ -816,13 +836,13 @@ fn parse_pattern<'s>(
                     _ => tree::to_ast(token).with_error(SyntaxError::ArgDefExpectedPattern),
                 }
             }
-            _ => precedence
+            _ => expression_parser
                 .parse_non_section_offset(items.len() - 1, items)
                 .map(|tree| tree.with_error(SyntaxError::ArgDefExpectedPattern))
                 .unwrap(),
         })
     } else {
-        precedence
+        expression_parser
             .parse_non_section_offset(pattern_start, items)
             .map(|tree| tree.with_error(SyntaxError::ArgDefExpectedPattern))
     };

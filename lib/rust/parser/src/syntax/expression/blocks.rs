@@ -160,10 +160,10 @@ impl<'s> ApplicableBlockBuilder<'s> {
     pub fn build_block(
         &mut self,
         lines: impl IntoIterator<Item = item::Line<'s>>,
-        precedence: &mut ExpressionParser<'s>,
+        expression_parser: &mut ExpressionParser<'s>,
     ) -> ApplicableBlock<'s> {
         for item::Line { newline, items } in lines {
-            self.push(newline, items, precedence);
+            self.push(newline, items, expression_parser);
         }
         self.build()
     }
@@ -172,12 +172,12 @@ impl<'s> ApplicableBlockBuilder<'s> {
         &mut self,
         newline: token::Newline<'s>,
         mut items: Vec<Item<'s>>,
-        precedence: &mut ExpressionParser<'s>,
+        expression_parser: &mut ExpressionParser<'s>,
     ) {
         match &mut self.state {
             State::Indeterminate if items.is_empty() => self.empty_lines.push(newline),
             State::Indeterminate => {
-                self.state = match to_operator_block_expression(items, precedence) {
+                self.state = match to_operator_block_expression(items, expression_parser) {
                     Ok(expression) => {
                         self.operator_lines
                             .push(OperatorLine { newline, expression: Some(expression) });
@@ -189,12 +189,14 @@ impl<'s> ApplicableBlockBuilder<'s> {
                     }
                 };
             }
-            State::Argument =>
-                self.body_lines.push(Line { newline, expression: precedence.parse(&mut items) }),
-            State::Operator if !self.body_lines.is_empty() =>
-                self.body_lines.push(Line { newline, expression: precedence.parse(&mut items) }),
+            State::Argument => self
+                .body_lines
+                .push(Line { newline, expression: expression_parser.parse(&mut items) }),
+            State::Operator if !self.body_lines.is_empty() => self
+                .body_lines
+                .push(Line { newline, expression: expression_parser.parse(&mut items) }),
             State::Operator if items.is_empty() => self.operator_lines.push(newline.into()),
-            State::Operator => match to_operator_block_expression(items, precedence) {
+            State::Operator => match to_operator_block_expression(items, expression_parser) {
                 Ok(expression) =>
                     self.operator_lines.push(OperatorLine { newline, expression: Some(expression) }),
                 Err(expression) =>
@@ -227,14 +229,14 @@ impl<'s> ApplicableBlockBuilder<'s> {
 /// Interpret the given expression as an `OperatorBlockExpression`, if it fits the correct pattern.
 fn to_operator_block_expression<'s>(
     mut items: Vec<Item<'s>>,
-    precedence: &mut ExpressionParser<'s>,
+    expression_parser: &mut ExpressionParser<'s>,
 ) -> Result<OperatorBlockExpression<'s>, Tree<'s>> {
     match &items[..] {
         [Item::Token(a), b, ..]
             if b.left_visible_offset().width_in_spaces != 0
                 && a.operator_properties().is_some_and(|p| p.can_form_section()) =>
         {
-            let expression = precedence.parse_offset(1, &mut items).unwrap();
+            let expression = expression_parser.parse_offset(1, &mut items).unwrap();
             let operator = Ok(items
                 .pop()
                 .unwrap()
@@ -243,6 +245,6 @@ fn to_operator_block_expression<'s>(
                 .with_variant(token::variant::Operator()));
             Ok(OperatorBlockExpression { operator, expression })
         }
-        _ => Err(precedence.parse(&mut items).unwrap()),
+        _ => Err(expression_parser.parse(&mut items).unwrap()),
     }
 }

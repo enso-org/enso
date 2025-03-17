@@ -1,10 +1,10 @@
 use enso_prelude::*;
 
+use crate::lexer::GroupDelimiterConsumer;
 use crate::source;
 use crate::syntax::token;
 use crate::syntax::BlockHierarchyConsumer;
 use crate::syntax::Finish;
-use crate::syntax::GroupHierarchyConsumer;
 use crate::syntax::NewlineConsumer;
 use crate::syntax::Token;
 use crate::syntax::TokenConsumer;
@@ -36,15 +36,13 @@ impl<'s> BlockHierarchyConsumer for Vec<Token<'s>> {
     }
 }
 
-impl<'s> GroupHierarchyConsumer<'s> for Vec<Token<'s>> {
-    fn start_group(&mut self, open: token::OpenSymbol<'s>) {
+impl<'s> GroupDelimiterConsumer<'s> for Vec<Token<'s>> {
+    fn open_group(&mut self, open: token::OpenSymbol<'s>) {
         self.push(open.into())
     }
 
-    fn end_group(&mut self, close: Option<token::CloseSymbol<'s>>) {
-        if let Some(close) = close {
-            self.push(close.into())
-        }
+    fn close_group(&mut self, close: token::CloseSymbol<'s>) {
+        self.push(close.into())
     }
 }
 

@@ -51,17 +51,17 @@ impl<'s> span::Builder<'s> for Line<'s> {
 /// Parse the top-level of a module.
 pub fn parse_module<'s>(
     lines: &mut Vec<item::Line<'s>>,
-    precedence: &mut expression::ExpressionParser<'s>,
+    expression_parser: &mut expression::ExpressionParser<'s>,
 ) -> Tree<'s> {
-    BodyBlockParser::default().parse_module(lines, precedence)
+    BodyBlockParser::default().parse_module(lines, expression_parser)
 }
 
 /// Parse a body block.
 pub fn parse_block<'s>(
     lines: &mut Vec<item::Line<'s>>,
-    precedence: &mut expression::ExpressionParser<'s>,
+    expression_parser: &mut expression::ExpressionParser<'s>,
 ) -> Tree<'s> {
-    BodyBlockParser::default().parse_body_block(lines, precedence)
+    BodyBlockParser::default().parse_body_block(lines, expression_parser)
 }
 
 
