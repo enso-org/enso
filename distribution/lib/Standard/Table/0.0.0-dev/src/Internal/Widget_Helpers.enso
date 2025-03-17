@@ -104,8 +104,8 @@ make_column_ref_by_name_selector table display:Display=..Always add_text:Boolean
 
 ## PRIVATE
    Make a column reference by name selector filtered by type.
-make_column_ref_by_name_selector_for_type table display:Display=..Always value_type:Value_Type add_nothing:Boolean=False =
-    is_all = include_all value_type
+make_column_ref_by_name_selector_for_type table display:Display=..Always value_type:Value_Type add_nothing:Boolean=False if_value_type_numeric_include_all_numeric:Boolean=False =
+    is_all = _include_all value_type
     include_number = is_all || value_type.is_numeric
     include_text = is_all || value_type.is_text
     include_boolean = is_all || value_type.is_boolean
@@ -117,7 +117,9 @@ make_column_ref_by_name_selector_for_type table display:Display=..Always value_t
     expression = if table.is_nothing then [] else [Option "<Expression>" "(expr '["+table.column_names.first+"]')"]
 
     col_names = if table.is_nothing then [] else
-        names = if is_all then table.column_names else (table.columns_helper.select_columns [..By_Type value_type, ..By_Type Value_Type.Mixed] case_sensitivity=..Default reorder=False error_on_missing_columns=False on_problems=..Ignore error_on_empty=False . map .name)
+        type_selector = if if_value_type_numeric_include_all_numeric.not then [..By_Type value_type] else
+            [..By_Type ..Integer, ..By_Type ..Float, ..By_Type ..Byte, ..By_Type ..Decimal]
+        names = if is_all then table.column_names else (table.columns_helper.select_columns (type_selector + [..By_Type ..Mixed]) case_sensitivity=..Default reorder=False error_on_missing_columns=False on_problems=..Ignore error_on_empty=False . map .name)
         names.map (name -> Option name "(..Name "+name.pretty+")")
 
     values = constants + expression + col_names
@@ -135,10 +137,10 @@ make_fill_default_value_selector column_source=Nothing display:Display=..Always 
    Make a filter condition selector.
 make_filter_condition_selector table display:Display=..Always cache=Nothing =
     column_value_type = get_column_value_type table cache
-    column_chooser = make_column_ref_by_name_selector_for_type table display add_nothing=False value_type=column_value_type
+    column_chooser = make_column_ref_by_name_selector_for_type table display add_nothing=False value_type=column_value_type if_value_type_numeric_include_all_numeric=True
     regex_chooser = make_column_ref_by_name_selector table display add_regex=True
 
-    is_all = include_all column_value_type
+    is_all = _include_all column_value_type
     include_text = is_all || column_value_type.is_text
     include_boolean = is_all || column_value_type.is_boolean
     include_floating = is_all || column_value_type.is_floating_point
@@ -353,7 +355,7 @@ private get_column_value_type table cache parameter:Text="column" default:Value_
 
 ## PRIVATE
    Treat Value_Type as if it could be any type (i.e. include all constants and types).
-private include_all value_type:Value_Type -> Boolean =
+private _include_all value_type:Value_Type -> Boolean =
     case value_type of
         Value_Type.Mixed -> True
         Value_Type.Unsupported_Data_Type _ _  -> True
