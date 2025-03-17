@@ -132,7 +132,7 @@ public final class StringStorage extends SpecializedStorage<String> {
   }
 
   @Override
-  public StorageType inferPreciseTypeShrunk() {
+  public StorageType<?> inferPreciseTypeShrunk() {
     var type = getType();
     if (type.fixedLength()) {
       return type;

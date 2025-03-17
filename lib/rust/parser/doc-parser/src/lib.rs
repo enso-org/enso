@@ -50,6 +50,7 @@ pub enum Tag {
     Removed,
     Unstable,
     Upcoming,
+    Suggested,
 }
 
 
@@ -79,6 +80,7 @@ impl Tag {
             "REMOVED" => Some(Removed),
             "UNSTABLE" => Some(Unstable),
             "UPCOMING" => Some(Upcoming),
+            "SUGGESTED" => Some(Suggested),
             _ => None,
         }
     }
@@ -97,6 +99,7 @@ impl Tag {
             Tag::Removed => "REMOVED",
             Tag::Unstable => "UNSTABLE",
             Tag::Upcoming => "UPCOMING",
+            Tag::Suggested => "SUGGESTED",
         }
     }
 }

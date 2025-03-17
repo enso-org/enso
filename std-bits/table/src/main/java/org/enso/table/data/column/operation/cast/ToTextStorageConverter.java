@@ -27,7 +27,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   }
 
   @Override
-  public boolean canApply(StorageType sourceType) {
+  public boolean canApply(StorageType<?> sourceType) {
     return true;
   }
 

@@ -18,6 +18,8 @@ public final class TextPredicates extends GenericComparators<String> {
   public static final TextPredicates ENDS_WITH = new TextPredicates(Text_Utils::ends_with);
   public static final TextPredicates CONTAINS = new TextPredicates(Text_Utils::contains);
   public static final TextPredicates LIKE = new TextPredicates(TextPredicates::LikePredicate);
+  public static final TextPredicates REGEX_MATCH =
+      new TextPredicates(TextPredicates::RegexMatchPredicate);
 
   private TextPredicates(BiPredicate<String, String> predicate) {
     super(predicate, true);
@@ -56,6 +58,10 @@ public final class TextPredicates extends GenericComparators<String> {
 
   private static Pattern createRegexPatternFromSql(String sqlPattern) {
     String regex = Regex_Utils.sql_like_pattern_to_regex(sqlPattern);
+    return createRegexPattern(regex);
+  }
+
+  private static Pattern createRegexPattern(String regex) {
     String unicodeTransformed = UnicodeRegex.fix(regex);
     /*
      * There is <a href="https://bugs.java.com/bugdatabase/view_bug.do?bug_id=8032926">a bug with Java
@@ -68,6 +74,13 @@ public final class TextPredicates extends GenericComparators<String> {
   private static boolean LikePredicate(String left, String right) {
     return regexCache
         .computeIfAbsent(right, TextPredicates::createRegexPatternFromSql)
+        .matcher(left)
+        .matches();
+  }
+
+  private static boolean RegexMatchPredicate(String left, String right) {
+    return regexCache
+        .computeIfAbsent(right, TextPredicates::createRegexPattern)
         .matcher(left)
         .matches();
   }
