@@ -86,7 +86,7 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
   private ObjectNode logEventToPayload(ILoggingEvent logEvent) {
     var payload = new ObjectNode(JsonNodeFactory.instance);
     payload.set("message", TextNode.valueOf(logEvent.getMessage()));
-    payload.set("kind", TextNode.valueOf("telemetry"));
+    payload.set("kind", TextNode.valueOf("Telemetry"));
     var args = new ArrayNode(JsonNodeFactory.instance);
     for (var arg : logEvent.getArgumentArray()) {
       args.add(TextNode.valueOf(arg.toString()));
