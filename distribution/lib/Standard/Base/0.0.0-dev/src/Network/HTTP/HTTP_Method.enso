@@ -4,7 +4,6 @@ import project.Metadata.Widget
 from project.Data.Text.Extensions import all
 from project.Metadata import make_single_choice
 
-
 type HTTP_Method
     ## The HTTP method "OPTIONS".
     Options
