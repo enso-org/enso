@@ -474,7 +474,13 @@ object DistributionPackage {
     pb.environment().put("ENSO_JVM_PATH", System.getProperty("java.home"))
     if (args.contains("--debug")) {
       all.remove("--debug")
-      pb.environment().put("ENSO_JVM_OPTS", WithDebugCommand.DEBUG_OPTION)
+      val prevValue = System.getenv("ENSO_JVM_OPTS")
+      val newValue = if (prevValue == null) {
+        WithDebugCommand.DEBUG_OPTION
+      } else {
+        prevValue + " " + WithDebugCommand.DEBUG_OPTION
+      }
+      pb.environment().put("ENSO_JVM_OPTS", newValue)
     }
     pb.inheritIO()
     val p        = pb.start()
