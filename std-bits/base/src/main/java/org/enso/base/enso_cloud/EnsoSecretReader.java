@@ -7,7 +7,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.enso.base.cache.ReloadDetector;
 
 /** * Internal class to read secrets from the Enso Cloud. */
