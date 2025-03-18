@@ -14,7 +14,7 @@ import org.graalvm.polyglot.Value;
  * small. If the result is not cached or the cache entry is expired, the cache will recompute the
  * value using the provided callback.
  *
- * Subclasses of APIRequestCache that want to be cleared on reload should call
+ * <p>Subclasses of APIRequestCache that want to be cleared on reload should call
  * ReloadDetector.register(this).
  */
 public class APIRequestCache implements ReloadDetector.HasClearableCache {

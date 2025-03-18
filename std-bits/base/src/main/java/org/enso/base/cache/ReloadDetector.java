@@ -9,10 +9,9 @@ import org.graalvm.polyglot.Value;
  * Register caches so they can be cleared when the reload button is pressed.
  *
  * <p>Cache clearing does not happen automatically in the background. A cache must implement
- * HasClearableCache, register itself, and then poll using
- * ReloadDetector.clearOnReload(this), which will invoke the clearCache() callback if a
- * reload has just happenend. Thus, a client cache decides exactly when it wants caches to be
- * cleared.
+ * HasClearableCache, register itself, and then poll using ReloadDetector.clearOnReload(this), which
+ * will invoke the clearCache() callback if a reload has just happenend. Thus, a client cache
+ * decides exactly when it wants caches to be cleared.
  *
  * <p>If clearOnReload() is called on an object that wasn't registered, an exception is thrown. A
  * cache object that doesn't know if it was registered can safely call clearOnReloadIfRegistered()
