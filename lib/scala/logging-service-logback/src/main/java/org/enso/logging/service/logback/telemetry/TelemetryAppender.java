@@ -51,6 +51,13 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
 
   private HttpClient httpClient;
 
+  /**
+   * Set to true once an error is encountered when sending a request. In such case, it is most
+   * probably that no further requests will be successful. This flag is used to terminate the
+   * background thread.
+   */
+  private boolean requestSendingFailure;
+
   private TelemetryAppender(ThreadPoolExecutor backgroundThreadService, URI endpoint) {
     this.backgroundThreadService = backgroundThreadService;
     this.endpoint = endpoint;
@@ -108,7 +115,9 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
       // It is possible that a job was already running, but adding a new one will not hurt - once
       // the queue is empty, the currently running job will finish and any additional jobs will also
       // terminate immediately.
-      backgroundThreadService.execute(this::logThreadEntryPoint);
+      if (!requestSendingFailure) {
+        backgroundThreadService.execute(this::logThreadEntryPoint);
+      }
     }
 
     /*
@@ -138,6 +147,7 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
         sendBatch(pendingMessages);
       } catch (RequestFailureException e) {
         LOGGER.warn("Stopping the Telemetry appender - requests cannot be send", e);
+        requestSendingFailure = true;
         return;
       }
     }
