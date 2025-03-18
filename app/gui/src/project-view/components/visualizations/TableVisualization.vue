@@ -780,7 +780,8 @@ watchEffect(() => {
       headers.forEach((header) => headerGroupingMap.set(header, determineGrouping(header)))
     }
   } else {
-    Object.keys(rowData.value[0]).forEach((header) =>
+    const headers = rowData.value[0] ? Object.keys(rowData.value[0]) : []
+    Object.keys(headers).forEach((header) =>
       headerGroupingMap.set(header, determineGrouping(header)),
     )
   }
