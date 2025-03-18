@@ -74,20 +74,7 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
 
   @Override
   protected void append(ILoggingEvent eventObject) {
-    var mdcMap = eventObject.getMDCPropertyMap();
-    System.out.printf(
-        "TelemetryAppender.append: msg='%s', args=%s, loggerName='%s', threadName='%s', mdcMap={%s}"
-            + " %n",
-        eventObject.getMessage(),
-        Arrays.toString(eventObject.getArgumentArray()),
-        eventObject.getLoggerName(),
-        eventObject.getThreadName(),
-        mdcMap);
     enqueueJob(eventObject);
-  }
-
-  private ObjectNode logEventToPayload(ILoggingEvent logEvent) {
-    return LogFormatter.transform(logEvent);
   }
 
   private static Path credentialsFile() {
