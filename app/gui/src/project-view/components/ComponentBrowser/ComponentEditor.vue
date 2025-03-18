@@ -79,8 +79,14 @@ const rootStyle = computed(() => {
     <div :class="{ componentEditorIcon: true, port: props.mode.mode !== 'componentBrowsing' }">
       <SvgIcon :name="icon" />
     </div>
-    <span class="selfArgInfo">{{ selfTypeName ?? 'Input' }} Components</span>
-    <SvgIcon class="selfArgInfoArrow" name="folder_closed" />
+    <span v-if="mode.mode === 'componentBrowsing'" class="selfArgInfo"
+      >{{ selfTypeName ?? 'Input' }} Components</span
+    >
+    <SvgIcon
+      v-if="mode.mode === 'componentBrowsing'"
+      class="selfArgInfoArrow"
+      name="folder_closed"
+    />
     <AutoSizedInput
       ref="inputField"
       v-model="fieldContent.text"
