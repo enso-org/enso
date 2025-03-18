@@ -508,6 +508,7 @@ function toField(
       maxNumConditions: 1,
       values: getFilterValues,
       filterOptions: filterOptions,
+      buttons: ['clear'],
     },
     headerComponentParams: {
       template,
