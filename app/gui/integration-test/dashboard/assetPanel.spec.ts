@@ -82,13 +82,11 @@ test('Asset Panel documentation view', ({ page }) =>
     .driveTable.clickRow(0)
     .toggleDocsAssetPanel()
     .withAssetPanel(async (assetPanel) => {
-      await expect(assetPanel.getByTestId('asset-panel-tab-panel-docs')).toBeVisible()
-      await expect(
-        locateMarkdownContent(assetPanel.getByTestId('asset-panel-tab-panel-docs')),
-      ).toBeVisible()
-      await expect(
-        locateMarkdownContent(assetPanel.getByTestId('asset-panel-tab-panel-docs')),
-      ).toHaveText(/Project Goal/)
+      await expect(assetPanel.getByTestId('asset-docs')).toBeVisible()
+      await expect(locateMarkdownContent(assetPanel.getByTestId('asset-docs'))).toBeVisible()
+      await expect(locateMarkdownContent(assetPanel.getByTestId('asset-docs'))).toHaveText(
+        /Project Goal/,
+      )
       await expect(assetPanel.getByText(TEXT.arbitraryFetchImageError)).not.toBeVisible()
     }))
 
@@ -103,9 +101,7 @@ test('Assets Panel docs images', ({ page }) => {
     .driveTable.clickRow(0)
     .toggleDocsAssetPanel()
     .withAssetPanel(async (assetPanel) => {
-      await expect(
-        locateMarkdownContent(assetPanel.getByTestId('asset-panel-tab-panel-docs')),
-      ).toBeVisible()
+      await expect(locateMarkdownContent(assetPanel.getByTestId('asset-docs'))).toBeVisible()
 
       for (const image of await assetPanel.getByRole('img').all()) {
         await expect(image).toBeVisible()

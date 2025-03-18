@@ -20,6 +20,9 @@ const { content, toolbar } = defineProps<{
   content: Y.Text | string
   toolbar: boolean
 }>()
+defineOptions({
+  inheritAttrs: false,
+})
 
 const focused = ref(false)
 const editing = computed(() => !readonly.value && focused.value)

@@ -4,9 +4,10 @@ import { useLogger } from '#/providers/LoggerProvider'
 import { useText } from '#/providers/TextProvider'
 import { type UrlTransformer } from '@/components/MarkdownEditor/imageUrlTransformer'
 import { Err, Ok } from '@/util/data/result'
+import { type TestIdProps } from '../AriaComponents'
 
 /** Props for a {@link MarkdownViewer}. */
-export interface MarkdownViewerProps {
+export interface MarkdownViewerProps extends TestIdProps {
   /** Markdown markup to parse and display. */
   readonly text: string
   readonly imgUrlResolver: (relativePath: string) => Promise<string>
@@ -17,7 +18,7 @@ export interface MarkdownViewerProps {
  * Parses markdown passed in as a `text` prop into HTML and displays it.
  */
 export function MarkdownViewer(props: MarkdownViewerProps) {
-  const { text, imgUrlResolver } = props
+  const { text, imgUrlResolver, testId } = props
 
   const logger = useLogger()
   const { getText } = useText()
@@ -33,5 +34,12 @@ export function MarkdownViewer(props: MarkdownViewerProps) {
         },
       )
 
-  return <MarkdownEditor content={text} transformImageUrl={transformImageUrl} toolbar={false} />
+  return (
+    <MarkdownEditor
+      content={text}
+      transformImageUrl={transformImageUrl}
+      toolbar={false}
+      data-testid={testId}
+    />
+  )
 }
