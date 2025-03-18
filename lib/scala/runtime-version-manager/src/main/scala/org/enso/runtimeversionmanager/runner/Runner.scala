@@ -170,13 +170,14 @@ class Runner(
     def prepareAndRunCommand(engine: Engine, cmd: ExecCommand): R = {
       val jvmOptsFromEnvironment = environment.getEnvVar(JVM_OPTIONS_ENV_VAR)
       jvmOptsFromEnvironment.foreach { opts =>
-        logger.debug(
+        logger.info(
           "Picking up additional JVM options [{}] from the " +
           "[{}] environment variable.",
           MaskedString(opts),
           JVM_OPTIONS_ENV_VAR
         )
       }
+      logger.info("jvmOpts: "+ jvmOptsFromEnvironment)
 
       val environmentOptions =
         jvmOptsFromEnvironment.map(_.split(' ').toIndexedSeq).getOrElse(Seq())

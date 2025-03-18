@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Supplier;
 import org.enso.distribution.locking.LockManager;
 import org.enso.interpreter.instrument.Handler;
 import org.enso.interpreter.instrument.HandlerFactory;
@@ -37,15 +39,29 @@ import org.openide.util.Lookup;
  */
 @TruffleInstrument.Registration(
     id = RuntimeServerInfo.INSTRUMENT_NAME,
-    services = RuntimeServerInstrument.class)
+    services = {RuntimeServerInstrument.class, Supplier.class})
 public class RuntimeServerInstrument extends TruffleInstrument {
   private Env env;
   private Handler handler;
   private EventBinding<Initializer> initializerEventBinding;
+  private ScheduledExecutorService jobExecutor;
+
+  private ScheduledExecutorService getJobExecutor() {
+    if (jobExecutor == null) {
+      var ensoCtx = EnsoContext.get(null);
+      var jobParallelism = ensoCtx.getJobParallelism();
+      jobExecutor = ensoCtx.newScheduledThreadPool(jobParallelism, "job-pool", false);
+    }
+    return jobExecutor;
+  }
 
   private void initializeExecutionService(ExecutionService service, TruffleContext context) {
-    initializerEventBinding.dispose();
-    handler.initializeExecutionService(service, context);
+    if (initializerEventBinding != null) {
+      initializerEventBinding.dispose();
+      var exec = getJobExecutor();
+      assert exec != null;
+      handler.initializeExecutionService(service, jobExecutor, context);
+    }
   }
 
   private static class Initializer implements ContextsListener {
@@ -134,6 +150,9 @@ public class RuntimeServerInstrument extends TruffleInstrument {
 
     initializerEventBinding =
         env.getInstrumenter().attachContextsListener(new Initializer(this) {}, true);
+
+    Supplier<ScheduledExecutorService> supply = this::getJobExecutor;
+    env.registerService(supply);
   }
 
   @Override

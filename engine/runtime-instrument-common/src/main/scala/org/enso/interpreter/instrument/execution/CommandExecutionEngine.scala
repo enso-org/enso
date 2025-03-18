@@ -52,7 +52,7 @@ class CommandExecutionEngine(interpreterContext: InterpreterContext)
     }
 
   private val sequentialExecutionService =
-    interpreterContext.executionService.getContext.newFixedThreadPool(
+    interpreterContext.executionService.getContext.newScheduledThreadPool(
       1,
       "sequential-command-pool",
       false

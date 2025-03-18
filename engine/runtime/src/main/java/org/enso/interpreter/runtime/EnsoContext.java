@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -797,8 +798,9 @@ public final class EnsoContext {
    * @param systemThreads use system threads or polyglot threads
    * @return new execution service for this context
    */
-  public ExecutorService newFixedThreadPool(int parallel, String name, boolean systemThreads) {
-    return threadExecutors.newFixedThreadPool(parallel, name, systemThreads);
+  public ScheduledExecutorService newScheduledThreadPool(
+      int parallel, String name, boolean systemThreads) {
+    return threadExecutors.newScheduledThreadPool(parallel, name, systemThreads);
   }
 
   /**

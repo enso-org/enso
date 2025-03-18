@@ -8,8 +8,9 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
 import java.net.URL;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.graalvm.polyglot.Value;
@@ -87,7 +88,11 @@ final class EpbContext {
   final void initializePolyfill(Node node, TruffleContext ctx) {
     if (!polyfillInitialized) {
       polyfillInitialized = true;
-      var exec = Executors.newSingleThreadScheduledExecutor();
+      var instr = getEnv().getInstruments().get("enso-runtime-server");
+      var suppl = getEnv().lookup(instr, Supplier.class);
+      var service = suppl == null ? null : suppl.get();
+      assert service instanceof ScheduledExecutorService;
+      var exec = (ScheduledExecutorService) service;
       Function<URL, Value> eval =
           (url) -> {
             try {

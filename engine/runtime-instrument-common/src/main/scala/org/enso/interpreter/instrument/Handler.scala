@@ -1,5 +1,6 @@
 package org.enso.interpreter.instrument
 
+import java.util.concurrent.ExecutorService
 import com.oracle.truffle.api.TruffleContext
 import org.enso.interpreter.instrument.command.{
   CommandFactory,
@@ -36,15 +37,16 @@ abstract class Handler {
     */
   def initializeExecutionService(
     executionService: ExecutionService,
+    jobExecutor: ExecutorService,
     truffleContext: TruffleContext
   ): Unit = {
-    val interpreterCtx =
-      InterpreterContext(
-        executionService,
-        contextManager,
-        endpoint,
-        truffleContext
-      )
+    val interpreterCtx = new InterpreterContext(
+      executionService,
+      jobExecutor,
+      contextManager,
+      endpoint,
+      truffleContext
+    )
     val commandProcessor = new CommandExecutionEngine(interpreterCtx)
     ctx = HandlersContext(
       executionService,
