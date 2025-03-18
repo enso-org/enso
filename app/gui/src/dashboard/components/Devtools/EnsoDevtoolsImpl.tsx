@@ -11,7 +11,6 @@ import { IS_DEV_MODE } from 'enso-common/src/detect'
 
 import CrossIcon from '#/assets/cross.svg'
 import DevtoolsLogo from '#/assets/enso_logo.svg'
-import EditIcon from '#/assets/pen.svg'
 
 import { SETUP_PATH } from '#/appUtils'
 
@@ -410,7 +409,7 @@ export function EnsoDevtools() {
                     buttonVariants={{ size: 'small', variant: 'icon', extraClickZone: 'small' }}
                   >
                     <Dialog.Trigger>
-                      <Button aria-label="Edit" icon={EditIcon} />
+                      <Button aria-label="Edit" icon="edit" />
 
                       <Dialog title={`Edit ${title}`}>
                         <Form
