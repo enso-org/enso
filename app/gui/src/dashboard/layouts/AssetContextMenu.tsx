@@ -260,7 +260,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
               const localProject = await remoteBackend.downloadProject(asset.id)
 
               let project
-              for (let parentId of [localProject.targetId, localProject.parentId]) {
+              for (const parentId of [localProject.targetId, localProject.parentId]) {
                 const assets = await localBackend.listDirectory({
                   parentId: parentId,
                   filterBy: null,
