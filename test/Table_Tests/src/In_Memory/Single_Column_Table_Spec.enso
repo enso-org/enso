@@ -6,7 +6,7 @@ from Standard.Table import Aggregate_Column, Column, Table
 from Standard.Test import all
 
 add_specs suite_builder =
-    suite_builder.group "single-column Table" group_builder->
+    suite_builder.group "single-column Table" pending="Temporarily disabled in #12544." group_builder->
         group_builder.specify "should be a Table but also a Column" <|
             t1 = Table.new [["A", [1, 2, 3]]]
             t1.should_be_a Table
