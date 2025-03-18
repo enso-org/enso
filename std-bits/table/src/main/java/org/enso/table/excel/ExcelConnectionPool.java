@@ -31,7 +31,7 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
   private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(ExcelConnectionPool.class);
 
   private ExcelConnectionPool() {
-    ReloadDetector.INSTANCE.register(this);
+    ReloadDetector.register(this);
   }
 
   public ReadOnlyExcelConnection openReadOnlyConnection(File file, ExcelFileFormat format)
@@ -43,7 +43,7 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
                 + "written to. This is a bug in the Table library.");
       }
 
-      ReloadDetector.INSTANCE.clearOnReload(this);
+      ReloadDetector.clearOnReload(this);
 
       if (!file.exists()) {
         throw new FileNotFoundException(file.toString());
