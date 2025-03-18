@@ -1,3 +1,4 @@
+import { Opt } from '@/util/data/opt'
 import {
   autoUpdate,
   offset,
@@ -41,7 +42,7 @@ function sizeOptions(limitWidth: boolean): () => SizeOptions {
 const NODE_HEIGHT = 32
 const SUBMENU_PADDING = 10
 
-/** Offset the dropdown below the port or SUBMENU_PADDING pixels. */
+/** Offset the dropdown below the port or by SUBMENU_PADDING pixels. */
 function offsetSubmenu(isTopLevel: boolean): OffsetOptions {
   return (state) => {
     const offsetTopLevel = (NODE_HEIGHT - state.rects.reference.height) / 2
@@ -53,11 +54,7 @@ function offsetSubmenu(isTopLevel: boolean): OffsetOptions {
 }
 
 /** Rules for positioning the dropdown. */
-function middleware(
-  isTopLevel: boolean,
-  limitWidth: boolean,
-  rootElement: Ref<HTMLElement | undefined>,
-) {
+function middleware(isTopLevel: boolean, limitWidth: boolean, rootElement: Ref<Opt<HTMLElement>>) {
   return computed(() => [
     offset(offsetSubmenu(isTopLevel)),
     size(sizeOptions(limitWidth)),
@@ -69,8 +66,8 @@ function middleware(
 
 /** Positioning for activity dropdowns. */
 export function activityDropdownStyles(
-  floatReference: Ref<HTMLElement | undefined>,
-  dropdownElement: Ref<HTMLElement | undefined>,
+  floatReference: Ref<Opt<HTMLElement>>,
+  dropdownElement: Ref<Opt<HTMLElement>>,
   rootElement: Ref<HTMLElement | undefined>,
 ) {
   return useFloating(floatReference, dropdownElement, {
@@ -80,10 +77,10 @@ export function activityDropdownStyles(
   })
 }
 
-/** Positioning for submenus. */
+/** Positioning for dropdown submenus. */
 export function submenuDropdownStyles(
-  floatReference: Ref<HTMLElement | undefined>,
-  dropdownElement: Ref<HTMLElement | undefined>,
+  floatReference: Ref<Opt<HTMLElement>>,
+  dropdownElement: Ref<Opt<HTMLElement>>,
   isTopLevel: boolean,
   rootElement: Ref<HTMLElement | undefined>,
 ) {

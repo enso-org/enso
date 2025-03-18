@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { ExpressionTag, NestedChoiceTag } from '../widgets/dropdownTags'
+import { ExpressionTag, NestedChoiceTag } from '../tags'
 
 test('Flattening nested choice tags', () => {
   const tag = new NestedChoiceTag('a', [

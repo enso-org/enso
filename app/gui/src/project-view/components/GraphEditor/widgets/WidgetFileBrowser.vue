@@ -10,7 +10,7 @@ import { ArgumentInfoKey } from '@/util/callTree'
 import { ProjectPath, printAbsoluteProjectPath } from '@/util/projectPath'
 import { computed } from 'vue'
 import { TextLiteral, type QualifiedName } from 'ydoc-shared/ast'
-import { CustomDropdownItem } from './dropdownTags'
+import { CustomDropdownItem } from './WidgetSelection/tags'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const graph = useGraphStore()

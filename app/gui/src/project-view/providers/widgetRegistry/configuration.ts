@@ -229,7 +229,7 @@ export function functionCallConfiguration(
   }
 }
 
-/** TODO */
+/** Flatten possibly nested choice. */
 export function flattenChoice(choice: Choice): FlattenedChoice[] {
   if (typeof choice.value === 'string') {
     return [choice as FlattenedChoice]

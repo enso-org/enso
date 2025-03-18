@@ -46,11 +46,7 @@ export function useWidgetFunctionCallInfo(
   },
   projectNames: ProjectNameStore,
 ) {
-  const methodCallInfo = computed(() => {
-    const info = getMethodCallInfoRecursively(toValue(input).value, graphDb)
-    console.log('methodCallInfo', info)
-    return info
-  })
+  const methodCallInfo = computed(() => getMethodCallInfoRecursively(toValue(input).value, graphDb))
   const interpreted = computed(() => interpretCall(toValue(input).value))
 
   const subjectInfo = computed(() => {
@@ -167,10 +163,8 @@ export function useWidgetFunctionCallInfo(
   const widgetConfiguration = computed(() => {
     const data = visualizationData.value
     if (data?.ok) {
-      console.log('data', data.value)
       const parseResult = argsWidgetConfigurationSchema.safeParse(data.value)
       if (parseResult.success) {
-        console.log('parseResult', parseResult.data)
         return functionCallConfiguration(parseResult.data, inheritedConfig.value)
       } else {
         console.error('Unable to parse widget configuration.', data, parseResult.error)

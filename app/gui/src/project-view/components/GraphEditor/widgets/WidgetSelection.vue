@@ -24,8 +24,8 @@ import { arrayEquals } from '@/util/data/array'
 import { ToValue } from '@/util/reactivity'
 import type { RendererNode, VNode } from 'vue'
 import { computed, proxyRefs, ref, shallowRef, toValue, useTemplateRef, watch } from 'vue'
-import SelectionSubmenu from './SelectionSubmenu.vue'
-import { activityDropdownStyles } from './dropdownStyles'
+import SelectionSubmenu from './WidgetSelection/SelectionSubmenu.vue'
+import { activityDropdownStyles } from './WidgetSelection/styles'
 import {
   ActionTag,
   Actions,
@@ -33,7 +33,7 @@ import {
   Entry,
   ExpressionTag,
   NestedChoiceTag,
-} from './dropdownTags'
+} from './WidgetSelection/tags'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const suggestions = useSuggestionDbStore()
@@ -99,7 +99,6 @@ const dynamicTags = computed<(ExpressionTag | NestedChoiceTag)[]>(() => {
         choice.value,
         choice.label,
       )
-      tag.parameters = choice.parameters
       return tag
     }
   }
@@ -114,10 +113,6 @@ const filteredTags = computed(() => {
   if (expressionFilter) {
     const flattened = expressionTags.flatMap((tag) =>
       tag instanceof NestedChoiceTag ? tag.flatten() : [tag],
-    )
-    console.log(
-      'filtering',
-      flattened.map((x) => x.label),
     )
     return flattened.filter(expressionFilter)
   } else {
@@ -214,7 +209,6 @@ const dropDownInteraction = WidgetEditHandler.New('WidgetSelection', props.input
       targetIsOutside(e, unrefElement(widgetRoot)) &&
       targetIsOutside(e, document.getElementById('floatingLayer'))
     ) {
-      console.log('pointer is outside')
       dropDownInteraction.end()
       if (editedWidget.value)
         props.onUpdate({

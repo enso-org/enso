@@ -1,5 +1,4 @@
 import { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
-import { ArgumentWidgetConfiguration } from '@/providers/widgetRegistry/configuration'
 import { RequiredImport, requiredImports } from '@/stores/graph/imports'
 import { ProjectNameStore } from '@/stores/projectNames'
 import { SuggestionDbStore } from '@/stores/suggestionDatabase'
@@ -26,13 +25,11 @@ export class ExpressionTag {
    * @param expression - The expression to insert when this item is clicked.
    * @param explicitLabel - If provided, this label will be used instead of the stringified expression.
    * @param requiredImports - The imports required by the expression, will be added to the code when the item is clicked.
-   * @param parameters - TODO
    */
   constructor(
     readonly expression: string,
     readonly explicitLabel?: Opt<string>,
     readonly requiredImports?: RequiredImport[],
-    public parameters?: ArgumentWidgetConfiguration[],
   ) {}
 
   /**
@@ -134,9 +131,7 @@ export class NestedChoiceTag {
     for (const choice of this.choices) {
       if (choice instanceof ExpressionTag) {
         const newLabel = prefix + this.internalLabel + ' → ' + choice.label
-        result.push(
-          new ExpressionTag(choice.expression, newLabel, choice.requiredImports, choice.parameters),
-        )
+        result.push(new ExpressionTag(choice.expression, newLabel, choice.requiredImports))
       } else if (choice instanceof NestedChoiceTag) {
         result.push(...choice.flatten(prefix + this.internalLabel + ' → '))
       }

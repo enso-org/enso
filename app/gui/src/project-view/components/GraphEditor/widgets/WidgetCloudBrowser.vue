@@ -6,7 +6,7 @@ import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widge
 import { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { computed, h } from 'vue'
-import type { CustomDropdownItem } from './dropdownTags'
+import type { CustomDropdownItem } from './WidgetSelection/tags'
 
 const props = defineProps(widgetProps(widgetDefinition))
 

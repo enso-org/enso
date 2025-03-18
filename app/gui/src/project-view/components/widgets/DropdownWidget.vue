@@ -67,13 +67,22 @@ const styleVars = computed(() => {
   }
 })
 
-function handleClick(entry: Entry, altKey: boolean, target: EventTarget | null) {
-  if (!(target instanceof HTMLElement)) return
+/**
+ * Recursively find the nearest <li> element among ancestors of the event target.
+ * It is used to guarantee a stable target no matter the exact location of the click.
+ */
+function findTargetLiElement(target: EventTarget | null): HTMLElement | null {
+  if (!(target instanceof HTMLElement)) return null
   let targetLiElement = target
   while (!(targetLiElement instanceof HTMLLIElement)) {
     targetLiElement = targetLiElement.parentElement as HTMLElement
   }
-  emit('clickEntry', entry, altKey, targetLiElement)
+  return targetLiElement
+}
+
+function handleClick(entry: Entry, altKey: boolean, target: EventTarget | null) {
+  const targetLiElement = findTargetLiElement(target)
+  if (targetLiElement != null) emit('clickEntry', entry, altKey, targetLiElement)
 }
 </script>
 
@@ -126,7 +135,10 @@ export interface DropdownEntry {
   color: var(--dropdown-fg);
 }
 
-.TopLevelDropdown {
+/** Optional class that extends the dropdown upwards, so that it nicely merges with the node’s port.
+ * Normally, only dropdowns that directly attached to a port are extended. 
+ */
+.ExtendUpwards {
   margin-top: calc(0px - var(--dropdown-extend));
   padding-top: var(--dropdown-extend);
   &:before {

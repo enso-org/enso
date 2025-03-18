@@ -4,8 +4,8 @@ import DropdownWidget, { DropdownEntry } from '@/components/widgets/DropdownWidg
 import { unrefElement } from '@/composables/events'
 import { targetIsOutside } from '@/util/autoBlur'
 import { computed, ComputedRef, ref, useTemplateRef, watch } from 'vue'
-import { submenuDropdownStyles } from './dropdownStyles'
-import { Entry, ExpressionTag, isEntry, NestedChoiceTag } from './dropdownTags'
+import { submenuDropdownStyles } from './styles'
+import { Entry, ExpressionTag, isEntry, NestedChoiceTag } from './tags'
 
 const props = defineProps<{
   rootElement: HTMLElement | undefined
@@ -20,41 +20,39 @@ const emit = defineEmits<{
   clickedEntry: [Entry, boolean]
 }>()
 
-watch(
-  () => props.show,
-  () => {
-    submenu.value = null
-  },
-)
-
 const dropdownElement = useTemplateRef('dropdownElement')
 const floatReference = computed(() => props.floatReference)
-
-const element = computed(() => (dropdownElement.value ? dropdownElement.value : undefined))
 const rootElement = computed(() => props.rootElement)
+
 const { floatingStyles } = submenuDropdownStyles(
   floatReference,
-  element,
+  dropdownElement,
   props.topLevel,
   rootElement,
 )
 
-function isTargetOutside(event: Event) {
+/** Referring to the type of the component in the current file is hard, so we define a helper type. */
+interface SubmenuComponent {
+  isTargetOutside: (event: Event) => boolean
+}
+function isSubmenuComponent(component: unknown): component is SubmenuComponent {
   return (
-    targetIsOutside(event, unrefElement(dropdownElement)) &&
-    (submenuRef.value != null ?
-      (
-        'isTargetOutside' in submenuRef.value &&
-        typeof submenuRef.value.isTargetOutside === 'function'
-      ) ?
-        submenuRef.value.isTargetOutside(event)
-      : true
-    : true)
+    component != null &&
+    typeof component === 'object' &&
+    'isTargetOutside' in component &&
+    typeof component.isTargetOutside === 'function'
   )
 }
 
+/** Check if the event target is outside the current submenu and any of its descendants. */
+function isTargetOutside(event: Event) {
+  const isOutsideCurrent = targetIsOutside(event, unrefElement(dropdownElement))
+  const isOutsideSubmenu =
+    isSubmenuComponent(submenuRef.value) ? submenuRef.value.isTargetOutside(event) : true
+  return isOutsideCurrent && isOutsideSubmenu
+}
+
 defineExpose({
-  dropdownElement,
   isTargetOutside,
 })
 
@@ -67,26 +65,35 @@ const submenu = ref<Submenu | null>(null)
 const submenuEntries = computed(() => submenu.value?.entries ?? [])
 const submenuRef = useTemplateRef('submenuRef')
 
+function resetSubmenu() {
+  submenu.value = null
+}
+watch(() => props.show, resetSubmenu)
+
 const nestedEntriesPresent = computed(() =>
   props.entries.some((entry) => isEntry(entry) && entry.tag instanceof NestedChoiceTag),
 )
+
+function nestedChoiceTagToSubmenu(tag: NestedChoiceTag, target: HTMLElement): Submenu {
+  const isSelected = (tag: ExpressionTag | NestedChoiceTag) =>
+    tag instanceof ExpressionTag && props.selectedExpressions.has(tag.expression)
+  const choiceToEntry = (choice: ExpressionTag | NestedChoiceTag): Entry => ({
+    value: choice.label,
+    selected: isSelected(choice),
+    tag: choice,
+  })
+
+  return {
+    entries: computed(() => tag.choices.map(choiceToEntry) satisfies Entry[]),
+    relativeTo: target,
+  }
+}
 
 function onClick(entry: DropdownEntry, keepOpen: boolean, target: HTMLElement) {
   if (!isEntry(entry)) return
   const tag = entry.tag
   if (tag instanceof NestedChoiceTag) {
-    submenu.value = {
-      entries: computed(
-        () =>
-          tag.choices.map((choice) => ({
-            value: choice.label,
-            selected:
-              choice instanceof ExpressionTag && props.selectedExpressions.has(choice.expression),
-            tag: choice,
-          })) satisfies Entry[],
-      ),
-      relativeTo: target,
-    }
+    submenu.value = nestedChoiceTagToSubmenu(tag, target)
   } else {
     emit('clickedEntry', entry, keepOpen)
   }
@@ -103,7 +110,7 @@ function onScroll() {
       <SizeTransition height :duration="100">
         <DropdownWidget
           v-if="props.show"
-          :class="{ TopLevelDropdown: props.topLevel }"
+          :class="{ ExtendUpwards: props.topLevel }"
           color="var(--color-node-text)"
           backgroundColor="var(--color-node-background)"
           :entries="entries"

@@ -5,7 +5,6 @@ import { computed, proxyRefs, shallowRef, type Ref, type ShallowUnwrapRef } from
 import { AstId } from 'ydoc-shared/ast'
 import { ExternalId } from 'ydoc-shared/yjsModel'
 
-export type WidgetTree = ReturnType<typeof injectWidgetTree>
 export const [provideWidgetTree, injectWidgetTree] = createContextStore(
   'Widget tree',
   (
