@@ -43,8 +43,6 @@ jobs:
       - uses: bazel-contrib/setup-bazel@0.13.0
         with:
           bazelisk-cache: true
-          disk-cache: true
-          repository-cache: true
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
 
       - name: 📦 Install dependencies
