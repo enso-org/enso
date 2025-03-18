@@ -6,10 +6,12 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Database.Feature.Feature
 from Standard.Database.Errors import all
 
+import Standard.Test.Extensions
+from Standard.Test import Problems
+
 from Standard.Table import all
 from Standard.Table.Errors import Missing_Input_Columns, Duplicate_Output_Column_Names
 
-from Standard.Test import all
 
 from project.Common_Table_Operations.Util import run_default_backend
 import project.Util
@@ -19,14 +21,6 @@ polyglot java import java.lang.Long as Java_Long
 main filter=Nothing = run_default_backend add_specs filter
 
 add_specs suite_builder setup =
-    if setup.is_database.not then (add_group_number_specs suite_builder setup) else
-        suite_builder.group setup.prefix+"Table.add_group_number" group_builder->
-            group_builder.specify "add_group_number should report unsupported" <|
-                table_builder = setup.light_table_builder
-                t = table_builder [['x', [1, 2, 3, 4, 5]], ['y', [5, 4, 3, 2, 1]], ['z', [1, 5, 4, 2, 3]]]
-                t.add_group_number (..Equal_Count 3) "g" . should_fail_with (Unsupported_Database_Operation.Error "add_group_number")
-
-add_group_number_specs suite_builder setup =
     prefix = setup.prefix
     # materialize = setup.materialize
     # create_connection_fn = setup.create_connection_func
