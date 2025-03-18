@@ -156,7 +156,7 @@ test('duplicate', ({ page }) =>
     .contextMenu.duplicate()
     .driveTable.withRows(async (rows) => {
       // Assets: [0: New Project 1, 1: New Project 1 (copy)]
-      const project1 = rows.filter({ hasText: /New Project 1/ })
+      const project1 = rows.filter({ hasText: /New Project 1/, hasNotText: /\(copy\)/ })
       const project1Copy = rows.filter({ hasText: /New Project 1 \(copy\)/ })
 
       expect(project1).toBeVisible()
@@ -174,7 +174,7 @@ test('duplicate (keyboard)', ({ page }) =>
     .press('Mod+D')
     .driveTable.withRows(async (rows) => {
       // Assets: [0: New Project 1 (copy), 1: New Project 1]
-      const project1 = rows.filter({ hasText: /New Project 1/ })
+      const project1 = rows.filter({ hasText: /New Project 1/, hasNotText: /\(copy\)/ })
       const project1Copy = rows.filter({ hasText: /New Project 1 \(copy\)/ })
 
       expect(project1).toBeVisible()

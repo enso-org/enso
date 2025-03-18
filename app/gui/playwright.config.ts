@@ -41,7 +41,9 @@ function checkAvailablePort(port: number) {
     const server = net.createServer()
     server
       .unref()
-      .on('error', (e: any) => ('EADDRINUSE' === e.code ? resolve(false) : reject(e)))
+      .on('error', (e: any) =>
+        'EADDRINUSE' === e.code ? reject('Port is already in use.') : reject(e),
+      )
       .listen({ host: '0.0.0.0', port }, () => server.close(() => resolve(true)))
   })
 }
