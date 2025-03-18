@@ -1,5 +1,5 @@
 /** @file Validation patterns for text inputs. */
-import { isTitleContainsInvalidCharacters } from '../services/Backend'
+import { doesTitleContainInvalidCharacters } from '../services/Backend'
 
 // ==================
 // === Validation ===
@@ -41,10 +41,10 @@ export const DIRECTORY_NAME_REGEX = /^(?:[^/\\.]|[.](?=[^.]|$))+$/
 
 /**
  * Check if the directory name contains invalid characters.
- * @deprecated Use `isTitleContainsInvalidCharacters` instead.
+ * @deprecated Use `doesTitleContainInvalidCharacters` instead.
  */
 export function isDirectoryNameContainInvalidCharacters(name: string) {
-  return isTitleContainsInvalidCharacters(name)
+  return doesTitleContainInvalidCharacters(name)
 }
 
-export { isTitleContainsInvalidCharacters } from '../services/Backend'
+export { doesTitleContainInvalidCharacters } from '../services/Backend'

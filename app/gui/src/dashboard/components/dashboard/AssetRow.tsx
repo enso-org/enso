@@ -141,6 +141,7 @@ const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialR
   switch (type) {
     case backendModule.AssetType.specialUp: {
       // TODO: Implement this.
+      // @MrFlashAccount [Cloud v2 #1810](https://github.com/enso-org/cloud-v2/issues/1810)
       return null
     }
 

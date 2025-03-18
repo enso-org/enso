@@ -10,7 +10,6 @@ import * as reactQuery from '@tanstack/react-query'
 import { IS_DEV_MODE } from 'enso-common/src/detect'
 
 import CrossIcon from '#/assets/cross.svg'
-import DevtoolsLogo from '#/assets/enso_logo.svg'
 
 import { SETUP_PATH } from '#/appUtils'
 
@@ -85,7 +84,7 @@ export function EnsoDevtools() {
       <ariaComponents.DialogTrigger>
         <ariaComponents.Underlay className="fixed bottom-3 left-3 z-50 rounded-full">
           <ariaComponents.Button
-            icon={DevtoolsLogo}
+            icon="enso_logo"
             aria-label={getText('ensoDevtoolsButtonLabel')}
             variant="icon"
             rounded="full"

@@ -1648,7 +1648,7 @@ export interface TitleSchemaOptions {
 /**
  * Check if the title contains invalid characters.
  */
-export function isTitleContainsInvalidCharacters(name: string) {
+export function doesTitleContainInvalidCharacters(name: string) {
   if (name.includes('/') || name.includes('\\') || name.includes('..')) {
     return true
   }
@@ -1670,7 +1670,7 @@ export function titleSchema(options: TitleSchemaOptions) {
     .refine((value) => isNewTitleUnique(asset, value, siblings), {
       message: getText(resolveDictionary(), 'nameShouldBeUnique'),
     })
-    .refine((value) => !isTitleContainsInvalidCharacters(value), {
+    .refine((value) => !doesTitleContainInvalidCharacters(value), {
       message: getText(resolveDictionary(), 'nameShouldNotContainInvalidCharacters'),
     })
 }
