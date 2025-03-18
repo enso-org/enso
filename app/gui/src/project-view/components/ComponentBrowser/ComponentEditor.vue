@@ -52,12 +52,12 @@ const icon = computed(() => {
 })
 
 const selfTypeName = computed(() => {
-  if (
-    props.mode.mode === 'componentBrowsing' &&
-    props.mode.filter.selfArg?.type === 'known' &&
-    props.mode.filter.selfArg.typename.path
-  ) {
-    return qnLastSegment(props.mode.filter.selfArg.typename.path)
+  if (props.mode.mode === 'componentBrowsing' && props.mode.filter.selfArg) {
+    if (props.mode.filter.selfArg.type === 'known' && props.mode.filter.selfArg.typename.path) {
+      return qnLastSegment(props.mode.filter.selfArg.typename.path)
+    } else {
+      return 'Any'
+    }
   }
   return undefined
 })
