@@ -8,7 +8,7 @@ public class AuthenticationProvider implements ReloadDetector.HasClearableCache 
   public static AuthenticationProvider INSTANCE = new AuthenticationProvider();
 
   private AuthenticationProvider() {
-    ReloadDetector.INSTANCE.register(this);
+    ReloadDetector.register(this);
   }
 
   public interface AuthenticationService {
@@ -46,7 +46,7 @@ public class AuthenticationProvider implements ReloadDetector.HasClearableCache 
   }
 
   public Value getAuthenticationServiceEnsoInstance() {
-    ReloadDetector.INSTANCE.clearOnReload(this);
+    ReloadDetector.clearOnReload(this);
 
     if (authenticationServiceAsEnso == null) {
       ensureServicesSetup();
@@ -56,7 +56,7 @@ public class AuthenticationProvider implements ReloadDetector.HasClearableCache 
   }
 
   public String getAccessToken() {
-    ReloadDetector.INSTANCE.clearOnReload(this);
+    ReloadDetector.clearOnReload(this);
 
     return getAuthenticationService().get_access_token();
   }
@@ -72,9 +72,9 @@ public class AuthenticationProvider implements ReloadDetector.HasClearableCache 
   }
 
   /** Public for testing. */
-  // This is necessary because there is no way to trigger a reload cache clear
-  // without re-filling the cache.
+  // This is necessary because there is no other way to trigger a reload cache
+  // clear without re-filling the cache.
   public void clearOnReloadTestOnly() {
-    ReloadDetector.INSTANCE.clearOnReload(this);
+    ReloadDetector.clearOnReload(this);
   }
 }

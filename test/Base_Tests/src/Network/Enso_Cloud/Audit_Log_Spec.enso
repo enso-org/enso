@@ -10,6 +10,8 @@ import Standard.Test.Test_Environment
 
 import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
+polyglot java import org.enso.base.cache.ReloadDetector
+polyglot java import org.enso.base.enso_cloud.logging.LogApiAccess
 
 add_specs suite_builder =
     ## By default, these tests are run only on the Cloud mock, not on the real deployment.
@@ -64,6 +66,15 @@ add_specs suite_builder =
             Test.with_retries <|
                 events = get_audit_log_events . filter ev-> (ev.metadata.get "my_field") == random_payload
                 events.length . should_equal 121
+
+    suite_builder.group "Clear cache on reload" group_builder->
+        group_builder.specify "LogApiAccess cache should be cleared when a reload is detected" <|
+            Audit_Log.report_event "TestEvent" "Message"
+            LogApiAccess.INSTANCE.isCachedTestOnly . should_be_true
+            ReloadDetector.simulateReloadTestOnly LogApiAccess.INSTANCE
+            LogApiAccess.INSTANCE.clearOnReloadTestOnly . should_succeed  # Triggers cache clearing
+            LogApiAccess.INSTANCE.isCachedTestOnly . should_be_false
+
 
 main filter=Nothing =
     suite = Test.build suite_builder->

@@ -16,6 +16,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
+import org.enso.base.cache.ReloadDetector;
 import org.enso.base.enso_cloud.AuthenticationProvider;
 import org.enso.base.enso_cloud.CloudAPI;
 
@@ -23,7 +24,7 @@ import org.enso.base.enso_cloud.CloudAPI;
  * Gives access to the low-level log event API in the Cloud and manages asynchronously submitting
  * the logs.
  */
-public final class LogApiAccess {
+public final class LogApiAccess implements ReloadDetector.HasClearableCache {
   /**
    * We still want to limit the batch size to some reasonable number - sending too many logs in one
    * request could also be problematic.
@@ -44,9 +45,12 @@ public final class LogApiAccess {
     // If the thread is idle for 60 seconds, it will be shut down.
     backgroundThreadService =
         new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+    ReloadDetector.register(this);
   }
 
   public Future<Void> logWithConfirmation(LogMessage message) {
+    ReloadDetector.clearOnReload(this);
+
     var currentRequestConfig = getRequestConfig();
     CompletableFuture<Void> completionNotification = new CompletableFuture<>();
     enqueueJob(new LogJob(message, completionNotification, currentRequestConfig));
@@ -54,6 +58,8 @@ public final class LogApiAccess {
   }
 
   public void logWithoutConfirmation(LogMessage message) {
+    ReloadDetector.clearOnReload(this);
+
     var currentRequestConfig = getRequestConfig();
     enqueueJob(new LogJob(message, null, currentRequestConfig));
   }
@@ -226,5 +232,22 @@ public final class LogApiAccess {
         sendLogRequest(request, retryCount - 1);
       }
     }
+  }
+
+  @Override /* HasClearableCache */
+  public void clearCache() {
+    resetCache();
+  }
+
+  /** Public for testing. */
+  public boolean isCachedTestOnly() {
+    return cachedRequestConfig != null;
+  }
+
+  /** Public for testing. */
+  // This is necessary because there is no other way to trigger a reload cache
+  // clear without re-filling the cache.
+  public void clearOnReloadTestOnly() {
+    ReloadDetector.clearOnReload(this);
   }
 }

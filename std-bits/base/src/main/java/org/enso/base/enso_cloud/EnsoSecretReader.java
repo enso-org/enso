@@ -17,7 +17,7 @@ class EnsoSecretReader implements ReloadDetector.HasClearableCache {
   private final Map<String, String> secrets = new HashMap<>();
 
   private EnsoSecretReader() {
-    ReloadDetector.INSTANCE.register(this);
+    ReloadDetector.register(this);
   }
 
   void flushCache() {
@@ -25,7 +25,7 @@ class EnsoSecretReader implements ReloadDetector.HasClearableCache {
   }
 
   void removeFromCache(String secretId) {
-    ReloadDetector.INSTANCE.clearOnReloadIfRegistered(this);
+    ReloadDetector.clearOnReloadIfRegistered(this);
 
     secrets.remove(secretId);
   }
@@ -37,7 +37,7 @@ class EnsoSecretReader implements ReloadDetector.HasClearableCache {
    * @return the secret value.
    */
   String readSecret(String secretId) {
-    ReloadDetector.INSTANCE.clearOnReloadIfRegistered(this);
+    ReloadDetector.clearOnReloadIfRegistered(this);
 
     if (secrets.containsKey(secretId)) {
       return secrets.get(secretId);

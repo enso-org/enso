@@ -200,7 +200,7 @@ public final class EnsoSecretHelper extends SecretValueResolver {
 
   /** Visible for testing */
   public static void simulateEnsoSecretReaderReload() {
-    ReloadDetector.INSTANCE.simulateReloadTestOnly(EnsoSecretReader.INSTANCE);
+    ReloadDetector.simulateReloadTestOnly(EnsoSecretReader.INSTANCE);
   }
 
   private static final Comparator<Pair<String, String>> headerNameComparator =

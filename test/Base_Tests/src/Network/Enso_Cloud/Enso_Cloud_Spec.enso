@@ -168,7 +168,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
         group_builder.specify "AuthenticationProvider cache should be cleared when a reload is detected" <|
             AuthenticationProvider.INSTANCE.getAccessToken . should_succeed
             AuthenticationProvider.INSTANCE.isCachedTestOnly . should_be_true
-            ReloadDetector.INSTANCE.simulateReloadTestOnly AuthenticationProvider.INSTANCE
+            ReloadDetector.simulateReloadTestOnly AuthenticationProvider.INSTANCE
             AuthenticationProvider.INSTANCE.clearOnReloadTestOnly . should_succeed  # Triggers cache clearing
             AuthenticationProvider.INSTANCE.isCachedTestOnly . should_be_false
 
