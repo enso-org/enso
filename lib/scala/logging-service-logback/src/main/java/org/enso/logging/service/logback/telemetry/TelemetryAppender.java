@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -47,8 +46,7 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
 
   private HttpClient httpClient;
 
-  private TelemetryAppender(
-      ThreadPoolExecutor backgroundThreadService, URI endpoint) {
+  private TelemetryAppender(ThreadPoolExecutor backgroundThreadService, URI endpoint) {
     this.backgroundThreadService = backgroundThreadService;
     this.endpoint = endpoint;
   }
@@ -84,17 +82,7 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
   }
 
   private ObjectNode logEventToPayload(ILoggingEvent logEvent) {
-    var payload = new ObjectNode(JsonNodeFactory.instance);
-    payload.set("message", TextNode.valueOf(logEvent.getMessage()));
-    payload.set("kind", TextNode.valueOf("Telemetry"));
-    var args = new ArrayNode(JsonNodeFactory.instance);
-    for (var arg : logEvent.getArgumentArray()) {
-      args.add(TextNode.valueOf(arg.toString()));
-    }
-    var metadata = new ObjectNode(JsonNodeFactory.instance);
-    metadata.set("args", args);
-    payload.set("metadata", metadata);
-    return payload;
+    return LogFormatter.transform(logEvent);
   }
 
   private static Path credentialsFile() {
@@ -172,7 +160,11 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
     assert !batch.isEmpty() : "The batch must not be empty.";
 
     var request = buildRequest(batch);
-    sendLogRequest(request, MAX_RETRIES);
+    if (request == null) {
+      LOGGER.warn("Failed to build request for log messages. Skipping {} messages", batch.size());
+    } else {
+      sendLogRequest(request, MAX_RETRIES);
+    }
   }
 
   private HttpRequest buildRequest(List<ILoggingEvent> logEvents) throws RequestFailureException {
@@ -185,37 +177,57 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
       try {
         credentials = parseCredentials(credentialsFile);
       } catch (IOException e) {
-        LOGGER.warn("Failed to parse credentials from '{}'. Will not send telemetry", credentialsFile);
+        LOGGER.warn(
+            "Failed to parse credentials from '{}'. Will not send telemetry", credentialsFile);
         throw new RequestFailureException("Failed to parse credentials", null);
       }
       assert credentials != null;
     }
     var payload = buildPayload(logEvents);
-    LOGGER.info(
-        "Building HTTP POST request. endpoint = '{}', payload = {}, auth = '{}'",
-        endpoint,
-        payload,
-        credentials.accessToken.substring(0, 10));
-    return HttpRequest.newBuilder()
-        .uri(endpoint)
-        .header("Authorization", "Bearer " + credentials.accessToken)
-        .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
-        .build();
+    if (payload != null) {
+      // TODO: Remove this log
+      LOGGER.info(
+          "Building HTTP POST request. endpoint = '{}', payload = {}, auth = '{}'",
+          endpoint,
+          payload,
+          credentials.accessToken.substring(0, 10));
+      return HttpRequest.newBuilder()
+          .uri(endpoint)
+          .header("Authorization", "Bearer " + credentials.accessToken)
+          .POST(HttpRequest.BodyPublishers.ofString(payload, StandardCharsets.UTF_8))
+          .build();
+    } else {
+      return null;
+    }
   }
 
+  /**
+   * Transforms the given log events into JSON payloads.
+   *
+   * @return null if none of the log events could be transformed into a payload.
+   */
   private String buildPayload(List<ILoggingEvent> logEvents) {
-    var payload = new StringBuilder();
-    payload.append("{\"logs\": [");
+    var payload = new ObjectNode(JsonNodeFactory.instance);
+    var logs = new ArrayNode(JsonNodeFactory.instance);
     for (var logEvent : logEvents) {
-      payload.append(logEventToPayload(logEvent)).append(",");
+      var payloadForLogEvent = LogFormatter.transform(logEvent);
+      if (payloadForLogEvent != null) {
+        logs.add(payloadForLogEvent);
+      }
     }
-    // Remove the trailing comma.
-    payload.deleteCharAt(payload.length() - 1);
-    payload.append("]}");
-    return payload.toString();
+    if (logs.size() != logEvents.size()) {
+      LOGGER.warn("Failed to build payload for some log events");
+    }
+    if (logs.isEmpty()) {
+      return null;
+    } else {
+      payload.set("logs", logs);
+      return payload.toString();
+    }
   }
 
   private void sendLogRequest(HttpRequest request, int retryCount) throws RequestFailureException {
+    assert request != null;
     try {
       try {
         if (httpClient == null) {

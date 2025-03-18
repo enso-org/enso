@@ -51,7 +51,10 @@ read_file format file on_problems:Problem_Behavior =
         read_stream format stream on_problems related_file=file
 
     if result.is_error.not then
-        Telemetry.log "Delimited_Reader" "Read CSV file: column_count={}, row_count={}" [result.column_count, result.row_count]
+        dict = Dictionary.empty
+            . insert "column_count" result.column_count
+            . insert "row_count" result.row_count
+        Telemetry.log "Delimited_Reader" "Read CSV file" dict
 
     # With file reading, we convert the `Mismatched_Quote` into a `File_Error.Corrupted_Format`.
     result.catch Mismatched_Quote error->
