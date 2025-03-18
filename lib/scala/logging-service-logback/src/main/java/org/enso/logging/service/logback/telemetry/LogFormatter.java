@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +31,7 @@ final class LogFormatter {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(LogFormatter.class);
   private static final String KIND = "Telemetry";
+  private static final Set<String> RESTRICTED_METADATA = Set.of("type", "loggerName");
 
   /**
    * Transforms the given log event to JSON payload.
@@ -53,10 +55,14 @@ final class LogFormatter {
       LOGGER.warn("Incorrect number of arguments: {}", logEventToString(logEvent));
       return null;
     }
+    if (argNames.stream().anyMatch(RESTRICTED_METADATA::contains)) {
+      LOGGER.warn("Restricted metadata in arguments: {}", logEventToString(logEvent));
+      return null;
+    }
     var payload = new ObjectNode(JsonNodeFactory.instance);
     payload.set("message", TextNode.valueOf(msg));
     payload.set("kind", TextNode.valueOf(KIND));
-    var metadata = constructMetadata(logEvent.getArgumentArray(), argNames);
+    var metadata = constructMetadata(logEvent.getArgumentArray(), argNames, logEvent);
     payload.set("metadata", metadata);
     return payload;
   }
@@ -67,9 +73,11 @@ final class LogFormatter {
         event.getLoggerName(), event.getMessage(), Arrays.toString(event.getArgumentArray()));
   }
 
-  private static ObjectNode constructMetadata(Object[] args, List<String> argNames) {
+  private static ObjectNode constructMetadata(
+      Object[] args, List<String> argNames, ILoggingEvent logEvent) {
     assert args.length == argNames.size();
     var meta = new ObjectNode(JsonNodeFactory.instance);
+    meta.set("loggerName", TextNode.valueOf(logEvent.getLoggerName()));
     for (int i = 0; i < args.length; i++) {
       var argName = argNames.get(i);
       var arg = args[i];
