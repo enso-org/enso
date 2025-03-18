@@ -177,12 +177,6 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
     }
     var payload = buildPayload(logEvents);
     if (payload != null) {
-      // TODO: Remove this log
-      LOGGER.info(
-          "Building HTTP POST request. endpoint = '{}', payload = {}, auth = '{}'",
-          endpoint,
-          payload,
-          credentials.accessToken.substring(0, 10));
       return HttpRequest.newBuilder()
           .uri(endpoint)
           .header("Authorization", "Bearer " + credentials.accessToken)
@@ -238,10 +232,10 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
       }
     } catch (RequestFailureException e) {
       if (retryCount < 0) {
-        LOGGER.warn("Failed to send log messages after retrying", e);
+        LOGGER.debug("Failed to send log messages after retrying", e);
         throw e;
       } else {
-        LOGGER.warn("Exception when sending log messages. Retrying...", e);
+        LOGGER.debug("Exception when sending log messages. Retrying...", e);
         sendLogRequest(request, retryCount - 1);
       }
     }
