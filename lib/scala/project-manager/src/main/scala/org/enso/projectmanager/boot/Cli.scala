@@ -16,6 +16,7 @@ object Cli {
   val PROFILING_TIME     = "profiling-time"
   val PROJECTS_DIRECTORY = "projects-directory"
   val PROJECT_LIST       = "project-list"
+  val JVM_MODE           = "jvm"
 
   val FILESYSTEM_EXISTS           = "filesystem-exists"
   val FILESYSTEM_LIST             = "filesystem-list"
@@ -90,6 +91,12 @@ object Cli {
       .argName("limit")
       .longOpt(PROJECT_LIST)
       .desc("List user projects.")
+      .build()
+
+    val jvmMode: cli.Option = cli.Option.builder
+      .hasArg(false)
+      .longOpt(JVM_MODE)
+      .desc("Run in JVM mode.")
       .build()
 
     val filesystemExists: cli.Option = cli.Option.builder
@@ -168,6 +175,7 @@ object Cli {
       .addOption(option.profilingTime)
       .addOption(option.projectsDirectory)
       .addOption(option.projectList)
+      .addOption(option.jvmMode)
       .addOption(option.filesystemExists)
       .addOption(option.filesystemList)
       .addOption(option.filesystemCreateDirectory)

@@ -1,9 +1,9 @@
+//! Traits for the expression-parsing pipeline.
 use crate::prelude::*;
-
+use crate::syntax::expression::whitespace::Spacing;
+use crate::syntax::expression::whitespace::SpacingLookaheadTokenConsumer;
+use crate::syntax::expression::whitespace::SpacingLookaheadTreeConsumer;
 use crate::syntax::token;
-use crate::syntax::treebuilding::Spacing;
-use crate::syntax::treebuilding::SpacingLookaheadTokenConsumer;
-use crate::syntax::treebuilding::SpacingLookaheadTreeConsumer;
 use crate::syntax::Item;
 use crate::syntax::Token;
 use crate::syntax::Tree;
@@ -32,7 +32,6 @@ pub trait NewlineConsumer<'s> {
     fn push_newline(&mut self, newline: token::Newline<'s>);
 }
 
-
 /// Block hierarchy consumer.
 pub trait BlockHierarchyConsumer {
     /// Start a block.
@@ -46,7 +45,7 @@ pub trait GroupHierarchyConsumer<'s> {
     /// Start a parenthesized group.
     fn start_group(&mut self, open: token::OpenSymbol<'s>);
     /// End the parenthesized group.
-    fn end_group(&mut self, close: token::CloseSymbol<'s>);
+    fn end_group(&mut self, close: Option<token::CloseSymbol<'s>>);
 }
 
 /// Trait for a token consumer to enter a scope that will be handled independently.
@@ -68,77 +67,10 @@ pub trait Finish {
     fn finish(&mut self) -> Self::Result;
 }
 
-/// Trait for a type that wraps another type, and exposes it.
-pub trait HasInner {
-    /// The inner type.
-    type Inner;
-
-    /// Access the inner type.
-    fn inner_mut(&mut self) -> &mut Self::Inner;
-}
-
 /// Process all retained state.
 pub trait Flush {
     /// Process all retained state.
     fn flush(&mut self);
-}
-
-
-// ================
-// === Adapters ===
-// ================
-
-/// Adapts a parser that consumes only tokens to fit into a more complex pipeline stages.
-#[derive(Debug, Default)]
-pub struct TokenOnlyParser<Parser> {
-    parser: Parser,
-}
-
-impl<'s, Inner, Parser> SpacingLookaheadTokenConsumer<'s> for TokenOnlyParser<Parser>
-where
-    Parser: HasInner<Inner = Inner> + SpacingLookaheadTokenConsumer<'s>,
-    Inner: SpacingLookaheadTokenConsumer<'s>,
-{
-    fn push_token(&mut self, token: Token<'s>, following_spacing: Option<Spacing>) {
-        self.parser.push_token(token, following_spacing);
-    }
-}
-
-impl<'s, Parser, Inner> SpacingLookaheadTreeConsumer<'s> for TokenOnlyParser<Parser>
-where
-    Parser: HasInner<Inner = Inner> + Flush,
-    Inner: SpacingLookaheadTreeConsumer<'s>,
-{
-    fn push_tree(&mut self, tree: Tree<'s>, following_spacing: Option<Spacing>) {
-        self.parser.flush();
-        self.parser.inner_mut().push_tree(tree, following_spacing)
-    }
-}
-
-impl<'s, Parser, Inner> GroupHierarchyConsumer<'s> for TokenOnlyParser<Parser>
-where
-    Parser: HasInner<Inner = Inner> + Flush,
-    Inner: GroupHierarchyConsumer<'s>,
-{
-    fn start_group(&mut self, open: token::OpenSymbol<'s>) {
-        self.parser.flush();
-        self.parser.inner_mut().start_group(open)
-    }
-
-    fn end_group(&mut self, close: token::CloseSymbol<'s>) {
-        self.parser.flush();
-        self.parser.inner_mut().end_group(close)
-    }
-}
-
-impl<Inner: Finish> Finish for TokenOnlyParser<Inner>
-where Inner: Finish
-{
-    type Result = Inner::Result;
-
-    fn finish(&mut self) -> Self::Result {
-        self.parser.finish()
-    }
 }
 
 
@@ -188,8 +120,10 @@ impl<'s, Inner: GroupHierarchyConsumer<'s>> GroupHierarchyConsumer<'s> for Inspe
         self.0.start_group(open);
     }
 
-    fn end_group(&mut self, close: token::CloseSymbol<'s>) {
-        self.observe_token(&close);
+    fn end_group(&mut self, close: Option<token::CloseSymbol<'s>>) {
+        if let Some(close) = close.as_ref() {
+            self.observe_token(close);
+        }
         self.0.end_group(close);
     }
 }

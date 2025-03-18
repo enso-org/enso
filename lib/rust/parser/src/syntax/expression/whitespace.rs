@@ -1,9 +1,12 @@
-use crate::syntax::consumer::Finish;
-use crate::syntax::consumer::TokenConsumer;
-use crate::syntax::consumer::TreeConsumer;
+use crate::prelude::*;
+
+use crate::syntax::expression::consumer::TokenConsumer;
+use crate::syntax::expression::consumer::TreeConsumer;
+use crate::syntax::expression::types::Operator;
+use crate::syntax::expression::types::OperatorConsumer;
 use crate::syntax::token;
 use crate::syntax::tree;
-use crate::syntax::treebuilding::TokenOrTree;
+use crate::syntax::Flush;
 use crate::syntax::GroupHierarchyConsumer;
 use crate::syntax::Item;
 use crate::syntax::Token;
@@ -18,12 +21,15 @@ use crate::syntax::Tree;
 /// Whether a term is logically separated from the previous term by whitespace.
 #[derive(Debug, Default, PartialEq, Eq, Copy, Clone)]
 pub enum Spacing {
+    /// The term is preceded by whitespace, or should be treated as if it were.
     #[default]
     Spaced,
+    /// The term is not preceded by whitespace.
     Unspaced,
 }
 
 impl Spacing {
+    /// Get the whitespace information for a `Tree`.
     pub fn of_tree(tree: &Tree) -> Self {
         match tree_starts_new_no_space_group(tree) {
             false => Spacing::Unspaced,
@@ -31,6 +37,7 @@ impl Spacing {
         }
     }
 
+    /// Get the whitespace information for a `Token`.
     pub fn of_token<'a: 'b, 'b, T: Into<token::Ref<'a, 'b>>>(token: T) -> Self {
         match token_starts_new_no_space_group(token) {
             false => Spacing::Unspaced,
@@ -38,6 +45,7 @@ impl Spacing {
         }
     }
 
+    /// Get the whitespace information for an `Item`.
     pub fn of_item(item: &Item) -> Self {
         match item {
             Item::Token(token) => Spacing::of_token(token),
@@ -113,42 +121,46 @@ pub trait SpacingLookaheadTokenConsumer<'s> {
 }
 
 /// Maintains 1-token whitespace lookahead.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Finish)]
 pub struct PeekSpacing<'s, Inner> {
-    current: Option<TokenOrTree<'s>>,
+    current: Option<Term<'s>>,
     inner:   Inner,
 }
 
-impl<'s, Inner: SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer<'s>>
-    PeekSpacing<'s, Inner>
+#[derive(Debug, From)]
+enum Term<'s> {
+    Token(Token<'s>),
+    Tree(Tree<'s>),
+    Operator(Operator<'s>),
+}
+
+impl<'s, Inner> PeekSpacing<'s, Inner>
+where Inner:
+        SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer<'s> + OperatorConsumer<'s>
 {
-    fn emit(&mut self, tt: Option<TokenOrTree<'s>>, rhs: Option<Spacing>) {
+    fn emit(&mut self, tt: Option<Term<'s>>, rhs: Option<Spacing>) {
         match tt {
-            Some(TokenOrTree::Token(token)) => self.inner.push_token(token, rhs),
-            Some(TokenOrTree::Tree(tree)) => self.inner.push_tree(tree, rhs),
+            Some(Term::Token(token)) => self.inner.push_token(token, rhs),
+            Some(Term::Tree(tree)) => self.inner.push_tree(tree, rhs),
+            Some(Term::Operator(operator)) => self.inner.push_operator(operator),
             None => {}
         }
     }
+}
 
+impl<'s, Inner> Flush for PeekSpacing<'s, Inner>
+where Inner:
+        SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer<'s> + OperatorConsumer<'s>
+{
     fn flush(&mut self) {
         let last = self.current.take();
         self.emit(last, None);
     }
 }
 
-impl<'s, Inner: SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer<'s> + Finish>
-    Finish for PeekSpacing<'s, Inner>
-{
-    type Result = Inner::Result;
-
-    fn finish(&mut self) -> Inner::Result {
-        self.flush();
-        self.inner.finish()
-    }
-}
-
-impl<'s, Inner: SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer<'s>>
-    TokenConsumer<'s> for PeekSpacing<'s, Inner>
+impl<'s, Inner> TokenConsumer<'s> for PeekSpacing<'s, Inner>
+where Inner:
+        SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer<'s> + OperatorConsumer<'s>
 {
     fn push_token(&mut self, token: Token<'s>) {
         let rhs = Spacing::of_token(&token);
@@ -157,8 +169,9 @@ impl<'s, Inner: SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer
     }
 }
 
-impl<'s, Inner: SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer<'s>>
-    TreeConsumer<'s> for PeekSpacing<'s, Inner>
+impl<'s, Inner> TreeConsumer<'s> for PeekSpacing<'s, Inner>
+where Inner:
+        SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer<'s> + OperatorConsumer<'s>
 {
     fn push_tree(&mut self, tree: Tree<'s>) {
         let rhs = Spacing::of_tree(&tree);
@@ -167,10 +180,22 @@ impl<'s, Inner: SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer
     }
 }
 
+impl<'s, Inner> OperatorConsumer<'s> for PeekSpacing<'s, Inner>
+where Inner:
+        SpacingLookaheadTreeConsumer<'s> + SpacingLookaheadTokenConsumer<'s> + OperatorConsumer<'s>
+{
+    fn push_operator(&mut self, operator: Operator<'s>) {
+        let rhs = operator.spacing();
+        let next = self.current.replace(operator.into());
+        self.emit(next, Some(rhs))
+    }
+}
+
 impl<'s, Inner> GroupHierarchyConsumer<'s> for PeekSpacing<'s, Inner>
 where Inner: GroupHierarchyConsumer<'s>
         + SpacingLookaheadTreeConsumer<'s>
         + SpacingLookaheadTokenConsumer<'s>
+        + OperatorConsumer<'s>
 {
     fn start_group(&mut self, open: token::OpenSymbol<'s>) {
         let prev = self.current.take();
@@ -178,7 +203,7 @@ where Inner: GroupHierarchyConsumer<'s>
         self.inner.start_group(open);
     }
 
-    fn end_group(&mut self, close: token::CloseSymbol<'s>) {
+    fn end_group(&mut self, close: Option<token::CloseSymbol<'s>>) {
         self.flush();
         self.inner.end_group(close);
     }

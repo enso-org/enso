@@ -7,6 +7,7 @@ import java.nio.file.Path
 /** Represents settings that are used to launch the runner JAR.
   *
   * @param engineVersion Enso engine version to use
+  * @param jvmMode Should Enso be run in JVM mode
   * @param runnerArguments arguments that should be passed to the runner
   * @param workingDirectory the working directory override
   * @param connectLoggerIfAvailable specifies if the ran component should
@@ -14,6 +15,7 @@ import java.nio.file.Path
   */
 case class RunSettings(
   engineVersion: SemVer,
+  jvmMode: Boolean,
   runnerArguments: Seq[String],
   workingDirectory: Option[Path],
   connectLoggerIfAvailable: Boolean
