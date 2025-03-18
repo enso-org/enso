@@ -42,11 +42,13 @@
   for large datasets.
 - [Disable heatmap and histogram viz][12475].
 - [Component Browser displays short summary of component's documentation][12459]
+- [Fixed color picker for selected nodes][12508]
 - [Updated Top Bar actions menu and made zoom controls always visible.][12496]
 - [Warning and Error messages does not obstruct output port][12482] - they
   become semi-transparent on port hover and pass all mouse interactions.
 - [For some types, Component Browser display special "suggestions" group][12477]
 - [Nested dropdowns are supported for Selection widget.][12548]
+- [Native Image mode is now on by default][12515]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -73,10 +75,12 @@
 [12272]: https://github.com/enso-org/enso/pull/12272
 [12475]: https://github.com/enso-org/enso/pull/12475
 [12459]: https://github.com/enso-org/enso/pull/12459
+[12508]: https://github.com/enso-org/enso/pull/12508
 [12496]: https://github.com/enso-org/enso/pull/12496
 [12482]: https://github.com/enso-org/enso/pull/12482
 [12477]: https://github.com/enso-org/enso/pull/12477
 [12548]: https://github.com/enso-org/enso/pull/12548
+[12515]: https://github.com/enso-org/enso/pull/12515
 
 #### Enso Standard Library
 
@@ -140,6 +144,8 @@
 - [Use fn... to reference any module function][12128]
 - [Improve error message for mismatched named argument application][12238]
 - [Registering a value as multiple managed resources is now an error.][12395]
+- [An operator block now applies to the whole preceding expression][12505],
+  rather than the last term on the line.
 
 [11777]: https://github.com/enso-org/enso/pull/11777
 [11600]: https://github.com/enso-org/enso/pull/11600
@@ -153,6 +159,7 @@
 [12128]: https://github.com/enso-org/enso/pull/12128
 [12238]: https://github.com/enso-org/enso/pull/12238
 [12395]: https://github.com/enso-org/enso/pull/12395
+[12505]: https://github.com/enso-org/enso/pull/12505
 
 # Enso 2024.5
 

@@ -1432,6 +1432,7 @@ dependencies = [
  "derive-where",
  "derive_more",
  "enso-metamodel",
+ "enso-parser-macros",
  "enso-parser-syntax-tree-visitor",
  "enso-prelude",
  "enso-reflect",
@@ -1485,6 +1486,15 @@ dependencies = [
  "enso-parser",
  "enso-prelude",
  "jni",
+]
+
+[[package]]
+name = "enso-parser-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.77",
 ]
 
 [[package]]
