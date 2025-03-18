@@ -8,15 +8,25 @@ import java.net.http.HttpResponse;
 import java.util.HashMap;
 import java.util.Map;
 
-/** * Internal class to read secrets from the Enso Cloud. */
-class EnsoSecretReader {
-  private static final Map<String, String> secrets = new HashMap<>();
+import org.enso.base.cache.ReloadDetector;
 
-  static void flushCache() {
+/** * Internal class to read secrets from the Enso Cloud. */
+class EnsoSecretReader implements ReloadDetector.HasClearableCache {
+  static final EnsoSecretReader INSTANCE = new EnsoSecretReader();
+
+  private final Map<String, String> secrets = new HashMap<>();
+
+  private EnsoSecretReader() {
+    ReloadDetector.INSTANCE.register(this);
+  }
+
+  void flushCache() {
     secrets.clear();
   }
 
-  static void removeFromCache(String secretId) {
+  void removeFromCache(String secretId) {
+    ReloadDetector.INSTANCE.clearOnReloadIfRegistered(this);
+
     secrets.remove(secretId);
   }
 
@@ -26,7 +36,9 @@ class EnsoSecretReader {
    * @param secretId the ID of the secret to read.
    * @return the secret value.
    */
-  static String readSecret(String secretId) {
+  String readSecret(String secretId) {
+    ReloadDetector.INSTANCE.clearOnReloadIfRegistered(this);
+
     if (secrets.containsKey(secretId)) {
       return secrets.get(secretId);
     }
@@ -34,7 +46,7 @@ class EnsoSecretReader {
     return fetchSecretValue(secretId, 3);
   }
 
-  private static String fetchSecretValue(String secretId, int retryCount) {
+  private String fetchSecretValue(String secretId, int retryCount) {
     var apiUri = CloudAPI.getAPIRootURI() + "s3cr3tz/" + secretId;
     var client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build();
     var request =
@@ -80,9 +92,19 @@ class EnsoSecretReader {
     return secretValue;
   }
 
-  private static String readValueFromString(String json) {
+  private String readValueFromString(String json) {
     var base64 = json.substring(1, json.length() - 1).translateEscapes();
     return new String(
         java.util.Base64.getDecoder().decode(base64), java.nio.charset.StandardCharsets.UTF_8);
+  }
+
+  @Override /* HasClearableCache */
+  public void clearCache() {
+    flushCache();
+  }
+
+  /** Visible for testing */
+  public int getCacheSize() {
+    return secrets.size();
   }
 }
