@@ -1,9 +1,9 @@
 use crate::prelude::*;
-use crate::syntax::operator::types::*;
+use crate::syntax::expression::types::*;
 
 use crate::syntax;
+use crate::syntax::expression::section::MaybeSection;
 use crate::syntax::maybe_with_error;
-use crate::syntax::operator::section::MaybeSection;
 use crate::syntax::token;
 use crate::syntax::token::TokenOperatorProperties;
 use crate::syntax::Token;
