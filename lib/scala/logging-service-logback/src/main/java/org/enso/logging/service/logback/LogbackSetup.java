@@ -141,9 +141,10 @@ public final class LogbackSetup extends LoggerSetup {
     socketAppender.setIncludeCallerData(false);
     socketAppender.setRemoteHost(hostname);
     socketAppender.setPort(port);
-    if (appenderConfig != null)
+    if (appenderConfig != null) {
       socketAppender.setReconnectionDelay(
           Duration.buildByMilliseconds(appenderConfig.getReconnectionDelay()));
+    }
 
     env.finalizeAppender(socketAppender);
     return true;
