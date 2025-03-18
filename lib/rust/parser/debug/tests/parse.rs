@@ -478,6 +478,9 @@ fn function_inline_return_specification() {
 fn named_arguments() {
     test!("f x=y", (NamedApp (Ident f) x (Ident y)));
     test!("f (x = y)", (NamedApp (Ident f) x (Ident y)));
+    expect_invalid_node("f (x = y");
+    expect_invalid_node("f (x=y");
+    expect_invalid_node("f x=)");
     test!("(x a=b)", (Group (NamedApp (Ident x) a (Ident b))));
     test!("(x a=b.c)", (Group (NamedApp (Ident x) a (OprApp (Ident b) (Ok ".") (Ident c)))));
     test!("catch handler=exc->\n    throw",
@@ -585,7 +588,7 @@ fn code_block_body() {
 }
 
 #[test]
-fn code_block_operator() {
+fn operator_block() {
     test_block!(["value = nums", "    * each random", "    + constant"].join("\n"),
     ,(Assignment::new("value", sexp![
      (OperatorBlockApplication (Ident nums)
@@ -593,6 +596,37 @@ fn code_block_operator() {
         ((Ok "+") (Ident constant)))
       #())
     ])));
+}
+
+#[test]
+fn operator_block_precedence() {
+    // Operator block application precedence is lower than general operators, e.g. `+`.
+    test_block!(["1 + 2", "    * 3"].join("\n"),
+        (OperatorBlockApplication (OprApp (Number () "1" ()) (Ok "+") (Number () "2" ()))
+         #(((Ok "*") (Number () "3" ()))) #()));
+    // Operator block application precedence is higher than assigment (`=`).
+    test_block!(["x = 1 + 2", "    * 3"].join("\n"),
+        ,(Assignment::new("x", sexp![
+         (OperatorBlockApplication (OprApp (Number () "1" ()) (Ok "+") (Number () "2" ()))
+          #(((Ok "*") (Number () "3" ()))) #())])));
+}
+
+#[test]
+fn argument_block_precedence() {
+    // Argument block has lower precedence than application, so combined inline/block application is
+    // possible.
+    test!(["f 1 n=2", "    3", "    4"].join("\n"),
+        (ArgumentBlockApplication
+         (NamedApp (App (Ident f)
+                   (Number () "1" ()))
+              n (Number () "2" ()))
+         #((Number () "3" ())
+           (Number () "4" ()))));
+    // Argument block has lower precedence than assignment.
+    test_block!(["x = f 1 2", "    3", "    4"].join("\n"),
+        ,(Assignment::new("x", sexp![
+          (ArgumentBlockApplication (App (App (Ident f) (Number () "1" ())) (Number () "2" ()))
+           #((Number () "3" ()) (Number () "4" ())))])));
 }
 
 #[test]
@@ -607,7 +641,7 @@ fn dot_operator_blocks() {
 }
 
 #[test]
-fn code_block_argument_list() {
+fn argument_blocks() {
     test!("foo\n    bar", (ArgumentBlockApplication (Ident foo) #((Ident bar))));
 
     test_block!("value = foo\n    bar",
@@ -847,6 +881,7 @@ fn minus_binary() {
     test!("x - x", (OprApp (Ident x) (Ok "-") (Ident x)));
     test!("x-x", (OprApp (Ident x) (Ok "-") (Ident x)));
     test!("x-1", (OprApp (Ident x) (Ok "-") (Number () "1" ())));
+    test!("(x)-1", (OprApp (Group (Ident x)) (Ok "-") (Number () "1" ())));
 }
 
 #[test]

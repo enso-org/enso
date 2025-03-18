@@ -18,7 +18,7 @@ public class MapOperationProblemAggregator extends ColumnAggregatedProblemAggreg
   private final String location;
   private long overflowCount = 0;
   private Object[] overflowExample = null;
-  private StorageType overflowTargetType = null;
+  private StorageType<?> overflowTargetType = null;
 
   public MapOperationProblemAggregator(ProblemAggregator parent, String location) {
     super(parent);
@@ -37,7 +37,7 @@ public class MapOperationProblemAggregator extends ColumnAggregatedProblemAggreg
     reportColumnAggregatedProblem(new IllegalArgumentError(location, message, row));
   }
 
-  public void reportOverflow(StorageType targetType, long x, String op, long y) {
+  public void reportOverflow(StorageType<?> targetType, long x, String op, long y) {
     overflowCount++;
     if (overflowTargetType == null) {
       overflowTargetType = targetType;
@@ -45,7 +45,7 @@ public class MapOperationProblemAggregator extends ColumnAggregatedProblemAggreg
     }
   }
 
-  public void reportOverflow(StorageType targetType, String op) {
+  public void reportOverflow(StorageType<?> targetType, String op) {
     overflowCount++;
     if (overflowTargetType == null) {
       overflowTargetType = targetType;

@@ -37,8 +37,16 @@
 - [It's easier to write numeric/text nodes in Component Browser][12420]. When
   typing digits only, any names containing digits are not the best match
   anymore. Also unclosed text literals will be automatically closed.
+- [Use server side filtering and sorting in table viz][12272]. Table viz rows
+  are lazly loaded and filtering/sorting is done serverside improving experience
+  for large datasets.
 - [Disable heatmap and histogram viz][12475].
 - [Component Browser displays short summary of component's documentation][12459]
+- [Updated Top Bar actions menu and made zoom controls always visible.][12496]
+- [Warning and Error messages does not obstruct output port][12482] - they
+  become semi-transparent on port hover and pass all mouse interactions.
+- [For some types, Component Browser display special "suggestions" group][12477]
+- [Native Image mode is now on by default][12515]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
 [11836]: https://github.com/enso-org/enso/pull/11836
@@ -62,8 +70,13 @@
 [12365]: https://github.com/enso-org/enso/pull/12365
 [12184]: https://github.com/enso-org/enso/pull/12184
 [12420]: https://github.com/enso-org/enso/pull/12420
+[12272]: https://github.com/enso-org/enso/pull/12272
 [12475]: https://github.com/enso-org/enso/pull/12475
 [12459]: https://github.com/enso-org/enso/pull/12459
+[12496]: https://github.com/enso-org/enso/pull/12496
+[12482]: https://github.com/enso-org/enso/pull/12482
+[12477]: https://github.com/enso-org/enso/pull/12477
+[12515]: https://github.com/enso-org/enso/pull/12515
 
 #### Enso Standard Library
 
@@ -89,6 +102,8 @@
 - [xlsx reader now does not read empty rows from the end of a worksheet][12345]
 - [Generic JDBC connections can be created with `Database.connect`.][12331]
 - [Added Table.generate_rows][12413]
+- [Added Regex_match to filter. Added Column.regex_match. Support for
+  regex_match in the expression language][12492]
 
 [11926]: https://github.com/enso-org/enso/pull/11926
 [12031]: https://github.com/enso-org/enso/pull/12031
@@ -107,6 +122,7 @@
 [12367]: https://github.com/enso-org/enso/pull/12367
 [12345]: https://github.com/enso-org/enso/pull/12345
 [12413]: https://github.com/enso-org/enso/pull/12413
+[12492]: https://github.com/enso-org/enso/pull/12492
 
 #### Enso Language & Runtime
 
@@ -124,6 +140,8 @@
 - [Use fn... to reference any module function][12128]
 - [Improve error message for mismatched named argument application][12238]
 - [Registering a value as multiple managed resources is now an error.][12395]
+- [An operator block now applies to the whole preceding expression][12505],
+  rather than the last term on the line.
 
 [11777]: https://github.com/enso-org/enso/pull/11777
 [11600]: https://github.com/enso-org/enso/pull/11600
@@ -137,6 +155,7 @@
 [12128]: https://github.com/enso-org/enso/pull/12128
 [12238]: https://github.com/enso-org/enso/pull/12238
 [12395]: https://github.com/enso-org/enso/pull/12395
+[12505]: https://github.com/enso-org/enso/pull/12505
 
 # Enso 2024.5
 

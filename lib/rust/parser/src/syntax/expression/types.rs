@@ -1,14 +1,24 @@
-use crate::syntax::operator::annotations::Annotation;
-use crate::syntax::operator::named_app::NamedApp;
-use crate::syntax::operator::section::MaybeSection;
+use crate::prelude::*;
+
+use crate::syntax::expression::annotations::Annotation;
+use crate::syntax::expression::blocks::ApplicableBlock;
+use crate::syntax::expression::named_app::NamedApp;
+use crate::syntax::expression::section::MaybeSection;
+use crate::syntax::expression::whitespace::Spacing;
 use crate::syntax::token;
 use crate::syntax::tree;
-use crate::syntax::treebuilding::Spacing;
 use crate::syntax::Inspect;
 use crate::syntax::Token;
 use crate::syntax::Tree;
 use crate::syntax::TreeConsumer;
 use std::fmt::Debug;
+
+
+// ===============
+// === Operand ===
+// ===============
+
+pub type Operand<'s> = MaybeSection<Tree<'s>>;
 
 
 // ================
@@ -19,7 +29,7 @@ use std::fmt::Debug;
 #[derive(Debug)]
 pub struct Operator<'s> {
     pub left_precedence:  Option<ModifiedPrecedence>,
-    pub right_precedence: ModifiedPrecedence,
+    pub right_precedence: Option<ModifiedPrecedence>,
     pub associativity:    token::Associativity,
     pub arity:            Arity<'s>,
 }
@@ -32,9 +42,11 @@ impl<'s> Operator<'s> {
             Arity::App => Spacing::Spaced,
             Arity::NamedApp(_) => Spacing::Spaced,
             Arity::Annotation(annotation) => annotation.spacing(),
+            Arity::UnappliedBlock(_) => Spacing::Spaced,
         }
     }
 }
+
 
 // === Arity ===
 
@@ -50,27 +62,7 @@ pub enum Arity<'s> {
     App,
     NamedApp(Box<NamedApp<'s>>),
     Annotation(Annotation<'s>),
-}
-
-impl<'s> Arity<'s> {
-    fn expected_operands(&self) -> (bool, bool) {
-        match self {
-            Arity::App | Arity::Binary { missing: None, .. } => (true, true),
-            Arity::Unary(_)
-            | Arity::Annotation(_)
-            | Arity::Binary { missing: Some(BinaryOperand::Left), .. } => (false, true),
-            Arity::NamedApp(_) | Arity::Binary { missing: Some(BinaryOperand::Right), .. } =>
-                (true, false),
-        }
-    }
-
-    pub fn expects_lhs(&self) -> bool {
-        self.expected_operands().0
-    }
-
-    pub fn expects_rhs(&self) -> bool {
-        self.expected_operands().1
-    }
+    UnappliedBlock(ApplicableBlock<'s>),
 }
 
 
@@ -206,16 +198,11 @@ where T: OperandConsumer<'s>
 // === Named Operands ===
 // ======================
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, From)]
 #[allow(clippy::large_enum_variant)] // Clippy considers the `Unnamed` is "at least 0 bytes".
 pub enum OperandMaybeNamed<'s> {
     Unnamed(MaybeSection<Tree<'s>>),
-    Named {
-        parens:     Option<(token::OpenSymbol<'s>, Option<token::CloseSymbol<'s>>)>,
-        name:       token::Ident<'s>,
-        equals:     token::AssignmentOperator<'s>,
-        expression: Tree<'s>,
-    },
+    Named(NamedApp<'s>),
 }
 
 

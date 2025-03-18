@@ -1,27 +1,22 @@
-use crate::lexer::test::Precedence;
 use crate::prelude::*;
 
-use crate::syntax::operator::reducer::ApplyToOperand;
-use crate::syntax::operator::section::MaybeSection;
-use crate::syntax::operator::types::Arity;
-use crate::syntax::operator::types::ModifiedPrecedence;
-use crate::syntax::operator::types::Operator;
-use crate::syntax::operator::types::OperatorConsumer;
+use crate::syntax::expression::types::Arity;
+use crate::syntax::expression::types::ModifiedPrecedence;
+use crate::syntax::expression::types::Operator;
+use crate::syntax::expression::types::OperatorConsumer;
+use crate::syntax::expression::whitespace::Spacing;
+use crate::syntax::expression::whitespace::SpacingLookaheadTokenConsumer;
+use crate::syntax::expression::whitespace::SpacingLookaheadTreeConsumer;
 use crate::syntax::token::AnnotationOperator;
 use crate::syntax::token::Associativity;
 use crate::syntax::token::Ident;
+use crate::syntax::token::Precedence;
 use crate::syntax::token::Variant;
 use crate::syntax::tree;
 use crate::syntax::tree::FunctionAnnotation;
 use crate::syntax::tree::SyntaxError;
-use crate::syntax::treebuilding::Spacing;
-use crate::syntax::treebuilding::SpacingLookaheadTokenConsumer;
-use crate::syntax::treebuilding::SpacingLookaheadTreeConsumer;
-use crate::syntax::Finish;
 use crate::syntax::Flush;
-use crate::syntax::HasInner;
 use crate::syntax::Token;
-use crate::syntax::TokenOnlyParser;
 use crate::syntax::Tree;
 
 
@@ -29,24 +24,30 @@ use crate::syntax::Tree;
 // === Annotations ===
 // ===================
 
-pub type ParseAnnotations<'s, Inner> = TokenOnlyParser<AnnotationParser<'s, Inner>>;
-
-#[derive(Debug, Default)]
-pub struct AnnotationParser<'s, Inner> {
+#[derive(
+    Debug,
+    Default,
+    Finish,
+    SpacingLookaheadTreeConsumer,
+    GroupHierarchyConsumer,
+    OperatorConsumer
+)]
+#[tree_consumer(FlushAndForward)]
+#[operator_consumer(FlushAndForward)]
+pub struct ParseAnnotations<'s, Inner> {
     operator: Option<AnnotationOperator<'s>>,
     inner:    Inner,
 }
 
-#[derive(Debug)]
+#[derive(Debug, ApplyToOperand)]
 pub struct Annotation<'s> {
     operator: AnnotationOperator<'s>,
     ident:    Ident<'s>,
 }
 
 impl<'s> Annotation<'s> {
-    fn apply(self, operand: Option<MaybeSection<Tree<'s>>>) -> Tree<'s> {
+    fn apply(self, operand: Option<Tree<'s>>) -> Tree<'s> {
         let Self { operator, ident } = self;
-        let operand = operand.map(Tree::from);
         if ident.is_type {
             Tree::annotated_builtin(operator, ident, default(), operand)
         } else {
@@ -56,9 +57,19 @@ impl<'s> Annotation<'s> {
     }
 }
 
-impl<'s> ApplyToOperand<'s> for Annotation<'s> {
-    fn apply_to_operand(self, operand: Option<MaybeSection<Tree<'s>>>) -> MaybeSection<Tree<'s>> {
-        self.apply(operand).into()
+impl<'s> From<Annotation<'s>> for Operator<'s> {
+    fn from(value: Annotation<'s>) -> Self {
+        Operator {
+            left_precedence:  None,
+            right_precedence: ModifiedPrecedence::new(
+                Spacing::Spaced,
+                Precedence::Assignment,
+                false,
+            )
+            .into(),
+            associativity:    Associativity::Left,
+            arity:            Arity::Annotation(value),
+        }
     }
 }
 
@@ -68,7 +79,7 @@ impl<'s> Annotation<'s> {
     }
 }
 
-impl<'s, Inner> SpacingLookaheadTokenConsumer<'s> for AnnotationParser<'s, Inner>
+impl<'s, Inner> SpacingLookaheadTokenConsumer<'s> for ParseAnnotations<'s, Inner>
 where Inner:
         SpacingLookaheadTokenConsumer<'s> + SpacingLookaheadTreeConsumer<'s> + OperatorConsumer<'s>
 {
@@ -82,18 +93,9 @@ where Inner:
                 let ident = token.with_variant(variant);
                 let annotation = Annotation { operator, ident };
                 if following_spacing.is_some() {
-                    self.inner.push_operator(Operator {
-                        left_precedence:  None,
-                        right_precedence: ModifiedPrecedence::new(
-                            following_spacing.unwrap_or_default(),
-                            Precedence::Negation,
-                            false,
-                        ),
-                        associativity:    Associativity::Left,
-                        arity:            Arity::Annotation(annotation),
-                    });
+                    self.inner.push_operator(annotation.into());
                 } else {
-                    self.inner.push_tree(annotation.apply(None), following_spacing);
+                    self.inner.push_tree(annotation.apply(None), None);
                 }
             }
             _ => {
@@ -104,7 +106,7 @@ where Inner:
     }
 }
 
-impl<'s, Inner> Flush for AnnotationParser<'s, Inner>
+impl<'s, Inner> Flush for ParseAnnotations<'s, Inner>
 where Inner: SpacingLookaheadTreeConsumer<'s>
 {
     fn flush(&mut self) {
@@ -113,24 +115,5 @@ where Inner: SpacingLookaheadTreeConsumer<'s>
                 .with_error(SyntaxError::AnnotationOpMustBeAppliedToIdent);
             self.inner.push_tree(tree, Some(Spacing::Unspaced));
         }
-    }
-}
-
-impl<'s, Inner> Finish for AnnotationParser<'s, Inner>
-where Inner: Finish + SpacingLookaheadTreeConsumer<'s>
-{
-    type Result = Inner::Result;
-
-    fn finish(&mut self) -> Self::Result {
-        self.flush();
-        self.inner.finish()
-    }
-}
-
-impl<'s, Inner> HasInner for AnnotationParser<'s, Inner> {
-    type Inner = Inner;
-
-    fn inner_mut(&mut self) -> &mut Self::Inner {
-        &mut self.inner
     }
 }

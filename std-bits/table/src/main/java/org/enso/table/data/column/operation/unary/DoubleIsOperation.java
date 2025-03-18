@@ -47,7 +47,7 @@ public class DoubleIsOperation implements UnaryOperation {
     return storage.getType().isNumeric();
   }
 
-  private static boolean isAllFinite(StorageType storageType) {
+  private static boolean isAllFinite(StorageType<?> storageType) {
     return switch (storageType) {
       case IntegerType ignored -> true;
       case BigDecimalType ignored -> true;

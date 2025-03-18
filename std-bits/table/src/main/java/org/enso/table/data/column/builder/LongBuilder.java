@@ -59,13 +59,13 @@ public class LongBuilder extends NumericBuilder implements BuilderForLong, Build
   }
 
   @Override
-  public boolean canRetypeTo(StorageType type) {
+  public boolean canRetypeTo(StorageType<?> type) {
     return Objects.equals(type, FloatType.FLOAT_64)
         || Objects.equals(type, BigIntegerType.INSTANCE);
   }
 
   @Override
-  public Builder retypeTo(StorageType type) {
+  public Builder retypeTo(StorageType<?> type) {
     if (Objects.equals(type, BigIntegerType.INSTANCE)) {
       return BigIntegerBuilder.retypeFromLongBuilder(this);
     } else if (Objects.equals(type, FloatType.FLOAT_64)) {

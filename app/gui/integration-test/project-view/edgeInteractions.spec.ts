@@ -98,11 +98,12 @@ test('Conditional ports: Enabled', async ({ page }) => {
   const node = graphNodeByBinding(page, 'filtered')
   const conditionalPort = node.locator('.WidgetPort').filter({ hasText: /^filter$/ })
 
-  await page.keyboard.down(CONTROL_KEY)
-
-  await expect(conditionalPort).toHaveClass(/enabled/)
   const outputPort = await outputPortCoordinates(page, graphNodeByBinding(page, 'final'))
   await page.mouse.click(outputPort.x, outputPort.y)
+
+  await page.keyboard.down(CONTROL_KEY)
+  await expect(conditionalPort).toHaveClass(/enabled/)
+
   await conditionalPort.hover()
   await expect(conditionalPort).toHaveClass(/isTarget/)
   // We need to force port clicks; see comment in 'Connect an node to a port via dragging the edge'

@@ -145,7 +145,8 @@ const nodeIdsWithOutputPorts = computed(() =>
           "
           @portClick="(event, portId) => graph.createEdgeFromOutput(portId, event)"
           @portDoubleClick="(_event, portId) => emit('outputPortDoubleClick', portId)"
-          @update:hoverAnim="graph.updateNodeOutputHoverAnim(id, $event)"
+          @update:visible="graph.setNodeOutputVisible(id, $event)"
+          @update:animation="graph.updateNodeOutputAnim(id, $event)"
         />
       </template>
     </svg>

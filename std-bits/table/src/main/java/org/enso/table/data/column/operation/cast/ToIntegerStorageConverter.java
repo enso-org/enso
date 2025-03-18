@@ -28,7 +28,7 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
   }
 
   @Override
-  public boolean canApply(StorageType sourceType) {
+  public boolean canApply(StorageType<?> sourceType) {
     return sourceType instanceof IntegerType
         || sourceType instanceof FloatType
         || sourceType instanceof BigDecimalType

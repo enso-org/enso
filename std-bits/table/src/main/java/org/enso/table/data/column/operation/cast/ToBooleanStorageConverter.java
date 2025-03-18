@@ -9,7 +9,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 
 public class ToBooleanStorageConverter implements StorageConverter<Boolean> {
   @Override
-  public boolean canApply(StorageType sourceType) {
+  public boolean canApply(StorageType<?> sourceType) {
     return sourceType.isNumeric()
         || sourceType instanceof AnyObjectType
         || sourceType instanceof NullType;
