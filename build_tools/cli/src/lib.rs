@@ -367,11 +367,20 @@ impl Processor {
                         Tests::StandardLibrary => config.add_standard_library_test_selection(
                             StandardLibraryTestsSelection::All,
                         ),
-                        Tests::StdSnowflake => config.add_standard_library_test_selection(
-                            StandardLibraryTestsSelection::Selected(vec![
-                                "Snowflake_Tests".to_string()
-                            ]),
-                        ),
+                        Tests::StandardLibraryInNative => {
+                            config.add_standard_library_test_selection(
+                                StandardLibraryTestsSelection::All,
+                            ),
+                            config.build_native_runner = true;
+                        },
+                        Tests::StdSnowflake => {
+                            config.add_standard_library_test_selection(
+                                StandardLibraryTestsSelection::Selected(vec![
+                                    "Snowflake_Tests".to_string()
+                                ]),
+                            ),
+                            config.build_native_runner = true;
+                        },
                         Tests::StdCloudRelated => config.add_standard_library_test_selection(
                             StandardLibraryTestsSelection::Selected(vec![
                                 "Base_Tests".to_string(),
@@ -383,6 +392,7 @@ impl Processor {
                                 // datalinks
                                 "Image_Tests".to_string(),
                             ]),
+                            config.build_native_runner = true;
                         ),
                     }
                 }
