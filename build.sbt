@@ -584,7 +584,7 @@ val ioSentry = Seq(
 
 // === Bouncy Castle ==========================================================
 
-val bouncyCastleVersion = "1.76"
+val bouncyCastleVersion = "1.78.1"
 val bouncyCastle = Seq(
   "org.bouncycastle" % "bcutil-jdk18on" % bouncyCastleVersion,
   "org.bouncycastle" % "bcpkix-jdk18on" % bouncyCastleVersion,
@@ -609,7 +609,6 @@ val grpcVersion                    = "1.67.1"
 
 // === Other ==================================================================
 
-val bcpkixJdk15Version      = "1.70"
 val declineVersion          = "2.4.1"
 val diffsonVersion          = "4.4.0"
 val directoryWatcherVersion = "0.18.0"
