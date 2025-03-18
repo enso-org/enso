@@ -1649,11 +1649,7 @@ export interface TitleSchemaOptions {
  * Check if the title contains invalid characters.
  */
 export function doesTitleContainInvalidCharacters(name: string) {
-  if (name.includes('/') || name.includes('\\') || name.includes('..')) {
-    return true
-  }
-
-  return false
+  return name.includes('/') || name.includes('\\') || name.includes('..')
 }
 
 /**
