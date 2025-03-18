@@ -345,6 +345,15 @@ final class WebSocket implements ProxyExecutable {
             try {
               code.run();
             } catch (Throwable t) {
+              // use threadAccessDeniedHandler instead - once #12500 is integrated - instead of
+              // following check
+              if (t instanceof IllegalStateException
+                  && t.getMessage() instanceof String msg
+                  && msg.startsWith("Multi threaded access requested by thread")) {
+                log.warn(
+                    "Consider adding `-Dpolyglot.enso.interpreter.jobParallelism=1` to"
+                        + " ENSO_JVM_OPTS to avoid this error. See #12528");
+              }
               log.error("Executing WebSocket Polyfill callback failed", t);
             }
           };
