@@ -353,11 +353,39 @@ final class WebSocket implements ProxyExecutable {
                 log.warn(
                     "Consider adding `-Dpolyglot.enso.interpreter.jobParallelism=1` to"
                         + " ENSO_JVM_OPTS to avoid this error. See #12528");
+                log.info(dumpStack());
               }
               log.error("Executing WebSocket Polyfill callback failed", t);
             }
           };
       executor.execute(safeCode);
     }
+  }
+
+  private static String dumpStack() {
+    var sb = new StringBuilder("Threaddump\n");
+    var traces = Thread.getAllStackTraces();
+    for (var entry : traces.entrySet()) {
+      var thread = new StringBuilder();
+      thread.append(entry.getKey().getName()).append("\n");
+      var keep = false;
+      for (var e : entry.getValue()) {
+        keep |= e.getClassName().contains("com.oracle.truffle");
+        thread
+            .append("    ")
+            .append(e.getClassName())
+            .append(".")
+            .append(e.getMethodName())
+            .append("(")
+            .append(e.getFileName())
+            .append(":")
+            .append(e.getLineNumber())
+            .append(")\n");
+      }
+      if (keep) {
+        sb.append(thread.toString());
+      }
+    }
+    return sb.toString();
   }
 }
