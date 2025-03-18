@@ -123,6 +123,7 @@ const props = defineProps<{
   datasource?: IServerSideDatasource
   rowCount?: number
   isServerSideModel?: boolean
+  reloadGrid?: boolean
 }>()
 const emit = defineEmits<{
   cellEditingStarted: [event: CellEditingStartedEvent]
@@ -144,13 +145,22 @@ function onGridReady(event: GridReadyEvent<TData>) {
   gridApi.value = event.api
 }
 
+watch(
+  () => props.reloadGrid,
+  () => {
+    if (rowModelType.value != 'clientSide') gridApi.value?.refreshServerSide({ purge: true })
+  },
+)
+
 const rowModelType = computed(() => (props.isServerSideModel ? 'serverSide' : 'clientSide'))
 
 watch(
   () => props.textFormatOption,
   () => {
+    if (rowModelType.value === 'clientSide') {
+      gridApi.value?.resetRowHeights()
+    }
     gridApi.value?.redrawRows()
-    gridApi.value?.resetRowHeights()
   },
 )
 

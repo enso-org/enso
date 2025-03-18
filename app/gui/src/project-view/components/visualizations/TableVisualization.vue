@@ -133,6 +133,7 @@ const pageLimit = ref(0)
 const rowCount = ref(0)
 const showRowCount = ref(true)
 const isTruncated = ref(false)
+const reloadGrid = ref(false)
 const isCreateNodeEnabled = ref(false)
 const filterModel = ref<GridFilterModel[]>([])
 const sortModel = ref<SortModel[]>([])
@@ -338,7 +339,6 @@ function createServerSideDatasource(): IServerSideDatasource {
     getRows: async (params) => {
       const server = createServer()
       const response: Response = await server.getData(params.request)
-      const startIndex = params.request.startRow ? params.request.startRow : 0
       const rows = createRowsForTable(response.data, 0, true)
       setTimeout(() => {
         if (response.success) {
@@ -780,6 +780,8 @@ watchEffect(() => {
   // If data is truncated, we cannot rely on sorting/filtering so will disable.
   defaultColDef.value.filter = !isTruncated.value
   defaultColDef.value.sortable = !isTruncated.value
+
+  reloadGrid.value = !reloadGrid.value
 })
 
 const colTypeMap = computed(() => {
@@ -946,6 +948,7 @@ config.setToolbar(
         :rowCount="allRowCount"
         :isServerSideModel="isSSRM"
         :statusBar="statusBar"
+        :reloadGrid="reloadGrid"
         @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
       />
     </Suspense>
