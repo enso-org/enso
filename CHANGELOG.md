@@ -42,6 +42,9 @@
   for large datasets.
 - [Disable heatmap and histogram viz][12475].
 - [Component Browser displays short summary of component's documentation][12459]
+- [Updated Top Bar actions menu and made zoom controls always visible.][12496]
+- [Warning and Error messages does not obstruct output port][12482] - they
+  become semi-transparent on port hover and pass all mouse interactions.
 - [For some types, Component Browser display special "suggestions" group][12477]
 
 [11889]: https://github.com/enso-org/enso/pull/11889
@@ -69,6 +72,8 @@
 [12272]: https://github.com/enso-org/enso/pull/12272
 [12475]: https://github.com/enso-org/enso/pull/12475
 [12459]: https://github.com/enso-org/enso/pull/12459
+[12496]: https://github.com/enso-org/enso/pull/12496
+[12482]: https://github.com/enso-org/enso/pull/12482
 [12477]: https://github.com/enso-org/enso/pull/12477
 
 #### Enso Standard Library
