@@ -161,7 +161,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
             cache = CloudRequestCache.INSTANCE
             cache.getOrCompute "key1" (_-> ["key1"]) dur
             cache.isCachedTestOnly "key1" . should_be_true
-            ReloadDetector.INSTANCE.simulateReloadTestOnly cache
+            ReloadDetector.simulateReloadTestOnly cache
             ## Another cache action must be called to trigger cache cleaering
             cache.getOrCompute "key2" (_-> ["key2"]) dur
             cache.isCachedTestOnly "key1" . should_be_false

@@ -13,6 +13,9 @@ import org.graalvm.polyglot.Value;
  * <p>The cache is supposed to store the already processed (parsed etc.) result, that is relatively
  * small. If the result is not cached or the cache entry is expired, the cache will recompute the
  * value using the provided callback.
+ *
+ * Subclasses of APIRequestCache that want to be cleared on reload should call
+ * ReloadDetector.register(this).
  */
 public class APIRequestCache implements ReloadDetector.HasClearableCache {
   private final HashMap<String, CacheEntry> cache = new HashMap<>();
@@ -22,7 +25,7 @@ public class APIRequestCache implements ReloadDetector.HasClearableCache {
   }
 
   public Object getOrCompute(String key, Function<String, Value> compute, Duration ttl) {
-    ReloadDetector.INSTANCE.clearOnReloadIfRegistered(this);
+    ReloadDetector.clearOnReloadIfRegistered(this);
 
     if (ttl == null) {
       // If the TTL is null, we deliberately ignore the cache.
@@ -42,19 +45,19 @@ public class APIRequestCache implements ReloadDetector.HasClearableCache {
   }
 
   public void invalidateEntry(String key) {
-    ReloadDetector.INSTANCE.clearOnReloadIfRegistered(this);
+    ReloadDetector.clearOnReloadIfRegistered(this);
 
     cache.remove(key);
   }
 
   public void invalidatePrefix(String prefix) {
-    ReloadDetector.INSTANCE.clearOnReloadIfRegistered(this);
+    ReloadDetector.clearOnReloadIfRegistered(this);
 
     cache.keySet().removeIf(key -> key.startsWith(prefix));
   }
 
   public void cleanExpiredEntries() {
-    ReloadDetector.INSTANCE.clearOnReloadIfRegistered(this);
+    ReloadDetector.clearOnReloadIfRegistered(this);
 
     boolean hasExpiredEntries =
         firstToExpire != null && firstToExpire.isBefore(LocalDateTime.now());
@@ -69,7 +72,7 @@ public class APIRequestCache implements ReloadDetector.HasClearableCache {
   }
 
   public void put(String key, Value value, Duration ttl) {
-    ReloadDetector.INSTANCE.clearOnReloadIfRegistered(this);
+    ReloadDetector.clearOnReloadIfRegistered(this);
 
     if (ttl == null) {
       // If the TTL is null, we deliberately ignore the cache.

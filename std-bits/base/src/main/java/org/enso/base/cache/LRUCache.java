@@ -81,7 +81,7 @@ public class LRUCache<M> implements ReloadDetector.HasClearableCache {
     this.settings = settings;
     this.nowGetter = nowGetter;
     this.diskSpaceGetter = diskSpaceGetter;
-    ReloadDetector.INSTANCE.register(this);
+    ReloadDetector.register(this);
   }
 
   /**
@@ -90,7 +90,7 @@ public class LRUCache<M> implements ReloadDetector.HasClearableCache {
    */
   public CacheResult<M> getResult(ItemBuilder<M> itemBuilder)
       throws IOException, InterruptedException, ResponseTooLargeException {
-    ReloadDetector.INSTANCE.clearOnReload(this);
+    ReloadDetector.clearOnReload(this);
 
     String cacheKey = itemBuilder.makeCacheKey();
 

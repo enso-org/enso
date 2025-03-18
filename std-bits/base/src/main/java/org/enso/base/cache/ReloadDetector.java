@@ -10,7 +10,7 @@ import org.graalvm.polyglot.Value;
  *
  * <p>Cache clearing does not happen automatically in the background. A cache must implement
  * HasClearableCache, register itself, and then poll using
- * ReloadDetector.INSTANCE.clearOnReload(this), which will invoke the clearCache() callback if a
+ * ReloadDetector.clearOnReload(this), which will invoke the clearCache() callback if a
  * reload has just happenend. Thus, a client cache decides exactly when it wants caches to be
  * cleared.
  *
@@ -19,36 +19,34 @@ import org.graalvm.polyglot.Value;
  * on itself in this case.
  */
 public class ReloadDetector {
-  public static final ReloadDetector INSTANCE = new ReloadDetector();
-
   /**
    * Internally, a separate ReloadSentinel is created for each registration. The sentinel's
    * hasReloadOccurred() method will return true exactly one time, for that cache, after a reload
    * has occurred.
    */
-  private Map<HasClearableCache, ReloadSentinel> registrations = new WeakHashMap<>();
+  private static Map<HasClearableCache, ReloadSentinel> registrations = new WeakHashMap<>();
 
-  public void register(HasClearableCache o) {
+  public static void register(HasClearableCache o) {
     registrations.put(o, new ReloadSentinel());
   }
 
-  public void clearOnReload(HasClearableCache o) {
+  public static void clearOnReload(HasClearableCache o) {
     if (getSentinel(o).hasReloadOccurred()) {
       o.clearCache();
     }
   }
 
-  public void clearOnReloadIfRegistered(HasClearableCache o) {
+  public static void clearOnReloadIfRegistered(HasClearableCache o) {
     if (registrations.containsKey(o)) {
       clearOnReload(o);
     }
   }
 
-  public void simulateReloadTestOnly(HasClearableCache o) {
+  public static void simulateReloadTestOnly(HasClearableCache o) {
     getSentinel(o).simulateReloadTestOnly();
   }
 
-  private ReloadSentinel getSentinel(HasClearableCache o) {
+  private static ReloadSentinel getSentinel(HasClearableCache o) {
     if (!registrations.containsKey(o)) {
       throw new HasClearableCacheNotRegisteredException(
           "Clearable cache object is not registered: " + o);
