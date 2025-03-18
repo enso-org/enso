@@ -195,7 +195,7 @@ public final class LogApiAccess {
       return cachedRequestConfig;
     }
     var uri = URI.create(CloudAPI.getAPIRootURI() + "logs");
-    var config = new RequestConfig(uri, AuthenticationProvider.getAccessToken());
+    var config = new RequestConfig(uri, AuthenticationProvider.INSTANCE.getAccessToken());
     cachedRequestConfig = config;
     return config;
   }

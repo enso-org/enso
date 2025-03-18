@@ -40,7 +40,7 @@ class EnsoSecretReader {
     var request =
         HttpRequest.newBuilder()
             .uri(URI.create(apiUri))
-            .header("Authorization", "Bearer " + AuthenticationProvider.getAccessToken())
+            .header("Authorization", "Bearer " + AuthenticationProvider.INSTANCE.getAccessToken())
             .GET()
             .build();
 
@@ -64,7 +64,7 @@ class EnsoSecretReader {
             "Unable to read secret - numerous " + kind + " failures (status code " + status + ").");
       } else {
         // We forcibly refresh the access token and try again.
-        AuthenticationProvider.getAuthenticationService().force_refresh();
+        AuthenticationProvider.INSTANCE.getAuthenticationService().force_refresh();
         return fetchSecretValue(secretId, retryCount - 1);
       }
     }

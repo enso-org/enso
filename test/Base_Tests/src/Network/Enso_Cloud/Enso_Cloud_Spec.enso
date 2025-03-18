@@ -104,7 +104,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
         get_current_token =
             ## We cannot just use `getAccessToken` here, because it would trigger the refresh too early.
                Instead, we want to see the token as is currently set.
-            AuthenticationProvider.getAuthenticationServiceEnsoInstance.auth_data.get.access_token
+            AuthenticationProvider.INSTANCE.getAuthenticationServiceEnsoInstance.auth_data.get.access_token
         base_credentials = Lazy_Ref.Value <|
             Mock_Credentials.default Cloud_Tests_Setup.prepare_mock_setup.httpbin_uri
         group_builder.specify "refreshes an expired token" <| run_with_and_without_output <|
@@ -162,9 +162,15 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
             cache.getOrCompute "key1" (_-> ["key1"]) dur
             cache.isCachedTestOnly "key1" . should_be_true
             ReloadDetector.INSTANCE.simulateReloadTestOnly cache
-            ## Another cache action must be called to trigger cache cleaering
-            cache.getOrCompute "key2" (_-> ["key2"]) dur
+            cache.getOrCompute "key2" (_-> ["key2"]) dur  # Triggers cache clearing
             cache.isCachedTestOnly "key1" . should_be_false
+
+        group_builder.specify "AuthenticationProvider cache should be cleared when a reload is detected" <|
+            AuthenticationProvider.INSTANCE.getAccessToken . should_succeed
+            AuthenticationProvider.INSTANCE.isCachedTestOnly . should_be_true
+            ReloadDetector.INSTANCE.simulateReloadTestOnly AuthenticationProvider.INSTANCE
+            AuthenticationProvider.INSTANCE.clearOnReloadTestOnly . should_succeed  # Triggers cache clearing
+            AuthenticationProvider.INSTANCE.isCachedTestOnly . should_be_false
 
 type Lazy_Ref
     Value ~get
