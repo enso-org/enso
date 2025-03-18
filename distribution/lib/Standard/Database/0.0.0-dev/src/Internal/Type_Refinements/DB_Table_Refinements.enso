@@ -6,10 +6,7 @@ import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
 from project.Internal.Type_Refinements.Single_Column_DB_Table_Conversions import all
 
-refine_table (table : DB_Table) =
-    if is_single_column table . not then table else
-        r = table : DB_Table & DB_Column
-        r
+refine_table (table : DB_Table) = table
 
 is_single_column table:DB_Table -> Boolean =
     table.column_count == 1
