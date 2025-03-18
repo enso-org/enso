@@ -1,14 +1,11 @@
 <script setup lang="ts">
 import MenuButton from '@/components/MenuButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { Action, ActionName, resolveAction } from '@/providers/action'
 import { computed, toValue } from 'vue'
-import { Action, ActionName, injectActions } from '../providers/action'
 
 const { action: actionOrName } = defineProps<{ action: Action | ActionName }>()
-const actions = injectActions()
-const action = computed(() =>
-  typeof actionOrName === 'string' ? actions[actionOrName] : actionOrName,
-)
+const action = computed(() => resolveAction(actionOrName))
 </script>
 
 <template>

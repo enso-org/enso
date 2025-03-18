@@ -67,7 +67,7 @@ electronTest('Local Workflow', async ({ page, app, projectsDir }) => {
 
   // Create new text literal node.
   await page.keyboard.press('Escape') // deselect.
-  await page.locator('.PlusButton').click()
+  await page.getByTestId('add-component-button').click()
   await expect(page.locator('.ComponentBrowser')).toBeVisible()
   const input = page.locator('.ComponentBrowser input')
   await input.fill(`'${TEXT_TO_WRITE}'`)

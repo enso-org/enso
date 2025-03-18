@@ -10,7 +10,7 @@ const emit = defineEmits<{ close: [] }>()
 </script>
 
 <template>
-  <MenuPanel ref="menu" class="ComponentContextMenu">
+  <MenuPanel class="ActionMenu">
     <MenuEntry
       v-for="(action, index) of actions"
       :key="index"
@@ -22,7 +22,7 @@ const emit = defineEmits<{ close: [] }>()
 </template>
 
 <style scoped>
-.MenuPanel {
+.ActionMenu {
   margin-top: 2px;
   padding: 4px;
   background: var(--dropdown-opened-background, var(--color-app-bg));

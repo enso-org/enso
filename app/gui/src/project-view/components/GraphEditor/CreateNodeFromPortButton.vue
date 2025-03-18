@@ -36,11 +36,12 @@ const props = defineProps<{ portId: AstId }>()
   --direct-hover-offset: calc(
     var(--output-port-hovered-extra-width) * var(--direct-hover-animation)
   );
+  --output-port-overlap-anim: calc(var(--hover-animation) * var(--output-port-overlap));
   width: var(--width);
   height: calc((var(--topOffset) - var(--direct-hover-offset) + 2px) * var(--hover-animation));
   transform: translate(
     calc(var(--port-clip-start) * (100% + 1px) + var(--leftOffset) - var(--width) / 2),
-    calc(var(--node-size-y) + var(--direct-hover-offset) - var(--output-port-overlap))
+    calc(var(--node-size-y) + var(--direct-hover-offset) - var(--output-port-overlap-anim))
   );
   cursor: pointer;
   color: var(--color-dimmed);

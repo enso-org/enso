@@ -312,9 +312,17 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             action="uploadToCloud"
             doAction={async () => {
               try {
+                // Folder's id matches the pattern `<type>-<Full Path>`, i.e. `directory-/Users/user/enso/folder 1`
+                const parentDirectoryPath = localBackendModule.extractTypeAndId(asset.parentId).id
+
                 const projectResponse = await fetch(
-                  `./api/project-manager/projects/${localBackendModule.extractTypeAndId(asset.id).id}/enso-project`,
+                  `./api/project-manager/projects/${localBackendModule.extractTypeAndId(asset.id).id}/enso-project?projectsDirectory=${parentDirectoryPath}`,
                 )
+
+                if (!projectResponse.ok) {
+                  throw new Error('Something went wrong, please try again')
+                }
+
                 const fileName = `${asset.title}.enso-project`
                 await uploadFileToCloudMutation.mutateAsync([
                   {
