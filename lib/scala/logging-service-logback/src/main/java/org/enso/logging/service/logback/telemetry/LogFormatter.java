@@ -91,9 +91,30 @@ final class LogFormatter {
       case Long l -> JsonNodeFactory.instance.numberNode(l);
       case Integer i -> JsonNodeFactory.instance.numberNode(i);
       case Double d -> JsonNodeFactory.instance.numberNode(d);
-      case String s -> JsonNodeFactory.instance.textNode(s);
+      case String s -> stringObjectToJson(s);
       case null -> JsonNodeFactory.instance.nullNode();
       default -> TextNode.valueOf(obj.toString());
     };
+  }
+
+  /**
+   * If the given string can be interpreter as a number, or other primitive value, it is converted
+   * to the appropriate JSON node. Otherwise, it is treated as a string.
+   */
+  private static JsonNode stringObjectToJson(String str) {
+    if (str.equalsIgnoreCase("true")) {
+      return JsonNodeFactory.instance.booleanNode(true);
+    } else if (str.equalsIgnoreCase("false")) {
+      return JsonNodeFactory.instance.booleanNode(false);
+    }
+    try {
+      return JsonNodeFactory.instance.numberNode(Long.parseLong(str));
+    } catch (NumberFormatException e) {
+      try {
+        return JsonNodeFactory.instance.numberNode(Double.parseDouble(str));
+      } catch (NumberFormatException e2) {
+        return JsonNodeFactory.instance.textNode(str);
+      }
+    }
   }
 }

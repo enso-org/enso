@@ -14,7 +14,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -24,7 +23,13 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Background job processing inspired by {@code org.enso.base.enso_cloud.logging.LogApiAccess}.
- * Singleton.
+ * Singleton. See {@link LogFormatter} for the expected format of log messages to this appender.
+ *
+ * <p>This appender is supposed to be started by the project manager, within {@link
+ * org.enso.logging.service.logback.LoggingServer}. The logging events that are received in this
+ * {@link TelemetryAppender#append(ILoggingEvent)} method are received from a socket and
+ * deserialized by the logback framework. Thus, the {@link ILoggingEvent#getArgumentArray() log
+ * event arguments} are most likely strings.
  */
 public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
   private static final String CREDENTIALS_FILE_ENV = "ENSO_CLOUD_CREDENTIALS_FILE";
