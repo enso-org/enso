@@ -171,13 +171,11 @@ class Runner(
       val jvmOptsFromEnvironment = environment.getEnvVar(JVM_OPTIONS_ENV_VAR)
       jvmOptsFromEnvironment.foreach { opts =>
         logger.info(
-          "Picking up additional JVM options [{}] from the " +
-          "[{}] environment variable.",
+          "Additional JVM options [{}] from the {} environment variable.",
           MaskedString(opts),
           JVM_OPTIONS_ENV_VAR
         )
       }
-      logger.info("jvmOpts: "+ jvmOptsFromEnvironment)
 
       val environmentOptions =
         jvmOptsFromEnvironment.map(_.split(' ').toIndexedSeq).getOrElse(Seq())
