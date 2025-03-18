@@ -29,7 +29,7 @@ public class NullStorage extends Storage<Void> {
   }
 
   @Override
-  public StorageType getType() {
+  public StorageType<Void> getType() {
     return NullType.INSTANCE;
   }
 

@@ -22,7 +22,6 @@ import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { uploadedExpression, Uploader } from '@/components/GraphEditor/upload'
 import GraphMissingView from '@/components/GraphMissingView.vue'
 import GraphMouse from '@/components/GraphMouse.vue'
-import PlusButton from '@/components/PlusButton.vue'
 import RightDockPanel from '@/components/RightDockPanel.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
@@ -31,7 +30,7 @@ import { useDoubleClick } from '@/composables/doubleClick'
 import { keyboardBusy, keyboardBusyExceptIn, unrefElement, useEvent } from '@/composables/events'
 import { groupColorVar } from '@/composables/nodeColors'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
-import { registerHandlers } from '@/providers/action'
+import { registerHandlers, toggledAction } from '@/providers/action'
 import { provideGraphEditorState } from '@/providers/graphEditorState'
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -84,7 +83,7 @@ const graphStore = provideGraphStore(projectStore, suggestionDb, projectNames)
 const widgetRegistry = provideWidgetRegistry(graphStore.db)
 const _visualizationStore = provideVisualizationStore(projectStore)
 
-provideNodeExecution(projectStore)
+const nodeExecution = provideNodeExecution(projectStore)
 ;(window as any)._mockSuggestion = suggestionDb.mockSuggestion
 
 onMounted(() => {
@@ -153,6 +152,7 @@ function panToSelected() {
 
 // == Breadcrumbs ==
 
+const projectNameEdited = ref(false)
 const stackNavigator = provideStackNavigator(projectStore, graphStore, projectNames)
 const graphMissing = computed(
   () => graphStore.moduleRoot != null && !graphStore.currentMethod.ast.ok,
@@ -226,6 +226,44 @@ const actionHandlers = registerHandlers({
     action: () => rightDock.toggleVisible('help'),
     toggled: computed(() => rightDock.visible && rightDock.displayedTab === 'help'),
   },
+  'graph.renameProject': toggledAction(projectNameEdited),
+  'graph.addComponent': {
+    action: () => {
+      nodeSelection.deselectAll()
+      createWithComponentBrowser({ placement: { type: 'viewport' } })
+    },
+  },
+  'graph.toggleCodeEditor': {
+    action: () => (showCodeEditor.value = !showCodeEditor.value),
+    toggled: () => showCodeEditor.value,
+  },
+  'graph.toggleDocumentationEditor': {
+    action: () => rightDock.toggleVisible(),
+    toggled: () => rightDock.visible,
+  },
+  'graph.refreshExecution': {
+    action: () => nodeExecution.recomputeAll(),
+  },
+  'graph.recomputeAll': {
+    action: () => nodeExecution.recomputeAll('Live'),
+  },
+  'graph.undo': {
+    action: () => graphStore.undoManager.undo(),
+    disabled: () => !graphStore.undoManager.canUndo.value,
+  },
+  'graph.redo': {
+    action: () => graphStore.undoManager.redo(),
+    disabled: () => !graphStore.undoManager.canRedo.value,
+  },
+  'graph.fitAll': {
+    action: () => zoomToSelected(),
+  },
+  'graph.zoomIn': {
+    action: () => graphNavigator.stepZoom(+1),
+  },
+  'graph.zoomOut': {
+    action: () => graphNavigator.stepZoom(-1),
+  },
   ...selectionActionHandlers(
     () =>
       iter.filterDefined(
@@ -269,15 +307,31 @@ useEvent(window, 'pointerup', (e) => interaction.handlePointerEvent(e, 'pointeru
   capture: true,
 })
 
+function tryGetSelectionDocUrl() {
+  const selected = nodeSelection.tryGetSoleSelection()
+  if (!selected.ok) return selected
+  const suggestion = graphStore.db.getNodeMainSuggestion(selected.value)
+  const documentation = suggestion && suggestionDocumentationUrl(suggestion)
+  if (!documentation) return Err('No external documentation available for selected component')
+  return Ok(documentation)
+}
+
+const { handleClick } = useDoubleClick(
+  (e: MouseEvent) => {
+    if (e.target !== e.currentTarget) return false
+    clearFocus()
+  },
+  (e: MouseEvent) => {
+    if (e.target !== e.currentTarget) return false
+    stackNavigator.exitNode()
+  },
+)
+
 // === Keyboard/Mouse bindings ===
 
 const undoBindingsHandler = undoBindings.handler({
-  undo() {
-    graphStore.undoManager.undo()
-  },
-  redo() {
-    graphStore.undoManager.redo()
-  },
+  undo: actionHandlers['graph.undo'].action,
+  redo: actionHandlers['graph.redo'].action,
 })
 
 const graphBindingsHandler = graphBindings.handler({
@@ -342,26 +396,6 @@ const graphBindingsHandler = graphBindings.handler({
     window.open(result.value, '_blank')
   },
 })
-
-function tryGetSelectionDocUrl() {
-  const selected = nodeSelection.tryGetSoleSelection()
-  if (!selected.ok) return selected
-  const suggestion = graphStore.db.getNodeMainSuggestion(selected.value)
-  const documentation = suggestion && suggestionDocumentationUrl(suggestion)
-  if (!documentation) return Err('No external documentation available for selected component')
-  return Ok(documentation)
-}
-
-const { handleClick } = useDoubleClick(
-  (e: MouseEvent) => {
-    if (e.target !== e.currentTarget) return false
-    clearFocus()
-  },
-  (e: MouseEvent) => {
-    if (e.target !== e.currentTarget) return false
-    stackNavigator.exitNode()
-  },
-)
 
 // === Code Editor ===
 
@@ -466,11 +500,6 @@ const componentBrowserElements = computed(() => [componentBrowser.value?.$el, do
 interface NewNodeOptions {
   placement: PlacementStrategy
   sourcePort?: Ast.AstId | undefined
-}
-
-function addNodeDisconnected() {
-  nodeSelection.deselectAll()
-  createWithComponentBrowser({ placement: { type: 'viewport' } })
 }
 
 function fromSelection(): NewNodeOptions | undefined {
@@ -656,17 +685,14 @@ const groupColors = computed(() => {
             @selectedSuggestionId="displayedDocs = $event"
             @isAiPrompt="aiMode = $event"
           />
-          <PlusButton title="Add Component" @click.stop="addNodeDisconnected()" />
         </template>
         <TopBar
           v-model:recordMode="projectStore.recordMode"
           v-model:showCodeEditor="showCodeEditor"
+          v-model:projectNameEdited="projectNameEdited"
           v-model:showDocumentationEditor="rightDock.visible"
           :zoomLevel="100.0 * graphNavigator.targetScale"
           :class="{ extraRightSpace: !rightDock.visible }"
-          @fitToAllClicked="zoomToSelected"
-          @zoomIn="graphNavigator.stepZoom(+1)"
-          @zoomOut="graphNavigator.stepZoom(-1)"
         />
         <SceneScroller
           :navigator="graphNavigator"

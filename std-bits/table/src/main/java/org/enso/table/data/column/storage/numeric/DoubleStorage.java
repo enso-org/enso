@@ -101,7 +101,7 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public StorageType getType() {
+  public StorageType<Double> getType() {
     return FloatType.FLOAT_64;
   }
 
@@ -193,7 +193,7 @@ public final class DoubleStorage extends Storage<Double>
 
   @Override
   public Storage<?> fillMissing(
-      Value arg, StorageType commonType, ProblemAggregator problemAggregator) {
+      Value arg, StorageType<?> commonType, ProblemAggregator problemAggregator) {
     if (arg.isNumber()) {
       if (arg.fitsInLong()) {
         return fillMissingLong(arg.asLong(), problemAggregator);
@@ -346,10 +346,10 @@ public final class DoubleStorage extends Storage<Double>
     return new DoubleStorage(newData, newSize, newIsNothing);
   }
 
-  private StorageType inferredType = null;
+  private StorageType<?> inferredType = null;
 
   @Override
-  public StorageType inferPreciseType() {
+  public StorageType<?> inferPreciseType() {
     if (inferredType == null) {
       boolean areAllIntegers = true;
       int visitedNumbers = 0;
@@ -376,8 +376,8 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public StorageType inferPreciseTypeShrunk() {
-    StorageType inferred = inferPreciseType();
+  public StorageType<?> inferPreciseTypeShrunk() {
+    StorageType<?> inferred = inferPreciseType();
     if (inferred instanceof IntegerType) {
       return findSmallestIntegerTypeThatFits();
     } else {
@@ -385,7 +385,7 @@ public final class DoubleStorage extends Storage<Double>
     }
   }
 
-  private StorageType findSmallestIntegerTypeThatFits() {
+  private StorageType<?> findSmallestIntegerTypeThatFits() {
     assert inferredType instanceof IntegerType;
 
     final DoubleStorage parent = this;

@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import SvgButton from '@/components/SvgButton.vue'
 import { computed, toValue } from 'vue'
-import { Action, ActionName, injectActions } from '../providers/action'
+import { Action, ActionName, resolveAction } from '../providers/action'
 
-const { action: actionOrName } = defineProps<{ action: Action | ActionName }>()
-const actions = injectActions()
-const action = computed(() =>
-  typeof actionOrName === 'string' ? actions[actionOrName] : actionOrName,
-)
+const { action: actionOrName, label } = defineProps<{
+  action: Action | ActionName
+  label?: string
+}>()
+const action = computed(() => resolveAction(actionOrName))
+
 const descriptionWithShortcut = computed(() =>
   action.value.shortcut ?
     `${toValue(action.value.description)} (${toValue(action.value.shortcut?.humanReadable)})`
@@ -20,6 +21,7 @@ const descriptionWithShortcut = computed(() =>
     :name="toValue(action.icon)"
     :disabled="toValue(action.disabled)"
     :title="descriptionWithShortcut"
+    :label="label"
     @click.stop="action.action"
   />
 </template>

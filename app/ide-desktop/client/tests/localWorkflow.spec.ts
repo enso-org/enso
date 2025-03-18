@@ -24,7 +24,8 @@ electronTest('Local Workflow', async ({ page, app, projectsDir }) => {
   await page.locator('.GraphNode').click()
   await page.keyboard.press('Enter')
   await expect(page.locator('.ComponentBrowser')).toBeVisible()
-  const entry = page.locator('.ComponentEntry.selected', {
+  await page.keyboard.insertText('count')
+  const entry = page.locator('.ComponentEntry', {
     hasText: 'column_count',
   })
   await expect(entry).toBeVisible()
@@ -66,7 +67,7 @@ electronTest('Local Workflow', async ({ page, app, projectsDir }) => {
 
   // Create new text literal node.
   await page.keyboard.press('Escape') // deselect.
-  await page.locator('.PlusButton').click()
+  await page.getByTestId('add-component-button').click()
   await expect(page.locator('.ComponentBrowser')).toBeVisible()
   const input = page.locator('.ComponentBrowser input')
   await input.fill(`'${TEXT_TO_WRITE}'`)

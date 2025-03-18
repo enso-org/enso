@@ -90,7 +90,6 @@ onDeactivated(() => (visible.value = false))
 :deep(*)::before,
 :deep(*)::after {
   box-sizing: border-box;
-  margin: 0;
 }
 
 :deep(.icon) {

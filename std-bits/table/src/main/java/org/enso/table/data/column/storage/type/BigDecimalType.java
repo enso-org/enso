@@ -1,6 +1,12 @@
 package org.enso.table.data.column.storage.type;
 
-public record BigDecimalType() implements StorageType {
+import java.math.BigDecimal;
+import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.builder.BuilderForType;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.problems.ProblemAggregator;
+
+public record BigDecimalType() implements StorageType<BigDecimal> {
   public static final BigDecimalType INSTANCE = new BigDecimalType();
 
   @Override
@@ -16,5 +22,31 @@ public record BigDecimalType() implements StorageType {
   @Override
   public boolean hasTime() {
     return false;
+  }
+
+  @Override
+  public boolean isOfType(StorageType<?> other) {
+    return other instanceof BigDecimalType;
+  }
+
+  @Override
+  public BigDecimal valueAsType(Object value) {
+    return (value instanceof BigDecimal bigDecimal) ? bigDecimal : null;
+  }
+
+  @Override
+  public BuilderForType<BigDecimal> makeBuilder(
+      long initialCapacity, ProblemAggregator problemAggregator) {
+    return Builder.getForBigDecimal(initialCapacity);
+  }
+
+  @Override
+  public ColumnStorage<BigDecimal> asTypedStorage(ColumnStorage<?> storage) {
+    if (storage.getType() instanceof BigDecimalType) {
+      @SuppressWarnings("unchecked")
+      var output = (ColumnStorage<BigDecimal>) storage;
+      return output;
+    }
+    throw new IllegalArgumentException("Storage is not of BigDecimalType");
   }
 }
