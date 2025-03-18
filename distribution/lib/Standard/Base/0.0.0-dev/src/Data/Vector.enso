@@ -29,8 +29,9 @@ import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
-from project.Metadata import Display, make_single_choice, Widget
+from project.Metadata import Display, Widget
 from project.Runtime import assert
+from project.Widget_Helpers import make_separator_selector
 
 polyglot java import java.lang.IndexOutOfBoundsException
 
@@ -950,7 +951,7 @@ type Vector a
          Join the elements of the vector together as a string.
 
              ["foo", "bar", "baz"].join ", "
-    @separator (make_single_choice [',', ';', '|', ['{tab}', "'\t'"], ['{space}', "' '"], ['{newline}', "\n"], '_', ['Custom', "'?'"]])
+    @separator make_separator_selector
     join : Text -> Text -> Text -> Text
     join self separator:Text="" prefix:Text="" suffix:Text="" =
         Array_Like_Helpers.join self separator prefix suffix
