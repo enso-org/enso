@@ -750,39 +750,42 @@ watchEffect(() => {
       rowData.value =
         data_.data ? createRowsForTable(data_.data, 0, data_.is_using_server_sort_and_filter) : []
     }
-    const headers = data_.header
-    if (headers) {
-      const headerGroupingMap = new Map()
-      if (data_.requires_number_format) {
-        columnDefs.value.map((col) => {
-          if (col.headerName === INDEX_FIELD_NAME) {
-            headerGroupingMap.set(INDEX_FIELD_NAME, false)
-          }
-          if (typeof props.data == 'object' && 'header' in props.data) {
-            const dataHeaderIndex = props.data.header?.findIndex(
-              (h: string) => h === col.headerName,
-            )
-            const needsGrouping =
-              dataHeaderIndex !== null && dataHeaderIndex !== undefined ?
-                data_.requires_number_format[dataHeaderIndex]
-              : false
-            headerGroupingMap.set(col.headerName, needsGrouping)
-          }
-        })
-      } else {
-        headers.forEach((header) => {
-          const needsGrouping = rowData.value.some((row) => {
-            if (header in row && row[header] != null) {
-              const value = typeof row[header] === 'object' ? row[header].value : row[header]
-              return value > 999999 || value < -999999
-            }
-          })
-          headerGroupingMap.set(header, needsGrouping)
-        })
-      }
-      dataGroupingMap.value = headerGroupingMap
-    }
   }
+  const headerGroupingMap = new Map();
+
+const determineGrouping = (header: string) => 
+  rowData.value.some((row) => {
+    const value = row[header] && typeof row[header] === 'object' ? row[header].value : row[header];
+    return value > 999999 || value < -999999;
+  });
+
+
+if ('header' in data_) {
+  const headers = data_.header || [];
+
+  if (data_.requires_number_format) {
+    columnDefs.value.forEach((col) => {
+      const colHeader = col.headerName;
+      if (colHeader === INDEX_FIELD_NAME) {
+        headerGroupingMap.set(INDEX_FIELD_NAME, false);
+      }
+
+      if (typeof props.data === 'object' && 'header' in props.data) {
+        const dataHeaderIndex = props.data.header?.indexOf(colHeader ?? '');
+        const needsGrouping = dataHeaderIndex !== -1 ? data_.requires_number_format[dataHeaderIndex!] : false;
+        headerGroupingMap.set(colHeader, needsGrouping);
+      }
+    });
+  } else {
+    headers.forEach((header) => headerGroupingMap.set(header, determineGrouping(header)));
+  }
+} else {
+  Object.keys(rowData.value[0]).forEach((header) => headerGroupingMap.set(header, determineGrouping(header)));
+}
+
+dataGroupingMap.value = headerGroupingMap;
+
+
   // Update paging
   const newRowCount = data_.all_rows_count == null ? 1 : data_.all_rows_count
   showRowCount.value = !(data_.all_rows_count == null)
