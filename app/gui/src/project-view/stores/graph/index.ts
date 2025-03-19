@@ -154,7 +154,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
 
     const fallbackMethodAst = computed(() => {
       const id = lastKnownResolvedMethodAstId.value
-      const ast = id != null ? syncModule.value?.get(id) : undefined
+      const ast = id != null ? syncModule.value?.tryGet(id) : undefined
       if (ast instanceof Ast.FunctionDef) return ast
       return undefined
     })

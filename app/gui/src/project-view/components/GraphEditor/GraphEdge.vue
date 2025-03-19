@@ -20,6 +20,9 @@ const { edge, maskSource, animateFromSourceHover } = defineProps<{
   maskSource?: boolean
   animateFromSourceHover?: boolean
 }>()
+defineOptions({
+  inheritAttrs: false,
+})
 
 // The padding added around the masking rect for nodes with visible output port. The actual padding
 // is animated together with node's port opening. Required to correctly not draw the edge in space
@@ -331,7 +334,7 @@ const colorClasses = computed(() => {
         fill="black"
       />
     </mask>
-    <g v-bind="sourceMask && { mask: `url('#${sourceMask.id}')` }">
+    <g v-bind="{ ...$attrs, ...(sourceMask ? { mask: `url('#${sourceMask.id}')` } : {}) }">
       <path
         ref="base"
         :d="basePath"

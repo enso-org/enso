@@ -20,6 +20,8 @@ use crate::syntax::GroupHierarchyConsumer;
 use crate::syntax::ScopeHierarchyConsumer;
 use crate::syntax::Token;
 use crate::syntax::Tree;
+
+
 // ========================
 // === Named-App Parser ===
 // ========================
@@ -98,7 +100,7 @@ enum Partial<'s> {
     ExpectingEquals { open: Option<token::OpenSymbol<'s>>, name: token::Ident<'s> },
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct AppName<'s> {
     open:         Option<token::OpenSymbol<'s>>,
     name:         token::Ident<'s>,
@@ -108,14 +110,27 @@ struct AppName<'s> {
 }
 
 impl<'s> AppName<'s> {
+    fn new(
+        open: Option<token::OpenSymbol<'s>>,
+        name: token::Ident<'s>,
+        equals: token::AssignmentOperator<'s>,
+        // This is not used; it is required to ensure an `AppName` is only constructed when
+        // spacing-lookahead has indicated that an expression follows the `=` (`finish` relies on
+        // this).
+        _following_expression: Spacing,
+    ) -> Self {
+        Self { open, name, equals, spaceproof: false, inner_parens: 0 }
+    }
+
     fn finish(
         self,
-        expression: Option<Tree<'s>>,
+        inner: &mut impl ScopeHierarchyConsumer<Result = Option<Tree<'s>>>,
         close: &mut Option<token::CloseSymbol<'s>>,
     ) -> OperandMaybeNamed<'s> {
         let Self { open, name, equals, inner_parens: _, spaceproof: _ } = self;
-        // An `OuterAppName` is only constructed when lookahead indicates there's a
-        // token after the `=`.
+        let expression = inner.end_scope();
+        // An `AppName` is only pushed to the stack when lookahead indicates there's an expression
+        // after the `=`.
         let expression = expression.unwrap();
         NamedApp { parens: open.map(|open| (open, close.take())), name, equals, expression }.into()
     }
@@ -176,8 +191,7 @@ where Inner: NamedOperandConsumer<'s>
     }
 
     fn flush_complete(&mut self, mut close: Option<token::CloseSymbol<'s>>) {
-        let expression = self.inner.end_scope();
-        let operand = self.stack.pop().unwrap().finish(expression, &mut close);
+        let operand = self.stack.pop().unwrap().finish(&mut self.inner, &mut close);
         self.inner.push_maybe_named_operand(operand);
         if close.is_some() {
             self.inner.end_group(close);
@@ -209,17 +223,17 @@ where Inner: SpacingLookaheadTokenConsumer<'s>
                 }
                 (
                     token::Variant::AssignmentOperator(variant),
-                    (Some(Partial::ExpectingEquals { open, name }), Some(Spacing::Unspaced))
-                    | (Some(Partial::ExpectingEquals { open: open @ Some(_), name }), _),
+                    (
+                        Some(Partial::ExpectingEquals { open, name }),
+                        Some(following @ Spacing::Unspaced),
+                    )
+                    | (
+                        Some(Partial::ExpectingEquals { open: open @ Some(_), name }),
+                        Some(following),
+                    ),
                 ) => {
                     let equals = token.with_variant(variant);
-                    self.stack.push(AppName {
-                        open,
-                        name,
-                        equals,
-                        inner_parens: 0,
-                        spaceproof: false,
-                    });
+                    self.stack.push(AppName::new(open, name, equals, following));
                     self.inner.start_scope();
                     None
                 }

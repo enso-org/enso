@@ -167,7 +167,7 @@ const statusBar = computed(() =>
   allRowCount.value ?
     {
       statusPanels:
-        isSSRM.value ?
+        config.nodeType === TABLE_NODE_TYPE ?
           [
             {
               statusPanel: TableVizStatusBar,
@@ -749,7 +749,7 @@ watchEffect(() => {
       : dataHeader
     if (!data_.is_using_server_sort_and_filter) {
       rowData.value =
-        data_.data ? createRowsForTable(data_.data, 0, data_.is_using_server_sort_and_filter) : []
+        data_.data ? createRowsForTable(data_.data, 1, data_.is_using_server_sort_and_filter) : []
     }
   }
   const headerGroupingMap = new Map()
@@ -791,7 +791,7 @@ watchEffect(() => {
 
   // Update paging
   const newRowCount = data_.all_rows_count == null ? 1 : data_.all_rows_count
-  showRowCount.value = !(data_.all_rows_count == null)
+  showRowCount.value = !(data_.all_rows_count == null) && config.nodeType != TABLE_NODE_TYPE
   rowCount.value = newRowCount
   const newPageLimit = Math.ceil(newRowCount / rowLimit.value)
   pageLimit.value = newPageLimit
