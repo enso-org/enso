@@ -767,6 +767,10 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       }
     }
 
+    function isConnectedSource(portId: PortId): boolean {
+      return isAstId(portId) && db.connections.lookup(portId).size > 0
+    }
+
     function isConnectedTarget(portId: PortId): boolean {
       return isAstId(portId) && db.connections.reverseLookup(portId).size > 0
     }
@@ -844,6 +848,7 @@ export const [provideGraphStore, useGraphStore] = createContextStore(
       viewModule,
       addMissingImports,
       addMissingImportsDisregardConflicts,
+      isConnectedSource,
       isConnectedTarget,
       nodeCanBeEntered,
       modulePath,

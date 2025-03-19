@@ -62,6 +62,10 @@ const mouseOverCreateNodeFromPortButton = ref(false)
 
 const outputHovered = computed(() => (graph.mouseEditedEdge ? undefined : mouseOverOutput.value))
 
+function isPortDisconnected(portId: AstId) {
+  return !graph.isConnectedSource(portId)
+}
+
 const anyPortDisconnected = computed(() => {
   for (const port of outputPortsSet.value) {
     if (graph.unconnectedEdgeSources.has(port)) return true
@@ -148,7 +152,7 @@ graph.suggestEdgeFromOutput(outputHovered)
         </g>
         <text class="outputPortLabel">{{ port.label }}</text>
         <CreateNodeFromPortButton
-          v-if="!componentBrowserOpened"
+          v-if="!componentBrowserOpened && isPortDisconnected(port.portId)"
           :class="{ hovered: mouseOverCreateNodeFromPortButton }"
           :portId="port.portId"
           @pointerleave="mouseOverCreateNodeFromPortButton = false"
