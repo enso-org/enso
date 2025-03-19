@@ -998,7 +998,7 @@ type DB_Table
         Feature.Add_Group_Number.if_supported_else_throw self.connection.dialect "add_group_number" <|
             problem_builder = Problem_Builder.new error_on_missing_columns=True
             case grouping_method of
-                Grouping_Method.Unique group_by -> 
+                Grouping_Method.Unique group_by ->
                     _illegal_if group_by.is_empty "..Unique requires a non-empty 'group_by'" <|
                         grouping_columns = _resolve_grouping_columns self.columns_helper group_by problem_builder
                         problem_builder.attach_problems_before on_problems <|
