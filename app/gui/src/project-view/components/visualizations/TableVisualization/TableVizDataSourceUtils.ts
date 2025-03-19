@@ -13,7 +13,7 @@ import { getCellValueType } from './tableVizUtils'
 type ValueTypes = 'Date' | 'Time' | 'Date_Time' | 'Integer' | 'Char'
 type ValueTypeArgumentChild = { valueType: ValueTypes; value: string }
 type ValueTypeArgumentParent =
-  | { valueType: ValueTypes; value: string }
+  | { valueType: ValueTypes; value: string | string[] }
   | { valueType: 'Mixed'; value: ValueTypeArgumentChild[] }
 type PossibleArguments = string | ValueTypeArgumentParent
 export type Argument = string | Array<PossibleArguments>
@@ -30,7 +30,18 @@ const parseSingleArgument = (
   switch (value.valueType) {
     case 'Date': {
       const datePattern = Pattern.parseExpression('(Date.new __ __ __)')
-      const dateParts = value.value
+      if (typeof value.value === 'object' && value.value.length === 2) {
+        const items = value.value.map((val: string) => {
+          const dateParts = val
+            .match(/\d+/g)!
+            .slice(0, 3)
+            .map((part: string) => Ast.tryNumberToEnso(Number(part), tempModule)!)
+          return datePattern.instantiateCopied(dateParts)
+        })
+
+        return Ast.Vector.new(tempModule, items)
+      }
+      const dateParts = (value.value as string)
         .match(/\d+/g)!
         .slice(0, 3)
         .map((part: string) => Ast.tryNumberToEnso(Number(part), tempModule)!)
@@ -38,16 +49,34 @@ const parseSingleArgument = (
     }
     case 'Time': {
       const pattern = Pattern.parseExpression('Time_Of_Day.parse (__)')!
-      return pattern.instantiateCopied([Ast.TextLiteral.new(value.value, tempModule)])
+      if (typeof value.value === 'object' && value.value.length === 2) {
+        const items = value.value.map((val: string) =>
+          pattern.instantiateCopied([Ast.TextLiteral.new(val, tempModule)]),
+        )
+        return Ast.Vector.new(tempModule, items)
+      }
+      return pattern.instantiateCopied([Ast.TextLiteral.new(value.value as string, tempModule)])
     }
     case 'Date_Time': {
       const pattern = Pattern.parseExpression('Date_Time.parse (__)')!
-      return pattern.instantiateCopied([Ast.TextLiteral.new(value.value, tempModule)])
+      if (typeof value.value === 'object' && value.value.length === 2) {
+        const items = value.value.map((val: string) =>
+          pattern.instantiateCopied([Ast.TextLiteral.new(val, tempModule)]),
+        )
+        return Ast.Vector.new(tempModule, items)
+      }
+      return pattern.instantiateCopied([Ast.TextLiteral.new(value.value as string, tempModule)])
     }
-    case 'Integer':
-      return Ast.parseExpression(value.value, tempModule)!
-    case 'Char':
-      return Ast.TextLiteral.new(value.value)
+    case 'Integer': {
+      if (typeof value.value === 'object' && value.value.length === 2) {
+        const items = value.value.map((val: string) => Ast.parseExpression(val, tempModule)!)
+        return Ast.Vector.new(tempModule, items)
+      }
+      return Ast.parseExpression(value.value as string, tempModule)!
+    }
+    case 'Char': {
+      return Ast.TextLiteral.new(value.value as string)
+    }
     case 'Mixed': {
       const items = value.value.map((val: { valueType: ValueTypes; value: string }) =>
         parseSingleArgument(val, tempModule),
@@ -132,7 +161,14 @@ export const convertFilterModel = (
           typeof value.value === 'object' &&
           'fromValue' in value.value
         ) {
-          return { valueType: value.valType as ValueTypes, value: `${value.value.fromValue}` }
+          return {
+            valueType: value.valType as ValueTypes,
+            value: [`${value.value.fromValue}`, `${value.value.toValue}`],
+          }
+        }
+
+        if(value.action === '..Is_Nothing' || value.action === '..Not_Nothing') {
+          return { valueType: 'Char' as ValueTypes, value: 'Nothing' }
         }
 
         return { valueType: value.valType as ValueTypes, value: `${value.value}` }
