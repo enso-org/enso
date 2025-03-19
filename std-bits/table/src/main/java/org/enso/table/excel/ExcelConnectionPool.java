@@ -220,14 +220,16 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
 
   /** If a reload has just happened, clear the ConnectionRecord cache. */
   public void clearCache() {
-    for (var record : records.values()) {
-      try {
-        record.close();
-      } catch (IOException e) {
-        LOGGER.error("Unable to close " + record, e);
+    synchronized (this) {
+      for (var record : records.values()) {
+        try {
+          record.close();
+        } catch (IOException e) {
+          LOGGER.error("Unable to close " + record, e);
+        }
       }
+      records.clear();
     }
-    records.clear();
   }
 
   /** Public for testing. */
