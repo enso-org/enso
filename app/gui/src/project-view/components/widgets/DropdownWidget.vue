@@ -76,7 +76,7 @@ function handleClick(entry: Entry, altKey: boolean, htmlElement: EventTarget | n
 export interface DropdownEntry {
   readonly value: string
   readonly selected: boolean
-  readonly icon?: Icon
+  readonly icon?: Icon | undefined
 }
 </script>
 
