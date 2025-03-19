@@ -26,7 +26,7 @@ test('Load Table Visualisation', async ({ page }) => {
   await page.waitForTimeout(1000)
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
-  await expect(tableVisualization).toContainText('10 rows.')
+  await expect(tableVisualization).toContainText('Total Row Count: 10')
   await expect(tableVisualization).toContainText('0,0')
   await expect(tableVisualization).toContainText('1,0')
   await expect(tableVisualization).toContainText('2,0')

@@ -22,19 +22,17 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
   const { canCancel = true, canReset = false } = props
   const { getText } = useText()
 
-  const form = Form.useForm({
-    schema: (z) => z.object({ title: z.string().min(1), value: z.string() }),
-    defaultValues: { title: nameRaw ?? '', value: '' },
-    onSubmit: async ({ title, value }) => {
-      await doCreate(title, value)
-      form.reset({ title, value })
-    },
-  })
-
   const isCreatingSecret = id == null
 
   const content = (
-    <Form form={form} method="dialog" testId="upsert-secret-modal" className="w-full">
+    <Form
+      schema={(z) => z.object({ title: z.string().min(1), value: z.string() })}
+      defaultValues={{ title: nameRaw ?? '', value: '' }}
+      onSubmit={({ title, value }) => doCreate(title, value)}
+      method="dialog"
+      testId="upsert-secret-modal"
+      className="w-full"
+    >
       <Input
         name="title"
         autoFocus
@@ -42,6 +40,7 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
         label={getText('name')}
         placeholder={getText('secretNamePlaceholder')}
       />
+
       <Input
         name="value"
         type="password"
@@ -57,6 +56,8 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
         {canCancel && <DialogDismiss />}
         {canReset && <Form.Reset>{getText('cancel')}</Form.Reset>}
       </ButtonGroup>
+
+      <Form.FormError />
     </Form>
   )
 
