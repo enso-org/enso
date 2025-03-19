@@ -183,10 +183,13 @@ add_group_number_specs suite_builder setup =
 
             t.add_group_number (..Unique on=[]) "g" . should_fail_with Illegal_Argument
 
+        group_builder.specify "Equal_Count group count should default to 5" <|
+            Grouping_Method.Equal_Count . group_count . should_equal 5
+
         group_builder.specify "must specify one or more groups with Equal_Count" <|
             t = table_builder [['x', [1, 2, 3, 4, 5]], ['y', [5, 4, 3, 2, 1]], ['z', [1, 5, 4, 2, 3]]]
-            t.add_group_number (..Equal_Count 0) "g" . should_fail_with Illegal_Argument
-            t.add_group_number (..Equal_Count -1) "g" . should_fail_with Illegal_Argument
+            t.add_group_number (..Equal_Count 0) "g" . should_fail_with (Illegal_Argument.Error 'group_count must be at least 1' Nothing)
+            t.add_group_number (..Equal_Count -1) "g" . should_fail_with (Illegal_Argument.Error 'group_count must be at least 1' Nothing)
 
         group_builder.specify "should fail if columns provided in group_by do not exist" <|
             t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
