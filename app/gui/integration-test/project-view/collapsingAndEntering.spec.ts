@@ -28,6 +28,16 @@ test('Entering nodes', async ({ page }) => {
   await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'func1', 'func2'])
 })
 
+test('Entering component shows error when function cannot be found (#12533)', async ({ page }) => {
+  await actions.goToGraph(page)
+  await mockCollapsedFunctionInfo(page, 'final', 'no_such_func')
+  await expectInsideMain(page)
+  await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project'])
+  await locate.graphNodeByBinding(page, 'final').dblclick()
+  await expect(locate.navBreadcrumb(page)).toHaveText(['Mock Project', 'no_such_func'])
+  await expect(page.locator('.GraphMissingView')).toExist()
+})
+
 test('Leaving entered nodes', async ({ page }) => {
   await actions.goToGraph(page)
   await enterToFunc2(page)
