@@ -13,13 +13,7 @@ import LogsIcon from '#/assets/logs.svg'
 import RepeatIcon from '#/assets/repeat.svg'
 import TimeIcon from '#/assets/time.svg'
 import { DialogTrigger } from '#/components/aria'
-import {
-  Button,
-  ButtonGroup,
-  CloseButton,
-  Text,
-  WithVisualTooltip,
-} from '#/components/AriaComponents'
+import { Button, ButtonGroup, CloseButton, Text, VisualTooltip } from '#/components/AriaComponents'
 import {
   backendMutationOptions,
   getProjectExecutionDetailsQueryOptions,
@@ -184,7 +178,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
       <div className={styles.timeContainer()}>
         {!compact ?
           repeatEl
-        : <WithVisualTooltip
+        : <VisualTooltip
             tooltip={
               <div>
                 {enableAdvancedProjectExecutionOptions && (
@@ -198,7 +192,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
             className={styles.times()}
           >
             {repeatEl}
-          </WithVisualTooltip>
+          </VisualTooltip>
         }
         {session && (
           <DialogTrigger>

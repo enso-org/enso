@@ -10,6 +10,7 @@ import { defineConfig } from '@playwright/test'
 import net from 'node:net'
 import path from 'node:path'
 import url from 'node:url'
+import invariant from 'tiny-invariant'
 
 const DEBUG = process.env.DEBUG_TEST === 'true'
 const isCI = process.env.CI === 'true'
@@ -23,10 +24,15 @@ const WORKERS = isCI ? 2 : '35%'
 const dirName = path.dirname(url.fileURLToPath(import.meta.url))
 
 async function findFreePortInRange(min: number, max: number) {
-  for (let i = 0; i < 50; i++) {
-    const portToCheck = Math.floor(Math.random() * (max - min + 1)) + min
+  const range = max - min + 1
+
+  invariant(range > 0, 'Minimum port must be less than maximum port.')
+
+  for (let i = 0; i < range; i++) {
+    const portToCheck = min + i
     if (await checkAvailablePort(portToCheck)) return portToCheck
   }
+
   throw new Error('Failed to find a free port.')
 }
 
@@ -35,7 +41,9 @@ function checkAvailablePort(port: number) {
     const server = net.createServer()
     server
       .unref()
-      .on('error', (e: any) => ('EADDRINUSE' === e.code ? resolve(false) : reject(e)))
+      .on('error', (e: any) =>
+        'EADDRINUSE' === e.code ? reject('Port is already in use.') : reject(e),
+      )
       .listen({ host: '0.0.0.0', port }, () => server.close(() => resolve(true)))
   })
 }
@@ -48,7 +56,7 @@ const ports = {
   projectView:
     Number.isFinite(portsFromEnv.projectView) ?
       portsFromEnv.projectView
-    : await findFreePortInRange(4300, 4999),
+    : await findFreePortInRange(5300, 5999),
   dashboard:
     Number.isFinite(portsFromEnv.dashboard) ?
       portsFromEnv.dashboard
@@ -162,10 +170,11 @@ export default defineConfig({
       reuseExistingServer: false,
     },
     {
+      env: { NODE_ENV: 'test' },
       command:
         isCI || isProd ?
           `corepack pnpm exec vite -c vite.test.config.ts build && vite -c vite.test.config.ts preview --port ${ports.dashboard} --strictPort`
-        : `cross-env NODE_ENV=test corepack pnpm exec vite -c vite.test.config.ts --port ${ports.dashboard}`,
+        : `corepack pnpm exec vite -c vite.test.config.ts --port ${ports.dashboard}`,
       timeout: 480 * 1000,
       port: ports.dashboard,
       reuseExistingServer: false,

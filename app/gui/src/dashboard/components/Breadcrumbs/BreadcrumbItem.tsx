@@ -17,6 +17,7 @@ import {
   useDrop,
   type AriaBreadcrumbItemProps,
   type DropEvent,
+  type PressEvent,
 } from 'react-aria'
 import type * as aria from 'react-aria-components'
 import invariant from 'tiny-invariant'
@@ -68,6 +69,7 @@ export interface BreadcrumbItemProps<IconType extends string>
   readonly style?: CSSProperties | ((renderProps: BreadcrumbItemRenderProps) => CSSProperties)
   readonly children: ReactNode | ((renderProps: BreadcrumbItemRenderProps) => ReactNode)
   readonly isLoading?: boolean
+  readonly isDroppable?: boolean
 }
 
 /**
@@ -125,6 +127,8 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
     rel,
     ping,
     referrerPolicy,
+    onPress: onPressRaw,
+    isDroppable = true,
   } = props
   const { id, ...breadcrumbItemProps } = props
 
@@ -149,19 +153,19 @@ export function BreadcrumbItem<IconType extends string>(props: BreadcrumbItemPro
   // `dropProps` is type-safe, ESLint is being silly.
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const { dropProps, isDropTarget } = useDrop({
-    isDisabled: !onDropSpecified && (isDisabled || isCurrent),
+    isDisabled: !onDropSpecified || isDisabled || !isDroppable,
     ref,
     onDrop: (e) => {
       dropMutation.mutate({ id, e })
     },
   })
 
-  const onPress = useEventCallback(async () => {
+  const onPress = useEventCallback(async (event: PressEvent) => {
     if (id == null) {
       return
     }
 
-    await onAction(id)
+    await Promise.all([onAction(id), onPressRaw?.(event) ?? Promise.resolve()])
   })
 
   const iconComponent = (() => {

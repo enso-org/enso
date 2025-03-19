@@ -6,7 +6,6 @@
 
 import { WebSocketTransport } from '@open-rpc/client-js'
 import WS from 'modern-isomorphic-ws'
-import { WebSocket } from 'partysocket'
 import type { Options } from 'partysocket/ws'
 import ReconnectingWebSocket, { type WebSocketEventMap } from 'partysocket/ws'
 
@@ -26,7 +25,7 @@ export class ReconnectingWebSocketTransport extends WebSocketTransport {
   constructor(uri: string, wsOptions: Options = {}) {
     super(uri)
     this.uri = uri
-    this._reconnectingConnection = new WebSocket(uri, undefined, {
+    this._reconnectingConnection = new ReconnectingWebSocket(uri, undefined, {
       WebSocket: WS,
       ...wsOptions,
     })

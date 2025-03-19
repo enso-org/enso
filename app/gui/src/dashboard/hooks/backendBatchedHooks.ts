@@ -190,9 +190,11 @@ export function moveAssetsMutationOptions(backend: Backend) {
           backend.updateAsset(id, { description: null, parentDirectoryId: parentId }, '(unknown)'),
         ),
       )
+
       const errors = results.flatMap((result): unknown =>
         result.status === 'rejected' ? [result.reason] : [],
       )
+
       if (errors.length !== 0) {
         throw Object.assign(new Error(errors.map(getMessageOrToString).join('\n')), {
           errors,
@@ -200,6 +202,7 @@ export function moveAssetsMutationOptions(backend: Backend) {
           total: ids.length,
         })
       }
+
       return results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
     },
     meta: {
