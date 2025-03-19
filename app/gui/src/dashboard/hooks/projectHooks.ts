@@ -294,7 +294,7 @@ export function useCloseProjectMutation() {
         await remoteBackend.uploadProject(hybrid.cloudProjectId, parentId)
 
         invariant(localBackend != null, 'LocalBackend is null')
-        await localBackend.deleteAsset(parentId, { force: true }, null)
+        await localBackend.deleteAsset(hybrid.parentId, { force: true }, null)
       }
     },
     onError: async (_, { type, id, parentId, hybrid }) => {
@@ -302,7 +302,7 @@ export function useCloseProjectMutation() {
         await remoteBackend.uploadProject(hybrid.cloudProjectId, parentId)
 
         invariant(localBackend != null, 'LocalBackend is null')
-        await localBackend.deleteAsset(parentId, { force: true }, null)
+        await localBackend.deleteAsset(hybrid.parentId, { force: true }, null)
       }
 
       await client.invalidateQueries({ queryKey: createGetProjectDetailsQuery.getQueryKey(id) })

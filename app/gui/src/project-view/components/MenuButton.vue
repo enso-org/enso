@@ -55,6 +55,11 @@ function onClick() {
   border-radius: var(--radius-full);
   border: none;
   transition: background-color 0.3s;
+
+  &.toggledOn {
+    background-color: var(--color-menu-entry-selected-bg);
+  }
+
   &:hover,
   &:focus,
   &:active {

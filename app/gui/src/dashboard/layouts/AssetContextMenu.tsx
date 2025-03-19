@@ -166,6 +166,7 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
       doAction={() => {
         const directoryId =
           asset.type === backendModule.AssetType.directory ? asset.id : asset.parentId
+
         doPaste(directoryId, directoryId)
       }}
     />
@@ -243,21 +244,29 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={async () => {
               invariant(localBackend != null, 'Local Backend is null')
               await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
-              const parentId = await remoteBackend.downloadProject(asset.id)
-              const assets = await localBackend.listDirectory({
-                parentId: parentId,
-                filterBy: null,
-                labels: null,
-                recentProjects: false,
-              })
-              const project = assets.filter(backendModule.assetIsProject)[0]
-              invariant(project, 'Downloaded cloud project does not exist.')
+              const localProject = await remoteBackend.downloadProject(asset.id)
+
+              let project
+              for (const parentId of [localProject.targetId, localProject.parentId]) {
+                const assets = await localBackend.listDirectory({
+                  parentId: parentId,
+                  filterBy: null,
+                  labels: null,
+                  recentProjects: false,
+                })
+                project = assets.filter(backendModule.assetIsProject)[0]
+                if (project !== undefined) {
+                  break
+                }
+              }
+
+              invariant(project, 'Downloaded cloud project does not exist in `localProject`.')
               openProject({
                 id: project.id,
                 title: project.title,
                 parentId: project.parentId,
                 type: backendModule.BackendType.local,
-                hybrid: { cloudProjectId: asset.id },
+                hybrid: { cloudProjectId: asset.id, parentId: localProject.parentId },
               })
             }}
           />
@@ -296,9 +305,17 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             action="uploadToCloud"
             doAction={async () => {
               try {
+                // Folder's id matches the pattern `<type>-<Full Path>`, i.e. `directory-/Users/user/enso/folder 1`
+                const parentDirectoryPath = localBackendModule.extractTypeAndId(asset.parentId).id
+
                 const projectResponse = await fetch(
-                  `./api/project-manager/projects/${localBackendModule.extractTypeAndId(asset.id).id}/enso-project`,
+                  `./api/project-manager/projects/${localBackendModule.extractTypeAndId(asset.id).id}/enso-project?projectsDirectory=${parentDirectoryPath}`,
                 )
+
+                if (!projectResponse.ok) {
+                  throw new Error('Something went wrong, please try again')
+                }
+
                 const fileName = `${asset.title}.enso-project`
                 await uploadFileToCloudMutation.mutateAsync([
                   {

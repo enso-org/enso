@@ -271,6 +271,8 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         txtvec.filter (..Less than="a") . should_equal []
         txtvec.filter (..Greater than="b") . should_equal ["bbb", "cccc", "baaa", "ś"]
         txtvec.filter (..Between "b" "c") . should_equal ["bbb", "baaa"]
+        txtvec.filter (..Regex_Match "b{3}") . should_equal ["bbb"]
+        txtvec.filter (..Regex_Match (regex "b{3}")) . should_equal ["bbb"]
         txtvec.filter (..Is_In [1, 2]) . should_equal []
         txtvec.filter (..Is_In ["bbb", 's\u0301', "bbb", "FOOBAR"]) . should_equal ["bbb", "ś"]
 

@@ -208,10 +208,21 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         )
       }
 
+    val parseJvmMode = ZIO
+      .attempt {
+        options.hasOption(Cli.JVM_MODE)
+      }
+      .catchAll { err =>
+        printLineError(s"Invalid ${Cli.JVM_MODE} argument.") *> ZIO.fail(
+          err
+        )
+      }
+
     for {
       profilingPath <- parseProfilingPath
       profilingTime <- parseProfilingTime
-    } yield ProjectManagerOptions(profilingPath, profilingTime)
+      jvmMode       <- parseJvmMode
+    } yield ProjectManagerOptions(profilingPath, profilingTime, jvmMode)
   }
 
   /** The main function of the application, which will be passed the command-line
@@ -297,7 +308,8 @@ object ProjectManager extends ZIOAppDefault with LazyLogging {
         procConf = MainProcessConfig(
           logLevel,
           opts.profilingPath,
-          opts.profilingTime
+          opts.profilingTime,
+          opts.jvmMode
         )
         exitCode <- mainProcess(procConf).fold(
           th => {

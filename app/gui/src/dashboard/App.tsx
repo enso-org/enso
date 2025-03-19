@@ -399,11 +399,6 @@ function AppRouter(props: AppRouterProps) {
 
   const mainPageUrl = getMainPageUrl()
 
-  // Subscribe to `localStorage` updates to trigger a rerender when the terms of service
-  // or privacy policy have been accepted.
-  localStorageProvider.useLocalStorageState('termsOfService')
-  localStorageProvider.useLocalStorageState('privacyPolicy')
-
   const authService = useInitAuthService(props)
 
   const registerAuthEventListener = authService.registerAuthEventListener

@@ -1,6 +1,8 @@
 package org.enso.compiler.pass.analyse;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.UUID;
 import org.enso.common.CachePreferences;
 import org.enso.compiler.pass.analyse.alias.AliasMetadata;
 import org.enso.compiler.pass.analyse.alias.graph.Graph;
@@ -68,7 +70,6 @@ import scala.Tuple2$;
 @Persistable(clazz = TypeInferenceSignatures.class, id = 1281)
 @Persistable(clazz = FramePointerAnalysis$.class, id = 1282)
 @Persistable(clazz = TailCall.TailPosition.class, id = 1284)
-@Persistable(clazz = CachePreferences.class, id = 1285)
 @Persistable(clazz = StaticModuleScopeAnalysis.class, id = 1287)
 public final class PassPersistance {
   private PassPersistance() {}
@@ -163,6 +164,48 @@ public final class PassPersistance {
                 ch.withParent(scope);
                 return null;
               });
+    }
+  }
+
+  @org.openide.util.lookup.ServiceProvider(service = Persistance.class)
+  public static final class PersistCachePreferences
+      extends Persistance<org.enso.common.CachePreferences> {
+    public PersistCachePreferences() {
+      super(org.enso.common.CachePreferences.class, false, 1289);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    protected CachePreferences readObject(Input in) throws IOException {
+      var map = new HashMap<UUID, org.enso.common.CachePreferences.Kind>();
+      var cnt = in.readInt();
+      while (cnt-- > 0) {
+        var id = in.readInline(UUID.class);
+        var kind =
+            switch (in.readByte()) {
+              case 1 -> CachePreferences.Kind.SELF_ARGUMENT;
+              case 2 -> CachePreferences.Kind.BINDING_EXPRESSION;
+              default -> throw new IOException();
+            };
+        map.put(id, kind);
+      }
+      return new CachePreferences(map);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    protected void writeObject(org.enso.common.CachePreferences obj, Output out)
+        throws IOException {
+      out.writeInt(obj.preferences().size());
+      for (var entry : obj.preferences().entrySet()) {
+        out.writeInline(UUID.class, entry.getKey());
+        out.writeByte(
+            switch (entry.getValue()) {
+              case SELF_ARGUMENT -> 1;
+              case BINDING_EXPRESSION -> 2;
+              default -> throw new IOException();
+            });
+      }
     }
   }
 }

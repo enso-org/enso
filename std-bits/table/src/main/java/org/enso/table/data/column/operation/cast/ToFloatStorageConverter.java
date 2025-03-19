@@ -29,7 +29,7 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
   }
 
   @Override
-  public boolean canApply(StorageType storageType) {
+  public boolean canApply(StorageType<?> storageType) {
     return storageType instanceof IntegerType
         || storageType instanceof BigDecimalType
         || storageType instanceof BigIntegerType

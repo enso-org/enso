@@ -19,6 +19,7 @@ import * as download from '#/utilities/download'
 import type HttpClient from '#/utilities/HttpClient'
 import * as object from '#/utilities/object'
 import invariant from 'tiny-invariant'
+import { z } from 'zod'
 
 /** HTTP status indicating that the request was successful. */
 const STATUS_SUCCESS_FIRST = 200
@@ -251,20 +252,21 @@ export default class RemoteBackend extends Backend {
       this.logger.error(textId.message)
 
       throw textId
-    } else {
-      const error =
-        response == null || response.headers.get('Content-Type') !== 'application/json' ?
-          { message: 'unknown error' }
-          // This is SAFE only when the response has been confirmed to have an erroring status code.
-          // eslint-disable-next-line no-restricted-syntax
-        : ((await response.json()) as RemoteBackendError)
-      const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
-      this.logger.error(message)
-
-      const status = response?.status
-
-      throw new backend.NetworkError(message, status)
     }
+
+    const error =
+      response == null || response.headers.get('Content-Type') !== 'application/json' ?
+        { message: 'unknown error' }
+        // This is SAFE only when the response has been confirmed to have an erroring status code.
+        // eslint-disable-next-line no-restricted-syntax
+      : ((await response.json()) as RemoteBackendError)
+
+    const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
+    this.logger.error(message)
+
+    const status = response?.status
+
+    throw new backend.NetworkError(message, status)
   }
 
   /** The path to the root directory of this {@link Backend}. */
@@ -698,10 +700,15 @@ export default class RemoteBackend extends Backend {
   ) {
     const path = remoteBackendPaths.updateAssetPath(assetId)
     const response = await this.patch(path, body)
+
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'updateAssetBackendError', title)
-    } else {
-      return
+      await this.throw(response, 'updateAssetBackendError', title).catch((error) => {
+        if (isDuplicateAssetError(error)) {
+          throw new backend.DuplicateAssetError(error.message)
+        }
+
+        throw error
+      })
     }
   }
 
@@ -752,11 +759,20 @@ export default class RemoteBackend extends Backend {
       remoteBackendPaths.copyAssetPath(assetId),
       { parentDirectoryId },
     )
+
     if (!responseIsSuccessful(response)) {
-      return await this.throw(response, 'copyAssetBackendError', title, parentDirectoryTitle)
-    } else {
-      return await response.json()
+      return await this.throw(response, 'copyAssetBackendError', title, parentDirectoryTitle).catch(
+        (error) => {
+          if (isDuplicateAssetError(error)) {
+            throw new backend.DuplicateAssetError(error.message)
+          }
+
+          throw error
+        },
+      )
     }
+
+    return await response.json()
   }
 
   /**
@@ -1499,6 +1515,7 @@ export default class RemoteBackend extends Backend {
       case backend.AssetType.specialLoading:
       case backend.AssetType.specialEmpty:
       case backend.AssetType.specialError:
+      case backend.AssetType.specialUp:
       default: {
         invariant(`'${asset.type}' assets cannot be downloaded.`)
         break
@@ -1507,7 +1524,12 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Download the project to a temporary location. */
-  async downloadProject(id: backend.ProjectId): Promise<DirectoryId> {
+  async downloadProject(id: backend.ProjectId) {
+    /** The type of the response body of this endpoint. */
+    interface ResponseBody {
+      readonly targetDirectory: string
+      readonly parentDirectory: string
+    }
     const details = await this.getProjectDetails(id, true)
 
     invariant(details.url != null, 'The download URL of the project must be present.')
@@ -1517,14 +1539,19 @@ export default class RemoteBackend extends Backend {
       projectId: id,
     })
 
-    const response = await this.client.get(`./api/cloud/download-project?${queryString}`)
-    const path = await response.text()
-
-    if (!response.ok) {
+    const response = await this.client.get<ResponseBody>(
+      `./api/cloud/download-project?${queryString}`,
+    )
+    if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'resolveProjectAssetPathBackendError')
     }
 
-    return DirectoryId(`directory-${path}` as const)
+    const responseBody = await response.json()
+
+    return {
+      targetId: DirectoryId(`directory-${responseBody.targetDirectory}` as const),
+      parentId: DirectoryId(`directory-${responseBody.parentDirectory}` as const),
+    }
   }
 
   /** Upload the project. */
@@ -1658,4 +1685,16 @@ export default class RemoteBackend extends Backend {
   private delete<T = void>(path: string, payload?: Record<string, unknown>) {
     return this.client.delete<T>(`${$config.API_URL}/${path}`, payload)
   }
+}
+
+/** The schema that checks if the error is a duplicate asset error. */
+const DUPLICATE_ASSET_ERROR_SCHEMA = z.object({
+  message: z.string().includes('A resource with that title already exists.'),
+})
+
+/**
+ * Check if the error is a duplicate asset error.
+ */
+function isDuplicateAssetError(error: unknown): error is Error {
+  return DUPLICATE_ASSET_ERROR_SCHEMA.safeParse(error).success
 }

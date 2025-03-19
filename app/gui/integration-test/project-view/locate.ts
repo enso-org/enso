@@ -70,9 +70,11 @@ export function outputNode(page: Page | Locator): Node {
 // === Data locators ===
 
 function componentLocator(locatorStr: string) {
-  return (page: Locator | Page) => {
-    return page.locator(`${locatorStr}`)
-  }
+  return (page: Locator | Page) => page.locator(locatorStr)
+}
+
+function testIdLocator(testId: string) {
+  return (page: Locator | Page) => page.getByTestId(testId)
 }
 
 export const graphEditor = componentLocator('.GraphEditor')
@@ -80,7 +82,7 @@ export const codeEditor = componentLocator('.CodeEditor')
 export const anyVisualization = componentLocator('.GraphVisualization')
 export const loadingVisualization = componentLocator('.LoadingVisualization')
 export const componentMenu = componentLocator('.ComponentMenu')
-export const addNewNodeButton = componentLocator('.PlusButton')
+export const addNewNodeButton = testIdLocator('add-component-button')
 export const componentBrowser = componentLocator('.ComponentBrowser')
 export const nodeOutputPort = componentLocator('.outputPortHoverArea')
 export const editorRoot = componentLocator('.CodeMirror')

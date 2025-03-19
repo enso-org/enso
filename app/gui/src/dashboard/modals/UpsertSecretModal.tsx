@@ -3,10 +3,6 @@ import { ButtonGroup, Dialog, DialogDismiss, Form, Input } from '#/components/Ar
 import { useText } from '#/providers/TextProvider'
 import type { SecretId } from '#/services/Backend'
 
-// =========================
-// === UpsertSecretModal ===
-// =========================
-
 /** Props for a {@link UpsertSecretModal}. */
 export interface UpsertSecretModalProps {
   readonly noDialog?: boolean
@@ -26,20 +22,19 @@ export default function UpsertSecretModal(props: UpsertSecretModalProps) {
   const { canCancel = true, canReset = false } = props
   const { getText } = useText()
 
+  const form = Form.useForm({
+    schema: (z) => z.object({ title: z.string().min(1), value: z.string() }),
+    defaultValues: { title: nameRaw ?? '', value: '' },
+    onSubmit: async ({ title, value }) => {
+      await doCreate(title, value)
+      form.reset({ title, value })
+    },
+  })
+
   const isCreatingSecret = id == null
 
   const content = (
-    <Form
-      method="dialog"
-      schema={(z) => z.object({ title: z.string().min(1), value: z.string() })}
-      defaultValues={{ title: nameRaw ?? '', value: '' }}
-      onSubmit={async ({ title, value }, form) => {
-        await doCreate(title, value)
-        form.reset({ title, value })
-      }}
-      testId="upsert-secret-modal"
-      className="w-full"
-    >
+    <Form form={form} method="dialog" testId="upsert-secret-modal" className="w-full">
       <Input
         name="title"
         autoFocus
