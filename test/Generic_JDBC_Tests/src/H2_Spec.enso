@@ -23,7 +23,9 @@ type H2_JDBC_Config
         database_root = data_dir / ("h2_tests" + (Date_Time.now.format "yyyy-MM-dd_HHmmss.f"))
         url = "jdbc:h2:" + database_root.path + "/test"
         cleanup =
+            IO.println "AAAAA deleting"
             database_root . delete_if_exists recursive=True
+            IO.println "AAAAA deleted"
         IO.println "AAAAA exists before "+database_root.exists.to_text
         cleanup
         IO.println "AAAAA exists after "+database_root.exists.to_text
@@ -36,7 +38,9 @@ type H2_JDBC_Config
             conn = Generic_JDBC_Connection.connect url
             conn.should_succeed
             cleanup =
+                IO.println "AAAAA closing"
                 conn.close
+                IO.println "AAAAA closed"
             Panic.with_finalizer cleanup <|
                 action conn
 
