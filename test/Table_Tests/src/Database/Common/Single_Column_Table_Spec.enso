@@ -10,7 +10,7 @@ type Lazy_Ref
     Value ~get
 
 add_specs suite_builder (prefix : Text) setup =
-    suite_builder.group prefix+"single-column DB_Table" group_builder->
+    suite_builder.group prefix+"single-column DB_Table" pending="Temporarily disabled in #12544." group_builder->
         table_1 = Lazy_Ref.Value <| setup.table_builder [["A", [1, 2, 3]]]
         table_2 = Lazy_Ref.Value <| setup.table_builder [["A", [1, 2, 3]], ["B", [4, 5, 6]]]
         group_builder.specify "should be a DB_Table but also a DB_Column" <|

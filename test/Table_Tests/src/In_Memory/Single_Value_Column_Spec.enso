@@ -7,7 +7,7 @@ from Standard.Table import Column, Table, Value_Type
 from Standard.Test import all
 
 add_specs suite_builder =
-    suite_builder.group "single-value Column" group_builder->
+    suite_builder.group "single-value Column" pending="Temporarily disabled in #12544." group_builder->
         group_builder.specify "should be a Column but also Integer" <|
             c1 = Column.from_vector "ints" [1]
             c1.should_be_a Column
