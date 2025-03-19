@@ -10,13 +10,14 @@ import {
 } from 'react'
 
 import * as aria from '#/components/aria'
-import { Text, useVisualTooltip } from '#/components/AriaComponents/Text'
-import { Tooltip, TooltipTrigger } from '#/components/AriaComponents/Tooltip'
-import { Icon as IconComponent } from '#/components/Icon'
-import { StatelessSpinner } from '#/components/StatelessSpinner'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { forwardRef } from '#/utilities/react'
 import { useContextProps } from '../../hooks/useContextProps'
+import { Icon as IconComponent } from '../../Icon'
+import { StatelessSpinner } from '../../StatelessSpinner'
+import { useDialogContext } from '../Dialog'
+import { Tooltip, TooltipTrigger } from '../Tooltip'
+import { useVisualTooltip } from '../VisualTooltip'
 import { ButtonGroup, ButtonGroupJoin } from './ButtonGroup'
 import {
   ButtonContext,
@@ -34,12 +35,15 @@ const ICON_LOADER_DELAY = 150
 // eslint-disable-next-line no-restricted-syntax
 export const Button = memo(
   forwardRef(function Button<IconType extends string>(
-    props: ButtonProps<IconType>,
-    ref: ForwardedRef<HTMLButtonElement>,
+    propsReplacement: ButtonProps<IconType>,
+    refReplacement: ForwardedRef<HTMLButtonElement>,
   ) {
     // @ts-expect-error ts errors are expected here because we are merging props with different types
-    ;[props, ref] = useContextProps(props, ref, ButtonContext)
+    // eslint-disable-next-line prefer-const
+    let [props, ref] = useContextProps(propsReplacement, refReplacement, ButtonContext)
     props = useMergedButtonStyles(props)
+
+    const dialogContext = useDialogContext()
 
     const {
       className,
@@ -48,6 +52,7 @@ export const Button = memo(
       variant,
       icon,
       loading,
+      isLoading,
       isActive,
       showIconOnHover,
       iconPosition,
@@ -97,22 +102,26 @@ export const Button = memo(
 
     const tooltipElement = shouldShowTooltip ? (tooltip ?? ariaProps['aria-label']) : null
 
-    const isLoading = (() => {
+    const isLoadingFinal = (() => {
       if (typeof loading === 'boolean') {
         return loading
+      }
+
+      if (typeof isLoading === 'boolean') {
+        return isLoading
       }
 
       return implicitlyLoading
     })()
 
-    const isDisabled = props.isDisabled ?? isLoading
+    const isDisabled = props.isDisabled ?? isLoadingFinal
     const shouldUseVisualTooltip = shouldShowTooltip && isDisabled
     const extraClickZone = extraClickZoneProp ?? variant === 'icon'
 
     useLayoutEffect(() => {
       const delay = ICON_LOADER_DELAY
 
-      if (isLoading) {
+      if (isLoadingFinal) {
         const loaderAnimation = loaderRef.current?.animate(
           [{ opacity: 0 }, { opacity: 0, offset: 1 }, { opacity: 1 }],
           { duration: delay, easing: 'linear', delay: 0, fill: 'forwards' },
@@ -134,7 +143,7 @@ export const Button = memo(
       } else {
         return () => {}
       }
-    }, [isLoading, loaderPosition])
+    }, [isLoadingFinal, loaderPosition])
 
     const handlePress = useEventCallback((event: aria.PressEvent): void => {
       if (!isDisabled) {
@@ -147,13 +156,17 @@ export const Button = memo(
             setImplicitlyLoading(false)
           })
         }
+
+        if (dialogContext != null && 'formMethod' in props && props.formMethod === 'dialog') {
+          dialogContext.close()
+        }
       }
     })
 
     const styles = variants({
       isDisabled,
       isActive,
-      loading: isLoading,
+      loading: isLoadingFinal,
       fullWidth,
       size,
       rounded,
@@ -181,7 +194,7 @@ export const Button = memo(
         ref={ref}
         // @ts-expect-error ts errors are expected here because we are merging props with different types
         {...aria.mergeProps<aria.ButtonProps>()(goodDefaults, ariaProps, {
-          isPending: isLoading,
+          isPending: isLoadingFinal,
           isDisabled,
           // we use onPressEnd instead of onPress because for some reason react-aria doesn't trigger
           // onPress on EXTRA_CLICK_ZONE, but onPress{start,end} are triggered
@@ -202,7 +215,7 @@ export const Button = memo(
               return false
             }
 
-            return isLoading && loaderPosition === 'full'
+            return isLoadingFinal && loaderPosition === 'full'
           }
 
           return (
@@ -337,9 +350,7 @@ const ButtonContent = memo(function ButtonContent(props: ButtonContentProps) {
         styles={styles}
         hideLoader={hideLoader}
       />
-      <Text color="inherit" truncate="1" className={styles.text()}>
-        {children}
-      </Text>
+      <span className={styles.text()}>{children}</span>
       {hasAddon(addonEnd) && <div className={styles.addonEnd()}>{addonEnd}</div>}
     </>
   )

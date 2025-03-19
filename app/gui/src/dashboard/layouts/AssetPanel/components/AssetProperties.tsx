@@ -60,9 +60,13 @@ export interface AssetPropertiesProps {
 export function AssetProperties(props: AssetPropertiesProps) {
   const { isReadonly = false, backend, category } = props
 
-  const { item, spotlightOn } = useStore(assetPanelStore, (state) => state.assetPanelProps, {
-    unsafeEnableTransition: true,
-  })
+  const { item, spotlightOn, defaultItem } = useStore(
+    assetPanelStore,
+    (state) => state.assetPanelProps,
+    { unsafeEnableTransition: true },
+  )
+
+  const currentItem = item ?? defaultItem
 
   const { getText } = useText()
 
@@ -70,14 +74,15 @@ export function AssetProperties(props: AssetPropertiesProps) {
     return <Result status="info" centered title={getText('assetProperties.localBackend')} />
   }
 
-  if (item == null) {
+  if (currentItem == null) {
     return <Result status="info" title={getText('assetProperties.notSelected')} centered />
   }
 
   return (
     <AssetPropertiesInternal
+      key={currentItem.id}
       backend={backend}
-      item={item}
+      item={currentItem}
       isReadonly={isReadonly}
       category={category}
       spotlightOn={spotlightOn}

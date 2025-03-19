@@ -35,7 +35,7 @@ export const ALERT_STYLES = tv({
     size: {
       custom: '',
       small: 'px-1.5 pt-1 pb-1',
-      medium: 'px-3 pt-1 pb-1',
+      medium: 'px-4 py-2',
       large: 'px-4 pt-2 pb-2',
     },
   },
