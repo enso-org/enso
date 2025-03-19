@@ -485,9 +485,6 @@
         "methods": [
             {
                 "name": "getConnectionRecordCount"
-            },
-            {
-                "name": "simulateReloadTestOnly"
             }
         ]
     },
