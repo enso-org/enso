@@ -206,7 +206,10 @@ public final class TelemetryAppender extends AppenderBase<ILoggingEvent> {
     var payload = new ObjectNode(JsonNodeFactory.instance);
     var logs = new ArrayNode(JsonNodeFactory.instance);
     for (var logEvent : logEvents) {
-      var payloadForLogEvent = LogFormatter.transform(logEvent);
+      var logMessage =
+          new LogMessage(
+              logEvent.getLoggerName(), logEvent.getMessage(), logEvent.getArgumentArray());
+      var payloadForLogEvent = LogFormatter.transform(logMessage);
       if (payloadForLogEvent != null) {
         logs.add(payloadForLogEvent);
       }
