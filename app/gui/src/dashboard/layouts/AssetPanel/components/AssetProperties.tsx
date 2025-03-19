@@ -339,6 +339,7 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
             {getText('secret')}
           </Heading>
           <UpsertSecretModal
+            key={item.id}
             noDialog
             canReset
             canCancel={false}
