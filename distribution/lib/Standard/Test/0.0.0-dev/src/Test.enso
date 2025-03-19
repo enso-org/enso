@@ -4,7 +4,7 @@ from Standard.Base.Errors.Common import Uninitialized_State
 from Standard.Base.Runtime import State
 
 import project.Clue.Clue
-import project.Frame_Hider.Frame_Hider
+import project.Frame_Hider
 import project.Group.Group
 import project.Spec.Spec
 import project.Spec_Result.Spec_Result
