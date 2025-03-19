@@ -628,6 +628,7 @@ public class Main {
             authors,
             nil(),
             "",
+            Option$.MODULE$.empty(),
             Option$.MODULE$.empty());
     throw exitSuccess();
   }

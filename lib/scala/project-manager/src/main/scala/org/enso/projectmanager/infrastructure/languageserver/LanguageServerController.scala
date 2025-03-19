@@ -79,15 +79,16 @@ class LanguageServerController(
 
   private val descriptor =
     LanguageServerDescriptor(
-      name                           = s"language-server-${project.id}",
-      rootId                         = UUID.randomUUID(),
-      rootPath                       = project.path.toString,
-      projectId                      = project.id,
-      networkConfig                  = networkConfig,
-      distributionConfiguration      = distributionConfiguration,
-      engineVersion                  = engineVersion,
-      jvmSettings                    = distributionConfiguration.defaultJVMSettings,
-      jvmMode                        = processConfig.jvmMode,
+      name                      = s"language-server-${project.id}",
+      rootId                    = UUID.randomUUID(),
+      rootPath                  = project.path.toString,
+      projectId                 = project.id,
+      networkConfig             = networkConfig,
+      distributionConfiguration = distributionConfiguration,
+      engineVersion             = engineVersion,
+      jvmSettings               = distributionConfiguration.defaultJVMSettings,
+      jvmModeEnabled =
+        processConfig.jvmMode || project.jvmModeEnabled.getOrElse(false),
       discardOutput                  = distributionConfiguration.shouldDiscardChildOutput,
       profilingPath                  = processConfig.profilingPath,
       profilingTime                  = processConfig.profilingTime,

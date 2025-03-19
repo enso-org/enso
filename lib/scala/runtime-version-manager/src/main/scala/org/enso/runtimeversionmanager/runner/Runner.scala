@@ -144,7 +144,7 @@ class Runner(
         Option.unless(logMasking)(Seq("--no-log-masking")).getOrElse(Seq.empty)
       RunSettings(
         version,
-        options.jvmMode,
+        options.jvmModeEnabled,
         arguments ++ additionalArguments,
         workingDirectory         = Some(workingDirectory),
         connectLoggerIfAvailable = true
