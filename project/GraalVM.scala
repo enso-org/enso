@@ -161,11 +161,11 @@ object GraalVM {
 
   private val espressoPkgs =
     Seq(
-      "org.graalvm.truffle"  % "truffle-nfi"                            % version,
-      "org.graalvm.truffle"  % "truffle-nfi-libffi"                     % version,
-      "org.graalvm.espresso" % "espresso-language"                      % version,
-      "org.graalvm.espresso" % "espresso-libs-resources-linux-amd64"    % version,
-      "org.graalvm.espresso" % "espresso-runtime-resources-linux-amd64" % version
+      "org.graalvm.truffle"  % "truffle-nfi"                      % version,
+      "org.graalvm.truffle"  % "truffle-nfi-libffi"               % version,
+      "org.graalvm.espresso" % "espresso-language"                % version,
+      "org.graalvm.espresso" % "espresso-libs-resources"          % version,
+      "org.graalvm.espresso" % "espresso-runtime-resources-jdk21" % version
     )
 
   val toolsPkgs = chromeInspectorPkgs ++ debugAdapterProtocolPkgs ++ insightPkgs
