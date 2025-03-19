@@ -83,7 +83,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     logLevel
   )
   telemetryLog.trace(
-    "Initializing main module of the Language Server; edition, graal_version, enso_version, is_release, AOT",
+    "Initializing main module of the Language Server: edition={}, graal_version={}, enso_version={}, is_release={}, AOT={}",
     BuildVersion.currentEdition(),
     BuildVersion.graalVersion(),
     BuildVersion.ensoVersion(),

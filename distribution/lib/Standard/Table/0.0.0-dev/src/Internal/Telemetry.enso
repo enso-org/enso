@@ -12,12 +12,15 @@ polyglot java import org.slf4j.LoggerFactory
 
    Arguments:
    - logger_name: Name of the (telemetry) logger
-   - msg: Message. Must not contain semicolon.
+   - msg: Message. Must not contain colon.
    - arg_dict: Mapping of argument names to their values.
 log logger_name:Text msg:Text arg_dict:Dictionary -> Nothing =
+    arg_str = arg_dict.fold_with_key [] \acc arg_name arg_value ->
+        txt = arg_name + "=" + arg_value.to_text
+        acc + [txt]
+    msg_to_logger = msg + ": " + (arg_str.join ",")
+
     telemetry_logger = LoggerFactory.getLogger (_root_logger_name + "." + logger_name)
-    arg_names = arg_dict.keys
-    msg_to_logger = msg + "; " + (arg_names.join ",")
     bldr = telemetry_logger.atTrace
     bldr.setMessage msg_to_logger
     arg_dict.each \arg ->
