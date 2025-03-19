@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 
-import project.Frame_Hider.Frame_Hider
+import project.Frame_Hider
 import project.Spec_Result.Spec_Result
 from project import Test
 from project.Extensions import all
