@@ -258,7 +258,7 @@ apply_sort_to_table table sort_col_index_list sort_direction_list =
 apply_single_filter_to_table : Table -> Text -> Any -> Any -> Table
 apply_single_filter_to_table table filter_col filter_action filter_val =
     column = filter_col+1
-    result = case filter_action of
+    result = case filter_action:Filter_Condition of
         Filter_Condition.Not_Nothing -> table.filter column ..Not_Nothing
         Filter_Condition.Is_Nothing -> table.filter column ..Is_Nothing
         Filter_Condition.Is_In _ _ -> if filter_val.length > 0 then table.filter column (Filter_Condition.Is_In filter_val) else table.filter column (Filter_Condition.Is_In [""])

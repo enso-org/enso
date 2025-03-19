@@ -321,7 +321,6 @@ function createServer() {
         valueList,
       )
       const response = await config.executeExpression(expressionFunction)
-      console.log({response})
       return {
         success: true,
         data: response.value.rows,
