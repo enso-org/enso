@@ -1,21 +1,14 @@
 /** @file A page. */
-import * as React from 'react'
-
-import * as authProvider from '#/providers/AuthProvider'
-
+import TheModal from '#/components/dashboard/TheModal'
+import Portal from '#/components/Portal'
 import Chat from '#/layouts/Chat'
 import ChatPlaceholder from '#/layouts/ChatPlaceholder'
 import InfoBar from '#/layouts/InfoBar'
-
-import TheModal from '#/components/dashboard/TheModal'
-import Portal from '#/components/Portal'
-
-// ============
-// === Page ===
-// ============
+import { UserSessionType, useUserSession } from '#/providers/AuthProvider'
+import { useState, type PropsWithChildren } from 'react'
 
 /** Props for a {@link Page}. */
-export interface PageProps extends Readonly<React.PropsWithChildren> {
+export interface PageProps extends Readonly<PropsWithChildren> {
   readonly hideInfoBar?: true
   readonly hideChat?: boolean
 }
@@ -23,8 +16,8 @@ export interface PageProps extends Readonly<React.PropsWithChildren> {
 /** A page. */
 export default function Page(props: PageProps) {
   const { hideInfoBar = false, children, hideChat = false } = props
-  const [isHelpChatOpen, setIsHelpChatOpen] = React.useState(false)
-  const session = authProvider.useUserSession()
+  const [isHelpChatOpen, setIsHelpChatOpen] = useState(false)
+  const session = useUserSession()
 
   const doCloseChat = () => {
     setIsHelpChatOpen(false)
@@ -41,11 +34,7 @@ export default function Page(props: PageProps) {
       {!hideChat && (
         <>
           {/* `session.accessToken` MUST be present in order for the `Chat` component to work. */}
-          {(
-            !hideInfoBar &&
-            session?.type === authProvider.UserSessionType.full &&
-            $config.CHAT_URL != null
-          ) ?
+          {!hideInfoBar && session?.type === UserSessionType.full && $config.CHAT_URL != null ?
             <Chat isOpen={isHelpChatOpen} doClose={doCloseChat} endpoint={$config.CHAT_URL} />
           : <ChatPlaceholder hideLoginButtons isOpen={isHelpChatOpen} doClose={doCloseChat} />}
         </>
