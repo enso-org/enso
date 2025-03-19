@@ -1700,15 +1700,14 @@ export default class RemoteBackend extends Backend {
   }
 }
 
+/** The schema that checks if the error is a duplicate asset error. */
+const DUPLICATE_ASSET_ERROR_SCHEMA = z.object({
+  message: z.string().includes('A resource with that title already exists.'),
+})
+
 /**
  * Check if the error is a duplicate asset error.
  */
 function isDuplicateAssetError(error: unknown): error is Error {
-  const schema = z.object({
-    message: z.string().includes('A resource with that title already exists.'),
-  })
-
-  const result = schema.safeParse(error)
-
-  return result.success
+  return DUPLICATE_ASSET_ERROR_SCHEMA.safeParse(error).success
 }

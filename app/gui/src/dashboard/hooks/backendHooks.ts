@@ -361,7 +361,7 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
 }
 
 /**
- * Options for {@link assetFromCacheQueryOptions}.
+ * Options for {@link unsafe_assetFromCacheQueryOptions}.
  */
 export interface AssetFromCacheQueryOptions {
   readonly backend: Backend
@@ -374,7 +374,8 @@ export interface AssetFromCacheQueryOptions {
  * This is _only_ for situations when WE KNOW that the asset is in the cache.
  * This is _not_ a general purpose function for fetching assets.
  */
-export function assetFromCacheQueryOptions(options: AssetFromCacheQueryOptions) {
+// eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
+export function unsafe_assetFromCacheQueryOptions(options: AssetFromCacheQueryOptions) {
   const { backend, assetId, queryClient } = options
 
   const assetSchema = z

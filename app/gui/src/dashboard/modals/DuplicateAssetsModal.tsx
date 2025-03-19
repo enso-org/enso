@@ -21,7 +21,7 @@ import {
   Text,
 } from '#/components/AriaComponents'
 import { Icon } from '#/components/Icon'
-import { assetFromCacheQueryOptions, listDirectoryQueryOptions } from '#/hooks/backendHooks'
+import { listDirectoryQueryOptions, unsafe_assetFromCacheQueryOptions } from '#/hooks/backendHooks'
 import { useMount } from '#/hooks/mountHooks'
 import { useCategory } from '#/layouts/Drive/Categories/categoriesHooks'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
@@ -431,7 +431,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
       parentId: targetId,
     }),
     select: (data) => {
-      // We use titles as keys, because they always unique, and we want to find duplicates by title.
+      // We use titles as keys, because they are always unique, and we want to find duplicates by title.
       const map = new Map(data.map((asset) => [asset.title, asset]))
       return { map, siblings: data }
     },
@@ -439,7 +439,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
 
   const conflictingAssets = useSuspenseQueries({
     queries: conflictingIds.map((id) =>
-      assetFromCacheQueryOptions({ backend: associatedBackend, assetId: id, queryClient }),
+      unsafe_assetFromCacheQueryOptions({ backend: associatedBackend, assetId: id, queryClient }),
     ),
     combine: (queries) => queries.map((query) => query.data).filter((asset) => asset != null),
   })
@@ -614,7 +614,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                   <Form.FieldError
                     form={form}
                     className="col-span-full row-span-3"
-                    name={`${asset.id}.conclusion` as const}
+                    name={`${asset.id}.conclusion`}
                   />
                 </div>
 

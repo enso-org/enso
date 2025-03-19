@@ -105,22 +105,14 @@ const ModalContext = React.createContext<ModalContextType>({ modal: null, key: 0
 
 const ModalStaticContext = React.createContext<ModalStaticContextType>({
   setModal: ModalsStore.getState().setModal,
-  modalRef: new Proxy(
-    { current: ModalsStore.getState().modal },
-    {
-      /**
-       * Makes the `modalRef` always return the latest modal.
-       */
-      get(target, prop, receiver) {
-        if (prop === 'current') {
-          return ModalsStore.getState().modal
-        }
-
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        return Reflect.get(target, prop, receiver)
-      },
+  modalRef: {
+    /**
+     * Get the currently active modal.
+     */
+    get current() {
+      return ModalsStore.getState().modal
     },
-  ),
+  },
 })
 
 /** Props for a {@link ModalProvider}. */
