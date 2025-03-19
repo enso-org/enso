@@ -13,8 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Class responsible for transforming {@link ch.qos.logback.classic.spi.ILoggingEvent log event} to
- * {@link com.fasterxml.jackson.databind.node.ObjectNode JSON} payload.
+ * Class responsible for transforming {@link LogMessage log messages} to {@link
+ * com.fasterxml.jackson.databind.node.ObjectNode JSON} payload.
  *
  * <p>The format of the message is expected to be {@code <message> ; <args>}, where {@code
  * <message>} is an arbitrary string and {@code <args>} is a comma-separated list of {@code
