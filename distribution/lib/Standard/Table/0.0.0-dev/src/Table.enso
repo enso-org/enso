@@ -3936,7 +3936,7 @@ type Table
     @delimiter make_delimiter_selector
     to_delimited self (delimiter:(Delimited_Format|Text)='\t') quote_style:Quote_Style=..With_Quotes headers:Headers=..Detect_Headers (value_formatter:Data_Formatter|Nothing=Data_Formatter.Value) (line_endings:Line_Ending_Style|Infer=Infer) -> Text =
         format = case delimiter of
-            _ : Delimited_Format -> format
+            _ : Delimited_Format -> delimiter
             _ : Text -> Delimited_Format.Delimited delimiter quote_style=quote_style headers=headers value_formatter=value_formatter line_endings=line_endings
         result = Delimited_Writer.write_text self format
         if delimiter.is_a Text then result else
