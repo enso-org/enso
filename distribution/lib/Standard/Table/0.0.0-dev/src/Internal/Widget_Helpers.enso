@@ -104,8 +104,8 @@ make_column_ref_by_name_selector table display:Display=..Always add_text:Boolean
 
 ## PRIVATE
    Make a column reference by name selector filtered by type.
-make_column_ref_by_name_selector_for_type table display:Display=..Always value_type:Value_Type add_nothing:Boolean=False =
-    is_all = include_all value_type
+make_column_ref_by_name_selector_for_type table display:Display=..Always value_type:Value_Type add_nothing:Boolean=False if_value_type_numeric_include_all_numeric:Boolean=False =
+    is_all = _include_all value_type
     include_number = is_all || value_type.is_numeric
     include_text = is_all || value_type.is_text
     include_boolean = is_all || value_type.is_boolean
@@ -117,7 +117,9 @@ make_column_ref_by_name_selector_for_type table display:Display=..Always value_t
     expression = if table.is_nothing then [] else [Option "<Expression>" "(expr '["+table.column_names.first+"]')"]
 
     col_names = if table.is_nothing then [] else
-        names = if is_all then table.column_names else (table.columns_helper.select_columns [..By_Type value_type, ..By_Type Value_Type.Mixed] case_sensitivity=..Default reorder=False error_on_missing_columns=False on_problems=..Ignore error_on_empty=False . map .name)
+        names = if is_all then table.column_names else 
+            if value_type.is_numeric && if_value_type_numeric_include_all_numeric then table.columns.filter (c-> c.value_type.is_numeric || c.value_type.is_mixed) . map .name else
+                table.columns_helper.select_columns ([..By_Type value_type, ..By_Type ..Mixed]) case_sensitivity=..Default reorder=False error_on_missing_columns=False on_problems=..Ignore error_on_empty=False . map .name
         names.map (name -> Option name "(..Name "+name.pretty+")")
 
     values = constants + expression + col_names
@@ -134,53 +136,53 @@ make_fill_default_value_selector column_source=Nothing display:Display=..Always 
 ## PRIVATE
    Make a filter condition selector.
 make_filter_condition_selector table display:Display=..Always cache=Nothing =
-    column_value_type = get_column_value_type table cache
-    column_chooser = make_column_ref_by_name_selector_for_type table display add_nothing=False value_type=column_value_type
+    column_value_type = _get_column_value_type table cache
+    column_chooser = make_column_ref_by_name_selector_for_type table display add_nothing=False value_type=column_value_type if_value_type_numeric_include_all_numeric=True
     regex_chooser = make_column_ref_by_name_selector table display add_regex=True
 
-    is_all = include_all column_value_type
+    is_all = _include_all column_value_type
     include_text = is_all || column_value_type.is_text
     include_boolean = is_all || column_value_type.is_boolean
     include_floating = is_all || column_value_type.is_floating_point
 
     options = Vector.build builder->
-        builder.append (Option "Equals" "..Equal" [["to", column_chooser]])
-        builder.append (Option "Not Equals" "..Not_Equal" [["to", column_chooser]])
+        builder.append (Option "..Equal" parameters=[["to", column_chooser]])
+        builder.append (Option "..Not_Equal" parameters=[["to", column_chooser]])
 
         if column_value_type.has_ordering && column_value_type!=Value_Type.Boolean then
-            builder.append (Option "Less Than" "..Less" [["than", column_chooser]])
-            builder.append (Option "Less Than Or Equal" "..Equal_Or_Less" [["than", column_chooser]])
-            builder.append (Option "Greater Than" "..Greater" [["than", column_chooser]])
-            builder.append (Option "Greater Than Or Equal" "..Equal_Or_Greater" [["than", column_chooser]])
-            builder.append (Option "Between" "..Between" [["lower", column_chooser], ["upper", column_chooser]])
+            builder.append (Option "..Less" parameters=[["than", column_chooser]])
+            builder.append (Option "..Equal_Or_Less" parameters=[["than", column_chooser]])
+            builder.append (Option "..Greater" parameters=[["than", column_chooser]])
+            builder.append (Option ".Equal_Or_Greater" parameters=[["than", column_chooser]])
+            builder.append (Option "..Between" parameters=[["lower", column_chooser], ["upper", column_chooser]])
 
         if include_text then
-            builder.append (Option "Equals Ignore Case" "..Equal_Ignore_Case" [["to", column_chooser]])
-            builder.append (Option "Starts With" "..Starts_With" [["prefix", column_chooser]])
-            builder.append (Option "Ends With" "..Ends_With" [["suffix", column_chooser]])
-            builder.append (Option "Contains" "..Contains" [["substring", column_chooser]])
-            builder.append (Option "Like" "..Like" [["pattern", column_chooser]])
-            builder.append (Option "Regex Match" "..Regex_Match" [["pattern", regex_chooser]])
+            builder.append (Option "..Equal_Ignore_Case" parameters=[["to", column_chooser]])
+            builder.append (Option "..Starts_With" parameters=[["prefix", column_chooser]])
+            builder.append (Option "..Ends_With" parameters=[["suffix", column_chooser]])
+            builder.append (Option "..Contains" parameters=[["substring", column_chooser]])
+            builder.append (Option "..Like" parameters=[["pattern", column_chooser]])
+            builder.append (Option "..Regex_Match" parameters=[["pattern", regex_chooser]])
 
-        builder.append (Option "Is Nothing" "..Is_Nothing")
-        builder.append (Option "Is Not Nothing" "..Not_Nothing")
+        builder.append (Option "..Is_Nothing")
+        builder.append (Option "..Not_Nothing")
 
         if include_boolean then
-            builder.append (Option "Is True" "..Is_True")
-            builder.append (Option "Is False" "..Is_False")
+            builder.append (Option "..Is_True")
+            builder.append (Option "..Is_False")
 
         value_editor = Widget.Vector_Editor item_editor=column_chooser display=Display.Always item_default='""'
-        builder.append (Option "Is In" "..Is_In" [["values", value_editor]])
+        builder.append (Option "..Is_In" parameters=[["values", value_editor]])
 
         if include_floating then
-            builder.append (Option "Is Finite" "..Is_Finite")
-            builder.append (Option "Is Infinite" "..Is_Infinite")
-            builder.append (Option "Is NaN" "..Is_Nan")
-            builder.append (Option "Is Not NaN" "..Not_Nan")
+            builder.append (Option "..Is_Finite")
+            builder.append (Option "..Is_Infinite")
+            builder.append (Option "..Is_Nan")
+            builder.append (Option "..Not_Nan")
 
         if include_text then
-            builder.append (Option "Is Empty" "..Is_Empty")
-            builder.append (Option "Is Not Empty" "..Not_Empty")
+            builder.append (Option "..Is_Empty")
+            builder.append (Option "..Not_Empty")
     Single_Choice options display=display
 
 ## PRIVATE
@@ -341,7 +343,7 @@ type Types_To_Include
     date_time self = self.types.any value_type-> value_type.is_date_time || value_type==Value_Type.Mixed
 
 ## PRIVATE
-private get_column_value_type table cache parameter:Text="column" default:Value_Type=Value_Type.Mixed =
+private _get_column_value_type table cache parameter:Text="column" default:Value_Type=Value_Type.Mixed =
     raw_column = cache.if_not_nothing <| cache parameter
     column = case raw_column of
         Nothing -> Nothing
@@ -353,7 +355,7 @@ private get_column_value_type table cache parameter:Text="column" default:Value_
 
 ## PRIVATE
    Treat Value_Type as if it could be any type (i.e. include all constants and types).
-private include_all value_type:Value_Type -> Boolean =
+private _include_all value_type:Value_Type -> Boolean =
     case value_type of
         Value_Type.Mixed -> True
         Value_Type.Unsupported_Data_Type _ _  -> True
