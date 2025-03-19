@@ -157,7 +157,7 @@ type Value_Type
        It can be used when a column does not have any values, so no proper type 
        could be inferred for it. Columns of this type cannot hold any values 
        other than `Nothing`. 
-       
+
        Because the column with type `Null` contains no values, it can be used in 
        any operation.
 
