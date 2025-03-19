@@ -1528,7 +1528,12 @@ export default class RemoteBackend extends Backend {
   }
 
   /** Download the project to a temporary location. */
-  async downloadProject(id: backend.ProjectId): Promise<DirectoryId> {
+  async downloadProject(id: backend.ProjectId) {
+    /** The type of the response body of this endpoint. */
+    interface ResponseBody {
+      readonly targetDirectory: string
+      readonly parentDirectory: string
+    }
     const details = await this.getProjectDetails(id, true)
 
     invariant(details.url != null, 'The download URL of the project must be present.')
@@ -1538,14 +1543,19 @@ export default class RemoteBackend extends Backend {
       projectId: id,
     })
 
-    const response = await this.client.get(`./api/cloud/download-project?${queryString}`)
-    const path = await response.text()
-
-    if (!response.ok) {
+    const response = await this.client.get<ResponseBody>(
+      `./api/cloud/download-project?${queryString}`,
+    )
+    if (!responseIsSuccessful(response)) {
       return await this.throw(response, 'resolveProjectAssetPathBackendError')
     }
 
-    return DirectoryId(`directory-${path}` as const)
+    const responseBody = await response.json()
+
+    return {
+      targetId: DirectoryId(`directory-${responseBody.targetDirectory}` as const),
+      parentId: DirectoryId(`directory-${responseBody.parentDirectory}` as const),
+    }
   }
 
   /** Upload the project. */

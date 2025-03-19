@@ -257,23 +257,31 @@ export default function AssetContextMenu(props: AssetContextMenuProps) {
             doAction={async () => {
               invariant(localBackend != null, 'Local Backend is null')
               await remoteBackend.setHybridOpenInProgress(asset.id, asset.title)
-              const parentId = await remoteBackend.downloadProject(asset.id)
-              const assets = await localBackend.listDirectory({
-                parentId: parentId,
-                filterBy: null,
-                labels: null,
-                recentProjects: false,
-              })
-              const project = assets
-                .filter((item) => item.type === backendModule.AssetType.project)
-                .at(0)
-              invariant(project, 'Downloaded cloud project does not exist.')
+              const localProject = await remoteBackend.downloadProject(asset.id)
+
+              let project
+              for (const parentId of [localProject.targetId, localProject.parentId]) {
+                const assets = await localBackend.listDirectory({
+                  parentId: parentId,
+                  filterBy: null,
+                  labels: null,
+                  recentProjects: false,
+                })
+                project = assets
+                  .filter((item) => item.type === backendModule.AssetType.project)
+                  .at(0)
+                if (project !== undefined) {
+                  break
+                }
+              }
+
+              invariant(project, 'Downloaded cloud project does not exist in `localProject`.')
               openProject({
                 id: project.id,
                 title: project.title,
                 parentId: project.parentId,
                 type: backendModule.BackendType.local,
-                hybrid: { cloudProjectId: asset.id },
+                hybrid: { cloudProjectId: asset.id, parentId: localProject.parentId },
               })
             }}
           />
