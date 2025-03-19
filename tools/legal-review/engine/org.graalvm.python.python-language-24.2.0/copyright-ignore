@@ -30,7 +30,6 @@ Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
 Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 Copyright (c) 2021, 2021, Oracle and/or its affiliates. All rights reserved.
 Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
-Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 Copyright (c) 2021, 2023, Oracle and/or its affiliates. All rights reserved.
 Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
 Copyright (c) 2022, 2022, Oracle and/or its affiliates. All rights reserved.
@@ -46,3 +45,31 @@ The above copyright notice and either this complete permission notice or at a
 addBuiltinConstant("copyright", T_LICENSE);
 copyright rights in the Software, and any and all patent rights owned or
 return OptionDescriptor.newBuilder(PythonOptions.QuietFlag, "python.QuietFlag").deprecated(false).help("Equivalent to the Python -q flag. Don't  print version and copyright messages on interactive startup.").usageSyntax("true|false").category(OptionCategory.USER).stability(OptionStability.STABLE).build();
+Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+Copyright (c) 2017, 2024, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2017, 2025, Oracle and/or its affiliates.
+Copyright (c) 2017, 2025, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+Copyright (c) 2018, 2024, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2018, 2025, Oracle and/or its affiliates.
+Copyright (c) 2018, 2025, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2019, 2024, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2019, 2025, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+Copyright (c) 2020, 2024, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2020, 2025, Oracle and/or its affiliates.
+Copyright (c) 2020, 2025, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+Copyright (c) 2021, 2024, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2021, 2025, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2022, 2024, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2022, 2025, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2023, 2024, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2023, 2025, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2024, 2024, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2024, 2025, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2024, Oracle and/or its affiliates.
+Copyright (c) 2024, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2025, Oracle and/or its affiliates. All rights reserved.
+hasMember = reallyHasMember(capiLibrary, "Py_GetCopyright");
+if (!hasMember) messages.add("missing implementation: Py_GetCopyright");
