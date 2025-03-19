@@ -605,7 +605,7 @@ pub fn add_backend_checks_customized(
     workflow: &mut Workflow,
     target: Target,
     graal_edition: graalvm::Edition,
-    with_ni: bool,
+    native_image_mode: bool,
     continue_on_error: impl Fn(&Target) -> Option<bool>,
 ) {
     workflow.add_customized(target, job::CiCheckBackend { graal_edition }, |job| {
@@ -616,7 +616,7 @@ pub fn add_backend_checks_customized(
     });
     workflow.add_customized(
         target,
-        job::StandardLibraryTests { graal_edition, cloud_tests_enabled: false, native_image_mode: with_ni },
+        job::StandardLibraryTests { graal_edition, cloud_tests_enabled: false, native_image_mode: native_image_mode },
         |job| {
             job.continue_on_error = continue_on_error(&target);
         },
