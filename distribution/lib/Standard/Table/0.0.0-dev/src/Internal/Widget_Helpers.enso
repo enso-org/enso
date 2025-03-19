@@ -135,7 +135,7 @@ make_fill_default_value_selector column_source=Nothing display:Display=..Always 
 ## PRIVATE
    Make a filter condition selector.
 make_filter_condition_selector table display:Display=..Always cache=Nothing =
-    column_value_type = get_column_value_type table cache
+    column_value_type = _get_column_value_type table cache
     column_chooser = make_column_ref_by_name_selector_for_type table display add_nothing=False value_type=column_value_type if_value_type_numeric_include_all_numeric=True
     regex_chooser = make_column_ref_by_name_selector table display add_regex=True
 
@@ -342,7 +342,7 @@ type Types_To_Include
     date_time self = self.types.any value_type-> value_type.is_date_time || value_type==Value_Type.Mixed
 
 ## PRIVATE
-private get_column_value_type table cache parameter:Text="column" default:Value_Type=Value_Type.Mixed =
+private _get_column_value_type table cache parameter:Text="column" default:Value_Type=Value_Type.Mixed =
     raw_column = cache.if_not_nothing <| cache parameter
     column = case raw_column of
         Nothing -> Nothing
