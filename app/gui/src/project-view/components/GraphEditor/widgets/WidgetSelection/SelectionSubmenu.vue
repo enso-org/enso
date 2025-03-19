@@ -68,7 +68,7 @@ const submenuRef = useTemplateRef('submenuRef')
 function resetSubmenu() {
   submenu.value = null
 }
-watch(() => props.show, resetSubmenu)
+watch([() => props.show, () => props.entries], resetSubmenu)
 
 const nestedEntriesPresent = computed(() =>
   props.entries.some((entry) => isEntry(entry) && entry.tag instanceof NestedChoiceTag),
