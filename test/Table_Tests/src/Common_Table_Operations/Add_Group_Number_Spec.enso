@@ -138,12 +138,6 @@ add_group_number_specs suite_builder setup =
             g10 = t.add_group_number (..Equal_Count 1 order_by=['y']) "g"
             g10.at 'g' . to_vector . should_equal [0, 0, 0, 0, 0]
 
-        group_builder.specify "should default the column name to 'Group'" <|
-            t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
-
-            g0 = t.add_group_number (..Unique on=['x', 'y'])
-            g0.at 'Group' . to_vector . should_equal [0, 1, 2, 1, 0, 2]
-
         group_builder.specify "should add group number by unique values, with from and step" <|
             t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
 
@@ -173,6 +167,12 @@ add_group_number_specs suite_builder setup =
             t2.catch.to_display_text . should_contain "The row number has exceeded the 64-bit integer range"
 
     suite_builder.group prefix+"Table.add_group_number (common)" group_builder->
+        group_builder.specify "should default the column name to 'Group'" <|
+            t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
+
+            g0 = t.add_group_number (..Unique on=['x', 'y'])
+            g0.at 'Group' . to_vector . sort . should_equal [0, 1, 2, 1, 0, 2]
+
         group_builder.specify "must specify group_by with Unique" <|
             t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
 
