@@ -6,12 +6,10 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Database.Feature.Feature
 from Standard.Database.Errors import all
 
-import Standard.Test.Extensions
-from Standard.Test import Problems
-
 from Standard.Table import all
 from Standard.Table.Errors import Missing_Input_Columns, Duplicate_Output_Column_Names
 
+from Standard.Test import all
 
 from project.Common_Table_Operations.Util import run_default_backend
 import project.Util
@@ -30,13 +28,24 @@ add_specs suite_builder setup =
 
 add_group_number_specs suite_builder setup =
     prefix = setup.prefix
-    # materialize = setup.materialize
-    # create_connection_fn = setup.create_connection_func
+
+    table_builder = setup.table_builder
+    table_builder_from_rows column_names rows = table_builder (column_names.zip rows.transpose c-> col-> [c, col])
 
     suite_builder.group prefix+"Table.add_group_number (common)" group_builder->
-        table_builder = setup.table_builder
-        table_builder_from_rows column_names rows = table_builder (column_names.zip rows.transpose c-> col-> [c, col])
+        group_builder.specify "should add group number by unique values" <|
+            t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
 
+            g0 = t.add_group_number (..Unique on=['x', 'y']) "g" . sort ['x', 'y']
+            g0.at 'g' . to_vector . should_equal [0, 0, 1, 1, 2, 2]
+
+            g1 = t.add_group_number (..Unique on=['x', 'z']) "g" . sort ['x', 'z']
+            g1.at 'g' . to_vector . should_equal [0, 1, 2, 3, 4, 4]
+
+            g2 = t.add_group_number (..Unique on=['y', 'z']) "g" . sort ['y', 'z']
+            g2.at 'g' . to_vector . should_equal [0, 1, 2, 3, 4, 5]
+
+    if setup.is_database.not then suite_builder.group prefix+"Table.add_group_number (in-memory)" group_builder->
         group_builder.specify "should add group number by unique values" <|
             t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
 
@@ -86,7 +95,7 @@ add_group_number_specs suite_builder setup =
             g10.at 'g' . to_vector . should_equal [0, 0, 0, 0, 0]
 
 
-        group_builder.specify "should add group number by unique values" <|
+        group_builder.specify "should default the column name to 'Group'" <|
             t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
 
             g0 = t.add_group_number (..Unique on=['x', 'y'])

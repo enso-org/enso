@@ -4,7 +4,6 @@ import project.Internal.IR.SQL_Expression.SQL_Expression
 
 ## PRIVATE
 make_group_number (from : Integer) (step : Integer) (grouping_expressions : Vector SQL_Expression) -> SQL_Expression =
-    # The SQL row_number() counts from 1, so we adjust the offset.
     offset = (from - step) : Integer
     params = [SQL_Expression.Literal offset.to_text, SQL_Expression.Literal step.to_text] + grouping_expressions
     SQL_Expression.Operation "GROUP_NUMBER" params
