@@ -40,7 +40,7 @@ public class TestLogFormatter {
 
   @Test
   public void shouldNotTransformLog_WithIncorrectArgumentDelimiter() {
-    var logMessage = createLogMessage("Message: arg1=1; arg2=2", 1, 2);
+    var logMessage = createLogMessage("Message: arg1={}; arg2=2", {}, 2);
     var json = LogFormatter.transform(logMessage);
     assertThat("was not transformed", json, is(nullValue()));
   }
@@ -62,7 +62,7 @@ public class TestLogFormatter {
 
   @Test
   public void shouldFillMessage_WithMoreWords() {
-    var logMessage = createLogMessage("This message has more words: arg=1", 1);
+    var logMessage = createLogMessage("This message has more words: arg={}", 1);
     var json = LogFormatter.transform(logMessage);
     assertThat(json.get("message").asText(), is("This message has more words"));
   }
@@ -76,7 +76,7 @@ public class TestLogFormatter {
 
   @Test
   public void shouldFillMoreArgumentsToMetadata() {
-    var logMessage = createLogMessage("Message: arg1=1, arg2=2", 1, 2);
+    var logMessage = createLogMessage("Message: arg1={}, arg2={}", 1, 2);
     var json = LogFormatter.transform(logMessage);
     assertThat(json.get("metadata").get("arg1").asInt(), is(1));
     assertThat(json.get("metadata").get("arg2").asInt(), is(2));
@@ -92,7 +92,7 @@ public class TestLogFormatter {
 
   @Test
   public void shouldFillBooleanArgumentToMetadata() {
-    var logMessage = createLogMessage("Message: arg=true", true);
+    var logMessage = createLogMessage("Message: arg={}", true);
     var json = LogFormatter.transform(logMessage);
     assertThat("was transformed", json, is(notNullValue()));
     assertThat(json.get("metadata").get("arg").asBoolean(), is(true));
@@ -100,7 +100,7 @@ public class TestLogFormatter {
 
   @Test
   public void shouldFillStringArgumentToMetadata() {
-    var logMessage = createLogMessage("Message: arg=\"some string\"", "some string");
+    var logMessage = createLogMessage("Message: arg={}", "some string");
     var json = LogFormatter.transform(logMessage);
     assertThat("was transformed", json, is(notNullValue()));
     assertThat(json.get("metadata").get("arg").asText(), is("some string"));
