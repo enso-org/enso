@@ -19,7 +19,7 @@ import org.enso.table.data.column.storage.type.StorageType;
 
 public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
   @Override
-  public boolean canApply(StorageType sourceType) {
+  public boolean canApply(StorageType<?> sourceType) {
     return sourceType instanceof IntegerType
         || sourceType instanceof FloatType
         || sourceType instanceof BooleanType

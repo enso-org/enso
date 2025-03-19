@@ -33,7 +33,12 @@ const MIN_DRAG_MOVE = 10
 const editingEdge: Interaction = {
   cancel: () => (graph.mouseEditedEdge = undefined),
   end: () => (graph.mouseEditedEdge = undefined),
-  pointerdown: edgeInteractionClick,
+  pointerdown: (e: PointerEvent) => {
+    if (edgeInteractionClick()) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+  },
   pointerup: (e: PointerEvent) => {
     const originEvent = graph.mouseEditedEdge?.event
     if (originEvent?.type === 'pointerdown') {
@@ -145,12 +150,13 @@ const nodeIdsWithOutputPorts = computed(() =>
           "
           @portClick="(event, portId) => graph.createEdgeFromOutput(portId, event)"
           @portDoubleClick="(_event, portId) => emit('outputPortDoubleClick', portId)"
-          @update:hoverAnim="graph.updateNodeOutputHoverAnim(id, $event)"
+          @update:visible="graph.setNodeOutputVisible(id, $event)"
+          @update:animation="graph.updateNodeOutputAnim(id, $event)"
         />
       </template>
     </svg>
     <svg v-if="graph.mouseEditedEdge" :viewBox="props.navigator.viewBox" class="overlay aboveNodes">
-      <GraphEdge :edge="graph.mouseEditedEdge" maskSource />
+      <GraphEdge data-testid="mouse-edited-edge" :edge="graph.mouseEditedEdge" maskSource />
     </svg>
   </div>
 </template>

@@ -16,6 +16,8 @@ from project.Metadata.Widget import Text_Input, Vector_Editor
    Arguments:
    - command: The command to execute.
    - arguments: The arguments to pass to `command`.
+   - stdin: Any content to pass to the standard input for `command`.
+   - redirect_out_err: Redirect stdout/stderr to `Process_Result`.
 
    > Example
      Call the "echo" command.
@@ -27,9 +29,9 @@ from project.Metadata.Widget import Text_Input, Vector_Editor
              Platform.OS.Windows -> Process.run "PowerShell" ["-Command", "exit 42"]
              _ -> Process.run "bash" ["-c", "exit 42"]
 @arguments (Vector_Editor item_editor=Text_Input item_default='""')
-run : Text -> Vector Text -> Text -> Process_Result
-run command:Text arguments=[] stdin:Text="" =
-    new_builder command arguments stdin . create
+run : Text -> Vector Text -> Text -> Boolean -> Process_Result
+run command:Text arguments=[] stdin:Text="" redirect_out_err:Boolean=False =
+    new_builder command arguments stdin . create redirect_out_err
 
 ## PRIVATE
    ADVANCED
@@ -39,6 +41,7 @@ run command:Text arguments=[] stdin:Text="" =
    - command: The command to execute on the system.
    - arguments: The arguments to pass to `command`. These must be text.
    - stdin: Any content to pass to the standard input for `command`.
+   - redirect_out_err: Redirect stdout/stderr to `Process_Result`.
 
    > Example
      Create a new builder for a command "echo".

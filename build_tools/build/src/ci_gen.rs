@@ -1,7 +1,6 @@
 use crate::prelude::*;
 
 use crate::ci::input;
-use crate::ci_gen::job::plain_job;
 use crate::ci_gen::job::prepare_packaging_steps;
 use crate::ci_gen::job::RunsOn;
 use crate::engine::env;
@@ -433,14 +432,28 @@ pub struct PublishRelease;
 
 impl JobArchetype for PublishRelease {
     fn job(&self, target: Target) -> Job {
-        let mut ret = plain_job(target, "Publish release", "release publish");
-        ret.expose_secret_as(secret::ARTEFACT_S3_ACCESS_KEY_ID, crate::aws::env::AWS_ACCESS_KEY_ID);
-        ret.expose_secret_as(
+        let mut job = RunStepsBuilder::new("release publish")
+            .customize(move |step| {
+                let mut steps = vec![];
+
+                let download_edition_file = step::download_artifact("Download Edition File")
+                    .with_custom_argument("name", crate::paths::EDITION_FILE_ARTIFACT_NAME)
+                    .with_custom_argument("path", "distribution/editions");
+                steps.push(download_edition_file);
+
+                steps.push(step);
+
+                steps
+            })
+            .build_job("Publish release", target);
+
+        job.expose_secret_as(secret::ARTEFACT_S3_ACCESS_KEY_ID, crate::aws::env::AWS_ACCESS_KEY_ID);
+        job.expose_secret_as(
             secret::ARTEFACT_S3_SECRET_ACCESS_KEY,
             crate::aws::env::AWS_SECRET_ACCESS_KEY,
         );
-        ret.env(crate::aws::env::AWS_REGION, "us-west-1");
-        ret
+        job.env(crate::aws::env::AWS_REGION, "us-west-1");
+        job
     }
 }
 

@@ -1490,6 +1490,26 @@ type DB_Column
                 new_name = self.naming_helper.binary_operation_name "like" self pattern
                 self.make_binary_op "LIKE" pattern new_name
 
+    ## GROUP Standard.Base.Logical
+       ICON preparation
+       Checks for each element of the column if it matches a regular expression.
+
+       Arguments:
+       - pattern: The pattern to match `self` against. If it is a column, the
+         operation is performed pairwise between corresponding elements of
+         `self` and that column.
+
+       > Example
+         Check if elements of a column start with 'A' and end with a 'M'.
+
+             import Standard.Examples
+
+             example_contains = Examples.text_column_1.regex_match (regex "A.*M")
+    regex_match self (pattern : Column | Text | Any) -> Column =
+        _ = [pattern]
+        Error.throw (Unsupported_Database_Operation.Error ("regex_match"))
+
+
     ## GROUP Standard.Base.Text
        ICON text
        This function removes the specified characters, by default any

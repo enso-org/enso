@@ -2,7 +2,6 @@
 import icons from '@/assets/icons.svg'
 import AgGridTableView, { commonContextMenuActions } from '@/components/shared/AgGridTableView.vue'
 import {
-  GridFilterModel,
   useTableVizToolbar,
   type SortModel,
 } from '@/components/visualizations/TableVisualization/tableVizToolbar'
@@ -14,11 +13,21 @@ import type {
   CellDoubleClickedEvent,
   ColDef,
   ICellRendererParams,
+  IServerSideDatasource,
+  IServerSideGetRowsRequest,
   ITooltipParams,
+  SetFilterValuesFuncParams,
   SortChangedEvent,
 } from 'ag-grid-enterprise'
 import { computed, onMounted, ref, shallowRef, watchEffect, type Ref } from 'vue'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
+import {
+  convertFilterModel,
+  convertSortModel,
+  createExpressionTemplate,
+} from './TableVisualization/TableVizDataSourceUtils'
+import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
+import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
 import { formatText, getCellValueType, isNumericType } from './TableVisualization/tableVizUtils'
 
 export const name = 'Table'
@@ -95,6 +104,8 @@ interface UnknownTable {
   child_label: string
   visualization_header: string
   data_quality_metrics?: DataQualityMetric[]
+  is_using_server_sort_and_filter: boolean
+  requires_number_format: boolean[]
 }
 
 type DataQualityMetric = {
@@ -125,11 +136,9 @@ const isTruncated = ref(false)
 const isCreateNodeEnabled = ref(false)
 const filterModel = ref<GridFilterModel[]>([])
 const sortModel = ref<SortModel[]>([])
-const dataGroupingMap = shallowRef<Map<string, boolean>>()
 const defaultColDef: Ref<ColDef> = ref({
   editable: false,
   sortable: true,
-  filter: true,
   resizable: true,
   minWidth: 25,
   cellRenderer: cellRenderer,
@@ -141,13 +150,41 @@ const defaultColDef: Ref<ColDef> = ref({
     'separator',
     'export',
   ],
+  autoHeight: true,
 } satisfies ColDef)
 const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
+const allRowCount = computed(() =>
+  typeof props.data === 'object' && 'all_rows_count' in props.data ? props.data.all_rows_count : 0,
+)
+const isSSRM = computed(
+  () =>
+    typeof props.data === 'object' &&
+    'is_using_server_sort_and_filter' in props.data &&
+    props.data.is_using_server_sort_and_filter,
+)
+const statusBar = computed(() =>
+  allRowCount.value ?
+    {
+      statusPanels:
+        config.nodeType === TABLE_NODE_TYPE ?
+          [
+            {
+              statusPanel: TableVizStatusBar,
+              statusPanelParams: {
+                total: allRowCount.value,
+              },
+            },
+          ]
+        : [],
+    }
+  : null,
+)
 
 const textFormatterSelected = ref<TextFormatOptions>('partial')
 
 const isRowCountSelectorVisible = computed(() => rowCount.value >= 1000)
+const dataGroupingMap = shallowRef<Map<string, boolean>>()
 
 const selectableRowLimits = computed(() => {
   const defaults = [1000, 2500, 5000, 10000, 25000, 50000, 100000].filter(
@@ -161,6 +198,20 @@ const selectableRowLimits = computed(() => {
   }
   return defaults
 })
+
+function setRowLimit(newRowLimit: number) {
+  if (newRowLimit !== rowLimit.value) {
+    rowLimit.value = newRowLimit
+  }
+}
+
+watchEffect(() =>
+  config.setPreprocessor(
+    'Standard.Visualization.Table.Visualization',
+    'prepare_visualization',
+    rowLimit.value.toString(),
+  ),
+)
 
 const isFilterSortNodeEnabled = computed(
   () => config.nodeType === TABLE_NODE_TYPE || config.nodeType === DB_TABLE_NODE_TYPE,
@@ -192,14 +243,111 @@ function formatNumber(params: ICellRendererParams) {
   return needsGrouping ? numberFormatGroupped.format(value) : numberFormat.format(value)
 }
 
-function setRowLimit(newRowLimit: number) {
-  if (newRowLimit !== rowLimit.value) {
-    rowLimit.value = newRowLimit
-    config.setPreprocessor(
-      'Standard.Visualization.Table.Visualization',
-      'prepare_visualization',
-      newRowLimit.toString(),
+const createRowsForTable = (data: unknown[][], shift: number, isSSrm: boolean) => {
+  const rows = data && data.length > 0 ? (data[0]?.length ?? 0) : 0
+  const getIndexInfo = (i: number) => {
+    return isSSrm ? data?.[0]?.[i] : i
+  }
+  return Array.from({ length: rows }, (_, i) => {
+    return Object.fromEntries(
+      columnDefs.value.map((h, j) => {
+        return [
+          h.field,
+          h.field === INDEX_FIELD_NAME ? getIndexInfo(i) : toRender(data?.[j - shift]?.[i]),
+        ]
+      }),
     )
+  })
+}
+
+async function getFilterValues(params: SetFilterValuesFuncParams) {
+  const colName = params.colDef.field
+  if (typeof props.data === 'object' && 'header' in props.data) {
+    const index = props.data.header?.findIndex((h: string) => colName === h)
+    const server = createServer()
+    const response = await server.getSetFilterValues(index)
+    setTimeout(() => {
+      if (response.success) {
+        params.success(response.data)
+      }
+    }, 500)
+  }
+}
+
+function createServer() {
+  return {
+    getSetFilterValues: async (columnIndex?: number) => {
+      const expressionFunction = createExpressionTemplate(
+        'Standard.Visualization.Table.Visualization',
+        'get_distinct_values_for_column',
+        `${columnIndex}`,
+      )
+      const response = await config.executeExpression(expressionFunction)
+      return {
+        success: true,
+        data: response.value.distinct_vals,
+      }
+    },
+    getData: async (request: IServerSideGetRowsRequest) => {
+      const columnHeaders =
+        typeof props.data === 'object' && 'header' in props.data ?
+          props.data.header ?
+            props.data.header
+          : []
+        : []
+
+      const { sortColIndexes, sortDirections } = convertSortModel(request, columnHeaders)
+
+      const { filterColumnIndexList, filterActions, valueList } = convertFilterModel(
+        request,
+        columnHeaders,
+        colTypeMap.value,
+      )
+
+      const expressionFunction = createExpressionTemplate(
+        'Standard.Visualization.Table.Visualization',
+        'get_rows_for_table',
+        //the index of the next bucket of rows to get
+        `${request.startRow}`,
+        //column indexes that require a sort
+        sortColIndexes,
+        //direction (Ascending/Descending) for the sorts
+        sortDirections,
+        //column indexes that require a filter
+        filterColumnIndexList,
+        //column actions i.e Greater Than, Between...
+        filterActions,
+        //values to filter on
+        valueList,
+      )
+      const response = await config.executeExpression(expressionFunction)
+      return {
+        success: true,
+        data: response.value.rows,
+      }
+    },
+  }
+}
+
+interface Response {
+  data: unknown[][]
+  success: boolean
+}
+function createServerSideDatasource(): IServerSideDatasource {
+  return {
+    getRows: async (params) => {
+      const server = createServer()
+      const response: Response = await server.getData(params.request)
+      const startIndex = params.request.startRow ? params.request.startRow : 0
+      const rows = createRowsForTable(response.data, 0, true)
+      setTimeout(() => {
+        if (response.success) {
+          params.success({ rowData: rows })
+        } else {
+          params.fail()
+        }
+      }, 500)
+    },
   }
 }
 
@@ -283,7 +431,7 @@ function getFilterType(valueType: string) {
 
 function getFilterOptions(valueType: string) {
   if (valueType === 'Date') {
-    return ['equals', 'notEqual', 'greaterThan', 'lessThan', 'inRange', 'blank', 'notBlank']
+    return ['equals', 'notEqual', 'greaterThan', 'lessThan', 'blank', 'notBlank']
   } else if (isNumericType(valueType)) {
     return [
       'equals',
@@ -292,7 +440,6 @@ function getFilterOptions(valueType: string) {
       'greaterThanOrEqual',
       'lessThan',
       'lessThanOrEqual',
-      'inRange',
       'blank',
       'notBlank',
     ]
@@ -300,6 +447,20 @@ function getFilterOptions(valueType: string) {
     return ['equals', 'notEqual', 'blank', 'notBlank', 'contains', 'startsWith', 'endsWith']
   } else {
     return null
+  }
+}
+
+function getCellDataType(valueType: string) {
+  if (valueType === 'Date') {
+    return 'date'
+  } else if (isNumericType(valueType)) {
+    return 'number'
+  } else if (valueType === 'Char') {
+    return 'text'
+  } else if (valueType === 'Boolean') {
+    return 'boolean'
+  } else {
+    return false
   }
 }
 
@@ -323,6 +484,7 @@ function toField(
   const icon = valueType ? getValueTypeIcon(valueType.constructor) : null
   const filterType = valueType ? getFilterType(valueType.constructor) : null
   const filterOptions = valueType ? getFilterOptions(valueType.constructor) : null
+  const cellValueType = valueType ? getCellDataType(valueType.constructor) : false
 
   const dataQualityMetrics =
     typeof props.data === 'object' && 'data_quality_metrics' in props.data ?
@@ -359,7 +521,9 @@ function toField(
     filter: filterType,
     filterParams: {
       maxNumConditions: 1,
+      values: getFilterValues,
       filterOptions: filterOptions,
+      buttons: ['clear'],
     },
     headerComponentParams: {
       template,
@@ -372,6 +536,7 @@ function toField(
       total: typeof props.data === 'object' ? props.data.all_rows_count : 0,
       showDataQuality,
     },
+    cellDataType: cellValueType,
   }
 }
 
@@ -433,6 +598,7 @@ function toLinkField(fieldName: string, options: LinkFieldOptions = {}): ColDef 
         null
       : `Double click to view this ${tooltipValue ?? 'value'} in a separate component`,
     cellRenderer: (params: ICellRendererParams) => `<div class='link'> ${params.value} </div>`,
+    filter: fieldName != INDEX_FIELD_NAME,
   }
 }
 
@@ -452,6 +618,7 @@ watchEffect(() => {
         // eslint-disable-next-line camelcase
         all_rows_count: 1,
         data: undefined,
+        header: undefined,
         // eslint-disable-next-line camelcase
         value_type: undefined,
         // eslint-disable-next-line camelcase
@@ -467,6 +634,10 @@ watchEffect(() => {
         visualization_header: undefined,
         // eslint-disable-next-line camelcase
         link_value_type: undefined,
+        // eslint-disable-next-line camelcase
+        is_using_server_sort_and_filter: undefined,
+        // eslint-disable-next-line camelcase
+        requires_number_format: undefined,
       }
   if ('error' in data_) {
     columnDefs.value = [
@@ -576,44 +747,56 @@ watchEffect(() => {
           ...dataHeader,
         ]
       : dataHeader
-    const rows = data_.data && data_.data.length > 0 ? (data_.data[0]?.length ?? 0) : 0
-    rowData.value = Array.from({ length: rows }, (_, i) => {
-      const shift = data_.has_index_col ? 1 : 0
-      return Object.fromEntries(
-        columnDefs.value.map((h, j) => {
-          return [
-            h.field,
-            toRender(h.field === INDEX_FIELD_NAME ? i : data_.data?.[j - shift]?.[i]),
-          ]
-        }),
-      )
-    })
-    isTruncated.value = data_.all_rows_count !== rowData.value.length
+    if (!data_.is_using_server_sort_and_filter) {
+      rowData.value =
+        data_.data ? createRowsForTable(data_.data, 1, data_.is_using_server_sort_and_filter) : []
+    }
   }
+  const headerGroupingMap = new Map()
+
+  const determineGrouping = (header: string) =>
+    rowData.value.some((row) => {
+      const value = row[header] && typeof row[header] === 'object' ? row[header].value : row[header]
+      return value > 999999 || value < -999999
+    })
+
+  if ('header' in data_) {
+    const headers = data_.header || []
+
+    if (data_.requires_number_format) {
+      columnDefs.value.forEach((col) => {
+        const colHeader = col.headerName
+        if (colHeader === INDEX_FIELD_NAME) {
+          headerGroupingMap.set(INDEX_FIELD_NAME, false)
+        }
+
+        if (typeof props.data === 'object' && 'header' in props.data) {
+          const dataHeaderIndex = props.data.header?.indexOf(colHeader ?? '')
+          const needsGrouping =
+            dataHeaderIndex !== -1 ? data_.requires_number_format[dataHeaderIndex!] : false
+          headerGroupingMap.set(colHeader, needsGrouping)
+        }
+      })
+    } else {
+      headers.forEach((header) => headerGroupingMap.set(header, determineGrouping(header)))
+    }
+  } else {
+    const headers = rowData.value[0] ? Object.keys(rowData.value[0]) : []
+    Object.keys(headers).forEach((header) =>
+      headerGroupingMap.set(header, determineGrouping(header)),
+    )
+  }
+
+  dataGroupingMap.value = headerGroupingMap
 
   // Update paging
   const newRowCount = data_.all_rows_count == null ? 1 : data_.all_rows_count
-  showRowCount.value = !(data_.all_rows_count == null)
+  showRowCount.value = !(data_.all_rows_count == null) && config.nodeType != TABLE_NODE_TYPE
   rowCount.value = newRowCount
   const newPageLimit = Math.ceil(newRowCount / rowLimit.value)
   pageLimit.value = newPageLimit
   if (page.value > newPageLimit) {
     page.value = newPageLimit
-  }
-
-  if (rowData.value[0]) {
-    const headers = Object.keys(rowData.value[0])
-    const headerGroupingMap = new Map()
-    headers.forEach((header) => {
-      const needsGrouping = rowData.value.some((row) => {
-        if (header in row && row[header] != null) {
-          const value = typeof row[header] === 'object' ? row[header].value : row[header]
-          return value > 999999 || value < -999999
-        }
-      })
-      headerGroupingMap.set(header, needsGrouping)
-    })
-    dataGroupingMap.value = headerGroupingMap
   }
 
   // If data is truncated, we cannot rely on sorting/filtering so will disable.
@@ -710,18 +893,7 @@ function checkSortAndFilter(e: SortChangedEvent) {
       }
     })
     .filter((sort) => sort)
-  const filter = Object.entries(gridFilterModel).map(([key, value]) => {
-    return {
-      columnName: key,
-      filterType: value.filterType,
-      filterAction: value.type,
-      filter: value.filter,
-      filterTo: value.filterTo,
-      dateFrom: value.dateFrom,
-      dateTo: value.dateTo,
-      values: value.values,
-    }
-  })
+  const filter = makeFilterModelList(gridFilterModel)
   if (sort.length || filter.length) {
     isCreateNodeEnabled.value = true
     sortModel.value = sort as SortModel[]
@@ -736,9 +908,8 @@ function checkSortAndFilter(e: SortChangedEvent) {
 // ===============
 // === Updates ===
 // ===============
-
 onMounted(() => {
-  setRowLimit(1000)
+  rowLimit.value = 1000
 })
 
 // ===============
@@ -760,28 +931,30 @@ config.setToolbar(
 
 <template>
   <div ref="rootNode" class="TableVisualization" @wheel.stop @pointerdown.stop>
-    <div class="table-visualization-status-bar">
-      <select
-        v-if="isRowCountSelectorVisible"
-        @change="setRowLimit(Number(($event.target as HTMLOptionElement).value))"
-      >
-        <option
-          v-for="limit in selectableRowLimits"
-          :key="limit"
-          :value="limit"
-          v-text="limit"
-        ></option>
-      </select>
-      <template v-if="showRowCount">
-        <span
-          v-if="isRowCountSelectorVisible && isTruncated"
-          v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
-        ></span>
-        <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
-        <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
-        <span v-else v-text="`${rowCount} rows.`"></span>
-      </template>
-    </div>
+    <template v-if="!isSSRM">
+      <div class="table-visualization-status-bar">
+        <select
+          v-if="isRowCountSelectorVisible"
+          @change="setRowLimit(Number(($event.target as HTMLOptionElement).value))"
+        >
+          <option
+            v-for="limit in selectableRowLimits"
+            :key="limit"
+            :value="limit"
+            v-text="limit"
+          ></option>
+        </select>
+        <template v-if="showRowCount">
+          <span
+            v-if="isRowCountSelectorVisible && isTruncated"
+            v-text="` of ${rowCount} rows (Sorting/Filtering disabled).`"
+          ></span>
+          <span v-else-if="isRowCountSelectorVisible" v-text="' rows.'"></span>
+          <span v-else-if="rowCount === 1" v-text="'1 row.'"></span>
+          <span v-else v-text="`${rowCount} rows.`"></span>
+        </template>
+      </div>
+    </template>
     <!-- TODO[ao]: Suspence in theory is not needed here (the entire visualization is inside
      suspense), but for some reason it causes reactivity loop - see https://github.com/enso-org/enso/issues/10782 -->
     <Suspense>
@@ -791,6 +964,10 @@ config.setToolbar(
         :rowData="rowData"
         :defaultColDef="defaultColDef"
         :textFormatOption="textFormatterSelected"
+        :datasource="createServerSideDatasource()"
+        :rowCount="allRowCount"
+        :isServerSideModel="isSSRM"
+        :statusBar="statusBar"
         @sortOrFilterUpdated="(e) => checkSortAndFilter(e)"
       />
     </Suspense>

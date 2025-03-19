@@ -1,5 +1,5 @@
 /** @file A LocalStorage data manager. */
-import type * as z from 'zod'
+import * as z from 'zod'
 
 import * as common from 'enso-common'
 
@@ -113,6 +113,13 @@ export default class LocalStorage {
     }
   }
 
+  /**
+   * Get the metadata for a key.
+   */
+  static getKeyMetadata<K extends LocalStorageKey>(key: K) {
+    return LocalStorage.keyMetadata[key]
+  }
+
   /** Retrieve an entry from the stored data. */
   get<K extends LocalStorageKey>(key: K) {
     this.assertRegisteredKey(key)
@@ -138,6 +145,69 @@ export default class LocalStorage {
     this.eventTarget.dispatchEvent(new Event('_change'))
 
     this.save()
+  }
+
+  /**
+   * Set all entries in the stored data, and save.
+   */
+  setMany<Values extends Record<LocalStorageKey, LocalStorageData[LocalStorageKey]>>(
+    values: Values,
+  ) {
+    for (const [key, value] of object.unsafeEntries(values)) {
+      // This is safe because we asserted that `values` is a record of `LocalStorageKey`.
+      // eslint-disable-next-line no-restricted-syntax
+      this.set(key as LocalStorageKey, value as LocalStorageData[LocalStorageKey])
+    }
+  }
+
+  /**
+   * Set an entry in the stored data from an untrusted source.
+   * This is useful for setting the state from a clipboard or from a remote source/user input.
+   */
+  setFromUntrustedSource(key: unknown, value: unknown) {
+    const schema = z
+      .object({
+        key: z
+          .custom<LocalStorageKey>()
+          .refine((unknownKey) => typeof unknownKey === 'string')
+          .refine((unknownKey) => unknownKey in LocalStorage.keyMetadata),
+        value: z.any(),
+      })
+      .transform((data) => {
+        const valueSchema = LocalStorage.keyMetadata[data.key].schema
+        const parsedValue = valueSchema.safeParse(data.value)
+
+        if (parsedValue.success) {
+          return { key: data.key, value: parsedValue.data }
+        }
+
+        throw new Error('Invalid key or value')
+      })
+
+    const parsed = schema.safeParse({ key, value })
+
+    if (parsed.success) {
+      this.set(parsed.data.key, parsed.data.value)
+    }
+  }
+
+  /**
+   * Set all entries in the stored data from an untrusted source.
+   * This is useful for setting the state from a clipboard or from a remote source/user input.
+   */
+  setManyFromUntrustedSource(values: unknown) {
+    if (typeof values !== 'object' || values == null) {
+      return
+    }
+
+    const keys = LocalStorage.getAllKeys()
+
+    for (const key of keys) {
+      // This is safe because we asserted that `values` is an object.
+      // eslint-disable-next-line no-restricted-syntax
+      const value: unknown = key in values ? (values as Record<string, unknown>)[key] : null
+      this.setFromUntrustedSource(key, value)
+    }
   }
 
   /**

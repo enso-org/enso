@@ -247,6 +247,14 @@ type Value_Type
 
     ## GROUP Standard.Base.Metadata
        ICON metadata
+       Checks if the `Value_Type` represents a Mixed type.
+    is_mixed : Boolean
+    is_mixed self = case self of
+        Value_Type.Mixed -> True
+        _ -> False
+
+    ## GROUP Standard.Base.Metadata
+       ICON metadata
        Checks if the `Value_Type` represents a Date_Time type.
     is_date_time : Boolean
     is_date_time self = case self of

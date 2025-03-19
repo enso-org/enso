@@ -29,6 +29,7 @@ use crate::arg::WatchJob;
 use anyhow::Context;
 use arg::BuildDescription;
 use clap::Parser;
+use enso_build::cloud_tests;
 use enso_build::config::Config;
 use enso_build::context::BuildContext;
 use enso_build::engine::context::EnginePackageProvider;
@@ -449,6 +450,12 @@ impl Processor {
                 .void_ok()
                 .boxed()
             }
+            arg::backend::Command::GenerateCloudCredentials {} => async move {
+                let auth_config = cloud_tests::build_auth_config_from_environment()?;
+                let path = Path::new("enso.credentials");
+                cloud_tests::build_credentials_file(auth_config, path).await
+            }
+            .boxed(),
         }
     }
 

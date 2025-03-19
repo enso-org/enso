@@ -24,13 +24,13 @@ public final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   }
 
   @Override
-  public boolean canRetypeTo(StorageType type) {
+  public boolean canRetypeTo(StorageType<?> type) {
     return type instanceof FloatType
         || type instanceof BigDecimalType;
   }
 
   @Override
-  public Builder retypeTo(StorageType type) {
+  public Builder retypeTo(StorageType<?> type) {
     switch (type) {
       case FloatType _ -> {
         // Needs to be an InferredDoubleBuilder so we can keep the raw data.

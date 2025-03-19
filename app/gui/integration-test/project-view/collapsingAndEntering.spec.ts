@@ -126,6 +126,30 @@ test('Collapsing nodes', async ({ page }) => {
   await expect(locate.graphNodeByBinding(page, 'ten')).toExist()
 })
 
+test('Display message when collapsed component ceases to exist', async ({ page }) => {
+  await actions.goToGraph(page)
+
+  const initialNodesCount = await locate.graphNode(page).count()
+  await locate
+    .graphNodeByBinding(page, 'prod')
+    .locator('.grab-handle')
+    .click({ modifiers: ['Shift'] })
+  await locate
+    .graphNodeByBinding(page, 'sum')
+    .locator('.grab-handle')
+    .click({ modifiers: ['Shift'] })
+  await page.getByLabel('Group Selected Components').click()
+  await expect(locate.graphNode(page)).toHaveCount(initialNodesCount - 1)
+  await mockCollapsedFunctionInfo(page, 'prod', 'collapsed')
+
+  const collapsedNode = locate.graphNodeByBinding(page, 'prod')
+  await locate.graphNodeIcon(collapsedNode).dblclick()
+  await expect(locate.inputNode(page)).toExist()
+
+  await page.keyboard.press(`${CONTROL_KEY}+Z`)
+  await expect(page.locator('.GraphMissingView')).toExist()
+})
+
 test('Input node', async ({ page }) => {
   await actions.goToGraph(page)
   await enterToFunc2(page)
