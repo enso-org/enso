@@ -112,3 +112,18 @@ test('Conditional ports: Enabled', async ({ page }) => {
 
   await page.keyboard.up(CONTROL_KEY)
 })
+
+test('Edge drop prevents further handling of event', async ({ page }) => {
+  await actions.goToGraph(page)
+
+  const outputPort = await locate.outputPortCoordinates(
+    page,
+    locate.graphNodeByBinding(page, 'five'),
+  )
+  await page.mouse.click(outputPort.x, outputPort.y - 25)
+  await expect(page.getByTestId('mouse-edited-edge')).toExist()
+  await page.waitForTimeout(300) // Avoid double clicks
+  await page.mouse.click(outputPort.x, outputPort.y - 25)
+  await expect(page.getByTestId('mouse-edited-edge')).not.toExist()
+  await expect(locate.componentBrowser(page)).toExist()
+})
