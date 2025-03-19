@@ -19,7 +19,7 @@ public class TestLogFormatter {
 
   @Test
   public void shouldNotTransformLog_WithoutArguments() {
-    var logMessage = createLogMessage("Message: arg=1");
+    var logMessage = createLogMessage("Message: arg={}");
     var json = LogFormatter.transform(logMessage);
     assertThat("was not transformed", json, is(nullValue()));
   }
