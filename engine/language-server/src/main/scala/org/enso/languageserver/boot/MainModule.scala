@@ -74,11 +74,21 @@ import scala.concurrent.duration.DurationInt
 class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
 
   private val log = LoggerFactory.getLogger(this.getClass)
+  private val telemetryLog =
+    LoggerFactory.getLogger("org.enso.telemetry.languageserver.boot.MainModule")
   log.debug(
     "Initializing main module of the Language Server from [{}, {}, {}]",
     BuildVersion.currentEdition,
     serverConfig,
     logLevel
+  )
+  telemetryLog.trace(
+    "Initializing main module of the Language Server: edition={}, graal_version={}, enso_version={}, is_release={}, AOT={}",
+    BuildVersion.currentEdition(),
+    BuildVersion.graalVersion(),
+    BuildVersion.ensoVersion(),
+    BuildVersion.isRelease,
+    HostEnsoUtils.isAot
   )
 
   private val contextSupervisor = new ComponentSupervisor()

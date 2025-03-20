@@ -3,7 +3,7 @@ import Standard.Base.Errors.Common.Incomparable_Values
 import Standard.Base.Errors.Common.No_Such_Method
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Frame_Hider.Frame_Hider
+import project.Frame_Hider
 import project.Spec_Result.Spec_Result
 import project.Test.Test
 from project.Extensions_Helpers import rhs_error_check

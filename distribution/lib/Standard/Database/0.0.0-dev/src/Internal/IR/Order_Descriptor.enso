@@ -8,6 +8,7 @@ type Order_Descriptor
     ## PRIVATE
     Value (expression : SQL_Expression) (direction : Sort_Direction) (nulls_order : Nothing | Nulls_Order = Nothing) (collation : Nothing | Text = Nothing)
 
+    ## PRIVATE
     reverse self -> Order_Descriptor =
         new_direction = case self.direction of
             Sort_Direction.Ascending -> Sort_Direction.Descending

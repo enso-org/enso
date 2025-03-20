@@ -49,6 +49,7 @@ import { TEAMS_DIRECTORY_ID, USERS_DIRECTORY_ID } from '#/services/remoteBackend
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import type { MergeValuesOfObjectUnion } from 'enso-common/src/utilities/data/object'
 import { useMemo } from 'react'
+import { z } from 'zod'
 
 const PROJECT_EXECUTIONS_STALE_TIME = 60_000
 
@@ -356,6 +357,66 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
         }
       }
     },
+  })
+}
+
+/**
+ * Options for {@link unsafe_assetFromCacheQueryOptions}.
+ */
+export interface AssetFromCacheQueryOptions {
+  readonly backend: Backend
+  readonly assetId: AssetId
+  readonly queryClient: QueryClient
+}
+
+/**
+ * Build a query options object to fetch an asset from the React Query cache.
+ * This is _only_ for situations when WE KNOW that the asset is in the cache.
+ * This is _not_ a general purpose function for fetching assets.
+ */
+// eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
+export function unsafe_assetFromCacheQueryOptions(options: AssetFromCacheQueryOptions) {
+  const { backend, assetId, queryClient } = options
+
+  const assetSchema = z
+    .object({ id: z.string().refine((value) => value === assetId) })
+    // This is safe, because we assert that the id is the same as the assetId
+    // This makes us sure that this is an asset.
+    // eslint-disable-next-line no-restricted-syntax
+    .transform((data) => data as unknown as backendModule.AnyAsset)
+
+  return queryOptions({
+    queryKey: [backend.type, 'asset', { id: assetId }],
+    // We don't want to cache this query, as it's purely a computed from another query.
+    gcTime: 0,
+    meta: { persist: false },
+    queryFn: () =>
+      queryClient
+        .getQueryCache()
+        .getAll()
+        .map((query) => {
+          const data = query.state.data
+
+          if (Array.isArray(data)) {
+            // eslint-disable-next-line no-restricted-syntax
+            const asset = data.find((maybeAsset) => assetSchema.safeParse(maybeAsset).success) as
+              | AnyAsset
+              | undefined
+
+            if (asset != null) {
+              return asset
+            }
+          }
+
+          const result = assetSchema.safeParse(data)
+
+          if (result.success) {
+            return result.data
+          }
+
+          return null
+        })
+        .filter((asset) => asset != null)[0],
   })
 }
 

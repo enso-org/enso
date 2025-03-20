@@ -18,8 +18,6 @@ export project.Data_Formatter.Data_Formatter
 export project.Delimited.Delimited_Format.Delimited_Format
 export project.Delimited.Quote_Style.Quote_Style
 
-export project.Generate_Rows_Range.Generate_Rows_Range
-
 export project.Excel.Excel_Format.Excel_Format
 export project.Excel.Excel_Range.Excel_Range
 export project.Excel.Excel_Workbook.Excel_Workbook
@@ -34,6 +32,8 @@ export project.Extensions.Table_Conversions.to_table
 export project.Extensions.Table_Conversions.write_table
 
 export project.Fill_With.Fill_With
+
+export project.Generate_Rows_Range.Generate_Rows_Range
 
 export project.Grouping_Method.Grouping_Method
 
@@ -61,3 +61,4 @@ export project.Table.Table
 export project.Value_Type.Auto
 export project.Value_Type.Bits
 export project.Value_Type.Value_Type
+

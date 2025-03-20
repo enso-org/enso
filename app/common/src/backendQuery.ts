@@ -94,7 +94,7 @@ export const INVALIDATION_MAP: Partial<
   updateFile: ['listDirectory'],
   updateDirectory: ['listDirectory'],
   createDatalink: ['listDirectory', 'getDatalink'],
-  uploadFileEnd: ['listDirectory'],
+  uploadFileEnd: ['listDirectory', 'listAssetVersions'],
   copyAsset: ['listDirectory', 'listAssetVersions'],
   deleteAsset: ['listDirectory', 'listAssetVersions'],
   undoDeleteAsset: ['listDirectory'],

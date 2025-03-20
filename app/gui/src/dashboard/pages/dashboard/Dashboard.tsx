@@ -177,6 +177,7 @@ function DashboardInner(props: DashboardProps) {
             }
             return null
           })
+
           if (modalRef.current == null) {
             return false
           }

@@ -34,7 +34,7 @@ export interface InputProps<
   TFieldName extends FieldPath<Schema, Constraint>,
   Constraint extends number | string = number | string,
 > extends FieldStateProps<
-      Omit<aria.InputProps, 'children' | 'size'>,
+      Omit<aria.InputProps, 'autoFocus' | 'children' | 'size'>,
       Schema,
       TFieldName,
       Constraint
@@ -43,6 +43,11 @@ export interface InputProps<
     FieldVariantProps,
     Omit<VariantProps<typeof INPUT_STYLES>, 'disabled' | 'invalid'>,
     TestIdProps {
+  /**
+   * If `true`, the input will be focused when the component is mounted.
+   * If `select`, the input will be focused and the text will be selected.
+   */
+  readonly autoFocus?: boolean | 'select' | undefined
   readonly style?: CSSProperties
   readonly inputRef?: Ref<HTMLInputElement>
   readonly addonStart?: ReactNode
@@ -70,14 +75,13 @@ export const Input = forwardRef(function Input<
     variants = INPUT_STYLES,
     fieldVariants,
     form: formRaw,
-    autoFocus = false,
     className,
     testId: testIdRaw,
     ...inputProps
   } = props
+
   const form = Form.useFormContext(formRaw)
   const testId = testIdRaw ?? props['data-testid']
-  const privateInputRef = useRef<HTMLInputElement>(null)
 
   const { fieldProps, formInstance } = Form.useFieldRegister<
     Omit<aria.InputProps, 'children' | 'size'>,
@@ -125,8 +129,6 @@ export const Input = forwardRef(function Input<
     }
   }
 
-  useAutoFocus({ ref: privateInputRef, disabled: !autoFocus })
-
   return (
     <Form.Field
       {...aria.mergeProps<FieldComponentProps<Schema>>()(inputProps, fieldProps, {
@@ -166,7 +168,7 @@ export const Input = forwardRef(function Input<
 
 /** Props for an {@link BasicInput}. */
 export interface BasicInputProps
-  extends Omit<aria.InputProps, 'children' | 'size'>,
+  extends Omit<aria.InputProps, 'autoFocus' | 'children' | 'size'>,
     Omit<VariantProps<typeof INPUT_STYLES>, 'disabled' | 'invalid'>,
     TestIdProps {
   readonly inputRef?: Ref<HTMLInputElement> | undefined
@@ -179,6 +181,7 @@ export interface BasicInputProps
   readonly isInvalid?: boolean | undefined
   readonly isDisabled?: boolean | undefined
   readonly variants?: ExtractFunction<typeof INPUT_STYLES> | undefined
+  readonly autoFocus?: boolean | 'select' | undefined
 }
 
 /** An input without a {@link Form.Field}. */
@@ -224,7 +227,15 @@ export const BasicInput = forwardRef(function BasicInput(
     }
   }
 
-  useAutoFocus({ ref: privateInputRef, disabled: !autoFocus })
+  useAutoFocus({
+    ref: privateInputRef,
+    disabled: autoFocus === false,
+    onFocused: () => {
+      if (autoFocus === 'select') {
+        privateInputRef.current?.select()
+      }
+    },
+  })
 
   return (
     <div

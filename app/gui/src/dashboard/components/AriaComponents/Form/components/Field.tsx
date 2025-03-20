@@ -55,7 +55,6 @@ export const FIELD_STYLES = tv({
     label: text.TEXT_STYLE({ variant: 'body', disableLineHeightCompensation: true }),
     content: 'flex flex-col items-start w-full',
     description: text.TEXT_STYLE({ variant: 'body', color: 'disabled' }),
-    error: text.TEXT_STYLE({ variant: 'body', color: 'danger' }),
   },
   defaultVariants: { fullWidth: true },
 })
@@ -138,11 +137,60 @@ export const Field = forwardRef(function Field<Schema extends types.TSchema>(
         </span>
       )}
 
-      {hasError && (
-        <span data-testid="error" id={errorId} className={classes.error()}>
-          {error ?? fieldState.error}
-        </span>
-      )}
+      <FieldError
+        error={error}
+        id={errorId}
+        /* This is SAFE, we are just using a type with added constraint. */
+        /* eslint-disable-next-line no-restricted-syntax */
+        name={props.name as types.FieldPath<Schema, string>}
+        form={props.form}
+      />
     </div>
   )
 })
+
+export const FIELD_ERROR_STYLES = tv({
+  base: text.TEXT_STYLE({ variant: 'body', color: 'danger', className: 'block' }),
+  variants: { fullWidth: { true: 'w-full' } },
+  defaultVariants: { fullWidth: true },
+})
+
+/**
+ * Props for the {@link FieldError} component.
+ */
+export interface FieldErrorProps<
+  Schema extends types.TSchema,
+  TFieldName extends types.FieldPath<Schema, string>,
+> extends React.HTMLAttributes<HTMLSpanElement>,
+    VariantProps<typeof FIELD_ERROR_STYLES> {
+  readonly error?: React.ReactNode | string | null | undefined
+  readonly id?: string | undefined
+  readonly form?: types.FormInstance<Schema> | undefined
+  readonly name: TFieldName
+}
+
+/**
+ * Component for displaying an error message for a field.
+ */
+export function FieldError<
+  Schema extends types.TSchema,
+  TFieldName extends types.FieldPath<Schema, string>,
+>(props: FieldErrorProps<Schema, TFieldName>) {
+  const { error, className, id, variants = FIELD_ERROR_STYLES, fullWidth, ...rest } = props
+
+  // This is SAFE, we are just using a type with added constraint.
+  // eslint-disable-next-line no-restricted-syntax
+  const fieldState = Form.useFieldState(props as never)
+
+  const hasError = (error !== undefined ? error : fieldState.error) != null
+
+  if (!hasError) {
+    return null
+  }
+
+  return (
+    <span data-testid="error" id={id} className={variants({ className, fullWidth })} {...rest}>
+      {error ?? fieldState.error}
+    </span>
+  )
+}

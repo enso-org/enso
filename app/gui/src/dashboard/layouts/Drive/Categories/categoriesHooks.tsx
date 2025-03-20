@@ -364,6 +364,15 @@ export function CategoriesProvider(props: CategoriesProviderProps): React.JSX.El
 }
 
 /**
+ * Returns the current category and the associated backend.
+ */
+export function useCategory() {
+  const { category, associatedBackend } = useCategoriesAPI()
+
+  return { category, associatedBackend }
+}
+
+/**
  * Gets the api to interact with the categories.
  */
 export function useCategoriesAPI() {

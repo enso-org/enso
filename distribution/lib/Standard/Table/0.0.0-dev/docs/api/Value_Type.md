@@ -48,6 +48,7 @@
     - is_decimal self -> Standard.Base.Any.Any
     - is_floating_point self -> Standard.Base.Any.Any
     - is_integer self -> Standard.Base.Any.Any
+    - is_mixed self -> Standard.Base.Any.Any
     - is_null self -> Standard.Base.Any.Any
     - is_numeric self -> Standard.Base.Any.Any
     - is_same_type self other:Standard.Table.Value_Type.Value_Type -> Standard.Base.Any.Any
